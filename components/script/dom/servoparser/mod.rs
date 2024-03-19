@@ -1133,7 +1133,7 @@ impl TreeSink for Sink {
         let element = create_element_for_token(
             name,
             attrs,
-            *self.document,
+            &*self.document,
             ElementCreator::ParserCreated(self.current_line),
             self.parsing_algorithm,
         );

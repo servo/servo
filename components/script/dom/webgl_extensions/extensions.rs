@@ -406,7 +406,8 @@ impl WebGLExtensions {
             .borrow()
             .tex_compression_formats
             .keys()
-            .copied()
+            .map(|&k| k)
+            .collect()
     }
 
     fn register_all_extensions(&self) {

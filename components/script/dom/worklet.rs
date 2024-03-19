@@ -722,7 +722,7 @@ impl WorkletThread {
                 let global =
                     self.get_worklet_global_scope(pipeline_id, worklet_id, global_type, base_url);
                 self.fetch_and_invoke_a_worklet_script(
-                    *global,
+                    &global,
                     pipeline_id,
                     origin,
                     script_url,

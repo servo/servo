@@ -4336,7 +4336,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if buff.len() < expected_byte_length as usize {
             return {
                 self.webgl_error(InvalidOperation);
-                ok(())
+                Ok(())
             };
         }
 
@@ -4527,7 +4527,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if buff.len() < expected_byte_length as usize {
             return {
                 self.webgl_error(InvalidOperation);
-                ok(())
+                Ok(())
             };
         }
 

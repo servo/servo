@@ -2954,7 +2954,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             if pixel_unpack_buffer == tf_buffer {
                 return {
                     self.base.webgl_error(InvalidOperation);
-                    ok(())
+                    Ok(())
                 };
             }
         }
@@ -3024,7 +3024,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         if self.bound_pixel_unpack_buffer.get().is_some() {
             return {
                 self.base.webgl_error(InvalidOperation);
-                ok(())
+                Ok(())
             };
         }
 
@@ -3103,7 +3103,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         if type_ == constants::FLOAT_32_UNSIGNED_INT_24_8_REV {
             return {
                 self.base.webgl_error(InvalidOperation);
-                ok(())
+                Ok(())
             };
         }
 

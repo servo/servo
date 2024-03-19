@@ -1100,7 +1100,7 @@ impl FetchResponseListener for ModuleContext {
             let meta = self.metadata.take().unwrap();
 
             if let Some(content_type) = meta.content_type.map(Serde::into_inner) {
-                if let Ok(content_type) = Mime::from_str(&content_type) {
+                if let Ok(content_type) = Mime::from_str(&content_type.to_string()) {
                     let essence_mime = content_type.essence_str();
 
                     if !SCRIPT_JS_MIMES.contains(&essence_mime) {
