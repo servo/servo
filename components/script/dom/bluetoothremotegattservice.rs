@@ -40,9 +40,9 @@ impl BluetoothRemoteGATTService {
         BluetoothRemoteGATTService {
             eventtarget: EventTarget::new_inherited(),
             device: Dom::from_ref(device),
-            uuid: uuid,
-            is_primary: is_primary,
-            instance_id: instance_id,
+            uuid,
+            is_primary,
+            instance_id,
         }
     }
 
