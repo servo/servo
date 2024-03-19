@@ -570,8 +570,7 @@ where
                     // Adjust for our toolbar height.
                     // TODO: Adjust for egui window decorations if we end up using those
                     let mut rect = self.window.get_coordinates().get_viewport().to_f32();
-                    rect.origin.y += toolbar * scale;
-                    rect.size.height -= toolbar * scale;
+                    rect.min.y += toolbar * scale;
 
                     self.webviews.insert(new_webview_id, WebView { rect });
                     self.creation_order.push(new_webview_id);

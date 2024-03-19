@@ -12,7 +12,7 @@ use egui::{
 };
 use egui_glow::CallbackFn;
 use egui_winit::EventResponse;
-use euclid::{Length, Point2D, Rect, Scale, Size2D};
+use euclid::{Box2D, Length, Point2D, Rect, Scale, Size2D};
 use gleam::gl;
 use glow::NativeFramebuffer;
 use log::{trace, warn};
@@ -211,7 +211,10 @@ impl Minibrowser {
                         x: width,
                         y: height,
                     } = ui.available_size();
-                    let rect = Rect::new(Point2D::new(x, y), Size2D::new(width, height)) * scale;
+                    let rect = Box2D::from_origin_and_size(
+                        Point2D::new(x, y),
+                        Size2D::new(width, height),
+                    ) * scale;
                     if rect != webview.rect {
                         webview.rect = rect;
                         embedder_events

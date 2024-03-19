@@ -1089,9 +1089,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             SpatialTreeItemKey::new(0, 0),
         );
 
-        let scaled_viewport_size = self.embedder_coordinates.get_viewport().size().to_f32() / zoom_factor;
+        let scaled_viewport_size =
+            self.embedder_coordinates.get_viewport().size().to_f32() / zoom_factor;
         let scaled_viewport_size = LayoutSize::from_untyped(scaled_viewport_size.to_untyped());
-        let scaled_viewport_rect = LayoutRect::from_origin_and_size(LayoutPoint::zero(), scaled_viewport_size);
+        let scaled_viewport_rect =
+            LayoutRect::from_origin_and_size(LayoutPoint::zero(), scaled_viewport_size);
 
         let root_clip_id = builder.define_clip_rect(zoom_reference_frame, scaled_viewport_rect);
         let clip_chain_id = builder.define_clip_chain(None, [root_clip_id]);
@@ -1183,7 +1185,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.frame_tree_id.next();
     }
 
-    fn move_resize_webview(
+    pub fn move_resize_webview(
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         rect: DeviceRect,
@@ -1193,18 +1195,21 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             Some(webview) => {
                 size_changed = rect.size() != webview.rect.size();
                 webview.rect = rect;
-            }
+            },
             None => {
                 warn!(
                     "{}: MoveResizeWebView on unknown top-level browsing context",
                     top_level_browsing_context_id
                 );
                 return;
-            }
+            },
         };
 
         if size_changed {
-            self.send_window_size_message_for_top_level_browser_context(rect, top_level_browsing_context_id);
+            self.send_window_size_message_for_top_level_browser_context(
+                rect,
+                top_level_browsing_context_id,
+            );
         }
 
         self.update_root_pipeline();
@@ -1213,7 +1218,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     fn send_window_size_message_for_top_level_browser_context(
         &self,
         rect: DeviceRect,
-        top_level_browsing_context_id: TopLevelBrowsingContextId
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
     ) {
         // The device pixel ratio used by the style system should include the scale from page pixels
         // to device pixels, but not including any pinch zoom.
@@ -1225,7 +1230,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 device_pixel_ratio,
                 initial_viewport,
             },
-            WindowSizeType::Resize
+            WindowSizeType::Resize,
         );
         if let Err(e) = self.constellation_chan.send(msg) {
             warn!("Sending window resize to constellation failed ({:?}).", e);
@@ -1789,7 +1794,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     fn update_after_zoom_or_hidpi_change(&mut self) {
         for (top_level_browsing_context_id, webview) in self.webviews.painting_order() {
-            self.send_window_size_message_for_top_level_browser_context(webview.rect, *top_level_browsing_context_id);
+            self.send_window_size_message_for_top_level_browser_context(
+                webview.rect,
+                *top_level_browsing_context_id,
+            );
         }
 
         // Update the root transform in WebRender to reflect the new zoom.
