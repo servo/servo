@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use std::cell::{Cell, RefCell};
 use std::num::NonZeroU32;
 use std::sync::Arc;
@@ -27,15 +31,22 @@ pub struct Minibrowser {
     pub context: EguiGlow,
     pub event_queue: RefCell<Vec<MinibrowserEvent>>,
     pub toolbar_height: Length<f32, DeviceIndependentPixel>,
+
+    /// The framebuffer object name for the widget surface we should draw to, or None if our widget
+    /// surface does not use a framebuffer object.
     pub widget_surface_fbo: Option<NativeFramebuffer>,
+
     last_update: Instant,
     last_mouse_position: Option<Point2D<f32, DeviceIndependentPixel>>,
     location: RefCell<String>,
+
+    /// Whether the location has been edited by the user without clicking Go.
     location_dirty: Cell<bool>,
-    hovered_link: Option<String>,  // Track the URL of the hovered link for tooltip
+    hovered_link: Option<String>, // Track the URL of the hovered link for tooltip
 }
 
 pub enum MinibrowserEvent {
+    /// Go button clicked.
     Go,
     Back,
     Forward,
@@ -51,9 +62,11 @@ impl Minibrowser {
         let gl = unsafe {
             glow::Context::from_loader_function(|s| rendering_context.get_proc_address(s))
         };
-
+        // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
         let context = EguiGlow::new(events_loop.as_winit(), Arc::new(gl), None);
-        context.egui_ctx.set_pixels_per_point(window.hidpi_factor().get());
+        context
+            .egui_ctx
+            .set_pixels_per_point(window.hidpi_factor().get());
 
         let widget_surface_fbo = match rendering_context.context_surface_info() {
             Ok(Some(info)) => NonZeroU32::new(info.framebuffer_object).map(NativeFramebuffer),
@@ -70,10 +83,12 @@ impl Minibrowser {
             last_mouse_position: None,
             location: RefCell::new(initial_url.to_string()),
             location_dirty: false.into(),
-            hovered_link: None,  // Initialize hovered link to None
+            hovered_link: None, // Initialize hovered link to None
         }
     }
-
+    /// Preprocess the given [winit::event::WindowEvent], returning unconsumed for mouse events in
+    /// the Servo browser rect. This is needed because the CentralPanel we create for our webview
+    /// would otherwise make egui report events in that area as consumed.
     pub fn on_event(&mut self, event: &winit::event::WindowEvent<'_>) -> EventResponse {
         let mut result = self.context.on_event(event);
         result.consumed &= match event {
@@ -95,10 +110,14 @@ impl Minibrowser {
         result
     }
 
+    /// Return true iff the given position is in the Servo browser rect.
     fn is_in_browser_rect(&self, position: Point2D<f32, DeviceIndependentPixel>) -> bool {
         position.y < self.toolbar_height.get()
     }
 
+    /// Update the minibrowser, but don’t paint.
+    /// If `servo_framebuffer_id` is given, set up a paint callback to blit its contents to our
+    /// CentralPanel when [`Minibrowser::paint`] is called.
     pub fn update(
         &mut self,
         window: &winit::window::Window,
@@ -106,7 +125,11 @@ impl Minibrowser {
         reason: &'static str,
     ) {
         let now = Instant::now();
-        trace!("{:?} since last update ({})", now - self.last_update, reason);
+        trace!(
+            "{:?} since last update ({})",
+            now - self.last_update,
+            reason
+        );
         let Self {
             context,
             event_queue,
@@ -140,12 +163,12 @@ impl Minibrowser {
                                         event_queue.borrow_mut().push(MinibrowserEvent::Go);
                                         location_dirty.set(false);
                                     }
-    
+
                                     let location_field = ui.add_sized(
                                         ui.available_size(),
                                         egui::TextEdit::singleline(&mut *location.borrow_mut()),
                                     );
-    
+
                                     if location_field.changed() {
                                         location_dirty.set(true);
                                     }
@@ -167,7 +190,7 @@ impl Minibrowser {
                     ui.cursor().min.y
                 });
             *toolbar_height = Length::new(height);
-    
+
             CentralPanel::default()
                 .frame(Frame::none())
                 .show(ctx, |ui| {
@@ -175,7 +198,7 @@ impl Minibrowser {
                     let size = ui.available_size();
                     let rect = egui::Rect::from_min_size(min, size);
                     ui.allocate_space(size);
-    
+
                     if let Some(servo_fbo) = servo_framebuffer_id {
                         ui.painter().add(PaintCallback {
                             rect,
@@ -192,8 +215,9 @@ impl Minibrowser {
                                     painter.gl().enable(gl::SCISSOR_TEST);
                                     painter.gl().clear(gl::COLOR_BUFFER_BIT);
                                     painter.gl().disable(gl::SCISSOR_TEST);
-    
-                                    let servo_fbo = NonZeroU32::new(servo_fbo).map(NativeFramebuffer);
+
+                                    let servo_fbo =
+                                        NonZeroU32::new(servo_fbo).map(NativeFramebuffer);
                                     painter
                                         .gl()
                                         .bind_framebuffer(gl::READ_FRAMEBUFFER, servo_fbo);
@@ -217,7 +241,7 @@ impl Minibrowser {
                             })),
                         });
                     }
-    
+
                     // Track link hover events
                     let input_state = ui.input_mut(|i| i.pointer.clone());
                     if let Some(pointer_pos) = input_state.interact_pos() {
@@ -230,13 +254,12 @@ impl Minibrowser {
                         *hovered_link = None;
                     }
                 });
-    
+
             *last_update = now;
         });
     }
 
-
-
+    /// Paint the minibrowser, as of the last update.
     pub fn paint(&mut self, window: &winit::window::Window) {
         unsafe {
             use glow::HasContext as _;
@@ -248,6 +271,8 @@ impl Minibrowser {
         self.context.paint(window);
     }
 
+    /// Takes any outstanding events from the [Minibrowser], converting them to [EmbedderEvent] and
+    /// routing those to the App event queue.
     pub fn queue_embedder_events_for_minibrowser_events(
         &self,
         browser: &WebViewManager<dyn WindowPortsMethods>,
@@ -283,6 +308,8 @@ impl Minibrowser {
         }
     }
 
+    /// Updates the location field from the given [BrowserManager], unless the user has started
+    /// editing it without clicking Go, returning true iff it has changed (needing an egui update).
     pub fn update_location_in_toolbar(
         &mut self,
         browser: &mut WebViewManager<dyn WindowPortsMethods>,
