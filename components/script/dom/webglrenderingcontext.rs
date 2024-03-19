@@ -4258,10 +4258,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
     ) -> ErrorResult {
         if !self.extension_manager.is_tex_type_enabled(data_type) {
-            return {
-                self.webgl_error(InvalidEnum);
-                Ok(())
-            };
+            self.webgl_error(InvalidEnum);
+            return Ok(());
         }
 
         let validator = TexImage2DValidator::new(
