@@ -748,7 +748,7 @@ impl GPUDeviceMethods for GPUDevice {
         promise
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcommandencoder
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcommandencoder>
     fn CreateCommandEncoder(
         &self,
         descriptor: &GPUCommandEncoderDescriptor,
