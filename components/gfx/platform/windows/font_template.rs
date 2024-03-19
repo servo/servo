@@ -79,8 +79,8 @@ impl FontTemplateData {
         self.font_data.read().unwrap().as_ref().cloned()
     }
 
-    /// Get a [`Font`] for this font if it is a local font or return `None`
-    /// if it's a web font.
+    /// Get a [`Font`] for this font if it is a local font or return `None` if it's a
+    /// web font.
     pub fn get_font(&self) -> Option<Font> {
         let font_descriptor = match &self.identifier {
             FontIdentifier::Local(local_identifier) => local_identifier.font_descriptor.clone(),
