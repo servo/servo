@@ -2949,8 +2949,8 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
         if let Some(tf_buffer) = self.bound_transform_feedback_buffer.get() {
             if pixel_unpack_buffer == tf_buffer {
-                    self.base.webgl_error(InvalidOperation);
-                    return Ok(());
+                self.base.webgl_error(InvalidOperation);
+                return Ok(());
             }
         }
 

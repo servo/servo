@@ -4385,8 +4385,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     ) -> ErrorResult {
         if !self.extension_manager.is_tex_type_enabled(data_type) {
             self.webgl_error(InvalidEnum);
-            return Ok(())
-            
+            return Ok(());
         }
 
         let pixels = match self.get_image_pixels(source)? {
