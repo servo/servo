@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use log::{error, warn};
+use wgpu::device::queue::{SubmittedWorkDoneClosure, SubmittedWorkDoneClosureC};
 use wgpu::gfx_select;
 pub use {wgpu_core as wgpu, wgpu_types as wgt};
 
@@ -69,6 +70,7 @@ pub enum WebGPUResponse {
         descriptor: wgt::DeviceDescriptor<Option<String>>,
     },
     BufferMapAsync(IpcSharedMemory),
+    SubmittedWorkDone,
 }
 
 pub type WebGPUResponseResult = Result<WebGPUResponse, String>;
@@ -257,6 +259,10 @@ pub enum WebGPURequest {
         size: wgt::Extent3d,
         data: IpcSharedMemory,
     },
+    QueueOnSubmittedWorkDone {
+        sender: IpcSender<Option<WebGPUResponseResult>>,
+        queue_id: id::QueueId,
+    },
 }
 
 struct BufferMapInfo<'a, T> {
@@ -350,6 +356,8 @@ struct WGPU<'a> {
     buffer_maps: WebGPUBufferMaps<'a>,
     // Presentation Buffers with pending mapping
     present_buffer_maps: WebGPUPresentBufferMaps<'a>,
+    /// Queues with pending submitted work
+    queue_submitted_work: HashMap<id::QueueId, Rc<IpcSender<Option<WebGPUResponseResult>>>>,
     //TODO: Remove this (https://github.com/gfx-rs/wgpu/issues/867)
     error_command_encoders: RefCell<HashMap<id::CommandEncoderId, String>>,
     webrender_api: RenderApi,
@@ -391,6 +399,7 @@ impl<'a> WGPU<'a> {
             _invalid_adapters: Vec::new(),
             buffer_maps: HashMap::new(),
             present_buffer_maps: HashMap::new(),
+            queue_submitted_work: HashMap::new(),
             error_command_encoders: RefCell::new(HashMap::new()),
             webrender_api: webrender_api_sender.create_api(),
             webrender_document,
@@ -1247,6 +1256,32 @@ impl<'a> WGPU<'a> {
                             &data_layout,
                             &size
                         ));
+                        self.send_result(queue_id, scope_id, result);
+                    },
+                    WebGPURequest::QueueOnSubmittedWorkDone { sender, queue_id } => {
+                        let global = &self.global;
+                        self.queue_submitted_work
+                            .insert(queue_id, Rc::new(sender.clone()));
+                        unsafe extern "C" fn callback(userdata: *mut u8) {
+                            let sender = Rc::from_raw(
+                                userdata as *const IpcSender<Option<WebGPUResponseResult>>,
+                            );
+                            if let Err(e) = sender.send(Some(Ok(WebGPUResponse::SubmittedWorkDone)))
+                            {
+                                warn!("Could not send SubmittedWorkDone Response ({})", e);
+                            }
+                        }
+
+                        // TODO(sagudev): use rust closure
+                        let callback_c = unsafe {
+                            SubmittedWorkDoneClosure::from_c(SubmittedWorkDoneClosureC {
+                                callback,
+                                user_data: convert_to_pointer(
+                                    self.queue_submitted_work.get(&queue_id).unwrap().clone(),
+                                ),
+                            })
+                        };
+                        let result = gfx_select!(queue_id => global.queue_on_submitted_work_done(queue_id, callback_c));
                         self.send_result(queue_id, scope_id, result);
                     },
                 }
