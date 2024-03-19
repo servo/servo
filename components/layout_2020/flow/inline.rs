@@ -84,7 +84,7 @@ use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style::values::generics::box_::VerticalAlignKeyword;
-use style::values::generics::text::LineHeight;
+use style::values::generics::font::LineHeight;
 use style::values::specified::text::{TextAlignKeyword, TextDecorationLine};
 use style::values::specified::{TextAlignLast, TextJustify};
 use style::Zero;
@@ -1829,7 +1829,7 @@ impl InlineContainerState {
         // when `line-height` is normal.
         let mut ascent = font_metrics.ascent;
         let mut descent = font_metrics.descent;
-        if style.get_inherited_text().line_height == LineHeight::Normal {
+        if style.get_font().line_height == LineHeight::Normal {
             let half_leading_from_line_gap =
                 (font_metrics.line_gap - descent - ascent).scale_by(0.5);
             ascent += half_leading_from_line_gap;
@@ -1856,7 +1856,7 @@ impl InlineContainerState {
         // zero in this case, the line may get some height when taking them into
         // considering with other zero line height boxes that converge on other block axis
         // locations when using the above formula.
-        if style.get_inherited_text().line_height != LineHeight::Normal {
+        if style.get_font().line_height != LineHeight::Normal {
             let half_leading =
                 (Au::from_f32_px(line_height.px()) - (ascent + descent)).scale_by(0.5);
             ascent += half_leading;
@@ -2217,8 +2217,9 @@ fn place_pending_floats(ifc: &mut InlineFormattingContextState, line_items: &mut
 }
 
 fn line_height(parent_style: &ComputedValues, font_metrics: &FontMetrics) -> Length {
-    let font_size = parent_style.get_font().font_size.computed_size();
-    match parent_style.get_inherited_text().line_height {
+    let font = parent_style.get_font();
+    let font_size = font.font_size.computed_size();
+    match font.line_height {
         LineHeight::Normal => Length::from(font_metrics.line_gap),
         LineHeight::Number(number) => font_size * number.0,
         LineHeight::Length(length) => length.0,
