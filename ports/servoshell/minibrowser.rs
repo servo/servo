@@ -7,7 +7,9 @@ use std::num::NonZeroU32;
 use std::sync::Arc;
 use std::time::Instant;
 
-use egui::{CentralPanel, Frame, InnerResponse, Key, Modifiers, PaintCallback, TopBottomPanel, Id, Pos2};
+use egui::{
+    CentralPanel, Frame, Id, InnerResponse, Key, Modifiers, PaintCallback, Pos2, TopBottomPanel,
+};
 use egui_glow::CallbackFn;
 use egui_winit::EventResponse;
 use euclid::{Length, Point2D, Scale};
@@ -123,7 +125,7 @@ impl Minibrowser {
         window: &winit::window::Window,
         servo_framebuffer_id: Option<gl::GLuint>,
         reason: &'static str,
-        status: Option<String>
+        status: Option<String>,
     ) {
         let now = Instant::now();
         trace!(
@@ -150,7 +152,12 @@ impl Minibrowser {
                         let add_contents = |ui: &mut egui::Ui| {
                             ui.label(status_text);
                         };
-                        egui::containers::popup::show_tooltip_at(&ui.ctx(), Id::new("status_tooltip"), suggested_position, add_contents);
+                        egui::containers::popup::show_tooltip_at(
+                            &ui.ctx(),
+                            Id::new("status_tooltip"),
+                            suggested_position,
+                            add_contents,
+                        );
                     }
                     ui.allocate_ui_with_layout(
                         ui.available_size(),

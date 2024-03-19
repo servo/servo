@@ -53,7 +53,7 @@ enum PumpResult {
     Continue {
         history_changed: bool,
         present: Present,
-        status: Option<String>
+        status: Option<String>,
     },
 }
 
