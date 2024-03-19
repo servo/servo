@@ -2942,19 +2942,15 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         let pixel_unpack_buffer = match self.bound_pixel_unpack_buffer.get() {
             Some(pixel_unpack_buffer) => pixel_unpack_buffer,
             None => {
-                return {
-                    self.base.webgl_error(InvalidOperation);
-                    Ok(())
-                }
+                self.base.webgl_error(InvalidOperation);
+                return Ok(());
             },
         };
 
         if let Some(tf_buffer) = self.bound_transform_feedback_buffer.get() {
             if pixel_unpack_buffer == tf_buffer {
-                return {
                     self.base.webgl_error(InvalidOperation);
-                    Ok(())
-                };
+                    return Ok(());
             }
         }
 
@@ -3021,10 +3017,8 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         source: ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement,
     ) -> Fallible<()> {
         if self.bound_pixel_unpack_buffer.get().is_some() {
-            return {
-                self.base.webgl_error(InvalidOperation);
-                Ok(())
-            };
+            self.base.webgl_error(InvalidOperation);
+            return Ok(());
         }
 
         let validator = TexImage2DValidator::new(
@@ -3093,17 +3087,13 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         src_offset: u32,
     ) -> Fallible<()> {
         if self.bound_pixel_unpack_buffer.get().is_some() {
-            return {
-                self.base.webgl_error(InvalidOperation);
-                Ok(())
-            };
+            self.base.webgl_error(InvalidOperation);
+            return Ok(());
         }
 
         if type_ == constants::FLOAT_32_UNSIGNED_INT_24_8_REV {
-            return {
-                self.base.webgl_error(InvalidOperation);
-                Ok(())
-            };
+            self.base.webgl_error(InvalidOperation);
+            return Ok(());
         }
 
         let validator = TexImage2DValidator::new(
@@ -3139,10 +3129,8 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         let src_byte_offset = src_offset as usize * src_elem_size;
 
         if src_data.len() <= src_byte_offset {
-            return {
-                self.base.webgl_error(InvalidOperation);
-                Ok(())
-            };
+            self.base.webgl_error(InvalidOperation);
+            return Ok(());
         }
 
         let buff = IpcSharedMemory::from_bytes(unsafe { &src_data.as_slice()[src_byte_offset..] });
@@ -3162,10 +3150,8 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         };
 
         if expected_byte_length as usize > buff.len() {
-            return {
-                self.base.webgl_error(InvalidOperation);
-                Ok(())
-            };
+            self.base.webgl_error(InvalidOperation);
+            return Ok(());
         }
 
         let size = Size2D::new(width, height);

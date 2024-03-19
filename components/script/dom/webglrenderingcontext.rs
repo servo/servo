@@ -4384,10 +4384,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         source: TexImageSource,
     ) -> ErrorResult {
         if !self.extension_manager.is_tex_type_enabled(data_type) {
-            return {
-                self.webgl_error(InvalidEnum);
-                Ok(())
-            };
+            self.webgl_error(InvalidEnum);
+            return Ok(())
+            
         }
 
         let pixels = match self.get_image_pixels(source)? {
