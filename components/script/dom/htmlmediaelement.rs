@@ -1540,6 +1540,9 @@ impl HTMLMediaElement {
                                     }),
                                     window.upcast(),
                                 );
+                                // TODO(pylbrecht)
+                                // If at any time the user agent learns that an audio or video
+                                // track has ended..
                             }
                         },
 
@@ -1551,6 +1554,10 @@ impl HTMLMediaElement {
                                     .task_manager()
                                     .media_element_task_source()
                                     .queue_simple_event(self.upcast(), atom!("ended"), &window);
+
+                                // TODO(pylbrecht)
+                                // If at any time the user agent learns that an audio or video
+                                // track has ended..
                             }
                         },
                     }
