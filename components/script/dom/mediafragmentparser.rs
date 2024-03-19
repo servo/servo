@@ -114,8 +114,8 @@ impl MediaFragmentParser {
             }
         } else {
             let mut iterator = fragment.split(',');
-            let start = parse_hms(iterator.next().ok_or(()))?;
-            let end = parse_hms(iterator.next().ok_or(()))?;
+            let start = parse_hms(iterator.next().ok_or(())?)?;
+            let end = parse_hms(iterator.next().ok_or(())?)?;
 
             if iterator.next().is_some() || start >= end {
                 return Err(());
@@ -314,13 +314,13 @@ fn parse_hms(s: &str) -> Result<f64, ()> {
         },
         2 => hms_to_seconds(
             0,
-            parse_npt_minute(vec.pop_front().ok_or(()))?,
-            parse_npt_seconds(vec.pop_front().ok_or(()))?,
+            parse_npt_minute(vec.pop_front().ok_or(())?)?,
+            parse_npt_seconds(vec.pop_front().ok_or(())?)?,
         ),
         3 => hms_to_seconds(
             vec.pop_front().ok_or_else(|| ())?.parse().map_err(|_| ())?,
-            parse_npt_minute(vec.pop_front().ok_or(()))?,
-            parse_npt_seconds(vec.pop_front().ok_or(()))?,
+            parse_npt_minute(vec.pop_front().ok_or(())?)?,
+            parse_npt_seconds(vec.pop_front().ok_or(())?)?,
         ),
         _ => return Err(()),
     };
