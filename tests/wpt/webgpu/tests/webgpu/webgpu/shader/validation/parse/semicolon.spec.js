@@ -27,6 +27,21 @@ fn((t) => {
   t.expectCompileResult( /* pass */false, `enable f16`);
 });
 
+g.test('after_requires').
+desc(`Test that a semicolon must be placed after a requires directive.`).
+fn((t) => {
+  t.skipIfLanguageFeatureNotSupported('readonly_and_readwrite_storage_textures');
+  t.expectCompileResult( /* pass */true, `requires readonly_and_readwrite_storage_textures;`);
+  t.expectCompileResult( /* pass */false, `requires readonly_and_readwrite_storage_textures`);
+});
+
+g.test('after_diagnostic').
+desc(`Test that a semicolon must be placed after a requires directive.`).
+fn((t) => {
+  t.expectCompileResult( /* pass */true, `diagnostic(info, derivative_uniformity);`);
+  t.expectCompileResult( /* pass */false, `diagnostic(info, derivative_uniformity)`);
+});
+
 g.test('after_struct_decl').
 desc(`Test that a semicolon can be placed after an struct declaration.`).
 fn((t) => {

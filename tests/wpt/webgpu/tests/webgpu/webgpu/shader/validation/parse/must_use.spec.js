@@ -57,27 +57,74 @@ fn((t) => {
 });
 
 const kMustUseCalls = {
+  no_call: ``, // Never calling a @must_use function should pass
   phony: `_ = bar();`,
   let: `let tmp = bar();`,
-  var: `var tmp = bar();`,
+  local_var: `var tmp = bar();`,
+  private_var: `private_var = bar();`,
+  storage_var: `storage_var = bar();`,
+  pointer: `
+    var a : f32;
+    let p = &a;
+    (*p) = bar();`,
+  vector_elem: `
+    var a : vec3<f32>;
+    a.x = bar();`,
+  matrix_elem: `
+    var a : mat3x2<f32>;
+    a[0][0] = bar();`,
   condition: `if bar() == 0 { }`,
   param: `baz(bar());`,
-  statement: `bar();`
+  return: `return bar();`,
+  statement: `bar();` // should fail if bar is @must_use
 };
 
 g.test('call').
 desc(`Validate that a call to must_use function cannot be the whole function call statement`).
-params((u) => u.combine('use', ['@must_use', '']).combine('call', keysOf(kMustUseCalls))).
+params((u) =>
+u //
+.combine('use', ['@must_use', '']).
+combine('call', keysOf(kMustUseCalls))
+).
 fn((t) => {
   const test = kMustUseCalls[t.params.call];
   const code = `
-    fn baz(param : u32) { }
-    ${t.params.use} fn bar() -> u32 { return 0; }
-    fn foo() {
+    @group(0) @binding(0) var<storage, read_write> storage_var : f32;
+    var<private> private_var : f32;
+
+    fn baz(param : f32) { }
+
+    ${t.params.use} fn bar() -> f32 { return 0; }
+
+    fn foo() ${t.params.call === 'return' ? '-> f32' : ''} {
       ${test}
     }`;
-  const res = t.params.call !== 'statement' || t.params.use === '';
-  t.expectCompileResult(res, code);
+
+  const should_pass = t.params.call !== 'statement' || t.params.use === '';
+  t.expectCompileResult(should_pass, code);
+});
+
+g.test('ignore_result_of_non_must_use_that_returns_call_of_must_use').
+desc(
+  `Test that ignoring the result of a non-@must_use function that returns the result of a @must_use function succeeds`
+).
+fn((t) => {
+  const wgsl = `
+    @must_use
+    fn f() -> f32 {
+      return 0;
+    }
+
+    fn g() -> f32 {
+      return f();
+    }
+
+    fn main() {
+      g(); // Ignore result
+    }
+    `;
+
+  t.expectCompileResult(true, wgsl);
 });
 
 const kMustUseBuiltinCalls = {

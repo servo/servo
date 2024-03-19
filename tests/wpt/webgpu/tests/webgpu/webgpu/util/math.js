@@ -881,6 +881,41 @@ export function biasedRange(a, b, num_steps) {
 }
 
 /**
+ * Version of biasedRange that operates on bigint values
+ *
+ * biasedRange was not made into a generic or to take in (number|bigint),
+ * because that introduces a bunch of complexity overhead related to type
+ * differentiation.
+ *
+ * Scaling is used internally so that the number of possible indices is
+ * significantly larger than num_steps. This is done to avoid duplicate entries
+ * in the resulting range due to quantizing to integers during the calculation.
+ *
+ *  If a and b are close together, such that the number of integers between them
+ *  is close to num_steps, then duplicates will occur regardless of scaling.
+ */
+export function biasedRangeBigInt(a, b, num_steps) {
+  if (num_steps <= 0) {
+    return [];
+  }
+
+  // Avoid division by 0
+  if (num_steps === 1) {
+    return [a];
+  }
+
+  const c = 2;
+  const scaling = 1000;
+  const scaled_num_steps = num_steps * scaling;
+
+  return Array.from(Array(num_steps).keys()).map((i) => {
+    const biased_i = Math.pow(i / (num_steps - 1), c); // Floating Point on [0, 1]
+    const scaled_i = Math.trunc((scaled_num_steps - 1) * biased_i); // Integer on [0, scaled_num_steps - 1]
+    return lerpBigInt(a, b, scaled_i, scaled_num_steps);
+  });
+}
+
+/**
  * @returns an ascending sorted array of numbers spread over the entire range of 32-bit floats
  *
  * Numbers are divided into 4 regions: negative normals, negative subnormals, positive subnormals & positive normals.
@@ -1286,6 +1321,28 @@ kValue.f32.positive.min,
 10.0,
 kValue.f32.positive.max];
 
+
+/**
+ * @returns an ascending sorted array of numbers spread over the entire range of 64-bit signed ints
+ *
+ * Numbers are divided into 2 regions: negatives, and positives, with their spreads biased towards 0
+ * Zero is included in range.
+ *
+ * @param counts structure param with 2 entries indicating the number of entries to be generated each region, values must be 0 or greater.
+ */
+export function fullI64Range(
+counts =
+
+
+{ positive: 50 })
+{
+  counts.negative = counts.negative === undefined ? counts.positive : counts.negative;
+  return [
+  ...biasedRangeBigInt(kValue.i64.negative.min, -1n, counts.negative),
+  0n,
+  ...biasedRangeBigInt(1n, kValue.i64.positive.max, counts.positive)];
+
+}
 
 /** @returns minimal f32 values that cover the entire range of f32 behaviours
  *

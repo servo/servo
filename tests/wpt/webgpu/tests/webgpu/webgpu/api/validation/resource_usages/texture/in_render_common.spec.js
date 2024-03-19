@@ -290,7 +290,8 @@ combineWithParams([
 { bgLayer: 1, bgLayerCount: 2 }]
 ).
 beginSubcases().
-combine('dsReadOnly', [true, false]).
+combine('depthReadOnly', [true, false]).
+combine('stencilReadOnly', [true, false]).
 combine('bgAspect', ['depth-only', 'stencil-only']).
 combine('inSamePass', [true, false])
 ).
@@ -302,7 +303,8 @@ fn((t) => {
     bgLevelCount,
     bgLayer,
     bgLayerCount,
-    dsReadOnly,
+    depthReadOnly,
+    stencilReadOnly,
     bgAspect,
     inSamePass
   } = t.params;
@@ -333,12 +335,12 @@ fn((t) => {
   });
   const depthStencilAttachment = {
     view: attachmentView,
-    depthReadOnly: dsReadOnly,
-    depthLoadOp: dsReadOnly ? undefined : 'load',
-    depthStoreOp: dsReadOnly ? undefined : 'store',
-    stencilReadOnly: dsReadOnly,
-    stencilLoadOp: dsReadOnly ? undefined : 'load',
-    stencilStoreOp: dsReadOnly ? undefined : 'store'
+    depthReadOnly,
+    depthLoadOp: depthReadOnly ? undefined : 'load',
+    depthStoreOp: depthReadOnly ? undefined : 'store',
+    stencilReadOnly,
+    stencilLoadOp: stencilReadOnly ? undefined : 'load',
+    stencilStoreOp: stencilReadOnly ? undefined : 'store'
   };
 
   const encoder = t.device.createCommandEncoder();
@@ -379,8 +381,11 @@ fn((t) => {
     bgLayer + bgLayerCount - 1
   );
   const isNotOverlapped = isMipLevelNotOverlapped || isArrayLayerNotOverlapped;
+  const readonly =
+  bgAspect === 'stencil-only' && stencilReadOnly ||
+  bgAspect === 'depth-only' && depthReadOnly;
 
-  const success = !inSamePass || isNotOverlapped || dsReadOnly;
+  const success = !inSamePass || isNotOverlapped || readonly;
   t.expectValidationError(() => {
     encoder.finish();
   }, !success);
@@ -424,6 +429,7 @@ unless(
   t.bgUsage0 !== 'sampled-texture' && t.bg0Levels.count > 1 ||
   t.bgUsage1 !== 'sampled-texture' && t.bg1Levels.count > 1
 ).
+beginSubcases().
 combine('inSamePass', [true, false])
 ).
 fn((t) => {
