@@ -14,7 +14,6 @@ use canvas_traits::webgl::{
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
 use ipc_channel::ipc::{self, IpcSharedMemory};
-use js::jsapi::mozilla::Ok;
 use js::jsapi::{JSObject, Type};
 use js::jsval::{
     BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, ObjectValue, UInt32Value,
