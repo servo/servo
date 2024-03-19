@@ -2477,7 +2477,7 @@ impl NodeMethods for Node {
 
     // https://dom.spec.whatwg.org/#dom-node-isconnected
     fn IsConnected(&self) -> bool {
-        self.is_connected();
+        self.is_connected()
     }
 
     // https://dom.spec.whatwg.org/#dom-node-ownerdocument
