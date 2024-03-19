@@ -573,7 +573,7 @@ pub fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
         let config =
             base64::engine::general_purpose::GeneralPurposeConfig::new().with_encode_padding(true);
         let engine = base64::engine::GeneralPurpose::new(&base64::alphabet::STANDARD, config);
-        Ok(DOMString::from(engine.encode(&octets)))
+        Ok(DOMString::from(engine.encode(octets)))
     }
 }
 
@@ -625,7 +625,7 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
         .with_decode_allow_trailing_bits(true);
     let engine = base64::engine::GeneralPurpose::new(&base64::alphabet::STANDARD, config);
 
-    let data = engine.decode(&input).map_err(|_| Error::InvalidCharacter)?;
+    let data = engine.decode(input).map_err(|_| Error::InvalidCharacter)?;
     Ok(data.iter().map(|&b| b as char).collect::<String>().into())
 }
 
@@ -790,7 +790,7 @@ impl WindowMethods for Window {
                 });
                 self.task_manager()
                     .dom_manipulation_task_source()
-                    .queue(task, &self.upcast::<GlobalScope>())
+                    .queue(task, self.upcast::<GlobalScope>())
                     .expect("Queuing window_close_browsing_context task to work");
             }
         }
@@ -1337,7 +1337,7 @@ impl WindowMethods for Window {
         init: RootedTraceableBox<RequestInit>,
         comp: InRealm,
     ) -> Rc<Promise> {
-        fetch::Fetch(&self.upcast(), input, init, comp)
+        fetch::Fetch(self.upcast(), input, init, comp)
     }
 
     fn TestRunner(&self) -> DomRoot<TestRunner> {
@@ -1540,7 +1540,7 @@ impl WindowMethods for Window {
             if a.1 == b.1 {
                 // This can happen if an img has an id different from its name,
                 // spec does not say which string to put first.
-                a.0.cmp(&b.0)
+                a.0.cmp(b.0)
             } else if a.1.upcast::<Node>().is_before(b.1.upcast::<Node>()) {
                 cmp::Ordering::Less
             } else {
@@ -1594,7 +1594,7 @@ impl Window {
         let target_origin = match target_origin.0[..].as_ref() {
             "*" => None,
             "/" => Some(source_origin.clone()),
-            url => match ServoUrl::parse(&url) {
+            url => match ServoUrl::parse(url) {
                 Ok(url) => Some(url.origin().clone()),
                 Err(_) => return Err(Error::Syntax),
             },
@@ -2188,14 +2188,14 @@ impl Window {
     #[allow(unsafe_code)]
     pub fn init_window_proxy(&self, window_proxy: &WindowProxy) {
         assert!(self.window_proxy.get().is_none());
-        self.window_proxy.set(Some(&window_proxy));
+        self.window_proxy.set(Some(window_proxy));
     }
 
     #[allow(unsafe_code)]
     pub fn init_document(&self, document: &Document) {
         assert!(self.document.get().is_none());
         assert!(document.window() == self);
-        self.document.set(Some(&document));
+        self.document.set(Some(document));
         if !self.unminify_js {
             return;
         }

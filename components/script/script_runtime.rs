@@ -686,9 +686,7 @@ unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
             let mut ops = MallocSizeOfOps::new(servo_allocator::usable_size, None, None);
             (v.malloc_size_of)(&mut ops, dom_object)
         },
-        Err(_e) => {
-            return 0;
-        },
+        Err(_e) => 0,
     }
 }
 
@@ -920,7 +918,7 @@ impl StreamConsumer {
     pub fn consume_chunk(&self, stream: &[u8]) -> bool {
         unsafe {
             let stream_ptr = stream.as_ptr();
-            return StreamConsumerConsumeChunk(self.0, stream_ptr, stream.len());
+            StreamConsumerConsumeChunk(self.0, stream_ptr, stream.len())
         }
     }
 
@@ -1041,7 +1039,7 @@ unsafe extern "C" fn consume_stream(
         );
         return false;
     }
-    return true;
+    true
 }
 
 #[allow(unsafe_code)]

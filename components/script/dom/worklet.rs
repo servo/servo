@@ -698,7 +698,7 @@ impl WorkletThread {
     fn perform_a_worklet_task(&self, worklet_id: WorkletId, task: WorkletTask) {
         match self.global_scopes.get(&worklet_id) {
             Some(global) => global.perform_a_worklet_task(task),
-            None => return warn!("No such worklet as {:?}.", worklet_id),
+            None => warn!("No such worklet as {:?}.", worklet_id),
         }
     }
 
@@ -722,7 +722,7 @@ impl WorkletThread {
                 let global =
                     self.get_worklet_global_scope(pipeline_id, worklet_id, global_type, base_url);
                 self.fetch_and_invoke_a_worklet_script(
-                    &*global,
+                    &global,
                     pipeline_id,
                     origin,
                     script_url,

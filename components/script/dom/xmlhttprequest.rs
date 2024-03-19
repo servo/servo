@@ -463,7 +463,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         let value = trim_http_whitespace(&value);
 
         // Step 4
-        if !is_token(&name) || !is_field_value(&value) {
+        if !is_token(&name) || !is_field_value(value) {
             return Err(Error::Syntax);
         }
         let name_lower = name.to_lower();
@@ -578,7 +578,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         // Step 4 (first half)
         let mut extracted_or_serialized = match data {
             Some(DocumentOrXMLHttpRequestBodyInit::Document(ref doc)) => {
-                let bytes = Vec::from(serialize_document(&doc)?.as_ref());
+                let bytes = Vec::from(serialize_document(doc)?.as_ref());
                 let content_type = if doc.is_html_document() {
                     "text/html;charset=UTF-8"
                 } else {
@@ -1436,7 +1436,7 @@ impl XMLHttpRequest {
 
         // Step 12
         self.response_xml.set(Some(&temp_doc));
-        return self.response_xml.get();
+        self.response_xml.get()
     }
 
     #[allow(unsafe_code)]
@@ -1620,7 +1620,7 @@ impl XMLHttpRequest {
         // 8. Return encoding.
         override_charset
             .or(response_charset)
-            .and_then(|charset| Encoding::for_label(&charset.as_bytes()))
+            .and_then(|charset| Encoding::for_label(charset.as_bytes()))
     }
 
     /// <https://xhr.spec.whatwg.org/#response-mime-type>
@@ -1641,7 +1641,7 @@ impl XMLHttpRequest {
         if self.override_mime_type.borrow().is_some() {
             self.override_mime_type.borrow().clone()
         } else {
-            return self.response_mime_type();
+            self.response_mime_type()
         }
     }
 }

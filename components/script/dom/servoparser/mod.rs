@@ -502,7 +502,7 @@ impl ServoParser {
             if let Some(partial_bom) = bom_sniff.as_mut() {
                 if partial_bom.len() + chunk.len() >= 3 {
                     partial_bom.extend(chunk.iter().take(3 - partial_bom.len()).copied());
-                    if let Some((encoding, _)) = Encoding::for_bom(&partial_bom) {
+                    if let Some((encoding, _)) = Encoding::for_bom(partial_bom) {
                         self.document.set_encoding(encoding);
                     }
                     drop(bom_sniff);
@@ -568,7 +568,7 @@ impl ServoParser {
                 }
             }
         }
-        self.tokenize(|tokenizer| tokenizer.feed(&mut *self.network_input.borrow_mut()));
+        self.tokenize(|tokenizer| tokenizer.feed(&mut self.network_input.borrow_mut()));
 
         if self.suspended.get() {
             return;
@@ -606,7 +606,7 @@ impl ServoParser {
             assert!(!self.aborted.get());
 
             self.document.reflow_if_reflow_timer_expired();
-            let script = match feed(&mut *self.tokenizer.borrow_mut()) {
+            let script = match feed(&mut self.tokenizer.borrow_mut()) {
                 TokenizerResult::Done => return,
                 TokenizerResult::Script(script) => script,
             };
@@ -887,7 +887,7 @@ impl FetchResponseListener for ParserContext {
                     self.is_synthesized_document = true;
                     let page = resources::read_string(Resource::BadCertHTML);
                     let page = page.replace("${reason}", &reason);
-                    let encoded_bytes = general_purpose::STANDARD_NO_PAD.encode(&bytes);
+                    let encoded_bytes = general_purpose::STANDARD_NO_PAD.encode(bytes);
                     let page = page.replace("${bytes}", encoded_bytes.as_str());
                     let page =
                         page.replace("${secret}", &net_traits::PRIVILEGED_SECRET.to_string());
@@ -978,7 +978,7 @@ impl FetchResponseListener for ParserContext {
         if let Some(pushed_index) = self.pushed_entry_index {
             let document = &parser.document;
             let performance_entry =
-                PerformanceNavigationTiming::new(&document.global(), 0, 0, &document);
+                PerformanceNavigationTiming::new(&document.global(), 0, 0, document);
             document
                 .global()
                 .performance()
@@ -1008,7 +1008,7 @@ impl FetchResponseListener for ParserContext {
 
         //TODO nav_start and nav_start_precise
         let performance_entry =
-            PerformanceNavigationTiming::new(&document.global(), 0, 0, &document);
+            PerformanceNavigationTiming::new(&document.global(), 0, 0, document);
         self.pushed_entry_index = document
             .global()
             .performance()
@@ -1141,7 +1141,7 @@ impl TreeSink for Sink {
     }
 
     fn create_comment(&mut self, text: StrTendril) -> Dom<Node> {
-        let comment = Comment::new(DOMString::from(String::from(text)), &*self.document, None);
+        let comment = Comment::new(DOMString::from(String::from(text)), &self.document, None);
         Dom::from_ref(comment.upcast())
     }
 
@@ -1207,7 +1207,7 @@ impl TreeSink for Sink {
     }
 
     fn append(&mut self, parent: &Dom<Node>, child: NodeOrText<Dom<Node>>) {
-        insert(&parent, None, child, self.parsing_algorithm);
+        insert(parent, None, child, self.parsing_algorithm);
     }
 
     fn append_based_on_parent_node(
@@ -1276,7 +1276,7 @@ impl TreeSink for Sink {
 
     fn reparent_children(&mut self, node: &Dom<Node>, new_parent: &Dom<Node>) {
         while let Some(ref child) = node.GetFirstChild() {
-            new_parent.AppendChild(&child).unwrap();
+            new_parent.AppendChild(child).unwrap();
         }
     }
 

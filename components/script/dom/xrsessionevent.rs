@@ -52,7 +52,7 @@ impl XRSessionEvent {
         session: &XRSession,
     ) -> DomRoot<XRSessionEvent> {
         let trackevent = reflect_dom_object_with_proto(
-            Box::new(XRSessionEvent::new_inherited(&session)),
+            Box::new(XRSessionEvent::new_inherited(session)),
             global,
             proto,
         );

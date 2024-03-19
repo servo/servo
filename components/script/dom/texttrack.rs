@@ -72,7 +72,7 @@ impl TextTrack {
 
     pub fn get_cues(&self) -> DomRoot<TextTrackCueList> {
         self.cue_list
-            .or_init(|| TextTrackCueList::new(&self.global().as_window(), &[]))
+            .or_init(|| TextTrackCueList::new(self.global().as_window(), &[]))
     }
 
     pub fn id(&self) -> &str {
@@ -131,7 +131,7 @@ impl TextTrackMethods for TextTrack {
     fn GetActiveCues(&self) -> Option<DomRoot<TextTrackCueList>> {
         // XXX implement active cues logic
         //      https://github.com/servo/servo/issues/22314
-        Some(TextTrackCueList::new(&self.global().as_window(), &[]))
+        Some(TextTrackCueList::new(self.global().as_window(), &[]))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-texttrack-addcue

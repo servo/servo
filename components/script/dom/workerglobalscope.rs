@@ -275,7 +275,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
             let (url, source) = match fetch::load_whole_resource(
                 request,
                 &global_scope.resource_threads().sender(),
-                &global_scope,
+                global_scope,
             ) {
                 Err(_) => return Err(Error::Network),
                 Ok((metadata, bytes)) => (metadata.final_url, String::from_utf8(bytes).unwrap()),
@@ -467,7 +467,7 @@ impl WorkerGlobalScope {
         let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
         let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
         if let Some(dedicated) = dedicated {
-            return dedicated.script_chan();
+            dedicated.script_chan()
         } else if let Some(service_worker) = service_worker {
             return service_worker.script_chan();
         } else {
@@ -510,7 +510,7 @@ impl WorkerGlobalScope {
     pub fn new_script_pair(&self) -> (Box<dyn ScriptChan + Send>, Box<dyn ScriptPort + Send>) {
         let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
         if let Some(dedicated) = dedicated {
-            return dedicated.new_script_pair();
+            dedicated.new_script_pair()
         } else {
             panic!("need to implement a sender for SharedWorker/ServiceWorker")
         }

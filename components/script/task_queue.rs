@@ -220,7 +220,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
                 (false, false) => {
                     // Cycle through non-priority task sources, taking one throttled task from each.
                     let task_source = task_source_cycler.next().unwrap();
-                    let throttled_queue = match throttled.get_mut(&task_source) {
+                    let throttled_queue = match throttled.get_mut(task_source) {
                         Some(queue) => queue,
                         None => continue,
                     };

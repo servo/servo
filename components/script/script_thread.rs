@@ -299,7 +299,7 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
         };
         match script_msg {
             CommonScriptMsg::Task(_category, _boxed, _pipeline_id, task_source) => {
-                Some(&task_source)
+                Some(task_source)
             },
             _ => None,
         }
@@ -408,7 +408,7 @@ impl ScriptChan for SendableMainThreadScriptChan {
     }
 
     fn clone(&self) -> Box<dyn ScriptChan + Send> {
-        Box::new(SendableMainThreadScriptChan((&self.0).clone()))
+        Box::new(SendableMainThreadScriptChan((self.0).clone()))
     }
 }
 
@@ -424,7 +424,7 @@ impl ScriptChan for MainThreadScriptChan {
     }
 
     fn clone(&self) -> Box<dyn ScriptChan + Send> {
-        Box::new(MainThreadScriptChan((&self.0).clone()))
+        Box::new(MainThreadScriptChan((self.0).clone()))
     }
 }
 
@@ -907,7 +907,7 @@ impl ScriptThread {
     pub fn is_mutation_observer_microtask_queued() -> bool {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            return script_thread.mutation_observer_microtask_queued.get();
+            script_thread.mutation_observer_microtask_queued.get()
         })
     }
 
@@ -2183,7 +2183,7 @@ impl ScriptThread {
         match msg {
             DevtoolScriptControlMsg::EvaluateJS(id, s, reply) => match documents.find_window(id) {
                 Some(window) => devtools::handle_evaluate_js(window.upcast(), s, reply),
-                None => return warn!("Message sent to closed pipeline {}.", id),
+                None => warn!("Message sent to closed pipeline {}.", id),
             },
             DevtoolScriptControlMsg::GetRootNode(id, reply) => {
                 devtools::handle_get_root_node(&*documents, id, reply)
@@ -2659,7 +2659,7 @@ impl ScriptThread {
     ) {
         let window = self.documents.borrow().find_window(pipeline_id);
         match window {
-            None => return warn!("postMessage after target pipeline {} closed.", pipeline_id),
+            None => warn!("postMessage after target pipeline {} closed.", pipeline_id),
             Some(window) => {
                 // FIXME: synchronously talks to constellation.
                 // send the required info as part of postmessage instead.
@@ -3811,7 +3811,7 @@ impl ScriptThread {
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
         if size_type == WindowSizeType::Resize {
             let uievent = UIEvent::new(
-                &window,
+                window,
                 DOMString::from("resize"),
                 EventBubbles::DoesNotBubble,
                 EventCancelable::NotCancelable,
@@ -4003,13 +4003,13 @@ impl ScriptThread {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {
             let entry = PerformancePaintTiming::new(
-                &window.upcast::<GlobalScope>(),
+                window.upcast::<GlobalScope>(),
                 metric_type,
                 metric_value,
             );
             window
                 .Performance()
-                .queue_entry(&entry.upcast::<PerformanceEntry>());
+                .queue_entry(entry.upcast::<PerformanceEntry>());
         }
     }
 
