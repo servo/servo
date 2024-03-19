@@ -38,7 +38,7 @@ fn cascade(
         Scale::new(1.0),
     );
     let stylist = Stylist::new(device, QuirksMode::NoQuirks);
-    let mut builder = CustomPropertiesBuilder::new(inherited, &stylist);
+    let mut builder = CustomPropertiesBuilder::new(inherited, &stylist, false);
 
     for declaration in &declarations {
         builder.cascade(
