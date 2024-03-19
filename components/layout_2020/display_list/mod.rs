@@ -428,7 +428,6 @@ impl Fragment {
         {
             let mut rect = rect;
             rect.origin.y += Length::from(font_metrics.ascent - font_metrics.strikeout_offset);
-            // XXX(ferjm) This does not work on MacOS #942
             rect.size.height = Length::new(font_metrics.strikeout_size.to_nearest_pixel(dppx));
             self.build_display_list_for_text_decoration(fragment, builder, &rect, &color);
         }
