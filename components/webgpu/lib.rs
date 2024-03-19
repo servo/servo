@@ -356,8 +356,6 @@ struct WGPU<'a> {
     buffer_maps: WebGPUBufferMaps<'a>,
     // Presentation Buffers with pending mapping
     present_buffer_maps: WebGPUPresentBufferMaps<'a>,
-    /// Queues with pending submitted work
-    queue_submitted_work: Arc<Mutex<HashMap<id::QueueId, IpcSender<Option<WebGPUResponseResult>>>>>,
     //TODO: Remove this (https://github.com/gfx-rs/wgpu/issues/867)
     error_command_encoders: RefCell<HashMap<id::CommandEncoderId, String>>,
     webrender_api: RenderApi,
@@ -399,7 +397,6 @@ impl<'a> WGPU<'a> {
             _invalid_adapters: Vec::new(),
             buffer_maps: HashMap::new(),
             present_buffer_maps: HashMap::new(),
-            queue_submitted_work: Arc::new(Mutex::new(HashMap::new())),
             error_command_encoders: RefCell::new(HashMap::new()),
             webrender_api: webrender_api_sender.create_api(),
             webrender_document,
@@ -1260,15 +1257,8 @@ impl<'a> WGPU<'a> {
                     },
                     WebGPURequest::QueueOnSubmittedWorkDone { sender, queue_id } => {
                         let global = &self.global;
-                        self.queue_submitted_work
-                            .lock()
-                            .unwrap()
-                            .insert(queue_id, sender.clone());
-                        let qsw = Arc::clone(&self.queue_submitted_work);
 
                         let callback = SubmittedWorkDoneClosure::from_rust(Box::from(move || {
-                            let mut qsw_hm = qsw.lock().unwrap();
-                            let sender = qsw_hm.remove(&queue_id).unwrap();
                             if let Err(e) = sender.send(Some(Ok(WebGPUResponse::SubmittedWorkDone)))
                             {
                                 warn!("Could not send SubmittedWorkDone Response ({})", e);
