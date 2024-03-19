@@ -7,7 +7,7 @@ use std::num::NonZeroU32;
 use std::sync::Arc;
 use std::time::Instant;
 
-use egui::{CentralPanel, Frame, InnerResponse, Key, Modifiers, PaintCallback, TopBottomPanel};
+use egui::{CentralPanel, Frame, InnerResponse, Key, Modifiers, PaintCallback, TopBottomPanel, Id, Pos2};
 use egui_glow::CallbackFn;
 use egui_winit::EventResponse;
 use euclid::{Length, Point2D, Scale};
@@ -123,6 +123,7 @@ impl Minibrowser {
         window: &winit::window::Window,
         servo_framebuffer_id: Option<gl::GLuint>,
         reason: &'static str,
+        status: Option<String>
     ) {
         let now = Instant::now();
         trace!(
@@ -144,6 +145,13 @@ impl Minibrowser {
         let _duration = context.run(window, |ctx| {
             let InnerResponse { inner: height, .. } =
                 TopBottomPanel::top("toolbar").show(ctx, |ui| {
+                    if let Some(status_text) = &status {
+                        let suggested_position = Some(Pos2::new(0.0, ui.cursor().max.y - 20.0));
+                        let add_contents = |ui: &mut egui::Ui| {
+                            ui.label(status_text);
+                        };
+                        egui::containers::popup::show_tooltip_at(&ui.ctx(), Id::new("status_tooltip"), suggested_position, add_contents);
+                    }
                     ui.allocate_ui_with_layout(
                         ui.available_size(),
                         egui::Layout::left_to_right(egui::Align::Center),

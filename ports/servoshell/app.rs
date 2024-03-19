@@ -53,6 +53,7 @@ enum PumpResult {
     Continue {
         history_changed: bool,
         present: Present,
+        status: Option<String>
     },
 }
 
@@ -124,7 +125,7 @@ impl App {
 
         if let Some(mut minibrowser) = app.minibrowser() {
             // Servo is not yet initialised, so there is no `servo_framebuffer_id`.
-            minibrowser.update(window.winit_window().unwrap(), None, "init");
+            minibrowser.update(window.winit_window().unwrap(), None, "init", None);
             window.set_toolbar_height(minibrowser.toolbar_height);
         }
 
@@ -221,6 +222,7 @@ impl App {
                         window.winit_window().unwrap(),
                         app.servo.as_ref().unwrap().offscreen_framebuffer_id(),
                         "RedrawRequested",
+                        None,
                     );
                     minibrowser.paint(window.winit_window().unwrap());
                 }
@@ -301,6 +303,7 @@ impl App {
                 PumpResult::Continue {
                     history_changed,
                     present,
+                    status,
                 } => {
                     if history_changed {
                         if let Some(mut minibrowser) = app.minibrowser() {
@@ -312,8 +315,19 @@ impl App {
                                     window.winit_window().unwrap(),
                                     app.servo.as_ref().unwrap().offscreen_framebuffer_id(),
                                     "update_location_in_toolbar",
+                                    None,
                                 );
                             }
+                        }
+                    }
+                    if let Some(inner_status) = status {
+                        if let Some(mut minibrowser) = app.minibrowser() {
+                            minibrowser.update(
+                                window.winit_window().unwrap(),
+                                app.servo.as_ref().unwrap().offscreen_framebuffer_id(),
+                                "update_status_message",
+                                Some(inner_status),
+                            );
                         }
                     }
                     match present {
@@ -330,6 +344,7 @@ impl App {
                                     window.winit_window().unwrap(),
                                     app.servo.as_ref().unwrap().offscreen_framebuffer_id(),
                                     "PumpResult::Present::Immediate",
+                                    None,
                                 );
                                 minibrowser.paint(window.winit_window().unwrap());
                             }
@@ -433,11 +448,13 @@ impl App {
         let mut need_resize = false;
         let mut need_present = false;
         let mut history_changed = false;
+        let mut status = None;
         loop {
             // Consume and handle those embedder messages.
             let servo_event_response = webviews.handle_servo_events(embedder_messages);
             need_present |= servo_event_response.need_present;
             history_changed |= servo_event_response.history_changed;
+            status = status.or(servo_event_response.status);
 
             // Route embedder events from the WebViewManager to the relevant Servo components,
             // receives and collects embedder messages from various Servo components,
@@ -469,6 +486,7 @@ impl App {
         PumpResult::Continue {
             history_changed,
             present,
+            status,
         }
     }
 
