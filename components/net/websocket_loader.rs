@@ -37,12 +37,12 @@ use tungstenite::protocol::CloseFrame;
 use tungstenite::Message;
 use url::Url;
 
+use crate::async_runtime::HANDLE;
 use crate::connector::{create_tls_config, CACertificates, TlsConfig};
 use crate::cookie::Cookie;
 use crate::fetch::methods::should_be_blocked_due_to_bad_port;
 use crate::hosts::replace_host;
-use crate::http_loader::{HttpState, HANDLE};
-
+use crate::http_loader::HttpState;
 /// Create a tungstenite Request object for the initial HTTP request.
 /// This request contains `Origin`, `Sec-WebSocket-Protocol`, `Authorization`,
 /// and `Cookie` headers as appropriate.

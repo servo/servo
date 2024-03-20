@@ -18,8 +18,8 @@ use log::warn;
 use rustls::client::WebPkiVerifier;
 use rustls::{Certificate, ClientConfig, OwnedTrustAnchor, RootCertStore, ServerName};
 
+use crate::async_runtime::HANDLE;
 use crate::hosts::replace_host;
-use crate::http_loader::HANDLE;
 
 pub const BUF_SIZE: usize = 32768;
 
