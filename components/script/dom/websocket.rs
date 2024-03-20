@@ -368,7 +368,7 @@ impl WebSocketMethods for WebSocket {
         let send_data = self.send_impl(data_byte_len)?;
 
         if send_data {
-            let bytes = blob.get_bytes().unwrap_or(vec![]);
+            let bytes = blob.get_bytes().unwrap_or_default();
             let _ = self
                 .sender
                 .send(WebSocketDomAction::SendMessage(MessageData::Binary(bytes)));
@@ -409,7 +409,7 @@ impl WebSocketMethods for WebSocket {
     fn Close(&self, code: Option<u16>, reason: Option<USVString>) -> ErrorResult {
         if let Some(code) = code {
             //Fail if the supplied code isn't normal and isn't reserved for libraries, frameworks, and applications
-            if code != close_code::NORMAL && (code < 3000 || code > 4999) {
+            if code != close_code::NORMAL && !(3000..=4999).contains(&code) {
                 return Err(Error::InvalidAccess);
             }
         }
