@@ -237,7 +237,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
                             // Reduce the length of throttles,
                             // but don't add the task to "msg_queue",
                             // and neither increment "taken_task_counter".
-                            throttled_length - 1;
+                            throttled_length - =1;
                             continue;
                         }
                     }
@@ -246,7 +246,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
                     self.msg_queue.borrow_mut().push_back(msg);
                     self.taken_task_counter
                         .set(self.taken_task_counter.get() + 1);
-                    throttled_length - 1;
+                    throttled_length -= 1;
                 },
             }
         }
