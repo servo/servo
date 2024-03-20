@@ -7,7 +7,7 @@ use std::num::NonZeroU32;
 use std::sync::Arc;
 use std::time::Instant;
 
-use egui::{CentralPanel, Frame, InnerResponse, Key, Modifiers, PaintCallback, TopBottomPanel};
+use egui::{CentralPanel, Frame, Key, Modifiers, PaintCallback, TopBottomPanel};
 use egui_glow::CallbackFn;
 use egui_winit::EventResponse;
 use euclid::{Length, Point2D, Scale};
