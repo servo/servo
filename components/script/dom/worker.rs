@@ -62,8 +62,8 @@ impl Worker {
     fn new_inherited(sender: Sender<DedicatedWorkerScriptMsg>, closing: Arc<AtomicBool>) -> Worker {
         Worker {
             eventtarget: EventTarget::new_inherited(),
-            sender: sender,
-            closing: closing,
+            sender,
+            closing,
             terminated: Cell::new(false),
             context_for_interrupt: Default::default(),
         }
@@ -123,7 +123,7 @@ impl Worker {
             let title = format!("Worker for {}", worker_url);
             if let Some(browsing_context) = browsing_context {
                 let page_info = DevtoolsPageInfo {
-                    title: title,
+                    title,
                     url: worker_url.clone(),
                 };
                 let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal(

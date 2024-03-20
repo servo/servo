@@ -33,7 +33,7 @@ impl Storage {
     fn new_inherited(storage_type: StorageType) -> Storage {
         Storage {
             reflector_: Reflector::new(),
-            storage_type: storage_type,
+            storage_type,
         }
     }
 

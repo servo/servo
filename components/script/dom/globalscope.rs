@@ -2122,7 +2122,7 @@ impl GlobalScope {
             .push(AutoCloseWorker {
                 closing,
                 join_handle: Some(join_handle),
-                control_sender: control_sender,
+                control_sender,
                 context,
             });
     }
@@ -2762,7 +2762,7 @@ impl GlobalScope {
 
     pub fn queue_function_as_microtask(&self, callback: Rc<VoidFunction>) {
         self.enqueue_microtask(Microtask::User(UserMicrotask {
-            callback: callback,
+            callback,
             pipeline: self.pipeline_id(),
         }))
     }

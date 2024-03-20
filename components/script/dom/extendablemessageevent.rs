@@ -54,8 +54,8 @@ impl ExtendableMessageEvent {
         ExtendableMessageEvent {
             event: ExtendableEvent::new_inherited(),
             data: Heap::default(),
-            origin: origin,
-            lastEventId: lastEventId,
+            origin,
+            lastEventId,
             ports: ports
                 .into_iter()
                 .map(|port| Dom::from_ref(&*port))

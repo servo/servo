@@ -241,7 +241,7 @@ impl Tokenizer {
             receiver: tokenizer_receiver,
             html_tokenizer_sender: to_html_tokenizer_sender,
             nodes: HashMap::new(),
-            url: url,
+            url,
             parsing_algorithm: algorithm,
         };
         tokenizer.insert_node(0, Dom::from_ref(document.upcast()));
@@ -627,7 +627,7 @@ impl Sink {
                 id: 0,
                 qual_name: None,
             },
-            sender: sender,
+            sender,
         };
         let data = ParseNodeData::default();
         sink.insert_parse_node_data(0, data);
@@ -640,7 +640,7 @@ impl Sink {
         self.insert_parse_node_data(id, data);
         self.next_parse_node_id.set(id + 1);
         ParseNode {
-            id: id,
+            id,
             qual_name: None,
         }
     }

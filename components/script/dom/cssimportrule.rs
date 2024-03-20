@@ -32,7 +32,7 @@ impl CSSImportRule {
     ) -> Self {
         CSSImportRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
-            import_rule: import_rule,
+            import_rule,
         }
     }
 

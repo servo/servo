@@ -96,8 +96,8 @@ impl ImageData {
 
         let imagedata = Box::new(ImageData {
             reflector_: Reflector::new(),
-            width: width,
-            height: height,
+            width,
+            height,
             data: heap_typed_array,
         });
 
@@ -126,8 +126,8 @@ impl ImageData {
             };
         let imagedata = Box::new(ImageData {
             reflector_: Reflector::new(),
-            width: width,
-            height: height,
+            width,
+            height,
             data: heap_typed_array,
         });
 

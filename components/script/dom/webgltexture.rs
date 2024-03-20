@@ -75,7 +75,7 @@ impl WebGLTexture {
     ) -> Self {
         Self {
             webgl_object: WebGLObject::new_inherited(context),
-            id: id,
+            id,
             target: Cell::new(None),
             is_deleted: Cell::new(false),
             owner: owner
@@ -163,11 +163,11 @@ impl WebGLTexture {
         data_type: Option<TexDataType>,
     ) -> WebGLResult<()> {
         let image_info = ImageInfo {
-            width: width,
-            height: height,
-            depth: depth,
-            internal_format: internal_format,
-            data_type: data_type,
+            width,
+            height,
+            depth,
+            internal_format,
+            data_type,
         };
 
         let face_index = self.face_index_for_target(&target);

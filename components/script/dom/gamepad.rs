@@ -67,18 +67,18 @@ impl Gamepad {
     ) -> Gamepad {
         Self {
             reflector_: Reflector::new(),
-            gamepad_id: gamepad_id,
-            id: id,
+            gamepad_id,
+            id,
             index: Cell::new(index),
             connected: Cell::new(connected),
             timestamp: Cell::new(timestamp),
-            mapping_type: mapping_type,
+            mapping_type,
             axes: HeapBufferSource::default(),
             buttons: Dom::from_ref(buttons),
             pose: pose.map(Dom::from_ref),
-            hand: hand,
-            axis_bounds: axis_bounds,
-            button_bounds: button_bounds,
+            hand,
+            axis_bounds,
+            button_bounds,
             exposed: Cell::new(false),
         }
     }

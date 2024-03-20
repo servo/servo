@@ -215,8 +215,8 @@ impl HTMLButtonElement {
 
         // Step 3.9
         Some(FormDatum {
-            ty: ty,
-            name: name,
+            ty,
+            name,
             value: FormDatumValue::String(self.Value()),
         })
     }

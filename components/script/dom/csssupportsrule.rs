@@ -32,7 +32,7 @@ impl CSSSupportsRule {
         let list = supportsrule.rules.clone();
         CSSSupportsRule {
             cssconditionrule: CSSConditionRule::new_inherited(parent_stylesheet, list),
-            supportsrule: supportsrule,
+            supportsrule,
         }
     }
 

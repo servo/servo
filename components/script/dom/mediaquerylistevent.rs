@@ -38,7 +38,7 @@ impl MediaQueryListEvent {
     ) -> DomRoot<MediaQueryListEvent> {
         let ev = Box::new(MediaQueryListEvent {
             event: Event::new_inherited(),
-            media: media,
+            media,
             matches: Cell::new(matches),
         });
         reflect_dom_object_with_proto(ev, global, proto)

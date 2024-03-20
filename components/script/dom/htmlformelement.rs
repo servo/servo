@@ -1145,7 +1145,7 @@ impl HTMLFormElement {
                         if !name.is_empty() {
                             data_set.push(FormDatum {
                                 ty: textarea.Type(),
-                                name: name,
+                                name,
                                 value: FormDatumValue::String(textarea.Value()),
                             });
                         }

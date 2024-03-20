@@ -35,8 +35,8 @@ impl DOMTokenList {
         DOMTokenList {
             reflector_: Reflector::new(),
             element: Dom::from_ref(element),
-            local_name: local_name,
-            supported_tokens: supported_tokens,
+            local_name,
+            supported_tokens,
         }
     }
 

@@ -247,10 +247,10 @@ impl ServiceWorkerGlobalScope {
                 Arc::new(Mutex::new(Identities::new())),
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
-            own_sender: own_sender,
+            own_sender,
             time_out_port,
-            swmanager_sender: swmanager_sender,
-            scope_url: scope_url,
+            swmanager_sender,
+            scope_url,
             control_receiver,
         }
     }

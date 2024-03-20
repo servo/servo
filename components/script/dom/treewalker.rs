@@ -35,8 +35,8 @@ impl TreeWalker {
             reflector_: Reflector::new(),
             root_node: Dom::from_ref(root_node),
             current_node: MutDom::new(root_node),
-            what_to_show: what_to_show,
-            filter: filter,
+            what_to_show,
+            filter,
             active: Cell::new(false),
         }
     }

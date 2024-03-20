@@ -40,7 +40,7 @@ impl NodeList {
     pub fn new_inherited(list_type: NodeListType) -> NodeList {
         NodeList {
             reflector_: Reflector::new(),
-            list_type: list_type,
+            list_type,
         }
     }
 
@@ -402,8 +402,8 @@ impl RadioList {
     pub fn new(form: &HTMLFormElement, mode: RadioListMode, name: Atom) -> RadioList {
         RadioList {
             form: Dom::from_ref(form),
-            mode: mode,
-            name: name,
+            mode,
+            name,
         }
     }
 
@@ -427,7 +427,7 @@ impl ElementsByNameList {
     pub fn new(document: &Document, name: DOMString) -> ElementsByNameList {
         ElementsByNameList {
             document: Dom::from_ref(document),
-            name: name,
+            name,
         }
     }
 

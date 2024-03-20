@@ -277,7 +277,7 @@ impl<'a> StylesheetLoader<'a> {
             .map(HTMLLinkElement::get_request_generation_id);
         let context = ::std::sync::Arc::new(Mutex::new(StylesheetContext {
             elem: Trusted::new(self.elem),
-            source: source,
+            source,
             url: url.clone(),
             metadata: None,
             data: vec![],
@@ -381,7 +381,7 @@ impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
                 context.url_data.clone(),
                 context.quirks_mode,
             ),
-            media: media,
+            media,
             shared_lock: lock.clone(),
             disabled: AtomicBool::new(false),
         });

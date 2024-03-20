@@ -40,7 +40,7 @@ impl WebGLContextEvent {
     fn new_inherited(status_message: DOMString) -> WebGLContextEvent {
         WebGLContextEvent {
             event: Event::new_inherited(),
-            status_message: status_message,
+            status_message,
         }
     }
 

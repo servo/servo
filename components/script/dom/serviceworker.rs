@@ -53,7 +53,7 @@ impl ServiceWorker {
             eventtarget: EventTarget::new_inherited(),
             script_url: DomRefCell::new(String::from(script_url)),
             state: Cell::new(ServiceWorkerState::Installing),
-            scope_url: scope_url,
+            scope_url,
             worker_id,
         }
     }

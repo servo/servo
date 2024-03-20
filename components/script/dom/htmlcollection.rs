@@ -43,7 +43,7 @@ impl OptionU32 {
 
     fn some(bits: u32) -> OptionU32 {
         assert_ne!(bits, u32::max_value());
-        OptionU32 { bits: bits }
+        OptionU32 { bits }
     }
 
     fn none() -> OptionU32 {
@@ -77,7 +77,7 @@ impl HTMLCollection {
         HTMLCollection {
             reflector_: Reflector::new(),
             root: Dom::from_ref(root),
-            filter: filter,
+            filter,
             // Default values for the cache
             cached_version: Cell::new(root.inclusive_descendants_version()),
             cached_cursor_element: MutNullableDom::new(None),
@@ -185,7 +185,7 @@ impl HTMLCollection {
 
         let filter = HtmlDocumentFilter {
             ascii_lower_qualified_name: qualified_name.to_ascii_lowercase(),
-            qualified_name: qualified_name,
+            qualified_name,
         };
         HTMLCollection::create(window, root, Box::new(filter))
     }
@@ -230,7 +230,7 @@ impl HTMLCollection {
                         (self.qname.local == *elem.local_name()))
             }
         }
-        let filter = TagNameNSFilter { qname: qname };
+        let filter = TagNameNSFilter { qname };
         HTMLCollection::create(window, root, Box::new(filter))
     }
 
@@ -269,7 +269,7 @@ impl HTMLCollection {
             return HTMLCollection::always_empty(window, root);
         }
 
-        let filter = ClassNameFilter { classes: classes };
+        let filter = ClassNameFilter { classes };
         HTMLCollection::create(window, root, Box::new(filter))
     }
 

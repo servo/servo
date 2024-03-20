@@ -457,7 +457,7 @@ pub struct QuerySelectorIterator {
 impl<'a> QuerySelectorIterator {
     fn new(iter: TreeIterator, selectors: SelectorList<SelectorImpl>) -> QuerySelectorIterator {
         QuerySelectorIterator {
-            selectors: selectors,
+            selectors,
             iterator: iter,
         }
     }
@@ -3247,21 +3247,11 @@ impl<'a> ChildrenMutation<'a> {
         match (prev, next) {
             (None, None) => ChildrenMutation::ReplaceAll {
                 removed: &[],
-                added: added,
+                added,
             },
-            (Some(prev), None) => ChildrenMutation::Append {
-                prev: prev,
-                added: added,
-            },
-            (None, Some(next)) => ChildrenMutation::Prepend {
-                added: added,
-                next: next,
-            },
-            (Some(prev), Some(next)) => ChildrenMutation::Insert {
-                prev: prev,
-                added: added,
-                next: next,
-            },
+            (Some(prev), None) => ChildrenMutation::Append { prev, added },
+            (None, Some(next)) => ChildrenMutation::Prepend { added, next },
+            (Some(prev), Some(next)) => ChildrenMutation::Insert { prev, added, next },
         }
     }
 
@@ -3275,14 +3265,14 @@ impl<'a> ChildrenMutation<'a> {
             if let (None, None) = (prev, next) {
                 ChildrenMutation::ReplaceAll {
                     removed: from_ref(removed),
-                    added: added,
+                    added,
                 }
             } else {
                 ChildrenMutation::Replace {
-                    prev: prev,
+                    prev,
                     removed: *removed,
-                    added: added,
-                    next: next,
+                    added,
+                    next,
                 }
             }
         } else {
@@ -3291,10 +3281,7 @@ impl<'a> ChildrenMutation<'a> {
     }
 
     fn replace_all(removed: &'a [&'a Node], added: &'a [&'a Node]) -> ChildrenMutation<'a> {
-        ChildrenMutation::ReplaceAll {
-            removed: removed,
-            added: added,
-        }
+        ChildrenMutation::ReplaceAll { removed, added }
     }
 
     /// Get the child that follows the added or removed children.
@@ -3414,9 +3401,9 @@ impl<'a> UnbindContext<'a> {
     ) -> Self {
         UnbindContext {
             index: Cell::new(cached_index),
-            parent: parent,
-            prev_sibling: prev_sibling,
-            next_sibling: next_sibling,
+            parent,
+            prev_sibling,
+            next_sibling,
             tree_connected: parent.is_connected(),
             tree_in_doc: parent.is_in_doc(),
         }

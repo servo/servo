@@ -1765,7 +1765,7 @@ impl HTMLInputElement {
                 if name.to_ascii_lowercase() == "_charset_" {
                     return vec![FormDatum {
                         ty: ty.clone(),
-                        name: name,
+                        name,
                         value: FormDatumValue::String(match encoding {
                             None => DOMString::from("UTF-8"),
                             Some(enc) => DOMString::from(enc.name()),
@@ -1785,7 +1785,7 @@ impl HTMLInputElement {
         // Step 5.12
         vec![FormDatum {
             ty: ty.clone(),
-            name: name,
+            name,
             value: FormDatumValue::String(self.Value()),
         }]
     }

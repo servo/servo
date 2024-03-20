@@ -116,7 +116,7 @@ impl WebGLFramebuffer {
         Self {
             webgl_object: WebGLObject::new_inherited(context),
             webgl_version: context.webgl_version(),
-            id: id,
+            id,
             target: Cell::new(None),
             is_deleted: Cell::new(false),
             size: Cell::new(None),
@@ -715,7 +715,7 @@ impl WebGLFramebuffer {
             Some(texture) => {
                 *binding.borrow_mut() = Some(WebGLFramebufferAttachment::Texture {
                     texture: Dom::from_ref(texture),
-                    level: level,
+                    level,
                 });
                 texture.attach_to_framebuffer(self);
 
@@ -780,7 +780,7 @@ impl WebGLFramebuffer {
 
                 *binding.borrow_mut() = Some(WebGLFramebufferAttachment::Texture {
                     texture: Dom::from_ref(texture),
-                    level: level,
+                    level,
                 });
                 texture.attach_to_framebuffer(self);
 
