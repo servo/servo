@@ -364,7 +364,6 @@ impl ServiceWorkerManager {
                         active_worker: registration.active_worker.as_ref().map(|worker| worker.id),
                     },
                 ));
-                return;
             }
         } else {
             // Step 6: we do not have a registration.

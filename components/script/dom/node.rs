@@ -3016,15 +3016,15 @@ impl NodeMethods for Node {
         match (node1, node2) {
             (None, _) => {
                 // node1 is null
-                return NodeConstants::DOCUMENT_POSITION_FOLLOWING +
+                NodeConstants::DOCUMENT_POSITION_FOLLOWING +
                     NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
-                    NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
+                    NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC
             },
             (_, None) => {
                 // node2 is null
-                return NodeConstants::DOCUMENT_POSITION_PRECEDING +
+                NodeConstants::DOCUMENT_POSITION_PRECEDING +
                     NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
-                    NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
+                    NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC
             },
             (Some(node1), Some(node2)) => {
                 // still step 6, testing if node1 and 2 share a root
@@ -3080,13 +3080,13 @@ impl NodeMethods for Node {
                 // contained in the other.
                 //
                 // If we're the container, return that `other` is contained by us.
-                return if self_and_ancestors.len() < other_and_ancestors.len() {
+                if self_and_ancestors.len() < other_and_ancestors.len() {
                     NodeConstants::DOCUMENT_POSITION_FOLLOWING +
                         NodeConstants::DOCUMENT_POSITION_CONTAINED_BY
                 } else {
                     NodeConstants::DOCUMENT_POSITION_PRECEDING +
                         NodeConstants::DOCUMENT_POSITION_CONTAINS
-                };
+                }
             },
         }
     }

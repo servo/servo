@@ -143,7 +143,7 @@ impl OscillatorNodeMethods for OscillatorNode {
             .message(AudioNodeMessage::OscillatorNode(
                 OscillatorNodeMessage::SetOscillatorType(type_.into()),
             ));
-        return Ok(());
+        Ok(())
     }
 }
 
