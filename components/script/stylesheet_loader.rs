@@ -134,14 +134,14 @@ impl FetchResponseListener for StylesheetContext {
             });
 
             let data = if is_css {
-                mem::replace(&mut self.data, vec![])
+                std::mem::take(&mut self.data)
             } else {
                 vec![]
             };
 
             // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
             let environment_encoding = UTF_8;
-            let protocol_encoding_label = metadata.charset.as_ref().map(|s| &**s);
+            let protocol_encoding_label = metadata.charset.as_deref();
             let final_url = metadata.final_url;
 
             let win = window_from_node(&*elem);
@@ -277,7 +277,7 @@ impl<'a> StylesheetLoader<'a> {
             .downcast::<HTMLLinkElement>()
             .map(HTMLLinkElement::get_request_generation_id);
         let context = ::std::sync::Arc::new(Mutex::new(StylesheetContext {
-            elem: Trusted::new(&*self.elem),
+            elem: Trusted::new(self.elem),
             source: source,
             url: url.clone(),
             metadata: None,
