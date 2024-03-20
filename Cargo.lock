@@ -329,7 +329,7 @@ dependencies = [
  "bitflags 2.5.0",
  "cexpr",
  "clang-sys",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "lazy_static",
  "lazycell",
  "log",
@@ -1121,7 +1121,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e16e44ab292b1dddfdaf7be62cfd8877df52f2f3fde5858d95bab606be259f20"
 dependencies = [
  "bitflags 2.5.0",
- "libloading 0.8.3",
+ "libloading 0.7.4",
  "winapi",
 ]
 
@@ -1317,7 +1317,7 @@ version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330c60081dcc4c72131f8eb70510f1ac07223e5d4163db481a04a0befcffa412"
 dependencies = [
- "libloading 0.8.3",
+ "libloading 0.7.4",
 ]
 
 [[package]]
@@ -6945,7 +6945,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#614420b9830615376563fc6e1d98c52119f97123"
+source = "git+https://github.com/servo/webxr#88fd368d1cc110db0f6f5000de2e22a14c9423b5"
 dependencies = [
  "android_injected_glue",
  "bindgen",
@@ -6964,7 +6964,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#614420b9830615376563fc6e1d98c52119f97123"
+source = "git+https://github.com/servo/webxr#88fd368d1cc110db0f6f5000de2e22a14c9423b5"
 dependencies = [
  "euclid",
  "ipc-channel",
@@ -7022,7 +7022,7 @@ dependencies = [
  "js-sys",
  "khronos-egl",
  "libc",
- "libloading 0.8.3",
+ "libloading 0.7.4",
  "log",
  "metal 0.27.0",
  "naga",
