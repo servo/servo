@@ -113,8 +113,8 @@ impl SelectionMethods for Selection {
     fn GetAnchorNode(&self) -> Option<DomRoot<Node>> {
         if let Some(range) = self.range.get() {
             match self.direction.get() {
-                Direction::Forwards => Some(range.StartContainer()),
-                _ => Some(range.EndContainer()),
+                Direction::Forwards => Some(range.start_container()),
+                _ => Some(range.end_container()),
             }
         } else {
             None
@@ -125,8 +125,8 @@ impl SelectionMethods for Selection {
     fn AnchorOffset(&self) -> u32 {
         if let Some(range) = self.range.get() {
             match self.direction.get() {
-                Direction::Forwards => range.StartOffset(),
-                _ => range.EndOffset(),
+                Direction::Forwards => range.start_offset(),
+                _ => range.end_offset(),
             }
         } else {
             0
@@ -137,8 +137,8 @@ impl SelectionMethods for Selection {
     fn GetFocusNode(&self) -> Option<DomRoot<Node>> {
         if let Some(range) = self.range.get() {
             match self.direction.get() {
-                Direction::Forwards => Some(range.EndContainer()),
-                _ => Some(range.StartContainer()),
+                Direction::Forwards => Some(range.end_container()),
+                _ => Some(range.start_container()),
             }
         } else {
             None
@@ -149,8 +149,8 @@ impl SelectionMethods for Selection {
     fn FocusOffset(&self) -> u32 {
         if let Some(range) = self.range.get() {
             match self.direction.get() {
-                Direction::Forwards => range.EndOffset(),
-                _ => range.StartOffset(),
+                Direction::Forwards => range.end_offset(),
+                _ => range.start_offset(),
             }
         } else {
             0
@@ -160,7 +160,7 @@ impl SelectionMethods for Selection {
     // https://w3c.github.io/selection-api/#dom-selection-iscollapsed
     fn IsCollapsed(&self) -> bool {
         if let Some(range) = self.range.get() {
-            range.Collapsed()
+            range.collapsed()
         } else {
             true
         }
@@ -178,7 +178,7 @@ impl SelectionMethods for Selection {
     // https://w3c.github.io/selection-api/#dom-selection-type
     fn Type(&self) -> DOMString {
         if let Some(range) = self.range.get() {
-            if range.Collapsed() {
+            if range.collapsed() {
                 DOMString::from("Caret")
             } else {
                 DOMString::from("Range")
@@ -202,7 +202,7 @@ impl SelectionMethods for Selection {
     // https://w3c.github.io/selection-api/#dom-selection-addrange
     fn AddRange(&self, range: &Range) {
         // Step 1
-        if !self.is_same_root(&*range.StartContainer()) {
+        if !self.is_same_root(&*range.start_container()) {
             return;
         }
 
@@ -283,7 +283,7 @@ impl SelectionMethods for Selection {
     // https://w3c.github.io/selection-api/#dom-selection-collapsetostart
     fn CollapseToStart(&self) -> ErrorResult {
         if let Some(range) = self.range.get() {
-            self.Collapse(Some(&*range.StartContainer()), range.StartOffset())
+            self.Collapse(Some(&*range.start_container()), range.start_offset())
         } else {
             Err(Error::InvalidState)
         }
@@ -292,7 +292,7 @@ impl SelectionMethods for Selection {
     // https://w3c.github.io/selection-api/#dom-selection-collapsetoend
     fn CollapseToEnd(&self) -> ErrorResult {
         if let Some(range) = self.range.get() {
-            self.Collapse(Some(&*range.EndContainer()), range.EndOffset())
+            self.Collapse(Some(&*range.end_container()), range.end_offset())
         } else {
             Err(Error::InvalidState)
         }
@@ -319,7 +319,7 @@ impl SelectionMethods for Selection {
             }
 
             // Step 4
-            if !self.is_same_root(&*range.StartContainer()) {
+            if !self.is_same_root(&*range.start_container()) {
                 // Step 5, and its following 8 and 9
                 self.set_range(&*Range::new(&self.document, node, offset, node, offset));
                 self.direction.set(Direction::Forwards);
@@ -458,7 +458,7 @@ impl SelectionMethods for Selection {
             return false;
         }
         if let Some(range) = self.range.get() {
-            let start_node = &*range.StartContainer();
+            let start_node = &*range.start_container();
             if !self.is_same_root(start_node) {
                 // node can't be contained in a range with a different root
                 return false;
@@ -468,30 +468,30 @@ impl SelectionMethods for Selection {
                 if node.is_before(start_node) {
                     return false;
                 }
-                let end_node = &*range.EndContainer();
+                let end_node = &*range.end_container();
                 if end_node.is_before(node) {
                     return false;
                 }
                 if node == start_node {
-                    return range.StartOffset() < node.len();
+                    return range.start_offset() < node.len();
                 }
                 if node == end_node {
-                    return range.EndOffset() > 0;
+                    return range.end_offset() > 0;
                 }
                 true
             } else {
                 if node.is_before(start_node) {
                     return false;
                 }
-                let end_node = &*range.EndContainer();
+                let end_node = &*range.end_container();
                 if end_node.is_before(node) {
                     return false;
                 }
                 if node == start_node {
-                    return range.StartOffset() == 0;
+                    return range.start_offset() == 0;
                 }
                 if node == end_node {
-                    return range.EndOffset() == node.len();
+                    return range.end_offset() == node.len();
                 }
                 true
             }

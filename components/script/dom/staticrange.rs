@@ -2,17 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use dom_struct::dom_struct;
+use js::rust::HandleObject;
+
 use crate::dom::abstractrange::AbstractRange;
-use crate::dom::bindings::codegen::Bindings::StaticRangeBinding::{self, StaticRangeInit};
+use crate::dom::bindings::codegen::Bindings::StaticRangeBinding::StaticRangeInit;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::NodeTypeId;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
-use dom_struct::dom_struct;
 
 #[dom_struct]
 pub struct StaticRange {
@@ -35,9 +37,20 @@ impl StaticRange {
             ),
         }
     }
+    pub fn new_with_doc(
+        document: &Document,
+        proto: Option<HandleObject>,
+        init: &StaticRangeInit,
+    ) -> DomRoot<StaticRange> {
+        StaticRange::new_with_proto(document, proto, init)
+    }
 
-    pub fn new(document: &Document, init: &StaticRangeInit) -> DomRoot<StaticRange> {
-        let staticrange = reflect_dom_object(
+    pub fn new_with_proto(
+        document: &Document,
+        proto: Option<HandleObject>,
+        init: &StaticRangeInit,
+    ) -> DomRoot<StaticRange> {
+        let staticrange = reflect_dom_object_with_proto(
             Box::new(StaticRange::new_inherited(
                 &init.startContainer,
                 init.startOffset,
@@ -45,14 +58,18 @@ impl StaticRange {
                 init.endOffset,
             )),
             document.window(),
-            StaticRangeBinding::Wrap,
+            proto,
         );
         staticrange
     }
 
     // https://dom.spec.whatwg.org/#dom-staticrange-staticrange
     #[allow(non_snake_case)]
-    pub fn Constructor(window: &Window, init: &StaticRangeInit) -> Fallible<DomRoot<StaticRange>> {
+    pub fn Constructor(
+        window: &Window,
+        proto: Option<HandleObject>,
+        init: &StaticRangeInit,
+    ) -> Fallible<DomRoot<StaticRange>> {
         match init.startContainer.type_id() {
             NodeTypeId::DocumentType | NodeTypeId::Attr => {
                 return Err(Error::InvalidNodeType);
@@ -66,6 +83,6 @@ impl StaticRange {
             _ => (),
         }
         let document = window.Document();
-        Ok(StaticRange::new(&document, init))
+        Ok(StaticRange::new_with_doc(&document, proto, init))
     }
 }

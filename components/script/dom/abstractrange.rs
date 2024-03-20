@@ -2,16 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::AbstractRangeBinding::{self, AbstractRangeMethods};
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use std::cell::Cell;
+use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
+
+use deny_public_fields::DenyPublicFields;
+use dom_struct::dom_struct;
+
+use crate::dom::bindings::codegen::Bindings::AbstractRangeBinding::AbstractRangeMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutDom};
 use crate::dom::document::Document;
 use crate::dom::node::{Node, ShadowIncluding};
-use dom_struct::dom_struct;
-use std::cell::Cell;
-use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
 
 #[dom_struct]
 pub struct AbstractRange {
@@ -49,7 +51,6 @@ impl AbstractRange {
                 end_offset,
             )),
             document.window(),
-            AbstractRangeBinding::Wrap,
         );
         abstractrange
     }
@@ -100,7 +101,6 @@ pub struct BoundaryPoint {
 impl BoundaryPoint {
     fn new(node: &Node, offset: u32) -> BoundaryPoint {
         debug_assert!(!node.is_doctype());
-        debug_assert!(offset <= node.len());
         BoundaryPoint {
             node: MutDom::new(node),
             offset: Cell::new(offset),
@@ -141,7 +141,7 @@ impl PartialEq for BoundaryPoint {
 }
 
 // https://dom.spec.whatwg.org/#concept-range-bp-position
-fn bp_position(a_node: &Node, a_offset: u32, b_node: &Node, b_offset: u32) -> Option<Ordering> {
+pub fn bp_position(a_node: &Node, a_offset: u32, b_node: &Node, b_offset: u32) -> Option<Ordering> {
     if a_node as *const Node == b_node as *const Node {
         // Step 1.
         return Some(a_offset.cmp(&b_offset));
