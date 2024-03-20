@@ -2377,7 +2377,7 @@ class CGDOMJSClass(CGThing):
     def define(self):
         parentName = self.descriptor.getParentName()
         if not parentName:
-            parentName = "crate::dom::bindings::reflector::Reflector"
+            parentName = "Reflector"
 
         args = {
             "domClass": DOMClass(self.descriptor),
@@ -2399,7 +2399,7 @@ class CGDOMJSClass(CGThing):
         elif self.descriptor.weakReferenceable:
             args["slots"] = "2"
         return """\
-static CLASS_OPS: js::jsapi::JSClassOps = js::jsapi::JSClassOps {
+static CLASS_OPS: JSClassOps = JSClassOps {
     addProperty: None,
     delProperty: None,
     enumerate: None,
@@ -2413,7 +2413,7 @@ static CLASS_OPS: js::jsapi::JSClassOps = js::jsapi::JSClassOps {
 };
 
 static Class: DOMJSClass = DOMJSClass {
-    base: js::jsapi::JSClass {
+    base: JSClass {
         name: %(name)s as *const u8 as *const libc::c_char,
         flags: JSCLASS_IS_DOMJSCLASS | %(flags)s |
                (((%(slots)s) & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT)
@@ -2442,7 +2442,7 @@ class CGAssertInheritance(CGThing):
         if parent:
             parentName = parent.identifier.name
         else:
-            parentName = "crate::dom::bindings::reflector::Reflector"
+            parentName = "Reflector"
 
         selfName = self.descriptor.interface.identifier.name
 
@@ -6560,6 +6560,7 @@ class CGDescriptor(CGThing):
             'js::jsapi::JSCLASS_FOREGROUND_FINALIZE',
             'js::jsapi::JSCLASS_RESERVED_SLOTS_SHIFT',
             'js::jsapi::JSClass',
+            'js::jsapi::JSClassOps',
             'js::jsapi::JSFunctionSpec',
             'js::jsapi::jsid',
             'js::jsapi::JSITER_HIDDEN',
@@ -6693,6 +6694,7 @@ class CGDescriptor(CGThing):
             'crate::dom::bindings::record::Record',
             'crate::dom::bindings::reflector::DomObjectWrap',
             'crate::dom::bindings::reflector::DomObjectIteratorWrap',
+            'crate::dom::bindings::reflector::Reflector',
             'crate::dom::bindings::root::Dom',
             'crate::dom::bindings::root::DomSlice',
             'crate::dom::bindings::root::MaybeUnreflectedDom',
