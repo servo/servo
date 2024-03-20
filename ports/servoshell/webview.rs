@@ -64,6 +64,7 @@ pub struct WebView {}
 pub struct ServoEventResponse {
     pub need_present: bool,
     pub history_changed: bool,
+    pub status: Option<String>,
 }
 
 impl<Window> WebViewManager<Window>
@@ -411,6 +412,7 @@ where
     ) -> ServoEventResponse {
         let mut need_present = false;
         let mut history_changed = false;
+        let mut status = None;
         for (webview_id, msg) in events {
             if let Some(webview_id) = webview_id {
                 trace_embedder_msg!(msg, "{webview_id} {msg:?}");
@@ -419,7 +421,7 @@ where
             }
             match msg {
                 EmbedderMsg::Status(_status) => {
-                    // FIXME: surface this status string in the UI somehow
+                    status = _status;
                 },
                 EmbedderMsg::ChangePageTitle(title) => {
                     self.title = title;
@@ -681,6 +683,7 @@ where
         ServoEventResponse {
             need_present,
             history_changed,
+            status,
         }
     }
 }
