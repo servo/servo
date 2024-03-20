@@ -81,7 +81,7 @@ unsafe fn gen_type_error(global: &GlobalScope, string: String) -> RethrowError {
     rooted!(in(*GlobalScope::get_cx()) let mut thrown = UndefinedValue());
     Error::Type(string).to_jsval(*GlobalScope::get_cx(), global, thrown.handle_mut());
 
-    return RethrowError(RootedTraceableBox::from_box(Heap::boxed(thrown.get())));
+    RethrowError(RootedTraceableBox::from_box(Heap::boxed(thrown.get())))
 }
 
 #[derive(JSTraceable)]

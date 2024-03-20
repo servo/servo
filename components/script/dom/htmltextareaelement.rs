@@ -190,7 +190,7 @@ impl HTMLTextAreaElement {
 
     pub fn auto_directionality(&self) -> String {
         let value: String = self.Value().to_string();
-        return HTMLInputElement::directionality_from_value(&value);
+        HTMLInputElement::directionality_from_value(&value)
     }
 
     fn update_placeholder_shown_state(&self) {

@@ -1122,7 +1122,6 @@ impl HTMLScriptElement {
                 if let Err(exception) = evaluated {
                     module_tree.set_rethrow_error(exception);
                     module_tree.report_error(global);
-                    return;
                 }
             }
         }

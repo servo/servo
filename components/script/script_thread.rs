@@ -2469,7 +2469,6 @@ impl ScriptThread {
         if let Some(document) = document {
             let _ac = enter_realm(&*document);
             document.exit_fullscreen();
-            return;
         }
     }
 
