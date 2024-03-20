@@ -142,53 +142,53 @@ impl Minibrowser {
         } = self;
         let widget_fbo = *widget_surface_fbo;
         let _duration = context.run(window, |ctx| {
-            let InnerResponse { inner: height, .. } =
-                TopBottomPanel::top("toolbar").show(ctx, |ui| {
-                    ui.allocate_ui_with_layout(
-                        ui.available_size(),
-                        egui::Layout::left_to_right(egui::Align::Center),
-                        |ui| {
-                            if ui.button("back").clicked() {
-                                event_queue.borrow_mut().push(MinibrowserEvent::Back);
-                            }
-                            if ui.button("forward").clicked() {
-                                event_queue.borrow_mut().push(MinibrowserEvent::Forward);
-                            }
-                            ui.allocate_ui_with_layout(
-                                ui.available_size(),
-                                egui::Layout::right_to_left(egui::Align::Center),
-                                |ui| {
-                                    if ui.button("go").clicked() {
-                                        event_queue.borrow_mut().push(MinibrowserEvent::Go);
-                                        location_dirty.set(false);
-                                    }
+            TopBottomPanel::top("toolbar").show(ctx, |ui| {
+                ui.allocate_ui_with_layout(
+                    ui.available_size(),
+                    egui::Layout::left_to_right(egui::Align::Center),
+                    |ui| {
+                        if ui.button("back").clicked() {
+                            event_queue.borrow_mut().push(MinibrowserEvent::Back);
+                        }
+                        if ui.button("forward").clicked() {
+                            event_queue.borrow_mut().push(MinibrowserEvent::Forward);
+                        }
+                        ui.allocate_ui_with_layout(
+                            ui.available_size(),
+                            egui::Layout::right_to_left(egui::Align::Center),
+                            |ui| {
+                                if ui.button("go").clicked() {
+                                    event_queue.borrow_mut().push(MinibrowserEvent::Go);
+                                    location_dirty.set(false);
+                                }
 
-                                    let location_field = ui.add_sized(
-                                        ui.available_size(),
-                                        egui::TextEdit::singleline(&mut *location.borrow_mut()),
-                                    );
+                                let location_field = ui.add_sized(
+                                    ui.available_size(),
+                                    egui::TextEdit::singleline(&mut *location.borrow_mut()),
+                                );
 
-                                    if location_field.changed() {
-                                        location_dirty.set(true);
-                                    }
-                                    if ui.input(|i| {
-                                        i.clone().consume_key(Modifiers::COMMAND, Key::L)
-                                    }) {
-                                        location_field.request_focus();
-                                    }
-                                    if location_field.lost_focus() &&
-                                        ui.input(|i| i.clone().key_pressed(Key::Enter))
-                                    {
-                                        event_queue.borrow_mut().push(MinibrowserEvent::Go);
-                                        location_dirty.set(false);
-                                    }
-                                },
-                            );
-                        },
-                    );
-                    ui.cursor().min.y
-                });
-            *toolbar_height = Length::new(height);
+                                if location_field.changed() {
+                                    location_dirty.set(true);
+                                }
+                                if ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::L)) {
+                                    location_field.request_focus();
+                                }
+                                if location_field.lost_focus() &&
+                                    ui.input(|i| i.clone().key_pressed(Key::Enter))
+                                {
+                                    event_queue.borrow_mut().push(MinibrowserEvent::Go);
+                                    location_dirty.set(false);
+                                }
+                            },
+                        );
+                    },
+                );
+            });
+
+            // The toolbar height is where the Context’s available rect starts.
+            // For reasons that are unclear, the TopBottomPanel’s ui cursor exceeds this by one egui
+            // point, but the Context is correct and the TopBottomPanel is wrong.
+            *toolbar_height = Length::new(ctx.available_rect().min.y);
 
             CentralPanel::default()
                 .frame(Frame::none())
