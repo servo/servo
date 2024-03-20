@@ -55,7 +55,7 @@ impl XRReferenceSpace {
         offset: &XRRigidTransform,
     ) -> DomRoot<XRReferenceSpace> {
         reflect_dom_object(
-            Box::new(XRReferenceSpace::new_inherited(session, &offset, ty)),
+            Box::new(XRReferenceSpace::new_inherited(session, offset, ty)),
             global,
         )
     }

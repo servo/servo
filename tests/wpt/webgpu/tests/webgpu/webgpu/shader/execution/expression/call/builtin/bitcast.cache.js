@@ -1,7 +1,16 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/import { assert } from '../../../../../../common/util/util.js';import { alwaysPass, anyOf } from '../../../../../util/compare.js';import { kBit, kValue } from '../../../../../util/constants.js';
-import { Vector, f16, f32, i32, toVector, u32 } from '../../../../../util/conversion.js';
+import {
+
+  Vector,
+  f16,
+  f32,
+  i32,
+  toVector,
+  u32,
+  abstractFloat } from
+'../../../../../util/conversion.js';
 import { FP, FPInterval } from '../../../../../util/floating_point.js';
 import {
   cartesianProduct,
@@ -690,6 +699,11 @@ export const d = makeCaseCache('bitcast', {
     input: f32(e),
     expected: bitcastF32ToVec2F16Comparator(e)
   })),
+  af_to_vec2_f16: () =>
+  f32FiniteRangeForF16Vec2Finite.map((e) => ({
+    input: abstractFloat(e),
+    expected: bitcastF32ToVec2F16Comparator(e)
+  })),
 
   // vec2<i32>, vec2<u32>, vec2<f32> to vec4<f16>
   vec2_i32_to_vec4_f16_inf_nan: () =>
@@ -720,6 +734,11 @@ export const d = makeCaseCache('bitcast', {
   vec2_f32_to_vec4_f16: () =>
   slidingSlice(f32FiniteRangeForF16Vec2Finite, 2).map((e) => ({
     input: toVector(e, f32),
+    expected: bitcastVec2F32ToVec4F16Comparator(e)
+  })),
+  vec2_af_to_vec4_f16: () =>
+  slidingSlice(f32FiniteRangeForF16Vec2Finite, 2).map((e) => ({
+    input: toVector(e, abstractFloat),
     expected: bitcastVec2F32ToVec4F16Comparator(e)
   })),
 

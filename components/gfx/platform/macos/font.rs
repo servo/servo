@@ -278,6 +278,9 @@ impl FontHandleMethods for FontHandle {
     }
 
     fn metrics(&self) -> FontMetrics {
+        // TODO(mrobinson): Gecko first tries to get metrics from the SFNT tables via
+        // HarfBuzz and only afterward falls back to platform APIs. We should do something
+        // similar here. This will likely address issue #201 mentioned below.
         let bounding_rect: CGRect = self.ctfont.bounding_box();
         let ascent = self.ctfont.ascent();
         let descent = self.ctfont.descent();
@@ -294,18 +297,24 @@ impl FontHandleMethods for FontHandle {
             .map(Au::from_f64_px)
             .unwrap_or(max_advance);
 
+        let underline_size = au_from_pt(self.ctfont.underline_thickness());
+        let x_height = au_from_pt(self.ctfont.x_height() * scale);
+
         let metrics = FontMetrics {
-            underline_size: au_from_pt(self.ctfont.underline_thickness()),
+            underline_size,
             // TODO(Issue #201): underline metrics are not reliable. Have to pull out of font table
             // directly.
             //
             // see also: https://bugs.webkit.org/show_bug.cgi?id=16768
             // see also: https://bugreports.qt-project.org/browse/QTBUG-13364
             underline_offset: au_from_pt(self.ctfont.underline_position()),
-            strikeout_size: Au(0),   // FIXME(Issue #942)
-            strikeout_offset: Au(0), // FIXME(Issue #942)
+            // There is no way to get these from CoreText or CoreGraphics APIs, so
+            // derive them from the other font metrics. These should eventually be
+            // found in the font tables directly when #201 is fixed.
+            strikeout_size: underline_size,
+            strikeout_offset: x_height.scale_by(0.5) + underline_size.scale_by(0.5),
             leading: au_from_pt(leading),
-            x_height: au_from_pt(self.ctfont.x_height() * scale),
+            x_height,
             em_size,
             ascent: au_from_pt(ascent * scale),
             descent: au_from_pt(descent * scale),

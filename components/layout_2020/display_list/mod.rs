@@ -370,6 +370,25 @@ impl Fragment {
         let color = fragment.parent_style.clone_color();
         let font_metrics = &fragment.font_metrics;
         let dppx = builder.context.style_context.device_pixel_ratio().get();
+        let common = builder.common_properties(rect.to_webrender(), &fragment.parent_style);
+
+        // Shadows. According to CSS-BACKGROUNDS, text shadows render in *reverse* order (front to
+        // back).
+        let shadows = &fragment.parent_style.get_inherited_text().text_shadow;
+        for shadow in shadows.0.iter().rev() {
+            builder.wr().push_shadow(
+                &wr::SpaceAndClipInfo {
+                    spatial_id: common.spatial_id,
+                    clip_chain_id: common.clip_chain_id,
+                },
+                wr::Shadow {
+                    offset: LayoutVector2D::new(shadow.horizontal.px(), shadow.vertical.px()),
+                    color: rgba(shadow.color.resolve_to_absolute(&color)),
+                    blur_radius: shadow.blur.px(),
+                },
+                true, /* should_inflate */
+            );
+        }
 
         // Underline.
         if fragment
@@ -393,7 +412,6 @@ impl Fragment {
         }
 
         // Text.
-        let common = builder.common_properties(rect.to_webrender(), &fragment.parent_style);
         builder.wr().push_text(
             &common,
             rect.to_webrender(),
@@ -410,9 +428,12 @@ impl Fragment {
         {
             let mut rect = rect;
             rect.origin.y += Length::from(font_metrics.ascent - font_metrics.strikeout_offset);
-            // XXX(ferjm) This does not work on MacOS #942
             rect.size.height = Length::new(font_metrics.strikeout_size.to_nearest_pixel(dppx));
             self.build_display_list_for_text_decoration(fragment, builder, &rect, &color);
+        }
+
+        if !shadows.0.is_empty() {
+            builder.wr().pop_all_shadows();
         }
     }
 

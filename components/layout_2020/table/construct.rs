@@ -477,7 +477,7 @@ impl TableBuilder {
 
     /// When not in the process of filling a cell, make sure any incoming rowspans are
     /// filled so that the next specified cell comes after them. Should have been called before
-    /// [`Self::handle_cell`].
+    /// [`Self::add_cell`]
     ///
     /// if `stop_at_cell_opportunity` is set, this will stop at the first slot with
     /// `incoming_rowspans` equal to zero. If not, it will insert [`TableSlot::Empty`] and

@@ -43,7 +43,7 @@ impl MediaStreamAudioDestinationNode {
         );
         let node = AudioNode::new_inherited(
             AudioNodeInit::MediaStreamDestinationNode(socket),
-            &context.upcast(),
+            context.upcast(),
             node_options,
             1, // inputs
             0, // outputs

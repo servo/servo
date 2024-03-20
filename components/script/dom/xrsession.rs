@@ -542,7 +542,7 @@ impl XRSession {
         match event {
             FrameUpdateEvent::HitTestSourceAdded(id) => {
                 if let Some(promise) = self.pending_hit_test_promises.borrow_mut().remove(&id) {
-                    promise.resolve_native(&XRHitTestSource::new(&self.global(), id, &self));
+                    promise.resolve_native(&XRHitTestSource::new(&self.global(), id, self));
                 } else {
                     warn!(
                         "received hit test add request for unknown hit test {:?}",

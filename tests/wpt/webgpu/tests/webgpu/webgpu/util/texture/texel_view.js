@@ -1,6 +1,6 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { assert, memcpy } from '../../../common/util/util.js';import { kTextureFormatInfo } from '../../format_info.js';import { generatePrettyTable } from '../pretty_diff_tables.js';
+**/import { assert, memcpy } from '../../../common/util/util.js';import { kTextureFormatInfo } from '../../format_info.js';import { generatePrettyTable, numericToStringBuilder } from '../pretty_diff_tables.js';
 import { reifyExtent3D, reifyOrigin3D } from '../unions.js';
 
 import { fullSubrectCoordinates } from './base.js';
@@ -166,10 +166,9 @@ export class TexelView {
     const info = kTextureFormatInfo[this.format];
     const repr = kTexelRepresentationInfo[this.format];
 
-    const integerSampleType = info.sampleType === 'uint' || info.sampleType === 'sint';
-    const numberToString = integerSampleType ?
-    (n) => n.toFixed() :
-    (n) => n.toPrecision(6);
+    const numericToString = numericToStringBuilder(
+      info.sampleType === 'uint' || info.sampleType === 'sint'
+    );
 
     const componentOrderStr = repr.componentOrder.join(',') + ':';
     const subrectCoords = [...fullSubrectCoordinates(subrectOrigin, subrectSize)];
@@ -188,13 +187,13 @@ export class TexelView {
       yield* [' act. colors', '==', componentOrderStr];
       for (const coords of subrectCoords) {
         const pixel = t.color(coords);
-        yield `${repr.componentOrder.map((ch) => numberToString(pixel[ch])).join(',')}`;
+        yield `${repr.componentOrder.map((ch) => numericToString(pixel[ch])).join(',')}`;
       }
     }(this);
 
     const opts = {
       fillToWidth: 120,
-      numberToString
+      numericToString
     };
     return `${generatePrettyTable(opts, [printCoords, printActualBytes, printActualColors])}`;
   }

@@ -17,7 +17,8 @@ import {
   convertToUnorm8,
   kPredefinedColorSpace,
   kVideoNames,
-  kVideoInfo } from
+  kVideoInfo,
+  kVideoExpectedColors } from
 '../../web_platform/util.js';
 
 const kHeight = 16;
@@ -194,7 +195,11 @@ fn(async (t) => {
     passEncoder.end();
     t.device.queue.submit([commandEncoder.finish()]);
 
-    const expect = kVideoInfo[videoName].presentColors[dstColorSpace];
+    const srcColorSpace = kVideoInfo[videoName].colorSpace;
+    const presentColors = kVideoExpectedColors[srcColorSpace][dstColorSpace];
+
+    // visible rect is whole frame, no clipping.
+    const expect = kVideoInfo[videoName].display;
 
     // For validation, we sample a few pixels away from the edges to avoid compression
     // artifacts.
@@ -202,26 +207,24 @@ fn(async (t) => {
     // Top-left.
     {
       coord: { x: kWidth * 0.25, y: kHeight * 0.25 },
-      exp: convertToUnorm8(expect.topLeftColor)
+      exp: convertToUnorm8(presentColors[expect.topLeftColor])
     },
     // Top-right.
     {
       coord: { x: kWidth * 0.75, y: kHeight * 0.25 },
-      exp: convertToUnorm8(expect.topRightColor)
+      exp: convertToUnorm8(presentColors[expect.topRightColor])
     },
     // Bottom-left.
     {
       coord: { x: kWidth * 0.25, y: kHeight * 0.75 },
-      exp: convertToUnorm8(expect.bottomLeftColor)
+      exp: convertToUnorm8(presentColors[expect.bottomLeftColor])
     },
     // Bottom-right.
     {
       coord: { x: kWidth * 0.75, y: kHeight * 0.75 },
-      exp: convertToUnorm8(expect.bottomRightColor)
+      exp: convertToUnorm8(presentColors[expect.bottomRightColor])
     }]
     );
-
-    if (sourceType === 'VideoFrame') source.close();
   });
 });
 
@@ -249,16 +252,22 @@ fn(async (t) => {
     // All tested videos are derived from an image showing yellow, red, blue or green in each
     // quadrant. In this test we crop the video to each quadrant and check that desired color
     // is sampled from each corner of the cropped image.
-    const srcVideoHeight = 240;
-    const srcVideoWidth = 320;
+    // visible rect clip applies on raw decoded frame, which defines based on video frame coded size.
+    const srcVideoHeight = source.codedHeight;
+    const srcVideoWidth = source.codedWidth;
 
-    const expect = kVideoInfo[videoName].presentColors[dstColorSpace];
+    const srcColorSpace = kVideoInfo[videoName].colorSpace;
+    const presentColors = kVideoExpectedColors[srcColorSpace][dstColorSpace];
+
+    // The test crops raw decoded videos first and then apply transform. Expectation should
+    // use coded colors as reference.
+    const expect = kVideoInfo[videoName].coded;
 
     const cropParams = [
     // Top left
     {
       subRect: { x: 0, y: 0, width: srcVideoWidth / 2, height: srcVideoHeight / 2 },
-      color: convertToUnorm8(expect.topLeftColor)
+      color: convertToUnorm8(presentColors[expect.topLeftColor])
     },
     // Top right
     {
@@ -268,7 +277,7 @@ fn(async (t) => {
         width: srcVideoWidth / 2,
         height: srcVideoHeight / 2
       },
-      color: convertToUnorm8(expect.topRightColor)
+      color: convertToUnorm8(presentColors[expect.topRightColor])
     },
     // Bottom left
     {
@@ -278,7 +287,7 @@ fn(async (t) => {
         width: srcVideoWidth / 2,
         height: srcVideoHeight / 2
       },
-      color: convertToUnorm8(expect.bottomLeftColor)
+      color: convertToUnorm8(presentColors[expect.bottomLeftColor])
     },
     // Bottom right
     {
@@ -288,7 +297,7 @@ fn(async (t) => {
         width: srcVideoWidth / 2,
         height: srcVideoHeight / 2
       },
-      color: convertToUnorm8(expect.bottomRightColor)
+      color: convertToUnorm8(presentColors[expect.bottomRightColor])
     }];
 
 
@@ -383,29 +392,51 @@ fn(async (t) => {
       usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.STORAGE_BINDING
     });
 
+    // Use display size of VideoFrame and video size of HTMLVideoElement as frame size. These sizes are presenting size which
+    // apply transformation in video metadata if any.
+
     const pipeline = t.device.createComputePipeline({
       layout: 'auto',
       compute: {
-        // Shader loads 4 pixels near each corner, and then store them in a storage texture.
+        // Shader loads 4 pixels, and then store them in a storage texture.
         module: t.device.createShaderModule({
           code: `
+              override frameWidth : i32 = 0;
+              override frameHeight : i32 = 0;
               @group(0) @binding(0) var t : texture_external;
               @group(0) @binding(1) var outImage : texture_storage_2d<rgba8unorm, write>;
 
               @compute @workgroup_size(1) fn main() {
-                var yellow : vec4<f32> = textureLoad(t, vec2<i32>(80, 60));
+                let coordTopLeft = vec2<i32>(frameWidth / 4, frameHeight / 4);
+                let coordTopRight = vec2<i32>(frameWidth / 4 * 3, frameHeight / 4);
+                let coordBottomLeft = vec2<i32>(frameWidth / 4, frameHeight / 4 * 3);
+                let coordBottomRight = vec2<i32>(frameWidth / 4 * 3, frameHeight / 4 * 3);
+                var yellow : vec4<f32> = textureLoad(t, coordTopLeft);
                 textureStore(outImage, vec2<i32>(0, 0), yellow);
-                var red : vec4<f32> = textureLoad(t, vec2<i32>(240, 60));
+                var red : vec4<f32> = textureLoad(t, coordTopRight);
                 textureStore(outImage, vec2<i32>(0, 1), red);
-                var blue : vec4<f32> = textureLoad(t, vec2<i32>(80, 180));
+                var blue : vec4<f32> = textureLoad(t, coordBottomLeft);
                 textureStore(outImage, vec2<i32>(1, 0), blue);
-                var green : vec4<f32> = textureLoad(t, vec2<i32>(240, 180));
+                var green : vec4<f32> = textureLoad(t, coordBottomRight);
                 textureStore(outImage, vec2<i32>(1, 1), green);
                 return;
               }
             `
         }),
-        entryPoint: 'main'
+        entryPoint: 'main',
+
+        // Use display size of VideoFrame and video size of HTMLVideoElement as frame size. These sizes are presenting size which
+        // apply transformation in video metadata if any.
+        constants: {
+          frameWidth:
+          sourceType === 'VideoFrame' ?
+          source.displayWidth :
+          source.videoWidth,
+          frameHeight:
+          sourceType === 'VideoFrame' ?
+          source.displayHeight :
+          source.videoHeight
+        }
       }
     });
 
@@ -425,19 +456,21 @@ fn(async (t) => {
     pass.end();
     t.device.queue.submit([encoder.finish()]);
 
-    const expect = kVideoInfo[videoName].presentColors[dstColorSpace];
+    const srcColorSpace = kVideoInfo[videoName].colorSpace;
+    const presentColors = kVideoExpectedColors[srcColorSpace][dstColorSpace];
+
+    // visible rect is whole frame, no clipping.
+    const expect = kVideoInfo[videoName].display;
 
     t.expectSinglePixelComparisonsAreOkInTexture({ texture: outputTexture }, [
     // Top-left.
-    { coord: { x: 0, y: 0 }, exp: convertToUnorm8(expect.topLeftColor) },
+    { coord: { x: 0, y: 0 }, exp: convertToUnorm8(presentColors[expect.topLeftColor]) },
     // Top-right.
-    { coord: { x: 0, y: 1 }, exp: convertToUnorm8(expect.topRightColor) },
+    { coord: { x: 0, y: 1 }, exp: convertToUnorm8(presentColors[expect.topRightColor]) },
     // Bottom-left.
-    { coord: { x: 1, y: 0 }, exp: convertToUnorm8(expect.bottomLeftColor) },
+    { coord: { x: 1, y: 0 }, exp: convertToUnorm8(presentColors[expect.bottomLeftColor]) },
     // Bottom-right.
-    { coord: { x: 1, y: 1 }, exp: convertToUnorm8(expect.bottomRightColor) }]
+    { coord: { x: 1, y: 1 }, exp: convertToUnorm8(presentColors[expect.bottomRightColor]) }]
     );
-
-    if (sourceType === 'VideoFrame') source.close();
   });
 });

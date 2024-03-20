@@ -75,7 +75,7 @@ impl RTCDataChannel {
         let channel = RTCDataChannel {
             eventtarget: EventTarget::new_inherited(),
             servo_media_id,
-            peer_connection: Dom::from_ref(&peer_connection),
+            peer_connection: Dom::from_ref(peer_connection),
             label,
             ordered: options.ordered,
             max_packet_life_time: options.maxPacketLifeTime,

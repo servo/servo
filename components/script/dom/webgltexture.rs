@@ -312,7 +312,7 @@ impl WebGLTexture {
             },
             constants::TEXTURE_MAG_FILTER => match int_value as u32 {
                 constants::NEAREST | constants::LINEAR => update_filter(&self.mag_filter),
-                _ => return Err(WebGLError::InvalidEnum),
+                _ => Err(WebGLError::InvalidEnum),
             },
             constants::TEXTURE_WRAP_S | constants::TEXTURE_WRAP_T => match int_value as u32 {
                 constants::CLAMP_TO_EDGE | constants::MIRRORED_REPEAT | constants::REPEAT => {
@@ -431,7 +431,7 @@ impl WebGLTexture {
     }
 
     pub fn image_info_for_target(&self, target: &TexImageTarget, level: u32) -> Option<ImageInfo> {
-        let face_index = self.face_index_for_target(&target);
+        let face_index = self.face_index_for_target(target);
         self.image_info_at_face(face_index, level)
     }
 

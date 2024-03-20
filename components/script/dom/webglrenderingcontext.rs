@@ -137,7 +137,7 @@ where
     T: TypedArrayElementCreator,
 {
     rooted!(in(cx) let mut rval = ptr::null_mut::<JSObject>());
-    <TypedArray<T, *mut JSObject>>::create(cx, CreateWith::Slice(&value), rval.handle_mut())
+    <TypedArray<T, *mut JSObject>>::create(cx, CreateWith::Slice(value), rval.handle_mut())
         .unwrap();
     ObjectValue(rval.get())
 }
@@ -563,10 +563,10 @@ impl WebGLRenderingContext {
 
     pub fn get_current_framebuffer_size(&self) -> Option<(i32, i32)> {
         match self.bound_draw_framebuffer.get() {
-            Some(fb) => return fb.size(),
+            Some(fb) => fb.size(),
 
             // The window system framebuffer is bound
-            None => return Some((self.DrawingBufferWidth(), self.DrawingBufferHeight())),
+            None => Some((self.DrawingBufferWidth(), self.DrawingBufferHeight())),
         }
     }
 
@@ -736,7 +736,7 @@ impl WebGLRenderingContext {
 
         // NOTE: width and height are positive or zero due to validate()
         if height == 0 {
-            return Ok(0);
+            Ok(0)
         } else {
             // We need to be careful here to not count unpack
             // alignment at the end of the image, otherwise (for
@@ -744,7 +744,7 @@ impl WebGLRenderingContext {
             // GL_ALPHA/GL_UNSIGNED_BYTE texture would throw an error.
             let cpp = element_size * components / components_per_element;
             let stride = (width * cpp + unpacking_alignment - 1) & !(unpacking_alignment - 1);
-            return Ok(stride * (height - 1) + width * cpp);
+            Ok(stride * (height - 1) + width * cpp)
         }
     }
 
@@ -2442,7 +2442,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             },
             _ => return self.webgl_error(InvalidEnum),
         };
-        self.bind_buffer_maybe(&slot, target, buffer);
+        self.bind_buffer_maybe(slot, target, buffer);
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
@@ -3074,7 +3074,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Ok(ret) => Some(ret),
             Err(e) => {
                 self.webgl_error(e);
-                return None;
+                None
             },
         }
     }
@@ -3805,7 +3805,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::FRONT | constants::BACK | constants::FRONT_AND_BACK => {
                 self.send_command(WebGLCommand::StencilMaskSeparate(face, mask))
             },
-            _ => return self.webgl_error(InvalidEnum),
+            _ => self.webgl_error(InvalidEnum),
         };
     }
 
@@ -4258,7 +4258,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
     ) -> ErrorResult {
         if !self.extension_manager.is_tex_type_enabled(data_type) {
-            return Ok(self.webgl_error(InvalidEnum));
+            self.webgl_error(InvalidEnum);
+            return Ok(());
         }
 
         let validator = TexImage2DValidator::new(
@@ -4289,10 +4290,16 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         };
 
         if !internal_format.compatible_data_types().contains(&data_type) {
-            return Ok(self.webgl_error(InvalidOperation));
+            return {
+                self.webgl_error(InvalidOperation);
+                Ok(())
+            };
         }
         if texture.is_immutable() {
-            return Ok(self.webgl_error(InvalidOperation));
+            return {
+                self.webgl_error(InvalidOperation);
+                Ok(())
+            };
         }
 
         let unpacking_alignment = self.texture_unpacking_alignment.get();
@@ -4325,7 +4332,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         //      type, and pixel storage parameters, generates an
         //      INVALID_OPERATION error."
         if buff.len() < expected_byte_length as usize {
-            return Ok(self.webgl_error(InvalidOperation));
+            return {
+                self.webgl_error(InvalidOperation);
+                Ok(())
+            };
         }
 
         let size = Size2D::new(width, height);
@@ -4372,7 +4382,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         source: TexImageSource,
     ) -> ErrorResult {
         if !self.extension_manager.is_tex_type_enabled(data_type) {
-            return Ok(self.webgl_error(InvalidEnum));
+            self.webgl_error(InvalidEnum);
+            return Ok(());
         }
 
         let pixels = match self.get_image_pixels(source)? {
@@ -4407,10 +4418,16 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         };
 
         if !internal_format.compatible_data_types().contains(&data_type) {
-            return Ok(self.webgl_error(InvalidOperation));
+            return {
+                self.webgl_error(InvalidOperation);
+                Ok(())
+            };
         }
         if texture.is_immutable() {
-            return Ok(self.webgl_error(InvalidOperation));
+            return {
+                self.webgl_error(InvalidOperation);
+                Ok(())
+            };
         }
 
         if !self.validate_filterable_texture(
@@ -4504,7 +4521,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         //      type, and pixel storage parameters, generates an
         //      INVALID_OPERATION error."
         if buff.len() < expected_byte_length as usize {
-            return Ok(self.webgl_error(InvalidOperation));
+            return {
+                self.webgl_error(InvalidOperation);
+                Ok(())
+            };
         }
 
         self.tex_sub_image_2d(
@@ -4589,8 +4609,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         match self.bound_draw_framebuffer.get() {
-            Some(fb) => return fb.check_status(),
-            None => return constants::FRAMEBUFFER_COMPLETE,
+            Some(fb) => fb.check_status(),
+            None => constants::FRAMEBUFFER_COMPLETE,
         }
     }
 
@@ -4959,7 +4979,7 @@ pub trait Size2DExt {
 
 impl Size2DExt for Size2D<u32> {
     fn to_u64(&self) -> Size2D<u64> {
-        return Size2D::new(self.width as u64, self.height as u64);
+        Size2D::new(self.width as u64, self.height as u64)
     }
 }
 

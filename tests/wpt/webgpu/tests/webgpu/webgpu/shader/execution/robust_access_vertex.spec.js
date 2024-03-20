@@ -545,6 +545,7 @@ params(
   combine('additionalBuffers', [0, 4]).
   combine('partialLastNumber', [false, true]).
   combine('offsetVertexBuffer', [false, true]).
+  beginSubcases().
   combine('errorScale', [0, 1, 4, 10 ** 2, 10 ** 4, 10 ** 6]).
   unless((p) => p.drawCallTestParameter === 'instanceCount' && p.errorScale > 10 ** 4) // To avoid timeout
 ).

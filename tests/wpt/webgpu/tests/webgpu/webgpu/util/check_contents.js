@@ -221,9 +221,13 @@ function failCheckElements({
   const printElementsEnd = Math.min(size, failedElementsLast + 2);
   const printElementsCount = printElementsEnd - printElementsStart;
 
-  const numberToString = printAsFloat ?
-  (n) => n.toPrecision(4) :
-  (n) => intToPaddedHex(n, { byteLength: ctor.BYTES_PER_ELEMENT });
+  const numericToString = (val) => {
+    if (typeof val === 'number' && printAsFloat) {
+      return val.toPrecision(4);
+    }
+    return intToPaddedHex(val, { byteLength: ctor.BYTES_PER_ELEMENT });
+  };
+
   const numberPrefix = printAsFloat ? '' : '0x:';
 
   const printActual = actual.subarray(printElementsStart, printElementsEnd);
@@ -246,7 +250,7 @@ function failCheckElements({
 
   const opts = {
     fillToWidth: 120,
-    numberToString
+    numericToString
   };
   const msg = `Array had unexpected contents at indices ${failedElementsFirst} through ${failedElementsLast}.
  Starting at index ${printElementsStart}:
@@ -263,10 +267,11 @@ ${generatePrettyTable(opts, [
 // Helper helpers
 
 /** Convert an integral `number` into a hex string, padded to the specified `byteLength`. */
-function intToPaddedHex(number, { byteLength }) {
-  assert(Number.isInteger(number), 'number must be integer');
-  let s = Math.abs(number).toString(16);
-  if (byteLength) s = s.padStart(byteLength * 2, '0');
-  if (number < 0) s = '-' + s;
-  return s;
+function intToPaddedHex(val, { byteLength }) {
+  assert(Number.isInteger(val), 'number must be integer');
+  const is_negative = typeof val === 'number' ? val < 0 : val < 0n;
+  let str = (is_negative ? -val : val).toString(16);
+  if (byteLength) str = str.padStart(byteLength * 2, '0');
+  if (is_negative) str = '-' + str;
+  return str;
 }

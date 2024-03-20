@@ -339,6 +339,11 @@ fn(async (t) => {
   const numInvocations = t.params.workgroupSize;
   const scalarType = t.params.scalarType;
 
+  t.skipIf(
+    numInvocations > t.device.limits.maxComputeWorkgroupSizeX,
+    `${numInvocations} > maxComputeWorkgroupSizeX(${t.device.limits.maxComputeWorkgroupSizeX})`
+  );
+
   // Number of times each workgroup attempts to exchange the same value to the same memory address
   const numWrites = 4;
 
@@ -555,6 +560,11 @@ combine('workgroupSize', onlyWorkgroupSizes) //
 fn(async (t) => {
   const numInvocations = t.params.workgroupSize;
   const scalarType = t.params.scalarType;
+
+  t.skipIf(
+    numInvocations > t.device.limits.maxComputeWorkgroupSizeX,
+    `${numInvocations} > maxComputeWorkgroupSizeX(${t.device.limits.maxComputeWorkgroupSizeX})`
+  );
 
   // Number of times each workgroup attempts to exchange the same value to the same memory address
   const numWrites = 4;

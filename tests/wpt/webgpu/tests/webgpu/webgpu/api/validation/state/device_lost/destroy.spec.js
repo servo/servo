@@ -704,10 +704,7 @@ fn(async (t) => {
         entries: [
         {
           binding: 0,
-          resource: t.device.importExternalTexture({
-
-            source: source
-          })
+          resource: t.device.importExternalTexture({ source })
         }]
 
       });

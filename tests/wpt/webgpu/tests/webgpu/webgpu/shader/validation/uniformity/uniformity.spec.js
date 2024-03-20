@@ -21,6 +21,7 @@ const kCollectiveOps = [
 { op: 'fwidthCoarse', stage: 'fragment' },
 { op: 'fwidthFine', stage: 'fragment' },
 { op: 'storageBarrier', stage: 'compute' },
+{ op: 'textureBarrier', stage: 'compute' },
 { op: 'workgroupBarrier', stage: 'compute' },
 { op: 'workgroupUniformLoad', stage: 'compute' }];
 
@@ -42,7 +43,9 @@ const kConditions = [
 { cond: 'nonuniform_and1', expectation: false },
 { cond: 'nonuniform_and2', expectation: false },
 { cond: 'uniform_func_var', expectation: true },
-{ cond: 'nonuniform_func_var', expectation: false }];
+{ cond: 'nonuniform_func_var', expectation: false },
+{ cond: 'storage_texture_ro', expectation: true },
+{ cond: 'storage_texture_rw', expectation: false }];
 
 
 function generateCondition(condition) {
@@ -98,6 +101,12 @@ function generateCondition(condition) {
     case 'nonuniform_func_var':{
         return `n_f == 0`;
       }
+    case 'storage_texture_ro':{
+        return `textureLoad(ro_storage_texture, vec2()).x == 0`;
+      }
+    case 'storage_texture_rw':{
+        return `textureLoad(rw_storage_texture, vec2()).x == 0`;
+      }
     default:{
         unreachable(`Unhandled condition`);
       }
@@ -116,6 +125,7 @@ function generateOp(op) {
         return `let x = ${op}(tex_depth, s_comp, vec2(0,0), 0);\n`;
       }
     case 'storageBarrier':
+    case 'textureBarrier':
     case 'workgroupBarrier':{
         return `${op}();\n`;
       }
@@ -181,12 +191,16 @@ g.test('basics').
 desc(`Test collective operations in simple uniform or non-uniform control flow.`).
 params((u) =>
 u.
-combineWithParams(kCollectiveOps).
-combineWithParams(kConditions).
 combine('statement', ['if', 'for', 'while', 'switch']).
-beginSubcases()
+beginSubcases().
+combineWithParams(kConditions).
+combineWithParams(kCollectiveOps)
 ).
 fn((t) => {
+  if (t.params.op === 'textureBarrier' || t.params.cond.startsWith('storage_texture')) {
+    t.skipIfLanguageFeatureNotSupported('readonly_and_readwrite_storage_textures');
+  }
+
   let code = `
  @group(0) @binding(0) var s : sampler;
  @group(0) @binding(1) var s_comp : sampler_comparison;
@@ -196,6 +210,9 @@ fn((t) => {
  @group(1) @binding(0) var<storage, read> ro_buffer : array<f32, 4>;
  @group(1) @binding(1) var<storage, read_write> rw_buffer : array<f32, 4>;
  @group(1) @binding(2) var<uniform> uniform_buffer : vec4<f32>;
+
+ @group(2) @binding(0) var ro_storage_texture : texture_storage_2d<rgba8unorm, read>;
+ @group(2) @binding(1) var rw_storage_texture : texture_storage_2d<rgba8unorm, read_write>;
 
  var<private> priv_var : array<f32, 4> = array(0,0,0,0);
 
@@ -366,6 +383,13 @@ function generatePointerCheck(check) {
     }`;
   }
 }
+
+
+
+
+
+
+
 
 const kPointerCases = {
   address_uniform_literal: {
@@ -584,6 +608,168 @@ const kPointerCases = {
     let test_val = *p6;`,
     check: `contents`,
     uniform: false
+  },
+  contents_lhs_ref_pointer_deref1: {
+    code: `*&func_scalar = uniform_value;
+    let test_val = func_scalar;`,
+    check: `contents`,
+    uniform: true
+  },
+  contents_lhs_ref_pointer_deref1a: {
+    code: `*&func_scalar = nonuniform_value;
+    let test_val = func_scalar;`,
+    check: `contents`,
+    uniform: false
+  },
+  contents_lhs_ref_pointer_deref2: {
+    code: `*&(func_array[nonuniform_value]) = uniform_value;
+    let test_val = func_array[0];`,
+    check: `contents`,
+    uniform: false
+  },
+  contents_lhs_ref_pointer_deref2a: {
+    code: `(func_array[nonuniform_value]) = uniform_value;
+    let test_val = func_array[0];`,
+    check: `contents`,
+    uniform: false
+  },
+  contents_lhs_ref_pointer_deref3: {
+    code: `*&(func_array[needs_uniform(uniform_value)]) = uniform_value;
+    let test_val = func_array[0];`,
+    check: `contents`,
+    uniform: true
+  },
+  contents_lhs_ref_pointer_deref3a: {
+    code: `*&(func_array[needs_uniform(nonuniform_value)]) = uniform_value;
+    let test_val = func_array[0];`,
+    check: `contents`,
+    uniform: 'never'
+  },
+  contents_lhs_ref_pointer_deref4: {
+    code: `*&((*&(func_struct.x[uniform_value])).x[uniform_value].x[uniform_value]) = uniform_value;
+    let test_val = func_struct.x[0].x[0].x[0];`,
+    check: `contents`,
+    uniform: true
+  },
+  contents_lhs_ref_pointer_deref4a: {
+    code: `*&((*&(func_struct.x[uniform_value])).x[uniform_value].x[uniform_value]) = nonuniform_value;
+    let test_val = func_struct.x[0].x[0].x[0];`,
+    check: `contents`,
+    uniform: false
+  },
+  contents_lhs_ref_pointer_deref4b: {
+    code: `*&((*&(func_struct.x[uniform_value])).x[uniform_value].x[nonuniform_value]) = uniform_value;
+    let test_val = func_struct.x[0].x[0].x[0];`,
+    check: `contents`,
+    uniform: false
+  },
+  contents_lhs_ref_pointer_deref4c: {
+    code: `*&((*&(func_struct.x[uniform_value])).x[nonuniform_value]).x[uniform_value] = uniform_value;
+    let test_val = func_struct.x[0].x[0].x[0];`,
+    check: `contents`,
+    uniform: false
+  },
+  contents_lhs_ref_pointer_deref4d: {
+    code: `*&((*&(func_struct.x[nonuniform_value])).x[uniform_value].x)[uniform_value] = uniform_value;
+    let test_val = func_struct.x[0].x[0].x[0];`,
+    check: `contents`,
+    uniform: false
+  },
+  contents_lhs_ref_pointer_deref4e: {
+    code: `*&((*&(func_struct.x[uniform_value])).x[needs_uniform(nonuniform_value)].x[uniform_value]) = uniform_value;
+    let test_val = func_struct.x[0].x[0].x[0];`,
+    check: `contents`,
+    uniform: 'never'
+  },
+
+  // The following cases require the 'pointer_composite_access' language feature.
+  contents_lhs_pointer_deref2: {
+    code: `(&func_array)[uniform_value] = uniform_value;
+    let test_val = func_array[0];`,
+    check: `contents`,
+    uniform: true,
+    needs_deref_sugar: true
+  },
+  contents_lhs_pointer_deref2a: {
+    code: `(&func_array)[nonuniform_value] = uniform_value;
+    let test_val = func_array[0];`,
+    check: `contents`,
+    uniform: false,
+    needs_deref_sugar: true
+  },
+  contents_lhs_pointer_deref3: {
+    code: `(&func_array)[needs_uniform(uniform_value)] = uniform_value;
+    let test_val = func_array[0];`,
+    check: `contents`,
+    uniform: true,
+    needs_deref_sugar: true
+  },
+  contents_lhs_pointer_deref3a: {
+    code: `(&func_array)[needs_uniform(nonuniform_value)] = uniform_value;
+    let test_val = func_array[0];`,
+    check: `contents`,
+    uniform: 'never',
+    needs_deref_sugar: true
+  },
+  contents_lhs_pointer_deref4: {
+    code: `(&((&(func_struct.x[uniform_value])).x[uniform_value]).x)[uniform_value] = uniform_value;
+    let test_val = func_struct.x[0].x[0].x[0];`,
+    check: `contents`,
+    uniform: true,
+    needs_deref_sugar: true
+  },
+  contents_lhs_pointer_deref4a: {
+    code: `(&((&(func_struct.x[uniform_value])).x[uniform_value]).x)[uniform_value] = nonuniform_value;
+    let test_val = func_struct.x[0].x[0].x[0];`,
+    check: `contents`,
+    uniform: false,
+    needs_deref_sugar: true
+  },
+  contents_lhs_pointer_deref4b: {
+    code: `(&((&(func_struct.x[uniform_value])).x)[uniform_value]).x[nonuniform_value] = uniform_value;
+    let test_val = func_struct.x[0].x[0].x[0];`,
+    check: `contents`,
+    uniform: false,
+    needs_deref_sugar: true
+  },
+  contents_lhs_pointer_deref4c: {
+    code: `(&((&(func_struct.x[uniform_value])).x[nonuniform_value]).x)[uniform_value] = uniform_value;
+    let test_val = func_struct.x[0].x[0].x[0];`,
+    check: `contents`,
+    uniform: false,
+    needs_deref_sugar: true
+  },
+  contents_lhs_pointer_deref4d: {
+    code: `(&((&(func_struct.x[nonuniform_value])).x[uniform_value]).x)[uniform_value] = uniform_value;
+    let test_val = func_struct.x[0].x[0].x[0];`,
+    check: `contents`,
+    uniform: false,
+    needs_deref_sugar: true
+  },
+  contents_lhs_pointer_deref4e: {
+    code: `(&((&(func_struct.x[uniform_value])).x)[needs_uniform(nonuniform_value)].x[uniform_value]) = uniform_value;
+    let test_val = func_struct.x[0].x[0].x[0];`,
+    check: `contents`,
+    uniform: 'never',
+    needs_deref_sugar: true
+  },
+  contents_rhs_pointer_deref1: {
+    code: `let test_val = (&func_array)[uniform_value];`,
+    check: `contents`,
+    uniform: true,
+    needs_deref_sugar: true
+  },
+  contents_rhs_pointer_deref1a: {
+    code: `let test_val = (&func_array)[nonuniform_value];`,
+    check: `contents`,
+    uniform: false,
+    needs_deref_sugar: true
+  },
+  contents_rhs_pointer_deref2: {
+    code: `let test_val = (&func_array)[needs_uniform(nonuniform_value)];`,
+    check: `contents`,
+    uniform: `never`,
+    needs_deref_sugar: true
   }
 };
 
@@ -612,6 +798,13 @@ var<storage> uniform_value : u32;
 @group(0) @binding(1)
 var<storage, read_write> nonuniform_value : u32;
 
+fn needs_uniform(val : u32) -> u32{
+  if val == 0 {
+    workgroupBarrier();
+  }
+  return val;
+}
+
 @compute @workgroup_size(16, 1, 1)
 fn main(@builtin(local_invocation_id) lid : vec3<u32>,
         @builtin(global_invocation_id) gid : vec3<u32>) {
@@ -627,11 +820,16 @@ fn main(@builtin(local_invocation_id) lid : vec3<u32>,
   `
 ${generatePointerCheck(testcase.check)}
 }`;
-  if (!testcase.uniform) {
+
+  if (testcase.needs_deref_sugar === true) {
+    t.skipIfLanguageFeatureNotSupported('pointer_composite_access');
+  }
+  // Explicitly check false to distinguish from never.
+  if (testcase.uniform === false) {
     const without_check = code + `}\n`;
     t.expectCompileResult(true, without_check);
   }
-  t.expectCompileResult(testcase.uniform, with_check);
+  t.expectCompileResult(testcase.uniform === true, with_check);
 });
 
 function expectedUniformity(uniform, init) {
@@ -2019,6 +2217,7 @@ params((u) =>
 u.
 combine('e1', keysOf(kExpressionCases)).
 combine('e2', keysOf(kExpressionCases)).
+beginSubcases().
 combine('op', keysOf(kBinOps))
 ).
 fn((t) => {

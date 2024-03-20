@@ -263,7 +263,7 @@ impl WindowProxy {
             SetProxyReservedSlot(
                 js_proxy.get(),
                 0,
-                &PrivateValue((&*window_proxy).as_void_ptr()),
+                &PrivateValue((*window_proxy).as_void_ptr()),
             );
 
             // Notify the JS engine about the new window proxy binding.
@@ -459,7 +459,7 @@ impl WindowProxy {
         }
         rooted!(in(cx) let mut val = UndefinedValue());
         unsafe { opener_proxy.to_jsval(cx, val.handle_mut()) };
-        return val.get();
+        val.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#window-open-steps
@@ -537,7 +537,7 @@ impl WindowProxy {
             return Ok(None);
         }
         // Step 17.
-        return Ok(target_document.browsing_context());
+        Ok(target_document.browsing_context())
     }
 
     // https://html.spec.whatwg.org/multipage/#the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
@@ -840,7 +840,7 @@ fn parse_open_feature_boolean(tokenized_features: &IndexMap<String, String>, nam
         }
     }
     // Step 5
-    return false;
+    false
 }
 
 // This is only called from extern functions,
@@ -1036,7 +1036,7 @@ unsafe extern "C" fn get_prototype_if_ordinary(
     // non-wrapper object *must* report non-ordinary, even if static [[Prototype]]
     // usually means ordinary.
     *is_ordinary = false;
-    return true;
+    true
 }
 
 static PROXY_HANDLER: ProxyTraps = ProxyTraps {

@@ -433,7 +433,7 @@ impl Tokenizer {
             },
             ParseOperation::CreateComment { text, node } => {
                 let comment = Comment::new(DOMString::from(text), document, None);
-                self.insert_node(node, Dom::from_ref(&comment.upcast()));
+                self.insert_node(node, Dom::from_ref(comment.upcast()));
             },
             ParseOperation::AppendBeforeSibling { sibling, node } => {
                 self.append_before_sibling(sibling, node);

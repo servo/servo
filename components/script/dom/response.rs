@@ -155,7 +155,7 @@ impl Response {
         } else {
             // Reset FetchResponse to an in-memory stream with empty byte sequence here for
             // no-init-body case
-            let stream = ReadableStream::new_from_bytes(&global, Vec::with_capacity(0));
+            let stream = ReadableStream::new_from_bytes(global, Vec::with_capacity(0));
             r.body_stream.set(Some(&*stream));
         }
 
@@ -299,7 +299,7 @@ impl ResponseMethods for Response {
         match *self.status.borrow() {
             Some(s) => {
                 let status_num = s.as_u16();
-                return status_num >= 200 && status_num <= 299;
+                status_num >= 200 && status_num <= 299
             },
             None => false,
         }

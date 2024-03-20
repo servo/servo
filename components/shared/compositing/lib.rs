@@ -92,10 +92,6 @@ pub enum CompositorMsg {
     // sends a reply on the IpcSender, the constellation knows it's safe to
     // tear down the other threads associated with this pipeline.
     PipelineExited(PipelineId, IpcSender<()>),
-    /// Runs a closure in the compositor thread.
-    /// It's used to dispatch functions from webrender to the main thread's event loop.
-    /// Required to allow WGL GLContext sharing in Windows.
-    Dispatch(Box<dyn Fn() + Send>),
     /// Indicates to the compositor that it needs to record the time when the frame with
     /// the given ID (epoch) is painted and report it to the layout of the given
     /// pipeline ID.
@@ -164,7 +160,6 @@ impl Debug for CompositorMsg {
             CompositorMsg::PipelineVisibilityChanged(..) => write!(f, "PipelineVisibilityChanged"),
             CompositorMsg::PipelineExited(..) => write!(f, "PipelineExited"),
             CompositorMsg::NewWebRenderFrameReady(..) => write!(f, "NewWebRenderFrameReady"),
-            CompositorMsg::Dispatch(..) => write!(f, "Dispatch"),
             CompositorMsg::PendingPaintMetric(..) => write!(f, "PendingPaintMetric"),
             CompositorMsg::LoadComplete(..) => write!(f, "LoadComplete"),
             CompositorMsg::WebDriverMouseButtonEvent(..) => write!(f, "WebDriverMouseButtonEvent"),

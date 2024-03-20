@@ -78,10 +78,10 @@ impl ShadowRoot {
     }
 
     pub fn detach(&self) {
-        self.document.unregister_shadow_root(&self);
+        self.document.unregister_shadow_root(self);
         let node = self.upcast::<Node>();
         node.set_containing_shadow_root(None);
-        Node::complete_remove_subtree(&node, &UnbindContext::new(node, None, None, None));
+        Node::complete_remove_subtree(node, &UnbindContext::new(node, None, None, None));
         self.host.set(None);
     }
 
@@ -188,9 +188,7 @@ impl ShadowRootMethods for ShadowRoot {
         ) {
             Some(e) => {
                 let retargeted_node = self.upcast::<Node>().retarget(e.upcast::<Node>());
-                retargeted_node
-                    .downcast::<Element>()
-                    .map(|n| DomRoot::from_ref(n))
+                retargeted_node.downcast::<Element>().map(DomRoot::from_ref)
             },
             None => None,
         }
@@ -207,10 +205,7 @@ impl ShadowRootMethods for ShadowRoot {
             .iter()
         {
             let retargeted_node = self.upcast::<Node>().retarget(e.upcast::<Node>());
-            if let Some(element) = retargeted_node
-                .downcast::<Element>()
-                .map(|n| DomRoot::from_ref(n))
-            {
+            if let Some(element) = retargeted_node.downcast::<Element>().map(DomRoot::from_ref) {
                 elements.push(element);
             }
         }

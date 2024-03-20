@@ -78,7 +78,7 @@ impl TrackEvent {
         track: &Option<VideoTrackOrAudioTrackOrTextTrack>,
     ) -> DomRoot<TrackEvent> {
         let te = reflect_dom_object_with_proto(
-            Box::new(TrackEvent::new_inherited(&track)),
+            Box::new(TrackEvent::new_inherited(track)),
             global,
             proto,
         );

@@ -228,13 +228,13 @@ impl<'a> Serialize for &'a Node {
                 },
 
                 SerializationCommand::CloseElement(n) => {
-                    end_element(&&n, serializer)?;
+                    end_element(&n, serializer)?;
                 },
 
                 SerializationCommand::SerializeNonelement(n) => match n.type_id() {
                     NodeTypeId::DocumentType => {
                         let doctype = n.downcast::<DocumentType>().unwrap();
-                        serializer.write_doctype(&doctype.name())?;
+                        serializer.write_doctype(doctype.name())?;
                     },
 
                     NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => {
@@ -250,7 +250,7 @@ impl<'a> Serialize for &'a Node {
                     NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
                         let pi = n.downcast::<ProcessingInstruction>().unwrap();
                         let data = pi.upcast::<CharacterData>().data();
-                        serializer.write_processing_instruction(&pi.target(), &data)?;
+                        serializer.write_processing_instruction(pi.target(), &data)?;
                     },
 
                     NodeTypeId::DocumentFragment(_) => {},

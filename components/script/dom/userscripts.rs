@@ -31,7 +31,7 @@ pub fn load_script(head: &HTMLHeadElement) {
         rooted!(in(*cx) let mut rval = UndefinedValue());
 
         let path = PathBuf::from(&path_str);
-        let mut files = read_dir(&path)
+        let mut files = read_dir(path)
             .expect("Bad path passed to --userscripts")
             .filter_map(|e| e.ok())
             .map(|e| e.path())
@@ -52,7 +52,7 @@ pub fn load_script(head: &HTMLHeadElement) {
                 &file.to_string_lossy(),
                 rval.handle_mut(),
                 1,
-                ScriptFetchOptions::default_classic_script(&global),
+                ScriptFetchOptions::default_classic_script(global),
                 global.api_base_url(),
             );
         }

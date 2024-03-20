@@ -95,12 +95,12 @@ u.
 combine('stage', ['vertex', 'fragment', 'compute']).
 combine('a_kind', kResourceKindsA).
 combine('b_kind', kResourceKindsB).
+combine('usage', ['direct', 'transitive']).
+beginSubcases().
 combine('a_group', [0, 3]).
 combine('b_group', [0, 3]).
 combine('a_binding', [0, 3]).
-combine('b_binding', [0, 3]).
-combine('usage', ['direct', 'transitive']).
-beginSubcases()
+combine('b_binding', [0, 3])
 ).
 fn((t) => {
   const resourceA = kResourceEmitters.get(t.params.a_kind);
