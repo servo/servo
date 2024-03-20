@@ -461,7 +461,7 @@ pub fn handle_find_element_link_text(
                 .find_document(pipeline)
                 .ok_or(ErrorStatus::UnknownError)
                 .and_then(|document| {
-                    first_matching_link(&document.upcast::<Node>(), selector.clone(), partial)
+                    first_matching_link(document.upcast::<Node>(), selector.clone(), partial)
                 }),
         )
         .unwrap();
@@ -528,7 +528,7 @@ pub fn handle_find_elements_link_text(
                 .find_document(pipeline)
                 .ok_or(ErrorStatus::UnknownError)
                 .and_then(|document| {
-                    all_matching_links(&document.upcast::<Node>(), selector.clone(), partial)
+                    all_matching_links(document.upcast::<Node>(), selector.clone(), partial)
                 }),
         )
         .unwrap();

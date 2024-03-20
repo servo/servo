@@ -242,7 +242,7 @@ impl Node {
                     },
                     Some(ref prev_sibling) => {
                         prev_sibling.next_sibling.set(Some(new_child));
-                        new_child.prev_sibling.set(Some(&prev_sibling));
+                        new_child.prev_sibling.set(Some(prev_sibling));
                     },
                 }
                 before.prev_sibling.set(Some(new_child));
@@ -255,7 +255,7 @@ impl Node {
                     Some(ref last_child) => {
                         assert!(last_child.next_sibling.get().is_none());
                         last_child.next_sibling.set(Some(new_child));
-                        new_child.prev_sibling.set(Some(&last_child));
+                        new_child.prev_sibling.set(Some(last_child));
                     },
                 }
 
@@ -282,7 +282,7 @@ impl Node {
             node.set_flag(NodeFlags::IS_CONNECTED, parent_is_connected);
             // Out-of-document elements never have the descendants flag set.
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
-            vtable_for(&&*node).bind_to_tree(&BindContext {
+            vtable_for(&*node).bind_to_tree(&BindContext {
                 tree_connected: parent_is_connected,
                 tree_in_doc: parent_in_doc,
             });
@@ -313,7 +313,7 @@ impl Node {
             // This needs to be in its own loop, because unbind_from_tree may
             // rely on the state of IS_IN_DOC of the context node's descendants,
             // e.g. when removing a <form>.
-            vtable_for(&&*node).unbind_from_tree(&context);
+            vtable_for(&*node).unbind_from_tree(context);
             // https://dom.spec.whatwg.org/#concept-node-remove step 14
             if let Some(element) = node.as_custom_element() {
                 ScriptThread::enqueue_callback_reaction(
@@ -2046,7 +2046,7 @@ impl Node {
                 Node::remove(kid, node, SuppressObserver::Suppressed);
             }
             // Step 5.
-            vtable_for(&node).children_changed(&ChildrenMutation::replace_all(new_nodes.r(), &[]));
+            vtable_for(node).children_changed(&ChildrenMutation::replace_all(new_nodes.r(), &[]));
 
             let mutation = Mutation::ChildList {
                 added: None,
@@ -2054,7 +2054,7 @@ impl Node {
                 prev: None,
                 next: None,
             };
-            MutationObserver::queue_a_mutation_record(&node, mutation);
+            MutationObserver::queue_a_mutation_record(node, mutation);
 
             new_nodes.r()
         } else {
@@ -2772,7 +2772,7 @@ impl NodeMethods for Node {
             next: reference_child,
         };
 
-        MutationObserver::queue_a_mutation_record(&self, mutation);
+        MutationObserver::queue_a_mutation_record(self, mutation);
 
         // Step 15.
         Ok(DomRoot::from_ref(child))
@@ -2958,7 +2958,7 @@ impl NodeMethods for Node {
             attr1 = Some(a);
             attr1owner = a.GetOwnerElement();
             node1 = match attr1owner {
-                Some(ref e) => Some(&e.upcast()),
+                Some(ref e) => Some(e.upcast()),
                 None => None,
             }
         }
@@ -3468,7 +3468,7 @@ impl UniqueId {
             if (*ptr).is_none() {
                 *ptr = Some(Box::new(Uuid::new_v4()));
             }
-            &(&*ptr).as_ref().unwrap()
+            (&*ptr).as_ref().unwrap()
         }
     }
 }

@@ -154,7 +154,7 @@ impl MediaStream {
     fn clone_with_proto(&self, proto: Option<HandleObject>) -> DomRoot<MediaStream> {
         let new = MediaStream::new_with_proto(&self.global(), proto);
         for track in &*self.tracks.borrow() {
-            new.add_track(&track)
+            new.add_track(track)
         }
         new
     }

@@ -308,7 +308,7 @@ impl HTMLLinkElement {
             None => "",
         };
 
-        let mut input = ParserInput::new(&mq_str);
+        let mut input = ParserInput::new(mq_str);
         let mut css_parser = CssParser::new(&mut input);
         let document_url_data = &UrlExtraData(document.url().get_arc());
         let window = document.window();
@@ -317,7 +317,7 @@ impl HTMLLinkElement {
         // much sense.
         let context = CssParserContext::new(
             Origin::Author,
-            &document_url_data,
+            document_url_data,
             Some(CssRuleType::Media),
             ParsingMode::DEFAULT,
             document.quirks_mode(),

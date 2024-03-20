@@ -214,8 +214,7 @@ impl NavigatorMethods for Navigator {
 
     /// <https://immersive-web.github.io/webxr/#dom-navigator-xr>
     fn Xr(&self) -> DomRoot<XRSystem> {
-        self.xr
-            .or_init(|| XRSystem::new(&self.global().as_window()))
+        self.xr.or_init(|| XRSystem::new(self.global().as_window()))
     }
 
     /// <https://w3c.github.io/mediacapture-main/#dom-navigator-mediadevices>

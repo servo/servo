@@ -810,12 +810,12 @@ impl HTMLInputElement {
 
         match self.input_type() {
             // https://html.spec.whatwg.org/multipage/#url-state-(type%3Durl)%3Asuffering-from-a-type-mismatch
-            InputType::Url => Url::parse(&value).is_err(),
+            InputType::Url => Url::parse(value).is_err(),
             // https://html.spec.whatwg.org/multipage/#e-mail-state-(type%3Demail)%3Asuffering-from-a-type-mismatch
             // https://html.spec.whatwg.org/multipage/#e-mail-state-(type%3Demail)%3Asuffering-from-a-type-mismatch-2
             InputType::Email => {
                 if self.Multiple() {
-                    !split_commas(&value).all(|s| {
+                    !split_commas(value).all(|s| {
                         DOMString::from_string(s.to_string()).is_valid_email_address_string()
                     })
                 } else {
@@ -843,10 +843,10 @@ impl HTMLInputElement {
 
         if compile_pattern(cx, &pattern_str, pattern.handle_mut()) {
             if self.Multiple() && self.does_multiple_apply() {
-                !split_commas(&value)
+                !split_commas(value)
                     .all(|s| matches_js_regex(cx, pattern.handle(), s).unwrap_or(true))
             } else {
-                !matches_js_regex(cx, pattern.handle(), &value).unwrap_or(true)
+                !matches_js_regex(cx, pattern.handle(), value).unwrap_or(true)
             }
         } else {
             // Element doesn't suffer from pattern mismatch if pattern is invalid.
@@ -926,7 +926,7 @@ impl HTMLInputElement {
             return ValidationFlags::empty();
         }
 
-        let value_as_number = match self.convert_string_to_number(&value) {
+        let value_as_number = match self.convert_string_to_number(value) {
             Ok(num) => num,
             Err(()) => return ValidationFlags::empty(),
         };
@@ -1645,7 +1645,7 @@ fn radio_group_iter<'a>(
     // If group is None, in_same_group always fails, but we need to always return elem.
     root.traverse_preorder(ShadowIncluding::No)
         .filter_map(|r| DomRoot::downcast::<HTMLInputElement>(r))
-        .filter(move |r| &**r == elem || in_same_group(&r, owner.as_deref(), group, None))
+        .filter(move |r| &**r == elem || in_same_group(r, owner.as_deref(), group, None))
 }
 
 fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>) {
@@ -1740,7 +1740,7 @@ impl HTMLInputElement {
                             datums.push(FormDatum {
                                 ty: ty.clone(),
                                 name: name.clone(),
-                                value: FormDatumValue::File(DomRoot::from_ref(&f)),
+                                value: FormDatumValue::File(DomRoot::from_ref(f)),
                             });
                         }
                     },
@@ -2068,7 +2068,7 @@ impl HTMLInputElement {
 
     #[allow(crown::unrooted_must_root)]
     fn selection(&self) -> TextControlSelection<Self> {
-        TextControlSelection::new(&self, &self.textinput)
+        TextControlSelection::new(self, &self.textinput)
     }
 
     // https://html.spec.whatwg.org/multipage/#implicit-submission
@@ -2129,10 +2129,7 @@ impl HTMLInputElement {
                     // lazily test for > 1 submission-blocking inputs
                     return;
                 }
-                form.submit(
-                    SubmittedFrom::NotFromForm,
-                    FormSubmitter::FormElement(&form),
-                );
+                form.submit(SubmittedFrom::NotFromForm, FormSubmitter::FormElement(form));
             },
         }
     }
@@ -2607,7 +2604,7 @@ impl VirtualMethods for HTMLInputElement {
                     .task_manager()
                     .user_interaction_task_source()
                     .queue_event(
-                        &self.upcast(),
+                        self.upcast(),
                         atom!("input"),
                         EventBubbles::Bubbles,
                         EventCancelable::NotCancelable,
@@ -2828,7 +2825,7 @@ impl Activatable for HTMLInputElement {
                     // Avoiding iterating through the whole tree here, instead
                     // we can check if the conditions for radio group siblings apply
                     if in_same_group(
-                        &o,
+                        o,
                         self.form_owner().as_deref(),
                         self.radio_group_name().as_ref(),
                         Some(&*tree_root),

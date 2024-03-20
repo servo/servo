@@ -656,7 +656,7 @@ impl WorkletThread {
         let script = load_whole_resource(
             request,
             &resource_fetcher,
-            &global_scope.upcast::<GlobalScope>(),
+            global_scope.upcast::<GlobalScope>(),
         )
         .ok()
         .and_then(|(_, bytes)| String::from_utf8(bytes).ok());

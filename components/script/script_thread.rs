@@ -3747,7 +3747,7 @@ impl ScriptThread {
         global_scope.evaluate_js_on_global_with_result(
             &script_source,
             jsval.handle_mut(),
-            ScriptFetchOptions::default_classic_script(&global_scope),
+            ScriptFetchOptions::default_classic_script(global_scope),
             global_scope.api_base_url(),
         );
 
@@ -3803,7 +3803,7 @@ impl ScriptThread {
                 DOMString::from("resize"),
                 EventBubbles::DoesNotBubble,
                 EventCancelable::NotCancelable,
-                Some(&window),
+                Some(window),
                 0i32,
             );
             uievent.upcast::<Event>().fire(window.upcast());

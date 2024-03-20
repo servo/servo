@@ -307,7 +307,7 @@ impl RTCPeerConnection {
             DataChannelEvent::NewChannel => {
                 let channel = RTCDataChannel::new(
                     &self.global(),
-                    &self,
+                    self,
                     USVString::from("".to_owned()),
                     &RTCDataChannelInit::empty(),
                     Some(channel_id),
@@ -357,7 +357,7 @@ impl RTCPeerConnection {
     }
 
     pub fn unregister_data_channel(&self, id: &DataChannelId) {
-        self.data_channels.borrow_mut().remove(&id);
+        self.data_channels.borrow_mut().remove(id);
     }
 
     /// <https://www.w3.org/TR/webrtc/#update-ice-gathering-state>
@@ -648,7 +648,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
                             let this = this.root();
                             let desc = desc.into();
                             let desc = RTCSessionDescription::Constructor(
-                                &this.global().as_window(),
+                                this.global().as_window(),
                                 None,
                                 &desc,
                             ).unwrap();
@@ -688,7 +688,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
                             let this = this.root();
                             let desc = desc.into();
                             let desc = RTCSessionDescription::Constructor(
-                                &this.global().as_window(),
+                                this.global().as_window(),
                                 None,
                                 &desc,
                             ).unwrap();
@@ -764,7 +764,7 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         label: USVString,
         init: &RTCDataChannelInit,
     ) -> DomRoot<RTCDataChannel> {
-        RTCDataChannel::new(&self.global(), &self, label, init, None)
+        RTCDataChannel::new(&self.global(), self, label, init, None)
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-addtransceiver>
