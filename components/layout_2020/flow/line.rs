@@ -378,9 +378,9 @@ impl InlineBoxLineItem {
             self.style.clone(),
             fragments,
             content_rect,
-            padding.into(),
-            border.into(),
-            margin.into(),
+            padding,
+            border,
+            margin,
             None, /* clearance */
             CollapsedBlockMargins::zero(),
         );

@@ -470,8 +470,8 @@ impl Drop for FloatPlacement {
 impl PlacedFloat {
     fn rect(&self) -> LogicalRect<Au> {
         LogicalRect {
-            start_corner: self.origin.clone(),
-            size: self.info.size.clone(),
+            start_corner: self.origin,
+            size: self.info.size,
         }
     }
 }

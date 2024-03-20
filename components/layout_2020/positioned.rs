@@ -254,7 +254,7 @@ impl PositioningContext {
             // Ignore the content rect’s position in its own containing block:
             start_corner: LogicalVec2::zero(),
         }
-        .inflate(&new_fragment.padding);
+        .inflate(&new_fragment.padding.map(|t| (*t).into()));
         let containing_block = DefiniteContainingBlock {
             size: padding_rect.size.into(),
             style: &new_fragment.style,
@@ -703,9 +703,9 @@ impl HoistedAbsolutelyPositionedBox {
                 absolutely_positioned_box.context.style().clone(),
                 fragments,
                 content_rect.into(),
-                pbm.padding.into(),
-                pbm.border.into(),
-                margin.into(),
+                pbm.padding,
+                pbm.border,
+                margin,
                 None, /* clearance */
                 // We do not set the baseline offset, because absolutely positioned
                 // elements are not inflow.

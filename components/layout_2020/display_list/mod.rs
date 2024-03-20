@@ -569,6 +569,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                     self.border_radius,
                     self.fragment
                         .border
+                        .map(|t| (*t).into())
                         .to_physical(self.fragment.style.writing_mode)
                         .to_webrender(),
                 ),
@@ -583,7 +584,8 @@ impl<'a> BuilderForBoxFragment<'a> {
             clip_for_radii(
                 inner_radii(
                     self.border_radius,
-                    (&self.fragment.border + &self.fragment.padding)
+                    (&self.fragment.border.map(|t| (*t).into()) +
+                        &self.fragment.padding.map(|t| (*t).into()))
                         .to_physical(self.fragment.style.writing_mode)
                         .to_webrender(),
                 ),
@@ -811,10 +813,10 @@ impl<'a> BuilderForBoxFragment<'a> {
             .border
             .to_physical(self.fragment.style.writing_mode);
         let widths = SideOffsets2D::new(
-            border_widths.top.px(),
-            border_widths.right.px(),
-            border_widths.bottom.px(),
-            border_widths.left.px(),
+            Length::from(border_widths.top).px(),
+            Length::from(border_widths.right).px(),
+            Length::from(border_widths.bottom).px(),
+            Length::from(border_widths.left).px(),
         );
         if widths == SideOffsets2D::zero() {
             return;

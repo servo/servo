@@ -989,9 +989,9 @@ impl FloatBox {
                     style.clone(),
                     children,
                     content_rect,
-                    pbm.padding.into(),
-                    pbm.border.into(),
-                    margin.into(),
+                    pbm.padding,
+                    pbm.border,
+                    margin,
                     // Clearance is handled internally by the float placement logic, so there's no need
                     // to store it explicitly in the fragment.
                     None, // clearance
@@ -1215,7 +1215,7 @@ impl SequentialLayoutState {
 
         let pbm_sums = &(&box_fragment.padding + &box_fragment.border) + &box_fragment.margin;
         let content_rect: LogicalRect<Au> = box_fragment.content_rect.clone().into();
-        let pbm_sums_all: LogicalSides<Au> = pbm_sums.map(|length| (*length).into());
+        let pbm_sums_all: LogicalSides<Au> = pbm_sums;
         let margin_box_start_corner = self.floats.add_float(&PlacementInfo {
             size: &content_rect.size + &pbm_sums_all.sum(),
             side: FloatSide::from_style(&box_fragment.style).expect("Float box wasn't floated!"),

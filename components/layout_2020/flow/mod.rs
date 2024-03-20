@@ -814,10 +814,10 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         style.clone(),
         flow_layout.fragments,
         content_rect.into(),
-        pbm.padding.into(),
-        pbm.border.into(),
-        margin,
-        clearance.map(|t| t.into()),
+        pbm.padding,
+        pbm.border,
+        margin.into(),
+        clearance,
         block_margins_collapsed_with_children,
     )
     .with_baselines(flow_layout.baselines)
@@ -900,9 +900,9 @@ impl NonReplacedFormattingContext {
             self.style.clone(),
             layout.fragments,
             content_rect.into(),
-            pbm.padding.into(),
-            pbm.border.into(),
-            margin,
+            pbm.padding,
+            pbm.border,
+            margin.into(),
             None, /* clearance */
             block_margins_collapsed_with_children,
         )
@@ -1152,10 +1152,10 @@ impl NonReplacedFormattingContext {
             self.style.clone(),
             layout.fragments,
             content_rect.into(),
-            pbm.padding.into(),
-            pbm.border.into(),
-            margin,
-            clearance,
+            pbm.padding,
+            pbm.border,
+            margin.into(),
+            clearance.map(|t| t.into()),
             block_margins_collapsed_with_children,
         )
         .with_baselines(layout.baselines)
@@ -1257,10 +1257,10 @@ fn layout_in_flow_replaced_block_level(
         style.clone(),
         fragments,
         content_rect.into(),
-        pbm.padding.into(),
-        pbm.border.into(),
-        margin,
-        clearance,
+        pbm.padding,
+        pbm.border,
+        margin.into(),
+        clearance.map(|t| t.into()),
         block_margins_collapsed_with_children,
     )
 }
@@ -1590,7 +1590,7 @@ impl PlacementState {
                 let fragment_block_margins = &fragment.block_margins_collapsed_with_children;
                 let mut fragment_block_size = fragment.padding.block_sum() +
                     fragment.border.block_sum() +
-                    fragment.content_rect.size.block;
+                    fragment.content_rect.size.block.into();
                 // We use `last_in_flow_margin_collapses_with_parent_end_margin` to implement
                 // this quote from https://drafts.csswg.org/css2/#collapsing-margins
                 // > If the top and bottom margins of an element with clearance are adjoining,
@@ -1632,12 +1632,12 @@ impl PlacementState {
                 if fragment_block_margins.collapsed_through {
                     // `fragment_block_size` is typically zero when collapsing through,
                     // but we still need to consider it in case there is clearance.
-                    self.current_block_direction_position += fragment_block_size;
+                    self.current_block_direction_position += fragment_block_size.into();
                     self.current_margin
                         .adjoin_assign(&fragment_block_margins.end);
                 } else {
                     self.current_block_direction_position +=
-                        self.current_margin.solve() + fragment_block_size;
+                        self.current_margin.solve() + fragment_block_size.into();
                     self.current_margin = fragment_block_margins.end;
                 }
             },
