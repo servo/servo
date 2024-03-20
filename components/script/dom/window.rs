@@ -12,7 +12,7 @@ use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
-use std::{cmp, env, mem};
+use std::{cmp, env};
 
 use app_units::Au;
 use backtrace::Backtrace;
