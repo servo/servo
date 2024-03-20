@@ -86,7 +86,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
     /// <https://html.spec.whatwg.org/multipage/#event-loop-processing-model:fully-active>
     fn store_task_for_inactive_pipeline(&self, msg: T, pipeline_id: &PipelineId) {
         let mut inactive = self.inactive.borrow_mut();
-        let inactive_queue = inactive.entry(pipeline_id.clone()).or_default();
+        let inactive_queue = inactive.entry(*pipeline_id).or_default();
         inactive_queue.push_back(
             msg.into_queued_task()
                 .expect("Incoming messages should always be convertible into queued tasks"),
