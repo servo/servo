@@ -989,12 +989,17 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 match self.current_line.count_justification_opportunities() {
                     0 => Length::zero(),
                     num_justification_opportunities => {
-                        (available_space - line_length) / (num_justification_opportunities as f32)
+                        (available_space - text_indent - line_length) /
+                            (num_justification_opportunities as f32)
                     },
                 }
             },
             _ => Length::zero(),
         };
+
+        // If the content overflows the line, then justification adjustment will become negative. In
+        // that case, do not make any adjustment for justification.
+        let justification_adjustment = justification_adjustment.max(Length::zero());
 
         (adjusted_line_start, justification_adjustment)
     }
