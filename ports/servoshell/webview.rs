@@ -462,6 +462,20 @@ where
                     self.window.set_position(point);
                 },
                 EmbedderMsg::ResizeTo(size) => {
+                    if let Some(webview_id) = webview_id {
+                        let new_rect = self.get_mut(webview_id).and_then(|webview| {
+                            if webview.rect.size() != size.to_f32() {
+                                webview.rect.set_size(size.to_f32());
+                                Some(webview.rect)
+                            } else {
+                                None
+                            }
+                        });
+                        if let Some(new_rect) = new_rect {
+                            self.event_queue
+                                .push(EmbedderEvent::MoveResizeWebView(webview_id, new_rect));
+                        }
+                    }
                     self.window.set_inner_size(size);
                 },
                 EmbedderMsg::Prompt(definition, origin) => {

@@ -309,8 +309,11 @@ impl WindowPortsMethods for Window {
     }
 
     fn set_inner_size(&self, size: DeviceIntSize) {
+        let toolbar_height = self.toolbar_height() * self.hidpi_factor();
+        let toolbar_height = toolbar_height.get().ceil() as i32;
+        let total_size = PhysicalSize::new(size.width, size.height + dbg!(toolbar_height));
         self.winit_window
-            .set_inner_size::<PhysicalSize<i32>>(PhysicalSize::new(size.width, size.height))
+            .set_inner_size::<PhysicalSize<i32>>(total_size)
     }
 
     fn set_position(&self, point: DeviceIntPoint) {
