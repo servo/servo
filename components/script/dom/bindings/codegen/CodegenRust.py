@@ -3470,7 +3470,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
 
         constructors = self.descriptor.interface.legacyFactoryFunctions
         if constructors:
-            decl = ("let named_constructors: [(ConstructorClassHook, &[u8], u32); %d]") % len(constructors)
+            decl = "let named_constructors: [(ConstructorClassHook, &[u8], u32); %d]" % len(constructors)
             specs = []
             for constructor in constructors:
                 hook = CONSTRUCT_HOOK_NAME + "_" + constructor.identifier.name
