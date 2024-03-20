@@ -312,7 +312,7 @@ impl WebGLTexture {
             },
             constants::TEXTURE_MAG_FILTER => match int_value as u32 {
                 constants::NEAREST | constants::LINEAR => update_filter(&self.mag_filter),
-                _ => return Err(WebGLError::InvalidEnum),
+                _ => Err(WebGLError::InvalidEnum),
             },
             constants::TEXTURE_WRAP_S | constants::TEXTURE_WRAP_T => match int_value as u32 {
                 constants::CLAMP_TO_EDGE | constants::MIRRORED_REPEAT | constants::REPEAT => {

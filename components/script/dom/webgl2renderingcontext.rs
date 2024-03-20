@@ -892,8 +892,7 @@ impl WebGL2RenderingContext {
 
         handle_potential_webgl_error!(
             self.base,
-            texture.storage(target, levels, internal_format, width, height, depth),
-            return
+            texture.storage(target, levels, internal_format, width, height, depth)
         );
     }
 }
@@ -4197,8 +4196,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
         handle_potential_webgl_error!(
             self.base,
-            program.bind_uniform_block(block_index, block_binding),
-            return
+            program.bind_uniform_block(block_index, block_binding)
         )
     }
 

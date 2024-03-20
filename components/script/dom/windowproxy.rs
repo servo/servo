@@ -537,7 +537,7 @@ impl WindowProxy {
             return Ok(None);
         }
         // Step 17.
-        return Ok(target_document.browsing_context());
+        Ok(target_document.browsing_context())
     }
 
     // https://html.spec.whatwg.org/multipage/#the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
@@ -840,7 +840,7 @@ fn parse_open_feature_boolean(tokenized_features: &IndexMap<String, String>, nam
         }
     }
     // Step 5
-    return false;
+    false
 }
 
 // This is only called from extern functions,

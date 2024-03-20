@@ -244,6 +244,6 @@ impl PerformanceObserverMethods for PerformanceObserver {
             .map(|entry| DomRoot::from_ref(&**entry))
             .collect();
         entries.clear();
-        return taken;
+        taken
     }
 }

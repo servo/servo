@@ -359,7 +359,7 @@ impl SelectionMethods for Selection {
             // Step 2
             return Err(Error::InvalidState);
         }
-        return Ok(());
+        Ok(())
     }
 
     // https://w3c.github.io/selection-api/#dom-selection-setbaseandextent
@@ -447,7 +447,7 @@ impl SelectionMethods for Selection {
             // selectionchange event as it would if if mutated any other way
             return range.DeleteContents();
         }
-        return Ok(());
+        Ok(())
     }
 
     // https://w3c.github.io/selection-api/#dom-selection-containsnode
@@ -478,7 +478,7 @@ impl SelectionMethods for Selection {
                 if node == end_node {
                     return range.EndOffset() > 0;
                 }
-                return true;
+                true
             } else {
                 if node.is_before(start_node) {
                     return false;
@@ -493,11 +493,11 @@ impl SelectionMethods for Selection {
                 if node == end_node {
                     return range.EndOffset() == node.len();
                 }
-                return true;
+                true
             }
         } else {
             // No range
-            return false;
+            false
         }
     }
 

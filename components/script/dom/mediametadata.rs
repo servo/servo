@@ -59,9 +59,7 @@ impl MediaMetadata {
     }
 
     fn queue_update_metadata_algorithm(&self) {
-        if self.session.get().is_none() {
-            return;
-        }
+        if self.session.get().is_none() {}
     }
 
     pub fn set_session(&self, session: &MediaSession) {
