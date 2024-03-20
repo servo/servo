@@ -18,7 +18,7 @@ pub struct PortMessageQueue(
 
 impl Clone for PortMessageQueue {
     fn clone(&self) -> PortMessageQueue {
-        PortMessageQueue(self.0.clone(), self.1.clone())
+        PortMessageQueue(self.0.clone(), self.1)
     }
 }
 

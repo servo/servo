@@ -25,7 +25,7 @@ pub struct PerformanceTimelineTaskSource(
 
 impl Clone for PerformanceTimelineTaskSource {
     fn clone(&self) -> PerformanceTimelineTaskSource {
-        PerformanceTimelineTaskSource(self.0.clone(), self.1.clone())
+        PerformanceTimelineTaskSource(self.0.clone(), self.1)
     }
 }
 

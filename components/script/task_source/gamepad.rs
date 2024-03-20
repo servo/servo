@@ -19,7 +19,7 @@ pub struct GamepadTaskSource(
 
 impl Clone for GamepadTaskSource {
     fn clone(&self) -> GamepadTaskSource {
-        GamepadTaskSource(self.0.clone(), self.1.clone())
+        GamepadTaskSource(self.0.clone(), self.1)
     }
 }
 
