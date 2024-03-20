@@ -404,9 +404,7 @@ impl Window {
     pub fn ignore_all_tasks(&self) {
         let mut ignore_flags = self.task_manager.task_cancellers.borrow_mut();
         for task_source_name in TaskSourceName::all() {
-            let flag = ignore_flags
-                .entry(task_source_name)
-                .or_default();
+            let flag = ignore_flags.entry(task_source_name).or_default();
             flag.store(true, Ordering::SeqCst);
         }
     }
@@ -1625,9 +1623,7 @@ impl Window {
     pub fn cancel_all_tasks(&self) {
         let mut ignore_flags = self.task_manager.task_cancellers.borrow_mut();
         for task_source_name in TaskSourceName::all() {
-            let flag = ignore_flags
-                .entry(task_source_name)
-                .or_default();
+            let flag = ignore_flags.entry(task_source_name).or_default();
             let cancelled = std::mem::take(&mut *flag);
             cancelled.store(true, Ordering::SeqCst);
         }
@@ -1638,9 +1634,7 @@ impl Window {
     /// `true` and replaces it with a brand new one for future tasks.
     pub fn cancel_all_tasks_from_source(&self, task_source_name: TaskSourceName) {
         let mut ignore_flags = self.task_manager.task_cancellers.borrow_mut();
-        let flag = ignore_flags
-            .entry(task_source_name)
-            .or_default();
+        let flag = ignore_flags.entry(task_source_name).or_default();
         let cancelled = std::mem::take(&mut *flag);
         cancelled.store(true, Ordering::SeqCst);
     }
@@ -1914,11 +1908,11 @@ impl Window {
             let node = unsafe { from_untrusted_node_address(image.node) };
 
             if let PendingImageState::Unrequested(ref url) = image.state {
-                fetch_image_for_layout(url.clone(), &*node, id, self.image_cache.clone());
+                fetch_image_for_layout(url.clone(), &node, id, self.image_cache.clone());
             }
 
             let mut images = self.pending_layout_images.borrow_mut();
-            let nodes = images.entry(id).or_insert(vec![]);
+            let nodes = images.entry(id).or_default();
             if nodes
                 .iter()
                 .find(|n| &***n as *const _ == &*node as *const _)
