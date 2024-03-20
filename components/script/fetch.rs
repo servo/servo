@@ -346,7 +346,7 @@ pub fn load_whole_resource(
             FetchResponseMsg::ProcessResponseEOF(Ok(_)) => {
                 let metadata = metadata.unwrap();
                 if let Some(timing) = &metadata.timing {
-                    submit_timing_data(global, url, InitiatorType::Other, &timing);
+                    submit_timing_data(global, url, InitiatorType::Other, timing);
                 }
                 return Ok((metadata, buf));
             },

@@ -79,7 +79,7 @@ use crate::task_source::TaskSourceName;
 #[allow(unsafe_code)]
 unsafe fn gen_type_error(global: &GlobalScope, string: String) -> RethrowError {
     rooted!(in(*GlobalScope::get_cx()) let mut thrown = UndefinedValue());
-    Error::Type(string).to_jsval(*GlobalScope::get_cx(), &global, thrown.handle_mut());
+    Error::Type(string).to_jsval(*GlobalScope::get_cx(), global, thrown.handle_mut());
 
     return RethrowError(RootedTraceableBox::from_box(Heap::boxed(thrown.get())));
 }
@@ -329,7 +329,7 @@ impl ModuleTree {
         let module_map = global.get_module_map().borrow();
         let mut discovered_urls = HashSet::new();
 
-        ModuleTree::recursive_check_descendants(&self, &module_map.0, &mut discovered_urls)
+        ModuleTree::recursive_check_descendants(self, &module_map.0, &mut discovered_urls)
     }
 
     // We just leverage the power of Promise to run the task for `finish` the owner.

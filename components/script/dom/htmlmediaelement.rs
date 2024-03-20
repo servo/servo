@@ -1952,7 +1952,7 @@ impl HTMLMediaElement {
         let global = self.global();
         let media_session = global.as_window().Navigator().MediaSession();
 
-        media_session.register_media_instance(&self);
+        media_session.register_media_instance(self);
 
         media_session.send_event(event);
     }

@@ -59,7 +59,7 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ::style::dom::TShadowRoot
     where
         Self: 'a,
     {
-        Some(&self.shadow_root.get_style_data_for_layout())
+        Some(self.shadow_root.get_style_data_for_layout())
     }
 }
 

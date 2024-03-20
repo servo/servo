@@ -30,14 +30,14 @@ impl MediaStreamTrackAudioSourceNode {
     ) -> Fallible<MediaStreamTrackAudioSourceNode> {
         let node = AudioNode::new_inherited(
             AudioNodeInit::MediaStreamSourceNode(track.id()),
-            &context.upcast(),
+            context.upcast(),
             Default::default(),
             0, // inputs
             1, // outputs
         )?;
         Ok(MediaStreamTrackAudioSourceNode {
             node,
-            track: Dom::from_ref(&track),
+            track: Dom::from_ref(track),
         })
     }
 

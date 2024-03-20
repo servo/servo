@@ -1039,7 +1039,7 @@ impl CanvasState {
         };
         let node = canvas.upcast::<Node>();
         let window = window_from_node(&*canvas);
-        let resolved_font_style = match window.resolved_font_style_query(&node, value.to_string()) {
+        let resolved_font_style = match window.resolved_font_style_query(node, value.to_string()) {
             Some(value) => value,
             None => return, // syntax error
         };

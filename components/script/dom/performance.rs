@@ -469,7 +469,7 @@ impl PerformanceMethods for Performance {
         // Steps 2 to 6.
         let entry = PerformanceMark::new(&global, mark_name, self.now(), 0.);
         // Steps 7 and 8.
-        self.queue_entry(&entry.upcast::<PerformanceEntry>());
+        self.queue_entry(entry.upcast::<PerformanceEntry>());
 
         // Step 9.
         Ok(())
@@ -516,7 +516,7 @@ impl PerformanceMethods for Performance {
         );
 
         // Step 9 and 10.
-        self.queue_entry(&entry.upcast::<PerformanceEntry>());
+        self.queue_entry(entry.upcast::<PerformanceEntry>());
 
         // Step 11.
         Ok(())

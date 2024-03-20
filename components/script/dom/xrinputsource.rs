@@ -100,7 +100,7 @@ impl XRInputSourceMethods for XRInputSource {
     fn TargetRaySpace(&self) -> DomRoot<XRSpace> {
         self.target_ray_space.or_init(|| {
             let global = self.global();
-            XRSpace::new_inputspace(&global, &self.session, &self, false)
+            XRSpace::new_inputspace(&global, &self.session, self, false)
         })
     }
 

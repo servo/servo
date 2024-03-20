@@ -45,7 +45,7 @@ impl HTMLTrackElement {
         HTMLTrackElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             ready_state: ReadyState::None,
-            track: Dom::from_ref(&track),
+            track: Dom::from_ref(track),
         }
     }
 
@@ -56,7 +56,7 @@ impl HTMLTrackElement {
         proto: Option<HandleObject>,
     ) -> DomRoot<HTMLTrackElement> {
         let track = TextTrack::new(
-            &document.window(),
+            document.window(),
             Default::default(),
             Default::default(),
             Default::default(),

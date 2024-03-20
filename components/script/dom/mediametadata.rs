@@ -65,7 +65,7 @@ impl MediaMetadata {
     }
 
     pub fn set_session(&self, session: &MediaSession) {
-        self.session.set(Some(&session));
+        self.session.set(Some(session));
     }
 }
 

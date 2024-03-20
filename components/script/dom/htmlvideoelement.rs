@@ -148,7 +148,7 @@ impl HTMLVideoElement {
         }
 
         // Step 3.
-        let poster_url = match document_from_node(self).url().join(&poster_url) {
+        let poster_url = match document_from_node(self).url().join(poster_url) {
             Ok(url) => url,
             Err(_) => return,
         };

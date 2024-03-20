@@ -300,7 +300,7 @@ impl ScriptOrigin {
 
     pub fn text(&self) -> Rc<DOMString> {
         match &self.code {
-            SourceCode::Text(text) => Rc::clone(&text),
+            SourceCode::Text(text) => Rc::clone(text),
             SourceCode::Compiled(compiled_script) => Rc::clone(&compiled_script.original_text),
         }
     }
@@ -319,11 +319,11 @@ fn finish_fetching_a_classic_script(
     let document = document_from_node(&*elem);
 
     match script_kind {
-        ExternalScriptKind::Asap => document.asap_script_loaded(&elem, load),
-        ExternalScriptKind::AsapInOrder => document.asap_in_order_script_loaded(&elem, load),
-        ExternalScriptKind::Deferred => document.deferred_script_loaded(&elem, load),
+        ExternalScriptKind::Asap => document.asap_script_loaded(elem, load),
+        ExternalScriptKind::AsapInOrder => document.asap_in_order_script_loaded(elem, load),
+        ExternalScriptKind::Deferred => document.deferred_script_loaded(elem, load),
         ExternalScriptKind::ParsingBlocking => {
-            document.pending_parsing_blocking_script_loaded(&elem, load)
+            document.pending_parsing_blocking_script_loaded(elem, load)
         },
     }
 
@@ -645,7 +645,7 @@ impl HTMLScriptElement {
         // Step 15.
         if !element.has_attribute(&local_name!("src")) &&
             doc.should_elements_inline_type_behavior_be_blocked(
-                &element,
+                element,
                 csp::InlineCheckType::Script,
                 &text,
             ) == csp::CheckResult::Blocked
@@ -1085,7 +1085,7 @@ impl HTMLScriptElement {
         // Step 4
         let window = window_from_node(self);
         let global = window.upcast::<GlobalScope>();
-        let _aes = AutoEntryScript::new(&global);
+        let _aes = AutoEntryScript::new(global);
 
         let tree = if script.external {
             global.get_module_map().borrow().get(&script.url).cloned()
@@ -1103,7 +1103,7 @@ impl HTMLScriptElement {
                 let module_error = module_tree.get_rethrow_error().borrow();
                 let network_error = module_tree.get_network_error().borrow();
                 if module_error.is_some() && network_error.is_none() {
-                    module_tree.report_error(&global);
+                    module_tree.report_error(global);
                     return;
                 }
             }
@@ -1117,11 +1117,11 @@ impl HTMLScriptElement {
             if let Some(record) = record {
                 rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
                 let evaluated =
-                    module_tree.execute_module(&global, record, rval.handle_mut().into());
+                    module_tree.execute_module(global, record, rval.handle_mut().into());
 
                 if let Err(exception) = evaluated {
                     module_tree.set_rethrow_error(exception);
-                    module_tree.report_error(&global);
+                    module_tree.report_error(global);
                     return;
                 }
             }

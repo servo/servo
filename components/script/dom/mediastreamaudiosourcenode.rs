@@ -39,14 +39,14 @@ impl MediaStreamAudioSourceNode {
             .id();
         let node = AudioNode::new_inherited(
             AudioNodeInit::MediaStreamSourceNode(track),
-            &context.upcast(),
+            context.upcast(),
             Default::default(),
             0, // inputs
             1, // outputs
         )?;
         Ok(MediaStreamAudioSourceNode {
             node,
-            stream: Dom::from_ref(&stream),
+            stream: Dom::from_ref(stream),
         })
     }
 

@@ -119,7 +119,7 @@ impl ServiceWorkerRegistration {
 
         let worker_id = WorkerId(Uuid::new_v4());
         let devtools_chan = global.devtools_chan().cloned();
-        let init = prepare_workerscope_init(&global, None, None);
+        let init = prepare_workerscope_init(global, None, None);
         ScopeThings {
             script_url: script_url,
             init: init,
@@ -197,6 +197,6 @@ impl ServiceWorkerRegistrationMethods for ServiceWorkerRegistration {
     // https://w3c.github.io/ServiceWorker/#service-worker-registration-navigationpreload
     fn NavigationPreload(&self) -> DomRoot<NavigationPreloadManager> {
         self.navigation_preload
-            .or_init(|| NavigationPreloadManager::new(&self.global(), &self))
+            .or_init(|| NavigationPreloadManager::new(&self.global(), self))
     }
 }

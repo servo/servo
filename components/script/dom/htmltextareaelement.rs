@@ -456,7 +456,7 @@ impl HTMLTextAreaElement {
 
     #[allow(crown::unrooted_must_root)]
     fn selection(&self) -> TextControlSelection<Self> {
-        TextControlSelection::new(&self, &self.textinput)
+        TextControlSelection::new(self, &self.textinput)
     }
 }
 
@@ -656,7 +656,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                     .task_manager()
                     .user_interaction_task_source()
                     .queue_event(
-                        &self.upcast(),
+                        self.upcast(),
                         atom!("input"),
                         EventBubbles::Bubbles,
                         EventCancelable::NotCancelable,
