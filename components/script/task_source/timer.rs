@@ -19,7 +19,7 @@ pub struct TimerTaskSource(
 
 impl Clone for TimerTaskSource {
     fn clone(&self) -> TimerTaskSource {
-        TimerTaskSource(self.0.clone(), self.1.clone())
+        TimerTaskSource(self.0.clone(), self.1)
     }
 }
 
