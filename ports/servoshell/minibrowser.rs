@@ -14,7 +14,7 @@ use euclid::{Length, Point2D, Scale};
 use gleam::gl;
 use glow::NativeFramebuffer;
 use log::{trace, warn};
-use servo::compositing::windowing::EmbedderEvent;
+use servo::compositing::windowing::{EmbedderEvent, EmbedderMsg};
 use servo::msg::constellation_msg::TraversalDirection;
 use servo::rendering_context::RenderingContext;
 use servo::servo_geometry::DeviceIndependentPixel;
@@ -34,7 +34,7 @@ pub struct Minibrowser {
 
     /// The framebuffer object name for the widget surface we should draw to, or None if our widget
     /// surface does not use a framebuffer object.
-    pub widget_surface_fbo: Option<NativeFramebuffer>,
+    widget_surface_fbo: Option<NativeFramebuffer>,
 
     last_update: Instant,
     last_mouse_position: Option<Point2D<f32, DeviceIndependentPixel>>,
@@ -42,7 +42,7 @@ pub struct Minibrowser {
 
     /// Whether the location has been edited by the user without clicking Go.
     location_dirty: Cell<bool>,
-    hovered_link: Option<String>, // Track the URL of the hovered link for tooltip
+    status_text: Option<String>, // Add this field
 }
 
 pub enum MinibrowserEvent {
@@ -50,6 +50,7 @@ pub enum MinibrowserEvent {
     Go,
     Back,
     Forward,
+    Status(String), // Add Status variant to hold status text
 }
 
 impl Minibrowser {
@@ -62,6 +63,7 @@ impl Minibrowser {
         let gl = unsafe {
             glow::Context::from_loader_function(|s| rendering_context.get_proc_address(s))
         };
+
         // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
         let context = EguiGlow::new(events_loop.as_winit(), Arc::new(gl), None);
         context
@@ -83,9 +85,10 @@ impl Minibrowser {
             last_mouse_position: None,
             location: RefCell::new(initial_url.to_string()),
             location_dirty: false.into(),
-            hovered_link: None, // Initialize hovered link to None
+            status_text: None, //Initialize status_text field to none
         }
     }
+
     /// Preprocess the given [winit::event::WindowEvent], returning unconsumed for mouse events in
     /// the Servo browser rect. This is needed because the CentralPanel we create for our webview
     /// would otherwise make egui report events in that area as consumed.
@@ -115,6 +118,18 @@ impl Minibrowser {
         position.y < self.toolbar_height.get()
     }
 
+    pub fn handle_embedder_msg(&mut self, msg: EmbedderMsg) {
+        match msg {
+            EmbedderMsg::Status(status) => {
+                self.event_queue
+                    .borrow_mut()
+                    .push(MinibrowserEvent::Status(status));
+            },
+            // Handle other EmbedderMsg variants if needed
+            _ => {},
+        }
+    }
+
     /// Update the minibrowser, but don’t paint.
     /// If `servo_framebuffer_id` is given, set up a paint callback to blit its contents to our
     /// CentralPanel when [`Minibrowser::paint`] is called.
@@ -138,7 +153,6 @@ impl Minibrowser {
             last_update,
             location,
             location_dirty,
-            hovered_link,
             ..
         } = self;
         let widget_fbo = *widget_surface_fbo;
@@ -199,64 +213,54 @@ impl Minibrowser {
                     let rect = egui::Rect::from_min_size(min, size);
                     ui.allocate_space(size);
 
-                    if let Some(servo_fbo) = servo_framebuffer_id {
-                        ui.painter().add(PaintCallback {
-                            rect,
-                            callback: Arc::new(CallbackFn::new(move |info, painter| {
-                                use glow::HasContext as _;
-                                let clip = info.viewport_in_pixels();
-                                let x = clip.left_px as gl::GLint;
-                                let y = clip.from_bottom_px as gl::GLint;
-                                let width = clip.width_px as gl::GLsizei;
-                                let height = clip.height_px as gl::GLsizei;
-                                unsafe {
-                                    painter.gl().clear_color(0.0, 0.0, 0.0, 0.0);
-                                    painter.gl().scissor(x, y, width, height);
-                                    painter.gl().enable(gl::SCISSOR_TEST);
-                                    painter.gl().clear(gl::COLOR_BUFFER_BIT);
-                                    painter.gl().disable(gl::SCISSOR_TEST);
+                    let Some(servo_fbo) = servo_framebuffer_id else {
+                        return;
+                    };
+                    ui.painter().add(PaintCallback {
+                        rect,
+                        callback: Arc::new(CallbackFn::new(move |info, painter| {
+                            use glow::HasContext as _;
+                            let clip = info.viewport_in_pixels();
+                            let x = clip.left_px as gl::GLint;
+                            let y = clip.from_bottom_px as gl::GLint;
+                            let width = clip.width_px as gl::GLsizei;
+                            let height = clip.height_px as gl::GLsizei;
+                            unsafe {
+                                painter.gl().clear_color(0.0, 0.0, 0.0, 0.0);
+                                painter.gl().scissor(x, y, width, height);
+                                painter.gl().enable(gl::SCISSOR_TEST);
+                                painter.gl().clear(gl::COLOR_BUFFER_BIT);
+                                painter.gl().disable(gl::SCISSOR_TEST);
 
-                                    let servo_fbo =
-                                        NonZeroU32::new(servo_fbo).map(NativeFramebuffer);
-                                    painter
-                                        .gl()
-                                        .bind_framebuffer(gl::READ_FRAMEBUFFER, servo_fbo);
-                                    painter
-                                        .gl()
-                                        .bind_framebuffer(gl::DRAW_FRAMEBUFFER, widget_fbo);
-                                    painter.gl().blit_framebuffer(
-                                        x,
-                                        y,
-                                        x + width,
-                                        y + height,
-                                        x,
-                                        y,
-                                        x + width,
-                                        y + height,
-                                        gl::COLOR_BUFFER_BIT,
-                                        gl::NEAREST,
-                                    );
-                                    painter.gl().bind_framebuffer(gl::FRAMEBUFFER, widget_fbo);
-                                }
-                            })),
-                        });
-                    }
-
-                    // Track link hover events
-                    let input_state = ui.input_mut(|i| i.pointer.clone());
-                    if let Some(pointer_pos) = input_state.interact_pos() {
-                        if rect.contains(pointer_pos) {
-                            *hovered_link = Some("https://example.com".to_owned());
-                        } else {
-                            *hovered_link = None;
-                        }
-                    } else {
-                        *hovered_link = None;
-                    }
+                                let servo_fbo = NonZeroU32::new(servo_fbo).map(NativeFramebuffer);
+                                painter
+                                    .gl()
+                                    .bind_framebuffer(gl::READ_FRAMEBUFFER, servo_fbo);
+                                painter
+                                    .gl()
+                                    .bind_framebuffer(gl::DRAW_FRAMEBUFFER, widget_fbo);
+                                painter.gl().blit_framebuffer(
+                                    x,
+                                    y,
+                                    x + width,
+                                    y + height,
+                                    x,
+                                    y,
+                                    x + width,
+                                    y + height,
+                                    gl::COLOR_BUFFER_BIT,
+                                    gl::NEAREST,
+                                );
+                                painter.gl().bind_framebuffer(gl::FRAMEBUFFER, widget_fbo);
+                            }
+                        })),
+                    });
                 });
 
             *last_update = now;
         });
+        // Update status text and trigger repaint if necessary
+        self.update_status_text_and_repaint();
     }
 
     /// Paint the minibrowser, as of the last update.
@@ -283,7 +287,7 @@ impl Minibrowser {
                 MinibrowserEvent::Go => {
                     let browser_id = browser.webview_id().unwrap();
                     let location = self.location.borrow();
-                    if let Some(url) = location_bar_input_to_url(&location) {
+                    if let Some(url) = location_bar_input_to_url(&location.clone()) {
                         app_event_queue.push(EmbedderEvent::LoadUrl(browser_id, url));
                     } else {
                         warn!("failed to parse location");
@@ -320,11 +324,38 @@ impl Minibrowser {
         }
 
         match browser.current_url_string() {
-            Some(location) if location != *self.location.borrow() => {
-                *self.location.borrow_mut() = location.to_string();
+            Some(location) if location != self.location.get_mut() => {
+                self.location = RefCell::new(location.to_owned());
                 true
             },
             _ => false,
+        }
+    }
+    /// Update status text and trigger repaint if necessary
+    fn update_status_text_and_repaint(&mut self) {
+        if self.status_text.is_some() {
+            // Trigger repaint if status text is present
+            self.context.egui_ctx.request_repaint();
+        }
+    }
+    // Method to update status text
+    pub fn update_status_text(&mut self, status: Option<String>) {
+        self.status_text = Some(status);
+        self.context.egui_ctx.request_repaint();
+    }
+
+    /// Show tooltip if status text is present.
+    pub fn show_status_tooltip(&self, ui: &mut egui::Ui) {
+        if let Some(status_text) = &self.status_text {
+            let max_y = ui.cursor().max.y;
+            ui.ctx().output().tooltip_text(
+                egui::Id::new("status_tooltip"),
+                egui::Rect::from_min_size(
+                    egui::Pos2::new(0.0, max_y),
+                    egui::Vec2::new(ui.available_width(), ui.fonts().row_height()),
+                ),
+                status_text.clone(),
+            );
         }
     }
 }
