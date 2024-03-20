@@ -1104,9 +1104,8 @@ impl<'a> CanvasData<'a> {
                 updates.push(ImageUpdate::Update(image_key, descriptor, data));
             },
             None => {
-                let key = match self.webrender_api.generate_key() {
-                    Ok(key) => key,
-                    Err(()) => return,
+                let Some(key) = self.webrender_api.generate_key() else {
+                    return;
                 };
                 updates.push(ImageUpdate::Add(key, descriptor, data));
                 self.image_key = Some(key);

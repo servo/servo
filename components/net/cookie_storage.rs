@@ -25,6 +25,12 @@ pub struct CookieStorage {
     max_per_host: usize,
 }
 
+#[derive(Debug)]
+pub enum RemoveCookieError {
+    Overlapping,
+    NonHTTP,
+}
+
 impl CookieStorage {
     pub fn new(max_cookies: usize) -> CookieStorage {
         CookieStorage {
@@ -40,7 +46,7 @@ impl CookieStorage {
         cookie: &Cookie,
         url: &ServoUrl,
         source: CookieSource,
-    ) -> Result<Option<Cookie>, ()> {
+    ) -> Result<Option<Cookie>, RemoveCookieError> {
         let domain = reg_host(cookie.cookie.domain().as_ref().unwrap_or(&""));
         let cookies = self.cookies_map.entry(domain).or_default();
 
@@ -61,7 +67,7 @@ impl CookieStorage {
             });
 
             if any_overlapping {
-                return Err(());
+                return Err(RemoveCookieError::Overlapping);
             }
         }
 
@@ -80,7 +86,7 @@ impl CookieStorage {
             if c.cookie.http_only().unwrap_or(false) && source == CookieSource::NonHTTP {
                 // Undo the removal.
                 cookies.push(c);
-                Err(())
+                Err(RemoveCookieError::NonHTTP)
             } else {
                 Ok(Some(c))
             }

@@ -83,7 +83,7 @@ where
     }
 }
 
-pub fn glplayer_channel<T>() -> Result<(GLPlayerSender<T>, GLPlayerReceiver<T>), ()>
+pub fn glplayer_channel<T>() -> Option<(GLPlayerSender<T>, GLPlayerReceiver<T>)>
 where
     T: for<'de> Deserialize<'de> + Serialize,
 {
@@ -91,10 +91,11 @@ where
     if true {
         ipc::glplayer_channel()
             .map(|(tx, rx)| (GLPlayerSender::Ipc(tx), GLPlayerReceiver::Ipc(rx)))
-            .map_err(|_| ())
+            .ok()
     } else {
         mpsc::glplayer_channel()
             .map(|(tx, rx)| (GLPlayerSender::Mpsc(tx), GLPlayerReceiver::Mpsc(rx)))
+            .ok()
     }
 }
 

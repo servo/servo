@@ -3180,7 +3180,7 @@ impl WebXRLayerGrandManagerAPI<WebXRSurfman> for WebXRBridgeGrandManager {
         &self,
         factory: WebXRLayerManagerFactory<WebXRSurfman>,
     ) -> Result<WebXRLayerManager, WebXRError> {
-        let (sender, receiver) = webgl_channel().map_err(|_| WebXRError::CommunicationError)?;
+        let (sender, receiver) = webgl_channel().ok_or(WebXRError::CommunicationError)?;
         let _ = self.factory_sender.send(factory);
         let _ = self
             .sender
@@ -3221,7 +3221,7 @@ impl<GL: WebXRTypes> WebXRLayerManagerAPI<GL> for WebXRBridgeManager {
         context_id: WebXRContextId,
         init: WebXRLayerInit,
     ) -> Result<WebXRLayerId, WebXRError> {
-        let (sender, receiver) = webgl_channel().map_err(|_| WebXRError::CommunicationError)?;
+        let (sender, receiver) = webgl_channel().ok_or(WebXRError::CommunicationError)?;
         let _ = self
             .sender
             .send(WebGLMsg::WebXRCommand(WebXRCommand::CreateLayer(
@@ -3264,7 +3264,7 @@ impl<GL: WebXRTypes> WebXRLayerManagerAPI<GL> for WebXRBridgeManager {
         _: &mut dyn WebXRContexts<GL>,
         layers: &[(WebXRContextId, WebXRLayerId)],
     ) -> Result<Vec<WebXRSubImages>, WebXRError> {
-        let (sender, receiver) = webgl_channel().map_err(|_| WebXRError::CommunicationError)?;
+        let (sender, receiver) = webgl_channel().ok_or(WebXRError::CommunicationError)?;
         let _ = self
             .sender
             .send(WebGLMsg::WebXRCommand(WebXRCommand::BeginFrame(
@@ -3283,7 +3283,7 @@ impl<GL: WebXRTypes> WebXRLayerManagerAPI<GL> for WebXRBridgeManager {
         _: &mut dyn WebXRContexts<GL>,
         layers: &[(WebXRContextId, WebXRLayerId)],
     ) -> Result<(), WebXRError> {
-        let (sender, receiver) = webgl_channel().map_err(|_| WebXRError::CommunicationError)?;
+        let (sender, receiver) = webgl_channel().ok_or(WebXRError::CommunicationError)?;
         let _ = self
             .sender
             .send(WebGLMsg::WebXRCommand(WebXRCommand::EndFrame(

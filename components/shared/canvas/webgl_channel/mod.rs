@@ -49,13 +49,19 @@ impl<T: Serialize> WebGLSender<T> {
     #[inline]
     pub fn send(&self, msg: T) -> WebGLSendResult {
         match *self {
-            WebGLSender::Ipc(ref sender) => sender.send(msg).map_err(|_| ()),
-            WebGLSender::Mpsc(ref sender) => sender.send(msg).map_err(|_| ()),
+            WebGLSender::Ipc(ref sender) => sender.send(msg).map_err(|_| WebGLSendError),
+            WebGLSender::Mpsc(ref sender) => sender.send(msg).map_err(|_| WebGLSendError),
         }
     }
 }
 
-pub type WebGLSendResult = Result<(), ()>;
+#[derive(Debug)]
+pub struct WebGLSendError;
+pub type WebGLSendResult = Result<(), WebGLSendError>;
+
+#[derive(Debug)]
+pub struct WebGLReceiveError;
+pub type WebGLReceiveResult<T> = Result<T, WebGLReceiveError>;
 
 pub enum WebGLReceiver<T>
 where
@@ -69,17 +75,17 @@ impl<T> WebGLReceiver<T>
 where
     T: for<'de> Deserialize<'de> + Serialize,
 {
-    pub fn recv(&self) -> Result<T, ()> {
+    pub fn recv(&self) -> WebGLReceiveResult<T> {
         match *self {
-            WebGLReceiver::Ipc(ref receiver) => receiver.recv().map_err(|_| ()),
-            WebGLReceiver::Mpsc(ref receiver) => receiver.recv().map_err(|_| ()),
+            WebGLReceiver::Ipc(ref receiver) => receiver.recv().map_err(|_| WebGLReceiveError),
+            WebGLReceiver::Mpsc(ref receiver) => receiver.recv().map_err(|_| WebGLReceiveError),
         }
     }
 
-    pub fn try_recv(&self) -> Result<T, ()> {
+    pub fn try_recv(&self) -> WebGLReceiveResult<T> {
         match *self {
-            WebGLReceiver::Ipc(ref receiver) => receiver.try_recv().map_err(|_| ()),
-            WebGLReceiver::Mpsc(ref receiver) => receiver.try_recv().map_err(|_| ()),
+            WebGLReceiver::Ipc(ref receiver) => receiver.try_recv().map_err(|_| WebGLReceiveError),
+            WebGLReceiver::Mpsc(ref receiver) => receiver.try_recv().map_err(|_| WebGLReceiveError),
         }
     }
 
@@ -96,16 +102,18 @@ where
     }
 }
 
-pub fn webgl_channel<T>() -> Result<(WebGLSender<T>, WebGLReceiver<T>), ()>
+pub fn webgl_channel<T>() -> Option<(WebGLSender<T>, WebGLReceiver<T>)>
 where
     T: for<'de> Deserialize<'de> + Serialize,
 {
     if *IS_MULTIPROCESS {
         ipc::webgl_channel()
             .map(|(tx, rx)| (WebGLSender::Ipc(tx), WebGLReceiver::Ipc(rx)))
-            .map_err(|_| ())
+            .ok()
     } else {
-        mpsc::webgl_channel().map(|(tx, rx)| (WebGLSender::Mpsc(tx), WebGLReceiver::Mpsc(rx)))
+        mpsc::webgl_channel()
+            .map(|(tx, rx)| (WebGLSender::Mpsc(tx), WebGLReceiver::Mpsc(rx)))
+            .ok()
     }
 }
 
