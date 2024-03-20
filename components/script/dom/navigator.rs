@@ -47,7 +47,7 @@ pub struct Navigator {
     xr: MutNullableDom<XRSystem>,
     mediadevices: MutNullableDom<MediaDevices>,
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepads>
-    gamepads: DomRefCell<Vec<Option<DomRoot<Gamepad>>>>,
+    gamepads: DomRefCell<Vec<MutNullableDom<Gamepad>>>,
     permissions: MutNullableDom<Permissions>,
     mediasession: MutNullableDom<MediaSession>,
     gpu: MutNullableDom<GPU>,
@@ -81,7 +81,7 @@ impl Navigator {
         self.xr.get()
     }
 
-    pub fn gamepads(&self) -> RefMut<Vec<Option<DomRoot<Gamepad>>>> {
+    pub fn gamepads(&self) -> RefMut<Vec<MutNullableDom<Gamepad>>> {
         self.gamepads.borrow_mut()
     }
 
@@ -199,7 +199,7 @@ impl NavigatorMethods for Navigator {
             return Vec::new();
         }
 
-        self.gamepads.borrow().to_vec()
+        self.gamepads.borrow().iter().map(|g| g.get()).collect()
     }
     // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
     fn Permissions(&self) -> DomRoot<Permissions> {
