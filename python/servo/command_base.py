@@ -588,6 +588,19 @@ class CommandBase(object):
         def to_ndk_bin(prog):
             return path.join(llvm_toolchain, "bin", prog)
 
+        # This workaround is due to an issue in the x86_64 Android NDK that introduces
+        # an undefined reference to the symbol '__extendsftf2'.
+        # See https://github.com/termux/termux-packages/issues/8029#issuecomment-1369150244
+        if "x86_64" in self.cross_compile_target:
+            libclangrt_filename = subprocess.run(
+                [to_ndk_bin(f"x86_64-linux-android{android_api}-clang"), "--print-libgcc-file-name"],
+                check=True,
+                capture_output=True,
+                encoding="utf8"
+            ).stdout
+            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "")
+            env["RUSTFLAGS"] += f"-C link-arg={libclangrt_filename}"
+
         env["RUST_TARGET"] = self.cross_compile_target
         env['HOST_CC'] = host_cc
         env['HOST_CXX'] = host_cxx
@@ -911,6 +924,14 @@ class CommandBase(object):
             self.config["android"]["arch"] = "x86"
             self.config["android"]["lib"] = "x86"
             self.config["android"]["toolchain_name"] = "i686-linux-android30"
+            return True
+        elif target == "x86_64-linux-android":
+            self.config["android"]["platform"] = "android-30"
+            self.config["android"]["target"] = target
+            self.config["android"]["toolchain_prefix"] = target
+            self.config["android"]["arch"] = "x86_64"
+            self.config["android"]["lib"] = "x86_64"
+            self.config["android"]["toolchain_name"] = "x86_64-linux-android30"
             return True
         return False
 

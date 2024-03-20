@@ -62,10 +62,10 @@ impl WebGLFramebufferAttachment {
     fn root(&self) -> WebGLFramebufferAttachmentRoot {
         match *self {
             WebGLFramebufferAttachment::Renderbuffer(ref rb) => {
-                WebGLFramebufferAttachmentRoot::Renderbuffer(DomRoot::from_ref(&rb))
+                WebGLFramebufferAttachmentRoot::Renderbuffer(DomRoot::from_ref(rb))
             },
             WebGLFramebufferAttachment::Texture { ref texture, .. } => {
-                WebGLFramebufferAttachmentRoot::Texture(DomRoot::from_ref(&texture))
+                WebGLFramebufferAttachmentRoot::Texture(DomRoot::from_ref(texture))
             },
         }
     }
@@ -421,7 +421,7 @@ impl WebGLFramebuffer {
             let attachment = attachment.borrow();
             let constraints = color_constraints.clone();
             if let Err(errnum) =
-                self.check_attachment_constraints(&*attachment, constraints, &mut fb_size)
+                self.check_attachment_constraints(&attachment, constraints, &mut fb_size)
             {
                 return self.status.set(errnum);
             }

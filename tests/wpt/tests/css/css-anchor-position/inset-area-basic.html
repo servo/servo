@@ -31,7 +31,7 @@
     position: absolute;
     align-self: stretch;
     justify-self: stretch;
-    anchor-default: --anchor;
+    position-anchor: --anchor;
   }
   #anchor {
     margin-top: 150px;
@@ -116,6 +116,6 @@
   test_inset_area("y-end / y-self-start", {left:0, top:0, width:0, height:0});
 
   // No implicit anchor means the inset-area should not apply.
-  anchored.style.anchorDefault = "implicit";
+  anchored.style.positionAnchor = "implicit";
   test_inset_area("all / top", {left:0, top:0, width:0, height:0});
 </script>

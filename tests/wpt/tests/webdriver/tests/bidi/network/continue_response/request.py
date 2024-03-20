@@ -1,17 +1,13 @@
 import pytest
 
-from webdriver.bidi.modules.network import AuthCredentials
-
-from tests.support.sync import AsyncPoll
-
-from .. import AUTH_REQUIRED_EVENT, RESPONSE_COMPLETED_EVENT, RESPONSE_STARTED_EVENT
+from .. import AUTH_REQUIRED_EVENT, RESPONSE_COMPLETED_EVENT
 
 pytestmark = pytest.mark.asyncio
 
 
 @pytest.mark.parametrize("navigate", [False, True], ids=["fetch", "navigate"])
 async def test_continue_auth_required(
-    setup_blocked_request, subscribe_events, wait_for_event, bidi_session, navigate
+    setup_blocked_request, subscribe_events, wait_for_event, bidi_session, navigate, wait_for_future_safe
 ):
     # Setup unique username / password because browsers cache credentials.
     username = f"test_continue_auth_required_{navigate}"
@@ -30,12 +26,12 @@ async def test_continue_auth_required(
     # network.authRequired should be emitted.
     on_auth_required = wait_for_event(AUTH_REQUIRED_EVENT)
     await bidi_session.network.continue_response(request=request)
-    await on_auth_required
+    await wait_for_future_safe(on_auth_required)
 
 
 @pytest.mark.parametrize("navigate", [False, True], ids=["fetch", "navigate"])
 async def test_continue_response_started(
-    setup_blocked_request, subscribe_events, wait_for_event, bidi_session, navigate
+    setup_blocked_request, subscribe_events, wait_for_event, bidi_session, navigate, wait_for_future_safe
 ):
     request = await setup_blocked_request("responseStarted", navigate=navigate)
 
@@ -52,6 +48,6 @@ async def test_continue_response_started(
 
     await bidi_session.network.continue_response(request=request)
 
-    await on_response_completed
+    await wait_for_future_safe(on_response_completed)
     if navigate:
-        await on_load
+        await wait_for_future_safe(on_load)

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use cssparser::RGBA;
+use cssparser::RgbaLegacy;
 use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
@@ -153,11 +153,11 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
 }
 
 pub trait HTMLTableRowElementLayoutHelpers {
-    fn get_background_color(self) -> Option<RGBA>;
+    fn get_background_color(self) -> Option<RgbaLegacy>;
 }
 
 impl HTMLTableRowElementLayoutHelpers for LayoutDom<'_, HTMLTableRowElement> {
-    fn get_background_color(self) -> Option<RGBA> {
+    fn get_background_color(self) -> Option<RgbaLegacy> {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
             .and_then(AttrValue::as_color)

@@ -97,6 +97,18 @@ android {
                 abiFilters getNDKAbi('x86')
             }
         }
+        x64Debug {
+            initWith(debug)
+            ndk {
+                abiFilters getNDKAbi('x64')
+            }
+        }
+        x64Release {
+            initWith(release)
+            ndk {
+                abiFilters getNDKAbi('x64')
+            }
+        }
     }
 
     // Ignore default 'debug' and 'release' build types

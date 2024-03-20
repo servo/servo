@@ -11,8 +11,7 @@
   test_valid_value("position-try", "most-height none");
   test_valid_value("position-try", "--bar, --baz");
   test_valid_value("position-try", "most-inline-size --baz, flip-inline");
-  test_valid_value("position-try", "most-block-size flip-inline flip-block, --bar, --baz",
-                                   "most-block-size flip-block flip-inline, --bar, --baz");
+  test_valid_value("position-try", "most-block-size flip-inline flip-block, --bar, --baz");
   test_valid_value("position-try", "normal none", "none");
   test_valid_value("position-try", "most-width none");
   test_valid_value("position-try", "normal --foo", "--foo");
@@ -40,6 +39,6 @@
   });
   test_shorthand_value("position-try", "most-inline-size flip-inline flip-block, --foo, --bar", {
     "position-try-order": "most-inline-size",
-    "position-try-options": "flip-block flip-inline, --foo, --bar",
+    "position-try-options": "flip-inline flip-block, --foo, --bar",
   });
 </script>

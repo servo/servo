@@ -15,6 +15,7 @@ use script_layout_interface::wrapper_traits::{
 };
 use script_layout_interface::{LayoutNodeType, StyleAndOpaqueLayoutData, StyleData};
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
+use selectors::bloom::{BloomFilter, BLOOM_HASH_MASK};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, VisitedHandlingMode};
 use selectors::sink::Push;
 use servo_arc::{Arc, ArcBorrow};
@@ -22,6 +23,7 @@ use servo_atoms::Atom;
 use style::animation::AnimationSetKey;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::AttrValue;
+use style::bloom::each_relevant_element_hash;
 use style::context::SharedStyleContext;
 use style::data::ElementData;
 use style::dom::{DomChildren, LayoutIterator, TDocument, TElement, TNode, TShadowRoot};
@@ -682,6 +684,11 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ::selectors::Element
             }
         }
     }
+
+    fn add_element_unique_hashes(&self, filter: &mut BloomFilter) -> bool {
+        each_relevant_element_hash(*self, |hash| filter.insert_hash(hash & BLOOM_HASH_MASK));
+        true
+    }
 }
 
 /// A wrapper around elements that ensures layout can only
@@ -940,6 +947,13 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ::selectors::Element
                 p.element.insert_selector_flags(flags);
             }
         }
+    }
+
+    fn add_element_unique_hashes(&self, filter: &mut BloomFilter) -> bool {
+        each_relevant_element_hash(self.element, |hash| {
+            filter.insert_hash(hash & BLOOM_HASH_MASK)
+        });
+        true
     }
 }
 

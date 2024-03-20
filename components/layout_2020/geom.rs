@@ -525,3 +525,17 @@ impl From<LogicalRect<CSSPixelLength>> for LogicalRect<Au> {
         }
     }
 }
+
+/// Convert a `PhysicalRect<Length>` (one that uses CSSPixel as the unit) to an untyped `Rect<Au>`.
+pub fn physical_rect_to_au_rect(rect: PhysicalRect<Length>) -> euclid::default::Rect<Au> {
+    euclid::default::Rect::new(
+        euclid::default::Point2D::new(
+            Au::from_f32_px(rect.origin.x.px()),
+            Au::from_f32_px(rect.origin.y.px()),
+        ),
+        euclid::default::Size2D::new(
+            Au::from_f32_px(rect.size.width.px()),
+            Au::from_f32_px(rect.size.height.px()),
+        ),
+    )
+}

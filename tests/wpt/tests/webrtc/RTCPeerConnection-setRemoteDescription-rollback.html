@@ -69,7 +69,7 @@
     .then(() => {
       assert_equals(pc.signalingState, 'have-remote-offer');
       assert_not_equals(pc.remoteDescription, null);
-      assert_not_equals(pc.pendingRemoteDescription, null);
+      assert_equals(pc.pendingRemoteDescription, pc.remoteDescription);
       assert_equals(pc.currentRemoteDescription, null);
 
       return pc.setRemoteDescription({type: 'rollback'});

@@ -13,9 +13,19 @@ const kCases = {
 enable f16;`,
     pass: false
   },
-  after_decl: {
+  decl_after: {
     code: `enable f16;
 alias i = i32;`,
+    pass: true
+  },
+  requires_before: {
+    code: `requires readonly_and_readwrite_storage_textures;
+enable f16;`,
+    pass: true
+  },
+  diagnostic_before: {
+    code: `diagnostic(info, derivative_uniformity);
+enable f16;`,
     pass: true
   },
   const_assert_before: {
@@ -48,7 +58,7 @@ f16;`,
 enable f16;`,
     pass: true
   },
-  multipe_entries: {
+  multiple_entries: {
     code: `enable f16, f16, f16;`,
     pass: true
   },
@@ -65,6 +75,10 @@ beforeAllSubcases((t) => {
 }).
 params((u) => u.combine('case', keysOf(kCases))).
 fn((t) => {
+  if (t.params.case === 'requires_before') {
+    t.skipIfLanguageFeatureNotSupported('readonly_and_readwrite_storage_textures');
+  }
+
   const c = kCases[t.params.case];
   t.expectCompileResult(c.pass, c.code);
 });

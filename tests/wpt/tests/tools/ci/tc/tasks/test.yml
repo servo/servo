@@ -232,7 +232,7 @@ tasks:
                 browser: servo
                 channel: nightly
               use:
-                - trigger-weekly
+                - trigger-daily
                 - trigger-push
             - vars:
                 browser: firefox_android

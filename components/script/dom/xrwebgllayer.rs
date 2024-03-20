@@ -165,7 +165,7 @@ impl XRWebGLLayer {
     }
 
     pub fn session(&self) -> &XRSession {
-        &self.xr_layer.session()
+        self.xr_layer.session()
     }
 
     pub fn size(&self) -> Size2D<u32, Viewport> {

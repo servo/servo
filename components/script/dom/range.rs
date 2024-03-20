@@ -200,7 +200,7 @@ impl Range {
         }
         if &self.start.node != node {
             if self.start.node == self.end.node {
-                node.ranges().push(WeakRef::new(&self));
+                node.ranges().push(WeakRef::new(self));
             } else if &self.end.node == node {
                 self.StartContainer().ranges().remove(self);
             } else {
@@ -218,7 +218,7 @@ impl Range {
         }
         if &self.end.node != node {
             if self.end.node == self.start.node {
-                node.ranges().push(WeakRef::new(&self));
+                node.ranges().push(WeakRef::new(self));
             } else if &self.start.node == node {
                 self.EndContainer().ranges().remove(self);
             } else {

@@ -103,7 +103,7 @@ impl ReadableStream {
     /// Build a stream backed by a Rust source that has already been read into memory.
     pub fn new_from_bytes(global: &GlobalScope, bytes: Vec<u8>) -> DomRoot<ReadableStream> {
         let stream = ReadableStream::new_with_external_underlying_source(
-            &global,
+            global,
             ExternalUnderlyingSource::Memory(bytes.len()),
         );
         stream.enqueue_native(bytes);
@@ -123,7 +123,7 @@ impl ReadableStream {
 
         let source = Rc::new(ExternalUnderlyingSourceController::new(source));
 
-        let stream = ReadableStream::new(&global, Some(source.clone()));
+        let stream = ReadableStream::new(global, Some(source.clone()));
 
         unsafe {
             let js_wrapper = CreateReadableStreamUnderlyingSource(

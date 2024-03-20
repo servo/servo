@@ -5,7 +5,7 @@
 use std::default::Default;
 use std::str::FromStr;
 
-use cssparser::RGBA;
+use cssparser::RgbaLegacy;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSender, IpcSharedMemory};
 use malloc_size_of_derive::MallocSizeOf;
@@ -75,7 +75,7 @@ pub enum Canvas2dMsg {
     SetShadowOffsetX(f64),
     SetShadowOffsetY(f64),
     SetShadowBlur(f64),
-    SetShadowColor(RGBA),
+    SetShadowColor(RgbaLegacy),
     SetFont(FontStyleStruct),
     SetTextAlign(TextAlign),
     SetTextBaseline(TextBaseline),
@@ -94,7 +94,7 @@ pub enum FromScriptMsg {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct CanvasGradientStop {
     pub offset: f64,
-    pub color: RGBA,
+    pub color: RgbaLegacy,
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -183,7 +183,7 @@ impl SurfaceStyle {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FillOrStrokeStyle {
-    Color(RGBA),
+    Color(RgbaLegacy),
     LinearGradient(LinearGradientStyle),
     RadialGradient(RadialGradientStyle),
     Surface(SurfaceStyle),

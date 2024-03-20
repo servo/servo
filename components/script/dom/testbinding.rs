@@ -873,8 +873,8 @@ impl TestBindingMethods for TestBinding {
         prefs::pref_map()
             .get(pref_name.as_ref())
             .as_str()
-            .map(|s| DOMString::from(s))
-            .unwrap_or_else(|| DOMString::new())
+            .map(DOMString::from)
+            .unwrap_or_else(DOMString::new)
     }
     fn PrefControlledAttributeDisabled(&self) -> bool {
         false

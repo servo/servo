@@ -29,9 +29,9 @@ pub(crate) enum Fragment {
     Box(BoxFragment),
     /// Floating content. A floated fragment is very similar to a normal
     /// [BoxFragment] but it isn't positioned using normal in block flow
-    /// positioning rules (margin collapse, etc). Instead, they are laid out by
-    /// the [SequentialLayoutState] of their float containing block formatting
-    /// context.
+    /// positioning rules (margin collapse, etc). Instead, they are laid
+    /// out by the [crate::flow::float::SequentialLayoutState] of their
+    /// float containing block formatting context.
     Float(BoxFragment),
     Positioning(PositioningFragment),
     /// Absolute and fixed position fragments are hoisted up so that they

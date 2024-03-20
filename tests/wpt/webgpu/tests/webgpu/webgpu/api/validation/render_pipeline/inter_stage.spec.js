@@ -97,8 +97,18 @@ fn((t) => {
 });
 
 g.test('location,superset').
-desc(`TODO: implement after spec is settled: https://github.com/gpuweb/gpuweb/issues/2038`).
-unimplemented();
+desc(`Tests that validation should succeed when vertex output is superset of fragment input`).
+params((u) => u.combine('isAsync', [false, true])).
+fn((t) => {
+  const { isAsync } = t.params;
+
+  const descriptor = t.getDescriptorWithStates(
+    t.getVertexStateWithOutputs(['@location(0) vout0: f32', '@location(1) vout1: f32']),
+    t.getFragmentStateWithInputs(['@location(1) fin1: f32'])
+  );
+
+  t.doCreateRenderPipelineTest(isAsync, true, descriptor);
+});
 
 g.test('location,subset').
 desc(`Tests that validation should fail when vertex output is a subset of fragment input.`).
@@ -292,17 +302,20 @@ desc(
 params((u) =>
 u.combine('isAsync', [false, true]).combineWithParams([
 // Number of user-defined input scalar components in test shader = device.limits.maxInterStageShaderComponents + numScalarDelta.
-{ numScalarDelta: 0, useExtraBuiltinInputs: false, _success: true },
-{ numScalarDelta: 1, useExtraBuiltinInputs: false, _success: false },
-{ numScalarDelta: 0, useExtraBuiltinInputs: true, _success: false },
-{ numScalarDelta: -3, useExtraBuiltinInputs: true, _success: true },
-{ numScalarDelta: -2, useExtraBuiltinInputs: true, _success: false }]
+{ numScalarDelta: 0, useExtraBuiltinInputs: false },
+{ numScalarDelta: 1, useExtraBuiltinInputs: false },
+{ numScalarDelta: 0, useExtraBuiltinInputs: true },
+{ numScalarDelta: -3, useExtraBuiltinInputs: true },
+{ numScalarDelta: -2, useExtraBuiltinInputs: true }]
 )
 ).
 fn((t) => {
-  const { isAsync, numScalarDelta, useExtraBuiltinInputs, _success } = t.params;
+  const { isAsync, numScalarDelta, useExtraBuiltinInputs } = t.params;
 
   const numScalarComponents = t.device.limits.maxInterStageShaderComponents + numScalarDelta;
+  const numExtraComponents = useExtraBuiltinInputs ? t.isCompatibility ? 2 : 3 : 0;
+  const numUsedComponents = numScalarComponents + numExtraComponents;
+  const success = numUsedComponents <= t.device.limits.maxInterStageShaderComponents;
 
   const numVec4 = Math.floor(numScalarComponents / 4);
   const numTrailingScalars = numScalarComponents % 4;
@@ -319,9 +332,11 @@ fn((t) => {
   if (useExtraBuiltinInputs) {
     inputs.push(
       '@builtin(front_facing) front_facing_in: bool',
-      '@builtin(sample_index) sample_index_in: u32',
       '@builtin(sample_mask) sample_mask_in: u32'
     );
+    if (!t.isCompatibility) {
+      inputs.push('@builtin(sample_index) sample_index_in: u32');
+    }
   }
 
   const descriptor = t.getDescriptorWithStates(
@@ -329,5 +344,5 @@ fn((t) => {
     t.getFragmentStateWithInputs(inputs, true)
   );
 
-  t.doCreateRenderPipelineTest(isAsync, _success, descriptor);
+  t.doCreateRenderPipelineTest(isAsync, success, descriptor);
 });

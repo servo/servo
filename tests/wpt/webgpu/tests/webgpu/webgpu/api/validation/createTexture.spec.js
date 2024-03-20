@@ -594,6 +594,7 @@ params((u) =>
 u.
 combine('dimension', [undefined, '2d']).
 combine('format', kCompressedTextureFormats).
+beginSubcases().
 expand('sizeVariant', (p) => {
   const { blockWidth, blockHeight } = kTextureFormatInfo[p.format];
   return [
@@ -1105,9 +1106,7 @@ fn((t) => {
 
   t.skipIfTextureFormatNotSupported(format, viewFormat);
 
-  const compatible = t.isCompatibility ?
-  viewFormat === format :
-  viewCompatible(format, viewFormat);
+  const compatible = viewCompatible(t.isCompatibility, format, viewFormat);
 
   // Test the viewFormat in the list.
   t.expectValidationError(() => {

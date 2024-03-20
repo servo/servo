@@ -179,11 +179,25 @@ pub fn process_content_box_request(
     requested_node: OpaqueNode,
     fragment_tree: Option<Arc<FragmentTree>>,
 ) -> Option<Rect<Au>> {
-    fragment_tree?.get_content_box_for_node(requested_node)
+    let rects = fragment_tree?.get_content_boxes_for_node(requested_node);
+    if rects.is_empty() {
+        return None;
+    }
+
+    Some(
+        rects
+            .iter()
+            .fold(Rect::zero(), |unioned_rect, rect| rect.union(&unioned_rect)),
+    )
 }
 
-pub fn process_content_boxes_request(_requested_node: OpaqueNode) -> Vec<Rect<Au>> {
-    vec![]
+pub fn process_content_boxes_request(
+    requested_node: OpaqueNode,
+    fragment_tree: Option<Arc<FragmentTree>>,
+) -> Vec<Rect<Au>> {
+    fragment_tree
+        .map(|tree| tree.get_content_boxes_for_node(requested_node))
+        .unwrap_or_default()
 }
 
 pub fn process_node_geometry_request(

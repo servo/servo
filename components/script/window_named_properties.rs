@@ -19,7 +19,6 @@ use js::rust::{
     Handle as RustHandle, HandleObject as RustHandleObject, IntoHandle,
     MutableHandle as RustMutableHandle, MutableHandleObject as RustMutableHandleObject,
 };
-use libc;
 
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::proxyhandler::set_property_descriptor;
@@ -142,7 +141,7 @@ unsafe extern "C" fn get_own_property_descriptor(
             &mut *is_none,
         );
     }
-    return true;
+    true
 }
 
 #[allow(unsafe_code)]

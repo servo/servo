@@ -2556,6 +2556,33 @@ export class FPTraits {
 
   /**
    * Calculate the Matrix of acceptance intervals by running a scalar operation
+   * component-wise over a scalar and a matrix.
+   *
+   * An example of this is performing constant scaling.
+   *
+   * @param i scalar  input
+   * @param m matrix input
+   * @param op scalar operation to be run component-wise
+   * @returns a matrix of intervals with the outputs of op.impl
+   */
+  runScalarPairToIntervalOpScalarMatrixComponentWise(
+  i,
+  m,
+  op)
+  {
+    const cols = m.length;
+    const rows = m[0].length;
+    return this.toMatrix(
+      unflatten2DArray(
+        flatten2DArray(m).map((e) => this.runScalarPairToIntervalOp(i, e, op)),
+        cols,
+        rows
+      )
+    );
+  }
+
+  /**
+   * Calculate the Matrix of acceptance intervals by running a scalar operation
    * component-wise over a pair of matrices.
    *
    * An example of this is performing matrix addition.
@@ -2565,14 +2592,14 @@ export class FPTraits {
    * @param op scalar operation to be run component-wise
    * @returns a matrix of intervals with the outputs of op.impl
    */
-  runScalarPairToIntervalOpMatrixComponentWise(
+  runScalarPairToIntervalOpMatrixMatrixComponentWise(
   x,
   y,
   op)
   {
     assert(
       x.length === y.length && x[0].length === y[0].length,
-      `runScalarPairToIntervalOpMatrixComponentWise requires matrices of the same dimensions`
+      `runScalarPairToIntervalOpMatrixMatrixComponentWise requires matrices of the same dimensions`
     );
 
     const cols = x.length;
@@ -2788,7 +2815,7 @@ export class FPTraits {
 
 
   additionMatrixMatrixIntervalImpl(x, y) {
-    return this.runScalarPairToIntervalOpMatrixComponentWise(
+    return this.runScalarPairToIntervalOpMatrixMatrixComponentWise(
       this.toMatrix(x),
       this.toMatrix(y),
       this.AdditionIntervalOp
@@ -3078,7 +3105,11 @@ export class FPTraits {
         this.multiplicationInterval(x[0], y[1]),
         this.multiplicationInterval(x[1], y[0])
       );
-      return [r0, r1, r2];
+
+      if (r0.isFinite() && r1.isFinite() && r2.isFinite()) {
+        return [r0, r1, r2];
+      }
+      return this.constants().unboundedVector[3];
     }
   };
 
@@ -3825,14 +3856,10 @@ export class FPTraits {
   }
 
   multiplicationMatrixScalarIntervalImpl(mat, scalar) {
-    const cols = mat.length;
-    const rows = mat[0].length;
-    return this.toMatrix(
-      unflatten2DArray(
-        flatten2DArray(mat).map((e) => this.multiplicationInterval(e, scalar)),
-        cols,
-        rows
-      )
+    return this.runScalarPairToIntervalOpScalarMatrixComponentWise(
+      this.toInterval(scalar),
+      this.toMatrix(mat),
+      this.MultiplicationIntervalOp
     );
   }
 
@@ -3843,7 +3870,7 @@ export class FPTraits {
 
 
   multiplicationScalarMatrixIntervalImpl(scalar, mat) {
-    return this.multiplicationMatrixScalarIntervalImpl(mat, scalar);
+    return this.multiplicationMatrixScalarInterval(mat, scalar);
   }
 
   /** Calculate an acceptance interval of x * y, when x is a scalar and y is a matrix */
@@ -3864,13 +3891,22 @@ export class FPTraits {
 
     const x_transposed = this.transposeInterval(mat_x);
 
+    let oob_result = false;
     const result = [...Array(y_cols)].map((_) => [...Array(x_rows)]);
     mat_y.forEach((y, i) => {
       x_transposed.forEach((x, j) => {
         result[i][j] = this.dotInterval(x, y);
+        if (!oob_result && !result[i][j].isFinite()) {
+          oob_result = true;
+        }
       });
     });
 
+    if (oob_result) {
+      return this.constants().unboundedMatrix[result.length][
+      result[0].length];
+
+    }
     return result;
   }
 
@@ -3930,7 +3966,11 @@ export class FPTraits {
   NormalizeIntervalOp = {
     impl: (n) => {
       const length = this.lengthInterval(n);
-      return this.toVector(n.map((e) => this.divisionInterval(e, length)));
+      const result = this.toVector(n.map((e) => this.divisionInterval(e, length)));
+      if (result.some((r) => !r.isFinite())) {
+        return this.constants().unboundedVector[result.length];
+      }
+      return result;
     }
   };
 
@@ -3989,11 +4029,16 @@ export class FPTraits {
       // y = normal of reflecting surface
       const t = this.multiplicationInterval(2.0, this.dotInterval(x, y));
       const rhs = this.multiplyVectorByScalar(y, t);
-      return this.runScalarPairToIntervalOpVectorComponentWise(
+      const result = this.runScalarPairToIntervalOpVectorComponentWise(
         this.toVector(x),
         rhs,
         this.SubtractionIntervalOp
       );
+
+      if (result.some((r) => !r.isFinite())) {
+        return this.constants().unboundedVector[result.length];
+      }
+      return result;
     }
   };
 
@@ -4049,11 +4094,16 @@ export class FPTraits {
     const k_sqrt = this.sqrtInterval(k);
     const t = this.additionInterval(dot_times_r, k_sqrt); // t = r * dot(i, s) + sqrt(k)
 
-    return this.runScalarPairToIntervalOpVectorComponentWise(
+    const result = this.runScalarPairToIntervalOpVectorComponentWise(
       this.multiplyVectorByScalar(i, r),
       this.multiplyVectorByScalar(s, t),
       this.SubtractionIntervalOp
     ); // (i * r) - (s * t)
+
+    if (result.some((r) => !r.isFinite())) {
+      return this.constants().unboundedVector[result.length];
+    }
+    return result;
   }
 
   /** Calculate acceptance interval vectors of reflect(i, s, r) */
@@ -4284,7 +4334,7 @@ export class FPTraits {
 
 
   subtractionMatrixMatrixIntervalImpl(x, y) {
-    return this.runScalarPairToIntervalOpMatrixComponentWise(
+    return this.runScalarPairToIntervalOpMatrixMatrixComponentWise(
       this.toMatrix(x),
       this.toMatrix(y),
       this.SubtractionIntervalOp

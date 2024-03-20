@@ -431,7 +431,7 @@ impl WebGLTexture {
     }
 
     pub fn image_info_for_target(&self, target: &TexImageTarget, level: u32) -> Option<ImageInfo> {
-        let face_index = self.face_index_for_target(&target);
+        let face_index = self.face_index_for_target(target);
         self.image_info_at_face(face_index, level)
     }
 

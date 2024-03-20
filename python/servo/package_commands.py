@@ -146,6 +146,8 @@ class PackageCommands(CommandBase):
                 arch_string = "Armv7"
             elif "i686" in android_target:
                 arch_string = "x86"
+            elif "x86_64" in android_target:
+                arch_string = "x64"
             else:
                 arch_string = "Arm"
 

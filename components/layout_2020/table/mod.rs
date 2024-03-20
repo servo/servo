@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+#![allow(rustdoc::private_intra_doc_links)]
 
 //! # HTML Tables (╯°□°)╯︵ ┻━┻
 //!
@@ -92,14 +93,14 @@ pub struct Table {
     /// The column groups for this table.
     pub column_groups: Vec<TableTrackGroup>,
 
-    /// The columns of this tabled defined by `<colgroup> | display: table-column-group`
+    /// The columns of this table defined by `<colgroup> | display: table-column-group`
     /// and `<col> | display: table-column` elements as well as `display: table-column`.
     pub columns: Vec<TableTrack>,
 
-    /// The rows groups for this table deinfed by `<tbody>`, `<thead>`, and `<tfoot>`.
+    /// The rows groups for this table defined by `<tbody>`, `<thead>`, and `<tfoot>`.
     pub row_groups: Vec<TableTrackGroup>,
 
-    /// The rows of this tabled defined by `<tr>` or `display: table-row` elements.
+    /// The rows of this table defined by `<tr>` or `display: table-row` elements.
     pub rows: Vec<TableTrack>,
 
     /// The content of the slots of this table.

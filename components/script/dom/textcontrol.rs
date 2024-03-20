@@ -126,7 +126,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         self.set_range(
             Some(self.start()),
             Some(self.end()),
-            direction.map(|d| SelectionDirection::from(d)),
+            direction.map(SelectionDirection::from),
             None,
         );
         Ok(())
@@ -305,7 +305,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
                 .task_manager()
                 .user_interaction_task_source()
                 .queue_event(
-                    &self.element.upcast::<EventTarget>(),
+                    self.element.upcast::<EventTarget>(),
                     atom!("select"),
                     EventBubbles::Bubbles,
                     EventCancelable::NotCancelable,

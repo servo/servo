@@ -62,7 +62,7 @@ egui_glow = { version = "0.22.0", features = ["winit"] }
 egui-winit = { version = "0.22.0", default-features = false, features = ["clipboard", "wayland"] }
 euclid = { workspace = true }
 getopts = { workspace = true }
-gilrs = "0.10.4"
+gilrs = "0.10.6"
 gleam = { workspace = true }
 glow = "0.12.2"
 keyboard-types = { workspace = true }

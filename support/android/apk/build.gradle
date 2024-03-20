@@ -27,7 +27,8 @@ ext.getRustTarget = { String arch ->
     switch (arch.toLowerCase()) {
         case 'armv7' : return 'armv7-linux-androideabi'
         case 'arm64' : return 'aarch64-linux-android'
-        case 'x86' : return 'i686-linux-android'
+        case 'x86': return 'i686-linux-android'
+        case 'x64': return 'x86_64-linux-android'
         default: throw new GradleException("Invalid target architecture " + arch)
     }
 }
@@ -36,7 +37,8 @@ ext.getNDKAbi = { String arch ->
     switch (arch.toLowerCase()) {
         case 'armv7' : return 'armeabi-v7a'
         case 'arm64' : return 'arm64-v8a'
-        case 'x86' : return 'x86'
+        case 'x86': return 'x86'
+        case 'x64': return 'x86_64'
         default: throw new GradleException("Invalid target architecture " + arch)
     }
 }

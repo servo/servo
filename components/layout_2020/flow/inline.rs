@@ -72,6 +72,7 @@ use std::cell::OnceCell;
 use std::mem;
 
 use app_units::Au;
+use bitflags::bitflags;
 use gfx::font::FontMetrics;
 use gfx::text::glyph::GlyphStore;
 use serde::Serialize;
@@ -1121,7 +1122,6 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 .placement_among_floats
                 .get_or_init(|| self.place_line_among_floats(potential_line_size))
                 .size
-                .clone()
         } else {
             LogicalVec2 {
                 inline: self.containing_block.inline_size.into(),
@@ -1215,7 +1215,11 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 .current_inline_container_state()
                 .strut_block_sizes
                 .clone();
-            self.update_unbreakable_segment_for_new_content(&strut_size, Length::zero(), false);
+            self.update_unbreakable_segment_for_new_content(
+                &strut_size,
+                Length::zero(),
+                SegmentContentFlags::empty(),
+            );
         }
 
         self.had_inflow_content = true;
@@ -1243,12 +1247,11 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         font_index: usize,
     ) {
         let inline_advance = Length::from(glyph_store.total_advance());
-        let preserve_spaces = text_run
-            .parent_style
-            .get_inherited_text()
-            .white_space
-            .preserve_spaces();
-        let is_collapsible_whitespace = glyph_store.is_whitespace() && !preserve_spaces;
+        let flags = if glyph_store.is_whitespace() {
+            SegmentContentFlags::from(text_run.parent_style.get_inherited_text().white_space)
+        } else {
+            SegmentContentFlags::empty()
+        };
 
         // If the metrics of this font don't match the default font, we are likely using a fallback
         // font and need to adjust the line size to account for a potentially different font.
@@ -1270,7 +1273,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 container_state.get_block_size_contribution(vertical_align, &font_metrics);
             block_size.adjust_for_baseline_offset(container_state.baseline_offset);
             block_size
-        } else if quirks_mode && !is_collapsible_whitespace {
+        } else if quirks_mode && !flags.is_collapsible_whitespace() {
             // Normally, the strut is incorporated into the nested block size. In quirks mode though
             // if we find any text that isn't collapsed whitespace, we need to incorporate the strut.
             // TODO(mrobinson): This isn't quite right for situations where collapsible white space
@@ -1281,11 +1284,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         } else {
             LineBlockSizes::zero()
         };
-        self.update_unbreakable_segment_for_new_content(
-            &strut_size,
-            inline_advance,
-            is_collapsible_whitespace,
-        );
+        self.update_unbreakable_segment_for_new_content(&strut_size, inline_advance, flags);
 
         match self.current_line_segment.line_items.last_mut() {
             Some(LineItem::TextRun(line_item)) if ifc_font_info.key == line_item.font_key => {
@@ -1309,14 +1308,16 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         &mut self,
         block_sizes_of_content: &LineBlockSizes,
         inline_size: Length,
-        is_collapsible_whitespace: bool,
+        flags: SegmentContentFlags,
     ) {
-        if !is_collapsible_whitespace {
+        if flags.is_collapsible_whitespace() || flags.is_wrappable_whitespace() {
+            self.current_line_segment.trailing_whitespace_size = inline_size;
+        } else {
             self.current_line_segment.trailing_whitespace_size = Length::zero();
+        }
+        if !flags.is_collapsible_whitespace() {
             self.current_line_segment.has_content = true;
             self.had_inflow_content = true;
-        } else {
-            self.current_line_segment.trailing_whitespace_size = inline_size;
         }
 
         // This may or may not include the size of the strut depending on the quirks mode setting.
@@ -1439,6 +1440,36 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         self.current_line.has_content |= self.current_line_segment.has_content;
 
         self.current_line_segment.reset();
+    }
+}
+
+bitflags! {
+    pub struct SegmentContentFlags: u8 {
+        const COLLAPSIBLE_WHITESPACE = 0b00000001;
+        const WRAPPABLE_WHITESPACE = 0b00000010;
+    }
+}
+
+impl SegmentContentFlags {
+    fn is_collapsible_whitespace(&self) -> bool {
+        self.contains(Self::COLLAPSIBLE_WHITESPACE)
+    }
+
+    fn is_wrappable_whitespace(&self) -> bool {
+        self.contains(Self::WRAPPABLE_WHITESPACE)
+    }
+}
+
+impl From<WhiteSpace> for SegmentContentFlags {
+    fn from(white_space: WhiteSpace) -> Self {
+        let mut flags = Self::empty();
+        if !white_space.preserve_spaces() {
+            flags.insert(Self::COLLAPSIBLE_WHITESPACE);
+        }
+        if white_space.allow_wrap() {
+            flags.insert(Self::WRAPPABLE_WHITESPACE);
+        }
+        flags
     }
 }
 
@@ -1959,9 +1990,7 @@ impl IndependentFormattingContext {
                     None,
                     &pbm,
                 );
-                let fragments = replaced
-                    .contents
-                    .make_fragments(&replaced.style, size.clone());
+                let fragments = replaced.contents.make_fragments(&replaced.style, size);
                 let content_rect = LogicalRect {
                     start_corner: pbm_sums.start_offset(),
                     size,
@@ -2088,7 +2117,11 @@ impl IndependentFormattingContext {
 
         let (block_sizes, baseline_offset_in_parent) =
             self.get_block_sizes_and_baseline_offset(ifc, size.block, baseline_offset);
-        ifc.update_unbreakable_segment_for_new_content(&block_sizes, size.inline, false);
+        ifc.update_unbreakable_segment_for_new_content(
+            &block_sizes,
+            size.inline,
+            SegmentContentFlags::empty(),
+        );
         ifc.push_line_item_to_unbreakable_segment(LineItem::Atomic(AtomicLineItem {
             fragment,
             size,

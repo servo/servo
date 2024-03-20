@@ -37,7 +37,7 @@ test(t => {
     }
     #anchor { top: 100px; left: 0; anchor-name: --a; }
     #not-anchor { top: 200px; left: 0; anchor-name: --b; }
-    #target { position-try-options: --pf; anchor-default: --a; left: 999999px; }
+    #target { position-try-options: --pf; position-anchor: --a; left: 999999px; }
   `);
   const positionTryRule = style.sheet.cssRules[0];
 
@@ -52,7 +52,7 @@ test(t => {
 
   // These properties are disallowed in `@position-try` rule, and hence should not affect
   // position fallback.
-  positionTryRule.style.setProperty('anchor-default', '--b');
+  positionTryRule.style.setProperty('position-anchor', '--b');
   positionTryRule.style.setProperty('position', 'static');
   assert_equals(target.getBoundingClientRect().left, 100);
   assert_equals(target.getBoundingClientRect().top, 100);

@@ -300,10 +300,10 @@ pub fn handle_execute_script(
                 global.evaluate_js_on_global_with_result(
                     &eval,
                     rval.handle_mut(),
-                    ScriptFetchOptions::default_classic_script(&global),
+                    ScriptFetchOptions::default_classic_script(global),
                     global.api_base_url(),
                 );
-                jsval_to_webdriver(*cx, &window.upcast::<GlobalScope>(), rval.handle())
+                jsval_to_webdriver(*cx, window.upcast::<GlobalScope>(), rval.handle())
             };
 
             reply.send(result).unwrap();
@@ -330,7 +330,7 @@ pub fn handle_execute_async_script(
             global.evaluate_js_on_global_with_result(
                 &eval,
                 rval.handle_mut(),
-                ScriptFetchOptions::default_classic_script(&global),
+                ScriptFetchOptions::default_classic_script(global),
                 global.api_base_url(),
             );
         },
@@ -461,7 +461,7 @@ pub fn handle_find_element_link_text(
                 .find_document(pipeline)
                 .ok_or(ErrorStatus::UnknownError)
                 .and_then(|document| {
-                    first_matching_link(&document.upcast::<Node>(), selector.clone(), partial)
+                    first_matching_link(document.upcast::<Node>(), selector.clone(), partial)
                 }),
         )
         .unwrap();
@@ -528,7 +528,7 @@ pub fn handle_find_elements_link_text(
                 .find_document(pipeline)
                 .ok_or(ErrorStatus::UnknownError)
                 .and_then(|document| {
-                    all_matching_links(&document.upcast::<Node>(), selector.clone(), partial)
+                    all_matching_links(document.upcast::<Node>(), selector.clone(), partial)
                 }),
         )
         .unwrap();
@@ -1048,7 +1048,7 @@ pub fn handle_get_css(
                 let element = node.downcast::<Element>().unwrap();
                 Ok(String::from(
                     window
-                        .GetComputedStyle(&element, None)
+                        .GetComputedStyle(element, None)
                         .GetPropertyValue(DOMString::from(name)),
                 ))
             }),
@@ -1173,7 +1173,7 @@ pub fn handle_is_enabled(
 ) {
     reply
         .send(
-            find_node_by_unique_id(&documents, pipeline, element_id).and_then(|node| match node
+            find_node_by_unique_id(documents, pipeline, element_id).and_then(|node| match node
                 .downcast::<Element>(
             ) {
                 Some(element) => Ok(element.enabled_state()),

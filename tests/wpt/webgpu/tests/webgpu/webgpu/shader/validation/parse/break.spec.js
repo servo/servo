@@ -15,10 +15,6 @@ const kTests = {
     src: 'loop { if true { break; } }',
     pass: true
   },
-  continuing_break_if: {
-    src: 'loop { continuing { break if (true); } }',
-    pass: true
-  },
   while_break: {
     src: 'while true { break; }',
     pass: true

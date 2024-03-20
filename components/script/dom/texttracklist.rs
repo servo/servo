@@ -66,7 +66,7 @@ impl TextTrackList {
                 .task_manager()
                 .media_element_task_source_with_canceller();
 
-            let idx = match self.find(&track) {
+            let idx = match self.find(track) {
                 Some(t) => t,
                 None => return,
             };
@@ -89,7 +89,7 @@ impl TextTrackList {
                         event.upcast::<Event>().fire(this.upcast::<EventTarget>());
                     }
                 }),
-                &canceller,
+                canceller,
             );
             track.add_track_list(self);
         }

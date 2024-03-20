@@ -34,7 +34,7 @@ g.test('supported').
 desc(`Test presence of ${kFn} when ${kFeature} is supported.`).
 params((u) => u.combine('requires', [false, true])).
 fn((t) => {
-  t.requireLanguageFeatureOrSkipTestCase(kFeature);
+  t.skipIfLanguageFeatureNotSupported(kFeature);
   const preamble = t.params.requires ? `requires ${kFeature}; ` : '';
   const code = `${preamble}const c = ${kFn}${kGoodArgs};`;
   t.expectCompileResult(true, code);
@@ -44,13 +44,13 @@ g.test('bad_args').
 desc(`Test compilation failure of ${kFn} with bad arguments`).
 params((u) => u.combine('arg', keysOf(kBadArgs))).
 fn((t) => {
-  t.requireLanguageFeatureOrSkipTestCase(kFeature);
+  t.skipIfLanguageFeatureNotSupported(kFeature);
   t.expectCompileResult(false, `const c = ${kFn}${kBadArgs[t.params.arg]};`);
 });
 
 g.test('must_use').
 desc(`Result of ${kFn} must be used`).
 fn((t) => {
-  t.requireLanguageFeatureOrSkipTestCase(kFeature);
+  t.skipIfLanguageFeatureNotSupported(kFeature);
   t.expectCompileResult(false, `fn f() { ${kFn}${kGoodArgs}; }`);
 });

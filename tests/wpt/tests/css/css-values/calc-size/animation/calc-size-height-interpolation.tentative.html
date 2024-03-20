@@ -24,6 +24,20 @@
 <script>
   test_interpolation({
     property: 'height',
+    from: 'calc-size(auto, size)',
+    to: 'calc-size(auto, size * 2)',
+  }, [
+    { at: -0.25, expect: '75px' },
+    { at: 0, expect: '100px' },
+    { at: 0.25, expect: '125px' },
+    { at: 0.5, expect: '150px' },
+    { at: 0.75, expect: '175px' },
+    { at: 1, expect: '200px' },
+    { at: 1.25, expect: '225px' },
+  ]);
+
+  test_interpolation({
+    property: 'height',
     from: neutralKeyframe,
     to: 'calc-size(auto, size * 2)',
   }, [

@@ -79,7 +79,7 @@ use crate::task_source::TaskSourceName;
 #[allow(unsafe_code)]
 unsafe fn gen_type_error(global: &GlobalScope, string: String) -> RethrowError {
     rooted!(in(*GlobalScope::get_cx()) let mut thrown = UndefinedValue());
-    Error::Type(string).to_jsval(*GlobalScope::get_cx(), &global, thrown.handle_mut());
+    Error::Type(string).to_jsval(*GlobalScope::get_cx(), global, thrown.handle_mut());
 
     return RethrowError(RootedTraceableBox::from_box(Heap::boxed(thrown.get())));
 }
@@ -154,7 +154,7 @@ impl ModuleIdentity {
             },
             ModuleIdentity::ScriptId(script_id) => {
                 let inline_module_map = global.get_inline_module_map().borrow();
-                inline_module_map.get(&script_id).unwrap().clone()
+                inline_module_map.get(script_id).unwrap().clone()
             },
         }
     }
@@ -310,7 +310,7 @@ impl ModuleTree {
                     }
 
                     let all_ready_descendants = ModuleTree::recursive_check_descendants(
-                        &descendant_module,
+                        descendant_module,
                         module_map,
                         discovered_urls,
                     );
@@ -322,14 +322,14 @@ impl ModuleTree {
             }
         }
 
-        return true;
+        true
     }
 
     fn has_all_ready_descendants(&self, global: &GlobalScope) -> bool {
         let module_map = global.get_module_map().borrow();
         let mut discovered_urls = HashSet::new();
 
-        return ModuleTree::recursive_check_descendants(&self, &module_map.0, &mut discovered_urls);
+        ModuleTree::recursive_check_descendants(self, &module_map.0, &mut discovered_urls)
     }
 
     // We just leverage the power of Promise to run the task for `finish` the owner.
@@ -460,7 +460,7 @@ impl ModuleTree {
             debug!("module script of {} compile done", url);
 
             self.resolve_requested_module_specifiers(
-                &global,
+                global,
                 module_script.handle().into_handle(),
                 url.clone(),
             )
@@ -584,7 +584,7 @@ impl ModuleTree {
 
                 if url.is_err() {
                     let specifier_error =
-                        gen_type_error(&global, "Wrong module specifier".to_owned());
+                        gen_type_error(global, "Wrong module specifier".to_owned());
 
                     return Err(specifier_error);
                 }
@@ -625,7 +625,7 @@ impl ModuleTree {
         }
 
         // Step 3.
-        return ServoUrl::parse_with_base(Some(url), &specifier_str.clone());
+        ServoUrl::parse_with_base(Some(url), &specifier_str.clone())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#finding-the-first-parse-error>
@@ -663,7 +663,7 @@ impl ModuleTree {
 
             // 8-3.
             let (child_network_error, child_parse_error) =
-                descendant_module.find_first_parse_error(&global, discovered_urls);
+                descendant_module.find_first_parse_error(global, discovered_urls);
 
             // Due to network error's priority higher than parse error,
             // we will return directly when we meet a network error.
@@ -682,7 +682,7 @@ impl ModuleTree {
         }
 
         // Step 9.
-        return (None, parse_error);
+        (None, parse_error)
     }
 
     #[allow(unsafe_code)]
@@ -790,7 +790,7 @@ impl ModuleTree {
     /// step 4-7.
     fn advance_finished_and_link(&self, global: &GlobalScope) {
         {
-            if !self.has_all_ready_descendants(&global) {
+            if !self.has_all_ready_descendants(global) {
                 return;
             }
         }
@@ -806,7 +806,7 @@ impl ModuleTree {
             // fetches, then it means we don't need to notify it.
             let parent_identities = self.parent_identities.borrow();
             for parent_identity in parent_identities.iter() {
-                let parent_tree = parent_identity.get_module_tree(&global);
+                let parent_tree = parent_identity.get_module_tree(global);
 
                 let incomplete_count_before_remove = {
                     let incomplete_urls = parent_tree.get_incomplete_fetch_urls().borrow();
@@ -815,14 +815,14 @@ impl ModuleTree {
 
                 if incomplete_count_before_remove > 0 {
                     parent_tree.remove_incomplete_fetch_url(self.url.clone());
-                    parent_tree.advance_finished_and_link(&global);
+                    parent_tree.advance_finished_and_link(global);
                 }
             }
         }
 
         let mut discovered_urls: HashSet<ServoUrl> = HashSet::new();
         let (network_error, rethrow_error) =
-            self.find_first_parse_error(&global, &mut discovered_urls);
+            self.find_first_parse_error(global, &mut discovered_urls);
 
         match (network_error, rethrow_error) {
             (Some(network_error), _) => {
@@ -831,7 +831,7 @@ impl ModuleTree {
             (None, None) => {
                 let module_record = self.get_record().borrow();
                 if let Some(record) = &*module_record {
-                    let instantiated = self.instantiate_module_tree(&global, record.handle());
+                    let instantiated = self.instantiate_module_tree(global, record.handle());
 
                     if let Err(exception) = instantiated {
                         self.set_rethrow_error(exception);
@@ -931,9 +931,9 @@ impl ModuleOwner {
                     .upcast::<Element>()
                     .has_attribute(&local_name!("async"));
 
-                if !asynch && (&*script.root()).get_parser_inserted() {
+                if !asynch && (*script.root()).get_parser_inserted() {
                     document.deferred_script_loaded(&*script.root(), load);
-                } else if !asynch && !(&*script.root()).get_non_blocking() {
+                } else if !asynch && !(*script.root()).get_non_blocking() {
                     document.asap_in_order_script_loaded(&*script.root(), load);
                 } else {
                     document.asap_script_loaded(&*script.root(), load);
@@ -1021,7 +1021,6 @@ impl ModuleOwner {
                 warn!("failed to finish dynamic module import");
             }
         }
-        return;
     }
 }
 
@@ -1344,7 +1343,7 @@ fn fetch_an_import_module_script_graph(
     // Step 2.
     if url.is_err() {
         let specifier_error =
-            unsafe { gen_type_error(&global, "Wrong module specifier".to_owned()) };
+            unsafe { gen_type_error(global, "Wrong module specifier".to_owned()) };
         return Err(specifier_error);
     }
 

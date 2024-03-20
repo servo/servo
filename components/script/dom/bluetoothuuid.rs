@@ -24,7 +24,7 @@ pub struct BluetoothUUID {
 }
 
 //https://developer.bluetooth.org/gatt/services/Pages/ServicesHome.aspx
-const BLUETOOTH_ASSIGNED_SERVICES: &'static [(&'static str, u32)] = &[
+const BLUETOOTH_ASSIGNED_SERVICES: &[(&str, u32)] = &[
     ("org.bluetooth.service.alert_notification", 0x1811_u32),
     ("org.bluetooth.service.automation_io", 0x1815_u32),
     ("org.bluetooth.service.battery_service", 0x180f_u32),
@@ -75,7 +75,7 @@ const BLUETOOTH_ASSIGNED_SERVICES: &'static [(&'static str, u32)] = &[
 ];
 
 //https://developer.bluetooth.org/gatt/services/Pages/ServicesHome.aspx
-const BLUETOOTH_ASSIGNED_CHARCTERISTICS: &'static [(&'static str, u32)] = &[
+const BLUETOOTH_ASSIGNED_CHARCTERISTICS: &[(&str, u32)] = &[
     (
         "org.bluetooth.characteristic.aerobic_heart_rate_lower_limit",
         0x2a7e_u32,
@@ -562,12 +562,11 @@ const BLUETOOTH_ASSIGNED_DESCRIPTORS: &'static [(&'static str, u32)] = &[
     ("org.bluetooth.descriptor.time_trigger_setting", 0x290e_u32),
 ];
 
-const BASE_UUID: &'static str = "-0000-1000-8000-00805f9b34fb";
-const SERVICE_PREFIX: &'static str = "org.bluetooth.service";
-const CHARACTERISTIC_PREFIX: &'static str = "org.bluetooth.characteristic";
-const DESCRIPTOR_PREFIX: &'static str = "org.bluetooth.descriptor";
-const VALID_UUID_REGEX: &'static str =
-    "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$";
+const BASE_UUID: &str = "-0000-1000-8000-00805f9b34fb";
+const SERVICE_PREFIX: &str = "org.bluetooth.service";
+const CHARACTERISTIC_PREFIX: &str = "org.bluetooth.characteristic";
+const DESCRIPTOR_PREFIX: &str = "org.bluetooth.descriptor";
+const VALID_UUID_REGEX: &str = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$";
 // https://cs.chromium.org/chromium/src/third_party/WebKit/Source/modules/bluetooth/BluetoothUUID.cpp?l=314
 const UUID_ERROR_MESSAGE: &'static str = "It must be a valid UUID alias (e.g. 0x1234), \
     UUID (lowercase hex characters e.g. '00001234-0000-1000-8000-00805f9b34fb'),\nor recognized standard name from";

@@ -535,37 +535,34 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn handle_browser_message(&mut self, msg: CompositorMsg) -> bool {
-        if matches!(msg, CompositorMsg::NewWebRenderFrameReady(..)) {
-            self.pending_frames -= 1;
-        }
-
-        match (msg, self.shutdown_state) {
-            (_, ShutdownState::FinishedShuttingDown) => {
+        match self.shutdown_state {
+            ShutdownState::NotShuttingDown => {},
+            ShutdownState::ShuttingDown => {
+                return self.handle_browser_message_while_shutting_down(msg)
+            },
+            ShutdownState::FinishedShuttingDown => {
                 error!("compositor shouldn't be handling messages after shutting down");
                 return false;
             },
+        }
 
-            (CompositorMsg::ShutdownComplete, _) => {
+        match msg {
+            CompositorMsg::ShutdownComplete => {
+                warn!("Received `ShutdownComplete` while not shutting down.");
                 self.finish_shutting_down();
                 return false;
             },
 
-            (
-                CompositorMsg::ChangeRunningAnimationsState(pipeline_id, animation_state),
-                ShutdownState::NotShuttingDown,
-            ) => {
+            CompositorMsg::ChangeRunningAnimationsState(pipeline_id, animation_state) => {
                 self.change_running_animations_state(pipeline_id, animation_state);
             },
 
-            (CompositorMsg::CreateOrUpdateWebView(frame_tree), ShutdownState::NotShuttingDown) => {
+            CompositorMsg::CreateOrUpdateWebView(frame_tree) => {
                 self.set_frame_tree_for_webview(&frame_tree);
                 self.send_scroll_positions_to_layout_for_pipeline(&frame_tree.pipeline.id);
             },
 
-            (
-                CompositorMsg::RemoveWebView(top_level_browsing_context_id),
-                ShutdownState::NotShuttingDown,
-            ) => {
+            CompositorMsg::RemoveWebView(top_level_browsing_context_id) => {
                 self.remove_webview(top_level_browsing_context_id);
 
                 let painting_order = self.webviews.painting_order().map(|(&id, _)| id).collect();
@@ -575,17 +572,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 }
             },
 
-            (
-                CompositorMsg::MoveResizeWebView(top_level_browsing_context_id, rect),
-                ShutdownState::NotShuttingDown,
-            ) => {
+            CompositorMsg::MoveResizeWebView(top_level_browsing_context_id, rect) => {
                 self.move_resize_webview(top_level_browsing_context_id, rect);
             },
 
-            (
-                CompositorMsg::ShowWebView(top_level_browsing_context_id),
-                ShutdownState::NotShuttingDown,
-            ) => {
+            CompositorMsg::ShowWebView(top_level_browsing_context_id) => {
                 self.webviews.show(top_level_browsing_context_id);
                 self.update_root_pipeline();
 
@@ -596,10 +587,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 }
             },
 
-            (
-                CompositorMsg::HideWebView(top_level_browsing_context_id),
-                ShutdownState::NotShuttingDown,
-            ) => {
+            CompositorMsg::HideWebView(top_level_browsing_context_id) => {
                 self.webviews.hide(top_level_browsing_context_id);
                 self.update_root_pipeline();
 
@@ -610,10 +598,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 }
             },
 
-            (
-                CompositorMsg::RaiseWebViewToTop(top_level_browsing_context_id),
-                ShutdownState::NotShuttingDown,
-            ) => {
+            CompositorMsg::RaiseWebViewToTop(top_level_browsing_context_id) => {
                 self.webviews.raise_to_top(top_level_browsing_context_id);
                 self.update_root_pipeline();
 
@@ -624,11 +609,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 }
             },
 
-            (CompositorMsg::TouchEventProcessed(result), ShutdownState::NotShuttingDown) => {
+            CompositorMsg::TouchEventProcessed(result) => {
                 self.touch_handler.on_event_processed(result);
             },
 
-            (CompositorMsg::CreatePng(page_rect, reply), ShutdownState::NotShuttingDown) => {
+            CompositorMsg::CreatePng(page_rect, reply) => {
                 let res = self.composite_specific_target(CompositeTarget::SharedMemory, page_rect);
                 if let Err(ref e) = res {
                     info!("Error retrieving PNG: {:?}", e);
@@ -639,7 +624,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 }
             },
 
-            (CompositorMsg::IsReadyToSaveImageReply(is_ready), ShutdownState::NotShuttingDown) => {
+            CompositorMsg::IsReadyToSaveImageReply(is_ready) => {
                 assert_eq!(
                     self.ready_to_save_state,
                     ReadyState::WaitingForConstellationReply
@@ -652,24 +637,20 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 self.composite_if_necessary(CompositingReason::Headless);
             },
 
-            (
-                CompositorMsg::PipelineVisibilityChanged(pipeline_id, visible),
-                ShutdownState::NotShuttingDown,
-            ) => {
+            CompositorMsg::PipelineVisibilityChanged(pipeline_id, visible) => {
                 self.pipeline_details(pipeline_id).visible = visible;
                 self.process_animations(true);
             },
 
-            (CompositorMsg::PipelineExited(pipeline_id, sender), _) => {
+            CompositorMsg::PipelineExited(pipeline_id, sender) => {
                 debug!("Compositor got pipeline exited: {:?}", pipeline_id);
                 self.remove_pipeline_root_layer(pipeline_id);
                 let _ = sender.send(());
             },
 
-            (
-                CompositorMsg::NewWebRenderFrameReady(recomposite_needed),
-                ShutdownState::NotShuttingDown,
-            ) => {
+            CompositorMsg::NewWebRenderFrameReady(recomposite_needed) => {
+                self.pending_frames -= 1;
+
                 if recomposite_needed {
                     if let Some(result) = self.hit_test_at_point(self.cursor_pos) {
                         self.update_cursor(result);
@@ -681,13 +662,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 }
             },
 
-            (CompositorMsg::Dispatch(func), ShutdownState::NotShuttingDown) => {
-                // The functions sent here right now are really dumb, so they can't panic.
-                // But if we start running more complex code here, we should really catch panic here.
-                func();
-            },
-
-            (CompositorMsg::LoadComplete(_), ShutdownState::NotShuttingDown) => {
+            CompositorMsg::LoadComplete(_) => {
                 // If we're painting in headless mode, schedule a recomposite.
                 if matches!(self.composite_target, CompositeTarget::PngFile(_)) ||
                     self.exit_after_load
@@ -696,10 +671,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 }
             },
 
-            (
-                CompositorMsg::WebDriverMouseButtonEvent(mouse_event_type, mouse_button, x, y),
-                ShutdownState::NotShuttingDown,
-            ) => {
+            CompositorMsg::WebDriverMouseButtonEvent(mouse_event_type, mouse_button, x, y) => {
                 let dppx = self.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
                 self.on_mouse_window_event_class(match mouse_event_type {
@@ -709,29 +681,29 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 });
             },
 
-            (CompositorMsg::WebDriverMouseMoveEvent(x, y), ShutdownState::NotShuttingDown) => {
+            CompositorMsg::WebDriverMouseMoveEvent(x, y) => {
                 let dppx = self.device_pixels_per_page_pixel();
                 let point = dppx.transform_point(Point2D::new(x, y));
                 self.on_mouse_window_move_event_class(DevicePoint::new(point.x, point.y));
             },
 
-            (CompositorMsg::PendingPaintMetric(pipeline_id, epoch), _) => {
+            CompositorMsg::PendingPaintMetric(pipeline_id, epoch) => {
                 self.pending_paint_metrics.insert(pipeline_id, epoch);
             },
 
-            (CompositorMsg::GetClientWindow(req), ShutdownState::NotShuttingDown) => {
+            CompositorMsg::GetClientWindow(req) => {
                 if let Err(e) = req.send(self.embedder_coordinates.window) {
                     warn!("Sending response to get client window failed ({:?}).", e);
                 }
             },
 
-            (CompositorMsg::GetScreenSize(req), ShutdownState::NotShuttingDown) => {
+            CompositorMsg::GetScreenSize(req) => {
                 if let Err(e) = req.send(self.embedder_coordinates.screen) {
                     warn!("Sending response to get screen size failed ({:?}).", e);
                 }
             },
 
-            (CompositorMsg::GetScreenAvailSize(req), ShutdownState::NotShuttingDown) => {
+            CompositorMsg::GetScreenAvailSize(req) => {
                 if let Err(e) = req.send(self.embedder_coordinates.screen_avail) {
                     warn!(
                         "Sending response to get screen avail size failed ({:?}).",
@@ -740,14 +712,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 }
             },
 
-            (CompositorMsg::Forwarded(msg), ShutdownState::NotShuttingDown) => {
+            CompositorMsg::Forwarded(msg) => {
                 self.handle_webrender_message(msg);
             },
-
-            // When we are shutting_down, we need to avoid performing operations
-            // such as Paint that may crash because we have begun tearing down
-            // the rest of our resources.
-            (_, ShutdownState::ShuttingDown) => {},
         }
 
         true
@@ -988,6 +955,74 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     .send_transaction(self.webrender_document, txn);
             },
         }
+    }
+
+    /// Handle messages sent to the compositor during the shutdown process. In general,
+    /// the things the compositor can do in this state are limited. It's very important to
+    /// answer any synchronous messages though as other threads might be waiting on the
+    /// results to finish their own shut down process. We try to do as little as possible
+    /// during this time.
+    ///
+    /// When that involves generating WebRender ids, our approach here is to simply
+    /// generate them, but assume they will never be used, since once shutting down the
+    /// compositor no longer does any WebRender frame generation.
+    fn handle_browser_message_while_shutting_down(&mut self, msg: CompositorMsg) -> bool {
+        match msg {
+            CompositorMsg::ShutdownComplete => {
+                self.finish_shutting_down();
+                return false;
+            },
+            CompositorMsg::PipelineExited(pipeline_id, sender) => {
+                debug!("Compositor got pipeline exited: {:?}", pipeline_id);
+                self.remove_pipeline_root_layer(pipeline_id);
+                let _ = sender.send(());
+            },
+            CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
+                FontToCompositorMsg::AddFontInstance(_, _, sender),
+            )) => {
+                let _ = sender.send(self.webrender_api.generate_font_instance_key());
+            },
+            CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
+                FontToCompositorMsg::AddFont(_, sender),
+            )) => {
+                let _ = sender.send(self.webrender_api.generate_font_key());
+            },
+            CompositorMsg::Forwarded(ForwardedToCompositorMsg::Canvas(
+                CanvasToCompositorMsg::GenerateKey(sender),
+            )) => {
+                let _ = sender.send(self.webrender_api.generate_image_key());
+            },
+            CompositorMsg::GetClientWindow(sender) => {
+                if let Err(e) = sender.send(self.embedder_coordinates.window) {
+                    warn!("Sending response to get client window failed ({:?}).", e);
+                }
+            },
+            CompositorMsg::GetScreenSize(sender) => {
+                if let Err(e) = sender.send(self.embedder_coordinates.screen) {
+                    warn!("Sending response to get screen size failed ({:?}).", e);
+                }
+            },
+            CompositorMsg::GetScreenAvailSize(sender) => {
+                if let Err(e) = sender.send(self.embedder_coordinates.screen_avail) {
+                    warn!(
+                        "Sending response to get screen avail size failed ({:?}).",
+                        e
+                    );
+                }
+            },
+            CompositorMsg::NewWebRenderFrameReady(_) => {
+                // Subtract from the number of pending frames, but do not do any compositing.
+                self.pending_frames -= 1;
+            },
+            CompositorMsg::PendingPaintMetric(pipeline_id, epoch) => {
+                self.pending_paint_metrics.insert(pipeline_id, epoch);
+            },
+
+            _ => {
+                debug!("Ignoring message ({:?} while shutting down", msg);
+            },
+        }
+        true
     }
 
     /// Queue a new frame in the transaction and increase the pending frames count.

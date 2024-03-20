@@ -13,6 +13,9 @@ S is i32, u32, f32
 T is i32, u32, f32, and T is not S
 Reinterpretation of bits.  Beware non-normal f32 values.
 
+@const @must_use fn bitcast<u32>(e : AbstractInt) -> T
+@const @must_use fn bitcast<vecN<u32>>(e : vecN<AbstractInt>) -> T
+
 @const @must_use fn bitcast<T>(e: vec2<f16> ) -> T
 @const @must_use fn bitcast<vec2<T>>(e: vec4<f16> ) -> vec2<T>
 @const @must_use fn bitcast<vec2<f16>>(e: T ) -> vec2<f16>
@@ -21,8 +24,24 @@ T is i32, u32, f32
 `;
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
-import { TypeF16, TypeF32, TypeI32, TypeU32, TypeVec } from '../../../../../util/conversion.js';
-import { allInputSources, run } from '../../expression.js';
+import { anyOf } from '../../../../../util/compare.js';
+import {
+  TypeF16,
+  TypeF32,
+  TypeI32,
+  TypeU32,
+  TypeVec,
+  TypeAbstractFloat,
+  f32,
+  u32,
+  i32,
+  abstractFloat,
+  uint32ToFloat32,
+  u32Bits } from
+'../../../../../util/conversion.js';
+import { FP } from '../../../../../util/floating_point.js';
+import { scalarF32Range } from '../../../../../util/math.js';
+import { allInputSources, onlyConstInputSource, run } from '../../expression.js';
 
 import { d } from './bitcast.cache.js';
 import { builtinWithPredeclaration } from './builtin.js';
@@ -465,3 +484,216 @@ fn(async (t) => {
     cases
   );
 });
+
+// Abstract Float
+g.test('af_to_f32').
+specURL('https://www.w3.org/TR/WGSL/#bitcast-builtin').
+desc(`bitcast abstract float to f32 tests`).
+params((u) =>
+u.
+combine('inputSource', onlyConstInputSource).
+combine('vectorize', [undefined, 2, 3, 4])
+).
+fn(async (t) => {
+  const cases = scalarF32Range().map((u) => {
+    const res = FP['f32'].correctlyRounded(u).map((f) => {
+      return f32(f);
+    });
+    return {
+      input: abstractFloat(u),
+      expected: anyOf(...res)
+    };
+  });
+
+  await run(t, bitcastBuilder('f32', t.params), [TypeAbstractFloat], TypeF32, t.params, cases);
+});
+
+g.test('af_to_i32').
+specURL('https://www.w3.org/TR/WGSL/#bitcast-builtin').
+desc(`bitcast abstract float to i32 tests`).
+params((u) =>
+u.
+combine('inputSource', onlyConstInputSource).
+combine('vectorize', [undefined, 2, 3, 4])
+).
+fn(async (t) => {
+  const values = [
+  0,
+  1,
+  10,
+  256,
+  u32Bits(0b11111111011111111111111111111111).value,
+  u32Bits(0b11111111010000000000000000000000).value,
+  u32Bits(0b11111110110000000000000000000000).value,
+  u32Bits(0b11111101110000000000000000000000).value,
+  u32Bits(0b11111011110000000000000000000000).value,
+  u32Bits(0b11110111110000000000000000000000).value,
+  u32Bits(0b11101111110000000000000000000000).value,
+  u32Bits(0b11011111110000000000000000000000).value,
+  u32Bits(0b10111111110000000000000000000000).value,
+  u32Bits(0b01111111011111111111111111111111).value,
+  u32Bits(0b01111111010000000000000000000000).value,
+  u32Bits(0b01111110110000000000000000000000).value,
+  u32Bits(0b01111101110000000000000000000000).value,
+  u32Bits(0b01111011110000000000000000000000).value,
+  u32Bits(0b01110111110000000000000000000000).value,
+  u32Bits(0b01101111110000000000000000000000).value,
+  u32Bits(0b01011111110000000000000000000000).value,
+  u32Bits(0b00111111110000000000000000000000).value];
+
+
+  const cases = values.map((u) => {
+    return {
+      input: abstractFloat(uint32ToFloat32(u)),
+      expected: i32(u)
+    };
+  });
+
+  await run(t, bitcastBuilder('i32', t.params), [TypeAbstractFloat], TypeI32, t.params, cases);
+});
+
+g.test('af_to_u32').
+specURL('https://www.w3.org/TR/WGSL/#bitcast-builtin').
+desc(`bitcast abstract float to u32 tests`).
+params((u) =>
+u.
+combine('inputSource', onlyConstInputSource).
+combine('vectorize', [undefined, 2, 3, 4])
+).
+fn(async (t) => {
+  const values = [
+  0,
+  1,
+  10,
+  256,
+  u32Bits(0b11111111011111111111111111111111).value,
+  u32Bits(0b11111111010000000000000000000000).value,
+  u32Bits(0b11111110110000000000000000000000).value,
+  u32Bits(0b11111101110000000000000000000000).value,
+  u32Bits(0b11111011110000000000000000000000).value,
+  u32Bits(0b11110111110000000000000000000000).value,
+  u32Bits(0b11101111110000000000000000000000).value,
+  u32Bits(0b11011111110000000000000000000000).value,
+  u32Bits(0b10111111110000000000000000000000).value,
+  u32Bits(0b01111111011111111111111111111111).value,
+  u32Bits(0b01111111010000000000000000000000).value,
+  u32Bits(0b01111110110000000000000000000000).value,
+  u32Bits(0b01111101110000000000000000000000).value,
+  u32Bits(0b01111011110000000000000000000000).value,
+  u32Bits(0b01110111110000000000000000000000).value,
+  u32Bits(0b01101111110000000000000000000000).value,
+  u32Bits(0b01011111110000000000000000000000).value,
+  u32Bits(0b00111111110000000000000000000000).value];
+
+
+  const cases = values.map((u) => {
+    return {
+      input: abstractFloat(uint32ToFloat32(u)),
+      expected: u32(u)
+    };
+  });
+
+  await run(t, bitcastBuilder('u32', t.params), [TypeAbstractFloat], TypeU32, t.params, cases);
+});
+
+g.test('af_to_vec2f16').
+specURL('https://www.w3.org/TR/WGSL/#bitcast-builtin').
+desc(`bitcast abstract float to f16 tests`).
+beforeAllSubcases((t) => {
+  t.selectDeviceOrSkipTestCase('shader-f16');
+}).
+params((u) => u.combine('inputSource', onlyConstInputSource)).
+fn(async (t) => {
+  const cases = await d.get('af_to_vec2_f16');
+
+  await run(
+    t,
+    bitcastBuilder('vec2<f16>', t.params),
+    [TypeAbstractFloat],
+    TypeVec(2, TypeF16),
+    t.params,
+    cases
+  );
+});
+
+g.test('vec2af_to_vec4f16').
+specURL('https://www.w3.org/TR/WGSL/#bitcast-builtin').
+desc(`bitcast abstract float to f16 tests`).
+beforeAllSubcases((t) => {
+  t.selectDeviceOrSkipTestCase('shader-f16');
+}).
+params((u) => u.combine('inputSource', onlyConstInputSource)).
+fn(async (t) => {
+  const cases = await d.get('vec2_af_to_vec4_f16');
+
+  await run(
+    t,
+    bitcastBuilder('vec4<f16>', t.params),
+    [TypeVec(2, TypeAbstractFloat)],
+    TypeVec(4, TypeF16),
+    t.params,
+    cases
+  );
+});
+
+// Abstract Int
+
+// bitcast<i32>(12)
+//  - cases: scalarI32Range
+g.test('ai_to_i32').
+specURL('https://www.w3.org/TR/WGSL/#bitcast-builtin').
+desc(`bitcast abstract int to i32 tests`).
+params((u) =>
+u.
+combine('inputSource', onlyConstInputSource).
+combine('vectorize', [undefined, 2, 3, 4])
+).
+unimplemented();
+
+// bitcast<u32>(12)
+//  - cases: scalarU32Range
+g.test('ai_to_u32').
+specURL('https://www.w3.org/TR/WGSL/#bitcast-builtin').
+desc(`bitcast abstract int to u32 tests`).
+params((u) =>
+u.
+combine('inputSource', onlyConstInputSource).
+combine('vectorize', [undefined, 2, 3, 4])
+).
+unimplemented();
+
+// bitcast<f32>(12)
+//  - cases: scalarF32Range
+g.test('ai_to_f32').
+specURL('https://www.w3.org/TR/WGSL/#bitcast-builtin').
+desc(`bitcast abstract flointat to f32 tests`).
+params((u) =>
+u.
+combine('inputSource', onlyConstInputSource).
+combine('vectorize', [undefined, 2, 3, 4])
+).
+unimplemented();
+
+// bitcast<vec2<f16>>(12)
+//  - cases: scalarF16Range
+g.test('ai_to_vec2f16').
+specURL('https://www.w3.org/TR/WGSL/#bitcast-builtin').
+desc(`bitcast abstract int to vec2f16 tests`).
+params((u) =>
+u.
+combine('inputSource', onlyConstInputSource).
+combine('vectorize', [undefined, 2, 3, 4])
+).
+unimplemented();
+
+// bitcast<vec4<f16>>(vec2(12, 12))
+//  - cases: sparseVectorF16Range
+g.test('vec2ai_to_vec4f16').
+specURL('https://www.w3.org/TR/WGSL/#bitcast-builtin').
+desc(`bitcast vec2ai to vec4f16 tests`).
+params((u) =>
+u.
+combine('inputSource', onlyConstInputSource).
+combine('vectorize', [undefined, 2, 3, 4])
+).
+unimplemented();

@@ -13,6 +13,7 @@
   }
 
   .abs {
+    width: 100px;
     position: absolute;
     left: 999999px; /* force fallback */
   }
@@ -70,6 +71,9 @@
 
 
 <style>
+  #host_slotted_part {
+     width: 100px;
+  }
   @position-try --host-slot-part {
     left: 1px;
   }

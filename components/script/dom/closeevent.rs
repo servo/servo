@@ -30,9 +30,9 @@ impl CloseEvent {
     pub fn new_inherited(was_clean: bool, code: u16, reason: DOMString) -> CloseEvent {
         CloseEvent {
             event: Event::new_inherited(),
-            was_clean: was_clean,
-            code: code,
-            reason: reason,
+            was_clean,
+            code,
+            reason,
         }
     }
 

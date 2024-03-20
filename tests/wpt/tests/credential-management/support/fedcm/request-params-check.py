@@ -17,8 +17,6 @@ def commonUncredentialedRequestCheck(request):
 def commonCredentialedRequestCheck(request):
   if request.cookies.get(b"cookie") != b"1":
     return (537, [], "Missing cookie")
-  if request.headers.get(b"Sec-Fetch-Site") != b"none":
-    return (538, [], "Wrong Sec-Fetch-Site header")
 
 def commonPostCheck(request):
   if not request.headers.get(b"Origin"):

@@ -12,6 +12,30 @@ export const g = makeTestGroup(ShaderValidationTest);
 
 
 
+const kCCommonTypeDecls = `
+struct runtime_array_struct {
+  arr : array<u32>
+}
+
+struct constructible {
+  a : i32,
+  b : u32,
+  c : f32,
+  d : bool,
+}
+
+struct host_shareable {
+  a : i32,
+  b : u32,
+  c : f32,
+}
+
+struct struct_with_array {
+  a : array<constructible, 4>
+}
+
+`;
+
 const kVertexPosCases = {
   bare_position: { name: `@builtin(position) vec4f`, value: `vec4f()`, valid: true },
   nested_position: { name: `pos_struct`, value: `pos_struct()`, valid: true },
@@ -145,20 +169,7 @@ fn((t) => {
   const code = `
 ${enable}
 
-struct runtime_array_struct {
-  arr : array<u32>
-}
-
-struct constructible {
-  a : i32,
-  b : u32,
-  c : f32,
-  d : bool,
-}
-
-struct struct_with_array {
-  a : array<constructible, 4>
-}
+${kCCommonTypeDecls}
 
 struct atomic_struct {
   a : atomic<u32>
@@ -246,21 +257,41 @@ const kFunctionParamTypeCases = {
   ptr3: { name: `ptr<private, u32>`, valid: true },
   ptr4: { name: `ptr<private, constructible>`, valid: true },
 
+  // Pointers only valid with unrestricted_pointer_parameters
+  ptr5: { name: `ptr<storage, u32>`, valid: 'with_unrestricted_pointer_parameters' },
+  ptr6: { name: `ptr<storage, u32, read>`, valid: 'with_unrestricted_pointer_parameters' },
+  ptr7: { name: `ptr<storage, u32, read_write>`, valid: 'with_unrestricted_pointer_parameters' },
+  ptr8: { name: `ptr<uniform, u32>`, valid: 'with_unrestricted_pointer_parameters' },
+  ptr9: { name: `ptr<workgroup, u32>`, valid: 'with_unrestricted_pointer_parameters' },
+  ptr10: {
+    name: `ptr<storage, host_shareable, read_write>`,
+    valid: 'with_unrestricted_pointer_parameters'
+  },
+  ptr11: {
+    name: `ptr<storage, host_shareable, read>`,
+    valid: 'with_unrestricted_pointer_parameters'
+  },
+  ptr12: {
+    name: `ptr<uniform, host_shareable>`,
+    valid: 'with_unrestricted_pointer_parameters'
+  },
+  ptrWorkgroupAtomic: {
+    name: `ptr<workgroup, atomic<u32>>`,
+    valid: 'with_unrestricted_pointer_parameters'
+  },
+  ptrWorkgroupNestedAtomic: {
+    name: `ptr<workgroup, array<atomic<u32>,1>>`,
+    valid: 'with_unrestricted_pointer_parameters'
+  },
+
   // Invalid pointers.
-  ptr5: { name: `ptr<storage, u32>`, valid: false },
-  ptr6: { name: `ptr<storage, u32, read>`, valid: false },
-  ptr7: { name: `ptr<storage, u32, read_write>`, valid: false },
-  ptr8: { name: `ptr<uniform, u32>`, valid: false },
-  ptr9: { name: `ptr<workgroup, u32>`, valid: false },
-  ptr10: { name: `ptr<handle, u32>`, valid: false }, // Can't spell handle address space
-  ptr12: { name: `ptr<not_an_address_space, u32>`, valid: false },
-  ptr13: { name: `ptr<storage>`, valid: false }, // No store type
-  ptr14: { name: `ptr<private,clamp>`, valid: false }, // Invalid store type
-  ptr15: { name: `ptr<private,u32,read>`, valid: false }, // Can't specify access mode
-  ptr16: { name: `ptr<private,u32,write>`, valid: false }, // Can't specify access mode
-  ptr17: { name: `ptr<private,u32,read_write>`, valid: false }, // Can't specify access mode
-  ptrWorkgroupAtomic: { name: `ptr<workgroup, atomic<u32>>`, valid: false },
-  ptrWorkgroupNestedAtomic: { name: `ptr<workgroup, array<atomic<u32>,1>>`, valid: false }
+  invalid_ptr1: { name: `ptr<handle, u32>`, valid: false }, // Can't spell handle address space
+  invalid_ptr2: { name: `ptr<not_an_address_space, u32>`, valid: false },
+  invalid_ptr3: { name: `ptr<storage>`, valid: false }, // No store type
+  invalid_ptr4: { name: `ptr<private,u32,read>`, valid: false }, // Can't specify access mode
+  invalid_ptr5: { name: `ptr<private,u32,write>`, valid: false }, // Can't specify access mode
+  invalid_ptr6: { name: `ptr<private,u32,read_write>`, valid: false }, // Can't specify access mode
+  invalid_ptr7: { name: `ptr<private,clamp>`, valid: false } // Invalid store type
 };
 
 g.test('function_parameter_types').
@@ -278,26 +309,19 @@ fn((t) => {
   const code = `
 ${enable}
 
-struct runtime_array_struct {
-  arr : array<u32>
-}
-
-struct constructible {
-  a : i32,
-  b : u32,
-  c : f32,
-  d : bool,
-}
-
-struct struct_with_array {
-  a : array<constructible, 4>
-}
+${kCCommonTypeDecls}
 
 fn foo(param : ${testcase.name}) {
 }`;
 
-  t.expectCompileResult(testcase.valid, code);
+  let isValid = testcase.valid;
+  if (isValid === 'with_unrestricted_pointer_parameters') {
+    isValid = t.hasLanguageFeature('unrestricted_pointer_parameters');
+  }
+
+  t.expectCompileResult(isValid, code);
 });
+
 
 
 
@@ -426,15 +450,47 @@ const kFunctionParamValueCases = {
   ptr3: { value: `&g_u32`, matches: ['ptr3'] },
   ptr4: { value: `&g_constructible`, matches: ['ptr4'] },
 
-  // Invalid pointers
-  ptr5: { value: `&f_constructible.b`, matches: [] },
-  ptr6: { value: `&g_constructible.b`, matches: [] },
-  ptr7: { value: `&f_struct_with_array.a[1].b`, matches: [] },
-  ptr8: { value: `&g_struct_with_array.a[2]`, matches: [] },
-  ptr9: { value: `&ro_constructible.b`, matches: [] },
-  ptr10: { value: `&rw_constructible`, matches: [] },
-  ptr11: { value: `&uniform_constructible`, matches: [] },
-  ptr12: { value: `&ro_constructible`, matches: [] }
+  // Requires 'unrestricted_pointer_parameters' WGSL feature
+  ptr5: {
+    value: `&f_constructible.b`,
+    matches: ['ptr1'],
+    needsUnrestrictedPointerParameters: true
+  },
+  ptr6: {
+    value: `&g_constructible.b`,
+    matches: ['ptr3'],
+    needsUnrestrictedPointerParameters: true
+  },
+  ptr7: {
+    value: `&f_struct_with_array.a[1].b`,
+    matches: ['ptr1'],
+    needsUnrestrictedPointerParameters: true
+  },
+  ptr8: {
+    value: `&g_struct_with_array.a[2]`,
+    matches: ['ptr4'],
+    needsUnrestrictedPointerParameters: true
+  },
+  ptr9: {
+    value: `&ro_host_shareable.b`,
+    matches: ['ptr5', 'ptr6'],
+    needsUnrestrictedPointerParameters: true
+  },
+  ptr10: {
+    value: `&rw_host_shareable`,
+    matches: ['ptr10'],
+    needsUnrestrictedPointerParameters: true
+  },
+  ptr11: {
+    value: `&ro_host_shareable`,
+    matches: ['ptr11'],
+    needsUnrestrictedPointerParameters: true
+  },
+  ptr12: {
+    value: `&uniform_host_shareable`,
+    matches: ['ptr12'],
+    needsUnrestrictedPointerParameters: true
+  }
 };
 
 function parameterMatches(decl, matches) {
@@ -454,10 +510,11 @@ desc(
 params((u) =>
 u.
 combine('decl', keysOf(kFunctionParamTypeCases)).
-combine('arg', keysOf(kFunctionParamValueCases)).
 filter((u) => {
-  return kFunctionParamTypeCases[u.decl].valid;
-})
+  return kFunctionParamTypeCases[u.decl].valid !== false;
+}).
+beginSubcases().
+combine('arg', keysOf(kFunctionParamValueCases))
 ).
 beforeAllSubcases((t) => {
   if (kFunctionParamTypeCases[t.params.decl].name === 'f16') {
@@ -471,26 +528,7 @@ fn((t) => {
   const code = `
 ${enable}
 
-struct runtime_array_struct {
-  arr : array<u32>
-}
-
-struct constructible {
-  a : i32,
-  b : u32,
-  c : f32,
-  d : bool,
-}
-
-struct host_shareable {
-  a : i32,
-  b : u32,
-  c : f32,
-}
-
-struct struct_with_array {
-  a : array<constructible, 4>
-}
+${kCCommonTypeDecls}
 @group(0) @binding(0)
 var t : texture_2d<f32>;
 @group(0) @binding(1)
@@ -507,11 +545,11 @@ var t_multisampled : texture_multisampled_2d<f32>;
 var t_external : texture_external;
 
 @group(1) @binding(0)
-var<storage> ro_constructible : host_shareable;
+var<storage> ro_host_shareable : host_shareable;
 @group(1) @binding(1)
-var<storage, read_write> rw_constructible : host_shareable;
+var<storage, read_write> rw_host_shareable : host_shareable;
 @group(1) @binding(2)
-var<uniform> uniform_constructible : host_shareable;
+var<uniform> uniform_host_shareable : host_shareable;
 
 fn bar(param : ${param.name}) { }
 
@@ -568,7 +606,17 @@ fn foo() {
 }
 `;
 
-  t.expectCompileResult(parameterMatches(t.params.decl, arg.matches), code);
+  const needsUnrestrictedPointerParameters =
+  (kFunctionParamTypeCases[t.params.decl].valid === 'with_unrestricted_pointer_parameters' ||
+  arg.needsUnrestrictedPointerParameters) ??
+  false;
+
+  let isValid = parameterMatches(t.params.decl, arg.matches);
+  if (isValid && needsUnrestrictedPointerParameters) {
+    isValid = t.hasLanguageFeature('unrestricted_pointer_parameters');
+  }
+
+  t.expectCompileResult(isValid, code);
 });
 
 g.test('no_direct_recursion').
@@ -691,67 +739,75 @@ function checkArgTypeMatch(param_type, arg_matches) {
   return false;
 }
 
-g.test('call_arg_types_match_params').
+g.test('call_arg_types_match_1_param').
 specURL('https://gpuweb.github.io/gpuweb/wgsl/#function-calls').
 desc(`Test that the argument types match in order`).
 params((u) =>
 u.
-combine('num_args', [1, 2, 3]).
+combine('p1_type', kParamsTypes) //
+.beginSubcases().
+combine('arg1_value', keysOf(kArgValues))
+).
+fn((t) => {
+  const code = `
+fn bar(p1 : ${t.params.p1_type}) { }
+fn foo() {
+  bar(${kArgValues[t.params.arg1_value].value});
+}`;
+
+  const res = checkArgTypeMatch(t.params.p1_type, kArgValues[t.params.arg1_value].matches);
+  t.expectCompileResult(res, code);
+});
+
+g.test('call_arg_types_match_2_params').
+specURL('https://gpuweb.github.io/gpuweb/wgsl/#function-calls').
+desc(`Test that the argument types match in order`).
+params((u) =>
+u.
+combine('p1_type', kParamsTypes).
+combine('p2_type', kParamsTypes).
+beginSubcases().
+combine('arg1_value', keysOf(kArgValues)).
+combine('arg2_value', keysOf(kArgValues))
+).
+fn((t) => {
+  const code = `
+fn bar(p1 : ${t.params.p1_type}, p2 : ${t.params.p2_type}) { }
+fn foo() {
+  bar(${kArgValues[t.params.arg1_value].value}, ${kArgValues[t.params.arg2_value].value});
+}`;
+
+  const res =
+  checkArgTypeMatch(t.params.p1_type, kArgValues[t.params.arg1_value].matches) &&
+  checkArgTypeMatch(t.params.p2_type, kArgValues[t.params.arg2_value].matches);
+  t.expectCompileResult(res, code);
+});
+
+g.test('call_arg_types_match_3_params').
+specURL('https://gpuweb.github.io/gpuweb/wgsl/#function-calls').
+desc(`Test that the argument types match in order`).
+params((u) =>
+u.
 combine('p1_type', kParamsTypes).
 combine('p2_type', kParamsTypes).
 combine('p3_type', kParamsTypes).
+beginSubcases().
 combine('arg1_value', keysOf(kArgValues)).
 combine('arg2_value', keysOf(kArgValues)).
 combine('arg3_value', keysOf(kArgValues))
 ).
 fn((t) => {
-  let code = `
-    fn bar(`;
-  for (let i = 0; i < t.params.num_args; i++) {
-    switch (i) {
-      case 0:
-      default:{
-          code += `p${i} : ${t.params.p1_type},`;
-          break;
-        }
-      case 1:{
-          code += `p${i} : ${t.params.p2_type},`;
-          break;
-        }
-      case 2:{
-          code += `p${i} : ${t.params.p3_type},`;
-          break;
-        }
-    }
-  }
-  code += `) { }
-    fn foo() {
-      bar(`;
-  for (let i = 0; i < t.params.num_args; i++) {
-    switch (i) {
-      case 0:
-      default:{
-          code += `${kArgValues[t.params.arg1_value].value},`;
-          break;
-        }
-      case 1:{
-          code += `${kArgValues[t.params.arg2_value].value},`;
-          break;
-        }
-      case 2:{
-          code += `${kArgValues[t.params.arg3_value].value},`;
-          break;
-        }
-    }
-  }
-  code += `);\n}`;
+  const code = `
+fn bar(p1 : ${t.params.p1_type}, p2 : ${t.params.p2_type}, p3 : ${t.params.p3_type}) { }
+fn foo() {
+  bar(${kArgValues[t.params.arg1_value].value},
+      ${kArgValues[t.params.arg2_value].value},
+      ${kArgValues[t.params.arg3_value].value});
+}`;
 
-  let res = checkArgTypeMatch(t.params.p1_type, kArgValues[t.params.arg1_value].matches);
-  if (res && t.params.num_args > 1) {
-    res = checkArgTypeMatch(t.params.p2_type, kArgValues[t.params.arg2_value].matches);
-  }
-  if (res && t.params.num_args > 2) {
-    res = checkArgTypeMatch(t.params.p3_type, kArgValues[t.params.arg3_value].matches);
-  }
+  const res =
+  checkArgTypeMatch(t.params.p1_type, kArgValues[t.params.arg1_value].matches) &&
+  checkArgTypeMatch(t.params.p2_type, kArgValues[t.params.arg2_value].matches) &&
+  checkArgTypeMatch(t.params.p3_type, kArgValues[t.params.arg3_value].matches);
   t.expectCompileResult(res, code);
 });

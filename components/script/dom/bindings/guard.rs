@@ -22,10 +22,7 @@ pub struct Guard<T: Clone + Copy> {
 impl<T: Clone + Copy> Guard<T> {
     /// Construct a new guarded value.
     pub const fn new(condition: Condition, value: T) -> Self {
-        Guard {
-            condition: condition,
-            value: value,
-        }
+        Guard { condition, value }
     }
 
     /// Expose the value if the condition is satisfied.

@@ -11,7 +11,6 @@
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
-  //   assert_session_desc_similar
   //   generateAudioReceiveOnlyOffer
 
   /*
@@ -68,7 +67,8 @@
     .then(() => {
       assert_equals(pc.signalingState, 'have-local-offer');
       assert_not_equals(pc.localDescription, null);
-      assert_not_equals(pc.pendingLocalDescription, null);
+      assert_equals(pc.localDescription, pc.localDescription);
+      assert_equals(pc.pendingLocalDescription, pc.localDescription);
       assert_equals(pc.currentLocalDescription, null);
 
       return pc.setLocalDescription({ type: 'rollback' });
@@ -148,7 +148,7 @@
 
     assert_not_equals(pc.pendingLocalDescription, null, "pendingLocalDescription should not be set synchronously after a call to sLD");
     assert_equals(pc.pendingLocalDescription.type, "offer");
-    assert_equals(pc.pendingLocalDescription.sdp, pc.localDescription.sdp);
+    assert_equals(pc.pendingLocalDescription, pc.localDescription);
     assert_equals(pc.pendingRemoteDescription, null, "pendingRemoteDescription should never be set due to sLD(offer)");
 
     const stablePromise = new Promise(resolve => {

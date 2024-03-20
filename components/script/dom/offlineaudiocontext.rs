@@ -180,7 +180,7 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
                             processed_audio.resize(this.length as usize, Vec::new())
                         }
                         let buffer = AudioBuffer::new(
-                            &this.global().as_window(),
+                            this.global().as_window(),
                             this.channel_count,
                             this.length,
                             *this.context.SampleRate(),
@@ -188,7 +188,7 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
                         (*this.pending_rendering_promise.borrow_mut()).take().unwrap().resolve_native(&buffer);
                         let global = &this.global();
                         let window = global.as_window();
-                        let event = OfflineAudioCompletionEvent::new(&window,
+                        let event = OfflineAudioCompletionEvent::new(window,
                                                                      atom!("complete"),
                                                                      EventBubbles::DoesNotBubble,
                                                                      EventCancelable::NotCancelable,

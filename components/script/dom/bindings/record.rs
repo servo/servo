@@ -163,7 +163,7 @@ where
             map.insert(key, property);
         }
 
-        Ok(ConversionResult::Success(Record { map: map }))
+        Ok(ConversionResult::Success(Record { map }))
     }
 }
 

@@ -16,7 +16,8 @@ import {
   convertToUnorm8,
   kPredefinedColorSpace,
   kVideoNames,
-  kVideoInfo } from
+  kVideoInfo,
+  kVideoExpectedColors } from
 '../../web_platform/util.js';
 
 const kFormat = 'rgba8unorm';
@@ -93,29 +94,33 @@ fn(async (t) => {
       { width, height, depthOrArrayLayers: 1 }
     );
 
-    const expect = kVideoInfo[videoName].presentColors[dstColorSpace];
+    const srcColorSpace = kVideoInfo[videoName].colorSpace;
+    const presentColors = kVideoExpectedColors[srcColorSpace][dstColorSpace];
+
+    // visible rect is whole frame, no clipping.
+    const expect = kVideoInfo[videoName].display;
 
     if (srcDoFlipYDuringCopy) {
       t.expectSinglePixelComparisonsAreOkInTexture({ texture: dstTexture }, [
       // Flipped top-left.
       {
         coord: { x: width * 0.25, y: height * 0.25 },
-        exp: convertToUnorm8(expect.bottomLeftColor)
+        exp: convertToUnorm8(presentColors[expect.bottomLeftColor])
       },
       // Flipped top-right.
       {
         coord: { x: width * 0.75, y: height * 0.25 },
-        exp: convertToUnorm8(expect.bottomRightColor)
+        exp: convertToUnorm8(presentColors[expect.bottomRightColor])
       },
       // Flipped bottom-left.
       {
         coord: { x: width * 0.25, y: height * 0.75 },
-        exp: convertToUnorm8(expect.topLeftColor)
+        exp: convertToUnorm8(presentColors[expect.topLeftColor])
       },
       // Flipped bottom-right.
       {
         coord: { x: width * 0.75, y: height * 0.75 },
-        exp: convertToUnorm8(expect.topRightColor)
+        exp: convertToUnorm8(presentColors[expect.topRightColor])
       }]
       );
     } else {
@@ -123,22 +128,22 @@ fn(async (t) => {
       // Top-left.
       {
         coord: { x: width * 0.25, y: height * 0.25 },
-        exp: convertToUnorm8(expect.topLeftColor)
+        exp: convertToUnorm8(presentColors[expect.topLeftColor])
       },
       // Top-right.
       {
         coord: { x: width * 0.75, y: height * 0.25 },
-        exp: convertToUnorm8(expect.topRightColor)
+        exp: convertToUnorm8(presentColors[expect.topRightColor])
       },
       // Bottom-left.
       {
         coord: { x: width * 0.25, y: height * 0.75 },
-        exp: convertToUnorm8(expect.bottomLeftColor)
+        exp: convertToUnorm8(presentColors[expect.bottomLeftColor])
       },
       // Bottom-right.
       {
         coord: { x: width * 0.75, y: height * 0.75 },
-        exp: convertToUnorm8(expect.bottomRightColor)
+        exp: convertToUnorm8(presentColors[expect.bottomRightColor])
       }]
       );
     }

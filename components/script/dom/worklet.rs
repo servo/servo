@@ -90,7 +90,7 @@ impl Worklet {
         Worklet {
             reflector: Reflector::new(),
             window: Dom::from_ref(window),
-            global_type: global_type,
+            global_type,
             droppable_field: DroppableField {
                 worklet_id: WorkletId::new(),
                 thread_pool: OnceCell::new(),
@@ -285,12 +285,12 @@ impl WorkletThreadPool {
             primary_sender: primary_sender.clone(),
             hot_backup_sender: hot_backup_sender.clone(),
             cold_backup_sender: cold_backup_sender.clone(),
-            global_init: global_init,
+            global_init,
         };
         WorkletThreadPool {
-            primary_sender: primary_sender,
-            hot_backup_sender: hot_backup_sender,
-            cold_backup_sender: cold_backup_sender,
+            primary_sender,
+            hot_backup_sender,
+            cold_backup_sender,
             control_sender_0: WorkletThread::spawn(primary_role, init.clone(), 0),
             control_sender_1: WorkletThread::spawn(hot_backup_role, init.clone(), 1),
             control_sender_2: WorkletThread::spawn(cold_backup_role, init, 2),
@@ -320,13 +320,13 @@ impl WorkletThreadPool {
             &self.control_sender_2,
         ] {
             let _ = sender.send(WorkletControl::FetchAndInvokeAWorkletScript {
-                pipeline_id: pipeline_id,
-                worklet_id: worklet_id,
-                global_type: global_type,
+                pipeline_id,
+                worklet_id,
+                global_type,
                 origin: origin.clone(),
                 base_url: base_url.clone(),
                 script_url: script_url.clone(),
-                credentials: credentials,
+                credentials,
                 pending_tasks_struct: pending_tasks_struct.clone(),
                 promise: TrustedPromise::new(promise.clone()),
             });
@@ -405,8 +405,8 @@ impl WorkletThreadRole {
         WorkletThreadRole {
             sender: sender,
             receiver: receiver,
-            is_hot_backup: is_hot_backup,
-            is_cold_backup: is_cold_backup,
+            is_hot_backup,
+            is_cold_backup,
         }
     }
 }
@@ -481,8 +481,8 @@ impl WorkletThread {
                 let roots = RootCollection::new();
                 let _stack_roots = ThreadLocalStackRoots::new(&roots);
                 let mut thread = RootedTraceableBox::new(WorkletThread {
-                    role: role,
-                    control_receiver: control_receiver,
+                    role,
+                    control_receiver,
                     primary_sender: init.primary_sender,
                     hot_backup_sender: init.hot_backup_sender,
                     cold_backup_sender: init.cold_backup_sender,
@@ -656,7 +656,7 @@ impl WorkletThread {
         let script = load_whole_resource(
             request,
             &resource_fetcher,
-            &global_scope.upcast::<GlobalScope>(),
+            global_scope.upcast::<GlobalScope>(),
         )
         .ok()
         .and_then(|(_, bytes)| String::from_utf8(bytes).ok());
@@ -698,7 +698,7 @@ impl WorkletThread {
     fn perform_a_worklet_task(&self, worklet_id: WorkletId, task: WorkletTask) {
         match self.global_scopes.get(&worklet_id) {
             Some(global) => global.perform_a_worklet_task(task),
-            None => return warn!("No such worklet as {:?}.", worklet_id),
+            None => warn!("No such worklet as {:?}.", worklet_id),
         }
     }
 
@@ -722,7 +722,7 @@ impl WorkletThread {
                 let global =
                     self.get_worklet_global_scope(pipeline_id, worklet_id, global_type, base_url);
                 self.fetch_and_invoke_a_worklet_script(
-                    &*global,
+                    &global,
                     pipeline_id,
                     origin,
                     script_url,
@@ -767,8 +767,8 @@ pub struct WorkletExecutor {
 impl WorkletExecutor {
     fn new(worklet_id: WorkletId, primary_sender: Sender<WorkletData>) -> WorkletExecutor {
         WorkletExecutor {
-            worklet_id: worklet_id,
-            primary_sender: primary_sender,
+            worklet_id,
+            primary_sender,
         }
     }
 
