@@ -406,7 +406,7 @@ impl Window {
         for task_source_name in TaskSourceName::all() {
             let flag = ignore_flags
                 .entry(task_source_name)
-                .or_insert(Default::default());
+                .or_default();
             flag.store(true, Ordering::SeqCst);
         }
     }
@@ -595,7 +595,7 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     if input.len() % 4 == 0 {
         if input.ends_with("==") {
             input = &input[..input.len() - 2]
-        } else if input.ends_with("=") {
+        } else if input.ends_with('=') {
             input = &input[..input.len() - 1]
         }
     }
@@ -1096,7 +1096,7 @@ impl WindowMethods for Window {
             let rust_stack = Backtrace::new();
             println!(
                 "Current JS stack:\n{}\nCurrent Rust stack:\n{:?}",
-                js_stack.unwrap_or(String::new()),
+                js_stack.unwrap_or_default(),
                 rust_stack
             );
         }
@@ -1500,7 +1500,7 @@ impl WindowMethods for Window {
 
         let document = self.Document();
         let name_map = document.name_map();
-        for (name, elements) in &(*name_map).0 {
+        for (name, elements) in &name_map.0 {
             if name.is_empty() {
                 continue;
             }
@@ -1512,7 +1512,7 @@ impl WindowMethods for Window {
             }
         }
         let id_map = document.id_map();
-        for (id, elements) in &(*id_map).0 {
+        for (id, elements) in &id_map.0 {
             if id.is_empty() {
                 continue;
             }
@@ -1573,7 +1573,7 @@ impl Window {
             .borrow()
             .as_ref()
             .map(|e| DomRoot::from_ref(&**e));
-        *self.current_event.borrow_mut() = event.map(|e| Dom::from_ref(e));
+        *self.current_event.borrow_mut() = event.map(Dom::from_ref);
         current
     }
 
@@ -1601,7 +1601,7 @@ impl Window {
         };
 
         // Step 9.
-        self.post_message(target_origin, source_origin, &*source.window_proxy(), data);
+        self.post_message(target_origin, source_origin, &source.window_proxy(), data);
         Ok(())
     }
 
@@ -1627,8 +1627,8 @@ impl Window {
         for task_source_name in TaskSourceName::all() {
             let flag = ignore_flags
                 .entry(task_source_name)
-                .or_insert(Default::default());
-            let cancelled = mem::replace(&mut *flag, Default::default());
+                .or_default();
+            let cancelled = std::mem::take(&mut *flag);
             cancelled.store(true, Ordering::SeqCst);
         }
     }
@@ -1640,8 +1640,8 @@ impl Window {
         let mut ignore_flags = self.task_manager.task_cancellers.borrow_mut();
         let flag = ignore_flags
             .entry(task_source_name)
-            .or_insert(Default::default());
-        let cancelled = mem::replace(&mut *flag, Default::default());
+            .or_default();
+        let cancelled = std::mem::take(&mut *flag);
         cancelled.store(true, Ordering::SeqCst);
     }
 
