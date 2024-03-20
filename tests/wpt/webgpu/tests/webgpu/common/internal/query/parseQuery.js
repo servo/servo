@@ -17,12 +17,49 @@ import {
 import { kBigSeparator, kWildcard, kPathSeparator, kParamSeparator } from './separators.js';
 import { validQueryPart } from './validQueryPart.js';
 
-export function parseQuery(s) {
+/**
+ * converts foo/bar/src/webgpu/this/that/file.spec.ts to webgpu:this,that,file,*
+ */
+function convertPathToQuery(path) {
+  // removes .spec.ts and splits by directory separators.
+  const parts = path.substring(0, path.length - 8).split(/\/|\\/g);
+  // Gets parts only after the last `src`. Example: returns ['webgpu', 'foo', 'bar', 'test']
+  // for ['Users', 'me', 'src', 'cts', 'src', 'webgpu', 'foo', 'bar', 'test']
+  const partsAfterSrc = parts.slice(parts.lastIndexOf('src') + 1);
+  const suite = partsAfterSrc.shift();
+  return `${suite}:${partsAfterSrc.join(',')},*`;
+}
+
+/**
+ * If a query looks like a path (ends in .spec.ts and has directory separators)
+ * then convert try to convert it to a query.
+ */
+function convertPathLikeToQuery(queryOrPath) {
+  return queryOrPath.endsWith('.spec.ts') && (
+  queryOrPath.includes('/') || queryOrPath.includes('\\')) ?
+  convertPathToQuery(queryOrPath) :
+  queryOrPath;
+}
+
+/**
+ * Convert long suite names (the part before the first colon) to the
+ * shortest last word
+ *    foo.bar.moo:test,subtest,foo -> moo:test,subtest,foo
+ */
+function shortenSuiteName(query) {
+  const parts = query.split(':');
+  // converts foo.bar.moo to moo
+  const suite = parts.shift()?.replace(/.*\.(\w+)$/, '$1');
+  return [suite, ...parts].join(':');
+}
+
+export function parseQuery(queryLike) {
   try {
-    return parseQueryImpl(s);
+    const query = shortenSuiteName(convertPathLikeToQuery(queryLike));
+    return parseQueryImpl(query);
   } catch (ex) {
     if (ex instanceof Error) {
-      ex.message += '\n  on: ' + s;
+      ex.message += `\n  on: ${queryLike}`;
     }
     throw ex;
   }

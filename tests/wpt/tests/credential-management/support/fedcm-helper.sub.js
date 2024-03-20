@@ -22,7 +22,7 @@ export function open_and_wait_for_popup(origin, path) {
 // Set the identity provider cookie.
 export function set_fedcm_cookie(host) {
   if (host == undefined) {
-    document.cookie = 'cookie=1; SameSite=Strict; Path=/credential-management/support; Secure';
+    document.cookie = 'cookie=1; SameSite=None; Path=/credential-management/support; Secure';
     return Promise.resolve();
   } else {
     return open_and_wait_for_popup(host, '/credential-management/support/set_cookie');

@@ -92,6 +92,37 @@ async def test_evaluate_window_open_with_url(bidi_session, subscribe_events, wai
     )
 
 
+@pytest.mark.parametrize("type_hint", ["tab", "window"])
+async def test_event_emitted_before_create_returns(
+    bidi_session, subscribe_events, type_hint
+):
+    events = []
+
+    async def on_event(method, data):
+        events.append(data)
+
+    remove_listener = bidi_session.add_event_listener(CONTEXT_CREATED_EVENT, on_event)
+
+    await subscribe_events([CONTEXT_CREATED_EVENT])
+    context = await bidi_session.browsing_context.create(type_hint=type_hint)
+
+    # If the browsingContext.contextCreated event was emitted after the
+    # browsingContext.create command resolved, the array would most likely be
+    # empty at this point.
+    assert len(events) == 1
+
+    assert_browsing_context(
+        events[0],
+        context["context"],
+        children=None,
+        url="about:blank",
+        parent=None,
+        user_context="default",
+    )
+
+    remove_listener()
+
+
 async def test_navigate_creates_iframes(bidi_session, subscribe_events, top_context, test_page_multiple_frames):
     events = []
 

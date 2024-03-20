@@ -363,7 +363,7 @@ impl WebGLProgram {
             .active_attribs
             .borrow()
             .iter()
-            .find(|attrib| attrib.name == &*name)
+            .find(|attrib| attrib.name == *name)
             .map_or(-1, |attrib| attrib.location);
         Ok(location)
     }
@@ -478,7 +478,7 @@ impl WebGLProgram {
 
         let validation_errors = names
             .iter()
-            .map(|name| validate_glsl_name(&name))
+            .map(|name| validate_glsl_name(name))
             .collect::<Vec<_>>();
         let first_validation_error = validation_errors.iter().find(|result| result.is_err());
         if let Some(error) = first_validation_error {

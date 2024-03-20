@@ -1,0 +1,54 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Long Animation Frames API (https://w3c.github.io/long-animation-frames/)
+
+[Exposed=Window]
+interface PerformanceLongAnimationFrameTiming : PerformanceEntry {
+    /* Overloading PerformanceEntry */
+    readonly attribute DOMHighResTimeStamp startTime;
+    readonly attribute DOMHighResTimeStamp duration;
+    readonly attribute DOMString name;
+    readonly attribute DOMString entryType;
+
+    readonly attribute DOMHighResTimeStamp renderStart;
+    readonly attribute DOMHighResTimeStamp styleAndLayoutStart;
+    readonly attribute DOMHighResTimeStamp blockingDuration;
+    readonly attribute DOMHighResTimeStamp firstUIEventTimestamp;
+    [SameObject] readonly attribute FrozenArray<PerformanceScriptTiming> scripts;
+    [Default] object toJSON();
+};
+
+enum ScriptInvokerType {
+    "classic-script",
+    "module-script",
+    "event-listener",
+    "user-callback",
+    "resolve-promise",
+    "reject-promise"
+};
+
+enum ScriptWindowAttribution {
+    "self", "descendant", "ancestor", "same-page", "other"
+};
+
+[Exposed=Window]
+interface PerformanceScriptTiming : PerformanceEntry {
+    /* Overloading PerformanceEntry */
+    readonly attribute DOMHighResTimeStamp startTime;
+    readonly attribute DOMHighResTimeStamp duration;
+    readonly attribute DOMString name;
+    readonly attribute DOMString entryType;
+
+    readonly attribute ScriptInvokerType invokerType;
+    readonly attribute DOMString invoker;
+    readonly attribute DOMHighResTimeStamp executionStart;
+    readonly attribute DOMString sourceURL;
+    readonly attribute DOMString sourceFunctionName;
+    readonly attribute long long sourceCharPosition;
+    readonly attribute DOMHighResTimeStamp pauseDuration;
+    readonly attribute DOMHighResTimeStamp forcedStyleAndLayoutDuration;
+    readonly attribute Window? window;
+    readonly attribute ScriptWindowAttribution windowAttribution;
+    [Default] object toJSON();
+};

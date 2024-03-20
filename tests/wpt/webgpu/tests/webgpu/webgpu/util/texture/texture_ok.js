@@ -2,7 +2,7 @@
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/import { assert, ErrorWithExtra, unreachable } from '../../../common/util/util.js';import { kTextureFormatInfo } from '../../format_info.js';
 import { numbersApproximatelyEqual } from '../conversion.js';
-import { generatePrettyTable } from '../pretty_diff_tables.js';
+import { generatePrettyTable, numericToStringBuilder } from '../pretty_diff_tables.js';
 import { reifyExtent3D, reifyOrigin3D } from '../unions.js';
 
 import { fullSubrectCoordinates } from './base.js';
@@ -223,11 +223,9 @@ coords)
 
   const info = kTextureFormatInfo[format];
   const repr = kTexelRepresentationInfo[format];
-
-  const integerSampleType = info.sampleType === 'uint' || info.sampleType === 'sint';
-  const numberToString = integerSampleType ?
-  (n) => n.toFixed() :
-  (n) => n.toPrecision(6);
+  const numericToString = numericToStringBuilder(
+    info.sampleType === 'uint' || info.sampleType === 'sint'
+  );
 
   const componentOrderStr = repr.componentOrder.join(',') + ':';
 
@@ -245,14 +243,14 @@ coords)
     yield* [' act. colors', '==', componentOrderStr];
     for (const coords of failedPixels) {
       const pixel = actTexelView.color(coords);
-      yield `${repr.componentOrder.map((ch) => numberToString(pixel[ch])).join(',')}`;
+      yield `${repr.componentOrder.map((ch) => numericToString(pixel[ch])).join(',')}`;
     }
   }();
   const printExpectedColors = function* () {
     yield* [' exp. colors', '==', componentOrderStr];
     for (const coords of failedPixels) {
       const pixel = expTexelView.color(coords);
-      yield `${repr.componentOrder.map((ch) => numberToString(pixel[ch])).join(',')}`;
+      yield `${repr.componentOrder.map((ch) => numericToString(pixel[ch])).join(',')}`;
     }
   }();
   const printActualULPs = function* () {
@@ -272,7 +270,7 @@ coords)
 
   const opts = {
     fillToWidth: 120,
-    numberToString
+    numericToString
   };
   return `\
  between ${lowerCorner} and ${upperCorner} inclusive:

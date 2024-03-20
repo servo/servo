@@ -31,7 +31,7 @@ use script_layout_interface::{
 };
 use script_traits::{DocumentActivity, UntrustedNodeAddress};
 use selectors::matching::{
-    matches_selector_list, IgnoreNthChildForInvalidation, MatchingContext, MatchingMode,
+    matches_selector_list, MatchingContext, MatchingForInvalidation, MatchingMode,
     NeedsSelectorFlags,
 };
 use selectors::parser::SelectorList;
@@ -242,7 +242,7 @@ impl Node {
                     },
                     Some(ref prev_sibling) => {
                         prev_sibling.next_sibling.set(Some(new_child));
-                        new_child.prev_sibling.set(Some(&prev_sibling));
+                        new_child.prev_sibling.set(Some(prev_sibling));
                     },
                 }
                 before.prev_sibling.set(Some(new_child));
@@ -255,7 +255,7 @@ impl Node {
                     Some(ref last_child) => {
                         assert!(last_child.next_sibling.get().is_none());
                         last_child.next_sibling.set(Some(new_child));
-                        new_child.prev_sibling.set(Some(&last_child));
+                        new_child.prev_sibling.set(Some(last_child));
                     },
                 }
 
@@ -282,7 +282,7 @@ impl Node {
             node.set_flag(NodeFlags::IS_CONNECTED, parent_is_connected);
             // Out-of-document elements never have the descendants flag set.
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
-            vtable_for(&&*node).bind_to_tree(&BindContext {
+            vtable_for(&*node).bind_to_tree(&BindContext {
                 tree_connected: parent_is_connected,
                 tree_in_doc: parent_in_doc,
             });
@@ -313,7 +313,7 @@ impl Node {
             // This needs to be in its own loop, because unbind_from_tree may
             // rely on the state of IS_IN_DOC of the context node's descendants,
             // e.g. when removing a <form>.
-            vtable_for(&&*node).unbind_from_tree(&context);
+            vtable_for(&*node).unbind_from_tree(context);
             // https://dom.spec.whatwg.org/#concept-node-remove step 14
             if let Some(element) = node.as_custom_element() {
                 ScriptThread::enqueue_callback_reaction(
@@ -481,7 +481,7 @@ impl<'a> Iterator for QuerySelectorIterator {
                     &mut nth_index_cache,
                     node.owner_doc().quirks_mode(),
                     NeedsSelectorFlags::No,
-                    IgnoreNthChildForInvalidation::No,
+                    MatchingForInvalidation::No,
                 );
                 if let Some(element) = DomRoot::downcast(node) {
                     if matches_selector_list(selectors, &element, &mut ctx) {
@@ -978,7 +978,7 @@ impl Node {
                     &mut nth_index_cache,
                     doc.quirks_mode(),
                     NeedsSelectorFlags::No,
-                    IgnoreNthChildForInvalidation::No,
+                    MatchingForInvalidation::No,
                 );
                 Ok(self
                     .traverse_preorder(ShadowIncluding::No)
@@ -1094,7 +1094,7 @@ impl Node {
 
     pub fn remove_self(&self) {
         if let Some(ref parent) = self.GetParentNode() {
-            Node::remove(self, &parent, SuppressObserver::Unsuppressed);
+            Node::remove(self, parent, SuppressObserver::Unsuppressed);
         }
     }
 
@@ -2046,7 +2046,7 @@ impl Node {
                 Node::remove(kid, node, SuppressObserver::Suppressed);
             }
             // Step 5.
-            vtable_for(&node).children_changed(&ChildrenMutation::replace_all(new_nodes.r(), &[]));
+            vtable_for(node).children_changed(&ChildrenMutation::replace_all(new_nodes.r(), &[]));
 
             let mutation = Mutation::ChildList {
                 added: None,
@@ -2054,7 +2054,7 @@ impl Node {
                 prev: None,
                 next: None,
             };
-            MutationObserver::queue_a_mutation_record(&node, mutation);
+            MutationObserver::queue_a_mutation_record(node, mutation);
 
             new_nodes.r()
         } else {
@@ -2089,13 +2089,13 @@ impl Node {
                         );
                     } else {
                         // Step 7.7.2.2.
-                        try_upgrade_element(&*descendant);
+                        try_upgrade_element(&descendant);
                     }
                 }
             }
         }
         if let SuppressObserver::Unsuppressed = suppress_observers {
-            vtable_for(&parent).children_changed(&ChildrenMutation::insert(
+            vtable_for(parent).children_changed(&ChildrenMutation::insert(
                 previous_sibling.as_deref(),
                 new_nodes,
                 child,
@@ -2107,7 +2107,7 @@ impl Node {
                 prev: previous_sibling.as_deref(),
                 next: child,
             };
-            MutationObserver::queue_a_mutation_record(&parent, mutation);
+            MutationObserver::queue_a_mutation_record(parent, mutation);
         }
         node.owner_doc().remove_script_and_layout_blocker();
     }
@@ -2117,7 +2117,7 @@ impl Node {
         parent.owner_doc().add_script_and_layout_blocker();
         // Step 1.
         if let Some(node) = node {
-            Node::adopt(node, &*parent.owner_doc());
+            Node::adopt(node, &parent.owner_doc());
         }
         // Step 2.
         rooted_vec!(let removed_nodes <- parent.children());
@@ -2142,7 +2142,7 @@ impl Node {
             Node::insert(node, parent, None, SuppressObserver::Suppressed);
         }
         // Step 6.
-        vtable_for(&parent).children_changed(&ChildrenMutation::replace_all(
+        vtable_for(parent).children_changed(&ChildrenMutation::replace_all(
             removed_nodes.r(),
             added_nodes,
         ));
@@ -2154,7 +2154,7 @@ impl Node {
                 prev: None,
                 next: None,
             };
-            MutationObserver::queue_a_mutation_record(&parent, mutation);
+            MutationObserver::queue_a_mutation_record(parent, mutation);
         }
         parent.owner_doc().remove_script_and_layout_blocker();
     }
@@ -2216,9 +2216,9 @@ impl Node {
         // Step 11. transient registered observers
         // Step 12.
         if let SuppressObserver::Unsuppressed = suppress_observers {
-            vtable_for(&parent).children_changed(&ChildrenMutation::replace(
+            vtable_for(parent).children_changed(&ChildrenMutation::replace(
                 old_previous_sibling.as_deref(),
-                &Some(&node),
+                &Some(node),
                 &[],
                 old_next_sibling.as_deref(),
             ));
@@ -2230,7 +2230,7 @@ impl Node {
                 prev: old_previous_sibling.as_deref(),
                 next: old_next_sibling.as_deref(),
             };
-            MutationObserver::queue_a_mutation_record(&parent, mutation);
+            MutationObserver::queue_a_mutation_record(parent, mutation);
         }
         parent.owner_doc().remove_script_and_layout_blocker();
     }
@@ -2360,7 +2360,7 @@ impl Node {
         }
 
         // Step 5: cloning steps.
-        vtable_for(&node).cloning_steps(&copy, maybe_doc, clone_children);
+        vtable_for(node).cloning_steps(&copy, maybe_doc, clone_children);
 
         // Step 6.
         if clone_children == CloneChildrenFlag::CloneChildren {
@@ -2387,7 +2387,7 @@ impl Node {
     pub fn collect_text_contents<T: Iterator<Item = DomRoot<Node>>>(iterator: T) -> DOMString {
         let mut content = String::new();
         for node in iterator {
-            if let Some(ref text) = node.downcast::<Text>() {
+            if let Some(text) = node.downcast::<Text>() {
                 content.push_str(&text.upcast::<CharacterData>().data());
             }
         }
@@ -2477,7 +2477,7 @@ impl NodeMethods for Node {
 
     // https://dom.spec.whatwg.org/#dom-node-isconnected
     fn IsConnected(&self) -> bool {
-        return self.is_connected();
+        self.is_connected()
     }
 
     // https://dom.spec.whatwg.org/#dom-node-ownerdocument
@@ -2758,7 +2758,7 @@ impl NodeMethods for Node {
         Node::insert(node, self, reference_child, SuppressObserver::Suppressed);
 
         // Step 14.
-        vtable_for(&self).children_changed(&ChildrenMutation::replace(
+        vtable_for(self).children_changed(&ChildrenMutation::replace(
             previous_sibling.as_deref(),
             &removed_child,
             nodes,
@@ -2772,7 +2772,7 @@ impl NodeMethods for Node {
             next: reference_child,
         };
 
-        MutationObserver::queue_a_mutation_record(&self, mutation);
+        MutationObserver::queue_a_mutation_record(self, mutation);
 
         // Step 15.
         Ok(DomRoot::from_ref(child))
@@ -2958,7 +2958,7 @@ impl NodeMethods for Node {
             attr1 = Some(a);
             attr1owner = a.GetOwnerElement();
             node1 = match attr1owner {
-                Some(ref e) => Some(&e.upcast()),
+                Some(ref e) => Some(e.upcast()),
                 None => None,
             }
         }
@@ -3016,15 +3016,15 @@ impl NodeMethods for Node {
         match (node1, node2) {
             (None, _) => {
                 // node1 is null
-                return NodeConstants::DOCUMENT_POSITION_FOLLOWING +
+                NodeConstants::DOCUMENT_POSITION_FOLLOWING +
                     NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
-                    NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
+                    NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC
             },
             (_, None) => {
                 // node2 is null
-                return NodeConstants::DOCUMENT_POSITION_PRECEDING +
+                NodeConstants::DOCUMENT_POSITION_PRECEDING +
                     NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
-                    NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
+                    NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC
             },
             (Some(node1), Some(node2)) => {
                 // still step 6, testing if node1 and 2 share a root
@@ -3080,13 +3080,13 @@ impl NodeMethods for Node {
                 // contained in the other.
                 //
                 // If we're the container, return that `other` is contained by us.
-                return if self_and_ancestors.len() < other_and_ancestors.len() {
+                if self_and_ancestors.len() < other_and_ancestors.len() {
                     NodeConstants::DOCUMENT_POSITION_FOLLOWING +
                         NodeConstants::DOCUMENT_POSITION_CONTAINED_BY
                 } else {
                     NodeConstants::DOCUMENT_POSITION_PRECEDING +
                         NodeConstants::DOCUMENT_POSITION_CONTAINS
-                };
+                }
             },
         }
     }
@@ -3468,7 +3468,7 @@ impl UniqueId {
             if (*ptr).is_none() {
                 *ptr = Some(Box::new(Uuid::new_v4()));
             }
-            &(&*ptr).as_ref().unwrap()
+            (&*ptr).as_ref().unwrap()
         }
     }
 }

@@ -111,7 +111,7 @@ impl HTMLOutputElementMethods for HTMLOutputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-output-type
     fn Type(&self) -> DOMString {
-        return DOMString::from("output");
+        DOMString::from("output")
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-name

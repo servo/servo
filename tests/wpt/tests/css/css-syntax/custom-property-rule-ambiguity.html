@@ -50,7 +50,7 @@
     assert_equals(x, 'hover { }\n    .b { }');
     let childRules = div.cssRules;
     assert_equals(childRules.length, 1);
-    assert_equals(childRules[0].selectorText, '.a');
+    assert_equals(childRules[0].selectorText, '& .a');
   }, 'Nested rule that looks like a custom property declaration');
 </script>
 
@@ -79,6 +79,6 @@
     // So in other words, there should be no nested '.b.' child rule here.
     let childRules = div.cssRules;
     assert_equals(childRules.length, 1);
-    assert_equals(childRules[0].selectorText, '.a');
+    assert_equals(childRules[0].selectorText, '& .a');
   }, 'Nested rule that looks like an invalid custom property declaration');
 </script>

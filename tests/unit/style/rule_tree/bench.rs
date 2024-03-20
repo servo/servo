@@ -74,7 +74,6 @@ fn parse_rules(lock: &SharedRwLock, css: &str) -> Vec<(StyleSource, CascadeLevel
         None,
         Some(&ErrorringErrorReporter),
         QuirksMode::NoQuirks,
-        0,
         AllowImportRules::Yes,
     );
     let guard = s.shared_lock.read();

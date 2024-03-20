@@ -1930,7 +1930,7 @@ impl HTMLMediaElement {
     pub fn get_current_frame(&self) -> Option<VideoFrame> {
         match self.video_renderer.lock().unwrap().current_frame_holder {
             Some(ref holder) => Some(holder.get_frame()),
-            None => return None,
+            None => None,
         }
     }
 
@@ -1952,7 +1952,7 @@ impl HTMLMediaElement {
         let global = self.global();
         let media_session = global.as_window().Navigator().MediaSession();
 
-        media_session.register_media_instance(&self);
+        media_session.register_media_instance(self);
 
         media_session.send_event(event);
     }

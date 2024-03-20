@@ -35,12 +35,12 @@ impl VideoTrack {
     ) -> VideoTrack {
         VideoTrack {
             reflector_: Reflector::new(),
-            id: id.into(),
-            kind: kind.into(),
-            label: label.into(),
-            language: language.into(),
+            id,
+            kind,
+            label,
+            language,
             selected: Cell::new(false),
-            track_list: DomRefCell::new(track_list.map(|t| Dom::from_ref(t))),
+            track_list: DomRefCell::new(track_list.map(Dom::from_ref)),
         }
     }
 
@@ -69,7 +69,7 @@ impl VideoTrack {
     }
 
     pub fn selected(&self) -> bool {
-        self.selected.get().clone()
+        self.selected.get()
     }
 
     pub fn set_selected(&self, value: bool) {

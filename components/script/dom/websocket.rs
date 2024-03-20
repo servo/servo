@@ -83,7 +83,7 @@ fn close_the_websocket_connection(
         code: code,
         reason: Some(reason),
     };
-    let _ = task_source.queue_with_canceller(close_task, &canceller);
+    let _ = task_source.queue_with_canceller(close_task, canceller);
 }
 
 fn fail_the_websocket_connection(
@@ -97,7 +97,7 @@ fn fail_the_websocket_connection(
         code: Some(close_code::ABNORMAL),
         reason: None,
     };
-    let _ = task_source.queue_with_canceller(close_task, &canceller);
+    let _ = task_source.queue_with_canceller(close_task, canceller);
 }
 
 #[dom_struct]

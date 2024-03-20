@@ -107,33 +107,32 @@ fn test_report_error_stylesheet() {
         None,
         Some(&error_reporter),
         QuirksMode::NoQuirks,
-        5,
         AllowImportRules::Yes,
     );
 
     error_reporter.assert_messages_contain(&[
         (
-            8,
+            3,
             18,
             "Unsupported property declaration: 'display: invalid;'",
         ),
         (
-            9,
+            4,
             43,
             "Unsupported property declaration: 'background-image:",
         ), // FIXME: column should be around 56
-        (10, 17, "Unsupported property declaration: 'invalid: true;'"),
-        (12, 28, "Invalid media rule"),
+        (5, 17, "Unsupported property declaration: 'invalid: true;'"),
+        (7, 28, "Invalid media rule"),
         // When @counter-style is supported, this should be replaced with two errors
-        (14, 19, "Invalid rule: '@counter-style "),
+        (9, 19, "Invalid rule: '@counter-style "),
         // When @font-feature-values is supported, this should be replaced with two errors
-        (15, 25, "Invalid rule: '@font-feature-values "),
-        (16, 13, "Invalid rule: '@invalid'"),
-        (17, 29, "Invalid rule: '@invalid'"),
-        (18, 34, "Invalid rule: '@supports "),
-        (19, 26, "Invalid keyframe rule: 'from invalid '"),
+        (10, 25, "Invalid rule: '@font-feature-values "),
+        (11, 13, "Invalid rule: '@invalid'"),
+        (12, 29, "Invalid rule: '@invalid'"),
+        (13, 34, "Invalid rule: '@supports "),
+        (14, 26, "Invalid keyframe rule: 'from invalid '"),
         (
-            19,
+            14,
             52,
             "Unsupported keyframe property declaration: 'margin: 0 invalid 0;'",
         ),
@@ -165,7 +164,6 @@ fn test_no_report_unrecognized_vendor_properties() {
         None,
         Some(&error_reporter),
         QuirksMode::NoQuirks,
-        0,
         AllowImportRules::Yes,
     );
 
@@ -199,7 +197,6 @@ fn test_source_map_url() {
             None,
             None,
             QuirksMode::NoQuirks,
-            0,
             AllowImportRules::Yes,
         );
         let url_opt = stylesheet.contents.source_map_url.read();
@@ -227,7 +224,6 @@ fn test_source_url() {
             None,
             None,
             QuirksMode::NoQuirks,
-            0,
             AllowImportRules::Yes,
         );
         let url_opt = stylesheet.contents.source_url.read();

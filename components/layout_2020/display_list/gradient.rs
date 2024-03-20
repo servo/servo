@@ -8,7 +8,9 @@ use style::values::computed::image::{EndingShape, Gradient, LineDirection};
 use style::values::computed::{
     Angle, AngleOrPercentage, Color, Length, LengthPercentage, Position,
 };
-use style::values::generics::image::{Circle, ColorStop, Ellipse, GradientItem, ShapeExtent};
+use style::values::generics::image::{
+    Circle, ColorStop, Ellipse, GradientFlags, GradientItem, ShapeExtent,
+};
 use webrender_api::{self as wr, units};
 use wr::ColorF;
 
@@ -23,18 +25,14 @@ pub(super) fn build(
             ref items,
             ref direction,
             ref color_interpolation_method,
-            ref repeating,
+            ref flags,
             compat_mode: _,
         } => build_linear(
             style,
             items,
             direction,
             color_interpolation_method,
-            if *repeating {
-                wr::ExtendMode::Repeat
-            } else {
-                wr::ExtendMode::Clamp
-            },
+            *flags,
             layer,
             builder,
         ),
@@ -43,7 +41,7 @@ pub(super) fn build(
             ref position,
             ref color_interpolation_method,
             ref items,
-            ref repeating,
+            ref flags,
             compat_mode: _,
         } => build_radial(
             style,
@@ -51,11 +49,7 @@ pub(super) fn build(
             shape,
             position,
             color_interpolation_method,
-            if *repeating {
-                wr::ExtendMode::Repeat
-            } else {
-                wr::ExtendMode::Clamp
-            },
+            *flags,
             layer,
             builder,
         ),
@@ -64,18 +58,14 @@ pub(super) fn build(
             position,
             color_interpolation_method,
             items,
-            repeating,
+            flags,
         } => build_conic(
             style,
             *angle,
             position,
             *color_interpolation_method,
             items,
-            if *repeating {
-                wr::ExtendMode::Repeat
-            } else {
-                wr::ExtendMode::Clamp
-            },
+            *flags,
             layer,
             builder,
         ),
@@ -88,7 +78,7 @@ pub(super) fn build_linear(
     items: &[GradientItem<Color, LengthPercentage>],
     line_direction: &LineDirection,
     _color_interpolation_method: &ColorInterpolationMethod,
-    extend_mode: wr::ExtendMode,
+    flags: GradientFlags,
     layer: &super::background::BackgroundLayer,
     builder: &mut super::DisplayListBuilder,
 ) {
@@ -173,6 +163,11 @@ pub(super) fn build_linear(
     let mut color_stops =
         gradient_items_to_color_stops(style, items, Length::new(gradient_line_length));
     let stops = fixup_stops(&mut color_stops);
+    let extend_mode = if flags.contains(GradientFlags::REPEATING) {
+        wr::ExtendMode::Repeat
+    } else {
+        wr::ExtendMode::Clamp
+    };
     let linear_gradient = builder
         .wr()
         .create_gradient(start_point, end_point, stops, extend_mode);
@@ -193,7 +188,7 @@ pub(super) fn build_radial(
     shape: &EndingShape,
     center: &Position,
     _color_interpolation_method: &ColorInterpolationMethod,
-    extend_mode: wr::ExtendMode,
+    flags: GradientFlags,
     layer: &super::background::BackgroundLayer,
     builder: &mut super::DisplayListBuilder,
 ) {
@@ -277,6 +272,11 @@ pub(super) fn build_radial(
     let mut color_stops =
         gradient_items_to_color_stops(style, items, Length::new(gradient_line_length));
     let stops = fixup_stops(&mut color_stops);
+    let extend_mode = if flags.contains(GradientFlags::REPEATING) {
+        wr::ExtendMode::Repeat
+    } else {
+        wr::ExtendMode::Clamp
+    };
     let radial_gradient = builder
         .wr()
         .create_radial_gradient(center, radii, stops, extend_mode);
@@ -297,7 +297,7 @@ fn build_conic(
     center: &Position,
     _color_interpolation_method: ColorInterpolationMethod,
     items: &[GradientItem<Color, AngleOrPercentage>],
-    extend_mode: wr::ExtendMode,
+    flags: GradientFlags,
     layer: &super::background::BackgroundLayer,
     builder: &mut super::DisplayListBuilder<'_>,
 ) {
@@ -314,6 +314,11 @@ fn build_conic(
     );
     let mut color_stops = conic_gradient_items_to_color_stops(style, items);
     let stops = fixup_stops(&mut color_stops);
+    let extend_mode = if flags.contains(GradientFlags::REPEATING) {
+        wr::ExtendMode::Repeat
+    } else {
+        wr::ExtendMode::Clamp
+    };
     let conic_gradient =
         builder
             .wr()

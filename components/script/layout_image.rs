@@ -87,8 +87,8 @@ pub fn fetch_image_for_layout(
     let document = document_from_node(node);
 
     let context = Arc::new(Mutex::new(LayoutImageContext {
-        id: id,
-        cache: cache,
+        id,
+        cache,
         resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         doc: Trusted::new(&document),
         url: url.clone(),

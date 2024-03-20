@@ -190,7 +190,7 @@ impl HTMLTextAreaElement {
 
     pub fn auto_directionality(&self) -> String {
         let value: String = self.Value().to_string();
-        return HTMLInputElement::directionality_from_value(&value);
+        HTMLInputElement::directionality_from_value(&value)
     }
 
     fn update_placeholder_shown_state(&self) {
@@ -456,7 +456,7 @@ impl HTMLTextAreaElement {
 
     #[allow(crown::unrooted_must_root)]
     fn selection(&self) -> TextControlSelection<Self> {
-        TextControlSelection::new(&self, &self.textinput)
+        TextControlSelection::new(self, &self.textinput)
     }
 }
 
@@ -656,7 +656,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                     .task_manager()
                     .user_interaction_task_source()
                     .queue_event(
-                        &self.upcast(),
+                        self.upcast(),
                         atom!("input"),
                         EventBubbles::Bubbles,
                         EventCancelable::NotCancelable,

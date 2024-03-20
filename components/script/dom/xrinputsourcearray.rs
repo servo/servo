@@ -46,7 +46,7 @@ impl XRInputSourceArray {
                 input_sources.iter().find(|i| i.id() == info.id).is_none(),
                 "Should never add a duplicate input id!"
             );
-            let input = XRInputSource::new(&global, &session, info.clone());
+            let input = XRInputSource::new(&global, session, info.clone());
             input_sources.push(Dom::from_ref(&input));
             added.push(input);
         }
@@ -101,7 +101,7 @@ impl XRInputSourceArray {
             &[]
         };
         input_sources.retain(|i| i.id() != id);
-        let input = XRInputSource::new(&global, &session, info);
+        let input = XRInputSource::new(&global, session, info);
         input_sources.push(Dom::from_ref(&input));
 
         let added = [input];

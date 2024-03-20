@@ -89,7 +89,7 @@ impl TextMethods for Text {
             node.ranges()
                 .move_to_following_text_sibling_above(node, offset, new_node.upcast());
             // Steps 7.4-5.
-            parent.ranges().increment_at(&parent, node.index() + 1);
+            parent.ranges().increment_at(parent, node.index() + 1);
         }
         // Step 8.
         cdata.DeleteData(offset, count).unwrap();

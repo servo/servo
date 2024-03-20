@@ -27,7 +27,7 @@ impl Screen {
     fn new_inherited(window: &Window) -> Screen {
         Screen {
             reflector_: Reflector::new(),
-            window: Dom::from_ref(&window),
+            window: Dom::from_ref(window),
         }
     }
 

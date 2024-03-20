@@ -420,14 +420,14 @@ class CGMethodCall(CGThing):
                 caseBody.append(CGGeneric("if %s.get().is_object() {" %
                                           (distinguishingArg)))
                 for idx, sig in enumerate(interfacesSigs):
-                    caseBody.append(CGIndenter(CGGeneric("loop {")))
+                    caseBody.append(CGIndenter(CGGeneric("'_block: {")))
                     type = sig[1][distinguishingIndex].type
 
                     # The argument at index distinguishingIndex can't possibly
                     # be unset here, because we've already checked that argc is
                     # large enough that we can examine this argument.
                     info = getJSToNativeConversionInfo(
-                        type, descriptor, failureCode="break;", isDefinitelyObject=True)
+                        type, descriptor, failureCode="break '_block;", isDefinitelyObject=True)
                     template = info.template
                     declType = info.declType
 
@@ -1410,7 +1410,7 @@ if %(argc)s > %(index)s {
         return self.converter.define()
 
 
-def wrapForType(jsvalRef, result='result', successCode='return true;', pre=''):
+def wrapForType(jsvalRef, result='result', successCode='true', pre=''):
     """
     Reflect a Rust value into JS.
 
@@ -1672,11 +1672,11 @@ class PropertyDefiner:
                 prefableSpecs.append(
                     prefableTemplate % (cond, name + "_specs", len(specs) - 1))
 
-        specsArray = ("const %s_specs: &'static [&'static[%s]] = &[\n"
+        specsArray = ("const %s_specs: &[&[%s]] = &[\n"
                       + ",\n".join(specs) + "\n"
                       + "];\n") % (name, specType)
 
-        prefArray = ("const %s: &'static [Guard<&'static [%s]>] = &[\n"
+        prefArray = ("const %s: &[Guard<&[%s]>] = &[\n"
                      + ",\n".join(prefableSpecs) + "\n"
                      + "];\n") % (name, specType)
         return specsArray + prefArray
@@ -1851,6 +1851,8 @@ class MethodDefiner(PropertyDefiner):
             flags = m["flags"]
             if self.unforgeable:
                 flags += " | JSPROP_PERMANENT | JSPROP_READONLY"
+            if flags != "0":
+                flags = f"({flags}) as u16"
             if "selfHostedName" in m:
                 selfHostedName = '%s as *const u8 as *const libc::c_char' % str_to_const_array(m["selfHostedName"])
                 assert not m.get("methodInfo", True)
@@ -1882,7 +1884,7 @@ class MethodDefiner(PropertyDefiner):
             '        name: %s,\n'
             '        call: JSNativeWrapper { op: %s, info: %s },\n'
             '        nargs: %s,\n'
-            '        flags: (%s) as u16,\n'
+            '        flags: %s,\n'
             '        selfHostedName: %s\n'
             '    }')
         specTerminator = (
@@ -2015,7 +2017,7 @@ class AttrDefiner(PropertyDefiner):
             if m["name"] == "@@toStringTag":
                 return """    JSPropertySpec {
                     name: JSPropertySpec_Name { symbol_: SymbolCode::%s as usize + 1 },
-                    attributes_: (%s) as u8,
+                    attributes_: (%s),
                     kind_: (%s),
                     u: JSPropertySpec_AccessorsOrValue {
                         value: JSPropertySpec_ValueWrapper {
@@ -2029,7 +2031,7 @@ class AttrDefiner(PropertyDefiner):
 """
             return """    JSPropertySpec {
                     name: JSPropertySpec_Name { string_: %s as *const u8 as *const libc::c_char },
-                    attributes_: (%s) as u8,
+                    attributes_: (%s),
                     kind_: (%s),
                     u: JSPropertySpec_AccessorsOrValue {
                         accessors: JSPropertySpec_AccessorsOrValue_Accessors {
@@ -2171,6 +2173,11 @@ class CGImports(CGWrapper):
                 'unused_variables',
                 'unused_assignments',
                 'unused_mut',
+                'clippy::approx_constant',
+                'clippy::let_unit_value',
+                'clippy::needless_return',
+                'clippy::too_many_arguments',
+                'clippy::unnecessary_cast',
             ]
 
         def componentTypes(type):
@@ -2483,13 +2490,13 @@ static PrototypeClass: JSClass = JSClass {
     name: %(name)s as *const u8 as *const libc::c_char,
     flags:
         // JSCLASS_HAS_RESERVED_SLOTS(%(slotCount)s)
-        (%(slotCount)s & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT,
+        (%(slotCount)s ) << JSCLASS_RESERVED_SLOTS_SHIFT,
     cOps: 0 as *const _,
     spec: ptr::null(),
     ext: ptr::null(),
     oOps: ptr::null(),
 };
-""" % {'name': name, 'slotCount': slotCount}
+""" % {'name': name, 'slotCount': f"{slotCount} & JSCLASS_RESERVED_SLOTS_MASK" if slotCount > 0 else "0"}
 
 
 class CGInterfaceObjectJSClass(CGThing):
@@ -2800,7 +2807,7 @@ class CGAbstractMethod(CGThing):
                 )
                 post = (
                     "\n})());\n"
-                    "return result"
+                    "result"
                 )
             body = CGWrapper(CGIndenter(body), pre=pre, post=post)
 
@@ -2956,7 +2963,7 @@ assert!(!obj.is_null());
 SetProxyReservedSlot(
     obj.get(),
     0,
-    &PrivateValue(raw.as_ptr() as *const %(concreteType)s as *const libc::c_void),
+    &PrivateValue(raw.as_ptr() as *const libc::c_void),
 );
 """
             create = create % {"concreteType": self.descriptor.concreteType,
@@ -2983,7 +2990,7 @@ assert!(!obj.is_null());
 JS_SetReservedSlot(
     obj.get(),
     DOM_OBJECT_SLOT,
-    &PrivateValue(raw.as_ptr() as *const %(concreteType)s as *const libc::c_void),
+    &PrivateValue(raw.as_ptr() as *const libc::c_void),
 );
 """
             create = create % {"concreteType": self.descriptor.concreteType}
@@ -3051,7 +3058,7 @@ rooted!(in(*cx) let mut obj = ptr::null_mut::<JSObject>());
 interface::create_global_object(
     cx,
     &Class.base,
-    raw.as_ptr() as *const %(concreteType)s as *const libc::c_void,
+    raw.as_ptr() as *const libc::c_void,
     _trace,
     obj.handle_mut(),
     origin);
@@ -3091,9 +3098,9 @@ class CGIDLInterface(CGThing):
             depth = self.descriptor.prototypeDepth
             check = "class.interface_chain[%s] == PrototypeList::ID::%s" % (depth, name)
         elif self.descriptor.proxy:
-            check = "class as *const _ == &Class as *const _"
+            check = "ptr::eq(class, &Class)"
         else:
-            check = "class as *const _ == &Class.dom_class as *const _"
+            check = "ptr::eq(class, &Class.dom_class)"
         return """\
 impl IDLInterface for %(name)s {
     #[inline]
@@ -3104,7 +3111,7 @@ impl IDLInterface for %(name)s {
 
 impl PartialEq for %(name)s {
     fn eq(&self, other: &%(name)s) -> bool {
-        self as *const %(name)s == &*other
+        self as *const %(name)s == other
     }
 }
 """ % {'check': check, 'name': name}
@@ -3268,7 +3275,7 @@ let global = incumbent_global.reflector().get_jsobject();\n"""
                     }
                     """,
                     name=name, nameAsArray=str_to_const_array(name), conditions=ret_conditions)
-        ret += 'return true;\n'
+        ret += 'true\n'
         return CGGeneric(ret)
 
 
@@ -3381,14 +3388,14 @@ assert!(!prototype_proto.is_null());""" % name))
         code.append(CGGeneric("""
 rooted!(in(*cx) let mut prototype = ptr::null_mut::<JSObject>());
 create_interface_prototype_object(cx,
-                                  global.into(),
-                                  prototype_proto.handle().into(),
+                                  global,
+                                  prototype_proto.handle(),
                                   &PrototypeClass,
                                   %(methods)s,
                                   %(attrs)s,
                                   %(consts)s,
                                   %(unscopables)s,
-                                  prototype.handle_mut().into());
+                                  prototype.handle_mut());
 assert!(!prototype.is_null());
 assert!((*cache)[PrototypeList::ID::%(id)s as usize].is_null());
 (*cache)[PrototypeList::ID::%(id)s as usize] = prototype.get();
@@ -3416,7 +3423,7 @@ assert!(!interface_proto.is_null());
 
 rooted!(in(*cx) let mut interface = ptr::null_mut::<JSObject>());
 create_noncallback_interface_object(cx,
-                                    global.into(),
+                                    global,
                                     interface_proto.handle(),
                                     &INTERFACE_OBJECT_CLASS,
                                     %(static_methods)s,
@@ -3455,6 +3462,8 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                     defineFn = "JS_DefineProperty"
                     prop = '"%s"' % alias
                     enumFlags = "JSPROP_ENUMERATE"
+                if enumFlags != "0":
+                    enumFlags = f"{enumFlags} as u32"
                 return CGList([
                     getSymbolJSID,
                     # XXX If we ever create non-enumerable properties that can
@@ -3462,8 +3471,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                     #     match the enumerability of the property being aliased.
                     CGGeneric(fill(
                         """
-                        assert!(${defineFn}(*cx, prototype.handle(), ${prop}, aliasedVal.handle(),
-                                            ${enumFlags} as u32));
+                        assert!(${defineFn}(*cx, prototype.handle(), ${prop}, aliasedVal.handle(), ${enumFlags}));
                         """,
                         defineFn=defineFn,
                         prop=prop,
@@ -3493,7 +3501,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
         constructors = self.descriptor.interface.legacyFactoryFunctions
         if constructors:
             decl = ("let named_constructors: "
-                    "[(interface::ConstructorClassHook, &'static [u8], u32); %d]") % len(constructors)
+                    "[(interface::ConstructorClassHook, &[u8], u32); %d]") % len(constructors)
             specs = []
             for constructor in constructors:
                 hook = CONSTRUCT_HOOK_NAME + "_" + constructor.identifier.name
@@ -3881,7 +3889,7 @@ class CGPerSignatureCall(CGThing):
         return 'infallible' not in self.extendedAttributes
 
     def wrap_return_value(self):
-        return wrapForType('MutableHandleValue::from_raw(args.rval())')
+        return wrapForType('MutableHandleValue::from_raw(args.rval())', successCode='return true;')
 
     def define(self):
         return (self.cgRoot.define() + "\n" + self.wrap_return_value())
@@ -3974,7 +3982,7 @@ class CGSetterCall(CGPerSignatureCall):
 
     def wrap_return_value(self):
         # We have no return value
-        return "\nreturn true;"
+        return "\ntrue"
 
     def getArgc(self):
         return "1"
@@ -4092,7 +4100,7 @@ class CGDefaultToJSONMethod(CGSpecializedMethod):
             parents -= 1
         ret += fill(form, parentclass="")
         ret += ('(*args).rval().set(ObjectValue(*result));\n'
-                'return true;\n')
+                'true\n')
         return CGGeneric(ret)
 
 
@@ -4668,7 +4676,7 @@ use js::rust::HandleValue;
 use js::rust::MutableHandleValue;
 use js::jsval::JSVal;
 
-pub const pairs: &'static [(&'static str, super::${ident})] = &[
+pub const pairs: &[(&str, super::${ident})] = &[
     ${pairs},
 ];
 
@@ -5647,7 +5655,7 @@ if !expando.is_null() {
     }
 }
 """ + namedGet + """\
-return true;"""
+true"""
 
     def definition_body(self):
         return CGGeneric(self.getBody())
@@ -5805,7 +5813,7 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
                 return false;
             }
 
-            return true;
+            true
             """)
 
         return body
@@ -5864,7 +5872,7 @@ class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
                 return false;
             }
 
-            return true;
+            true
             """)
 
         return body
@@ -5939,7 +5947,7 @@ if !expando.is_null() {
 }
 """ + named + """\
 *bp = false;
-return true;"""
+true"""
 
     def definition_body(self):
         return CGGeneric(self.getBody())
@@ -6040,7 +6048,7 @@ if found {
 }
 %s
 vp.set(UndefinedValue());
-return true;""" % (maybeCrossOriginGet, getIndexedOrExpando, getNamed)
+true""" % (maybeCrossOriginGet, getIndexedOrExpando, getNamed)
 
     def definition_body(self):
         return CGGeneric(self.getBody())
@@ -6311,9 +6319,9 @@ class CGInterfaceTrait(CGThing):
         methods = []
         for name, arguments, rettype in members():
             arguments = list(arguments)
-            methods.append(CGGeneric("%sfn %s(&self%s) -> %s;\n" % (
+            methods.append(CGGeneric("%sfn %s(&self%s)%s;\n" % (
                 'unsafe ' if contains_unsafe_arg(arguments) else '',
-                name, fmt(arguments), rettype))
+                name, fmt(arguments), f" -> {rettype}" if rettype != '()' else ''))
             )
 
         if methods:
@@ -6473,7 +6481,7 @@ class CGDescriptor(CGThing):
             if unscopableNames:
                 haveUnscopables = True
                 cgThings.append(
-                    CGList([CGGeneric("const unscopable_names: &'static [&'static [u8]] = &["),
+                    CGList([CGGeneric("const unscopable_names: &[&[u8]] = &["),
                             CGIndenter(CGList([CGGeneric(str_to_const_array(name)) for
                                                name in unscopableNames], ",\n")),
                             CGGeneric("];\n")], "\n"))
@@ -6492,7 +6500,7 @@ class CGDescriptor(CGThing):
         haveLegacyWindowAliases = len(legacyWindowAliases) != 0
         if haveLegacyWindowAliases:
             cgThings.append(
-                CGList([CGGeneric("const legacy_window_aliases: &'static [&'static [u8]] = &["),
+                CGList([CGGeneric("const legacy_window_aliases: &[&[u8]] = &["),
                         CGIndenter(CGList([CGGeneric(str_to_const_array(name)) for
                                            name in legacyWindowAliases], ",\n")),
                         CGGeneric("];\n")], "\n"))
@@ -7556,9 +7564,9 @@ class CallbackMember(CGNativeMember):
             # Check for variadic arguments
             lastArg = args[self.argCount - 1]
             if lastArg.variadic:
+                argCount = "0" if self.argCount == 1 else f"({self.argCount} - 1)"
                 self.argCountStr = (
-                    "(%d - 1) + %s.len()" % (self.argCount,
-                                             lastArg.identifier.name))
+                    "%s + %s.len()" % (argCount, lastArg.identifier.name))
             else:
                 self.argCountStr = "%d" % self.argCount
         self.needThisHandling = needThisHandling
@@ -8059,7 +8067,7 @@ class GlobalGenRoots():
             CGWrapper(CGIndenter(CGList([CGGeneric('"' + name + '"') for name in protos],
                                         ",\n"),
                                  indentLevel=4),
-                      pre="static INTERFACES: [&'static str; %d] = [\n" % len(protos),
+                      pre="static INTERFACES: [&str; %d] = [\n" % len(protos),
                       post="\n];\n\n"),
             CGGeneric("pub fn proto_id_to_name(proto_id: u16) -> &'static str {\n"
                       "    debug_assert!(proto_id < ID::Last as u16);\n"

@@ -1122,7 +1122,6 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 .placement_among_floats
                 .get_or_init(|| self.place_line_among_floats(potential_line_size))
                 .size
-                .clone()
         } else {
             LogicalVec2 {
                 inline: self.containing_block.inline_size.into(),
@@ -1991,9 +1990,7 @@ impl IndependentFormattingContext {
                     None,
                     &pbm,
                 );
-                let fragments = replaced
-                    .contents
-                    .make_fragments(&replaced.style, size.clone());
+                let fragments = replaced.contents.make_fragments(&replaced.style, size);
                 let content_rect = LogicalRect {
                     start_corner: pbm_sums.start_offset(),
                     size,

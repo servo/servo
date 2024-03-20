@@ -114,8 +114,8 @@ impl MediaFragmentParser {
             }
         } else {
             let mut iterator = fragment.split(',');
-            let start = parse_hms(iterator.next().ok_or_else(|| ())?)?;
-            let end = parse_hms(iterator.next().ok_or_else(|| ())?)?;
+            let start = parse_hms(iterator.next().ok_or(())?)?;
+            let end = parse_hms(iterator.next().ok_or(())?)?;
 
             if iterator.next().is_some() || start >= end {
                 return Err(());
@@ -146,14 +146,12 @@ impl MediaFragmentParser {
             let vec: Vec<&str> = input.split('-').collect();
             let mut hms: Vec<f64> = vec
                 .iter()
-                .map(|s| NaiveDateTime::parse_from_str(s, "%Y%m%dT%H%M%S%.fZ"))
-                .flatten()
-                .map(|s| parse_hms(&s.time().to_string()))
-                .flatten()
+                .flat_map(|s| NaiveDateTime::parse_from_str(s, "%Y%m%dT%H%M%S%.fZ"))
+                .flat_map(|s| parse_hms(&s.time().to_string()))
                 .collect();
 
-            let end = hms.pop().ok_or_else(|| ())?;
-            let start = hms.pop().ok_or_else(|| ())?;
+            let end = hms.pop().ok_or(())?;
+            let start = hms.pop().ok_or(())?;
 
             if !hms.is_empty() || start >= end {
                 return Err(());
@@ -166,14 +164,14 @@ impl MediaFragmentParser {
     fn parse_spatial(&self, input: &str) -> Result<SpatialClipping, ()> {
         let (prefix, s) = split_prefix(input);
         let vec: Vec<&str> = s.split(',').collect();
-        let mut queue: VecDeque<u32> = vec.iter().map(|s| s.parse::<u32>()).flatten().collect();
+        let mut queue: VecDeque<u32> = vec.iter().flat_map(|s| s.parse::<u32>()).collect();
 
         let mut clipping = SpatialClipping {
             region: None,
-            x: queue.pop_front().ok_or_else(|| ())?,
-            y: queue.pop_front().ok_or_else(|| ())?,
-            width: queue.pop_front().ok_or_else(|| ())?,
-            height: queue.pop_front().ok_or_else(|| ())?,
+            x: queue.pop_front().ok_or(())?,
+            y: queue.pop_front().ok_or(())?,
+            width: queue.pop_front().ok_or(())?,
+            height: queue.pop_front().ok_or(())?,
         };
 
         if !queue.is_empty() {
@@ -211,10 +209,7 @@ impl From<&ServoUrl> for MediaFragmentParser {
 // 5.1.1 Processing name-value components.
 fn decode_octets(bytes: &[u8]) -> Vec<(Cow<str>, Cow<str>)> {
     form_urlencoded::parse(bytes)
-        .filter(|(key, _)| match key.as_bytes() {
-            b"t" | b"track" | b"id" | b"xywh" => true,
-            _ => false,
-        })
+        .filter(|(key, _)| matches!(key.as_bytes(), b"t" | b"track" | b"id" | b"xywh"))
         .collect()
 }
 
@@ -241,10 +236,7 @@ fn split_url(s: &str) -> (&str, &str) {
 }
 
 fn is_byte_number(byte: u8) -> bool {
-    match byte {
-        48 | 49 | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 => true,
-        _ => false,
-    }
+    matches!(byte, 48..=57)
 }
 
 fn split_prefix(s: &str) -> (Option<&str>, &str) {
@@ -322,13 +314,13 @@ fn parse_hms(s: &str) -> Result<f64, ()> {
         },
         2 => hms_to_seconds(
             0,
-            parse_npt_minute(vec.pop_front().ok_or_else(|| ())?)?,
-            parse_npt_seconds(vec.pop_front().ok_or_else(|| ())?)?,
+            parse_npt_minute(vec.pop_front().ok_or(())?)?,
+            parse_npt_seconds(vec.pop_front().ok_or(())?)?,
         ),
         3 => hms_to_seconds(
             vec.pop_front().ok_or_else(|| ())?.parse().map_err(|_| ())?,
-            parse_npt_minute(vec.pop_front().ok_or_else(|| ())?)?,
-            parse_npt_seconds(vec.pop_front().ok_or_else(|| ())?)?,
+            parse_npt_minute(vec.pop_front().ok_or(())?)?,
+            parse_npt_seconds(vec.pop_front().ok_or(())?)?,
         ),
         _ => return Err(()),
     };

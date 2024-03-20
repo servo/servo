@@ -39,6 +39,7 @@ function buildValidNavigatorIdentityRequest() {
   return {
       digital: {
         providers: [{
+          protocol: "protocol",
           selector: {
             format: ['mdoc'],
             doctype: 'org.iso.18013.5.1.mDL',
@@ -94,8 +95,9 @@ promise_test(async t => {
 
 promise_test(async t => {
   let request = buildValidNavigatorIdentityRequest();
-  let {token} = await navigator.identity.get(request);
-  assert_equals("fake_test_token", token);
+  let credential = await navigator.identity.get(request);
+  assert_equals("protocol", credential.protocol);
+  assert_equals("fake_test_token", credential.data);
 }, "navigator.identity.get() API works in toplevel frame.");
 
 promise_test(async t => {

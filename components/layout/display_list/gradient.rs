@@ -8,7 +8,9 @@ use style::color::mix::ColorInterpolationMethod;
 use style::properties::ComputedValues;
 use style::values::computed::image::{EndingShape, LineDirection};
 use style::values::computed::{Angle, Color, LengthPercentage, Percentage, Position};
-use style::values::generics::image::{Circle, ColorStop, Ellipse, GradientItem, ShapeExtent};
+use style::values::generics::image::{
+    Circle, ColorStop, Ellipse, GradientFlags, GradientItem, ShapeExtent,
+};
 use webrender_api::{ExtendMode, Gradient, GradientBuilder, GradientStop, RadialGradient};
 
 use crate::display_list::ToLayout;
@@ -242,10 +244,11 @@ pub fn linear(
     stops: &[GradientItem<Color, LengthPercentage>],
     direction: LineDirection,
     _color_interpolation_method: &ColorInterpolationMethod,
-    repeating: bool,
+    flags: GradientFlags,
 ) -> (Gradient, Vec<GradientStop>) {
     use style::values::specified::position::HorizontalPositionKeyword::*;
     use style::values::specified::position::VerticalPositionKeyword::*;
+    let repeating = flags.contains(GradientFlags::REPEATING);
     let angle = match direction {
         LineDirection::Angle(angle) => angle.radians(),
         LineDirection::Horizontal(x) => match x {
@@ -310,8 +313,9 @@ pub fn radial(
     shape: &EndingShape,
     center: &Position,
     _color_interpolation_method: &ColorInterpolationMethod,
-    repeating: bool,
+    flags: GradientFlags,
 ) -> (RadialGradient, Vec<GradientStop>) {
+    let repeating = flags.contains(GradientFlags::REPEATING);
     let center = Point2D::new(
         center.horizontal.to_used_value(size.width),
         center.vertical.to_used_value(size.height),

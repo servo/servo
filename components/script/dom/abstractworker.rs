@@ -26,6 +26,6 @@ pub struct SimpleWorkerErrorHandler<T: DomObject> {
 
 impl<T: DomObject> SimpleWorkerErrorHandler<T> {
     pub fn new(addr: Trusted<T>) -> SimpleWorkerErrorHandler<T> {
-        SimpleWorkerErrorHandler { addr: addr }
+        SimpleWorkerErrorHandler { addr }
     }
 }

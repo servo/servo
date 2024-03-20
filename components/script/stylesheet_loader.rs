@@ -179,7 +179,7 @@ impl FetchResponseListener for StylesheetContext {
                 },
                 StylesheetContextSource::Import(ref stylesheet) => {
                     Stylesheet::update_from_bytes(
-                        &stylesheet,
+                        stylesheet,
                         &data,
                         protocol_encoding_label,
                         Some(environment_encoding),

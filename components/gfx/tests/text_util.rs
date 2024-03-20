@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use gfx::text::util::{transform_text, CompressionMode};
+use gfx::text::util::{is_cjk, transform_text, CompressionMode};
 
 #[test]
 fn test_transform_compress_none() {
@@ -103,4 +103,23 @@ fn test_transform_compress_whitespace_newline_no_incoming() {
         transform_text(test, mode, false, &mut trimmed_str);
         assert_eq!(trimmed_str, oracle)
     }
+}
+
+#[test]
+fn test_is_cjk() {
+    // Test characters from different CJK blocks
+    assert_eq!(is_cjk('〇'), true);
+    assert_eq!(is_cjk('㐀'), true);
+    assert_eq!(is_cjk('あ'), true);
+    assert_eq!(is_cjk('ア'), true);
+    assert_eq!(is_cjk('㆒'), true);
+    assert_eq!(is_cjk('ㆣ'), true);
+    assert_eq!(is_cjk('龥'), true);
+    assert_eq!(is_cjk('𰾑'), true);
+    assert_eq!(is_cjk('𰻝'), true);
+
+    // Test characters from outside CJK blocks
+    assert_eq!(is_cjk('a'), false);
+    assert_eq!(is_cjk('🙂'), false);
+    assert_eq!(is_cjk('©'), false);
 }

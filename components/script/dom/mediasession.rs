@@ -133,7 +133,7 @@ impl MediaSessionMethods for MediaSession {
             init.artist = DOMString::from_string(metadata.artist.clone());
             init.album = DOMString::from_string(metadata.album.clone());
             let global = self.global();
-            Some(MediaMetadata::new(&global.as_window(), &init))
+            Some(MediaMetadata::new(global.as_window(), &init))
         } else {
             None
         }

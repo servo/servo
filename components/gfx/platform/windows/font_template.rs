@@ -79,7 +79,7 @@ impl FontTemplateData {
         self.font_data.read().unwrap().as_ref().cloned()
     }
 
-    /// Get a [`FontFace`] for this font if it is a local font or return `None` if it's a
+    /// Get a [`Font`] for this font if it is a local font or return `None` if it's a
     /// web font.
     pub fn get_font(&self) -> Option<Font> {
         let font_descriptor = match &self.identifier {

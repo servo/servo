@@ -52,7 +52,7 @@ impl RTCTrackEvent {
         track: &MediaStreamTrack,
     ) -> DomRoot<RTCTrackEvent> {
         let trackevent = reflect_dom_object_with_proto(
-            Box::new(RTCTrackEvent::new_inherited(&track)),
+            Box::new(RTCTrackEvent::new_inherited(track)),
             global,
             proto,
         );

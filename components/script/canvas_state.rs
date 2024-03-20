@@ -12,7 +12,7 @@ use canvas_traits::canvas::{
     FillRule, LineCapStyle, LineJoinStyle, LinearGradientStyle, RadialGradientStyle,
     RepetitionStyle, TextAlign, TextBaseline,
 };
-use cssparser::{Parser, ParserInput, RGBA};
+use cssparser::{Parser, ParserInput, RgbaLegacy};
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use euclid::vec2;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
@@ -62,7 +62,7 @@ use crate::unpremultiplytable::UNPREMULTIPLY_TABLE;
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[allow(dead_code)]
 pub(crate) enum CanvasFillOrStrokeStyle {
-    Color(#[no_trace] RGBA),
+    Color(#[no_trace] RgbaLegacy),
     Gradient(Dom<CanvasGradient>),
     Pattern(Dom<CanvasPattern>),
 }
@@ -98,7 +98,7 @@ pub(crate) struct CanvasContextState {
     shadow_offset_y: f64,
     shadow_blur: f64,
     #[no_trace]
-    shadow_color: RGBA,
+    shadow_color: RgbaLegacy,
     #[no_trace]
     font_style: Option<Font>,
     #[no_trace]
@@ -113,7 +113,7 @@ impl CanvasContextState {
     const DEFAULT_FONT_STYLE: &'static str = "10px sans-serif";
 
     pub(crate) fn new() -> CanvasContextState {
-        let black = RGBA::new(Some(0), Some(0), Some(0), Some(1.0));
+        let black = RgbaLegacy::new(0, 0, 0, 1.0);
         CanvasContextState {
             global_alpha: 1.0,
             global_composition: CompositionOrBlending::default(),
@@ -128,7 +128,7 @@ impl CanvasContextState {
             shadow_offset_x: 0.0,
             shadow_offset_y: 0.0,
             shadow_blur: 0.0,
-            shadow_color: RGBA::new(Some(0), Some(0), Some(0), Some(0.0)),
+            shadow_color: RgbaLegacy::new(0, 0, 0, 0.0),
             font_style: None,
             text_align: Default::default(),
             text_baseline: Default::default(),
@@ -183,8 +183,8 @@ impl CanvasState {
             global.origin().immutable().clone()
         };
         CanvasState {
-            ipc_renderer: ipc_renderer,
-            canvas_id: canvas_id,
+            ipc_renderer,
+            canvas_id,
             state: DomRefCell::new(CanvasContextState::new()),
             origin_clean: Cell::new(true),
             image_cache: global.image_cache(),
@@ -370,7 +370,7 @@ impl CanvasState {
                     return Err(Error::InvalidState);
                 }
 
-                self.draw_html_canvas_element(&canvas, htmlcanvas, sx, sy, sw, sh, dx, dy, dw, dh)
+                self.draw_html_canvas_element(canvas, htmlcanvas, sx, sy, sw, sh, dx, dy, dw, dh)
             },
             CanvasImageSource::OffscreenCanvas(ref canvas) => {
                 // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
@@ -378,7 +378,7 @@ impl CanvasState {
                     return Err(Error::InvalidState);
                 }
 
-                self.draw_offscreen_canvas(&canvas, htmlcanvas, sx, sy, sw, sh, dx, dy, dw, dh)
+                self.draw_offscreen_canvas(canvas, htmlcanvas, sx, sy, sw, sh, dx, dy, dw, dh)
             },
             CanvasImageSource::HTMLImageElement(ref image) => {
                 // https://html.spec.whatwg.org/multipage/#drawing-images
@@ -1039,7 +1039,7 @@ impl CanvasState {
         };
         let node = canvas.upcast::<Node>();
         let window = window_from_node(&*canvas);
-        let resolved_font_style = match window.resolved_font_style_query(&node, value.to_string()) {
+        let resolved_font_style = match window.resolved_font_style_query(node, value.to_string()) {
             Some(value) => value,
             None => return, // syntax error
         };
@@ -1679,7 +1679,7 @@ impl CanvasState {
     }
 }
 
-pub fn parse_color(canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<RGBA, ()> {
+pub fn parse_color(canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<RgbaLegacy, ()> {
     let mut input = ParserInput::new(string);
     let mut parser = Parser::new(&mut input);
     let url = Url::parse("about:blank").unwrap().into();
@@ -1704,14 +1704,14 @@ pub fn parse_color(canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<R
                 // https://drafts.css-houdini.org/css-paint-api/#2d-rendering-context
                 // Whenever "currentColor" is used as a color in the PaintRenderingContext2D API,
                 // it is treated as opaque black.
-                None => AbsoluteColor::black(),
+                None => AbsoluteColor::BLACK,
                 Some(ref canvas) => {
                     let canvas_element = canvas.upcast::<Element>();
                     match canvas_element.style() {
                         Some(ref s) if canvas_element.has_css_layout_box() => {
                             s.get_inherited_text().color
                         },
-                        _ => AbsoluteColor::black(),
+                        _ => AbsoluteColor::BLACK,
                     }
                 },
             };
@@ -1719,11 +1719,11 @@ pub fn parse_color(canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<R
             let rgba = color
                 .resolve_to_absolute(&current_color)
                 .to_color_space(ColorSpace::Srgb);
-            Ok(RGBA::from_floats(
-                Some(rgba.components.0),
-                Some(rgba.components.1),
-                Some(rgba.components.2),
-                Some(rgba.alpha),
+            Ok(RgbaLegacy::from_floats(
+                rgba.components.0,
+                rgba.components.1,
+                rgba.components.2,
+                rgba.alpha,
             ))
         },
         None => Err(()),
@@ -1737,16 +1737,17 @@ pub fn is_rect_valid(rect: Rect<f64>) -> bool {
 }
 
 // https://html.spec.whatwg.org/multipage/#serialisation-of-a-color
-pub fn serialize<W>(color: &RGBA, dest: &mut W) -> fmt::Result
+pub fn serialize<W>(color: &RgbaLegacy, dest: &mut W) -> fmt::Result
 where
     W: fmt::Write,
 {
-    let red = color.red.unwrap_or(0);
-    let green = color.green.unwrap_or(0);
-    let blue = color.blue.unwrap_or(0);
-    let alpha = color.alpha.unwrap_or(0.0);
-
-    if alpha == 1.0 {
+    let RgbaLegacy {
+        red,
+        green,
+        blue,
+        alpha,
+    } = color;
+    if *alpha == 1.0 {
         write!(
             dest,
             "#{:x}{:x}{:x}{:x}{:x}{:x}",

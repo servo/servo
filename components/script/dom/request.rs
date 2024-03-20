@@ -86,7 +86,7 @@ impl Request {
             // Step 5
             RequestInfo::USVString(USVString(ref usv_string)) => {
                 // Step 5.1
-                let parsed_url = base_url.join(&usv_string);
+                let parsed_url = base_url.join(usv_string);
                 // Step 5.2
                 if parsed_url.is_err() {
                     return Err(Error::Type("Url could not be parsed".to_string()));
@@ -266,11 +266,11 @@ impl Request {
 
         // Step 25.1
         if let Some(init_method) = init.method.as_ref() {
-            if !is_method(&init_method) {
+            if !is_method(init_method) {
                 return Err(Error::Type("Method is not a method".to_string()));
             }
             // Step 25.2
-            if is_forbidden_method(&init_method) {
+            if is_forbidden_method(init_method) {
                 return Err(Error::Type("Method is forbidden".to_string()));
             }
             // Step 25.3

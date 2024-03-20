@@ -7,7 +7,7 @@ use std::mem;
 use std::sync::{Arc, Mutex};
 
 use canvas_traits::canvas::*;
-use cssparser::RGBA;
+use cssparser::RgbaLegacy;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::{point2, vec2};
 use font_kit::family_name::FamilyName;
@@ -74,7 +74,7 @@ impl PathState {
 pub trait Backend {
     fn get_composition_op(&self, opts: &DrawOptions) -> CompositionOp;
     fn need_to_draw_shadow(&self, color: &Color) -> bool;
-    fn set_shadow_color(&mut self, color: RGBA, state: &mut CanvasPaintState<'_>);
+    fn set_shadow_color(&mut self, color: RgbaLegacy, state: &mut CanvasPaintState<'_>);
     fn set_fill_style(
         &mut self,
         style: FillOrStrokeStyle,
@@ -1156,7 +1156,7 @@ impl<'a> CanvasData<'a> {
         self.state.shadow_blur = value;
     }
 
-    pub fn set_shadow_color(&mut self, value: RGBA) {
+    pub fn set_shadow_color(&mut self, value: RgbaLegacy) {
         self.backend.set_shadow_color(value, &mut self.state);
     }
 

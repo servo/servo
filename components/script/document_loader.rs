@@ -86,7 +86,7 @@ impl DocumentLoader {
         let initial_loads = initial_load.into_iter().map(LoadType::PageSource).collect();
 
         DocumentLoader {
-            resource_threads: resource_threads,
+            resource_threads,
             blocking_loads: initial_loads,
             events_inhibited: false,
             cancellers: Vec::new(),

@@ -31,10 +31,10 @@ impl MessageChannel {
     /// <https://html.spec.whatwg.org/multipage/#dom-messagechannel>
     fn new(incumbent: &GlobalScope, proto: Option<HandleObject>) -> DomRoot<MessageChannel> {
         // Step 1
-        let port1 = MessagePort::new(&incumbent);
+        let port1 = MessagePort::new(incumbent);
 
         // Step 2
-        let port2 = MessagePort::new(&incumbent);
+        let port2 = MessagePort::new(incumbent);
 
         incumbent.track_message_port(&*port1, None);
         incumbent.track_message_port(&*port2, None);

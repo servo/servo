@@ -250,13 +250,13 @@ impl PositioningContext {
         new_fragment: &mut BoxFragment,
     ) {
         let padding_rect = LogicalRect {
-            size: new_fragment.content_rect.size.clone(),
+            size: new_fragment.content_rect.size,
             // Ignore the content rect’s position in its own containing block:
             start_corner: LogicalVec2::zero(),
         }
         .inflate(&new_fragment.padding);
         let containing_block = DefiniteContainingBlock {
-            size: padding_rect.size.clone().into(),
+            size: padding_rect.size.into(),
             style: &new_fragment.style,
         };
 
@@ -539,9 +539,7 @@ impl HoistedAbsolutelyPositionedBox {
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
                     let style = &replaced.style;
                     content_size = computed_size.auto_is(|| unreachable!()).into();
-                    fragments = replaced
-                        .contents
-                        .make_fragments(style, content_size.clone());
+                    fragments = replaced.contents.make_fragments(style, content_size);
                 },
                 IndependentFormattingContext::NonReplaced(non_replaced) => {
                     // https://drafts.csswg.org/css2/#min-max-widths

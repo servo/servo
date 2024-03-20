@@ -72,7 +72,7 @@ impl XRTestMethods for XRTest {
         let p = Promise::new(&global);
 
         let origin = if let Some(ref o) = init.viewerOrigin {
-            match get_origin(&o) {
+            match get_origin(o) {
                 Ok(origin) => Some(origin),
                 Err(e) => {
                     p.reject_error(e);
@@ -84,7 +84,7 @@ impl XRTestMethods for XRTest {
         };
 
         let floor_origin = if let Some(ref o) = init.floorOrigin {
-            match get_origin(&o) {
+            match get_origin(o) {
                 Ok(origin) => Some(origin),
                 Err(e) => {
                     p.reject_error(e);

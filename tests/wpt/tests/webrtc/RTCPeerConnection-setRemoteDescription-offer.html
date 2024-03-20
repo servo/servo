@@ -212,7 +212,7 @@
     assert_equals(raceValue, "have-remote-offer", "signalingstatechange event should fire before sRD resolves");
     assert_not_equals(pc2.pendingRemoteDescription, null, "pendingRemoteDescription should be updated before the signalingstatechange event");
     assert_equals(pc2.pendingRemoteDescription.type, "offer");
-    assert_equals(pc2.pendingRemoteDescription.sdp, pc2.remoteDescription.sdp);
+    assert_equals(pc2.pendingRemoteDescription, pc2.remoteDescription);
     assert_equals(pc2.currentRemoteDescription, null, "currentRemoteDescription should not be set after a call to sRD(offer)");
 
     await srdPromise;
@@ -236,7 +236,7 @@
     assert_equals(pc2.pendingRemoteDescription, null, "pendingRemoteDescription should not be set synchronously after a call to sRD");
     assert_not_equals(pc2.pendingLocalDescription, null, "pendingLocalDescription should not be set synchronously after a call to sRD");
     assert_equals(pc2.pendingLocalDescription.type, "offer");
-    assert_equals(pc2.pendingLocalDescription.sdp, pc2.localDescription.sdp);
+    assert_equals(pc2.pendingLocalDescription, pc2.localDescription);
 
     // First, we should go through stable (the implicit rollback part)
     const stablePromise = new Promise(resolve => {
@@ -260,7 +260,8 @@
     assert_equals(raceValue, "have-remote-offer", "signalingstatechange event should fire before sRD resolves");
     assert_not_equals(pc2.pendingRemoteDescription, null, "pendingRemoteDescription should be updated before the signalingstatechange event");
     assert_equals(pc2.pendingRemoteDescription.type, "offer");
-    assert_equals(pc2.pendingRemoteDescription.sdp, pc2.remoteDescription.sdp);
+    assert_equals(pc2.pendingRemoteDescription, pc2.remoteDescription);
+    assert_equals(pc2.pendingRemoteDescription, pc2.pendingRemoteDescription);
     assert_equals(pc2.pendingLocalDescription, null, "pendingLocalDescription should be updated before the signalingstatechange event");
 
     await srdPromise;

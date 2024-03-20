@@ -52,7 +52,7 @@ impl RTCDataChannelEvent {
         channel: &RTCDataChannel,
     ) -> DomRoot<RTCDataChannelEvent> {
         let event = reflect_dom_object_with_proto(
-            Box::new(RTCDataChannelEvent::new_inherited(&channel)),
+            Box::new(RTCDataChannelEvent::new_inherited(channel)),
             global,
             proto,
         );

@@ -989,7 +989,7 @@ impl NonReplacedFormattingContext {
                 &collapsed_margin_block_start,
                 containing_block,
                 &pbm,
-                &content_size + &pbm.padding_border_sums.clone().into(),
+                &content_size + &pbm.padding_border_sums.into(),
                 &self.style,
             );
         } else {
@@ -1179,7 +1179,7 @@ fn layout_in_flow_replaced_block_level(
     let margin_inline_end;
     let effective_margin_inline_start;
     let (margin_block_start, margin_block_end) = solve_block_margins_for_in_flow_block_level(&pbm);
-    let fragments = replaced.make_fragments(style, content_size.clone());
+    let fragments = replaced.make_fragments(style, content_size);
 
     let clearance;
     if let Some(ref mut sequential_layout_state) = sequential_layout_state {
@@ -1204,7 +1204,7 @@ fn layout_in_flow_replaced_block_level(
             &collapsed_margin_block_start,
             containing_block,
             &pbm,
-            size.clone().into(),
+            size.into(),
             style,
         );
 
@@ -1498,7 +1498,7 @@ fn solve_clearance_and_inline_margins_avoiding_floats(
             style.get_box().clear,
             block_start_margin,
             pbm,
-            size.clone().into(),
+            size.into(),
         );
     let (inline_margins, effective_margin_inline_start) = solve_inline_margins_avoiding_floats(
         sequential_layout_state,

@@ -149,5 +149,6 @@ pub fn is_cjk(codepoint: char) -> bool {
     }
 
     // https://en.wikipedia.org/wiki/Plane_(Unicode)#Supplementary_Ideographic_Plane
-    unicode_plane(codepoint) == 2
+    // https://en.wikipedia.org/wiki/Plane_(Unicode)#Tertiary_Ideographic_Plane
+    unicode_plane(codepoint) == 2 || unicode_plane(codepoint) == 3
 }

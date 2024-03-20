@@ -50,21 +50,21 @@ body {
 
 /* Needs scroll adjustment in x axis only */
 #target1 {
-  anchor-default: --a1;
+  position-anchor: --a1;
   left: anchor(left);
   top: anchor(--scroller1 bottom);
 }
 
 /* Needs scroll adjustment in y axis only */
 #target2 {
-  anchor-default: --a2;
+  position-anchor: --a2;
   top: anchor(top);
   left: anchor(--scroller2 right);
 }
 
 /* No scroll adjustment needed */
 #target3 {
-  anchor-default: --a3;
+  position-anchor: --a3;
   top: anchor(--scroller3 bottom);
   left: anchor(--scroller3 right);
 }

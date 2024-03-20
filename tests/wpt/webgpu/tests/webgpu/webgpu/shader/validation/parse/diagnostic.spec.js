@@ -199,3 +199,24 @@ fn((t) => {
   const code = `${kNestedLocations[t.params.loc](d1, d2)}`;
   t.expectCompileResult(true, code);
 });
+
+g.test('after_other_directives').
+specURL('https://gpuweb.github.io/gpuweb/wgsl/#diagnostics').
+desc(`Tests other global directives before a diagnostic directive.`).
+params((u) =>
+u.combine('directive', ['enable f16', 'requires readonly_and_readwrite_storage_textures'])
+).
+beforeAllSubcases((t) => {
+  if (t.params.directive.startsWith('enable')) {
+    t.selectDeviceOrSkipTestCase('shader-f16');
+  }
+}).
+fn((t) => {
+  if (t.params.directive.startsWith('requires')) {
+    t.skipIfLanguageFeatureNotSupported('readonly_and_readwrite_storage_textures');
+  }
+
+  let code = `${t.params.directive};`;
+  code += generateDiagnostic('directive', 'info', 'derivative_uniformity') + ';';
+  t.expectCompileResult(true, code);
+});

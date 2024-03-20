@@ -164,16 +164,17 @@ Tests that using a destroyed texture referenced by a bindGroup set with setBindG
 paramsSubcasesOnly((u) =>
 u.
 combine('destroyed', [false, true]).
-combine('encoderType', ['compute pass', 'render pass', 'render bundle'])
+combine('encoderType', ['compute pass', 'render pass', 'render bundle']).
+combine('bindingType', ['texture', 'storageTexture'])
 ).
 fn((t) => {
-  const { destroyed, encoderType } = t.params;
+  const { destroyed, encoderType, bindingType } = t.params;
   const { device } = t;
   const texture = t.trackForCleanup(
     t.device.createTexture({
       size: [1, 1, 1],
       format: 'rgba8unorm',
-      usage: GPUTextureUsage.TEXTURE_BINDING
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING
     })
   );
 
@@ -182,7 +183,9 @@ fn((t) => {
     {
       binding: 0,
       visibility: GPUShaderStage.COMPUTE,
-      texture: {}
+      [bindingType]: {
+        format: texture.format
+      }
     }]
 
   });

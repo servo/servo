@@ -984,7 +984,7 @@ impl Fragment {
                     ref direction,
                     ref color_interpolation_method,
                     ref items,
-                    ref repeating,
+                    ref flags,
                     compat_mode: _,
                 } => {
                     let (gradient, stops) = gradient::linear(
@@ -993,7 +993,7 @@ impl Fragment {
                         items,
                         *direction,
                         color_interpolation_method,
-                        *repeating,
+                        *flags,
                     );
                     let item = webrender_api::GradientDisplayItem {
                         gradient,
@@ -1009,7 +1009,7 @@ impl Fragment {
                     ref position,
                     ref color_interpolation_method,
                     ref items,
-                    ref repeating,
+                    ref flags,
                     compat_mode: _,
                 } => {
                     let (gradient, stops) = gradient::radial(
@@ -1019,7 +1019,7 @@ impl Fragment {
                         shape,
                         position,
                         color_interpolation_method,
-                        *repeating,
+                        *flags,
                     );
                     let item = webrender_api::RadialGradientDisplayItem {
                         gradient,
@@ -1252,7 +1252,7 @@ impl Fragment {
                     ref direction,
                     ref color_interpolation_method,
                     ref items,
-                    ref repeating,
+                    ref flags,
                     compat_mode: _,
                 } => {
                     let (wr_gradient, linear_stops) = gradient::linear(
@@ -1261,7 +1261,7 @@ impl Fragment {
                         items,
                         *direction,
                         color_interpolation_method,
-                        *repeating,
+                        *flags,
                     );
                     stops = linear_stops;
                     NinePatchBorderSource::Gradient(wr_gradient)
@@ -1271,7 +1271,7 @@ impl Fragment {
                     ref position,
                     ref color_interpolation_method,
                     ref items,
-                    ref repeating,
+                    ref flags,
                     compat_mode: _,
                 } => {
                     let (wr_gradient, radial_stops) = gradient::radial(
@@ -1281,7 +1281,7 @@ impl Fragment {
                         shape,
                         position,
                         color_interpolation_method,
-                        *repeating,
+                        *flags,
                     );
                     stops = radial_stops;
                     NinePatchBorderSource::RadialGradient(wr_gradient)

@@ -52,7 +52,7 @@ impl RTCErrorEvent {
         error: &RTCError,
     ) -> DomRoot<RTCErrorEvent> {
         let event = reflect_dom_object_with_proto(
-            Box::new(RTCErrorEvent::new_inherited(&error)),
+            Box::new(RTCErrorEvent::new_inherited(error)),
             global,
             proto,
         );

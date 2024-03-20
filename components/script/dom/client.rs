@@ -32,7 +32,7 @@ impl Client {
         Client {
             reflector_: Reflector::new(),
             active_worker: Default::default(),
-            url: url,
+            url,
             frame_type: FrameType::None,
             id: Uuid::new_v4(),
         }

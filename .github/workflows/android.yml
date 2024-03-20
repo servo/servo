@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        arch: ['armv7-linux-androideabi', 'i686-linux-android']
+        arch: ['armv7-linux-androideabi', 'i686-linux-android', 'x86_64-linux-android']
     steps:
       - uses: actions/checkout@v4
         if: github.event_name != 'issue_comment' && github.event_name != 'pull_request_target'

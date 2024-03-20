@@ -1,8 +1,9 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/import { range, reorder,
-  kReorderOrderKeys } from
+  kReorderOrderKeys,
 
+  assert } from
 '../../../../../common/util/util.js';
 import { kShaderStageCombinationsWithStage } from '../../../../capability_info.js';
 
@@ -13,7 +14,13 @@ import {
   kBindingCombinations,
   getPipelineTypeForBindingCombination,
   getPerStageWGSLForBindingCombination } from
+
 './limit_utils.js';
+
+const kExtraLimits = {
+  maxBindingsPerBindGroup: 'adapterLimit',
+  maxBindGroups: 'adapterLimit'
+};
 
 const limit = 'maxSampledTexturesPerShaderStage';
 export const { g, description } = makeLimitTestGroup(limit);
@@ -43,6 +50,9 @@ desc(
 
   Note: We also test order to make sure the implementation isn't just looking
   at just the last entry.
+
+  Note: It's also possible the maxBindingsPerBindGroup is lower than
+  ${limit} in which case skip the test since we can not hit the limit.
   `
 ).
 params(
@@ -56,11 +66,17 @@ fn(async (t) => {
     limitTest,
     testValueName,
     async ({ device, testValue, shouldError }) => {
+      t.skipIf(
+        t.adapter.limits.maxBindingsPerBindGroup < testValue,
+        `maxBindingsPerBindGroup = ${t.adapter.limits.maxBindingsPerBindGroup} which is less than ${testValue}`
+      );
+
       await t.expectValidationError(
         () => createBindGroupLayout(device, visibility, order, testValue),
         shouldError
       );
-    }
+    },
+    kExtraLimits
   );
 });
 
@@ -83,18 +99,30 @@ fn(async (t) => {
   await t.testDeviceWithRequestedMaximumLimits(
     limitTest,
     testValueName,
-    async ({ device, testValue, shouldError }) => {
-      const kNumGroups = 3;
+    async ({ device, testValue, shouldError, actualLimit }) => {
+      const maxBindingsPerBindGroup = Math.min(
+        t.device.limits.maxBindingsPerBindGroup,
+        actualLimit
+      );
+      const kNumGroups = Math.ceil(testValue / maxBindingsPerBindGroup);
+
+      // Not sure what to do in this case but best we get notified if it happens.
+      assert(kNumGroups <= t.device.limits.maxBindGroups);
+
       const bindGroupLayouts = range(kNumGroups, (i) => {
-        const minInGroup = Math.floor(testValue / kNumGroups);
-        const numInGroup = i ? minInGroup : testValue - minInGroup * (kNumGroups - 1);
+        const numInGroup = Math.min(
+          testValue - i * maxBindingsPerBindGroup,
+          maxBindingsPerBindGroup
+        );
         return createBindGroupLayout(device, visibility, order, numInGroup);
       });
+
       await t.expectValidationError(
         () => device.createPipelineLayout({ bindGroupLayouts }),
         shouldError
       );
-    }
+    },
+    kExtraLimits
   );
 });
 
@@ -122,16 +150,21 @@ fn(async (t) => {
     limitTest,
     testValueName,
     async ({ device, testValue, actualLimit, shouldError }) => {
+      t.skipIf(
+        bindGroupTest === 'sameGroup' && testValue > device.limits.maxBindingsPerBindGroup,
+        `can not test ${testValue} bindings in same group because maxBindingsPerBindGroup = ${device.limits.maxBindingsPerBindGroup}`
+      );
+
       const code = getPerStageWGSLForBindingCombination(
         bindingCombination,
         order,
         bindGroupTest,
         (i, j) => `var u${j}_${i}: texture_2d<f32>`,
         (i, j) => `_ = textureLoad(u${j}_${i}, vec2u(0), 0);`,
+        device.limits.maxBindGroups,
         testValue
       );
       const module = device.createShaderModule({ code });
-
       await t.testCreatePipeline(
         pipelineType,
         async,
@@ -139,6 +172,7 @@ fn(async (t) => {
         shouldError,
         `actualLimit: ${actualLimit}, testValue: ${testValue}\n:${code}`
       );
-    }
+    },
+    kExtraLimits
   );
 });
