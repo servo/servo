@@ -29,7 +29,7 @@ impl CSSFontFaceRule {
     ) -> CSSFontFaceRule {
         CSSFontFaceRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
-            fontfacerule: fontfacerule,
+            fontfacerule,
         }
     }
 

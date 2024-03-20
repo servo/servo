@@ -140,8 +140,8 @@ impl WindowProxy {
         });
         WindowProxy {
             reflector: Reflector::new(),
-            browsing_context_id: browsing_context_id,
-            top_level_browsing_context_id: top_level_browsing_context_id,
+            browsing_context_id,
+            top_level_browsing_context_id,
             name: DomRefCell::new(name),
             currently_active: Cell::new(currently_active),
             discarded: Cell::new(false),
@@ -318,18 +318,18 @@ impl WindowProxy {
             let load_info = AuxiliaryBrowsingContextLoadInfo {
                 load_data: load_data.clone(),
                 opener_pipeline_id: self.currently_active.get().unwrap(),
-                new_browsing_context_id: new_browsing_context_id,
-                new_top_level_browsing_context_id: new_top_level_browsing_context_id,
-                new_pipeline_id: new_pipeline_id,
+                new_browsing_context_id,
+                new_top_level_browsing_context_id,
+                new_pipeline_id,
             };
 
             let new_layout_info = NewLayoutInfo {
                 parent_info: None,
-                new_pipeline_id: new_pipeline_id,
+                new_pipeline_id,
                 browsing_context_id: new_browsing_context_id,
                 top_level_browsing_context_id: new_top_level_browsing_context_id,
                 opener: Some(self.browsing_context_id),
-                load_data: load_data,
+                load_data,
                 window_size: window.window_size(),
             };
             let constellation_msg = ScriptMsg::ScriptNewAuxiliary(load_info);

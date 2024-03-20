@@ -34,7 +34,7 @@ impl CSSGroupingRule {
     ) -> CSSGroupingRule {
         CSSGroupingRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
-            rules: rules,
+            rules,
             rulelist: MutNullableDom::new(None),
         }
     }

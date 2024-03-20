@@ -43,7 +43,7 @@ impl TextTrack {
     ) -> TextTrack {
         TextTrack {
             eventtarget: EventTarget::new_inherited(),
-            kind: kind,
+            kind,
             label: label.into(),
             language: language.into(),
             id: id.into(),

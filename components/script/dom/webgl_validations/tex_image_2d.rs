@@ -214,12 +214,12 @@ impl<'a> WebGLValidator for CommonTexImage2DValidator<'a> {
         }
 
         Ok(CommonTexImage2DValidatorResult {
-            texture: texture,
-            target: target,
-            level: level,
-            internal_format: internal_format,
-            width: width,
-            height: height,
+            texture,
+            target,
+            level,
+            internal_format,
+            width,
+            height,
             border: self.border as u32,
         })
     }
@@ -236,13 +236,13 @@ impl<'a> CommonTexImage2DValidator<'a> {
         border: i32,
     ) -> Self {
         CommonTexImage2DValidator {
-            context: context,
-            target: target,
-            level: level,
-            internal_format: internal_format,
-            width: width,
-            height: height,
-            border: border,
+            context,
+            target,
+            level,
+            internal_format,
+            width,
+            height,
+            border,
         }
     }
 }
@@ -276,8 +276,8 @@ impl<'a> TexImage2DValidator<'a> {
                 height,
                 border,
             ),
-            format: format,
-            data_type: data_type,
+            format,
+            data_type,
         }
     }
 }
@@ -367,15 +367,15 @@ impl<'a> WebGLValidator for TexImage2DValidator<'a> {
         }
 
         Ok(TexImage2DValidatorResult {
-            width: width,
-            height: height,
-            level: level,
-            border: border,
-            texture: texture,
-            target: target,
-            internal_format: internal_format,
-            format: format,
-            data_type: data_type,
+            width,
+            height,
+            level,
+            border,
+            texture,
+            target,
+            internal_format,
+            format,
+            data_type,
         })
     }
 }

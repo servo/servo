@@ -37,7 +37,7 @@ impl CSSKeyframesRule {
     ) -> CSSKeyframesRule {
         CSSKeyframesRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
-            keyframesrule: keyframesrule,
+            keyframesrule,
             rulelist: MutNullableDom::new(None),
         }
     }

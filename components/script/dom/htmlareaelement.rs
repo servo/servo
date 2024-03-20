@@ -214,7 +214,7 @@ impl Area {
             Area::Circle { left, top, radius } => Area::Circle {
                 left: (left + p.x),
                 top: (top + p.y),
-                radius: radius,
+                radius,
             },
             Area::Polygon { ref points } => {
                 //                let new_points = Vec::new();

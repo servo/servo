@@ -80,7 +80,7 @@ impl MutationObserver {
     fn new_inherited(callback: Rc<MutationCallback>) -> MutationObserver {
         MutationObserver {
             reflector_: Reflector::new(),
-            callback: callback,
+            callback,
             record_queue: DomRefCell::new(vec![]),
             node_list: DomRefCell::new(vec![]),
         }

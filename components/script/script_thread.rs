@@ -244,19 +244,19 @@ impl InProgressLoad {
         let navigation_start_precise = precise_time_ns();
         InProgressLoad {
             pipeline_id: id,
-            browsing_context_id: browsing_context_id,
-            top_level_browsing_context_id: top_level_browsing_context_id,
-            parent_info: parent_info,
-            opener: opener,
-            window_size: window_size,
+            browsing_context_id,
+            top_level_browsing_context_id,
+            parent_info,
+            opener,
+            window_size,
             activity: DocumentActivity::FullyActive,
             is_visible: true,
-            url: url,
-            origin: origin,
+            url,
+            origin,
             navigation_start: navigation_start as u64,
-            navigation_start_precise: navigation_start_precise,
+            navigation_start_precise,
             canceller: Default::default(),
-            inherited_secure_context: inherited_secure_context,
+            inherited_secure_context,
         }
     }
 }
@@ -1349,8 +1349,8 @@ impl ScriptThread {
             incomplete_parser_contexts: IncompleteParserContexts(RefCell::new(vec![])),
 
             image_cache: state.image_cache.clone(),
-            image_cache_channel: image_cache_channel,
-            image_cache_port: image_cache_port,
+            image_cache_channel,
+            image_cache_port,
 
             resource_threads: state.resource_threads,
             bluetooth_thread: state.bluetooth_thread,
@@ -1375,13 +1375,13 @@ impl ScriptThread {
             history_traversal_task_sender: chan.clone(),
 
             control_chan: state.control_chan,
-            control_port: control_port,
+            control_port,
             script_sender: state.script_to_constellation_chan.sender.clone(),
             time_profiler_chan: state.time_profiler_chan.clone(),
             mem_profiler_chan: state.mem_profiler_chan,
 
             devtools_chan: state.devtools_chan,
-            devtools_port: devtools_port,
+            devtools_port,
             devtools_sender: ipc_devtools_sender,
 
             microtask_queue: runtime.microtask_queue.clone(),
@@ -3451,7 +3451,7 @@ impl ScriptThread {
         if let Some(ref chan) = self.devtools_chan {
             let page_info = DevtoolsPageInfo {
                 title: String::from(title),
-                url: url,
+                url,
             };
             chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
                 (bc, p, w),
@@ -3963,10 +3963,10 @@ impl ScriptThread {
         if let Some(global) = self.documents.borrow().find_global(pipeline_id) {
             if global.live_devtools_updates() {
                 let css_error = CSSError {
-                    filename: filename,
-                    line: line,
-                    column: column,
-                    msg: msg,
+                    filename,
+                    line,
+                    column,
+                    msg,
                 };
                 let message = ScriptToDevtoolsControlMsg::ReportCSSError(pipeline_id, css_error);
                 sender.send(message).unwrap();

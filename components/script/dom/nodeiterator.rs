@@ -37,8 +37,8 @@ impl NodeIterator {
             root_node: Dom::from_ref(root_node),
             reference_node: MutDom::new(root_node),
             pointer_before_reference_node: Cell::new(true),
-            what_to_show: what_to_show,
-            filter: filter,
+            what_to_show,
+            filter,
             active: Cell::new(false),
         }
     }

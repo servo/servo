@@ -36,7 +36,7 @@ impl CanvasGradient {
     fn new_inherited(style: CanvasGradientStyle) -> CanvasGradient {
         CanvasGradient {
             reflector_: Reflector::new(),
-            style: style,
+            style,
             stops: DomRefCell::new(Vec::new()),
         }
     }
@@ -60,7 +60,7 @@ impl CanvasGradientMethods for CanvasGradient {
 
         self.stops.borrow_mut().push(CanvasGradientStop {
             offset: (*offset) as f64,
-            color: color,
+            color,
         });
         Ok(())
     }

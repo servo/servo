@@ -71,7 +71,7 @@ impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {
     pub fn notify<A: Action<Listener> + Send + 'static>(&self, action: A) {
         let task = ListenerTask {
             context: self.context.clone(),
-            action: action,
+            action,
         };
         let result = if let Some(ref canceller) = self.canceller {
             self.task_source.queue_with_canceller(task, canceller)

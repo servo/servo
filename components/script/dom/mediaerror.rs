@@ -20,7 +20,7 @@ impl MediaError {
     fn new_inherited(code: u16) -> MediaError {
         MediaError {
             reflector_: Reflector::new(),
-            code: code,
+            code,
         }
     }
 

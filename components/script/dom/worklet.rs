@@ -403,8 +403,8 @@ impl WorkletThreadRole {
     fn new(is_hot_backup: bool, is_cold_backup: bool) -> WorkletThreadRole {
         let (sender, receiver) = unbounded();
         WorkletThreadRole {
-            sender: sender,
-            receiver: receiver,
+            sender,
+            receiver,
             is_hot_backup,
             is_cold_backup,
         }

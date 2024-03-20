@@ -49,7 +49,7 @@ impl Tokenizer {
             document: Dom::from_ref(document),
             current_line: 1,
             script: Default::default(),
-            parsing_algorithm: parsing_algorithm,
+            parsing_algorithm,
         };
 
         let options = TreeBuilderOpts {
@@ -75,7 +75,7 @@ impl Tokenizer {
             HtmlTokenizer::new(TreeBuilder::new(sink, options), Default::default())
         };
 
-        Tokenizer { inner: inner }
+        Tokenizer { inner }
     }
 
     #[must_use]

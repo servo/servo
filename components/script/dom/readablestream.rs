@@ -67,7 +67,7 @@ impl ReadableStream {
             js_stream: Heap::default(),
             js_reader: Heap::default(),
             has_reader: Default::default(),
-            external_underlying_source: external_underlying_source,
+            external_underlying_source,
         }
     }
 

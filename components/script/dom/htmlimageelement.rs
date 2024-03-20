@@ -367,7 +367,7 @@ impl HTMLImageElement {
         let context = Arc::new(Mutex::new(ImageContext {
             image_cache: window.image_cache(),
             status: Ok(()),
-            id: id,
+            id,
             aborted: false,
             doc: Trusted::new(&document),
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
@@ -1972,10 +1972,7 @@ pub fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
                 wid: width,
                 den: density,
             };
-            let image_source = ImageSource {
-                url: url,
-                descriptor: descriptor,
-            };
+            let image_source = ImageSource { url, descriptor };
             candidates.push(image_source);
         }
     }

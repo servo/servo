@@ -239,7 +239,7 @@ impl DissimilarOriginWindow {
             source: incumbent.pipeline_id(),
             source_origin,
             target_origin,
-            data: data,
+            data,
         };
         // Step 8
         let _ = incumbent.script_to_constellation_chan().send(msg);

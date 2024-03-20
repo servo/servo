@@ -61,7 +61,7 @@ impl CompositionEvent {
         let ev = reflect_dom_object_with_proto(
             Box::new(CompositionEvent {
                 uievent: UIEvent::new_inherited(),
-                data: data,
+                data,
             }),
             window,
             proto,

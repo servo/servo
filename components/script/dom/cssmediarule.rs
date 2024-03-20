@@ -32,7 +32,7 @@ impl CSSMediaRule {
         let list = mediarule.rules.clone();
         CSSMediaRule {
             cssconditionrule: CSSConditionRule::new_inherited(parent_stylesheet, list),
-            mediarule: mediarule,
+            mediarule,
             medialist: MutNullableDom::new(None),
         }
     }

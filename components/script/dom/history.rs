@@ -55,7 +55,7 @@ impl History {
         History {
             reflector_: Reflector::new(),
             window: Dom::from_ref(&window),
-            state: state,
+            state,
             state_id: Cell::new(None),
         }
     }

@@ -24,9 +24,9 @@ impl WebGLActiveInfo {
     fn new_inherited(size: i32, ty: u32, name: DOMString) -> WebGLActiveInfo {
         WebGLActiveInfo {
             reflector_: Reflector::new(),
-            size: size,
-            ty: ty,
-            name: name,
+            size,
+            ty,
+            name,
         }
     }
 
