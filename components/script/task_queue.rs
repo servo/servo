@@ -237,7 +237,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
                             // Reduce the length of throttles,
                             // but don't add the task to "msg_queue",
                             // and neither increment "taken_task_counter".
-                            throttled_length - =1;
+                            throttled_length -= 1;
                             continue;
                         }
                     }
