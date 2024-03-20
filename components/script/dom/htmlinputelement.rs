@@ -502,7 +502,8 @@ impl HTMLInputElement {
             .upcast::<Element>()
             .get_attribute(&ns!(), &local_name!("step"))
         {
-            if let Ok(step) = DOMString::from(attr.summarize().value).parse_floating_point_number()
+            if let Some(step) =
+                DOMString::from(attr.summarize().value).parse_floating_point_number()
             {
                 if step > 0.0 {
                     return Some(step * self.step_scale_factor());
@@ -519,7 +520,8 @@ impl HTMLInputElement {
             .upcast::<Element>()
             .get_attribute(&ns!(), &local_name!("min"))
         {
-            if let Ok(min) = self.convert_string_to_number(&DOMString::from(attr.summarize().value))
+            if let Some(min) =
+                self.convert_string_to_number(&DOMString::from(attr.summarize().value))
             {
                 return Some(min);
             }
@@ -533,7 +535,8 @@ impl HTMLInputElement {
             .upcast::<Element>()
             .get_attribute(&ns!(), &local_name!("max"))
         {
-            if let Ok(max) = self.convert_string_to_number(&DOMString::from(attr.summarize().value))
+            if let Some(max) =
+                self.convert_string_to_number(&DOMString::from(attr.summarize().value))
             {
                 return Some(max);
             }
@@ -633,7 +636,7 @@ impl HTMLInputElement {
             .get_attribute(&ns!(), &local_name!("min"))
         {
             let minstr = &DOMString::from(attr.summarize().value);
-            if let Ok(min) = self.convert_string_to_number(minstr) {
+            if let Some(min) = self.convert_string_to_number(minstr) {
                 return min;
             }
         }
@@ -641,7 +644,7 @@ impl HTMLInputElement {
             .upcast::<Element>()
             .get_attribute(&ns!(), &local_name!("value"))
         {
-            if let Ok(value) =
+            if let Some(value) =
                 self.convert_string_to_number(&DOMString::from(attr.summarize().value))
             {
                 return value;
@@ -878,7 +881,7 @@ impl HTMLInputElement {
             // https://html.spec.whatwg.org/multipage/#time-state-(type%3Dtime)%3Asuffering-from-bad-input
             InputType::Time => !value.is_valid_time_string(),
             // https://html.spec.whatwg.org/multipage/#local-date-and-time-state-(type%3Ddatetime-local)%3Asuffering-from-bad-input
-            InputType::DatetimeLocal => value.parse_local_date_and_time_string().is_err(),
+            InputType::DatetimeLocal => value.parse_local_date_and_time_string().is_none(),
             // https://html.spec.whatwg.org/multipage/#number-state-(type%3Dnumber)%3Asuffering-from-bad-input
             // https://html.spec.whatwg.org/multipage/#range-state-(type%3Drange)%3Asuffering-from-bad-input
             InputType::Number | InputType::Range => !value.is_valid_floating_point_number_string(),
@@ -926,9 +929,8 @@ impl HTMLInputElement {
             return ValidationFlags::empty();
         }
 
-        let value_as_number = match self.convert_string_to_number(value) {
-            Ok(num) => num,
-            Err(()) => return ValidationFlags::empty(),
+        let Some(value_as_number) = self.convert_string_to_number(value) else {
+            return ValidationFlags::empty();
         };
 
         let mut failed_flags = ValidationFlags::empty();
@@ -1331,7 +1333,6 @@ impl HTMLInputElementMethods for HTMLInputElement {
                 };
                 NonNull::new_unchecked(NewDateObject(*cx, time))
             })
-            .ok()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-valueasdate
@@ -1968,7 +1969,7 @@ impl HTMLInputElement {
             InputType::DatetimeLocal => {
                 if value
                     .convert_valid_normalized_local_date_and_time_string()
-                    .is_err()
+                    .is_none()
                 {
                     value.clear();
                 }
@@ -2135,54 +2136,48 @@ impl HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-input-value-string-number
-    fn convert_string_to_number(&self, value: &DOMString) -> Result<f64, ()> {
+    fn convert_string_to_number(&self, value: &DOMString) -> Option<f64> {
         match self.input_type() {
             InputType::Date => value
                 .parse_date_string()
-                .ok()
                 .and_then(|(year, month, day)| NaiveDate::from_ymd_opt(year, month, day))
                 .and_then(|date| date.and_hms_opt(0, 0, 0))
-                .map(|time| Ok(time.and_utc().timestamp_millis() as f64))
-                .unwrap_or(Err(())),
+                .map(|time| time.and_utc().timestamp_millis() as f64),
             InputType::Month => match value.parse_month_string() {
                 // This one returns number of months, not milliseconds
                 // (specification requires this, presumably because number of
                 // milliseconds is not consistent across months)
                 // the - 1.0 is because january is 1, not 0
-                Ok((year, month)) => Ok(((year - 1970) * 12) as f64 + (month as f64 - 1.0)),
-                _ => Err(()),
+                Some((year, month)) => Some(((year - 1970) * 12) as f64 + (month as f64 - 1.0)),
+                _ => None,
             },
             InputType::Week => value
                 .parse_week_string()
-                .ok()
                 .and_then(|(year, weeknum)| NaiveDate::from_isoywd_opt(year, weeknum, Weekday::Mon))
                 .and_then(|date| date.and_hms_opt(0, 0, 0))
-                .map(|time| Ok(time.and_utc().timestamp_millis() as f64))
-                .unwrap_or(Err(())),
+                .map(|time| time.and_utc().timestamp_millis() as f64),
             InputType::Time => match value.parse_time_string() {
-                Ok((hours, minutes, seconds)) => {
-                    Ok((seconds as f64 + 60.0 * minutes as f64 + 3600.0 * hours as f64) * 1000.0)
+                Some((hours, minutes, seconds)) => {
+                    Some((seconds as f64 + 60.0 * minutes as f64 + 3600.0 * hours as f64) * 1000.0)
                 },
-                _ => Err(()),
+                _ => None,
             },
             InputType::DatetimeLocal => {
                 // Is this supposed to know the locale's daylight-savings-time rules?
-                value
-                    .parse_local_date_and_time_string()
-                    .ok()
-                    .and_then(|((year, month, day), (hours, minutes, seconds))| {
+                value.parse_local_date_and_time_string().and_then(
+                    |((year, month, day), (hours, minutes, seconds))| {
                         let hms_millis =
                             (seconds + 60.0 * minutes as f64 + 3600.0 * hours as f64) * 1000.0;
                         NaiveDate::from_ymd_opt(year, month, day)
                             .and_then(|date| date.and_hms_opt(0, 0, 0))
-                            .map(|time| Ok(time.and_utc().timestamp_millis() as f64 + hms_millis))
-                    })
-                    .unwrap_or(Err(()))
+                            .map(|time| time.and_utc().timestamp_millis() as f64 + hms_millis)
+                    },
+                )
             },
             InputType::Number | InputType::Range => value.parse_floating_point_number(),
             // min/max/valueAsNumber/stepDown/stepUp do not apply to
             // the remaining types
-            _ => Err(()),
+            _ => None,
         }
     }
 
@@ -2225,40 +2220,30 @@ impl HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#concept-input-value-string-date
     // This does the safe Rust part of conversion; the unsafe JS Date part
     // is in GetValueAsDate
-    fn convert_string_to_naive_datetime(&self, value: DOMString) -> Result<NaiveDateTime, ()> {
+    fn convert_string_to_naive_datetime(&self, value: DOMString) -> Option<NaiveDateTime> {
         match self.input_type() {
             InputType::Date => value
                 .parse_date_string()
-                .ok()
                 .and_then(|(y, m, d)| NaiveDate::from_ymd_opt(y, m, d))
-                .and_then(|date| date.and_hms_opt(0, 0, 0))
-                .ok_or(()),
-            InputType::Time => value
-                .parse_time_string()
-                .ok()
-                .and_then(|(h, m, s)| {
-                    let whole_seconds = s.floor();
-                    let nanos = ((s - whole_seconds) * 1e9).floor() as u32;
-                    NaiveDate::from_ymd_opt(1970, 1, 1)
-                        .and_then(|date| date.and_hms_nano_opt(h, m, whole_seconds as u32, nanos))
-                })
-                .ok_or(()),
+                .and_then(|date| date.and_hms_opt(0, 0, 0)),
+            InputType::Time => value.parse_time_string().and_then(|(h, m, s)| {
+                let whole_seconds = s.floor();
+                let nanos = ((s - whole_seconds) * 1e9).floor() as u32;
+                NaiveDate::from_ymd_opt(1970, 1, 1)
+                    .and_then(|date| date.and_hms_nano_opt(h, m, whole_seconds as u32, nanos))
+            }),
             InputType::Week => value
                 .parse_week_string()
-                .ok()
                 .and_then(|(iso_year, week)| {
                     NaiveDate::from_isoywd_opt(iso_year, week, Weekday::Mon)
                 })
-                .and_then(|date| date.and_hms_opt(0, 0, 0))
-                .ok_or(()),
+                .and_then(|date| date.and_hms_opt(0, 0, 0)),
             InputType::Month => value
                 .parse_month_string()
-                .ok()
                 .and_then(|(y, m)| NaiveDate::from_ymd_opt(y, m, 1))
-                .and_then(|date| date.and_hms_opt(0, 0, 0))
-                .ok_or(()),
+                .and_then(|date| date.and_hms_opt(0, 0, 0)),
             // does not apply to other types
-            _ => Err(()),
+            _ => None,
         }
     }
 
