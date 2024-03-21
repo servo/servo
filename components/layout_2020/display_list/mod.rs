@@ -569,7 +569,6 @@ impl<'a> BuilderForBoxFragment<'a> {
                     self.border_radius,
                     self.fragment
                         .border
-                        .map(|t| (*t).into())
                         .to_physical(self.fragment.style.writing_mode)
                         .to_webrender(),
                 ),
@@ -584,8 +583,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             clip_for_radii(
                 inner_radii(
                     self.border_radius,
-                    (&self.fragment.border.map(|t| (*t).into()) +
-                        &self.fragment.padding.map(|t| (*t).into()))
+                    (&self.fragment.border + &self.fragment.padding)
                         .to_physical(self.fragment.style.writing_mode)
                         .to_webrender(),
                 ),
@@ -811,16 +809,13 @@ impl<'a> BuilderForBoxFragment<'a> {
         let border_widths = self
             .fragment
             .border
-            .to_physical(self.fragment.style.writing_mode);
-        let widths = SideOffsets2D::new(
-            Length::from(border_widths.top).px(),
-            Length::from(border_widths.right).px(),
-            Length::from(border_widths.bottom).px(),
-            Length::from(border_widths.left).px(),
-        );
-        if widths == SideOffsets2D::zero() {
+            .to_physical(self.fragment.style.writing_mode)
+            .to_webrender();
+
+        if border_widths == SideOffsets2D::zero() {
             return;
         }
+
         let common = builder.common_properties(self.border_rect, &self.fragment.style);
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
             top: self.build_border_side(border.border_top_style, border.border_top_color.clone()),
@@ -837,7 +832,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         });
         builder
             .wr()
-            .push_border(&common, self.border_rect, widths, details)
+            .push_border(&common, self.border_rect, border_widths, details)
     }
 
     fn build_outline(&mut self, builder: &mut DisplayListBuilder) {

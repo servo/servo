@@ -154,9 +154,10 @@ impl BoxFragment {
         let mut baselines = Baselines::default();
         if style.establishes_scroll_container() {
             baselines.last = Some(
-                (content_rect.size.block +
-                    Length::from(padding.block_end + border.block_end + margin.block_end))
-                .into(),
+                Au::from(content_rect.size.block) +
+                    padding.block_end +
+                    border.block_end +
+                    margin.block_end,
             )
         }
 

@@ -25,7 +25,7 @@ use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, CollapsedMargin, FloatFragment};
-use crate::geom::{LogicalRect, LogicalSides, LogicalVec2};
+use crate::geom::{LogicalRect, LogicalVec2};
 use crate::positioned::PositioningContext;
 use crate::style_ext::{ComputedValuesExt, DisplayInside, PaddingBorderMargin};
 use crate::ContainingBlock;
@@ -1215,9 +1215,8 @@ impl SequentialLayoutState {
 
         let pbm_sums = &(&box_fragment.padding + &box_fragment.border) + &box_fragment.margin;
         let content_rect: LogicalRect<Au> = box_fragment.content_rect.clone().into();
-        let pbm_sums_all: LogicalSides<Au> = pbm_sums;
         let margin_box_start_corner = self.floats.add_float(&PlacementInfo {
-            size: &content_rect.size + &pbm_sums_all.sum(),
+            size: &content_rect.size + &pbm_sums.sum(),
             side: FloatSide::from_style(&box_fragment.style).expect("Float box wasn't floated!"),
             clear: box_fragment.style.get_box().clear,
         });
@@ -1225,7 +1224,7 @@ impl SequentialLayoutState {
         // This is the position of the float in the float-containing block formatting context. We add the
         // existing start corner here because we may have already gotten some relative positioning offset.
         let new_position_in_bfc =
-            &(&margin_box_start_corner + &pbm_sums_all.start_offset()) + &content_rect.start_corner;
+            &(&margin_box_start_corner + &pbm_sums.start_offset()) + &content_rect.start_corner;
 
         // This is the position of the float relative to the containing block start.
         let new_position_in_containing_block = LogicalVec2 {
