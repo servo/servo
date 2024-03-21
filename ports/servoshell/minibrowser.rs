@@ -14,7 +14,7 @@ use euclid::{Length, Point2D, Scale};
 use gleam::gl;
 use glow::NativeFramebuffer;
 use log::{trace, warn};
-use servo::compositing::windowing::{EmbedderEvent, EmbedderMsg};
+use servo::compositing::windowing::EmbedderEvent;
 use servo::msg::constellation_msg::TraversalDirection;
 use servo::rendering_context::RenderingContext;
 use servo::servo_geometry::DeviceIndependentPixel;
@@ -42,7 +42,8 @@ pub struct Minibrowser {
 
     /// Whether the location has been edited by the user without clicking Go.
     location_dirty: Cell<bool>,
-    status_text: Option<String>, // Add this field
+
+    current_status: RefCell<Option<String>>,
 }
 
 pub enum MinibrowserEvent {
@@ -50,7 +51,6 @@ pub enum MinibrowserEvent {
     Go,
     Back,
     Forward,
-    Status(String), // Add Status variant to hold status text
 }
 
 impl Minibrowser {
@@ -85,7 +85,7 @@ impl Minibrowser {
             last_mouse_position: None,
             location: RefCell::new(initial_url.to_string()),
             location_dirty: false.into(),
-            status_text: None, //Initialize status_text field to none
+            current_status: RefCell::new(None),
         }
     }
 
@@ -118,18 +118,6 @@ impl Minibrowser {
         position.y < self.toolbar_height.get()
     }
 
-    pub fn handle_embedder_msg(&mut self, msg: EmbedderMsg) {
-        match msg {
-            EmbedderMsg::Status(status) => {
-                self.event_queue
-                    .borrow_mut()
-                    .push(MinibrowserEvent::Status(status));
-            },
-            // Handle other EmbedderMsg variants if needed
-            _ => {},
-        }
-    }
-
     /// Update the minibrowser, but don’t paint.
     /// If `servo_framebuffer_id` is given, set up a paint callback to blit its contents to our
     /// CentralPanel when [`Minibrowser::paint`] is called.
@@ -153,9 +141,16 @@ impl Minibrowser {
             last_update,
             location,
             location_dirty,
+            current_status,
             ..
         } = self;
         let widget_fbo = *widget_surface_fbo;
+        // Clone status text early to avoid borrow conflicts
+        let status_text_clone = {
+            let status_borrow = current_status.borrow();
+            status_borrow.clone() // Clone the content of the Option<String>
+        };
+
         let _duration = context.run(window, |ctx| {
             let InnerResponse { inner: height, .. } =
                 TopBottomPanel::top("toolbar").show(ctx, |ui| {
@@ -256,11 +251,22 @@ impl Minibrowser {
                         })),
                     });
                 });
+            // Show status tooltip if there is status text
+            if let Some(status_text) = status_text_clone.as_ref() {
+                let screen_rect = ctx.available_rect();
+                let tooltip_position = egui::pos2(screen_rect.left(), screen_rect.bottom());
+                egui::show_tooltip_at(
+                    ctx,
+                    egui::Id::new("status_tooltip"),
+                    Some(tooltip_position),
+                    |ui| {
+                        ui.label(status_text);
+                    },
+                );
+            }
 
             *last_update = now;
         });
-        // Update status text and trigger repaint if necessary
-        self.update_status_text_and_repaint();
     }
 
     /// Paint the minibrowser, as of the last update.
@@ -329,33 +335,6 @@ impl Minibrowser {
                 true
             },
             _ => false,
-        }
-    }
-    /// Update status text and trigger repaint if necessary
-    fn update_status_text_and_repaint(&mut self) {
-        if self.status_text.is_some() {
-            // Trigger repaint if status text is present
-            self.context.egui_ctx.request_repaint();
-        }
-    }
-    // Method to update status text
-    pub fn update_status_text(&mut self, status: Option<String>) {
-        self.status_text = Some(status);
-        self.context.egui_ctx.request_repaint();
-    }
-
-    /// Show tooltip if status text is present.
-    pub fn show_status_tooltip(&self, ui: &mut egui::Ui) {
-        if let Some(status_text) = &self.status_text {
-            let max_y = ui.cursor().max.y;
-            ui.ctx().output().tooltip_text(
-                egui::Id::new("status_tooltip"),
-                egui::Rect::from_min_size(
-                    egui::Pos2::new(0.0, max_y),
-                    egui::Vec2::new(ui.available_width(), ui.fonts().row_height()),
-                ),
-                status_text.clone(),
-            );
         }
     }
 }
