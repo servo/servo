@@ -120,21 +120,23 @@ impl InputType {
     // slightly differently, with placeholder characters shown rather
     // than the underlying value.
     fn is_textual(&self) -> bool {
-        matches!(*self,
+        matches!(
+            *self,
             InputType::Color |
-            InputType::Date |
-            InputType::DatetimeLocal |
-            InputType::Email |
-            InputType::Hidden |
-            InputType::Month |
-            InputType::Number |
-            InputType::Range |
-            InputType::Search |
-            InputType::Tel |
-            InputType::Text |
-            InputType::Time |
-            InputType::Url |
-            InputType::Week)
+                InputType::Date |
+                InputType::DatetimeLocal |
+                InputType::Email |
+                InputType::Hidden |
+                InputType::Month |
+                InputType::Number |
+                InputType::Range |
+                InputType::Search |
+                InputType::Tel |
+                InputType::Text |
+                InputType::Time |
+                InputType::Url |
+                InputType::Week
+        )
     }
 
     fn is_textual_or_password(&self) -> bool {
@@ -425,39 +427,45 @@ impl HTMLInputElement {
     }
 
     fn does_readonly_apply(&self) -> bool {
-        matches!(self.input_type(),
+        matches!(
+            self.input_type(),
             InputType::Text |
-            InputType::Search |
-            InputType::Url |
-            InputType::Tel |
-            InputType::Email |
-            InputType::Password |
-            InputType::Date |
-            InputType::Month |
-            InputType::Week |
-            InputType::Time |
-            InputType::DatetimeLocal |
-            InputType::Number)
+                InputType::Search |
+                InputType::Url |
+                InputType::Tel |
+                InputType::Email |
+                InputType::Password |
+                InputType::Date |
+                InputType::Month |
+                InputType::Week |
+                InputType::Time |
+                InputType::DatetimeLocal |
+                InputType::Number
+        )
     }
 
     fn does_minmaxlength_apply(&self) -> bool {
-        matches!(self.input_type(),
+        matches!(
+            self.input_type(),
             InputType::Text |
-            InputType::Search |
-            InputType::Url |
-            InputType::Tel |
-            InputType::Email |
-            InputType::Password)
+                InputType::Search |
+                InputType::Url |
+                InputType::Tel |
+                InputType::Email |
+                InputType::Password
+        )
     }
 
     fn does_pattern_apply(&self) -> bool {
-        matches!(self.input_type(),
+        matches!(
+            self.input_type(),
             InputType::Text |
-            InputType::Search |
-            InputType::Url |
-            InputType::Tel |
-            InputType::Email |
-            InputType::Password)
+                InputType::Search |
+                InputType::Url |
+                InputType::Tel |
+                InputType::Email |
+                InputType::Password
+        )
     }
 
     fn does_multiple_apply(&self) -> bool {
@@ -467,20 +475,23 @@ impl HTMLInputElement {
     // valueAsNumber, step, min, and max all share the same set of
     // input types they apply to
     fn does_value_as_number_apply(&self) -> bool {
-        matches!(self.input_type(),
+        matches!(
+            self.input_type(),
             InputType::Date |
-            InputType::Month |
-            InputType::Week |
-            InputType::Time |
-            InputType::DatetimeLocal |
-            InputType::Number |
-            InputType::Range)
+                InputType::Month |
+                InputType::Week |
+                InputType::Time |
+                InputType::DatetimeLocal |
+                InputType::Number |
+                InputType::Range
+        )
     }
 
     fn does_value_as_date_apply(&self) -> bool {
-        matches!(self.input_type(),
-            InputType::Date | InputType::Month | InputType::Week | InputType::Time)
-            // surprisingly, spec says false for DateTimeLocal!
+        matches!(
+            self.input_type(),
+            InputType::Date | InputType::Month | InputType::Week | InputType::Time
+        )
     }
 
     // https://html.spec.whatwg.org/multipage#concept-input-step
@@ -1089,12 +1100,14 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
 impl TextControlElement for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#concept-input-apply
     fn selection_api_applies(&self) -> bool {
-        matches!(self.input_type(),
+        matches!(
+            self.input_type(),
             InputType::Text |
-            InputType::Search |
-            InputType::Url |
-            InputType::Tel |
-            InputType::Password)
+                InputType::Search |
+                InputType::Url |
+                InputType::Tel |
+                InputType::Password
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-input-apply
@@ -2092,19 +2105,21 @@ impl HTMLInputElement {
                     .filter_map(DomRoot::downcast::<HTMLInputElement>)
                     .filter(|input| {
                         input.form_owner() == owner &&
-                            matches!(input.input_type(),
+                            matches!(
+                                input.input_type(),
                                 InputType::Text |
-                                InputType::Search |
-                                InputType::Url |
-                                InputType::Tel |
-                                InputType::Email |
-                                InputType::Password |
-                                InputType::Date |
-                                InputType::Month |
-                                InputType::Week |
-                                InputType::Time |
-                                InputType::DatetimeLocal |
-                                InputType::Number)
+                                    InputType::Search |
+                                    InputType::Url |
+                                    InputType::Tel |
+                                    InputType::Email |
+                                    InputType::Password |
+                                    InputType::Date |
+                                    InputType::Month |
+                                    InputType::Week |
+                                    InputType::Time |
+                                    InputType::DatetimeLocal |
+                                    InputType::Number
+                            )
                     });
 
                 if inputs.skip(1).next().is_some() {
