@@ -1684,7 +1684,8 @@ impl ScriptThread {
                     .window()
                     .evaluate_media_queries_and_report_changes();
 
-                // TODO: update animations and send events.
+                // Update animations and send events.
+                self.update_animations_and_send_events();
 
                 // TODO: fullscreen steps.
 
@@ -1897,9 +1898,6 @@ impl ScriptThread {
                 Ok(ev) => event = FromConstellation(ev),
             }
         }
-
-        // Step 11.10 from https://html.spec.whatwg.org/multipage/#event-loops.
-        self.update_animations_and_send_events();
 
         // Process the gathered events.
         debug!("Processing events.");
