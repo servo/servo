@@ -39,6 +39,7 @@ use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
+use crate::async_runtime::HANDLE;
 use crate::connector::{
     create_http_client, create_tls_config, CACertificates, CertificateErrorOverrideManager,
 };
@@ -48,7 +49,7 @@ use crate::fetch::methods::{fetch, CancellationListener, FetchContext};
 use crate::filemanager_thread::FileManager;
 use crate::hsts::HstsList;
 use crate::http_cache::HttpCache;
-use crate::http_loader::{http_redirect_fetch, HttpState, HANDLE};
+use crate::http_loader::{http_redirect_fetch, HttpState};
 use crate::storage_thread::StorageThreadFactory;
 use crate::{cookie, websocket_loader};
 

@@ -31,7 +31,6 @@ use hyper::{Body, Client, Response as HyperResponse};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
-use lazy_static::lazy_static;
 use log::{debug, error, info, log_enabled, warn};
 use msg::constellation_msg::{HistoryStateId, PipelineId};
 use net_traits::pub_domains::reg_suffix;
@@ -50,13 +49,13 @@ use net_traits::{
 };
 use servo_arc::Arc;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use tokio::runtime::Runtime;
 use tokio::sync::mpsc::{
     channel, unbounded_channel, Receiver as TokioReceiver, Sender as TokioSender,
     UnboundedReceiver, UnboundedSender,
 };
 use tokio_stream::wrappers::ReceiverStream;
 
+use crate::async_runtime::HANDLE;
 use crate::connector::{
     create_http_client, create_tls_config, CACertificates, CertificateErrorOverrideManager,
     Connector,
@@ -69,10 +68,6 @@ use crate::fetch::methods::{main_fetch, Data, DoneChannel, FetchContext, Target}
 use crate::hsts::HstsList;
 use crate::http_cache::{CacheKey, HttpCache};
 use crate::resource_thread::AuthCache;
-
-lazy_static! {
-    pub static ref HANDLE: Mutex<Option<Runtime>> = Mutex::new(Some(Runtime::new().unwrap()));
-}
 
 /// The various states an entry of the HttpCache can be in.
 #[derive(Clone, Debug, Eq, PartialEq)]
