@@ -30,6 +30,7 @@ pub enum ImageUpdate {
 }
 
 pub trait WebrenderApi {
+    /// Attempt to generate an [`ImageKey`], returning `None` in case of failure.
     fn generate_key(&self) -> Option<ImageKey>;
     fn update_images(&self, updates: Vec<ImageUpdate>);
     fn clone(&self) -> Box<dyn WebrenderApi>;
