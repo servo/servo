@@ -1085,7 +1085,7 @@ impl GlobalScope {
                             let target_global = this.root();
                             target_global.route_task_to_port(port_id, task);
                         }),
-                        &self,
+                        self,
                     );
                 }
             }
@@ -1259,7 +1259,7 @@ impl GlobalScope {
                                     MessageEvent::dispatch_error(&*destination.upcast(), &global);
                                 }
                             }),
-                            &self,
+                            self,
                         );
                     });
             }
@@ -1300,7 +1300,7 @@ impl GlobalScope {
                 // Substep 6
                 // Dispatch the event, using the dom message-port.
                 MessageEvent::dispatch_jsval(
-                    &dom_port.upcast(),
+                    dom_port.upcast(),
                     self,
                     message_clone.handle(),
                     Some(&origin.ascii_serialization()),
@@ -1309,7 +1309,7 @@ impl GlobalScope {
                 );
             } else {
                 // Step 4, fire messageerror event.
-                MessageEvent::dispatch_error(&dom_port.upcast(), self);
+                MessageEvent::dispatch_error(dom_port.upcast(), self);
             }
         }
     }
@@ -1531,7 +1531,7 @@ impl GlobalScope {
                         let target_global = this.root();
                         target_global.maybe_add_pending_ports();
                     }),
-                    &self,
+                    self,
                 );
             } else {
                 // If this is a newly-created port, let the constellation immediately know.
@@ -1671,7 +1671,7 @@ impl GlobalScope {
             let blob_state = self.blob_state.borrow();
             if let BlobState::Managed(blobs_map) = &*blob_state {
                 let blob_info = blobs_map
-                    .get(&blob_id)
+                    .get(blob_id)
                     .expect("get_blob_bytes for an unknown blob.");
                 match blob_info.blob_impl.blob_data() {
                     BlobData::Sliced(ref parent, ref rel_pos) => {
@@ -1698,7 +1698,7 @@ impl GlobalScope {
         let blob_state = self.blob_state.borrow();
         if let BlobState::Managed(blobs_map) = &*blob_state {
             let blob_info = blobs_map
-                .get(&blob_id)
+                .get(blob_id)
                 .expect("get_blob_bytes_non_sliced called for a unknown blob.");
             match blob_info.blob_impl.blob_data() {
                 BlobData::File(ref f) => {
@@ -1736,7 +1736,7 @@ impl GlobalScope {
             let blob_state = self.blob_state.borrow();
             if let BlobState::Managed(blobs_map) = &*blob_state {
                 let blob_info = blobs_map
-                    .get(&blob_id)
+                    .get(blob_id)
                     .expect("get_blob_bytes_or_file_id for an unknown blob.");
                 match blob_info.blob_impl.blob_data() {
                     BlobData::Sliced(ref parent, ref rel_pos) => {
@@ -1772,7 +1772,7 @@ impl GlobalScope {
         let blob_state = self.blob_state.borrow();
         if let BlobState::Managed(blobs_map) = &*blob_state {
             let blob_info = blobs_map
-                .get(&blob_id)
+                .get(blob_id)
                 .expect("get_blob_bytes_non_sliced_or_file_id called for a unknown blob.");
             match blob_info.blob_impl.blob_data() {
                 BlobData::File(ref f) => match f.get_cache() {
@@ -1794,7 +1794,7 @@ impl GlobalScope {
         let blob_state = self.blob_state.borrow();
         if let BlobState::Managed(blobs_map) = &*blob_state {
             let blob_info = blobs_map
-                .get(&blob_id)
+                .get(blob_id)
                 .expect("get_blob_type_string called for a unknown blob.");
             blob_info.blob_impl.type_string()
         } else {
@@ -1808,7 +1808,7 @@ impl GlobalScope {
         if let BlobState::Managed(blobs_map) = &*blob_state {
             let parent = {
                 let blob_info = blobs_map
-                    .get(&blob_id)
+                    .get(blob_id)
                     .expect("get_blob_size called for a unknown blob.");
                 match blob_info.blob_impl.blob_data() {
                     BlobData::Sliced(ref parent, ref rel_pos) => {
@@ -1830,9 +1830,7 @@ impl GlobalScope {
                     rel_pos.to_abs_range(parent_size as usize).len() as u64
                 },
                 None => {
-                    let blob_info = blobs_map
-                        .get(&blob_id)
-                        .expect("Blob whose size is unknown.");
+                    let blob_info = blobs_map.get(blob_id).expect("Blob whose size is unknown.");
                     match blob_info.blob_impl.blob_data() {
                         BlobData::File(ref f) => f.get_size(),
                         BlobData::Memory(ref v) => v.len() as u64,
@@ -1852,7 +1850,7 @@ impl GlobalScope {
         if let BlobState::Managed(blobs_map) = &mut *blob_state {
             let parent = {
                 let blob_info = blobs_map
-                    .get_mut(&blob_id)
+                    .get_mut(blob_id)
                     .expect("get_blob_url_id called for a unknown blob.");
 
                 // Keep track of blobs with outstanding URLs.
@@ -1878,13 +1876,13 @@ impl GlobalScope {
                     };
                     let parent_size = rel_pos.to_abs_range(parent_size as usize).len() as u64;
                     let blob_info = blobs_map
-                        .get_mut(&blob_id)
+                        .get_mut(blob_id)
                         .expect("Blob whose url is requested is unknown.");
                     self.create_sliced_url_id(blob_info, &parent_file_id, &rel_pos, parent_size)
                 },
                 None => {
                     let blob_info = blobs_map
-                        .get_mut(&blob_id)
+                        .get_mut(blob_id)
                         .expect("Blob whose url is requested is unknown.");
                     self.promote(blob_info, /* set_valid is */ true)
                 },
@@ -2797,7 +2795,7 @@ impl GlobalScope {
                         .map(|data| data.to_vec())
                         .unwrap_or_else(|| vec![0; size.area() as usize * 4]);
 
-                    let image_bitmap = ImageBitmap::new(&self, size.width, size.height).unwrap();
+                    let image_bitmap = ImageBitmap::new(self, size.width, size.height).unwrap();
 
                     image_bitmap.set_bitmap_data(data);
                     image_bitmap.set_origin_clean(canvas.origin_is_clean());
@@ -2817,7 +2815,7 @@ impl GlobalScope {
                         .map(|data| data.to_vec())
                         .unwrap_or_else(|| vec![0; size.area() as usize * 4]);
 
-                    let image_bitmap = ImageBitmap::new(&self, size.width, size.height).unwrap();
+                    let image_bitmap = ImageBitmap::new(self, size.width, size.height).unwrap();
                     image_bitmap.set_bitmap_data(data);
                     image_bitmap.set_origin_clean(canvas.origin_is_clean());
                     p.resolve_native(&(image_bitmap));

@@ -121,7 +121,7 @@ where
                 if self.0.reflector().get_jsobject().is_null() {
                     self.0.trace(tracer);
                 } else {
-                    trace_reflector(tracer, "on stack", &self.0.reflector());
+                    trace_reflector(tracer, "on stack", self.0.reflector());
                 }
             }
         }
@@ -718,7 +718,7 @@ where
         F: FnOnce() -> DomRoot<T>,
     {
         assert_in_script();
-        &self.ptr.get_or_init(|| Dom::from_ref(&cb()))
+        self.ptr.get_or_init(|| Dom::from_ref(&cb()))
     }
 }
 

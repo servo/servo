@@ -229,7 +229,7 @@ impl DissimilarOriginWindow {
         let target_origin = match target_origin.0[..].as_ref() {
             "*" => None,
             "/" => Some(source_origin.clone()),
-            url => match ServoUrl::parse(&url) {
+            url => match ServoUrl::parse(url) {
                 Ok(url) => Some(url.origin().clone()),
                 Err(_) => return Err(Error::Syntax),
             },

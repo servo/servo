@@ -65,7 +65,7 @@ unsafe fn read_blob(
         &mut index as *mut u32
     ));
     let storage_key = StorageKey { index, name_space };
-    if <Blob as Serializable>::deserialize(&owner, &mut sc_holder, storage_key.clone()).is_ok() {
+    if <Blob as Serializable>::deserialize(owner, sc_holder, storage_key.clone()).is_ok() {
         let blobs = match sc_holder {
             StructuredDataHolder::Read { blobs, .. } => blobs,
             _ => panic!("Unexpected variant of StructuredDataHolder"),
@@ -171,7 +171,7 @@ unsafe extern "C" fn read_transfer_callback(
         let owner = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
         if let Ok(_) = <MessagePort as Transferable>::transfer_receive(
             &owner,
-            &mut sc_holder,
+            sc_holder,
             extra_data,
             return_object,
         ) {
@@ -195,7 +195,7 @@ unsafe extern "C" fn write_transfer_callback(
         *tag = StructuredCloneTags::MessagePort as u32;
         *ownership = TransferableOwnership::SCTAG_TMO_CUSTOM;
         let mut sc_holder = &mut *(closure as *mut StructuredDataHolder);
-        if let Ok(data) = port.transfer(&mut sc_holder) {
+        if let Ok(data) = port.transfer(sc_holder) {
             *extra_data = data;
             return true;
         }

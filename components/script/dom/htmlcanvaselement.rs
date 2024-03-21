@@ -295,7 +295,7 @@ impl HTMLCanvasElement {
             match WebGLContextAttributes::new(cx, options) {
                 Ok(ConversionResult::Success(ref attrs)) => Some(From::from(attrs)),
                 Ok(ConversionResult::Failure(ref error)) => {
-                    throw_type_error(*cx, &error);
+                    throw_type_error(*cx, error);
                     None
                 },
                 _ => {

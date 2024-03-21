@@ -294,13 +294,13 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
             BluetoothResponse::GetDescriptors(descriptors_vec, single) => {
                 if single {
                     promise.resolve_native(
-                        &device.get_or_create_descriptor(&descriptors_vec[0], &self),
+                        &device.get_or_create_descriptor(&descriptors_vec[0], self),
                     );
                     return;
                 }
                 let mut descriptors = vec![];
                 for descriptor in descriptors_vec {
-                    let bt_descriptor = device.get_or_create_descriptor(&descriptor, &self);
+                    let bt_descriptor = device.get_or_create_descriptor(&descriptor, self);
                     descriptors.push(bt_descriptor);
                 }
                 promise.resolve_native(&descriptors);

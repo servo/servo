@@ -258,7 +258,7 @@ impl EventSourceContext {
             task!(dispatch_the_event_source_event: move || {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
-                    event.root().upcast::<Event>().fire(&event_source.upcast());
+                    event.root().upcast::<Event>().fire(event_source.upcast());
                 }
             }),
             &global,
@@ -387,7 +387,7 @@ impl FetchResponseListener for EventSourceContext {
         }
 
         while !input.is_empty() {
-            match utf8::decode(&input) {
+            match utf8::decode(input) {
                 Ok(s) => {
                     self.parse(s.chars());
                     return;

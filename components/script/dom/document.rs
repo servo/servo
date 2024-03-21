@@ -715,7 +715,7 @@ impl Document {
                     event.set_trusted(true);
                     // FIXME(nox): Why are errors silenced here?
                     let _ = window.dispatch_event_with_target_override(
-                        &event,
+                        event,
                     );
                 }),
                 self.window.upcast(),
@@ -1920,7 +1920,7 @@ impl Document {
             .and_then(DomRoot::downcast::<HTMLBodyElement>)
         {
             let body = body.upcast::<Element>();
-            let value = body.parse_attribute(&ns!(), &local_name, value);
+            let value = body.parse_attribute(&ns!(), local_name, value);
             body.set_attribute(local_name, value);
         }
     }
@@ -2162,7 +2162,7 @@ impl Document {
         event.set_trusted(true);
         let event_target = self.window.upcast::<EventTarget>();
         let has_listeners = event_target.has_listeners_for(&atom!("beforeunload"));
-        self.window.dispatch_event_with_target_override(&event);
+        self.window.dispatch_event_with_target_override(event);
         // TODO: Step 6, decrease the event loop's termination nesting level by 1.
         // Step 7
         if has_listeners {
@@ -2218,13 +2218,13 @@ impl Document {
             );
             let event = event.upcast::<Event>();
             event.set_trusted(true);
-            let _ = self.window.dispatch_event_with_target_override(&event);
+            let _ = self.window.dispatch_event_with_target_override(event);
             // TODO Step 6, document visibility steps.
         }
         // Step 7
         if !self.fired_unload.get() {
             let event = Event::new(
-                &self.window.upcast(),
+                self.window.upcast(),
                 atom!("unload"),
                 EventBubbles::Bubbles,
                 EventCancelable::Cancelable,
@@ -2373,7 +2373,7 @@ impl Document {
 
                         // FIXME(nox): Why are errors silenced here?
                         let _ = window.dispatch_event_with_target_override(
-                            &event,
+                            event,
                         );
                     }),
                     self.window.upcast(),
@@ -3441,7 +3441,7 @@ impl Document {
         maybe_node
             .iter()
             .flat_map(|node| node.traverse_preorder(ShadowIncluding::No))
-            .filter(|node| callback(&node))
+            .filter(|node| callback(node))
             .count() as u32
     }
 
@@ -3455,7 +3455,7 @@ impl Document {
         maybe_node
             .iter()
             .flat_map(|node| node.traverse_preorder(ShadowIncluding::No))
-            .filter(|node| callback(&node))
+            .filter(|node| callback(node))
             .nth(index as usize)
             .map(|n| DomRoot::from_ref(&*n))
     }
@@ -3538,7 +3538,7 @@ impl Document {
     pub fn get_element_by_id(&self, id: &Atom) -> Option<DomRoot<Element>> {
         self.id_map
             .borrow()
-            .get(&id)
+            .get(id)
             .map(|ref elements| DomRoot::from_ref(&*(*elements)[0]))
     }
 
@@ -4292,7 +4292,7 @@ impl DocumentMethods for Document {
         let value = AttrValue::String("".to_owned());
 
         Ok(Attr::new(
-            &self,
+            self,
             name.clone(),
             value,
             name,
@@ -4312,7 +4312,7 @@ impl DocumentMethods for Document {
         let value = AttrValue::String("".to_owned());
         let qualified_name = LocalName::from(qualified_name);
         Ok(Attr::new(
-            &self,
+            self,
             local_name,
             value,
             qualified_name,
@@ -4425,7 +4425,7 @@ impl DocumentMethods for Document {
             // FIXME(#25136): devicemotionevent, deviceorientationevent
             // FIXME(#7529): dragevent
             "events" | "event" | "htmlevents" | "svgevents" => {
-                Ok(Event::new_uninitialized(&self.window.upcast()))
+                Ok(Event::new_uninitialized(self.window.upcast()))
             },
             "focusevent" => Ok(DomRoot::upcast(FocusEvent::new_uninitialized(&self.window))),
             "hashchangeevent" => Ok(DomRoot::upcast(HashChangeEvent::new_uninitialized(
@@ -4986,7 +4986,7 @@ impl DocumentMethods for Document {
             if a.1 == b.1 {
                 // This can happen if an img has an id different from its name,
                 // spec does not say which string to put first.
-                a.0.cmp(&b.0)
+                a.0.cmp(b.0)
             } else if a.1.upcast::<Node>().is_before(b.1.upcast::<Node>()) {
                 Ordering::Less
             } else {

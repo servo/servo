@@ -331,7 +331,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
     fn Listener(&self) -> DomRoot<AudioListener> {
         let global = self.global();
         let window = global.as_window();
-        self.listener.or_init(|| AudioListener::new(&window, self))
+        self.listener.or_init(|| AudioListener::new(window, self))
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-onstatechange
@@ -339,33 +339,29 @@ impl BaseAudioContextMethods for BaseAudioContext {
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createoscillator>
     fn CreateOscillator(&self) -> Fallible<DomRoot<OscillatorNode>> {
-        OscillatorNode::new(
-            &self.global().as_window(),
-            &self,
-            &OscillatorOptions::empty(),
-        )
+        OscillatorNode::new(self.global().as_window(), self, &OscillatorOptions::empty())
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-creategain>
     fn CreateGain(&self) -> Fallible<DomRoot<GainNode>> {
-        GainNode::new(&self.global().as_window(), &self, &GainOptions::empty())
+        GainNode::new(self.global().as_window(), self, &GainOptions::empty())
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createpanner>
     fn CreatePanner(&self) -> Fallible<DomRoot<PannerNode>> {
-        PannerNode::new(&self.global().as_window(), &self, &PannerOptions::empty())
+        PannerNode::new(self.global().as_window(), self, &PannerOptions::empty())
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createanalyser>
     fn CreateAnalyser(&self) -> Fallible<DomRoot<AnalyserNode>> {
-        AnalyserNode::new(&self.global().as_window(), &self, &AnalyserOptions::empty())
+        AnalyserNode::new(self.global().as_window(), self, &AnalyserOptions::empty())
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbiquadfilter>
     fn CreateBiquadFilter(&self) -> Fallible<DomRoot<BiquadFilterNode>> {
         BiquadFilterNode::new(
-            &self.global().as_window(),
-            &self,
+            self.global().as_window(),
+            self,
             &BiquadFilterOptions::empty(),
         )
     }
@@ -373,8 +369,8 @@ impl BaseAudioContextMethods for BaseAudioContext {
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createstereopanner>
     fn CreateStereoPanner(&self) -> Fallible<DomRoot<StereoPannerNode>> {
         StereoPannerNode::new(
-            &self.global().as_window(),
-            &self,
+            self.global().as_window(),
+            self,
             &StereoPannerOptions::empty(),
         )
     }
@@ -382,8 +378,8 @@ impl BaseAudioContextMethods for BaseAudioContext {
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createconstantsource>
     fn CreateConstantSource(&self) -> Fallible<DomRoot<ConstantSourceNode>> {
         ConstantSourceNode::new(
-            &self.global().as_window(),
-            &self,
+            self.global().as_window(),
+            self,
             &ConstantSourceOptions::empty(),
         )
     }
@@ -392,14 +388,14 @@ impl BaseAudioContextMethods for BaseAudioContext {
     fn CreateChannelMerger(&self, count: u32) -> Fallible<DomRoot<ChannelMergerNode>> {
         let mut opts = ChannelMergerOptions::empty();
         opts.numberOfInputs = count;
-        ChannelMergerNode::new(&self.global().as_window(), &self, &opts)
+        ChannelMergerNode::new(self.global().as_window(), self, &opts)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createchannelsplitter>
     fn CreateChannelSplitter(&self, count: u32) -> Fallible<DomRoot<ChannelSplitterNode>> {
         let mut opts = ChannelSplitterOptions::empty();
         opts.numberOfOutputs = count;
-        ChannelSplitterNode::new(&self.global().as_window(), &self, &opts)
+        ChannelSplitterNode::new(self.global().as_window(), self, &opts)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffer>
@@ -417,7 +413,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
             return Err(Error::NotSupported);
         }
         Ok(AudioBuffer::new(
-            &self.global().as_window(),
+            self.global().as_window(),
             number_of_channels,
             length,
             *sample_rate,
@@ -428,8 +424,8 @@ impl BaseAudioContextMethods for BaseAudioContext {
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffersource
     fn CreateBufferSource(&self) -> Fallible<DomRoot<AudioBufferSourceNode>> {
         AudioBufferSourceNode::new(
-            &self.global().as_window(),
-            &self,
+            self.global().as_window(),
+            self,
             &AudioBufferSourceOptions::empty(),
         )
     }
@@ -507,7 +503,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
                                 0
                             };
                             let buffer = AudioBuffer::new(
-                                &this.global().as_window(),
+                                this.global().as_window(),
                                 decoded_audio.len() as u32 /* number of channels */,
                                 length as u32,
                                 this.sample_rate,

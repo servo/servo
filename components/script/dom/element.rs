@@ -1585,7 +1585,7 @@ impl Element {
             .attrs
             .borrow()
             .iter()
-            .find(|attr| find(&attr))
+            .find(|attr| find(attr))
             .map(|js| DomRoot::from_ref(&**js));
         if let Some(attr) = attr {
             attr.set_value(value, self);
@@ -1625,7 +1625,7 @@ impl Element {
     where
         F: Fn(&Attr) -> bool,
     {
-        let idx = self.attrs.borrow().iter().position(|attr| find(&attr));
+        let idx = self.attrs.borrow().iter().position(|attr| find(attr));
         idx.map(|idx| {
             let attr = DomRoot::from_ref(&*(*self.attrs.borrow())[idx]);
             self.will_mutate_attr(&attr);
@@ -1803,9 +1803,9 @@ impl Element {
                 }
             },
             AdjacentPosition::AfterBegin => {
-                Node::pre_insert(node, &self_node, self_node.GetFirstChild().as_deref()).map(Some)
+                Node::pre_insert(node, self_node, self_node.GetFirstChild().as_deref()).map(Some)
             },
-            AdjacentPosition::BeforeEnd => Node::pre_insert(node, &self_node, None).map(Some),
+            AdjacentPosition::BeforeEnd => Node::pre_insert(node, self_node, None).map(Some),
             AdjacentPosition::AfterEnd => {
                 if let Some(parent) = self_node.GetParentNode() {
                     Node::pre_insert(node, &parent, self_node.GetNextSibling().as_deref()).map(Some)
@@ -2222,7 +2222,7 @@ impl ElementMethods for Element {
             self.attrs.borrow_mut()[position] = Dom::from_ref(attr);
             old_attr.set_owner(None);
             if attr.namespace() == &ns!() {
-                vtable.attribute_mutated(&attr, AttributeMutation::Set(Some(&old_attr.value())));
+                vtable.attribute_mutated(attr, AttributeMutation::Set(Some(&old_attr.value())));
             }
 
             // Step 6.
@@ -3076,7 +3076,7 @@ impl VirtualMethods for Element {
         let doc = document_from_node(self);
 
         if let Some(ref shadow_root) = self.shadow_root() {
-            doc.register_shadow_root(&shadow_root);
+            doc.register_shadow_root(shadow_root);
             let shadow_root = shadow_root.upcast::<Node>();
             shadow_root.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
             for node in shadow_root.children() {
@@ -3124,7 +3124,7 @@ impl VirtualMethods for Element {
         let doc = document_from_node(self);
 
         if let Some(ref shadow_root) = self.shadow_root() {
-            doc.unregister_shadow_root(&shadow_root);
+            doc.unregister_shadow_root(shadow_root);
             let shadow_root = shadow_root.upcast::<Node>();
             shadow_root.set_flag(NodeFlags::IS_CONNECTED, false);
             for node in shadow_root.children() {
@@ -3358,7 +3358,7 @@ impl<'a> SelectorsElement for DomRoot<Element> {
     }
 
     fn has_class(&self, name: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
-        Element::has_class(&**self, &name, case_sensitivity)
+        Element::has_class(&**self, name, case_sensitivity)
     }
 
     fn is_html_element_in_html_document(&self) -> bool {

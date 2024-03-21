@@ -185,7 +185,7 @@ impl GPUTextureMethods for GPUTexture {
         GPUTextureView::new(
             &self.global(),
             texture_view,
-            &self,
+            self,
             descriptor.parent.label.clone().unwrap_or_default(),
         )
     }

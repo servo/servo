@@ -57,7 +57,7 @@ impl GamepadEvent {
         gamepad: &Gamepad,
     ) -> DomRoot<GamepadEvent> {
         let ev = reflect_dom_object_with_proto(
-            Box::new(GamepadEvent::new_inherited(&gamepad)),
+            Box::new(GamepadEvent::new_inherited(gamepad)),
             global,
             proto,
         );
@@ -78,7 +78,7 @@ impl GamepadEvent {
             GamepadEventType::Disconnected => "gamepaddisconnected",
         };
 
-        GamepadEvent::new(&global, name.into(), false, false, &gamepad)
+        GamepadEvent::new(global, name.into(), false, false, gamepad)
     }
 
     // https://w3c.github.io/gamepad/#gamepadevent-interface

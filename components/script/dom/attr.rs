@@ -206,7 +206,7 @@ impl Attr {
             (Some(old), None) => {
                 // Already gone from the list of attributes of old owner.
                 assert!(
-                    old.get_attribute(&ns, &self.identifier.local_name)
+                    old.get_attribute(ns, &self.identifier.local_name)
                         .as_deref() !=
                         Some(self)
                 )

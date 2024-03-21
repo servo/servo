@@ -133,7 +133,7 @@ impl DOMTokenListMethods for DOMTokenList {
     fn Add(&self, tokens: Vec<DOMString>) -> ErrorResult {
         let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
         for token in &tokens {
-            let token = self.check_token_exceptions(&token)?;
+            let token = self.check_token_exceptions(token)?;
             if !atoms.iter().any(|atom| *atom == token) {
                 atoms.push(token);
             }
@@ -146,7 +146,7 @@ impl DOMTokenListMethods for DOMTokenList {
     fn Remove(&self, tokens: Vec<DOMString>) -> ErrorResult {
         let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
         for token in &tokens {
-            let token = self.check_token_exceptions(&token)?;
+            let token = self.check_token_exceptions(token)?;
             atoms
                 .iter()
                 .position(|atom| *atom == token)
