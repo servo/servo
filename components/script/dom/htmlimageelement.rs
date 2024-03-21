@@ -707,7 +707,7 @@ impl HTMLImageElement {
         let mut source_size = &mut source_set.source_size;
 
         // Find source_size_length for Step 2.2
-        let source_size_length = self.evaluate_source_size_list( &mut source_size, width);
+        let source_size_length = self.evaluate_source_size_list(&mut source_size, width);
 
         // Step 2
         for imgsource in &mut source_set.image_sources {
@@ -1575,7 +1575,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-currentsrc
     fn CurrentSrc(&self) -> USVString {
         let current_request = self.current_request.borrow();
-        let  url = &current_request.parsed_url;
+        let url = &current_request.parsed_url;
         match *url {
             Some(ref url) => USVString(url.clone().into_string()),
             None => {
