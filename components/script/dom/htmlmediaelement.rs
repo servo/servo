@@ -639,10 +639,10 @@ impl HTMLMediaElement {
                 // FIXME(nox): Queue a task to fire timeupdate and waiting
                 // events if the conditions call from the spec are met.
 
-                if self.is_potentially_playing()
-                    && !self.Ended()
-                    && !self.is_paused_for_in_band_content()
-                    && !self.is_paused_for_user_interaction()
+                if self.is_potentially_playing() &&
+                    !self.Ended() &&
+                    !self.is_paused_for_in_band_content() &&
+                    !self.is_paused_for_user_interaction()
                 {
                     task_source.queue_simple_event(self.upcast(), atom!("timeupdate"), &window);
                     task_source.queue_simple_event(self.upcast(), atom!("waiting"), &window);
