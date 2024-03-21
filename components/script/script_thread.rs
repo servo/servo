@@ -1668,38 +1668,41 @@ impl ScriptThread {
                 })
             {
                 // TODO: reveal the document(#31581).
-                
+
                 // Focusing steps, plus other composition events.
                 // TODO: break-up to match spec more closely?
                 // See: flush autofocus candidates.
                 self.process_pending_compositor_events(pipeline_id);
 
-                // Resize steps. 
+                // Resize steps.
                 self.run_the_resize_steps(pipeline_id, &*document);
-                
+
                 // TODO: scroll steps(#31665)
-                
-                // TODO: evaluate media queries and report changes.
-                
+
+                // Evaluate media queries and report changes.
+                document
+                    .window()
+                    .evaluate_media_queries_and_report_changes();
+
                 // TODO: update animations and send events.
-                
+
                 // TODO: fullscreen steps.
-                
+
                 // TODO: context lost steps.
-                
-                // TODO: run the animation frame callbacks. 
-                
+
+                // TODO: run the animation frame callbacks.
+
                 // TODO: resize observer steps.
-                
-                // TODO: if the focused area of doc is not a focusable area, 
+
+                // TODO: if the focused area of doc is not a focusable area,
                 // then run the focusing steps for doc's viewport.
-                
+
                 // TODO: perform pending transition operations.
-                
+
                 // TODO: run the update intersection observations steps.
-                
+
                 // TODO: mark paint timing.
-                
+
                 // TODO: update the rendering(reflow?).
             }
         }
@@ -3904,11 +3907,6 @@ impl ScriptThread {
             );
             uievent.upcast::<Event>().fire(window.upcast());
         }
-
-        // https://html.spec.whatwg.org/multipage/#event-loop-processing-model
-        // Step 7.7 - evaluate media queries and report changes
-        // Since we have resized, we need to re-evaluate MQLs
-        window.evaluate_media_queries_and_report_changes();
     }
 
     /// Instructs the constellation to fetch the document that will be loaded. Stores the InProgressLoad
