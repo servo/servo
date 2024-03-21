@@ -88,7 +88,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
         // A: Step 4-5
         let scope = match options.scope {
             Some(ref scope) => {
-                let &USVString(ref inner_scope) = scope;
+                let USVString(inner_scope) = scope;
                 match api_base_url.join(inner_scope) {
                     Ok(url) => url,
                     Err(_) => {

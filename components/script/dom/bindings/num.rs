@@ -39,7 +39,7 @@ impl<T: Float> Deref for Finite<T> {
     type Target = T;
 
     fn deref(&self) -> &T {
-        let &Finite(ref value) = self;
+        let Finite(value) = self;
         value
     }
 }

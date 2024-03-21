@@ -107,7 +107,7 @@ impl OffscreenCanvas {
         }
 
         let data = match self.context.borrow().as_ref() {
-            Some(&OffscreenCanvasContext::OffscreenContext2d(ref context)) => {
+            Some(OffscreenCanvasContext::OffscreenContext2d(context)) => {
                 let (sender, receiver) =
                     ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
                 let msg = CanvasMsg::FromScript(

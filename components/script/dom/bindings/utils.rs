@@ -253,7 +253,7 @@ pub unsafe fn find_enum_value<'a, T>(
         pairs
             .iter()
             .find(|&&(key, _)| search == *key)
-            .map(|&(_, ref ev)| ev),
+            .map(|(_, ev)| ev),
         search,
     ))
 }

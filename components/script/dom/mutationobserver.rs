@@ -181,7 +181,7 @@ impl MutationObserver {
                             None
                         };
                         // Step 3.1.1
-                        let idx = interested_observers.iter().position(|&(ref o, _)| {
+                        let idx = interested_observers.iter().position(|(o, _)| {
                             &**o as *const _ == &*registered.observer as *const _
                         });
                         if let Some(idx) = idx {
@@ -202,7 +202,7 @@ impl MutationObserver {
                             None
                         };
                         // Step 3.1.1
-                        let idx = interested_observers.iter().position(|&(ref o, _)| {
+                        let idx = interested_observers.iter().position(|(o, _)| {
                             &**o as *const _ == &*registered.observer as *const _
                         });
                         if let Some(idx) = idx {

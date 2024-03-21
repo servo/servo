@@ -1762,8 +1762,8 @@ impl Document {
         let body = self.GetBody();
 
         let target = match (&focused, &body) {
-            (&Some(ref focused), _) => focused.upcast(),
-            (&None, &Some(ref body)) => body.upcast(),
+            (Some(focused), _) => focused.upcast(),
+            (&None, Some(body)) => body.upcast(),
             (&None, &None) => self.window.upcast(),
         };
 
@@ -4640,7 +4640,7 @@ impl DocumentMethods for Document {
 
         match (self.GetDocumentElement(), &old_body) {
             // Step 3.
-            (Some(ref root), &Some(ref child)) => {
+            (Some(ref root), Some(child)) => {
                 let root = root.upcast::<Node>();
                 root.ReplaceChild(new_body.upcast(), child.upcast())
                     .unwrap();
