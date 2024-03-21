@@ -9,21 +9,21 @@ use js::rust::{Handle, HandleObject};
 use crate::dom::abortsignal::AbortSignal;
 use crate::dom::bindings::codegen::Bindings::AbortControllerBinding::AbortControllerMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 
 #[dom_struct]
 pub struct AbortController {
     reflector_: Reflector,
-    signal: DomRoot<AbortSignal>,
+    signal: Dom<AbortSignal>,
 }
 
 impl AbortController {
-    pub fn new_inherited(signal: DomRoot<AbortSignal>) -> AbortController {
+    pub fn new_inherited(signal: &AbortSignal) -> AbortController {
         AbortController {
             reflector_: Reflector::new(),
-            signal: signal,
+            signal: Dom::from_ref(signal),
         }
     }
 
@@ -32,7 +32,7 @@ impl AbortController {
         proto: Option<HandleObject>,
     ) -> DomRoot<AbortController> {
         reflect_dom_object_with_proto(
-            Box::new(AbortController::new_inherited(AbortSignal::new(global))),
+            Box::new(AbortController::new_inherited(&AbortSignal::new(global))),
             global,
             proto,
         )
@@ -50,7 +50,7 @@ impl AbortController {
 impl AbortControllerMethods for AbortController {
     /// <https://dom.spec.whatwg.org/#dom-abortcontroller-signal>
     fn Signal(&self) -> DomRoot<AbortSignal> {
-        self.signal.clone()
+        DomRoot::from_ref(&self.signal)
     }
     /// <https://dom.spec.whatwg.org/#dom-abortcontroller-abort>
     fn Abort(&self, _cx: JSContext, reason: Handle<'_, Value>) {
