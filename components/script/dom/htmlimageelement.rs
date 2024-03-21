@@ -704,10 +704,10 @@ impl HTMLImageElement {
     /// <https://html.spec.whatwg.org/multipage/#normalise-the-source-densities>
     fn normalise_source_densities(&self, source_set: &mut SourceSet, width: Option<Length>) {
         // Step 1
-        let mut source_size = &mut source_set.source_size;
+        let source_size = &mut source_set.source_size;
 
         // Find source_size_length for Step 2.2
-        let source_size_length = self.evaluate_source_size_list(&mut source_size, width);
+        let source_size_length = self.evaluate_source_size_list(source_size, width);
 
         // Step 2
         for imgsource in &mut source_set.image_sources {
@@ -721,7 +721,7 @@ impl HTMLImageElement {
                 imgsource.descriptor.den = Some(wid as f64 / source_size_length.to_f64_px());
             } else {
                 //Step 2.3
-                imgsource.descriptor.den = Some(1 as f64);
+                imgsource.descriptor.den = Some(1_f64);
             }
         }
     }
@@ -947,7 +947,7 @@ impl HTMLImageElement {
             .map_or(false, |p| p.is::<HTMLPictureElement>());
         if src_set.is_empty() && !is_parent_picture && !src.is_empty() {
             selected_source = Some(src.clone());
-            pixel_density = Some(1 as f64);
+            pixel_density = Some(1_f64);
         };
 
         // Step 5
@@ -1579,7 +1579,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
         match *url {
             Some(ref url) => USVString(url.clone().into_string()),
             None => {
-                let ref unparsed_url = current_request.source_url;
+                let unparsed_url = &current_request.source_url;
                 match *unparsed_url {
                     Some(ref url) => url.clone(),
                     None => USVString("".to_owned()),
@@ -1722,7 +1722,7 @@ impl VirtualMethods for HTMLImageElement {
     }
 
     fn bind_to_tree(&self, context: &BindContext) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.bind_to_tree(context);
         }
         let document = document_from_node(self);
@@ -1761,7 +1761,7 @@ impl FormControl for HTMLImageElement {
         self.form_owner.set(form);
     }
 
-    fn to_element<'a>(&'a self) -> &'a Element {
+    fn to_element(&self) -> &Element {
         self.upcast::<Element>()
     }
 

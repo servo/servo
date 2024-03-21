@@ -168,7 +168,7 @@ impl HTMLIFrameElement {
             _ => {
                 let mut load_blocker = self.load_blocker.borrow_mut();
                 *load_blocker = Some(LoadBlocker::new(
-                    &*document,
+                    &document,
                     LoadType::Subframe(load_data.url.clone()),
                 ));
             },
@@ -320,7 +320,7 @@ impl HTMLIFrameElement {
                     return;
                 }
             }
-            ancestor = a.parent().map(|p| DomRoot::from_ref(p));
+            ancestor = a.parent().map(DomRoot::from_ref);
         }
 
         let creator_pipeline_id = if url.as_str() == "about:blank" {
@@ -517,13 +517,13 @@ impl HTMLIFrameElementLayoutMethods for LayoutDom<'_, HTMLIFrameElement> {
     #[inline]
     #[allow(unsafe_code)]
     fn pipeline_id(self) -> Option<PipelineId> {
-        unsafe { (*self.unsafe_get()).pipeline_id.get() }
+        unsafe { (self.unsafe_get()).pipeline_id.get() }
     }
 
     #[inline]
     #[allow(unsafe_code)]
     fn browsing_context_id(self) -> Option<BrowsingContextId> {
-        unsafe { (*self.unsafe_get()).browsing_context_id.get() }
+        unsafe { (self.unsafe_get()).browsing_context_id.get() }
     }
 
     fn get_width(self) -> LengthOrPercentageOrAuto {
@@ -578,7 +578,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     fn GetContentWindow(&self) -> Option<DomRoot<WindowProxy>> {
         self.browsing_context_id
             .get()
-            .and_then(|browsing_context_id| ScriptThread::find_window_proxy(browsing_context_id))
+            .and_then(ScriptThread::find_window_proxy)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentdocument
@@ -642,8 +642,8 @@ impl VirtualMethods for HTMLIFrameElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        match attr.local_name() {
-            &local_name!("sandbox") => {
+        match *attr.local_name() {
+            local_name!("sandbox") => {
                 self.sandbox_allowance
                     .set(mutation.new_value(attr).map(|value| {
                         let mut modes = SandboxAllowance::ALLOW_NOTHING;
@@ -661,7 +661,7 @@ impl VirtualMethods for HTMLIFrameElement {
                         modes
                     }));
             },
-            &local_name!("srcdoc") => {
+            local_name!("srcdoc") => {
                 // https://html.spec.whatwg.org/multipage/#the-iframe-element:the-iframe-element-9
                 // "Whenever an iframe element with a non-null nested browsing context has its
                 // srcdoc attribute set, changed, or removed, the user agent must process the
@@ -677,7 +677,7 @@ impl VirtualMethods for HTMLIFrameElement {
                     self.process_the_iframe_attributes(ProcessingMode::NotFirstTime);
                 }
             },
-            &local_name!("src") => {
+            local_name!("src") => {
                 // https://html.spec.whatwg.org/multipage/#the-iframe-element
                 // "Similarly, whenever an iframe element with a non-null nested browsing context
                 // but with no srcdoc attribute specified has its src attribute set, changed, or removed,
