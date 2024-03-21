@@ -515,6 +515,9 @@ pub struct ScriptThread {
     last_render_opportunity_time: DomRefCell<u64>,
     /// Used to batch rendering opportunities
     has_queued_update_the_rendering_task: DomRefCell<bool>,
+    /// Used to batch animation ticks.
+    #[no_trace]
+    pending_animation_ticks: DomRefCell<HashMap<PipelineId, AnimationTickType>>,
     /// Pending composition events, to be handled at the next rendering opportunity.
     #[no_trace]
     pending_compositor_events: DomRefCell<HashMap<PipelineId, VecDeque<CompositorEvent>>>,
@@ -1349,6 +1352,7 @@ impl ScriptThread {
         ScriptThread {
             last_render_opportunity_time: Default::default(),
             has_queued_update_the_rendering_task: Default::default(),
+            pending_animation_ticks: Default::default(),
             pending_compositor_events: Default::default(),
             documents: DomRefCell::new(Documents::new()),
             window_proxies: DomRefCell::new(HashMapTracedValues::new()),
@@ -1691,7 +1695,8 @@ impl ScriptThread {
 
                 // TODO: context lost steps.
 
-                // TODO: run the animation frame callbacks.
+                // Run the animation frame callbacks.
+                self.handle_tick_all_animations(pipeline_id)
 
                 // TODO: resize observer steps.
 
@@ -2305,7 +2310,12 @@ impl ScriptThread {
                 self.handle_webdriver_msg(pipeline_id, msg)
             },
             ConstellationControlMsg::TickAllAnimations(pipeline_id, tick_type) => {
-                self.handle_tick_all_animations(pipeline_id, tick_type)
+                self.rendering_opportunity(pipeline_id);
+                let mut pending_animation_ticks = self.pending_animation_ticks.borrow_mut();
+                let entry = pending_animation_ticks
+                    .entry(pipeline_id)
+                    .or_insert(AnimationTickType::empty());
+                entry.extend(tick_type);
             },
             ConstellationControlMsg::WebFontLoaded(pipeline_id) => {
                 self.handle_web_font_loaded(pipeline_id)
@@ -3249,23 +3259,32 @@ impl ScriptThread {
     pub fn handle_tick_all_animations_for_testing(id: PipelineId) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread
-                .handle_tick_all_animations(id, AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS);
+            let mut pending_animation_ticks = script_thread.pending_animation_ticks.borrow_mut();
+            let tick_type = pending_animation_ticks
+                .entry(id)
+                .or_insert(AnimationTickType::empty());
+            tick_type.insert(AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS);
+            script_thread.handle_tick_all_animations(id);
         });
     }
 
     /// Handles when layout finishes all animation in one tick
-    fn handle_tick_all_animations(&self, id: PipelineId, tick_type: AnimationTickType) {
+    fn handle_tick_all_animations(&self, id: PipelineId) {
         let document = match self.documents.borrow().find_document(id) {
             Some(document) => document,
             None => return warn!("Message sent to closed pipeline {}.", id),
         };
+        let mut pending_animation_ticks = self.pending_animation_ticks.borrow_mut();
+        let tick_type = pending_animation_ticks
+            .entry(id)
+            .or_insert(AnimationTickType::empty());
         if tick_type.contains(AnimationTickType::REQUEST_ANIMATION_FRAME) {
             document.run_the_animation_frame_callbacks();
         }
         if tick_type.contains(AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS) {
             document.maybe_mark_animating_nodes_as_dirty();
         }
+        *tick_type = AnimationTickType::empty();
     }
 
     /// Handles a Web font being loaded. Does nothing if the page no longer exists.
