@@ -85,7 +85,7 @@ jobs:
           "$env:WIX\bin" >> $env:GITHUB_PATH
       - name: Build (${{ inputs.profile }})
         run: |
-          python mach build --${{ inputs.profile }}
+          python mach build --locked --${{ inputs.profile }}
           cp C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows -Recurse
       - name: Copy resources
         run: cp D:\a\servo\servo\resources C:\a\servo\servo -Recurse

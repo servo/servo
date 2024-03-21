@@ -105,7 +105,7 @@ jobs:
         run: python3 ./mach test-tidy --no-progress --all
       - name: Build (${{ inputs.profile }})
         run: |
-          python3 ./mach build --${{ inputs.profile }}
+          python3 ./mach build --locked --${{ inputs.profile }}
           cp -r target/cargo-timings target/cargo-timings-linux
       - name: Smoketest
         run: xvfb-run python3 ./mach smoketest --${{ inputs.profile  }}
@@ -124,8 +124,6 @@ jobs:
           name: cargo-timings-linux
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
-      - name: Lockfile check
-        run: ./etc/ci/lockfile_changed.sh
       - name: Build mach package
         run: python3 ./mach package --${{ inputs.profile }}
       - name: Upload artifact for mach package
