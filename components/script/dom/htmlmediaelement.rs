@@ -1543,6 +1543,12 @@ impl HTMLMediaElement {
                                 // TODO(pylbrecht)
                                 // If at any time the user agent learns that an audio or video
                                 // track has ended..
+                                if let Some(idx) = self.VideoTracks().selected_index() {
+                                    self.VideoTracks().remove(idx);
+                                }
+
+                                // TODO(pylbrecht): Fire "removetrack" event at the media element's
+                                // VideoTrackList object
                             }
                         },
 
@@ -1558,6 +1564,12 @@ impl HTMLMediaElement {
                                 // TODO(pylbrecht)
                                 // If at any time the user agent learns that an audio or video
                                 // track has ended..
+                                if let Some(idx) = self.VideoTracks().selected_index() {
+                                    self.VideoTracks().remove(idx);
+                                }
+
+                                // TODO(pylbrecht): Fire "removetrack" event at the media element's
+                                // VideoTrackList object
                             }
                         },
                     }
