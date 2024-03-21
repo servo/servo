@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use log::{error, warn};
-use wgpu::device::queue::{SubmittedWorkDoneClosure, SubmittedWorkDoneClosureC};
+use wgpu::device::queue::SubmittedWorkDoneClosure;
 use wgpu::gfx_select;
 pub use {wgpu_core as wgpu, wgpu_types as wgt};
 

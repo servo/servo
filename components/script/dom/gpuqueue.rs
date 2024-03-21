@@ -7,7 +7,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
 use webgpu::identity::WebGPUOpResult;
-use webgpu::{wgt, WebGPU, WebGPUQueue, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
+use webgpu::{wgt, WebGPU, WebGPUQueue, WebGPURequest, WebGPUResponse};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::{GPUImageCopyTexture, GPUImageDataLayout};
 use super::gpu::{response_async, AsyncWGPUListener};
@@ -196,7 +196,7 @@ impl GPUQueueMethods for GPUQueue {
         Ok(())
     }
 
-    /// https://gpuweb.github.io/gpuweb/#dom-gpuqueue-onsubmittedworkdone
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-onsubmittedworkdone>
     fn OnSubmittedWorkDone(&self) -> Rc<Promise> {
         let global = self.global();
         let promise = Promise::new(&global);
@@ -208,14 +208,13 @@ impl GPUQueueMethods for GPUQueue {
                 queue_id: self.queue.0,
             },
         )) {
-            todo!("QueueOnSubmittedWorkDone failed")
+            todo!("QueueOnSubmittedWorkDone failed with {e}")
         }
         promise
     }
 }
 
 impl AsyncWGPUListener for GPUQueue {
-    #[allow(unsafe_code)]
     fn handle_response(
         &self,
         response: Option<Result<webgpu::WebGPUResponse, String>>,
