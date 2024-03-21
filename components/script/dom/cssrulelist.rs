@@ -73,7 +73,7 @@ impl CSSRuleList {
         CSSRuleList {
             reflector_: Reflector::new(),
             parent_stylesheet: Dom::from_ref(parent_stylesheet),
-            rules: rules,
+            rules,
             dom_rules: DomRefCell::new(dom_rules),
         }
     }

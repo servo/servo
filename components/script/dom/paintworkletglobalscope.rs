@@ -366,8 +366,8 @@ impl PaintWorkletGlobalScope {
             width: size_in_dpx.width,
             height: size_in_dpx.height,
             format: PixelFormat::BGRA8,
-            image_key: image_key,
-            missing_image_urls: missing_image_urls,
+            image_key,
+            missing_image_urls,
         }
     }
 
@@ -383,7 +383,7 @@ impl PaintWorkletGlobalScope {
             height: size.height as u32,
             format: PixelFormat::BGRA8,
             image_key: None,
-            missing_image_urls: missing_image_urls,
+            missing_image_urls,
         }
     }
 
@@ -439,7 +439,7 @@ impl PaintWorkletGlobalScope {
             }
         }
         Box::new(WorkletPainter {
-            name: name,
+            name,
             executor: Mutex::new(self.worklet_global.executor()),
         })
     }
@@ -492,7 +492,7 @@ impl PaintDefinition {
             paint_function: Heap::default(),
             constructor_valid_flag: Cell::new(true),
             context_alpha_flag: alpha,
-            input_arguments_len: input_arguments_len,
+            input_arguments_len,
             context: Dom::from_ref(context),
         });
         result.class_constructor.set(class_constructor.get());

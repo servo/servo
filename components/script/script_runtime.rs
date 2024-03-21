@@ -701,8 +701,8 @@ pub fn get_reports(cx: *mut RawJSContext, path_seg: String) -> Vec<Report> {
                 let mut path = path![path_seg, "js"];
                 path.append(&mut path_suffix);
                 reports.push(Report {
-                    path: path,
-                    kind: kind,
+                    path,
+                    kind,
                     size: size as usize,
                 })
             };

@@ -38,7 +38,7 @@ impl WebGLRenderbuffer {
     fn new_inherited(context: &WebGLRenderingContext, id: WebGLRenderbufferId) -> Self {
         Self {
             webgl_object: WebGLObject::new_inherited(context),
-            id: id,
+            id,
             ever_bound: Cell::new(false),
             is_deleted: Cell::new(false),
             internal_format: Cell::new(None),

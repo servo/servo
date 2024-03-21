@@ -8,3 +8,18 @@ updates:
   allow:
   - dependency-type: direct
   - dependency-type: indirect
+  ignore:
+  # Ignore all stylo crates as their upgrades are coordinated via companion PRs.
+  - dependency-name: servo_atoms
+  - dependency-name: derive_common
+  - dependency-name: malloc_size_of
+  - dependency-name: selectors
+  - dependency-name: servo_arc
+  - dependency-name: size_of_test
+  - dependency-name: style
+  - dependency-name: style_config
+  - dependency-name: style_derive
+  - dependency-name: style_static_prefs
+  - dependency-name: style_traits
+  - dependency-name: to_shmem
+  - dependency-name: to_shmem_derive

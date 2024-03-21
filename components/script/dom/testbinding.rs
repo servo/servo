@@ -980,7 +980,7 @@ impl TestBindingMethods for TestBinding {
         let promise = p.duplicate();
         let cb = TestBindingCallback {
             promise: TrustedPromise::new(promise),
-            value: value,
+            value,
         };
         let _ = self.global().schedule_callback(
             OneshotTimerCallback::TestBindingCallback(cb),

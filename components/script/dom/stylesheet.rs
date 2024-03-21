@@ -30,9 +30,9 @@ impl StyleSheet {
     ) -> StyleSheet {
         StyleSheet {
             reflector_: Reflector::new(),
-            type_: type_,
-            href: href,
-            title: title,
+            type_,
+            href,
+            title,
         }
     }
 }

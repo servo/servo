@@ -26,7 +26,7 @@ impl ProcessingInstruction {
     ) -> ProcessingInstruction {
         ProcessingInstruction {
             characterdata: CharacterData::new_inherited(data, document),
-            target: target,
+            target,
         }
     }
 

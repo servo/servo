@@ -859,7 +859,7 @@ impl HTMLFormElement {
                     load_data,
                     enctype,
                     encoding,
-                    &target_window,
+                    target_window,
                 );
             },
             // https://html.spec.whatwg.org/multipage/#submit-get-action
@@ -868,7 +868,7 @@ impl HTMLFormElement {
             ("data", FormMethod::FormPost) |
             ("ftp", _) |
             ("javascript", _) => {
-                self.plan_to_navigate(load_data, &target_window);
+                self.plan_to_navigate(load_data, target_window);
             },
             ("mailto", FormMethod::FormPost) => {
                 // TODO: Mail as body
@@ -885,7 +885,7 @@ impl HTMLFormElement {
     // https://html.spec.whatwg.org/multipage/#submit-mutate-action
     fn mutate_action_url(
         &self,
-        form_data: &mut Vec<FormDatum>,
+        form_data: &mut [FormDatum],
         mut load_data: LoadData,
         encoding: &'static Encoding,
         target: &Window,
@@ -1145,7 +1145,7 @@ impl HTMLFormElement {
                         if !name.is_empty() {
                             data_set.push(FormDatum {
                                 ty: textarea.Type(),
-                                name: name,
+                                name,
                                 value: FormDatumValue::String(textarea.Value()),
                             });
                         }
@@ -1510,7 +1510,7 @@ pub trait FormControl: DomObject {
 
     fn set_form_owner(&self, form: Option<&HTMLFormElement>);
 
-    fn to_element<'a>(&'a self) -> &'a Element;
+    fn to_element(&self) -> &Element;
 
     fn is_listed(&self) -> bool {
         true
@@ -1721,11 +1721,11 @@ impl VirtualMethods for HTMLFormElement {
 }
 
 pub trait FormControlElementHelpers {
-    fn as_maybe_form_control<'a>(&'a self) -> Option<&'a dyn FormControl>;
+    fn as_maybe_form_control(&self) -> Option<&dyn FormControl>;
 }
 
 impl FormControlElementHelpers for Element {
-    fn as_maybe_form_control<'a>(&'a self) -> Option<&'a dyn FormControl> {
+    fn as_maybe_form_control(&self) -> Option<&dyn FormControl> {
         let node = self.upcast::<Node>();
 
         match node.type_id() {
@@ -1766,7 +1766,7 @@ impl FormControlElementHelpers for Element {
 
 // https://html.spec.whatwg.org/multipage/#multipart/form-data-encoding-algorithm
 pub fn encode_multipart_form_data(
-    form_data: &mut Vec<FormDatum>,
+    form_data: &mut [FormDatum],
     boundary: String,
     encoding: &'static Encoding,
 ) -> Vec<u8> {

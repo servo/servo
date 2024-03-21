@@ -46,9 +46,9 @@ impl BluetoothRemoteGATTDescriptor {
         BluetoothRemoteGATTDescriptor {
             reflector_: Reflector::new(),
             characteristic: Dom::from_ref(characteristic),
-            uuid: uuid,
+            uuid,
             value: DomRefCell::new(None),
-            instance_id: instance_id,
+            instance_id,
         }
     }
 

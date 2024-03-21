@@ -453,14 +453,14 @@ impl EventSource {
     fn new_inherited(url: ServoUrl, with_credentials: bool) -> EventSource {
         EventSource {
             eventtarget: EventTarget::new_inherited(),
-            url: url,
+            url,
             request: DomRefCell::new(None),
             last_event_id: DomRefCell::new(DOMString::from("")),
             reconnection_time: Cell::new(DEFAULT_RECONNECTION_TIME),
             generation_id: Cell::new(GenerationId(0)),
 
             ready_state: Cell::new(ReadyState::Connecting),
-            with_credentials: with_credentials,
+            with_credentials,
             canceller: DomRefCell::new(Default::default()),
         }
     }

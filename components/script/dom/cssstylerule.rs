@@ -39,7 +39,7 @@ impl CSSStyleRule {
     ) -> CSSStyleRule {
         CSSStyleRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
-            stylerule: stylerule,
+            stylerule,
             style_decl: Default::default(),
         }
     }

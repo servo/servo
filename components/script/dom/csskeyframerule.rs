@@ -33,7 +33,7 @@ impl CSSKeyframeRule {
     ) -> CSSKeyframeRule {
         CSSKeyframeRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
-            keyframerule: keyframerule,
+            keyframerule,
             style_decl: Default::default(),
         }
     }

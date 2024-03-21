@@ -24,9 +24,9 @@ impl WebGLShaderPrecisionFormat {
     fn new_inherited(range_min: i32, range_max: i32, precision: i32) -> WebGLShaderPrecisionFormat {
         WebGLShaderPrecisionFormat {
             reflector_: Reflector::new(),
-            range_min: range_min,
-            range_max: range_max,
-            precision: precision,
+            range_min,
+            range_max,
+            precision,
         }
     }
 

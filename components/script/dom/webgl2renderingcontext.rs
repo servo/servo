@@ -160,7 +160,7 @@ impl WebGL2RenderingContext {
             base: Dom::from_ref(&*base),
             occlusion_query: MutNullableDom::new(None),
             primitives_query: MutNullableDom::new(None),
-            samplers: samplers,
+            samplers,
             bound_copy_read_buffer: MutNullableDom::new(None),
             bound_copy_write_buffer: MutNullableDom::new(None),
             bound_pixel_pack_buffer: MutNullableDom::new(None),

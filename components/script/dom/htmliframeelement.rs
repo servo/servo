@@ -168,7 +168,7 @@ impl HTMLIFrameElement {
             _ => {
                 let mut load_blocker = self.load_blocker.borrow_mut();
                 *load_blocker = Some(LoadBlocker::new(
-                    &*document,
+                    &document,
                     LoadType::Subframe(load_data.url.clone()),
                 ));
             },
@@ -182,12 +182,12 @@ impl HTMLIFrameElement {
         let global_scope = window.upcast::<GlobalScope>();
         let load_info = IFrameLoadInfo {
             parent_pipeline_id: global_scope.pipeline_id(),
-            browsing_context_id: browsing_context_id,
-            top_level_browsing_context_id: top_level_browsing_context_id,
-            new_pipeline_id: new_pipeline_id,
+            browsing_context_id,
+            top_level_browsing_context_id,
+            new_pipeline_id,
             is_private: false, // FIXME
             inherited_secure_context: load_data.inherited_secure_context,
-            replace: replace,
+            replace,
         };
 
         let window_size = WindowSizeData {
@@ -204,7 +204,7 @@ impl HTMLIFrameElement {
                 let load_info = IFrameLoadInfoWithData {
                     info: load_info,
                     load_data: load_data.clone(),
-                    old_pipeline_id: old_pipeline_id,
+                    old_pipeline_id,
                     sandbox: sandboxed,
                     window_size,
                 };
@@ -215,11 +215,11 @@ impl HTMLIFrameElement {
 
                 let new_layout_info = NewLayoutInfo {
                     parent_info: Some(global_scope.pipeline_id()),
-                    new_pipeline_id: new_pipeline_id,
-                    browsing_context_id: browsing_context_id,
-                    top_level_browsing_context_id: top_level_browsing_context_id,
+                    new_pipeline_id,
+                    browsing_context_id,
+                    top_level_browsing_context_id,
                     opener: None,
-                    load_data: load_data,
+                    load_data,
                     window_size,
                 };
 
@@ -229,8 +229,8 @@ impl HTMLIFrameElement {
             PipelineType::Navigation => {
                 let load_info = IFrameLoadInfoWithData {
                     info: load_info,
-                    load_data: load_data,
-                    old_pipeline_id: old_pipeline_id,
+                    load_data,
+                    old_pipeline_id,
                     sandbox: sandboxed,
                     window_size,
                 };
@@ -320,7 +320,7 @@ impl HTMLIFrameElement {
                     return;
                 }
             }
-            ancestor = a.parent().map(|p| DomRoot::from_ref(p));
+            ancestor = a.parent().map(DomRoot::from_ref);
         }
 
         let creator_pipeline_id = if url.as_str() == "about:blank" {
@@ -517,13 +517,13 @@ impl HTMLIFrameElementLayoutMethods for LayoutDom<'_, HTMLIFrameElement> {
     #[inline]
     #[allow(unsafe_code)]
     fn pipeline_id(self) -> Option<PipelineId> {
-        unsafe { (*self.unsafe_get()).pipeline_id.get() }
+        unsafe { (self.unsafe_get()).pipeline_id.get() }
     }
 
     #[inline]
     #[allow(unsafe_code)]
     fn browsing_context_id(self) -> Option<BrowsingContextId> {
-        unsafe { (*self.unsafe_get()).browsing_context_id.get() }
+        unsafe { (self.unsafe_get()).browsing_context_id.get() }
     }
 
     fn get_width(self) -> LengthOrPercentageOrAuto {
@@ -578,7 +578,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     fn GetContentWindow(&self) -> Option<DomRoot<WindowProxy>> {
         self.browsing_context_id
             .get()
-            .and_then(|browsing_context_id| ScriptThread::find_window_proxy(browsing_context_id))
+            .and_then(ScriptThread::find_window_proxy)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentdocument
@@ -642,8 +642,8 @@ impl VirtualMethods for HTMLIFrameElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        match attr.local_name() {
-            &local_name!("sandbox") => {
+        match *attr.local_name() {
+            local_name!("sandbox") => {
                 self.sandbox_allowance
                     .set(mutation.new_value(attr).map(|value| {
                         let mut modes = SandboxAllowance::ALLOW_NOTHING;
@@ -661,7 +661,7 @@ impl VirtualMethods for HTMLIFrameElement {
                         modes
                     }));
             },
-            &local_name!("srcdoc") => {
+            local_name!("srcdoc") => {
                 // https://html.spec.whatwg.org/multipage/#the-iframe-element:the-iframe-element-9
                 // "Whenever an iframe element with a non-null nested browsing context has its
                 // srcdoc attribute set, changed, or removed, the user agent must process the
@@ -677,7 +677,7 @@ impl VirtualMethods for HTMLIFrameElement {
                     self.process_the_iframe_attributes(ProcessingMode::NotFirstTime);
                 }
             },
-            &local_name!("src") => {
+            local_name!("src") => {
                 // https://html.spec.whatwg.org/multipage/#the-iframe-element
                 // "Similarly, whenever an iframe element with a non-null nested browsing context
                 // but with no srcdoc attribute specified has its src attribute set, changed, or removed,
@@ -696,10 +696,10 @@ impl VirtualMethods for HTMLIFrameElement {
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
-        match name {
-            &local_name!("sandbox") => AttrValue::from_serialized_tokenlist(value.into()),
-            &local_name!("width") => AttrValue::from_dimension(value.into()),
-            &local_name!("height") => AttrValue::from_dimension(value.into()),
+        match *name {
+            local_name!("sandbox") => AttrValue::from_serialized_tokenlist(value.into()),
+            local_name!("width") => AttrValue::from_dimension(value.into()),
+            local_name!("height") => AttrValue::from_dimension(value.into()),
             _ => self
                 .super_type()
                 .unwrap()
@@ -708,7 +708,7 @@ impl VirtualMethods for HTMLIFrameElement {
     }
 
     fn bind_to_tree(&self, context: &BindContext) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.bind_to_tree(context);
         }
 

@@ -194,7 +194,7 @@ impl TaskManager {
 
     pub fn task_canceller(&self, name: TaskSourceName) -> TaskCanceller {
         let mut flags = self.task_cancellers.borrow_mut();
-        let cancel_flag = flags.entry(name).or_insert(Default::default());
+        let cancel_flag = flags.entry(name).or_default();
         TaskCanceller {
             cancelled: cancel_flag.clone(),
         }

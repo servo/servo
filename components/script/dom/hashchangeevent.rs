@@ -29,8 +29,8 @@ impl HashChangeEvent {
     fn new_inherited(old_url: String, new_url: String) -> HashChangeEvent {
         HashChangeEvent {
             event: Event::new_inherited(),
-            old_url: old_url,
-            new_url: new_url,
+            old_url,
+            new_url,
         }
     }
 

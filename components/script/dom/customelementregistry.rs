@@ -526,11 +526,11 @@ impl CustomElementDefinition {
         callbacks: LifecycleCallbacks,
     ) -> CustomElementDefinition {
         CustomElementDefinition {
-            name: name,
-            local_name: local_name,
-            constructor: constructor,
-            observed_attributes: observed_attributes,
-            callbacks: callbacks,
+            name,
+            local_name,
+            constructor,
+            observed_attributes,
+            callbacks,
             construction_stack: Default::default(),
         }
     }

@@ -22,7 +22,7 @@ pub struct DOMManipulationTaskSource(pub Box<dyn ScriptChan + Send>, #[no_trace]
 
 impl Clone for DOMManipulationTaskSource {
     fn clone(&self) -> DOMManipulationTaskSource {
-        DOMManipulationTaskSource(self.0.clone(), self.1.clone())
+        DOMManipulationTaskSource(self.0.clone(), self.1)
     }
 }
 
@@ -61,10 +61,10 @@ impl DOMManipulationTaskSource {
     ) {
         let target = Trusted::new(target);
         let task = EventTask {
-            target: target,
-            name: name,
-            bubbles: bubbles,
-            cancelable: cancelable,
+            target,
+            name,
+            bubbles,
+            cancelable,
         };
         let _ = self.queue(task, window.upcast());
     }

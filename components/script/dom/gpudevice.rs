@@ -499,7 +499,7 @@ impl GPUDeviceMethods for GPUDevice {
 
                 wgt::BindGroupLayoutEntry {
                     binding: bind.binding,
-                    visibility: visibility,
+                    visibility,
                     ty,
                     count: None,
                 }

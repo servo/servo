@@ -16,7 +16,7 @@ pub struct NetworkingTaskSource(
 
 impl Clone for NetworkingTaskSource {
     fn clone(&self) -> NetworkingTaskSource {
-        NetworkingTaskSource(self.0.clone(), self.1.clone())
+        NetworkingTaskSource(self.0.clone(), self.1)
     }
 }
 

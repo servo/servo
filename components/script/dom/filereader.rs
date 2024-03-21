@@ -62,9 +62,9 @@ impl ReadMetaData {
         function: FileReaderFunction,
     ) -> ReadMetaData {
         ReadMetaData {
-            blobtype: blobtype,
-            label: label,
-            function: function,
+            blobtype,
+            label,
+            function,
         }
     }
 }

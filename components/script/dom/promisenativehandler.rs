@@ -34,8 +34,8 @@ impl PromiseNativeHandler {
         reflect_dom_object(
             Box::new(PromiseNativeHandler {
                 reflector: Reflector::new(),
-                resolve: resolve,
-                reject: reject,
+                resolve,
+                reject,
             }),
             global,
         )

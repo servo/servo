@@ -31,7 +31,7 @@ impl File {
     fn new_inherited(blob_impl: &BlobImpl, name: DOMString, modified: Option<i64>) -> File {
         File {
             blob: Blob::new_inherited(blob_impl),
-            name: name,
+            name,
             // https://w3c.github.io/FileAPI/#dfn-lastModified
             modified: match modified {
                 Some(m) => m,

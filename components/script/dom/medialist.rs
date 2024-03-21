@@ -37,7 +37,7 @@ impl MediaList {
         MediaList {
             parent_stylesheet: Dom::from_ref(parent_stylesheet),
             reflector_: Reflector::new(),
-            media_queries: media_queries,
+            media_queries,
         }
     }
 

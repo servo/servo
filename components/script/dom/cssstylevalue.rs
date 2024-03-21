@@ -22,7 +22,7 @@ impl CSSStyleValue {
     fn new_inherited(value: String) -> CSSStyleValue {
         CSSStyleValue {
             reflector: Reflector::new(),
-            value: value,
+            value,
         }
     }
 

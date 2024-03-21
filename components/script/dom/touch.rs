@@ -37,7 +37,7 @@ impl Touch {
     ) -> Touch {
         Touch {
             reflector_: Reflector::new(),
-            identifier: identifier,
+            identifier,
             target: MutDom::new(target),
             screen_x: *screen_x,
             screen_y: *screen_y,
