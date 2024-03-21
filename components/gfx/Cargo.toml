@@ -55,7 +55,7 @@ harfbuzz-sys = { version = "0.6", features = ["bundled"] }
 freetype = "0.7"
 servo_allocator = { path = "../allocator" }
 
-[target.'cfg(target_os = "linux")'.dependencies]
+[target.'cfg(all(target_os = "linux", not(target_env = "ohos")))'.dependencies]
 fontconfig_sys = { package = "yeslogic-fontconfig-sys", version = "5" }
 
 [target.'cfg(target_os = "android")'.dependencies]
