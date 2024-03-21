@@ -166,7 +166,7 @@ impl Bluetooth {
         // Step 2.2: There are no requiredServiceUUIDS, we scan for all devices.
         let mut uuid_filters = vec![];
 
-        if let &Some(ref filters) = filters {
+        if let Some(filters) = filters {
             // Step 2.1.
             if filters.is_empty() {
                 p.reject_error(Type(FILTER_EMPTY_ERROR.to_owned()));

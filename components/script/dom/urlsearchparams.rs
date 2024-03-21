@@ -118,12 +118,10 @@ impl URLSearchParamsMethods for URLSearchParams {
     // https://url.spec.whatwg.org/#dom-urlsearchparams-delete
     fn Delete(&self, name: USVString, value: Option<USVString>) {
         // Step 1.
-        self.list
-            .borrow_mut()
-            .retain(|&(ref k, ref v)| match &value {
-                Some(value) => !(k == &name.0 && v == &value.0),
-                None => k != &name.0,
-            });
+        self.list.borrow_mut().retain(|(k, v)| match &value {
+            Some(value) => !(k == &name.0 && v == &value.0),
+            None => k != &name.0,
+        });
         // Step 2.
         self.update_steps();
     }
@@ -140,7 +138,7 @@ impl URLSearchParamsMethods for URLSearchParams {
     fn GetAll(&self, name: USVString) -> Vec<USVString> {
         let list = self.list.borrow();
         list.iter()
-            .filter_map(|&(ref k, ref v)| {
+            .filter_map(|(k, v)| {
                 if k == &name.0 {
                     Some(USVString(v.clone()))
                 } else {
@@ -153,7 +151,7 @@ impl URLSearchParamsMethods for URLSearchParams {
     // https://url.spec.whatwg.org/#dom-urlsearchparams-has
     fn Has(&self, name: USVString, value: Option<USVString>) -> bool {
         let list = self.list.borrow();
-        list.iter().any(|&(ref k, ref v)| match &value {
+        list.iter().any(|(k, v)| match &value {
             Some(value) => k == &name.0 && v == &value.0,
             None => k == &name.0,
         })
@@ -166,7 +164,7 @@ impl URLSearchParamsMethods for URLSearchParams {
             let mut list = self.list.borrow_mut();
             let mut index = None;
             let mut i = 0;
-            list.retain(|&(ref k, _)| {
+            list.retain(|(k, _)| {
                 if index.is_none() {
                     if k == &name.0 {
                         index = Some(i);

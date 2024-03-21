@@ -2796,7 +2796,7 @@ impl NodeMethods for Node {
                 }
                 while children
                     .peek()
-                    .map_or(false, |&(_, ref sibling)| sibling.is::<Text>())
+                    .map_or(false, |(_, sibling)| sibling.is::<Text>())
                 {
                     let (index, sibling) = children.next().unwrap();
                     sibling
@@ -3431,7 +3431,7 @@ unsafe_no_jsmanaged_fields!(UniqueId);
 impl MallocSizeOf for UniqueId {
     #[allow(unsafe_code)]
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        if let &Some(ref uuid) = unsafe { &*self.cell.get() } {
+        if let Some(uuid) = unsafe { &*self.cell.get() } {
             unsafe { ops.malloc_size_of(&**uuid) }
         } else {
             0

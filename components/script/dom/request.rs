@@ -858,10 +858,10 @@ impl Into<RequestRedirect> for NetTraitsRequestRedirect {
 impl Clone for HeadersInit {
     fn clone(&self) -> HeadersInit {
         match self {
-            &HeadersInit::ByteStringSequenceSequence(ref b) => {
+            HeadersInit::ByteStringSequenceSequence(b) => {
                 HeadersInit::ByteStringSequenceSequence(b.clone())
             },
-            &HeadersInit::ByteStringByteStringRecord(ref m) => {
+            HeadersInit::ByteStringByteStringRecord(m) => {
                 HeadersInit::ByteStringByteStringRecord(m.clone())
             },
         }
