@@ -33,7 +33,7 @@ extern "C" {
 }
 
 #[no_mangle]
-pub fn android_main() {
+pub extern "C" fn android_main() {
     // FIXME(mukilan): this android_main is only present to stop
     // the java side 'System.loadLibrary('simpleservo') call from
     // failing due to undefined reference to android_main introduced
@@ -56,13 +56,16 @@ where
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_version(env: JNIEnv, _class: JClass) -> jstring {
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_version(
+    env: JNIEnv,
+    _class: JClass,
+) -> jstring {
     let v = simpleservo::servo_version();
     new_string(&env, &v).unwrap_or_else(|null| null)
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_init(
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_init(
     env: JNIEnv,
     _: JClass,
     _activity: JObject,
@@ -135,25 +138,33 @@ pub fn Java_org_mozilla_servoview_JNIServo_init(
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_setBatchMode(env: JNIEnv, _: JClass, batch: jboolean) {
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_setBatchMode(
+    env: JNIEnv,
+    _: JClass,
+    batch: jboolean,
+) {
     debug!("setBatchMode");
     call(&env, |s| s.set_batch_mode(batch == JNI_TRUE));
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_requestShutdown(env: JNIEnv, _class: JClass) {
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_requestShutdown(env: JNIEnv, _class: JClass) {
     debug!("requestShutdown");
     call(&env, |s| s.request_shutdown());
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_deinit(_env: JNIEnv, _class: JClass) {
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_deinit(_env: JNIEnv, _class: JClass) {
     debug!("deinit");
     simpleservo::deinit();
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_resize(env: JNIEnv, _: JClass, coordinates: JObject) {
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_resize(
+    env: JNIEnv,
+    _: JClass,
+    coordinates: JObject,
+) {
     let coords = jni_coords_to_rust_coords(&env, coordinates);
     debug!("resize {:#?}", coords);
     match coords {
@@ -163,13 +174,17 @@ pub fn Java_org_mozilla_servoview_JNIServo_resize(env: JNIEnv, _: JClass, coordi
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_performUpdates(env: JNIEnv, _class: JClass) {
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_performUpdates(env: JNIEnv, _class: JClass) {
     debug!("performUpdates");
     call(&env, |s| s.perform_updates());
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_loadUri(env: JNIEnv, _class: JClass, url: JString) {
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_loadUri(
+    env: JNIEnv,
+    _class: JClass,
+    url: JString,
+) {
     debug!("loadUri");
     match env.get_string(url) {
         Ok(url) => {
@@ -183,37 +198,37 @@ pub fn Java_org_mozilla_servoview_JNIServo_loadUri(env: JNIEnv, _class: JClass, 
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_reload(env: JNIEnv, _class: JClass) {
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_reload(env: JNIEnv, _class: JClass) {
     debug!("reload");
     call(&env, |s| s.reload());
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_stop(env: JNIEnv, _class: JClass) {
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_stop(env: JNIEnv, _class: JClass) {
     debug!("stop");
     call(&env, |s| s.stop());
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_refresh(env: JNIEnv, _class: JClass) {
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_refresh(env: JNIEnv, _class: JClass) {
     debug!("refresh");
     call(&env, |s| s.refresh());
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_goBack(env: JNIEnv, _class: JClass) {
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_goBack(env: JNIEnv, _class: JClass) {
     debug!("goBack");
     call(&env, |s| s.go_back());
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_goForward(env: JNIEnv, _class: JClass) {
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_goForward(env: JNIEnv, _class: JClass) {
     debug!("goForward");
     call(&env, |s| s.go_forward());
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_scrollStart(
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_scrollStart(
     env: JNIEnv,
     _: JClass,
     dx: jint,
@@ -228,7 +243,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_scrollStart(
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_scrollEnd(
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_scrollEnd(
     env: JNIEnv,
     _: JClass,
     dx: jint,
@@ -243,7 +258,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_scrollEnd(
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_scroll(
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_scroll(
     env: JNIEnv,
     _: JClass,
     dx: jint,
@@ -256,7 +271,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_scroll(
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_touchDown(
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_touchDown(
     env: JNIEnv,
     _: JClass,
     x: jfloat,
@@ -268,7 +283,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_touchDown(
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_touchUp(
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_touchUp(
     env: JNIEnv,
     _: JClass,
     x: jfloat,
@@ -280,7 +295,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_touchUp(
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_touchMove(
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_touchMove(
     env: JNIEnv,
     _: JClass,
     x: jfloat,
@@ -292,7 +307,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_touchMove(
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_touchCancel(
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_touchCancel(
     env: JNIEnv,
     _: JClass,
     x: jfloat,
@@ -304,7 +319,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_touchCancel(
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_pinchZoomStart(
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_pinchZoomStart(
     env: JNIEnv,
     _: JClass,
     factor: jfloat,
@@ -318,7 +333,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_pinchZoomStart(
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_pinchZoom(
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_pinchZoom(
     env: JNIEnv,
     _: JClass,
     factor: jfloat,
@@ -330,7 +345,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_pinchZoom(
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_pinchZoomEnd(
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_pinchZoomEnd(
     env: JNIEnv,
     _: JClass,
     factor: jfloat,
@@ -342,19 +357,24 @@ pub fn Java_org_mozilla_servoview_JNIServo_pinchZoomEnd(
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_click(env: JNIEnv, _: JClass, x: jfloat, y: jfloat) {
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_click(
+    env: JNIEnv,
+    _: JClass,
+    x: jfloat,
+    y: jfloat,
+) {
     debug!("click");
     call(&env, |s| s.click(x as f32, y as f32));
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_pauseCompositor(env: JNIEnv, _: JClass) {
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_pauseCompositor(env: JNIEnv, _: JClass) {
     debug!("pauseCompositor");
     call(&env, |s| s.pause_compositor());
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_resumeCompositor(
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_resumeCompositor(
     env: JNIEnv,
     _: JClass,
     surface: JObject,
@@ -370,7 +390,7 @@ pub fn Java_org_mozilla_servoview_JNIServo_resumeCompositor(
 }
 
 #[no_mangle]
-pub fn Java_org_mozilla_servoview_JNIServo_mediaSessionAction(
+pub extern "C" fn Java_org_mozilla_servoview_JNIServo_mediaSessionAction(
     env: JNIEnv,
     _: JClass,
     action: jint,
