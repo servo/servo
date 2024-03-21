@@ -26,7 +26,7 @@ mod freetype {
 
     pub mod font;
 
-    #[cfg(target_os = "linux")]
+    #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
     pub mod font_list;
     #[cfg(target_os = "android")]
     mod android {
@@ -35,6 +35,12 @@ mod freetype {
     }
     #[cfg(target_os = "android")]
     pub use self::android::font_list;
+    #[cfg(target_env = "ohos")]
+    mod ohos {
+        pub mod font_list;
+    }
+    #[cfg(target_env = "ohos")]
+    pub use self::ohos::font_list;
 
     pub mod library_handle;
 }
