@@ -569,17 +569,17 @@ pub enum RangeRequestBounds {
 }
 
 impl RangeRequestBounds {
-    pub fn get_final(&self, len: Option<u64>) -> Option<RelativePos> {
+    pub fn get_final(&self, len: Option<u64>) -> Result<RelativePos, &'static str> {
         match self {
             RangeRequestBounds::Final(pos) => {
                 if let Some(len) = len {
                     if pos.start <= len as i64 {
-                        return Some(pos.clone());
+                        return Ok(pos.clone());
                     }
                 }
-                None
+                Err("Tried to process RangeRequestBounds::Final without len")
             },
-            RangeRequestBounds::Pending(offset) => Some(RelativePos::from_opts(
+            RangeRequestBounds::Pending(offset) => Ok(RelativePos::from_opts(
                 if let Some(len) = len {
                     Some((len - u64::min(len, *offset)) as i64)
                 } else {
@@ -750,7 +750,7 @@ async fn scheme_fetch(
 
                     let range_header = request.headers.typed_get::<Range>();
                     let is_range_request = range_header.is_some();
-                    let Some(range) = get_range_request_bounds(range_header).get_final(file_size)
+                    let Ok(range) = get_range_request_bounds(range_header).get_final(file_size)
                     else {
                         range_not_satisfiable_error(&mut response);
                         return response;
