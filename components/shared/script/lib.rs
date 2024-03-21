@@ -1227,12 +1227,12 @@ impl WebrenderIpcSender {
     }
 
     /// Create a new image key. Blocks until the key is available.
-    pub fn generate_image_key(&self) -> Result<ImageKey, ()> {
+    pub fn generate_image_key(&self) -> Option<ImageKey> {
         let (sender, receiver) = ipc::channel().unwrap();
         self.0
             .send(ScriptToCompositorMsg::GenerateImageKey(sender))
-            .map_err(|_| ())?;
-        receiver.recv().map_err(|_| ())
+            .ok()?;
+        receiver.recv().ok()
     }
 
     /// Perform a resource update operation.
