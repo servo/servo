@@ -349,7 +349,7 @@ pub struct Window {
     #[no_trace]
     player_context: WindowGLContext,
 
-    visible: Cell<bool>,
+    throttled: Cell<bool>,
 
     /// A shared marker for the validity of any cached layout values. A value of true
     /// indicates that any such values remain valid; any new layout that invalidates
@@ -2454,18 +2454,18 @@ impl Window {
         self.Document().react_to_environment_changes();
     }
 
-    /// Slow down/speed up timers based on visibility.
-    pub fn alter_resource_utilization(&self, visible: bool) {
-        self.visible.set(visible);
-        if visible {
-            self.upcast::<GlobalScope>().speed_up_timers();
-        } else {
+    /// Set whether to use less resources by running timers at a heavily limited rate.
+    pub fn set_throttled(&self, throttled: bool) {
+        self.throttled.set(throttled);
+        if throttled {
             self.upcast::<GlobalScope>().slow_down_timers();
+        } else {
+            self.upcast::<GlobalScope>().speed_up_timers();
         }
     }
 
-    pub fn visible(&self) -> bool {
-        self.visible.get()
+    pub fn throttled(&self) -> bool {
+        self.throttled.get()
     }
 
     pub fn unminified_js_dir(&self) -> Option<String> {
@@ -2621,7 +2621,7 @@ impl Window {
             userscripts_path,
             replace_surrogates,
             player_context,
-            visible: Cell::new(true),
+            throttled: Cell::new(false),
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),
             current_event: DomRefCell::new(None),
         });
