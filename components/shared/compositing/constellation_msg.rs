@@ -76,8 +76,8 @@ pub enum ConstellationMsg {
     ExitFullScreen(TopLevelBrowsingContextId),
     /// Media session action.
     MediaSessionAction(MediaSessionActionType),
-    /// The visibility of the webview has changed.
-    WebViewVisibilityChanged(TopLevelBrowsingContextId, bool),
+    /// Set whether to use less resources, by stopping animations and running timers at a heavily limited rate.
+    SetWebViewThrottled(TopLevelBrowsingContextId, bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
     /// Compositing done, but external code needs to present.
@@ -115,7 +115,7 @@ impl fmt::Debug for ConstellationMsg {
             DisableProfiler => "DisableProfiler",
             ExitFullScreen(..) => "ExitFullScreen",
             MediaSessionAction(..) => "MediaSessionAction",
-            WebViewVisibilityChanged(..) => "WebViewVisibilityChanged",
+            SetWebViewThrottled(..) => "SetWebViewThrottled",
             IMEDismissed => "IMEDismissed",
             ClearCache => "ClearCache",
             ReadyToPresent(..) => "ReadyToPresent",

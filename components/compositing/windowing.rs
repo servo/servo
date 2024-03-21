@@ -103,8 +103,8 @@ pub enum EmbedderEvent {
     /// Sent when the user triggers a media action through the UA exposed media UI
     /// (play, pause, seek, etc.).
     MediaSessionAction(MediaSessionActionType),
-    /// The visibility of the webview has changed.
-    WebViewVisibilityChanged(TopLevelBrowsingContextId, bool),
+    /// Set whether to use less resources, by stopping animations and running timers at a heavily limited rate.
+    SetWebViewThrottled(TopLevelBrowsingContextId, bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
     /// Sent on platforms like Android where the native widget surface can be
@@ -148,7 +148,7 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::ToggleSamplingProfiler(..) => write!(f, "ToggleSamplingProfiler"),
             EmbedderEvent::ExitFullScreen(..) => write!(f, "ExitFullScreen"),
             EmbedderEvent::MediaSessionAction(..) => write!(f, "MediaSessionAction"),
-            EmbedderEvent::WebViewVisibilityChanged(..) => write!(f, "WebViewVisibilityChanged"),
+            EmbedderEvent::SetWebViewThrottled(..) => write!(f, "SetWebViewThrottled"),
             EmbedderEvent::IMEDismissed => write!(f, "IMEDismissed"),
             EmbedderEvent::ClearCache => write!(f, "ClearCache"),
             EmbedderEvent::InvalidateNativeSurface => write!(f, "InvalidateNativeSurface"),
