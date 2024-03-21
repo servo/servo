@@ -1544,7 +1544,15 @@ impl HTMLMediaElement {
                                 // If at any time the user agent learns that an audio or video
                                 // track has ended..
                                 if let Some(idx) = self.VideoTracks().selected_index() {
-                                    self.VideoTracks().remove(idx);
+                                    let track = self.VideoTracks().remove(idx);
+                                    let event = TrackEvent::new(
+                                        &self.global(),
+                                        atom!("removetrack"),
+                                        false,
+                                        false,
+                                        &Some(VideoTrackOrAudioTrackOrTextTrack::VideoTrack(track)),
+                                    );
+                                    event.upcast::<Event>().fire(self.upcast::<EventTarget>());
                                 }
 
                                 // TODO(pylbrecht): Fire "removetrack" event at the media element's
@@ -1565,9 +1573,16 @@ impl HTMLMediaElement {
                                 // If at any time the user agent learns that an audio or video
                                 // track has ended..
                                 if let Some(idx) = self.VideoTracks().selected_index() {
-                                    self.VideoTracks().remove(idx);
+                                    let track = self.VideoTracks().remove(idx);
+                                    let event = TrackEvent::new(
+                                        &self.global(),
+                                        atom!("removetrack"),
+                                        false,
+                                        false,
+                                        &Some(VideoTrackOrAudioTrackOrTextTrack::VideoTrack(track)),
+                                    );
+                                    event.upcast::<Event>().fire(self.upcast::<EventTarget>());
                                 }
-
                                 // TODO(pylbrecht): Fire "removetrack" event at the media element's
                                 // VideoTrackList object
                             }
