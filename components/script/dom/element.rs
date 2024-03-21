@@ -289,9 +289,9 @@ impl Element {
     ) -> Element {
         Element {
             node: Node::new_inherited(document),
-            local_name: local_name,
+            local_name,
             tag_name: TagName::new(),
-            namespace: namespace,
+            namespace,
             prefix: DomRefCell::new(prefix),
             attrs: DomRefCell::new(vec![]),
             id_attribute: DomRefCell::new(None),
@@ -1299,7 +1299,7 @@ impl Element {
             &mut writer,
             &self.upcast::<Node>(),
             SerializeOpts {
-                traversal_scope: traversal_scope,
+                traversal_scope,
                 ..Default::default()
             },
         ) {
@@ -1316,7 +1316,7 @@ impl Element {
             &mut writer,
             &self.upcast::<Node>(),
             XmlSerializeOpts {
-                traversal_scope: traversal_scope,
+                traversal_scope,
                 ..Default::default()
             },
         ) {
@@ -3840,9 +3840,9 @@ impl ElementPerformFullscreenEnter {
         error: bool,
     ) -> Box<ElementPerformFullscreenEnter> {
         Box::new(ElementPerformFullscreenEnter {
-            element: element,
-            promise: promise,
-            error: error,
+            element,
+            promise,
+            error,
         })
     }
 }
@@ -3891,10 +3891,7 @@ impl ElementPerformFullscreenExit {
         element: Trusted<Element>,
         promise: TrustedPromise,
     ) -> Box<ElementPerformFullscreenExit> {
-        Box::new(ElementPerformFullscreenExit {
-            element: element,
-            promise: promise,
-        })
+        Box::new(ElementPerformFullscreenExit { element, promise })
     }
 }
 

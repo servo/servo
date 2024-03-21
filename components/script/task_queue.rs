@@ -86,7 +86,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
     /// <https://html.spec.whatwg.org/multipage/#event-loop-processing-model:fully-active>
     fn store_task_for_inactive_pipeline(&self, msg: T, pipeline_id: &PipelineId) {
         let mut inactive = self.inactive.borrow_mut();
-        let inactive_queue = inactive.entry(pipeline_id.clone()).or_default();
+        let inactive_queue = inactive.entry(*pipeline_id).or_default();
         inactive_queue.push_back(
             msg.into_queued_task()
                 .expect("Incoming messages should always be convertible into queued tasks"),
@@ -152,7 +152,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
                 }
             }
             // Immediately send non-throttled tasks for processing.
-            let _ = self.msg_queue.borrow_mut().push_back(msg);
+            self.msg_queue.borrow_mut().push_back(msg);
         }
 
         for msg in to_be_throttled {
@@ -237,16 +237,16 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
                             // Reduce the length of throttles,
                             // but don't add the task to "msg_queue",
                             // and neither increment "taken_task_counter".
-                            throttled_length = throttled_length - 1;
+                            throttled_length -= 1;
                             continue;
                         }
                     }
 
                     // Make the task available for the event-loop to handle as a message.
-                    let _ = self.msg_queue.borrow_mut().push_back(msg);
+                    self.msg_queue.borrow_mut().push_back(msg);
                     self.taken_task_counter
                         .set(self.taken_task_counter.get() + 1);
-                    throttled_length = throttled_length - 1;
+                    throttled_length -= 1;
                 },
             }
         }

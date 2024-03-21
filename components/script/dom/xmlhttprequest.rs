@@ -214,7 +214,7 @@ impl XMLHttpRequest {
             generation_id: Cell::new(GenerationId(0)),
             response_status: Cell::new(Ok(())),
             referrer: global.get_referrer(),
-            referrer_policy: referrer_policy,
+            referrer_policy,
             canceller: DomRefCell::new(Default::default()),
         }
     }
@@ -311,8 +311,8 @@ impl XMLHttpRequest {
         let (action_sender, action_receiver) = ipc::channel().unwrap();
 
         let listener = NetworkListener {
-            context: context,
-            task_source: task_source,
+            context,
+            task_source,
             canceller: Some(global.task_canceller(TaskSourceName::Networking)),
         };
         ROUTER.add_route(

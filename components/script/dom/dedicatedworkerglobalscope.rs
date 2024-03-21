@@ -78,7 +78,7 @@ impl<'a> AutoWorkerReset<'a> {
         worker: TrustedWorkerAddress,
     ) -> AutoWorkerReset<'a> {
         AutoWorkerReset {
-            workerscope: workerscope,
+            workerscope,
             old_worker: replace(&mut *workerscope.worker.borrow_mut(), Some(worker)),
         }
     }
@@ -268,10 +268,10 @@ impl DedicatedWorkerGlobalScope {
                 gpu_id_hub,
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
-            own_sender: own_sender,
-            parent_sender: parent_sender,
+            own_sender,
+            parent_sender,
             worker: DomRefCell::new(None),
-            image_cache: image_cache,
+            image_cache,
             browsing_context,
             control_receiver,
         }

@@ -161,7 +161,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
             .upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("height"));
         HTMLCanvasData {
-            source: source,
+            source,
             width: width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint()),
             height: height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint()),
             canvas_id: self.get_canvas_id_for_layout(),

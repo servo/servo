@@ -133,7 +133,7 @@ impl OneshotTimers {
         OneshotTimers {
             js_timers: JsTimers::new(),
             timer_event_chan: DomRefCell::new(None),
-            scheduler_chan: scheduler_chan,
+            scheduler_chan,
             next_timer_handle: Cell::new(OneshotTimerHandle(1)),
             timers: DomRefCell::new(Vec::new()),
             suspended_since: Cell::new(None),
@@ -162,9 +162,9 @@ impl OneshotTimers {
 
         let timer = OneshotTimer {
             handle: new_handle,
-            source: source,
-            callback: callback,
-            scheduled_for: scheduled_for,
+            source,
+            callback,
+            scheduled_for,
         };
 
         {
@@ -468,9 +468,9 @@ impl JsTimers {
         // step 4
         let mut task = JsTimerTask {
             handle: JsTimerHandle(new_handle),
-            source: source,
-            callback: callback,
-            is_interval: is_interval,
+            source,
+            callback,
+            is_interval,
             is_user_interacting: ScriptThread::is_user_interacting(),
             nesting_level: 0,
             duration: Length::new(0),

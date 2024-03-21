@@ -30,7 +30,7 @@ impl CSSNamespaceRule {
     ) -> CSSNamespaceRule {
         CSSNamespaceRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
-            namespacerule: namespacerule,
+            namespacerule,
         }
     }
 

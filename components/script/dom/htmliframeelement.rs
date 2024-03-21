@@ -182,12 +182,12 @@ impl HTMLIFrameElement {
         let global_scope = window.upcast::<GlobalScope>();
         let load_info = IFrameLoadInfo {
             parent_pipeline_id: global_scope.pipeline_id(),
-            browsing_context_id: browsing_context_id,
-            top_level_browsing_context_id: top_level_browsing_context_id,
-            new_pipeline_id: new_pipeline_id,
+            browsing_context_id,
+            top_level_browsing_context_id,
+            new_pipeline_id,
             is_private: false, // FIXME
             inherited_secure_context: load_data.inherited_secure_context,
-            replace: replace,
+            replace,
         };
 
         let window_size = WindowSizeData {
@@ -204,7 +204,7 @@ impl HTMLIFrameElement {
                 let load_info = IFrameLoadInfoWithData {
                     info: load_info,
                     load_data: load_data.clone(),
-                    old_pipeline_id: old_pipeline_id,
+                    old_pipeline_id,
                     sandbox: sandboxed,
                     window_size,
                 };
@@ -215,11 +215,11 @@ impl HTMLIFrameElement {
 
                 let new_layout_info = NewLayoutInfo {
                     parent_info: Some(global_scope.pipeline_id()),
-                    new_pipeline_id: new_pipeline_id,
-                    browsing_context_id: browsing_context_id,
-                    top_level_browsing_context_id: top_level_browsing_context_id,
+                    new_pipeline_id,
+                    browsing_context_id,
+                    top_level_browsing_context_id,
                     opener: None,
-                    load_data: load_data,
+                    load_data,
                     window_size,
                 };
 
@@ -229,8 +229,8 @@ impl HTMLIFrameElement {
             PipelineType::Navigation => {
                 let load_info = IFrameLoadInfoWithData {
                     info: load_info,
-                    load_data: load_data,
-                    old_pipeline_id: old_pipeline_id,
+                    load_data,
+                    old_pipeline_id,
                     sandbox: sandboxed,
                     window_size,
                 };

@@ -52,7 +52,7 @@ impl ServiceWorkerRegistration {
             installing: DomRefCell::new(None),
             waiting: DomRefCell::new(None),
             navigation_preload: MutNullableDom::new(None),
-            scope: scope,
+            scope,
             navigation_preload_enabled: Cell::new(false),
             navigation_preload_header_value: DomRefCell::new(None),
             update_via_cache: ServiceWorkerUpdateViaCache::Imports,
@@ -121,11 +121,11 @@ impl ServiceWorkerRegistration {
         let devtools_chan = global.devtools_chan().cloned();
         let init = prepare_workerscope_init(global, None, None);
         ScopeThings {
-            script_url: script_url,
-            init: init,
-            worker_load_origin: worker_load_origin,
-            devtools_chan: devtools_chan,
-            worker_id: worker_id,
+            script_url,
+            init,
+            worker_load_origin,
+            devtools_chan,
+            worker_id,
         }
     }
 

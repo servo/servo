@@ -24,7 +24,7 @@ impl WorkerLocation {
     fn new_inherited(url: ServoUrl) -> WorkerLocation {
         WorkerLocation {
             reflector_: Reflector::new(),
-            url: url,
+            url,
         }
     }
 

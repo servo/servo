@@ -234,7 +234,7 @@ impl ServiceWorkerManager {
 
         ServiceWorkerManager {
             registrations: HashMap::new(),
-            own_sender: own_sender,
+            own_sender,
             own_port: from_constellation_receiver,
             resource_receiver: resource_port,
             _constellation_sender: constellation_sender,
@@ -364,7 +364,6 @@ impl ServiceWorkerManager {
                         active_worker: registration.active_worker.as_ref().map(|worker| worker.id),
                     },
                 ));
-                return;
             }
         } else {
             // Step 6: we do not have a registration.

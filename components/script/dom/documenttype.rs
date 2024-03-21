@@ -32,7 +32,7 @@ impl DocumentType {
     ) -> DocumentType {
         DocumentType {
             node: Node::new_inherited(document),
-            name: name,
+            name,
             public_id: public_id.unwrap_or_default(),
             system_id: system_id.unwrap_or_default(),
         }

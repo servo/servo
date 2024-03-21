@@ -147,10 +147,7 @@ pub enum ParsingAlgorithm {
 
 impl ElementAttribute {
     pub fn new(name: QualName, value: DOMString) -> ElementAttribute {
-        ElementAttribute {
-            name: name,
-            value: value,
-        }
+        ElementAttribute { name, value }
     }
 }
 
@@ -765,8 +762,8 @@ impl ParserContext {
         ParserContext {
             parser: None,
             is_synthesized_document: false,
-            id: id,
-            url: url,
+            id,
+            url,
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Navigation),
             pushed_entry_index: None,
         }

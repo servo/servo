@@ -40,7 +40,7 @@ impl MediaQueryList {
         MediaQueryList {
             eventtarget: EventTarget::new_inherited(),
             document: Dom::from_ref(document),
-            media_query_list: media_query_list,
+            media_query_list,
             last_match_state: Cell::new(None),
         }
     }

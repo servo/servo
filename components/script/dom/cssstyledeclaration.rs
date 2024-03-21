@@ -223,9 +223,9 @@ impl CSSStyleDeclaration {
     ) -> CSSStyleDeclaration {
         CSSStyleDeclaration {
             reflector_: Reflector::new(),
-            owner: owner,
+            owner,
             readonly: modification_access == CSSModificationAccess::Readonly,
-            pseudo: pseudo,
+            pseudo,
         }
     }
 

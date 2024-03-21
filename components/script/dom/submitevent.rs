@@ -29,7 +29,7 @@ impl SubmitEvent {
     fn new_inherited(submitter: Option<DomRoot<HTMLElement>>) -> SubmitEvent {
         SubmitEvent {
             event: Event::new_inherited(),
-            submitter: submitter,
+            submitter,
         }
     }
 

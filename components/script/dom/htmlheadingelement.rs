@@ -36,7 +36,7 @@ impl HTMLHeadingElement {
     ) -> HTMLHeadingElement {
         HTMLHeadingElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
-            level: level,
+            level,
         }
     }
 

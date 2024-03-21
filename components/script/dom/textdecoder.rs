@@ -40,9 +40,9 @@ impl TextDecoder {
     fn new_inherited(encoding: &'static Encoding, fatal: bool, ignoreBOM: bool) -> TextDecoder {
         TextDecoder {
             reflector_: Reflector::new(),
-            encoding: encoding,
-            fatal: fatal,
-            ignoreBOM: ignoreBOM,
+            encoding,
+            fatal,
+            ignoreBOM,
             decoder: RefCell::new(if ignoreBOM {
                 encoding.new_decoder()
             } else {

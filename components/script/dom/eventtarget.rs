@@ -468,11 +468,7 @@ impl EventTarget {
         ty: &str,
         source: DOMString,
     ) {
-        let handler = InternalRawUncompiledHandler {
-            source: source,
-            line: line,
-            url: url,
-        };
+        let handler = InternalRawUncompiledHandler { source, line, url };
         self.set_inline_event_listener(
             Atom::from(ty),
             Some(InlineEventListener::Uncompiled(handler)),
@@ -722,7 +718,7 @@ impl EventTarget {
             ListenerPhase::Bubbling
         };
         let new_entry = EventListenerEntry {
-            phase: phase,
+            phase,
             listener: EventListenerType::Additive(listener),
             once: options.once,
         };
@@ -751,7 +747,7 @@ impl EventTarget {
                 ListenerPhase::Bubbling
             };
             let old_entry = EventListenerEntry {
-                phase: phase,
+                phase,
                 listener: EventListenerType::Additive(listener.clone()),
                 once: false,
             };

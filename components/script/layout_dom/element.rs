@@ -357,8 +357,8 @@ impl<'dom, LayoutDataType: LayoutDataTrait> style::dom::TElement
 
     fn has_animations(&self, context: &SharedStyleContext) -> bool {
         // This is not used for pseudo elements currently so we can pass None.
-        return self.has_css_animations(context, /* pseudo_element = */ None) ||
-            self.has_css_transitions(context, /* pseudo_element = */ None);
+        self.has_css_animations(context, /* pseudo_element = */ None) ||
+            self.has_css_transitions(context, /* pseudo_element = */ None)
     }
 
     fn has_css_animations(

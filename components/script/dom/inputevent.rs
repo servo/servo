@@ -36,8 +36,8 @@ impl InputEvent {
         let ev = reflect_dom_object_with_proto(
             Box::new(InputEvent {
                 uievent: UIEvent::new_inherited(),
-                data: data,
-                is_composing: is_composing,
+                data,
+                is_composing,
             }),
             window,
             proto,

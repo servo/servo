@@ -270,10 +270,10 @@ impl<T: ClipboardProvider> TextInput<T> {
             edit_point: Default::default(),
             selection_origin: None,
             multiline: lines == Lines::Multiple,
-            clipboard_provider: clipboard_provider,
-            max_length: max_length,
-            min_length: min_length,
-            selection_direction: selection_direction,
+            clipboard_provider,
+            max_length,
+            min_length,
+            selection_direction,
             was_last_change_by_set_content: true,
         };
         i.set_content(initial);
@@ -1093,10 +1093,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                 }
             });
 
-        TextPoint {
-            line: line,
-            index: index,
-        }
+        TextPoint { line, index }
     }
 
     pub fn set_selection_range(&mut self, start: u32, end: u32, direction: SelectionDirection) {

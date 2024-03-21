@@ -78,9 +78,9 @@ fn close_the_websocket_connection(
     reason: String,
 ) {
     let close_task = CloseTask {
-        address: address,
+        address,
         failed: false,
-        code: code,
+        code,
         reason: Some(reason),
     };
     let _ = task_source.queue_with_canceller(close_task, canceller);
@@ -92,7 +92,7 @@ fn fail_the_websocket_connection(
     canceller: &TaskCanceller,
 ) {
     let close_task = CloseTask {
-        address: address,
+        address,
         failed: true,
         code: Some(close_code::ABNORMAL),
         reason: None,
@@ -119,11 +119,11 @@ impl WebSocket {
     fn new_inherited(url: ServoUrl, sender: IpcSender<WebSocketDomAction>) -> WebSocket {
         WebSocket {
             eventtarget: EventTarget::new_inherited(),
-            url: url,
+            url,
             ready_state: Cell::new(WebSocketRequestState::Connecting),
             buffered_amount: Cell::new(0),
             clearing_buffer: Cell::new(false),
-            sender: sender,
+            sender,
             binary_type: Cell::new(BinaryType::Blob),
             protocol: DomRefCell::new("".to_owned()),
         }
@@ -231,7 +231,7 @@ impl WebSocket {
                 WebSocketNetworkEvent::MessageReceived(message) => {
                     let message_thread = MessageReceivedTask {
                         address: address.clone(),
-                        message: message,
+                        message,
                     };
                     let _ = task_source.queue_with_canceller(message_thread, &canceller);
                 },
@@ -278,7 +278,7 @@ impl WebSocket {
         if !self.clearing_buffer.get() && self.ready_state.get() == WebSocketRequestState::Open {
             self.clearing_buffer.set(true);
 
-            let task = Box::new(BufferedAmountTask { address: address });
+            let task = Box::new(BufferedAmountTask { address });
 
             let pipeline_id = self.global().pipeline_id();
             self.global()

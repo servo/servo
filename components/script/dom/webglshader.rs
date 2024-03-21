@@ -53,7 +53,7 @@ impl WebGLShader {
         GLSLANG_INITIALIZATION.call_once(|| ::mozangle::shaders::initialize().unwrap());
         Self {
             webgl_object: WebGLObject::new_inherited(context),
-            id: id,
+            id,
             gl_type: shader_type,
             source: Default::default(),
             info_log: Default::default(),

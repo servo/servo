@@ -18,7 +18,7 @@ pub struct FileReadingTaskSource(
 
 impl Clone for FileReadingTaskSource {
     fn clone(&self) -> FileReadingTaskSource {
-        FileReadingTaskSource(self.0.clone(), self.1.clone())
+        FileReadingTaskSource(self.0.clone(), self.1)
     }
 }
 

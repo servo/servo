@@ -160,7 +160,7 @@ impl WebGL2RenderingContext {
             base: Dom::from_ref(&*base),
             occlusion_query: MutNullableDom::new(None),
             primitives_query: MutNullableDom::new(None),
-            samplers: samplers,
+            samplers,
             bound_copy_read_buffer: MutNullableDom::new(None),
             bound_copy_write_buffer: MutNullableDom::new(None),
             bound_pixel_pack_buffer: MutNullableDom::new(None),
@@ -892,8 +892,7 @@ impl WebGL2RenderingContext {
 
         handle_potential_webgl_error!(
             self.base,
-            texture.storage(target, levels, internal_format, width, height, depth),
-            return
+            texture.storage(target, levels, internal_format, width, height, depth)
         );
     }
 }
@@ -4197,8 +4196,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
         handle_potential_webgl_error!(
             self.base,
-            program.bind_uniform_block(block_index, block_binding),
-            return
+            program.bind_uniform_block(block_index, block_binding)
         )
     }
 

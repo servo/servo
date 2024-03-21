@@ -51,7 +51,7 @@ impl WebGLProgram {
     fn new_inherited(context: &WebGLRenderingContext, id: WebGLProgramId) -> Self {
         Self {
             webgl_object: WebGLObject::new_inherited(context),
-            id: id,
+            id,
             is_in_use: Default::default(),
             marked_for_deletion: Default::default(),
             link_called: Default::default(),

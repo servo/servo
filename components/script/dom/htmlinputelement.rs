@@ -524,7 +524,7 @@ impl HTMLInputElement {
                 return Some(min);
             }
         }
-        return self.default_minimum();
+        self.default_minimum()
     }
 
     // https://html.spec.whatwg.org/multipage#concept-input-max
@@ -538,7 +538,7 @@ impl HTMLInputElement {
                 return Some(max);
             }
         }
-        return self.default_maximum();
+        self.default_maximum()
     }
 
     // when allowed_value_step and minumum both exist, this is the smallest
@@ -1765,7 +1765,7 @@ impl HTMLInputElement {
                 if name.to_ascii_lowercase() == "_charset_" {
                     return vec![FormDatum {
                         ty: ty.clone(),
-                        name: name,
+                        name,
                         value: FormDatumValue::String(match encoding {
                             None => DOMString::from("UTF-8"),
                             Some(enc) => DOMString::from(enc.name()),
@@ -1785,7 +1785,7 @@ impl HTMLInputElement {
         // Step 5.12
         vec![FormDatum {
             ty: ty.clone(),
-            name: name,
+            name,
             value: FormDatumValue::String(self.Value()),
         }]
     }
@@ -2789,7 +2789,7 @@ impl Activatable for HTMLInputElement {
             },
             _ => (),
         }
-        return None;
+        None
     }
 
     // https://dom.spec.whatwg.org/#eventtarget-legacy-canceled-activation-behavior

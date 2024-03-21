@@ -29,9 +29,9 @@ impl ProgressEvent {
     fn new_inherited(length_computable: bool, loaded: u64, total: u64) -> ProgressEvent {
         ProgressEvent {
             event: Event::new_inherited(),
-            length_computable: length_computable,
-            loaded: loaded,
-            total: total,
+            length_computable,
+            loaded,
+            total,
         }
     }
 

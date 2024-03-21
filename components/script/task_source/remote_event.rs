@@ -16,7 +16,7 @@ pub struct RemoteEventTaskSource(
 
 impl Clone for RemoteEventTaskSource {
     fn clone(&self) -> RemoteEventTaskSource {
-        RemoteEventTaskSource(self.0.clone(), self.1.clone())
+        RemoteEventTaskSource(self.0.clone(), self.1)
     }
 }
 

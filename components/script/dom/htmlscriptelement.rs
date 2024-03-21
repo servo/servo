@@ -134,7 +134,7 @@ unsafe extern "C" fn off_thread_compilation_callback(
                     code,
                     url: final_url,
                     external: true,
-                    fetch_options: fetch_options,
+                    fetch_options,
                     type_: ScriptType::Classic,
                 })
             };
@@ -276,7 +276,7 @@ impl ScriptOrigin {
     ) -> ScriptOrigin {
         ScriptOrigin {
             code: SourceCode::Text(text),
-            url: url,
+            url,
             external: false,
             fetch_options,
             type_,
@@ -291,7 +291,7 @@ impl ScriptOrigin {
     ) -> ScriptOrigin {
         ScriptOrigin {
             code: SourceCode::Text(text),
-            url: url,
+            url,
             external: true,
             fetch_options,
             type_,
@@ -549,8 +549,8 @@ fn fetch_a_classic_script(
 
     let context = Arc::new(Mutex::new(ClassicContext {
         elem: Trusted::new(script),
-        kind: kind,
-        character_encoding: character_encoding,
+        kind,
+        character_encoding,
         data: vec![],
         metadata: None,
         url: url.clone(),
@@ -1122,7 +1122,6 @@ impl HTMLScriptElement {
                 if let Err(exception) = evaluated {
                     module_tree.set_rethrow_error(exception);
                     module_tree.report_error(global);
-                    return;
                 }
             }
         }
