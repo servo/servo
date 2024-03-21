@@ -5,9 +5,11 @@
 #![feature(register_tool)]
 #![deny(unsafe_code)]
 #![doc = "The script crate contains all matters DOM."]
+// Register the linter `crown`, which is the Servo-specific linter for the script
+// crate. Issue a warning if `crown` is not being used to compile, but not when
+// building rustdoc or running clippy.
 #![register_tool(crown)]
-// Issue a warning if `crown` cannot be found.
-#![warn(unknown_lints)]
+#![cfg_attr(any(doc, clippy, feature = "cargo-clippy"), allow(unknown_lints))]
 #![deny(crown_is_not_used)]
 
 // These are used a lot so let's keep them for now
