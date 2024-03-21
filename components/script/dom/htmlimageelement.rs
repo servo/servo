@@ -545,10 +545,10 @@ impl HTMLImageElement {
                         .map(|n| DomRoot::from_ref(&*n))
                         .collect()
                 } else {
-                    vec![DomRoot::from_ref(&*elem)]
+                    vec![DomRoot::from_ref(elem)]
                 }
             },
-            None => vec![DomRoot::from_ref(&*elem)],
+            None => vec![DomRoot::from_ref(elem)],
         };
 
         // Step 3
@@ -566,7 +566,7 @@ impl HTMLImageElement {
         // Step 4
         for element in &elements {
             // Step 4.1
-            if *element == DomRoot::from_ref(&*elem) {
+            if *element == DomRoot::from_ref(elem) {
                 let mut source_set = SourceSet::new();
                 // Step 4.1.1
                 if let Some(x) = element.get_attribute(&ns!(), &local_name!("srcset")) {
@@ -780,7 +780,7 @@ impl HTMLImageElement {
         let selected_source = img_sources.remove(best_candidate.1).clone();
         Some((
             USVString(selected_source.url),
-            selected_source.descriptor.den.unwrap() as f64,
+            selected_source.descriptor.den.unwrap(),
         ))
     }
 
@@ -796,7 +796,7 @@ impl HTMLImageElement {
         request.metadata = None;
         let document = document_from_node(self);
         LoadBlocker::terminate(&mut request.blocker);
-        request.blocker = Some(LoadBlocker::new(&*document, LoadType::Image(url.clone())));
+        request.blocker = Some(LoadBlocker::new(&document, LoadType::Image(url.clone())));
     }
 
     /// Step 13-17 of html.spec.whatwg.org/multipage/#update-the-image-data
@@ -827,23 +827,23 @@ impl HTMLImageElement {
                         }
                         pending_request.current_pixel_density = Some(selected_pixel_density);
                         self.image_request.set(ImageRequestPhase::Pending);
-                        self.init_image_request(&mut pending_request, &url, &src);
+                        self.init_image_request(&mut pending_request, url, src);
                     },
                     (_, State::Broken) | (_, State::Unavailable) => {
                         // Step 17
                         current_request.current_pixel_density = Some(selected_pixel_density);
-                        self.init_image_request(&mut current_request, &url, &src);
+                        self.init_image_request(&mut current_request, url, src);
                     },
                     (_, _) => {
                         // step 17
                         pending_request.current_pixel_density = Some(selected_pixel_density);
                         self.image_request.set(ImageRequestPhase::Pending);
-                        self.init_image_request(&mut pending_request, &url, &src);
+                        self.init_image_request(&mut pending_request, url, src);
                     },
                 }
             },
         }
-        self.fetch_image(&url);
+        self.fetch_image(url);
     }
 
     /// Step 8-12 of html.spec.whatwg.org/multipage/#update-the-image-data
@@ -1303,7 +1303,7 @@ impl HTMLImageElement {
 
         let (first, last) = value.split_at(1);
 
-        if first != "#" || last.len() == 0 {
+        if first != "#" || last.is_empty() {
             return None;
         }
 
@@ -1349,8 +1349,8 @@ pub enum ImageElementMicrotask {
 
 impl MicrotaskRunnable for ImageElementMicrotask {
     fn handler(&self) {
-        match self {
-            &ImageElementMicrotask::StableStateUpdateImageDataTask {
+        match *self {
+            ImageElementMicrotask::StableStateUpdateImageDataTask {
                 ref elem,
                 ref generation,
             } => {
@@ -1360,7 +1360,7 @@ impl MicrotaskRunnable for ImageElementMicrotask {
                     elem.update_the_image_data_sync_steps();
                 }
             },
-            &ImageElementMicrotask::EnvironmentChangesTask {
+            ImageElementMicrotask::EnvironmentChangesTask {
                 ref elem,
                 ref generation,
             } => {
@@ -1567,15 +1567,15 @@ impl HTMLImageElementMethods for HTMLImageElement {
         let request = self.current_request.borrow();
         let request_state = request.state;
         match request_state {
-            State::CompletelyAvailable | State::Broken => return true,
-            State::PartiallyAvailable | State::Unavailable => return false,
+            State::CompletelyAvailable | State::Broken => true,
+            State::PartiallyAvailable | State::Unavailable => false,
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-currentsrc
     fn CurrentSrc(&self) -> USVString {
         let current_request = self.current_request.borrow();
-        let ref url = current_request.parsed_url;
+        let url = &current_request.parsed_url;
         match *url {
             Some(ref url) => USVString(url.clone().into_string()),
             None => {
@@ -1812,7 +1812,7 @@ where
         }
     }
 
-    return (s, "");
+    (s, "")
 }
 
 /// Parse an `srcset` attribute:

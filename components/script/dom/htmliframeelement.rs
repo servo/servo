@@ -696,10 +696,10 @@ impl VirtualMethods for HTMLIFrameElement {
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
-        match name {
-            &local_name!("sandbox") => AttrValue::from_serialized_tokenlist(value.into()),
-            &local_name!("width") => AttrValue::from_dimension(value.into()),
-            &local_name!("height") => AttrValue::from_dimension(value.into()),
+        match *name {
+            local_name!("sandbox") => AttrValue::from_serialized_tokenlist(value.into()),
+            local_name!("width") => AttrValue::from_dimension(value.into()),
+            local_name!("height") => AttrValue::from_dimension(value.into()),
             _ => self
                 .super_type()
                 .unwrap()
@@ -708,7 +708,7 @@ impl VirtualMethods for HTMLIFrameElement {
     }
 
     fn bind_to_tree(&self, context: &BindContext) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.bind_to_tree(context);
         }
 
