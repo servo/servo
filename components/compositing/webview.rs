@@ -77,7 +77,7 @@ impl<WebView> WebViewManager<WebView> {
     pub fn painting_order(&self) -> impl Iterator<Item = (&TopLevelBrowsingContextId, &WebView)> {
         self.painting_order
             .iter()
-            .flat_map(move |webview_id| self.webviews.get(webview_id).map(|b| (webview_id, b)))
+            .flat_map(move |webview_id| self.get(*webview_id).map(|b| (webview_id, b)))
     }
 }
 

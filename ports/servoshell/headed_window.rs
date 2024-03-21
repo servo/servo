@@ -8,7 +8,6 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use euclid::num::Zero;
 use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
 use log::{debug, info, trace};
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};

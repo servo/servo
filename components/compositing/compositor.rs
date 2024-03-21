@@ -110,11 +110,6 @@ impl FrameTreeId {
     }
 }
 
-struct RootPipeline {
-    top_level_browsing_context_id: TopLevelBrowsingContextId,
-    id: Option<PipelineId>,
-}
-
 /// NB: Never block on the constellation, because sometimes the constellation blocks on us.
 pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// The application window.

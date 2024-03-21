@@ -10,7 +10,7 @@ use std::time::Instant;
 use egui::{CentralPanel, Frame, Key, Modifiers, PaintCallback, Pos2, TopBottomPanel, Vec2};
 use egui_glow::CallbackFn;
 use egui_winit::EventResponse;
-use euclid::{Box2D, Length, Point2D, Rect, Scale, Size2D};
+use euclid::{Box2D, Length, Point2D, Scale, Size2D};
 use gleam::gl;
 use glow::NativeFramebuffer;
 use log::{trace, warn};
