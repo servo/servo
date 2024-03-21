@@ -292,7 +292,7 @@ impl HTMLCollection {
         after
             .following_nodes(&self.root)
             .filter_map(DomRoot::downcast)
-            .filter(move |element| self.filter.filter(&element, &self.root))
+            .filter(move |element| self.filter.filter(element, &self.root))
     }
 
     pub fn elements_iter<'a>(&'a self) -> impl Iterator<Item = DomRoot<Element>> + 'a {
@@ -308,7 +308,7 @@ impl HTMLCollection {
         before
             .preceding_nodes(&self.root)
             .filter_map(DomRoot::downcast)
-            .filter(move |element| self.filter.filter(&element, &self.root))
+            .filter(move |element| self.filter.filter(element, &self.root))
     }
 
     pub fn root_node(&self) -> DomRoot<Node> {

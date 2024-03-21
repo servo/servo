@@ -86,7 +86,7 @@ impl AudioScheduledSourceNodeMethods for AudioScheduledSourceNode {
                     window.task_manager().dom_manipulation_task_source().queue_simple_event(
                         this.upcast(),
                         atom!("ended"),
-                        &window
+                        window
                         );
                 }),
                 &canceller,

@@ -121,7 +121,7 @@ impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
         };
         match script_msg {
             CommonScriptMsg::Task(_category, _boxed, _pipeline_id, source_name) => {
-                Some(&source_name)
+                Some(source_name)
             },
             _ => None,
         }
@@ -218,7 +218,7 @@ impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
     }
 
     fn handle_worker_post_event(&self, worker: &TrustedWorkerAddress) -> Option<AutoWorkerReset> {
-        let ar = AutoWorkerReset::new(&self, worker.clone());
+        let ar = AutoWorkerReset::new(self, worker.clone());
         Some(ar)
     }
 
@@ -431,7 +431,7 @@ impl DedicatedWorkerGlobalScope {
                 let (metadata, bytes) = match load_whole_resource(
                     request,
                     &global_scope.resource_threads().sender(),
-                    &global_scope,
+                    global_scope,
                 ) {
                     Err(_) => {
                         println!("error loading script {}", serialized_worker_url);

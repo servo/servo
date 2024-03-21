@@ -46,7 +46,7 @@ pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<E
             "<eval>",
             rval.handle_mut(),
             1,
-            ScriptFetchOptions::default_classic_script(&global),
+            ScriptFetchOptions::default_classic_script(global),
             global.api_base_url(),
         );
 

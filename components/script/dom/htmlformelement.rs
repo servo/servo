@@ -178,7 +178,7 @@ impl HTMLFormElement {
         self.controls
             .borrow()
             .iter()
-            .filter(|n| HTMLFormElement::filter_for_radio_list(mode, &*n, name))
+            .filter(|n| HTMLFormElement::filter_for_radio_list(mode, *n, name))
             .nth(index as usize)
             .and_then(|n| Some(DomRoot::from_ref(n.upcast::<Node>())))
     }
@@ -281,12 +281,12 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
                 let submit_button = match element {
                     HTMLElementTypeId::HTMLInputElement => FormSubmitter::InputElement(
-                        &submitter_element
+                        submitter_element
                             .downcast::<HTMLInputElement>()
                             .expect("Failed to downcast submitter elem to HTMLInputElement."),
                     ),
                     HTMLElementTypeId::HTMLButtonElement => FormSubmitter::ButtonElement(
-                        &submitter_element
+                        submitter_element
                             .downcast::<HTMLButtonElement>()
                             .expect("Failed to downcast submitter elem to HTMLButtonElement."),
                     ),
@@ -317,7 +317,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
             },
             None => {
                 // Step 2
-                FormSubmitter::FormElement(&self)
+                FormSubmitter::FormElement(self)
             },
         };
         // Step 3
@@ -849,7 +849,7 @@ impl HTMLFormElement {
                 load_data
                     .headers
                     .typed_insert(ContentType::from(mime::APPLICATION_WWW_FORM_URLENCODED));
-                self.mutate_action_url(&mut form_data, load_data, encoding, &target_window);
+                self.mutate_action_url(&mut form_data, load_data, encoding, target_window);
             },
             // https://html.spec.whatwg.org/multipage/#submit-body
             ("http", FormMethod::FormPost) | ("https", FormMethod::FormPost) => {

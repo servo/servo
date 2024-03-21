@@ -145,7 +145,7 @@ unsafe fn html_constructor(
 
     // Step 6
     rooted!(in(*cx) let mut prototype = ptr::null_mut::<JSObject>());
-    get_desired_proto(cx, &call_args, proto_id, creator, prototype.handle_mut())?;
+    get_desired_proto(cx, call_args, proto_id, creator, prototype.handle_mut())?;
 
     let entry = definition.construction_stack.borrow().last().cloned();
     let result = match entry {

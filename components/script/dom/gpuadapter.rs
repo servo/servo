@@ -248,7 +248,7 @@ impl AsyncWGPUListener for GPUAdapter {
                     let device = GPUDevice::new(
                         &self.global(),
                         self.channel.clone(),
-                        &self,
+                        self,
                         Heap::default(),
                         descriptor.features,
                         descriptor.limits,

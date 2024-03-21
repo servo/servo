@@ -492,7 +492,7 @@ impl HTMLElementMethods for HTMLElement {
                     }
 
                     let br = HTMLBRElement::new(local_name!("br"), None, &document, None);
-                    fragment.upcast::<Node>().AppendChild(&br.upcast()).unwrap();
+                    fragment.upcast::<Node>().AppendChild(br.upcast()).unwrap();
                 },
                 _ => {
                     text.push(ch);
@@ -550,7 +550,7 @@ fn append_text_node_to_fragment(document: &Document, fragment: &DocumentFragment
     let text = Text::new(DOMString::from(text), document);
     fragment
         .upcast::<Node>()
-        .AppendChild(&text.upcast())
+        .AppendChild(text.upcast())
         .unwrap();
 }
 
@@ -691,7 +691,7 @@ impl HTMLElement {
             .iter()
             .filter_map(|attr| {
                 let raw_name = attr.local_name();
-                to_camel_case(&raw_name)
+                to_camel_case(raw_name)
             })
             .collect()
     }
