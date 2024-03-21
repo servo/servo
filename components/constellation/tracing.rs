@@ -86,7 +86,7 @@ mod from_compositor {
                 Self::DisableProfiler => target!("DisableProfiler"),
                 Self::ExitFullScreen(_) => target!("ExitFullScreen"),
                 Self::MediaSessionAction(_) => target!("MediaSessionAction"),
-                Self::WebViewVisibilityChanged(_, _) => target!("WebViewVisibilityChanged"),
+                Self::SetWebViewThrottled(_, _) => target!("SetWebViewThrottled"),
                 Self::IMEDismissed => target!("IMEDismissed"),
                 Self::ReadyToPresent(_) => target!("ReadyToPresent"),
                 Self::Gamepad(_) => target!("Gamepad"),

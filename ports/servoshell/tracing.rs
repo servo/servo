@@ -218,7 +218,7 @@ mod to_servo {
                 Self::ClearCache => target!("ClearCache"),
                 Self::ToggleSamplingProfiler(_, _) => target!("ToggleSamplingProfiler"),
                 Self::MediaSessionAction(_) => target!("MediaSessionAction"),
-                Self::WebViewVisibilityChanged(_, _) => target!("WebViewVisibilityChanged"),
+                Self::SetWebViewThrottled(_, _) => target!("SetWebViewThrottled"),
                 Self::IMEDismissed => target!("IMEDismissed"),
                 Self::InvalidateNativeSurface => target!("InvalidateNativeSurface"),
                 Self::ReplaceNativeSurface(_, _) => target!("ReplaceNativeSurface"),

@@ -783,11 +783,11 @@ where
                 }
             },
 
-            EmbedderEvent::WebViewVisibilityChanged(webview_id, visible) => {
-                let msg = ConstellationMsg::WebViewVisibilityChanged(webview_id, visible);
+            EmbedderEvent::SetWebViewThrottled(webview_id, throttled) => {
+                let msg = ConstellationMsg::SetWebViewThrottled(webview_id, throttled);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!(
-                        "Sending WebViewVisibilityChanged to constellation failed ({:?}).",
+                        "Sending SetWebViewThrottled to constellation failed ({:?}).",
                         e
                     );
                 }

@@ -1535,8 +1535,8 @@ where
             FromCompositorMsg::MediaSessionAction(action) => {
                 self.handle_media_session_action_msg(action);
             },
-            FromCompositorMsg::WebViewVisibilityChanged(webview_id, visible) => {
-                self.notify_webview_visibility(webview_id, visible);
+            FromCompositorMsg::SetWebViewThrottled(webview_id, throttled) => {
+                self.notify_webview_visibility(webview_id, !throttled);
             },
             FromCompositorMsg::ReadyToPresent(top_level_browsing_context_id) => {
                 self.embedder_proxy.send((

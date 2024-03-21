@@ -601,10 +601,10 @@ impl ServoGlue {
         self.process_event(EmbedderEvent::MediaSessionAction(action))
     }
 
-    pub fn change_visibility(&mut self, visible: bool) -> Result<(), &'static str> {
-        info!("change_visibility");
+    pub fn set_throttled(&mut self, throttled: bool) -> Result<(), &'static str> {
+        info!("set_throttled");
         if let Ok(id) = self.get_browser_id() {
-            let event = EmbedderEvent::WebViewVisibilityChanged(id, visible);
+            let event = EmbedderEvent::SetWebViewThrottled(id, throttled);
             self.process_event(event)
         } else {
             // Ignore visibility change if no browser has been created yet.
