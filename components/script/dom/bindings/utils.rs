@@ -451,7 +451,7 @@ pub unsafe extern "C" fn resolve_global(
     let mut length = 0;
     let ptr = JS_GetLatin1StringCharsAndLength(cx, ptr::null(), string, &mut length);
     assert!(!ptr.is_null());
-    let bytes = slice::from_raw_parts(ptr, length as usize);
+    let bytes = slice::from_raw_parts(ptr, length);
 
     if let Some(init_fun) = InterfaceObjectMap::MAP.get(bytes) {
         init_fun(SafeJSContext::from_ptr(cx), Handle::from_raw(obj));

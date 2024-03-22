@@ -1658,7 +1658,7 @@ fn fetch_single_module_script(
         data: vec![],
         metadata: None,
         url: url.clone(),
-        destination: destination,
+        destination,
         options,
         status: Ok(()),
         resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),

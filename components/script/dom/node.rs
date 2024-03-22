@@ -2803,7 +2803,7 @@ impl NodeMethods for Node {
                         .ranges
                         .drain_to_preceding_text_sibling(&sibling, &node, length);
                     self.ranges
-                        .move_to_text_child_at(self, index as u32, &node, length as u32);
+                        .move_to_text_child_at(self, index as u32, &node, length);
                     let sibling_cdata = sibling.downcast::<CharacterData>().unwrap();
                     length += sibling_cdata.Length();
                     cdata.append_data(&sibling_cdata.data());

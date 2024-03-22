@@ -2664,15 +2664,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         // NB: TexImage2D depth is always equal to 1
         handle_potential_webgl_error!(
             self,
-            texture.initialize(
-                target,
-                width as u32,
-                height as u32,
-                1,
-                internal_format,
-                level as u32,
-                None
-            )
+            texture.initialize(target, width, height, 1, internal_format, level, None)
         );
 
         let msg = WebGLCommand::CopyTexImage2D(

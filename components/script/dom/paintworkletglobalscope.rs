@@ -379,8 +379,8 @@ impl PaintWorkletGlobalScope {
     ) -> DrawAPaintImageResult {
         debug!("Returning an invalid image.");
         DrawAPaintImageResult {
-            width: size.width as u32,
-            height: size.height as u32,
+            width: size.width,
+            height: size.height,
             format: PixelFormat::BGRA8,
             image_key: None,
             missing_image_urls,

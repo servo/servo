@@ -59,7 +59,7 @@ impl CanvasGradientMethods for CanvasGradient {
         };
 
         self.stops.borrow_mut().push(CanvasGradientStop {
-            offset: (*offset) as f64,
+            offset: (*offset),
             color,
         });
         Ok(())

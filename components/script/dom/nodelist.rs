@@ -172,7 +172,7 @@ impl ChildrenList {
     pub fn item(&self, index: u32) -> Option<DomRoot<Node>> {
         // This always start traversing the children from the closest element
         // among parent's first and last children and the last visited one.
-        let len = self.len() as u32;
+        let len = self.len();
         if index >= len {
             return None;
         }
