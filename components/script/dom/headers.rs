@@ -567,5 +567,5 @@ pub fn extract_mime_type(headers: &HyperHeaders) -> Option<Vec<u8>> {
     }
 
     // Step 7, 8
-    return mime_type.map(|m| format!("{}", m).into_bytes());
+    mime_type.map(|m| format!("{}", m).into_bytes())
 }

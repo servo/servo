@@ -92,10 +92,10 @@ impl VirtualMethods for HTMLFontElement {
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
-        match name {
-            &local_name!("face") => AttrValue::from_atomic(value.into()),
-            &local_name!("color") => AttrValue::from_legacy_color(value.into()),
-            &local_name!("size") => parse_size(&value),
+        match *name {
+            local_name!("face") => AttrValue::from_atomic(value.into()),
+            local_name!("color") => AttrValue::from_legacy_color(value.into()),
+            local_name!("size") => parse_size(&value),
             _ => self
                 .super_type()
                 .unwrap()
@@ -174,8 +174,8 @@ fn parse_size(mut input: &str) -> AttrValue {
 
     // Step 9
     match parse_mode {
-        ParseMode::RelativePlus => value = 3 + value,
-        ParseMode::RelativeMinus => value = 3 - value,
+        ParseMode::RelativePlus => value += 3,
+        ParseMode::RelativeMinus => value -= 3,
         ParseMode::Absolute => (),
     }
 

@@ -178,16 +178,16 @@ impl HTMLFormElement {
         self.controls
             .borrow()
             .iter()
-            .filter(|n| HTMLFormElement::filter_for_radio_list(mode, *n, name))
+            .filter(|n| HTMLFormElement::filter_for_radio_list(mode, n, name))
             .nth(index as usize)
-            .and_then(|n| Some(DomRoot::from_ref(n.upcast::<Node>())))
+            .map(|n| DomRoot::from_ref(n.upcast::<Node>()))
     }
 
     pub fn count_for_radio_list(&self, mode: RadioListMode, name: &Atom) -> u32 {
         self.controls
             .borrow()
             .iter()
-            .filter(|n| HTMLFormElement::filter_for_radio_list(mode, &**n, name))
+            .filter(|n| HTMLFormElement::filter_for_radio_list(mode, n, name))
             .count() as u32
     }
 }
@@ -393,7 +393,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-form-length
     fn Length(&self) -> u32 {
-        self.Elements().Length() as u32
+        self.Elements().Length()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-form-item
@@ -441,14 +441,14 @@ impl HTMLFormElementMethods for HTMLFormElement {
         past_names_map.insert(
             name,
             (
-                Dom::from_ref(&*element_node.downcast::<Element>().unwrap()),
+                Dom::from_ref(element_node.downcast::<Element>().unwrap()),
                 NoTrace(Instant::now()),
             ),
         );
 
         // Step 6
         return Some(RadioNodeListOrElement::Element(DomRoot::from_ref(
-            &*element_node.downcast::<Element>().unwrap(),
+            element_node.downcast::<Element>().unwrap(),
         )));
     }
 
@@ -486,10 +486,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
         impl SourcedNameSource {
             fn is_past(&self) -> bool {
-                match self {
-                    SourcedNameSource::Past(..) => true,
-                    _ => false,
-                }
+                matches!(self, SourcedNameSource::Past(..))
             }
         }
 
@@ -512,7 +509,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
                 if let Some(id_atom) = child.get_id() {
                     let entry = SourcedName {
                         name: id_atom,
-                        element: DomRoot::from_ref(&*child),
+                        element: DomRoot::from_ref(child),
                         source: SourcedNameSource::Id,
                     };
                     sourced_names_vec.push(entry);
@@ -520,7 +517,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
                 if let Some(name_atom) = child.get_name() {
                     let entry = SourcedName {
                         name: name_atom,
-                        element: DomRoot::from_ref(&*child),
+                        element: DomRoot::from_ref(child),
                         source: SourcedNameSource::Name,
                     };
                     sourced_names_vec.push(entry);
@@ -534,7 +531,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
                 if let Some(id_atom) = child.get_id() {
                     let entry = SourcedName {
                         name: id_atom,
-                        element: DomRoot::from_ref(&*child),
+                        element: DomRoot::from_ref(child),
                         source: SourcedNameSource::Id,
                     };
                     sourced_names_vec.push(entry);
@@ -542,7 +539,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
                 if let Some(name_atom) = child.get_name() {
                     let entry = SourcedName {
                         name: name_atom,
-                        element: DomRoot::from_ref(&*child),
+                        element: DomRoot::from_ref(child),
                         source: SourcedNameSource::Name,
                     };
                     sourced_names_vec.push(entry);
@@ -612,7 +609,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
             }
         }
 
-        return names_vec;
+        names_vec
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-checkvalidity>
