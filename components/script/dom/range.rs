@@ -10,7 +10,7 @@ use js::jsapi::JSTracer;
 use js::rust::HandleObject;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 
-use crate::dom::abstractrange::{bp_position, AbstractRange};
+use crate::dom::abstractrange::{bp_position, AbstractRange, BoundaryPoint};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AbstractRangeBinding::AbstractRangeMethods;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
@@ -38,7 +38,7 @@ use crate::dom::window::Window;
 
 #[dom_struct]
 pub struct Range {
-    abstractrange: AbstractRange,
+    abstract_range: AbstractRange,
     // A range that belongs to a Selection needs to know about it
     // so selectionchange can fire when the range changes.
     // A range shouldn't belong to more than one Selection at a time,
@@ -61,7 +61,7 @@ impl Range {
         debug_assert!(start_offset <= start_container.len());
         debug_assert!(end_offset <= end_container.len());
         Range {
-            abstractrange: AbstractRange::new_inherited(
+            abstract_range: AbstractRange::new_inherited(
                 start_container,
                 start_offset,
                 end_container,
@@ -118,14 +118,14 @@ impl Range {
         range
     }
 
-    // https://dom.spec.whatwg.org/#dom-range
+    /// <https://dom.spec.whatwg.org/#dom-range>
     #[allow(non_snake_case)]
     pub fn Constructor(window: &Window, proto: Option<HandleObject>) -> Fallible<DomRoot<Range>> {
         let document = window.Document();
         Ok(Range::new_with_doc(&document, proto))
     }
 
-    // https://dom.spec.whatwg.org/#contained
+    /// <https://dom.spec.whatwg.org/#contained>
     fn contains(&self, node: &Node) -> bool {
         match (
             bp_position(node, 0, &self.start_container(), self.start_offset()),
@@ -136,19 +136,17 @@ impl Range {
         }
     }
 
-    // https://dom.spec.whatwg.org/#partially-contained
+    /// <https://dom.spec.whatwg.org/#partially-contained>
     fn partially_contains(&self, node: &Node) -> bool {
-        self.abstractrange
-            .StartContainer()
+        self.start_container()
             .inclusive_ancestors(ShadowIncluding::No)
             .any(|n| &*n == node) !=
-            self.abstractrange
-                .EndContainer()
+            self.end_container()
                 .inclusive_ancestors(ShadowIncluding::No)
                 .any(|n| &*n == node)
     }
 
-    // https://dom.spec.whatwg.org/#concept-range-clone
+    /// <https://dom.spec.whatwg.org/#concept-range-clone>
     fn contained_children(
         &self,
     ) -> Fallible<(
@@ -199,43 +197,43 @@ impl Range {
         ))
     }
 
-    // https://dom.spec.whatwg.org/#concept-range-bp-set
+    /// <https://dom.spec.whatwg.org/#concept-range-bp-set>
     fn set_start(&self, node: &Node, offset: u32) {
-        if self.abstract_range().start().node() != node || self.start_offset() != offset {
+        if self.start().node() != node || self.start_offset() != offset {
             self.report_change();
         }
-        if self.abstract_range().start().node() != node {
-            if self.abstract_range().start().node() == self.abstract_range().end().node() {
+        if self.start().node() != node {
+            if self.start().node() == self.end().node() {
                 node.ranges().push(WeakRef::new(self));
-            } else if self.abstract_range().end().node() == node {
+            } else if self.end().node() == node {
                 self.start_container().ranges().remove(self);
             } else {
                 node.ranges()
                     .push(self.start_container().ranges().remove(self));
             }
         }
-        self.abstract_range().start().set(node, offset);
+        self.start().set(node, offset);
     }
 
-    // https://dom.spec.whatwg.org/#concept-range-bp-set
+    /// <https://dom.spec.whatwg.org/#concept-range-bp-set>
     fn set_end(&self, node: &Node, offset: u32) {
-        if self.abstract_range().end().node() != node || self.end_offset() != offset {
+        if self.end().node() != node || self.end_offset() != offset {
             self.report_change();
         }
-        if self.abstract_range().end().node() != node {
-            if self.abstract_range().end().node() == self.abstract_range().start().node() {
+        if self.end().node() != node {
+            if self.end().node() == self.start().node() {
                 node.ranges().push(WeakRef::new(self));
-            } else if self.abstract_range().start().node() == node {
+            } else if self.start().node() == node {
                 self.end_container().ranges().remove(self);
             } else {
                 node.ranges()
                     .push(self.end_container().ranges().remove(self));
             }
         }
-        self.abstract_range().end().set(node, offset);
+        self.end().set(node, offset);
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-comparepointnode-offset
+    /// <https://dom.spec.whatwg.org/#dom-range-comparepointnode-offset>
     fn compare_point(&self, node: &Node, offset: u32) -> Fallible<Ordering> {
         let start_node = self.start_container();
         let start_node_root = start_node
@@ -294,7 +292,15 @@ impl Range {
     }
 
     fn abstract_range(&self) -> &AbstractRange {
-        self.upcast::<AbstractRange>()
+        &self.abstract_range
+    }
+
+    fn start(&self) -> &BoundaryPoint {
+        &self.abstract_range().start()
+    }
+
+    fn end(&self) -> &BoundaryPoint {
+        &self.abstract_range().end()
     }
 
     pub fn start_container(&self) -> DomRoot<Node> {
@@ -319,15 +325,14 @@ impl Range {
 }
 
 impl RangeMethods for Range {
-    // https://dom.spec.whatwg.org/#dom-range-commonancestorcontainer
+    /// <https://dom.spec.whatwg.org/#dom-range-commonancestorcontainer>
     fn CommonAncestorContainer(&self) -> DomRoot<Node> {
-        self.abstract_range()
-            .EndContainer()
-            .common_ancestor(&self.abstractrange.StartContainer(), ShadowIncluding::No)
+        self.end_container()
+            .common_ancestor(&self.start_container(), ShadowIncluding::No)
             .expect("Couldn't find common ancestor container")
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-setstart
+    /// <https://dom.spec.whatwg.org/#dom-range-setstart>
     fn SetStart(&self, node: &Node, offset: u32) -> ErrorResult {
         if node.is_doctype() {
             // Step 1.
@@ -338,7 +343,7 @@ impl RangeMethods for Range {
         } else {
             // Step 3.
             self.set_start(node, offset);
-            if !(self.abstract_range().start() <= self.abstract_range().end()) {
+            if !(self.start() <= self.end()) {
                 // Step 4.
                 self.set_end(node, offset);
             }
@@ -346,7 +351,7 @@ impl RangeMethods for Range {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-setend
+    /// <https://dom.spec.whatwg.org/#dom-range-setend>
     fn SetEnd(&self, node: &Node, offset: u32) -> ErrorResult {
         if node.is_doctype() {
             // Step 1.
@@ -357,7 +362,7 @@ impl RangeMethods for Range {
         } else {
             // Step 3.
             self.set_end(node, offset);
-            if !(self.abstract_range().end() >= self.abstract_range().start()) {
+            if !(self.end() >= self.start()) {
                 // Step 4.
                 self.set_start(node, offset);
             }
@@ -365,31 +370,31 @@ impl RangeMethods for Range {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-setstartbefore
+    /// <https://dom.spec.whatwg.org/#dom-range-setstartbefore>
     fn SetStartBefore(&self, node: &Node) -> ErrorResult {
         let parent = node.GetParentNode().ok_or(Error::InvalidNodeType)?;
         self.SetStart(&parent, node.index())
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-setstartafter
+    /// <https://dom.spec.whatwg.org/#dom-range-setstartafter>
     fn SetStartAfter(&self, node: &Node) -> ErrorResult {
         let parent = node.GetParentNode().ok_or(Error::InvalidNodeType)?;
         self.SetStart(&parent, node.index() + 1)
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-setendbefore
+    /// <https://dom.spec.whatwg.org/#dom-range-setendbefore>
     fn SetEndBefore(&self, node: &Node) -> ErrorResult {
         let parent = node.GetParentNode().ok_or(Error::InvalidNodeType)?;
         self.SetEnd(&parent, node.index())
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-setendafter
+    /// <https://dom.spec.whatwg.org/#dom-range-setendafter>
     fn SetEndAfter(&self, node: &Node) -> ErrorResult {
         let parent = node.GetParentNode().ok_or(Error::InvalidNodeType)?;
         self.SetEnd(&parent, node.index() + 1)
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-collapse
+    /// <https://dom.spec.whatwg.org/#dom-range-collapse>
     fn Collapse(&self, to_start: bool) {
         if to_start {
             self.set_end(&self.start_container(), self.start_offset());
@@ -398,7 +403,7 @@ impl RangeMethods for Range {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-selectnode
+    /// <https://dom.spec.whatwg.org/#dom-range-selectnode>
     fn SelectNode(&self, node: &Node) -> ErrorResult {
         // Steps 1, 2.
         let parent = node.GetParentNode().ok_or(Error::InvalidNodeType)?;
@@ -411,7 +416,7 @@ impl RangeMethods for Range {
         Ok(())
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-selectnodecontents
+    /// <https://dom.spec.whatwg.org/#dom-range-selectnodecontents>
     fn SelectNodeContents(&self, node: &Node) -> ErrorResult {
         if node.is_doctype() {
             // Step 1.
@@ -426,21 +431,19 @@ impl RangeMethods for Range {
         Ok(())
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-compareboundarypoints
+    /// <https://dom.spec.whatwg.org/#dom-range-compareboundarypoints>
     fn CompareBoundaryPoints(&self, how: u16, other: &Range) -> Fallible<i16> {
         if how > RangeConstants::END_TO_START {
             // Step 1.
             return Err(Error::NotSupported);
         }
         let this_root = self
-            .abstractrange
-            .StartContainer()
+            .start_container()
             .inclusive_ancestors(ShadowIncluding::No)
             .last()
             .unwrap();
         let other_root = other
-            .abstractrange
-            .StartContainer()
+            .start_container()
             .inclusive_ancestors(ShadowIncluding::No)
             .last()
             .unwrap();
@@ -450,19 +453,10 @@ impl RangeMethods for Range {
         }
         // Step 3.
         let (this_point, other_point) = match how {
-            RangeConstants::START_TO_START => (
-                self.abstract_range().start(),
-                other.abstract_range().start(),
-            ),
-            RangeConstants::START_TO_END => {
-                (self.abstract_range().end(), other.abstract_range().start())
-            },
-            RangeConstants::END_TO_END => {
-                (self.abstract_range().end(), other.abstract_range().end())
-            },
-            RangeConstants::END_TO_START => {
-                (self.abstract_range().start(), other.abstract_range().end())
-            },
+            RangeConstants::START_TO_START => (self.start(), other.start()),
+            RangeConstants::START_TO_END => (self.end(), other.start()),
+            RangeConstants::END_TO_END => (self.end(), other.end()),
+            RangeConstants::END_TO_START => (self.start(), other.end()),
             _ => unreachable!(),
         };
         // step 4.
@@ -473,7 +467,7 @@ impl RangeMethods for Range {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-clonerange
+    /// <https://dom.spec.whatwg.org/#dom-range-clonerange>
     fn CloneRange(&self) -> DomRoot<Range> {
         let start_node = self.start_container();
         let owner_doc = start_node.owner_doc();
@@ -486,7 +480,7 @@ impl RangeMethods for Range {
         )
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-ispointinrange
+    /// <https://dom.spec.whatwg.org/#dom-range-ispointinrange>
     fn IsPointInRange(&self, node: &Node, offset: u32) -> Fallible<bool> {
         match self.compare_point(node, offset) {
             Ok(Ordering::Less) => Ok(false),
@@ -500,7 +494,7 @@ impl RangeMethods for Range {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-comparepoint
+    /// <https://dom.spec.whatwg.org/#dom-range-comparepoint>
     fn ComparePoint(&self, node: &Node, offset: u32) -> Fallible<i16> {
         self.compare_point(node, offset).map(|order| match order {
             Ordering::Less => -1,
@@ -509,12 +503,11 @@ impl RangeMethods for Range {
         })
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-intersectsnode
+    /// <https://dom.spec.whatwg.org/#dom-range-intersectsnode>
     fn IntersectsNode(&self, node: &Node) -> bool {
         let start_node = self.start_container();
         let start_node_root = self
-            .abstractrange
-            .StartContainer()
+            .start_container()
             .inclusive_ancestors(ShadowIncluding::No)
             .last()
             .unwrap();
@@ -543,8 +536,8 @@ impl RangeMethods for Range {
                     .unwrap()
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-clonecontents
-    // https://dom.spec.whatwg.org/#concept-range-clone
+    /// <https://dom.spec.whatwg.org/#dom-range-clonecontents>
+    /// <https://dom.spec.whatwg.org/#concept-range-clone>
     fn CloneContents(&self) -> Fallible<DomRoot<DocumentFragment>> {
         // Step 3.
         let start_node = self.start_container();
@@ -556,7 +549,7 @@ impl RangeMethods for Range {
         let fragment = DocumentFragment::new(&start_node.owner_doc());
 
         // Step 2.
-        if self.abstract_range().start() == self.abstract_range().end() {
+        if self.start() == self.end() {
             return Ok(fragment);
         }
 
@@ -644,8 +637,8 @@ impl RangeMethods for Range {
         Ok(fragment)
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-extractcontents
-    // https://dom.spec.whatwg.org/#concept-range-extract
+    /// <https://dom.spec.whatwg.org/#dom-range-extractcontents>
+    /// <https://dom.spec.whatwg.org/#concept-range-extract>
     fn ExtractContents(&self) -> Fallible<DomRoot<DocumentFragment>> {
         // Step 3.
         let start_node = self.start_container();
@@ -782,13 +775,13 @@ impl RangeMethods for Range {
         Ok(fragment)
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-detach
+    /// <https://dom.spec.whatwg.org/#dom-range-detach>
     fn Detach(&self) {
         // This method intentionally left blank.
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-insertnode
-    // https://dom.spec.whatwg.org/#concept-range-insert
+    /// <https://dom.spec.whatwg.org/#dom-range-insertnode>
+    /// <https://dom.spec.whatwg.org/#concept-range-insert>
     fn InsertNode(&self, node: &Node) -> ErrorResult {
         let start_node = self.start_container();
         let start_offset = self.start_offset();
@@ -872,7 +865,7 @@ impl RangeMethods for Range {
         Ok(())
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-deletecontents
+    /// <https://dom.spec.whatwg.org/#dom-range-deletecontents>
     fn DeleteContents(&self) -> ErrorResult {
         // Step 1.
         if self.collapsed() {
@@ -956,7 +949,7 @@ impl RangeMethods for Range {
         Ok(())
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-surroundcontents
+    /// <https://dom.spec.whatwg.org/#dom-range-surroundcontents>
     fn SurroundContents(&self, new_parent: &Node) -> ErrorResult {
         // Step 1.
         let start = self.start_container();
@@ -997,7 +990,7 @@ impl RangeMethods for Range {
         self.SelectNode(new_parent)
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-stringifier
+    /// <https://dom.spec.whatwg.org/#dom-range-stringifier>
     fn Stringifier(&self) -> DOMString {
         let start_node = self.start_container();
         let end_node = self.end_container();
@@ -1048,7 +1041,7 @@ impl RangeMethods for Range {
         s
     }
 
-    // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#extensions-to-the-range-interface
+    /// <https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#extensions-to-the-range-interface>
     fn CreateContextualFragment(&self, fragment: DOMString) -> Fallible<DomRoot<DocumentFragment>> {
         // Step 1.
         let node = self.start_container();
@@ -1129,18 +1122,16 @@ impl WeakRangeVec {
 
             ranges.update(|entry| {
                 let range = entry.root().unwrap();
-                if range.abstractrange.start().node() == parent ||
-                    range.abstractrange.end().node() == parent
-                {
+                if range.start().node() == parent || range.end().node() == parent {
                     entry.remove();
                 }
-                if range.abstractrange.start().node() == child {
+                if range.start().node() == child {
                     range.report_change();
-                    range.abstractrange.start().set(context.parent, offset);
+                    range.start().set(context.parent, offset);
                 }
-                if range.abstractrange.end().node() == child {
+                if range.end().node() == child {
                     range.report_change();
-                    range.abstractrange.end().set(context.parent, offset);
+                    range.end().set(context.parent, offset);
                 }
             });
 
@@ -1160,24 +1151,16 @@ impl WeakRangeVec {
 
             ranges.update(|entry| {
                 let range = entry.root().unwrap();
-                if range.abstractrange.start().node() == sibling ||
-                    range.abstractrange.end().node() == sibling
-                {
+                if range.start().node() == sibling || range.end().node() == sibling {
                     entry.remove();
                 }
-                if range.abstractrange.start().node() == node {
+                if range.start().node() == node {
                     range.report_change();
-                    range
-                        .abstractrange
-                        .start()
-                        .set(sibling, range.abstractrange.StartOffset() + length);
+                    range.start().set(sibling, range.start_offset() + length);
                 }
-                if range.abstractrange.end().node() == node {
+                if range.end().node() == node {
                     range.report_change();
-                    range
-                        .abstractrange
-                        .end()
-                        .set(sibling, range.abstractrange.EndOffset() + length);
+                    range.end().set(sibling, range.end_offset() + length);
                 }
             });
 
@@ -1194,18 +1177,17 @@ impl WeakRangeVec {
             (*self.cell.get()).update(|entry| {
                 let range = entry.root().unwrap();
 
-                let node_is_start = range.abstractrange.start().node() == node;
-                let node_is_end = range.abstractrange.end().node() == node;
+                let node_is_start = range.start().node() == node;
+                let node_is_end = range.end().node() == node;
 
-                let move_start = node_is_start && range.abstractrange.StartOffset() == offset;
-                let move_end = node_is_end && range.abstractrange.EndOffset() == offset;
+                let move_start = node_is_start && range.start_offset() == offset;
+                let move_end = node_is_end && range.end_offset() == offset;
 
                 let remove_from_node = move_start && move_end ||
                     move_start && !node_is_end ||
                     move_end && !node_is_start;
 
-                let already_in_child = range.abstractrange.start().node() == child ||
-                    range.abstractrange.end().node() == child;
+                let already_in_child = range.start().node() == child || range.end().node() == child;
                 let push_to_child = !already_in_child && (move_start || move_end);
 
                 if remove_from_node {
@@ -1219,11 +1201,11 @@ impl WeakRangeVec {
 
                 if move_start {
                     range.report_change();
-                    range.abstractrange.start().set(child, new_offset);
+                    range.start().set(child, new_offset);
                 }
                 if move_end {
                     range.report_change();
-                    range.abstractrange.end().set(child, new_offset);
+                    range.end().set(child, new_offset);
                 }
             });
         }
@@ -1255,11 +1237,11 @@ impl WeakRangeVec {
 
             (*self.cell.get()).update(|entry| {
                 let range = entry.root().unwrap();
-                let start_offset = range.abstractrange.StartOffset();
-                let end_offset = range.abstractrange.EndOffset();
+                let start_offset = range.start_offset();
+                let end_offset = range.end_offset();
 
-                let node_is_start = range.abstractrange.start().node() == node;
-                let node_is_end = range.abstractrange.end().node() == node;
+                let node_is_start = range.start().node() == node;
+                let node_is_end = range.end().node() == node;
 
                 let move_start = node_is_start && start_offset > offset;
                 let move_end = node_is_end && end_offset > offset;
@@ -1268,8 +1250,8 @@ impl WeakRangeVec {
                     move_start && !node_is_end ||
                     move_end && !node_is_start;
 
-                let already_in_sibling = range.abstractrange.start().node() == sibling ||
-                    range.abstractrange.end().node() == sibling;
+                let already_in_sibling =
+                    range.start().node() == sibling || range.end().node() == sibling;
                 let push_to_sibling = !already_in_sibling && (move_start || move_end);
 
                 if remove_from_node {
@@ -1283,14 +1265,11 @@ impl WeakRangeVec {
 
                 if move_start {
                     range.report_change();
-                    range
-                        .abstractrange
-                        .start()
-                        .set(sibling, start_offset - offset);
+                    range.start().set(sibling, start_offset - offset);
                 }
                 if move_end {
                     range.report_change();
-                    range.abstractrange.end().set(sibling, end_offset - offset);
+                    range.end().set(sibling, end_offset - offset);
                 }
             });
         }
@@ -1302,17 +1281,13 @@ impl WeakRangeVec {
         unsafe {
             (*self.cell.get()).update(|entry| {
                 let range = entry.root().unwrap();
-                if range.abstractrange.start().node() == node &&
-                    offset == range.abstractrange.StartOffset()
-                {
+                if range.start().node() == node && offset == range.start_offset() {
                     range.report_change();
-                    range.abstractrange.start().set_offset(offset + 1);
+                    range.start().set_offset(offset + 1);
                 }
-                if range.abstractrange.end().node() == node &&
-                    offset == range.abstractrange.EndOffset()
-                {
+                if range.end().node() == node && offset == range.end_offset() {
                     range.report_change();
-                    range.abstractrange.end().set_offset(offset + 1);
+                    range.end().set_offset(offset + 1);
                 }
             });
         }
@@ -1322,15 +1297,15 @@ impl WeakRangeVec {
         unsafe {
             (*self.cell.get()).update(|entry| {
                 let range = entry.root().unwrap();
-                let start_offset = range.abstractrange.StartOffset();
-                if range.abstractrange.start().node() == node && start_offset > offset {
+                let start_offset = range.start_offset();
+                if range.start().node() == node && start_offset > offset {
                     range.report_change();
-                    range.abstractrange.start().set_offset(f(start_offset));
+                    range.start().set_offset(f(start_offset));
                 }
-                let end_offset = range.abstractrange.EndOffset();
-                if range.abstractrange.end().node() == node && end_offset > offset {
+                let end_offset = range.end_offset();
+                if range.end().node() == node && end_offset > offset {
                     range.report_change();
-                    range.abstractrange.end().set_offset(f(end_offset));
+                    range.end().set_offset(f(end_offset));
                 }
             });
         }

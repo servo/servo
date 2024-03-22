@@ -65,27 +65,27 @@ impl AbstractRange {
 }
 
 impl AbstractRangeMethods for AbstractRange {
-    // https://dom.spec.whatwg.org/#dom-range-startcontainer
+    /// <https://dom.spec.whatwg.org/#dom-range-startcontainer>
     fn StartContainer(&self) -> DomRoot<Node> {
         self.start.node.get()
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-startoffset
+    /// <https://dom.spec.whatwg.org/#dom-range-startoffset>
     fn StartOffset(&self) -> u32 {
         self.start.offset.get()
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-endcontainer
+    /// <https://dom.spec.whatwg.org/#dom-range-endcontainer>
     fn EndContainer(&self) -> DomRoot<Node> {
         self.end.node.get()
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-endoffset
+    /// <https://dom.spec.whatwg.org/#dom-range-endoffset>
     fn EndOffset(&self) -> u32 {
         self.end.offset.get()
     }
 
-    // https://dom.spec.whatwg.org/#dom-range-collapsed
+    /// <https://dom.spec.whatwg.org/#dom-range-collapsed>
     fn Collapsed(&self) -> bool {
         self.start == self.end
     }
@@ -140,7 +140,7 @@ impl PartialEq for BoundaryPoint {
     }
 }
 
-// https://dom.spec.whatwg.org/#concept-range-bp-position
+/// <https://dom.spec.whatwg.org/#concept-range-bp-position>
 pub fn bp_position(a_node: &Node, a_offset: u32, b_node: &Node, b_offset: u32) -> Option<Ordering> {
     if a_node as *const Node == b_node as *const Node {
         // Step 1.

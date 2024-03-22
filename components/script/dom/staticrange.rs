@@ -18,7 +18,7 @@ use crate::dom::window::Window;
 
 #[dom_struct]
 pub struct StaticRange {
-    abstractrange: AbstractRange,
+    abstract_range: AbstractRange,
 }
 
 impl StaticRange {
@@ -29,7 +29,7 @@ impl StaticRange {
         end_offset: u32,
     ) -> StaticRange {
         StaticRange {
-            abstractrange: AbstractRange::new_inherited(
+            abstract_range: AbstractRange::new_inherited(
                 start_container,
                 start_offset,
                 end_container,
@@ -63,7 +63,7 @@ impl StaticRange {
         staticrange
     }
 
-    // https://dom.spec.whatwg.org/#dom-staticrange-staticrange
+    /// <https://dom.spec.whatwg.org/#dom-staticrange-staticrange>
     #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
