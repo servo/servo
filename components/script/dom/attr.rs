@@ -255,7 +255,7 @@ impl<'dom> AttrHelpersForLayout<'dom> for LayoutDom<'dom, Attr> {
 
     #[inline]
     fn as_str(self) -> &'dom str {
-        &**self.value()
+        self.value()
     }
 
     #[inline]

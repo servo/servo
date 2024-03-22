@@ -636,7 +636,7 @@ impl Document {
 
     #[inline]
     pub fn window(&self) -> &Window {
-        &*self.window
+        &self.window
     }
 
     #[inline]
@@ -2959,12 +2959,12 @@ impl<'dom> LayoutDocumentHelpers<'dom> for LayoutDom<'dom, Document> {
 
     #[inline]
     unsafe fn needs_paint_from_layout(self) {
-        (*self.unsafe_get()).needs_paint.set(true)
+        (self.unsafe_get()).needs_paint.set(true)
     }
 
     #[inline]
     unsafe fn will_paint(self) {
-        (*self.unsafe_get()).needs_paint.set(false)
+        (self.unsafe_get()).needs_paint.set(false)
     }
 
     #[inline]
@@ -3306,7 +3306,7 @@ impl Document {
         proto: Option<HandleObject>,
     ) -> Fallible<DomRoot<Document>> {
         let doc = window.Document();
-        let docloader = DocumentLoader::new(&*doc.loader());
+        let docloader = DocumentLoader::new(&doc.loader());
         Ok(Document::new_with_proto(
             window,
             proto,
@@ -4095,7 +4095,7 @@ impl DocumentMethods for Document {
         };
 
         // Step 5
-        let host = match get_registrable_domain_suffix_of_or_is_equal_to(&*value, effective_domain)
+        let host = match get_registrable_domain_suffix_of_or_is_equal_to(&value, effective_domain)
         {
             None => return Err(Error::Security),
             Some(host) => host,
@@ -4946,7 +4946,7 @@ impl DocumentMethods for Document {
         let mut names_with_first_named_element_map: HashMap<&Atom, &Element> = HashMap::new();
 
         let name_map = self.name_map.borrow();
-        for (name, elements) in &(*name_map).0 {
+        for (name, elements) in &(name_map).0 {
             if name.is_empty() {
                 continue;
             }
@@ -4958,7 +4958,7 @@ impl DocumentMethods for Document {
             }
         }
         let id_map = self.id_map.borrow();
-        for (id, elements) in &(*id_map).0 {
+        for (id, elements) in &(id_map).0 {
             if id.is_empty() {
                 continue;
             }

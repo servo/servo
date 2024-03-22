@@ -154,8 +154,8 @@ impl PaintWorkletGlobalScope {
                         &name,
                         size,
                         device_pixel_ratio,
-                        &*map,
-                        &*arguments,
+                        &map,
+                        &arguments,
                     );
                     if (result.image_key.is_some()) && (result.missing_image_urls.is_empty()) {
                         *self.cached_name.borrow_mut() = name;
@@ -184,8 +184,8 @@ impl PaintWorkletGlobalScope {
                         &name,
                         size,
                         device_pixel_ratio,
-                        &*map,
-                        &*arguments,
+                        &map,
+                        &arguments,
                     );
                     if (result.image_key.is_some()) && (result.missing_image_urls.is_empty()) {
                         *self.cached_name.borrow_mut() = name;
@@ -322,7 +322,7 @@ impl PaintWorkletGlobalScope {
             .map(|argument| ObjectValue(argument.reflector().get_jsobject().get()))
             .collect();
         let arguments_value_array =
-            unsafe { HandleValueArray::from_rooted_slice(&*arguments_value_vec) };
+            unsafe { HandleValueArray::from_rooted_slice(&arguments_value_vec) };
         rooted!(in(*cx) let argument_object = unsafe { NewArrayObject(*cx, &arguments_value_array) });
 
         let args_slice = [
@@ -576,7 +576,7 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
             paint_function.handle(),
             alpha,
             input_arguments.len(),
-            &*context,
+            &context,
         );
 
         // Step 20.

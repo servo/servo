@@ -164,7 +164,7 @@ impl GPUDevice {
             )),
             global,
         );
-        queue.set_device(&*device);
+        queue.set_device(&device);
         device
     }
 }
@@ -653,7 +653,7 @@ impl GPUDeviceMethods for GPUDevice {
             &self.global(),
             bind_group,
             self.device,
-            &*descriptor.layout,
+            &descriptor.layout,
             descriptor.parent.label.clone().unwrap_or_default(),
         )
     }

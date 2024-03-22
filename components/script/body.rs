@@ -685,7 +685,7 @@ impl Callback for ConsumeBodyPromiseHandler {
                 .expect("No bytes for ConsumeBodyPromiseHandler.");
 
             // Append the value property to bytes.
-            bytes.extend_from_slice(&*chunk);
+            bytes.extend_from_slice(&chunk);
 
             let global = stream.global();
 

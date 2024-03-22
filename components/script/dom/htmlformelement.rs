@@ -178,7 +178,7 @@ impl HTMLFormElement {
         self.controls
             .borrow()
             .iter()
-            .filter(|n| HTMLFormElement::filter_for_radio_list(mode, *n, name))
+            .filter(|n| HTMLFormElement::filter_for_radio_list(mode, n, name))
             .nth(index as usize)
             .and_then(|n| Some(DomRoot::from_ref(n.upcast::<Node>())))
     }
@@ -187,7 +187,7 @@ impl HTMLFormElement {
         self.controls
             .borrow()
             .iter()
-            .filter(|n| HTMLFormElement::filter_for_radio_list(mode, &**n, name))
+            .filter(|n| HTMLFormElement::filter_for_radio_list(mode, n, name))
             .count() as u32
     }
 }
@@ -653,7 +653,7 @@ impl HTMLFormElement {
 
             // Substep 2, 3, 4
             let mut candidate_encodings =
-                split_html_space_chars(&*input).filter_map(|c| Encoding::for_label(c.as_bytes()));
+                split_html_space_chars(&input).filter_map(|c| Encoding::for_label(c.as_bytes()));
 
             // Substep 5, 6
             return candidate_encodings.next().unwrap_or(UTF_8);

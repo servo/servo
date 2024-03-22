@@ -136,7 +136,7 @@ impl History {
         if state_changed {
             PopStateEvent::dispatch_jsval(
                 self.window.upcast::<EventTarget>(),
-                &*self.window,
+                &self.window,
                 unsafe { HandleValue::from_raw(self.state.handle()) },
             );
         }

@@ -630,7 +630,7 @@ impl FileListener {
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_incoming(&*stream, Ok(blob_buf.bytes));
+                            stream_handle_incoming(&stream, Ok(blob_buf.bytes));
                         });
 
                         let _ = self
@@ -654,7 +654,7 @@ impl FileListener {
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_incoming(&*stream, Ok(bytes_in));
+                            stream_handle_incoming(&stream, Ok(bytes_in));
                         });
 
                         let _ = self
@@ -692,7 +692,7 @@ impl FileListener {
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_eof(&*stream);
+                            stream_handle_eof(&stream);
                         });
 
                         let _ = self
@@ -728,7 +728,7 @@ impl FileListener {
                             let _ = self.task_source.queue_with_canceller(
                                 task!(error_stream: move || {
                                     let stream = trusted_stream.root();
-                                    stream_handle_incoming(&*stream, error);
+                                    stream_handle_incoming(&stream, error);
                                 }),
                                 &self.task_canceller,
                             );
@@ -875,7 +875,7 @@ impl GlobalScope {
         // Step 2.6
         if let Some(worker_id) = installing_worker {
             let worker = self.get_serviceworker(script_url, scope, worker_id);
-            new_registration.set_installing(&*worker);
+            new_registration.set_installing(&worker);
         }
 
         // TODO: 2.7 (waiting worker)
