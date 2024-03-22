@@ -150,13 +150,8 @@ impl PaintWorkletGlobalScope {
                         self.upcast(),
                         properties.iter().cloned(),
                     );
-                    let result = self.draw_a_paint_image(
-                        &name,
-                        size,
-                        device_pixel_ratio,
-                        &map,
-                        &arguments,
-                    );
+                    let result =
+                        self.draw_a_paint_image(&name, size, device_pixel_ratio, &map, &arguments);
                     if (result.image_key.is_some()) && (result.missing_image_urls.is_empty()) {
                         *self.cached_name.borrow_mut() = name;
                         self.cached_size.set(size);
@@ -180,13 +175,8 @@ impl PaintWorkletGlobalScope {
                         self.upcast(),
                         properties.iter().cloned(),
                     );
-                    let result = self.draw_a_paint_image(
-                        &name,
-                        size,
-                        device_pixel_ratio,
-                        &map,
-                        &arguments,
-                    );
+                    let result =
+                        self.draw_a_paint_image(&name, size, device_pixel_ratio, &map, &arguments);
                     if (result.image_key.is_some()) && (result.missing_image_urls.is_empty()) {
                         *self.cached_name.borrow_mut() = name;
                         *self.cached_properties.borrow_mut() = properties;

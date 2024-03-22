@@ -1010,16 +1010,8 @@ impl RangeMethods for Range {
 
             // Step 3.
             s.push_str(
-<<<<<<< HEAD
                 &char_data
                     .SubstringData(self.StartOffset(), char_data.Length() - self.StartOffset())
-=======
-                &*char_data
-                    .SubstringData(
-                        self.start_offset(),
-                        char_data.Length() - self.start_offset(),
-                    )
->>>>>>> e22b61c935dcc9bfa1455c86a0a8a68fca6e4ee6
                     .unwrap(),
             );
         }
@@ -1039,11 +1031,7 @@ impl RangeMethods for Range {
         // Step 5.
         if let Some(text_node) = end_node.downcast::<Text>() {
             let char_data = text_node.upcast::<CharacterData>();
-<<<<<<< HEAD
             s.push_str(&char_data.SubstringData(0, self.EndOffset()).unwrap());
-=======
-            s.push_str(&*char_data.SubstringData(0, self.end_offset()).unwrap());
->>>>>>> e22b61c935dcc9bfa1455c86a0a8a68fca6e4ee6
         }
 
         // Step 6.

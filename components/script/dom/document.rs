@@ -4095,8 +4095,7 @@ impl DocumentMethods for Document {
         };
 
         // Step 5
-        let host = match get_registrable_domain_suffix_of_or_is_equal_to(&value, effective_domain)
-        {
+        let host = match get_registrable_domain_suffix_of_or_is_equal_to(&value, effective_domain) {
             None => return Err(Error::Security),
             Some(host) => host,
         };
