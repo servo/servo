@@ -77,7 +77,7 @@ where
     let heap_buffer_source = match init {
         HeapTypedArrayInit::Buffer(buffer_source) => HeapBufferSource {
             buffer_source,
-            phantom: PhantomData::default(),
+            phantom: PhantomData,
         },
         HeapTypedArrayInit::Info { len, cx } => {
             rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
@@ -125,7 +125,7 @@ where
     pub fn default() -> HeapBufferSource<T> {
         HeapBufferSource {
             buffer_source: BufferSource::Default(Box::new(Heap::default())),
-            phantom: PhantomData::default(),
+            phantom: PhantomData,
         }
     }
 
@@ -437,7 +437,7 @@ where
 
         HeapBufferSource {
             buffer_source: BufferSource::ArrayBuffer(Heap::boxed(*array_buffer)),
-            phantom: PhantomData::default(),
+            phantom: PhantomData,
         }
     }
 }

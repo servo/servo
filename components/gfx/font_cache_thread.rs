@@ -497,7 +497,7 @@ impl FontCacheThread {
                     generic_fonts,
                     local_families: HashMap::new(),
                     web_families: HashMap::new(),
-                    font_context: FontContextHandle::default(),
+                    font_context: FontContextHandle,
                     core_resource_thread,
                     webrender_api,
                     webrender_fonts: HashMap::new(),

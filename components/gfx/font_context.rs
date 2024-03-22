@@ -65,7 +65,7 @@ pub struct FontContext<S: FontSource> {
 
 impl<S: FontSource> FontContext<S> {
     pub fn new(font_source: S) -> FontContext<S> {
-        let handle = FontContextHandle::default();
+        let handle = FontContextHandle;
         FontContext {
             platform_handle: handle,
             font_source,
