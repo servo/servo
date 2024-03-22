@@ -380,9 +380,9 @@ fn get_element_in_view_center_point(element: &Element) -> Option<Point2D<i64>> {
         .GetBody()
         .map(DomRoot::upcast::<Element>)
         .and_then(|body| {
-            let rectangle_element = element.GetClientRects();
-            let rectangle_option = rectangle_element.iter().next();
-            rectangle_option.map(|rectangle| {
+            // Step 1: Let rectangle be the first element of the DOMRect sequence
+            // returned by calling getClientRects() on element.
+            element.GetClientRects().first().map(|rectangle| {
                 let x = rectangle.X().round() as i64;
                 let y = rectangle.Y().round() as i64;
                 let width = rectangle.Width().round() as i64;
