@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
-#![allow(clippy::result_unit_err)]
 #![crate_name = "servo_url"]
 #![crate_type = "rlib"]
 
@@ -25,6 +24,34 @@ use url::{Position, Url};
 
 pub use crate::origin::{ImmutableOrigin, MutableOrigin, OpaqueOrigin};
 
+
+
+#[derive(Debug)]
+pub enum UrlError {
+    SetUsername,
+    SetIpHost,
+    SetPassword,
+    ToFilePath,
+    FromFilePath,
+}
+
+
+impl std::fmt::Display for UrlError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            UrlError::SetUsername => write!(f, "Error setting username"),
+            UrlError::SetIpHost => write!(f, "Error setting IP host"),
+            UrlError::SetPassword => write!(f, "Error setting password"),
+            UrlError::ToFilePath => write!(f, "Error converting to file path"),
+            UrlError::FromFilePath => write!(f, "Error converting from file path"),
+        }
+    }
+}
+
+
+
+impl std::error::Error for UrlError {}
+
 #[derive(Clone, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct ServoUrl(#[ignore_malloc_size_of = "Arc"] Arc<Url>);
 
@@ -35,6 +62,7 @@ impl ToShmem for ServoUrl {
 }
 
 impl ServoUrl {
+
     pub fn from_url(url: Url) -> Self {
         ServoUrl(Arc::new(url))
     }
@@ -108,18 +136,27 @@ impl ServoUrl {
     pub fn as_mut_url(&mut self) -> &mut Url {
         Arc::make_mut(&mut self.0)
     }
-
-    pub fn set_username(&mut self, user: &str) -> Result<(), ()> {
-        self.as_mut_url().set_username(user)
+    
+    pub fn set_username(&mut self, user: &str) -> Result<(), UrlError> {
+        self.as_mut_url().set_username(user).map_err(|_| UrlError::SetUsername)
     }
 
-    pub fn set_ip_host(&mut self, addr: IpAddr) -> Result<(), ()> {
-        self.as_mut_url().set_ip_host(addr)
+    pub fn set_ip_host(&mut self, addr: IpAddr) -> Result<(), UrlError> {
+        self.as_mut_url().set_ip_host(addr).map_err(|_| UrlError::SetIpHost)
     }
 
-    pub fn set_password(&mut self, pass: Option<&str>) -> Result<(), ()> {
-        self.as_mut_url().set_password(pass)
+    pub fn set_password(&mut self, pass: Option<&str>) -> Result<(), UrlError> {
+        self.as_mut_url().set_password(pass).map_err(|_| UrlError::SetPassword)
     }
+
+    pub fn to_file_path(&self) -> Result<::std::path::PathBuf, UrlError> {
+        self.0.to_file_path().map_err(|_| UrlError::ToFilePath)
+    }
+
+    pub fn from_file_path<P: AsRef<Path>>(path: P) -> Result<Self, UrlError> {
+        Url::from_file_path(path).map(Self::from_url).map_err(|_| UrlError::FromFilePath)
+    }
+
 
     pub fn set_fragment(&mut self, fragment: Option<&str>) {
         self.as_mut_url().set_fragment(fragment)
@@ -133,9 +170,7 @@ impl ServoUrl {
         self.0.password()
     }
 
-    pub fn to_file_path(&self) -> Result<::std::path::PathBuf, ()> {
-        self.0.to_file_path()
-    }
+    
 
     pub fn host(&self) -> Option<url::Host<&str>> {
         self.0.host()
@@ -163,10 +198,6 @@ impl ServoUrl {
 
     pub fn query(&self) -> Option<&str> {
         self.0.query()
-    }
-
-    pub fn from_file_path<P: AsRef<Path>>(path: P) -> Result<Self, ()> {
-        Ok(Self::from_url(Url::from_file_path(path)?))
     }
 
     /// Return a non-standard shortened form of the URL. Mainly intended to be
