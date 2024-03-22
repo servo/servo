@@ -2155,7 +2155,7 @@ impl HTMLInputElement {
                 .map(|time| time.and_utc().timestamp_millis() as f64),
             InputType::Time => match value.parse_time_string() {
                 Some((hours, minutes, seconds)) => {
-                    Some((seconds as f64 + 60.0 * minutes as f64 + 3600.0 * hours as f64) * 1000.0)
+                    Some((seconds + 60.0 * minutes as f64 + 3600.0 * hours as f64) * 1000.0)
                 },
                 _ => None,
             },
@@ -2543,7 +2543,7 @@ impl VirtualMethods for HTMLInputElement {
                         let TextIndexResponse(index) =
                             window.text_index_query(self.upcast::<Node>(), point_in_target);
                         if let Some(i) = index {
-                            self.textinput.borrow_mut().set_edit_point_index(i as usize);
+                            self.textinput.borrow_mut().set_edit_point_index(i);
                             // trigger redraw
                             self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                             event.PreventDefault();

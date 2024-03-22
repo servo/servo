@@ -2334,7 +2334,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         if let Some(ref player) = *self.player.borrow() {
             if let Ok(ranges) = player.lock().unwrap().buffered() {
                 for range in ranges {
-                    let _ = buffered.add(range.start as f64, range.end as f64);
+                    let _ = buffered.add(range.start, range.end);
                 }
             }
         }

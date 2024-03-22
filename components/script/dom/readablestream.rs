@@ -497,7 +497,7 @@ impl ExternalUnderlyingSourceController {
     fn get_chunk_with_length(&self, length: usize) -> Vec<u8> {
         let mut buffer = self.buffer.borrow_mut();
         let buffer_len = buffer.len();
-        assert!(buffer_len >= length as usize);
+        assert!(buffer_len >= length);
         buffer.split_off(buffer_len - length)
     }
 

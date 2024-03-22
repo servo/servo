@@ -2009,7 +2009,7 @@ impl GlobalScope {
 
         let stream = ReadableStream::new_with_external_underlying_source(
             self,
-            ExternalUnderlyingSource::Blob(size as usize),
+            ExternalUnderlyingSource::Blob(size),
         );
 
         let recv = self.send_msg(file_id);
@@ -3179,7 +3179,7 @@ impl GlobalScope {
                             }
                         }
                         for i in (0..gamepad_list.Length()).rev() {
-                            if gamepad_list.Item(i as u32).is_none() {
+                            if gamepad_list.Item(i).is_none() {
                                 gamepad_list.remove_gamepad(i as usize);
                             } else {
                                 break;
@@ -3219,7 +3219,7 @@ impl GlobalScope {
                             if !window.Navigator().has_gamepad_gesture() && contains_user_gesture(update_type) {
                                 window.Navigator().set_has_gamepad_gesture(true);
                                 for i in 0..gamepad_list.Length() {
-                                    if let Some(gamepad) = gamepad_list.Item(i as u32) {
+                                    if let Some(gamepad) = gamepad_list.Item(i) {
                                         gamepad.set_exposed(true);
                                         gamepad.update_timestamp(*current_time);
                                         let new_gamepad = Trusted::new(&*gamepad);

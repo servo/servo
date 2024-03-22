@@ -393,7 +393,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-form-length
     fn Length(&self) -> u32 {
-        self.Elements().Length() as u32
+        self.Elements().Length()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-form-item
