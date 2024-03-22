@@ -1411,7 +1411,7 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<'_, HTMLImageElement> {
     }
 
     fn image_density(self) -> Option<f64> {
-        self.current_request().current_pixel_density.clone()
+        self.current_request().current_pixel_density
     }
 
     fn get_width(self) -> LengthOrPercentageOrAuto {

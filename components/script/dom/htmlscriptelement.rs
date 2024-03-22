@@ -105,7 +105,7 @@ unsafe extern "C" fn off_thread_compilation_callback(
     let url = context.url.clone();
     let final_url = context.final_url.clone();
     let script_element = context.script_element.clone();
-    let script_kind = context.script_kind.clone();
+    let script_kind = context.script_kind;
     let script = replace(&mut context.script_text, String::new());
     let fetch_options = context.fetch_options.clone();
 
@@ -211,7 +211,7 @@ impl HTMLScriptElement {
     }
 
     pub fn get_script_id(&self) -> ScriptId {
-        self.id.clone()
+        self.id
     }
 }
 
@@ -402,7 +402,7 @@ impl FetchResponseListener for ClassicContext {
                 // Step 6, response is an error.
                 finish_fetching_a_classic_script(
                     &*self.elem.root(),
-                    self.kind.clone(),
+                    self.kind,
                     self.url.clone(),
                     Err(NoTrace(err.clone())),
                 );
@@ -438,7 +438,7 @@ impl FetchResponseListener for ClassicContext {
 
             let context = Box::new(OffThreadCompilationContext {
                 script_element: self.elem.clone(),
-                script_kind: self.kind.clone(),
+                script_kind: self.kind,
                 final_url,
                 url: self.url.clone(),
                 task_source: global.dom_manipulation_task_source(),
@@ -464,7 +464,7 @@ impl FetchResponseListener for ClassicContext {
                 self.fetch_options.clone(),
                 ScriptType::Classic,
             );
-            finish_fetching_a_classic_script(&*elem, self.kind.clone(), self.url.clone(), Ok(load));
+            finish_fetching_a_classic_script(&*elem, self.kind, self.url.clone(), Ok(load));
         }
     }
 
@@ -816,7 +816,7 @@ impl HTMLScriptElement {
                 Rc::clone(&text_rc),
                 base_url.clone(),
                 options.clone(),
-                script_type.clone(),
+                script_type,
             ));
 
             // Step 27-2.
@@ -850,7 +850,7 @@ impl HTMLScriptElement {
                         ModuleOwner::Window(Trusted::new(self)),
                         text_rc,
                         base_url.clone(),
-                        self.id.clone(),
+                        self.id,
                         options,
                     );
                 },

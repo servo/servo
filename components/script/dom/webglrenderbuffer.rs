@@ -235,7 +235,7 @@ impl WebGLRenderbuffer {
                 ),
             );
             let samples = receiver.recv().unwrap();
-            if sample_count < 0 || sample_count > samples.get(0).cloned().unwrap_or(0) {
+            if sample_count < 0 || sample_count > samples.first().cloned().unwrap_or(0) {
                 return Err(WebGLError::InvalidOperation);
             }
         }

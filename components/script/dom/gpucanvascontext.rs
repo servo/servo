@@ -41,10 +41,10 @@ pub struct WebGPUContextId(pub u64);
 impl Clone for GPUCanvasConfiguration {
     fn clone(&self) -> Self {
         Self {
-            alphaMode: self.alphaMode.clone(),
+            alphaMode: self.alphaMode,
             device: self.device.clone(),
-            format: self.format.clone(),
-            usage: self.usage.clone(),
+            format: self.format,
+            usage: self.usage,
             viewFormats: self.viewFormats.clone(),
         }
     }

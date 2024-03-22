@@ -1357,7 +1357,7 @@ impl HTMLMediaElement {
             HTMLMediaElementTypeId::HTMLVideoElement => Some(self.video_renderer.clone()),
         };
 
-        let audio_renderer = self.audio_renderer.borrow().as_ref().map(|r| r.clone());
+        let audio_renderer = self.audio_renderer.borrow().as_ref().cloned();
 
         let pipeline_id = window.pipeline_id();
         let client_context_id =
@@ -2470,7 +2470,7 @@ impl LayoutHTMLMediaElementHelpers for LayoutDom<'_, HTMLMediaElement> {
     fn data(self) -> HTMLMediaData {
         let media = unsafe { &*self.unsafe_get() };
         HTMLMediaData {
-            current_frame: media.video_renderer.lock().unwrap().current_frame.clone(),
+            current_frame: media.video_renderer.lock().unwrap().current_frame,
         }
     }
 }

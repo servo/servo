@@ -2788,7 +2788,7 @@ impl ScriptThread {
                         ..
                     }) => {
                         // If we have an existing window that is being navigated:
-                        if let Some(window) = self.documents.borrow().find_window(id.clone()) {
+                        if let Some(window) = self.documents.borrow().find_window(*id) {
                             let window_proxy = window.window_proxy();
                             // https://html.spec.whatwg.org/multipage/
                             // #navigating-across-documents:delaying-load-events-mode-2
@@ -3817,7 +3817,7 @@ impl ScriptThread {
     /// Instructs the constellation to fetch the document that will be loaded. Stores the InProgressLoad
     /// argument until a notification is received that the fetch is complete.
     fn pre_page_load(&self, mut incomplete: InProgressLoad, load_data: LoadData) {
-        let id = incomplete.pipeline_id.clone();
+        let id = incomplete.pipeline_id;
         let req_init = RequestBuilder::new(load_data.url.clone(), load_data.referrer)
             .method(load_data.method)
             .destination(Destination::Document)
