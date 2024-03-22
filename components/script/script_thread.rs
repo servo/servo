@@ -127,7 +127,7 @@ use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::identityhub::Identities;
 use crate::dom::mutationobserver::MutationObserver;
-use crate::dom::node::{window_from_node, Node, ShadowIncluding};
+use crate::dom::node::{document_from_node, window_from_node, Node, ShadowIncluding};
 use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performancepainttiming::PerformancePaintTiming;
 use crate::dom::serviceworker::TrustedServiceWorkerAddress;
@@ -1659,57 +1659,71 @@ impl ScriptThread {
         *self.has_queued_update_the_rendering_task.borrow_mut() = false;
 
         if self.can_continue_running_inner() {
-            // TODO: ordering by parent and shadow root.
             // TODO: Filter non-renderable documents.
             // TODO: Unnecessary rendering.
             for (pipeline_id, document) in
                 self.documents.borrow().iter().filter_map(|(id, document)| {
-                    if !document.is_fully_active() {
+                    // Iterate over those that are:
+                    // 1. fully active
+                    // 2. not an iframe(these will be iterated over per top-level).
+                    if !document.HasFocus() {
                         None
                     } else {
                         Some((id, DomRoot::from_ref(&*document)))
                     }
                 })
             {
-                // TODO: reveal the document(#31581).
+                // For ordering by parent and shadow root:
+                // iterate over the top-level and it's iframes, if any.
+                let mut to_iterate = VecDeque::new();
+                for frame in document.iter_iframes() {
+                    let doc = document_from_node(&*frame);
+                    let id = doc.window().upcast::<GlobalScope>().pipeline_id();
+                    to_iterate.push_back((id, doc));
+                }
+                to_iterate.push_back((pipeline_id, document));
 
-                // Focusing steps, plus other composition events.
-                // TODO: break-up to match spec more closely?
-                // See: flush autofocus candidates.
-                self.process_pending_compositor_events(pipeline_id);
+                for (pipeline_id, document) in to_iterate.into_iter() {
+                    // TODO: reveal the document(#31581).
 
-                // Resize steps.
-                self.run_the_resize_steps(pipeline_id, &*document);
+                    // Focusing steps, plus other composition events.
+                    // TODO: break-up to match spec more closely?
+                    // See: flush autofocus candidates.
+                    self.process_pending_compositor_events(pipeline_id);
 
-                // TODO: scroll steps(#31665)
+                    // Resize steps.
+                    self.run_the_resize_steps(pipeline_id, &*document);
 
-                // Evaluate media queries and report changes.
-                document
-                    .window()
-                    .evaluate_media_queries_and_report_changes();
+                    // TODO: scroll steps(#31665)
 
-                // Update animations and send events.
-                self.update_animations_and_send_events();
+                    // Evaluate media queries and report changes.
+                    document
+                        .window()
+                        .evaluate_media_queries_and_report_changes();
 
-                // TODO: fullscreen steps.
+                    // Update animations and send events.
+                    self.update_animations_and_send_events();
 
-                // TODO: context lost steps.
+                    // TODO: fullscreen steps.
 
-                // Run the animation frame callbacks.
-                self.handle_tick_all_animations(pipeline_id)
+                    // TODO: context lost steps.
 
-                // TODO: resize observer steps.
+                    // Run the animation frame callbacks.
+                    self.handle_tick_all_animations(pipeline_id)
 
-                // TODO: if the focused area of doc is not a focusable area,
-                // then run the focusing steps for doc's viewport.
+                    // TODO: resize observer steps.
 
-                // TODO: perform pending transition operations.
+                    // TODO: if the focused area of doc is not a focusable area,
+                    // then run the focusing steps for doc's viewport.
 
-                // TODO: run the update intersection observations steps.
+                    // TODO: perform pending transition operations.
 
-                // TODO: mark paint timing.
+                    // TODO: run the update intersection observations steps.
 
-                // TODO: update the rendering(reflow?).
+                    // TODO: mark paint timing.
+
+                    // TODO: update the rendering(reflow?).
+                }
             }
         }
     }
