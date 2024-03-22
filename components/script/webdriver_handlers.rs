@@ -89,7 +89,7 @@ fn matching_links(
     links: &NodeList,
     link_text: String,
     partial: bool,
-) -> impl Iterator<Item = String> + '_{
+) -> impl Iterator<Item = String> + '_ {
     links
         .iter()
         .filter(move |node| {
@@ -265,8 +265,7 @@ pub unsafe fn jsval_to_webdriver(
             let common_properties = ["x", "y", "width", "height", "key"];
             for property in common_properties.iter() {
                 rooted!(in(cx) let mut item = UndefinedValue());
-                if get_property_jsval(cx, object.handle(), property, item.handle_mut()).is_ok()
-                {
+                if get_property_jsval(cx, object.handle(), property, item.handle_mut()).is_ok() {
                     if !item.is_undefined() {
                         if let Ok(value) = jsval_to_webdriver(cx, global_scope, item.handle()) {
                             result.insert(property.to_string(), value);
@@ -381,30 +380,30 @@ fn get_element_in_view_center_point(element: &Element) -> Option<Point2D<i64>> {
         .GetBody()
         .map(DomRoot::upcast::<Element>)
         .and_then(|body| {
-           let rectangle_element = element.GetClientRects();
-           let rectangle_option = rectangle_element.iter().next();
-           rectangle_option.map(|rectangle| {
-                    let x = rectangle.X().round() as i64;
-                    let y = rectangle.Y().round() as i64;
-                    let width = rectangle.Width().round() as i64;
-                    let height = rectangle.Height().round() as i64;
+            let rectangle_element = element.GetClientRects();
+            let rectangle_option = rectangle_element.iter().next();
+            rectangle_option.map(|rectangle| {
+                let x = rectangle.X().round() as i64;
+                let y = rectangle.Y().round() as i64;
+                let width = rectangle.Width().round() as i64;
+                let height = rectangle.Height().round() as i64;
 
-                    let client_width = body.ClientWidth() as i64;
-                    let client_height = body.ClientHeight() as i64;
+                let client_width = body.ClientWidth() as i64;
+                let client_height = body.ClientHeight() as i64;
 
-                    // Steps 2 - 5
-                    let left = cmp::max(0, cmp::min(x, x + width));
-                    let right = cmp::min(client_width, cmp::max(x, x + width));
-                    let top = cmp::max(0, cmp::min(y, y + height));
-                    let bottom = cmp::min(client_height, cmp::max(y, y + height));
+                // Steps 2 - 5
+                let left = cmp::max(0, cmp::min(x, x + width));
+                let right = cmp::min(client_width, cmp::max(x, x + width));
+                let top = cmp::max(0, cmp::min(y, y + height));
+                let bottom = cmp::min(client_height, cmp::max(y, y + height));
 
-                    // Steps 6 - 7
-                    let x = (left + right) / 2;
-                    let y = (top + bottom) / 2;
+                // Steps 6 - 7
+                let x = (left + right) / 2;
+                let y = (top + bottom) / 2;
 
-                    // Step 8
-                    Point2D::new(x, y)
-                })
+                // Step 8
+                Point2D::new(x, y)
+            })
         })
 }
 
@@ -475,11 +474,12 @@ pub fn handle_find_element_tag_name(
             documents
                 .find_document(pipeline)
                 .ok_or(ErrorStatus::UnknownError)
-                .map(|document| document
+                .map(|document| {
+                    document
                         .GetElementsByTagName(DOMString::from(selector))
                         .elements_iter()
                         .next()
-                )
+                })
                 .map(|node| node.map(|x| x.upcast::<Node>().unique_id())),
         )
         .unwrap();
@@ -979,12 +979,12 @@ pub fn handle_get_attribute(
 ) {
     reply
         .send(
-            find_node_by_unique_id(documents, pipeline, node_id).map(|node| node
-                    .downcast::<Element>()
+            find_node_by_unique_id(documents, pipeline, node_id).map(|node| {
+                node.downcast::<Element>()
                     .unwrap()
                     .GetAttribute(DOMString::from(name))
                     .map(String::from)
-            ),
+            }),
         )
         .unwrap();
 }
@@ -1041,7 +1041,7 @@ pub fn handle_get_css(
             find_node_by_unique_id(documents, pipeline, node_id).map(|node| {
                 let window = window_from_node(&*node);
                 let element = node.downcast::<Element>().unwrap();
-              String::from(
+                String::from(
                     window
                         .GetComputedStyle(element, None)
                         .GetPropertyValue(DOMString::from(name)),
