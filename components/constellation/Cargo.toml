@@ -35,13 +35,13 @@ metrics = { path = "../metrics" }
 msg = { workspace = true }
 net = { path = "../net" }
 net_traits = { workspace = true }
+parking_lot = { workspace = true }
 profile_traits = { workspace = true }
 script_layout_interface = { workspace = true }
 script_traits = { workspace = true }
 serde = { workspace = true }
 servo_config = { path = "../config" }
 servo_rand = { path = "../rand" }
-servo_remutex = { path = "../remutex" }
 servo_url = { path = "../url" }
 style_traits = { workspace = true }
 webgpu = { path = "../webgpu" }

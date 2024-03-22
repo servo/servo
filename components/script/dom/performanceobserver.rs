@@ -186,7 +186,7 @@ impl PerformanceObserverMethods for PerformanceObserver {
             let entry_types = entry_types
                 .iter()
                 .filter(|e| VALID_ENTRY_TYPES.contains(&e.as_ref()))
-                .map(|e| e.clone())
+                .cloned()
                 .collect::<Vec<DOMString>>();
 
             // Step 6.3

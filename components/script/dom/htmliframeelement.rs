@@ -87,7 +87,7 @@ pub struct HTMLIFrameElement {
     sandbox: MutNullableDom<DOMTokenList>,
     sandbox_allowance: Cell<Option<SandboxAllowance>>,
     load_blocker: DomRefCell<Option<LoadBlocker>>,
-    visibility: Cell<bool>,
+    throttled: Cell<bool>,
 }
 
 impl HTMLIFrameElement {
@@ -438,7 +438,7 @@ impl HTMLIFrameElement {
             sandbox: Default::default(),
             sandbox_allowance: Cell::new(None),
             load_blocker: DomRefCell::new(None),
-            visibility: Cell::new(true),
+            throttled: Cell::new(false),
         }
     }
 
@@ -473,9 +473,9 @@ impl HTMLIFrameElement {
         self.top_level_browsing_context_id.get()
     }
 
-    pub fn change_visibility_status(&self, visibility: bool) {
-        if self.visibility.get() != visibility {
-            self.visibility.set(visibility);
+    pub fn set_throttled(&self, throttled: bool) {
+        if self.throttled.get() != throttled {
+            self.throttled.set(throttled);
         }
     }
 

@@ -1537,7 +1537,7 @@ impl GlobalScope {
                 // If this is a newly-created port, let the constellation immediately know.
                 let port_impl = MessagePortImpl::new(dom_port.message_port_id().clone());
                 message_ports.insert(
-                    dom_port.message_port_id().clone(),
+                    *dom_port.message_port_id(),
                     ManagedMessagePort {
                         port_impl: Some(port_impl),
                         dom_port: Dom::from_ref(dom_port),
@@ -1548,8 +1548,8 @@ impl GlobalScope {
                 let _ = self
                     .script_to_constellation_chan()
                     .send(ScriptMsg::NewMessagePort(
-                        router_id.clone(),
-                        dom_port.message_port_id().clone(),
+                        *router_id,
+                        *dom_port.message_port_id(),
                     ));
             };
         } else {
@@ -1674,9 +1674,7 @@ impl GlobalScope {
                     .get(blob_id)
                     .expect("get_blob_bytes for an unknown blob.");
                 match blob_info.blob_impl.blob_data() {
-                    BlobData::Sliced(ref parent, ref rel_pos) => {
-                        Some((parent.clone(), rel_pos.clone()))
-                    },
+                    BlobData::Sliced(ref parent, ref rel_pos) => Some((*parent, rel_pos.clone())),
                     _ => None,
                 }
             } else {
@@ -1739,9 +1737,7 @@ impl GlobalScope {
                     .get(blob_id)
                     .expect("get_blob_bytes_or_file_id for an unknown blob.");
                 match blob_info.blob_impl.blob_data() {
-                    BlobData::Sliced(ref parent, ref rel_pos) => {
-                        Some((parent.clone(), rel_pos.clone()))
-                    },
+                    BlobData::Sliced(ref parent, ref rel_pos) => Some((*parent, rel_pos.clone())),
                     _ => None,
                 }
             } else {
@@ -1811,9 +1807,7 @@ impl GlobalScope {
                     .get(blob_id)
                     .expect("get_blob_size called for a unknown blob.");
                 match blob_info.blob_impl.blob_data() {
-                    BlobData::Sliced(ref parent, ref rel_pos) => {
-                        Some((parent.clone(), rel_pos.clone()))
-                    },
+                    BlobData::Sliced(ref parent, ref rel_pos) => Some((*parent, rel_pos.clone())),
                     _ => None,
                 }
             };
@@ -1857,9 +1851,7 @@ impl GlobalScope {
                 blob_info.has_url = true;
 
                 match blob_info.blob_impl.blob_data() {
-                    BlobData::Sliced(ref parent, ref rel_pos) => {
-                        Some((parent.clone(), rel_pos.clone()))
-                    },
+                    BlobData::Sliced(ref parent, ref rel_pos) => Some((*parent, rel_pos.clone())),
                     _ => None,
                 }
             };
@@ -1904,7 +1896,7 @@ impl GlobalScope {
 
         let (tx, rx) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
         let msg = FileManagerThreadMsg::AddSlicedURLEntry(
-            parent_file_id.clone(),
+            *parent_file_id,
             rel_pos.clone(),
             tx,
             origin.clone(),
@@ -1913,7 +1905,7 @@ impl GlobalScope {
         match rx.recv().expect("File manager thread is down.") {
             Ok(new_id) => {
                 *blob_info.blob_impl.blob_data_mut() = BlobData::File(FileBlob::new(
-                    new_id.clone(),
+                    new_id,
                     None,
                     None,
                     rel_pos.to_abs_range(parent_len as usize).len() as u64,
@@ -1977,7 +1969,7 @@ impl GlobalScope {
         self.send_to_file_manager(msg);
 
         *blob_info.blob_impl.blob_data_mut() = BlobData::File(FileBlob::new(
-            id.clone(),
+            id,
             None,
             Some(bytes.to_vec()),
             bytes.len() as u64,
@@ -2295,7 +2287,7 @@ impl GlobalScope {
     pub fn issue_page_warning(&self, warning: &str) {
         if let Some(ref chan) = self.devtools_chan {
             let _ = chan.send(ScriptToDevtoolsControlMsg::ReportPageError(
-                self.pipeline_id.clone(),
+                self.pipeline_id,
                 PageError {
                     type_: "PageError".to_string(),
                     errorMessage: warning.to_string(),
@@ -2483,7 +2475,7 @@ impl GlobalScope {
             } else if self.is::<Window>() {
                 if let Some(ref chan) = self.devtools_chan {
                     let _ = chan.send(ScriptToDevtoolsControlMsg::ReportPageError(
-                        self.pipeline_id.clone(),
+                        self.pipeline_id,
                         PageError {
                             type_: "PageError".to_string(),
                             errorMessage: error_info.message.clone(),

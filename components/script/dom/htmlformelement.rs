@@ -1698,7 +1698,7 @@ impl VirtualMethods for HTMLFormElement {
                 .borrow()
                 .iter()
                 .filter(|c| !c.is_in_same_home_subtree(self))
-                .map(|c| c.clone()),
+                .cloned(),
         );
 
         for control in to_reset.iter() {

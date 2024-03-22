@@ -215,8 +215,8 @@ pub enum ScriptMsg {
     /// Notification that this iframe should be removed.
     /// Returns a list of pipelines which were closed.
     RemoveIFrame(BrowsingContextId, IpcSender<Vec<PipelineId>>),
-    /// Notifies constellation that an iframe's visibility has been changed.
-    VisibilityChangeComplete(bool),
+    /// Successful response to [crate::ConstellationControlMsg::SetThrottled].
+    SetThrottledComplete(bool),
     /// A load has been requested in an IFrame.
     ScriptLoadedURLInIFrame(IFrameLoadInfoWithData),
     /// A load of the initial `about:blank` has been completed in an IFrame.
@@ -304,7 +304,7 @@ impl fmt::Debug for ScriptMsg {
             ReplaceHistoryState(..) => "ReplaceHistoryState",
             JointSessionHistoryLength(..) => "JointSessionHistoryLength",
             RemoveIFrame(..) => "RemoveIFrame",
-            VisibilityChangeComplete(..) => "VisibilityChangeComplete",
+            SetThrottledComplete(..) => "SetThrottledComplete",
             ScriptLoadedURLInIFrame(..) => "ScriptLoadedURLInIFrame",
             ScriptNewIFrame(..) => "ScriptNewIFrame",
             ScriptNewAuxiliary(..) => "ScriptNewAuxiliary",

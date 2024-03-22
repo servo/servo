@@ -206,8 +206,8 @@ struct InProgressLoad {
     /// The activity level of the document (inactive, active or fully active).
     #[no_trace]
     activity: DocumentActivity,
-    /// Window is visible.
-    is_visible: bool,
+    /// Window is throttled, running timers at a heavily limited rate.
+    throttled: bool,
     /// The requested URL of the load.
     #[no_trace]
     url: ServoUrl,
@@ -250,7 +250,7 @@ impl InProgressLoad {
             opener,
             window_size,
             activity: DocumentActivity::FullyActive,
-            is_visible: true,
+            throttled: false,
             url,
             origin,
             navigation_start: navigation_start as u64,
@@ -1832,8 +1832,8 @@ impl ScriptThread {
                 SetScrollState(id, ..) => Some(id),
                 GetTitle(id) => Some(id),
                 SetDocumentActivity(id, ..) => Some(id),
-                ChangeFrameVisibilityStatus(id, ..) => Some(id),
-                NotifyVisibilityChange(id, ..) => Some(id),
+                SetThrottled(id, ..) => Some(id),
+                SetThrottledInContainingIframe(id, ..) => Some(id),
                 NavigateIframe(id, ..) => Some(id),
                 PostMessage { target: id, .. } => Some(id),
                 UpdatePipelineId(_, _, _, id, _) => Some(id),
@@ -1991,17 +1991,17 @@ impl ScriptThread {
             ConstellationControlMsg::SetDocumentActivity(pipeline_id, activity) => {
                 self.handle_set_document_activity_msg(pipeline_id, activity)
             },
-            ConstellationControlMsg::ChangeFrameVisibilityStatus(pipeline_id, visible) => {
-                self.handle_visibility_change_msg(pipeline_id, visible)
+            ConstellationControlMsg::SetThrottled(pipeline_id, throttled) => {
+                self.handle_set_throttled_msg(pipeline_id, throttled)
             },
-            ConstellationControlMsg::NotifyVisibilityChange(
+            ConstellationControlMsg::SetThrottledInContainingIframe(
                 parent_pipeline_id,
                 browsing_context_id,
-                visible,
-            ) => self.handle_visibility_change_complete_msg(
+                throttled,
+            ) => self.handle_set_throttled_in_containing_iframe_msg(
                 parent_pipeline_id,
                 browsing_context_id,
-                visible,
+                throttled,
             ),
             ConstellationControlMsg::PostMessage {
                 target: target_pipeline_id,
@@ -2556,45 +2556,44 @@ impl ScriptThread {
     }
 
     /// Updates iframe element after a change in visibility
-    fn handle_visibility_change_complete_msg(
+    fn handle_set_throttled_in_containing_iframe_msg(
         &self,
         parent_pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
-        visible: bool,
+        throttled: bool,
     ) {
         let iframe = self
             .documents
             .borrow()
             .find_iframe(parent_pipeline_id, browsing_context_id);
         if let Some(iframe) = iframe {
-            iframe.change_visibility_status(visible);
+            iframe.set_throttled(throttled);
         }
     }
 
-    /// Handle visibility change message
-    fn handle_visibility_change_msg(&self, id: PipelineId, visible: bool) {
+    fn handle_set_throttled_msg(&self, id: PipelineId, throttled: bool) {
         // Separate message sent since parent script thread could be different (Iframe of different
         // domain)
         self.script_sender
-            .send((id, ScriptMsg::VisibilityChangeComplete(visible)))
+            .send((id, ScriptMsg::SetThrottledComplete(throttled)))
             .unwrap();
 
         let window = self.documents.borrow().find_window(id);
         match window {
             Some(window) => {
-                window.alter_resource_utilization(visible);
+                window.set_throttled(throttled);
                 return;
             },
             None => {
                 let mut loads = self.incomplete_loads.borrow_mut();
                 if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
-                    load.is_visible = visible;
+                    load.throttled = throttled;
                     return;
                 }
             },
         }
 
-        warn!("change visibility message sent to nonexistent pipeline");
+        warn!("SetThrottled sent to nonexistent pipeline");
     }
 
     /// Handles activity change message
@@ -2788,7 +2787,7 @@ impl ScriptThread {
                         ..
                     }) => {
                         // If we have an existing window that is being navigated:
-                        if let Some(window) = self.documents.borrow().find_window(id.clone()) {
+                        if let Some(window) = self.documents.borrow().find_window(*id) {
                             let window_proxy = window.window_proxy();
                             // https://html.spec.whatwg.org/multipage/
                             // #navigating-across-documents:delaying-load-events-mode-2
@@ -3435,8 +3434,8 @@ impl ScriptThread {
             window.suspend();
         }
 
-        if !incomplete.is_visible {
-            window.alter_resource_utilization(false);
+        if incomplete.throttled {
+            window.set_throttled(true);
         }
 
         document.get_current_parser().unwrap()
@@ -3817,7 +3816,7 @@ impl ScriptThread {
     /// Instructs the constellation to fetch the document that will be loaded. Stores the InProgressLoad
     /// argument until a notification is received that the fetch is complete.
     fn pre_page_load(&self, mut incomplete: InProgressLoad, load_data: LoadData) {
-        let id = incomplete.pipeline_id.clone();
+        let id = incomplete.pipeline_id;
         let req_init = RequestBuilder::new(load_data.url.clone(), load_data.referrer)
             .method(load_data.method)
             .destination(Destination::Document)

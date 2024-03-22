@@ -109,7 +109,7 @@ impl PerformanceNavigationTimingMethods for PerformanceNavigationTiming {
 
     // https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-type
     fn Type(&self) -> NavigationType {
-        self.nav_type.clone()
+        self.nav_type
     }
 
     // https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-redirectcount

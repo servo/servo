@@ -151,7 +151,7 @@ impl MessagePort {
 
         // Have the global proxy this call to the corresponding MessagePortImpl.
         self.global()
-            .post_messageport_msg(self.message_port_id().clone(), task);
+            .post_messageport_msg(*self.message_port_id(), task);
         Ok(())
     }
 }
@@ -176,15 +176,15 @@ impl Transferable for MessagePort {
 
         // 2. Store the transferred object at a given key.
         if let Some(ports) = port_impls.as_mut() {
-            ports.insert(id.clone(), transferred_port);
+            ports.insert(*id, transferred_port);
         } else {
             let mut ports = HashMap::new();
-            ports.insert(id.clone(), transferred_port);
+            ports.insert(*id, transferred_port);
             *port_impls = Some(ports);
         }
 
-        let PipelineNamespaceId(name_space) = id.clone().namespace_id;
-        let MessagePortIndex(index) = id.clone().index;
+        let PipelineNamespaceId(name_space) = (*id).namespace_id;
+        let MessagePortIndex(index) = (*id).index;
         let index = index.get();
 
         let mut big: [u8; 8] = [0; 8];
@@ -251,7 +251,7 @@ impl Transferable for MessagePort {
         };
 
         let transferred_port =
-            MessagePort::new_transferred(&*owner, id.clone(), port_impl.entangled_port_id());
+            MessagePort::new_transferred(&*owner, id, port_impl.entangled_port_id());
         owner.track_message_port(&transferred_port, Some(port_impl));
 
         return_object.set(transferred_port.reflector().rootable().get());

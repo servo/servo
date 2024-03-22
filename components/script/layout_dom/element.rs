@@ -731,7 +731,7 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ThreadSafeLayoutElement<'dom>
     fn as_node(&self) -> ServoThreadSafeLayoutNode<'dom, LayoutDataType> {
         ServoThreadSafeLayoutNode {
             node: self.element.as_node(),
-            pseudo: self.pseudo.clone(),
+            pseudo: self.pseudo,
         }
     }
 
@@ -741,7 +741,7 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ThreadSafeLayoutElement<'dom>
 
     fn with_pseudo(&self, pseudo: PseudoElementType) -> Self {
         ServoThreadSafeLayoutElement {
-            element: self.element.clone(),
+            element: self.element,
             pseudo,
         }
     }

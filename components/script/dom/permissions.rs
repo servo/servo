@@ -310,7 +310,7 @@ pub fn get_descriptor_permission_state(
         .borrow()
         .get(&permission_name.to_string())
     {
-        return prev_result.clone();
+        return *prev_result;
     }
 
     // Store the invocation result
