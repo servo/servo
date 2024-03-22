@@ -19,7 +19,6 @@
 
 use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
-use std::collections::vec_deque::Drain;
 use std::collections::{hash_map, HashMap, HashSet, VecDeque};
 use std::default::Default;
 use std::ops::Deref;
@@ -29,7 +28,7 @@ use std::result::Result;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
-use std::{ptr, thread};
+use std::{mem, ptr, thread};
 
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
@@ -431,7 +430,33 @@ impl OpaqueSender<CommonScriptMsg> for Sender<MainThreadScriptMsg> {
 #[derive(JSTraceable)]
 #[crown::unrooted_must_root_lint::must_root]
 pub struct Documents {
-    map: HashMapTracedValues<PipelineId, Dom<Document>>,
+    map: HashMapTracedValues<PipelineId, DocumentInfo>,
+}
+
+#[derive(JSTraceable)]
+#[crown::unrooted_must_root_lint::must_root]
+struct DocumentInfo {
+    document: Dom<Document>,
+    /// Pending animation ticks, to be handled at the next rendering opportunity.
+    #[no_trace]
+    pending_animation_ticks: DomRefCell<AnimationTickType>,
+    /// Pending composition events, to be handled at the next rendering opportunity.
+    #[no_trace]
+    pending_compositor_events: DomRefCell<VecDeque<CompositorEvent>>,
+}
+
+impl DocumentInfo {
+    fn new(doc: &Document) -> DocumentInfo {
+        DocumentInfo {
+            document: Dom::from_ref(doc),
+            pending_animation_ticks: Default::default(),
+            pending_compositor_events: Default::default(),
+        }
+    }
+
+    fn document(&self) -> DomRoot<Document> {
+        DomRoot::from_ref(&*self.document)
+    }
 }
 
 impl Documents {
@@ -441,20 +466,69 @@ impl Documents {
         }
     }
 
+    pub fn note_pending_animation_tick(
+        &self,
+        pipeline_id: PipelineId,
+        tick_type: AnimationTickType,
+    ) {
+        if let Some(doc_info) = self.map.get(&pipeline_id) {
+            let mut pending_animation_ticks = doc_info.pending_animation_ticks.borrow_mut();
+            pending_animation_ticks.extend(tick_type);
+        } else {
+            warn!(
+                "Trying to note pending animation tick for closed pipeline {}.",
+                pipeline_id
+            )
+        }
+    }
+
+    pub fn find_document_with_pending_animation_ticks(
+        &self,
+        pipeline_id: PipelineId,
+    ) -> Option<(DomRoot<Document>, AnimationTickType)> {
+        self.map.get(&pipeline_id).map(|doc_info| {
+            let doc = doc_info.document();
+            let animation_tick = mem::take(&mut *doc_info.pending_animation_ticks.borrow_mut());
+            (doc, animation_tick)
+        })
+    }
+
+    pub fn note_pending_compositor_event(&self, pipeline_id: PipelineId, event: CompositorEvent) {
+        if let Some(doc_info) = self.map.get(&pipeline_id) {
+            doc_info
+                .pending_compositor_events
+                .borrow_mut()
+                .push_back(event);
+        } else {
+            warn!(
+                "Trying to note pending compositor event for closed pipeline {}.",
+                pipeline_id
+            )
+        }
+    }
+
+    pub fn find_document_with_pending_compositor_events(
+        &self,
+        pipeline_id: PipelineId,
+    ) -> Option<(DomRoot<Document>, VecDeque<CompositorEvent>)> {
+        self.map.get(&pipeline_id).map(|doc_info| {
+            let doc = doc_info.document();
+            let pending_compositor_events =
+                mem::take(&mut *doc_info.pending_compositor_events.borrow_mut());
+            (doc, pending_compositor_events)
+        })
+    }
+
     pub fn insert(&mut self, pipeline_id: PipelineId, doc: &Document) {
-        self.map.insert(pipeline_id, Dom::from_ref(doc));
+        self.map.insert(pipeline_id, DocumentInfo::new(doc));
     }
 
     pub fn remove(&mut self, pipeline_id: PipelineId) -> Option<DomRoot<Document>> {
-        self.map
-            .remove(&pipeline_id)
-            .map(|ref doc| DomRoot::from_ref(&**doc))
+        self.map.remove(&pipeline_id).map(|ref doc| doc.document())
     }
 
     pub fn find_document(&self, pipeline_id: PipelineId) -> Option<DomRoot<Document>> {
-        self.map
-            .get(&pipeline_id)
-            .map(|doc| DomRoot::from_ref(&**doc))
+        self.map.get(&pipeline_id).map(|doc| doc.document())
     }
 
     pub fn find_window(&self, pipeline_id: PipelineId) -> Option<DomRoot<Window>> {
@@ -485,16 +559,14 @@ impl Documents {
 
 #[allow(crown::unrooted_must_root)]
 pub struct DocumentsIter<'a> {
-    iter: hash_map::Iter<'a, PipelineId, Dom<Document>>,
+    iter: hash_map::Iter<'a, PipelineId, DocumentInfo>,
 }
 
 impl<'a> Iterator for DocumentsIter<'a> {
     type Item = (PipelineId, DomRoot<Document>);
 
     fn next(&mut self) -> Option<(PipelineId, DomRoot<Document>)> {
-        self.iter
-            .next()
-            .map(|(id, doc)| (*id, DomRoot::from_ref(&**doc)))
+        self.iter.next().map(|(id, doc)| (*id, doc.document()))
     }
 }
 
@@ -515,12 +587,6 @@ pub struct ScriptThread {
     last_render_opportunity_time: DomRefCell<u64>,
     /// Used to batch rendering opportunities
     has_queued_update_the_rendering_task: DomRefCell<bool>,
-    /// Used to batch animation ticks.
-    #[no_trace]
-    pending_animation_ticks: DomRefCell<HashMap<PipelineId, AnimationTickType>>,
-    /// Pending composition events, to be handled at the next rendering opportunity.
-    #[no_trace]
-    pending_compositor_events: DomRefCell<HashMap<PipelineId, VecDeque<CompositorEvent>>>,
     /// The documents for pipelines managed by this thread
     documents: DomRefCell<Documents>,
     /// The window proxies known by this thread
@@ -1352,8 +1418,6 @@ impl ScriptThread {
         ScriptThread {
             last_render_opportunity_time: Default::default(),
             has_queued_update_the_rendering_task: Default::default(),
-            pending_animation_ticks: Default::default(),
-            pending_compositor_events: Default::default(),
             documents: DomRefCell::new(Documents::new()),
             window_proxies: DomRefCell::new(HashMapTracedValues::new()),
             incomplete_loads: DomRefCell::new(vec![]),
@@ -1493,14 +1557,11 @@ impl ScriptThread {
 
     /// Process compositor events as part of a "update the rendering task".
     fn process_pending_compositor_events(&self, pipeline_id: PipelineId) {
-        let mut pending_events = self.pending_compositor_events.borrow_mut();
-        let pending_queue = pending_events.get_mut(&pipeline_id);
-        let pending_for_pipeline: Drain<'_, CompositorEvent> = if let Some(queue) = pending_queue {
-            queue.drain(..)
-        } else {
-            return;
-        };
-        let document = match self.documents.borrow().find_document(pipeline_id) {
+        let (document, pending_for_pipeline) = match self
+            .documents
+            .borrow()
+            .find_document_with_pending_compositor_events(pipeline_id)
+        {
             Some(document) => document,
             None => {
                 return warn!(
@@ -1519,7 +1580,7 @@ impl ScriptThread {
         let window = document.window();
         ScriptThread::set_user_interacting(true);
         let _realm = enter_realm(document.window());
-        for event in pending_for_pipeline {
+        for event in pending_for_pipeline.into_iter() {
             match event {
                 CompositorEvent::ResizeEvent(new_size, size_type) => {
                     window.set_resize_event(new_size, size_type);
@@ -2325,11 +2386,9 @@ impl ScriptThread {
             },
             ConstellationControlMsg::TickAllAnimations(pipeline_id, tick_type) => {
                 self.rendering_opportunity(pipeline_id);
-                let mut pending_animation_ticks = self.pending_animation_ticks.borrow_mut();
-                let entry = pending_animation_ticks
-                    .entry(pipeline_id)
-                    .or_insert(AnimationTickType::empty());
-                entry.extend(tick_type);
+                self.documents
+                    .borrow_mut()
+                    .note_pending_animation_tick(pipeline_id, tick_type);
             },
             ConstellationControlMsg::WebFontLoaded(pipeline_id) => {
                 self.handle_web_font_loaded(pipeline_id)
@@ -3273,32 +3332,30 @@ impl ScriptThread {
     pub fn handle_tick_all_animations_for_testing(id: PipelineId) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            let mut pending_animation_ticks = script_thread.pending_animation_ticks.borrow_mut();
-            let tick_type = pending_animation_ticks
-                .entry(id)
-                .or_insert(AnimationTickType::empty());
-            tick_type.insert(AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS);
+            script_thread
+                .documents
+                .borrow_mut()
+                .note_pending_animation_tick(id, AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS);
             script_thread.handle_tick_all_animations(id);
         });
     }
 
     /// Handles when layout finishes all animation in one tick
     fn handle_tick_all_animations(&self, id: PipelineId) {
-        let document = match self.documents.borrow().find_document(id) {
+        let (document, tick_type) = match self
+            .documents
+            .borrow()
+            .find_document_with_pending_animation_ticks(id)
+        {
             Some(document) => document,
             None => return warn!("Message sent to closed pipeline {}.", id),
         };
-        let mut pending_animation_ticks = self.pending_animation_ticks.borrow_mut();
-        let tick_type = pending_animation_ticks
-            .entry(id)
-            .or_insert(AnimationTickType::empty());
         if tick_type.contains(AnimationTickType::REQUEST_ANIMATION_FRAME) {
             document.run_the_animation_frame_callbacks();
         }
         if tick_type.contains(AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS) {
             document.maybe_mark_animating_nodes_as_dirty();
         }
-        *tick_type = AnimationTickType::empty();
     }
 
     /// Handles a Web font being loaded. Does nothing if the page no longer exists.
@@ -3777,11 +3834,9 @@ impl ScriptThread {
     /// TODO: Actually perform DOM event dispatch.
     fn handle_event(&self, pipeline_id: PipelineId, event: CompositorEvent) {
         self.rendering_opportunity(pipeline_id);
-        self.pending_compositor_events
+        self.documents
             .borrow_mut()
-            .entry(pipeline_id)
-            .or_insert(Default::default())
-            .push_back(event);
+            .note_pending_compositor_event(pipeline_id, event);
     }
 
     fn handle_mouse_event(
