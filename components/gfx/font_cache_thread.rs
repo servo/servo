@@ -491,13 +491,14 @@ impl FontCacheThread {
                 // TODO: Allow users to specify these.
                 let generic_fonts = populate_generic_fonts();
 
+                #[allow(clippy::default_constructed_unit_structs)]
                 let mut cache = FontCache {
                     port,
                     channel_to_self,
                     generic_fonts,
                     local_families: HashMap::new(),
                     web_families: HashMap::new(),
-                    font_context: FontContextHandle,
+                    font_context: FontContextHandle::default(),
                     core_resource_thread,
                     webrender_api,
                     webrender_fonts: HashMap::new(),

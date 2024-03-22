@@ -65,7 +65,8 @@ pub struct FontContext<S: FontSource> {
 
 impl<S: FontSource> FontContext<S> {
     pub fn new(font_source: S) -> FontContext<S> {
-        let handle = FontContextHandle;
+        #[allow(clippy::default_constructed_unit_structs)]
+        let handle = FontContextHandle::default();
         FontContext {
             platform_handle: handle,
             font_source,
