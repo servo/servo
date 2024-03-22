@@ -22,7 +22,7 @@ use super::{Table, TableSlot, TableSlotCell, TableTrack, TableTrackGroup};
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{Baselines, IndependentLayout};
 use crate::fragment_tree::{
-    BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, ExtraBackground, Fragment,
+    BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, ExtraBackground, Fragment, FragmentFlags,
     PositioningFragment,
 };
 use crate::geom::{AuOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalVec2};
@@ -979,11 +979,15 @@ impl<'a> TableLayout<'a> {
                         row.group_index.map_or(false, |group_index| {
                             self.table.row_groups[group_index]
                                 .style
-                                .establishes_containing_block_for_absolute_descendants()
+                                .establishes_containing_block_for_absolute_descendants(
+                                    FragmentFlags::empty(),
+                                )
                         });
                     row_group_collects_for_nearest_positioned_ancestor ||
                         row.style
-                            .establishes_containing_block_for_absolute_descendants()
+                            .establishes_containing_block_for_absolute_descendants(
+                                FragmentFlags::empty(),
+                            )
                 });
 
             let mut cells_laid_out_row = Vec::new();
