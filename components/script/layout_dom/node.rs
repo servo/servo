@@ -285,7 +285,7 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ServoThreadSafeLayoutNode<'dom, Layo
     /// Creates a new `ServoThreadSafeLayoutNode` from the given `ServoLayoutNode`.
     pub fn new(node: ServoLayoutNode<'dom, LayoutDataType>) -> Self {
         ServoThreadSafeLayoutNode {
-            node: node,
+            node,
             pseudo: PseudoElementType::Normal,
         }
     }

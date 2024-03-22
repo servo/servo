@@ -776,7 +776,7 @@ fn max_day_in_month(year_num: i32, month_num: u32) -> Option<u32> {
 
 /// <https://html.spec.whatwg.org/multipage/#week-number-of-the-last-day>
 fn max_week_in_year(year: i32) -> u32 {
-    Utc.with_ymd_and_hms(year as i32, 1, 1, 0, 0, 0)
+    Utc.with_ymd_and_hms(year, 1, 1, 0, 0, 0)
         .earliest()
         .map(|date_time| match date_time.weekday() {
             Weekday::Thu => 53,
