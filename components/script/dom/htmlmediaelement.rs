@@ -2504,7 +2504,7 @@ impl MicrotaskRunnable for MediaElementMicrotask {
                     elem.resource_selection_algorithm_sync(base_url.clone());
                 }
             },
-            &MediaElementMicrotask::PauseIfNotInDocumentTask { ref elem } => {
+            MediaElementMicrotask::PauseIfNotInDocumentTask { elem } => {
                 if !elem.upcast::<Node>().is_connected() {
                     elem.internal_pause_steps();
                 }
