@@ -209,6 +209,7 @@ pub mod types {
     include!(concat!(env!("OUT_DIR"), "/InterfaceTypes.rs"));
 }
 
+pub mod abstractrange;
 pub mod abstractworker;
 pub mod abstractworkerglobalscope;
 pub mod activation;
@@ -524,6 +525,7 @@ pub mod serviceworkerglobalscope;
 pub mod serviceworkerregistration;
 pub mod servoparser;
 pub mod shadowroot;
+pub mod staticrange;
 pub mod stereopannernode;
 pub mod storage;
 pub mod storageevent;
