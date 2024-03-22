@@ -354,7 +354,7 @@ impl ModuleTree {
 
         let realm = enter_realm(&*owner.global());
         let comp = InRealm::Entered(&realm);
-        let _ais = AutoIncumbentScript::new(&*owner.global());
+        let _ais = AutoIncumbentScript::new(&owner.global());
 
         let mut promise = self.promise.borrow_mut();
         match promise.as_ref() {
@@ -390,7 +390,7 @@ impl ModuleTree {
 
         let realm = enter_realm(&*owner.global());
         let comp = InRealm::Entered(&realm);
-        let _ais = AutoIncumbentScript::new(&*owner.global());
+        let _ais = AutoIncumbentScript::new(&owner.global());
 
         let mut promise = self.promise.borrow_mut();
         match promise.as_ref() {
@@ -930,11 +930,11 @@ impl ModuleOwner {
                     .has_attribute(&local_name!("async"));
 
                 if !asynch && (*script.root()).get_parser_inserted() {
-                    document.deferred_script_loaded(&*script.root(), load);
+                    document.deferred_script_loaded(&script.root(), load);
                 } else if !asynch && !(*script.root()).get_non_blocking() {
-                    document.asap_in_order_script_loaded(&*script.root(), load);
+                    document.asap_in_order_script_loaded(&script.root(), load);
                 } else {
-                    document.asap_script_loaded(&*script.root(), load);
+                    document.asap_script_loaded(&script.root(), load);
                 };
             },
         }

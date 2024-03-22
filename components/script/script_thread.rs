@@ -2205,10 +2205,10 @@ impl ScriptThread {
                 None => warn!("Message sent to closed pipeline {}.", id),
             },
             DevtoolScriptControlMsg::SetTimelineMarkers(id, marker_types, reply) => {
-                devtools::handle_set_timeline_markers(&*documents, id, marker_types, reply)
+                devtools::handle_set_timeline_markers(&documents, id, marker_types, reply)
             },
             DevtoolScriptControlMsg::DropTimelineMarkers(id, marker_types) => {
-                devtools::handle_drop_timeline_markers(&*documents, id, marker_types)
+                devtools::handle_drop_timeline_markers(&documents, id, marker_types)
             },
             DevtoolScriptControlMsg::RequestAnimationFrame(id, name) => {
                 devtools::handle_request_animation_frame(&documents, id, name)

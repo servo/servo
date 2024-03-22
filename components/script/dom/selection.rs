@@ -202,7 +202,7 @@ impl SelectionMethods for Selection {
     // https://w3c.github.io/selection-api/#dom-selection-addrange
     fn AddRange(&self, range: &Range) {
         // Step 1
-        if !self.is_same_root(&*range.StartContainer()) {
+        if !self.is_same_root(&range.StartContainer()) {
             return;
         }
 
@@ -319,9 +319,9 @@ impl SelectionMethods for Selection {
             }
 
             // Step 4
-            if !self.is_same_root(&*range.StartContainer()) {
+            if !self.is_same_root(&range.StartContainer()) {
                 // Step 5, and its following 8 and 9
-                self.set_range(&*Range::new(&self.document, node, offset, node, offset));
+                self.set_range(&Range::new(&self.document, node, offset, node, offset));
                 self.direction.set(Direction::Forwards);
             } else {
                 let old_anchor_node = &*self.GetAnchorNode().unwrap(); // has range, therefore has anchor node
@@ -335,7 +335,7 @@ impl SelectionMethods for Selection {
                 };
                 if is_old_anchor_before_or_equal {
                     // Step 6, and its following 8 and 9
-                    self.set_range(&*Range::new(
+                    self.set_range(&Range::new(
                         &self.document,
                         old_anchor_node,
                         old_anchor_offset,
@@ -345,7 +345,7 @@ impl SelectionMethods for Selection {
                     self.direction.set(Direction::Forwards);
                 } else {
                     // Step 7, and its following 8 and 9
-                    self.set_range(&*Range::new(
+                    self.set_range(&Range::new(
                         &self.document,
                         node,
                         offset,
@@ -394,7 +394,7 @@ impl SelectionMethods for Selection {
             }
         };
         if is_focus_before_anchor {
-            self.set_range(&*Range::new(
+            self.set_range(&Range::new(
                 &self.document,
                 focus_node,
                 focus_offset,
@@ -403,7 +403,7 @@ impl SelectionMethods for Selection {
             ));
             self.direction.set(Direction::Backwards);
         } else {
-            self.set_range(&*Range::new(
+            self.set_range(&Range::new(
                 &self.document,
                 anchor_node,
                 anchor_offset,
@@ -428,7 +428,7 @@ impl SelectionMethods for Selection {
         // Spec wording just says node length here, but WPT specifically
         // wants number of children (the main difference is that it's 0
         // for cdata).
-        self.set_range(&*Range::new(
+        self.set_range(&Range::new(
             &self.document,
             node,
             0,

@@ -48,7 +48,7 @@ impl ServiceWorkerContainer {
     #[allow(crown::unrooted_must_root)]
     pub fn new(global: &GlobalScope) -> DomRoot<ServiceWorkerContainer> {
         let client = Client::new(global.as_window());
-        let container = ServiceWorkerContainer::new_inherited(&*client);
+        let container = ServiceWorkerContainer::new_inherited(&client);
         reflect_dom_object(Box::new(container), global)
     }
 }
@@ -165,7 +165,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
         );
 
         let scope_things =
-            ServiceWorkerRegistration::create_scope_things(&*global, script_url.clone());
+            ServiceWorkerRegistration::create_scope_things(&global, script_url.clone());
 
         // B: Step 8 - 13
         let job = Job::create_job(

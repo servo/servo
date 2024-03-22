@@ -1565,7 +1565,7 @@ impl WebGLRenderingContext {
             rb.storage(self.api_type, samples, internal_format, width, height)
         );
         if let Some(fb) = self.bound_draw_framebuffer.get() {
-            fb.invalidate_renderbuffer(&*rb);
+            fb.invalidate_renderbuffer(&rb);
         }
 
         // FIXME: https://github.com/servo/servo/issues/13710
@@ -1639,7 +1639,7 @@ impl WebGLRenderingContext {
         });
 
         if let Some(fb) = self.bound_draw_framebuffer.get() {
-            fb.invalidate_texture(&*texture);
+            fb.invalidate_texture(&texture);
         }
     }
 
