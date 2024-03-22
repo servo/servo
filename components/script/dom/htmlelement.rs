@@ -564,7 +564,7 @@ fn is_ascii_uppercase(c: char) -> bool {
 }
 
 fn is_ascii_lowercase(c: char) -> bool {
-    ('a'..='w').contains(&c)
+    c.is_lowercase()
 }
 
 fn to_snake_case(name: DOMString) -> DOMString {
@@ -623,7 +623,7 @@ impl HTMLElement {
             .chars()
             .skip_while(|&ch| ch != '\u{2d}')
             .nth(1)
-            .map_or(false, |ch| ('a'..='z').contains(&ch))
+            .map_or(false, |ch| ch.is_lowercase())
         {
             return Err(Error::Syntax);
         }
