@@ -814,10 +814,10 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         style.clone(),
         flow_layout.fragments,
         content_rect.into(),
-        pbm.padding.into(),
-        pbm.border.into(),
-        margin,
-        clearance.map(|t| t.into()),
+        pbm.padding,
+        pbm.border,
+        margin.into(),
+        clearance,
         block_margins_collapsed_with_children,
     )
     .with_baselines(flow_layout.baselines)
@@ -900,9 +900,9 @@ impl NonReplacedFormattingContext {
             self.style.clone(),
             layout.fragments,
             content_rect.into(),
-            pbm.padding.into(),
-            pbm.border.into(),
-            margin,
+            pbm.padding,
+            pbm.border,
+            margin.into(),
             None, /* clearance */
             block_margins_collapsed_with_children,
         )
@@ -1091,10 +1091,9 @@ impl NonReplacedFormattingContext {
             // prevent margin collapse.
             clearance = if clear_position.is_some() || placement_rect.start_corner.block > ceiling {
                 Some(
-                    (placement_rect.start_corner.block -
+                    placement_rect.start_corner.block -
                         sequential_layout_state
-                            .position_with_zero_clearance(&collapsed_margin_block_start))
-                    .into(),
+                            .position_with_zero_clearance(&collapsed_margin_block_start),
                 )
             } else {
                 None
@@ -1130,7 +1129,8 @@ impl NonReplacedFormattingContext {
         sequential_layout_state.collapse_margins();
         sequential_layout_state.advance_block_position(
             pbm.padding_border_sums.block +
-                (content_size.block + clearance.unwrap_or_else(Length::zero)).into(),
+                Au::from(content_size.block) +
+                clearance.unwrap_or_else(Au::zero),
         );
         sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin.block_end));
 
@@ -1138,7 +1138,7 @@ impl NonReplacedFormattingContext {
             start_corner: LogicalVec2 {
                 block: pbm.padding.block_start +
                     pbm.border.block_start +
-                    clearance.unwrap_or_else(Length::zero).into(),
+                    clearance.unwrap_or_else(Au::zero),
                 inline: pbm.padding.inline_start +
                     pbm.border.inline_start +
                     effective_margin_inline_start,
@@ -1152,9 +1152,9 @@ impl NonReplacedFormattingContext {
             self.style.clone(),
             layout.fragments,
             content_rect.into(),
-            pbm.padding.into(),
-            pbm.border.into(),
-            margin,
+            pbm.padding,
+            pbm.border,
+            margin.into(),
             clearance,
             block_margins_collapsed_with_children,
         )
@@ -1218,7 +1218,7 @@ fn layout_in_flow_replaced_block_level(
         // Margins can never collapse into replaced elements.
         sequential_layout_state.collapse_margins();
         sequential_layout_state
-            .advance_block_position(size.block + clearance.unwrap_or_else(Length::zero).into());
+            .advance_block_position(size.block + clearance.unwrap_or_else(Au::zero));
         sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin_block_end.into()));
     } else {
         clearance = None;
@@ -1242,7 +1242,7 @@ fn layout_in_flow_replaced_block_level(
     let start_corner = LogicalVec2 {
         block: pbm.padding.block_start +
             pbm.border.block_start +
-            clearance.unwrap_or_else(Length::zero).into(),
+            clearance.unwrap_or_else(Au::zero),
         inline: pbm.padding.inline_start + pbm.border.inline_start + effective_margin_inline_start,
     };
 
@@ -1257,9 +1257,9 @@ fn layout_in_flow_replaced_block_level(
         style.clone(),
         fragments,
         content_rect.into(),
-        pbm.padding.into(),
-        pbm.border.into(),
-        margin,
+        pbm.padding,
+        pbm.border,
+        margin.into(),
         clearance,
         block_margins_collapsed_with_children,
     )
@@ -1492,7 +1492,7 @@ fn solve_clearance_and_inline_margins_avoiding_floats(
     pbm: &PaddingBorderMargin,
     size: LogicalVec2<Length>,
     style: &Arc<ComputedValues>,
-) -> (Option<Length>, (Au, Au), Au) {
+) -> (Option<Au>, (Au, Au), Au) {
     let (clearance, placement_rect) = sequential_layout_state
         .calculate_clearance_and_inline_adjustment(
             style.get_box().clear,
@@ -1507,11 +1507,7 @@ fn solve_clearance_and_inline_margins_avoiding_floats(
         size.inline,
         placement_rect.into(),
     );
-    (
-        clearance.map(|t| t.into()),
-        inline_margins,
-        effective_margin_inline_start,
-    )
+    (clearance, inline_margins, effective_margin_inline_start)
 }
 
 /// State that we maintain when placing blocks.
@@ -1590,7 +1586,7 @@ impl PlacementState {
                 let fragment_block_margins = &fragment.block_margins_collapsed_with_children;
                 let mut fragment_block_size = fragment.padding.block_sum() +
                     fragment.border.block_sum() +
-                    fragment.content_rect.size.block;
+                    fragment.content_rect.size.block.into();
                 // We use `last_in_flow_margin_collapses_with_parent_end_margin` to implement
                 // this quote from https://drafts.csswg.org/css2/#collapsing-margins
                 // > If the top and bottom margins of an element with clearance are adjoining,
@@ -1632,12 +1628,12 @@ impl PlacementState {
                 if fragment_block_margins.collapsed_through {
                     // `fragment_block_size` is typically zero when collapsing through,
                     // but we still need to consider it in case there is clearance.
-                    self.current_block_direction_position += fragment_block_size;
+                    self.current_block_direction_position += fragment_block_size.into();
                     self.current_margin
                         .adjoin_assign(&fragment_block_margins.end);
                 } else {
                     self.current_block_direction_position +=
-                        self.current_margin.solve() + fragment_block_size;
+                        self.current_margin.solve() + fragment_block_size.into();
                     self.current_margin = fragment_block_margins.end;
                 }
             },

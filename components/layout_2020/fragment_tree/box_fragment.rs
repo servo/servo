@@ -52,9 +52,9 @@ pub(crate) struct BoxFragment {
     /// <https://drafts.csswg.org/css-writing-modes/#orthogonal-flows>
     pub content_rect: LogicalRect<Length>,
 
-    pub padding: LogicalSides<Length>,
-    pub border: LogicalSides<Length>,
-    pub margin: LogicalSides<Length>,
+    pub padding: LogicalSides<Au>,
+    pub border: LogicalSides<Au>,
+    pub margin: LogicalSides<Au>,
 
     /// When the `clear` property is not set to `none`, it may introduce clearance.
     /// Clearance is some extra spacing that is added above the top margin,
@@ -62,7 +62,7 @@ pub(crate) struct BoxFragment {
     /// The presence of clearance prevents the top margin from collapsing with
     /// earlier margins or with the bottom margin of the parent block.
     /// <https://drafts.csswg.org/css2/#clearance>
-    pub clearance: Option<Length>,
+    pub clearance: Option<Au>,
 
     /// When this [`BoxFragment`] is for content that has a baseline, this tracks
     /// the first and last baselines of that content. This is used to propagate baselines
@@ -93,10 +93,10 @@ impl BoxFragment {
         style: ServoArc<ComputedValues>,
         children: Vec<Fragment>,
         content_rect: LogicalRect<Length>,
-        padding: LogicalSides<Length>,
-        border: LogicalSides<Length>,
-        margin: LogicalSides<Length>,
-        clearance: Option<Length>,
+        padding: LogicalSides<Au>,
+        border: LogicalSides<Au>,
+        margin: LogicalSides<Au>,
+        clearance: Option<Au>,
         block_margins_collapsed_with_children: CollapsedBlockMargins,
     ) -> BoxFragment {
         let position = style.get_box().position;
@@ -128,10 +128,10 @@ impl BoxFragment {
         style: ServoArc<ComputedValues>,
         children: Vec<Fragment>,
         content_rect: LogicalRect<Length>,
-        padding: LogicalSides<Length>,
-        border: LogicalSides<Length>,
-        margin: LogicalSides<Length>,
-        clearance: Option<Length>,
+        padding: LogicalSides<Au>,
+        border: LogicalSides<Au>,
+        margin: LogicalSides<Au>,
+        clearance: Option<Au>,
         block_margins_collapsed_with_children: CollapsedBlockMargins,
         overconstrained: PhysicalSize<bool>,
     ) -> BoxFragment {
@@ -154,8 +154,10 @@ impl BoxFragment {
         let mut baselines = Baselines::default();
         if style.establishes_scroll_container() {
             baselines.last = Some(
-                (content_rect.size.block + padding.block_end + border.block_end + margin.block_end)
-                    .into(),
+                Au::from(content_rect.size.block) +
+                    padding.block_end +
+                    border.block_end +
+                    margin.block_end,
             )
         }
 
@@ -221,11 +223,13 @@ impl BoxFragment {
     }
 
     pub fn padding_rect(&self) -> LogicalRect<Length> {
-        self.content_rect.inflate(&self.padding)
+        self.content_rect
+            .inflate(&self.padding.map(|t| (*t).into()))
     }
 
     pub fn border_rect(&self) -> LogicalRect<Length> {
-        self.padding_rect().inflate(&self.border)
+        self.padding_rect()
+            .inflate(&self.border.map(|t| (*t).into()))
     }
 
     pub fn print(&self, tree: &mut PrintTree) {

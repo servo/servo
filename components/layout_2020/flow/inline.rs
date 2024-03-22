@@ -1036,7 +1036,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         let margin_box = float_item
             .fragment
             .border_rect()
-            .inflate(&float_item.fragment.margin);
+            .inflate(&float_item.fragment.margin.map(|t| (*t).into()));
         let inline_size = margin_box.size.inline.max(Length::zero());
 
         let available_inline_size = match self.current_line.placement_among_floats.get() {
@@ -2006,9 +2006,9 @@ impl IndependentFormattingContext {
                     replaced.style.clone(),
                     fragments,
                     content_rect.into(),
-                    pbm.padding.into(),
-                    pbm.border.into(),
-                    margin.into(),
+                    pbm.padding,
+                    pbm.border,
+                    margin,
                     None, /* clearance */
                     CollapsedBlockMargins::zero(),
                 )
@@ -2095,9 +2095,9 @@ impl IndependentFormattingContext {
                     non_replaced.style.clone(),
                     independent_layout.fragments,
                     content_rect.into(),
-                    pbm.padding.into(),
-                    pbm.border.into(),
-                    margin.into(),
+                    pbm.padding,
+                    pbm.border,
+                    margin,
                     None,
                     CollapsedBlockMargins::zero(),
                 )

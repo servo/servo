@@ -2077,8 +2077,8 @@ impl TableSlotCell {
             self.style.clone(),
             vec![Fragment::Positioning(vertical_align_fragment)],
             cell_content_rect,
-            layout.padding,
-            layout.border,
+            layout.padding.into(),
+            layout.border.into(),
             LogicalSides::zero(), /* margin */
             None,                 /* clearance */
             CollapsedBlockMargins::zero(),
