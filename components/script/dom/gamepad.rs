@@ -198,6 +198,10 @@ impl Gamepad {
         }
     }
 
+    pub fn index(&self) -> i32 {
+        self.index.get()
+    }
+
     pub fn update_index(&self, index: i32) {
         self.index.set(index);
     }
