@@ -80,7 +80,7 @@ impl PerformanceEntryList {
                         .as_ref()
                         .map_or(true, |type_| *e.entry_type() == *type_)
             })
-            .map(|e| e.clone())
+            .cloned()
             .collect::<Vec<DomRoot<PerformanceEntry>>>();
         res.sort_by(|a, b| {
             a.start_time()

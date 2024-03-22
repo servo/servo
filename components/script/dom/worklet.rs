@@ -153,7 +153,7 @@ impl WorkletMethods for Worklet {
                 self.window.origin().immutable().clone(),
                 global.api_base_url(),
                 module_url_record,
-                options.credentials.clone(),
+                options.credentials,
                 pending_tasks_struct,
                 &promise,
             );

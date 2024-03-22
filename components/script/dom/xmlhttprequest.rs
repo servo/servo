@@ -720,7 +720,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         .credentials_mode(credentials_mode)
         .use_url_credentials(use_url_credentials)
         .origin(self.global().origin().immutable().clone())
-        .referrer_policy(self.referrer_policy.clone())
+        .referrer_policy(self.referrer_policy)
         .pipeline_id(Some(self.global().pipeline_id()));
 
         // step 4 (second half)

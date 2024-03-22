@@ -33,7 +33,7 @@ impl TransitionEvent {
         TransitionEvent {
             event: Event::new_inherited(),
             property_name: Atom::from(init.propertyName.clone()),
-            elapsed_time: init.elapsedTime.clone(),
+            elapsed_time: init.elapsedTime,
             pseudo_element: init.pseudoElement.clone(),
         }
     }
@@ -88,7 +88,7 @@ impl TransitionEventMethods for TransitionEvent {
 
     // https://drafts.csswg.org/css-transitions/#Events-TransitionEvent-elapsedTime
     fn ElapsedTime(&self) -> Finite<f32> {
-        self.elapsed_time.clone()
+        self.elapsed_time
     }
 
     // https://drafts.csswg.org/css-transitions/#Events-TransitionEvent-pseudoElement

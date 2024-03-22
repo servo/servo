@@ -220,7 +220,7 @@ impl WorkerGlobalScope {
     }
 
     pub fn get_worker_id(&self) -> WorkerId {
-        self.worker_id.clone()
+        self.worker_id
     }
 
     pub fn task_canceller(&self) -> TaskCanceller {

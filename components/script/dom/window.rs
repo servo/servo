@@ -2329,7 +2329,7 @@ impl Window {
     }
 
     pub fn set_page_clip_rect_with_new_viewport(&self, viewport: UntypedRect<f32>) -> bool {
-        let rect = f32_rect_to_au_rect(viewport.clone());
+        let rect = f32_rect_to_au_rect(viewport);
         self.current_viewport.set(rect);
         // We use a clipping rectangle that is five times the size of the of the viewport,
         // so that we don't collect display list items for areas too far outside the viewport,

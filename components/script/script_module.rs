@@ -105,9 +105,7 @@ impl RethrowError {
 
 impl Clone for RethrowError {
     fn clone(&self) -> Self {
-        Self(RootedTraceableBox::from_box(Heap::boxed(
-            self.0.get().clone(),
-        )))
+        Self(RootedTraceableBox::from_box(Heap::boxed(self.0.get())))
     }
 }
 
@@ -212,7 +210,7 @@ impl ModuleTree {
     }
 
     pub fn get_status(&self) -> ModuleStatus {
-        self.status.borrow().clone()
+        *self.status.borrow()
     }
 
     pub fn set_status(&self, status: ModuleStatus) {
@@ -771,7 +769,7 @@ impl ModuleTree {
                         owner.clone(),
                         url.clone(),
                         visited_urls.clone(),
-                        destination.clone(),
+                        destination,
                         options,
                         Some(parent_identity.clone()),
                         false,
@@ -1164,7 +1162,7 @@ impl FetchResponseListener for ModuleContext {
 
                         module_tree.fetch_module_descendants(
                             &self.owner,
-                            self.destination.clone(),
+                            self.destination,
                             &self.options,
                             ModuleIdentity::ModuleUrl(self.url.clone()),
                         );
@@ -1355,7 +1353,7 @@ fn fetch_an_import_module_script_graph(
         _ => ModuleOwner::DynamicModule(Trusted::new(&DynamicModuleOwner::new(
             global,
             promise.clone(),
-            dynamic_module_id.clone(),
+            dynamic_module_id,
         ))),
     };
 
@@ -1634,7 +1632,7 @@ fn fetch_single_module_script(
     global.set_module_map(url.clone(), module_tree);
 
     // Step 5-6.
-    let mode = match destination.clone() {
+    let mode = match destination {
         Destination::Worker | Destination::SharedWorker if top_level_module_fetch => {
             RequestMode::SameOrigin
         },
@@ -1648,7 +1646,7 @@ fn fetch_single_module_script(
 
     // Step 7-8.
     let request = RequestBuilder::new(url.clone(), global.get_referrer())
-        .destination(destination.clone())
+        .destination(destination)
         .origin(global.origin().immutable().clone())
         .parser_metadata(options.parser_metadata)
         .integrity_metadata(options.integrity_metadata.clone())
@@ -1660,7 +1658,7 @@ fn fetch_single_module_script(
         data: vec![],
         metadata: None,
         url: url.clone(),
-        destination: destination.clone(),
+        destination: destination,
         options,
         status: Ok(()),
         resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
@@ -1723,7 +1721,7 @@ pub(crate) fn fetch_inline_module_script(
         Ok(record) => {
             module_tree.append_handler(
                 owner.clone(),
-                ModuleIdentity::ScriptId(script_id.clone()),
+                ModuleIdentity::ScriptId(script_id),
                 options.clone(),
             );
             module_tree.set_record(record);
@@ -1749,7 +1747,7 @@ pub(crate) fn fetch_inline_module_script(
         Err(exception) => {
             module_tree.set_rethrow_error(exception);
             module_tree.set_status(ModuleStatus::Finished);
-            global.set_inline_module_map(script_id.clone(), module_tree);
+            global.set_inline_module_map(script_id, module_tree);
             owner.notify_owner_to_finish(ModuleIdentity::ScriptId(script_id), options);
         },
     }
