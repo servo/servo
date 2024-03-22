@@ -1966,7 +1966,7 @@ impl Document {
 
         // If we are running 'fake' animation frames, we unconditionally
         // set up a one-shot timer for script to execute the rAF callbacks.
-        if self.is_faking_animation_frames() && self.window().visible() {
+        if self.is_faking_animation_frames() && !self.window().throttled() {
             warn!("Scheduling fake animation frame. Animation frames tick too fast.");
             let callback = FakeRequestAnimationFrameCallback {
                 document: Trusted::new(self),

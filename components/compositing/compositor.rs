@@ -302,8 +302,8 @@ struct PipelineDetails {
     /// Whether there are animation callbacks
     animation_callbacks_running: bool,
 
-    /// Whether this pipeline is visible
-    visible: bool,
+    /// Whether to use less resources by stopping animations.
+    throttled: bool,
 
     /// Hit test items for this pipeline. This is used to map WebRender hit test
     /// information to the full information necessary for Servo.
@@ -321,7 +321,7 @@ impl PipelineDetails {
             most_recent_display_list_epoch: None,
             animations_running: false,
             animation_callbacks_running: false,
-            visible: true,
+            throttled: false,
             hit_test_items: Vec::new(),
             scroll_tree: ScrollTree::default(),
         }
@@ -579,8 +579,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 self.composite_if_necessary(CompositingReason::Headless);
             },
 
-            CompositorMsg::PipelineVisibilityChanged(pipeline_id, visible) => {
-                self.pipeline_details(pipeline_id).visible = visible;
+            CompositorMsg::SetThrottled(pipeline_id, throttled) => {
+                self.pipeline_details(pipeline_id).throttled = throttled;
                 self.process_animations(true);
             },
 
@@ -982,17 +982,17 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     ) {
         match animation_state {
             AnimationState::AnimationsPresent => {
-                let visible = self.pipeline_details(pipeline_id).visible;
+                let throttled = self.pipeline_details(pipeline_id).throttled;
                 self.pipeline_details(pipeline_id).animations_running = true;
-                if visible {
+                if !throttled {
                     self.composite_if_necessary(CompositingReason::Animation);
                 }
             },
             AnimationState::AnimationCallbacksPresent => {
-                let visible = self.pipeline_details(pipeline_id).visible;
+                let throttled = self.pipeline_details(pipeline_id).throttled;
                 self.pipeline_details(pipeline_id)
                     .animation_callbacks_running = true;
-                if visible {
+                if !throttled {
                     self.tick_animations_for_pipeline(pipeline_id);
                 }
             },
@@ -1583,7 +1583,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         let mut pipeline_ids = vec![];
         for (pipeline_id, pipeline_details) in &self.pipeline_details {
             if (pipeline_details.animations_running || pipeline_details.animation_callbacks_running) &&
-                pipeline_details.visible
+                !pipeline_details.throttled
             {
                 pipeline_ids.push(*pipeline_id);
             }

@@ -165,7 +165,7 @@ mod from_script {
                 Self::ReplaceHistoryState(_, _) => target!("ReplaceHistoryState"),
                 Self::JointSessionHistoryLength(_) => target!("JointSessionHistoryLength"),
                 Self::RemoveIFrame(_, _) => target!("RemoveIFrame"),
-                Self::VisibilityChangeComplete(_) => target!("VisibilityChangeComplete"),
+                Self::SetThrottledComplete(_) => target!("SetThrottledComplete"),
                 Self::ScriptLoadedURLInIFrame(_) => target!("ScriptLoadedURLInIFrame"),
                 Self::ScriptNewIFrame(_) => target!("ScriptNewIFrame"),
                 Self::ScriptNewAuxiliary(_) => target!("ScriptNewAuxiliary"),

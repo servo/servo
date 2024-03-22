@@ -81,8 +81,8 @@ pub enum CompositorMsg {
     CreatePng(Option<Rect<f32, CSSPixel>>, IpcSender<Option<Image>>),
     /// A reply to the compositor asking if the output image is stable.
     IsReadyToSaveImageReply(bool),
-    /// Pipeline visibility changed
-    PipelineVisibilityChanged(PipelineId, bool),
+    /// Set whether to use less resources by stopping animations.
+    SetThrottled(PipelineId, bool),
     /// WebRender has produced a new frame. This message informs the compositor that
     /// the frame is ready, so that it may trigger a recomposite.
     NewWebRenderFrameReady(bool /* composite_needed */),
@@ -157,7 +157,7 @@ impl Debug for CompositorMsg {
             CompositorMsg::TouchEventProcessed(..) => write!(f, "TouchEventProcessed"),
             CompositorMsg::CreatePng(..) => write!(f, "CreatePng"),
             CompositorMsg::IsReadyToSaveImageReply(..) => write!(f, "IsReadyToSaveImageReply"),
-            CompositorMsg::PipelineVisibilityChanged(..) => write!(f, "PipelineVisibilityChanged"),
+            CompositorMsg::SetThrottled(..) => write!(f, "SetThrottled"),
             CompositorMsg::PipelineExited(..) => write!(f, "PipelineExited"),
             CompositorMsg::NewWebRenderFrameReady(..) => write!(f, "NewWebRenderFrameReady"),
             CompositorMsg::PendingPaintMetric(..) => write!(f, "PendingPaintMetric"),
