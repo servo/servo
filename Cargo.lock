@@ -875,13 +875,13 @@ dependencies = [
  "msg",
  "net",
  "net_traits",
+ "parking_lot",
  "profile_traits",
  "script_layout_interface",
  "script_traits",
  "serde",
  "servo_config",
  "servo_rand",
- "servo_remutex",
  "servo_url",
  "style_traits",
  "webgpu",
@@ -5418,14 +5418,6 @@ dependencies = [
  "rand_core",
  "rand_isaac",
  "uuid",
-]
-
-[[package]]
-name = "servo_remutex"
-version = "0.0.1"
-dependencies = [
- "lazy_static",
- "log",
 ]
 
 [[package]]
