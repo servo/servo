@@ -51,7 +51,7 @@ impl CryptoMethods for Crypto {
         if !is_integer_buffer(array_type) {
             return Err(Error::TypeMismatch);
         } else {
-            let mut data = unsafe { input.as_mut_slice() };
+            let data = unsafe { input.as_mut_slice() };
             if data.len() > 65536 {
                 return Err(Error::QuotaExceeded);
             }
