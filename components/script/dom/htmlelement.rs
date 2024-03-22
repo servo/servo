@@ -560,11 +560,11 @@ static DATA_PREFIX: &str = "data-";
 static DATA_HYPHEN_SEPARATOR: char = '\x2d';
 
 fn is_ascii_uppercase(c: char) -> bool {
-    ('A'..='Z').contains(&c)
+    c.is_ascii_uppercase()
 }
 
 fn is_ascii_lowercase(c: char) -> bool {
-    c.is_lowercase()
+    c.is_ascii_lowercase()
 }
 
 fn to_snake_case(name: DOMString) -> DOMString {
@@ -623,7 +623,7 @@ impl HTMLElement {
             .chars()
             .skip_while(|&ch| ch != '\u{2d}')
             .nth(1)
-            .map_or(false, |ch| ch.is_lowercase())
+            .map_or(false, |ch| ch.is_ascii_lowercase())
         {
             return Err(Error::Syntax);
         }
