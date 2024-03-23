@@ -179,7 +179,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
     #[allow(unsafe_code)]
     fn get_canvas_id_for_layout(self) -> CanvasId {
         unsafe {
-            let canvas = &*self.unsafe_get();
+            let canvas = self.unsafe_get();
             if let &Some(CanvasContext::Context2d(ref context)) = canvas.context.borrow_for_layout()
             {
                 context.to_layout().get_canvas_id()
@@ -277,7 +277,7 @@ impl HTMLCanvasElement {
     /// Gets the base WebGLRenderingContext for WebGL or WebGL 2, if exists.
     pub fn get_base_webgl_context(&self) -> Option<DomRoot<WebGLRenderingContext>> {
         match *self.context.borrow() {
-            Some(CanvasContext::WebGL(ref context)) => Some(DomRoot::from_ref(&*context)),
+            Some(CanvasContext::WebGL(ref context)) => Some(DomRoot::from_ref(context)),
             Some(CanvasContext::WebGL2(ref context)) => Some(context.base_context()),
             _ => None,
         }
@@ -460,9 +460,9 @@ impl VirtualMethods for HTMLCanvasElement {
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
-        match name {
-            &local_name!("width") => AttrValue::from_u32(value.into(), DEFAULT_WIDTH),
-            &local_name!("height") => AttrValue::from_u32(value.into(), DEFAULT_HEIGHT),
+        match *name {
+            local_name!("width") => AttrValue::from_u32(value.into(), DEFAULT_WIDTH),
+            local_name!("height") => AttrValue::from_u32(value.into(), DEFAULT_HEIGHT),
             _ => self
                 .super_type()
                 .unwrap()

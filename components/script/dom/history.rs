@@ -121,7 +121,7 @@ impl History {
                 };
                 let global_scope = self.window.upcast::<GlobalScope>();
                 rooted!(in(*GlobalScope::get_cx()) let mut state = UndefinedValue());
-                if let Err(_) = structuredclone::read(global_scope, data, state.handle_mut()) {
+                if structuredclone::read(global_scope, data, state.handle_mut()).is_err() {
                     warn!("Error reading structuredclone data");
                 }
                 self.state.set(state.get());
@@ -270,7 +270,7 @@ impl History {
         // Step 11
         let global_scope = self.window.upcast::<GlobalScope>();
         rooted!(in(*cx) let mut state = UndefinedValue());
-        if let Err(_) = structuredclone::read(global_scope, serialized_data, state.handle_mut()) {
+        if structuredclone::read(global_scope, serialized_data, state.handle_mut()).is_err() {
             warn!("Error reading structuredclone data");
         }
 

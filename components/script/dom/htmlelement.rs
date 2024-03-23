@@ -559,19 +559,11 @@ fn append_text_node_to_fragment(document: &Document, fragment: &DocumentFragment
 static DATA_PREFIX: &str = "data-";
 static DATA_HYPHEN_SEPARATOR: char = '\x2d';
 
-fn is_ascii_uppercase(c: char) -> bool {
-    'A' <= c && c <= 'Z'
-}
-
-fn is_ascii_lowercase(c: char) -> bool {
-    'a' <= c && c <= 'w'
-}
-
 fn to_snake_case(name: DOMString) -> DOMString {
     let mut attr_name = String::with_capacity(name.len() + DATA_PREFIX.len());
     attr_name.push_str(DATA_PREFIX);
     for ch in name.chars() {
-        if is_ascii_uppercase(ch) {
+        if ch.is_ascii_uppercase() {
             attr_name.push(DATA_HYPHEN_SEPARATOR);
             attr_name.push(ch.to_ascii_lowercase());
         } else {
@@ -591,7 +583,7 @@ fn to_camel_case(name: &str) -> Option<DOMString> {
         return None;
     }
     let name = &name[5..];
-    let has_uppercase = name.chars().any(|curr_char| is_ascii_uppercase(curr_char));
+    let has_uppercase = name.chars().any(|curr_char| curr_char.is_ascii_uppercase());
     if has_uppercase {
         return None;
     }
@@ -601,7 +593,7 @@ fn to_camel_case(name: &str) -> Option<DOMString> {
         //check for hyphen followed by character
         if curr_char == DATA_HYPHEN_SEPARATOR {
             if let Some(next_char) = name_chars.next() {
-                if is_ascii_lowercase(next_char) {
+                if next_char.is_ascii_lowercase() {
                     result.push(next_char.to_ascii_uppercase());
                 } else {
                     result.push(curr_char);
@@ -623,7 +615,7 @@ impl HTMLElement {
             .chars()
             .skip_while(|&ch| ch != '\u{2d}')
             .nth(1)
-            .map_or(false, |ch| ch >= 'a' && ch <= 'z')
+            .map_or(false, |ch| ch.is_ascii_lowercase())
         {
             return Err(Error::Syntax);
         }
@@ -670,16 +662,16 @@ impl HTMLElement {
     // https://html.spec.whatwg.org/multipage/#category-listed
     pub fn is_listed_element(&self) -> bool {
         match self.upcast::<Node>().type_id() {
-            NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) => match type_id {
+            NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) => matches!(
+                type_id,
                 HTMLElementTypeId::HTMLButtonElement |
-                HTMLElementTypeId::HTMLFieldSetElement |
-                HTMLElementTypeId::HTMLInputElement |
-                HTMLElementTypeId::HTMLObjectElement |
-                HTMLElementTypeId::HTMLOutputElement |
-                HTMLElementTypeId::HTMLSelectElement |
-                HTMLElementTypeId::HTMLTextAreaElement => true,
-                _ => false,
-            },
+                    HTMLElementTypeId::HTMLFieldSetElement |
+                    HTMLElementTypeId::HTMLInputElement |
+                    HTMLElementTypeId::HTMLObjectElement |
+                    HTMLElementTypeId::HTMLOutputElement |
+                    HTMLElementTypeId::HTMLSelectElement |
+                    HTMLElementTypeId::HTMLTextAreaElement
+            ),
             _ => false,
         }
     }
@@ -851,9 +843,9 @@ impl VirtualMethods for HTMLElement {
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
-        match name {
-            &local_name!("itemprop") => AttrValue::from_serialized_tokenlist(value.into()),
-            &local_name!("itemtype") => AttrValue::from_serialized_tokenlist(value.into()),
+        match *name {
+            local_name!("itemprop") => AttrValue::from_serialized_tokenlist(value.into()),
+            local_name!("itemtype") => AttrValue::from_serialized_tokenlist(value.into()),
             _ => self
                 .super_type()
                 .unwrap()
