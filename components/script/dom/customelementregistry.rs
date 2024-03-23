@@ -391,7 +391,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
                 *candidate.namespace() == ns!(html) &&
                 (extends.is_none() || is.as_ref() == Some(&name))
             {
-                ScriptThread::enqueue_upgrade_reaction(&*candidate, definition.clone());
+                ScriptThread::enqueue_upgrade_reaction(&candidate, definition.clone());
             }
         }
 

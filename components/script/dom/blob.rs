@@ -246,7 +246,7 @@ impl BlobMethods for Blob {
             normalize_type_string(&content_type.unwrap_or(DOMString::from("")).to_string());
         let rel_pos = RelativePos::from_opts(start, end);
         let blob_impl = BlobImpl::new_sliced(rel_pos, self.blob_id.clone(), type_string);
-        Blob::new(&*self.global(), blob_impl)
+        Blob::new(&self.global(), blob_impl)
     }
 
     // https://w3c.github.io/FileAPI/#text-method-algo

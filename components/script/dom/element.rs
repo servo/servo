@@ -535,14 +535,14 @@ impl Element {
         }
 
         // Steps 4, 5 and 6.
-        let shadow_root = ShadowRoot::new(self, &*self.node.owner_doc());
+        let shadow_root = ShadowRoot::new(self, &self.node.owner_doc());
         self.ensure_rare_data().shadow_root = Some(Dom::from_ref(&*shadow_root));
         shadow_root
             .upcast::<Node>()
             .set_containing_shadow_root(Some(&shadow_root));
 
         if self.is_connected() {
-            self.node.owner_doc().register_shadow_root(&*shadow_root);
+            self.node.owner_doc().register_shadow_root(&shadow_root);
         }
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -1047,22 +1047,22 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
 
     #[allow(unsafe_code)]
     fn id_attribute(self) -> *const Option<Atom> {
-        unsafe { (*self.unsafe_get()).id_attribute.borrow_for_layout() }
+        unsafe { (self.unsafe_get()).id_attribute.borrow_for_layout() }
     }
 
     #[allow(unsafe_code)]
     fn style_attribute(self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>> {
-        unsafe { (*self.unsafe_get()).style_attribute.borrow_for_layout() }
+        unsafe { (self.unsafe_get()).style_attribute.borrow_for_layout() }
     }
 
     #[allow(unsafe_code)]
     fn local_name(self) -> &'dom LocalName {
-        unsafe { &(*self.unsafe_get()).local_name }
+        unsafe { &(self.unsafe_get()).local_name }
     }
 
     #[allow(unsafe_code)]
     fn namespace(self) -> &'dom Namespace {
-        unsafe { &(*self.unsafe_get()).namespace }
+        unsafe { &(self.unsafe_get()).namespace }
     }
 
     fn get_lang_for_layout(self) -> String {
@@ -1091,7 +1091,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     #[inline]
     #[allow(unsafe_code)]
     fn get_state_for_layout(self) -> ElementState {
-        unsafe { (*self.unsafe_get()).state.get() }
+        unsafe { (self.unsafe_get()).state.get() }
     }
 
     #[inline]
@@ -1099,7 +1099,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     fn insert_selector_flags(self, flags: ElementSelectorFlags) {
         debug_assert!(thread_state::get().is_layout());
         unsafe {
-            let f = &(*self.unsafe_get()).selector_flags;
+            let f = &(self.unsafe_get()).selector_flags;
             f.set(f.get() | flags);
         }
     }
@@ -1107,7 +1107,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     #[inline]
     #[allow(unsafe_code)]
     fn has_selector_flags(self, flags: ElementSelectorFlags) -> bool {
-        unsafe { (*self.unsafe_get()).selector_flags.get().contains(flags) }
+        unsafe { (self.unsafe_get()).selector_flags.get().contains(flags) }
     }
 
     #[inline]
@@ -3305,7 +3305,7 @@ impl<'a> SelectorsElement for DomRoot<Element> {
             // a string containing commas (separating each language tag in
             // a list) but the pseudo-class instead should be parsing and
             // storing separate <ident> or <string>s for each language tag.
-            NonTSPseudoClass::Lang(ref lang) => extended_filtering(&*self.get_lang(), &*lang),
+            NonTSPseudoClass::Lang(ref lang) => extended_filtering(&self.get_lang(), lang),
 
             NonTSPseudoClass::ReadOnly => !Element::state(self).contains(pseudo_class.state_flag()),
 
@@ -3358,7 +3358,7 @@ impl<'a> SelectorsElement for DomRoot<Element> {
     }
 
     fn has_class(&self, name: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
-        Element::has_class(&**self, name, case_sensitivity)
+        Element::has_class(self, name, case_sensitivity)
     }
 
     fn is_html_element_in_html_document(&self) -> bool {

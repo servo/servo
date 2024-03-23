@@ -765,7 +765,7 @@ impl<'a> WebGLValidator for TexStorageValidator<'a> {
             return Err(TexImageValidationError::InvalidTextureFormat);
         }
 
-        let max_level = log2(cmp::max(width, height) as u32) + 1;
+        let max_level = log2(cmp::max(width, height)) + 1;
         if level > max_level {
             context.webgl_error(InvalidOperation);
             return Err(TexImageValidationError::LevelTooHigh);

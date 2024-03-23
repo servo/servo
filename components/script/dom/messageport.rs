@@ -183,8 +183,8 @@ impl Transferable for MessagePort {
             *port_impls = Some(ports);
         }
 
-        let PipelineNamespaceId(name_space) = (*id).namespace_id;
-        let MessagePortIndex(index) = (*id).index;
+        let PipelineNamespaceId(name_space) = (id).namespace_id;
+        let MessagePortIndex(index) = (id).index;
         let index = index.get();
 
         let mut big: [u8; 8] = [0; 8];

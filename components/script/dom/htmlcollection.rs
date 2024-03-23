@@ -297,7 +297,7 @@ impl HTMLCollection {
 
     pub fn elements_iter<'a>(&'a self) -> impl Iterator<Item = DomRoot<Element>> + 'a {
         // Iterate forwards from the root.
-        self.elements_iter_after(&*self.root)
+        self.elements_iter_after(&self.root)
     }
 
     pub fn elements_iter_before<'a>(

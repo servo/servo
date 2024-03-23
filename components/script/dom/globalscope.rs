@@ -630,7 +630,7 @@ impl FileListener {
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_incoming(&*stream, Ok(blob_buf.bytes));
+                            stream_handle_incoming(&stream, Ok(blob_buf.bytes));
                         });
 
                         let _ = self
@@ -654,7 +654,7 @@ impl FileListener {
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_incoming(&*stream, Ok(bytes_in));
+                            stream_handle_incoming(&stream, Ok(bytes_in));
                         });
 
                         let _ = self
@@ -692,7 +692,7 @@ impl FileListener {
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_eof(&*stream);
+                            stream_handle_eof(&stream);
                         });
 
                         let _ = self
@@ -728,7 +728,7 @@ impl FileListener {
                             let _ = self.task_source.queue_with_canceller(
                                 task!(error_stream: move || {
                                     let stream = trusted_stream.root();
-                                    stream_handle_incoming(&*stream, error);
+                                    stream_handle_incoming(&stream, error);
                                 }),
                                 &self.task_canceller,
                             );
@@ -875,7 +875,7 @@ impl GlobalScope {
         // Step 2.6
         if let Some(worker_id) = installing_worker {
             let worker = self.get_serviceworker(script_url, scope, worker_id);
-            new_registration.set_installing(&*worker);
+            new_registration.set_installing(&worker);
         }
 
         // TODO: 2.7 (waiting worker)
@@ -2001,7 +2001,7 @@ impl GlobalScope {
 
         let stream = ReadableStream::new_with_external_underlying_source(
             self,
-            ExternalUnderlyingSource::Blob(size as usize),
+            ExternalUnderlyingSource::Blob(size),
         );
 
         let recv = self.send_msg(file_id);
@@ -3171,7 +3171,7 @@ impl GlobalScope {
                             }
                         }
                         for i in (0..gamepad_list.Length()).rev() {
-                            if gamepad_list.Item(i as u32).is_none() {
+                            if gamepad_list.Item(i).is_none() {
                                 gamepad_list.remove_gamepad(i as usize);
                             } else {
                                 break;
@@ -3211,7 +3211,7 @@ impl GlobalScope {
                             if !window.Navigator().has_gamepad_gesture() && contains_user_gesture(update_type) {
                                 window.Navigator().set_has_gamepad_gesture(true);
                                 for i in 0..gamepad_list.Length() {
-                                    if let Some(gamepad) = gamepad_list.Item(i as u32) {
+                                    if let Some(gamepad) = gamepad_list.Item(i) {
                                         gamepad.set_exposed(true);
                                         gamepad.update_timestamp(*current_time);
                                         let new_gamepad = Trusted::new(&*gamepad);

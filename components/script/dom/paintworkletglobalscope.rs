@@ -150,13 +150,8 @@ impl PaintWorkletGlobalScope {
                         self.upcast(),
                         properties.iter().cloned(),
                     );
-                    let result = self.draw_a_paint_image(
-                        &name,
-                        size,
-                        device_pixel_ratio,
-                        &*map,
-                        &*arguments,
-                    );
+                    let result =
+                        self.draw_a_paint_image(&name, size, device_pixel_ratio, &map, &arguments);
                     if (result.image_key.is_some()) && (result.missing_image_urls.is_empty()) {
                         *self.cached_name.borrow_mut() = name;
                         self.cached_size.set(size);
@@ -180,13 +175,8 @@ impl PaintWorkletGlobalScope {
                         self.upcast(),
                         properties.iter().cloned(),
                     );
-                    let result = self.draw_a_paint_image(
-                        &name,
-                        size,
-                        device_pixel_ratio,
-                        &*map,
-                        &*arguments,
-                    );
+                    let result =
+                        self.draw_a_paint_image(&name, size, device_pixel_ratio, &map, &arguments);
                     if (result.image_key.is_some()) && (result.missing_image_urls.is_empty()) {
                         *self.cached_name.borrow_mut() = name;
                         *self.cached_properties.borrow_mut() = properties;
@@ -322,7 +312,7 @@ impl PaintWorkletGlobalScope {
             .map(|argument| ObjectValue(argument.reflector().get_jsobject().get()))
             .collect();
         let arguments_value_array =
-            unsafe { HandleValueArray::from_rooted_slice(&*arguments_value_vec) };
+            unsafe { HandleValueArray::from_rooted_slice(&arguments_value_vec) };
         rooted!(in(*cx) let argument_object = unsafe { NewArrayObject(*cx, &arguments_value_array) });
 
         let args_slice = [
@@ -379,8 +369,8 @@ impl PaintWorkletGlobalScope {
     ) -> DrawAPaintImageResult {
         debug!("Returning an invalid image.");
         DrawAPaintImageResult {
-            width: size.width as u32,
-            height: size.height as u32,
+            width: size.width,
+            height: size.height,
             format: PixelFormat::BGRA8,
             image_key: None,
             missing_image_urls,
@@ -576,7 +566,7 @@ impl PaintWorkletGlobalScopeMethods for PaintWorkletGlobalScope {
             paint_function.handle(),
             alpha,
             input_arguments.len(),
-            &*context,
+            &context,
         );
 
         // Step 20.

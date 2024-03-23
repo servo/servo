@@ -116,7 +116,7 @@ impl CSSRuleList {
             .flatten();
         let loader = owner
             .as_ref()
-            .map(|element| StylesheetLoader::for_element(&**element));
+            .map(|element| StylesheetLoader::for_element(element));
         let new_rule = css_rules.insert_rule(
             &parent_stylesheet.shared_lock,
             rule,

@@ -108,8 +108,8 @@ impl XRInputSourcesChangeEvent {
             init.parent.bubbles,
             init.parent.cancelable,
             &init.session,
-            &*init.added,
-            &*init.removed,
+            &init.added,
+            &init.removed,
         )
     }
 }
