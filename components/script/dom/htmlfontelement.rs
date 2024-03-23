@@ -175,7 +175,7 @@ fn parse_size(mut input: &str) -> AttrValue {
     // Step 9
     match parse_mode {
         ParseMode::RelativePlus => value += 3,
-        ParseMode::RelativeMinus => value -= 3,
+        ParseMode::RelativeMinus => value = 3 - value,
         ParseMode::Absolute => (),
     }
 
