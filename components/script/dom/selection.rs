@@ -202,7 +202,7 @@ impl SelectionMethods for Selection {
     // https://w3c.github.io/selection-api/#dom-selection-addrange
     fn AddRange(&self, range: &Range) {
         // Step 1
-        if !self.is_same_root(&range.StartContainer()) {
+        if !self.is_same_root(&range.start_container()) {
             return;
         }
 
@@ -319,7 +319,7 @@ impl SelectionMethods for Selection {
             }
 
             // Step 4
-            if !self.is_same_root(&range.StartContainer()) {
+            if !self.is_same_root(&range.start_container()) {
                 // Step 5, and its following 8 and 9
                 self.set_range(&Range::new(&self.document, node, offset, node, offset));
                 self.direction.set(Direction::Forwards);
