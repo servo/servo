@@ -492,7 +492,7 @@ impl HTMLMediaElement {
         if delay && blocker.is_none() {
             *blocker = Some(LoadBlocker::new(&document_from_node(self), LoadType::Media));
         } else if !delay && blocker.is_some() {
-            LoadBlocker::terminate(&mut *blocker);
+            LoadBlocker::terminate(&mut blocker);
         }
     }
 
@@ -1550,7 +1550,7 @@ impl HTMLMediaElement {
             PlayerEvent::Error(ref error) => {
                 error!("Player error: {:?}", error);
                 self.error.set(Some(&*MediaError::new(
-                    &*window_from_node(self),
+                    &window_from_node(self),
                     MEDIA_ERR_DECODE,
                 )));
                 self.upcast::<EventTarget>().fire_event(atom!("error"));
@@ -2817,7 +2817,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
             // Step 2
             elem.error.set(Some(&*MediaError::new(
-                &*window_from_node(&*elem),
+                &window_from_node(&*elem),
                 MEDIA_ERR_NETWORK,
             )));
 

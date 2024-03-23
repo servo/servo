@@ -76,7 +76,7 @@ impl FormDataEvent {
             Atom::from(type_),
             bubbles,
             cancelable,
-            &*init.formData.clone(),
+            &init.formData.clone(),
         );
 
         Ok(event)

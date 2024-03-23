@@ -429,10 +429,10 @@ impl XRSession {
         frame.set_animation_frame(true);
 
         // Step 10
-        self.apply_frame_updates(&*frame);
+        self.apply_frame_updates(&frame);
 
         // TODO: how does this fit with the webxr and xr layers specs?
-        self.layers_begin_frame(&*frame);
+        self.layers_begin_frame(&frame);
 
         // Step 11-12
         self.outside_raf.set(false);
@@ -450,7 +450,7 @@ impl XRSession {
         *self.current_raf_callback_list.borrow_mut() = vec![];
 
         // TODO: how does this fit with the webxr and xr layers specs?
-        self.layers_end_frame(&*frame);
+        self.layers_end_frame(&frame);
 
         // Step 13
         frame.set_active(false);

@@ -1010,7 +1010,7 @@ impl RangeMethods for Range {
 
             // Step 3.
             s.push_str(
-                &*char_data
+                &char_data
                     .SubstringData(
                         self.start_offset(),
                         char_data.Length() - self.start_offset(),
@@ -1027,14 +1027,14 @@ impl RangeMethods for Range {
 
         while let Some(child) = iter.next() {
             if self.contains(child.upcast()) {
-                s.push_str(&*child.upcast::<CharacterData>().Data());
+                s.push_str(&child.upcast::<CharacterData>().Data());
             }
         }
 
         // Step 5.
         if let Some(text_node) = end_node.downcast::<Text>() {
             let char_data = text_node.upcast::<CharacterData>();
-            s.push_str(&*char_data.SubstringData(0, self.end_offset()).unwrap());
+            s.push_str(&char_data.SubstringData(0, self.end_offset()).unwrap());
         }
 
         // Step 6.

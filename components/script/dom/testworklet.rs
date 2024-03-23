@@ -39,7 +39,7 @@ impl TestWorklet {
     fn new(window: &Window, proto: Option<HandleObject>) -> DomRoot<TestWorklet> {
         let worklet = Worklet::new(window, WorkletGlobalScopeType::Test);
         reflect_dom_object_with_proto(
-            Box::new(TestWorklet::new_inherited(&*worklet)),
+            Box::new(TestWorklet::new_inherited(&worklet)),
             window,
             proto,
         )

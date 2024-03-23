@@ -439,8 +439,8 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
     /// <https://w3c.github.io/mediacapture-fromelement/#dom-htmlcanvaselement-capturestream>
     fn CaptureStream(&self, _frame_request_rate: Option<Finite<f64>>) -> DomRoot<MediaStream> {
         let global = self.global();
-        let stream = MediaStream::new(&*global);
-        let track = MediaStreamTrack::new(&*global, MediaStreamId::new(), MediaStreamType::Video);
+        let stream = MediaStream::new(&global);
+        let track = MediaStreamTrack::new(&global, MediaStreamId::new(), MediaStreamType::Video);
         stream.AddTrack(&track);
         stream
     }

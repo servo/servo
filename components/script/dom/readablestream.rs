@@ -250,7 +250,7 @@ impl ReadableStream {
 
         let global = self.global();
         let _ar = enter_realm(&*global);
-        let _aes = AutoEntryScript::new(&*global);
+        let _aes = AutoEntryScript::new(&global);
 
         let cx = GlobalScope::get_cx();
 

@@ -246,7 +246,7 @@ pub unsafe fn report_cross_origin_denial(cx: SafeJSContext, id: RawHandleId, acc
     if !JS_IsExceptionPending(*cx) {
         let global = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
         // TODO: include `id` and `access` in the exception message
-        throw_dom_exception(cx, &*global, Error::Security);
+        throw_dom_exception(cx, &global, Error::Security);
     }
     false
 }
