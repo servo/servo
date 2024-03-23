@@ -96,6 +96,12 @@ def handle_preset(s: str) -> Optional[JobConfig]:
         return JobConfig("MacOS WPT", Workflow.MACOS, wpt_layout=Layout.layout2013)
     elif s == "mac-wpt-2020":
         return JobConfig("MacOS WPT", Workflow.MACOS, wpt_layout=Layout.layout2020)
+    elif s == "mac-arm-wpt":
+        return JobConfig("MacOS ARM WPT", Workflow.MACOS_ARM, wpt_layout=Layout.all())
+    elif s == "mac-arm-wpt-2013":
+        return JobConfig("MacOS ARM WPT", Workflow.MACOS_ARM, wpt_layout=Layout.layout2013)
+    elif s == "mac-arm-wpt-2020":
+        return JobConfig("MacOS ARM WPT", Workflow.MACOS_ARM, wpt_layout=Layout.layout2020)
     elif s == "android":
         return JobConfig("Android", Workflow.ANDROID)
     elif s == "webgpu":

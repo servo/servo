@@ -3,6 +3,10 @@ name: Mac WPT Tests
 on:
   workflow_call:
     inputs:
+      arm:
+        required: false
+        default: false
+        type: boolean
       wpt-tests-to-run:
         default: ""
         required: false
@@ -22,7 +26,7 @@ env:
 jobs:
   mac-wpt:
     name: WPT ${{ inputs.wpt-layout }}
-    runs-on: macos-13
+    runs-on: ${{ inputs.arm && 'macos-14' || 'macos-13' }}
     env:
       max_chunk_id: 5
     strategy:
@@ -40,7 +44,7 @@ jobs:
           ref: refs/pull/${{ github.event.number }}/head
       - uses: actions/download-artifact@v4
         with:
-          name: ${{ inputs.profile }}-binary-macos
+          name: ${{ inputs.profile }}-binary-${{ inputs.arm && 'macos-arm' || 'macos' }}
       - name: Prep test environment
         run: |
           gtar -xzf target.tar.gz
