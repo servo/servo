@@ -40,7 +40,7 @@ impl TextTrackList {
     pub fn item(&self, idx: usize) -> Option<DomRoot<TextTrack>> {
         self.dom_tracks
             .borrow()
-            .get(idx as usize)
+            .get(idx)
             .map(|t| DomRoot::from_ref(&**t))
     }
 

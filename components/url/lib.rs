@@ -24,8 +24,6 @@ use url::{Position, Url};
 
 pub use crate::origin::{ImmutableOrigin, MutableOrigin, OpaqueOrigin};
 
-
-
 #[derive(Debug)]
 pub enum UrlError {
     SetUsername,
@@ -34,7 +32,6 @@ pub enum UrlError {
     ToFilePath,
     FromFilePath,
 }
-
 
 impl std::fmt::Display for UrlError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -48,8 +45,6 @@ impl std::fmt::Display for UrlError {
     }
 }
 
-
-
 impl std::error::Error for UrlError {}
 
 #[derive(Clone, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
@@ -62,7 +57,6 @@ impl ToShmem for ServoUrl {
 }
 
 impl ServoUrl {
-
     pub fn from_url(url: Url) -> Self {
         ServoUrl(Arc::new(url))
     }
@@ -136,17 +130,23 @@ impl ServoUrl {
     pub fn as_mut_url(&mut self) -> &mut Url {
         Arc::make_mut(&mut self.0)
     }
-    
+
     pub fn set_username(&mut self, user: &str) -> Result<(), UrlError> {
-        self.as_mut_url().set_username(user).map_err(|_| UrlError::SetUsername)
+        self.as_mut_url()
+            .set_username(user)
+            .map_err(|_| UrlError::SetUsername)
     }
 
     pub fn set_ip_host(&mut self, addr: IpAddr) -> Result<(), UrlError> {
-        self.as_mut_url().set_ip_host(addr).map_err(|_| UrlError::SetIpHost)
+        self.as_mut_url()
+            .set_ip_host(addr)
+            .map_err(|_| UrlError::SetIpHost)
     }
 
     pub fn set_password(&mut self, pass: Option<&str>) -> Result<(), UrlError> {
-        self.as_mut_url().set_password(pass).map_err(|_| UrlError::SetPassword)
+        self.as_mut_url()
+            .set_password(pass)
+            .map_err(|_| UrlError::SetPassword)
     }
 
     pub fn to_file_path(&self) -> Result<::std::path::PathBuf, UrlError> {
@@ -154,9 +154,10 @@ impl ServoUrl {
     }
 
     pub fn from_file_path<P: AsRef<Path>>(path: P) -> Result<Self, UrlError> {
-        Url::from_file_path(path).map(Self::from_url).map_err(|_| UrlError::FromFilePath)
+        Url::from_file_path(path)
+            .map(Self::from_url)
+            .map_err(|_| UrlError::FromFilePath)
     }
-
 
     pub fn set_fragment(&mut self, fragment: Option<&str>) {
         self.as_mut_url().set_fragment(fragment)
@@ -169,8 +170,6 @@ impl ServoUrl {
     pub fn password(&self) -> Option<&str> {
         self.0.password()
     }
-
-    
 
     pub fn host(&self) -> Option<url::Host<&str>> {
         self.0.host()

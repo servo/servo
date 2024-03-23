@@ -700,11 +700,7 @@ pub fn get_reports(cx: *mut RawJSContext, path_seg: String) -> Vec<Report> {
             let mut report = |mut path_suffix, kind, size| {
                 let mut path = path![path_seg, "js"];
                 path.append(&mut path_suffix);
-                reports.push(Report {
-                    path,
-                    kind,
-                    size: size as usize,
-                })
+                reports.push(Report { path, kind, size })
             };
 
             // A note about possibly confusing terminology: the JS GC "heap" is allocated via

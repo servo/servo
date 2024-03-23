@@ -122,7 +122,7 @@ pub fn handle_get_children(
     node_id: String,
     reply: IpcSender<Option<Vec<NodeInfo>>>,
 ) {
-    match find_node_by_unique_id(documents, pipeline, &*node_id) {
+    match find_node_by_unique_id(documents, pipeline, &node_id) {
         None => return reply.send(None).unwrap(),
         Some(parent) => {
             let children = parent.children().map(|child| child.summarize()).collect();
@@ -138,7 +138,7 @@ pub fn handle_get_layout(
     node_id: String,
     reply: IpcSender<Option<ComputedNodeLayout>>,
 ) {
-    let node = match find_node_by_unique_id(documents, pipeline, &*node_id) {
+    let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
         None => return reply.send(None).unwrap(),
         Some(found_node) => found_node,
     };
@@ -198,7 +198,7 @@ pub fn handle_modify_attribute(
     node_id: String,
     modifications: Vec<Modification>,
 ) {
-    let node = match find_node_by_unique_id(documents, pipeline, &*node_id) {
+    let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
         None => {
             return warn!(
                 "node id {} for pipeline id {} is not found",

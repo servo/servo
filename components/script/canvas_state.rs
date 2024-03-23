@@ -607,7 +607,7 @@ impl CanvasState {
     ) -> (Rect<f64>, Rect<f64>) {
         let image_rect = Rect::new(
             Point2D::new(0f64, 0f64),
-            Size2D::new(image_size.width as f64, image_size.height as f64),
+            Size2D::new(image_size.width, image_size.height),
         );
 
         // The source rectangle is the rectangle whose corners are the four points (sx, sy),

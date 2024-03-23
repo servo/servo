@@ -422,14 +422,13 @@ where
     }
 
     unsafe {
-        let mapping_slice_ptr =
-            mapping.lock().unwrap().borrow_mut()[offset as usize..m_end as usize].as_mut_ptr();
+        let mapping_slice_ptr = mapping.lock().unwrap().borrow_mut()[offset..m_end].as_mut_ptr();
 
         // rooted! is needed to ensure memory safety and prevent potential garbage collection issues.
         // https://github.com/mozilla-spidermonkey/spidermonkey-embedding-examples/blob/esr78/docs/GC%20Rooting%20Guide.md#performance-tweaking
         rooted!(in(*cx) let array_buffer = NewExternalArrayBuffer(
             *cx,
-            range_size as usize,
+            range_size,
             mapping_slice_ptr as _,
             Some(free_func),
             Arc::into_raw(mapping) as _,

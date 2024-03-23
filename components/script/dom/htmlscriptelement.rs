@@ -139,7 +139,7 @@ unsafe extern "C" fn off_thread_compilation_callback(
                 })
             };
 
-            finish_fetching_a_classic_script(&*elem, script_kind, url, load);
+            finish_fetching_a_classic_script(&elem, script_kind, url, load);
         }),
         &context.canceller,
     );
@@ -401,7 +401,7 @@ impl FetchResponseListener for ClassicContext {
             (Err(err), _) | (_, Err(err)) => {
                 // Step 6, response is an error.
                 finish_fetching_a_classic_script(
-                    &*self.elem.root(),
+                    &self.elem.root(),
                     self.kind,
                     self.url.clone(),
                     Err(NoTrace(err.clone())),
@@ -464,7 +464,7 @@ impl FetchResponseListener for ClassicContext {
                 self.fetch_options.clone(),
                 ScriptType::Classic,
             );
-            finish_fetching_a_classic_script(&*elem, self.kind, self.url.clone(), Ok(load));
+            finish_fetching_a_classic_script(&elem, self.kind, self.url.clone(), Ok(load));
         }
     }
 

@@ -73,10 +73,10 @@ impl DOMQuad {
         Ok(DOMQuad::new_with_proto(
             global,
             proto,
-            &*DOMPoint::new_from_init(global, p1),
-            &*DOMPoint::new_from_init(global, p2),
-            &*DOMPoint::new_from_init(global, p3),
-            &*DOMPoint::new_from_init(global, p4),
+            &DOMPoint::new_from_init(global, p1),
+            &DOMPoint::new_from_init(global, p2),
+            &DOMPoint::new_from_init(global, p3),
+            &DOMPoint::new_from_init(global, p4),
         ))
     }
 
@@ -84,16 +84,16 @@ impl DOMQuad {
     pub fn FromRect(global: &GlobalScope, other: &DOMRectInit) -> DomRoot<DOMQuad> {
         DOMQuad::new(
             global,
-            &*DOMPoint::new(global, other.x, other.y, 0f64, 1f64),
-            &*DOMPoint::new(global, other.x + other.width, other.y, 0f64, 1f64),
-            &*DOMPoint::new(
+            &DOMPoint::new(global, other.x, other.y, 0f64, 1f64),
+            &DOMPoint::new(global, other.x + other.width, other.y, 0f64, 1f64),
+            &DOMPoint::new(
                 global,
                 other.x + other.width,
                 other.y + other.height,
                 0f64,
                 1f64,
             ),
-            &*DOMPoint::new(global, other.x, other.y + other.height, 0f64, 1f64),
+            &DOMPoint::new(global, other.x, other.y + other.height, 0f64, 1f64),
         )
     }
 

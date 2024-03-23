@@ -483,7 +483,7 @@ impl ServoParser {
             prefetch_input.push_back(chunk.clone());
             self.prefetch_tokenizer
                 .borrow_mut()
-                .feed(&mut *prefetch_input);
+                .feed(&mut prefetch_input);
         }
         // Push the chunk into the network input stream,
         // which is tokenized lazily.
@@ -1130,7 +1130,7 @@ impl TreeSink for Sink {
         let element = create_element_for_token(
             name,
             attrs,
-            &*self.document,
+            &self.document,
             ElementCreator::ParserCreated(self.current_line),
             self.parsing_algorithm,
         );

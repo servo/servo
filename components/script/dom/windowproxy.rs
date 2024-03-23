@@ -245,7 +245,7 @@ impl WindowProxy {
             ));
 
             // Create a new dissimilar-origin window.
-            let window = DissimilarOriginWindow::new(global_to_clone_from, &*window_proxy);
+            let window = DissimilarOriginWindow::new(global_to_clone_from, &window_proxy);
             let window_jsobject = window.reflector().get_jsobject();
             assert!(!window_jsobject.get().is_null());
             assert_ne!(
@@ -442,7 +442,7 @@ impl WindowProxy {
                         let creator =
                             CreatorBrowsingContextInfo::from(parent_browsing_context, None);
                         WindowProxy::new_dissimilar_origin(
-                            &*global_to_clone_from,
+                            &global_to_clone_from,
                             opener_id,
                             opener_top_id,
                             None,
@@ -690,7 +690,7 @@ impl WindowProxy {
             return debug!("Attempt to unset the currently active window on a windowproxy that does not have one.");
         }
         let globalscope = self.global();
-        let window = DissimilarOriginWindow::new(&*globalscope, self);
+        let window = DissimilarOriginWindow::new(&globalscope, self);
         self.set_window(&*window.upcast(), &XORIGIN_PROXY_HANDLER);
         self.currently_active.set(None);
     }
@@ -1091,7 +1091,7 @@ unsafe fn throw_security_error(cx: *mut JSContext, realm: InRealm) -> bool {
     if !JS_IsExceptionPending(cx) {
         let safe_context = SafeJSContext::from_ptr(cx);
         let global = GlobalScope::from_context(cx, realm);
-        throw_dom_exception(safe_context, &*global, Error::Security);
+        throw_dom_exception(safe_context, &global, Error::Security);
     }
     false
 }

@@ -442,17 +442,17 @@ impl HTMLTableElementLayoutHelpers for LayoutDom<'_, HTMLTableElement> {
 
     #[allow(unsafe_code)]
     fn get_border(self) -> Option<u32> {
-        unsafe { (*self.unsafe_get()).border.get() }
+        unsafe { (self.unsafe_get()).border.get() }
     }
 
     #[allow(unsafe_code)]
     fn get_cellpadding(self) -> Option<u32> {
-        unsafe { (*self.unsafe_get()).cellpadding.get() }
+        unsafe { (self.unsafe_get()).cellpadding.get() }
     }
 
     #[allow(unsafe_code)]
     fn get_cellspacing(self) -> Option<u32> {
-        unsafe { (*self.unsafe_get()).cellspacing.get() }
+        unsafe { (self.unsafe_get()).cellspacing.get() }
     }
 
     fn get_width(self) -> LengthOrPercentageOrAuto {

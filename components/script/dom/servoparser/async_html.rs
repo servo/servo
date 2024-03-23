@@ -425,7 +425,7 @@ impl Tokenizer {
                 let element = create_element_for_token(
                     name,
                     attrs,
-                    &*self.document,
+                    &self.document,
                     ElementCreator::ParserCreated(current_line),
                     ParsingAlgorithm::Normal,
                 );
@@ -480,7 +480,7 @@ impl Tokenizer {
             },
             ParseOperation::RemoveFromParent { target } => {
                 if let Some(ref parent) = self.get_node(&target).GetParentNode() {
-                    parent.RemoveChild(&**self.get_node(&target)).unwrap();
+                    parent.RemoveChild(self.get_node(&target)).unwrap();
                 }
             },
             ParseOperation::MarkScriptAlreadyStarted { node } => {
