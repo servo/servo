@@ -290,7 +290,7 @@ impl WindowProxy {
         let window = self
             .currently_active
             .get()
-            .and_then(|id| ScriptThread::find_document(id))
+            .and_then(ScriptThread::find_document)
             .and_then(|doc| Some(DomRoot::from_ref(doc.window())))
             .unwrap();
         let msg = EmbedderMsg::AllowOpeningWebView(chan);
@@ -303,7 +303,7 @@ impl WindowProxy {
             let document = self
                 .currently_active
                 .get()
-                .and_then(|id| ScriptThread::find_document(id))
+                .and_then(ScriptThread::find_document)
                 .expect("A WindowProxy creating an auxiliary to have an active document");
 
             let blank_url = ServoUrl::parse("about:blank").ok().unwrap();
@@ -500,7 +500,7 @@ impl WindowProxy {
             let existing_document = self
                 .currently_active
                 .get()
-                .and_then(|id| ScriptThread::find_document(id))
+                .and_then(ScriptThread::find_document)
                 .unwrap();
             // Step 14.1
             let url = match existing_document.url().join(&url) {
@@ -603,7 +603,7 @@ impl WindowProxy {
     pub fn document(&self) -> Option<DomRoot<Document>> {
         self.currently_active
             .get()
-            .and_then(|id| ScriptThread::find_document(id))
+            .and_then(ScriptThread::find_document)
     }
 
     pub fn parent(&self) -> Option<&WindowProxy> {
