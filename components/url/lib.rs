@@ -33,8 +33,8 @@ pub enum UrlError {
     FromFilePath,
 }
 
-impl std::fmt::Display for UrlError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for UrlError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             UrlError::SetUsername => write!(f, "Error setting username"),
             UrlError::SetIpHost => write!(f, "Error setting IP host"),
