@@ -23,7 +23,6 @@ pub use url::Host;
 use url::{Position, Url};
 
 pub use crate::origin::{ImmutableOrigin, MutableOrigin, OpaqueOrigin};
-
 #[derive(Debug)]
 pub enum UrlError {
     SetUsername,
@@ -32,20 +31,6 @@ pub enum UrlError {
     ToFilePath,
     FromFilePath,
 }
-
-impl fmt::Display for UrlError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            UrlError::SetUsername => write!(f, "Error setting username"),
-            UrlError::SetIpHost => write!(f, "Error setting IP host"),
-            UrlError::SetPassword => write!(f, "Error setting password"),
-            UrlError::ToFilePath => write!(f, "Error converting to file path"),
-            UrlError::FromFilePath => write!(f, "Error converting from file path"),
-        }
-    }
-}
-
-impl std::error::Error for UrlError {}
 
 #[derive(Clone, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct ServoUrl(#[ignore_malloc_size_of = "Arc"] Arc<Url>);
@@ -149,16 +134,6 @@ impl ServoUrl {
             .map_err(|_| UrlError::SetPassword)
     }
 
-    pub fn to_file_path(&self) -> Result<::std::path::PathBuf, UrlError> {
-        self.0.to_file_path().map_err(|_| UrlError::ToFilePath)
-    }
-
-    pub fn from_file_path<P: AsRef<Path>>(path: P) -> Result<Self, UrlError> {
-        Url::from_file_path(path)
-            .map(Self::from_url)
-            .map_err(|_| UrlError::FromFilePath)
-    }
-
     pub fn set_fragment(&mut self, fragment: Option<&str>) {
         self.as_mut_url().set_fragment(fragment)
     }
@@ -169,6 +144,10 @@ impl ServoUrl {
 
     pub fn password(&self) -> Option<&str> {
         self.0.password()
+    }
+
+    pub fn to_file_path(&self) -> Result<::std::path::PathBuf, UrlError> {
+        self.0.to_file_path().map_err(|_| UrlError::ToFilePath)
     }
 
     pub fn host(&self) -> Option<url::Host<&str>> {
@@ -197,6 +176,12 @@ impl ServoUrl {
 
     pub fn query(&self) -> Option<&str> {
         self.0.query()
+    }
+
+    pub fn from_file_path<P: AsRef<Path>>(path: P) -> Result<Self, UrlError> {
+        Url::from_file_path(path)
+            .map(Self::from_url)
+            .map_err(|_| UrlError::FromFilePath)
     }
 
     /// Return a non-standard shortened form of the URL. Mainly intended to be
