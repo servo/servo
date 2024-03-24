@@ -163,7 +163,7 @@ impl CharacterDataMethods for CharacterData {
     // https://dom.spec.whatwg.org/#dom-characterdata-appenddatadata
     fn AppendData(&self, data: DOMString) {
         // FIXME(ajeffrey): Efficient append on DOMStrings?
-        self.append_data(&*data);
+        self.append_data(&data);
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-insertdataoffset-data

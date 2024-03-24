@@ -35,7 +35,7 @@ impl HTMLFormControlsCollection {
             .upcast::<Node>()
             .GetRootNode(&GetRootNodeOptions::empty());
         HTMLFormControlsCollection {
-            collection: HTMLCollection::new_inherited(&*root_of_form, filter),
+            collection: HTMLCollection::new_inherited(&root_of_form, filter),
             form: Dom::from_ref(form),
         }
     }
@@ -92,7 +92,7 @@ impl HTMLFormControlsCollectionMethods for HTMLFormControlsCollection {
                 // specifically HTMLFormElement::Elements(),
                 // and the collection filter excludes image inputs.
                 Some(RadioNodeListOrElement::RadioNodeList(
-                    RadioNodeList::new_controls_except_image_inputs(window, &*self.form, &name),
+                    RadioNodeList::new_controls_except_image_inputs(window, &self.form, &name),
                 ))
             }
         // Step 3

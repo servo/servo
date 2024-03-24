@@ -282,7 +282,7 @@ impl Node {
             node.set_flag(NodeFlags::IS_CONNECTED, parent_is_connected);
             // Out-of-document elements never have the descendants flag set.
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
-            vtable_for(&*node).bind_to_tree(&BindContext {
+            vtable_for(&node).bind_to_tree(&BindContext {
                 tree_connected: parent_is_connected,
                 tree_in_doc: parent_in_doc,
             });
@@ -313,11 +313,11 @@ impl Node {
             // This needs to be in its own loop, because unbind_from_tree may
             // rely on the state of IS_IN_DOC of the context node's descendants,
             // e.g. when removing a <form>.
-            vtable_for(&*node).unbind_from_tree(context);
+            vtable_for(&node).unbind_from_tree(context);
             // https://dom.spec.whatwg.org/#concept-node-remove step 14
             if let Some(element) = node.as_custom_element() {
                 ScriptThread::enqueue_callback_reaction(
-                    &*element,
+                    &element,
                     CallbackReaction::Disconnected,
                     None,
                 );
@@ -551,7 +551,7 @@ impl Node {
             s.push_str("    ");
         }
 
-        s.push_str(&*self.debug_str());
+        s.push_str(&self.debug_str());
         debug!("{:?}", s);
 
         // FIXME: this should have a pure version?
@@ -1443,14 +1443,14 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn get_flag(self, flag: NodeFlags) -> bool {
-        (*self.unsafe_get()).flags.get().contains(flag)
+        (self.unsafe_get()).flags.get().contains(flag)
     }
 
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn set_flag(self, flag: NodeFlags, value: bool) {
         let this = self.unsafe_get();
-        let mut flags = (*this).flags.get();
+        let mut flags = (this).flags.get();
 
         if value {
             flags.insert(flag);
@@ -1458,7 +1458,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
             flags.remove(flag);
         }
 
-        (*this).flags.set(flags);
+        (this).flags.set(flags);
     }
 
     #[inline]
@@ -1846,7 +1846,7 @@ impl Node {
             {
                 // Step 3.2.
                 ScriptThread::enqueue_callback_reaction(
-                    &*descendant,
+                    &descendant,
                     CallbackReaction::Adopted(old_doc.clone(), DomRoot::from_ref(document)),
                     None,
                 );
@@ -2072,7 +2072,7 @@ impl Node {
         // Step 7.
         for kid in new_nodes {
             // Step 7.1.
-            parent.add_child(*kid, child);
+            parent.add_child(kid, child);
             // Step 7.7.
             for descendant in kid
                 .traverse_preorder(ShadowIncluding::Yes)
@@ -2083,7 +2083,7 @@ impl Node {
                     if descendant.get_custom_element_definition().is_some() {
                         // Step 7.7.2.1.
                         ScriptThread::enqueue_callback_reaction(
-                            &*descendant,
+                            &descendant,
                             CallbackReaction::Connected,
                             None,
                         );
@@ -2289,7 +2289,7 @@ impl Node {
                     IsHTMLDocument::NonHTMLDocument
                 };
                 let window = document.window();
-                let loader = DocumentLoader::new(&*document.loader());
+                let loader = DocumentLoader::new(&document.loader());
                 let document = Document::new(
                     window,
                     HasBrowsingContext::No,
@@ -3270,7 +3270,7 @@ impl<'a> ChildrenMutation<'a> {
             } else {
                 ChildrenMutation::Replace {
                     prev,
-                    removed: *removed,
+                    removed,
                     added,
                     next,
                 }

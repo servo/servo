@@ -229,8 +229,8 @@ impl VirtualMethods for HTMLButtonElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        match attr.local_name() {
-            &local_name!("disabled") => {
+        match *attr.local_name() {
+            local_name!("disabled") => {
                 let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(Some(_)) => {},
@@ -248,7 +248,7 @@ impl VirtualMethods for HTMLButtonElement {
                 self.validity_state()
                     .perform_validation_and_update(ValidationFlags::all());
             },
-            &local_name!("type") => match mutation {
+            local_name!("type") => match mutation {
                 AttributeMutation::Set(_) => {
                     let value = match &**attr.value() {
                         "reset" => ButtonType::Reset,
@@ -263,7 +263,7 @@ impl VirtualMethods for HTMLButtonElement {
                     self.button_type.set(ButtonType::Submit);
                 },
             },
-            &local_name!("form") => {
+            local_name!("form") => {
                 self.form_attribute_mutated(mutation);
                 self.validity_state()
                     .perform_validation_and_update(ValidationFlags::empty());
@@ -273,7 +273,7 @@ impl VirtualMethods for HTMLButtonElement {
     }
 
     fn bind_to_tree(&self, context: &BindContext) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.bind_to_tree(context);
         }
 
@@ -306,7 +306,7 @@ impl FormControl for HTMLButtonElement {
         self.form_owner.set(form);
     }
 
-    fn to_element<'a>(&'a self) -> &'a Element {
+    fn to_element(&self) -> &Element {
         self.upcast::<Element>()
     }
 }

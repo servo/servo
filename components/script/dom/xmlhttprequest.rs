@@ -1517,7 +1517,7 @@ impl XMLHttpRequest {
         let wr = self.global();
         let win = wr.as_window();
         let doc = win.Document();
-        let docloader = DocumentLoader::new(&*doc.loader());
+        let docloader = DocumentLoader::new(&doc.loader());
         let base = wr.get_url();
         let parsed_url = match base.join(&self.ResponseURL().0) {
             Ok(parsed) => Some(parsed),
