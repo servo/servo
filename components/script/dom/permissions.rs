@@ -289,7 +289,7 @@ pub fn get_descriptor_permission_state(
     let state = if allowed_in_nonsecure_contexts(&permission_name) {
         PermissionState::Prompt
     } else if pref!(dom.permissions.testing.allowed_in_nonsecure_contexts) {
-          PermissionState::Granted
+        PermissionState::Granted
     } else {
         globalscope
             .permission_state_invocation_results()
