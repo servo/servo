@@ -14,7 +14,7 @@ use style::properties::longhands::flex_direction::computed_value::T as FlexDirec
 use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
 use style::properties::longhands::justify_content::computed_value::T as JustifyContent;
 use style::values::computed::length::Size;
-use style::values::computed::Length;
+use style::values::computed::{CSSPixelLength, Length};
 use style::values::generics::flex::GenericFlexBasis as FlexBasis;
 use style::values::CSSFloat;
 use style::Zero;
@@ -102,6 +102,10 @@ struct FlexItemLayoutResult {
 struct FlexLineLayoutResult {
     cross_size: Length,
     item_fragments: Vec<(BoxFragment, PositioningContext)>, // One per flex item, in the given order
+}
+
+fn css_pixel_length_to_au(length: CSSPixelLength) -> Au {
+    Au::from_f32_px(length.px())
 }
 
 impl FlexContext<'_> {
@@ -848,7 +852,15 @@ impl FlexLine<'_> {
             .map(|(((item, item_result), content_rect), margin)| {
                 let content_rect = flex_context.rect_to_flow_relative(line_size, content_rect);
                 let margin = flex_context.sides_to_flow_relative(*margin);
-                let collapsed_margin = CollapsedBlockMargins::from_margin(&margin);
+                let converted_margin = LogicalSides {
+                    block_start: css_pixel_length_to_au(margin.block_start),
+                    block_end: css_pixel_length_to_au(margin.block_end),
+                    inline_start: css_pixel_length_to_au(margin.inline_start),
+                    inline_end: css_pixel_length_to_au(margin.inline_end),
+                };
+
+                let collapsed_margin = CollapsedBlockMargins::from_margin(&converted_margin);
+
                 (
                     // TODO: We should likely propagate baselines from `display: flex`.
                     BoxFragment::new(
