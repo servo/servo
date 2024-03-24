@@ -92,7 +92,7 @@ impl CompositionEvent {
     }
 
     pub fn data(&self) -> &str {
-        &*self.data
+        &self.data
     }
 }
 

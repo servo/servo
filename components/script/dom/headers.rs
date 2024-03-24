@@ -290,7 +290,7 @@ impl Headers {
 
     // https://fetch.spec.whatwg.org/#concept-header-extract-mime-type
     pub fn extract_mime_type(&self) -> Vec<u8> {
-        extract_mime_type(&*self.header_list.borrow()).unwrap_or(vec![])
+        extract_mime_type(&self.header_list.borrow()).unwrap_or(vec![])
     }
 
     // https://fetch.spec.whatwg.org/#concept-header-list-sort-and-combine
@@ -567,5 +567,5 @@ pub fn extract_mime_type(headers: &HyperHeaders) -> Option<Vec<u8>> {
     }
 
     // Step 7, 8
-    return mime_type.map(|m| format!("{}", m).into_bytes());
+    mime_type.map(|m| format!("{}", m).into_bytes())
 }

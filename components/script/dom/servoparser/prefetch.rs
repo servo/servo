@@ -206,7 +206,7 @@ impl PrefetchSink {
 
     fn get_referrer_policy(&self, tag: &Tag, name: LocalName) -> Option<ReferrerPolicy> {
         self.get_attr(tag, name)
-            .and_then(|attr| determine_policy_for_token(&*attr.value))
+            .and_then(|attr| determine_policy_for_token(&attr.value))
             .or(self.referrer_policy)
     }
 

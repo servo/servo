@@ -159,7 +159,7 @@ impl GPUBufferMethods for GPUBuffer {
                     WebGPURequest::UnmapBuffer {
                         buffer_id: self.id().0,
                         device_id: self.device.id().0,
-                        array_buffer: IpcSharedMemory::from_bytes(&*m_info.mapping.lock().unwrap()),
+                        array_buffer: IpcSharedMemory::from_bytes(&m_info.mapping.lock().unwrap()),
                         is_map_read: m_info.map_mode == Some(GPUMapModeConstants::READ),
                         offset: m_range.start,
                         size: m_range.end - m_range.start,

@@ -173,7 +173,7 @@ impl SerializationIterator {
         let mut ret = SerializationIterator { stack: vec![] };
         if skip_first || node.is::<DocumentFragment>() || node.is::<Document>() {
             for c in rev_children_iter(node) {
-                ret.push_node(&*c);
+                ret.push_node(&c);
             }
         } else {
             ret.push_node(node);

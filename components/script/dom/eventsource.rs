@@ -234,7 +234,7 @@ impl EventSourceContext {
                     .to_jsval(*GlobalScope::get_cx(), data.handle_mut())
             };
             MessageEvent::new(
-                &*event_source.global(),
+                &event_source.global(),
                 type_,
                 false,
                 false,
@@ -520,7 +520,7 @@ impl EventSource {
         // TODO: Step 2 relevant settings object
         // Step 3
         let base_url = global.api_base_url();
-        let url_record = match base_url.join(&*url) {
+        let url_record = match base_url.join(&url) {
             Ok(u) => u,
             //  Step 4
             Err(_) => return Err(Error::Syntax),

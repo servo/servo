@@ -141,7 +141,7 @@ pub trait LayoutCanvasRenderingContext2DHelpers {
 impl LayoutCanvasRenderingContext2DHelpers for LayoutDom<'_, CanvasRenderingContext2D> {
     #[allow(unsafe_code)]
     unsafe fn get_ipc_renderer(self) -> IpcSender<CanvasMsg> {
-        (*self.unsafe_get()).canvas_state.get_ipc_renderer().clone()
+        (self.unsafe_get()).canvas_state.get_ipc_renderer().clone()
     }
 
     #[allow(unsafe_code)]
