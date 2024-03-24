@@ -242,9 +242,9 @@ impl BlockFormattingContext {
 
         IndependentLayout {
             fragments: flow_layout.fragments,
-            content_block_size: (Au::from(flow_layout.content_block_size) + // Convert from `CSSPixelLength` to `Au`
-                 flow_layout.collapsible_margins_in_children.end.solve() + // Already `Au`
-                 clearance.unwrap_or_else(Au::zero)),
+            content_block_size: (Au::from(flow_layout.content_block_size) +
+                flow_layout.collapsible_margins_in_children.end.solve() +
+                clearance.unwrap_or_else(Au::zero)),
             content_inline_size_for_table: None,
             baselines: flow_layout.baselines,
         }
@@ -1417,13 +1417,16 @@ fn solve_inline_margins_for_in_flow_block_level(
     let justification = Au::zero();
     let inline_margins = match (pbm.margin.inline_start, pbm.margin.inline_end) {
         (AuOrAuto::Auto, AuOrAuto::Auto) => {
-            let half = free_space / 2;
-            (half, free_space - half)
+            let start = free_space / 2;
+            (start, free_space - start)
         },
         (AuOrAuto::Auto, AuOrAuto::LengthPercentage(end)) => (free_space - end, end),
         (AuOrAuto::LengthPercentage(start), AuOrAuto::Auto) => (start, free_space - start),
         (AuOrAuto::LengthPercentage(start), AuOrAuto::LengthPercentage(end)) => {
-            // No free space adjustment needed if both margins are specified
+            // In the cases above, the free space is zero after taking 'auto' margins into account.
+            // But here we may still have some free space to perform 'justify-self' alignment.
+            // This aligns the margin box within the containing block, or in other words,
+            // aligns the border box within the margin-shrunken containing block.
             (start, end)
         },
     };
@@ -1615,8 +1618,6 @@ impl PlacementState {
                     self.current_margin
                         .adjoin_assign(&fragment_block_margins.start);
                 }
-
-                // Here, ensure that self.current_block_direction_position and the result of solve() are Au
                 self.current_block_direction_position += self.current_margin.solve();
 
                 fragment.content_rect.start_corner.block +=
@@ -1644,18 +1645,14 @@ impl PlacementState {
             Fragment::Float(box_fragment) => {
                 let sequential_layout_state = sequential_layout_state
                     .expect("Found float fragment without SequentialLayoutState");
-
                 self.current_block_direction_position += self.current_margin.solve();
-
                 let block_offset_from_containing_block_top = self.current_block_direction_position;
-
                 sequential_layout_state.place_float_fragment(
                     box_fragment,
                     self.start_margin,
-                    block_offset_from_containing_block_top.into(), // Convert to Au if not already
+                    block_offset_from_containing_block_top.into(),
                 );
             },
-
             Fragment::Positioning(_) => {},
             _ => unreachable!(),
         }

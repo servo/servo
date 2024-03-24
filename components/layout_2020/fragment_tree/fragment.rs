@@ -242,7 +242,7 @@ impl ImageFragment {
     pub fn print(&self, tree: &mut PrintTree) {
         tree.add_item(format!(
             "Image\
-                 \nrect={:?}",
+            \nrect={:?}",
             self.rect
         ));
     }
@@ -252,7 +252,7 @@ impl IFrameFragment {
     pub fn print(&self, tree: &mut PrintTree) {
         tree.add_item(format!(
             "IFrame\
-                 \npipeline={:?} rect={:?}",
+            \npipeline={:?} rect={:?}",
             self.pipeline_id, self.rect
         ));
     }
@@ -285,12 +285,9 @@ impl CollapsedMargin {
     }
 
     pub fn new(margin: Au) -> Self {
-        let max_positive = if margin > Au(0) { margin } else { Au(0) };
-        let min_negative = if margin < Au(0) { margin } else { Au(0) };
-
         Self {
-            max_positive,
-            min_negative,
+            max_positive: std::cmp::max(margin, Au(0)),
+            min_negative: std::cmp::min(margin, Au(0)),
         }
     }
 
