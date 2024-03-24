@@ -4,6 +4,7 @@
 
 use std::sync::Arc;
 
+use app_units::Au;
 use gfx::font::FontMetrics;
 use gfx::text::glyph::GlyphStore;
 use gfx_traits::print_tree::PrintTree;
@@ -13,7 +14,6 @@ use servo_arc::Arc as ServoArc;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style::values::specified::text::TextDecorationLine;
-use style::Zero;
 use webrender_api::{FontInstanceKey, ImageKey};
 
 use super::{
@@ -61,8 +61,8 @@ pub(crate) struct CollapsedBlockMargins {
 
 #[derive(Clone, Copy, Debug, Serialize)]
 pub(crate) struct CollapsedMargin {
-    max_positive: Length,
-    min_negative: Length,
+    max_positive: Au,
+    min_negative: Au,
 }
 
 #[derive(Serialize)]
@@ -259,7 +259,7 @@ impl IFrameFragment {
 }
 
 impl CollapsedBlockMargins {
-    pub fn from_margin(margin: &LogicalSides<Length>) -> Self {
+    pub fn from_margin(margin: &LogicalSides<Au>) -> Self {
         Self {
             collapsed_through: false,
             start: CollapsedMargin::new(margin.block_start),
@@ -279,15 +279,18 @@ impl CollapsedBlockMargins {
 impl CollapsedMargin {
     pub fn zero() -> Self {
         Self {
-            max_positive: Length::zero(),
-            min_negative: Length::zero(),
+            max_positive: Au(0),
+            min_negative: Au(0),
         }
     }
 
-    pub fn new(margin: Length) -> Self {
+    pub fn new(margin: Au) -> Self {
+        let max_positive = if margin > Au(0) { margin } else { Au(0) };
+        let min_negative = if margin < Au(0) { margin } else { Au(0) };
+
         Self {
-            max_positive: margin.max(Length::zero()),
-            min_negative: margin.min(Length::zero()),
+            max_positive,
+            min_negative,
         }
     }
 
@@ -302,7 +305,7 @@ impl CollapsedMargin {
         *self = self.adjoin(other);
     }
 
-    pub fn solve(&self) -> Length {
+    pub fn solve(&self) -> Au {
         self.max_positive + self.min_negative
     }
 }

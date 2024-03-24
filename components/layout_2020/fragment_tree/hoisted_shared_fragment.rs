@@ -8,6 +8,7 @@ use style::values::computed::{Length, LengthPercentage};
 use super::Fragment;
 use crate::cell::ArcRefCell;
 use crate::geom::LogicalVec2;
+use crate::Au;
 
 /// A reference to a Fragment which is shared between `HoistedAbsolutelyPositionedBox`
 /// and its placeholder `AbsoluteOrFixedPositionedFragment` in the original tree position.
@@ -31,7 +32,7 @@ impl HoistedSharedFragment {
     /// In some cases `inset: auto`-positioned elements do not know their precise
     /// position until after they're hoisted. This lets us adjust auto values
     /// after the fact.
-    pub(crate) fn adjust_offsets(&mut self, offsets: LogicalVec2<Length>) {
+    pub(crate) fn adjust_offsets(&mut self, offsets: LogicalVec2<Au>) {
         self.box_offsets.inline.adjust_offset(offsets.inline);
         self.box_offsets.block.adjust_offset(offsets.block);
     }
@@ -59,9 +60,9 @@ impl AbsoluteBoxOffsets {
         matches!(self, AbsoluteBoxOffsets::Both { .. })
     }
 
-    pub(crate) fn adjust_offset(&mut self, new_offset: Length) {
+    pub(crate) fn adjust_offset(&mut self, new_offset: Au) {
         if let AbsoluteBoxOffsets::StaticStart { ref mut start } = *self {
-            *start = new_offset
+            *start = new_offset.into();
         }
     }
 }
