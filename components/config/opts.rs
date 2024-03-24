@@ -132,6 +132,9 @@ pub struct Opts {
 
     /// True to enable minibrowser
     pub minibrowser: bool,
+
+    /// True to open the window in fullscreen mode
+    pub fullscreen: bool,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -427,6 +430,7 @@ pub fn default_opts() -> Opts {
         local_script_source: None,
         print_pwm: false,
         minibrowser: true,
+        fullscreen: false,
     }
 }
 
@@ -553,7 +557,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
     opts.optopt(
         "",
         "config-dir",
-        "config directory following xdg spec on linux platform",
+        "Config directory following xdg spec on linux platform",
         "",
     );
     opts.optflag("v", "version", "Display servo version information");
@@ -566,6 +570,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         "",
     );
     opts.optflag("", "no-minibrowser", "Open minibrowser");
+    opts.optflag("", "fullscreen", "Open the window in fullscreen mode");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -770,6 +775,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         local_script_source: opt_match.opt_str("local-script-source"),
         print_pwm: opt_match.opt_present("print-pwm"),
         minibrowser: !opt_match.opt_present("no-minibrowser"),
+        fullscreen: opt_match.opt_present("fullscreen"),
     };
 
     set_options(opts);
