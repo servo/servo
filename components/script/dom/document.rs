@@ -9,7 +9,6 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::default::Default;
 use std::mem;
-use std::ptr::NonNull;
 use std::rc::Rc;
 use std::slice::from_ref;
 use std::time::{Duration, Instant};
@@ -26,7 +25,6 @@ use euclid::default::{Point2D, Rect, Size2D};
 use html5ever::{local_name, namespace_url, ns, LocalName, Namespace, QualName};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use keyboard_types::{Code, Key, KeyState};
 use lazy_static::lazy_static;
@@ -80,7 +78,7 @@ use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEvent_Binding::BeforeUnloadEventMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
-    DocumentMethods, DocumentReadyState,
+    DocumentMethods, DocumentReadyState, NamedPropertyValue,
 };
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElement_Binding::HTMLIFrameElementMethods;
@@ -176,7 +174,7 @@ use crate::dom::window::{ReflowReason, Window};
 use crate::dom::windowproxy::WindowProxy;
 use crate::fetch::FetchCanceller;
 use crate::realms::{AlreadyInRealm, InRealm};
-use crate::script_runtime::{CommonScriptMsg, JSContext, ScriptThreadEventCategory};
+use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
 use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::TaskBox;
@@ -4860,8 +4858,8 @@ impl DocumentMethods for Document {
     }
 
     #[allow(unsafe_code)]
-    // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
-    fn NamedGetter(&self, _cx: JSContext, name: DOMString) -> Option<NonNull<JSObject>> {
+    /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter>
+    fn NamedGetter(&self, name: DOMString) -> Option<NamedPropertyValue> {
         if name.is_empty() {
             return None;
         }
@@ -4886,19 +4884,11 @@ impl DocumentMethods for Document {
                 .downcast::<HTMLIFrameElement>()
                 .and_then(|iframe| iframe.GetContentWindow())
             {
-                unsafe {
-                    return Some(NonNull::new_unchecked(
-                        nested_window_proxy.reflector().get_jsobject().get(),
-                    ));
-                }
+                return Some(NamedPropertyValue::WindowProxy(nested_window_proxy));
             }
 
             // Step 3.
-            unsafe {
-                return Some(NonNull::new_unchecked(
-                    first.reflector().get_jsobject().get(),
-                ));
-            }
+            return Some(NamedPropertyValue::Element(DomRoot::from_ref(first)));
         }
 
         // Step 4.
@@ -4933,11 +4923,7 @@ impl DocumentMethods for Document {
             self.upcast(),
             Box::new(DocumentNamedGetter { name }),
         );
-        unsafe {
-            Some(NonNull::new_unchecked(
-                collection.reflector().get_jsobject().get(),
-            ))
-        }
+        Some(NamedPropertyValue::HTMLCollection(collection))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
