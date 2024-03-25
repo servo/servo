@@ -2367,23 +2367,29 @@ impl<'a> ContentSizesComputation<'a> {
 
                             let white_space =
                                 text_run.parent_style.get_inherited_text().white_space;
-                            // TODO: need to handle white_space.allow_wrap() too.
                             if !white_space.preserve_spaces() {
                                 // Discard any leading whitespace in the IFC. This will always be trimmed.
                                 if self.had_content_yet {
                                     // Wait to take into account other whitespace until we see more content.
                                     // Whitespace at the end of the IFC will always be trimmed.
+                                    // TODO: need to handle !white_space.allow_wrap().
                                     self.line_break_opportunity();
                                     self.pending_whitespace += advance;
                                 }
                                 continue;
                             }
+                            if white_space.allow_wrap() {
+                                self.commit_pending_whitespace();
+                                self.line_break_opportunity();
+                                self.current_line.max_content += advance;
+                                self.had_content_yet = true;
+                                continue;
+                            }
                         }
 
+                        self.commit_pending_whitespace();
+                        self.add_length(advance.into());
                         self.had_content_yet = true;
-                        self.current_line.min_content += advance;
-                        self.current_line.max_content += self.pending_whitespace + advance;
-                        self.pending_whitespace = Au::zero();
                     }
                 }
             },
@@ -2393,12 +2399,8 @@ impl<'a> ContentSizesComputation<'a> {
                     self.containing_block_writing_mode,
                 );
 
-                // For the min-content size we should wrap lines wherever is possible,
-                // so wrappable spaces shouldn't increase the length of the line,
-                // they will just be removed or hang at the end of the line.
-                self.current_line.min_content += outer.min_content;
-                self.current_line.max_content += self.pending_whitespace + outer.max_content;
-                self.pending_whitespace = Au::zero();
+                self.commit_pending_whitespace();
+                self.current_line += outer;
                 self.had_content_yet = true;
             },
             _ => {},
@@ -2424,6 +2426,14 @@ impl<'a> ContentSizesComputation<'a> {
         self.paragraph.max_content =
             std::cmp::max(self.paragraph.max_content, self.current_line.max_content);
         self.current_line.max_content = Au::zero();
+    }
+
+    fn commit_pending_whitespace(&mut self) {
+        // Only add the pending whitespace to the max-content size, because for the min-content
+        // we should wrap lines wherever is possible, so wrappable spaces shouldn't increase
+        // the length of the line (they will just be removed or hang at the end of the line).
+        self.current_line.max_content += self.pending_whitespace;
+        self.pending_whitespace = Au::zero();
     }
 
     /// Compute the [`ContentSizes`] of the given [`InlineFormattingContext`].
