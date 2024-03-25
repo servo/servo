@@ -611,6 +611,11 @@ impl HTMLMediaElement {
         let old_ready_state = self.ready_state.get();
         self.ready_state.set(ready_state);
 
+        debug!(
+            "Changing ready state from {:?} to {:?}",
+            old_ready_state, ready_state
+        );
+
         if self.network_state.get() == NetworkState::Empty {
             return;
         }
@@ -1488,6 +1493,7 @@ impl HTMLMediaElement {
     }
 
     fn handle_player_event(&self, event: &PlayerEvent) {
+        debug!("Handling player event {:?}", event);
         match *event {
             PlayerEvent::EndOfStream => {
                 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
@@ -2663,6 +2669,8 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
     fn process_request_eof(&mut self) {}
 
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
+        debug!("process_response({:?})", metadata);
+
         let elem = self.elem.root();
 
         if elem.generation_id.get() != self.generation_id || elem.player.borrow().is_none() {
@@ -2736,6 +2744,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
     }
 
     fn process_response_chunk(&mut self, payload: Vec<u8>) {
+        debug!("process_response_chunk()");
         let elem = self.elem.root();
         // If an error was received previously or if we triggered a new fetch request,
         // we skip processing the payload.
@@ -2795,6 +2804,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
     // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
     fn process_response_eof(&mut self, status: Result<ResourceFetchTiming, NetworkError>) {
+        debug!("process_response_eof({:?})", status);
         if let Some(seek_lock) = self.seek_lock.take() {
             seek_lock.unlock(/* successful seek */ false);
         }
