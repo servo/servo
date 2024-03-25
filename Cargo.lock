@@ -1110,7 +1110,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e16e44ab292b1dddfdaf7be62cfd8877df52f2f3fde5858d95bab606be259f20"
 dependencies = [
  "bitflags 2.5.0",
- "libloading 0.7.4",
+ "libloading 0.8.3",
  "winapi",
 ]
 
@@ -1306,7 +1306,7 @@ version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330c60081dcc4c72131f8eb70510f1ac07223e5d4163db481a04a0befcffa412"
 dependencies = [
- "libloading 0.7.4",
+ "libloading 0.8.3",
 ]
 
 [[package]]
@@ -2528,7 +2528,7 @@ dependencies = [
  "futures-sink",
  "futures-util",
  "http",
- "indexmap 2.2.5",
+ "indexmap 2.2.6",
  "slab",
  "tokio",
  "tokio-util",
@@ -2822,9 +2822,9 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "2.2.5"
+version = "2.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b0b929d511467233429c45a44ac1dcaa21ba0f5ba11e4879e6ed28ddb4f9df4"
+checksum = "168fb715dda47215e360912c096649d23d58bf392ac62f73919e831745e40f26"
 dependencies = [
  "equivalent",
  "hashbrown 0.14.3",
@@ -3459,7 +3459,7 @@ dependencies = [
  "cssparser",
  "euclid",
  "http",
- "indexmap 2.2.5",
+ "indexmap 2.2.6",
  "keyboard-types",
  "selectors",
  "serde",
@@ -3752,7 +3752,7 @@ dependencies = [
  "bitflags 2.5.0",
  "codespan-reporting",
  "hexf-parse",
- "indexmap 2.2.5",
+ "indexmap 2.2.6",
  "log",
  "num-traits",
  "rustc-hash",
@@ -4893,7 +4893,7 @@ dependencies = [
  "http",
  "hyper_serde",
  "image",
- "indexmap 2.2.5",
+ "indexmap 2.2.6",
  "ipc-channel",
  "itertools 0.12.1",
  "jstraceable_derive",
@@ -6309,7 +6309,7 @@ version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a8534fd7f78b5405e860340ad6575217ce99f38d4d5c8f2442cb5ecb50090e1"
 dependencies = [
- "indexmap 2.2.5",
+ "indexmap 2.2.6",
  "serde",
  "serde_spanned",
  "toml_datetime",
@@ -7007,7 +7007,7 @@ dependencies = [
  "js-sys",
  "khronos-egl",
  "libc",
- "libloading 0.7.4",
+ "libloading 0.8.3",
  "log",
  "metal 0.27.0",
  "naga",
