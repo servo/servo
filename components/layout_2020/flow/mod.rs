@@ -763,11 +763,9 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         (computed_min_block_size.is_definitely_zero() || computed_min_block_size.is_auto());
 
     let block_size = containing_block_for_children.block_size.auto_is(|| {
-        content_block_size
-            .clamp_between_extremums(
-                min_box_size.block.into(),
-                max_box_size.block.map(Into::into),
-            )
+        content_block_size;
+        Length::from(content_block_size)
+            .clamp_between_extremums(min_box_size.block, max_box_size.block)
             .into()
     });
 
@@ -1417,7 +1415,7 @@ fn solve_inline_margins_for_in_flow_block_level(
     let justification = Au::zero();
     let inline_margins = match (pbm.margin.inline_start, pbm.margin.inline_end) {
         (AuOrAuto::Auto, AuOrAuto::Auto) => {
-            let start = free_space / 2;
+            let start = Au::zero().max(free_space / 2);
             (start, free_space - start)
         },
         (AuOrAuto::Auto, AuOrAuto::LengthPercentage(end)) => (free_space - end, end),
