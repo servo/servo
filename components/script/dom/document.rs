@@ -2393,10 +2393,8 @@ impl Document {
         // TODO: should this only happen on the first document loaded?
         // https://immersive-web.github.io/webxr/#user-intention
         // https://github.com/immersive-web/navigation/issues/10
-        if pref!(dom.webxr.sessionavailable) {
-            if self.window.is_top_level() {
-                self.window.Navigator().Xr().dispatch_sessionavailable();
-            }
+        if pref!(dom.webxr.sessionavailable) && self.window.is_top_level() {
+            self.window.Navigator().Xr().dispatch_sessionavailable();
         }
 
         // Step 12: completely loaded.

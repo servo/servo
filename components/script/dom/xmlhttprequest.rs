@@ -753,29 +753,29 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                         if let Some(encoding) = encoding {
                             let mime: Mime = ct.into();
                             for param in mime.params() {
-                                if param.0 == mime::CHARSET {
-                                    if !param.1.as_ref().eq_ignore_ascii_case(encoding) {
-                                        let new_params: Vec<(Name, Name)> = mime
-                                            .params()
-                                            .filter(|p| p.0 != mime::CHARSET)
-                                            .map(|p| (p.0, p.1))
-                                            .collect();
+                                if param.0 == mime::CHARSET &&
+                                    !param.1.as_ref().eq_ignore_ascii_case(encoding)
+                                {
+                                    let new_params: Vec<(Name, Name)> = mime
+                                        .params()
+                                        .filter(|p| p.0 != mime::CHARSET)
+                                        .map(|p| (p.0, p.1))
+                                        .collect();
 
-                                        let new_mime = format!(
-                                            "{}/{}; charset={}{}{}",
-                                            mime.type_().as_ref(),
-                                            mime.subtype().as_ref(),
-                                            encoding,
-                                            if new_params.is_empty() { "" } else { "; " },
-                                            new_params
-                                                .iter()
-                                                .map(|p| format!("{}={}", p.0, p.1))
-                                                .collect::<Vec<String>>()
-                                                .join("; ")
-                                        );
-                                        let new_mime: Mime = new_mime.parse().unwrap();
-                                        request.headers.typed_insert(ContentType::from(new_mime))
-                                    }
+                                    let new_mime = format!(
+                                        "{}/{}; charset={}{}{}",
+                                        mime.type_().as_ref(),
+                                        mime.subtype().as_ref(),
+                                        encoding,
+                                        if new_params.is_empty() { "" } else { "; " },
+                                        new_params
+                                            .iter()
+                                            .map(|p| format!("{}={}", p.0, p.1))
+                                            .collect::<Vec<String>>()
+                                            .join("; ")
+                                    );
+                                    let new_mime: Mime = new_mime.parse().unwrap();
+                                    request.headers.typed_insert(ContentType::from(new_mime))
                                 }
                             }
                         }

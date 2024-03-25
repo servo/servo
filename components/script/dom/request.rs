@@ -238,12 +238,12 @@ impl Request {
         }
 
         // Step 21
-        if request.cache_mode == NetTraitsRequestCache::OnlyIfCached {
-            if request.mode != NetTraitsRequestMode::SameOrigin {
-                return Err(Error::Type(
-                    "Cache is 'only-if-cached' and mode is not 'same-origin'".to_string(),
-                ));
-            }
+        if request.cache_mode == NetTraitsRequestCache::OnlyIfCached &&
+            request.mode != NetTraitsRequestMode::SameOrigin
+        {
+            return Err(Error::Type(
+                "Cache is 'only-if-cached' and mode is not 'same-origin'".to_string(),
+            ));
         }
 
         // Step 22
