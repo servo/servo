@@ -872,10 +872,10 @@ impl WebGLRenderingContext {
         }
 
         // See https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.1.6
-        if self.webgl_version() == WebGLVersion::WebGL1 {
-            if data_type != image_info.data_type().unwrap() {
-                return self.webgl_error(InvalidOperation);
-            }
+        if self.webgl_version() == WebGLVersion::WebGL1 &&
+            data_type != image_info.data_type().unwrap()
+        {
+            return self.webgl_error(InvalidOperation);
         }
 
         let settings = self.texture_unpacking_settings.get();

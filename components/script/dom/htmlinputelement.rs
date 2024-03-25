@@ -2684,28 +2684,28 @@ impl Validatable for HTMLInputElement {
         let mut failed_flags = ValidationFlags::empty();
         let value = self.Value();
 
-        if validate_flags.contains(ValidationFlags::VALUE_MISSING) {
-            if self.suffers_from_being_missing(&value) {
-                failed_flags.insert(ValidationFlags::VALUE_MISSING);
-            }
+        if validate_flags.contains(ValidationFlags::VALUE_MISSING) &&
+            self.suffers_from_being_missing(&value)
+        {
+            failed_flags.insert(ValidationFlags::VALUE_MISSING);
         }
 
-        if validate_flags.contains(ValidationFlags::TYPE_MISMATCH) {
-            if self.suffers_from_type_mismatch(&value) {
-                failed_flags.insert(ValidationFlags::TYPE_MISMATCH);
-            }
+        if validate_flags.contains(ValidationFlags::TYPE_MISMATCH) &&
+            self.suffers_from_type_mismatch(&value)
+        {
+            failed_flags.insert(ValidationFlags::TYPE_MISMATCH);
         }
 
-        if validate_flags.contains(ValidationFlags::PATTERN_MISMATCH) {
-            if self.suffers_from_pattern_mismatch(&value) {
-                failed_flags.insert(ValidationFlags::PATTERN_MISMATCH);
-            }
+        if validate_flags.contains(ValidationFlags::PATTERN_MISMATCH) &&
+            self.suffers_from_pattern_mismatch(&value)
+        {
+            failed_flags.insert(ValidationFlags::PATTERN_MISMATCH);
         }
 
-        if validate_flags.contains(ValidationFlags::BAD_INPUT) {
-            if self.suffers_from_bad_input(&value) {
-                failed_flags.insert(ValidationFlags::BAD_INPUT);
-            }
+        if validate_flags.contains(ValidationFlags::BAD_INPUT) &&
+            self.suffers_from_bad_input(&value)
+        {
+            failed_flags.insert(ValidationFlags::BAD_INPUT);
         }
 
         if validate_flags.intersects(ValidationFlags::TOO_LONG | ValidationFlags::TOO_SHORT) {

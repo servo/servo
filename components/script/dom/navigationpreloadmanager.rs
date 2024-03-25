@@ -117,13 +117,11 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
         let mut state = NavigationPreloadState::empty();
 
         // 3.
-        if self.serviceworker_registration.is_active() {
-            if self
-                .serviceworker_registration
+        if self.serviceworker_registration.is_active() &&
+            self.serviceworker_registration
                 .get_navigation_preload_enabled()
-            {
-                state.enabled = true;
-            }
+        {
+            state.enabled = true;
         }
 
         // 4.

@@ -2257,10 +2257,8 @@ impl Window {
         // Step 4 and 5
         let window_proxy = self.window_proxy();
         if let Some(active) = window_proxy.currently_active() {
-            if pipeline_id == active {
-                if doc.is_prompting_or_unloading() {
-                    return;
-                }
+            if pipeline_id == active && doc.is_prompting_or_unloading() {
+                return;
             }
         }
 
