@@ -1534,7 +1534,7 @@ impl PlacementState {
             last_in_flow_margin_collapses_with_parent_end_margin: true,
             start_margin: CollapsedMargin::zero(),
             current_margin: CollapsedMargin::zero(),
-            current_block_direction_position: Length::zero().into(),
+            current_block_direction_position: Au::zero(),
             inflow_baselines: Baselines::default(),
             is_inline_block_context,
         }
