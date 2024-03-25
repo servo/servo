@@ -164,8 +164,6 @@ pub enum EmbedderMsg {
     WebViewFocused(TopLevelBrowsingContextId),
     /// All webviews lost focus for keyboard events.
     WebViewBlurred,
-    /// Notify the embedder of an updated webview painting order.
-    WebViewPaintingOrder(Vec<TopLevelBrowsingContextId>),
     /// Wether or not to unload a document
     AllowUnload(IpcSender<bool>),
     /// Sends an unconsumed key event back to the embedder.
@@ -264,7 +262,6 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::WebViewClosed(..) => write!(f, "WebViewClosed"),
             EmbedderMsg::WebViewFocused(..) => write!(f, "WebViewFocused"),
             EmbedderMsg::WebViewBlurred => write!(f, "WebViewBlurred"),
-            EmbedderMsg::WebViewPaintingOrder(..) => write!(f, "WebViewPaintingOrder"),
             EmbedderMsg::ReportProfile(..) => write!(f, "ReportProfile"),
             EmbedderMsg::MediaSessionEvent(..) => write!(f, "MediaSessionEvent"),
             EmbedderMsg::OnDevtoolsStarted(..) => write!(f, "OnDevtoolsStarted"),

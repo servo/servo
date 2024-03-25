@@ -93,8 +93,6 @@ pub enum ConstellationMsg {
     ReadyToPresent(Vec<WebViewId>),
     /// Gamepad state has changed
     Gamepad(GamepadEvent),
-    /// Notify the embedder of an updated webview painting order.
-    WebViewPaintingOrder(Vec<TopLevelBrowsingContextId>),
 }
 
 impl fmt::Debug for ConstellationMsg {
@@ -142,7 +140,6 @@ impl ConstellationMsg {
             ClearCache => "ClearCache",
             ReadyToPresent(..) => "ReadyToPresent",
             Gamepad(..) => "Gamepad",
-            WebViewPaintingOrder(..) => "WebViewPaintingOrder",
         }
     }
 }

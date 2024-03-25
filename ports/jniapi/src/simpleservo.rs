@@ -831,8 +831,7 @@ impl ServoGlue {
                 EmbedderMsg::HeadParsed |
                 EmbedderMsg::SetFullscreenState(..) |
                 EmbedderMsg::ReportProfile(..) |
-                EmbedderMsg::EventDelivered(..) |
-                EmbedderMsg::WebViewPaintingOrder(..) => {},
+                EmbedderMsg::EventDelivered(..) => {},
             }
         }
 

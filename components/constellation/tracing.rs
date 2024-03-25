@@ -94,7 +94,6 @@ mod from_compositor {
                 Self::IMEDismissed => target!("IMEDismissed"),
                 Self::ReadyToPresent(..) => target!("ReadyToPresent"),
                 Self::Gamepad(..) => target!("Gamepad"),
-                Self::WebViewPaintingOrder(..) => target!("WebViewPaintingOrder"),
             }
         }
     }
@@ -216,7 +215,6 @@ mod from_script {
                 Self::WebViewClosed(..) => target_variant!("WebViewClosed"),
                 Self::WebViewFocused(..) => target_variant!("WebViewFocused"),
                 Self::WebViewBlurred => target_variant!("WebViewBlurred"),
-                Self::WebViewPaintingOrder(..) => target_variant!("WebViewPaintingOrder"),
                 Self::AllowUnload(..) => target_variant!("AllowUnload"),
                 Self::Keyboard(..) => target_variant!("Keyboard"),
                 Self::GetClipboardContents(..) => target_variant!("GetClipboardContents"),

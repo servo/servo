@@ -605,7 +605,6 @@ where
                 EmbedderMsg::WebViewBlurred => {
                     self.focused_webview_id = None;
                 },
-                EmbedderMsg::WebViewPaintingOrder(_webview_ids) => {},
                 EmbedderMsg::Keyboard(key_event) => {
                     self.handle_key_from_servo(webview_id, key_event);
                 },

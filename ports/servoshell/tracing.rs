@@ -151,7 +151,6 @@ mod from_servo {
                 Self::WebViewClosed(..) => target!("WebViewClosed"),
                 Self::WebViewFocused(..) => target!("WebViewFocused"),
                 Self::WebViewBlurred => target!("WebViewBlurred"),
-                Self::WebViewPaintingOrder(..) => target!("WebViewPaintingOrder"),
                 Self::AllowUnload(..) => target!("AllowUnload"),
                 Self::Keyboard(..) => target!("Keyboard"),
                 Self::GetClipboardContents(..) => target!("GetClipboardContents"),

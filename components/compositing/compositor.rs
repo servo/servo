@@ -560,12 +560,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
             CompositorMsg::RemoveWebView(top_level_browsing_context_id) => {
                 self.remove_webview(top_level_browsing_context_id);
-
-                let painting_order = self.webviews.painting_order().map(|(&id, _)| id).collect();
-                let msg = ConstellationMsg::WebViewPaintingOrder(painting_order);
-                if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending event to constellation failed ({:?}).", e);
-                }
             },
 
             CompositorMsg::MoveResizeWebView(webview_id, rect) => {
@@ -1226,14 +1220,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         };
         if painting_order_changed {
             self.update_root_pipeline();
-            self.send_webview_painting_order();
         }
     }
 
     pub fn hide_webview(&mut self, webview_id: WebViewId) {
         if self.webviews.hide(webview_id) {
             self.update_root_pipeline();
-            self.send_webview_painting_order();
         }
     }
 
@@ -1252,15 +1244,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         };
         if painting_order_changed {
             self.update_root_pipeline();
-            self.send_webview_painting_order();
-        }
-    }
-
-    fn send_webview_painting_order(&self) {
-        let painting_order = self.webviews.painting_order().map(|(&id, _)| id).collect();
-        let msg = ConstellationMsg::WebViewPaintingOrder(painting_order);
-        if let Err(e) = self.constellation_chan.send(msg) {
-            warn!("Sending event to constellation failed ({:?}).", e);
         }
     }
 
