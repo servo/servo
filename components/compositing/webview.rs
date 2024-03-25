@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
+use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId, WebViewId};
 use webrender_api::units::DeviceRect;
 
 #[derive(Debug, Default)]
@@ -56,22 +56,34 @@ impl<WebView> WebViewManager<WebView> {
         self.webviews.get_mut(&top_level_browsing_context_id)
     }
 
-    pub fn show(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
-        debug_assert!(self.webviews.contains_key(&top_level_browsing_context_id));
-        if !self.painting_order.contains(&top_level_browsing_context_id) {
-            self.painting_order.push(top_level_browsing_context_id);
+    /// Returns true iff the painting order actually changed.
+    pub fn show(&mut self, webview_id: WebViewId) -> bool {
+        debug_assert!(self.webviews.contains_key(&webview_id));
+        if !self.painting_order.contains(&webview_id) {
+            self.painting_order.push(webview_id);
+            return true;
         }
+        false
     }
 
-    pub fn hide(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
-        debug_assert!(self.webviews.contains_key(&top_level_browsing_context_id));
-        self.painting_order
-            .retain(|b| *b != top_level_browsing_context_id);
+    /// Returns true iff the painting order actually changed.
+    pub fn hide(&mut self, webview_id: WebViewId) -> bool {
+        debug_assert!(self.webviews.contains_key(&webview_id));
+        if self.painting_order.contains(&webview_id) {
+            self.painting_order.retain(|b| *b != webview_id);
+            return true;
+        }
+        false
     }
 
-    pub fn raise_to_top(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
-        self.hide(top_level_browsing_context_id);
-        self.show(top_level_browsing_context_id);
+    /// Returns true iff the painting order actually changed.
+    pub fn raise_to_top(&mut self, webview_id: WebViewId) -> bool {
+        if self.painting_order.last() != Some(&webview_id) {
+            self.hide(webview_id);
+            self.show(webview_id);
+            return true;
+        }
+        false
     }
 
     pub fn painting_order(&self) -> impl Iterator<Item = (&TopLevelBrowsingContextId, &WebView)> {
@@ -129,33 +141,38 @@ mod test {
         assert!(webviews.painting_order.is_empty());
 
         // For webviews not yet visible, both show() and raise_to_top() add the given webview on top.
-        webviews.show(top_level_id(0, 2));
+        assert!(webviews.show(top_level_id(0, 2)));
+        assert!(!webviews.show(top_level_id(0, 2)));
         assert_eq!(webviews.painting_order, vec![top_level_id(0, 2)]);
-        webviews.raise_to_top(top_level_id(0, 1));
+        assert!(webviews.raise_to_top(top_level_id(0, 1)));
+        assert!(!webviews.raise_to_top(top_level_id(0, 1)));
         assert_eq!(
             webviews.painting_order,
             vec![top_level_id(0, 2), top_level_id(0, 1)]
         );
-        webviews.show(top_level_id(0, 3));
+        assert!(webviews.show(top_level_id(0, 3)));
+        assert!(!webviews.show(top_level_id(0, 3)));
         assert_eq!(
             webviews.painting_order,
             vec![top_level_id(0, 2), top_level_id(0, 1), top_level_id(0, 3)]
         );
 
         // For webviews already visible, show() does nothing, while raise_to_top() makes it on top.
-        webviews.show(top_level_id(0, 1));
+        assert!(!webviews.show(top_level_id(0, 1)));
         assert_eq!(
             webviews.painting_order,
             vec![top_level_id(0, 2), top_level_id(0, 1), top_level_id(0, 3)]
         );
-        webviews.raise_to_top(top_level_id(0, 1));
+        assert!(webviews.raise_to_top(top_level_id(0, 1)));
+        assert!(!webviews.raise_to_top(top_level_id(0, 1)));
         assert_eq!(
             webviews.painting_order,
             vec![top_level_id(0, 2), top_level_id(0, 3), top_level_id(0, 1)]
         );
 
         // hide() removes the webview from the painting order, but not the map.
-        webviews.hide(top_level_id(0, 3));
+        assert!(webviews.hide(top_level_id(0, 3)));
+        assert!(!webviews.hide(top_level_id(0, 3)));
         assert_eq!(
             webviews.painting_order,
             vec![top_level_id(0, 2), top_level_id(0, 1)]

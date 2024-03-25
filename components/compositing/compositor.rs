@@ -1225,21 +1225,24 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     pub fn show_webview(&mut self, webview_id: WebViewId) {
-        self.webviews.show(webview_id);
-        self.update_root_pipeline();
-        self.send_webview_painting_order();
+        if self.webviews.show(webview_id) {
+            self.update_root_pipeline();
+            self.send_webview_painting_order();
+        }
     }
 
     pub fn hide_webview(&mut self, webview_id: WebViewId) {
-        self.webviews.hide(webview_id);
-        self.update_root_pipeline();
-        self.send_webview_painting_order();
+        if self.webviews.hide(webview_id) {
+            self.update_root_pipeline();
+            self.send_webview_painting_order();
+        }
     }
 
     pub fn raise_webview_to_top(&mut self, webview_id: WebViewId) {
-        self.webviews.raise_to_top(webview_id);
-        self.update_root_pipeline();
-        self.send_webview_painting_order();
+        if self.webviews.raise_to_top(webview_id) {
+            self.update_root_pipeline();
+            self.send_webview_painting_order();
+        }
     }
 
     fn send_webview_painting_order(&self) {
