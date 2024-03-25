@@ -27,7 +27,7 @@ use ipc_channel::ipc;
 use libc::c_void;
 use log::{debug, error, info, trace, warn};
 use msg::constellation_msg::{
-    PipelineId, PipelineIndex, PipelineNamespaceId, TopLevelBrowsingContextId,
+    PipelineId, PipelineIndex, PipelineNamespaceId, TopLevelBrowsingContextId, WebViewId,
 };
 use net_traits::image::base::Image;
 use net_traits::image_cache::CorsStatus;
@@ -567,41 +567,20 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 }
             },
 
-            CompositorMsg::MoveResizeWebView(top_level_browsing_context_id, rect) => {
-                self.move_resize_webview(top_level_browsing_context_id, rect);
+            CompositorMsg::MoveResizeWebView(webview_id, rect) => {
+                self.move_resize_webview(webview_id, rect);
             },
 
-            CompositorMsg::ShowWebView(top_level_browsing_context_id) => {
-                self.webviews.show(top_level_browsing_context_id);
-                self.update_root_pipeline();
-
-                let painting_order = self.webviews.painting_order().map(|(&id, _)| id).collect();
-                let msg = ConstellationMsg::WebViewPaintingOrder(painting_order);
-                if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending event to constellation failed ({:?}).", e);
-                }
+            CompositorMsg::ShowWebView(webview_id) => {
+                self.show_webview(webview_id);
             },
 
-            CompositorMsg::HideWebView(top_level_browsing_context_id) => {
-                self.webviews.hide(top_level_browsing_context_id);
-                self.update_root_pipeline();
-
-                let painting_order = self.webviews.painting_order().map(|(&id, _)| id).collect();
-                let msg = ConstellationMsg::WebViewPaintingOrder(painting_order);
-                if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending event to constellation failed ({:?}).", e);
-                }
+            CompositorMsg::HideWebView(webview_id) => {
+                self.hide_webview(webview_id);
             },
 
-            CompositorMsg::RaiseWebViewToTop(top_level_browsing_context_id) => {
-                self.webviews.raise_to_top(top_level_browsing_context_id);
-                self.update_root_pipeline();
-
-                let painting_order = self.webviews.painting_order().map(|(&id, _)| id).collect();
-                let msg = ConstellationMsg::WebViewPaintingOrder(painting_order);
-                if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending event to constellation failed ({:?}).", e);
-                }
+            CompositorMsg::RaiseWebViewToTop(webview_id) => {
+                self.raise_webview_to_top(webview_id);
             },
 
             CompositorMsg::TouchEventProcessed(result) => {
@@ -1243,6 +1222,32 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
 
         self.update_root_pipeline();
+    }
+
+    pub fn show_webview(&mut self, webview_id: WebViewId) {
+        self.webviews.show(webview_id);
+        self.update_root_pipeline();
+        self.send_webview_painting_order();
+    }
+
+    pub fn hide_webview(&mut self, webview_id: WebViewId) {
+        self.webviews.hide(webview_id);
+        self.update_root_pipeline();
+        self.send_webview_painting_order();
+    }
+
+    pub fn raise_webview_to_top(&mut self, webview_id: WebViewId) {
+        self.webviews.raise_to_top(webview_id);
+        self.update_root_pipeline();
+        self.send_webview_painting_order();
+    }
+
+    fn send_webview_painting_order(&self) {
+        let painting_order = self.webviews.painting_order().map(|(&id, _)| id).collect();
+        let msg = ConstellationMsg::WebViewPaintingOrder(painting_order);
+        if let Err(e) = self.constellation_chan.send(msg) {
+            warn!("Sending event to constellation failed ({:?}).", e);
+        }
     }
 
     fn send_window_size_message_for_top_level_browser_context(

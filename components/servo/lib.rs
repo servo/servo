@@ -763,24 +763,17 @@ where
                 }
             },
 
-            EmbedderEvent::MoveResizeWebView(top_level_browsing_context_id, rect) => {
-                self.compositor
-                    .move_resize_webview(top_level_browsing_context_id, rect);
+            EmbedderEvent::MoveResizeWebView(webview_id, rect) => {
+                self.compositor.move_resize_webview(webview_id, rect);
             },
-            EmbedderEvent::ShowWebView(top_level_browsing_context_id) => {
-                self.send_to_constellation(ConstellationMsg::ShowWebView(
-                    top_level_browsing_context_id,
-                ));
+            EmbedderEvent::ShowWebView(webview_id) => {
+                self.compositor.show_webview(webview_id);
             },
-            EmbedderEvent::HideWebView(top_level_browsing_context_id) => {
-                self.send_to_constellation(ConstellationMsg::HideWebView(
-                    top_level_browsing_context_id,
-                ));
+            EmbedderEvent::HideWebView(webview_id) => {
+                self.compositor.hide_webview(webview_id);
             },
-            EmbedderEvent::RaiseWebViewToTop(top_level_browsing_context_id) => {
-                self.send_to_constellation(ConstellationMsg::RaiseWebViewToTop(
-                    top_level_browsing_context_id,
-                ));
+            EmbedderEvent::RaiseWebViewToTop(webview_id) => {
+                self.compositor.raise_webview_to_top(webview_id);
             },
             EmbedderEvent::BlurWebView => {
                 self.send_to_constellation(ConstellationMsg::BlurWebView);
