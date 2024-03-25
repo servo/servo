@@ -2868,11 +2868,9 @@ fn filter_from_accept(s: &DOMString) -> Vec<FilterPattern> {
     for p in split_commas(s) {
         if let Some('.') = p.chars().nth(0) {
             filter.push(FilterPattern(p[1..].to_string()));
-        } else {
-            if let Some(exts) = mime_guess::get_mime_extensions_str(p) {
-                for ext in exts {
-                    filter.push(FilterPattern(ext.to_string()));
-                }
+        } else if let Some(exts) = mime_guess::get_mime_extensions_str(p) {
+            for ext in exts {
+                filter.push(FilterPattern(ext.to_string()));
             }
         }
     }

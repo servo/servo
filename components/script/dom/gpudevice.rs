@@ -210,10 +210,8 @@ impl GPUDevice {
                 }
             }
             self.try_remove_scope(s_id);
-        } else {
-            if let Err((err, _)) = result {
-                self.fire_uncaptured_error(err);
-            }
+        } else if let Err((err, _)) = result {
+            self.fire_uncaptured_error(err);
         }
     }
 
