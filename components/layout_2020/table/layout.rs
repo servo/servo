@@ -1423,7 +1423,7 @@ impl<'a> TableLayout<'a> {
         let mut baselines = Baselines::default();
         let mut table_fragments = Vec::new();
 
-        if self.table.size.width == 0 || self.table.size.height == 0 {
+        if self.table.size.width == 0 && self.table.size.height == 0 {
             return IndependentLayout {
                 fragments: table_fragments,
                 content_block_size: self.final_table_height,
@@ -1432,7 +1432,11 @@ impl<'a> TableLayout<'a> {
             };
         }
 
-        let table_and_track_dimensions = TableAndTrackDimensions::new(&self);
+        let fallback_size = LogicalVec2 {
+            block: self.final_table_height,
+            inline: self.assignable_width,
+        };
+        let table_and_track_dimensions = TableAndTrackDimensions::new(&self, &fallback_size);
         self.make_fragments_for_columns_and_column_groups(
             &table_and_track_dimensions,
             &mut table_fragments,
@@ -1791,11 +1795,15 @@ struct TableAndTrackDimensions {
 }
 
 impl TableAndTrackDimensions {
-    fn new(table_layout: &TableLayout) -> Self {
+    fn new(table_layout: &TableLayout, fallback_size: &LogicalVec2<Au>) -> Self {
         let border_spacing = table_layout.table.border_spacing();
 
         let mut column_dimensions = Vec::new();
-        let mut column_offset = border_spacing.inline;
+        let mut column_offset = if table_layout.table.size.width == 0 {
+            fallback_size.inline
+        } else {
+            border_spacing.inline
+        };
         for column_index in 0..table_layout.table.size.width {
             let column_size = table_layout.distributed_column_widths[column_index];
             column_dimensions.push((column_offset, column_offset + column_size));
@@ -1803,7 +1811,11 @@ impl TableAndTrackDimensions {
         }
 
         let mut row_dimensions = Vec::new();
-        let mut row_offset = border_spacing.block;
+        let mut row_offset = if table_layout.table.size.height == 0 {
+            fallback_size.block
+        } else {
+            border_spacing.block
+        };
         for row_index in 0..table_layout.table.size.height {
             let row_size = table_layout.row_sizes[row_index];
             row_dimensions.push((row_offset, row_offset + row_size));
@@ -1811,12 +1823,14 @@ impl TableAndTrackDimensions {
         }
 
         let table_start_corner = LogicalVec2 {
-            inline: column_dimensions[0].0,
-            block: row_dimensions[0].0,
+            inline: column_dimensions.first().map_or_else(Au::zero, |v| v.0),
+            block: row_dimensions.first().map_or_else(Au::zero, |v| v.0),
         };
         let table_size = &LogicalVec2 {
-            inline: column_dimensions[column_dimensions.len() - 1].1,
-            block: row_dimensions[row_dimensions.len() - 1].1,
+            inline: column_dimensions
+                .last()
+                .map_or(fallback_size.inline, |v| v.1),
+            block: row_dimensions.last().map_or(fallback_size.block, |v| v.1),
         } - &table_start_corner;
         let table_cells_rect = LogicalRect {
             start_corner: table_start_corner,
