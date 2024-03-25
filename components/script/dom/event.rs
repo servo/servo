@@ -360,7 +360,7 @@ impl Event {
             }
         }
 
-        return self.status();
+        self.status()
     }
 
     pub fn status(&self) -> EventStatus {

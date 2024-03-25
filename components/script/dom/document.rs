@@ -3605,7 +3605,7 @@ impl Document {
 
     //TODO - default still at no-referrer
     pub fn get_referrer_policy(&self) -> Option<ReferrerPolicy> {
-        return self.referrer_policy.get();
+        self.referrer_policy.get()
     }
 
     pub fn set_target_element(&self, node: Option<&Element>) {

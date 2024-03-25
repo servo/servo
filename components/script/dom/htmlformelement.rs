@@ -871,7 +871,7 @@ impl HTMLFormElement {
                 // TODO: Mail with headers
                 // https://html.spec.whatwg.org/multipage/#submit-mailto-headers
             },
-            _ => return,
+            _ => (),
         }
     }
 

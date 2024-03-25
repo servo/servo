@@ -1090,7 +1090,7 @@ impl GlobalScope {
                 }
             }
         } else {
-            return warn!("start_message_port called on a global not managing any ports.");
+            warn!("start_message_port called on a global not managing any ports.")
         }
     }
 
@@ -1111,7 +1111,7 @@ impl GlobalScope {
                 },
             };
         } else {
-            return warn!("close_message_port called on a global not managing any ports.");
+            warn!("close_message_port called on a global not managing any ports.")
         }
     }
 

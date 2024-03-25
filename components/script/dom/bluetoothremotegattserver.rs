@@ -90,7 +90,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
             ))
             .unwrap();
         // Step 5: return promise.
-        return p;
+        p
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-disconnect
