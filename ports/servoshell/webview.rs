@@ -46,10 +46,6 @@ pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
     /// The order in which the webviews were created.
     creation_order: Vec<WebViewId>,
 
-    /// The order to paint the webviews in.
-    /// Modified by EmbedderMsg::WebViewPaintingOrder.
-    painting_order: Vec<WebViewId>,
-
     /// The webview that is currently focused.
     /// Modified by EmbedderMsg::WebViewFocused and EmbedderMsg::WebViewBlurred.
     focused_webview_id: Option<WebViewId>,
@@ -84,7 +80,6 @@ where
             current_url_string: None,
             webviews: HashMap::default(),
             creation_order: vec![],
-            painting_order: vec![],
             focused_webview_id: None,
             window,
             clipboard: match Clipboard::new() {
@@ -592,7 +587,6 @@ where
                 EmbedderMsg::WebViewClosed(webview_id) => {
                     self.webviews.retain(|&id, _| id != webview_id);
                     self.creation_order.retain(|&id| id != webview_id);
-                    self.painting_order.retain(|&id| id != webview_id);
                     self.focused_webview_id = None;
                     if let Some(&newest_webview_id) = self.creation_order.last() {
                         self.event_queue
@@ -603,20 +597,15 @@ where
                 },
                 EmbedderMsg::WebViewFocused(webview_id) => {
                     self.focused_webview_id = Some(webview_id);
+                    // Show the most recently created webview and hide all others.
+                    // TODO: Stop doing this once we have full multiple webviews support
+                    self.event_queue
+                        .push(EmbedderEvent::ShowWebView(webview_id, true));
                 },
                 EmbedderMsg::WebViewBlurred => {
                     self.focused_webview_id = None;
                 },
-                EmbedderMsg::WebViewPaintingOrder(webview_ids) => {
-                    self.painting_order = webview_ids;
-
-                    if let Some(&newest_webview_id) = self.creation_order.last() {
-                        // Show the most recently created webview and hide all others.
-                        // TODO: Stop doing this once we have full multiple browser support
-                        self.event_queue
-                            .push(EmbedderEvent::ShowWebView(newest_webview_id, true));
-                    }
-                },
+                EmbedderMsg::WebViewPaintingOrder(_webview_ids) => {},
                 EmbedderMsg::Keyboard(key_event) => {
                     self.handle_key_from_servo(webview_id, key_event);
                 },
