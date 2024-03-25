@@ -960,16 +960,6 @@ impl LayoutThread {
         );
         trace!("{:?}", ShowSubtree(root_element.as_node()));
 
-        let initial_viewport = data.window_size.initial_viewport;
-        let device_pixel_ratio = data.window_size.device_pixel_ratio;
-        let old_viewport_size = self.viewport_size;
-        let current_screen_size = Size2D::new(
-            Au::from_f32_px(initial_viewport.width),
-            Au::from_f32_px(initial_viewport.height),
-        );
-
-        let origin = data.origin.clone();
-
         // Calculate the actual viewport as per DEVICE-ADAPT § 6
         // If the entire flow tree is invalid, then it will be reflowed anyhow.
         let document_shared_lock = document.style_shared_lock();
@@ -983,19 +973,7 @@ impl LayoutThread {
         };
 
         let had_used_viewport_units = self.stylist.device().used_viewport_units();
-        let device = Device::new(
-            MediaType::screen(),
-            self.stylist.quirks_mode(),
-            initial_viewport,
-            device_pixel_ratio,
-        );
-        let sheet_origins_affected_by_device_change = self.stylist.set_device(device, &guards);
-
-        self.stylist
-            .force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
-        self.viewport_size = current_screen_size;
-
-        let viewport_size_changed = self.viewport_size != old_viewport_size;
+        let viewport_size_changed = self.handle_viewport_change(data.window_size, &guards);
         if viewport_size_changed && had_used_viewport_units {
             if let Some(mut data) = root_element.mutate_data() {
                 data.hint.insert(RestyleHint::recascade_subtree());
@@ -1090,7 +1068,7 @@ impl LayoutThread {
         let mut layout_context = self.build_layout_context(
             guards.clone(),
             &map,
-            origin,
+            data.origin.clone(),
             data.animation_timeline_value,
             &data.animations,
             data.stylesheets_changed,
@@ -1544,6 +1522,42 @@ impl LayoutThread {
                 TimerMetadataReflowType::Incremental
             },
         })
+    }
+
+    /// Update layout given a new viewport. Returns true if the viewport changed or false if it didn't.
+    fn handle_viewport_change(
+        &mut self,
+        window_size_data: WindowSizeData,
+        guards: &StylesheetGuards,
+    ) -> bool {
+        // If the viewport size and device pixel ratio has not changed, do not make any changes.
+        let au_viewport_size = Size2D::new(
+            Au::from_f32_px(window_size_data.initial_viewport.width),
+            Au::from_f32_px(window_size_data.initial_viewport.height),
+        );
+
+        if self.stylist.device().au_viewport_size() == au_viewport_size &&
+            self.stylist.device().device_pixel_ratio() == window_size_data.device_pixel_ratio
+        {
+            return false;
+        }
+
+        let device = Device::new(
+            MediaType::screen(),
+            self.stylist.quirks_mode(),
+            window_size_data.initial_viewport,
+            window_size_data.device_pixel_ratio,
+        );
+
+        // Preserve any previously computed root font size.
+        device.set_root_font_size(self.stylist.device().root_font_size());
+
+        let sheet_origins_affected_by_device_change = self.stylist.set_device(device, guards);
+        self.stylist
+            .force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
+
+        self.viewport_size = au_viewport_size;
+        true
     }
 }
 
