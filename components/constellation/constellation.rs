@@ -1491,8 +1491,6 @@ where
                 }
                 self.compositor_proxy
                     .send(CompositorMsg::ShowWebView(top_level_browsing_context_id));
-                self.webviews
-                    .mark_webview_shown(top_level_browsing_context_id);
             },
             FromCompositorMsg::HideWebView(top_level_browsing_context_id) => {
                 if self.webviews.get(top_level_browsing_context_id).is_none() {
@@ -1503,8 +1501,6 @@ where
                 }
                 self.compositor_proxy
                     .send(CompositorMsg::HideWebView(top_level_browsing_context_id));
-                self.webviews
-                    .mark_webview_not_shown(top_level_browsing_context_id);
             },
             FromCompositorMsg::RaiseWebViewToTop(top_level_browsing_context_id) => {
                 if self.webviews.get(top_level_browsing_context_id).is_none() {
@@ -1516,8 +1512,6 @@ where
                 self.compositor_proxy.send(CompositorMsg::RaiseWebViewToTop(
                     top_level_browsing_context_id,
                 ));
-                self.webviews
-                    .mark_webview_shown(top_level_browsing_context_id);
             },
             FromCompositorMsg::FocusWebView(top_level_browsing_context_id) => {
                 if self.webviews.get(top_level_browsing_context_id).is_none() {

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use msg::constellation_msg::TopLevelBrowsingContextId;
 
@@ -17,16 +17,6 @@ pub struct WebViewManager<WebView> {
 
     /// Whether the latest webview in focus order is currently focused.
     is_focused: bool,
-
-    /// Webviews that are being shown by the compositor, regardless of whether they have been marked as invisible due to
-    /// external factors. This set reflects the [compositing_traits::ConstellationMsg::ShowWebView] and
-    /// [compositing_traits::ConstellationMsg::HideWebView] messages.
-    shown_webviews: HashSet<TopLevelBrowsingContextId>,
-
-    /// Webviews that have been marked as invisible due to external factors, regardless of whether they are being shown
-    /// by the compositor. This set reflects the [compositing_traits::ConstellationMsg::MarkWebViewInvisible] and
-    /// [compositing_traits::ConstellationMsg::UnmarkWebViewInvisible] messages.
-    invisible_webviews: HashSet<TopLevelBrowsingContextId>,
 }
 
 impl<WebView> Default for WebViewManager<WebView> {
@@ -35,8 +25,6 @@ impl<WebView> Default for WebViewManager<WebView> {
             webviews: HashMap::default(),
             focus_order: Vec::default(),
             is_focused: false,
-            shown_webviews: HashSet::default(),
-            invisible_webviews: HashSet::default(),
         }
     }
 }
@@ -104,49 +92,6 @@ impl<WebView> WebViewManager<WebView> {
 
     pub fn unfocus(&mut self) {
         self.is_focused = false;
-    }
-
-    pub fn mark_webview_shown(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
-        debug_assert!(self.webviews.contains_key(&top_level_browsing_context_id));
-        self.shown_webviews.insert(top_level_browsing_context_id);
-    }
-
-    pub fn mark_webview_not_shown(
-        &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-    ) {
-        debug_assert!(self.webviews.contains_key(&top_level_browsing_context_id));
-        self.shown_webviews.remove(&top_level_browsing_context_id);
-    }
-
-    pub fn mark_webview_invisible(
-        &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-    ) {
-        debug_assert!(self.webviews.contains_key(&top_level_browsing_context_id));
-        self.invisible_webviews
-            .insert(top_level_browsing_context_id);
-    }
-
-    pub fn mark_webview_not_invisible(
-        &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-    ) {
-        debug_assert!(self.webviews.contains_key(&top_level_browsing_context_id));
-        self.invisible_webviews
-            .remove(&top_level_browsing_context_id);
-    }
-
-    /// Returns true iff the webview is marked as shown and not marked as invisible.
-    pub fn is_effectively_visible(
-        &self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-    ) -> bool {
-        debug_assert!(self.webviews.contains_key(&top_level_browsing_context_id));
-        self.shown_webviews.contains(&top_level_browsing_context_id) &&
-            !self
-                .invisible_webviews
-                .contains(&top_level_browsing_context_id)
     }
 }
 
@@ -239,28 +184,6 @@ mod test {
             vec![top_level_id(0, 2), top_level_id(0, 3), top_level_id(0, 1)]
         );
         assert_eq!(webviews.is_focused, true);
-
-        // is_effectively_visible() checks that the given webview is visible if it's shown.
-        webviews.mark_webview_shown(top_level_id(0, 1));
-        webviews.mark_webview_shown(top_level_id(0, 3));
-        assert_eq!(webviews.is_effectively_visible(top_level_id(0, 1)), true);
-        assert_eq!(webviews.is_effectively_visible(top_level_id(0, 2)), false);
-        assert_eq!(webviews.is_effectively_visible(top_level_id(0, 3)), true);
-
-        // is_effectively_visible() checks that the given webview is not visible if it's invisible.
-        webviews.mark_webview_invisible(top_level_id(0, 1));
-        webviews.mark_webview_invisible(top_level_id(0, 3));
-        assert_eq!(webviews.is_effectively_visible(top_level_id(0, 1)), false);
-        assert_eq!(webviews.is_effectively_visible(top_level_id(0, 2)), false);
-        assert_eq!(webviews.is_effectively_visible(top_level_id(0, 3)), false);
-
-        // mark_webview_invisible() does not destroy or prevent changes to webview visibility state.
-        webviews.mark_webview_not_shown(top_level_id(0, 1));
-        webviews.mark_webview_not_invisible(top_level_id(0, 1));
-        webviews.mark_webview_not_invisible(top_level_id(0, 3));
-        assert_eq!(webviews.is_effectively_visible(top_level_id(0, 1)), false);
-        assert_eq!(webviews.is_effectively_visible(top_level_id(0, 2)), false);
-        assert_eq!(webviews.is_effectively_visible(top_level_id(0, 3)), true);
 
         // remove() clears the “is focused” flag iff the given webview was focused.
         webviews.remove(top_level_id(0, 2));
