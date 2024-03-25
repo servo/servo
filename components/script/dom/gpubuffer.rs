@@ -301,10 +301,11 @@ impl GPUBufferMethods for GPUBuffer {
         } else {
             return Err(Error::Operation);
         };
-        let mut valid = match self.state.get() {
-            GPUBufferState::Mapped | GPUBufferState::MappedAtCreation => true,
-            _ => false,
-        };
+        let mut valid = matches!(
+            self.state.get(),
+            GPUBufferState::Mapped | GPUBufferState::MappedAtCreation
+        );
+
         valid &= offset % RANGE_OFFSET_ALIGN_MASK == 0 &&
             range_size % RANGE_SIZE_ALIGN_MASK == 0 &&
             offset >= m_info.mapping_range.start &&

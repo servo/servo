@@ -493,12 +493,10 @@ fn is_method(m: &ByteString) -> bool {
 
 // https://fetch.spec.whatwg.org/#forbidden-method
 fn is_forbidden_method(m: &ByteString) -> bool {
-    match m.to_lower().as_str() {
-        Some("connect") => true,
-        Some("trace") => true,
-        Some("track") => true,
-        _ => false,
-    }
+    matches!(
+        m.to_lower().as_str(),
+        Some("connect") | Some("trace") | Some("track")
+    )
 }
 
 // https://fetch.spec.whatwg.org/#cors-safelisted-method

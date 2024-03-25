@@ -66,10 +66,10 @@ fn validate_params(pname: u32, value: WebGLSamplerValue) -> bool {
             };
             allowed_values.contains(&value)
         },
-        WebGLSamplerValue::Float(_) => match pname {
-            constants::TEXTURE_MIN_LOD | constants::TEXTURE_MAX_LOD => true,
-            _ => false,
-        },
+        WebGLSamplerValue::Float(_) => matches!(
+            pname,
+            constants::TEXTURE_MIN_LOD | constants::TEXTURE_MAX_LOD
+        ),
     }
 }
 

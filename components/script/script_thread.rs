@@ -345,10 +345,7 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
     }
 
     fn is_wake_up(&self) -> bool {
-        match self {
-            MainThreadScriptMsg::WakeUp => true,
-            _ => false,
-        }
+        matches!(self, MainThreadScriptMsg::WakeUp)
     }
 }
 
