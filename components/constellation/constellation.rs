@@ -1522,9 +1522,6 @@ where
                     Some(top_level_browsing_context_id),
                     EmbedderMsg::WebViewFocused(top_level_browsing_context_id),
                 ));
-                if !cfg!(feature = "multiview") {
-                    self.update_webview_in_compositor(top_level_browsing_context_id);
-                }
             },
             FromCompositorMsg::BlurWebView => {
                 self.webviews.unfocus();

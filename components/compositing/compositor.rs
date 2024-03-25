@@ -1159,20 +1159,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             );
         }
 
-        if !cfg!(feature = "multiview") {
-            let webview_ids = self
-                .webviews
-                .painting_order()
-                .map(|(&id, _)| id)
-                .collect::<Vec<_>>();
-            for webview_id in webview_ids {
-                if webview_id != top_level_browsing_context_id {
-                    self.webviews.hide(webview_id);
-                }
-            }
-            self.webviews.raise_to_top(top_level_browsing_context_id);
-        }
-
         self.update_root_pipeline();
         self.update_pipeline_details_tree(&frame_tree, None);
         self.reset_scroll_tree_for_unattached_pipelines(&frame_tree);
