@@ -288,20 +288,17 @@ pub fn get_descriptor_permission_state(
     // and let the user decide to grant the permission or not.
     let state = if allowed_in_nonsecure_contexts(&permission_name) {
         PermissionState::Prompt
+    } else if pref!(dom.permissions.testing.allowed_in_nonsecure_contexts) {
+        PermissionState::Granted
     } else {
-        if pref!(dom.permissions.testing.allowed_in_nonsecure_contexts) {
-            PermissionState::Granted
-        } else {
-            globalscope
-                .permission_state_invocation_results()
-                .borrow_mut()
-                .remove(&permission_name.to_string());
-
-            prompt_user_from_embedder(
-                PermissionPrompt::Insecure(embedder_traits::PermissionName::from(permission_name)),
-                &globalscope,
-            )
-        }
+        globalscope
+            .permission_state_invocation_results()
+            .borrow_mut()
+            .remove(&permission_name.to_string());
+        prompt_user_from_embedder(
+            PermissionPrompt::Insecure(embedder_traits::PermissionName::from(permission_name)),
+            &globalscope,
+        )
     };
 
     // Step 3.

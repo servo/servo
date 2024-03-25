@@ -114,7 +114,7 @@ impl NamedNodeMapMethods for NamedNodeMap {
                 continue;
             }
 
-            if !names.iter().any(|name| &*name == s) {
+            if !names.iter().any(|name| name == s) {
                 names.push(DOMString::from(s));
             }
         }
