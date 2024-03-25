@@ -164,7 +164,7 @@ impl GPUDevice {
             )),
             global,
         );
-        queue.set_device(&*device);
+        queue.set_device(&device);
         device
     }
 }
@@ -418,7 +418,7 @@ impl GPUDeviceMethods for GPUDevice {
             &self.global(),
             self.channel.clone(),
             buffer,
-            &self,
+            self,
             state,
             descriptor.size,
             map_info,
@@ -653,7 +653,7 @@ impl GPUDeviceMethods for GPUDevice {
             &self.global(),
             bind_group,
             self.device,
-            &*descriptor.layout,
+            &descriptor.layout,
             descriptor.parent.label.clone().unwrap_or_default(),
         )
     }
@@ -733,7 +733,7 @@ impl GPUDeviceMethods for GPUDevice {
             compute_pipeline,
             descriptor.parent.parent.label.clone().unwrap_or_default(),
             bgls,
-            &self,
+            self,
         )
     }
 
@@ -776,7 +776,7 @@ impl GPUDeviceMethods for GPUDevice {
         GPUCommandEncoder::new(
             &self.global(),
             self.channel.clone(),
-            &self,
+            self,
             encoder,
             descriptor.parent.label.clone().unwrap_or_default(),
         )
@@ -836,7 +836,7 @@ impl GPUDeviceMethods for GPUDevice {
         GPUTexture::new(
             &self.global(),
             texture,
-            &self,
+            self,
             self.channel.clone(),
             size,
             descriptor.mipLevelCount,
@@ -1047,7 +1047,7 @@ impl GPUDeviceMethods for GPUDevice {
             render_pipeline,
             descriptor.parent.parent.label.clone().unwrap_or_default(),
             bgls,
-            &self,
+            self,
         )
     }
 
@@ -1095,7 +1095,7 @@ impl GPUDeviceMethods for GPUDevice {
         GPURenderBundleEncoder::new(
             &self.global(),
             render_bundle_encoder,
-            &self,
+            self,
             self.channel.clone(),
             descriptor.parent.parent.label.clone().unwrap_or_default(),
         )

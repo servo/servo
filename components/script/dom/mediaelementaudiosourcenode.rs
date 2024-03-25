@@ -34,7 +34,7 @@ impl MediaElementAudioSourceNode {
     ) -> Fallible<MediaElementAudioSourceNode> {
         let node = AudioNode::new_inherited(
             AudioNodeInit::MediaElementSourceNode,
-            &*context.base(),
+            &context.base(),
             Default::default(),
             0,
             1,
@@ -78,7 +78,7 @@ impl MediaElementAudioSourceNode {
         context: &AudioContext,
         options: &MediaElementAudioSourceOptions,
     ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
-        MediaElementAudioSourceNode::new_with_proto(window, proto, context, &*options.mediaElement)
+        MediaElementAudioSourceNode::new_with_proto(window, proto, context, &options.mediaElement)
     }
 }
 

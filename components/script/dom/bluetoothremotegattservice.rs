@@ -157,14 +157,14 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTService {
             BluetoothResponse::GetCharacteristics(characteristics_vec, single) => {
                 if single {
                     promise.resolve_native(
-                        &device.get_or_create_characteristic(&characteristics_vec[0], &self),
+                        &device.get_or_create_characteristic(&characteristics_vec[0], self),
                     );
                     return;
                 }
                 let mut characteristics = vec![];
                 for characteristic in characteristics_vec {
                     let bt_characteristic =
-                        device.get_or_create_characteristic(&characteristic, &self);
+                        device.get_or_create_characteristic(&characteristic, self);
                     characteristics.push(bt_characteristic);
                 }
                 promise.resolve_native(&characteristics);

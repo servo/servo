@@ -146,7 +146,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         GPUComputePassEncoder::new(
             &self.global(),
             self.channel.clone(),
-            &self,
+            self,
             compute_pass,
             descriptor.parent.label.clone().unwrap_or_default(),
         )
@@ -245,7 +245,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             &self.global(),
             self.channel.clone(),
             render_pass,
-            &self,
+            self,
             descriptor.parent.label.clone().unwrap_or_default(),
         )
     }

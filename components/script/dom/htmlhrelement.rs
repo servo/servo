@@ -97,10 +97,10 @@ impl VirtualMethods for HTMLHRElement {
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
-        match name {
-            &local_name!("align") => AttrValue::from_dimension(value.into()),
-            &local_name!("color") => AttrValue::from_legacy_color(value.into()),
-            &local_name!("width") => AttrValue::from_dimension(value.into()),
+        match *name {
+            local_name!("align") => AttrValue::from_dimension(value.into()),
+            local_name!("color") => AttrValue::from_legacy_color(value.into()),
+            local_name!("width") => AttrValue::from_dimension(value.into()),
             _ => self
                 .super_type()
                 .unwrap()

@@ -312,11 +312,10 @@ pub enum ConstellationControlMsg {
     GetTitle(PipelineId),
     /// Notifies script thread of a change to one of its document's activity
     SetDocumentActivity(PipelineId, DocumentActivity),
-    /// Notifies script thread whether frame is visible
-    ChangeFrameVisibilityStatus(PipelineId, bool),
-    /// Notifies script thread that frame visibility change is complete
-    /// PipelineId is for the parent, BrowsingContextId is for the nested browsing context
-    NotifyVisibilityChange(PipelineId, BrowsingContextId, bool),
+    /// Set whether to use less resources by running timers at a heavily limited rate.
+    SetThrottled(PipelineId, bool),
+    /// Notify the containing iframe (in PipelineId) that the nested browsing context (BrowsingContextId) is throttled.
+    SetThrottledInContainingIframe(PipelineId, BrowsingContextId, bool),
     /// Notifies script thread that a url should be loaded in this iframe.
     /// PipelineId is for the parent, BrowsingContextId is for the nested browsing context
     NavigateIframe(
@@ -416,8 +415,8 @@ impl fmt::Debug for ConstellationControlMsg {
             SetScrollState(..) => "SetScrollState",
             GetTitle(..) => "GetTitle",
             SetDocumentActivity(..) => "SetDocumentActivity",
-            ChangeFrameVisibilityStatus(..) => "ChangeFrameVisibilityStatus",
-            NotifyVisibilityChange(..) => "NotifyVisibilityChange",
+            SetThrottled(..) => "SetThrottled",
+            SetThrottledInContainingIframe(..) => "SetThrottledInContainingIframe",
             NavigateIframe(..) => "NavigateIframe",
             PostMessage { .. } => "PostMessage",
             UpdatePipelineId(..) => "UpdatePipelineId",
@@ -1227,12 +1226,12 @@ impl WebrenderIpcSender {
     }
 
     /// Create a new image key. Blocks until the key is available.
-    pub fn generate_image_key(&self) -> Result<ImageKey, ()> {
+    pub fn generate_image_key(&self) -> Option<ImageKey> {
         let (sender, receiver) = ipc::channel().unwrap();
         self.0
             .send(ScriptToCompositorMsg::GenerateImageKey(sender))
-            .map_err(|_| ())?;
-        receiver.recv().map_err(|_| ())
+            .ok()?;
+        receiver.recv().ok()
     }
 
     /// Perform a resource update operation.

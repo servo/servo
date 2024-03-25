@@ -49,7 +49,7 @@ impl BroadcastChannel {
             global,
             proto,
         );
-        global.track_broadcast_channel(&*channel);
+        global.track_broadcast_channel(&channel);
         channel
     }
 

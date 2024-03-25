@@ -259,7 +259,7 @@ impl DocumentOrShadowRoot {
             self, to_unregister, id
         );
         let mut id_map = id_map.borrow_mut();
-        let is_empty = match id_map.get_mut(&id) {
+        let is_empty = match id_map.get_mut(id) {
             None => false,
             Some(elements) => {
                 let position = elements
@@ -271,7 +271,7 @@ impl DocumentOrShadowRoot {
             },
         };
         if is_empty {
-            id_map.remove(&id);
+            id_map.remove(id);
         }
     }
 

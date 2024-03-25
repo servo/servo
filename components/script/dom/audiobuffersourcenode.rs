@@ -58,7 +58,7 @@ impl AudioBufferSourceNode {
         )?;
         let node_id = source_node.node().node_id();
         let playback_rate = AudioParam::new(
-            &window,
+            window,
             context,
             node_id,
             AudioNodeType::AudioBufferSourceNode,
@@ -69,7 +69,7 @@ impl AudioBufferSourceNode {
             f32::MAX,
         );
         let detune = AudioParam::new(
-            &window,
+            window,
             context,
             node_id,
             AudioNodeType::AudioBufferSourceNode,

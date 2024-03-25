@@ -359,7 +359,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     fn SelectedIndex(&self) -> i32 {
         self.list_of_options()
             .enumerate()
-            .filter(|&(_, ref opt_elem)| opt_elem.Selected())
+            .filter(|(_, opt_elem)| opt_elem.Selected())
             .map(|(i, _)| i as i32)
             .next()
             .unwrap_or(-1)

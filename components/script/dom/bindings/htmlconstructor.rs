@@ -145,7 +145,7 @@ unsafe fn html_constructor(
 
     // Step 6
     rooted!(in(*cx) let mut prototype = ptr::null_mut::<JSObject>());
-    get_desired_proto(cx, &call_args, proto_id, creator, prototype.handle_mut())?;
+    get_desired_proto(cx, call_args, proto_id, creator, prototype.handle_mut())?;
 
     let entry = definition.construction_stack.borrow().last().cloned();
     let result = match entry {
@@ -156,12 +156,12 @@ unsafe fn html_constructor(
             // Any prototype used to create these elements will be overwritten before returning
             // from this function, so we don't bother overwriting the defaults here.
             let element = if definition.is_autonomous() {
-                DomRoot::upcast(HTMLElement::new(name.local, None, &*document, None))
+                DomRoot::upcast(HTMLElement::new(name.local, None, &document, None))
             } else {
                 create_native_html_element(
                     name,
                     None,
-                    &*document,
+                    &document,
                     ElementCreator::ScriptCreated,
                     None,
                 )
@@ -176,7 +176,7 @@ unsafe fn html_constructor(
             element.set_custom_element_definition(definition.clone());
 
             // Step 8.5
-            if !check_type(&*element) {
+            if !check_type(&element) {
                 throw_dom_exception(cx, global, Error::InvalidState);
                 return Err(());
             } else {
@@ -193,7 +193,7 @@ unsafe fn html_constructor(
             construction_stack.push(ConstructionStackEntry::AlreadyConstructedMarker);
 
             // Step 13
-            if !check_type(&*element) {
+            if !check_type(&element) {
                 throw_dom_exception(cx, global, Error::InvalidState);
                 return Err(());
             } else {

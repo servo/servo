@@ -806,17 +806,13 @@ where
                 }
             },
 
-            EmbedderEvent::MarkWebViewInvisible(webview_id) => {
-                let msg = ConstellationMsg::MarkWebViewInvisible(webview_id);
+            EmbedderEvent::SetWebViewThrottled(webview_id, throttled) => {
+                let msg = ConstellationMsg::SetWebViewThrottled(webview_id, throttled);
                 if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending MarkWebViewInvisible to constellation failed ({e:?}).");
-                }
-            },
-
-            EmbedderEvent::UnmarkWebViewInvisible(webview_id) => {
-                let msg = ConstellationMsg::UnmarkWebViewInvisible(webview_id);
-                if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending UnmarkWebViewInvisible to constellation failed ({e:?}).");
+                    warn!(
+                        "Sending SetWebViewThrottled to constellation failed ({:?}).",
+                        e
+                    );
                 }
             },
 
@@ -1066,14 +1062,14 @@ impl gfx_traits::WebrenderApi for FontCacheWR {
 struct CanvasWebrenderApi(CompositorProxy);
 
 impl canvas_paint_thread::WebrenderApi for CanvasWebrenderApi {
-    fn generate_key(&self) -> Result<ImageKey, ()> {
+    fn generate_key(&self) -> Option<ImageKey> {
         let (sender, receiver) = unbounded();
         let _ = self
             .0
             .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Canvas(
                 CanvasToCompositorMsg::GenerateKey(sender),
             )));
-        receiver.recv().map_err(|_| ())
+        receiver.recv().ok()
     }
     fn update_images(&self, updates: Vec<canvas_paint_thread::ImageUpdate>) {
         let _ = self

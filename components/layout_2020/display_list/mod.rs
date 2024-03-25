@@ -809,16 +809,13 @@ impl<'a> BuilderForBoxFragment<'a> {
         let border_widths = self
             .fragment
             .border
-            .to_physical(self.fragment.style.writing_mode);
-        let widths = SideOffsets2D::new(
-            border_widths.top.px(),
-            border_widths.right.px(),
-            border_widths.bottom.px(),
-            border_widths.left.px(),
-        );
-        if widths == SideOffsets2D::zero() {
+            .to_physical(self.fragment.style.writing_mode)
+            .to_webrender();
+
+        if border_widths == SideOffsets2D::zero() {
             return;
         }
+
         let common = builder.common_properties(self.border_rect, &self.fragment.style);
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
             top: self.build_border_side(border.border_top_style, border.border_top_color.clone()),
@@ -835,7 +832,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         });
         builder
             .wr()
-            .push_border(&common, self.border_rect, widths, details)
+            .push_border(&common, self.border_rect, border_widths, details)
     }
 
     fn build_outline(&mut self, builder: &mut DisplayListBuilder) {

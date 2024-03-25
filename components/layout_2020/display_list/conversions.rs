@@ -128,14 +128,14 @@ impl ToWebRender for PhysicalRect<Au> {
     }
 }
 
-impl ToWebRender for PhysicalSides<Length> {
+impl ToWebRender for PhysicalSides<Au> {
     type Type = units::LayoutSideOffsets;
     fn to_webrender(&self) -> Self::Type {
         units::LayoutSideOffsets::new(
-            self.top.px(),
-            self.right.px(),
-            self.bottom.px(),
-            self.left.px(),
+            self.top.to_f32_px(),
+            self.right.to_f32_px(),
+            self.bottom.to_f32_px(),
+            self.left.to_f32_px(),
         )
     }
 }

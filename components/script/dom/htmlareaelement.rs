@@ -222,8 +222,8 @@ impl Area {
                     .iter()
                     .enumerate()
                     .map(|(index, point)| match index % 2 {
-                        0 => point + p.x as f32,
-                        _ => point + p.y as f32,
+                        0 => point + p.x,
+                        _ => point + p.y,
                     });
                 Area::Polygon {
                     points: iter.collect::<Vec<_>>(),

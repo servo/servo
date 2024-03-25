@@ -535,14 +535,14 @@ impl Element {
         }
 
         // Steps 4, 5 and 6.
-        let shadow_root = ShadowRoot::new(self, &*self.node.owner_doc());
+        let shadow_root = ShadowRoot::new(self, &self.node.owner_doc());
         self.ensure_rare_data().shadow_root = Some(Dom::from_ref(&*shadow_root));
         shadow_root
             .upcast::<Node>()
             .set_containing_shadow_root(Some(&shadow_root));
 
         if self.is_connected() {
-            self.node.owner_doc().register_shadow_root(&*shadow_root);
+            self.node.owner_doc().register_shadow_root(&shadow_root);
         }
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -1047,22 +1047,22 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
 
     #[allow(unsafe_code)]
     fn id_attribute(self) -> *const Option<Atom> {
-        unsafe { (*self.unsafe_get()).id_attribute.borrow_for_layout() }
+        unsafe { (self.unsafe_get()).id_attribute.borrow_for_layout() }
     }
 
     #[allow(unsafe_code)]
     fn style_attribute(self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>> {
-        unsafe { (*self.unsafe_get()).style_attribute.borrow_for_layout() }
+        unsafe { (self.unsafe_get()).style_attribute.borrow_for_layout() }
     }
 
     #[allow(unsafe_code)]
     fn local_name(self) -> &'dom LocalName {
-        unsafe { &(*self.unsafe_get()).local_name }
+        unsafe { &(self.unsafe_get()).local_name }
     }
 
     #[allow(unsafe_code)]
     fn namespace(self) -> &'dom Namespace {
-        unsafe { &(*self.unsafe_get()).namespace }
+        unsafe { &(self.unsafe_get()).namespace }
     }
 
     fn get_lang_for_layout(self) -> String {
@@ -1091,7 +1091,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     #[inline]
     #[allow(unsafe_code)]
     fn get_state_for_layout(self) -> ElementState {
-        unsafe { (*self.unsafe_get()).state.get() }
+        unsafe { (self.unsafe_get()).state.get() }
     }
 
     #[inline]
@@ -1099,7 +1099,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     fn insert_selector_flags(self, flags: ElementSelectorFlags) {
         debug_assert!(thread_state::get().is_layout());
         unsafe {
-            let f = &(*self.unsafe_get()).selector_flags;
+            let f = &(self.unsafe_get()).selector_flags;
             f.set(f.get() | flags);
         }
     }
@@ -1107,7 +1107,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     #[inline]
     #[allow(unsafe_code)]
     fn has_selector_flags(self, flags: ElementSelectorFlags) -> bool {
-        unsafe { (*self.unsafe_get()).selector_flags.get().contains(flags) }
+        unsafe { (self.unsafe_get()).selector_flags.get().contains(flags) }
     }
 
     #[inline]
@@ -1585,7 +1585,7 @@ impl Element {
             .attrs
             .borrow()
             .iter()
-            .find(|attr| find(&attr))
+            .find(|attr| find(attr))
             .map(|js| DomRoot::from_ref(&**js));
         if let Some(attr) = attr {
             attr.set_value(value, self);
@@ -1625,7 +1625,7 @@ impl Element {
     where
         F: Fn(&Attr) -> bool,
     {
-        let idx = self.attrs.borrow().iter().position(|attr| find(&attr));
+        let idx = self.attrs.borrow().iter().position(|attr| find(attr));
         idx.map(|idx| {
             let attr = DomRoot::from_ref(&*(*self.attrs.borrow())[idx]);
             self.will_mutate_attr(&attr);
@@ -1803,9 +1803,9 @@ impl Element {
                 }
             },
             AdjacentPosition::AfterBegin => {
-                Node::pre_insert(node, &self_node, self_node.GetFirstChild().as_deref()).map(Some)
+                Node::pre_insert(node, self_node, self_node.GetFirstChild().as_deref()).map(Some)
             },
-            AdjacentPosition::BeforeEnd => Node::pre_insert(node, &self_node, None).map(Some),
+            AdjacentPosition::BeforeEnd => Node::pre_insert(node, self_node, None).map(Some),
             AdjacentPosition::AfterEnd => {
                 if let Some(parent) = self_node.GetParentNode() {
                     Node::pre_insert(node, &parent, self_node.GetNextSibling().as_deref()).map(Some)
@@ -2222,7 +2222,7 @@ impl ElementMethods for Element {
             self.attrs.borrow_mut()[position] = Dom::from_ref(attr);
             old_attr.set_owner(None);
             if attr.namespace() == &ns!() {
-                vtable.attribute_mutated(&attr, AttributeMutation::Set(Some(&old_attr.value())));
+                vtable.attribute_mutated(attr, AttributeMutation::Set(Some(&old_attr.value())));
             }
 
             // Step 6.
@@ -3076,7 +3076,7 @@ impl VirtualMethods for Element {
         let doc = document_from_node(self);
 
         if let Some(ref shadow_root) = self.shadow_root() {
-            doc.register_shadow_root(&shadow_root);
+            doc.register_shadow_root(shadow_root);
             let shadow_root = shadow_root.upcast::<Node>();
             shadow_root.set_flag(NodeFlags::IS_CONNECTED, context.tree_connected);
             for node in shadow_root.children() {
@@ -3124,7 +3124,7 @@ impl VirtualMethods for Element {
         let doc = document_from_node(self);
 
         if let Some(ref shadow_root) = self.shadow_root() {
-            doc.unregister_shadow_root(&shadow_root);
+            doc.unregister_shadow_root(shadow_root);
             let shadow_root = shadow_root.upcast::<Node>();
             shadow_root.set_flag(NodeFlags::IS_CONNECTED, false);
             for node in shadow_root.children() {
@@ -3305,7 +3305,7 @@ impl<'a> SelectorsElement for DomRoot<Element> {
             // a string containing commas (separating each language tag in
             // a list) but the pseudo-class instead should be parsing and
             // storing separate <ident> or <string>s for each language tag.
-            NonTSPseudoClass::Lang(ref lang) => extended_filtering(&*self.get_lang(), &*lang),
+            NonTSPseudoClass::Lang(ref lang) => extended_filtering(&self.get_lang(), lang),
 
             NonTSPseudoClass::ReadOnly => !Element::state(self).contains(pseudo_class.state_flag()),
 
@@ -3358,7 +3358,7 @@ impl<'a> SelectorsElement for DomRoot<Element> {
     }
 
     fn has_class(&self, name: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
-        Element::has_class(&**self, &name, case_sensitivity)
+        Element::has_class(self, name, case_sensitivity)
     }
 
     fn is_html_element_in_html_document(&self) -> bool {

@@ -208,16 +208,12 @@ impl Request {
 
         // Step 15
         if let Some(init_referrerpolicy) = init.referrerPolicy.as_ref() {
-            let init_referrer_policy = init_referrerpolicy.clone().into();
+            let init_referrer_policy = (*init_referrerpolicy).into();
             request.referrer_policy = Some(init_referrer_policy);
         }
 
         // Step 16
-        let mode = init
-            .mode
-            .as_ref()
-            .map(|m| m.clone().into())
-            .or(fallback_mode);
+        let mode = init.mode.as_ref().map(|m| (*m).into()).or(fallback_mode);
 
         // Step 17
         if let Some(NetTraitsRequestMode::Navigate) = mode {
@@ -231,13 +227,13 @@ impl Request {
 
         // Step 19
         if let Some(init_credentials) = init.credentials.as_ref() {
-            let credentials = init_credentials.clone().into();
+            let credentials = (*init_credentials).into();
             request.credentials_mode = credentials;
         }
 
         // Step 20
         if let Some(init_cache) = init.cache.as_ref() {
-            let cache = init_cache.clone().into();
+            let cache = (*init_cache).into();
             request.cache_mode = cache;
         }
 
@@ -252,7 +248,7 @@ impl Request {
 
         // Step 22
         if let Some(init_redirect) = init.redirect.as_ref() {
-            let redirect = init_redirect.clone().into();
+            let redirect = (*init_redirect).into();
             request.redirect_mode = redirect;
         }
 
@@ -858,10 +854,10 @@ impl Into<RequestRedirect> for NetTraitsRequestRedirect {
 impl Clone for HeadersInit {
     fn clone(&self) -> HeadersInit {
         match self {
-            &HeadersInit::ByteStringSequenceSequence(ref b) => {
+            HeadersInit::ByteStringSequenceSequence(b) => {
                 HeadersInit::ByteStringSequenceSequence(b.clone())
             },
-            &HeadersInit::ByteStringByteStringRecord(ref m) => {
+            HeadersInit::ByteStringByteStringRecord(m) => {
                 HeadersInit::ByteStringByteStringRecord(m.clone())
             },
         }

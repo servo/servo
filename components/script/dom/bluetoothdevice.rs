@@ -99,7 +99,7 @@ impl BluetoothDevice {
         let (ref service_map_ref, _, _) = self.attribute_instance_map;
         let mut service_map = service_map_ref.borrow_mut();
         if let Some(existing_service) = service_map.get(&service.instance_id) {
-            return DomRoot::from_ref(&existing_service);
+            return DomRoot::from_ref(existing_service);
         }
         let bt_service = BluetoothRemoteGATTService::new(
             &server.global(),
@@ -120,7 +120,7 @@ impl BluetoothDevice {
         let (_, ref characteristic_map_ref, _) = self.attribute_instance_map;
         let mut characteristic_map = characteristic_map_ref.borrow_mut();
         if let Some(existing_characteristic) = characteristic_map.get(&characteristic.instance_id) {
-            return DomRoot::from_ref(&existing_characteristic);
+            return DomRoot::from_ref(existing_characteristic);
         }
         let properties = BluetoothCharacteristicProperties::new(
             &service.global(),
@@ -167,7 +167,7 @@ impl BluetoothDevice {
         let (_, _, ref descriptor_map_ref) = self.attribute_instance_map;
         let mut descriptor_map = descriptor_map_ref.borrow_mut();
         if let Some(existing_descriptor) = descriptor_map.get(&descriptor.instance_id) {
-            return DomRoot::from_ref(&existing_descriptor);
+            return DomRoot::from_ref(existing_descriptor);
         }
         let bt_descriptor = BluetoothRemoteGATTDescriptor::new(
             &characteristic.global(),

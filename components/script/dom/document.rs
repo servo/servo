@@ -9,7 +9,6 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::default::Default;
 use std::mem;
-use std::ptr::NonNull;
 use std::rc::Rc;
 use std::slice::from_ref;
 use std::time::{Duration, Instant};
@@ -26,7 +25,6 @@ use euclid::default::{Point2D, Rect, Size2D};
 use html5ever::{local_name, namespace_url, ns, LocalName, Namespace, QualName};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use keyboard_types::{Code, Key, KeyState};
 use lazy_static::lazy_static;
@@ -80,7 +78,7 @@ use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEvent_Binding::BeforeUnloadEventMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
-    DocumentMethods, DocumentReadyState,
+    DocumentMethods, DocumentReadyState, NamedPropertyValue,
 };
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElement_Binding::HTMLIFrameElementMethods;
@@ -176,7 +174,7 @@ use crate::dom::window::{ReflowReason, Window};
 use crate::dom::windowproxy::WindowProxy;
 use crate::fetch::FetchCanceller;
 use crate::realms::{AlreadyInRealm, InRealm};
-use crate::script_runtime::{CommonScriptMsg, JSContext, ScriptThreadEventCategory};
+use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
 use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::TaskBox;
@@ -636,7 +634,7 @@ impl Document {
 
     #[inline]
     pub fn window(&self) -> &Window {
-        &*self.window
+        &self.window
     }
 
     #[inline]
@@ -715,7 +713,7 @@ impl Document {
                     event.set_trusted(true);
                     // FIXME(nox): Why are errors silenced here?
                     let _ = window.dispatch_event_with_target_override(
-                        &event,
+                        event,
                     );
                 }),
                 self.window.upcast(),
@@ -1762,8 +1760,8 @@ impl Document {
         let body = self.GetBody();
 
         let target = match (&focused, &body) {
-            (&Some(ref focused), _) => focused.upcast(),
-            (&None, &Some(ref body)) => body.upcast(),
+            (Some(focused), _) => focused.upcast(),
+            (&None, Some(body)) => body.upcast(),
             (&None, &None) => self.window.upcast(),
         };
 
@@ -1920,7 +1918,7 @@ impl Document {
             .and_then(DomRoot::downcast::<HTMLBodyElement>)
         {
             let body = body.upcast::<Element>();
-            let value = body.parse_attribute(&ns!(), &local_name, value);
+            let value = body.parse_attribute(&ns!(), local_name, value);
             body.set_attribute(local_name, value);
         }
     }
@@ -1966,7 +1964,7 @@ impl Document {
 
         // If we are running 'fake' animation frames, we unconditionally
         // set up a one-shot timer for script to execute the rAF callbacks.
-        if self.is_faking_animation_frames() && self.window().visible() {
+        if self.is_faking_animation_frames() && !self.window().throttled() {
             warn!("Scheduling fake animation frame. Animation frames tick too fast.");
             let callback = FakeRequestAnimationFrameCallback {
                 document: Trusted::new(self),
@@ -2162,7 +2160,7 @@ impl Document {
         event.set_trusted(true);
         let event_target = self.window.upcast::<EventTarget>();
         let has_listeners = event_target.has_listeners_for(&atom!("beforeunload"));
-        self.window.dispatch_event_with_target_override(&event);
+        self.window.dispatch_event_with_target_override(event);
         // TODO: Step 6, decrease the event loop's termination nesting level by 1.
         // Step 7
         if has_listeners {
@@ -2218,13 +2216,13 @@ impl Document {
             );
             let event = event.upcast::<Event>();
             event.set_trusted(true);
-            let _ = self.window.dispatch_event_with_target_override(&event);
+            let _ = self.window.dispatch_event_with_target_override(event);
             // TODO Step 6, document visibility steps.
         }
         // Step 7
         if !self.fired_unload.get() {
             let event = Event::new(
-                &self.window.upcast(),
+                self.window.upcast(),
                 atom!("unload"),
                 EventBubbles::Bubbles,
                 EventCancelable::Cancelable,
@@ -2373,7 +2371,7 @@ impl Document {
 
                         // FIXME(nox): Why are errors silenced here?
                         let _ = window.dispatch_event_with_target_override(
-                            &event,
+                            event,
                         );
                     }),
                     self.window.upcast(),
@@ -2959,12 +2957,12 @@ impl<'dom> LayoutDocumentHelpers<'dom> for LayoutDom<'dom, Document> {
 
     #[inline]
     unsafe fn needs_paint_from_layout(self) {
-        (*self.unsafe_get()).needs_paint.set(true)
+        (self.unsafe_get()).needs_paint.set(true)
     }
 
     #[inline]
     unsafe fn will_paint(self) {
-        (*self.unsafe_get()).needs_paint.set(false)
+        (self.unsafe_get()).needs_paint.set(false)
     }
 
     #[inline]
@@ -3306,7 +3304,7 @@ impl Document {
         proto: Option<HandleObject>,
     ) -> Fallible<DomRoot<Document>> {
         let doc = window.Document();
-        let docloader = DocumentLoader::new(&*doc.loader());
+        let docloader = DocumentLoader::new(&doc.loader());
         Ok(Document::new_with_proto(
             window,
             proto,
@@ -3441,7 +3439,7 @@ impl Document {
         maybe_node
             .iter()
             .flat_map(|node| node.traverse_preorder(ShadowIncluding::No))
-            .filter(|node| callback(&node))
+            .filter(|node| callback(node))
             .count() as u32
     }
 
@@ -3455,7 +3453,7 @@ impl Document {
         maybe_node
             .iter()
             .flat_map(|node| node.traverse_preorder(ShadowIncluding::No))
-            .filter(|node| callback(&node))
+            .filter(|node| callback(node))
             .nth(index as usize)
             .map(|n| DomRoot::from_ref(&*n))
     }
@@ -3538,7 +3536,7 @@ impl Document {
     pub fn get_element_by_id(&self, id: &Atom) -> Option<DomRoot<Element>> {
         self.id_map
             .borrow()
-            .get(&id)
+            .get(id)
             .map(|ref elements| DomRoot::from_ref(&*(*elements)[0]))
     }
 
@@ -4095,8 +4093,7 @@ impl DocumentMethods for Document {
         };
 
         // Step 5
-        let host = match get_registrable_domain_suffix_of_or_is_equal_to(&*value, effective_domain)
-        {
+        let host = match get_registrable_domain_suffix_of_or_is_equal_to(&value, effective_domain) {
             None => return Err(Error::Security),
             Some(host) => host,
         };
@@ -4292,7 +4289,7 @@ impl DocumentMethods for Document {
         let value = AttrValue::String("".to_owned());
 
         Ok(Attr::new(
-            &self,
+            self,
             name.clone(),
             value,
             name,
@@ -4312,7 +4309,7 @@ impl DocumentMethods for Document {
         let value = AttrValue::String("".to_owned());
         let qualified_name = LocalName::from(qualified_name);
         Ok(Attr::new(
-            &self,
+            self,
             local_name,
             value,
             qualified_name,
@@ -4425,7 +4422,7 @@ impl DocumentMethods for Document {
             // FIXME(#25136): devicemotionevent, deviceorientationevent
             // FIXME(#7529): dragevent
             "events" | "event" | "htmlevents" | "svgevents" => {
-                Ok(Event::new_uninitialized(&self.window.upcast()))
+                Ok(Event::new_uninitialized(self.window.upcast()))
             },
             "focusevent" => Ok(DomRoot::upcast(FocusEvent::new_uninitialized(&self.window))),
             "hashchangeevent" => Ok(DomRoot::upcast(HashChangeEvent::new_uninitialized(
@@ -4640,7 +4637,7 @@ impl DocumentMethods for Document {
 
         match (self.GetDocumentElement(), &old_body) {
             // Step 3.
-            (Some(ref root), &Some(ref child)) => {
+            (Some(ref root), Some(child)) => {
                 let root = root.upcast::<Node>();
                 root.ReplaceChild(new_body.upcast(), child.upcast())
                     .unwrap();
@@ -4861,8 +4858,8 @@ impl DocumentMethods for Document {
     }
 
     #[allow(unsafe_code)]
-    // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
-    fn NamedGetter(&self, _cx: JSContext, name: DOMString) -> Option<NonNull<JSObject>> {
+    /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter>
+    fn NamedGetter(&self, name: DOMString) -> Option<NamedPropertyValue> {
         if name.is_empty() {
             return None;
         }
@@ -4887,19 +4884,11 @@ impl DocumentMethods for Document {
                 .downcast::<HTMLIFrameElement>()
                 .and_then(|iframe| iframe.GetContentWindow())
             {
-                unsafe {
-                    return Some(NonNull::new_unchecked(
-                        nested_window_proxy.reflector().get_jsobject().get(),
-                    ));
-                }
+                return Some(NamedPropertyValue::WindowProxy(nested_window_proxy));
             }
 
             // Step 3.
-            unsafe {
-                return Some(NonNull::new_unchecked(
-                    first.reflector().get_jsobject().get(),
-                ));
-            }
+            return Some(NamedPropertyValue::Element(DomRoot::from_ref(first)));
         }
 
         // Step 4.
@@ -4934,11 +4923,7 @@ impl DocumentMethods for Document {
             self.upcast(),
             Box::new(DocumentNamedGetter { name }),
         );
-        unsafe {
-            Some(NonNull::new_unchecked(
-                collection.reflector().get_jsobject().get(),
-            ))
-        }
+        Some(NamedPropertyValue::HTMLCollection(collection))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
@@ -4946,7 +4931,7 @@ impl DocumentMethods for Document {
         let mut names_with_first_named_element_map: HashMap<&Atom, &Element> = HashMap::new();
 
         let name_map = self.name_map.borrow();
-        for (name, elements) in &(*name_map).0 {
+        for (name, elements) in &(name_map).0 {
             if name.is_empty() {
                 continue;
             }
@@ -4958,7 +4943,7 @@ impl DocumentMethods for Document {
             }
         }
         let id_map = self.id_map.borrow();
-        for (id, elements) in &(*id_map).0 {
+        for (id, elements) in &(id_map).0 {
             if id.is_empty() {
                 continue;
             }
@@ -4986,7 +4971,7 @@ impl DocumentMethods for Document {
             if a.1 == b.1 {
                 // This can happen if an img has an id different from its name,
                 // spec does not say which string to put first.
-                a.0.cmp(&b.0)
+                a.0.cmp(b.0)
             } else if a.1.upcast::<Node>().is_before(b.1.upcast::<Node>()) {
                 Ordering::Less
             } else {

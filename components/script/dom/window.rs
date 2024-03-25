@@ -12,7 +12,7 @@ use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
-use std::{cmp, env, mem};
+use std::{cmp, env};
 
 use app_units::Au;
 use backtrace::Backtrace;
@@ -349,7 +349,7 @@ pub struct Window {
     #[no_trace]
     player_context: WindowGLContext,
 
-    visible: Cell<bool>,
+    throttled: Cell<bool>,
 
     /// A shared marker for the validity of any cached layout values. A value of true
     /// indicates that any such values remain valid; any new layout that invalidates
@@ -404,9 +404,7 @@ impl Window {
     pub fn ignore_all_tasks(&self) {
         let mut ignore_flags = self.task_manager.task_cancellers.borrow_mut();
         for task_source_name in TaskSourceName::all() {
-            let flag = ignore_flags
-                .entry(task_source_name)
-                .or_insert(Default::default());
+            let flag = ignore_flags.entry(task_source_name).or_default();
             flag.store(true, Ordering::SeqCst);
         }
     }
@@ -595,7 +593,7 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
     if input.len() % 4 == 0 {
         if input.ends_with("==") {
             input = &input[..input.len() - 2]
-        } else if input.ends_with("=") {
+        } else if input.ends_with('=') {
             input = &input[..input.len() - 1]
         }
     }
@@ -1096,7 +1094,7 @@ impl WindowMethods for Window {
             let rust_stack = Backtrace::new();
             println!(
                 "Current JS stack:\n{}\nCurrent Rust stack:\n{:?}",
-                js_stack.unwrap_or(String::new()),
+                js_stack.unwrap_or_default(),
                 rust_stack
             );
         }
@@ -1500,7 +1498,7 @@ impl WindowMethods for Window {
 
         let document = self.Document();
         let name_map = document.name_map();
-        for (name, elements) in &(*name_map).0 {
+        for (name, elements) in &name_map.0 {
             if name.is_empty() {
                 continue;
             }
@@ -1512,7 +1510,7 @@ impl WindowMethods for Window {
             }
         }
         let id_map = document.id_map();
-        for (id, elements) in &(*id_map).0 {
+        for (id, elements) in &id_map.0 {
             if id.is_empty() {
                 continue;
             }
@@ -1573,7 +1571,7 @@ impl Window {
             .borrow()
             .as_ref()
             .map(|e| DomRoot::from_ref(&**e));
-        *self.current_event.borrow_mut() = event.map(|e| Dom::from_ref(e));
+        *self.current_event.borrow_mut() = event.map(Dom::from_ref);
         current
     }
 
@@ -1601,7 +1599,7 @@ impl Window {
         };
 
         // Step 9.
-        self.post_message(target_origin, source_origin, &*source.window_proxy(), data);
+        self.post_message(target_origin, source_origin, &source.window_proxy(), data);
         Ok(())
     }
 
@@ -1625,10 +1623,8 @@ impl Window {
     pub fn cancel_all_tasks(&self) {
         let mut ignore_flags = self.task_manager.task_cancellers.borrow_mut();
         for task_source_name in TaskSourceName::all() {
-            let flag = ignore_flags
-                .entry(task_source_name)
-                .or_insert(Default::default());
-            let cancelled = mem::replace(&mut *flag, Default::default());
+            let flag = ignore_flags.entry(task_source_name).or_default();
+            let cancelled = std::mem::take(&mut *flag);
             cancelled.store(true, Ordering::SeqCst);
         }
     }
@@ -1638,10 +1634,8 @@ impl Window {
     /// `true` and replaces it with a brand new one for future tasks.
     pub fn cancel_all_tasks_from_source(&self, task_source_name: TaskSourceName) {
         let mut ignore_flags = self.task_manager.task_cancellers.borrow_mut();
-        let flag = ignore_flags
-            .entry(task_source_name)
-            .or_insert(Default::default());
-        let cancelled = mem::replace(&mut *flag, Default::default());
+        let flag = ignore_flags.entry(task_source_name).or_default();
+        let cancelled = std::mem::take(&mut *flag);
         cancelled.store(true, Ordering::SeqCst);
     }
 
@@ -1914,11 +1908,11 @@ impl Window {
             let node = unsafe { from_untrusted_node_address(image.node) };
 
             if let PendingImageState::Unrequested(ref url) = image.state {
-                fetch_image_for_layout(url.clone(), &*node, id, self.image_cache.clone());
+                fetch_image_for_layout(url.clone(), &node, id, self.image_cache.clone());
             }
 
             let mut images = self.pending_layout_images.borrow_mut();
-            let nodes = images.entry(id).or_insert(vec![]);
+            let nodes = images.entry(id).or_default();
             if nodes
                 .iter()
                 .find(|n| &***n as *const _ == &*node as *const _)
@@ -2335,7 +2329,7 @@ impl Window {
     }
 
     pub fn set_page_clip_rect_with_new_viewport(&self, viewport: UntypedRect<f32>) -> bool {
-        let rect = f32_rect_to_au_rect(viewport.clone());
+        let rect = f32_rect_to_au_rect(viewport);
         self.current_viewport.set(rect);
         // We use a clipping rectangle that is five times the size of the of the viewport,
         // so that we don't collect display list items for areas too far outside the viewport,
@@ -2460,18 +2454,18 @@ impl Window {
         self.Document().react_to_environment_changes();
     }
 
-    /// Slow down/speed up timers based on visibility.
-    pub fn alter_resource_utilization(&self, visible: bool) {
-        self.visible.set(visible);
-        if visible {
-            self.upcast::<GlobalScope>().speed_up_timers();
-        } else {
+    /// Set whether to use less resources by running timers at a heavily limited rate.
+    pub fn set_throttled(&self, throttled: bool) {
+        self.throttled.set(throttled);
+        if throttled {
             self.upcast::<GlobalScope>().slow_down_timers();
+        } else {
+            self.upcast::<GlobalScope>().speed_up_timers();
         }
     }
 
-    pub fn visible(&self) -> bool {
-        self.visible.get()
+    pub fn throttled(&self) -> bool {
+        self.throttled.get()
     }
 
     pub fn unminified_js_dir(&self) -> Option<String> {
@@ -2627,7 +2621,7 @@ impl Window {
             userscripts_path,
             replace_surrogates,
             player_context,
-            visible: Cell::new(true),
+            throttled: Cell::new(false),
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),
             current_event: DomRefCell::new(None),
         });

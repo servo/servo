@@ -62,7 +62,7 @@ impl DOMParserMethods for DOMParser {
             .parse()
             .expect("Supported type is not a MIME type");
         let doc = self.window.Document();
-        let loader = DocumentLoader::new(&*doc.loader());
+        let loader = DocumentLoader::new(&doc.loader());
         match ty {
             Text_html => {
                 let document = Document::new(

@@ -11,8 +11,8 @@ use compositing_traits::ConstellationMsg as FromCompositorMsg;
 use crossbeam_channel::Sender;
 use log::{Level, LevelFilter, Log, Metadata, Record};
 use msg::constellation_msg::TopLevelBrowsingContextId;
+use parking_lot::ReentrantMutex;
 use script_traits::{LogEntry, ScriptMsg as FromScriptMsg, ScriptToConstellationChan};
-use servo_remutex::ReentrantMutex;
 
 /// The constellation uses logging to perform crash reporting.
 /// The constellation receives all `warn!`, `error!` and `panic!` messages,
@@ -55,10 +55,7 @@ impl Log for FromScriptLogger {
         if let Some(entry) = log_entry(record) {
             let thread_name = thread::current().name().map(ToOwned::to_owned);
             let msg = FromScriptMsg::LogEntry(thread_name, entry);
-            let chan = self
-                .script_to_constellation_chan
-                .lock()
-                .unwrap_or_else(|err| err.into_inner());
+            let chan = self.script_to_constellation_chan.lock();
             let _ = chan.send(msg);
         }
     }
@@ -97,10 +94,7 @@ impl Log for FromCompositorLogger {
             let top_level_id = TopLevelBrowsingContextId::installed();
             let thread_name = thread::current().name().map(ToOwned::to_owned);
             let msg = FromCompositorMsg::LogEntry(top_level_id, thread_name, entry);
-            let chan = self
-                .constellation_chan
-                .lock()
-                .unwrap_or_else(|err| err.into_inner());
+            let chan = self.constellation_chan.lock();
             let _ = chan.send(msg);
         }
     }

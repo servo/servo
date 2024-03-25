@@ -166,7 +166,7 @@ impl Bluetooth {
         // Step 2.2: There are no requiredServiceUUIDS, we scan for all devices.
         let mut uuid_filters = vec![];
 
-        if let &Some(ref filters) = filters {
+        if let Some(filters) = filters {
             // Step 2.1.
             if filters.is_empty() {
                 p.reject_error(Type(FILTER_EMPTY_ERROR.to_owned()));
@@ -178,7 +178,7 @@ impl Bluetooth {
             // Step 2.4.
             for filter in filters {
                 // Step 2.4.1.
-                match canonicalize_filter(&filter) {
+                match canonicalize_filter(filter) {
                     // Step 2.4.2.
                     Ok(f) => uuid_filters.push(f),
                     Err(e) => {
@@ -576,7 +576,7 @@ impl AsyncBluetoothListener for Bluetooth {
                     &self.global(),
                     DOMString::from(device.id.clone()),
                     device.name.map(DOMString::from),
-                    &self,
+                    self,
                 );
                 device_instance_map.insert(device.id.clone(), Dom::from_ref(&bt_device));
 
@@ -667,7 +667,7 @@ impl PermissionAlgorithm for Bluetooth {
 
                 // Step 6.2.1.
                 for filter in filters {
-                    match canonicalize_filter(&filter) {
+                    match canonicalize_filter(filter) {
                         Ok(f) => scan_filters.push(f),
                         Err(error) => return promise.reject_error(error),
                     }

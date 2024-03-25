@@ -178,11 +178,11 @@ pub struct InitialPipelineState {
     /// Information about the page to load.
     pub load_data: LoadData,
 
-    /// Whether the browsing context in which pipeline is embedded is visible
-    /// for the purposes of scheduling and resource management. This field is
-    /// only used to notify script and compositor threads after spawning
-    /// a pipeline.
-    pub prev_visibility: bool,
+    /// Whether the browsing context in which pipeline is embedded is throttled,
+    /// using less resources by stopping animations and running timers at a
+    /// heavily limited rate. This field is only used to notify script and
+    /// compositor threads after spawning a pipeline.
+    pub prev_throttled: bool,
 
     /// Webrender api.
     pub webrender_image_api_sender: net_traits::WebrenderIpcSender,
@@ -339,7 +339,7 @@ impl Pipeline {
             state.opener,
             script_chan,
             state.compositor_proxy,
-            state.prev_visibility,
+            state.prev_throttled,
             state.load_data,
         );
         Ok(NewPipeline {
@@ -356,7 +356,7 @@ impl Pipeline {
         opener: Option<BrowsingContextId>,
         event_loop: Rc<EventLoop>,
         compositor_proxy: CompositorProxy,
-        is_visible: bool,
+        throttled: bool,
         load_data: LoadData,
     ) -> Pipeline {
         let pipeline = Pipeline {
@@ -377,7 +377,7 @@ impl Pipeline {
             layout_epoch: Epoch(0),
         };
 
-        pipeline.notify_visibility(is_visible);
+        pipeline.set_throttled(throttled);
 
         pipeline
     }
@@ -458,13 +458,14 @@ impl Pipeline {
         }
     }
 
-    /// Notify the script thread that this pipeline is visible.
-    pub fn notify_visibility(&self, is_visible: bool) {
-        let script_msg = ConstellationControlMsg::ChangeFrameVisibilityStatus(self.id, is_visible);
-        let compositor_msg = CompositorMsg::PipelineVisibilityChanged(self.id, is_visible);
+    /// Set whether to make pipeline use less resources, by stopping animations and
+    /// running timers at a heavily limited rate.
+    pub fn set_throttled(&self, throttled: bool) {
+        let script_msg = ConstellationControlMsg::SetThrottled(self.id, throttled);
+        let compositor_msg = CompositorMsg::SetThrottled(self.id, throttled);
         let err = self.event_loop.send(script_msg);
         if let Err(e) = err {
-            warn!("Sending visibility change failed ({}).", e);
+            warn!("Sending SetThrottled to script failed ({}).", e);
         }
         self.compositor_proxy.send(compositor_msg);
     }

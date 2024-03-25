@@ -253,13 +253,14 @@ pub unsafe fn find_enum_value<'a, T>(
         pairs
             .iter()
             .find(|&&(key, _)| search == *key)
-            .map(|&(_, ref ev)| ev),
+            .map(|(_, ev)| ev),
         search,
     ))
 }
 
 /// Returns wether `obj` is a platform object using dynamic unwrap
 /// <https://heycam.github.io/webidl/#dfn-platform-object>
+#[allow(dead_code)]
 pub fn is_platform_object_dynamic(obj: *mut JSObject, cx: *mut JSContext) -> bool {
     is_platform_object(obj, &|o| unsafe {
         UnwrapObjectDynamic(o, cx, /* stopAtWindowProxy = */ false)
@@ -450,7 +451,7 @@ pub unsafe extern "C" fn resolve_global(
     let mut length = 0;
     let ptr = JS_GetLatin1StringCharsAndLength(cx, ptr::null(), string, &mut length);
     assert!(!ptr.is_null());
-    let bytes = slice::from_raw_parts(ptr, length as usize);
+    let bytes = slice::from_raw_parts(ptr, length);
 
     if let Some(init_fun) = InterfaceObjectMap::MAP.get(bytes) {
         init_fun(SafeJSContext::from_ptr(cx), Handle::from_raw(obj));

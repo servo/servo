@@ -720,7 +720,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         .credentials_mode(credentials_mode)
         .use_url_credentials(use_url_credentials)
         .origin(self.global().origin().immutable().clone())
-        .referrer_policy(self.referrer_policy.clone())
+        .referrer_policy(self.referrer_policy)
         .pipeline_id(Some(self.global().pipeline_id()));
 
         // step 4 (second half)
@@ -1517,7 +1517,7 @@ impl XMLHttpRequest {
         let wr = self.global();
         let win = wr.as_window();
         let doc = win.Document();
-        let docloader = DocumentLoader::new(&*doc.loader());
+        let docloader = DocumentLoader::new(&doc.loader());
         let base = wr.get_url();
         let parsed_url = match base.join(&self.ResponseURL().0) {
             Ok(parsed) => Some(parsed),

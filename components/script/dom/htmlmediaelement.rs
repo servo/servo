@@ -218,9 +218,8 @@ impl VideoFrameRenderer for MediaFrameRenderer {
             Some((ref mut image_key, ref mut width, ref mut height)) => {
                 self.old_frame = Some(*image_key);
 
-                let new_image_key = match self.api.generate_image_key() {
-                    Ok(key) => key,
-                    Err(()) => return,
+                let Some(new_image_key) = self.api.generate_image_key() else {
+                    return;
                 };
 
                 /* update current_frame */
@@ -251,9 +250,8 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                 updates.push(ImageUpdate::AddImage(new_image_key, descriptor, image_data));
             },
             None => {
-                let image_key = match self.api.generate_image_key() {
-                    Ok(key) => key,
-                    Err(()) => return,
+                let Some(image_key) = self.api.generate_image_key() else {
+                    return;
                 };
                 self.current_frame = Some((image_key, frame.get_width(), frame.get_height()));
 
@@ -494,7 +492,7 @@ impl HTMLMediaElement {
         if delay && blocker.is_none() {
             *blocker = Some(LoadBlocker::new(&document_from_node(self), LoadType::Media));
         } else if !delay && blocker.is_some() {
-            LoadBlocker::terminate(&mut *blocker);
+            LoadBlocker::terminate(&mut blocker);
         }
     }
 
@@ -1359,7 +1357,7 @@ impl HTMLMediaElement {
             HTMLMediaElementTypeId::HTMLVideoElement => Some(self.video_renderer.clone()),
         };
 
-        let audio_renderer = self.audio_renderer.borrow().as_ref().map(|r| r.clone());
+        let audio_renderer = self.audio_renderer.borrow().as_ref().cloned();
 
         let pipeline_id = window.pipeline_id();
         let client_context_id =
@@ -1552,7 +1550,7 @@ impl HTMLMediaElement {
             PlayerEvent::Error(ref error) => {
                 error!("Player error: {:?}", error);
                 self.error.set(Some(&*MediaError::new(
-                    &*window_from_node(self),
+                    &window_from_node(self),
                     MEDIA_ERR_DECODE,
                 )));
                 self.upcast::<EventTarget>().fire_event(atom!("error"));
@@ -2336,7 +2334,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
         if let Some(ref player) = *self.player.borrow() {
             if let Ok(ranges) = player.lock().unwrap().buffered() {
                 for range in ranges {
-                    let _ = buffered.add(range.start as f64, range.end as f64);
+                    let _ = buffered.add(range.start, range.end);
                 }
             }
         }
@@ -2472,7 +2470,7 @@ impl LayoutHTMLMediaElementHelpers for LayoutDom<'_, HTMLMediaElement> {
     fn data(self) -> HTMLMediaData {
         let media = unsafe { &*self.unsafe_get() };
         HTMLMediaData {
-            current_frame: media.video_renderer.lock().unwrap().current_frame.clone(),
+            current_frame: media.video_renderer.lock().unwrap().current_frame,
         }
     }
 }
@@ -2506,7 +2504,7 @@ impl MicrotaskRunnable for MediaElementMicrotask {
                     elem.resource_selection_algorithm_sync(base_url.clone());
                 }
             },
-            &MediaElementMicrotask::PauseIfNotInDocumentTask { ref elem } => {
+            MediaElementMicrotask::PauseIfNotInDocumentTask { elem } => {
                 if !elem.upcast::<Node>().is_connected() {
                     elem.internal_pause_steps();
                 }
@@ -2819,7 +2817,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
             // Step 2
             elem.error.set(Some(&*MediaError::new(
-                &*window_from_node(&*elem),
+                &window_from_node(&*elem),
                 MEDIA_ERR_NETWORK,
             )));
 

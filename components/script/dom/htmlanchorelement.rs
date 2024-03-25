@@ -601,13 +601,13 @@ pub fn get_element_target(subject: &Element) -> Option<DOMString> {
         Some(doc) => {
             let element = doc.upcast::<Element>();
             if element.has_attribute(&local_name!("target")) {
-                return Some(element.get_string_attribute(&local_name!("target")));
+                Some(element.get_string_attribute(&local_name!("target")))
             } else {
-                return None;
+                None
             }
         },
-        None => return None,
-    };
+        None => None,
+    }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#get-an-element's-noopener>
@@ -625,9 +625,9 @@ pub fn get_element_noopener(subject: &Element, target_attribute_value: Option<DO
         Some(rel) => rel.Value(),
         None => return target_is_blank,
     };
-    return link_types.contains("noreferrer") ||
+    link_types.contains("noreferrer") ||
         link_types.contains("noopener") ||
-        (!link_types.contains("opener") && target_is_blank);
+        (!link_types.contains("opener") && target_is_blank)
 }
 
 /// <https://html.spec.whatwg.org/multipage/#following-hyperlinks-2>

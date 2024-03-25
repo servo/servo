@@ -85,10 +85,8 @@ pub enum ConstellationMsg {
     ExitFullScreen(TopLevelBrowsingContextId),
     /// Media session action.
     MediaSessionAction(MediaSessionActionType),
-    /// Mark webview as invisible due to external factors, regardless of whether it is being painted.
-    MarkWebViewInvisible(TopLevelBrowsingContextId),
-    /// Unmark webview as invisible due to external factors. The webview may remain invisible if it's not being painted.
-    UnmarkWebViewInvisible(TopLevelBrowsingContextId),
+    /// Set whether to use less resources, by stopping animations and running timers at a heavily limited rate.
+    SetWebViewThrottled(TopLevelBrowsingContextId, bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
     /// Notify the embedder that it needs to present a new frame.
@@ -139,8 +137,7 @@ impl ConstellationMsg {
             DisableProfiler => "DisableProfiler",
             ExitFullScreen(..) => "ExitFullScreen",
             MediaSessionAction(..) => "MediaSessionAction",
-            MarkWebViewInvisible(..) => "MarkWebViewInvisible",
-            UnmarkWebViewInvisible(..) => "UnmarkWebViewInvisible",
+            SetWebViewThrottled(..) => "SetWebViewThrottled",
             IMEDismissed => "IMEDismissed",
             ClearCache => "ClearCache",
             ReadyToPresent(..) => "ReadyToPresent",

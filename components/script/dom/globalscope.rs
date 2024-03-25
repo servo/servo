@@ -630,7 +630,7 @@ impl FileListener {
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_incoming(&*stream, Ok(blob_buf.bytes));
+                            stream_handle_incoming(&stream, Ok(blob_buf.bytes));
                         });
 
                         let _ = self
@@ -654,7 +654,7 @@ impl FileListener {
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_incoming(&*stream, Ok(bytes_in));
+                            stream_handle_incoming(&stream, Ok(bytes_in));
                         });
 
                         let _ = self
@@ -692,7 +692,7 @@ impl FileListener {
 
                         let task = task!(enqueue_stream_chunk: move || {
                             let stream = trusted.root();
-                            stream_handle_eof(&*stream);
+                            stream_handle_eof(&stream);
                         });
 
                         let _ = self
@@ -728,7 +728,7 @@ impl FileListener {
                             let _ = self.task_source.queue_with_canceller(
                                 task!(error_stream: move || {
                                     let stream = trusted_stream.root();
-                                    stream_handle_incoming(&*stream, error);
+                                    stream_handle_incoming(&stream, error);
                                 }),
                                 &self.task_canceller,
                             );
@@ -875,7 +875,7 @@ impl GlobalScope {
         // Step 2.6
         if let Some(worker_id) = installing_worker {
             let worker = self.get_serviceworker(script_url, scope, worker_id);
-            new_registration.set_installing(&*worker);
+            new_registration.set_installing(&worker);
         }
 
         // TODO: 2.7 (waiting worker)
@@ -1085,7 +1085,7 @@ impl GlobalScope {
                             let target_global = this.root();
                             target_global.route_task_to_port(port_id, task);
                         }),
-                        &self,
+                        self,
                     );
                 }
             }
@@ -1259,7 +1259,7 @@ impl GlobalScope {
                                     MessageEvent::dispatch_error(&*destination.upcast(), &global);
                                 }
                             }),
-                            &self,
+                            self,
                         );
                     });
             }
@@ -1300,7 +1300,7 @@ impl GlobalScope {
                 // Substep 6
                 // Dispatch the event, using the dom message-port.
                 MessageEvent::dispatch_jsval(
-                    &dom_port.upcast(),
+                    dom_port.upcast(),
                     self,
                     message_clone.handle(),
                     Some(&origin.ascii_serialization()),
@@ -1309,7 +1309,7 @@ impl GlobalScope {
                 );
             } else {
                 // Step 4, fire messageerror event.
-                MessageEvent::dispatch_error(&dom_port.upcast(), self);
+                MessageEvent::dispatch_error(dom_port.upcast(), self);
             }
         }
     }
@@ -1531,13 +1531,13 @@ impl GlobalScope {
                         let target_global = this.root();
                         target_global.maybe_add_pending_ports();
                     }),
-                    &self,
+                    self,
                 );
             } else {
                 // If this is a newly-created port, let the constellation immediately know.
                 let port_impl = MessagePortImpl::new(dom_port.message_port_id().clone());
                 message_ports.insert(
-                    dom_port.message_port_id().clone(),
+                    *dom_port.message_port_id(),
                     ManagedMessagePort {
                         port_impl: Some(port_impl),
                         dom_port: Dom::from_ref(dom_port),
@@ -1548,8 +1548,8 @@ impl GlobalScope {
                 let _ = self
                     .script_to_constellation_chan()
                     .send(ScriptMsg::NewMessagePort(
-                        router_id.clone(),
-                        dom_port.message_port_id().clone(),
+                        *router_id,
+                        *dom_port.message_port_id(),
                     ));
             };
         } else {
@@ -1671,12 +1671,10 @@ impl GlobalScope {
             let blob_state = self.blob_state.borrow();
             if let BlobState::Managed(blobs_map) = &*blob_state {
                 let blob_info = blobs_map
-                    .get(&blob_id)
+                    .get(blob_id)
                     .expect("get_blob_bytes for an unknown blob.");
                 match blob_info.blob_impl.blob_data() {
-                    BlobData::Sliced(ref parent, ref rel_pos) => {
-                        Some((parent.clone(), rel_pos.clone()))
-                    },
+                    BlobData::Sliced(ref parent, ref rel_pos) => Some((*parent, rel_pos.clone())),
                     _ => None,
                 }
             } else {
@@ -1698,7 +1696,7 @@ impl GlobalScope {
         let blob_state = self.blob_state.borrow();
         if let BlobState::Managed(blobs_map) = &*blob_state {
             let blob_info = blobs_map
-                .get(&blob_id)
+                .get(blob_id)
                 .expect("get_blob_bytes_non_sliced called for a unknown blob.");
             match blob_info.blob_impl.blob_data() {
                 BlobData::File(ref f) => {
@@ -1736,12 +1734,10 @@ impl GlobalScope {
             let blob_state = self.blob_state.borrow();
             if let BlobState::Managed(blobs_map) = &*blob_state {
                 let blob_info = blobs_map
-                    .get(&blob_id)
+                    .get(blob_id)
                     .expect("get_blob_bytes_or_file_id for an unknown blob.");
                 match blob_info.blob_impl.blob_data() {
-                    BlobData::Sliced(ref parent, ref rel_pos) => {
-                        Some((parent.clone(), rel_pos.clone()))
-                    },
+                    BlobData::Sliced(ref parent, ref rel_pos) => Some((*parent, rel_pos.clone())),
                     _ => None,
                 }
             } else {
@@ -1772,7 +1768,7 @@ impl GlobalScope {
         let blob_state = self.blob_state.borrow();
         if let BlobState::Managed(blobs_map) = &*blob_state {
             let blob_info = blobs_map
-                .get(&blob_id)
+                .get(blob_id)
                 .expect("get_blob_bytes_non_sliced_or_file_id called for a unknown blob.");
             match blob_info.blob_impl.blob_data() {
                 BlobData::File(ref f) => match f.get_cache() {
@@ -1794,7 +1790,7 @@ impl GlobalScope {
         let blob_state = self.blob_state.borrow();
         if let BlobState::Managed(blobs_map) = &*blob_state {
             let blob_info = blobs_map
-                .get(&blob_id)
+                .get(blob_id)
                 .expect("get_blob_type_string called for a unknown blob.");
             blob_info.blob_impl.type_string()
         } else {
@@ -1808,12 +1804,10 @@ impl GlobalScope {
         if let BlobState::Managed(blobs_map) = &*blob_state {
             let parent = {
                 let blob_info = blobs_map
-                    .get(&blob_id)
+                    .get(blob_id)
                     .expect("get_blob_size called for a unknown blob.");
                 match blob_info.blob_impl.blob_data() {
-                    BlobData::Sliced(ref parent, ref rel_pos) => {
-                        Some((parent.clone(), rel_pos.clone()))
-                    },
+                    BlobData::Sliced(ref parent, ref rel_pos) => Some((*parent, rel_pos.clone())),
                     _ => None,
                 }
             };
@@ -1830,9 +1824,7 @@ impl GlobalScope {
                     rel_pos.to_abs_range(parent_size as usize).len() as u64
                 },
                 None => {
-                    let blob_info = blobs_map
-                        .get(&blob_id)
-                        .expect("Blob whose size is unknown.");
+                    let blob_info = blobs_map.get(blob_id).expect("Blob whose size is unknown.");
                     match blob_info.blob_impl.blob_data() {
                         BlobData::File(ref f) => f.get_size(),
                         BlobData::Memory(ref v) => v.len() as u64,
@@ -1852,16 +1844,14 @@ impl GlobalScope {
         if let BlobState::Managed(blobs_map) = &mut *blob_state {
             let parent = {
                 let blob_info = blobs_map
-                    .get_mut(&blob_id)
+                    .get_mut(blob_id)
                     .expect("get_blob_url_id called for a unknown blob.");
 
                 // Keep track of blobs with outstanding URLs.
                 blob_info.has_url = true;
 
                 match blob_info.blob_impl.blob_data() {
-                    BlobData::Sliced(ref parent, ref rel_pos) => {
-                        Some((parent.clone(), rel_pos.clone()))
-                    },
+                    BlobData::Sliced(ref parent, ref rel_pos) => Some((*parent, rel_pos.clone())),
                     _ => None,
                 }
             };
@@ -1878,13 +1868,13 @@ impl GlobalScope {
                     };
                     let parent_size = rel_pos.to_abs_range(parent_size as usize).len() as u64;
                     let blob_info = blobs_map
-                        .get_mut(&blob_id)
+                        .get_mut(blob_id)
                         .expect("Blob whose url is requested is unknown.");
                     self.create_sliced_url_id(blob_info, &parent_file_id, &rel_pos, parent_size)
                 },
                 None => {
                     let blob_info = blobs_map
-                        .get_mut(&blob_id)
+                        .get_mut(blob_id)
                         .expect("Blob whose url is requested is unknown.");
                     self.promote(blob_info, /* set_valid is */ true)
                 },
@@ -1906,7 +1896,7 @@ impl GlobalScope {
 
         let (tx, rx) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
         let msg = FileManagerThreadMsg::AddSlicedURLEntry(
-            parent_file_id.clone(),
+            *parent_file_id,
             rel_pos.clone(),
             tx,
             origin.clone(),
@@ -1915,7 +1905,7 @@ impl GlobalScope {
         match rx.recv().expect("File manager thread is down.") {
             Ok(new_id) => {
                 *blob_info.blob_impl.blob_data_mut() = BlobData::File(FileBlob::new(
-                    new_id.clone(),
+                    new_id,
                     None,
                     None,
                     rel_pos.to_abs_range(parent_len as usize).len() as u64,
@@ -1979,7 +1969,7 @@ impl GlobalScope {
         self.send_to_file_manager(msg);
 
         *blob_info.blob_impl.blob_data_mut() = BlobData::File(FileBlob::new(
-            id.clone(),
+            id,
             None,
             Some(bytes.to_vec()),
             bytes.len() as u64,
@@ -2011,7 +2001,7 @@ impl GlobalScope {
 
         let stream = ReadableStream::new_with_external_underlying_source(
             self,
-            ExternalUnderlyingSource::Blob(size as usize),
+            ExternalUnderlyingSource::Blob(size),
         );
 
         let recv = self.send_msg(file_id);
@@ -2297,7 +2287,7 @@ impl GlobalScope {
     pub fn issue_page_warning(&self, warning: &str) {
         if let Some(ref chan) = self.devtools_chan {
             let _ = chan.send(ScriptToDevtoolsControlMsg::ReportPageError(
-                self.pipeline_id.clone(),
+                self.pipeline_id,
                 PageError {
                     type_: "PageError".to_string(),
                     errorMessage: warning.to_string(),
@@ -2485,7 +2475,7 @@ impl GlobalScope {
             } else if self.is::<Window>() {
                 if let Some(ref chan) = self.devtools_chan {
                     let _ = chan.send(ScriptToDevtoolsControlMsg::ReportPageError(
-                        self.pipeline_id.clone(),
+                        self.pipeline_id,
                         PageError {
                             type_: "PageError".to_string(),
                             errorMessage: error_info.message.clone(),
@@ -2797,7 +2787,7 @@ impl GlobalScope {
                         .map(|data| data.to_vec())
                         .unwrap_or_else(|| vec![0; size.area() as usize * 4]);
 
-                    let image_bitmap = ImageBitmap::new(&self, size.width, size.height).unwrap();
+                    let image_bitmap = ImageBitmap::new(self, size.width, size.height).unwrap();
 
                     image_bitmap.set_bitmap_data(data);
                     image_bitmap.set_origin_clean(canvas.origin_is_clean());
@@ -2817,7 +2807,7 @@ impl GlobalScope {
                         .map(|data| data.to_vec())
                         .unwrap_or_else(|| vec![0; size.area() as usize * 4]);
 
-                    let image_bitmap = ImageBitmap::new(&self, size.width, size.height).unwrap();
+                    let image_bitmap = ImageBitmap::new(self, size.width, size.height).unwrap();
                     image_bitmap.set_bitmap_data(data);
                     image_bitmap.set_origin_clean(canvas.origin_is_clean());
                     p.resolve_native(&(image_bitmap));
@@ -3181,7 +3171,7 @@ impl GlobalScope {
                             }
                         }
                         for i in (0..gamepad_list.Length()).rev() {
-                            if gamepad_list.Item(i as u32).is_none() {
+                            if gamepad_list.Item(i).is_none() {
                                 gamepad_list.remove_gamepad(i as usize);
                             } else {
                                 break;
@@ -3221,7 +3211,7 @@ impl GlobalScope {
                             if !window.Navigator().has_gamepad_gesture() && contains_user_gesture(update_type) {
                                 window.Navigator().set_has_gamepad_gesture(true);
                                 for i in 0..gamepad_list.Length() {
-                                    if let Some(gamepad) = gamepad_list.Item(i as u32) {
+                                    if let Some(gamepad) = gamepad_list.Item(i) {
                                         gamepad.set_exposed(true);
                                         gamepad.update_timestamp(*current_time);
                                         let new_gamepad = Trusted::new(&*gamepad);

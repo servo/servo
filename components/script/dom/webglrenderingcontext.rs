@@ -1565,7 +1565,7 @@ impl WebGLRenderingContext {
             rb.storage(self.api_type, samples, internal_format, width, height)
         );
         if let Some(fb) = self.bound_draw_framebuffer.get() {
-            fb.invalidate_renderbuffer(&*rb);
+            fb.invalidate_renderbuffer(&rb);
         }
 
         // FIXME: https://github.com/servo/servo/issues/13710
@@ -1639,7 +1639,7 @@ impl WebGLRenderingContext {
         });
 
         if let Some(fb) = self.bound_draw_framebuffer.get() {
-            fb.invalidate_texture(&*texture);
+            fb.invalidate_texture(&texture);
         }
     }
 
@@ -2664,15 +2664,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         // NB: TexImage2D depth is always equal to 1
         handle_potential_webgl_error!(
             self,
-            texture.initialize(
-                target,
-                width as u32,
-                height as u32,
-                1,
-                internal_format,
-                level as u32,
-                None
-            )
+            texture.initialize(target, width, height, 1, internal_format, level, None)
         );
 
         let msg = WebGLCommand::CopyTexImage2D(

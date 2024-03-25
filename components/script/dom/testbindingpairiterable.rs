@@ -29,13 +29,13 @@ impl Iterable for TestBindingPairIterable {
         self.map.borrow().len() as u32
     }
     fn get_value_at_index(&self, index: u32) -> u32 {
-        self.map
+        *self
+            .map
             .borrow()
             .iter()
             .nth(index as usize)
             .map(|a| &a.1)
             .unwrap()
-            .clone()
     }
     fn get_key_at_index(&self, index: u32) -> DOMString {
         self.map

@@ -44,17 +44,17 @@ impl CharacterData {
     pub fn clone_with_data(&self, data: DOMString, document: &Document) -> DomRoot<Node> {
         match self.upcast::<Node>().type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
-                DomRoot::upcast(Comment::new(data, &document, None))
+                DomRoot::upcast(Comment::new(data, document, None))
             },
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
                 let pi = self.downcast::<ProcessingInstruction>().unwrap();
-                DomRoot::upcast(ProcessingInstruction::new(pi.Target(), data, &document))
+                DomRoot::upcast(ProcessingInstruction::new(pi.Target(), data, document))
             },
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::CDATASection)) => {
-                DomRoot::upcast(CDATASection::new(data, &document))
+                DomRoot::upcast(CDATASection::new(data, document))
             },
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
-                DomRoot::upcast(Text::new(data, &document))
+                DomRoot::upcast(Text::new(data, document))
             },
             _ => unreachable!(),
         }
@@ -163,7 +163,7 @@ impl CharacterDataMethods for CharacterData {
     // https://dom.spec.whatwg.org/#dom-characterdata-appenddatadata
     fn AppendData(&self, data: DOMString) {
         // FIXME(ajeffrey): Efficient append on DOMStrings?
-        self.append_data(&*data);
+        self.append_data(&data);
     }
 
     // https://dom.spec.whatwg.org/#dom-characterdata-insertdataoffset-data

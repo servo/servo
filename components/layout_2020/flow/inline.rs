@@ -989,12 +989,17 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 match self.current_line.count_justification_opportunities() {
                     0 => Length::zero(),
                     num_justification_opportunities => {
-                        (available_space - line_length) / (num_justification_opportunities as f32)
+                        (available_space - text_indent - line_length) /
+                            (num_justification_opportunities as f32)
                     },
                 }
             },
             _ => Length::zero(),
         };
+
+        // If the content overflows the line, then justification adjustment will become negative. In
+        // that case, do not make any adjustment for justification.
+        let justification_adjustment = justification_adjustment.max(Length::zero());
 
         (adjusted_line_start, justification_adjustment)
     }
@@ -1031,7 +1036,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         let margin_box = float_item
             .fragment
             .border_rect()
-            .inflate(&float_item.fragment.margin);
+            .inflate(&float_item.fragment.margin.map(|t| (*t).into()));
         let inline_size = margin_box.size.inline.max(Length::zero());
 
         let available_inline_size = match self.current_line.placement_among_floats.get() {
@@ -2001,9 +2006,9 @@ impl IndependentFormattingContext {
                     replaced.style.clone(),
                     fragments,
                     content_rect.into(),
-                    pbm.padding.into(),
-                    pbm.border.into(),
-                    margin.into(),
+                    pbm.padding,
+                    pbm.border,
+                    margin,
                     None, /* clearance */
                     CollapsedBlockMargins::zero(),
                 )
@@ -2090,9 +2095,9 @@ impl IndependentFormattingContext {
                     non_replaced.style.clone(),
                     independent_layout.fragments,
                     content_rect.into(),
-                    pbm.padding.into(),
-                    pbm.border.into(),
-                    margin.into(),
+                    pbm.padding,
+                    pbm.border,
+                    margin,
                     None,
                     CollapsedBlockMargins::zero(),
                 )

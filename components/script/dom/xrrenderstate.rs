@@ -108,7 +108,7 @@ impl XRRenderState {
         F: FnOnce(&[Dom<XRLayer>]) -> R,
     {
         let layers = self.layers.borrow();
-        f(&*layers)
+        f(&layers)
     }
     pub fn has_sub_images(&self, sub_images: &[SubImages]) -> bool {
         if let Some(base_layer) = self.base_layer.get() {

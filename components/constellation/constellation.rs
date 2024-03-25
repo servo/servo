@@ -956,7 +956,7 @@ where
         load_data: LoadData,
         sandbox: IFrameSandboxState,
         is_private: bool,
-        is_visible: bool,
+        throttled: bool,
     ) {
         if self.shutting_down {
             return;
@@ -1051,7 +1051,7 @@ where
             },
             event_loop,
             load_data,
-            prev_visibility: is_visible,
+            prev_throttled: throttled,
             webrender_api_sender: self.webrender_api_ipc_sender.clone(),
             webrender_image_api_sender: self.webrender_image_api_sender.clone(),
             webrender_document: self.webrender_document,
@@ -1135,7 +1135,7 @@ where
         size: Size2D<f32, CSSPixel>,
         is_private: bool,
         inherited_secure_context: Option<bool>,
-        is_visible: bool,
+        throttled: bool,
     ) {
         debug!("{}: Creating new browsing context", browsing_context_id);
         let bc_group_id = match self
@@ -1168,7 +1168,7 @@ where
             size,
             is_private,
             inherited_secure_context,
-            is_visible,
+            throttled,
         );
         self.browsing_contexts
             .insert(browsing_context_id, browsing_context);
@@ -1493,11 +1493,6 @@ where
                     .send(CompositorMsg::ShowWebView(top_level_browsing_context_id));
                 self.webviews
                     .mark_webview_shown(top_level_browsing_context_id);
-                self.notify_webview_visibility(
-                    top_level_browsing_context_id,
-                    self.webviews
-                        .is_effectively_visible(top_level_browsing_context_id),
-                );
             },
             FromCompositorMsg::HideWebView(top_level_browsing_context_id) => {
                 if self.webviews.get(top_level_browsing_context_id).is_none() {
@@ -1510,11 +1505,6 @@ where
                     .send(CompositorMsg::HideWebView(top_level_browsing_context_id));
                 self.webviews
                     .mark_webview_not_shown(top_level_browsing_context_id);
-                self.notify_webview_visibility(
-                    top_level_browsing_context_id,
-                    self.webviews
-                        .is_effectively_visible(top_level_browsing_context_id),
-                );
             },
             FromCompositorMsg::RaiseWebViewToTop(top_level_browsing_context_id) => {
                 if self.webviews.get(top_level_browsing_context_id).is_none() {
@@ -1528,11 +1518,6 @@ where
                 ));
                 self.webviews
                     .mark_webview_shown(top_level_browsing_context_id);
-                self.notify_webview_visibility(
-                    top_level_browsing_context_id,
-                    self.webviews
-                        .is_effectively_visible(top_level_browsing_context_id),
-                );
             },
             FromCompositorMsg::FocusWebView(top_level_browsing_context_id) => {
                 if self.webviews.get(top_level_browsing_context_id).is_none() {
@@ -1599,15 +1584,8 @@ where
             FromCompositorMsg::MediaSessionAction(action) => {
                 self.handle_media_session_action_msg(action);
             },
-            FromCompositorMsg::MarkWebViewInvisible(webview_id) => {
-                self.webviews.mark_webview_invisible(webview_id);
-                let visible = self.webviews.is_effectively_visible(webview_id);
-                self.notify_webview_visibility(webview_id, visible);
-            },
-            FromCompositorMsg::UnmarkWebViewInvisible(webview_id) => {
-                self.webviews.mark_webview_not_invisible(webview_id);
-                let visible = self.webviews.is_effectively_visible(webview_id);
-                self.notify_webview_visibility(webview_id, visible);
+            FromCompositorMsg::SetWebViewThrottled(webview_id, throttled) => {
+                self.set_webview_throttled(webview_id, throttled);
             },
             FromCompositorMsg::ReadyToPresent(webview_ids) => {
                 self.embedder_proxy
@@ -1785,8 +1763,8 @@ where
             FromScriptMsg::Focus => {
                 self.handle_focus_msg(source_pipeline_id);
             },
-            FromScriptMsg::VisibilityChangeComplete(is_visible) => {
-                self.handle_visibility_change_complete(source_pipeline_id, is_visible);
+            FromScriptMsg::SetThrottledComplete(throttled) => {
+                self.handle_set_throttled_complete(source_pipeline_id, throttled);
             },
             FromScriptMsg::RemoveIFrame(browsing_context_id, response_sender) => {
                 let removed_pipeline_ids = self.handle_remove_iframe_msg(browsing_context_id);
@@ -2863,7 +2841,7 @@ where
         };
         let window_size = browsing_context.size;
         let pipeline_id = browsing_context.pipeline_id;
-        let is_visible = browsing_context.is_visible;
+        let throttled = browsing_context.throttled;
 
         let pipeline = match self.pipelines.get(&pipeline_id) {
             Some(p) => p,
@@ -2910,7 +2888,7 @@ where
             new_load_data,
             sandbox,
             is_private,
-            is_visible,
+            throttled,
         );
         self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id,
@@ -3026,7 +3004,7 @@ where
         );
         let sandbox = IFrameSandboxState::IFrameUnsandboxed;
         let is_private = false;
-        let is_visible = true;
+        let throttled = false;
 
         // Register this new top-level browsing context id as a webview and set
         // its focused browsing context to be itself.
@@ -3057,7 +3035,7 @@ where
             load_data,
             sandbox,
             is_private,
-            is_visible,
+            throttled,
         );
         self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id,
@@ -3068,7 +3046,7 @@ where
                 parent_pipeline_id: None,
                 is_private,
                 inherited_secure_context: None,
-                is_visible,
+                throttled,
             }),
             window_size,
         });
@@ -3271,7 +3249,7 @@ where
 
         // https://github.com/rust-lang/rust/issues/59159
         let browsing_context_size = browsing_context.size;
-        let browsing_context_is_visible = browsing_context.is_visible;
+        let browsing_context_throttled = browsing_context.throttled;
         // TODO(servo#30571) revert to debug_assert_eq!() once underlying bug is fixed
         #[cfg(debug_assertions)]
         if !(browsing_context_size == load_info.window_size.initial_viewport) {
@@ -3289,7 +3267,7 @@ where
             load_info.load_data,
             load_info.sandbox,
             is_private,
-            browsing_context_is_visible,
+            browsing_context_throttled,
         );
         self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id,
@@ -3322,9 +3300,9 @@ where
                     )
                 },
             };
-        let (is_parent_private, is_parent_visible, is_parent_secure) =
+        let (is_parent_private, is_parent_throttled, is_parent_secure) =
             match self.browsing_contexts.get(&parent_browsing_context_id) {
-                Some(ctx) => (ctx.is_private, ctx.is_visible, ctx.inherited_secure_context),
+                Some(ctx) => (ctx.is_private, ctx.throttled, ctx.inherited_secure_context),
                 None => {
                     return warn!(
                         "{}: New iframe {} loaded in closed parent browsing context",
@@ -3340,7 +3318,7 @@ where
             None,
             script_sender,
             self.compositor_proxy.clone(),
-            is_parent_visible,
+            is_parent_throttled,
             load_info.load_data,
         );
 
@@ -3356,7 +3334,7 @@ where
                 parent_pipeline_id: Some(parent_pipeline_id),
                 is_private,
                 inherited_secure_context: is_parent_secure,
-                is_visible: is_parent_visible,
+                throttled: is_parent_throttled,
             }),
             window_size: load_info.window_size.initial_viewport,
         });
@@ -3381,9 +3359,9 @@ where
                     );
                 },
             };
-        let (is_opener_private, is_opener_visible, is_opener_secure) =
+        let (is_opener_private, is_opener_throttled, is_opener_secure) =
             match self.browsing_contexts.get(&opener_browsing_context_id) {
-                Some(ctx) => (ctx.is_private, ctx.is_visible, ctx.inherited_secure_context),
+                Some(ctx) => (ctx.is_private, ctx.throttled, ctx.inherited_secure_context),
                 None => {
                     return warn!(
                         "{}: New auxiliary {} loaded in closed opener browsing context",
@@ -3398,7 +3376,7 @@ where
             Some(opener_browsing_context_id),
             script_sender,
             self.compositor_proxy.clone(),
-            is_opener_visible,
+            is_opener_throttled,
             load_data,
         );
 
@@ -3441,7 +3419,7 @@ where
                 parent_pipeline_id: None,
                 is_private: is_opener_private,
                 inherited_secure_context: is_opener_secure,
-                is_visible: is_opener_visible,
+                throttled: is_opener_throttled,
             }),
             window_size: self.window_size.initial_viewport,
         });
@@ -3544,14 +3522,14 @@ where
                 return None;
             },
         };
-        let (window_size, pipeline_id, parent_pipeline_id, is_private, is_visible) =
+        let (window_size, pipeline_id, parent_pipeline_id, is_private, is_throttled) =
             match self.browsing_contexts.get(&browsing_context_id) {
                 Some(ctx) => (
                     ctx.size,
                     ctx.pipeline_id,
                     ctx.parent_pipeline_id,
                     ctx.is_private,
-                    ctx.is_visible,
+                    ctx.throttled,
                 ),
                 None => {
                     // This should technically never happen (since `load_url` is
@@ -3627,7 +3605,7 @@ where
                     load_data,
                     sandbox,
                     is_private,
-                    is_visible,
+                    is_throttled,
                 );
                 self.add_pending_change(SessionHistoryChange {
                     top_level_browsing_context_id,
@@ -3901,7 +3879,7 @@ where
                     parent_pipeline_id,
                     window_size,
                     is_private,
-                    is_visible,
+                    throttled,
                 ) = match self.browsing_contexts.get(&browsing_context_id) {
                     Some(ctx) => (
                         ctx.top_level_id,
@@ -3909,7 +3887,7 @@ where
                         ctx.parent_pipeline_id,
                         ctx.size,
                         ctx.is_private,
-                        ctx.is_visible,
+                        ctx.throttled,
                     ),
                     None => return warn!("No browsing context to traverse!"),
                 };
@@ -3928,7 +3906,7 @@ where
                     load_data.clone(),
                     sandbox,
                     is_private,
-                    is_visible,
+                    throttled,
                 );
                 self.add_pending_change(SessionHistoryChange {
                     top_level_browsing_context_id: top_level_id,
@@ -3960,7 +3938,7 @@ where
             };
 
         if let Some(old_pipeline) = self.pipelines.get(&old_pipeline_id) {
-            old_pipeline.notify_visibility(false);
+            old_pipeline.set_throttled(true);
         }
         if let Some(new_pipeline) = self.pipelines.get(&new_pipeline_id) {
             if let Some(ref chan) = self.devtools_sender {
@@ -3978,7 +3956,7 @@ where
                 ));
             }
 
-            new_pipeline.notify_visibility(true);
+            new_pipeline.set_throttled(false);
         }
 
         self.update_activity(old_pipeline_id);
@@ -4341,7 +4319,7 @@ where
         result
     }
 
-    fn handle_visibility_change_complete(&mut self, pipeline_id: PipelineId, visibility: bool) {
+    fn handle_set_throttled_complete(&mut self, pipeline_id: PipelineId, throttled: bool) {
         let browsing_context_id = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline.browsing_context_id,
             None => {
@@ -4359,14 +4337,14 @@ where
         };
 
         if let Some(parent_pipeline_id) = parent_pipeline_id {
-            let visibility_msg = ConstellationControlMsg::NotifyVisibilityChange(
+            let msg = ConstellationControlMsg::SetThrottledInContainingIframe(
                 parent_pipeline_id,
                 browsing_context_id,
-                visibility,
+                throttled,
             );
             let result = match self.pipelines.get(&parent_pipeline_id) {
                 None => return warn!("{}: Parent pipeline closed", parent_pipeline_id),
-                Some(parent_pipeline) => parent_pipeline.event_loop.send(visibility_msg),
+                Some(parent_pipeline) => parent_pipeline.event_loop.send(msg),
             };
 
             if let Err(e) = result {
@@ -4528,21 +4506,17 @@ where
         }
     }
 
-    fn notify_webview_visibility(
-        &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-        visible: bool,
-    ) {
-        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
+    fn set_webview_throttled(&mut self, webview_id: WebViewId, throttled: bool) {
+        let browsing_context_id = BrowsingContextId::from(webview_id);
         let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
             Some(browsing_context) => browsing_context.pipeline_id,
             None => {
-                return warn!("{browsing_context_id}: Tried to notify visibility after closure");
+                return warn!("{browsing_context_id}: Tried to SetWebViewThrottled after closure");
             },
         };
         match self.pipelines.get(&pipeline_id) {
-            None => warn!("{pipeline_id}: Tried to notify visibility after closure"),
-            Some(pipeline) => pipeline.notify_visibility(visible),
+            None => warn!("{pipeline_id}: Tried to SetWebViewThrottled after closure"),
+            Some(pipeline) => pipeline.set_throttled(throttled),
         }
     }
 
@@ -4738,13 +4712,13 @@ where
                     change.window_size,
                     new_context_info.is_private,
                     new_context_info.inherited_secure_context,
-                    new_context_info.is_visible,
+                    new_context_info.throttled,
                 );
                 self.update_activity(change.new_pipeline_id);
             },
             Some(old_pipeline_id) => {
                 if let Some(pipeline) = self.pipelines.get(&old_pipeline_id) {
-                    pipeline.notify_visibility(false);
+                    pipeline.set_throttled(true);
                 }
 
                 // https://html.spec.whatwg.org/multipage/#unload-a-document

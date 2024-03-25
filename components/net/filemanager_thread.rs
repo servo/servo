@@ -293,12 +293,9 @@ impl FileManager {
         let file_impl = self.store.get_impl(id, file_token, origin_in)?;
         match file_impl {
             FileImpl::Memory(buf) => {
-                let range = match range.get_final(Some(buf.size)) {
-                    Ok(range) => range,
-                    Err(_) => {
-                        return Err(BlobURLStoreError::InvalidRange);
-                    },
-                };
+                let range = range
+                    .get_final(Some(buf.size))
+                    .map_err(|_| BlobURLStoreError::InvalidRange)?;
 
                 let range = range.to_abs_range(buf.size as usize);
                 let len = range.len() as u64;
@@ -328,12 +325,9 @@ impl FileManager {
                 let file = File::open(&metadata.path)
                     .map_err(|e| BlobURLStoreError::External(e.to_string()))?;
 
-                let range = match range.get_final(Some(metadata.size)) {
-                    Ok(range) => range,
-                    Err(_) => {
-                        return Err(BlobURLStoreError::InvalidRange);
-                    },
-                };
+                let range = range
+                    .get_final(Some(metadata.size))
+                    .map_err(|_| BlobURLStoreError::InvalidRange)?;
 
                 let mut reader = BufReader::with_capacity(FILE_CHUNK_SIZE, file);
                 if reader.seek(SeekFrom::Start(range.start as u64)).is_err() {

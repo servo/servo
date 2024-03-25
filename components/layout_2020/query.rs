@@ -370,14 +370,14 @@ pub fn process_resolved_style_request<'dom>(
             match longhand_id {
                 LonghandId::Width => Some(content_rect.size.width),
                 LonghandId::Height => Some(content_rect.size.height),
-                LonghandId::MarginBottom => Some(margins.bottom),
-                LonghandId::MarginTop => Some(margins.top),
-                LonghandId::MarginLeft => Some(margins.left),
-                LonghandId::MarginRight => Some(margins.right),
-                LonghandId::PaddingBottom => Some(padding.bottom),
-                LonghandId::PaddingTop => Some(padding.top),
-                LonghandId::PaddingLeft => Some(padding.left),
-                LonghandId::PaddingRight => Some(padding.right),
+                LonghandId::MarginBottom => Some(margins.bottom.into()),
+                LonghandId::MarginTop => Some(margins.top.into()),
+                LonghandId::MarginLeft => Some(margins.left.into()),
+                LonghandId::MarginRight => Some(margins.right.into()),
+                LonghandId::PaddingBottom => Some(padding.bottom.into()),
+                LonghandId::PaddingTop => Some(padding.top.into()),
+                LonghandId::PaddingLeft => Some(padding.left.into()),
+                LonghandId::PaddingRight => Some(padding.right.into()),
                 _ => None,
             }
             .map(|value| value.to_css_string())

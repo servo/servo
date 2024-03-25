@@ -186,13 +186,13 @@ impl PerformanceObserverMethods for PerformanceObserver {
             let entry_types = entry_types
                 .iter()
                 .filter(|e| VALID_ENTRY_TYPES.contains(&e.as_ref()))
-                .map(|e| e.clone())
+                .cloned()
                 .collect::<Vec<DOMString>>();
 
             // Step 6.3
             if entry_types.is_empty() {
                 Console::internal_warn(
-                    &*self.global(),
+                    &self.global(),
                     DOMString::from("No valid entry type provided to observe()."),
                 );
                 return Ok(());
@@ -209,7 +209,7 @@ impl PerformanceObserverMethods for PerformanceObserver {
             // Step 7.2
             if !VALID_ENTRY_TYPES.contains(&entry_type.as_ref()) {
                 Console::internal_warn(
-                    &*self.global(),
+                    &self.global(),
                     DOMString::from("No valid entry type provided to observe()."),
                 );
                 return Ok(());

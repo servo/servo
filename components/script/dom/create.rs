@@ -144,7 +144,7 @@ fn create_html_element(
                         proto,
                     ));
                     result.set_custom_element_state(CustomElementState::Undefined);
-                    ScriptThread::enqueue_upgrade_reaction(&*result, definition);
+                    ScriptThread::enqueue_upgrade_reaction(&result, definition);
                     return result;
                 },
                 CustomElementCreationMode::Synchronous => {
@@ -185,10 +185,10 @@ fn create_html_element(
             element.set_custom_element_state(CustomElementState::Undefined);
             match mode {
                 // Step 5.3
-                CustomElementCreationMode::Synchronous => upgrade_element(definition, &*element),
+                CustomElementCreationMode::Synchronous => upgrade_element(definition, &element),
                 // Step 5.4
                 CustomElementCreationMode::Asynchronous => {
-                    ScriptThread::enqueue_upgrade_reaction(&*element, definition)
+                    ScriptThread::enqueue_upgrade_reaction(&element, definition)
                 },
             }
             return element;
@@ -203,7 +203,7 @@ fn create_html_element(
             result.set_custom_element_state(CustomElementState::Undefined);
         },
         None => {
-            if is_valid_custom_element_name(&*name.local) {
+            if is_valid_custom_element_name(&name.local) {
                 result.set_custom_element_state(CustomElementState::Undefined);
             } else {
                 result.set_custom_element_state(CustomElementState::Uncustomized);
@@ -383,7 +383,7 @@ pub fn create_native_html_element(
         local_name!("video") => make!(HTMLVideoElement),
         local_name!("wbr") => make!(HTMLElement),
         local_name!("xmp") => make!(HTMLPreElement),
-        _ if is_valid_custom_element_name(&*name.local) => make!(HTMLElement),
+        _ if is_valid_custom_element_name(&name.local) => make!(HTMLElement),
         _ => make!(HTMLUnknownElement),
     }
 }

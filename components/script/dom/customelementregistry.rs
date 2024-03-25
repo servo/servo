@@ -391,7 +391,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
                 *candidate.namespace() == ns!(html) &&
                 (extends.is_none() || is.as_ref() == Some(&name))
             {
-                ScriptThread::enqueue_upgrade_reaction(&*candidate, definition.clone());
+                ScriptThread::enqueue_upgrade_reaction(&candidate, definition.clone());
             }
         }
 
@@ -433,7 +433,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         // Step 1
         if !is_valid_custom_element_name(&name) {
             let promise = Promise::new_in_current_realm(comp);
-            promise.reject_native(&DOMException::new(&global_scope, DOMErrorName::SyntaxError));
+            promise.reject_native(&DOMException::new(global_scope, DOMErrorName::SyntaxError));
             return promise;
         }
 

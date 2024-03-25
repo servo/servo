@@ -94,7 +94,7 @@ impl MutationObserver {
     ) -> Fallible<DomRoot<MutationObserver>> {
         global.set_exists_mut_observer();
         let observer = MutationObserver::new_with_proto(global, proto, callback);
-        ScriptThread::add_mutation_observer(&*observer);
+        ScriptThread::add_mutation_observer(&observer);
         Ok(observer)
     }
 
@@ -125,7 +125,7 @@ impl MutationObserver {
             if !queue.is_empty() {
                 let _ = mo
                     .callback
-                    .Call_(&**mo, queue, &**mo, ExceptionHandling::Report);
+                    .Call_(&**mo, queue, mo, ExceptionHandling::Report);
             }
         }
         // TODO: Step 6 (slot signals)
@@ -181,7 +181,7 @@ impl MutationObserver {
                             None
                         };
                         // Step 3.1.1
-                        let idx = interested_observers.iter().position(|&(ref o, _)| {
+                        let idx = interested_observers.iter().position(|(o, _)| {
                             &**o as *const _ == &*registered.observer as *const _
                         });
                         if let Some(idx) = idx {
@@ -202,7 +202,7 @@ impl MutationObserver {
                             None
                         };
                         // Step 3.1.1
-                        let idx = interested_observers.iter().position(|&(ref o, _)| {
+                        let idx = interested_observers.iter().position(|(o, _)| {
                             &**o as *const _ == &*registered.observer as *const _
                         });
                         if let Some(idx) = idx {

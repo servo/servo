@@ -138,18 +138,12 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
     fn data(self) -> HTMLCanvasData {
         let source = unsafe {
             match self.unsafe_get().context.borrow_for_layout().as_ref() {
-                Some(&CanvasContext::Context2d(ref context)) => {
+                Some(CanvasContext::Context2d(context)) => {
                     HTMLCanvasDataSource::Image(Some(context.to_layout().get_ipc_renderer()))
                 },
-                Some(&CanvasContext::WebGL(ref context)) => {
-                    context.to_layout().canvas_data_source()
-                },
-                Some(&CanvasContext::WebGL2(ref context)) => {
-                    context.to_layout().canvas_data_source()
-                },
-                Some(&CanvasContext::WebGPU(ref context)) => {
-                    context.to_layout().canvas_data_source()
-                },
+                Some(CanvasContext::WebGL(context)) => context.to_layout().canvas_data_source(),
+                Some(CanvasContext::WebGL2(context)) => context.to_layout().canvas_data_source(),
+                Some(CanvasContext::WebGPU(context)) => context.to_layout().canvas_data_source(),
                 None => HTMLCanvasDataSource::Image(None),
             }
         };
@@ -185,7 +179,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
     #[allow(unsafe_code)]
     fn get_canvas_id_for_layout(self) -> CanvasId {
         unsafe {
-            let canvas = &*self.unsafe_get();
+            let canvas = self.unsafe_get();
             if let &Some(CanvasContext::Context2d(ref context)) = canvas.context.borrow_for_layout()
             {
                 context.to_layout().get_canvas_id()
@@ -283,7 +277,7 @@ impl HTMLCanvasElement {
     /// Gets the base WebGLRenderingContext for WebGL or WebGL 2, if exists.
     pub fn get_base_webgl_context(&self) -> Option<DomRoot<WebGLRenderingContext>> {
         match *self.context.borrow() {
-            Some(CanvasContext::WebGL(ref context)) => Some(DomRoot::from_ref(&*context)),
+            Some(CanvasContext::WebGL(ref context)) => Some(DomRoot::from_ref(context)),
             Some(CanvasContext::WebGL2(ref context)) => Some(context.base_context()),
             _ => None,
         }
@@ -295,7 +289,7 @@ impl HTMLCanvasElement {
             match WebGLContextAttributes::new(cx, options) {
                 Ok(ConversionResult::Success(ref attrs)) => Some(From::from(attrs)),
                 Ok(ConversionResult::Failure(ref error)) => {
-                    throw_type_error(*cx, &error);
+                    throw_type_error(*cx, error);
                     None
                 },
                 _ => {
@@ -318,7 +312,7 @@ impl HTMLCanvasElement {
         }
 
         let data = match self.context.borrow().as_ref() {
-            Some(&CanvasContext::Context2d(ref context)) => {
+            Some(CanvasContext::Context2d(context)) => {
                 let (sender, receiver) =
                     ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
                 let msg = CanvasMsg::FromScript(
@@ -445,8 +439,8 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
     /// <https://w3c.github.io/mediacapture-fromelement/#dom-htmlcanvaselement-capturestream>
     fn CaptureStream(&self, _frame_request_rate: Option<Finite<f64>>) -> DomRoot<MediaStream> {
         let global = self.global();
-        let stream = MediaStream::new(&*global);
-        let track = MediaStreamTrack::new(&*global, MediaStreamId::new(), MediaStreamType::Video);
+        let stream = MediaStream::new(&global);
+        let track = MediaStreamTrack::new(&global, MediaStreamId::new(), MediaStreamType::Video);
         stream.AddTrack(&track);
         stream
     }
@@ -466,9 +460,9 @@ impl VirtualMethods for HTMLCanvasElement {
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
-        match name {
-            &local_name!("width") => AttrValue::from_u32(value.into(), DEFAULT_WIDTH),
-            &local_name!("height") => AttrValue::from_u32(value.into(), DEFAULT_HEIGHT),
+        match *name {
+            local_name!("width") => AttrValue::from_u32(value.into(), DEFAULT_WIDTH),
+            local_name!("height") => AttrValue::from_u32(value.into(), DEFAULT_HEIGHT),
             _ => self
                 .super_type()
                 .unwrap()

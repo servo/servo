@@ -112,7 +112,7 @@ impl RTCIceCandidateMethods for RTCIceCandidate {
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcicecandidate-sdpmlineindex>
     fn GetSdpMLineIndex(&self) -> Option<u16> {
-        self.sdp_m_line_index.clone()
+        self.sdp_m_line_index
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcicecandidate-usernamefragment>
@@ -125,7 +125,7 @@ impl RTCIceCandidateMethods for RTCIceCandidate {
         RTCIceCandidateInit {
             candidate: self.candidate.clone(),
             sdpMid: self.sdp_m_id.clone(),
-            sdpMLineIndex: self.sdp_m_line_index.clone(),
+            sdpMLineIndex: self.sdp_m_line_index,
             usernameFragment: self.username_fragment.clone(),
         }
     }

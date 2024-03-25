@@ -195,7 +195,7 @@ impl HTMLCollection {
             None => elem.local_name() == qualified_name,
             Some(prefix) => {
                 qualified_name.starts_with(&**prefix) &&
-                    qualified_name.find(":") == Some(prefix.len()) &&
+                    qualified_name.find(':') == Some(prefix.len()) &&
                     qualified_name.ends_with(&**elem.local_name())
             },
         }
@@ -292,12 +292,12 @@ impl HTMLCollection {
         after
             .following_nodes(&self.root)
             .filter_map(DomRoot::downcast)
-            .filter(move |element| self.filter.filter(&element, &self.root))
+            .filter(move |element| self.filter.filter(element, &self.root))
     }
 
-    pub fn elements_iter<'a>(&'a self) -> impl Iterator<Item = DomRoot<Element>> + 'a {
+    pub fn elements_iter(&self) -> impl Iterator<Item = DomRoot<Element>> + '_ {
         // Iterate forwards from the root.
-        self.elements_iter_after(&*self.root)
+        self.elements_iter_after(&self.root)
     }
 
     pub fn elements_iter_before<'a>(
@@ -308,7 +308,7 @@ impl HTMLCollection {
         before
             .preceding_nodes(&self.root)
             .filter_map(DomRoot::downcast)
-            .filter(move |element| self.filter.filter(&element, &self.root))
+            .filter(move |element| self.filter.filter(element, &self.root))
     }
 
     pub fn root_node(&self) -> DomRoot<Node> {

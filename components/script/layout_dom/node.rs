@@ -285,7 +285,7 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ServoThreadSafeLayoutNode<'dom, Layo
     /// Creates a new `ServoThreadSafeLayoutNode` from the given `ServoLayoutNode`.
     pub fn new(node: ServoLayoutNode<'dom, LayoutDataType>) -> Self {
         ServoThreadSafeLayoutNode {
-            node: node.clone(),
+            node,
             pseudo: PseudoElementType::Normal,
         }
     }
@@ -529,7 +529,7 @@ impl<'dom, LayoutDataType: LayoutDataTrait> Iterator
             PseudoElementType::Before | PseudoElementType::After => None,
 
             PseudoElementType::DetailsSummary => {
-                let mut current_node = self.current_node.clone();
+                let mut current_node = self.current_node;
                 loop {
                     let next_node = if let Some(ref node) = current_node {
                         if let Some(element) = node.as_element() {
@@ -537,7 +537,7 @@ impl<'dom, LayoutDataType: LayoutDataTrait> Iterator
                                 element.has_namespace(&ns!(html))
                             {
                                 self.current_node = None;
-                                return Some(node.clone());
+                                return Some(*node);
                             }
                         }
                         unsafe { node.dangerous_next_sibling() }
@@ -550,7 +550,7 @@ impl<'dom, LayoutDataType: LayoutDataTrait> Iterator
             },
 
             PseudoElementType::DetailsContent => {
-                let node = self.current_node.clone();
+                let node = self.current_node;
                 let node = node.and_then(|node| {
                     if node.is_element() &&
                         node.as_element()
@@ -568,7 +568,7 @@ impl<'dom, LayoutDataType: LayoutDataTrait> Iterator
             },
 
             PseudoElementType::Normal => {
-                let node = self.current_node.clone();
+                let node = self.current_node;
                 if let Some(ref node) = node {
                     self.current_node = match node.get_pseudo_element_type() {
                         PseudoElementType::Before => self

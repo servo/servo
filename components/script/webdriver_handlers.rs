@@ -85,11 +85,11 @@ fn find_node_by_unique_id(
     }
 }
 
-fn matching_links<'a>(
-    links: &'a NodeList,
+fn matching_links(
+    links: &NodeList,
     link_text: String,
     partial: bool,
-) -> impl Iterator<Item = String> + 'a {
+) -> impl Iterator<Item = String> + '_ {
     links
         .iter()
         .filter(move |node| {
@@ -251,7 +251,7 @@ pub unsafe fn jsval_to_webdriver(
                 cx,
                 object.handle(),
                 name.as_ptr(),
-                &mut HandleValueArray::new(),
+                &HandleValueArray::new(),
                 value.handle_mut(),
             ) {
                 jsval_to_webdriver(cx, global_scope, value.handle())
@@ -262,11 +262,10 @@ pub unsafe fn jsval_to_webdriver(
         } else {
             let mut result = HashMap::new();
 
-            let common_properties = vec!["x", "y", "width", "height", "key"];
+            let common_properties = ["x", "y", "width", "height", "key"];
             for property in common_properties.iter() {
                 rooted!(in(cx) let mut item = UndefinedValue());
-                if let Ok(_) = get_property_jsval(cx, object.handle(), property, item.handle_mut())
-                {
+                if get_property_jsval(cx, object.handle(), property, item.handle_mut()).is_ok() {
                     if !item.is_undefined() {
                         if let Ok(value) = jsval_to_webdriver(cx, global_scope, item.handle()) {
                             result.insert(property.to_string(), value);
@@ -381,33 +380,30 @@ fn get_element_in_view_center_point(element: &Element) -> Option<Point2D<i64>> {
         .GetBody()
         .map(DomRoot::upcast::<Element>)
         .and_then(|body| {
-            element
-                .GetClientRects()
-                .iter()
-                // Step 1
-                .next()
-                .map(|rectangle| {
-                    let x = rectangle.X().round() as i64;
-                    let y = rectangle.Y().round() as i64;
-                    let width = rectangle.Width().round() as i64;
-                    let height = rectangle.Height().round() as i64;
+            // Step 1: Let rectangle be the first element of the DOMRect sequence
+            // returned by calling getClientRects() on element.
+            element.GetClientRects().first().map(|rectangle| {
+                let x = rectangle.X().round() as i64;
+                let y = rectangle.Y().round() as i64;
+                let width = rectangle.Width().round() as i64;
+                let height = rectangle.Height().round() as i64;
 
-                    let client_width = body.ClientWidth() as i64;
-                    let client_height = body.ClientHeight() as i64;
+                let client_width = body.ClientWidth() as i64;
+                let client_height = body.ClientHeight() as i64;
 
-                    // Steps 2 - 5
-                    let left = cmp::max(0, cmp::min(x, x + width));
-                    let right = cmp::min(client_width, cmp::max(x, x + width));
-                    let top = cmp::max(0, cmp::min(y, y + height));
-                    let bottom = cmp::min(client_height, cmp::max(y, y + height));
+                // Steps 2 - 5
+                let left = cmp::max(0, cmp::min(x, x + width));
+                let right = cmp::min(client_width, cmp::max(x, x + width));
+                let top = cmp::max(0, cmp::min(y, y + height));
+                let bottom = cmp::min(client_height, cmp::max(y, y + height));
 
-                    // Steps 6 - 7
-                    let x = (left + right) / 2;
-                    let y = (top + bottom) / 2;
+                // Steps 6 - 7
+                let x = (left + right) / 2;
+                let y = (top + bottom) / 2;
 
-                    // Step 8
-                    Point2D::new(x, y)
-                })
+                // Step 8
+                Point2D::new(x, y)
+            })
         })
 }
 
@@ -478,11 +474,11 @@ pub fn handle_find_element_tag_name(
             documents
                 .find_document(pipeline)
                 .ok_or(ErrorStatus::UnknownError)
-                .and_then(|document| {
-                    Ok(document
+                .map(|document| {
+                    document
                         .GetElementsByTagName(DOMString::from(selector))
                         .elements_iter()
-                        .next())
+                        .next()
                 })
                 .map(|node| node.map(|x| x.upcast::<Node>().unique_id())),
         )
@@ -545,7 +541,7 @@ pub fn handle_find_elements_tag_name(
             documents
                 .find_document(pipeline)
                 .ok_or(ErrorStatus::UnknownError)
-                .and_then(|document| Ok(document.GetElementsByTagName(DOMString::from(selector))))
+                .map(|document| document.GetElementsByTagName(DOMString::from(selector)))
                 .map(|nodes| {
                     nodes
                         .elements_iter()
@@ -955,7 +951,7 @@ pub fn handle_get_text(
     reply
         .send(
             find_node_by_unique_id(documents, pipeline, node_id)
-                .and_then(|node| Ok(node.GetTextContent().map_or("".to_owned(), String::from))),
+                .map(|node| node.GetTextContent().map_or("".to_owned(), String::from)),
         )
         .unwrap();
 }
@@ -969,7 +965,7 @@ pub fn handle_get_name(
     reply
         .send(
             find_node_by_unique_id(documents, pipeline, node_id)
-                .and_then(|node| Ok(String::from(node.downcast::<Element>().unwrap().TagName()))),
+                .map(|node| String::from(node.downcast::<Element>().unwrap().TagName())),
         )
         .unwrap();
 }
@@ -983,12 +979,11 @@ pub fn handle_get_attribute(
 ) {
     reply
         .send(
-            find_node_by_unique_id(documents, pipeline, node_id).and_then(|node| {
-                Ok(node
-                    .downcast::<Element>()
+            find_node_by_unique_id(documents, pipeline, node_id).map(|node| {
+                node.downcast::<Element>()
                     .unwrap()
                     .GetAttribute(DOMString::from(name))
-                    .map(String::from))
+                    .map(String::from)
             }),
         )
         .unwrap();
@@ -1004,7 +999,7 @@ pub fn handle_get_property(
 ) {
     reply
         .send(
-            find_node_by_unique_id(documents, pipeline, node_id).and_then(|node| {
+            find_node_by_unique_id(documents, pipeline, node_id).map(|node| {
                 let document = documents.find_document(pipeline).unwrap();
                 let _ac = enter_realm(&*document);
                 let cx = document.window().get_cx();
@@ -1021,12 +1016,12 @@ pub fn handle_get_property(
                     Ok(_) => match unsafe {
                         jsval_to_webdriver(*cx, &node.reflector().global(), property.handle())
                     } {
-                        Ok(property) => Ok(property),
-                        Err(_) => Ok(WebDriverJSValue::Undefined),
+                        Ok(property) => property,
+                        Err(_) => WebDriverJSValue::Undefined,
                     },
                     Err(error) => {
                         throw_dom_exception(cx, &node.reflector().global(), error);
-                        Ok(WebDriverJSValue::Undefined)
+                        WebDriverJSValue::Undefined
                     },
                 }
             }),
@@ -1043,14 +1038,14 @@ pub fn handle_get_css(
 ) {
     reply
         .send(
-            find_node_by_unique_id(documents, pipeline, node_id).and_then(|node| {
+            find_node_by_unique_id(documents, pipeline, node_id).map(|node| {
                 let window = window_from_node(&*node);
                 let element = node.downcast::<Element>().unwrap();
-                Ok(String::from(
+                String::from(
                     window
                         .GetComputedStyle(element, None)
                         .GetPropertyValue(DOMString::from(name)),
-                ))
+                )
             }),
         )
         .unwrap();

@@ -159,7 +159,6 @@ class MachCommands(CommandBase):
             "selectors",
             "script_traits",
             "servo_config",
-            "servo_remutex",
             "crown",
             "constellation",
             "style_config",

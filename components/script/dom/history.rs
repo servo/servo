@@ -54,7 +54,7 @@ impl History {
         state.set(NullValue());
         History {
             reflector_: Reflector::new(),
-            window: Dom::from_ref(&window),
+            window: Dom::from_ref(window),
             state,
             state_id: Cell::new(None),
         }
@@ -121,7 +121,7 @@ impl History {
                 };
                 let global_scope = self.window.upcast::<GlobalScope>();
                 rooted!(in(*GlobalScope::get_cx()) let mut state = UndefinedValue());
-                if let Err(_) = structuredclone::read(&global_scope, data, state.handle_mut()) {
+                if structuredclone::read(global_scope, data, state.handle_mut()).is_err() {
                     warn!("Error reading structuredclone data");
                 }
                 self.state.set(state.get());
@@ -136,7 +136,7 @@ impl History {
         if state_changed {
             PopStateEvent::dispatch_jsval(
                 self.window.upcast::<EventTarget>(),
-                &*self.window,
+                &self.window,
                 unsafe { HandleValue::from_raw(self.state.handle()) },
             );
         }
@@ -270,7 +270,7 @@ impl History {
         // Step 11
         let global_scope = self.window.upcast::<GlobalScope>();
         rooted!(in(*cx) let mut state = UndefinedValue());
-        if let Err(_) = structuredclone::read(&global_scope, serialized_data, state.handle_mut()) {
+        if structuredclone::read(global_scope, serialized_data, state.handle_mut()).is_err() {
             warn!("Error reading structuredclone data");
         }
 

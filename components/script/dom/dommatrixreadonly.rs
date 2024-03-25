@@ -102,7 +102,7 @@ impl DOMMatrixReadOnly {
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-frommatrix
     pub fn FromMatrix(global: &GlobalScope, other: &DOMMatrixInit) -> Fallible<DomRoot<Self>> {
-        dommatrixinit_to_matrix(&other).map(|(is2D, matrix)| Self::new(global, is2D, matrix))
+        dommatrixinit_to_matrix(other).map(|(is2D, matrix)| Self::new(global, is2D, matrix))
     }
 
     pub fn matrix(&self) -> Ref<Transform3D<f64>> {
@@ -196,7 +196,7 @@ impl DOMMatrixReadOnly {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-multiplyself
     pub fn multiply_self(&self, other: &DOMMatrixInit) -> Fallible<()> {
         // Step 1.
-        dommatrixinit_to_matrix(&other).map(|(is2D, other_matrix)| {
+        dommatrixinit_to_matrix(other).map(|(is2D, other_matrix)| {
             // Step 2.
             let mut matrix = self.matrix.borrow_mut();
             *matrix = other_matrix.then(&matrix);
@@ -211,7 +211,7 @@ impl DOMMatrixReadOnly {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-premultiplyself
     pub fn pre_multiply_self(&self, other: &DOMMatrixInit) -> Fallible<()> {
         // Step 1.
-        dommatrixinit_to_matrix(&other).map(|(is2D, other_matrix)| {
+        dommatrixinit_to_matrix(other).map(|(is2D, other_matrix)| {
             // Step 2.
             let mut matrix = self.matrix.borrow_mut();
             *matrix = matrix.then(&other_matrix);
@@ -631,7 +631,7 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-multiply
     fn Multiply(&self, other: &DOMMatrixInit) -> Fallible<DomRoot<DOMMatrix>> {
-        DOMMatrix::from_readonly(&self.global(), self).MultiplySelf(&other)
+        DOMMatrix::from_readonly(&self.global(), self).MultiplySelf(other)
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-flipx
@@ -731,9 +731,9 @@ fn create_3d_matrix(entries: &[f64]) -> Transform3D<f64> {
 // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly-numbersequence
 pub fn entries_to_matrix(entries: &[f64]) -> Fallible<(bool, Transform3D<f64>)> {
     if entries.len() == 6 {
-        Ok((true, create_2d_matrix(&entries)))
+        Ok((true, create_2d_matrix(entries)))
     } else if entries.len() == 16 {
-        Ok((false, create_3d_matrix(&entries)))
+        Ok((false, create_3d_matrix(entries)))
     } else {
         let err_msg = format!("Expected 6 or 16 entries, but found {}.", entries.len());
         Err(error::Error::Type(err_msg.to_owned()))

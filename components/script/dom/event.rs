@@ -214,7 +214,7 @@ impl Event {
         // related to shadow DOM requirements that aren't otherwise
         // implemented right now. The path also needs to contain
         // various flags instead of just bare event targets.
-        let path = self.construct_event_path(&target);
+        let path = self.construct_event_path(target);
         rooted_vec!(let event_path <- path.into_iter());
 
         // Step 5.4
@@ -333,7 +333,7 @@ impl Event {
         if !self.DefaultPrevented() {
             if let Some(target) = self.GetTarget() {
                 if let Some(node) = target.downcast::<Node>() {
-                    let vtable = vtable_for(&node);
+                    let vtable = vtable_for(node);
                     vtable.handle_event(self);
                 }
             }
@@ -712,7 +712,7 @@ fn inner_invoke(
 
         // Step 2.5.
         if let CompiledEventListener::Listener(event_listener) = listener {
-            object.remove_listener_if_once(&event.type_(), &event_listener);
+            object.remove_listener_if_once(&event.type_(), event_listener);
         }
 
         // Step 2.6

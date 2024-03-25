@@ -120,24 +120,23 @@ impl InputType {
     // slightly differently, with placeholder characters shown rather
     // than the underlying value.
     fn is_textual(&self) -> bool {
-        match *self {
+        matches!(
+            *self,
             InputType::Color |
-            InputType::Date |
-            InputType::DatetimeLocal |
-            InputType::Email |
-            InputType::Hidden |
-            InputType::Month |
-            InputType::Number |
-            InputType::Range |
-            InputType::Search |
-            InputType::Tel |
-            InputType::Text |
-            InputType::Time |
-            InputType::Url |
-            InputType::Week => true,
-
-            _ => false,
-        }
+                InputType::Date |
+                InputType::DatetimeLocal |
+                InputType::Email |
+                InputType::Hidden |
+                InputType::Month |
+                InputType::Number |
+                InputType::Range |
+                InputType::Search |
+                InputType::Tel |
+                InputType::Text |
+                InputType::Time |
+                InputType::Url |
+                InputType::Week
+        )
     }
 
     fn is_textual_or_password(&self) -> bool {
@@ -428,45 +427,45 @@ impl HTMLInputElement {
     }
 
     fn does_readonly_apply(&self) -> bool {
-        match self.input_type() {
+        matches!(
+            self.input_type(),
             InputType::Text |
-            InputType::Search |
-            InputType::Url |
-            InputType::Tel |
-            InputType::Email |
-            InputType::Password |
-            InputType::Date |
-            InputType::Month |
-            InputType::Week |
-            InputType::Time |
-            InputType::DatetimeLocal |
-            InputType::Number => true,
-            _ => false,
-        }
+                InputType::Search |
+                InputType::Url |
+                InputType::Tel |
+                InputType::Email |
+                InputType::Password |
+                InputType::Date |
+                InputType::Month |
+                InputType::Week |
+                InputType::Time |
+                InputType::DatetimeLocal |
+                InputType::Number
+        )
     }
 
     fn does_minmaxlength_apply(&self) -> bool {
-        match self.input_type() {
+        matches!(
+            self.input_type(),
             InputType::Text |
-            InputType::Search |
-            InputType::Url |
-            InputType::Tel |
-            InputType::Email |
-            InputType::Password => true,
-            _ => false,
-        }
+                InputType::Search |
+                InputType::Url |
+                InputType::Tel |
+                InputType::Email |
+                InputType::Password
+        )
     }
 
     fn does_pattern_apply(&self) -> bool {
-        match self.input_type() {
+        matches!(
+            self.input_type(),
             InputType::Text |
-            InputType::Search |
-            InputType::Url |
-            InputType::Tel |
-            InputType::Email |
-            InputType::Password => true,
-            _ => false,
-        }
+                InputType::Search |
+                InputType::Url |
+                InputType::Tel |
+                InputType::Email |
+                InputType::Password
+        )
     }
 
     fn does_multiple_apply(&self) -> bool {
@@ -476,24 +475,23 @@ impl HTMLInputElement {
     // valueAsNumber, step, min, and max all share the same set of
     // input types they apply to
     fn does_value_as_number_apply(&self) -> bool {
-        match self.input_type() {
+        matches!(
+            self.input_type(),
             InputType::Date |
-            InputType::Month |
-            InputType::Week |
-            InputType::Time |
-            InputType::DatetimeLocal |
-            InputType::Number |
-            InputType::Range => true,
-            _ => false,
-        }
+                InputType::Month |
+                InputType::Week |
+                InputType::Time |
+                InputType::DatetimeLocal |
+                InputType::Number |
+                InputType::Range
+        )
     }
 
     fn does_value_as_date_apply(&self) -> bool {
-        match self.input_type() {
-            InputType::Date | InputType::Month | InputType::Week | InputType::Time => true,
-            // surprisingly, spec says false for DateTimeLocal!
-            _ => false,
-        }
+        matches!(
+            self.input_type(),
+            InputType::Date | InputType::Month | InputType::Week | InputType::Time
+        )
     }
 
     // https://html.spec.whatwg.org/multipage#concept-input-step
@@ -502,7 +500,8 @@ impl HTMLInputElement {
             .upcast::<Element>()
             .get_attribute(&ns!(), &local_name!("step"))
         {
-            if let Ok(step) = DOMString::from(attr.summarize().value).parse_floating_point_number()
+            if let Some(step) =
+                DOMString::from(attr.summarize().value).parse_floating_point_number()
             {
                 if step > 0.0 {
                     return Some(step * self.step_scale_factor());
@@ -519,7 +518,8 @@ impl HTMLInputElement {
             .upcast::<Element>()
             .get_attribute(&ns!(), &local_name!("min"))
         {
-            if let Ok(min) = self.convert_string_to_number(&DOMString::from(attr.summarize().value))
+            if let Some(min) =
+                self.convert_string_to_number(&DOMString::from(attr.summarize().value))
             {
                 return Some(min);
             }
@@ -533,7 +533,8 @@ impl HTMLInputElement {
             .upcast::<Element>()
             .get_attribute(&ns!(), &local_name!("max"))
         {
-            if let Ok(max) = self.convert_string_to_number(&DOMString::from(attr.summarize().value))
+            if let Some(max) =
+                self.convert_string_to_number(&DOMString::from(attr.summarize().value))
             {
                 return Some(max);
             }
@@ -633,7 +634,7 @@ impl HTMLInputElement {
             .get_attribute(&ns!(), &local_name!("min"))
         {
             let minstr = &DOMString::from(attr.summarize().value);
-            if let Ok(min) = self.convert_string_to_number(minstr) {
+            if let Some(min) = self.convert_string_to_number(minstr) {
                 return min;
             }
         }
@@ -641,7 +642,7 @@ impl HTMLInputElement {
             .upcast::<Element>()
             .get_attribute(&ns!(), &local_name!("value"))
         {
-            if let Ok(value) =
+            if let Some(value) =
                 self.convert_string_to_number(&DOMString::from(attr.summarize().value))
             {
                 return value;
@@ -878,7 +879,7 @@ impl HTMLInputElement {
             // https://html.spec.whatwg.org/multipage/#time-state-(type%3Dtime)%3Asuffering-from-bad-input
             InputType::Time => !value.is_valid_time_string(),
             // https://html.spec.whatwg.org/multipage/#local-date-and-time-state-(type%3Ddatetime-local)%3Asuffering-from-bad-input
-            InputType::DatetimeLocal => value.parse_local_date_and_time_string().is_err(),
+            InputType::DatetimeLocal => value.parse_local_date_and_time_string().is_none(),
             // https://html.spec.whatwg.org/multipage/#number-state-(type%3Dnumber)%3Asuffering-from-bad-input
             // https://html.spec.whatwg.org/multipage/#range-state-(type%3Drange)%3Asuffering-from-bad-input
             InputType::Number | InputType::Range => !value.is_valid_floating_point_number_string(),
@@ -926,9 +927,8 @@ impl HTMLInputElement {
             return ValidationFlags::empty();
         }
 
-        let value_as_number = match self.convert_string_to_number(value) {
-            Ok(num) => num,
-            Err(()) => return ValidationFlags::empty(),
+        let Some(value_as_number) = self.convert_string_to_number(value) else {
+            return ValidationFlags::empty();
         };
 
         let mut failed_flags = ValidationFlags::empty();
@@ -1102,15 +1102,14 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
 impl TextControlElement for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#concept-input-apply
     fn selection_api_applies(&self) -> bool {
-        match self.input_type() {
+        matches!(
+            self.input_type(),
             InputType::Text |
-            InputType::Search |
-            InputType::Url |
-            InputType::Tel |
-            InputType::Password => true,
-
-            _ => false,
-        }
+                InputType::Search |
+                InputType::Url |
+                InputType::Tel |
+                InputType::Password
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-input-apply
@@ -1331,7 +1330,6 @@ impl HTMLInputElementMethods for HTMLInputElement {
                 };
                 NonNull::new_unchecked(NewDateObject(*cx, time))
             })
-            .ok()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-valueasdate
@@ -1968,7 +1966,7 @@ impl HTMLInputElement {
             InputType::DatetimeLocal => {
                 if value
                     .convert_valid_normalized_local_date_and_time_string()
-                    .is_err()
+                    .is_none()
                 {
                     value.clear();
                 }
@@ -2108,21 +2106,21 @@ impl HTMLInputElement {
                     .filter_map(DomRoot::downcast::<HTMLInputElement>)
                     .filter(|input| {
                         input.form_owner() == owner &&
-                            match input.input_type() {
+                            matches!(
+                                input.input_type(),
                                 InputType::Text |
-                                InputType::Search |
-                                InputType::Url |
-                                InputType::Tel |
-                                InputType::Email |
-                                InputType::Password |
-                                InputType::Date |
-                                InputType::Month |
-                                InputType::Week |
-                                InputType::Time |
-                                InputType::DatetimeLocal |
-                                InputType::Number => true,
-                                _ => false,
-                            }
+                                    InputType::Search |
+                                    InputType::Url |
+                                    InputType::Tel |
+                                    InputType::Email |
+                                    InputType::Password |
+                                    InputType::Date |
+                                    InputType::Month |
+                                    InputType::Week |
+                                    InputType::Time |
+                                    InputType::DatetimeLocal |
+                                    InputType::Number
+                            )
                     });
 
                 if inputs.skip(1).next().is_some() {
@@ -2135,54 +2133,48 @@ impl HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-input-value-string-number
-    fn convert_string_to_number(&self, value: &DOMString) -> Result<f64, ()> {
+    fn convert_string_to_number(&self, value: &DOMString) -> Option<f64> {
         match self.input_type() {
             InputType::Date => value
                 .parse_date_string()
-                .ok()
                 .and_then(|(year, month, day)| NaiveDate::from_ymd_opt(year, month, day))
                 .and_then(|date| date.and_hms_opt(0, 0, 0))
-                .map(|time| Ok(time.and_utc().timestamp_millis() as f64))
-                .unwrap_or(Err(())),
+                .map(|time| time.and_utc().timestamp_millis() as f64),
             InputType::Month => match value.parse_month_string() {
                 // This one returns number of months, not milliseconds
                 // (specification requires this, presumably because number of
                 // milliseconds is not consistent across months)
                 // the - 1.0 is because january is 1, not 0
-                Ok((year, month)) => Ok(((year - 1970) * 12) as f64 + (month as f64 - 1.0)),
-                _ => Err(()),
+                Some((year, month)) => Some(((year - 1970) * 12) as f64 + (month as f64 - 1.0)),
+                _ => None,
             },
             InputType::Week => value
                 .parse_week_string()
-                .ok()
                 .and_then(|(year, weeknum)| NaiveDate::from_isoywd_opt(year, weeknum, Weekday::Mon))
                 .and_then(|date| date.and_hms_opt(0, 0, 0))
-                .map(|time| Ok(time.and_utc().timestamp_millis() as f64))
-                .unwrap_or(Err(())),
+                .map(|time| time.and_utc().timestamp_millis() as f64),
             InputType::Time => match value.parse_time_string() {
-                Ok((hours, minutes, seconds)) => {
-                    Ok((seconds as f64 + 60.0 * minutes as f64 + 3600.0 * hours as f64) * 1000.0)
+                Some((hours, minutes, seconds)) => {
+                    Some((seconds + 60.0 * minutes as f64 + 3600.0 * hours as f64) * 1000.0)
                 },
-                _ => Err(()),
+                _ => None,
             },
             InputType::DatetimeLocal => {
                 // Is this supposed to know the locale's daylight-savings-time rules?
-                value
-                    .parse_local_date_and_time_string()
-                    .ok()
-                    .and_then(|((year, month, day), (hours, minutes, seconds))| {
+                value.parse_local_date_and_time_string().and_then(
+                    |((year, month, day), (hours, minutes, seconds))| {
                         let hms_millis =
                             (seconds + 60.0 * minutes as f64 + 3600.0 * hours as f64) * 1000.0;
                         NaiveDate::from_ymd_opt(year, month, day)
                             .and_then(|date| date.and_hms_opt(0, 0, 0))
-                            .map(|time| Ok(time.and_utc().timestamp_millis() as f64 + hms_millis))
-                    })
-                    .unwrap_or(Err(()))
+                            .map(|time| time.and_utc().timestamp_millis() as f64 + hms_millis)
+                    },
+                )
             },
             InputType::Number | InputType::Range => value.parse_floating_point_number(),
             // min/max/valueAsNumber/stepDown/stepUp do not apply to
             // the remaining types
-            _ => Err(()),
+            _ => None,
         }
     }
 
@@ -2225,40 +2217,30 @@ impl HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#concept-input-value-string-date
     // This does the safe Rust part of conversion; the unsafe JS Date part
     // is in GetValueAsDate
-    fn convert_string_to_naive_datetime(&self, value: DOMString) -> Result<NaiveDateTime, ()> {
+    fn convert_string_to_naive_datetime(&self, value: DOMString) -> Option<NaiveDateTime> {
         match self.input_type() {
             InputType::Date => value
                 .parse_date_string()
-                .ok()
                 .and_then(|(y, m, d)| NaiveDate::from_ymd_opt(y, m, d))
-                .and_then(|date| date.and_hms_opt(0, 0, 0))
-                .ok_or(()),
-            InputType::Time => value
-                .parse_time_string()
-                .ok()
-                .and_then(|(h, m, s)| {
-                    let whole_seconds = s.floor();
-                    let nanos = ((s - whole_seconds) * 1e9).floor() as u32;
-                    NaiveDate::from_ymd_opt(1970, 1, 1)
-                        .and_then(|date| date.and_hms_nano_opt(h, m, whole_seconds as u32, nanos))
-                })
-                .ok_or(()),
+                .and_then(|date| date.and_hms_opt(0, 0, 0)),
+            InputType::Time => value.parse_time_string().and_then(|(h, m, s)| {
+                let whole_seconds = s.floor();
+                let nanos = ((s - whole_seconds) * 1e9).floor() as u32;
+                NaiveDate::from_ymd_opt(1970, 1, 1)
+                    .and_then(|date| date.and_hms_nano_opt(h, m, whole_seconds as u32, nanos))
+            }),
             InputType::Week => value
                 .parse_week_string()
-                .ok()
                 .and_then(|(iso_year, week)| {
                     NaiveDate::from_isoywd_opt(iso_year, week, Weekday::Mon)
                 })
-                .and_then(|date| date.and_hms_opt(0, 0, 0))
-                .ok_or(()),
+                .and_then(|date| date.and_hms_opt(0, 0, 0)),
             InputType::Month => value
                 .parse_month_string()
-                .ok()
                 .and_then(|(y, m)| NaiveDate::from_ymd_opt(y, m, 1))
-                .and_then(|date| date.and_hms_opt(0, 0, 0))
-                .ok_or(()),
+                .and_then(|date| date.and_hms_opt(0, 0, 0)),
             // does not apply to other types
-            _ => Err(()),
+            _ => None,
         }
     }
 
@@ -2561,7 +2543,7 @@ impl VirtualMethods for HTMLInputElement {
                         let TextIndexResponse(index) =
                             window.text_index_query(self.upcast::<Node>(), point_in_target);
                         if let Some(i) = index {
-                            self.textinput.borrow_mut().set_edit_point_index(i as usize);
+                            self.textinput.borrow_mut().set_edit_point_index(i);
                             // trigger redraw
                             self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                             event.PreventDefault();

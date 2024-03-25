@@ -856,9 +856,9 @@ impl FlexLine<'_> {
                         item.box_.style().clone(),
                         item_result.fragments,
                         content_rect,
-                        flex_context.sides_to_flow_relative(item.padding.map(|t| (*t).into())),
-                        flex_context.sides_to_flow_relative(item.border.map(|t| (*t).into())),
-                        margin,
+                        flex_context.sides_to_flow_relative(item.padding),
+                        flex_context.sides_to_flow_relative(item.border),
+                        margin.into(),
                         None, /* clearance */
                         collapsed_margin,
                     ),
