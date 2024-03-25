@@ -1544,6 +1544,13 @@ impl HTMLMediaElement {
                                     }),
                                     window.upcast(),
                                 );
+
+                                // If at any time the user agent learns that an audio or video
+                                // track has ended..
+
+                                // 1. Remove the track..
+                                let idx = self.VideoTracks().selected_index().unwrap();
+                                self.VideoTracks().remove(idx);
                             }
                         },
 
@@ -1555,6 +1562,13 @@ impl HTMLMediaElement {
                                     .task_manager()
                                     .media_element_task_source()
                                     .queue_simple_event(self.upcast(), atom!("ended"), &window);
+
+                                // If at any time the user agent learns that an audio or video
+                                // track has ended..
+
+                                // 1. Remove the track..
+                                let idx = self.VideoTracks().selected_index().unwrap();
+                                self.VideoTracks().remove(idx);
                             }
                         },
                     }
