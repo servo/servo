@@ -2706,20 +2706,20 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
         ReflowGoal::Full => "\tFull",
         ReflowGoal::TickAnimations => "\tTickAnimations",
         ReflowGoal::UpdateScrollNode(_) => "\tUpdateScrollNode",
-        ReflowGoal::LayoutQuery(ref query_msg, _) => match query_msg {
-            &QueryMsg::ContentBoxQuery(_n) => "\tContentBoxQuery",
-            &QueryMsg::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
-            &QueryMsg::NodesFromPointQuery(..) => "\tNodesFromPointQuery",
-            &QueryMsg::ClientRectQuery(_n) => "\tClientRectQuery",
-            &QueryMsg::ScrollingAreaQuery(_n) => "\tNodeScrollGeometryQuery",
-            &QueryMsg::NodeScrollIdQuery(_n) => "\tNodeScrollIdQuery",
-            &QueryMsg::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
-            &QueryMsg::ResolvedFontStyleQuery(..) => "\nResolvedFontStyleQuery",
-            &QueryMsg::OffsetParentQuery(_n) => "\tOffsetParentQuery",
-            &QueryMsg::StyleQuery => "\tStyleQuery",
-            &QueryMsg::TextIndexQuery(..) => "\tTextIndexQuery",
-            &QueryMsg::ElementInnerTextQuery(_) => "\tElementInnerTextQuery",
-            &QueryMsg::InnerWindowDimensionsQuery(_) => "\tInnerWindowDimensionsQuery",
+        ReflowGoal::LayoutQuery(ref query_msg, _) => match *query_msg {
+            QueryMsg::ContentBoxQuery(_n) => "\tContentBoxQuery",
+            QueryMsg::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
+            QueryMsg::NodesFromPointQuery(..) => "\tNodesFromPointQuery",
+            QueryMsg::ClientRectQuery(_n) => "\tClientRectQuery",
+            QueryMsg::ScrollingAreaQuery(_n) => "\tNodeScrollGeometryQuery",
+            QueryMsg::NodeScrollIdQuery(_n) => "\tNodeScrollIdQuery",
+            QueryMsg::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
+            QueryMsg::ResolvedFontStyleQuery(..) => "\nResolvedFontStyleQuery",
+            QueryMsg::OffsetParentQuery(_n) => "\tOffsetParentQuery",
+            QueryMsg::StyleQuery => "\tStyleQuery",
+            QueryMsg::TextIndexQuery(..) => "\tTextIndexQuery",
+            QueryMsg::ElementInnerTextQuery(_) => "\tElementInnerTextQuery",
+            QueryMsg::InnerWindowDimensionsQuery(_) => "\tInnerWindowDimensionsQuery",
         },
     };
 
@@ -2836,13 +2836,13 @@ fn is_named_element_with_name_attribute(elem: &Element) -> bool {
         NodeTypeId::Element(ElementTypeId::HTMLElement(type_)) => type_,
         _ => return false,
     };
-    match type_ {
+    matches!(
+        type_,
         HTMLElementTypeId::HTMLEmbedElement |
-        HTMLElementTypeId::HTMLFormElement |
-        HTMLElementTypeId::HTMLImageElement |
-        HTMLElementTypeId::HTMLObjectElement => true,
-        _ => false,
-    }
+            HTMLElementTypeId::HTMLFormElement |
+            HTMLElementTypeId::HTMLImageElement |
+            HTMLElementTypeId::HTMLObjectElement
+    )
 }
 
 fn is_named_element_with_id_attribute(elem: &Element) -> bool {

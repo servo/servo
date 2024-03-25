@@ -347,12 +347,14 @@ impl WebGLTexture {
 
     pub fn is_using_linear_filtering(&self) -> bool {
         let filters = [self.min_filter.get(), self.mag_filter.get()];
-        filters.iter().any(|filter| match *filter {
-            constants::LINEAR |
-            constants::NEAREST_MIPMAP_LINEAR |
-            constants::LINEAR_MIPMAP_NEAREST |
-            constants::LINEAR_MIPMAP_LINEAR => true,
-            _ => false,
+        filters.iter().any(|filter| {
+            matches!(
+                *filter,
+                constants::LINEAR |
+                    constants::NEAREST_MIPMAP_LINEAR |
+                    constants::LINEAR_MIPMAP_NEAREST |
+                    constants::LINEAR_MIPMAP_LINEAR
+            )
         })
     }
 

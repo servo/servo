@@ -118,18 +118,18 @@ impl Permissions {
                 // (Query, Request) Step 5.
                 let result = BluetoothPermissionResult::new(&self.global(), &status);
 
-                match &op {
+                match op {
                     // (Request) Step 6 - 8.
-                    &Operation::Request => {
+                    Operation::Request => {
                         Bluetooth::permission_request(cx, &p, &bluetooth_desc, &result)
                     },
 
                     // (Query) Step 6 - 7.
-                    &Operation::Query => {
+                    Operation::Query => {
                         Bluetooth::permission_query(cx, &p, &bluetooth_desc, &result)
                     },
 
-                    &Operation::Revoke => {
+                    Operation::Revoke => {
                         // (Revoke) Step 3.
                         let globalscope = self.global();
                         globalscope
@@ -143,8 +143,8 @@ impl Permissions {
                 }
             },
             _ => {
-                match &op {
-                    &Operation::Request => {
+                match op {
+                    Operation::Request => {
                         // (Request) Step 6.
                         Permissions::permission_request(cx, &p, &root_desc, &status);
 
@@ -153,7 +153,7 @@ impl Permissions {
                         // (Request) Step 8.
                         p.resolve_native(&status);
                     },
-                    &Operation::Query => {
+                    Operation::Query => {
                         // (Query) Step 6.
                         Permissions::permission_query(cx, &p, &root_desc, &status);
 
@@ -161,7 +161,7 @@ impl Permissions {
                         p.resolve_native(&status);
                     },
 
-                    &Operation::Revoke => {
+                    Operation::Revoke => {
                         // (Revoke) Step 3.
                         let globalscope = self.global();
                         globalscope

@@ -204,8 +204,8 @@ impl VirtualMethods for HTMLLinkElement {
         }
 
         let rel = get_attr(self.upcast(), &local_name!("rel"));
-        match attr.local_name() {
-            &local_name!("href") => {
+        match *attr.local_name() {
+            local_name!("href") => {
                 if string_is_stylesheet(&rel) {
                     self.handle_stylesheet_url(&attr.value());
                 } else if is_favicon(&rel) {
@@ -213,7 +213,7 @@ impl VirtualMethods for HTMLLinkElement {
                     self.handle_favicon_url(rel.as_ref().unwrap(), &attr.value(), &sizes);
                 }
             },
-            &local_name!("sizes") => {
+            local_name!("sizes") => {
                 if is_favicon(&rel) {
                     if let Some(ref href) = get_attr(self.upcast(), &local_name!("href")) {
                         self.handle_favicon_url(

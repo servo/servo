@@ -136,11 +136,11 @@ impl EventListenerType {
         owner: &EventTarget,
         ty: &Atom,
     ) -> Option<CompiledEventListener> {
-        match self {
-            &mut EventListenerType::Inline(ref mut inline) => inline
+        match *self {
+            EventListenerType::Inline(ref mut inline) => inline
                 .get_compiled_handler(owner, ty)
                 .map(CompiledEventListener::Handler),
-            &mut EventListenerType::Additive(ref listener) => {
+            EventListenerType::Additive(ref listener) => {
                 Some(CompiledEventListener::Listener(listener.clone()))
             },
         }
@@ -415,10 +415,9 @@ impl EventTarget {
             Vacant(entry) => entry.insert(EventListeners(vec![])),
         };
 
-        let idx = entries.iter().position(|ref entry| match entry.listener {
-            EventListenerType::Inline(_) => true,
-            _ => false,
-        });
+        let idx = entries
+            .iter()
+            .position(|ref entry| matches!(entry.listener, EventListenerType::Inline(_)));
 
         match idx {
             Some(idx) => match listener {

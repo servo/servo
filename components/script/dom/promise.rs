@@ -229,10 +229,7 @@ impl Promise {
     #[allow(unsafe_code)]
     pub fn is_fulfilled(&self) -> bool {
         let state = unsafe { GetPromiseState(self.promise_obj()) };
-        match state {
-            PromiseState::Rejected | PromiseState::Fulfilled => true,
-            _ => false,
-        }
+        matches!(state, PromiseState::Rejected | PromiseState::Fulfilled)
     }
 
     #[allow(unsafe_code)]
