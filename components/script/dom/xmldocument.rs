@@ -2,16 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ptr::NonNull;
-
 use dom_struct::dom_struct;
-use js::jsapi::JSObject;
 use mime::Mime;
 use script_traits::DocumentActivity;
 use servo_url::{MutableOrigin, ServoUrl};
 
 use crate::document_loader::DocumentLoader;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
+    DocumentMethods, NamedPropertyValue,
+};
 use crate::dom::bindings::codegen::Bindings::XMLDocumentBinding::XMLDocumentMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object;
@@ -21,7 +20,6 @@ use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLD
 use crate::dom::location::Location;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
-use crate::script_runtime::JSContext;
 
 // https://dom.spec.whatwg.org/#xmldocument
 #[dom_struct]
@@ -108,7 +106,7 @@ impl XMLDocumentMethods for XMLDocument {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
-    fn NamedGetter(&self, _cx: JSContext, name: DOMString) -> Option<NonNull<JSObject>> {
-        self.upcast::<Document>().NamedGetter(_cx, name)
+    fn NamedGetter(&self, name: DOMString) -> Option<NamedPropertyValue> {
+        self.upcast::<Document>().NamedGetter(name)
     }
 }

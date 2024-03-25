@@ -9,7 +9,6 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::default::Default;
 use std::mem;
-use std::ptr::NonNull;
 use std::rc::Rc;
 use std::slice::from_ref;
 use std::time::{Duration, Instant};
@@ -26,7 +25,6 @@ use euclid::default::{Point2D, Rect, Size2D};
 use html5ever::{local_name, namespace_url, ns, LocalName, Namespace, QualName};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use keyboard_types::{Code, Key, KeyState};
 use lazy_static::lazy_static;
@@ -80,7 +78,7 @@ use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEvent_Binding::BeforeUnloadEventMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
-    DocumentMethods, DocumentReadyState,
+    DocumentMethods, DocumentReadyState, NamedPropertyValue,
 };
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElement_Binding::HTMLIFrameElementMethods;
@@ -176,7 +174,7 @@ use crate::dom::window::{ReflowReason, Window};
 use crate::dom::windowproxy::WindowProxy;
 use crate::fetch::FetchCanceller;
 use crate::realms::{AlreadyInRealm, InRealm};
-use crate::script_runtime::{CommonScriptMsg, JSContext, ScriptThreadEventCategory};
+use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use crate::script_thread::{MainThreadScriptMsg, ScriptThread};
 use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::TaskBox;
@@ -208,12 +206,12 @@ pub enum FireMouseEventType {
 
 impl FireMouseEventType {
     pub fn as_str(&self) -> &str {
-        match self {
-            &FireMouseEventType::Move => "mousemove",
-            &FireMouseEventType::Over => "mouseover",
-            &FireMouseEventType::Out => "mouseout",
-            &FireMouseEventType::Enter => "mouseenter",
-            &FireMouseEventType::Leave => "mouseleave",
+        match *self {
+            FireMouseEventType::Move => "mousemove",
+            FireMouseEventType::Over => "mouseover",
+            FireMouseEventType::Out => "mouseout",
+            FireMouseEventType::Enter => "mouseenter",
+            FireMouseEventType::Leave => "mouseleave",
         }
     }
 }
@@ -2395,10 +2393,8 @@ impl Document {
         // TODO: should this only happen on the first document loaded?
         // https://immersive-web.github.io/webxr/#user-intention
         // https://github.com/immersive-web/navigation/issues/10
-        if pref!(dom.webxr.sessionavailable) {
-            if self.window.is_top_level() {
-                self.window.Navigator().Xr().dispatch_sessionavailable();
-            }
+        if pref!(dom.webxr.sessionavailable) && self.window.is_top_level() {
+            self.window.Navigator().Xr().dispatch_sessionavailable();
         }
 
         // Step 12: completely loaded.
@@ -2926,10 +2922,7 @@ impl Document {
 }
 
 fn is_character_value_key(key: &Key) -> bool {
-    match key {
-        Key::Character(_) | Key::Enter => true,
-        _ => false,
-    }
+    matches!(key, Key::Character(_) | Key::Enter)
 }
 
 #[derive(MallocSizeOf, PartialEq)]
@@ -3057,10 +3050,7 @@ fn get_registrable_domain_suffix_of_or_is_equal_to(
 
 /// <https://url.spec.whatwg.org/#network-scheme>
 fn url_has_network_scheme(url: &ServoUrl) -> bool {
-    match url.scheme() {
-        "ftp" | "http" | "https" => true,
-        _ => false,
-    }
+    matches!(url.scheme(), "ftp" | "http" | "https")
 }
 
 #[derive(Clone, Copy, Eq, JSTraceable, MallocSizeOf, PartialEq)]
@@ -3984,8 +3974,7 @@ impl Document {
 impl Element {
     fn click_event_filter_by_disabled_state(&self) -> bool {
         let node = self.upcast::<Node>();
-        match node.type_id() {
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
+        matches!(node.type_id(), NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLButtonElement,
             )) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(
@@ -3999,9 +3988,7 @@ impl Element {
             )) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLTextAreaElement,
-            )) if self.disabled_state() => true,
-            _ => false,
-        }
+            )) if self.disabled_state())
     }
 }
 
@@ -4601,14 +4588,15 @@ impl DocumentMethods for Document {
         self.get_html_element().and_then(|root| {
             let node = root.upcast::<Node>();
             node.children()
-                .find(|child| match child.type_id() {
-                    NodeTypeId::Element(ElementTypeId::HTMLElement(
-                        HTMLElementTypeId::HTMLBodyElement,
-                    )) |
-                    NodeTypeId::Element(ElementTypeId::HTMLElement(
-                        HTMLElementTypeId::HTMLFrameSetElement,
-                    )) => true,
-                    _ => false,
+                .find(|child| {
+                    matches!(
+                        child.type_id(),
+                        NodeTypeId::Element(ElementTypeId::HTMLElement(
+                            HTMLElementTypeId::HTMLBodyElement,
+                        )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
+                            HTMLElementTypeId::HTMLFrameSetElement,
+                        ))
+                    )
                 })
                 .map(|node| DomRoot::downcast(node).unwrap())
         })
@@ -4860,8 +4848,8 @@ impl DocumentMethods for Document {
     }
 
     #[allow(unsafe_code)]
-    // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
-    fn NamedGetter(&self, _cx: JSContext, name: DOMString) -> Option<NonNull<JSObject>> {
+    /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter>
+    fn NamedGetter(&self, name: DOMString) -> Option<NamedPropertyValue> {
         if name.is_empty() {
             return None;
         }
@@ -4886,19 +4874,11 @@ impl DocumentMethods for Document {
                 .downcast::<HTMLIFrameElement>()
                 .and_then(|iframe| iframe.GetContentWindow())
             {
-                unsafe {
-                    return Some(NonNull::new_unchecked(
-                        nested_window_proxy.reflector().get_jsobject().get(),
-                    ));
-                }
+                return Some(NamedPropertyValue::WindowProxy(nested_window_proxy));
             }
 
             // Step 3.
-            unsafe {
-                return Some(NonNull::new_unchecked(
-                    first.reflector().get_jsobject().get(),
-                ));
-            }
+            return Some(NamedPropertyValue::Element(DomRoot::from_ref(first)));
         }
 
         // Step 4.
@@ -4933,11 +4913,7 @@ impl DocumentMethods for Document {
             self.upcast(),
             Box::new(DocumentNamedGetter { name }),
         );
-        unsafe {
-            Some(NonNull::new_unchecked(
-                collection.reflector().get_jsobject().get(),
-            ))
-        }
+        Some(NamedPropertyValue::HTMLCollection(collection))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names

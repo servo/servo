@@ -2425,17 +2425,17 @@ impl VirtualMethods for HTMLMediaElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
 
-        match attr.local_name() {
-            &local_name!("muted") => {
+        match *attr.local_name() {
+            local_name!("muted") => {
                 self.SetMuted(mutation.new_value(attr).is_some());
             },
-            &local_name!("src") => {
+            local_name!("src") => {
                 if mutation.new_value(attr).is_none() {
                     return;
                 }
                 self.media_element_load_algorithm();
             },
-            &local_name!("controls") => {
+            local_name!("controls") => {
                 if mutation.new_value(attr).is_some() {
                     self.render_controls();
                 } else {

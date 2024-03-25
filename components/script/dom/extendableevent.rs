@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::rust::{HandleObject, HandleValue};
 use servo_atoms::Atom;
 
-use crate::dom::bindings::codegen::Bindings::EventBinding::{self, EventMethods};
+use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::ExtendableEventBinding;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -94,9 +94,7 @@ impl ExtendableEvent {
 }
 
 impl Default for ExtendableEventBinding::ExtendableEventInit {
-    fn default() -> ExtendableEventBinding::ExtendableEventInit {
-        ExtendableEventBinding::ExtendableEventInit {
-            parent: EventBinding::EventInit::default(),
-        }
+    fn default() -> Self {
+        Self::empty()
     }
 }

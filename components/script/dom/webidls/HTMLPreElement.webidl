@@ -12,6 +12,5 @@ interface HTMLPreElement : HTMLElement {
 
 // https://html.spec.whatwg.org/multipage/#HTMLPreElement-partial
 partial interface HTMLPreElement {
-  // [CEReactions]
-  //         attribute long width;
+  [CEReactions] attribute long width;
 };

@@ -851,13 +851,10 @@ impl WebGLFramebuffer {
             attachment: &DomRefCell<Option<WebGLFramebufferAttachment>>,
             target: &WebGLTextureId,
         ) -> bool {
-            match *attachment.borrow() {
-                Some(WebGLFramebufferAttachment::Texture {
-                    texture: ref att_texture,
-                    ..
-                }) if att_texture.id() == *target => true,
-                _ => false,
-            }
+            matches!(*attachment.borrow(), Some(WebGLFramebufferAttachment::Texture {
+                                     texture: ref att_texture,
+                                     ..
+                                }) if att_texture.id() == *target)
         }
 
         for (attachment, name) in &attachments {

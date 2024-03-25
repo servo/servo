@@ -144,9 +144,9 @@ impl HTMLTableElement {
 
         let section =
             HTMLTableSectionElement::new(atom.clone(), None, &document_from_node(self), None);
-        match atom {
-            &local_name!("thead") => self.SetTHead(Some(&section)),
-            &local_name!("tfoot") => self.SetTFoot(Some(&section)),
+        match *atom {
+            local_name!("thead") => self.SetTHead(Some(&section)),
+            local_name!("tfoot") => self.SetTFoot(Some(&section)),
             _ => unreachable!("unexpected section type"),
         }
         .expect("unexpected section type");

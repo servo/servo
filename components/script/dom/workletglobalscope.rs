@@ -92,7 +92,7 @@ impl WorkletGlobalScope {
         debug!("Evaluating Dom in a worklet.");
         rooted!(in (*GlobalScope::get_cx()) let mut rval = UndefinedValue());
         self.globalscope.evaluate_js_on_global_with_result(
-            &*script,
+            script,
             rval.handle_mut(),
             ScriptFetchOptions::default_classic_script(&self.globalscope),
             self.globalscope.api_base_url(),

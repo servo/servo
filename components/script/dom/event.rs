@@ -755,10 +755,7 @@ fn inner_invoke(
 }
 
 impl Default for EventBinding::EventInit {
-    fn default() -> EventBinding::EventInit {
-        EventBinding::EventInit {
-            bubbles: false,
-            cancelable: false,
-        }
+    fn default() -> Self {
+        Self::empty()
     }
 }
