@@ -131,7 +131,7 @@ impl PartialEq for OneshotTimer {
 impl OneshotTimers {
     pub fn new(scheduler_chan: IpcSender<TimerSchedulerMsg>) -> OneshotTimers {
         OneshotTimers {
-            js_timers: JsTimers::new(),
+            js_timers: JsTimers::default(),
             timer_event_chan: DomRefCell::new(None),
             scheduler_chan,
             next_timer_handle: Cell::new(OneshotTimerHandle(1)),
@@ -418,14 +418,8 @@ enum InternalTimerCallback {
     ),
 }
 
-impl Default for JsTimers {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl JsTimers {
-    pub fn new() -> JsTimers {
+    pub fn default() -> JsTimers {
         JsTimers {
             next_timer_handle: Cell::new(JsTimerHandle(1)),
             active_timers: DomRefCell::new(HashMap::new()),
