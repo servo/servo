@@ -5,7 +5,6 @@
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::default::Default;
-use std::ptr::NonNull;
 use std::str::{self, FromStr};
 use std::sync::{Arc, Mutex};
 use std::{cmp, ptr, slice};
@@ -25,7 +24,7 @@ use js::jsapi::{Heap, JSObject, JS_ClearPendingException};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use js::rust::wrappers::JS_ParseJSON;
 use js::rust::HandleObject;
-use js::typedarray::{ArrayBuffer, CreateWith};
+use js::typedarray::{ArrayBuffer, ArrayBufferU8};
 use mime::{self, Mime, Name};
 use net_traits::request::{CredentialsMode, Destination, Referrer, RequestBuilder, RequestMode};
 use net_traits::CoreResourceMsg::Fetch;
@@ -41,6 +40,7 @@ use url::Position;
 
 use crate::body::{BodySource, Extractable, ExtractedBody};
 use crate::document_loader::DocumentLoader;
+use crate::dom::bindings::buffer_source::{create_buffer_source, HeapBufferSource};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::{
@@ -136,7 +136,7 @@ pub struct XMLHttpRequest {
     response_xml: MutNullableDom<Document>,
     response_blob: MutNullableDom<Blob>,
     #[ignore_malloc_size_of = "mozjs"]
-    response_arraybuffer: Heap<*mut JSObject>,
+    response_arraybuffer: HeapBufferSource<ArrayBufferU8>,
     #[ignore_malloc_size_of = "Defined in rust-mozjs"]
     response_json: Heap<JSVal>,
     #[ignore_malloc_size_of = "Defined in hyper"]
@@ -195,7 +195,7 @@ impl XMLHttpRequest {
             response_type: Cell::new(XMLHttpRequestResponseType::_empty),
             response_xml: Default::default(),
             response_blob: Default::default(),
-            response_arraybuffer: Heap::default(),
+            response_arraybuffer: HeapBufferSource::default(),
             response_json: Heap::default(),
             response_headers: DomRefCell::new(HeaderMap::new()),
             override_mime_type: DomRefCell::new(None),
@@ -975,7 +975,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 self.blob_response().to_jsval(*cx, rval.handle_mut());
             },
             XMLHttpRequestResponseType::Arraybuffer => match self.arraybuffer_response(cx) {
-                Some(js_object) => unsafe { js_object.to_jsval(*cx, rval.handle_mut()) },
+                Some(array_buffer) => unsafe { array_buffer.to_jsval(*cx, rval.handle_mut()) },
                 None => return NullValue(),
             },
         }
@@ -1348,25 +1348,16 @@ impl XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#arraybuffer-response
-    #[allow(unsafe_code)]
-    fn arraybuffer_response(&self, cx: JSContext) -> Option<NonNull<JSObject>> {
+    fn arraybuffer_response(&self, cx: JSContext) -> Option<ArrayBuffer> {
         // Step 1
-        let created = self.response_arraybuffer.get();
-        if let Some(nonnull) = NonNull::new(created) {
-            return Some(nonnull);
+        if self.response_arraybuffer.is_initialized() {
+            return self.response_arraybuffer.get_buffer().ok();
         }
 
         // Step 2
         let bytes = self.response.borrow();
         rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
-        unsafe {
-            ArrayBuffer::create(*cx, CreateWith::Slice(&bytes), array_buffer.handle_mut())
-                .ok()
-                .and_then(|()| {
-                    self.response_arraybuffer.set(array_buffer.get());
-                    Some(NonNull::new_unchecked(array_buffer.get()))
-                })
-        }
+        create_buffer_source(cx, &bytes, array_buffer.handle_mut()).ok()
     }
 
     // https://xhr.spec.whatwg.org/#document-response
