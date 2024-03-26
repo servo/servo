@@ -227,8 +227,8 @@ impl XMLHttpRequest {
         )
     }
 
-    // https://xhr.spec.whatwg.org/#constructors
     #[allow(non_snake_case)]
+    /// <https://xhr.spec.whatwg.org/#constructors>
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -332,25 +332,25 @@ impl XMLHttpRequest {
 }
 
 impl XMLHttpRequestMethods for XMLHttpRequest {
-    // https://xhr.spec.whatwg.org/#handler-xhr-onreadystatechange
+    /// <https://xhr.spec.whatwg.org/#handler-xhr-onreadystatechange>
     event_handler!(
         readystatechange,
         GetOnreadystatechange,
         SetOnreadystatechange
     );
 
-    // https://xhr.spec.whatwg.org/#dom-xmlhttprequest-readystate
+    /// <https://xhr.spec.whatwg.org/#dom-xmlhttprequest-readystate>
     fn ReadyState(&self) -> u16 {
         self.ready_state.get() as u16
     }
 
-    // https://xhr.spec.whatwg.org/#the-open()-method
+    /// <https://xhr.spec.whatwg.org/#the-open()-method>
     fn Open(&self, method: ByteString, url: USVString) -> ErrorResult {
         // Step 8
         self.Open_(method, url, true, None, None)
     }
 
-    // https://xhr.spec.whatwg.org/#the-open()-method
+    /// <https://xhr.spec.whatwg.org/#the-open()-method>
     fn Open_(
         &self,
         method: ByteString,
@@ -452,7 +452,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         }
     }
 
-    // https://xhr.spec.whatwg.org/#the-setrequestheader()-method
+    /// <https://xhr.spec.whatwg.org/#the-setrequestheader()-method>
     fn SetRequestHeader(&self, name: ByteString, value: ByteString) -> ErrorResult {
         // Step 1, 2
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
@@ -506,12 +506,12 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         Ok(())
     }
 
-    // https://xhr.spec.whatwg.org/#the-timeout-attribute
+    /// <https://xhr.spec.whatwg.org/#the-timeout-attribute>
     fn Timeout(&self) -> u32 {
         self.timeout.get()
     }
 
-    // https://xhr.spec.whatwg.org/#the-timeout-attribute
+    /// <https://xhr.spec.whatwg.org/#the-timeout-attribute>
     fn SetTimeout(&self, timeout: u32) -> ErrorResult {
         // Step 1
         if self.sync_in_window() {
@@ -536,12 +536,12 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         Ok(())
     }
 
-    // https://xhr.spec.whatwg.org/#the-withcredentials-attribute
+    /// <https://xhr.spec.whatwg.org/#the-withcredentials-attribute>
     fn WithCredentials(&self) -> bool {
         self.with_credentials.get()
     }
 
-    // https://xhr.spec.whatwg.org/#dom-xmlhttprequest-withcredentials
+    /// <https://xhr.spec.whatwg.org/#dom-xmlhttprequest-withcredentials>
     fn SetWithCredentials(&self, with_credentials: bool) -> ErrorResult {
         match self.ready_state.get() {
             // Step 1
@@ -558,12 +558,12 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         }
     }
 
-    // https://xhr.spec.whatwg.org/#the-upload-attribute
+    /// <https://xhr.spec.whatwg.org/#the-upload-attribute>
     fn Upload(&self) -> DomRoot<XMLHttpRequestUpload> {
         DomRoot::from_ref(&*self.upload)
     }
 
-    // https://xhr.spec.whatwg.org/#the-send()-method
+    /// <https://xhr.spec.whatwg.org/#the-send()-method>
     fn Send(&self, data: Option<DocumentOrXMLHttpRequestBodyInit>) -> ErrorResult {
         // Step 1, 2
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
@@ -800,7 +800,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         Ok(())
     }
 
-    // https://xhr.spec.whatwg.org/#the-abort()-method
+    /// <https://xhr.spec.whatwg.org/#the-abort()-method>
     fn Abort(&self) {
         // Step 1
         self.terminate_ongoing_fetch();
@@ -827,22 +827,22 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         }
     }
 
-    // https://xhr.spec.whatwg.org/#the-responseurl-attribute
+    /// <https://xhr.spec.whatwg.org/#the-responseurl-attribute>
     fn ResponseURL(&self) -> USVString {
         USVString(self.response_url.borrow().clone())
     }
 
-    // https://xhr.spec.whatwg.org/#the-status-attribute
+    /// <https://xhr.spec.whatwg.org/#the-status-attribute>
     fn Status(&self) -> u16 {
         self.status.get()
     }
 
-    // https://xhr.spec.whatwg.org/#the-statustext-attribute
+    /// <https://xhr.spec.whatwg.org/#the-statustext-attribute>
     fn StatusText(&self) -> ByteString {
         self.status_text.borrow().clone()
     }
 
-    // https://xhr.spec.whatwg.org/#the-getresponseheader()-method
+    /// <https://xhr.spec.whatwg.org/#the-getresponseheader()-method>
     fn GetResponseHeader(&self, name: ByteString) -> Option<ByteString> {
         let headers = self.filter_response_headers();
         let headers = headers.get_all(HeaderName::from_str(&name.as_str()?.to_lowercase()).ok()?);
@@ -866,7 +866,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         }
     }
 
-    // https://xhr.spec.whatwg.org/#the-getallresponseheaders()-method
+    /// <https://xhr.spec.whatwg.org/#the-getallresponseheaders()-method>
     fn GetAllResponseHeaders(&self) -> ByteString {
         let headers = self.filter_response_headers();
         let keys = headers.keys();
@@ -914,12 +914,12 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         Ok(())
     }
 
-    // https://xhr.spec.whatwg.org/#the-responsetype-attribute
+    /// <https://xhr.spec.whatwg.org/#the-responsetype-attribute>
     fn ResponseType(&self) -> XMLHttpRequestResponseType {
         self.response_type.get()
     }
 
-    // https://xhr.spec.whatwg.org/#the-responsetype-attribute
+    /// <https://xhr.spec.whatwg.org/#the-responsetype-attribute>
     fn SetResponseType(&self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
         // Step 1
         if self.global().is::<WorkerGlobalScope>() &&
@@ -944,7 +944,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     }
 
     #[allow(unsafe_code)]
-    // https://xhr.spec.whatwg.org/#the-response-attribute
+    /// <https://xhr.spec.whatwg.org/#the-response-attribute>
     fn Response(&self, cx: JSContext) -> JSVal {
         rooted!(in(*cx) let mut rval = UndefinedValue());
         match self.response_type.get() {
@@ -982,7 +982,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         rval.get()
     }
 
-    // https://xhr.spec.whatwg.org/#the-responsetext-attribute
+    /// <https://xhr.spec.whatwg.org/#the-responsetext-attribute>
     fn GetResponseText(&self) -> Fallible<USVString> {
         match self.response_type.get() {
             XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => {
@@ -1000,7 +1000,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         }
     }
 
-    // https://xhr.spec.whatwg.org/#the-responsexml-attribute
+    /// <https://xhr.spec.whatwg.org/#the-responsexml-attribute>
     fn GetResponseXML(&self) -> Fallible<Option<DomRoot<Document>>> {
         match self.response_type.get() {
             XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Document => {
@@ -1313,7 +1313,7 @@ impl XMLHttpRequest {
         }
     }
 
-    // https://xhr.spec.whatwg.org/#text-response
+    /// <https://xhr.spec.whatwg.org/#text-response>
     fn text_response(&self) -> String {
         // Step 3, 5
         let charset = self.final_charset().unwrap_or(UTF_8);
@@ -1327,7 +1327,7 @@ impl XMLHttpRequest {
         text.into_owned()
     }
 
-    // https://xhr.spec.whatwg.org/#blob-response
+    /// <https://xhr.spec.whatwg.org/#blob-response>
     fn blob_response(&self) -> DomRoot<Blob> {
         // Step 1
         if let Some(response) = self.response_blob.get() {
@@ -1347,7 +1347,7 @@ impl XMLHttpRequest {
         blob
     }
 
-    // https://xhr.spec.whatwg.org/#arraybuffer-response
+    /// <https://xhr.spec.whatwg.org/#arraybuffer-response>
     fn arraybuffer_response(&self, cx: JSContext) -> Option<ArrayBuffer> {
         // Step 1
         if self.response_arraybuffer.is_initialized() {
@@ -1360,7 +1360,7 @@ impl XMLHttpRequest {
         create_buffer_source(cx, &bytes, array_buffer.handle_mut()).ok()
     }
 
-    // https://xhr.spec.whatwg.org/#document-response
+    /// <https://xhr.spec.whatwg.org/#document-response>
     fn document_response(&self) -> Option<DomRoot<Document>> {
         // Caching: if we have existing response xml, redirect it directly
         let response = self.response_xml.get();
@@ -1431,7 +1431,7 @@ impl XMLHttpRequest {
     }
 
     #[allow(unsafe_code)]
-    // https://xhr.spec.whatwg.org/#json-response
+    /// <https://xhr.spec.whatwg.org/#json-response>
     fn json_response(&self, cx: JSContext) -> JSVal {
         // Step 1
         let response_json = self.response_json.get();
