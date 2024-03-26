@@ -636,7 +636,7 @@ impl WindowProxy {
                 ((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL),
                 0
             );
-            let _ac = enter_realm(&*window);
+            let _ac = enter_realm(window);
 
             // The old window proxy no longer owns this browsing context.
             SetProxyReservedSlot(old_js_proxy.get(), 0, &PrivateValue(ptr::null_mut()));
@@ -681,7 +681,7 @@ impl WindowProxy {
                 );
             }
         }
-        self.set_window(&*globalscope, &PROXY_HANDLER);
+        self.set_window(globalscope, &PROXY_HANDLER);
         self.currently_active.set(Some(globalscope.pipeline_id()));
     }
 
@@ -691,7 +691,7 @@ impl WindowProxy {
         }
         let globalscope = self.global();
         let window = DissimilarOriginWindow::new(&globalscope, self);
-        self.set_window(&*window.upcast(), &XORIGIN_PROXY_HANDLER);
+        self.set_window(window.upcast(), &XORIGIN_PROXY_HANDLER);
         self.currently_active.set(None);
     }
 

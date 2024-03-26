@@ -238,12 +238,12 @@ impl Request {
         }
 
         // Step 21
-        if request.cache_mode == NetTraitsRequestCache::OnlyIfCached {
-            if request.mode != NetTraitsRequestMode::SameOrigin {
-                return Err(Error::Type(
-                    "Cache is 'only-if-cached' and mode is not 'same-origin'".to_string(),
-                ));
-            }
+        if request.cache_mode == NetTraitsRequestCache::OnlyIfCached &&
+            request.mode != NetTraitsRequestMode::SameOrigin
+        {
+            return Err(Error::Type(
+                "Cache is 'only-if-cached' and mode is not 'same-origin'".to_string(),
+            ));
         }
 
         // Step 22
@@ -493,12 +493,10 @@ fn is_method(m: &ByteString) -> bool {
 
 // https://fetch.spec.whatwg.org/#forbidden-method
 fn is_forbidden_method(m: &ByteString) -> bool {
-    match m.to_lower().as_str() {
-        Some("connect") => true,
-        Some("trace") => true,
-        Some("track") => true,
-        _ => false,
-    }
+    matches!(
+        m.to_lower().as_str(),
+        Some("connect") | Some("trace") | Some("track")
+    )
 }
 
 // https://fetch.spec.whatwg.org/#cors-safelisted-method

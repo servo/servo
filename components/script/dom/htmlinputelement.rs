@@ -2270,8 +2270,8 @@ impl VirtualMethods for HTMLInputElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        match attr.local_name() {
-            &local_name!("disabled") => {
+        match *attr.local_name() {
+            local_name!("disabled") => {
                 let disabled_state = match mutation {
                     AttributeMutation::Set(None) => true,
                     AttributeMutation::Set(Some(_)) => {
@@ -2292,7 +2292,7 @@ impl VirtualMethods for HTMLInputElement {
 
                 el.update_sequentially_focusable_status();
             },
-            &local_name!("checked") if !self.checked_changed.get() => {
+            local_name!("checked") if !self.checked_changed.get() => {
                 let checked_state = match mutation {
                     AttributeMutation::Set(None) => true,
                     AttributeMutation::Set(Some(_)) => {
@@ -2303,11 +2303,11 @@ impl VirtualMethods for HTMLInputElement {
                 };
                 self.update_checked_state(checked_state, false);
             },
-            &local_name!("size") => {
+            local_name!("size") => {
                 let size = mutation.new_value(attr).map(|value| value.as_uint());
                 self.size.set(size.unwrap_or(DEFAULT_INPUT_SIZE));
             },
-            &local_name!("type") => {
+            local_name!("type") => {
                 let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(_) => {
@@ -2396,7 +2396,7 @@ impl VirtualMethods for HTMLInputElement {
 
                 self.update_placeholder_shown_state();
             },
-            &local_name!("value") if !self.value_dirty.get() => {
+            local_name!("value") if !self.value_dirty.get() => {
                 let value = mutation.new_value(attr).map(|value| (**value).to_owned());
                 let mut value = value.map_or(DOMString::new(), DOMString::from);
 
@@ -2404,12 +2404,12 @@ impl VirtualMethods for HTMLInputElement {
                 self.textinput.borrow_mut().set_content(value);
                 self.update_placeholder_shown_state();
             },
-            &local_name!("name") if self.input_type() == InputType::Radio => {
+            local_name!("name") if self.input_type() == InputType::Radio => {
                 self.radio_group_updated(
                     mutation.new_value(attr).as_ref().map(|name| name.as_atom()),
                 );
             },
-            &local_name!("maxlength") => match *attr.value() {
+            local_name!("maxlength") => match *attr.value() {
                 AttrValue::Int(_, value) => {
                     let mut textinput = self.textinput.borrow_mut();
 
@@ -2421,7 +2421,7 @@ impl VirtualMethods for HTMLInputElement {
                 },
                 _ => panic!("Expected an AttrValue::Int"),
             },
-            &local_name!("minlength") => match *attr.value() {
+            local_name!("minlength") => match *attr.value() {
                 AttrValue::Int(_, value) => {
                     let mut textinput = self.textinput.borrow_mut();
 
@@ -2433,7 +2433,7 @@ impl VirtualMethods for HTMLInputElement {
                 },
                 _ => panic!("Expected an AttrValue::Int"),
             },
-            &local_name!("placeholder") => {
+            local_name!("placeholder") => {
                 {
                     let mut placeholder = self.placeholder.borrow_mut();
                     placeholder.clear();
@@ -2444,7 +2444,7 @@ impl VirtualMethods for HTMLInputElement {
                 }
                 self.update_placeholder_shown_state();
             },
-            &local_name!("readonly") => {
+            local_name!("readonly") => {
                 if self.input_type().is_textual() {
                     let el = self.upcast::<Element>();
                     match mutation {
@@ -2457,7 +2457,7 @@ impl VirtualMethods for HTMLInputElement {
                     }
                 }
             },
-            &local_name!("form") => {
+            local_name!("form") => {
                 self.form_attribute_mutated(mutation);
             },
             _ => {},
@@ -2468,14 +2468,14 @@ impl VirtualMethods for HTMLInputElement {
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
-        match name {
-            &local_name!("accept") => AttrValue::from_comma_separated_tokenlist(value.into()),
-            &local_name!("size") => AttrValue::from_limited_u32(value.into(), DEFAULT_INPUT_SIZE),
-            &local_name!("type") => AttrValue::from_atomic(value.into()),
-            &local_name!("maxlength") => {
+        match *name {
+            local_name!("accept") => AttrValue::from_comma_separated_tokenlist(value.into()),
+            local_name!("size") => AttrValue::from_limited_u32(value.into(), DEFAULT_INPUT_SIZE),
+            local_name!("type") => AttrValue::from_atomic(value.into()),
+            local_name!("maxlength") => {
                 AttrValue::from_limited_i32(value.into(), DEFAULT_MAX_LENGTH)
             },
-            &local_name!("minlength") => {
+            local_name!("minlength") => {
                 AttrValue::from_limited_i32(value.into(), DEFAULT_MIN_LENGTH)
             },
             _ => self
@@ -2684,28 +2684,28 @@ impl Validatable for HTMLInputElement {
         let mut failed_flags = ValidationFlags::empty();
         let value = self.Value();
 
-        if validate_flags.contains(ValidationFlags::VALUE_MISSING) {
-            if self.suffers_from_being_missing(&value) {
-                failed_flags.insert(ValidationFlags::VALUE_MISSING);
-            }
+        if validate_flags.contains(ValidationFlags::VALUE_MISSING) &&
+            self.suffers_from_being_missing(&value)
+        {
+            failed_flags.insert(ValidationFlags::VALUE_MISSING);
         }
 
-        if validate_flags.contains(ValidationFlags::TYPE_MISMATCH) {
-            if self.suffers_from_type_mismatch(&value) {
-                failed_flags.insert(ValidationFlags::TYPE_MISMATCH);
-            }
+        if validate_flags.contains(ValidationFlags::TYPE_MISMATCH) &&
+            self.suffers_from_type_mismatch(&value)
+        {
+            failed_flags.insert(ValidationFlags::TYPE_MISMATCH);
         }
 
-        if validate_flags.contains(ValidationFlags::PATTERN_MISMATCH) {
-            if self.suffers_from_pattern_mismatch(&value) {
-                failed_flags.insert(ValidationFlags::PATTERN_MISMATCH);
-            }
+        if validate_flags.contains(ValidationFlags::PATTERN_MISMATCH) &&
+            self.suffers_from_pattern_mismatch(&value)
+        {
+            failed_flags.insert(ValidationFlags::PATTERN_MISMATCH);
         }
 
-        if validate_flags.contains(ValidationFlags::BAD_INPUT) {
-            if self.suffers_from_bad_input(&value) {
-                failed_flags.insert(ValidationFlags::BAD_INPUT);
-            }
+        if validate_flags.contains(ValidationFlags::BAD_INPUT) &&
+            self.suffers_from_bad_input(&value)
+        {
+            failed_flags.insert(ValidationFlags::BAD_INPUT);
         }
 
         if validate_flags.intersects(ValidationFlags::TOO_LONG | ValidationFlags::TOO_SHORT) {

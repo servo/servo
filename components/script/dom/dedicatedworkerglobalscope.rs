@@ -169,10 +169,7 @@ impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
     }
 
     fn is_wake_up(&self) -> bool {
-        match self {
-            DedicatedWorkerScriptMsg::WakeUp => true,
-            _ => false,
-        }
+        matches!(self, DedicatedWorkerScriptMsg::WakeUp)
     }
 }
 

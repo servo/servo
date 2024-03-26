@@ -143,18 +143,16 @@ impl HTMLFormElement {
                 RadioListMode::ControlsExceptImageInputs => {
                     if child
                         .downcast::<HTMLElement>()
-                        .map_or(false, |c| c.is_listed_element())
+                        .map_or(false, |c| c.is_listed_element()) &&
+                        (child.get_id().map_or(false, |i| i == *name) ||
+                            child.get_name().map_or(false, |n| n == *name))
                     {
-                        if child.get_id().map_or(false, |i| i == *name) ||
-                            child.get_name().map_or(false, |n| n == *name)
-                        {
-                            if let Some(inp) = child.downcast::<HTMLInputElement>() {
-                                // input, only return it if it's not image-button state
-                                return inp.input_type() != InputType::Image;
-                            } else {
-                                // control, but not an input
-                                return true;
-                            }
+                        if let Some(inp) = child.downcast::<HTMLInputElement>() {
+                            // input, only return it if it's not image-button state
+                            return inp.input_type() != InputType::Image;
+                        } else {
+                            // control, but not an input
+                            return true;
                         }
                     }
                     return false;
@@ -719,11 +717,9 @@ impl HTMLFormElement {
             // Step 6.2
             self.firing_submission_events.set(true);
             // Step 6.3
-            if !submitter.no_validate(self) {
-                if self.interactive_validation().is_err() {
-                    self.firing_submission_events.set(false);
-                    return;
-                }
+            if !submitter.no_validate(self) && self.interactive_validation().is_err() {
+                self.firing_submission_events.set(false);
+                return;
             }
             // Step 6.4
             // spec calls this "submitterButton" but it doesn't have to be a button,
@@ -1537,10 +1533,11 @@ pub trait FormControl: DomObject {
             .next();
 
         // Step 1
-        if old_owner.is_some() && !(self.is_listed() && has_form_id) {
-            if nearest_form_ancestor == old_owner {
-                return;
-            }
+        if old_owner.is_some() &&
+            !(self.is_listed() && has_form_id) &&
+            nearest_form_ancestor == old_owner
+        {
+            return;
         }
 
         let new_owner = if self.is_listed() && has_form_id && elem.is_connected() {

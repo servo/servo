@@ -54,6 +54,12 @@ impl CellLayout {
     fn outer_block_size(&self) -> Au {
         self.layout.content_block_size + (self.border.block_sum() + self.padding.block_sum()).into()
     }
+
+    /// Whether the cell has no in-flow or out-of-flow contents, other than collapsed whitespace.
+    /// Note this logic differs from 'empty-cells', which counts abspos contents as empty.
+    fn is_empty(&self) -> bool {
+        self.layout.fragments.is_empty()
+    }
 }
 
 /// Information stored during the layout of rows.
@@ -1560,7 +1566,7 @@ impl<'a> TableLayout<'a> {
 
         let row_block_offset = row_rect.start_corner.block;
         let row_baseline = self.row_baselines[row_index];
-        if cell.effective_vertical_align() == VerticalAlignKeyword::Baseline {
+        if cell.effective_vertical_align() == VerticalAlignKeyword::Baseline && !layout.is_empty() {
             let baseline = row_block_offset + row_baseline;
             if row_index == 0 {
                 baselines.first = Some(baseline);

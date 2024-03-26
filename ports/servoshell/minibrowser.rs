@@ -7,7 +7,10 @@ use std::num::NonZeroU32;
 use std::sync::Arc;
 use std::time::Instant;
 
-use egui::{CentralPanel, Frame, Key, Modifiers, PaintCallback, Pos2, TopBottomPanel, Vec2};
+use egui::{
+    CentralPanel, Color32, Frame, Key, Modifiers, PaintCallback, Pos2, Spinner, TopBottomPanel,
+    Vec2,
+};
 use egui_glow::CallbackFn;
 use egui_winit::EventResponse;
 use euclid::{Box2D, Length, Point2D, Scale, Size2D};
@@ -25,7 +28,7 @@ use crate::egui_glue::EguiGlow;
 use crate::events_loop::EventsLoop;
 use crate::geometry::winit_position_to_euclid_point;
 use crate::parser::location_bar_input_to_url;
-use crate::webview::WebViewManager;
+use crate::webview::{LoadStatus, WebViewManager};
 use crate::window_trait::WindowPortsMethods;
 
 pub struct Minibrowser {
@@ -43,6 +46,8 @@ pub struct Minibrowser {
 
     /// Whether the location has been edited by the user without clicking Go.
     location_dirty: Cell<bool>,
+
+    load_status: LoadStatus,
 }
 
 pub enum MinibrowserEvent {
@@ -84,6 +89,7 @@ impl Minibrowser {
             last_mouse_position: None,
             location: RefCell::new(initial_url.to_string()),
             location_dirty: false.into(),
+            load_status: LoadStatus::LoadComplete,
         }
     }
 
@@ -162,6 +168,16 @@ impl Minibrowser {
                                 if ui.button("go").clicked() {
                                     event_queue.borrow_mut().push(MinibrowserEvent::Go);
                                     location_dirty.set(false);
+                                }
+
+                                match self.load_status {
+                                    LoadStatus::LoadStart => {
+                                        ui.add(Spinner::new().color(Color32::GRAY));
+                                    },
+                                    LoadStatus::HeadParsed => {
+                                        ui.add(Spinner::new().color(Color32::WHITE));
+                                    },
+                                    LoadStatus::LoadComplete => { /* No Spinner */ },
                                 }
 
                                 let location_field = ui.add_sized(
@@ -342,5 +358,29 @@ impl Minibrowser {
             },
             _ => false,
         }
+    }
+
+    /// Updates the spinner from the given [WebViewManager], returning true iff it has changed
+    /// (needing an egui update).
+    pub fn update_spinner_in_toolbar(
+        &mut self,
+        browser: &mut WebViewManager<dyn WindowPortsMethods>,
+    ) -> bool {
+        let need_update = browser.load_status() != self.load_status;
+        self.load_status = browser.load_status();
+        return need_update;
+    }
+
+    /// Updates all fields taken from the given [WebViewManager], such as the location field.
+    /// Returns true iff the egui needs an update.
+    pub fn update_webview_data(
+        &mut self,
+        browser: &mut WebViewManager<dyn WindowPortsMethods>,
+    ) -> bool {
+        // Note: We must use the "bitwise OR" (|) operator here instead of "logical OR" (||)
+        //       because logical OR would short-circuit if any of the functions return true.
+        //       We want to ensure that all functions are called. The "bitwise OR" operator
+        //       does not short-circuit.
+        return self.update_location_in_toolbar(browser) | self.update_spinner_in_toolbar(browser);
     }
 }

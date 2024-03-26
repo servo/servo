@@ -206,12 +206,12 @@ pub enum FireMouseEventType {
 
 impl FireMouseEventType {
     pub fn as_str(&self) -> &str {
-        match self {
-            &FireMouseEventType::Move => "mousemove",
-            &FireMouseEventType::Over => "mouseover",
-            &FireMouseEventType::Out => "mouseout",
-            &FireMouseEventType::Enter => "mouseenter",
-            &FireMouseEventType::Leave => "mouseleave",
+        match *self {
+            FireMouseEventType::Move => "mousemove",
+            FireMouseEventType::Over => "mouseover",
+            FireMouseEventType::Out => "mouseout",
+            FireMouseEventType::Enter => "mouseenter",
+            FireMouseEventType::Leave => "mouseleave",
         }
     }
 }
@@ -2393,10 +2393,8 @@ impl Document {
         // TODO: should this only happen on the first document loaded?
         // https://immersive-web.github.io/webxr/#user-intention
         // https://github.com/immersive-web/navigation/issues/10
-        if pref!(dom.webxr.sessionavailable) {
-            if self.window.is_top_level() {
-                self.window.Navigator().Xr().dispatch_sessionavailable();
-            }
+        if pref!(dom.webxr.sessionavailable) && self.window.is_top_level() {
+            self.window.Navigator().Xr().dispatch_sessionavailable();
         }
 
         // Step 12: completely loaded.
@@ -2924,10 +2922,7 @@ impl Document {
 }
 
 fn is_character_value_key(key: &Key) -> bool {
-    match key {
-        Key::Character(_) | Key::Enter => true,
-        _ => false,
-    }
+    matches!(key, Key::Character(_) | Key::Enter)
 }
 
 #[derive(MallocSizeOf, PartialEq)]
@@ -3055,10 +3050,7 @@ fn get_registrable_domain_suffix_of_or_is_equal_to(
 
 /// <https://url.spec.whatwg.org/#network-scheme>
 fn url_has_network_scheme(url: &ServoUrl) -> bool {
-    match url.scheme() {
-        "ftp" | "http" | "https" => true,
-        _ => false,
-    }
+    matches!(url.scheme(), "ftp" | "http" | "https")
 }
 
 #[derive(Clone, Copy, Eq, JSTraceable, MallocSizeOf, PartialEq)]
@@ -3982,8 +3974,7 @@ impl Document {
 impl Element {
     fn click_event_filter_by_disabled_state(&self) -> bool {
         let node = self.upcast::<Node>();
-        match node.type_id() {
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
+        matches!(node.type_id(), NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLButtonElement,
             )) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(
@@ -3997,9 +3988,7 @@ impl Element {
             )) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLTextAreaElement,
-            )) if self.disabled_state() => true,
-            _ => false,
-        }
+            )) if self.disabled_state())
     }
 }
 
@@ -4599,14 +4588,15 @@ impl DocumentMethods for Document {
         self.get_html_element().and_then(|root| {
             let node = root.upcast::<Node>();
             node.children()
-                .find(|child| match child.type_id() {
-                    NodeTypeId::Element(ElementTypeId::HTMLElement(
-                        HTMLElementTypeId::HTMLBodyElement,
-                    )) |
-                    NodeTypeId::Element(ElementTypeId::HTMLElement(
-                        HTMLElementTypeId::HTMLFrameSetElement,
-                    )) => true,
-                    _ => false,
+                .find(|child| {
+                    matches!(
+                        child.type_id(),
+                        NodeTypeId::Element(ElementTypeId::HTMLElement(
+                            HTMLElementTypeId::HTMLBodyElement,
+                        )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
+                            HTMLElementTypeId::HTMLFrameSetElement,
+                        ))
+                    )
                 })
                 .map(|node| DomRoot::downcast(node).unwrap())
         })

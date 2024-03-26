@@ -29,7 +29,7 @@ use crate::dom::performancenavigationtiming::PerformanceNavigationTiming;
 use crate::dom::performanceobserver::PerformanceObserver as DOMPerformanceObserver;
 use crate::dom::window::Window;
 
-const INVALID_ENTRY_NAMES: &'static [&'static str] = &[
+const INVALID_ENTRY_NAMES: &[&str] = &[
     "navigationStart",
     "unloadEventStart",
     "unloadEventEnd",
