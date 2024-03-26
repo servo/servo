@@ -349,7 +349,7 @@ pub fn read(
     rval: MutableHandleValue,
 ) -> Result<Vec<DomRoot<MessagePort>>, ()> {
     let cx = GlobalScope::get_cx();
-    let _ac = enter_realm(&*global);
+    let _ac = enter_realm(global);
     let mut sc_holder = StructuredDataHolder::Read {
         blobs: None,
         message_ports: None,

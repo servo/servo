@@ -830,7 +830,7 @@ impl WebGLRenderingContext {
         }
 
         if let Some(fb) = self.bound_draw_framebuffer.get() {
-            fb.invalidate_texture(&*texture);
+            fb.invalidate_texture(texture);
         }
     }
 

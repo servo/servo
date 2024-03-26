@@ -967,7 +967,7 @@ impl HTMLMediaElement {
                 if let Some(ref src_object) = *self.src_object.borrow() {
                     match src_object {
                         SrcObject::Blob(blob) => {
-                            let blob_url = URL::CreateObjectURL(&self.global(), &*blob);
+                            let blob_url = URL::CreateObjectURL(&self.global(), blob);
                             *self.blob_url.borrow_mut() =
                                 Some(ServoUrl::parse(&blob_url).expect("infallible"));
                             self.fetch_request(None, None);
@@ -1891,7 +1891,7 @@ impl HTMLMediaElement {
             .SetTextContent(Some(DOMString::from(media_controls_script)));
         if let Err(e) = shadow_root
             .upcast::<Node>()
-            .AppendChild(&*script.upcast::<Node>())
+            .AppendChild(script.upcast::<Node>())
         {
             warn!("Could not render media controls {:?}", e);
             return;
@@ -1911,7 +1911,7 @@ impl HTMLMediaElement {
 
         if let Err(e) = shadow_root
             .upcast::<Node>()
-            .AppendChild(&*style.upcast::<Node>())
+            .AppendChild(style.upcast::<Node>())
         {
             warn!("Could not render media controls {:?}", e);
         }
@@ -2075,9 +2075,9 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     fn GetSrcObject(&self) -> Option<MediaStreamOrBlob> {
         match *self.src_object.borrow() {
             Some(ref src_object) => Some(match src_object {
-                SrcObject::Blob(blob) => MediaStreamOrBlob::Blob(DomRoot::from_ref(&*blob)),
+                SrcObject::Blob(blob) => MediaStreamOrBlob::Blob(DomRoot::from_ref(blob)),
                 SrcObject::MediaStream(stream) => {
-                    MediaStreamOrBlob::MediaStream(DomRoot::from_ref(&*stream))
+                    MediaStreamOrBlob::MediaStream(DomRoot::from_ref(stream))
                 },
             }),
             None => None,
@@ -2468,7 +2468,7 @@ pub trait LayoutHTMLMediaElementHelpers {
 impl LayoutHTMLMediaElementHelpers for LayoutDom<'_, HTMLMediaElement> {
     #[allow(unsafe_code)]
     fn data(self) -> HTMLMediaData {
-        let media = unsafe { &*self.unsafe_get() };
+        let media = unsafe { self.unsafe_get() };
         HTMLMediaData {
             current_frame: media.video_renderer.lock().unwrap().current_frame,
         }

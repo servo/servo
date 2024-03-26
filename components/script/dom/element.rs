@@ -240,7 +240,7 @@ impl FromStr for AdjacentPosition {
     type Err = Error;
 
     fn from_str(position: &str) -> Result<Self, Self::Err> {
-        match_ignore_ascii_case! { &*position,
+        match_ignore_ascii_case! { position,
             "beforebegin" => Ok(AdjacentPosition::BeforeBegin),
             "afterbegin"  => Ok(AdjacentPosition::AfterBegin),
             "beforeend"   => Ok(AdjacentPosition::BeforeEnd),
@@ -3346,7 +3346,7 @@ impl<'a> SelectorsElement for DomRoot<Element> {
         self.id_attribute
             .borrow()
             .as_ref()
-            .map_or(false, |atom| case_sensitivity.eq_atom(&*id, atom))
+            .map_or(false, |atom| case_sensitivity.eq_atom(id, atom))
     }
 
     fn is_part(&self, _name: &AtomIdent) -> bool {

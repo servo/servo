@@ -147,7 +147,7 @@ impl WebGLFramebuffer {
         context: &WebGLRenderingContext,
         size: Size2D<i32, Viewport>,
     ) -> Option<DomRoot<Self>> {
-        let framebuffer = Self::maybe_new(&*context)?;
+        let framebuffer = Self::maybe_new(context)?;
         framebuffer.size.set(Some((size.width, size.height)));
         framebuffer.status.set(constants::FRAMEBUFFER_COMPLETE);
         framebuffer.xr_session.set(Some(session));

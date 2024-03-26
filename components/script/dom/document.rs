@@ -1079,7 +1079,7 @@ impl Document {
             return;
         }
         self.request_focus(
-            self.GetBody().as_ref().map(|e| &*e.upcast()),
+            self.GetBody().as_ref().map(|e| e.upcast()),
             FocusType::Element,
         )
     }
@@ -1837,7 +1837,7 @@ impl Document {
 
     pub fn ime_dismissed(&self) {
         self.request_focus(
-            self.GetBody().as_ref().map(|e| &*e.upcast()),
+            self.GetBody().as_ref().map(|e| e.upcast()),
             FocusType::Element,
         )
     }
@@ -5264,7 +5264,7 @@ impl DocumentMethods for Document {
     // media element matching the given id.
     fn ServoGetMediaControls(&self, id: DOMString) -> Fallible<DomRoot<ShadowRoot>> {
         match self.media_controls.borrow().get(&*id) {
-            Some(m) => Ok(DomRoot::from_ref(&*m)),
+            Some(m) => Ok(DomRoot::from_ref(m)),
             None => Err(Error::InvalidAccess),
         }
     }

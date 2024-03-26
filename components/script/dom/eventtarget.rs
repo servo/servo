@@ -512,7 +512,7 @@ impl EventTarget {
 
         // Step 3.8 TODO: settings objects not implemented
         let window = document.window();
-        let _ac = enter_realm(&*window);
+        let _ac = enter_realm(window);
 
         // Step 3.9
 
@@ -560,7 +560,7 @@ impl EventTarget {
         if handler.get().is_null() {
             // Step 3.7
             unsafe {
-                let ar = enter_realm(&*self);
+                let ar = enter_realm(self);
                 // FIXME(#13152): dispatch error event.
                 report_pending_exception(*cx, false, InRealm::Entered(&ar));
             }

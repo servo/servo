@@ -43,7 +43,7 @@ impl XRViewerPose {
         to_base: BaseTransform,
         viewer_pose: &ViewerPose,
     ) -> DomRoot<XRViewerPose> {
-        let _ac = enter_realm(&*global);
+        let _ac = enter_realm(global);
         rooted_vec!(let mut views);
         match &viewer_pose.views {
             Views::Inline => views.push(XRView::new(

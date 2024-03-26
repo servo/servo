@@ -353,7 +353,7 @@ where
 {
     #[inline]
     unsafe fn trace(&self, trc: *mut JSTracer) {
-        for (k, v) in &*self {
+        for (k, v) in self {
             k.trace(trc);
             v.trace(trc);
         }

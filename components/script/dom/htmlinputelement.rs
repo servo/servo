@@ -768,7 +768,7 @@ impl HTMLInputElement {
         first_with_id
             .as_ref()
             .and_then(|el| el.downcast::<HTMLDataListElement>())
-            .map(|el| DomRoot::from_ref(&*el))
+            .map(|el| DomRoot::from_ref(el))
     }
 
     // https://html.spec.whatwg.org/multipage/#suffering-from-being-missing

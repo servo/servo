@@ -124,7 +124,7 @@ impl FormDataMethods for FormData {
                 FormDatumValue::String(ref s) => {
                     FileOrUSVString::USVString(USVString(s.to_string()))
                 },
-                FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(&*b)),
+                FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(b)),
             })
     }
 
@@ -142,7 +142,7 @@ impl FormDataMethods for FormData {
                     FormDatumValue::String(ref s) => {
                         FileOrUSVString::USVString(USVString(s.to_string()))
                     },
-                    FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(&*b)),
+                    FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(b)),
                 })
             })
             .collect()
