@@ -55,9 +55,14 @@ class Base:
             return False
 
     def bootstrap(self, force: bool):
-        installed_something = self.install_taplo(force)
+        installed_something = False
+        # Windows needs llvm
+        if self.is_windows:
+            installed_something |= self._platform_bootstrap(force)
+        installed_something |= self.install_taplo(force)
         installed_something |= self.install_crown(force)
-        installed_something |= self._platform_bootstrap(force)
+        if not self.is_windows:
+            installed_something |= self._platform_bootstrap(force)
         if not installed_something:
             print("Dependencies were already installed!")
 
@@ -80,8 +85,8 @@ class Base:
 
     def passive_bootstrap(self) -> bool:
         """A bootstrap method that is called without explicitly invoking `./mach bootstrap`
-           but that is executed in the process of other `./mach` commands. This should be
-           as fast as possible."""
+        but that is executed in the process of other `./mach` commands. This should be
+        as fast as possible."""
         return False
 
     def bootstrap_gstreamer(self, force: bool):
