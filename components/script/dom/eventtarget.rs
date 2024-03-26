@@ -579,16 +579,14 @@ impl EventTarget {
             Some(CommonEventHandler::ErrorEventHandler(unsafe {
                 OnErrorEventHandlerNonNull::new(cx, funobj)
             }))
+        } else if ty == &atom!("beforeunload") {
+            Some(CommonEventHandler::BeforeUnloadEventHandler(unsafe {
+                OnBeforeUnloadEventHandlerNonNull::new(cx, funobj)
+            }))
         } else {
-            if ty == &atom!("beforeunload") {
-                Some(CommonEventHandler::BeforeUnloadEventHandler(unsafe {
-                    OnBeforeUnloadEventHandlerNonNull::new(cx, funobj)
-                }))
-            } else {
-                Some(CommonEventHandler::EventHandler(unsafe {
-                    EventHandlerNonNull::new(cx, funobj)
-                }))
-            }
+            Some(CommonEventHandler::EventHandler(unsafe {
+                EventHandlerNonNull::new(cx, funobj)
+            }))
         }
     }
 

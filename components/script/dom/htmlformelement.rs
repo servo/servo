@@ -578,17 +578,16 @@ impl HTMLFormElementMethods for HTMLFormElement {
                 } else {
                     a.source.cmp(&b.source)
                 }
+            } else if a
+                .element
+                .upcast::<Node>()
+                .CompareDocumentPosition(b.element.upcast::<Node>()) &
+                NodeConstants::DOCUMENT_POSITION_FOLLOWING ==
+                NodeConstants::DOCUMENT_POSITION_FOLLOWING
+            {
+                std::cmp::Ordering::Less
             } else {
-                if a.element
-                    .upcast::<Node>()
-                    .CompareDocumentPosition(b.element.upcast::<Node>()) &
-                    NodeConstants::DOCUMENT_POSITION_FOLLOWING ==
-                    NodeConstants::DOCUMENT_POSITION_FOLLOWING
-                {
-                    std::cmp::Ordering::Less
-                } else {
-                    std::cmp::Ordering::Greater
-                }
+                std::cmp::Ordering::Greater
             }
         });
 
