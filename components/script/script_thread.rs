@@ -1765,23 +1765,24 @@ impl ScriptThread {
                     // Update animations and send events.
                     self.update_animations_and_send_events();
 
-                    // TODO: fullscreen steps.
+                    // TODO: fullscreen steps(#31866).
 
-                    // TODO: context lost steps.
+                    // TODO: context lost steps(#31868).
 
                     // Run the animation frame callbacks.
                     self.handle_tick_all_animations(pipeline_id)
 
-                    // TODO: resize observer steps.
+                    // TODO: resize observer steps(#31006).
 
                     // TODO: if the focused area of doc is not a focusable area,
                     // then run the focusing steps for doc's viewport.
+                    // (#31870)
 
-                    // TODO: perform pending transition operations.
+                    // TODO: perform pending transition operations(https://drafts.csswg.org/css-view-transitions/).
 
-                    // TODO: run the update intersection observations steps.
+                    // TODO: run the update intersection observations steps(#31021).
 
-                    // TODO: mark paint timing.
+                    // TODO: mark paint timing(https://w3c.github.io/paint-timing).
 
                     // TODO: update the rendering(reflow?).
                 }
