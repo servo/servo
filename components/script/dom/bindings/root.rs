@@ -509,9 +509,7 @@ impl<T> Clone for Dom<T> {
     #[allow(crown::unrooted_must_root)]
     fn clone(&self) -> Self {
         assert_in_script();
-        Dom {
-            ptr: self.ptr.clone(),
-        }
+        Dom { ptr: self.ptr }
     }
 }
 

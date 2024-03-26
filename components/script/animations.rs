@@ -397,7 +397,7 @@ impl Animations {
                 pipeline_id,
                 event_type,
                 node: key.node,
-                pseudo_element: key.pseudo_element.clone(),
+                pseudo_element: key.pseudo_element,
                 property_or_animation_name: transition
                     .property_animation
                     .property_id()
@@ -450,7 +450,7 @@ impl Animations {
                 pipeline_id,
                 event_type,
                 node: key.node,
-                pseudo_element: key.pseudo_element.clone(),
+                pseudo_element: key.pseudo_element,
                 property_or_animation_name: animation.name.to_string(),
                 elapsed_time,
             });
