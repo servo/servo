@@ -3337,11 +3337,11 @@ impl ScriptThread {
     pub fn handle_tick_all_animations_for_testing(id: PipelineId) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
+            script_thread.rendering_opportunity(id);
             script_thread
                 .documents
                 .borrow_mut()
                 .note_pending_animation_tick(id, AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS);
-            script_thread.handle_tick_all_animations(id);
         });
     }
 
