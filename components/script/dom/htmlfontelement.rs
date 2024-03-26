@@ -81,11 +81,13 @@ impl VirtualMethods for HTMLFontElement {
     }
 
     fn attribute_affects_presentational_hints(&self, attr: &Attr) -> bool {
-        if attr.local_name() == &local_name!("color") {
+        if attr.local_name() == &local_name!("color") ||
+            attr.local_name() == &local_name!("size") ||
+            attr.local_name() == &local_name!("face")
+        {
             return true;
         }
 
-        // FIXME: Should also return true for `size` and `face` changes!
         self.super_type()
             .unwrap()
             .attribute_affects_presentational_hints(attr)
