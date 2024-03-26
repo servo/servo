@@ -32,7 +32,7 @@ impl AnimationEvent {
         AnimationEvent {
             event: Event::new_inherited(),
             animation_name: Atom::from(init.animationName.clone()),
-            elapsed_time: init.elapsedTime.clone(),
+            elapsed_time: init.elapsedTime,
             pseudo_element: init.pseudoElement.clone(),
         }
     }
@@ -78,7 +78,7 @@ impl AnimationEventMethods for AnimationEvent {
 
     // https://drafts.csswg.org/css-animations/#interface-animationevent-attributes
     fn ElapsedTime(&self) -> Finite<f32> {
-        self.elapsed_time.clone()
+        self.elapsed_time
     }
 
     // https://drafts.csswg.org/css-animations/#interface-animationevent-attributes
