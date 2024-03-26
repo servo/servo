@@ -153,7 +153,7 @@ unsafe extern "C" fn write_callback(
             &mut *(closure as *mut StructuredDataHolder),
         );
     }
-    return false;
+    false
 }
 
 unsafe extern "C" fn read_transfer_callback(

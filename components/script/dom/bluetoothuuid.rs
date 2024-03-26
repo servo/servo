@@ -667,10 +667,10 @@ fn resolve_uuid_name(
                             _ => unreachable!(),
                         };
                         // Step 4.
-                        return Err(Type(format!(
+                        Err(Type(format!(
                             "Invalid {} name : '{}'.\n{} {}",
                             attribute_type, dstring, UUID_ERROR_MESSAGE, error_url_message
-                        )));
+                        )))
                     },
                 }
             }

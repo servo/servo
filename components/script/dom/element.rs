@@ -2407,7 +2407,7 @@ impl ElementMethods for Element {
 
         // Step 9
         let point = node.scroll_offset();
-        return point.y.abs() as f64;
+        point.y.abs() as f64
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
@@ -2503,7 +2503,7 @@ impl ElementMethods for Element {
 
         // Step 9
         let point = node.scroll_offset();
-        return point.x.abs() as f64;
+        point.x.abs() as f64
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollleft
@@ -2595,9 +2595,9 @@ impl ElementMethods for Element {
             self.local_name().clone(),
         );
         if document_from_node(self).is_html_document() {
-            return self.serialize(ChildrenOnly(Some(qname)));
+            self.serialize(ChildrenOnly(Some(qname)))
         } else {
-            return self.xmlSerialize(XmlChildrenOnly(Some(qname)));
+            self.xmlSerialize(XmlChildrenOnly(Some(qname)))
         }
     }
 
@@ -2634,9 +2634,9 @@ impl ElementMethods for Element {
     // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#widl-Element-outerHTML
     fn GetOuterHTML(&self) -> Fallible<DOMString> {
         if document_from_node(self).is_html_document() {
-            return self.serialize(IncludeNode);
+            self.serialize(IncludeNode)
         } else {
-            return self.xmlSerialize(XmlIncludeNode);
+            self.xmlSerialize(XmlIncludeNode)
         }
     }
 
@@ -2867,9 +2867,9 @@ impl ElementMethods for Element {
         match self.as_maybe_activatable() {
             Some(a) => {
                 a.enter_formal_activation_state();
-                return Ok(());
+                Ok(())
             },
-            None => return Err(Error::NotSupported),
+            None => Err(Error::NotSupported),
         }
     }
 
@@ -2879,7 +2879,7 @@ impl ElementMethods for Element {
                 a.exit_formal_activation_state();
                 return Ok(());
             },
-            None => return Err(Error::NotSupported),
+            None => Err(Error::NotSupported),
         }
     }
 
@@ -3960,7 +3960,7 @@ pub fn reflect_referrer_policy_attribute(element: &Element) -> DOMString {
             return val;
         }
     }
-    return DOMString::new();
+    DOMString::new()
 }
 
 pub(crate) fn referrer_policy_for_element(element: &Element) -> Option<ReferrerPolicy> {
