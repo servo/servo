@@ -124,7 +124,7 @@ impl PartialOrd for OneshotTimer {
 impl Eq for OneshotTimer {}
 impl PartialEq for OneshotTimer {
     fn eq(&self, other: &OneshotTimer) -> bool {
-        self as *const OneshotTimer == other as *const OneshotTimer
+        std::ptr::eq(self, other)
     }
 }
 
@@ -194,7 +194,7 @@ impl OneshotTimers {
     fn is_next_timer(&self, handle: OneshotTimerHandle) -> bool {
         match self.timers.borrow().last() {
             None => false,
-            Some(ref max_timer) => max_timer.handle == handle,
+            Some(max_timer) => max_timer.handle == handle,
         }
     }
 
@@ -418,6 +418,12 @@ enum InternalTimerCallback {
     ),
 }
 
+impl Default for JsTimers {
+        fn default() -> Self {
+            Self::new()
+       }
+    }
+        |
 impl JsTimers {
     pub fn new() -> JsTimers {
         JsTimers {
