@@ -100,7 +100,7 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutDom<'_, HTMLTextAreaElement> {
             // placeholder is single line, but that's an unimportant detail.
             self.placeholder()
                 .replace("\r\n", "\n")
-                .replace("\r", "\n")
+                .replace('\r', "\n")
                 .into()
         } else {
             text.into()
@@ -545,7 +545,7 @@ impl VirtualMethods for HTMLTextAreaElement {
     }
 
     fn bind_to_tree(&self, context: &BindContext) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.bind_to_tree(context);
         }
 
@@ -599,7 +599,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
     ) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.cloning_steps(copy, maybe_doc, clone_children);
         }
         let el = copy.downcast::<HTMLTextAreaElement>().unwrap();
@@ -613,7 +613,7 @@ impl VirtualMethods for HTMLTextAreaElement {
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.children_changed(mutation);
         }
         if !self.value_dirty.get() {
@@ -702,7 +702,7 @@ impl FormControl for HTMLTextAreaElement {
         self.form_owner.set(form);
     }
 
-    fn to_element<'a>(&'a self) -> &'a Element {
+    fn to_element(&self) -> &Element {
         self.upcast::<Element>()
     }
 }

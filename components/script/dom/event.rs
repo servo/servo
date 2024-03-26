@@ -741,7 +741,7 @@ fn inner_invoke(
 
         // Step 2.12
         if let Some(window) = global.downcast::<Window>() {
-            window.set_current_event(current_event.as_ref().map(|e| &**e));
+            window.set_current_event(current_event.as_deref());
         }
 
         // Step 2.13: short-circuit instead of going to next listener

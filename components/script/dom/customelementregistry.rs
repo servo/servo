@@ -1035,7 +1035,7 @@ pub fn is_valid_custom_element_name(name: &str) -> bool {
     // PotentialCustomElementName ::= [a-z] (PCENChar)* '-' (PCENChar)*
 
     let mut chars = name.chars();
-    if !chars.next().map_or(false, |c| c >= 'a' && c <= 'z') {
+    if !chars.next().map_or(false, |c| ('a'..='z').contains(&c)) {
         return false;
     }
 
@@ -1078,19 +1078,19 @@ fn is_potential_custom_element_char(c: char) -> bool {
         c == '.' ||
         c == '_' ||
         c == '\u{B7}' ||
-        (c >= '0' && c <= '9') ||
-        (c >= 'a' && c <= 'z') ||
-        (c >= '\u{C0}' && c <= '\u{D6}') ||
-        (c >= '\u{D8}' && c <= '\u{F6}') ||
-        (c >= '\u{F8}' && c <= '\u{37D}') ||
-        (c >= '\u{37F}' && c <= '\u{1FFF}') ||
-        (c >= '\u{200C}' && c <= '\u{200D}') ||
-        (c >= '\u{203F}' && c <= '\u{2040}') ||
-        (c >= '\u{2070}' && c <= '\u{2FEF}') ||
-        (c >= '\u{3001}' && c <= '\u{D7FF}') ||
-        (c >= '\u{F900}' && c <= '\u{FDCF}') ||
-        (c >= '\u{FDF0}' && c <= '\u{FFFD}') ||
-        (c >= '\u{10000}' && c <= '\u{EFFFF}')
+        ('0'..='9').contains(&c) ||
+        ('a'..='z').contains(&c) ||
+        ('\u{C0}'..='\u{D6}').contains(&c) ||
+        ('\u{D8}'..='\u{F6}').contains(&c) ||
+        ('\u{F8}'..='\u{37D}').contains(&c) ||
+        ('\u{37F}'..='\u{1FFF}').contains(&c) ||
+        ('\u{200C}'..='\u{200D}').contains(&c) ||
+        ('\u{203F}'..='\u{2040}').contains(&c) ||
+        ('\u{2070}'..='\u{2FEF}').contains(&c) ||
+        ('\u{3001}'..='\u{D7FF}').contains(&c) ||
+        ('\u{F900}'..='\u{FDCF}').contains(&c) ||
+        ('\u{FDF0}'..='\u{FFFD}').contains(&c) ||
+        ('\u{10000}'..='\u{EFFFF}').contains(&c)
 }
 
 fn is_extendable_element_interface(element: &str) -> bool {
