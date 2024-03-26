@@ -181,7 +181,7 @@ impl BaseAudioContext {
     /// which were taken and moved to the in-flight queue.
     fn take_pending_resume_promises(&self, result: ErrorResult) {
         let pending_resume_promises =
-            mem::replace(&mut *self.pending_resume_promises.borrow_mut(), vec![]);
+            std::mem::take(&mut *self.pending_resume_promises.borrow_mut());
         self.in_flight_resume_promises_queue
             .borrow_mut()
             .push_back((pending_resume_promises.into(), result));

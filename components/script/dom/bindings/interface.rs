@@ -502,7 +502,7 @@ fn define_name(cx: SafeJSContext, obj: HandleObject, name: &[u8]) {
             *cx,
             obj,
             b"name\0".as_ptr() as *const libc::c_char,
-            name.handle().into(),
+            name.handle(),
             JSPROP_READONLY as u32
         ));
     }
