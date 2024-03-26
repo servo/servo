@@ -1549,11 +1549,29 @@ impl HTMLMediaElement {
             },
             PlayerEvent::Error(ref error) => {
                 error!("Player error: {:?}", error);
+                // https://html.spec.whatwg.org/multipage/#loading-the-media-resource:media-data-13
+                // 1. The user agent should cancel the fetching process.
+                if let Some(ref mut current_fetch_context) =
+                    *self.current_fetch_context.borrow_mut()
+                {
+                    current_fetch_context.cancel(CancelReason::Error);
+                }
+                // 2. Set the error attribute to the result of creating a MediaError with MEDIA_ERR_DECODE.
                 self.error.set(Some(&*MediaError::new(
                     &window_from_node(self),
                     MEDIA_ERR_DECODE,
                 )));
+
+                // 3. Set the element's networkState attribute to the NETWORK_IDLE value.
+                self.network_state.set(NetworkState::Idle);
+
+                // 4. Set the element's delaying-the-load-event flag to false. This stops delaying the load event.
+                self.delay_load_event(false);
+
+                // 5. Fire an event named error at the media element.
                 self.upcast::<EventTarget>().fire_event(atom!("error"));
+
+                // TODO: 6. Abort the overall resource selection algorithm.
             },
             PlayerEvent::VideoFrameUpdated => {
                 self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
