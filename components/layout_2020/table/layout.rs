@@ -1432,11 +1432,7 @@ impl<'a> TableLayout<'a> {
             };
         }
 
-        let fallback_size = LogicalVec2 {
-            block: self.final_table_height,
-            inline: self.assignable_width,
-        };
-        let table_and_track_dimensions = TableAndTrackDimensions::new(&self, &fallback_size);
+        let table_and_track_dimensions = TableAndTrackDimensions::new(&self);
         self.make_fragments_for_columns_and_column_groups(
             &table_and_track_dimensions,
             &mut table_fragments,
@@ -1795,12 +1791,16 @@ struct TableAndTrackDimensions {
 }
 
 impl TableAndTrackDimensions {
-    fn new(table_layout: &TableLayout, fallback_size: &LogicalVec2<Au>) -> Self {
+    fn new(table_layout: &TableLayout) -> Self {
         let border_spacing = table_layout.table.border_spacing();
+
+        // The sizes used for a dimension when that dimension has no table tracks.
+        let fallback_inline_size = table_layout.assignable_width;
+        let fallback_block_size = table_layout.final_table_height;
 
         let mut column_dimensions = Vec::new();
         let mut column_offset = if table_layout.table.size.width == 0 {
-            fallback_size.inline
+            fallback_inline_size
         } else {
             border_spacing.inline
         };
@@ -1812,7 +1812,7 @@ impl TableAndTrackDimensions {
 
         let mut row_dimensions = Vec::new();
         let mut row_offset = if table_layout.table.size.height == 0 {
-            fallback_size.block
+            fallback_block_size
         } else {
             border_spacing.block
         };
@@ -1829,8 +1829,8 @@ impl TableAndTrackDimensions {
         let table_size = &LogicalVec2 {
             inline: column_dimensions
                 .last()
-                .map_or(fallback_size.inline, |v| v.1),
-            block: row_dimensions.last().map_or(fallback_size.block, |v| v.1),
+                .map_or(fallback_inline_size, |v| v.1),
+            block: row_dimensions.last().map_or(fallback_block_size, |v| v.1),
         } - &table_start_corner;
         let table_cells_rect = LogicalRect {
             start_corner: table_start_corner,
