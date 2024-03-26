@@ -117,7 +117,7 @@ impl FakeXRInputControllerMethods for FakeXRInputController {
             XRHandedness::Left => Handedness::Left,
             XRHandedness::Right => Handedness::Right,
         };
-        let _ = self.send_message(MockInputMsg::SetHandedness(h));
+        self.send_message(MockInputMsg::SetHandedness(h));
     }
 
     /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-settargetraymode>
@@ -127,12 +127,12 @@ impl FakeXRInputControllerMethods for FakeXRInputController {
             XRTargetRayMode::Tracked_pointer => TargetRayMode::TrackedPointer,
             XRTargetRayMode::Screen => TargetRayMode::Screen,
         };
-        let _ = self.send_message(MockInputMsg::SetTargetRayMode(t));
+        self.send_message(MockInputMsg::SetTargetRayMode(t));
     }
 
     /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrinputcontroller-setprofiles>
     fn SetProfiles(&self, profiles: Vec<DOMString>) {
         let t = profiles.into_iter().map(String::from).collect();
-        let _ = self.send_message(MockInputMsg::SetProfiles(t));
+        self.send_message(MockInputMsg::SetProfiles(t));
     }
 }

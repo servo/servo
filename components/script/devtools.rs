@@ -123,7 +123,7 @@ pub fn handle_get_children(
     reply: IpcSender<Option<Vec<NodeInfo>>>,
 ) {
     match find_node_by_unique_id(documents, pipeline, &node_id) {
-        None => return reply.send(None).unwrap(),
+        None => reply.send(None).unwrap(),
         Some(parent) => {
             let children = parent.children().map(|child| child.summarize()).collect();
 
