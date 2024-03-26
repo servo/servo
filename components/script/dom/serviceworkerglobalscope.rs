@@ -362,8 +362,7 @@ impl ServiceWorkerGlobalScope {
                     .origin(origin);
 
                 let (_url, source) =
-                    match load_whole_resource(request, &resource_threads_sender, &*global.upcast())
-                    {
+                    match load_whole_resource(request, &resource_threads_sender, global.upcast()) {
                         Err(_) => {
                             println!("error loading script {}", serialized_worker_url);
                             scope.clear_js_runtime(context_for_interrupt);
@@ -381,7 +380,7 @@ impl ServiceWorkerGlobalScope {
 
                 {
                     // TODO: use AutoWorkerReset as in dedicated worker?
-                    let _ac = enter_realm(&*scope);
+                    let _ac = enter_realm(scope);
                     scope.execute_script(DOMString::from(source));
                 }
 
@@ -445,7 +444,7 @@ impl ServiceWorkerGlobalScope {
             CommonWorker(WorkerScriptMsg::DOMMessage { data, .. }) => {
                 let scope = self.upcast::<WorkerGlobalScope>();
                 let target = self.upcast();
-                let _ac = enter_realm(&*scope);
+                let _ac = enter_realm(scope);
                 rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
                 if let Ok(ports) = structuredclone::read(scope.upcast(), data, message.handle_mut())
                 {

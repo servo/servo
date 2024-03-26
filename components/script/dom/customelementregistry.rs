@@ -786,7 +786,7 @@ impl CustomElementReaction {
                     .iter()
                     .map(|arg| unsafe { HandleValue::from_raw(arg.handle()) })
                     .collect();
-                let _ = callback.Call_(&*element, arguments, ExceptionHandling::Report);
+                let _ = callback.Call_(element, arguments, ExceptionHandling::Report);
             },
         }
     }

@@ -316,7 +316,7 @@ fn finish_fetching_a_classic_script(
     // Step 11, Asynchronously complete this algorithm with script,
     // which refers to step 26.6 "When the chosen algorithm asynchronously completes",
     // of https://html.spec.whatwg.org/multipage/#prepare-a-script
-    let document = document_from_node(&*elem);
+    let document = document_from_node(elem);
 
     match script_kind {
         ExternalScriptKind::Asap => document.asap_script_loaded(elem, load),

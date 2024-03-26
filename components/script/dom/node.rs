@@ -785,7 +785,7 @@ impl Node {
     }
 
     pub fn to_trusted_node_address(&self) -> TrustedNodeAddress {
-        TrustedNodeAddress(&*self as *const Node as *const libc::c_void)
+        TrustedNodeAddress(self as *const Node as *const libc::c_void)
     }
 
     /// Returns the rendered bounding content box if the element is rendered,
@@ -1242,7 +1242,7 @@ impl Node {
 
     /// <https://dom.spec.whatwg.org/#retarget>
     pub fn retarget(&self, b: &Node) -> DomRoot<Node> {
-        let mut a = DomRoot::from_ref(&*self);
+        let mut a = DomRoot::from_ref(self);
         loop {
             // Step 1.
             let a_root = a.GetRootNode(&GetRootNodeOptions::empty());
@@ -2970,7 +2970,7 @@ impl NodeMethods for Node {
             attr2 = Some(a);
             attr2owner = a.GetOwnerElement();
             node2 = match attr2owner {
-                Some(ref e) => Some(&*e.upcast()),
+                Some(ref e) => Some(e.upcast()),
                 None => None,
             }
         }

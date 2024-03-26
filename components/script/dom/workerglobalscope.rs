@@ -455,7 +455,7 @@ impl WorkerGlobalScope {
                     // https://github.com/servo/servo/issues/6422
                     println!("evaluate_script failed");
                     unsafe {
-                        let ar = enter_realm(&*self);
+                        let ar = enter_realm(self);
                         report_pending_exception(cx, true, InRealm::Entered(&ar));
                     }
                 }

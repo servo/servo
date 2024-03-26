@@ -815,7 +815,7 @@ impl GlobalScope {
         if let MessagePortState::Managed(_router_id, message_ports) =
             &*self.message_port_state.borrow()
         {
-            return message_ports.contains_key(&*port_id);
+            return message_ports.contains_key(port_id);
         }
         false
     }
@@ -831,7 +831,7 @@ impl GlobalScope {
         self.timers.setup_scheduling(timer_ipc_chan);
 
         // Setup route from IPC to task-queue for the timer-task-source.
-        let context = Trusted::new(&*self);
+        let context = Trusted::new(self);
         let (task_source, canceller) = (
             self.timer_task_source(),
             self.task_canceller(TaskSourceName::Timer),
@@ -1002,7 +1002,7 @@ impl GlobalScope {
             &mut *self.message_port_state.borrow_mut()
         {
             for (port_id, entangled_id) in &[(port1, port2), (port2, port1)] {
-                match message_ports.get_mut(&*port_id) {
+                match message_ports.get_mut(port_id) {
                     None => {
                         return warn!("entangled_ports called on a global not managing the port.");
                     },
@@ -1043,7 +1043,7 @@ impl GlobalScope {
             &mut *self.message_port_state.borrow_mut()
         {
             let mut port_impl = message_ports
-                .remove(&*port_id)
+                .remove(port_id)
                 .map(|ref mut managed_port| {
                     managed_port
                         .port_impl
@@ -1066,7 +1066,7 @@ impl GlobalScope {
         if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
-            let message_buffer = match message_ports.get_mut(&*port_id) {
+            let message_buffer = match message_ports.get_mut(port_id) {
                 None => panic!("start_message_port called on a unknown port."),
                 Some(managed_port) => {
                     if let Some(port_impl) = managed_port.port_impl.as_mut() {
@@ -1079,7 +1079,7 @@ impl GlobalScope {
             if let Some(message_buffer) = message_buffer {
                 for task in message_buffer {
                     let port_id = port_id.clone();
-                    let this = Trusted::new(&*self);
+                    let this = Trusted::new(self);
                     let _ = self.port_message_queue().queue(
                         task!(process_pending_port_messages: move || {
                             let target_global = this.root();
@@ -1099,7 +1099,7 @@ impl GlobalScope {
         if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
-            match message_ports.get_mut(&*port_id) {
+            match message_ports.get_mut(port_id) {
                 None => panic!("close_message_port called on an unknown port."),
                 Some(managed_port) => {
                     if let Some(port_impl) = managed_port.port_impl.as_mut() {
@@ -1133,7 +1133,7 @@ impl GlobalScope {
             };
             if let Some(entangled_id) = entangled_port {
                 // Step 7
-                let this = Trusted::new(&*self);
+                let this = Trusted::new(self);
                 let _ = self.port_message_queue().queue(
                     task!(post_message: move || {
                         let global = this.root();
@@ -1230,7 +1230,7 @@ impl GlobalScope {
                         // Step 10: Queue a task on the DOM manipulation task-source,
                         // to fire the message event
                         let channel = Trusted::new(&*channel);
-                        let global = Trusted::new(&*self);
+                        let global = Trusted::new(self);
                         let _ = self.dom_manipulation_task_source().queue(
                             task!(process_pending_port_messages: move || {
                                 let destination = channel.root();
@@ -1247,7 +1247,7 @@ impl GlobalScope {
                                 if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut()) {
                                     // Step 10.4, Fire an event named message at destination.
                                     MessageEvent::dispatch_jsval(
-                                        &*destination.upcast(),
+                                        destination.upcast(),
                                         &global,
                                         message.handle(),
                                         Some(&origin.ascii_serialization()),
@@ -1256,7 +1256,7 @@ impl GlobalScope {
                                     );
                                 } else {
                                     // Step 10.3, fire an event named messageerror at destination.
-                                    MessageEvent::dispatch_error(&*destination.upcast(), &global);
+                                    MessageEvent::dispatch_error(destination.upcast(), &global);
                                 }
                             }),
                             self,
@@ -1332,7 +1332,7 @@ impl GlobalScope {
                 .collect();
             for id in to_be_added.iter() {
                 let managed_port = message_ports
-                    .get_mut(&*id)
+                    .get_mut(id)
                     .expect("Collected port-id to match an entry");
                 if !managed_port.pending {
                     panic!("Only pending ports should be found in to_be_added")
@@ -1525,7 +1525,7 @@ impl GlobalScope {
 
                 // Queue a task to complete the transfer,
                 // unless the port is re-transferred in the current task.
-                let this = Trusted::new(&*self);
+                let this = Trusted::new(self);
                 let _ = self.port_message_queue().queue(
                     task!(process_pending_port_messages: move || {
                         let target_global = this.root();
@@ -2634,7 +2634,7 @@ impl GlobalScope {
             || {
                 let cx = GlobalScope::get_cx();
 
-                let ar = enter_realm(&*self);
+                let ar = enter_realm(self);
 
                 let _aes = AutoEntryScript::new(self);
 
@@ -3131,7 +3131,7 @@ impl GlobalScope {
     ) {
         // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
         //          then abort these steps.
-        let this = Trusted::new(&*self);
+        let this = Trusted::new(self);
         self.gamepad_task_source().queue_with_canceller(
             task!(gamepad_connected: move || {
                 let global = this.root();
@@ -3157,7 +3157,7 @@ impl GlobalScope {
 
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepaddisconnected>
     pub fn handle_gamepad_disconnect(&self, index: usize) {
-        let this = Trusted::new(&*self);
+        let this = Trusted::new(self);
         self.gamepad_task_source()
             .queue_with_canceller(
                 task!(gamepad_disconnected: move || {
@@ -3186,7 +3186,7 @@ impl GlobalScope {
 
     /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
     pub fn receive_new_gamepad_button_or_axis(&self, index: usize, update_type: GamepadUpdateType) {
-        let this = Trusted::new(&*self);
+        let this = Trusted::new(self);
 
         // <https://w3c.github.io/gamepad/#dfn-update-gamepad-state>
         self.gamepad_task_source()

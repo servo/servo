@@ -180,7 +180,7 @@ impl Serializable for Blob {
             *blob_impls = None;
         }
 
-        let deserialized_blob = Blob::new(&*owner, blob_impl);
+        let deserialized_blob = Blob::new(owner, blob_impl);
 
         let blobs = blobs.get_or_insert_with(|| HashMap::new());
         blobs.insert(storage_key, deserialized_blob);

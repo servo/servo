@@ -409,7 +409,7 @@ impl<'dom, LayoutDataType: LayoutDataTrait> style::dom::TElement
             Some(None) => AtomString::default(),
             None => AtomString::from(&*self.element.get_lang_for_layout()),
         };
-        extended_filtering(&element_lang, &*value)
+        extended_filtering(&element_lang, value)
     }
 
     fn is_html_document_body_element(&self) -> bool {
@@ -585,7 +585,7 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ::selectors::Element
             NonTSPseudoClass::Link | NonTSPseudoClass::AnyLink => self.is_link(),
             NonTSPseudoClass::Visited => false,
 
-            NonTSPseudoClass::Lang(ref lang) => self.match_element_lang(None, &*lang),
+            NonTSPseudoClass::Lang(ref lang) => self.match_element_lang(None, lang),
 
             NonTSPseudoClass::ServoNonZeroBorder => {
                 match self

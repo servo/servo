@@ -3463,7 +3463,7 @@ impl ScriptThread {
 
     /// Reflows non-incrementally, rebuilding the entire layout tree in the process.
     fn rebuild_and_force_reflow(&self, document: &Document, reason: ReflowReason) {
-        let window = window_from_node(&*document);
+        let window = window_from_node(document);
         document.dirty_all_nodes();
         window.reflow(ReflowGoal::Full, reason);
     }

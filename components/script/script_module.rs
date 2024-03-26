@@ -543,7 +543,7 @@ impl ModuleTree {
 
         if let Some(exception) = &*module_error {
             unsafe {
-                let ar = enter_realm(&*global);
+                let ar = enter_realm(global);
                 JS_SetPendingException(
                     *GlobalScope::get_cx(),
                     exception.handle(),

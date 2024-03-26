@@ -277,7 +277,7 @@ impl Event {
 
         // Step 5.13
         for object in event_path.iter().rev() {
-            if &**object == &*target {
+            if &**object == target {
                 self.phase.set(EventPhase::AtTarget);
             } else {
                 self.phase.set(EventPhase::Capturing);
@@ -298,7 +298,7 @@ impl Event {
 
         // Step 5.14
         for object in event_path.iter() {
-            let at_target = &**object == &*target;
+            let at_target = &**object == target;
             if at_target || self.bubbles.get() {
                 self.phase.set(if at_target {
                     EventPhase::AtTarget
