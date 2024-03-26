@@ -257,7 +257,7 @@ impl CSSStyleDeclaration {
                     return DOMString::new();
                 }
                 let addr = node.to_trusted_node_address();
-                window_from_node(node).resolved_style_query(addr, self.pseudo.clone(), property)
+                window_from_node(node).resolved_style_query(addr, self.pseudo, property)
             },
         }
     }

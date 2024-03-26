@@ -556,7 +556,7 @@ impl MessageListener {
 
                         for (id, buffer) in ports.into_iter() {
                             if global.is_managing_port(&id) {
-                                succeeded.push(id.clone());
+                                succeeded.push(id);
                                 global.complete_port_transfer(id, buffer);
                             } else {
                                 failed.insert(id, buffer);
@@ -804,7 +804,7 @@ impl GlobalScope {
     /// The message-port router Id of the global, if any
     fn port_router_id(&self) -> Option<MessagePortRouterId> {
         if let MessagePortState::Managed(id, _message_ports) = &*self.message_port_state.borrow() {
-            Some(id.clone())
+            Some(*id)
         } else {
             None
         }
@@ -869,8 +869,7 @@ impl GlobalScope {
         }
 
         // Step 2.1 -> 2.5
-        let new_registration =
-            ServiceWorkerRegistration::new(self, scope.clone(), registration_id.clone());
+        let new_registration = ServiceWorkerRegistration::new(self, scope.clone(), registration_id);
 
         // Step 2.6
         if let Some(worker_id) = installing_worker {
@@ -905,8 +904,7 @@ impl GlobalScope {
         } else {
             // Step 2.1
             // TODO: step 2.2, worker state.
-            let new_worker =
-                ServiceWorker::new(self, script_url.clone(), scope.clone(), worker_id.clone());
+            let new_worker = ServiceWorker::new(self, script_url.clone(), scope.clone(), worker_id);
 
             // Step 2.3
             workers.insert(worker_id, Dom::from_ref(&*new_worker));
@@ -975,7 +973,7 @@ impl GlobalScope {
         {
             let _ = self
                 .script_to_constellation_chan()
-                .send(ScriptMsg::RemoveMessagePortRouter(router_id.clone()));
+                .send(ScriptMsg::RemoveMessagePortRouter(*router_id));
         }
         *self.message_port_state.borrow_mut() = MessagePortState::UnManaged;
     }
@@ -989,7 +987,7 @@ impl GlobalScope {
             let _ =
                 self.script_to_constellation_chan()
                     .send(ScriptMsg::RemoveBroadcastChannelRouter(
-                        router_id.clone(),
+                        *router_id,
                         self.origin().immutable().clone(),
                     ));
         }
@@ -1008,8 +1006,8 @@ impl GlobalScope {
                     },
                     Some(managed_port) => {
                         if let Some(port_impl) = managed_port.port_impl.as_mut() {
-                            managed_port.dom_port.entangle(entangled_id.clone());
-                            port_impl.entangle(entangled_id.clone());
+                            managed_port.dom_port.entangle(*entangled_id);
+                            port_impl.entangle(*entangled_id);
                         } else {
                             panic!("managed-port has no port-impl.");
                         }
@@ -1054,7 +1052,7 @@ impl GlobalScope {
             port_impl.set_has_been_shipped();
             let _ = self
                 .script_to_constellation_chan()
-                .send(ScriptMsg::MessagePortShipped(port_id.clone()));
+                .send(ScriptMsg::MessagePortShipped(*port_id));
             port_impl
         } else {
             panic!("mark_port_as_transferred called on a global not managing any ports.");
@@ -1078,7 +1076,7 @@ impl GlobalScope {
             };
             if let Some(message_buffer) = message_buffer {
                 for task in message_buffer {
-                    let port_id = port_id.clone();
+                    let port_id = *port_id;
                     let this = Trusted::new(self);
                     let _ = self.port_message_queue().queue(
                         task!(process_pending_port_messages: move || {
@@ -1172,7 +1170,7 @@ impl GlobalScope {
             // we could skip the hop to the constellation.
             let _ = self
                 .script_to_constellation_chan()
-                .send(ScriptMsg::ScheduleBroadcast(router_id.clone(), msg));
+                .send(ScriptMsg::ScheduleBroadcast(*router_id, msg));
         } else {
             panic!("Attemps to broadcast a message via global not managing any channels.");
         }
@@ -1324,7 +1322,7 @@ impl GlobalScope {
                 .iter()
                 .filter_map(|(id, managed_port)| {
                     if managed_port.pending {
-                        Some(id.clone())
+                        Some(*id)
                     } else {
                         None
                     }
@@ -1342,7 +1340,7 @@ impl GlobalScope {
             let _ =
                 self.script_to_constellation_chan()
                     .send(ScriptMsg::CompleteMessagePortTransfer(
-                        router_id.clone(),
+                        *router_id,
                         to_be_added,
                     ));
         } else {
@@ -1363,8 +1361,8 @@ impl GlobalScope {
                         // and to forward this message to the script-process where the entangled is found.
                         let _ = self
                             .script_to_constellation_chan()
-                            .send(ScriptMsg::RemoveMessagePort(id.clone()));
-                        Some(id.clone())
+                            .send(ScriptMsg::RemoveMessagePort(*id));
+                        Some(*id)
                     } else {
                         None
                     }
@@ -1394,7 +1392,7 @@ impl GlobalScope {
                 if channels.is_empty() {
                     let _ = self.script_to_constellation_chan().send(
                         ScriptMsg::RemoveBroadcastChannelNameInRouter(
-                            router_id.clone(),
+                            *router_id,
                             name.to_string(),
                             self.origin().immutable().clone(),
                         ),
@@ -1442,7 +1440,7 @@ impl GlobalScope {
                 }),
             );
             let router_id = BroadcastChannelRouterId::new();
-            *current_state = BroadcastChannelState::Managed(router_id.clone(), HashMap::new());
+            *current_state = BroadcastChannelState::Managed(router_id, HashMap::new());
             let _ = self
                 .script_to_constellation_chan()
                 .send(ScriptMsg::NewBroadcastChannelRouter(
@@ -1456,7 +1454,7 @@ impl GlobalScope {
             let entry = channels.entry(dom_channel.Name()).or_insert_with(|| {
                 let _ = self.script_to_constellation_chan().send(
                     ScriptMsg::NewBroadcastChannelNameInRouter(
-                        router_id.clone(),
+                        *router_id,
                         dom_channel.Name().to_string(),
                         self.origin().immutable().clone(),
                     ),
@@ -1498,8 +1496,7 @@ impl GlobalScope {
                 }),
             );
             let router_id = MessagePortRouterId::new();
-            *current_state =
-                MessagePortState::Managed(router_id.clone(), HashMapTracedValues::new());
+            *current_state = MessagePortState::Managed(router_id, HashMapTracedValues::new());
             let _ = self
                 .script_to_constellation_chan()
                 .send(ScriptMsg::NewMessagePortRouter(
@@ -1514,7 +1511,7 @@ impl GlobalScope {
                 // and only ask the constellation to complete the transfer
                 // if they're not re-shipped in the current task.
                 message_ports.insert(
-                    dom_port.message_port_id().clone(),
+                    *dom_port.message_port_id(),
                     ManagedMessagePort {
                         port_impl: Some(port_impl),
                         dom_port: Dom::from_ref(dom_port),
@@ -1535,7 +1532,7 @@ impl GlobalScope {
                 );
             } else {
                 // If this is a newly-created port, let the constellation immediately know.
-                let port_impl = MessagePortImpl::new(dom_port.message_port_id().clone());
+                let port_impl = MessagePortImpl::new(*dom_port.message_port_id());
                 message_ports.insert(
                     *dom_port.message_port_id(),
                     ManagedMessagePort {
