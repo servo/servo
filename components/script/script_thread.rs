@@ -1787,6 +1787,8 @@ impl ScriptThread {
                     // Update the rendering.
                     // TODO: remove all other reflow calls?
                     self.rebuild_and_force_reflow(&document, ReflowReason::RefreshTick);
+
+                    // TODO: process top layer removals(https://drafts.csswg.org/css-position-4/#process-top-layer-removals)
                 }
             }
         }
