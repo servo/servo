@@ -67,7 +67,7 @@ impl<'a> phf_shared::PhfHash for Bytes<'a> {
 fn find_python() -> String {
     env::var("PYTHON3").ok().unwrap_or_else(|| {
         let candidates = if cfg!(windows) {
-            ["python.exe"]
+            ["python.exe", "python"]
         } else {
             ["python3", "python"]
         };
