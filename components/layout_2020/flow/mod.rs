@@ -666,9 +666,9 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
             // the margin should have been included in the parent (or some ancestor).
             // The lookahead should stop for actual clearance, not just for `clear`.
             let collapsible_with_parent_start_margin = collapsible_with_parent_start_margin.expect(
-                 "We should know whether we are collapsing the block start margin with the parent \
-                 when laying out sequentially",
-             ).0 && style.get_box().clear == Clear::None;
+                "We should know whether we are collapsing the block start margin with the parent \
+                when laying out sequentially",
+            ).0 && style.get_box().clear == Clear::None;
             if !collapsible_with_parent_start_margin && start_margin_can_collapse_with_children {
                 if let BlockContainer::BlockLevelBoxes(child_boxes) = contents {
                     BlockLevelBox::find_block_margin_collapsing_with_parent_from_slice(
@@ -763,7 +763,6 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         (computed_min_block_size.is_definitely_zero() || computed_min_block_size.is_auto());
 
     let block_size = containing_block_for_children.block_size.auto_is(|| {
-        content_block_size;
         Length::from(content_block_size)
             .clamp_between_extremums(min_box_size.block, max_box_size.block)
             .into()
@@ -1532,7 +1531,7 @@ impl PlacementState {
             last_in_flow_margin_collapses_with_parent_end_margin: true,
             start_margin: CollapsedMargin::zero(),
             current_margin: CollapsedMargin::zero(),
-            current_block_direction_position: Au::zero(),
+            current_block_direction_position: Length::zero(),
             inflow_baselines: Baselines::default(),
             is_inline_block_context,
         }
@@ -1604,7 +1603,7 @@ impl PlacementState {
                 }
 
                 if self.next_in_flow_margin_collapses_with_parent_start_margin {
-                    debug_assert_eq!(self.current_margin.solve(), Au::zero());
+                    debug_assert_eq!(self.current_margin.solve().is_zero(), true);
                     self.start_margin
                         .adjoin_assign(&fragment_block_margins.start);
                     if fragment_block_margins.collapsed_through {
@@ -1618,8 +1617,9 @@ impl PlacementState {
                 }
                 self.current_block_direction_position += self.current_margin.solve();
 
-                fragment.content_rect.start_corner.block +=
-                    self.current_block_direction_position.into();
+                fragment.content_rect.start_corner.block += (self.current_margin.solve() +
+                    self.current_block_direction_position.into())
+                .into();
 
                 if fragment_block_margins.collapsed_through {
                     // `fragment_block_size` is typically zero when collapsing through,
@@ -1628,7 +1628,8 @@ impl PlacementState {
                     self.current_margin
                         .adjoin_assign(&fragment_block_margins.end);
                 } else {
-                    self.current_block_direction_position += fragment_block_size;
+                    self.current_block_direction_position +=
+                        (self.current_margin.solve() + fragment_block_size.into()).into();
                     self.current_margin = fragment_block_margins.end;
                 }
             },
@@ -1643,8 +1644,8 @@ impl PlacementState {
             Fragment::Float(box_fragment) => {
                 let sequential_layout_state = sequential_layout_state
                     .expect("Found float fragment without SequentialLayoutState");
-                self.current_block_direction_position += self.current_margin.solve();
-                let block_offset_from_containing_block_top = self.current_block_direction_position;
+                let block_offset_from_containing_block_top =
+                    self.current_block_direction_position + self.current_margin.solve().into();
                 sequential_layout_state.place_float_fragment(
                     box_fragment,
                     self.start_margin,

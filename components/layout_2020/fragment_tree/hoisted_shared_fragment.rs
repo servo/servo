@@ -8,7 +8,6 @@ use style::values::computed::{Length, LengthPercentage};
 use super::Fragment;
 use crate::cell::ArcRefCell;
 use crate::geom::LogicalVec2;
-use crate::Au;
 
 /// A reference to a Fragment which is shared between `HoistedAbsolutelyPositionedBox`
 /// and its placeholder `AbsoluteOrFixedPositionedFragment` in the original tree position.
