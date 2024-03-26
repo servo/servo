@@ -419,11 +419,11 @@ enum InternalTimerCallback {
 }
 
 impl Default for JsTimers {
-        fn default() -> Self {
-            Self::new()
-       }
+    fn default() -> Self {
+        Self::new()
     }
-        |
+}
+
 impl JsTimers {
     pub fn new() -> JsTimers {
         JsTimers {
