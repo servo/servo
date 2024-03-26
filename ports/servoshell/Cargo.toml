@@ -75,7 +75,7 @@ servo-media = { workspace = true }
 shellwords = "1.0.0"
 surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle-06"] }
 tinyfiledialogs = "3.0"
-webxr = { git = "https://github.com/servo/webxr", rev = "88fd368d1cc110db0f6f5000de2e22a14c9423b5", features = ["ipc", "glwindow", "headless"] }
+webxr = { workspace = true, features = ["ipc", "glwindow", "headless"] }
 winit = "0.29.10"
 url = { workspace = true }
 
