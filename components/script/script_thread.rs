@@ -2778,31 +2778,29 @@ impl ScriptThread {
             Some(idx) => {
                 // https://html.spec.whatwg.org/multipage/#process-a-navigate-response
                 // 2. If response's status is 204 or 205, then abort these steps.
-                match metadata {
-                    Some(Metadata {
-                        status: Some((204..=205, _)),
-                        ..
-                    }) => {
-                        // If we have an existing window that is being navigated:
-                        if let Some(window) = self.documents.borrow().find_window(*id) {
-                            let window_proxy = window.window_proxy();
-                            // https://html.spec.whatwg.org/multipage/
-                            // #navigating-across-documents:delaying-load-events-mode-2
-                            if window_proxy.parent().is_some() {
-                                // The user agent must take this nested browsing context
-                                // out of the delaying load events mode
-                                // when this navigation algorithm later matures,
-                                // or when it terminates (whether due to having run all the steps,
-                                // or being canceled, or being aborted), whichever happens first.
-                                window_proxy.stop_delaying_load_events_mode();
-                            }
+                if let Some(Metadata {
+                    status: Some((204..=205, _)),
+                    ..
+                }) = metadata
+                {
+                    // If we have an existing window that is being navigated:
+                    if let Some(window) = self.documents.borrow().find_window(*id) {
+                        let window_proxy = window.window_proxy();
+                        // https://html.spec.whatwg.org/multipage/
+                        // #navigating-across-documents:delaying-load-events-mode-2
+                        if window_proxy.parent().is_some() {
+                            // The user agent must take this nested browsing context
+                            // out of the delaying load events mode
+                            // when this navigation algorithm later matures,
+                            // or when it terminates (whether due to having run all the steps,
+                            // or being canceled, or being aborted), whichever happens first.
+                            window_proxy.stop_delaying_load_events_mode();
                         }
-                        self.script_sender
-                            .send((*id, ScriptMsg::AbortLoadUrl))
-                            .unwrap();
-                        return None;
-                    },
-                    _ => (),
+                    }
+                    self.script_sender
+                        .send((*id, ScriptMsg::AbortLoadUrl))
+                        .unwrap();
+                    return None;
                 };
 
                 let load = self.incomplete_loads.borrow_mut().remove(idx);

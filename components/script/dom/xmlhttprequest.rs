@@ -724,65 +724,62 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         .pipeline_id(Some(self.global().pipeline_id()));
 
         // step 4 (second half)
-        match content_type {
-            Some(content_type) => {
-                let encoding = match data {
-                    Some(DocumentOrXMLHttpRequestBodyInit::String(_)) |
-                    Some(DocumentOrXMLHttpRequestBodyInit::Document(_)) =>
-                    // XHR spec differs from http, and says UTF-8 should be in capitals,
-                    // instead of "utf-8", which is what Hyper defaults to. So not
-                    // using content types provided by Hyper.
-                    {
-                        Some("UTF-8")
-                    },
-                    _ => None,
-                };
+        if let Some(content_type) = content_type {
+            let encoding = match data {
+                Some(DocumentOrXMLHttpRequestBodyInit::String(_)) |
+                Some(DocumentOrXMLHttpRequestBodyInit::Document(_)) =>
+                // XHR spec differs from http, and says UTF-8 should be in capitals,
+                // instead of "utf-8", which is what Hyper defaults to. So not
+                // using content types provided by Hyper.
+                {
+                    Some("UTF-8")
+                },
+                _ => None,
+            };
 
-                let mut content_type_set = false;
-                if !request.headers.contains_key(header::CONTENT_TYPE) {
-                    request.headers.insert(
-                        header::CONTENT_TYPE,
-                        HeaderValue::from_str(&content_type).unwrap(),
-                    );
-                    content_type_set = true;
-                }
+            let mut content_type_set = false;
+            if !request.headers.contains_key(header::CONTENT_TYPE) {
+                request.headers.insert(
+                    header::CONTENT_TYPE,
+                    HeaderValue::from_str(&content_type).unwrap(),
+                );
+                content_type_set = true;
+            }
 
-                if !content_type_set {
-                    let ct = request.headers.typed_get::<ContentType>();
-                    if let Some(ct) = ct {
-                        if let Some(encoding) = encoding {
-                            let mime: Mime = ct.into();
-                            for param in mime.params() {
-                                if param.0 == mime::CHARSET &&
-                                    !param.1.as_ref().eq_ignore_ascii_case(encoding)
-                                {
-                                    let new_params: Vec<(Name, Name)> = mime
-                                        .params()
-                                        .filter(|p| p.0 != mime::CHARSET)
-                                        .map(|p| (p.0, p.1))
-                                        .collect();
+            if !content_type_set {
+                let ct = request.headers.typed_get::<ContentType>();
+                if let Some(ct) = ct {
+                    if let Some(encoding) = encoding {
+                        let mime: Mime = ct.into();
+                        for param in mime.params() {
+                            if param.0 == mime::CHARSET &&
+                                !param.1.as_ref().eq_ignore_ascii_case(encoding)
+                            {
+                                let new_params: Vec<(Name, Name)> = mime
+                                    .params()
+                                    .filter(|p| p.0 != mime::CHARSET)
+                                    .map(|p| (p.0, p.1))
+                                    .collect();
 
-                                    let new_mime = format!(
-                                        "{}/{}; charset={}{}{}",
-                                        mime.type_().as_ref(),
-                                        mime.subtype().as_ref(),
-                                        encoding,
-                                        if new_params.is_empty() { "" } else { "; " },
-                                        new_params
-                                            .iter()
-                                            .map(|p| format!("{}={}", p.0, p.1))
-                                            .collect::<Vec<String>>()
-                                            .join("; ")
-                                    );
-                                    let new_mime: Mime = new_mime.parse().unwrap();
-                                    request.headers.typed_insert(ContentType::from(new_mime))
-                                }
+                                let new_mime = format!(
+                                    "{}/{}; charset={}{}{}",
+                                    mime.type_().as_ref(),
+                                    mime.subtype().as_ref(),
+                                    encoding,
+                                    if new_params.is_empty() { "" } else { "; " },
+                                    new_params
+                                        .iter()
+                                        .map(|p| format!("{}={}", p.0, p.1))
+                                        .collect::<Vec<String>>()
+                                        .join("; ")
+                                );
+                                let new_mime: Mime = new_mime.parse().unwrap();
+                                request.headers.typed_insert(ContentType::from(new_mime))
                             }
                         }
                     }
                 }
-            },
-            _ => (),
+            }
         }
 
         self.fetch_time.set(time::now().to_timespec().sec);

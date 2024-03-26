@@ -2981,33 +2981,30 @@ impl NodeMethods for Node {
         // same owner element.
         if let Some(node2) = node2 {
             if Some(node2) == node1 {
-                match (attr1, attr2) {
-                    (Some(a1), Some(a2)) => {
-                        let attrs = node2.downcast::<Element>().unwrap().attrs();
-                        // go through the attrs in order to see if self
-                        // or other is first; spec is clear that we
-                        // want value-equality, not reference-equality
-                        for attr in attrs.iter() {
-                            if (*attr.namespace() == *a1.namespace()) &&
-                                (attr.local_name() == a1.local_name()) &&
-                                (**attr.value() == **a1.value())
-                            {
-                                return NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC +
-                                    NodeConstants::DOCUMENT_POSITION_PRECEDING;
-                            }
-                            if (*attr.namespace() == *a2.namespace()) &&
-                                (attr.local_name() == a2.local_name()) &&
-                                (**attr.value() == **a2.value())
-                            {
-                                return NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC +
-                                    NodeConstants::DOCUMENT_POSITION_FOLLOWING;
-                            }
+                if let (Some(a1), Some(a2)) = (attr1, attr2) {
+                    let attrs = node2.downcast::<Element>().unwrap().attrs();
+                    // go through the attrs in order to see if self
+                    // or other is first; spec is clear that we
+                    // want value-equality, not reference-equality
+                    for attr in attrs.iter() {
+                        if (*attr.namespace() == *a1.namespace()) &&
+                            (attr.local_name() == a1.local_name()) &&
+                            (**attr.value() == **a1.value())
+                        {
+                            return NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC +
+                                NodeConstants::DOCUMENT_POSITION_PRECEDING;
                         }
-                        // both attrs have node2 as their owner element, so
-                        // we can't have left the loop without seeing them
-                        unreachable!();
-                    },
-                    (_, _) => {},
+                        if (*attr.namespace() == *a2.namespace()) &&
+                            (attr.local_name() == a2.local_name()) &&
+                            (**attr.value() == **a2.value())
+                        {
+                            return NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC +
+                                NodeConstants::DOCUMENT_POSITION_FOLLOWING;
+                        }
+                    }
+                    // both attrs have node2 as their owner element, so
+                    // we can't have left the loop without seeing them
+                    unreachable!();
                 }
             }
         }

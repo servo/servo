@@ -354,11 +354,10 @@ impl AudioNodeMethods for AudioNode {
             return Ok(());
         }
 
-        match self.upcast::<EventTarget>().type_id() {
-            EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelSplitterNode) => {
-                return Err(Error::InvalidState);
-            },
-            _ => (),
+        if let EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelSplitterNode) =
+            self.upcast::<EventTarget>().type_id()
+        {
+            return Err(Error::InvalidState);
         };
 
         self.channel_interpretation.set(value);
