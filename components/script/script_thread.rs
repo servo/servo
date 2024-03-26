@@ -1770,7 +1770,7 @@ impl ScriptThread {
                     // TODO: context lost steps(#31868).
 
                     // Run the animation frame callbacks.
-                    self.handle_tick_all_animations(pipeline_id)
+                    self.handle_tick_all_animations(pipeline_id);
 
                     // TODO: resize observer steps(#31006).
 
@@ -1784,7 +1784,9 @@ impl ScriptThread {
 
                     // TODO: mark paint timing(https://w3c.github.io/paint-timing).
 
-                    // TODO: update the rendering(reflow?).
+                    // Update the rendering.
+                    // TODO: remove all other reflow calls?
+                    self.rebuild_and_force_reflow(&document, ReflowReason::RefreshTick);
                 }
             }
         }
