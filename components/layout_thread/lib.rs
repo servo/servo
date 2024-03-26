@@ -319,6 +319,37 @@ impl Layout for LayoutThread {
     fn current_epoch(&self) -> Epoch {
         self.epoch.get()
     }
+
+    fn load_web_fonts_from_stylesheet(&self, stylesheet: ServoArc<Stylesheet>) {
+        let guard = stylesheet.shared_lock.read();
+        self.load_all_web_fonts_from_stylesheet_with_guard(&stylesheet, &guard);
+    }
+
+    fn add_stylesheet(
+        &mut self,
+        stylesheet: ServoArc<Stylesheet>,
+        before_stylesheet: Option<ServoArc<Stylesheet>>,
+    ) {
+        let guard = stylesheet.shared_lock.read();
+        self.load_all_web_fonts_from_stylesheet_with_guard(&stylesheet, &guard);
+
+        match before_stylesheet {
+            Some(insertion_point) => self.stylist.insert_stylesheet_before(
+                DocumentStyleSheet(stylesheet.clone()),
+                DocumentStyleSheet(insertion_point),
+                &guard,
+            ),
+            None => self
+                .stylist
+                .append_stylesheet(DocumentStyleSheet(stylesheet.clone()), &guard),
+        }
+    }
+
+    fn remove_stylesheet(&mut self, stylesheet: ServoArc<Stylesheet>) {
+        let guard = stylesheet.shared_lock.read();
+        self.stylist
+            .remove_stylesheet(DocumentStyleSheet(stylesheet.clone()), &guard);
+    }
 }
 enum Request {
     FromPipeline(LayoutControlMsg),
@@ -472,10 +503,7 @@ impl LayoutThread {
             Request::FromFontCache => {
                 let _rw_data = rw_data.lock();
                 self.outstanding_web_fonts.fetch_sub(1, Ordering::SeqCst);
-                font_context::invalidate_font_caches();
-                self.script_chan
-                    .send(ConstellationControlMsg::WebFontLoaded(self.id))
-                    .unwrap();
+                self.handle_web_font_loaded();
             },
         };
     }
@@ -487,26 +515,6 @@ impl LayoutThread {
         possibly_locked_rw_data: &mut RwData<'a, 'b>,
     ) {
         match request {
-            Msg::AddStylesheet(stylesheet, before_stylesheet) => {
-                let guard = stylesheet.shared_lock.read();
-                self.handle_add_stylesheet(&stylesheet, &guard);
-
-                match before_stylesheet {
-                    Some(insertion_point) => self.stylist.insert_stylesheet_before(
-                        DocumentStyleSheet(stylesheet.clone()),
-                        DocumentStyleSheet(insertion_point),
-                        &guard,
-                    ),
-                    None => self
-                        .stylist
-                        .append_stylesheet(DocumentStyleSheet(stylesheet.clone()), &guard),
-                }
-            },
-            Msg::RemoveStylesheet(stylesheet) => {
-                let guard = stylesheet.shared_lock.read();
-                self.stylist
-                    .remove_stylesheet(DocumentStyleSheet(stylesheet.clone()), &guard);
-            },
             Msg::SetQuirksMode(mode) => self.handle_set_quirks_mode(mode),
             Msg::GetRPC(response_chan) => {
                 response_chan
@@ -606,7 +614,11 @@ impl LayoutThread {
         self.root_flow.borrow_mut().take();
     }
 
-    fn handle_add_stylesheet(&self, stylesheet: &Stylesheet, guard: &SharedRwLockReadGuard) {
+    fn load_all_web_fonts_from_stylesheet_with_guard(
+        &self,
+        stylesheet: &Stylesheet,
+        guard: &SharedRwLockReadGuard,
+    ) {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts.
         if stylesheet.is_effective_for_device(self.stylist.device(), &guard) {
@@ -618,9 +630,21 @@ impl LayoutThread {
                     &self.font_cache_sender,
                     self.debug.load_webfonts_synchronously,
                 );
-            self.outstanding_web_fonts
-                .fetch_add(newly_loading_font_count, Ordering::SeqCst);
+
+            if !self.debug.load_webfonts_synchronously {
+                self.outstanding_web_fonts
+                    .fetch_add(newly_loading_font_count, Ordering::SeqCst);
+            } else if newly_loading_font_count > 0 {
+                self.handle_web_font_loaded();
+            }
         }
+    }
+
+    fn handle_web_font_loaded(&self) {
+        font_context::invalidate_font_caches();
+        self.script_chan
+            .send(ConstellationControlMsg::WebFontLoaded(self.id))
+            .unwrap();
     }
 
     /// Sets quirks mode for the document, causing the quirks mode stylesheet to be used.
@@ -964,7 +988,10 @@ impl LayoutThread {
             for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
                 self.stylist
                     .append_stylesheet(stylesheet.clone(), &ua_or_user_guard);
-                self.handle_add_stylesheet(&stylesheet.0, &ua_or_user_guard);
+                self.load_all_web_fonts_from_stylesheet_with_guard(
+                    &stylesheet.0,
+                    &ua_or_user_guard,
+                );
             }
 
             if self.stylist.quirks_mode() != QuirksMode::NoQuirks {
@@ -972,7 +999,7 @@ impl LayoutThread {
                     ua_stylesheets.quirks_mode_stylesheet.clone(),
                     &ua_or_user_guard,
                 );
-                self.handle_add_stylesheet(
+                self.load_all_web_fonts_from_stylesheet_with_guard(
                     &ua_stylesheets.quirks_mode_stylesheet.0,
                     &ua_or_user_guard,
                 );

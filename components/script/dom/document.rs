@@ -3853,10 +3853,10 @@ impl Document {
         let cloned_stylesheet = sheet.clone();
         let insertion_point2 = insertion_point.clone();
         let _ = self.window.with_layout(move |layout| {
-            layout.process(Msg::AddStylesheet(
+            layout.add_stylesheet(
                 cloned_stylesheet,
                 insertion_point2.as_ref().map(|s| s.sheet.clone()),
-            ));
+            );
         });
 
         DocumentOrShadowRoot::add_stylesheet(
@@ -3868,13 +3868,20 @@ impl Document {
         );
     }
 
+    /// Given a stylesheet, load all web fonts from it in Layout.
+    pub fn load_web_fonts_from_stylesheet(&self, stylesheet: Arc<Stylesheet>) {
+        let _ = self.window.with_layout(move |layout| {
+            layout.load_web_fonts_from_stylesheet(stylesheet);
+        });
+    }
+
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
     #[allow(crown::unrooted_must_root)] // Owner needs to be rooted already necessarily.
     pub fn remove_stylesheet(&self, owner: &Element, stylesheet: &Arc<Stylesheet>) {
         let cloned_stylesheet = stylesheet.clone();
         let _ = self
             .window
-            .with_layout(|layout| layout.process(Msg::RemoveStylesheet(cloned_stylesheet)));
+            .with_layout(|layout| layout.remove_stylesheet(cloned_stylesheet));
 
         DocumentOrShadowRoot::remove_stylesheet(
             owner,

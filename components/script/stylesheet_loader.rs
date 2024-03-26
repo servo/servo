@@ -186,6 +186,10 @@ impl FetchResponseListener for StylesheetContext {
                         Some(&loader),
                         win.css_error_reporter(),
                     );
+
+                    // Layout knows about this stylesheet, because Stylo added it to the Stylist,
+                    // but Layout doesn't know about any new web fonts that it contains.
+                    document.load_web_fonts_from_stylesheet(stylesheet.clone());
                 },
             }
 
