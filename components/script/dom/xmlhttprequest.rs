@@ -7,7 +7,7 @@ use std::cell::Cell;
 use std::default::Default;
 use std::str::{self, FromStr};
 use std::sync::{Arc, Mutex};
-use std::{cmp, ptr, slice};
+use std::{cmp, slice};
 
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
@@ -20,7 +20,7 @@ use http::Method;
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use js::jsapi::{Heap, JSObject, JS_ClearPendingException};
+use js::jsapi::{Heap, JS_ClearPendingException};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use js::rust::wrappers::JS_ParseJSON;
 use js::rust::HandleObject;
@@ -40,7 +40,7 @@ use url::Position;
 
 use crate::body::{BodySource, Extractable, ExtractedBody};
 use crate::document_loader::DocumentLoader;
-use crate::dom::bindings::buffer_source::{create_buffer_source, HeapBufferSource};
+use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::{
@@ -332,7 +332,7 @@ impl XMLHttpRequest {
 }
 
 impl XMLHttpRequestMethods for XMLHttpRequest {
-    /// <https://xhr.spec.whatwg.org/#handler-xhr-onreadystatechange>
+    // https://xhr.spec.whatwg.org/#handler-xhr-onreadystatechange
     event_handler!(
         readystatechange,
         GetOnreadystatechange,
@@ -1350,14 +1350,12 @@ impl XMLHttpRequest {
     /// <https://xhr.spec.whatwg.org/#arraybuffer-response>
     fn arraybuffer_response(&self, cx: JSContext) -> Option<ArrayBuffer> {
         // Step 1
-        if self.response_arraybuffer.is_initialized() {
-            return self.response_arraybuffer.get_buffer().ok();
+        if !self.response_arraybuffer.is_initialized() {
+            // Step 2
+            let bytes = self.response.borrow();
+            self.response_arraybuffer.set_data(cx, &bytes).ok()?;
         }
-
-        // Step 2
-        let bytes = self.response.borrow();
-        rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
-        create_buffer_source(cx, &bytes, array_buffer.handle_mut()).ok()
+        self.response_arraybuffer.get_buffer().ok()
     }
 
     /// <https://xhr.spec.whatwg.org/#document-response>
