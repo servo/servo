@@ -898,15 +898,15 @@ impl HTMLScriptElement {
             warn!("Error creating input and output files for unminify");
         }
 
-        let path;
-        match window_from_node(self).unminified_js_dir() {
-            Some(unminified_js_dir) => path = PathBuf::from(unminified_js_dir),
+        let path = match window_from_node(self).unminified_js_dir() {
+            Some(unminified_js_dir) => PathBuf::from(unminified_js_dir),
             None => {
                 warn!("Unminified script directory not found");
                 return;
             },
-        }
-        let (base, has_name) = match script.url.as_str().ends_with("/") {
+        };
+
+        let (base, has_name) = match script.url.as_str().ends_with('/') {
             true => (
                 path.join(&script.url[url::Position::BeforeHost..])
                     .as_path()
