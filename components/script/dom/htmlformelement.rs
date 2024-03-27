@@ -1125,7 +1125,6 @@ impl HTMLFormElement {
                     },
                     HTMLElementTypeId::HTMLObjectElement => {
                         // Unimplemented
-                        ()
                     },
                     HTMLElementTypeId::HTMLSelectElement => {
                         let select = child.downcast::<HTMLSelectElement>().unwrap();
