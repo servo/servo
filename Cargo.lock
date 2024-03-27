@@ -329,7 +329,7 @@ dependencies = [
  "bitflags 2.5.0",
  "cexpr",
  "clang-sys",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "lazy_static",
  "lazycell",
  "log",
@@ -1110,7 +1110,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e16e44ab292b1dddfdaf7be62cfd8877df52f2f3fde5858d95bab606be259f20"
 dependencies = [
  "bitflags 2.5.0",
- "libloading 0.8.3",
+ "libloading 0.7.4",
  "winapi",
 ]
 
@@ -1306,7 +1306,7 @@ version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330c60081dcc4c72131f8eb70510f1ac07223e5d4163db481a04a0befcffa412"
 dependencies = [
- "libloading 0.8.3",
+ "libloading 0.7.4",
 ]
 
 [[package]]
@@ -3291,7 +3291,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.4",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -3695,7 +3695,7 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.14.1"
-source = "git+https://github.com/servo/mozjs#b695c63b6d832eff191f6785dd56539376ae4332"
+source = "git+https://github.com/servo/mozjs#0172cf4b1e7049a70af5bf9f3c953ff48d6744d6"
 dependencies = [
  "bindgen",
  "cc",
@@ -3709,7 +3709,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.115.9-0"
-source = "git+https://github.com/servo/mozjs#b695c63b6d832eff191f6785dd56539376ae4332"
+source = "git+https://github.com/servo/mozjs#0172cf4b1e7049a70af5bf9f3c953ff48d6744d6"
 dependencies = [
  "bindgen",
  "cc",
@@ -7007,7 +7007,7 @@ dependencies = [
  "js-sys",
  "khronos-egl",
  "libc",
- "libloading 0.8.3",
+ "libloading 0.7.4",
  "log",
  "metal 0.27.0",
  "naga",
