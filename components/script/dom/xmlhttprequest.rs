@@ -1127,13 +1127,13 @@ impl XMLHttpRequest {
                 // Part of step 13, send() (processing response)
                 // XXXManishearth handle errors, if any (substep 1)
                 // Substep 2
-                status.map(|(code, reason)| {
+                if let Some((code, reason)) = status {
                     self.status.set(code);
                     *self.status_text.borrow_mut() = ByteString::new(reason);
-                });
-                headers
-                    .as_ref()
-                    .map(|h| *self.response_headers.borrow_mut() = h.clone());
+                }
+                if let Some(h) = headers.as_ref() {
+                    *self.response_headers.borrow_mut() = h.clone();
+                }
                 {
                     let len = headers.and_then(|h| h.typed_get::<ContentLength>());
                     let mut response = self.response.borrow_mut();

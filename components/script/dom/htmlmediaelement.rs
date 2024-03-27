@@ -1432,23 +1432,21 @@ impl HTMLMediaElement {
 
                             match msg {
                                 GLPlayerMsgForward::Lock(sender) => {
-                                    video_renderer
+                                    if let Some(holder) = video_renderer
                                         .lock()
                                         .unwrap()
                                         .current_frame_holder
-                                        .as_mut()
-                                        .map(|holder| {
+                                        .as_mut() {
                                             holder.lock();
                                             sender.send(holder.get()).unwrap();
-                                        });
+                                        };
                                 },
                                 GLPlayerMsgForward::Unlock() => {
-                                    video_renderer
+                                    if let Some(holder) = video_renderer
                                         .lock()
                                         .unwrap()
                                         .current_frame_holder
-                                        .as_mut()
-                                        .map(|holder| holder.unlock());
+                                        .as_mut() { holder.unlock() }
                                 },
                                 _ => (),
                             }

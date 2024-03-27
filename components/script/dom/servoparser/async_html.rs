@@ -485,7 +485,9 @@ impl Tokenizer {
             },
             ParseOperation::MarkScriptAlreadyStarted { node } => {
                 let script = self.get_node(&node).downcast::<HTMLScriptElement>();
-                script.map(|script| script.set_already_started(true));
+                if let Some(script) = script {
+                    script.set_already_started(true)
+                }
             },
             ParseOperation::ReparentChildren { parent, new_parent } => {
                 let parent = self.get_node(&parent);

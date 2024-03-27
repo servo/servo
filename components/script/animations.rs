@@ -126,9 +126,9 @@ impl Animations {
     pub(crate) fn cancel_animations_for_node(&self, node: &Node) {
         let mut animations = self.sets.sets.write();
         let mut cancel_animations_for = |key| {
-            animations.get_mut(&key).map(|set| {
+            if let Some(set) = animations.get_mut(&key) {
                 set.cancel_all_animations();
-            });
+            }
         };
 
         let opaque_node = node.to_opaque();

@@ -2832,18 +2832,20 @@ impl Activatable for HTMLInputElement {
                 // https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit):activation-behavior
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 // Check if document owner is fully active
-                self.form_owner().map(|o| {
+                if let Some(o) = self.form_owner() {
                     o.submit(
                         SubmittedFrom::NotFromForm,
                         FormSubmitter::InputElement(self),
                     )
-                });
+                }
             },
             InputType::Reset => {
                 // https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):activation-behavior
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 // Check if document owner is fully active
-                self.form_owner().map(|o| o.reset(ResetFrom::NotFromForm));
+                if let Some(o) = self.form_owner() {
+                    o.reset(ResetFrom::NotFromForm)
+                }
             },
             InputType::Checkbox | InputType::Radio => {
                 // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):activation-behavior

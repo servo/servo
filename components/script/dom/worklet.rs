@@ -70,9 +70,9 @@ struct DroppableField {
 impl Drop for DroppableField {
     fn drop(&mut self) {
         let worklet_id = self.worklet_id;
-        self.thread_pool.get_mut().map(|thread_pool| {
+        if let Some(thread_pool) = self.thread_pool.get_mut() {
             thread_pool.exit_worklet(worklet_id);
-        });
+        }
     }
 }
 
