@@ -654,7 +654,7 @@ impl HTMLFormElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#text/plain-encoding-algorithm
-    fn encode_plaintext(&self, form_data: &mut Vec<FormDatum>) -> String {
+    fn encode_plaintext(&self, form_data: &mut [FormDatum]) -> String {
         // Step 1
         let mut result = String::new();
 
