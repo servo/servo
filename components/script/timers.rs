@@ -418,8 +418,8 @@ enum InternalTimerCallback {
     ),
 }
 
-impl JsTimers {
-    pub fn default() -> JsTimers {
+impl Default for JsTimers {
+    pub fn default() -> Self {
         JsTimers {
             next_timer_handle: Cell::new(JsTimerHandle(1)),
             active_timers: DomRefCell::new(HashMap::new()),
