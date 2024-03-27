@@ -3341,11 +3341,11 @@ impl ScriptThread {
     pub fn handle_tick_all_animations_for_testing(id: PipelineId) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.rendering_opportunity(id);
-            script_thread
-                .documents
-                .borrow_mut()
-                .note_pending_animation_tick(id, AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS);
+            let document = match script_thread.documents.borrow().find_document(id) {
+                Some(document) => document,
+                None => return warn!("Animation tick for tests for closed pipeline {}.", id),
+            };
+            document.maybe_mark_animating_nodes_as_dirty();
         });
     }
 
