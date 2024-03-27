@@ -42,7 +42,7 @@ impl ByteString {
 
     /// Checks if the ByteString is empty.
     pub fn is_empty(&self) -> bool {
-        self.len() == 0
+        self.0.is_empty()
     }
 
     /// Returns `self` with A–Z replaced by a–z.
