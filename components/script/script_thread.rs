@@ -1726,74 +1726,54 @@ impl ScriptThread {
                 .documents
                 .borrow()
                 .iter()
-                .filter_map(|(id, document)| {
-                    // Iterate over those that are:
-                    // 1. fully active
-                    // 2. not an iframe(these will be iterated over per top-level).
-                    if !document.HasFocus() {
-                        None
-                    } else {
-                        Some((id, DomRoot::from_ref(&*document)))
-                    }
-                })
+                .map(|(id, document)| (id, DomRoot::from_ref(&*document)))
                 .collect();
             for (pipeline_id, document) in pipeline_and_docs {
-                // For ordering by parent and shadow root:
-                // iterate over the top-level and it's iframes, if any.
-                let mut to_iterate = VecDeque::new();
-                for frame in document.iter_iframes() {
-                    let doc = document_from_node(&*frame);
-                    let id = doc.window().upcast::<GlobalScope>().pipeline_id();
-                    to_iterate.push_back((id, doc));
-                }
-                to_iterate.push_back((pipeline_id, document));
+                // TODO: ordering by parent and shadow root.
+                // TODO: reveal the document(#31581).
 
-                for (pipeline_id, document) in to_iterate.into_iter() {
-                    // TODO: reveal the document(#31581).
+                // Focusing steps, plus other composition events.
+                // TODO: break-up to match spec more closely?
+                // See: flush autofocus candidates.
+                self.process_pending_compositor_events(pipeline_id);
 
-                    // Focusing steps, plus other composition events.
-                    // TODO: break-up to match spec more closely?
-                    // See: flush autofocus candidates.
-                    self.process_pending_compositor_events(pipeline_id);
+                // Resize steps.
+                self.run_the_resize_steps(pipeline_id, &*document);
 
-                    // Resize steps.
-                    self.run_the_resize_steps(pipeline_id, &*document);
+                // TODO: scroll steps(#31665)
 
-                    // TODO: scroll steps(#31665)
+                // Evaluate media queries and report changes.
+                document
+                    .window()
+                    .evaluate_media_queries_and_report_changes();
 
-                    // Evaluate media queries and report changes.
-                    document
-                        .window()
-                        .evaluate_media_queries_and_report_changes();
+                // Update animations and send events.
+                self.update_animations_and_send_events();
 
-                    // Update animations and send events.
-                    self.update_animations_and_send_events();
+                // TODO: fullscreen steps(#31866).
 
-                    // TODO: fullscreen steps(#31866).
+                // TODO: context lost steps(#31868).
 
-                    // TODO: context lost steps(#31868).
+                // Run the animation frame callbacks.
+                self.handle_tick_all_animations(pipeline_id);
 
-                    // Run the animation frame callbacks.
-                    self.handle_tick_all_animations(pipeline_id);
+                // TODO: resize observer steps(#31006).
 
-                    // TODO: resize observer steps(#31006).
+                // TODO: if the focused area of doc is not a focusable area,
+                // then run the focusing steps for doc's viewport.
+                // (#31870)
 
-                    // TODO: if the focused area of doc is not a focusable area,
-                    // then run the focusing steps for doc's viewport.
-                    // (#31870)
+                // TODO: perform pending transition operations(https://drafts.csswg.org/css-view-transitions/).
 
-                    // TODO: perform pending transition operations(https://drafts.csswg.org/css-view-transitions/).
+                // TODO: run the update intersection observations steps(#31021).
 
-                    // TODO: run the update intersection observations steps(#31021).
+                // TODO: mark paint timing(https://w3c.github.io/paint-timing).
 
-                    // TODO: mark paint timing(https://w3c.github.io/paint-timing).
+                // Update the rendering.
+                // TODO: remove all other reflow calls?
+                self.rebuild_and_force_reflow(&document, ReflowReason::RefreshTick);
 
-                    // Update the rendering.
-                    // TODO: remove all other reflow calls?
-                    self.rebuild_and_force_reflow(&document, ReflowReason::RefreshTick);
-
-                    // TODO: process top layer removals(https://drafts.csswg.org/css-position-4/#process-top-layer-removals)
-                }
+                // TODO: process top layer removals(https://drafts.csswg.org/css-position-4/#process-top-layer-removals)
             }
         }
     }
