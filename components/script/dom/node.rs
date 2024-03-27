@@ -1561,11 +1561,13 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     }
 
     fn iframe_browsing_context_id(self) -> Option<BrowsingContextId> {
-        self.downcast::<HTMLIFrameElement>().and_then(|iframe_element| iframe_element.browsing_context_id())
+        self.downcast::<HTMLIFrameElement>()
+            .and_then(|iframe_element| iframe_element.browsing_context_id())
     }
 
     fn iframe_pipeline_id(self) -> Option<PipelineId> {
-        self.downcast::<HTMLIFrameElement>().and_then(|iframe_element| iframe_element.pipeline_id())
+        self.downcast::<HTMLIFrameElement>()
+            .and_then(|iframe_element| iframe_element.pipeline_id())
     }
 
     #[allow(unsafe_code)]
