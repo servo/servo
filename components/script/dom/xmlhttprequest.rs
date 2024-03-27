@@ -1349,7 +1349,7 @@ impl XMLHttpRequest {
 
     /// <https://xhr.spec.whatwg.org/#arraybuffer-response>
     fn arraybuffer_response(&self, cx: JSContext) -> Option<ArrayBuffer> {
-        // Step 1: Set the response object to a new ArrayBuffer with the received bytes
+        // Step 5: Set the response object to a new ArrayBuffer with the received bytes
         // For caching purposes, skip this step if the response is already created
         if !self.response_arraybuffer.is_initialized() {
             let bytes = self.response.borrow();
@@ -1358,7 +1358,7 @@ impl XMLHttpRequest {
             self.response_arraybuffer.set_data(cx, &bytes).ok()?;
         }
 
-        // Step 2: Return the correct ArrayBuffer
+        // Return the correct ArrayBuffer
         self.response_arraybuffer.get_buffer().ok()
     }
 
