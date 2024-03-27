@@ -1058,9 +1058,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     /// Set the root pipeline for our WebRender scene to a display list that consists of an iframe
     /// for each visible top-level browsing context, applying a transformation on the root for
     /// pinch zoom, page zoom, and HiDPI scaling.
-    fn update_root_pipeline(&mut self) {
+    fn send_root_pipeline_display_list(&mut self) {
         let mut transaction = Transaction::new();
-        self.update_root_pipeline_in_transaction(&mut transaction);
+        self.send_root_pipeline_display_list_in_transaction(&mut transaction);
         self.generate_frame(&mut transaction, RenderReasons::SCENE);
         self.webrender_api
             .send_transaction(self.webrender_document, transaction);
@@ -1069,7 +1069,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     /// Set the root pipeline for our WebRender scene to a display list that consists of an iframe
     /// for each visible top-level browsing context, applying a transformation on the root for
     /// pinch zoom, page zoom, and HiDPI scaling.
-    fn update_root_pipeline_in_transaction(&self, transaction: &mut Transaction) {
+    fn send_root_pipeline_display_list_in_transaction(&self, transaction: &mut Transaction) {
         // Every display list needs a pipeline, but we'd like to choose one that is unlikely
         // to conflict with our content pipelines, which start at (1, 1). (0, 0) is WebRender's
         // dummy pipeline, so we choose (0, 1).
@@ -1154,8 +1154,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             );
         }
 
-        self.update_root_pipeline();
-        self.update_pipeline_details_tree(&frame_tree, None);
+        self.send_root_pipeline_display_list();
+        self.create_or_update_pipeline_details_with_frame_tree(&frame_tree, None);
         self.reset_scroll_tree_for_unattached_pipelines(&frame_tree);
 
         self.frame_tree_id.next();
@@ -1167,9 +1167,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             return;
         };
 
-        self.update_root_pipeline();
+        self.send_root_pipeline_display_list();
         if let Some(pipeline_id) = webview.pipeline_id {
-            self.remove_pipeline_details_tree(pipeline_id);
+            self.remove_pipeline_details_recursively(pipeline_id);
         }
 
         self.frame_tree_id.next();
@@ -1205,7 +1205,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 );
             }
 
-            self.update_root_pipeline();
+            self.send_root_pipeline_display_list();
         }
     }
 
@@ -1223,13 +1223,13 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             self.webviews.show(webview_id)
         };
         if painting_order_changed {
-            self.update_root_pipeline();
+            self.send_root_pipeline_display_list();
         }
     }
 
     pub fn hide_webview(&mut self, webview_id: WebViewId) {
         if self.webviews.hide(webview_id) {
-            self.update_root_pipeline();
+            self.send_root_pipeline_display_list();
         }
     }
 
@@ -1247,7 +1247,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             self.webviews.raise_to_top(webview_id)
         };
         if painting_order_changed {
-            self.update_root_pipeline();
+            self.send_root_pipeline_display_list();
         }
     }
 
@@ -1300,7 +1300,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             })
     }
 
-    fn update_pipeline_details_tree(
+    fn create_or_update_pipeline_details_with_frame_tree(
         &mut self,
         frame_tree: &SendableFrameTree,
         parent_pipeline_id: Option<PipelineId>,
@@ -1311,11 +1311,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         pipeline_details.parent_pipeline_id = parent_pipeline_id;
 
         for kid in &frame_tree.children {
-            self.update_pipeline_details_tree(kid, Some(pipeline_id));
+            self.create_or_update_pipeline_details_with_frame_tree(kid, Some(pipeline_id));
         }
     }
 
-    fn remove_pipeline_details_tree(&mut self, pipeline_id: PipelineId) {
+    fn remove_pipeline_details_recursively(&mut self, pipeline_id: PipelineId) {
         self.pipeline_details.remove(&pipeline_id);
 
         let children = self
@@ -1328,7 +1328,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             .collect::<Vec<_>>();
 
         for kid in children {
-            self.remove_pipeline_details_tree(kid);
+            self.remove_pipeline_details_recursively(kid);
         }
     }
 
@@ -1685,7 +1685,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         let mut transaction = Transaction::new();
         if zoom_changed {
-            self.update_root_pipeline_in_transaction(&mut transaction);
+            self.send_root_pipeline_display_list_in_transaction(&mut transaction);
         }
 
         if let Some((pipeline_id, external_id, offset)) = scroll_result {
@@ -1837,7 +1837,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
 
         // Update the root transform in WebRender to reflect the new zoom.
-        self.update_root_pipeline();
+        self.send_root_pipeline_display_list();
     }
 
     /// Simulate a pinch zoom
