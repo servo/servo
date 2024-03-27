@@ -7,7 +7,6 @@
 use std::default::Default;
 use std::ffi::CString;
 use std::mem::drop;
-use std::ops::Deref;
 use std::ptr;
 use std::rc::Rc;
 
