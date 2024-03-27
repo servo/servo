@@ -529,7 +529,7 @@ impl DOMString {
     pub fn is_valid_simple_color_string(&self) -> bool {
         let mut chars = self.0.chars();
         if self.0.len() == 7 && chars.next() == Some('#') {
-            chars.all(|c| c.is_digit(16))
+            chars.all(|c| c.is_ascii_hexdigit())
         } else {
             false
         }
