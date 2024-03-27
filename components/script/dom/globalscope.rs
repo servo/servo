@@ -1209,7 +1209,7 @@ impl GlobalScope {
             if let Some(channels) = channels.get(&channel_name) {
                 channels
                     .iter()
-                    .filter(|ref channel| {
+                    .filter(|channel| {
                         // Step 8.
                         // Filter out the sender.
                         if let Some(id) = channel_id {
@@ -1388,7 +1388,7 @@ impl GlobalScope {
             &mut *self.broadcast_channel_state.borrow_mut()
         {
             channels.retain(|name, ref mut channels| {
-                channels.retain(|ref chan| !chan.closed());
+                channels.retain(|chan| !chan.closed());
                 if channels.is_empty() {
                     let _ = self.script_to_constellation_chan().send(
                         ScriptMsg::RemoveBroadcastChannelNameInRouter(
@@ -2193,7 +2193,7 @@ impl GlobalScope {
         }
     }
 
-    pub fn get_uncaught_rejections(&self) -> &DomRefCell<Vec<Box<Heap<*mut JSObject>>>> {
+    pub fn get_uncaught_rejections(&self) -> &DomRefCell<Vec<Heap<*mut JSObject>>> {
         &self.uncaught_rejections
     }
 
@@ -2214,7 +2214,7 @@ impl GlobalScope {
         }
     }
 
-    pub fn get_consumed_rejections(&self) -> &DomRefCell<Vec<Box<Heap<*mut JSObject>>>> {
+    pub fn get_consumed_rejections(&self) -> &DomRefCell<Vec<Heap<*mut JSObject>>> {
         &self.consumed_rejections
     }
 
