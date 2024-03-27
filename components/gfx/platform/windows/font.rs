@@ -237,7 +237,7 @@ impl FontHandleMethods for FontHandle {
             None => {
                 let bytes = template.bytes();
                 let font_file =
-                    FontFile::new_from_data(bytes).ok_or_else(|| "Could not create FontFile")?;
+                    FontFile::new_from_data(bytes).ok_or("Could not create FontFile")?;
                 let face = font_file
                     .create_face(0, dwrote::DWRITE_FONT_SIMULATIONS_NONE)
                     .map_err(|_| "Could not create FontFace")?;
