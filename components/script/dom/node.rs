@@ -1561,13 +1561,11 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     }
 
     fn iframe_browsing_context_id(self) -> Option<BrowsingContextId> {
-        self.downcast::<HTMLIFrameElement>()
-            .map_or(None, |iframe_element| iframe_element.browsing_context_id())
+        self.downcast::<HTMLIFrameElement>().and_then(|iframe_element| iframe_element.browsing_context_id())
     }
 
     fn iframe_pipeline_id(self) -> Option<PipelineId> {
-        self.downcast::<HTMLIFrameElement>()
-            .map_or(None, |iframe_element| iframe_element.pipeline_id())
+        self.downcast::<HTMLIFrameElement>().and_then(|iframe_element| iframe_element.pipeline_id())
     }
 
     #[allow(unsafe_code)]
@@ -1918,7 +1916,7 @@ impl Node {
                         0 => (),
                         // Step 6.1.2
                         1 => {
-                            if !parent.child_elements().next().is_none() {
+                            if parent.child_elements().next().is_some() {
                                 return Err(Error::HierarchyRequest);
                             }
                             if let Some(child) = child {
@@ -1936,7 +1934,7 @@ impl Node {
                 },
                 // Step 6.2
                 NodeTypeId::Element(_) => {
-                    if !parent.child_elements().next().is_none() {
+                    if parent.child_elements().next().is_some() {
                         return Err(Error::HierarchyRequest);
                     }
                     if let Some(ref child) = child {
@@ -1964,7 +1962,7 @@ impl Node {
                             }
                         },
                         None => {
-                            if !parent.child_elements().next().is_none() {
+                            if parent.child_elements().next().is_some() {
                                 return Err(Error::HierarchyRequest);
                             }
                         },

@@ -141,7 +141,7 @@ impl MediaSessionMethods for MediaSession {
 
     /// <https://w3c.github.io/mediasession/#dom-mediasession-metadata>
     fn SetMetadata(&self, metadata: Option<&MediaMetadata>) {
-        if let Some(ref metadata) = metadata {
+        if let Some(metadata) = metadata {
             metadata.set_session(self);
         }
 
