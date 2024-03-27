@@ -51,8 +51,6 @@ pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
     /// Modified by EmbedderMsg::WebViewFocused and EmbedderMsg::WebViewBlurred.
     focused_webview_id: Option<WebViewId>,
 
-    title: Option<String>,
-
     window: Rc<Window>,
     event_queue: Vec<EmbedderEvent>,
     clipboard: Option<Clipboard>,
@@ -64,6 +62,7 @@ pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
 #[derive(Debug)]
 pub struct WebView {
     pub rect: DeviceRect,
+    pub title: String,
     pub current_url: Option<ServoUrl>,
     pub current_url_string: Option<String>,
     pub location: String,
@@ -90,7 +89,6 @@ where
 {
     pub fn new(window: Rc<Window>) -> WebViewManager<Window> {
         WebViewManager {
-            title: None,
             webviews: HashMap::default(),
             creation_order: vec![],
             focus_order: vec![],
@@ -481,21 +479,23 @@ where
                     // FIXME: surface this status string in the UI somehow
                 },
                 EmbedderMsg::ChangePageTitle(title) => {
-                    self.title = title;
-
-                    let webview = self.get(webview_id.expect("Guaranteed for this variant"));
-                    let current_url = webview.and_then(|w| w.current_url.as_ref());
-                    let fallback_title: String = if let Some(current_url) = current_url {
-                        current_url.to_string()
-                    } else {
-                        String::from("Untitled")
-                    };
-                    let title = match self.title {
-                        Some(ref title) if !title.is_empty() => &**title,
-                        _ => &fallback_title,
-                    };
-                    let title = format!("{} - Servo", title);
-                    self.window.set_title(&title);
+                    if let Some(webview_id) = webview_id {
+                        if let Some(webview) = self.get_mut(webview_id) {
+                            let title = match title {
+                                Some(ref title) if !title.is_empty() => &**title,
+                                _ => webview
+                                    .current_url_string
+                                    .as_deref()
+                                    .unwrap_or_else(|| "Untitled"),
+                            };
+                            webview.title = format!("{title} - Servo");
+                        }
+                        if let Some(webview) = self.get(webview_id) {
+                            if self.focused_webview_id == Some(webview_id) {
+                                self.window.set_title(&webview.title);
+                            }
+                        }
+                    }
                 },
                 EmbedderMsg::MoveTo(point) => {
                     self.window.set_position(point);
@@ -649,6 +649,9 @@ where
                     // TODO: Stop doing this once we have full multiple webviews support
                     self.event_queue
                         .push(EmbedderEvent::ShowWebView(webview_id, true));
+                    if let Some(webview) = self.focused_webview() {
+                        self.window.set_title(&*webview.title);
+                    }
                     need_update = true;
                 },
                 EmbedderMsg::WebViewBlurred => {
@@ -800,6 +803,7 @@ where
                 webview_id,
                 WebView {
                     rect,
+                    title: "Servo".to_owned(),
                     current_url: None,
                     current_url_string: None,
                     location: "".to_owned(),
