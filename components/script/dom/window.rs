@@ -783,7 +783,7 @@ impl WindowMethods for Window {
                         // which calls into https://html.spec.whatwg.org/multipage/#discard-a-document.
                         window.discard_browsing_context();
 
-                        let _ = window.send_to_constellation(ScriptMsg::DiscardTopLevelBrowsingContext);
+                        window.send_to_constellation(ScriptMsg::DiscardTopLevelBrowsingContext);
                     }
                 });
                 self.task_manager()

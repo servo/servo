@@ -982,7 +982,7 @@ impl WebGLFramebuffer {
 
 impl Drop for WebGLFramebuffer {
     fn drop(&mut self) {
-        let _ = self.delete(Operation::Fallible);
+        self.delete(Operation::Fallible);
     }
 }
 
