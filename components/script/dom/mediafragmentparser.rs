@@ -300,11 +300,7 @@ fn parse_hms(s: &str) -> Result<f64, ()> {
 
     let result = match vec.len() {
         1 => {
-            let secs = vec
-                .pop_front()
-                .ok_or_else(|| ())?
-                .parse::<f64>()
-                .map_err(|_| ())?;
+            let secs = vec.pop_front().ok_or(())?.parse::<f64>().map_err(|_| ())?;
 
             if secs == 0. {
                 return Err(());
@@ -318,7 +314,7 @@ fn parse_hms(s: &str) -> Result<f64, ()> {
             parse_npt_seconds(vec.pop_front().ok_or(())?)?,
         ),
         3 => hms_to_seconds(
-            vec.pop_front().ok_or_else(|| ())?.parse().map_err(|_| ())?,
+            vec.pop_front().ok_or(())?.parse().map_err(|_| ())?,
             parse_npt_minute(vec.pop_front().ok_or(())?)?,
             parse_npt_seconds(vec.pop_front().ok_or(())?)?,
         ),
