@@ -155,7 +155,7 @@ pub unsafe extern "C" fn get_prototype_if_ordinary(
 /// Get the expando object, or null if there is none.
 pub unsafe fn get_expando_object(obj: RawHandleObject, mut expando: MutableHandleObject) {
     assert!(is_dom_proxy(obj.get()));
-    let ref mut val = UndefinedValue();
+    let val = &mut UndefinedValue();
     GetProxyPrivate(obj.get(), val);
     expando.set(if val.is_undefined() {
         ptr::null_mut()
