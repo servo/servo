@@ -124,14 +124,14 @@ impl PartialOrd for OneshotTimer {
 impl Eq for OneshotTimer {}
 impl PartialEq for OneshotTimer {
     fn eq(&self, other: &OneshotTimer) -> bool {
-        self as *const OneshotTimer == other as *const OneshotTimer
+        std::ptr::eq(self, other)
     }
 }
 
 impl OneshotTimers {
     pub fn new(scheduler_chan: IpcSender<TimerSchedulerMsg>) -> OneshotTimers {
         OneshotTimers {
-            js_timers: JsTimers::new(),
+            js_timers: JsTimers::default(),
             timer_event_chan: DomRefCell::new(None),
             scheduler_chan,
             next_timer_handle: Cell::new(OneshotTimerHandle(1)),
@@ -194,7 +194,7 @@ impl OneshotTimers {
     fn is_next_timer(&self, handle: OneshotTimerHandle) -> bool {
         match self.timers.borrow().last() {
             None => false,
-            Some(ref max_timer) => max_timer.handle == handle,
+            Some(max_timer) => max_timer.handle == handle,
         }
     }
 
@@ -418,8 +418,8 @@ enum InternalTimerCallback {
     ),
 }
 
-impl JsTimers {
-    pub fn new() -> JsTimers {
+impl Default for JsTimers {
+    fn default() -> Self {
         JsTimers {
             next_timer_handle: Cell::new(JsTimerHandle(1)),
             active_timers: DomRefCell::new(HashMap::new()),
@@ -427,7 +427,9 @@ impl JsTimers {
             min_duration: Cell::new(None),
         }
     }
+}
 
+impl JsTimers {
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
     pub fn set_timeout_or_interval(
         &self,
