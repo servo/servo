@@ -1259,7 +1259,9 @@ impl TreeSink for Sink {
 
     fn mark_script_already_started(&mut self, node: &Dom<Node>) {
         let script = node.downcast::<HTMLScriptElement>();
-        script.map(|script| script.set_already_started(true));
+        if let Some(script) = script {
+            script.set_already_started(true)
+        }
     }
 
     fn complete_script(&mut self, node: &Dom<Node>) -> NextParserState {

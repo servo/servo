@@ -267,10 +267,9 @@ impl WorkerMethods for Worker {
         self.terminated.set(true);
 
         // Step 3
-        self.context_for_interrupt
-            .borrow()
-            .as_ref()
-            .map(|cx| cx.request_interrupt());
+        if let Some(cx) = self.context_for_interrupt.borrow().as_ref() {
+            cx.request_interrupt()
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-worker-onmessage
