@@ -847,9 +847,8 @@ impl FlexLine<'_> {
             .zip(&item_margins)
             .map(|(((item, item_result), content_rect), margin)| {
                 let content_rect = flex_context.rect_to_flow_relative(line_size, content_rect);
-                let margin = flex_context.sides_to_flow_relative(*margin);
-                let collapsed_margin =
-                    CollapsedBlockMargins::from_margin(&LogicalSides::<Au>::from(margin.clone()));
+                let margin = flex_context.sides_to_flow_relative(*margin).into();
+                let collapsed_margin = CollapsedBlockMargins::from_margin(&margin);
                 (
                     // TODO: We should likely propagate baselines from `display: flex`.
                     BoxFragment::new(

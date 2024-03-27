@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use serde::Serialize;
+ use serde::Serialize;
 use style::values::computed::{Length, LengthPercentage};
 
 use super::Fragment;
@@ -31,7 +31,7 @@ impl HoistedSharedFragment {
     /// In some cases `inset: auto`-positioned elements do not know their precise
     /// position until after they're hoisted. This lets us adjust auto values
     /// after the fact.
-    pub(crate) fn adjust_offsets(&mut self, offsets: LogicalVec2<Au>) {
+    pub(crate) fn adjust_offsets(&mut self, offsets: LogicalVec2<Length>) {
         self.box_offsets.inline.adjust_offset(offsets.inline);
         self.box_offsets.block.adjust_offset(offsets.block);
     }
@@ -59,7 +59,7 @@ impl AbsoluteBoxOffsets {
         matches!(self, AbsoluteBoxOffsets::Both { .. })
     }
 
-    pub(crate) fn adjust_offset(&mut self, new_offset: Au) {
+    pub(crate) fn adjust_offset(&mut self, new_offset: Length) {
         if let AbsoluteBoxOffsets::StaticStart { ref mut start } = *self {
             *start = new_offset
         }

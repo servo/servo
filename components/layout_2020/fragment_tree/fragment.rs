@@ -11,6 +11,7 @@ use gfx_traits::print_tree::PrintTree;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use serde::Serialize;
 use servo_arc::Arc as ServoArc;
+use style::Zero;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style::values::specified::text::TextDecorationLine;
@@ -279,8 +280,8 @@ impl CollapsedBlockMargins {
 impl CollapsedMargin {
     pub fn zero() -> Self {
         Self {
-            max_positive: Au(0),
-            min_negative: Au(0),
+            max_positive: Au::zero(),
+            min_negative: Au::zero(),
         }
     }
 
