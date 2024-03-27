@@ -2193,7 +2193,7 @@ impl GlobalScope {
         }
     }
 
-    pub fn get_uncaught_rejections(&self) -> &DomRefCell<Vec<Box<Heap<*mut JSObject>>>> {
+    pub fn get_uncaught_rejections(&self) -> &DomRefCell<Vec<Heap<*mut JSObject>>> {
         &self.uncaught_rejections
     }
 
@@ -2214,7 +2214,7 @@ impl GlobalScope {
         }
     }
 
-    pub fn get_consumed_rejections(&self) -> &DomRefCell<Vec<Box<Heap<*mut JSObject>>>> {
+    pub fn get_consumed_rejections(&self) -> &DomRefCell<Vec<Heap<*mut JSObject>>> {
         &self.consumed_rejections
     }
 
