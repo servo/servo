@@ -1870,7 +1870,6 @@ impl Node {
         // Step 1.
         match parent.type_id() {
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
-
             },
             _ => return Err(Error::HierarchyRequest),
         }
@@ -2637,7 +2636,6 @@ impl NodeMethods for Node {
         // Step 1.
         match self.type_id() {
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
-
             },
             _ => return Err(Error::HierarchyRequest),
         }

@@ -579,8 +579,7 @@ const CHARACTERISTIC_ERROR_MESSAGE: &str =
     "https://developer.bluetooth.org/gatt/characteristics/Pages/\
      CharacteristicsHome.aspx\ne.g. 'aerobic_heart_rate_lower_limit'.";
 // https://cs.chromium.org/chromium/src/third_party/WebKit/Source/modules/bluetooth/BluetoothUUID.cpp?l=333
-const DESCRIPTOR_ERROR_MESSAGE: &str =
-    "https://developer.bluetooth.org/gatt/descriptors/Pages/\
+const DESCRIPTOR_ERROR_MESSAGE: &str = "https://developer.bluetooth.org/gatt/descriptors/Pages/\
      DescriptorsHomePage.aspx\ne.g. 'gatt.characteristic_presentation_format'.";
 
 #[allow(non_snake_case)]
