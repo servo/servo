@@ -35,10 +35,10 @@ impl AudioTrack {
     ) -> AudioTrack {
         AudioTrack {
             reflector_: Reflector::new(),
-            id: id,
-            kind: kind,
-            label: label,
-            language: language,
+            id,
+            kind,
+            label,
+            language,
             enabled: Cell::new(false),
             track_list: DomRefCell::new(track_list.map(Dom::from_ref)),
         }
