@@ -93,7 +93,7 @@ unsafe impl<T: CustomTraceable> CustomTraceable for DomRefCell<T> {
 unsafe impl<T: JSTraceable> CustomTraceable for OnceCell<T> {
     unsafe fn trace(&self, tracer: *mut JSTracer) {
         if let Some(value) = self.get() {
-            value.trace(tracer);
+            value.trace(tracer)
         }
     }
 }
