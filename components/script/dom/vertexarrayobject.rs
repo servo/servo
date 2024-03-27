@@ -293,7 +293,7 @@ impl Default for VertexAttribData {
 
 impl VertexAttribData {
     pub fn buffer(&self) -> Option<&WebGLBuffer> {
-        self.buffer.as_ref().map(|b| &**b)
+        self.buffer.as_deref()
     }
 
     pub fn max_vertices(&self) -> u32 {
