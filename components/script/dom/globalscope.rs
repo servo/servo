@@ -294,7 +294,7 @@ pub struct GlobalScope {
     ///
     /// <https://html.spec.whatwg.org/multipage/#about-to-be-notified-rejected-promises-list>
     #[ignore_malloc_size_of = "mozjs"]
-    uncaught_rejections: DomRefCell<Vec<Box<Heap<*mut JSObject>>>>,
+    uncaught_rejections: DomRefCell<Vec<Heap<*mut JSObject>>>,
 
     /// Promises in this list have previously been reported as rejected
     /// (because they were in the above list), but the rejection was handled
@@ -302,7 +302,7 @@ pub struct GlobalScope {
     ///
     /// <https://html.spec.whatwg.org/multipage/#outstanding-rejected-promises-weak-set>
     #[ignore_malloc_size_of = "mozjs"]
-    consumed_rejections: DomRefCell<Vec<Box<Heap<*mut JSObject>>>>,
+    consumed_rejections: DomRefCell<Vec<Heap<*mut JSObject>>>,
 
     /// True if headless mode.
     is_headless: bool,
