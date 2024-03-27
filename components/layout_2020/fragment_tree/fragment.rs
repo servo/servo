@@ -192,12 +192,12 @@ impl Fragment {
                     .translate(containing_block.origin.to_vector());
                 let new_manager = if fragment
                     .style
-                    .establishes_containing_block_for_all_descendants()
+                    .establishes_containing_block_for_all_descendants(fragment.base.flags)
                 {
                     manager.new_for_absolute_and_fixed_descendants(&content_rect, &padding_rect)
                 } else if fragment
                     .style
-                    .establishes_containing_block_for_absolute_descendants()
+                    .establishes_containing_block_for_absolute_descendants(fragment.base.flags)
                 {
                     manager.new_for_absolute_descendants(&content_rect, &padding_rect)
                 } else {
