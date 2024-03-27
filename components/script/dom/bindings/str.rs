@@ -443,7 +443,7 @@ impl DOMString {
             if !(
                 // A valid number is the same as what rust considers to be valid,
                 // except for +1., NaN, and Infinity.
-                val.is_infinite() || val.is_nan() || input.ends_with(".") || input.starts_with("+")
+                val.is_infinite() || val.is_nan() || input.ends_with(".") || input.starts_with('+')
             ) {
                 return Some(val);
             }
