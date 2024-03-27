@@ -1629,7 +1629,7 @@ impl PlacementState {
                         .adjoin_assign(&fragment_block_margins.end);
                 } else {
                     self.current_block_direction_position +=
-                        (self.current_margin.solve() + fragment_block_size.into()).into();
+                        (self.current_margin.solve() + fragment_block_size).into();
                     self.current_margin = fragment_block_margins.end;
                 }
             },
