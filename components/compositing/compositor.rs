@@ -1180,9 +1180,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         rect: DeviceRect,
     ) {
+        let rect_changed;
         let size_changed;
         match self.webviews.get_mut(top_level_browsing_context_id) {
             Some(webview) => {
+                rect_changed = rect != webview.rect;
                 size_changed = rect.size() != webview.rect.size();
                 webview.rect = rect;
             },
@@ -1195,14 +1197,16 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
         };
 
-        if size_changed {
-            self.send_window_size_message_for_top_level_browser_context(
-                rect,
-                top_level_browsing_context_id,
-            );
-        }
+        if rect_changed {
+            if size_changed {
+                self.send_window_size_message_for_top_level_browser_context(
+                    rect,
+                    top_level_browsing_context_id,
+                );
+            }
 
-        self.update_root_pipeline();
+            self.update_root_pipeline();
+        }
     }
 
     pub fn show_webview(&mut self, webview_id: WebViewId, hide_others: bool) {
