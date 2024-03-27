@@ -765,10 +765,8 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
 
     let block_size = containing_block_for_children.block_size.auto_is(|| {
         content_block_size
-            .clamp_between_extremums(
-                min_box_size.block,
-                max_box_size.block)
-                        .into()
+            .clamp_between_extremums(min_box_size.block, max_box_size.block)
+            .into()
     });
 
     if let Some(ref mut sequential_layout_state) = sequential_layout_state {
@@ -1536,7 +1534,7 @@ impl PlacementState {
             last_in_flow_margin_collapses_with_parent_end_margin: true,
             start_margin: CollapsedMargin::zero(),
             current_margin: CollapsedMargin::zero(),
-            current_block_direction_position:Length::zero(),
+            current_block_direction_position: Length::zero(),
             inflow_baselines: Baselines::default(),
             is_inline_block_context,
         }
@@ -1630,7 +1628,7 @@ impl PlacementState {
                     self.current_block_direction_position += fragment_block_size.into();
                     self.current_margin
                         .adjoin_assign(&fragment_block_margins.end);
-                }else {
+                } else {
                     (self.current_margin.solve() + fragment_block_size.into());
                     self.current_margin = fragment_block_margins.end;
                 }
@@ -1642,7 +1640,7 @@ impl PlacementState {
                     inline: Length::new(0.),
                 };
                 fragment.borrow_mut().adjust_offsets(offset);
-                }
+            },
             Fragment::Float(box_fragment) => {
                 let sequential_layout_state = sequential_layout_state
                     .expect("Found float fragment without SequentialLayoutState");

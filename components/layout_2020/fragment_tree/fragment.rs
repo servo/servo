@@ -11,10 +11,10 @@ use gfx_traits::print_tree::PrintTree;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use serde::Serialize;
 use servo_arc::Arc as ServoArc;
-use style::Zero;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style::values::specified::text::TextDecorationLine;
+use style::Zero;
 use webrender_api::{FontInstanceKey, ImageKey};
 
 use super::{
