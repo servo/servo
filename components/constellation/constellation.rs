@@ -3046,14 +3046,12 @@ where
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         let browsing_context =
             self.close_browsing_context(browsing_context_id, ExitPipelineMode::Normal);
-        if self.webviews.focused_webview().map(|(id, _)| id) == Some(top_level_browsing_context_id)
-        {
-            self.embedder_proxy
-                .send((None, EmbedderMsg::WebViewBlurred));
-        }
         self.webviews.remove(top_level_browsing_context_id);
         self.compositor_proxy
             .send(CompositorMsg::RemoveWebView(top_level_browsing_context_id));
+
+        // Notify the embedder that the webview was closed, but don’t notify that it was blurred.
+        // Let the embedder deduce that, so it can focus another webview if it wants.
         self.embedder_proxy.send((
             Some(top_level_browsing_context_id),
             EmbedderMsg::WebViewClosed(top_level_browsing_context_id),

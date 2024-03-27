@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::num::NonZeroU32;
 use std::sync::Arc;
 use std::time::Instant;
@@ -16,7 +16,7 @@ use egui_winit::EventResponse;
 use euclid::{Box2D, Length, Point2D, Scale, Size2D};
 use gleam::gl;
 use glow::NativeFramebuffer;
-use log::{trace, warn};
+use log::{info, trace, warn};
 use servo::compositing::windowing::EmbedderEvent;
 use servo::msg::constellation_msg::TraversalDirection;
 use servo::rendering_context::RenderingContext;
@@ -43,9 +43,6 @@ pub struct Minibrowser {
     last_update: Instant,
     last_mouse_position: Option<Point2D<f32, DeviceIndependentPixel>>,
     location: RefCell<String>,
-
-    /// Whether the location has been edited by the user without clicking Go.
-    location_dirty: Cell<bool>,
 
     load_status: LoadStatus,
 }
@@ -88,7 +85,6 @@ impl Minibrowser {
             last_update: Instant::now(),
             last_mouse_position: None,
             location: RefCell::new(initial_url.to_string()),
-            location_dirty: false.into(),
             load_status: LoadStatus::LoadComplete,
         }
     }
@@ -145,11 +141,64 @@ impl Minibrowser {
             widget_surface_fbo,
             last_update,
             location,
-            location_dirty,
             ..
         } = self;
         let widget_fbo = *widget_surface_fbo;
         let _duration = context.run(window, |ctx| {
+            let mut embedder_events = vec![];
+            let focused_webview_id = webviews.focused_webview_id();
+            let mut selected_tab = focused_webview_id;
+            TopBottomPanel::top("tab bar").show(ctx, |ui| {
+                ui.allocate_ui_with_layout(
+                    ui.available_size(),
+                    egui::Layout::left_to_right(egui::Align::Center),
+                    |ui| {
+                        if ui.button("❌").clicked() {
+                            if let Some(webview_id) = focused_webview_id {
+                                embedder_events.push(EmbedderEvent::CloseWebView(webview_id));
+                            }
+                        }
+
+                        let mut clicked_tab_webview_id = None;
+                        let mut middle_clicked_tab_webview_id = None;
+                        for (&webview_id, _) in webviews.creation_order() {
+                            let text = format!("{:?}", webview_id.0);
+                            let tab =
+                                ui.selectable_value(&mut selected_tab, Some(webview_id), text);
+                            if tab.clicked() {
+                                info!("Clicked tab {webview_id}");
+                                clicked_tab_webview_id = Some(webview_id);
+                            }
+                            if tab.clicked_by(egui::PointerButton::Middle) {
+                                info!("Middle-clicked tab {webview_id}");
+                                middle_clicked_tab_webview_id = Some(webview_id);
+                            }
+                        }
+                        if let Some(clicked_tab_webview_id) = clicked_tab_webview_id {
+                            embedder_events.push(EmbedderEvent::BlurWebView);
+                            embedder_events.push(EmbedderEvent::RaiseWebViewToTop(
+                                clicked_tab_webview_id,
+                                true,
+                            ));
+                            embedder_events
+                                .push(EmbedderEvent::FocusWebView(clicked_tab_webview_id));
+                        }
+                        if let Some(webview_id) = middle_clicked_tab_webview_id {
+                            embedder_events.push(EmbedderEvent::CloseWebView(webview_id));
+                        }
+                    },
+                );
+            });
+
+            let mut location_dirty = false;
+            let mut location = location.borrow_mut();
+            if let Some(webview) = webviews.focused_webview_mut() {
+                location_dirty = webview.location_dirty;
+                if webview.location != *location {
+                    *location = webview.location.clone();
+                }
+            }
+
             TopBottomPanel::top("toolbar").show(ctx, |ui| {
                 ui.allocate_ui_with_layout(
                     ui.available_size(),
@@ -167,7 +216,7 @@ impl Minibrowser {
                             |ui| {
                                 if ui.button("go").clicked() {
                                     event_queue.borrow_mut().push(MinibrowserEvent::Go);
-                                    location_dirty.set(false);
+                                    location_dirty = false;
                                 }
 
                                 match self.load_status {
@@ -180,13 +229,13 @@ impl Minibrowser {
                                     LoadStatus::LoadComplete => { /* No Spinner */ },
                                 }
 
-                                let location_field = ui.add_sized(
-                                    ui.available_size(),
-                                    egui::TextEdit::singleline(&mut *location.borrow_mut()),
-                                );
+                                let location_field = egui::TextEdit::singleline(&mut *location)
+                                    .text_color_opt(location_dirty.then_some(Color32::YELLOW));
+                                let location_field =
+                                    ui.add_sized(ui.available_size(), location_field);
 
                                 if location_field.changed() {
-                                    location_dirty.set(true);
+                                    location_dirty = true;
                                 }
                                 if ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::L)) {
                                     location_field.request_focus();
@@ -195,7 +244,7 @@ impl Minibrowser {
                                     ui.input(|i| i.clone().key_pressed(Key::Enter))
                                 {
                                     event_queue.borrow_mut().push(MinibrowserEvent::Go);
-                                    location_dirty.set(false);
+                                    location_dirty = false;
                                 }
                             },
                         );
@@ -208,15 +257,21 @@ impl Minibrowser {
             // point, but the Context is correct and the TopBottomPanel is wrong.
             *toolbar_height = Length::new(ctx.available_rect().min.y);
 
+            if let Some(webview) = webviews.focused_webview_mut() {
+                webview.location_dirty = location_dirty;
+                if *location != webview.location {
+                    webview.location = location.clone();
+                }
+            }
+
+            let Some(focused_webview_id) = focused_webview_id else {
+                return;
+            };
+            let Some(focused_webview) = webviews.get_mut(focused_webview_id) else {
+                return;
+            };
             let scale =
                 Scale::<_, DeviceIndependentPixel, DevicePixel>::new(ctx.pixels_per_point());
-            let Some(focused_webview_id) = webviews.focused_webview_id() else {
-                return;
-            };
-            let Some(webview) = webviews.get_mut(focused_webview_id) else {
-                return;
-            };
-            let mut embedder_events = vec![];
             CentralPanel::default()
                 .frame(Frame::none())
                 .show(ctx, |ui| {
@@ -229,8 +284,8 @@ impl Minibrowser {
                         Point2D::new(x, y),
                         Size2D::new(width, height),
                     ) * scale;
-                    if rect != webview.rect {
-                        webview.rect = rect;
+                    if rect != focused_webview.rect {
+                        focused_webview.rect = rect;
                         embedder_events
                             .push(EmbedderEvent::MoveResizeWebView(focused_webview_id, rect));
                     }
@@ -344,20 +399,25 @@ impl Minibrowser {
     /// editing it without clicking Go, returning true iff it has changed (needing an egui update).
     pub fn update_location_in_toolbar(
         &mut self,
-        browser: &mut WebViewManager<dyn WindowPortsMethods>,
+        webviews: &mut WebViewManager<dyn WindowPortsMethods>,
     ) -> bool {
+        // If no webview is focused, just return false.
+        let Some(webview) = webviews.focused_webview_mut() else {
+            return false;
+        };
+
         // User edited without clicking Go?
-        if self.location_dirty.get() {
+        if dbg!(webview.location_dirty) {
             return false;
         }
 
-        match browser.current_url_string() {
-            Some(location) if location != self.location.get_mut() => {
-                self.location = RefCell::new(location.to_owned());
-                true
-            },
-            _ => false,
+        let new_location = webview.current_url_string.as_deref().unwrap_or("");
+        if dbg!(new_location) != dbg!(&webview.location) {
+            webview.location = new_location.to_owned();
+            return true;
         }
+
+        false
     }
 
     /// Updates the spinner from the given [WebViewManager], returning true iff it has changed
