@@ -1,5 +1,8 @@
 [toolchain]
 # Be sure to update etc/shell.nix when bumping this!
+# Make sure to also update NIGHTLY_RUST in python/servo/platform/base.py
+# with apropriate nightly version that corresponds to stable release
+# (take a look at Branched from master date on https://releases.rs/docs/1.74.0/)
 channel = "1.74"
 
 components = [
