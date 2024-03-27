@@ -290,7 +290,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
             .definitions
             .borrow()
             .iter()
-            .any(|(_, ref def)| def.constructor == constructor_)
+            .any(|(_, def)| def.constructor == constructor_)
         {
             return Err(Error::NotSupported);
         }
@@ -1035,7 +1035,7 @@ pub fn is_valid_custom_element_name(name: &str) -> bool {
     // PotentialCustomElementName ::= [a-z] (PCENChar)* '-' (PCENChar)*
 
     let mut chars = name.chars();
-    if !chars.next().map_or(false, |c| ('a'..='z').contains(&c)) {
+    if !chars.next().map_or(false, |c| c.is_ascii_lowercase()) {
         return false;
     }
 
@@ -1078,8 +1078,8 @@ fn is_potential_custom_element_char(c: char) -> bool {
         c == '.' ||
         c == '_' ||
         c == '\u{B7}' ||
-        ('0'..='9').contains(&c) ||
-        ('a'..='z').contains(&c) ||
+        c.is_ascii_digit() ||
+        c.is_ascii_lowercase() ||
         ('\u{C0}'..='\u{D6}').contains(&c) ||
         ('\u{D8}'..='\u{F6}').contains(&c) ||
         ('\u{F8}'..='\u{37D}').contains(&c) ||
