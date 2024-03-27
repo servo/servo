@@ -28,7 +28,7 @@ use crate::realms::InRealm;
 use crate::task_source::{TaskSource, TaskSourceName};
 
 #[dom_struct]
-pub struct Gpu {
+pub struct GPU {
     reflector_: Reflector,
 }
 
