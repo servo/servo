@@ -627,17 +627,16 @@ impl WebGLRenderingContext {
     }
 
     fn validate_stencil_actions(&self, action: u32) -> bool {
-        match action {
-            0 |
-            constants::KEEP |
-            constants::REPLACE |
-            constants::INCR |
-            constants::DECR |
-            constants::INVERT |
-            constants::INCR_WRAP |
-            constants::DECR_WRAP => true,
-            _ => false,
-        }
+        matches!(
+            action,
+            0 | constants::KEEP |
+                constants::REPLACE |
+                constants::INCR |
+                constants::DECR |
+                constants::INVERT |
+                constants::INCR_WRAP |
+                constants::DECR_WRAP
+        )
     }
 
     pub fn get_image_pixels(&self, source: TexImageSource) -> Fallible<Option<TexPixels>> {
@@ -831,7 +830,7 @@ impl WebGLRenderingContext {
         }
 
         if let Some(fb) = self.bound_draw_framebuffer.get() {
-            fb.invalidate_texture(&*texture);
+            fb.invalidate_texture(texture);
         }
     }
 

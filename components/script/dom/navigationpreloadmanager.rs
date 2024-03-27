@@ -38,7 +38,7 @@ impl NavigationPreloadManager {
         global: &GlobalScope,
         registration: &ServiceWorkerRegistration,
     ) -> DomRoot<NavigationPreloadManager> {
-        let manager = NavigationPreloadManager::new_inherited(&*registration);
+        let manager = NavigationPreloadManager::new_inherited(registration);
         reflect_dom_object(Box::new(manager), global)
     }
 }

@@ -90,25 +90,22 @@ pub enum XMLName {
 /// for details.
 pub fn xml_name_type(name: &str) -> XMLName {
     fn is_valid_start(c: char) -> bool {
-        match c {
-            ':' |
-            'A'..='Z' |
-            '_' |
-            'a'..='z' |
-            '\u{C0}'..='\u{D6}' |
-            '\u{D8}'..='\u{F6}' |
-            '\u{F8}'..='\u{2FF}' |
-            '\u{370}'..='\u{37D}' |
-            '\u{37F}'..='\u{1FFF}' |
-            '\u{200C}'..='\u{200D}' |
-            '\u{2070}'..='\u{218F}' |
-            '\u{2C00}'..='\u{2FEF}' |
-            '\u{3001}'..='\u{D7FF}' |
-            '\u{F900}'..='\u{FDCF}' |
-            '\u{FDF0}'..='\u{FFFD}' |
-            '\u{10000}'..='\u{EFFFF}' => true,
-            _ => false,
-        }
+        matches!(c, ':' |
+    'A'..='Z' |
+    '_' |
+    'a'..='z' |
+    '\u{C0}'..='\u{D6}' |
+    '\u{D8}'..='\u{F6}' |
+    '\u{F8}'..='\u{2FF}' |
+    '\u{370}'..='\u{37D}' |
+    '\u{37F}'..='\u{1FFF}' |
+    '\u{200C}'..='\u{200D}' |
+    '\u{2070}'..='\u{218F}' |
+    '\u{2C00}'..='\u{2FEF}' |
+    '\u{3001}'..='\u{D7FF}' |
+    '\u{F900}'..='\u{FDCF}' |
+    '\u{FDF0}'..='\u{FFFD}' |
+    '\u{10000}'..='\u{EFFFF}')
     }
 
     fn is_valid_continuation(c: char) -> bool {

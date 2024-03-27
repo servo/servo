@@ -251,7 +251,7 @@ impl Transferable for MessagePort {
         };
 
         let transferred_port =
-            MessagePort::new_transferred(&*owner, id, port_impl.entangled_port_id());
+            MessagePort::new_transferred(owner, id, port_impl.entangled_port_id());
         owner.track_message_port(&transferred_port, Some(port_impl));
 
         return_object.set(transferred_port.reflector().rootable().get());

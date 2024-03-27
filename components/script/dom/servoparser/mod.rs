@@ -1187,7 +1187,7 @@ impl TreeSink for Sink {
             .GetParentNode()
             .expect("append_before_sibling called on node without parent");
 
-        insert(&parent, Some(&*sibling), new_node, self.parsing_algorithm);
+        insert(&parent, Some(sibling), new_node, self.parsing_algorithm);
     }
 
     fn parse_error(&mut self, msg: Cow<'static, str>) {
@@ -1253,7 +1253,7 @@ impl TreeSink for Sink {
 
     fn remove_from_parent(&mut self, target: &Dom<Node>) {
         if let Some(ref parent) = target.GetParentNode() {
-            parent.RemoveChild(&*target).unwrap();
+            parent.RemoveChild(target).unwrap();
         }
     }
 

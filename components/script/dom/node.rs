@@ -454,7 +454,7 @@ pub struct QuerySelectorIterator {
     iterator: TreeIterator,
 }
 
-impl<'a> QuerySelectorIterator {
+impl QuerySelectorIterator {
     fn new(iter: TreeIterator, selectors: SelectorList<SelectorImpl>) -> QuerySelectorIterator {
         QuerySelectorIterator {
             selectors,
@@ -463,7 +463,7 @@ impl<'a> QuerySelectorIterator {
     }
 }
 
-impl<'a> Iterator for QuerySelectorIterator {
+impl Iterator for QuerySelectorIterator {
     type Item = DomRoot<Node>;
 
     fn next(&mut self) -> Option<DomRoot<Node>> {
@@ -602,6 +602,10 @@ impl Node {
             NodeTypeId::CharacterData(_) => self.downcast::<CharacterData>().unwrap().Length(),
             _ => self.children_count(),
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     // https://dom.spec.whatwg.org/#concept-tree-index
@@ -785,7 +789,7 @@ impl Node {
     }
 
     pub fn to_trusted_node_address(&self) -> TrustedNodeAddress {
-        TrustedNodeAddress(&*self as *const Node as *const libc::c_void)
+        TrustedNodeAddress(self as *const Node as *const libc::c_void)
     }
 
     /// Returns the rendered bounding content box if the element is rendered,
@@ -1203,8 +1207,7 @@ impl Node {
                 match last_child.and_then(|node| {
                     node.inclusively_preceding_siblings()
                         .filter_map(DomRoot::downcast::<Element>)
-                        .filter(|elem| is_delete_type(elem))
-                        .next()
+                        .find(|elem| is_delete_type(elem))
                 }) {
                     Some(element) => element,
                     None => return Ok(()),
@@ -1242,7 +1245,7 @@ impl Node {
 
     /// <https://dom.spec.whatwg.org/#retarget>
     pub fn retarget(&self, b: &Node) -> DomRoot<Node> {
-        let mut a = DomRoot::from_ref(&*self);
+        let mut a = DomRoot::from_ref(self);
         loop {
             // Step 1.
             let a_root = a.GetRootNode(&GetRootNodeOptions::empty());
@@ -1314,10 +1317,10 @@ where
 #[allow(unsafe_code)]
 pub unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress) -> DomRoot<Node> {
     // https://github.com/servo/servo/issues/6383
-    let candidate: uintptr_t = mem::transmute(candidate.0);
+    let candidate: uintptr_t = mem::transmute(candidate.0 as usize);
     //        let object: *mut JSObject = jsfriendapi::bindgen::JS_GetAddressableObject(runtime,
     //                                                                                  candidate);
-    let object: *mut JSObject = mem::transmute(candidate);
+    let object: *mut JSObject = mem::transmute(candidate as *mut js::jsapi::JSObject);
     if object.is_null() {
         panic!("Attempted to create a `Dom<Node>` from an invalid pointer!")
     }

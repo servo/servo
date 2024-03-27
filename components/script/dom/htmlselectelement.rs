@@ -312,7 +312,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     fn NamedItem(&self, name: DOMString) -> Option<DomRoot<HTMLOptionElement>> {
         self.Options()
             .NamedGetter(name)
-            .map_or(None, |e| DomRoot::downcast::<HTMLOptionElement>(e))
+            .map_or(None, DomRoot::downcast::<HTMLOptionElement>)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-remove
@@ -419,12 +419,12 @@ impl VirtualMethods for HTMLSelectElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        match attr.local_name() {
-            &local_name!("required") => {
+        match *attr.local_name() {
+            local_name!("required") => {
                 self.validity_state()
                     .perform_validation_and_update(ValidationFlags::VALUE_MISSING);
             },
-            &local_name!("disabled") => {
+            local_name!("disabled") => {
                 let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(_) => {
@@ -441,7 +441,7 @@ impl VirtualMethods for HTMLSelectElement {
                 self.validity_state()
                     .perform_validation_and_update(ValidationFlags::VALUE_MISSING);
             },
-            &local_name!("form") => {
+            local_name!("form") => {
                 self.form_attribute_mutated(mutation);
             },
             _ => {},
@@ -449,7 +449,7 @@ impl VirtualMethods for HTMLSelectElement {
     }
 
     fn bind_to_tree(&self, context: &BindContext) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.bind_to_tree(context);
         }
 
@@ -492,7 +492,7 @@ impl FormControl for HTMLSelectElement {
         self.form_owner.set(form);
     }
 
-    fn to_element<'a>(&'a self) -> &'a Element {
+    fn to_element(&self) -> &Element {
         self.upcast::<Element>()
     }
 }
@@ -522,8 +522,7 @@ impl Validatable for HTMLSelectElement {
             let placeholder = self.get_placeholder_label_option();
             let selected_option = self
                 .list_of_options()
-                .filter(|e| e.Selected() && placeholder.as_ref() != Some(e))
-                .next();
+                .find(|e| e.Selected() && placeholder.as_ref() != Some(e));
             failed_flags.set(ValidationFlags::VALUE_MISSING, selected_option.is_none());
         }
 

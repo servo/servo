@@ -64,7 +64,7 @@ where
     pub unsafe fn new(value: T) -> Self {
         unsafe fn add_to_root_list(object: *const dyn JSTraceable) -> *const RootCollection {
             assert_in_script();
-            STACK_ROOTS.with(|ref root_list| {
+            STACK_ROOTS.with(|root_list| {
                 let root_list = &*root_list.get().unwrap();
                 root_list.root(object);
                 root_list
@@ -78,6 +78,16 @@ where
 
 /// Represents values that can be rooted through a stable address that will
 /// not change for their whole lifetime.
+///
+///
+/// /// `StableTraceObject` is an unsafe trait that requires implementors to ensure certain safety guarantees.
+///
+/// # Safety
+///
+/// Implementors of this trait must ensure that the `trace` method correctly accounts for all
+/// owned and referenced objects, so that the garbage collector can accurately determine which
+/// objects are still in use. Failing to adhere to this contract may result in undefined behavior,
+/// such as use-after-free errors.
 pub unsafe trait StableTraceObject {
     /// Returns a stable trace object which address won't change for the whole
     /// lifetime of the value.
@@ -88,7 +98,7 @@ unsafe impl<T> StableTraceObject for Dom<T>
 where
     T: DomObject,
 {
-    fn stable_trace_object<'a>(&'a self) -> *const dyn JSTraceable {
+    fn stable_trace_object(&self) -> *const dyn JSTraceable {
         // The JSTraceable impl for Reflector doesn't actually do anything,
         // so we need this shenanigan to actually trace the reflector of the
         // T pointer in Dom<T>.
@@ -107,7 +117,7 @@ unsafe impl<T> StableTraceObject for MaybeUnreflectedDom<T>
 where
     T: DomObject,
 {
-    fn stable_trace_object<'a>(&'a self) -> *const dyn JSTraceable {
+    fn stable_trace_object(&self) -> *const dyn JSTraceable {
         // The JSTraceable impl for Reflector doesn't actually do anything,
         // so we need this shenanigan to actually trace the reflector of the
         // T pointer in Dom<T>.
@@ -208,7 +218,7 @@ where
     T: DomObject,
 {
     fn clone(&self) -> DomRoot<T> {
-        DomRoot::from_ref(&*self)
+        DomRoot::from_ref(self)
     }
 }
 
@@ -237,14 +247,14 @@ pub struct ThreadLocalStackRoots<'a>(PhantomData<&'a u32>);
 
 impl<'a> ThreadLocalStackRoots<'a> {
     pub fn new(roots: &'a RootCollection) -> Self {
-        STACK_ROOTS.with(|ref r| r.set(Some(roots)));
+        STACK_ROOTS.with(|r| r.set(Some(roots)));
         ThreadLocalStackRoots(PhantomData)
     }
 }
 
 impl<'a> Drop for ThreadLocalStackRoots<'a> {
     fn drop(&mut self) {
-        STACK_ROOTS.with(|ref r| r.set(None));
+        STACK_ROOTS.with(|r| r.set(None));
     }
 }
 
@@ -269,7 +279,7 @@ impl RootCollection {
         let roots = &mut *self.roots.get();
         match roots
             .iter()
-            .rposition(|r| *r as *const () == object as *const ())
+            .rposition(|r| std::ptr::eq(*r as *const _, object as *const ()))
         {
             Some(idx) => {
                 roots.remove(idx);
@@ -282,7 +292,7 @@ impl RootCollection {
 /// SM Callback that traces the rooted reflectors
 pub unsafe fn trace_roots(tracer: *mut JSTracer) {
     debug!("tracing stack roots");
-    STACK_ROOTS.with(|ref collection| {
+    STACK_ROOTS.with(|collection| {
         let collection = &*(*collection.get().unwrap()).roots.get();
         for root in collection {
             (**root).trace(tracer);
@@ -486,7 +496,7 @@ impl<T> Eq for Dom<T> {}
 
 impl<T> PartialEq for LayoutDom<'_, T> {
     fn eq(&self, other: &Self) -> bool {
-        self.value as *const T == other.value as *const T
+        std::ptr::eq(self.value, other.value)
     }
 }
 
@@ -509,17 +519,14 @@ impl<T> Clone for Dom<T> {
     #[allow(crown::unrooted_must_root)]
     fn clone(&self) -> Self {
         assert_in_script();
-        Dom {
-            ptr: self.ptr.clone(),
-        }
+        Dom { ptr: self.ptr }
     }
 }
 
 impl<T> Clone for LayoutDom<'_, T> {
     #[inline]
     fn clone(&self) -> Self {
-        assert_in_layout();
-        LayoutDom { value: self.value }
+        *self
     }
 }
 
