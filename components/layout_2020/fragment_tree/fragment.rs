@@ -286,8 +286,8 @@ impl CollapsedMargin {
 
     pub fn new(margin: Au) -> Self {
         Self {
-            max_positive: std::cmp::max(margin, Au(0)),
-            min_negative: std::cmp::min(margin, Au(0)),
+            max_positive: margin.max(Au::zero()),
+            min_negative: margin.max(Au::zero()),
         }
     }
 
