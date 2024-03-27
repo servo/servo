@@ -1617,9 +1617,9 @@ impl PlacementState {
                 }
                 self.current_block_direction_position += self.current_margin.solve();
 
-                fragment.content_rect.start_corner.block += (self.current_margin.solve() +
-                    self.current_block_direction_position.into())
-                .into();
+                fragment.content_rect.start_corner.block +=
+                    Length::from(self.current_margin.solve()) +
+                        self.current_block_direction_position;
 
                 if fragment_block_margins.collapsed_through {
                     // `fragment_block_size` is typically zero when collapsing through,
