@@ -419,7 +419,7 @@ enum InternalTimerCallback {
 }
 
 impl Default for JsTimers {
-    pub fn default() -> Self {
+    fn default() -> Self {
         JsTimers {
             next_timer_handle: Cell::new(JsTimerHandle(1)),
             active_timers: DomRefCell::new(HashMap::new()),
@@ -427,7 +427,9 @@ impl Default for JsTimers {
             min_duration: Cell::new(None),
         }
     }
+}
 
+impl JsTimers {
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
     pub fn set_timeout_or_interval(
         &self,
