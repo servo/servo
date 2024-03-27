@@ -1722,8 +1722,11 @@ impl ScriptThread {
         if self.can_continue_running_inner() {
             // TODO: Filter non-renderable documents.
             // TODO: Unnecessary rendering.
-            for (pipeline_id, document) in
-                self.documents.borrow().iter().filter_map(|(id, document)| {
+            let pipeline_and_docs: Vec<(PipelineId, DomRoot<Document>)> = self
+                .documents
+                .borrow()
+                .iter()
+                .filter_map(|(id, document)| {
                     // Iterate over those that are:
                     // 1. fully active
                     // 2. not an iframe(these will be iterated over per top-level).
@@ -1733,7 +1736,8 @@ impl ScriptThread {
                         Some((id, DomRoot::from_ref(&*document)))
                     }
                 })
-            {
+                .collect();
+            for (pipeline_id, document) in pipeline_and_docs {
                 // For ordering by parent and shadow root:
                 // iterate over the top-level and it's iframes, if any.
                 let mut to_iterate = VecDeque::new();
