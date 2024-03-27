@@ -768,7 +768,7 @@ impl HTMLInputElement {
         first_with_id
             .as_ref()
             .and_then(|el| el.downcast::<HTMLDataListElement>())
-            .map(|el| DomRoot::from_ref(el))
+            .map(DomRoot::from_ref)
     }
 
     // https://html.spec.whatwg.org/multipage/#suffering-from-being-missing
@@ -1642,7 +1642,7 @@ fn radio_group_iter<'a>(
 
     // If group is None, in_same_group always fails, but we need to always return elem.
     root.traverse_preorder(ShadowIncluding::No)
-        .filter_map(|r| DomRoot::downcast::<HTMLInputElement>(r))
+        .filter_map(DomRoot::downcast::<HTMLInputElement>)
         .filter(move |r| &**r == elem || in_same_group(r, owner.as_deref(), group, None))
 }
 
@@ -1884,7 +1884,7 @@ impl HTMLInputElement {
         } else {
             let opt_test_path = match opt_test_paths {
                 Some(paths) => {
-                    if paths.len() == 0 {
+                    if paths.is_empty() {
                         return;
                     } else {
                         Some(paths[0].to_string()) // neglect other paths
@@ -2486,7 +2486,7 @@ impl VirtualMethods for HTMLInputElement {
     }
 
     fn bind_to_tree(&self, context: &BindContext) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.bind_to_tree(context);
         }
         self.upcast::<Element>()

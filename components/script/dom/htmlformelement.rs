@@ -658,7 +658,7 @@ impl HTMLFormElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#text/plain-encoding-algorithm
-    fn encode_plaintext(&self, form_data: &mut Vec<FormDatum>) -> String {
+    fn encode_plaintext(&self, form_data: &mut [FormDatum]) -> String {
         // Step 1
         let mut result = String::new();
 
@@ -741,7 +741,7 @@ impl HTMLFormElement {
                 atom!("submit"),
                 true,
                 true,
-                submitter_button.map(|s| DomRoot::from_ref(s)),
+                submitter_button.map(DomRoot::from_ref),
             );
             let event = event.upcast::<Event>();
             event.fire(self.upcast::<EventTarget>());
@@ -795,7 +795,7 @@ impl HTMLFormElement {
                 Some(submitter.target())
             } else {
                 let form_owner = submitter.form_owner();
-                let form = form_owner.as_ref().map(|form| &**form).unwrap_or(self);
+                let form = form_owner.as_deref().unwrap_or(self);
                 get_element_target(form.upcast::<Element>())
             };
 
