@@ -61,7 +61,7 @@ impl AbsoluteBoxOffsets {
 
     pub(crate) fn adjust_offset(&mut self, new_offset: Au) {
         if let AbsoluteBoxOffsets::StaticStart { ref mut start } = *self {
-            *start = new_offset.into();
+            *start = new_offset
         }
     }
 }

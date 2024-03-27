@@ -440,7 +440,7 @@ fn layout_block_level_children(
     let (content_block_size, collapsible_margins_in_children, baselines) = placement_state.finish();
     FlowLayout {
         fragments,
-        content_block_size: content_block_size.into(),
+        content_block_size,
         collapsible_margins_in_children,
         baselines,
     }
@@ -669,6 +669,9 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
                 "We should know whether we are collapsing the block start margin with the parent \
                 when laying out sequentially",
             ).0 && style.get_box().clear == Clear::None;
+                "We should know whether we are collapsing the block start margin with the parent \
+                when laying out sequentially",
+            ).0 && style.get_box().clear == Clear::None;
             if !collapsible_with_parent_start_margin && start_margin_can_collapse_with_children {
                 if let BlockContainer::BlockLevelBoxes(child_boxes) = contents {
                     BlockLevelBox::find_block_margin_collapsing_with_parent_from_slice(
@@ -763,7 +766,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         (computed_min_block_size.is_definitely_zero() || computed_min_block_size.is_auto());
 
     let block_size = containing_block_for_children.block_size.auto_is(|| {
-        Length::from(content_block_size)
+        content_block_size
             .clamp_between_extremums(min_box_size.block, max_box_size.block)
             .into()
     });
@@ -1424,6 +1427,8 @@ fn solve_inline_margins_for_in_flow_block_level(
             // But here we may still have some free space to perform 'justify-self' alignment.
             // This aligns the margin box within the containing block, or in other words,
             // aligns the border box within the margin-shrunken containing block.
+            let free_space = Au::zero().max(free_space - start - end);
+            justification = justify_self_alignment(containing_block, free_space);
             (start, end)
         },
     };
@@ -1603,7 +1608,7 @@ impl PlacementState {
                 }
 
                 if self.next_in_flow_margin_collapses_with_parent_start_margin {
-                    debug_assert_eq!(self.current_margin.solve().is_zero(), true);
+                    debug_assert!(self.current_margin.solve().is_zero());
                     self.start_margin
                         .adjoin_assign(&fragment_block_margins.start);
                     if fragment_block_margins.collapsed_through {
@@ -1615,8 +1620,6 @@ impl PlacementState {
                     self.current_margin
                         .adjoin_assign(&fragment_block_margins.start);
                 }
-                self.current_block_direction_position += self.current_margin.solve();
-
                 fragment.content_rect.start_corner.block +=
                     Length::from(self.current_margin.solve()) +
                         self.current_block_direction_position;
@@ -1663,7 +1666,7 @@ impl PlacementState {
             self.current_margin = CollapsedMargin::zero();
         }
         (
-            self.current_block_direction_position.into(),
+            self.current_block_direction_position,
             CollapsedBlockMargins {
                 collapsed_through: self.next_in_flow_margin_collapses_with_parent_start_margin,
                 start: self.start_margin,
