@@ -90,7 +90,7 @@ fn stringify_handle_value(message: HandleValue) -> DOMString {
         ) -> DOMString {
             rooted!(in(cx) let mut obj = value.to_object());
             let mut object_class = ESClass::Other;
-            if !GetBuiltinClass(cx, obj.handle().into(), &mut object_class as *mut _) {
+            if !GetBuiltinClass(cx, obj.handle(), &mut object_class as *mut _) {
                 return DOMString::from("/* invalid */");
             }
             let mut ids = IdVector::new(cx);
@@ -120,9 +120,9 @@ fn stringify_handle_value(message: HandleValue) -> DOMString {
                 let mut is_none = false;
                 if !JS_GetOwnPropertyDescriptorById(
                     cx,
-                    obj.handle().into(),
-                    id.handle().into(),
-                    desc.handle_mut().into(),
+                    obj.handle(),
+                    id.handle(),
+                    desc.handle_mut(),
                     &mut is_none,
                 ) {
                     return DOMString::from("/* invalid */");
@@ -191,7 +191,7 @@ fn stringify_handle_value(message: HandleValue) -> DOMString {
             parents.push(value_bits);
             stringify_object_from_handle_value(cx, value, parents)
         }
-        stringify_inner(cx, message.into(), Vec::new())
+        stringify_inner(cx, message, Vec::new())
     }
 }
 
