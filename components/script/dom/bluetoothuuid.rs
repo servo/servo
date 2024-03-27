@@ -575,11 +575,11 @@ const SERVICES_ERROR_MESSAGE: &str =
     "https://developer.bluetooth.org/gatt/services/Pages/ServicesHome.aspx\
      \ne.g. 'alert_notification'.";
 // https://cs.chromium.org/chromium/src/third_party/WebKit/Source/modules/bluetooth/BluetoothUUID.cpp?l=327
-const CHARACTERISTIC_ERROR_MESSAGE: &'static str =
+const CHARACTERISTIC_ERROR_MESSAGE: &str =
     "https://developer.bluetooth.org/gatt/characteristics/Pages/\
      CharacteristicsHome.aspx\ne.g. 'aerobic_heart_rate_lower_limit'.";
 // https://cs.chromium.org/chromium/src/third_party/WebKit/Source/modules/bluetooth/BluetoothUUID.cpp?l=333
-const DESCRIPTOR_ERROR_MESSAGE: &'static str =
+const DESCRIPTOR_ERROR_MESSAGE: &str =
     "https://developer.bluetooth.org/gatt/descriptors/Pages/\
      DescriptorsHomePage.aspx\ne.g. 'gatt.characteristic_presentation_format'.";
 
