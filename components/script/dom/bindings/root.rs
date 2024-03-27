@@ -78,9 +78,7 @@ where
 
 /// Represents values that can be rooted through a stable address that will
 /// not change for their whole lifetime.
-///
-///
-/// /// `StableTraceObject` is an unsafe trait that requires implementors to ensure certain safety guarantees.
+///  `StableTraceObject` is an unsafe trait that requires implementors to ensure certain safety guarantees.
 ///
 /// # Safety
 ///
