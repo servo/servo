@@ -2187,7 +2187,7 @@ impl GlobalScope {
 
         if let Some(index) = uncaught_rejections
             .iter()
-            .position(|promise| *promise == Heap::boxed(rejection.get()))
+            .position(|promise| *promise == *Heap::boxed(rejection.get()))
         {
             uncaught_rejections.remove(index);
         }
@@ -2200,7 +2200,7 @@ impl GlobalScope {
     pub fn add_consumed_rejection(&self, rejection: HandleObject) {
         self.consumed_rejections
             .borrow_mut()
-            .push(Heap::boxed(rejection.get()));
+            .push(*Heap::boxed(rejection.get()));
     }
 
     pub fn remove_consumed_rejection(&self, rejection: HandleObject) {
@@ -2208,7 +2208,7 @@ impl GlobalScope {
 
         if let Some(index) = consumed_rejections
             .iter()
-            .position(|promise| *promise == Heap::boxed(rejection.get()))
+            .position(|promise| *promise == *Heap::boxed(rejection.get()))
         {
             consumed_rejections.remove(index);
         }
