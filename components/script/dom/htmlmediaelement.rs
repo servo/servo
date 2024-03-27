@@ -639,6 +639,15 @@ impl HTMLMediaElement {
                 // FIXME(nox): Queue a task to fire timeupdate and waiting
                 // events if the conditions call from the spec are met.
 
+                if self.is_potentially_playing() &&
+                    !self.Ended() &&
+                    !self.is_paused_for_in_band_content() &&
+                    !self.is_paused_for_user_interaction()
+                {
+                    task_source.queue_simple_event(self.upcast(), atom!("timeupdate"), &window);
+                    task_source.queue_simple_event(self.upcast(), atom!("waiting"), &window);
+                }
+
                 // No other steps are applicable in this case.
                 return;
             },
@@ -1529,6 +1538,23 @@ impl HTMLMediaElement {
                                     }),
                                     window.upcast(),
                                 );
+                                // TODO(pylbrecht)
+                                // If at any time the user agent learns that an audio or video
+                                // track has ended..
+                                if let Some(idx) = self.VideoTracks().selected_index() {
+                                    let track = self.VideoTracks().remove(idx);
+                                    let event = TrackEvent::new(
+                                        &self.global(),
+                                        atom!("removetrack"),
+                                        false,
+                                        false,
+                                        &Some(VideoTrackOrAudioTrackOrTextTrack::VideoTrack(track)),
+                                    );
+                                    event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+                                }
+
+                                // TODO(pylbrecht): Fire "removetrack" event at the media element's
+                                // VideoTrackList object
                             }
                         },
 
@@ -1540,6 +1566,23 @@ impl HTMLMediaElement {
                                     .task_manager()
                                     .media_element_task_source()
                                     .queue_simple_event(self.upcast(), atom!("ended"), &window);
+
+                                // TODO(pylbrecht)
+                                // If at any time the user agent learns that an audio or video
+                                // track has ended..
+                                if let Some(idx) = self.VideoTracks().selected_index() {
+                                    let track = self.VideoTracks().remove(idx);
+                                    let event = TrackEvent::new(
+                                        &self.global(),
+                                        atom!("removetrack"),
+                                        false,
+                                        false,
+                                        &Some(VideoTrackOrAudioTrackOrTextTrack::VideoTrack(track)),
+                                    );
+                                    event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+                                }
+                                // TODO(pylbrecht): Fire "removetrack" event at the media element's
+                                // VideoTrackList object
                             }
                         },
                     }
@@ -2809,13 +2852,6 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         }
 
         if status.is_ok() && self.latest_fetched_content != 0 {
-            if elem.ready_state.get() == ReadyState::HaveNothing {
-                // Make sure that we don't skip the HaveMetadata and HaveCurrentData
-                // states for short streams.
-                elem.change_ready_state(ReadyState::HaveMetadata);
-            }
-            elem.change_ready_state(ReadyState::HaveEnoughData);
-
             elem.upcast::<EventTarget>().fire_event(atom!("progress"));
 
             elem.network_state.set(NetworkState::Idle);
