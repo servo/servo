@@ -125,7 +125,7 @@ impl MediaStreamMethods for MediaStream {
         self.tracks
             .borrow()
             .iter()
-            .find(|x| x.id().id().to_string() == &*id)
+            .find(|x| x.id().id().to_string() == *id)
             .map(|x| DomRoot::from_ref(&**x))
     }
 

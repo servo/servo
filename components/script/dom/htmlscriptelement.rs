@@ -628,7 +628,7 @@ impl HTMLScriptElement {
 
         // Step 12.
         let doc = document_from_node(self);
-        if self.parser_inserted.get() && &*self.parser_document != &*doc {
+        if self.parser_inserted.get() && *self.parser_document != *doc {
             return;
         }
 
@@ -983,7 +983,7 @@ impl HTMLScriptElement {
     pub fn execute(&self, result: ScriptResult) {
         // Step 1.
         let doc = document_from_node(self);
-        if self.parser_inserted.get() && &*doc != &*self.parser_document {
+        if self.parser_inserted.get() && *doc != *self.parser_document {
             return;
         }
 

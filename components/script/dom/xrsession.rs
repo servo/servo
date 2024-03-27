@@ -784,7 +784,7 @@ impl XRSessionMethods for XRSession {
                         .borrow()
                         .granted_features()
                         .iter()
-                        .find(|f| &**f == s)
+                        .find(|f| **f == s)
                         .is_none()
                     {
                         p.reject_error(Error::NotSupported);

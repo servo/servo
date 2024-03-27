@@ -136,11 +136,11 @@ impl PaintWorkletGlobalScope {
                 arguments,
                 sender,
             ) => {
-                let cache_hit = (&*self.cached_name.borrow() == &name) &&
+                let cache_hit = (*self.cached_name.borrow() == name) &&
                     (self.cached_size.get() == size) &&
                     (self.cached_device_pixel_ratio.get() == device_pixel_ratio) &&
-                    (&*self.cached_properties.borrow() == &properties) &&
-                    (&*self.cached_arguments.borrow() == &arguments);
+                    (*self.cached_properties.borrow() == properties) &&
+                    (*self.cached_arguments.borrow() == arguments);
                 let result = if cache_hit {
                     debug!("Cache hit on paint worklet {}!", name);
                     self.cached_result.borrow().clone()
@@ -165,9 +165,9 @@ impl PaintWorkletGlobalScope {
                 let _ = sender.send(result);
             },
             PaintWorkletTask::SpeculativelyDrawAPaintImage(name, properties, arguments) => {
-                let should_speculate = (&*self.cached_name.borrow() != &name) ||
-                    (&*self.cached_properties.borrow() != &properties) ||
-                    (&*self.cached_arguments.borrow() != &arguments);
+                let should_speculate = (*self.cached_name.borrow() != name) ||
+                    (*self.cached_properties.borrow() != properties) ||
+                    (*self.cached_arguments.borrow() != arguments);
                 if should_speculate {
                     let size = self.cached_size.get();
                     let device_pixel_ratio = self.cached_device_pixel_ratio.get();

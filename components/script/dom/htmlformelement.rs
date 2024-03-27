@@ -597,11 +597,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
         // Step 7-8
         let mut names_vec: Vec<DOMString> = Vec::new();
         for elem in sourced_names_vec.iter() {
-            if names_vec
-                .iter()
-                .find(|name| &**name == &*elem.name)
-                .is_none()
-            {
+            if names_vec.iter().find(|name| **name == *elem.name).is_none() {
                 names_vec.push(DOMString::from(&*elem.name));
             }
         }

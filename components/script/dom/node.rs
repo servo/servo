@@ -2018,7 +2018,7 @@ impl Node {
         suppress_observers: SuppressObserver,
     ) {
         node.owner_doc().add_script_and_layout_blocker();
-        debug_assert!(&*node.owner_doc() == &*parent.owner_doc());
+        debug_assert!(*node.owner_doc() == *parent.owner_doc());
         debug_assert!(child.map_or(true, |child| Some(parent) ==
             child.GetParentNode().as_deref()));
 
