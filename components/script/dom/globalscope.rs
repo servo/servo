@@ -2179,7 +2179,7 @@ impl GlobalScope {
     pub fn add_uncaught_rejection(&self, rejection: HandleObject) {
         self.uncaught_rejections
             .borrow_mut()
-            .push(Heap::boxed(rejection.get()));
+            .push(*Heap::boxed(rejection.get()));
     }
 
     pub fn remove_uncaught_rejection(&self, rejection: HandleObject) {
