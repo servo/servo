@@ -275,7 +275,7 @@ impl DOMString {
                     '2' => State::HourLow03,
                     _ => State::Error,
                 },
-                State::HourLow09 => next_state(c.is_digit(10), State::MinuteColon),
+                State::HourLow09 => next_state(c.is_ascii_digit(), State::MinuteColon),
                 State::HourLow03 => next_state(c.is_digit(4), State::MinuteColon),
 
                 // Step 2 ":"
@@ -283,20 +283,20 @@ impl DOMString {
 
                 // Step 3 "mm"
                 State::MinuteHigh => next_state(c.is_digit(6), State::MinuteLow),
-                State::MinuteLow => next_state(c.is_digit(10), State::SecondColon),
+                State::MinuteLow => next_state(c.is_ascii_digit(), State::SecondColon),
 
                 // Step 4.1 ":"
                 State::SecondColon => next_state(c == ':', State::SecondHigh),
                 // Step 4.2 "ss"
                 State::SecondHigh => next_state(c.is_digit(6), State::SecondLow),
-                State::SecondLow => next_state(c.is_digit(10), State::MilliStop),
+                State::SecondLow => next_state(c.is_ascii_digit(), State::MilliStop),
 
                 // Step 4.3.1 "."
                 State::MilliStop => next_state(c == '.', State::MilliHigh),
                 // Step 4.3.2 "SSS"
-                State::MilliHigh => next_state(c.is_digit(10), State::MilliMiddle),
-                State::MilliMiddle => next_state(c.is_digit(10), State::MilliLow),
-                State::MilliLow => next_state(c.is_digit(10), State::Done),
+                State::MilliHigh => next_state(c.is_ascii_digit(), State::MilliMiddle),
+                State::MilliMiddle => next_state(c.is_ascii_digit(), State::MilliLow),
+                State::MilliLow => next_state(c.is_ascii_digit(), State::Done),
 
                 _ => State::Error,
             }
