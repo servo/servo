@@ -247,7 +247,7 @@ impl LiveDOMReferences {
     #[allow(crown::unrooted_must_root)]
     fn addref_promise(&self, promise: Rc<Promise>) {
         let mut table = self.promise_table.borrow_mut();
-        table.entry(&*promise).or_insert(vec![]).push(promise)
+        table.entry(&*promise).or_default().push(promise)
     }
 
     /// ptr must be a pointer to a type that implements DOMObject.
@@ -297,7 +297,7 @@ fn remove_nulls<K: Eq + Hash + Clone, V>(table: &mut HashMap<K, Weak<V>>) {
 #[allow(crown::unrooted_must_root)]
 pub unsafe fn trace_refcounted_objects(tracer: *mut JSTracer) {
     info!("tracing live refcounted references");
-    LIVE_REFERENCES.with(|ref r| {
+    LIVE_REFERENCES.with(|r| {
         let r = r.borrow();
         let live_references = r.as_ref().unwrap();
         {

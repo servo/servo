@@ -5,7 +5,6 @@
 use std::cell::Cell;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
-use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
