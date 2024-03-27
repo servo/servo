@@ -83,8 +83,8 @@ use crate::textinput::KeyReaction::{
 use crate::textinput::Lines::Single;
 use crate::textinput::{Direction, SelectionDirection, TextInput, UTF16CodeUnits, UTF8Bytes};
 
-const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
-const DEFAULT_RESET_VALUE: &'static str = "Reset";
+const DEFAULT_SUBMIT_VALUE: &str = "Submit";
+const DEFAULT_RESET_VALUE: &str = "Reset";
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
 
 #[derive(Clone, Copy, JSTraceable, PartialEq)]
@@ -2850,7 +2850,7 @@ impl Activatable for HTMLInputElement {
                 // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):activation-behavior
                 // Check if document owner is fully active
                 if !self.upcast::<Node>().is_connected() {
-                    return ();
+                    return;
                 }
                 let target = self.upcast::<EventTarget>();
                 target.fire_bubbling_event(atom!("input"));
