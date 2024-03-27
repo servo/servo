@@ -4154,8 +4154,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             constants::UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES => unsafe {
                 let values = values.iter().map(|&v| v as u32).collect::<Vec<_>>();
                 rooted!(in(*cx) let mut result = ptr::null_mut::<JSObject>());
-                let _ = Uint32Array::create(*cx, CreateWith::Slice(&values), result.handle_mut())
-                    .unwrap();
+                Uint32Array::create(*cx, CreateWith::Slice(&values), result.handle_mut()).unwrap();
                 ObjectValue(result.get())
             },
             constants::UNIFORM_BLOCK_REFERENCED_BY_VERTEX_SHADER |
@@ -4385,7 +4384,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
                     ));
 
                 rooted!(in(*cx) let mut rval = ptr::null_mut::<JSObject>());
-                let _ = Int32Array::create(
+                Int32Array::create(
                     *cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),

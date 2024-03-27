@@ -1869,7 +1869,7 @@ impl HTMLInputElement {
             let (chan, recv) = ipc::channel(self.global().time_profiler_chan().clone())
                 .expect("Error initializing channel");
             let msg = FileManagerThreadMsg::SelectFiles(filter, chan, origin, opt_test_paths);
-            let _ = resource_threads
+            resource_threads
                 .send(CoreResourceMsg::ToFileManager(msg))
                 .unwrap();
 
@@ -1896,7 +1896,7 @@ impl HTMLInputElement {
             let (chan, recv) = ipc::channel(self.global().time_profiler_chan().clone())
                 .expect("Error initializing channel");
             let msg = FileManagerThreadMsg::SelectFile(filter, chan, origin, opt_test_path);
-            let _ = resource_threads
+            resource_threads
                 .send(CoreResourceMsg::ToFileManager(msg))
                 .unwrap();
 
@@ -2582,7 +2582,7 @@ impl VirtualMethods for HTMLInputElement {
         {
             if event.IsTrusted() {
                 let window = window_from_node(self);
-                let _ = window
+                window
                     .task_manager()
                     .user_interaction_task_source()
                     .queue_event(

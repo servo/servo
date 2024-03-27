@@ -240,8 +240,7 @@ impl MediaSessionMethods for MediaSession {
         if let Some(media_instance) = self.media_instance.get() {
             media_instance.set_duration(state.duration.map(|v| *v).unwrap());
             // If the playbackRate is not present or its value is null, set it to 1.0.
-            let _ =
-                media_instance.SetPlaybackRate(state.playbackRate.unwrap_or(Finite::wrap(1.0)))?;
+            media_instance.SetPlaybackRate(state.playbackRate.unwrap_or(Finite::wrap(1.0)))?;
             // If the position is not present or its value is null, set it to zero.
             media_instance.SetCurrentTime(state.position.unwrap_or(Finite::wrap(0.0)));
         }

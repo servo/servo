@@ -2066,7 +2066,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 let format_ids = self.extension_manager.get_tex_compression_ids();
 
                 rooted!(in(*cx) let mut rval = ptr::null_mut::<JSObject>());
-                let _ = Uint32Array::create(*cx, CreateWith::Slice(&format_ids), rval.handle_mut())
+                Uint32Array::create(*cx, CreateWith::Slice(&format_ids), rval.handle_mut())
                     .unwrap();
                 return ObjectValue(rval.get());
             },
@@ -2165,7 +2165,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterInt2(param, sender));
                 rooted!(in(*cx) let mut rval = ptr::null_mut::<JSObject>());
-                let _ = Int32Array::create(
+                Int32Array::create(
                     *cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
@@ -2177,7 +2177,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterInt4(param, sender));
                 rooted!(in(*cx) let mut rval = ptr::null_mut::<JSObject>());
-                let _ = Int32Array::create(
+                Int32Array::create(
                     *cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
@@ -2194,7 +2194,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterFloat2(param, sender));
                 rooted!(in(*cx) let mut rval = ptr::null_mut::<JSObject>());
-                let _ = Float32Array::create(
+                Float32Array::create(
                     *cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
@@ -2206,7 +2206,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterFloat4(param, sender));
                 rooted!(in(*cx) let mut rval = ptr::null_mut::<JSObject>());
-                let _ = Float32Array::create(
+                Float32Array::create(
                     *cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
@@ -3380,7 +3380,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                         let value = [x, y, z, w];
                         unsafe {
                             rooted!(in(*cx) let mut result = ptr::null_mut::<JSObject>());
-                            let _ = Float32Array::create(
+                            Float32Array::create(
                                 *cx,
                                 CreateWith::Slice(&value),
                                 result.handle_mut(),
@@ -3393,12 +3393,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                         let value = [x, y, z, w];
                         unsafe {
                             rooted!(in(*cx) let mut result = ptr::null_mut::<JSObject>());
-                            let _ = Int32Array::create(
-                                *cx,
-                                CreateWith::Slice(&value),
-                                result.handle_mut(),
-                            )
-                            .unwrap();
+                            Int32Array::create(*cx, CreateWith::Slice(&value), result.handle_mut())
+                                .unwrap();
                             return ObjectValue(result.get());
                         }
                     },
@@ -3406,7 +3402,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                         let value = [x, y, z, w];
                         unsafe {
                             rooted!(in(*cx) let mut result = ptr::null_mut::<JSObject>());
-                            let _ = Uint32Array::create(
+                            Uint32Array::create(
                                 *cx,
                                 CreateWith::Slice(&value),
                                 result.handle_mut(),

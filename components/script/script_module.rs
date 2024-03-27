@@ -1684,7 +1684,7 @@ fn fetch_single_module_script(
     match document {
         Some(doc) => doc.fetch_async(LoadType::Script(url), request, action_sender),
         None => {
-            let _ = global
+            global
                 .resource_threads()
                 .sender()
                 .send(CoreResourceMsg::Fetch(

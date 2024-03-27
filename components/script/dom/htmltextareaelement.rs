@@ -652,7 +652,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         } else if event.type_() == atom!("keypress") && !event.DefaultPrevented() {
             if event.IsTrusted() {
                 let window = window_from_node(self);
-                let _ = window
+                window
                     .task_manager()
                     .user_interaction_task_source()
                     .queue_event(
