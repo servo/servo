@@ -164,7 +164,9 @@ pub struct PendingImage {
 }
 
 pub struct HTMLMediaData {
-    pub current_frame: Option<(ImageKey, i32, i32)>,
+    pub current_frame: Option<ImageKey>,
+    pub width: i32,
+    pub height: i32,
 }
 
 pub struct LayoutConfig {

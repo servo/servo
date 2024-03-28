@@ -26,7 +26,6 @@ use net_traits::{
     CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, Metadata, NetworkError,
     ResourceFetchTiming, ResourceTimingType,
 };
-use script_layout_interface::HTMLMediaData;
 use script_traits::{ImageUpdate, WebrenderIpcSender};
 use servo_config::pref;
 use servo_media::player::audio::AudioRenderer;
@@ -66,7 +65,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::document::Document;
@@ -1949,6 +1948,14 @@ impl HTMLMediaElement {
             .map(|holder| holder.get_frame())
     }
 
+    pub fn get_current_frame_data(&self) -> Option<(ImageKey, i32, i32)> {
+        self.video_renderer.lock().unwrap().current_frame.clone()
+    }
+
+    pub fn clear_current_frame(&self) {
+        self.video_renderer.lock().unwrap().current_frame = None;
+    }
+
     /// By default the audio is rendered through the audio sink automatically
     /// selected by the servo-media Player instance. However, in some cases, like
     /// the WebAudio MediaElementAudioSourceNode, we need to set a custom audio
@@ -2473,20 +2480,6 @@ impl VirtualMethods for HTMLMediaElement {
                 elem: DomRoot::from_ref(self),
             };
             ScriptThread::await_stable_state(Microtask::MediaElement(task));
-        }
-    }
-}
-
-pub trait LayoutHTMLMediaElementHelpers {
-    fn data(self) -> HTMLMediaData;
-}
-
-impl LayoutHTMLMediaElementHelpers for LayoutDom<'_, HTMLMediaElement> {
-    #[allow(unsafe_code)]
-    fn data(self) -> HTMLMediaData {
-        let media = unsafe { self.unsafe_get() };
-        HTMLMediaData {
-            current_frame: media.video_renderer.lock().unwrap().current_frame,
         }
     }
 }

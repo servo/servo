@@ -258,14 +258,20 @@ impl Fragment {
                         .translate(containing_block.origin.to_vector());
 
                     let common = builder.common_properties(rect.to_webrender(), &i.style);
-                    builder.wr().push_image(
-                        &common,
-                        rect.to_webrender(),
-                        image_rendering(i.style.get_inherited_box().image_rendering),
-                        wr::AlphaType::PremultipliedAlpha,
-                        i.image_key,
-                        wr::ColorF::WHITE,
-                    );
+                    if let Some(image_key) = i.image_key {
+                        builder.wr().push_image(
+                            &common,
+                            rect.to_webrender(),
+                            image_rendering(i.style.get_inherited_box().image_rendering),
+                            wr::AlphaType::PremultipliedAlpha,
+                            image_key,
+                            wr::ColorF::WHITE,
+                        );
+                    } else {
+                        builder
+                            .wr()
+                            .push_rect(&common, rect.to_webrender(), wr::ColorF::WHITE);
+                    }
                 },
                 Visibility::Hidden => (),
                 Visibility::Collapse => (),
