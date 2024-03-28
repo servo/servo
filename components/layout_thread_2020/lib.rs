@@ -867,8 +867,7 @@ impl LayoutThread {
         reflow_result: &mut ReflowComplete,
         shared_lock: &SharedRwLock,
     ) {
-        reflow_result.pending_images =
-            std::mem::replace(&mut *context.pending_images.lock().unwrap(), vec![]);
+        reflow_result.pending_images = std::mem::take(&mut *context.pending_images.lock().unwrap());
 
         match *reflow_goal {
             ReflowGoal::LayoutQuery(ref querymsg, _) => match querymsg {

@@ -1401,10 +1401,7 @@ impl NetworkDecoder {
 
     fn decode(&mut self, chunk: Vec<u8>) -> StrTendril {
         self.decoder.process(ByteTendril::from(&*chunk));
-        mem::replace(
-            &mut self.decoder.inner_sink_mut().output,
-            Default::default(),
-        )
+        std::mem::take(&mut self.decoder.inner_sink_mut().output)
     }
 
     fn finish(self) -> StrTendril {
