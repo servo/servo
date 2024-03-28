@@ -1217,7 +1217,7 @@ impl Element {
             // "3. If its namespace is non-null and its namespace prefix is prefix, then return
             // namespace."
             if element.namespace() != &ns!() &&
-                element.prefix().as_ref().map(|p| &**p) == prefix.as_ref().map(|p| &**p)
+                element.prefix().as_ref().map(|p| &**p) == prefix.as_deref()
             {
                 return element.namespace().clone();
             }
@@ -1548,7 +1548,7 @@ impl Element {
 
     pub fn set_attribute(&self, name: &LocalName, value: AttrValue) {
         assert!(name == &name.to_ascii_lowercase());
-        assert!(!name.contains(":"));
+        assert!(!name.contains(':'));
 
         self.set_first_matching_attribute(name.clone(), value, name.clone(), ns!(), None, |attr| {
             attr.local_name() == name
@@ -1725,7 +1725,7 @@ impl Element {
     pub fn get_tokenlist_attribute(&self, local_name: &LocalName) -> Vec<Atom> {
         self.get_attribute(&ns!(), local_name)
             .map(|attr| attr.value().as_tokens().to_vec())
-            .unwrap_or(vec![])
+            .unwrap_or_default()
     }
 
     pub fn set_tokenlist_attribute(&self, local_name: &LocalName, value: DOMString) {
@@ -3066,7 +3066,7 @@ impl VirtualMethods for Element {
     }
 
     fn bind_to_tree(&self, context: &BindContext) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.bind_to_tree(context);
         }
 
@@ -3149,7 +3149,7 @@ impl VirtualMethods for Element {
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.children_changed(mutation);
         }
 
