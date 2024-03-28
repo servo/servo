@@ -522,7 +522,7 @@ impl Validatable for HTMLSelectElement {
             let placeholder = self.get_placeholder_label_option();
             let is_value_missing = !self
                 .list_of_options()
-                .any(|e| e.Selected() && placeholder.as_ref() != Some(e));
+                .any(|e| e.Selected() && placeholder.as_ref() != Some(&e));
             failed_flags.set(ValidationFlags::VALUE_MISSING, is_value_missing);
         }
 
