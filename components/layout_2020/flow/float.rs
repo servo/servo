@@ -1062,7 +1062,7 @@ impl SequentialLayoutState {
     /// Return the current block position in the float containing block formatting
     /// context and any uncollapsed block margins.
     pub(crate) fn current_block_position_including_margins(&self) -> Au {
-        self.bfc_relative_block_position + self.current_margin.solve().into()
+        self.bfc_relative_block_position + self.current_margin.solve()
     }
 
     /// Collapses margins, moving the block position down by the collapsed value of `current_margin`
@@ -1071,7 +1071,7 @@ impl SequentialLayoutState {
     /// Call this method before laying out children when it is known that the start margin of the
     /// current fragment can't collapse with the margins of any of its children.
     pub(crate) fn collapse_margins(&mut self) {
-        self.advance_block_position(self.current_margin.solve().into());
+        self.advance_block_position(self.current_margin.solve());
         self.current_margin = CollapsedMargin::zero();
     }
 
@@ -1079,11 +1079,7 @@ impl SequentialLayoutState {
     /// with the provided `block_start_margin`, assuming no clearance.
     pub(crate) fn position_without_clearance(&self, block_start_margin: &CollapsedMargin) -> Au {
         // Adjoin `current_margin` and `block_start_margin` since there is no clearance.
-        self.bfc_relative_block_position +
-            self.current_margin
-                .adjoin(block_start_margin)
-                .solve()
-                .into()
+        self.bfc_relative_block_position + self.current_margin.adjoin(block_start_margin).solve()
     }
 
     /// Computes the position of the block-start border edge of an element
@@ -1091,9 +1087,7 @@ impl SequentialLayoutState {
     pub(crate) fn position_with_zero_clearance(&self, block_start_margin: &CollapsedMargin) -> Au {
         // Clearance prevents `current_margin` and `block_start_margin` from being
         // adjoining, so we need to solve them separately and then sum.
-        self.bfc_relative_block_position +
-            self.current_margin.solve().into() +
-            block_start_margin.solve().into()
+        self.bfc_relative_block_position + self.current_margin.solve() + block_start_margin.solve()
     }
 
     /// Returns the block-end outer edge of the lowest float that is to be cleared (if any)
@@ -1191,7 +1185,6 @@ impl SequentialLayoutState {
                 .containing_block_info
                 .block_start_margins_not_collapsed
                 .solve()
-                .into()
     }
 
     /// This function places a Fragment that has been created for a FloatBox.
@@ -1206,8 +1199,7 @@ impl SequentialLayoutState {
                 .containing_block_info
                 .block_start_margins_not_collapsed
                 .adjoin(&margins_collapsing_with_parent_containing_block)
-                .solve()
-                .into();
+                .solve();
 
         self.floats.set_ceiling_from_non_floats(
             block_start_of_containing_block_in_bfc + block_offset_from_containing_block_top,
