@@ -336,7 +336,7 @@ impl Minibrowser {
     ) -> bool {
         let need_update = browser.load_status() != self.load_status;
         self.load_status = browser.load_status();
-        return need_update;
+        need_update
     }
 
     /// Updates all fields taken from the given [WebViewManager], such as the location field.
@@ -349,6 +349,6 @@ impl Minibrowser {
         //       because logical OR would short-circuit if any of the functions return true.
         //       We want to ensure that all functions are called. The "bitwise OR" operator
         //       does not short-circuit.
-        return self.update_location_in_toolbar(browser) | self.update_spinner_in_toolbar(browser);
+        self.update_location_in_toolbar(browser) | self.update_spinner_in_toolbar(browser)
     }
 }

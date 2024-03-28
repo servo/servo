@@ -1143,7 +1143,7 @@ impl GlobalScope {
                 );
             }
         } else {
-            return warn!("post_messageport_msg called on a global not managing any ports.");
+            warn!("post_messageport_msg called on a global not managing any ports.");
         }
     }
 

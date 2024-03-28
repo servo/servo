@@ -800,7 +800,7 @@ where
                 }
             },
         }
-        return false;
+        false
     }
 
     fn receive_messages(&mut self) {

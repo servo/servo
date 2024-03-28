@@ -107,7 +107,7 @@ unsafe fn write_blob(
         "Writing structured data for a blob failed in {:?}.",
         owner.get_url()
     );
-    return false;
+    false
 }
 
 unsafe extern "C" fn read_callback(
@@ -134,7 +134,7 @@ unsafe extern "C" fn read_callback(
             &mut *(closure as *mut StructuredDataHolder),
         );
     }
-    return ptr::null_mut();
+    ptr::null_mut()
 }
 
 unsafe extern "C" fn write_callback(
