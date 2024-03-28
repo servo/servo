@@ -1551,6 +1551,8 @@ impl HTMLMediaElement {
                                 // 1. Remove the track..
                                 let idx = self.VideoTracks().selected_index().unwrap();
                                 self.VideoTracks().remove(idx);
+                                let idx = self.AudioTracks().enabled_index().unwrap();
+                                self.AudioTracks().remove(idx);
                             }
                         },
 
@@ -1569,6 +1571,8 @@ impl HTMLMediaElement {
                                 // 1. Remove the track..
                                 let idx = self.VideoTracks().selected_index().unwrap();
                                 self.VideoTracks().remove(idx);
+                                let idx = self.AudioTracks().enabled_index().unwrap();
+                                self.AudioTracks().remove(idx);
                             }
                         },
                     }
