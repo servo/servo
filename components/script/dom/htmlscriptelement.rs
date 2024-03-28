@@ -6,7 +6,6 @@ use core::ffi::c_void;
 use std::cell::Cell;
 use std::fs::{create_dir_all, read_to_string, File};
 use std::io::{Read, Seek, Write};
-use std::mem::replace;
 use std::path::PathBuf;
 use std::process::Command;
 use std::ptr;
