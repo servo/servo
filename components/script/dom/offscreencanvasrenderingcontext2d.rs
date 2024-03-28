@@ -141,7 +141,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
     fn SetShadowColor(&self, value: DOMString) {
         self.canvas_state
-            .set_shadow_color(self.htmlcanvas.as_ref().map(|c| &**c), value)
+            .set_shadow_color(self.htmlcanvas.as_deref(), value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
@@ -152,7 +152,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
         self.canvas_state
-            .set_stroke_style(self.htmlcanvas.as_ref().map(|c| &**c), value)
+            .set_stroke_style(self.htmlcanvas.as_deref(), value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
@@ -163,7 +163,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn SetFillStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
         self.canvas_state
-            .set_fill_style(self.htmlcanvas.as_ref().map(|c| &**c), value)
+            .set_fill_style(self.htmlcanvas.as_deref(), value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createlineargradient
@@ -250,13 +250,8 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext
     fn FillText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
-        self.canvas_state.fill_text(
-            self.htmlcanvas.as_ref().map(|c| &**c),
-            text,
-            x,
-            y,
-            max_width,
-        )
+        self.canvas_state
+            .fill_text(self.htmlcanvas.as_deref(), text, x, y, max_width)
     }
 
     // https://html.spec.whatwg.org/multipage/#textmetrics
@@ -272,7 +267,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
     fn SetFont(&self, value: DOMString) {
         self.canvas_state
-            .set_font(self.htmlcanvas.as_ref().map(|c| &**c), value)
+            .set_font(self.htmlcanvas.as_deref(), value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-textalign
@@ -395,7 +390,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     fn DrawImage(&self, image: CanvasImageSource, dx: f64, dy: f64) -> ErrorResult {
         self.canvas_state
-            .draw_image(self.htmlcanvas.as_ref().map(|c| &**c), image, dx, dy)
+            .draw_image(self.htmlcanvas.as_deref(), image, dx, dy)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
@@ -407,14 +402,8 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         dw: f64,
         dh: f64,
     ) -> ErrorResult {
-        self.canvas_state.draw_image_(
-            self.htmlcanvas.as_ref().map(|c| &**c),
-            image,
-            dx,
-            dy,
-            dw,
-            dh,
-        )
+        self.canvas_state
+            .draw_image_(self.htmlcanvas.as_deref(), image, dx, dy, dw, dh)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
@@ -431,7 +420,7 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         dh: f64,
     ) -> ErrorResult {
         self.canvas_state.draw_image__(
-            self.htmlcanvas.as_ref().map(|c| &**c),
+            self.htmlcanvas.as_deref(),
             image,
             sx,
             sy,

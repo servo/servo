@@ -10,7 +10,7 @@ use std::default::Default;
 use std::ops::Range;
 use std::slice::from_ref;
 use std::sync::Arc as StdArc;
-use std::{cmp, iter, mem};
+use std::{cmp, iter};
 
 use app_units::Au;
 use bitflags::bitflags;
@@ -454,7 +454,7 @@ pub struct QuerySelectorIterator {
     iterator: TreeIterator,
 }
 
-impl<'a> QuerySelectorIterator {
+impl QuerySelectorIterator {
     fn new(iter: TreeIterator, selectors: SelectorList<SelectorImpl>) -> QuerySelectorIterator {
         QuerySelectorIterator {
             selectors,
@@ -463,7 +463,7 @@ impl<'a> QuerySelectorIterator {
     }
 }
 
-impl<'a> Iterator for QuerySelectorIterator {
+impl Iterator for QuerySelectorIterator {
     type Item = DomRoot<Node>;
 
     fn next(&mut self) -> Option<DomRoot<Node>> {
@@ -1203,8 +1203,7 @@ impl Node {
                 match last_child.and_then(|node| {
                     node.inclusively_preceding_siblings()
                         .filter_map(DomRoot::downcast::<Element>)
-                        .filter(|elem| is_delete_type(elem))
-                        .next()
+                        .find(|elem| is_delete_type(elem))
                 }) {
                     Some(element) => element,
                     None => return Ok(()),
@@ -1314,10 +1313,10 @@ where
 #[allow(unsafe_code)]
 pub unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress) -> DomRoot<Node> {
     // https://github.com/servo/servo/issues/6383
-    let candidate: uintptr_t = mem::transmute(candidate.0);
+    let candidate = candidate.0 as usize;
     //        let object: *mut JSObject = jsfriendapi::bindgen::JS_GetAddressableObject(runtime,
     //                                                                                  candidate);
-    let object: *mut JSObject = mem::transmute(candidate);
+    let object = candidate as *mut JSObject;
     if object.is_null() {
         panic!("Attempted to create a `Dom<Node>` from an invalid pointer!")
     }

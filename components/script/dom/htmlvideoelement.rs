@@ -279,12 +279,9 @@ impl VirtualMethods for HTMLVideoElement {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
 
         if let Some(new_value) = mutation.new_value(attr) {
-            match attr.local_name() {
-                &local_name!("poster") => {
-                    self.fetch_poster_frame(&new_value);
-                },
-                _ => (),
-            };
+            if attr.local_name() == &local_name!("poster") {
+                self.fetch_poster_frame(&new_value);
+            }
         }
     }
 }

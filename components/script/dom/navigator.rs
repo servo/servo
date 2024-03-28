@@ -82,10 +82,8 @@ impl Navigator {
     }
 
     pub fn gamepads(&self) -> DomRoot<GamepadList> {
-        let gamepads = self
-            .gamepads
-            .or_init(|| GamepadList::new(&self.global(), &[]));
-        gamepads
+        self.gamepads
+            .or_init(|| GamepadList::new(&self.global(), &[]))
     }
 
     pub fn has_gamepad_gesture(&self) -> bool {

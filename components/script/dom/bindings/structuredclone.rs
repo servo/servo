@@ -169,12 +169,14 @@ unsafe extern "C" fn read_transfer_callback(
         let sc_holder = &mut *(closure as *mut StructuredDataHolder);
         let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
         let owner = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
-        if let Ok(_) = <MessagePort as Transferable>::transfer_receive(
+        if <MessagePort as Transferable>::transfer_receive(
             &owner,
             sc_holder,
             extra_data,
             return_object,
-        ) {
+        )
+        .is_ok()
+        {
             return true;
         }
     }

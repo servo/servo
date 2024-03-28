@@ -76,8 +76,16 @@ where
     }
 }
 
-/// Represents values that can be rooted through a stable address that will
+/// `StableTraceObject` represents values that can be rooted through a stable address that will
 /// not change for their whole lifetime.
+/// It is an unsafe trait that requires implementors to ensure certain safety guarantees.
+///
+/// # Safety
+///
+/// Implementors of this trait must ensure that the `trace` method correctly accounts for all
+/// owned and referenced objects, so that the garbage collector can accurately determine which
+/// objects are still in use. Failing to adhere to this contract may result in undefined behavior,
+/// such as use-after-free errors.
 pub unsafe trait StableTraceObject {
     /// Returns a stable trace object which address won't change for the whole
     /// lifetime of the value.
@@ -88,7 +96,7 @@ unsafe impl<T> StableTraceObject for Dom<T>
 where
     T: DomObject,
 {
-    fn stable_trace_object<'a>(&'a self) -> *const dyn JSTraceable {
+    fn stable_trace_object(&self) -> *const dyn JSTraceable {
         // The JSTraceable impl for Reflector doesn't actually do anything,
         // so we need this shenanigan to actually trace the reflector of the
         // T pointer in Dom<T>.
@@ -107,7 +115,7 @@ unsafe impl<T> StableTraceObject for MaybeUnreflectedDom<T>
 where
     T: DomObject,
 {
-    fn stable_trace_object<'a>(&'a self) -> *const dyn JSTraceable {
+    fn stable_trace_object(&self) -> *const dyn JSTraceable {
         // The JSTraceable impl for Reflector doesn't actually do anything,
         // so we need this shenanigan to actually trace the reflector of the
         // T pointer in Dom<T>.
@@ -267,10 +275,7 @@ impl RootCollection {
     unsafe fn unroot(&self, object: *const dyn JSTraceable) {
         assert_in_script();
         let roots = &mut *self.roots.get();
-        match roots
-            .iter()
-            .rposition(|r| *r as *const () == object as *const ())
-        {
+        match roots.iter().rposition(|r| std::ptr::eq(*r, object)) {
             Some(idx) => {
                 roots.remove(idx);
             },
@@ -486,7 +491,7 @@ impl<T> Eq for Dom<T> {}
 
 impl<T> PartialEq for LayoutDom<'_, T> {
     fn eq(&self, other: &Self) -> bool {
-        self.value as *const T == other.value as *const T
+        std::ptr::eq(self.value, other.value)
     }
 }
 
