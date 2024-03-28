@@ -531,6 +531,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     fn handle_browser_message(&mut self, msg: CompositorMsg) -> bool {
+        trace_msg_from_constellation!(msg, "{msg:?}");
+
         match self.shutdown_state {
             ShutdownState::NotShuttingDown => {},
             ShutdownState::ShuttingDown => {
@@ -1175,14 +1177,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.frame_tree_id.next();
     }
 
-    pub fn move_resize_webview(
-        &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-        rect: DeviceRect,
-    ) {
+    pub fn move_resize_webview(&mut self, webview_id: TopLevelBrowsingContextId, rect: DeviceRect) {
+        trace!("move_resize_webview {webview_id} rect={rect:?}");
         let rect_changed;
         let size_changed;
-        match self.webviews.get_mut(top_level_browsing_context_id) {
+        match self.webviews.get_mut(webview_id) {
             Some(webview) => {
                 rect_changed = rect != webview.rect;
                 size_changed = rect.size() != webview.rect.size();
@@ -1191,7 +1190,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             None => {
                 warn!(
                     "{}: MoveResizeWebView on unknown top-level browsing context",
-                    top_level_browsing_context_id
+                    webview_id
                 );
                 return;
             },
@@ -1199,10 +1198,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
         if rect_changed {
             if size_changed {
-                self.send_window_size_message_for_top_level_browser_context(
-                    rect,
-                    top_level_browsing_context_id,
-                );
+                self.send_window_size_message_for_top_level_browser_context(rect, webview_id);
             }
 
             self.send_root_pipeline_display_list();
@@ -1210,6 +1206,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     pub fn show_webview(&mut self, webview_id: WebViewId, hide_others: bool) {
+        trace!("show_webview {webview_id} hide_others={hide_others}");
         let painting_order_changed = if hide_others {
             let result = self
                 .webviews
@@ -1228,12 +1225,14 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     pub fn hide_webview(&mut self, webview_id: WebViewId) {
+        trace!("hide_webview {webview_id}");
         if self.webviews.hide(webview_id) {
             self.send_root_pipeline_display_list();
         }
     }
 
     pub fn raise_webview_to_top(&mut self, webview_id: WebViewId, hide_others: bool) {
+        trace!("raise_webview_to_top {webview_id} hide_others={hide_others}");
         let painting_order_changed = if hide_others {
             let result = self
                 .webviews
