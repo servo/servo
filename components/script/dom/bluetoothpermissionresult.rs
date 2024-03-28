@@ -102,10 +102,10 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
                 self.set_state(PermissionState::Granted);
                 let bluetooth = self.get_bluetooth();
                 let mut device_instance_map = bluetooth.get_device_map().borrow_mut();
-                if let Some(ref existing_device) = device_instance_map.get(&device.id) {
+                if let Some(existing_device) = device_instance_map.get(&device.id) {
                     // https://webbluetoothcg.github.io/web-bluetooth/#request-the-bluetooth-permission
                     // Step 3.
-                    self.set_devices(vec![Dom::from_ref(*existing_device)]);
+                    self.set_devices(vec![Dom::from_ref(existing_device)]);
 
                     // https://w3c.github.io/permissions/#dom-permissions-request
                     // Step 8.

@@ -3246,7 +3246,7 @@ impl<'a> SelectorsElement for DomRoot<Element> {
         operation: &AttrSelectorOperation<&AtomString>,
     ) -> bool {
         match *ns {
-            NamespaceConstraint::Specific(ref ns) => self
+            NamespaceConstraint::Specific(ns) => self
                 .get_attribute(ns, local_name)
                 .map_or(false, |attr| attr.value().eval_selector(operation)),
             NamespaceConstraint::Any => self.attrs.borrow().iter().any(|attr| {

@@ -1255,7 +1255,7 @@ impl VirtualMethods for HTMLScriptElement {
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.children_changed(mutation);
         }
         if !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
@@ -1264,7 +1264,7 @@ impl VirtualMethods for HTMLScriptElement {
     }
 
     fn bind_to_tree(&self, context: &BindContext) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.bind_to_tree(context);
         }
 
@@ -1282,7 +1282,7 @@ impl VirtualMethods for HTMLScriptElement {
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
     ) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.cloning_steps(copy, maybe_doc, clone_children);
         }
 

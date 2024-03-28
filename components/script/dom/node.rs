@@ -232,12 +232,12 @@ impl Node {
         assert!(new_child.prev_sibling.get().is_none());
         assert!(new_child.next_sibling.get().is_none());
         match before {
-            Some(ref before) => {
+            Some(before) => {
                 assert!(before.parent_node.get().as_deref() == Some(self));
                 let prev_sibling = before.GetPreviousSibling();
                 match prev_sibling {
                     None => {
-                        assert!(self.first_child.get().as_deref() == Some(*before));
+                        assert!(self.first_child.get().as_deref() == Some(before));
                         self.first_child.set(Some(new_child));
                     },
                     Some(ref prev_sibling) => {

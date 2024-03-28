@@ -82,7 +82,7 @@ impl DocumentFragmentMethods for DocumentFragment {
         self.id_map
             .borrow()
             .get(&id)
-            .map(|ref elements| DomRoot::from_ref(&*(*elements)[0]))
+            .map(|elements| DomRoot::from_ref(&*elements[0]))
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild

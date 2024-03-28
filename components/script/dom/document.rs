@@ -3529,7 +3529,7 @@ impl Document {
         self.id_map
             .borrow()
             .get(id)
-            .map(|ref elements| DomRoot::from_ref(&*(*elements)[0]))
+            .map(|elements| DomRoot::from_ref(&*elements[0]))
     }
 
     pub fn ensure_pending_restyle(&self, el: &Element) -> RefMut<PendingRestyle> {
