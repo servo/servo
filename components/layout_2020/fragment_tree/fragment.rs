@@ -243,7 +243,7 @@ impl ImageFragment {
     pub fn print(&self, tree: &mut PrintTree) {
         tree.add_item(format!(
             "Image\
-            \nrect={:?}",
+                \nrect={:?}",
             self.rect
         ));
     }

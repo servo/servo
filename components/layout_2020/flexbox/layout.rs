@@ -858,7 +858,7 @@ impl FlexLine<'_> {
                         content_rect,
                         flex_context.sides_to_flow_relative(item.padding),
                         flex_context.sides_to_flow_relative(item.border),
-                        margin.into(),
+                        margin,
                         None, /* clearance */
                         collapsed_margin,
                     ),

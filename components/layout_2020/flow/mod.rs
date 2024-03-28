@@ -117,7 +117,7 @@ impl BlockLevelBox {
 
         let pbm = style.padding_border_margin(containing_block);
         let start_margin = pbm.margin.block_start.auto_is(Au::zero);
-        collected_margin.adjoin_assign(&CollapsedMargin::new(start_margin.into()));
+        collected_margin.adjoin_assign(&CollapsedMargin::new(start_margin));
 
         let child_boxes = match self {
             BlockLevelBox::SameFormattingContextBlock { ref contents, .. } => match contents {
@@ -176,7 +176,7 @@ impl BlockLevelBox {
         }
 
         let end_margin = pbm.margin.block_end.auto_is(Au::zero);
-        collected_margin.adjoin_assign(&CollapsedMargin::new(end_margin.into()));
+        collected_margin.adjoin_assign(&CollapsedMargin::new(end_margin));
 
         true
     }
@@ -637,7 +637,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     } = solve_margins(
         containing_block,
         &pbm,
-        containing_block_for_children.inline_size.into(),
+        containing_block_for_children.inline_size,
     );
 
     let computed_block_size = style.content_block_size();
@@ -709,7 +709,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
                 .inline_start +
                 pbm.padding.inline_start +
                 pbm.border.inline_start +
-                effective_margin_inline_start.into();
+                effective_margin_inline_start;
             let new_cb_offsets = ContainingBlockPositionInfo {
                 block_start: sequential_layout_state.bfc_relative_block_position,
                 block_start_margins_not_collapsed: sequential_layout_state.current_margin,
@@ -800,7 +800,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
                 clearance.unwrap_or_else(Au::zero)),
             inline: pbm.padding.inline_start +
                 pbm.border.inline_start +
-                effective_margin_inline_start.into(),
+                effective_margin_inline_start,
         },
         size: LogicalVec2 {
             block: block_size,
@@ -815,7 +815,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         content_rect.into(),
         pbm.padding,
         pbm.border,
-        margin.into(),
+        margin,
         clearance,
         block_margins_collapsed_with_children,
     )
@@ -877,14 +877,14 @@ impl NonReplacedFormattingContext {
         let ResolvedMargins {
             margin,
             effective_margin_inline_start,
-        } = solve_margins(containing_block, &pbm, inline_size.into());
+        } = solve_margins(containing_block, &pbm, inline_size);
 
         let content_rect = LogicalRect {
             start_corner: LogicalVec2 {
                 block: pbm.padding.block_start + pbm.border.block_start,
                 inline: pbm.padding.inline_start +
                     pbm.border.inline_start +
-                    effective_margin_inline_start.into(),
+                    effective_margin_inline_start,
             },
             size: LogicalVec2 {
                 block: block_size,
@@ -901,7 +901,7 @@ impl NonReplacedFormattingContext {
             content_rect.into(),
             pbm.padding,
             pbm.border,
-            margin.into(),
+            margin,
             None, /* clearance */
             block_margins_collapsed_with_children,
         )
@@ -934,7 +934,7 @@ impl NonReplacedFormattingContext {
         let effective_margin_inline_start;
         let (margin_block_start, margin_block_end) =
             solve_block_margins_for_in_flow_block_level(&pbm);
-        let collapsed_margin_block_start = CollapsedMargin::new(margin_block_start.into());
+        let collapsed_margin_block_start = CollapsedMargin::new(margin_block_start);
 
         // From https://drafts.csswg.org/css2/#floats:
         // "The border box of a table, a block-level replaced element, or an element in
@@ -1111,10 +1111,10 @@ impl NonReplacedFormattingContext {
         }
 
         let margin = LogicalSides {
-            inline_start: margin_inline_start.into(),
-            inline_end: margin_inline_end.into(),
-            block_start: margin_block_start.into(),
-            block_end: margin_block_end.into(),
+            inline_start: margin_inline_start,
+            inline_end: margin_inline_end,
+            block_start: margin_block_start,
+            block_end: margin_block_end,
         };
 
         // Clearance prevents margin collapse between this block and previous ones,
@@ -1153,7 +1153,7 @@ impl NonReplacedFormattingContext {
             content_rect.into(),
             pbm.padding,
             pbm.border,
-            margin.into(),
+            margin,
             clearance,
             block_margins_collapsed_with_children,
         )
@@ -1192,7 +1192,7 @@ fn layout_in_flow_replaced_block_level(
         //  sufficient space. They may even make the border box of said element narrower
         //  than defined by section 10.3.3. CSS 2 does not define when a UA may put said
         //  element next to the float or by how much said element may become narrower."
-        let collapsed_margin_block_start = CollapsedMargin::new(margin_block_start.into());
+        let collapsed_margin_block_start = CollapsedMargin::new(margin_block_start);
         let size = &content_size + &pbm.padding_border_sums.clone();
         (
             clearance,
@@ -1218,7 +1218,7 @@ fn layout_in_flow_replaced_block_level(
         sequential_layout_state.collapse_margins();
         sequential_layout_state
             .advance_block_position(size.block + clearance.unwrap_or_else(Au::zero));
-        sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin_block_end.into()));
+        sequential_layout_state.adjoin_assign(&CollapsedMargin::new(margin_block_end));
     } else {
         clearance = None;
         (
@@ -1227,15 +1227,15 @@ fn layout_in_flow_replaced_block_level(
         ) = solve_inline_margins_for_in_flow_block_level(
             containing_block,
             &pbm,
-            content_size.inline.into(),
+            content_size.inline,
         );
     };
 
     let margin = LogicalSides {
-        inline_start: margin_inline_start.into(),
-        inline_end: margin_inline_end.into(),
-        block_start: margin_block_start.into(),
-        block_end: margin_block_end.into(),
+        inline_start: margin_inline_start,
+        inline_end: margin_inline_end,
+        block_start: margin_block_start,
+        block_end: margin_block_end,
     };
 
     let start_corner = LogicalVec2 {
@@ -1258,7 +1258,7 @@ fn layout_in_flow_replaced_block_level(
         content_rect.into(),
         pbm.padding,
         pbm.border,
-        margin.into(),
+        margin,
         clearance,
         block_margins_collapsed_with_children,
     )
@@ -1631,7 +1631,7 @@ impl PlacementState {
                         .adjoin_assign(&fragment_block_margins.end);
                 } else {
                     self.current_block_direction_position +=
-                        (self.current_margin.solve() + fragment_block_size.into()).into();
+                        Length::from(self.current_margin.solve()) + fragment_block_size.into();
                     self.current_margin = fragment_block_margins.end;
                 }
             },
