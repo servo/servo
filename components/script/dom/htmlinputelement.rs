@@ -1642,7 +1642,7 @@ fn radio_group_iter<'a>(
 
     // If group is None, in_same_group always fails, but we need to always return elem.
     root.traverse_preorder(ShadowIncluding::No)
-        .filter_map(|r| DomRoot::downcast::<HTMLInputElement>(r))
+        .filter_map(DomRoot::downcast::<HTMLInputElement>)
         .filter(move |r| &**r == elem || in_same_group(r, owner.as_deref(), group, None))
 }
 

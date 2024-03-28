@@ -868,7 +868,7 @@ impl GPUDeviceMethods for GPUDevice {
             mipmap_filter: convert_filter_mode(descriptor.mipmapFilter),
             lod_min_clamp: *descriptor.lodMinClamp,
             lod_max_clamp: *descriptor.lodMaxClamp,
-            compare: descriptor.compare.map(|c| convert_compare_function(c)),
+            compare: descriptor.compare.map(convert_compare_function),
             anisotropy_clamp: 1,
             border_color: None,
         };

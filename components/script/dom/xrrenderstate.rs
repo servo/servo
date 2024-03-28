@@ -47,9 +47,8 @@ impl XRRenderState {
             layers: DomRefCell::new(
                 layers
                     .into_iter()
-                    .map(|layer| Dom::from_ref(layer))
-                    .collect(),
-            ),
+                    .map(Dom::from_ref)
+                    .collect()),
         }
     }
 

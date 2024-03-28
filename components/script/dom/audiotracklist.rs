@@ -32,7 +32,7 @@ impl AudioTrackList {
         AudioTrackList {
             eventtarget: EventTarget::new_inherited(),
             tracks: DomRefCell::new(tracks.iter().map(|track| Dom::from_ref(&**track)).collect()),
-            media_element: media_element.map(|m| Dom::from_ref(m)),
+            media_element: media_element.map(Dom::from_ref),
         }
     }
 

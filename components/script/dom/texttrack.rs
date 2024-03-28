@@ -49,7 +49,7 @@ impl TextTrack {
             id: id.into(),
             mode: Cell::new(mode),
             cue_list: Default::default(),
-            track_list: DomRefCell::new(track_list.map(|t| Dom::from_ref(t))),
+            track_list: DomRefCell::new(track_list.map(Dom::from_ref)),
         }
     }
 

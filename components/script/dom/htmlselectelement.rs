@@ -312,7 +312,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     fn NamedItem(&self, name: DOMString) -> Option<DomRoot<HTMLOptionElement>> {
         self.Options()
             .NamedGetter(name)
-            .map_or(None, |e| DomRoot::downcast::<HTMLOptionElement>(e))
+            .map_or(None, DomRoot::downcast::<HTMLOptionElement>)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-remove
