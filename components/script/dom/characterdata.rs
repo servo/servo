@@ -136,7 +136,7 @@ impl CharacterDataMethods for CharacterData {
                 // and then transcoded that to UTF-8 lossily,
                 // since our DOMString is currently strict UTF-8.
                 if astral.is_some() {
-                    substring = substring + "\u{FFFD}";
+                    substring += "\u{FFFD}";
                 }
                 remaining = s;
             },
@@ -145,7 +145,7 @@ impl CharacterDataMethods for CharacterData {
         }
         match split_at_utf16_code_unit_offset(remaining, count, replace_surrogates) {
             // Steps 3.
-            Err(()) => substring = substring + remaining,
+            Err(()) => substring += remaining,
             // Steps 4.
             Ok((s, astral, _)) => {
                 substring = substring + s;
@@ -153,7 +153,7 @@ impl CharacterDataMethods for CharacterData {
                 // and then transcoded that to UTF-8 lossily,
                 // since our DOMString is currently strict UTF-8.
                 if astral.is_some() {
-                    substring = substring + "\u{FFFD}";
+                    substring += "\u{FFFD}";
                 }
             },
         };

@@ -234,7 +234,7 @@ impl ErrorInfo {
         if let Some(info) = ErrorInfo::from_dom_exception(object, cx) {
             return Some(info);
         }
-        return None;
+        None
     }
 
     unsafe fn from_value(value: HandleValue, cx: *mut JSContext) -> ErrorInfo {

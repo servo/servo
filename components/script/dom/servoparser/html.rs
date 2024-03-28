@@ -61,7 +61,7 @@ impl Tokenizer {
             let tb = TreeBuilder::new_for_fragment(
                 sink,
                 Dom::from_ref(fc.context_elem),
-                fc.form_elem.map(|n| Dom::from_ref(n)),
+                fc.form_elem.map(Dom::from_ref),
                 options,
             );
 

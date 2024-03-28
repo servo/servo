@@ -89,7 +89,7 @@ impl DOMMatrix {
     }
 
     pub fn from_readonly(global: &GlobalScope, ro: &DOMMatrixReadOnly) -> DomRoot<Self> {
-        Self::new(global, ro.is2D(), ro.matrix().clone())
+        Self::new(global, ro.is2D(), *ro.matrix())
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-fromfloat32array

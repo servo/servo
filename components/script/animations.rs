@@ -126,9 +126,9 @@ impl Animations {
     pub(crate) fn cancel_animations_for_node(&self, node: &Node) {
         let mut animations = self.sets.sets.write();
         let mut cancel_animations_for = |key| {
-            animations.get_mut(&key).map(|set| {
+            if let Some(set) = animations.get_mut(&key) {
                 set.cancel_all_animations();
-            });
+            }
         };
 
         let opaque_node = node.to_opaque();
@@ -397,7 +397,7 @@ impl Animations {
                 pipeline_id,
                 event_type,
                 node: key.node,
-                pseudo_element: key.pseudo_element.clone(),
+                pseudo_element: key.pseudo_element,
                 property_or_animation_name: transition
                     .property_animation
                     .property_id()
@@ -450,7 +450,7 @@ impl Animations {
                 pipeline_id,
                 event_type,
                 node: key.node,
-                pseudo_element: key.pseudo_element.clone(),
+                pseudo_element: key.pseudo_element,
                 property_or_animation_name: animation.name.to_string(),
                 elapsed_time,
             });
@@ -459,7 +459,7 @@ impl Animations {
     pub(crate) fn send_pending_events(&self, window: &Window) {
         // Take all of the events here, in case sending one of these events
         // triggers adding new events by forcing a layout.
-        let events = std::mem::replace(&mut *self.pending_events.borrow_mut(), Vec::new());
+        let events = std::mem::take(&mut *self.pending_events.borrow_mut());
         if events.is_empty() {
             return;
         }

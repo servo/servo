@@ -105,13 +105,13 @@ impl File {
             Err(_) => return Err(Error::InvalidCharacter),
         };
 
-        let ref blobPropertyBag = filePropertyBag.parent;
+        let blobPropertyBag = &filePropertyBag.parent;
 
         let modified = filePropertyBag.lastModified;
         // NOTE: Following behaviour might be removed in future,
         // see https://github.com/w3c/FileAPI/issues/41
-        let replaced_filename = DOMString::from_string(filename.replace("/", ":"));
-        let type_string = normalize_type_string(&blobPropertyBag.type_.to_string());
+        let replaced_filename = DOMString::from_string(filename.replace('/', ":"));
+        let type_string = normalize_type_string(blobPropertyBag.type_.as_ref());
         Ok(File::new_with_proto(
             global,
             proto,

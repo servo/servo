@@ -44,7 +44,7 @@ impl TestRunnerMethods for TestRunner {
         self.get_bluetooth_thread()
             .send(BluetoothRequest::Test(String::from(dataSetName), sender))
             .unwrap();
-        match receiver.recv().unwrap().into() {
+        match receiver.recv().unwrap() {
             Ok(()) => Ok(()),
             Err(error) => Err(Error::from(error)),
         }

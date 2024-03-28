@@ -130,11 +130,8 @@ fn convert_culong(js: &ConstrainULong) -> Option<Constrain<u32>> {
                     max: range.parent.max,
                     ideal: range.ideal,
                 }))
-            } else if let Some(exact) = range.exact {
-                Some(Constrain::Value(exact))
             } else {
-                // the unspecified case is treated as all three being none
-                None
+                range.exact.map(Constrain::Value)
             }
         },
     }
@@ -150,11 +147,8 @@ fn convert_cdouble(js: &ConstrainDouble) -> Option<Constrain<f64>> {
                     max: range.parent.max.map(|x| *x),
                     ideal: range.ideal.map(|x| *x),
                 }))
-            } else if let Some(exact) = range.exact {
-                Some(Constrain::Value(*exact))
             } else {
-                // the unspecified case is treated as all three being none
-                None
+                range.exact.map(|exact| Constrain::Value(*exact))
             }
         },
     }

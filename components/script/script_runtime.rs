@@ -691,60 +691,59 @@ unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
 }
 
 #[allow(unsafe_code)]
-pub fn get_reports(cx: *mut RawJSContext, path_seg: String) -> Vec<Report> {
+pub unsafe fn get_reports(cx: *mut RawJSContext, path_seg: String) -> Vec<Report> {
     let mut reports = vec![];
 
-    unsafe {
-        let mut stats = ::std::mem::zeroed();
-        if CollectServoSizes(cx, &mut stats, Some(get_size)) {
-            let mut report = |mut path_suffix, kind, size| {
-                let mut path = path![path_seg, "js"];
-                path.append(&mut path_suffix);
-                reports.push(Report { path, kind, size })
-            };
+    let mut stats = ::std::mem::zeroed();
+    if CollectServoSizes(cx, &mut stats, Some(get_size)) {
+        let mut report = |mut path_suffix, kind, size| {
+            let mut path = path![path_seg, "js"];
+            path.append(&mut path_suffix);
+            reports.push(Report { path, kind, size })
+        };
 
-            // A note about possibly confusing terminology: the JS GC "heap" is allocated via
-            // mmap/VirtualAlloc, which means it's not on the malloc "heap", so we use
-            // `ExplicitNonHeapSize` as its kind.
+        // A note about possibly confusing terminology: the JS GC "heap" is allocated via
+        // mmap/VirtualAlloc, which means it's not on the malloc "heap", so we use
+        // `ExplicitNonHeapSize` as its kind.
 
-            report(
-                path!["gc-heap", "used"],
-                ReportKind::ExplicitNonHeapSize,
-                stats.gcHeapUsed,
-            );
+        report(
+            path!["gc-heap", "used"],
+            ReportKind::ExplicitNonHeapSize,
+            stats.gcHeapUsed,
+        );
 
-            report(
-                path!["gc-heap", "unused"],
-                ReportKind::ExplicitNonHeapSize,
-                stats.gcHeapUnused,
-            );
+        report(
+            path!["gc-heap", "unused"],
+            ReportKind::ExplicitNonHeapSize,
+            stats.gcHeapUnused,
+        );
 
-            report(
-                path!["gc-heap", "admin"],
-                ReportKind::ExplicitNonHeapSize,
-                stats.gcHeapAdmin,
-            );
+        report(
+            path!["gc-heap", "admin"],
+            ReportKind::ExplicitNonHeapSize,
+            stats.gcHeapAdmin,
+        );
 
-            report(
-                path!["gc-heap", "decommitted"],
-                ReportKind::ExplicitNonHeapSize,
-                stats.gcHeapDecommitted,
-            );
+        report(
+            path!["gc-heap", "decommitted"],
+            ReportKind::ExplicitNonHeapSize,
+            stats.gcHeapDecommitted,
+        );
 
-            // SpiderMonkey uses the system heap, not jemalloc.
-            report(
-                path!["malloc-heap"],
-                ReportKind::ExplicitSystemHeapSize,
-                stats.mallocHeap,
-            );
+        // SpiderMonkey uses the system heap, not jemalloc.
+        report(
+            path!["malloc-heap"],
+            ReportKind::ExplicitSystemHeapSize,
+            stats.mallocHeap,
+        );
 
-            report(
-                path!["non-heap"],
-                ReportKind::ExplicitNonHeapSize,
-                stats.nonHeap,
-            );
-        }
+        report(
+            path!["non-heap"],
+            ReportKind::ExplicitNonHeapSize,
+            stats.nonHeap,
+        );
     }
+
     reports
 }
 

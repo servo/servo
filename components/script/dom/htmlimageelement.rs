@@ -1065,10 +1065,7 @@ impl HTMLImageElement {
 
         let elem = self.upcast::<Element>();
         let document = document_from_node(elem);
-        let has_pending_request = match self.image_request.get() {
-            ImageRequestPhase::Pending => true,
-            _ => false,
-        };
+        let has_pending_request = matches!(self.image_request.get(), ImageRequestPhase::Pending);
 
         // Step 2
         if !document.is_active() || !Self::uses_srcset_or_picture(elem) || has_pending_request {

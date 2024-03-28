@@ -97,7 +97,7 @@ impl VTTCueMethods for VTTCue {
 
     // https://w3c.github.io/webvtt/#dom-vttcue-region
     fn SetRegion(&self, value: Option<&VTTRegion>) {
-        *self.region.borrow_mut() = value.map(|r| Dom::from_ref(r))
+        *self.region.borrow_mut() = value.map(Dom::from_ref)
     }
 
     // https://w3c.github.io/webvtt/#dom-vttcue-vertical

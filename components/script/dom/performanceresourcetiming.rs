@@ -173,7 +173,7 @@ impl PerformanceResourceTimingMethods for PerformanceResourceTiming {
     // when a proxy is configured
     fn NextHopProtocol(&self) -> DOMString {
         match self.next_hop {
-            Some(ref protocol) => DOMString::from(protocol.clone()),
+            Some(ref protocol) => protocol.clone(),
             None => DOMString::from(""),
         }
     }

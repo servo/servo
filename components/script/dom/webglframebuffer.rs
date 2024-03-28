@@ -147,7 +147,7 @@ impl WebGLFramebuffer {
         context: &WebGLRenderingContext,
         size: Size2D<i32, Viewport>,
     ) -> Option<DomRoot<Self>> {
-        let framebuffer = Self::maybe_new(&*context)?;
+        let framebuffer = Self::maybe_new(context)?;
         framebuffer.size.set(Some((size.width, size.height)));
         framebuffer.status.set(constants::FRAMEBUFFER_COMPLETE);
         framebuffer.xr_session.set(Some(session));
@@ -851,13 +851,10 @@ impl WebGLFramebuffer {
             attachment: &DomRefCell<Option<WebGLFramebufferAttachment>>,
             target: &WebGLTextureId,
         ) -> bool {
-            match *attachment.borrow() {
-                Some(WebGLFramebufferAttachment::Texture {
-                    texture: ref att_texture,
-                    ..
-                }) if att_texture.id() == *target => true,
-                _ => false,
-            }
+            matches!(*attachment.borrow(), Some(WebGLFramebufferAttachment::Texture {
+                                     texture: ref att_texture,
+                                     ..
+                                }) if att_texture.id() == *target)
         }
 
         for (attachment, name) in &attachments {
@@ -985,7 +982,7 @@ impl WebGLFramebuffer {
 
 impl Drop for WebGLFramebuffer {
     fn drop(&mut self) {
-        let _ = self.delete(Operation::Fallible);
+        self.delete(Operation::Fallible);
     }
 }
 

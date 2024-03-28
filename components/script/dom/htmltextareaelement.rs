@@ -736,10 +736,12 @@ impl Validatable for HTMLTextAreaElement {
 
         // https://html.spec.whatwg.org/multipage/#suffering-from-being-missing
         // https://html.spec.whatwg.org/multipage/#the-textarea-element%3Asuffering-from-being-missing
-        if validate_flags.contains(ValidationFlags::VALUE_MISSING) {
-            if self.Required() && self.is_mutable() && value_len == 0 {
-                failed_flags.insert(ValidationFlags::VALUE_MISSING);
-            }
+        if validate_flags.contains(ValidationFlags::VALUE_MISSING) &&
+            self.Required() &&
+            self.is_mutable() &&
+            value_len == 0
+        {
+            failed_flags.insert(ValidationFlags::VALUE_MISSING);
         }
 
         if value_dirty && last_edit_by_user && value_len > 0 {

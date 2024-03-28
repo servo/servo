@@ -97,7 +97,7 @@ partial /*sealed*/ interface Document {
   readonly attribute DocumentReadyState readyState;
 
   // DOM tree accessors
-     getter object (DOMString name);
+  getter NamedPropertyValue (DOMString name);
   [CEReactions]
            attribute DOMString title;
   // [CEReactions]
@@ -212,3 +212,6 @@ partial interface Document {
   [Throws]
   ShadowRoot servoGetMediaControls(DOMString id);
 };
+
+// https://html.spec.whatwg.org/multipage/#dom-document-nameditem-filter
+typedef (WindowProxy or Element or HTMLCollection) NamedPropertyValue;

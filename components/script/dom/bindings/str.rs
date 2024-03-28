@@ -453,7 +453,7 @@ impl DOMString {
                 return Some(val);
             }
         }
-        return None;
+        None
     }
 
     /// <https://html.spec.whatwg.org/multipage/#best-representation-of-the-number-as-a-floating-point-number>
@@ -746,13 +746,10 @@ fn parse_time_component(value: &str) -> Option<(u32, u32, f64)> {
             if second_iterator.next()?.len() != 2 {
                 return None;
             }
-            match second_iterator.next() {
-                Some(second_last) => {
-                    if second_last.len() > 3 {
-                        return None;
-                    }
-                },
-                None => {},
+            if let Some(second_last) = second_iterator.next() {
+                if second_last.len() > 3 {
+                    return None;
+                }
             }
 
             second.parse::<f64>().ok()?

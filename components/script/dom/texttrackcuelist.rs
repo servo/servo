@@ -42,8 +42,7 @@ impl TextTrackCueList {
             .borrow()
             .iter()
             .enumerate()
-            .filter(|(_, c)| **c == cue)
-            .next()
+            .find(|(_, c)| **c == cue)
             .map(|(i, _)| i)
     }
 
@@ -78,8 +77,7 @@ impl TextTrackCueListMethods for TextTrackCueList {
             self.dom_cues
                 .borrow()
                 .iter()
-                .filter(|cue| cue.id() == id)
-                .next()
+                .find(|cue| cue.id() == id)
                 .map(|t| DomRoot::from_ref(&**t))
         }
     }

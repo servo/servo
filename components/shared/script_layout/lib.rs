@@ -32,8 +32,10 @@ use script_traits::{
     ConstellationControlMsg, InitialScriptState, LayoutControlMsg, LayoutMsg, LoadData,
     UntrustedNodeAddress, WebrenderIpcSender, WindowSizeData,
 };
+use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::data::ElementData;
+use style::stylesheets::Stylesheet;
 use webrender_api::ImageKey;
 
 #[derive(MallocSizeOf)]
@@ -203,6 +205,22 @@ pub trait Layout {
 
     /// The currently laid out Epoch that this Layout has finished.
     fn current_epoch(&self) -> Epoch;
+
+    /// Load all fonts from the given stylesheet, returning the number of fonts that
+    /// need to be loaded.
+    fn load_web_fonts_from_stylesheet(&self, stylesheet: ServoArc<Stylesheet>);
+
+    /// Add a stylesheet to this Layout. This will add it to the Layout's `Stylist` as well as
+    /// loading all web fonts defined in the stylesheet. The second stylesheet is the insertion
+    /// point (if it exists, the sheet needs to be inserted before it).
+    fn add_stylesheet(
+        &mut self,
+        stylesheet: ServoArc<Stylesheet>,
+        before_stylsheet: Option<ServoArc<Stylesheet>>,
+    );
+
+    /// Removes a stylesheet from the Layout.
+    fn remove_stylesheet(&mut self, stylesheet: ServoArc<Stylesheet>);
 }
 
 /// This trait is part of `script_layout_interface` because it depends on both `script_traits`

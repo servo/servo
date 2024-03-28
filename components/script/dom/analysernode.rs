@@ -184,7 +184,7 @@ impl AnalyserNodeMethods for AnalyserNode {
 
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-fftsize>
     fn SetFftSize(&self, value: u32) -> Fallible<()> {
-        if value > 32768 || value < 32 || (value & (value - 1) != 0) {
+        if !(32..=32768).contains(&value) || (value & (value - 1) != 0) {
             return Err(Error::IndexSize);
         }
         self.engine.borrow_mut().set_fft_size(value as usize);

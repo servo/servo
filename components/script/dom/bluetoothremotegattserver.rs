@@ -90,7 +90,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
             ))
             .unwrap();
         // Step 5: return promise.
-        return p;
+        p
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-disconnect
@@ -146,7 +146,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
                 // Step 5.2.3
                 if self.Device().is_represented_device_null() {
                     if let Err(e) = self.Device().garbage_collect_the_connection() {
-                        return promise.reject_error(Error::from(e));
+                        return promise.reject_error(e);
                     }
                     return promise.reject_error(Error::Network);
                 }

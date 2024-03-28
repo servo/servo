@@ -96,27 +96,17 @@ stdenv.mkDerivation (androidEnvironment // rec {
     # all of Servo’s dependencies get pulled into the Nix store too, wasting over 1GB of disk space.
     # Filtering the lockfile to only the parts needed by crown saves space and builds faster.
     (let
-      vendorTarball = rustPlatform.fetchCargoTarball {
-        src = ../support/filterlock;
-        hash = "sha256-EBrL0/cEJfGIXUYqFiufRYFBAk5LSf0Cd/19+9m9JZI=";
-      };
-      vendorConfig = builtins.toFile "toml" ''
-        [source.crates-io]
-        replace-with = "vendor"
-        [source.vendor]
-        directory = "vendor"
-      '';
 
       # Build and run filterlock over the main Cargo.lock.
       filteredLockFile = (clangStdenv.mkDerivation {
         name = "lock";
         buildInputs = [ rustToolchain ];
+        nativeBuildInputs = [ rustPlatform.cargoSetupHook ];
         src = ../support/filterlock;
+        cargoDeps = rustPlatform.importCargoLock {
+          lockFile = ../support/filterlock/Cargo.lock;
+        };
         buildPhase = ''
-          tar xzf ${vendorTarball}
-          mv cargo-deps-vendor.tar.gz vendor
-          mkdir .cargo
-          cp -- ${vendorConfig} .cargo/config.toml
           > $out cargo run --offline -- ${../Cargo.lock} crown
         '';
         dontInstall = true;
