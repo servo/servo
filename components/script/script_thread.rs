@@ -2548,7 +2548,7 @@ impl ScriptThread {
         let path_seg = format!("url({})", urls);
 
         let mut reports = vec![];
-        reports.extend(get_reports(*self.get_cx(), path_seg));
+        reports.extend(unsafe { get_reports(*self.get_cx(), path_seg) });
         reports_chan.send(reports);
     }
 
