@@ -116,10 +116,7 @@ impl VertexArrayObject {
             return Err(WebGLError::InvalidValue);
         }
 
-        let is_webgl2 = match self.context.webgl_version() {
-            WebGLVersion::WebGL2 => true,
-            _ => false,
-        };
+        let is_webgl2 = matches!(self.context.webgl_version(), WebGLVersion::WebGL2);
 
         let bytes_per_component: i32 = match type_ {
             constants::BYTE | constants::UNSIGNED_BYTE => 1,
@@ -296,7 +293,7 @@ impl Default for VertexAttribData {
 
 impl VertexAttribData {
     pub fn buffer(&self) -> Option<&WebGLBuffer> {
-        self.buffer.as_ref().map(|b| &**b)
+        self.buffer.as_deref()
     }
 
     pub fn max_vertices(&self) -> u32 {

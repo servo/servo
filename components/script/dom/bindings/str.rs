@@ -236,7 +236,7 @@ impl DOMString {
         }
 
         let first_non_whitespace = self.0.find(|ref c| !char::is_ascii_whitespace(c)).unwrap();
-        let _ = self.0.replace_range(0..first_non_whitespace, "");
+        self.0.replace_range(0..first_non_whitespace, "");
     }
 
     /// Validates this `DOMString` is a time string according to
@@ -275,7 +275,7 @@ impl DOMString {
                     '2' => State::HourLow03,
                     _ => State::Error,
                 },
-                State::HourLow09 => next_state(c.is_digit(10), State::MinuteColon),
+                State::HourLow09 => next_state(c.is_ascii_digit(), State::MinuteColon),
                 State::HourLow03 => next_state(c.is_digit(4), State::MinuteColon),
 
                 // Step 2 ":"
@@ -283,20 +283,20 @@ impl DOMString {
 
                 // Step 3 "mm"
                 State::MinuteHigh => next_state(c.is_digit(6), State::MinuteLow),
-                State::MinuteLow => next_state(c.is_digit(10), State::SecondColon),
+                State::MinuteLow => next_state(c.is_ascii_digit(), State::SecondColon),
 
                 // Step 4.1 ":"
                 State::SecondColon => next_state(c == ':', State::SecondHigh),
                 // Step 4.2 "ss"
                 State::SecondHigh => next_state(c.is_digit(6), State::SecondLow),
-                State::SecondLow => next_state(c.is_digit(10), State::MilliStop),
+                State::SecondLow => next_state(c.is_ascii_digit(), State::MilliStop),
 
                 // Step 4.3.1 "."
                 State::MilliStop => next_state(c == '.', State::MilliHigh),
                 // Step 4.3.2 "SSS"
-                State::MilliHigh => next_state(c.is_digit(10), State::MilliMiddle),
-                State::MilliMiddle => next_state(c.is_digit(10), State::MilliLow),
-                State::MilliLow => next_state(c.is_digit(10), State::Done),
+                State::MilliHigh => next_state(c.is_ascii_digit(), State::MilliMiddle),
+                State::MilliMiddle => next_state(c.is_ascii_digit(), State::MilliLow),
+                State::MilliLow => next_state(c.is_ascii_digit(), State::Done),
 
                 _ => State::Error,
             }
@@ -443,7 +443,7 @@ impl DOMString {
             if !(
                 // A valid number is the same as what rust considers to be valid,
                 // except for +1., NaN, and Infinity.
-                val.is_infinite() || val.is_nan() || input.ends_with(".") || input.starts_with("+")
+                val.is_infinite() || val.is_nan() || input.ends_with(".") || input.starts_with('+')
             ) {
                 return Some(val);
             }
@@ -529,7 +529,7 @@ impl DOMString {
     pub fn is_valid_simple_color_string(&self) -> bool {
         let mut chars = self.0.chars();
         if self.0.len() == 7 && chars.next() == Some('#') {
-            chars.all(|c| c.is_digit(16))
+            chars.all(|c| c.is_ascii_hexdigit())
         } else {
             false
         }
@@ -741,13 +741,10 @@ fn parse_time_component(value: &str) -> Option<(u32, u32, f64)> {
             if second_iterator.next()?.len() != 2 {
                 return None;
             }
-            match second_iterator.next() {
-                Some(second_last) => {
-                    if second_last.len() > 3 {
-                        return None;
-                    }
-                },
-                None => {},
+            if let Some(second_last) = second_iterator.next() {
+                if second_last.len() > 3 {
+                    return None;
+                }
             }
 
             second.parse::<f64>().ok()?

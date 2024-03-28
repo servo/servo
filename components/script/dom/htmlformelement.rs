@@ -143,18 +143,16 @@ impl HTMLFormElement {
                 RadioListMode::ControlsExceptImageInputs => {
                     if child
                         .downcast::<HTMLElement>()
-                        .map_or(false, |c| c.is_listed_element())
+                        .map_or(false, |c| c.is_listed_element()) &&
+                        (child.get_id().map_or(false, |i| i == *name) ||
+                            child.get_name().map_or(false, |n| n == *name))
                     {
-                        if child.get_id().map_or(false, |i| i == *name) ||
-                            child.get_name().map_or(false, |n| n == *name)
-                        {
-                            if let Some(inp) = child.downcast::<HTMLInputElement>() {
-                                // input, only return it if it's not image-button state
-                                return inp.input_type() != InputType::Image;
-                            } else {
-                                // control, but not an input
-                                return true;
-                            }
+                        if let Some(inp) = child.downcast::<HTMLInputElement>() {
+                            // input, only return it if it's not image-button state
+                            return inp.input_type() != InputType::Image;
+                        } else {
+                            // control, but not an input
+                            return true;
                         }
                     }
                     return false;
@@ -580,17 +578,16 @@ impl HTMLFormElementMethods for HTMLFormElement {
                 } else {
                     a.source.cmp(&b.source)
                 }
+            } else if a
+                .element
+                .upcast::<Node>()
+                .CompareDocumentPosition(b.element.upcast::<Node>()) &
+                NodeConstants::DOCUMENT_POSITION_FOLLOWING ==
+                NodeConstants::DOCUMENT_POSITION_FOLLOWING
+            {
+                std::cmp::Ordering::Less
             } else {
-                if a.element
-                    .upcast::<Node>()
-                    .CompareDocumentPosition(b.element.upcast::<Node>()) &
-                    NodeConstants::DOCUMENT_POSITION_FOLLOWING ==
-                    NodeConstants::DOCUMENT_POSITION_FOLLOWING
-                {
-                    std::cmp::Ordering::Less
-                } else {
-                    std::cmp::Ordering::Greater
-                }
+                std::cmp::Ordering::Greater
             }
         });
 
@@ -600,11 +597,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
         // Step 7-8
         let mut names_vec: Vec<DOMString> = Vec::new();
         for elem in sourced_names_vec.iter() {
-            if names_vec
-                .iter()
-                .find(|name| &**name == &*elem.name)
-                .is_none()
-            {
+            if names_vec.iter().find(|name| **name == *elem.name).is_none() {
                 names_vec.push(DOMString::from(&*elem.name));
             }
         }
@@ -719,11 +712,9 @@ impl HTMLFormElement {
             // Step 6.2
             self.firing_submission_events.set(true);
             // Step 6.3
-            if !submitter.no_validate(self) {
-                if self.interactive_validation().is_err() {
-                    self.firing_submission_events.set(false);
-                    return;
-                }
+            if !submitter.no_validate(self) && self.interactive_validation().is_err() {
+                self.firing_submission_events.set(false);
+                return;
             }
             // Step 6.4
             // spec calls this "submitterButton" but it doesn't have to be a button,
@@ -746,7 +737,7 @@ impl HTMLFormElement {
                 atom!("submit"),
                 true,
                 true,
-                submitter_button.map(|s| DomRoot::from_ref(s)),
+                submitter_button.map(DomRoot::from_ref),
             );
             let event = event.upcast::<Event>();
             event.fire(self.upcast::<EventTarget>());
@@ -875,7 +866,7 @@ impl HTMLFormElement {
                 // TODO: Mail with headers
                 // https://html.spec.whatwg.org/multipage/#submit-mailto-headers
             },
-            _ => return,
+            _ => (),
         }
     }
 
@@ -1058,9 +1049,9 @@ impl HTMLFormElement {
                     validatable
                         .validity_state()
                         .perform_validation_and_update(ValidationFlags::all());
-                    if !validatable.is_instance_validatable() {
-                        None
-                    } else if validatable.validity_state().invalid_flags().is_empty() {
+                    if !validatable.is_instance_validatable() ||
+                        validatable.validity_state().invalid_flags().is_empty()
+                    {
                         None
                     } else {
                         Some(DomRoot::from_ref(el))
@@ -1130,7 +1121,6 @@ impl HTMLFormElement {
                     },
                     HTMLElementTypeId::HTMLObjectElement => {
                         // Unimplemented
-                        ()
                     },
                     HTMLElementTypeId::HTMLSelectElement => {
                         let select = child.downcast::<HTMLSelectElement>().unwrap();
@@ -1537,10 +1527,11 @@ pub trait FormControl: DomObject {
             .next();
 
         // Step 1
-        if old_owner.is_some() && !(self.is_listed() && has_form_id) {
-            if nearest_form_ancestor == old_owner {
-                return;
-            }
+        if old_owner.is_some() &&
+            !(self.is_listed() && has_form_id) &&
+            nearest_form_ancestor == old_owner
+        {
+            return;
         }
 
         let new_owner = if self.is_listed() && has_form_id && elem.is_connected() {

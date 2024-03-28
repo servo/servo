@@ -282,7 +282,7 @@ impl FromJSValConvertible for USVString {
         let mut length = 0;
         let chars = JS_GetTwoByteStringCharsAndLength(cx, ptr::null(), jsstr, &mut length);
         assert!(!chars.is_null());
-        let char_vec = slice::from_raw_parts(chars as *const u16, length);
+        let char_vec = slice::from_raw_parts(chars, length);
         Ok(ConversionResult::Success(USVString(
             String::from_utf16_lossy(char_vec),
         )))
@@ -395,7 +395,7 @@ pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<&'static DOMClass, ()>
     if is_dom_class(&*clasp) {
         trace!("plain old dom object");
         let domjsclass: *const DOMJSClass = clasp as *const DOMJSClass;
-        return Ok(&(&*domjsclass).dom_class);
+        return Ok(&(*domjsclass).dom_class);
     }
     if is_dom_proxy(obj) {
         trace!("proxy dom object");

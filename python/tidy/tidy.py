@@ -799,7 +799,7 @@ def run_wpt_lints(only_changed_files: bool):
         yield (WPT_CONFIG_INI_PATH, 0, f"{WPT_CONFIG_INI_PATH} is required but was not found")
         return
 
-    if not list(FileList("./tests/wpt", only_changed_files=True, progress=False)):
+    if not list(FileList("./tests/wpt", only_changed_files=only_changed_files, progress=False)):
         print("\r ➤  Skipping WPT lint checks, because no relevant files changed.")
         return
 

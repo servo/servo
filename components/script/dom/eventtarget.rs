@@ -136,11 +136,11 @@ impl EventListenerType {
         owner: &EventTarget,
         ty: &Atom,
     ) -> Option<CompiledEventListener> {
-        match self {
-            &mut EventListenerType::Inline(ref mut inline) => inline
+        match *self {
+            EventListenerType::Inline(ref mut inline) => inline
                 .get_compiled_handler(owner, ty)
                 .map(CompiledEventListener::Handler),
-            &mut EventListenerType::Additive(ref listener) => {
+            EventListenerType::Additive(ref listener) => {
                 Some(CompiledEventListener::Listener(listener.clone()))
             },
         }
@@ -204,7 +204,7 @@ impl CompiledEventListener {
                                 if let Ok(return_value) = return_value {
                                     rooted!(in(*cx) let return_value = return_value);
                                     if return_value.handle().is_boolean() &&
-                                        return_value.handle().to_boolean() == true
+                                        return_value.handle().to_boolean()
                                     {
                                         event.upcast::<Event>().PreventDefault();
                                     }
@@ -252,7 +252,7 @@ impl CompiledEventListener {
                             let value = value.handle();
 
                             //Step 5
-                            let should_cancel = value.is_boolean() && value.to_boolean() == false;
+                            let should_cancel = value.is_boolean() && !value.to_boolean();
 
                             if should_cancel {
                                 // FIXME: spec says to set the cancelled flag directly
@@ -342,7 +342,7 @@ impl EventListeners {
     fn has_listeners(&self) -> bool {
         // TODO: add, and take into account, a 'removed' field?
         // https://dom.spec.whatwg.org/#event-listener-removed
-        self.0.len() > 0
+        !self.0.is_empty()
     }
 }
 
@@ -415,10 +415,9 @@ impl EventTarget {
             Vacant(entry) => entry.insert(EventListeners(vec![])),
         };
 
-        let idx = entries.iter().position(|ref entry| match entry.listener {
-            EventListenerType::Inline(_) => true,
-            _ => false,
-        });
+        let idx = entries
+            .iter()
+            .position(|entry| matches!(entry.listener, EventListenerType::Inline(_)));
 
         match idx {
             Some(idx) => match listener {
@@ -513,7 +512,7 @@ impl EventTarget {
 
         // Step 3.8 TODO: settings objects not implemented
         let window = document.window();
-        let _ac = enter_realm(&*window);
+        let _ac = enter_realm(window);
 
         // Step 3.9
 
@@ -561,7 +560,7 @@ impl EventTarget {
         if handler.get().is_null() {
             // Step 3.7
             unsafe {
-                let ar = enter_realm(&*self);
+                let ar = enter_realm(self);
                 // FIXME(#13152): dispatch error event.
                 report_pending_exception(*cx, false, InRealm::Entered(&ar));
             }
@@ -580,16 +579,14 @@ impl EventTarget {
             Some(CommonEventHandler::ErrorEventHandler(unsafe {
                 OnErrorEventHandlerNonNull::new(cx, funobj)
             }))
+        } else if ty == &atom!("beforeunload") {
+            Some(CommonEventHandler::BeforeUnloadEventHandler(unsafe {
+                OnBeforeUnloadEventHandlerNonNull::new(cx, funobj)
+            }))
         } else {
-            if ty == &atom!("beforeunload") {
-                Some(CommonEventHandler::BeforeUnloadEventHandler(unsafe {
-                    OnBeforeUnloadEventHandlerNonNull::new(cx, funobj)
-                }))
-            } else {
-                Some(CommonEventHandler::EventHandler(unsafe {
-                    EventHandlerNonNull::new(cx, funobj)
-                }))
-            }
+            Some(CommonEventHandler::EventHandler(unsafe {
+                EventHandlerNonNull::new(cx, funobj)
+            }))
         }
     }
 

@@ -7,7 +7,6 @@
 use std::default::Default;
 use std::ffi::CString;
 use std::mem::drop;
-use std::ops::Deref;
 use std::ptr;
 use std::rc::Rc;
 
@@ -127,7 +126,7 @@ pub trait CallbackContainer {
     ///
     /// ["callback context"]: https://heycam.github.io/webidl/#dfn-callback-context
     fn incumbent(&self) -> Option<&GlobalScope> {
-        self.callback_holder().incumbent.as_ref().map(Dom::deref)
+        self.callback_holder().incumbent.as_deref()
     }
 }
 

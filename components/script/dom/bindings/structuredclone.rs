@@ -65,7 +65,7 @@ unsafe fn read_blob(
         &mut index as *mut u32
     ));
     let storage_key = StorageKey { index, name_space };
-    if <Blob as Serializable>::deserialize(owner, sc_holder, storage_key.clone()).is_ok() {
+    if <Blob as Serializable>::deserialize(owner, sc_holder, storage_key).is_ok() {
         let blobs = match sc_holder {
             StructuredDataHolder::Read { blobs, .. } => blobs,
             _ => panic!("Unexpected variant of StructuredDataHolder"),
@@ -153,7 +153,7 @@ unsafe extern "C" fn write_callback(
             &mut *(closure as *mut StructuredDataHolder),
         );
     }
-    return false;
+    false
 }
 
 unsafe extern "C" fn read_transfer_callback(
@@ -349,7 +349,7 @@ pub fn read(
     rval: MutableHandleValue,
 ) -> Result<Vec<DomRoot<MessagePort>>, ()> {
     let cx = GlobalScope::get_cx();
-    let _ac = enter_realm(&*global);
+    let _ac = enter_realm(global);
     let mut sc_holder = StructuredDataHolder::Read {
         blobs: None,
         message_ports: None,

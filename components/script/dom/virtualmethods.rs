@@ -40,6 +40,7 @@ use crate::dom::htmlobjectelement::HTMLObjectElement;
 use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::htmloutputelement::HTMLOutputElement;
+use crate::dom::htmlpreelement::HTMLPreElement;
 use crate::dom::htmlscriptelement::HTMLScriptElement;
 use crate::dom::htmlselectelement::HTMLSelectElement;
 use crate::dom::htmlsourceelement::HTMLSourceElement;
@@ -85,7 +86,7 @@ pub trait VirtualMethods {
     /// on this element.
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match self.super_type() {
-            Some(ref s) => s.parse_plain_attribute(name, value),
+            Some(s) => s.parse_plain_attribute(name, value),
             _ => AttrValue::String(value.into()),
         }
     }
@@ -93,7 +94,7 @@ pub trait VirtualMethods {
     /// Called when a Node is appended to a tree, where 'tree_connected' indicates
     /// whether the tree is part of a Document.
     fn bind_to_tree(&self, context: &BindContext) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.bind_to_tree(context);
         }
     }
@@ -103,14 +104,14 @@ pub trait VirtualMethods {
     /// Implements removing steps:
     /// <https://dom.spec.whatwg.org/#concept-node-remove-ext>
     fn unbind_from_tree(&self, context: &UnbindContext) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.unbind_from_tree(context);
         }
     }
 
     /// Called on the parent when its children are changed.
     fn children_changed(&self, mutation: &ChildrenMutation) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.children_changed(mutation);
         }
     }
@@ -124,7 +125,7 @@ pub trait VirtualMethods {
 
     /// <https://dom.spec.whatwg.org/#concept-node-adopt-ext>
     fn adopting_steps(&self, old_doc: &Document) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.adopting_steps(old_doc);
         }
     }
@@ -136,7 +137,7 @@ pub trait VirtualMethods {
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
     ) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.cloning_steps(copy, maybe_doc, clone_children);
         }
     }
@@ -144,7 +145,7 @@ pub trait VirtualMethods {
     /// Called on an element when it is popped off the stack of open elements
     /// of a parser.
     fn pop(&self) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.pop();
         }
     }
@@ -232,6 +233,9 @@ pub fn vtable_for(node: &Node) -> &dyn VirtualMethods {
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOutputElement)) => {
             node.downcast::<HTMLOutputElement>().unwrap() as &dyn VirtualMethods
+        },
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLPreElement)) => {
+            node.downcast::<HTMLPreElement>().unwrap() as &dyn VirtualMethods
         },
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLScriptElement)) => {
             node.downcast::<HTMLScriptElement>().unwrap() as &dyn VirtualMethods

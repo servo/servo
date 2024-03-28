@@ -106,7 +106,7 @@ unsafe extern "C" fn off_thread_compilation_callback(
     let final_url = context.final_url.clone();
     let script_element = context.script_element.clone();
     let script_kind = context.script_kind;
-    let script = replace(&mut context.script_text, String::new());
+    let script = std::mem::take(&mut context.script_text);
     let fetch_options = context.fetch_options.clone();
 
     // Continue with <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
@@ -316,7 +316,7 @@ fn finish_fetching_a_classic_script(
     // Step 11, Asynchronously complete this algorithm with script,
     // which refers to step 26.6 "When the chosen algorithm asynchronously completes",
     // of https://html.spec.whatwg.org/multipage/#prepare-a-script
-    let document = document_from_node(&*elem);
+    let document = document_from_node(elem);
 
     match script_kind {
         ExternalScriptKind::Asap => document.asap_script_loaded(elem, load),
@@ -628,7 +628,7 @@ impl HTMLScriptElement {
 
         // Step 12.
         let doc = document_from_node(self);
-        if self.parser_inserted.get() && &*self.parser_document != &*doc {
+        if self.parser_inserted.get() && *self.parser_document != *doc {
             return;
         }
 
@@ -983,7 +983,7 @@ impl HTMLScriptElement {
     pub fn execute(&self, result: ScriptResult) {
         // Step 1.
         let doc = document_from_node(self);
-        if self.parser_inserted.get() && &*doc != &*self.parser_document {
+        if self.parser_inserted.get() && *doc != *self.parser_document {
             return;
         }
 

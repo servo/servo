@@ -83,8 +83,8 @@ use crate::textinput::KeyReaction::{
 use crate::textinput::Lines::Single;
 use crate::textinput::{Direction, SelectionDirection, TextInput, UTF16CodeUnits, UTF8Bytes};
 
-const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
-const DEFAULT_RESET_VALUE: &'static str = "Reset";
+const DEFAULT_SUBMIT_VALUE: &str = "Submit";
+const DEFAULT_RESET_VALUE: &str = "Reset";
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
 
 #[derive(Clone, Copy, JSTraceable, PartialEq)]
@@ -768,7 +768,7 @@ impl HTMLInputElement {
         first_with_id
             .as_ref()
             .and_then(|el| el.downcast::<HTMLDataListElement>())
-            .map(|el| DomRoot::from_ref(&*el))
+            .map(|el| DomRoot::from_ref(el))
     }
 
     // https://html.spec.whatwg.org/multipage/#suffering-from-being-missing
@@ -1642,7 +1642,7 @@ fn radio_group_iter<'a>(
 
     // If group is None, in_same_group always fails, but we need to always return elem.
     root.traverse_preorder(ShadowIncluding::No)
-        .filter_map(|r| DomRoot::downcast::<HTMLInputElement>(r))
+        .filter_map(DomRoot::downcast::<HTMLInputElement>)
         .filter(move |r| &**r == elem || in_same_group(r, owner.as_deref(), group, None))
 }
 
@@ -1869,7 +1869,7 @@ impl HTMLInputElement {
             let (chan, recv) = ipc::channel(self.global().time_profiler_chan().clone())
                 .expect("Error initializing channel");
             let msg = FileManagerThreadMsg::SelectFiles(filter, chan, origin, opt_test_paths);
-            let _ = resource_threads
+            resource_threads
                 .send(CoreResourceMsg::ToFileManager(msg))
                 .unwrap();
 
@@ -1896,7 +1896,7 @@ impl HTMLInputElement {
             let (chan, recv) = ipc::channel(self.global().time_profiler_chan().clone())
                 .expect("Error initializing channel");
             let msg = FileManagerThreadMsg::SelectFile(filter, chan, origin, opt_test_path);
-            let _ = resource_threads
+            resource_threads
                 .send(CoreResourceMsg::ToFileManager(msg))
                 .unwrap();
 
@@ -2270,8 +2270,8 @@ impl VirtualMethods for HTMLInputElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        match attr.local_name() {
-            &local_name!("disabled") => {
+        match *attr.local_name() {
+            local_name!("disabled") => {
                 let disabled_state = match mutation {
                     AttributeMutation::Set(None) => true,
                     AttributeMutation::Set(Some(_)) => {
@@ -2292,7 +2292,7 @@ impl VirtualMethods for HTMLInputElement {
 
                 el.update_sequentially_focusable_status();
             },
-            &local_name!("checked") if !self.checked_changed.get() => {
+            local_name!("checked") if !self.checked_changed.get() => {
                 let checked_state = match mutation {
                     AttributeMutation::Set(None) => true,
                     AttributeMutation::Set(Some(_)) => {
@@ -2303,11 +2303,11 @@ impl VirtualMethods for HTMLInputElement {
                 };
                 self.update_checked_state(checked_state, false);
             },
-            &local_name!("size") => {
+            local_name!("size") => {
                 let size = mutation.new_value(attr).map(|value| value.as_uint());
                 self.size.set(size.unwrap_or(DEFAULT_INPUT_SIZE));
             },
-            &local_name!("type") => {
+            local_name!("type") => {
                 let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(_) => {
@@ -2396,7 +2396,7 @@ impl VirtualMethods for HTMLInputElement {
 
                 self.update_placeholder_shown_state();
             },
-            &local_name!("value") if !self.value_dirty.get() => {
+            local_name!("value") if !self.value_dirty.get() => {
                 let value = mutation.new_value(attr).map(|value| (**value).to_owned());
                 let mut value = value.map_or(DOMString::new(), DOMString::from);
 
@@ -2404,12 +2404,12 @@ impl VirtualMethods for HTMLInputElement {
                 self.textinput.borrow_mut().set_content(value);
                 self.update_placeholder_shown_state();
             },
-            &local_name!("name") if self.input_type() == InputType::Radio => {
+            local_name!("name") if self.input_type() == InputType::Radio => {
                 self.radio_group_updated(
                     mutation.new_value(attr).as_ref().map(|name| name.as_atom()),
                 );
             },
-            &local_name!("maxlength") => match *attr.value() {
+            local_name!("maxlength") => match *attr.value() {
                 AttrValue::Int(_, value) => {
                     let mut textinput = self.textinput.borrow_mut();
 
@@ -2421,7 +2421,7 @@ impl VirtualMethods for HTMLInputElement {
                 },
                 _ => panic!("Expected an AttrValue::Int"),
             },
-            &local_name!("minlength") => match *attr.value() {
+            local_name!("minlength") => match *attr.value() {
                 AttrValue::Int(_, value) => {
                     let mut textinput = self.textinput.borrow_mut();
 
@@ -2433,7 +2433,7 @@ impl VirtualMethods for HTMLInputElement {
                 },
                 _ => panic!("Expected an AttrValue::Int"),
             },
-            &local_name!("placeholder") => {
+            local_name!("placeholder") => {
                 {
                     let mut placeholder = self.placeholder.borrow_mut();
                     placeholder.clear();
@@ -2444,7 +2444,7 @@ impl VirtualMethods for HTMLInputElement {
                 }
                 self.update_placeholder_shown_state();
             },
-            &local_name!("readonly") => {
+            local_name!("readonly") => {
                 if self.input_type().is_textual() {
                     let el = self.upcast::<Element>();
                     match mutation {
@@ -2457,7 +2457,7 @@ impl VirtualMethods for HTMLInputElement {
                     }
                 }
             },
-            &local_name!("form") => {
+            local_name!("form") => {
                 self.form_attribute_mutated(mutation);
             },
             _ => {},
@@ -2468,14 +2468,14 @@ impl VirtualMethods for HTMLInputElement {
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
-        match name {
-            &local_name!("accept") => AttrValue::from_comma_separated_tokenlist(value.into()),
-            &local_name!("size") => AttrValue::from_limited_u32(value.into(), DEFAULT_INPUT_SIZE),
-            &local_name!("type") => AttrValue::from_atomic(value.into()),
-            &local_name!("maxlength") => {
+        match *name {
+            local_name!("accept") => AttrValue::from_comma_separated_tokenlist(value.into()),
+            local_name!("size") => AttrValue::from_limited_u32(value.into(), DEFAULT_INPUT_SIZE),
+            local_name!("type") => AttrValue::from_atomic(value.into()),
+            local_name!("maxlength") => {
                 AttrValue::from_limited_i32(value.into(), DEFAULT_MAX_LENGTH)
             },
-            &local_name!("minlength") => {
+            local_name!("minlength") => {
                 AttrValue::from_limited_i32(value.into(), DEFAULT_MIN_LENGTH)
             },
             _ => self
@@ -2582,7 +2582,7 @@ impl VirtualMethods for HTMLInputElement {
         {
             if event.IsTrusted() {
                 let window = window_from_node(self);
-                let _ = window
+                window
                     .task_manager()
                     .user_interaction_task_source()
                     .queue_event(
@@ -2684,28 +2684,28 @@ impl Validatable for HTMLInputElement {
         let mut failed_flags = ValidationFlags::empty();
         let value = self.Value();
 
-        if validate_flags.contains(ValidationFlags::VALUE_MISSING) {
-            if self.suffers_from_being_missing(&value) {
-                failed_flags.insert(ValidationFlags::VALUE_MISSING);
-            }
+        if validate_flags.contains(ValidationFlags::VALUE_MISSING) &&
+            self.suffers_from_being_missing(&value)
+        {
+            failed_flags.insert(ValidationFlags::VALUE_MISSING);
         }
 
-        if validate_flags.contains(ValidationFlags::TYPE_MISMATCH) {
-            if self.suffers_from_type_mismatch(&value) {
-                failed_flags.insert(ValidationFlags::TYPE_MISMATCH);
-            }
+        if validate_flags.contains(ValidationFlags::TYPE_MISMATCH) &&
+            self.suffers_from_type_mismatch(&value)
+        {
+            failed_flags.insert(ValidationFlags::TYPE_MISMATCH);
         }
 
-        if validate_flags.contains(ValidationFlags::PATTERN_MISMATCH) {
-            if self.suffers_from_pattern_mismatch(&value) {
-                failed_flags.insert(ValidationFlags::PATTERN_MISMATCH);
-            }
+        if validate_flags.contains(ValidationFlags::PATTERN_MISMATCH) &&
+            self.suffers_from_pattern_mismatch(&value)
+        {
+            failed_flags.insert(ValidationFlags::PATTERN_MISMATCH);
         }
 
-        if validate_flags.contains(ValidationFlags::BAD_INPUT) {
-            if self.suffers_from_bad_input(&value) {
-                failed_flags.insert(ValidationFlags::BAD_INPUT);
-            }
+        if validate_flags.contains(ValidationFlags::BAD_INPUT) &&
+            self.suffers_from_bad_input(&value)
+        {
+            failed_flags.insert(ValidationFlags::BAD_INPUT);
         }
 
         if validate_flags.intersects(ValidationFlags::TOO_LONG | ValidationFlags::TOO_SHORT) {
@@ -2832,25 +2832,27 @@ impl Activatable for HTMLInputElement {
                 // https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit):activation-behavior
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 // Check if document owner is fully active
-                self.form_owner().map(|o| {
+                if let Some(o) = self.form_owner() {
                     o.submit(
                         SubmittedFrom::NotFromForm,
                         FormSubmitter::InputElement(self),
                     )
-                });
+                }
             },
             InputType::Reset => {
                 // https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):activation-behavior
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 // Check if document owner is fully active
-                self.form_owner().map(|o| o.reset(ResetFrom::NotFromForm));
+                if let Some(o) = self.form_owner() {
+                    o.reset(ResetFrom::NotFromForm)
+                }
             },
             InputType::Checkbox | InputType::Radio => {
                 // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):activation-behavior
                 // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):activation-behavior
                 // Check if document owner is fully active
                 if !self.upcast::<Node>().is_connected() {
-                    return ();
+                    return;
                 }
                 let target = self.upcast::<EventTarget>();
                 target.fire_bubbling_event(atom!("input"));
@@ -2868,11 +2870,9 @@ fn filter_from_accept(s: &DOMString) -> Vec<FilterPattern> {
     for p in split_commas(s) {
         if let Some('.') = p.chars().nth(0) {
             filter.push(FilterPattern(p[1..].to_string()));
-        } else {
-            if let Some(exts) = mime_guess::get_mime_extensions_str(p) {
-                for ext in exts {
-                    filter.push(FilterPattern(ext.to_string()));
-                }
+        } else if let Some(exts) = mime_guess::get_mime_extensions_str(p) {
+            for ext in exts {
+                filter.push(FilterPattern(ext.to_string()));
             }
         }
     }

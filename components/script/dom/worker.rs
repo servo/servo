@@ -118,7 +118,7 @@ impl Worker {
 
         let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
         let worker_id = WorkerId(Uuid::new_v4());
-        if let Some(ref chan) = global.devtools_chan() {
+        if let Some(chan) = global.devtools_chan() {
             let pipeline_id = global.pipeline_id();
             let title = format!("Worker for {}", worker_url);
             if let Some(browsing_context) = browsing_context {
@@ -267,10 +267,9 @@ impl WorkerMethods for Worker {
         self.terminated.set(true);
 
         // Step 3
-        self.context_for_interrupt
-            .borrow()
-            .as_ref()
-            .map(|cx| cx.request_interrupt());
+        if let Some(cx) = self.context_for_interrupt.borrow().as_ref() {
+            cx.request_interrupt()
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-worker-onmessage

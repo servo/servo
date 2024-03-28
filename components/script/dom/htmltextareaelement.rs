@@ -100,7 +100,7 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutDom<'_, HTMLTextAreaElement> {
             // placeholder is single line, but that's an unimportant detail.
             self.placeholder()
                 .replace("\r\n", "\n")
-                .replace("\r", "\n")
+                .replace('\r', "\n")
                 .into()
         } else {
             text.into()
@@ -545,7 +545,7 @@ impl VirtualMethods for HTMLTextAreaElement {
     }
 
     fn bind_to_tree(&self, context: &BindContext) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.bind_to_tree(context);
         }
 
@@ -599,7 +599,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
     ) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.cloning_steps(copy, maybe_doc, clone_children);
         }
         let el = copy.downcast::<HTMLTextAreaElement>().unwrap();
@@ -613,7 +613,7 @@ impl VirtualMethods for HTMLTextAreaElement {
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.children_changed(mutation);
         }
         if !self.value_dirty.get() {
@@ -652,7 +652,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         } else if event.type_() == atom!("keypress") && !event.DefaultPrevented() {
             if event.IsTrusted() {
                 let window = window_from_node(self);
-                let _ = window
+                window
                     .task_manager()
                     .user_interaction_task_source()
                     .queue_event(
@@ -702,7 +702,7 @@ impl FormControl for HTMLTextAreaElement {
         self.form_owner.set(form);
     }
 
-    fn to_element<'a>(&'a self) -> &'a Element {
+    fn to_element(&self) -> &Element {
         self.upcast::<Element>()
     }
 }
@@ -736,10 +736,12 @@ impl Validatable for HTMLTextAreaElement {
 
         // https://html.spec.whatwg.org/multipage/#suffering-from-being-missing
         // https://html.spec.whatwg.org/multipage/#the-textarea-element%3Asuffering-from-being-missing
-        if validate_flags.contains(ValidationFlags::VALUE_MISSING) {
-            if self.Required() && self.is_mutable() && value_len == 0 {
-                failed_flags.insert(ValidationFlags::VALUE_MISSING);
-            }
+        if validate_flags.contains(ValidationFlags::VALUE_MISSING) &&
+            self.Required() &&
+            self.is_mutable() &&
+            value_len == 0
+        {
+            failed_flags.insert(ValidationFlags::VALUE_MISSING);
         }
 
         if value_dirty && last_edit_by_user && value_len > 0 {

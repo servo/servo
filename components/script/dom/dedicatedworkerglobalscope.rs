@@ -169,10 +169,7 @@ impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
     }
 
     fn is_wake_up(&self) -> bool {
-        match self {
-            DedicatedWorkerScriptMsg::WakeUp => true,
-            _ => false,
-        }
+        matches!(self, DedicatedWorkerScriptMsg::WakeUp)
     }
 }
 
@@ -360,9 +357,7 @@ impl DedicatedWorkerGlobalScope {
                     pipeline_id,
                 } = worker_load_origin;
 
-                let referrer = referrer_url
-                    .map(|url| Referrer::ReferrerUrl(url))
-                    .unwrap_or(referrer);
+                let referrer = referrer_url.map(Referrer::ReferrerUrl).unwrap_or(referrer);
 
                 let request = RequestBuilder::new(worker_url.clone(), referrer)
                     .destination(Destination::Worker)
@@ -464,7 +459,7 @@ impl DedicatedWorkerGlobalScope {
 
                 {
                     let _ar = AutoWorkerReset::new(&global, worker.clone());
-                    let _ac = enter_realm(&*scope);
+                    let _ac = enter_realm(scope);
                     scope.execute_script(DOMString::from(source));
                 }
 

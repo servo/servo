@@ -101,7 +101,9 @@ use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::flow::float::{FloatBox, SequentialLayoutState};
 use crate::flow::FlowLayout;
-use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
+use crate::formatting_contexts::{
+    Baselines, IndependentFormattingContext, NonReplacedFormattingContextContents,
+};
 use crate::fragment_tree::{
     BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment, FragmentFlags,
     PositioningFragment,
@@ -2114,9 +2116,8 @@ impl IndependentFormattingContext {
         }
 
         let size = &pbm_sums.sum().into() + &fragment.content_rect.size;
-        let baseline_offset = fragment
-            .baselines
-            .last
+        let baseline_offset = self
+            .pick_baseline(&fragment.baselines)
             .map(|baseline| pbm_sums.block_start + baseline)
             .unwrap_or(size.block.into());
 
@@ -2137,6 +2138,18 @@ impl IndependentFormattingContext {
 
         // Defer a soft wrap opportunity for when we next process text content.
         ifc.have_deferred_soft_wrap_opportunity = true;
+    }
+
+    /// Picks either the first or the last baseline, depending on `baseline-source`.
+    /// <https://drafts.csswg.org/css-inline/#baseline-source>
+    fn pick_baseline(&self, baselines: &Baselines) -> Option<Au> {
+        // TODO: Currently this only supports the initial `baseline-source: auto`.
+        if let Self::NonReplaced(non_replaced) = self {
+            if let NonReplacedFormattingContextContents::Flow(_) = non_replaced.contents {
+                return baselines.last;
+            }
+        }
+        baselines.first
     }
 
     fn get_block_sizes_and_baseline_offset(
@@ -2380,7 +2393,10 @@ impl<'a> ContentSizesComputation<'a> {
                     self.containing_block_writing_mode,
                 );
 
-                self.current_line.min_content += self.pending_whitespace + outer.min_content;
+                // For the min-content size we should wrap lines wherever is possible,
+                // so wrappable spaces shouldn't increase the length of the line,
+                // they will just be removed or hang at the end of the line.
+                self.current_line.min_content += outer.min_content;
                 self.current_line.max_content += self.pending_whitespace + outer.max_content;
                 self.pending_whitespace = Au::zero();
                 self.had_content_yet = true;

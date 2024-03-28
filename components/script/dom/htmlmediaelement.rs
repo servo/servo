@@ -967,7 +967,7 @@ impl HTMLMediaElement {
                 if let Some(ref src_object) = *self.src_object.borrow() {
                     match src_object {
                         SrcObject::Blob(blob) => {
-                            let blob_url = URL::CreateObjectURL(&self.global(), &*blob);
+                            let blob_url = URL::CreateObjectURL(&self.global(), blob);
                             *self.blob_url.borrow_mut() =
                                 Some(ServoUrl::parse(&blob_url).expect("infallible"));
                             self.fetch_request(None, None);
@@ -1191,8 +1191,7 @@ impl HTMLMediaElement {
     /// `fulfill_in_flight_play_promises`, to actually fulfill the promises
     /// which were taken and moved to the in-flight queue.
     fn take_pending_play_promises(&self, result: ErrorResult) {
-        let pending_play_promises =
-            mem::replace(&mut *self.pending_play_promises.borrow_mut(), vec![]);
+        let pending_play_promises = std::mem::take(&mut *self.pending_play_promises.borrow_mut());
         self.in_flight_play_promises_queue
             .borrow_mut()
             .push_back((pending_play_promises.into(), result));
@@ -1432,23 +1431,21 @@ impl HTMLMediaElement {
 
                             match msg {
                                 GLPlayerMsgForward::Lock(sender) => {
-                                    video_renderer
+                                    if let Some(holder) = video_renderer
                                         .lock()
                                         .unwrap()
                                         .current_frame_holder
-                                        .as_mut()
-                                        .map(|holder| {
+                                        .as_mut() {
                                             holder.lock();
                                             sender.send(holder.get()).unwrap();
-                                        });
+                                        };
                                 },
                                 GLPlayerMsgForward::Unlock() => {
-                                    video_renderer
+                                    if let Some(holder) = video_renderer
                                         .lock()
                                         .unwrap()
                                         .current_frame_holder
-                                        .as_mut()
-                                        .map(|holder| holder.unlock());
+                                        .as_mut() { holder.unlock() }
                                 },
                                 _ => (),
                             }
@@ -1549,11 +1546,29 @@ impl HTMLMediaElement {
             },
             PlayerEvent::Error(ref error) => {
                 error!("Player error: {:?}", error);
+                // https://html.spec.whatwg.org/multipage/#loading-the-media-resource:media-data-13
+                // 1. The user agent should cancel the fetching process.
+                if let Some(ref mut current_fetch_context) =
+                    *self.current_fetch_context.borrow_mut()
+                {
+                    current_fetch_context.cancel(CancelReason::Error);
+                }
+                // 2. Set the error attribute to the result of creating a MediaError with MEDIA_ERR_DECODE.
                 self.error.set(Some(&*MediaError::new(
                     &window_from_node(self),
                     MEDIA_ERR_DECODE,
                 )));
+
+                // 3. Set the element's networkState attribute to the NETWORK_IDLE value.
+                self.network_state.set(NetworkState::Idle);
+
+                // 4. Set the element's delaying-the-load-event flag to false. This stops delaying the load event.
+                self.delay_load_event(false);
+
+                // 5. Fire an event named error at the media element.
                 self.upcast::<EventTarget>().fire_event(atom!("error"));
+
+                // TODO: 6. Abort the overall resource selection algorithm.
             },
             PlayerEvent::VideoFrameUpdated => {
                 self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -1891,7 +1906,7 @@ impl HTMLMediaElement {
             .SetTextContent(Some(DOMString::from(media_controls_script)));
         if let Err(e) = shadow_root
             .upcast::<Node>()
-            .AppendChild(&*script.upcast::<Node>())
+            .AppendChild(script.upcast::<Node>())
         {
             warn!("Could not render media controls {:?}", e);
             return;
@@ -1911,7 +1926,7 @@ impl HTMLMediaElement {
 
         if let Err(e) = shadow_root
             .upcast::<Node>()
-            .AppendChild(&*style.upcast::<Node>())
+            .AppendChild(style.upcast::<Node>())
         {
             warn!("Could not render media controls {:?}", e);
         }
@@ -2075,9 +2090,9 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     fn GetSrcObject(&self) -> Option<MediaStreamOrBlob> {
         match *self.src_object.borrow() {
             Some(ref src_object) => Some(match src_object {
-                SrcObject::Blob(blob) => MediaStreamOrBlob::Blob(DomRoot::from_ref(&*blob)),
+                SrcObject::Blob(blob) => MediaStreamOrBlob::Blob(DomRoot::from_ref(blob)),
                 SrcObject::MediaStream(stream) => {
-                    MediaStreamOrBlob::MediaStream(DomRoot::from_ref(&*stream))
+                    MediaStreamOrBlob::MediaStream(DomRoot::from_ref(stream))
                 },
             }),
             None => None,
@@ -2425,17 +2440,17 @@ impl VirtualMethods for HTMLMediaElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
 
-        match attr.local_name() {
-            &local_name!("muted") => {
+        match *attr.local_name() {
+            local_name!("muted") => {
                 self.SetMuted(mutation.new_value(attr).is_some());
             },
-            &local_name!("src") => {
+            local_name!("src") => {
                 if mutation.new_value(attr).is_none() {
                     return;
                 }
                 self.media_element_load_algorithm();
             },
-            &local_name!("controls") => {
+            local_name!("controls") => {
                 if mutation.new_value(attr).is_some() {
                     self.render_controls();
                 } else {
@@ -2468,7 +2483,7 @@ pub trait LayoutHTMLMediaElementHelpers {
 impl LayoutHTMLMediaElementHelpers for LayoutDom<'_, HTMLMediaElement> {
     #[allow(unsafe_code)]
     fn data(self) -> HTMLMediaData {
-        let media = unsafe { &*self.unsafe_get() };
+        let media = unsafe { self.unsafe_get() };
         HTMLMediaData {
             current_frame: media.video_renderer.lock().unwrap().current_frame,
         }

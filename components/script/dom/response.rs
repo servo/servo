@@ -276,7 +276,7 @@ impl ResponseMethods for Response {
         USVString(String::from(
             (*self.url.borrow())
                 .as_ref()
-                .map(|u| serialize_without_fragment(u))
+                .map(serialize_without_fragment)
                 .unwrap_or(""),
         ))
     }

@@ -1187,7 +1187,7 @@ impl TreeSink for Sink {
             .GetParentNode()
             .expect("append_before_sibling called on node without parent");
 
-        insert(&parent, Some(&*sibling), new_node, self.parsing_algorithm);
+        insert(&parent, Some(sibling), new_node, self.parsing_algorithm);
     }
 
     fn parse_error(&mut self, msg: Cow<'static, str>) {
@@ -1253,13 +1253,15 @@ impl TreeSink for Sink {
 
     fn remove_from_parent(&mut self, target: &Dom<Node>) {
         if let Some(ref parent) = target.GetParentNode() {
-            parent.RemoveChild(&*target).unwrap();
+            parent.RemoveChild(target).unwrap();
         }
     }
 
     fn mark_script_already_started(&mut self, node: &Dom<Node>) {
         let script = node.downcast::<HTMLScriptElement>();
-        script.map(|script| script.set_already_started(true));
+        if let Some(script) = script {
+            script.set_already_started(true)
+        }
     }
 
     fn complete_script(&mut self, node: &Dom<Node>) -> NextParserState {
@@ -1399,10 +1401,7 @@ impl NetworkDecoder {
 
     fn decode(&mut self, chunk: Vec<u8>) -> StrTendril {
         self.decoder.process(ByteTendril::from(&*chunk));
-        mem::replace(
-            &mut self.decoder.inner_sink_mut().output,
-            Default::default(),
-        )
+        std::mem::take(&mut self.decoder.inner_sink_mut().output)
     }
 
     fn finish(self) -> StrTendril {

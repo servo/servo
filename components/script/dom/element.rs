@@ -240,7 +240,7 @@ impl FromStr for AdjacentPosition {
     type Err = Error;
 
     fn from_str(position: &str) -> Result<Self, Self::Err> {
-        match_ignore_ascii_case! { &*position,
+        match_ignore_ascii_case! { position,
             "beforebegin" => Ok(AdjacentPosition::BeforeBegin),
             "afterbegin"  => Ok(AdjacentPosition::AfterBegin),
             "beforeend"   => Ok(AdjacentPosition::BeforeEnd),
@@ -710,10 +710,12 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             use cssparser::FromParsedColor;
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::BackgroundColor(
-                    specified::Color::from_rgba(color.red, color.green, color.blue, color.alpha)
-                        .into(),
-                ),
+                PropertyDeclaration::BackgroundColor(specified::Color::from_rgba(
+                    color.red,
+                    color.green,
+                    color.blue,
+                    color.alpha,
+                )),
             ));
         }
 
@@ -749,8 +751,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::Color(longhands::color::SpecifiedValue(
-                    specified::Color::from_rgba(color.red, color.green, color.blue, color.alpha)
-                        .into(),
+                    specified::Color::from_rgba(color.red, color.green, color.blue, color.alpha),
                 )),
             ));
         }
@@ -1216,7 +1217,7 @@ impl Element {
             // "3. If its namespace is non-null and its namespace prefix is prefix, then return
             // namespace."
             if element.namespace() != &ns!() &&
-                element.prefix().as_ref().map(|p| &**p) == prefix.as_ref().map(|p| &**p)
+                element.prefix().as_ref().map(|p| &**p) == prefix.as_deref()
             {
                 return element.namespace().clone();
             }
@@ -1547,7 +1548,7 @@ impl Element {
 
     pub fn set_attribute(&self, name: &LocalName, value: AttrValue) {
         assert!(name == &name.to_ascii_lowercase());
-        assert!(!name.contains(":"));
+        assert!(!name.contains(':'));
 
         self.set_first_matching_attribute(name.clone(), value, name.clone(), ns!(), None, |attr| {
             attr.local_name() == name
@@ -1724,7 +1725,7 @@ impl Element {
     pub fn get_tokenlist_attribute(&self, local_name: &LocalName) -> Vec<Atom> {
         self.get_attribute(&ns!(), local_name)
             .map(|attr| attr.value().as_tokens().to_vec())
-            .unwrap_or(vec![])
+            .unwrap_or_default()
     }
 
     pub fn set_tokenlist_attribute(&self, local_name: &LocalName, value: DOMString) {
@@ -2407,7 +2408,7 @@ impl ElementMethods for Element {
 
         // Step 9
         let point = node.scroll_offset();
-        return point.y.abs() as f64;
+        point.y.abs() as f64
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
@@ -2503,7 +2504,7 @@ impl ElementMethods for Element {
 
         // Step 9
         let point = node.scroll_offset();
-        return point.x.abs() as f64;
+        point.x.abs() as f64
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollleft
@@ -2595,9 +2596,9 @@ impl ElementMethods for Element {
             self.local_name().clone(),
         );
         if document_from_node(self).is_html_document() {
-            return self.serialize(ChildrenOnly(Some(qname)));
+            self.serialize(ChildrenOnly(Some(qname)))
         } else {
-            return self.xmlSerialize(XmlChildrenOnly(Some(qname)));
+            self.xmlSerialize(XmlChildrenOnly(Some(qname)))
         }
     }
 
@@ -2634,9 +2635,9 @@ impl ElementMethods for Element {
     // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#widl-Element-outerHTML
     fn GetOuterHTML(&self) -> Fallible<DOMString> {
         if document_from_node(self).is_html_document() {
-            return self.serialize(IncludeNode);
+            self.serialize(IncludeNode)
         } else {
-            return self.xmlSerialize(XmlIncludeNode);
+            self.xmlSerialize(XmlIncludeNode)
         }
     }
 
@@ -2867,9 +2868,9 @@ impl ElementMethods for Element {
         match self.as_maybe_activatable() {
             Some(a) => {
                 a.enter_formal_activation_state();
-                return Ok(());
+                Ok(())
             },
-            None => return Err(Error::NotSupported),
+            None => Err(Error::NotSupported),
         }
     }
 
@@ -2879,7 +2880,7 @@ impl ElementMethods for Element {
                 a.exit_formal_activation_state();
                 return Ok(());
             },
-            None => return Err(Error::NotSupported),
+            None => Err(Error::NotSupported),
         }
     }
 
@@ -3065,7 +3066,7 @@ impl VirtualMethods for Element {
     }
 
     fn bind_to_tree(&self, context: &BindContext) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.bind_to_tree(context);
         }
 
@@ -3148,7 +3149,7 @@ impl VirtualMethods for Element {
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.children_changed(mutation);
         }
 
@@ -3346,7 +3347,7 @@ impl<'a> SelectorsElement for DomRoot<Element> {
         self.id_attribute
             .borrow()
             .as_ref()
-            .map_or(false, |atom| case_sensitivity.eq_atom(&*id, atom))
+            .map_or(false, |atom| case_sensitivity.eq_atom(id, atom))
     }
 
     fn is_part(&self, _name: &AtomIdent) -> bool {
@@ -3960,7 +3961,7 @@ pub fn reflect_referrer_policy_attribute(element: &Element) -> DOMString {
             return val;
         }
     }
-    return DOMString::new();
+    DOMString::new()
 }
 
 pub(crate) fn referrer_policy_for_element(element: &Element) -> Option<ReferrerPolicy> {

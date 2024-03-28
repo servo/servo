@@ -72,6 +72,7 @@ use style::dom::{TElement, TNode};
 use style::driver;
 use style::error_reporting::RustLogReporter;
 use style::global_style_data::{GLOBAL_STYLE_DATA, STYLE_THREAD_POOL};
+use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::properties::PropertyId;
 use style::selector_parser::SnapshotMap;
@@ -297,6 +298,38 @@ impl Layout for LayoutThread {
     fn current_epoch(&self) -> Epoch {
         self.epoch.get()
     }
+
+    fn load_web_fonts_from_stylesheet(&self, stylesheet: ServoArc<Stylesheet>) {
+        let guard = stylesheet.shared_lock.read();
+        self.load_all_web_fonts_from_stylesheet_with_guard(&stylesheet, &guard);
+    }
+
+    fn add_stylesheet(
+        &mut self,
+        stylesheet: ServoArc<Stylesheet>,
+        before_stylesheet: Option<ServoArc<Stylesheet>>,
+    ) {
+        let guard = stylesheet.shared_lock.read();
+        self.load_all_web_fonts_from_stylesheet_with_guard(&stylesheet, &guard);
+
+        match before_stylesheet {
+            Some(insertion_point) => self.stylist.insert_stylesheet_before(
+                DocumentStyleSheet(stylesheet.clone()),
+                DocumentStyleSheet(insertion_point),
+                &guard,
+            ),
+            None => self
+                .stylist
+                .append_stylesheet(DocumentStyleSheet(stylesheet.clone()), &guard),
+        }
+    }
+
+    fn remove_stylesheet(&mut self, stylesheet: ServoArc<Stylesheet>) {
+        // TODO(mrobinson): This should also unload web fonts from the FontCacheThread.
+        let guard = stylesheet.shared_lock.read();
+        self.stylist
+            .remove_stylesheet(DocumentStyleSheet(stylesheet.clone()), &guard);
+    }
 }
 
 enum Request {
@@ -360,7 +393,10 @@ impl LayoutThread {
             fragment_tree: Default::default(),
             // Epoch starts at 1 because of the initial display list for epoch 0 that we send to WR
             epoch: Cell::new(Epoch(1)),
-            viewport_size: Size2D::new(Au(0), Au(0)),
+            viewport_size: Size2D::new(
+                Au::from_f32_px(window_size.initial_viewport.width),
+                Au::from_f32_px(window_size.initial_viewport.height),
+            ),
             webrender_api: webrender_api_sender,
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
             rw_data: Arc::new(Mutex::new(LayoutThreadData {
@@ -447,10 +483,7 @@ impl LayoutThread {
             Request::FromFontCache => {
                 let _rw_data = rw_data.lock();
                 self.outstanding_web_fonts.fetch_sub(1, Ordering::SeqCst);
-                font_context::invalidate_font_caches();
-                self.script_chan
-                    .send(ConstellationControlMsg::WebFontLoaded(self.id))
-                    .unwrap();
+                self.handle_web_font_loaded();
             },
         };
     }
@@ -462,26 +495,6 @@ impl LayoutThread {
         possibly_locked_rw_data: &mut RwData<'a, 'b>,
     ) {
         match request {
-            Msg::AddStylesheet(stylesheet, before_stylesheet) => {
-                let guard = stylesheet.shared_lock.read();
-                self.handle_add_stylesheet(&stylesheet, &guard);
-
-                match before_stylesheet {
-                    Some(insertion_point) => self.stylist.insert_stylesheet_before(
-                        DocumentStyleSheet(stylesheet.clone()),
-                        DocumentStyleSheet(insertion_point),
-                        &guard,
-                    ),
-                    None => self
-                        .stylist
-                        .append_stylesheet(DocumentStyleSheet(stylesheet.clone()), &guard),
-                }
-            },
-            Msg::RemoveStylesheet(stylesheet) => {
-                let guard = stylesheet.shared_lock.read();
-                self.stylist
-                    .remove_stylesheet(DocumentStyleSheet(stylesheet.clone()), &guard);
-            },
             Msg::SetQuirksMode(mode) => self.handle_set_quirks_mode(mode),
             Msg::GetRPC(response_chan) => {
                 response_chan
@@ -538,7 +551,11 @@ impl LayoutThread {
         reports_chan.send(reports);
     }
 
-    fn handle_add_stylesheet(&self, stylesheet: &Stylesheet, guard: &SharedRwLockReadGuard) {
+    fn load_all_web_fonts_from_stylesheet_with_guard(
+        &self,
+        stylesheet: &Stylesheet,
+        guard: &SharedRwLockReadGuard,
+    ) {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts.
         if stylesheet.is_effective_for_device(self.stylist.device(), &guard) {
@@ -550,9 +567,21 @@ impl LayoutThread {
                     &self.font_cache_sender,
                     self.debug.load_webfonts_synchronously,
                 );
-            self.outstanding_web_fonts
-                .fetch_add(newly_loading_font_count, Ordering::SeqCst);
+
+            if !self.debug.load_webfonts_synchronously {
+                self.outstanding_web_fonts
+                    .fetch_add(newly_loading_font_count, Ordering::SeqCst);
+            } else if newly_loading_font_count > 0 {
+                self.handle_web_font_loaded();
+            }
         }
+    }
+
+    fn handle_web_font_loaded(&self) {
+        font_context::invalidate_font_caches();
+        self.script_chan
+            .send(ConstellationControlMsg::WebFontLoaded(self.id))
+            .unwrap();
     }
 
     /// Sets quirks mode for the document, causing the quirks mode stylesheet to be used.
@@ -628,15 +657,6 @@ impl LayoutThread {
             Some(x) => x,
         };
 
-        let initial_viewport = data.window_size.initial_viewport;
-        let device_pixel_ratio = data.window_size.device_pixel_ratio;
-        let current_screen_size = Size2D::new(
-            Au::from_f32_px(initial_viewport.width),
-            Au::from_f32_px(initial_viewport.height),
-        );
-
-        let origin = data.origin.clone();
-
         // Calculate the actual viewport as per DEVICE-ADAPT § 6
         // If the entire flow tree is invalid, then it will be reflowed anyhow.
         let document_shared_lock = document.style_shared_lock();
@@ -649,22 +669,22 @@ impl LayoutThread {
             ua_or_user: &ua_or_user_guard,
         };
 
-        let device = Device::new(
-            MediaType::screen(),
-            self.stylist.quirks_mode(),
-            initial_viewport,
-            device_pixel_ratio,
-        );
-        let sheet_origins_affected_by_device_change = self.stylist.set_device(device, &guards);
+        let had_used_viewport_units = self.stylist.device().used_viewport_units();
+        let viewport_size_changed = self.handle_viewport_change(data.window_size, &guards);
+        if viewport_size_changed && had_used_viewport_units {
+            if let Some(mut data) = root_element.mutate_data() {
+                data.hint.insert(RestyleHint::recascade_subtree());
+            }
+        }
 
-        self.stylist
-            .force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
-        self.viewport_size = current_screen_size;
         if self.first_reflow.get() {
             for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
                 self.stylist
                     .append_stylesheet(stylesheet.clone(), &ua_or_user_guard);
-                self.handle_add_stylesheet(&stylesheet.0, &ua_or_user_guard);
+                self.load_all_web_fonts_from_stylesheet_with_guard(
+                    &stylesheet.0,
+                    &ua_or_user_guard,
+                );
             }
 
             if self.stylist.quirks_mode() != QuirksMode::NoQuirks {
@@ -672,7 +692,7 @@ impl LayoutThread {
                     ua_stylesheets.quirks_mode_stylesheet.clone(),
                     &ua_or_user_guard,
                 );
-                self.handle_add_stylesheet(
+                self.load_all_web_fonts_from_stylesheet_with_guard(
                     &ua_stylesheets.quirks_mode_stylesheet.0,
                     &ua_or_user_guard,
                 );
@@ -739,7 +759,7 @@ impl LayoutThread {
         let mut layout_context = self.build_layout_context(
             guards.clone(),
             &map,
-            origin,
+            data.origin.clone(),
             data.animation_timeline_value,
             &data.animations,
             data.stylesheets_changed,
@@ -847,8 +867,7 @@ impl LayoutThread {
         reflow_result: &mut ReflowComplete,
         shared_lock: &SharedRwLock,
     ) {
-        reflow_result.pending_images =
-            std::mem::replace(&mut *context.pending_images.lock().unwrap(), vec![]);
+        reflow_result.pending_images = std::mem::take(&mut *context.pending_images.lock().unwrap());
 
         match *reflow_goal {
             ReflowGoal::LayoutQuery(ref querymsg, _) => match querymsg {
@@ -1157,6 +1176,42 @@ impl LayoutThread {
                 warn!("Layout resize to constellation failed ({}).", e);
             }
         }
+    }
+
+    /// Update layout given a new viewport. Returns true if the viewport changed or false if it didn't.
+    fn handle_viewport_change(
+        &mut self,
+        window_size_data: WindowSizeData,
+        guards: &StylesheetGuards,
+    ) -> bool {
+        // If the viewport size and device pixel ratio has not changed, do not make any changes.
+        let au_viewport_size = Size2D::new(
+            Au::from_f32_px(window_size_data.initial_viewport.width),
+            Au::from_f32_px(window_size_data.initial_viewport.height),
+        );
+
+        if self.stylist.device().au_viewport_size() == au_viewport_size &&
+            self.stylist.device().device_pixel_ratio() == window_size_data.device_pixel_ratio
+        {
+            return false;
+        }
+
+        let device = Device::new(
+            MediaType::screen(),
+            self.stylist.quirks_mode(),
+            window_size_data.initial_viewport,
+            window_size_data.device_pixel_ratio,
+        );
+
+        // Preserve any previously computed root font size.
+        device.set_root_font_size(self.stylist.device().root_font_size());
+
+        let sheet_origins_affected_by_device_change = self.stylist.set_device(device, guards);
+        self.stylist
+            .force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
+
+        self.viewport_size = au_viewport_size;
+        true
     }
 }
 

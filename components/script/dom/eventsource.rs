@@ -414,7 +414,7 @@ impl FetchResponseListener for EventSourceContext {
     }
 
     fn process_response_eof(&mut self, _response: Result<ResourceFetchTiming, NetworkError>) {
-        if let Some(_) = self.incomplete_utf8.take() {
+        if self.incomplete_utf8.take().is_some() {
             self.parse("\u{FFFD}".chars());
         }
         self.reestablish_the_connection();

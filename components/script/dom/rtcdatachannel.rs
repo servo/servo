@@ -200,17 +200,14 @@ impl RTCDataChannel {
     }
 
     pub fn on_state_change(&self, state: DataChannelState) {
-        match state {
-            DataChannelState::Closing => {
-                let event = Event::new(
-                    &self.global(),
-                    atom!("closing"),
-                    EventBubbles::DoesNotBubble,
-                    EventCancelable::NotCancelable,
-                );
-                event.upcast::<Event>().fire(self.upcast());
-            },
-            _ => {},
+        if let DataChannelState::Closing = state {
+            let event = Event::new(
+                &self.global(),
+                atom!("closing"),
+                EventBubbles::DoesNotBubble,
+                EventCancelable::NotCancelable,
+            );
+            event.upcast::<Event>().fire(self.upcast());
         };
         self.ready_state.set(state.into());
     }

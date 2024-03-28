@@ -79,8 +79,8 @@ impl OfflineAudioContext {
         sample_rate: f32,
     ) -> Fallible<DomRoot<OfflineAudioContext>> {
         if channel_count > MAX_CHANNEL_COUNT ||
-            channel_count <= 0 ||
-            length <= 0 ||
+            channel_count == 0 ||
+            length == 0 ||
             sample_rate < MIN_SAMPLE_RATE ||
             sample_rate > MAX_SAMPLE_RATE
         {

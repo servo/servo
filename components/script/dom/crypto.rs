@@ -49,7 +49,7 @@ impl CryptoMethods for Crypto {
         let array_type = input.get_array_type();
 
         if !is_integer_buffer(array_type) {
-            return Err(Error::TypeMismatch);
+            Err(Error::TypeMismatch)
         } else {
             let data = unsafe { input.as_mut_slice() };
             if data.len() > 65536 {

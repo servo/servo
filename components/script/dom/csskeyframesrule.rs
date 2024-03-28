@@ -159,6 +159,8 @@ impl SpecificCSSRule for CSSKeyframesRule {
     }
 
     fn deparent_children(&self) {
-        self.rulelist.get().map(|list| list.deparent_all());
+        if let Some(list) = self.rulelist.get() {
+            list.deparent_all()
+        }
     }
 }
