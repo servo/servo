@@ -335,14 +335,16 @@ impl FlexContainer {
                         if free_space >= Length::zero() {
                             (free_space / line_count as CSSFloat) / 2.0
                         } else {
-                            free_space / 2.0
+                            Length::zero()
+                            // TODO: implement unsafe fallback: (free_space / 2.0)
                         }
                     },
                     AlignContent::SpaceEvenly => {
                         if free_space >= Length::zero() {
                             free_space / (line_count + 1) as CSSFloat
                         } else {
-                            free_space / 2.0
+                            Length::zero()
+                            // TODO: implement unsafe fallback: (free_space / 2.0)
                         }
                     },
                 };
@@ -350,7 +352,7 @@ impl FlexContainer {
                 // Note: free_space may be negative in which case we wish the gaps between items to be zero
                 // (although this will change once gap is implemented)
                 // TODO: Implement gap property
-                let item_main_interval = if free_space <= Length::zero() || line_count == 0 {
+                let item_main_interval = if free_space <= Length::zero() || line_count <= 1 {
                     Length::zero() /* gap */
                 } else {
                     /*gap + */
@@ -844,14 +846,16 @@ impl FlexLine<'_> {
                     if remaining_free_space >= Length::zero() {
                         (remaining_free_space / item_count as CSSFloat) / 2.0
                     } else {
-                        remaining_free_space / 2.0
+                        Length::zero()
+                        // TODO: implement unsafe fallback: (remaining_free_space / 2.0)
                     }
                 },
                 JustifyContent::SpaceEvenly => {
                     if remaining_free_space >= Length::zero() {
                         remaining_free_space / (item_count + 1) as CSSFloat
                     } else {
-                        remaining_free_space / 2.0
+                        Length::zero()
+                        // TODO: implement unsafe fallback: (remaining_free_space / 2.0)
                     }
                 },
             }
