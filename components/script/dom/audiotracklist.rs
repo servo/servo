@@ -107,6 +107,12 @@ impl AudioTrackList {
         track.add_track_list(self);
     }
 
+    pub fn remove(&self, index: usize) -> DomRoot<AudioTrack> {
+        let track: DomRoot<AudioTrack> = DomRoot::from_ref(&self.tracks.borrow_mut().remove(index));
+        track.remove_track_list();
+        track
+    }
+
     pub fn clear(&self) {
         self.tracks
             .borrow()
