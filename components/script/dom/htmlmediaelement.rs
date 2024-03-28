@@ -1552,7 +1552,7 @@ impl HTMLMediaElement {
                                 let idx = self.VideoTracks().selected_index().unwrap();
                                 let video_track = self.VideoTracks().remove(idx);
                                 let idx = self.AudioTracks().enabled_index().unwrap();
-                                self.AudioTracks().remove(idx);
+                                let audio_track = self.AudioTracks().remove(idx);
 
                                 // 2. Fire an event named removetrack
                                 let event = TrackEvent::new(
@@ -1562,6 +1562,17 @@ impl HTMLMediaElement {
                                     false,
                                     &Some(VideoTrackOrAudioTrackOrTextTrack::VideoTrack(
                                         video_track,
+                                    )),
+                                );
+                                event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+
+                                let event = TrackEvent::new(
+                                    &self.global(),
+                                    atom!("removetrack"),
+                                    false,
+                                    false,
+                                    &Some(VideoTrackOrAudioTrackOrTextTrack::AudioTrack(
+                                        audio_track,
                                     )),
                                 );
                                 event.upcast::<Event>().fire(self.upcast::<EventTarget>());
@@ -1584,7 +1595,7 @@ impl HTMLMediaElement {
                                 let idx = self.VideoTracks().selected_index().unwrap();
                                 let video_track = self.VideoTracks().remove(idx);
                                 let idx = self.AudioTracks().enabled_index().unwrap();
-                                self.AudioTracks().remove(idx);
+                                let audio_track = self.AudioTracks().remove(idx);
 
                                 // 2. Fire an event named removetrack
                                 let event = TrackEvent::new(
@@ -1594,6 +1605,17 @@ impl HTMLMediaElement {
                                     false,
                                     &Some(VideoTrackOrAudioTrackOrTextTrack::VideoTrack(
                                         video_track,
+                                    )),
+                                );
+                                event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+
+                                let event = TrackEvent::new(
+                                    &self.global(),
+                                    atom!("removetrack"),
+                                    false,
+                                    false,
+                                    &Some(VideoTrackOrAudioTrackOrTextTrack::AudioTrack(
+                                        audio_track,
                                     )),
                                 );
                                 event.upcast::<Event>().fire(self.upcast::<EventTarget>());
