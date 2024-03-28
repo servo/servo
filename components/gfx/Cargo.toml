@@ -20,7 +20,6 @@ euclid = { workspace = true }
 fnv = { workspace = true }
 fontsan = { git = "https://github.com/servo/fontsan" }
 gfx_traits = { workspace = true }
-harfbuzz-sys = { version = "0.5", features = ["bundled"], git = "https://github.com/servo/rust-harfbuzz.git" }
 ipc-channel = { workspace = true }
 lazy_static = { workspace = true }
 libc = { workspace = true }
@@ -60,3 +59,9 @@ xml-rs = "0.8"
 [target.'cfg(target_os = "windows")'.dependencies]
 dwrote = "0.11"
 truetype = { version = "0.47.3", features = ["ignore-invalid-language-ids"] }
+
+[target.'cfg(any(target_os = "windows", target_os = "android"))'.dependencies]
+harfbuzz-sys = { version = "0.5", git = "https://github.com/servo/rust-harfbuzz.git", features = ["bundled"] }
+
+[target.'cfg(not(any(target_os = "windows", target_os = "android")))'.dependencies]
+harfbuzz-sys = { version = "0.5", git = "https://github.com/servo/rust-harfbuzz.git" }
