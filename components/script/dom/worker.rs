@@ -118,7 +118,7 @@ impl Worker {
 
         let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
         let worker_id = WorkerId(Uuid::new_v4());
-        if let Some(ref chan) = global.devtools_chan() {
+        if let Some(chan) = global.devtools_chan() {
             let pipeline_id = global.pipeline_id();
             let title = format!("Worker for {}", worker_url);
             if let Some(browsing_context) = browsing_context {
