@@ -17,7 +17,7 @@ bench = false
 android_logger = "0.13"
 getopts = { workspace = true }
 ipc-channel = { workspace = true }
-jni = "0.18.0"
+jni = "0.21.1"
 libc = { workspace = true }
 libloading = "0.8"
 libservo = { path = "../../components/servo" }
@@ -25,7 +25,7 @@ log = { workspace = true }
 serde_json = { workspace = true }
 servo-media = { workspace = true }
 surfman = { workspace = true, features = ["sm-angle-default"] }
-webxr = { git = "https://github.com/servo/webxr" }
+webxr = { workspace = true }
 
 [build-dependencies]
 cc = "1.0"

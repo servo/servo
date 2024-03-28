@@ -106,7 +106,7 @@ style = { git = "https://github.com/servo/stylo", branch = "2023-09-01", feature
 style_config = { git = "https://github.com/servo/stylo", branch = "2023-09-01" }
 style_traits = { git = "https://github.com/servo/stylo", branch = "2023-09-01", features = ["servo"] }
 # NOTE: the sm-angle feature only enables ANGLE on Windows, not other platforms!
-surfman = { version = "0.9", features = ["chains", "sm-angle", "sm-angle-default"] }
+surfman = { version = "0.9.2", features = ["chains", "sm-angle", "sm-angle-default"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 thin-vec = "0.2.13"
@@ -126,6 +126,8 @@ webpki-roots = "0.25"
 webrender = { git = "https://github.com/servo/webrender", branch = "0.64", features = ["capture"] }
 webrender_api = { git = "https://github.com/servo/webrender", branch = "0.64" }
 webrender_traits = { path = "components/shared/webrender" }
+webxr-api = { git = "https://github.com/servo/webxr" }
+webxr = { git = "https://github.com/servo/webxr" }
 wgpu-core = "0.18"
 wgpu-types = "0.18"
 winapi = "0.3"

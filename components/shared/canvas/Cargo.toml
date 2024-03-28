@@ -30,4 +30,4 @@ sparkle = { workspace = true }
 style = { workspace = true }
 time = { workspace = true, optional = true }
 webrender_api = { workspace = true }
-webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
+webxr-api = { workspace = true, features = ["ipc"] }

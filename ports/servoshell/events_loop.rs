@@ -33,10 +33,13 @@ impl EventsLoop {
     // Ideally, we could use the winit event loop in both modes,
     // but on Linux, the event loop requires a X11 server.
     #[cfg(not(any(target_os = "linux", target_os = "macos")))]
-    pub fn new(_headless: bool, _has_output_file: bool) -> EventsLoop {
-        EventsLoop(EventLoop::Winit(Some(
-            winit::event_loop::EventLoopBuilder::with_user_event().build(),
-        )))
+    pub fn new(
+        _headless: bool,
+        _has_output_file: bool,
+    ) -> Result<EventsLoop, winit::error::EventLoopError> {
+        Ok(EventsLoop(EventLoop::Winit(Some(
+            winit::event_loop::EventLoopBuilder::with_user_event().build()?,
+        ))))
     }
     #[cfg(target_os = "linux")]
     pub fn new(headless: bool, _has_output_file: bool) -> EventsLoop {
@@ -88,32 +91,36 @@ impl EventsLoop {
     pub fn run_forever<F: 'static>(self, mut callback: F)
     where
         F: FnMut(
-            winit::event::Event<'_, WakerEvent>,
+            winit::event::Event<WakerEvent>,
             Option<&winit::event_loop::EventLoopWindowTarget<WakerEvent>>,
-            &mut winit::event_loop::ControlFlow,
+            &mut ControlFlow,
         ),
     {
         match self.0 {
             EventLoop::Winit(events_loop) => {
                 let events_loop = events_loop.expect("Can't run an unavailable event loop.");
-                events_loop.run(move |e, window_target, ref mut control_flow| {
-                    callback(e, Some(window_target), control_flow)
-                });
+                events_loop
+                    .run(move |e, window_target| {
+                        let mut control_flow = ControlFlow::default();
+                        callback(e, Some(window_target), &mut control_flow);
+                        control_flow.apply_to(window_target);
+                    })
+                    .expect("Failed while running events loop");
             },
             EventLoop::Headless(ref data) => {
                 let (flag, condvar) = &**data;
                 let mut event = winit::event::Event::NewEvents(winit::event::StartCause::Init);
                 loop {
                     self.sleep(flag, condvar);
-                    let mut control_flow = winit::event_loop::ControlFlow::Poll;
+                    let mut control_flow = ControlFlow::Poll;
                     callback(event, None, &mut control_flow);
                     event = winit::event::Event::<WakerEvent>::UserEvent(WakerEvent);
 
-                    if control_flow != winit::event_loop::ControlFlow::Poll {
+                    if control_flow != ControlFlow::Poll {
                         *flag.lock().unwrap() = false;
                     }
 
-                    if control_flow == winit::event_loop::ControlFlow::Exit {
+                    if control_flow == ControlFlow::Exit {
                         break;
                     }
                 }
@@ -133,6 +140,46 @@ impl EventsLoop {
         let _ = condvar
             .wait_timeout(guard, time::Duration::from_millis(5))
             .unwrap();
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum ControlFlow {
+    Poll,
+
+    #[default]
+    Wait,
+
+    WaitUntil(std::time::Instant),
+
+    /// winit removed their ControlFlow::Exit variant in 0.29.2
+    Exit,
+}
+
+impl ControlFlow {
+    fn apply_to(self, window_target: &winit::event_loop::EventLoopWindowTarget<WakerEvent>) {
+        match self {
+            ControlFlow::Poll => {
+                window_target.set_control_flow(winit::event_loop::ControlFlow::Poll)
+            },
+            ControlFlow::Wait => {
+                window_target.set_control_flow(winit::event_loop::ControlFlow::Wait)
+            },
+            ControlFlow::WaitUntil(instant) => {
+                window_target.set_control_flow(winit::event_loop::ControlFlow::WaitUntil(instant))
+            },
+            ControlFlow::Exit => window_target.exit(),
+        }
+    }
+}
+
+impl From<winit::event_loop::ControlFlow> for ControlFlow {
+    fn from(cf: winit::event_loop::ControlFlow) -> Self {
+        match cf {
+            winit::event_loop::ControlFlow::Poll => Self::Poll,
+            winit::event_loop::ControlFlow::Wait => Self::Wait,
+            winit::event_loop::ControlFlow::WaitUntil(instant) => Self::WaitUntil(instant),
+        }
     }
 }
 

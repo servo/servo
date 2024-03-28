@@ -43,7 +43,7 @@ style_traits = { workspace = true }
 time = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
-webxr = { git = "https://github.com/servo/webxr" }
+webxr = { workspace = true }
 
 [build-dependencies]
 toml = "0.5"
