@@ -1049,9 +1049,9 @@ impl HTMLFormElement {
                     validatable
                         .validity_state()
                         .perform_validation_and_update(ValidationFlags::all());
-                    if !validatable.is_instance_validatable() {
-                        None
-                    } else if validatable.validity_state().invalid_flags().is_empty() {
+                    if !validatable.is_instance_validatable() ||
+                        validatable.validity_state().invalid_flags().is_empty()
+                    {
                         None
                     } else {
                         Some(DomRoot::from_ref(el))
