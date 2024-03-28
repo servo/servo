@@ -50,6 +50,9 @@ PACKAGES = {
     'mac': [
         'production/servo-tech-demo.dmg',
     ],
+    'mac-arm': [
+        'production/servo-tech-demo.dmg',
+    ],
     'maven': [
         'android/gradle/servoview/maven/org/mozilla/servoview/servoview-armv7/',
         'android/gradle/servoview/maven/org/mozilla/servoview/servoview-x86/',
