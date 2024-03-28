@@ -10,7 +10,7 @@ use std::default::Default;
 use std::ops::Range;
 use std::slice::from_ref;
 use std::sync::Arc as StdArc;
-use std::{cmp, iter, mem};
+use std::{cmp, iter};
 
 use app_units::Au;
 use bitflags::bitflags;
@@ -602,10 +602,6 @@ impl Node {
             NodeTypeId::CharacterData(_) => self.downcast::<CharacterData>().unwrap().Length(),
             _ => self.children_count(),
         }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.data.len() == 0
     }
 
     // https://dom.spec.whatwg.org/#concept-tree-index
@@ -1207,7 +1203,7 @@ impl Node {
                 match last_child.and_then(|node| {
                     node.inclusively_preceding_siblings()
                         .filter_map(DomRoot::downcast::<Element>)
-                        .find(is_delete_type)
+                        .find(|elem| is_delete_type(elem))
                 }) {
                     Some(element) => element,
                     None => return Ok(()),
@@ -1318,7 +1314,7 @@ where
 pub unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress) -> DomRoot<Node> {
     // https://github.com/servo/servo/issues/6383
     let candidate = candidate.0 as usize;
-     //        let object: *mut JSObject = jsfriendapi::bindgen::JS_GetAddressableObject(runtime,
+    //        let object: *mut JSObject = jsfriendapi::bindgen::JS_GetAddressableObject(runtime,
     //                                                                                  candidate);
     let object = candidate as *mut JSObject;
     if object.is_null() {
