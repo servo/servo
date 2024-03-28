@@ -237,7 +237,7 @@ pub struct ThreadLocalStackRoots<'a>(PhantomData<&'a u32>);
 
 impl<'a> ThreadLocalStackRoots<'a> {
     pub fn new(roots: &'a RootCollection) -> Self {
-        STACK_ROOTS.with(|ref r| r.set(Some(roots)));
+        STACK_ROOTS.with(|r| r.set(Some(roots)));
         ThreadLocalStackRoots(PhantomData)
     }
 }
