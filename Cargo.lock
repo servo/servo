@@ -2570,7 +2570,7 @@ dependencies = [
 [[package]]
 name = "harfbuzz-sys"
 version = "0.5.0"
-source = "git+https://github.com/servo/rust-harfbuzz.git?rev=2ce0a6d3e0cbdf36dedfbe1de7267e134c8d7446#2ce0a6d3e0cbdf36dedfbe1de7267e134c8d7446"
+source = "git+https://github.com/servo/rust-harfbuzz.git#2ce0a6d3e0cbdf36dedfbe1de7267e134c8d7446"
 dependencies = [
  "cc",
  "core-graphics",
@@ -4621,7 +4621,7 @@ checksum = "9c8a99fddc9f0ba0a85884b8d14e3592853e787d581ca1816c91349b10e4eeab"
 [[package]]
 name = "raqote"
 version = "0.8.3"
-source = "git+https://github.com/jrmuizel/raqote.git?rev=a1e754adbb4a6808b3f5a74d33ac37b32843ed8e#a1e754adbb4a6808b3f5a74d33ac37b32843ed8e"
+source = "git+https://github.com/jrmuizel/raqote.git#a1e754adbb4a6808b3f5a74d33ac37b32843ed8e"
 dependencies = [
  "euclid",
  "font-kit",
@@ -7027,7 +7027,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr?rev=88fd368d1cc110db0f6f5000de2e22a14c9423b5#88fd368d1cc110db0f6f5000de2e22a14c9423b5"
+source = "git+https://github.com/servo/webxr#88fd368d1cc110db0f6f5000de2e22a14c9423b5"
 dependencies = [
  "android_injected_glue",
  "bindgen",
@@ -7046,7 +7046,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr?rev=88fd368d1cc110db0f6f5000de2e22a14c9423b5#88fd368d1cc110db0f6f5000de2e22a14c9423b5"
+source = "git+https://github.com/servo/webxr#88fd368d1cc110db0f6f5000de2e22a14c9423b5"
 dependencies = [
  "euclid",
  "ipc-channel",

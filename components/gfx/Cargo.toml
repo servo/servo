@@ -20,7 +20,7 @@ euclid = { workspace = true }
 fnv = { workspace = true }
 fontsan = { git = "https://github.com/servo/fontsan" }
 gfx_traits = { workspace = true }
-harfbuzz-sys = { version = "0.5", features = ["bundled"], git = "https://github.com/servo/rust-harfbuzz.git", rev = "2ce0a6d3e0cbdf36dedfbe1de7267e134c8d7446" }
+harfbuzz-sys = { version = "0.5", features = ["bundled"], git = "https://github.com/servo/rust-harfbuzz.git" }
 ipc-channel = { workspace = true }
 lazy_static = { workspace = true }
 libc = { workspace = true }

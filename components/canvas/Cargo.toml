@@ -32,7 +32,7 @@ lyon_geom = "1.0.4"
 num-traits = { workspace = true }
 pathfinder_geometry = "0.5"
 pixels = { path = "../pixels" }
-raqote = { version = "0.8.3", git = "https://github.com/jrmuizel/raqote.git", rev = "a1e754adbb4a6808b3f5a74d33ac37b32843ed8e" }
+raqote = { version = "0.8.3", git = "https://github.com/jrmuizel/raqote.git" }
 servo_arc = { workspace = true }
 sparkle = { workspace = true }
 style = { workspace = true }
