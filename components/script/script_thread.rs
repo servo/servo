@@ -1971,7 +1971,6 @@ impl ScriptThread {
         // Process the gathered events.
         debug!("Processing events.");
         for msg in sequential {
-            debug!("Processing event {:?}.", msg);
 
             let category = self.categorize_msg(&msg);
             let pipeline_id = self.message_to_pipeline(&msg);
@@ -2018,7 +2017,7 @@ impl ScriptThread {
             if let Some(retval) = result {
                 return retval;
             }
-
+            
             // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 6
             self.perform_a_microtask_checkpoint();
         }

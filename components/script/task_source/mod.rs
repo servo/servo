@@ -27,7 +27,7 @@ use crate::task::{TaskCanceller, TaskOnce};
 // Note: When adding a task source, update this enum.
 // Note: The HistoryTraversalTaskSource is not part of this,
 // because it doesn't implement TaskSource.
-#[derive(Clone, Eq, Hash, IntoEnumIterator, JSTraceable, PartialEq)]
+#[derive(Debug, Clone, Eq, Hash, IntoEnumIterator, JSTraceable, PartialEq)]
 pub enum TaskSourceName {
     DOMManipulation,
     FileReading,
