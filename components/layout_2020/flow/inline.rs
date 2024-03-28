@@ -85,7 +85,6 @@ use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style::values::generics::box_::VerticalAlignKeyword;
 use style::values::generics::text::LineHeight;
-use style::values::specified::box_::BaselineSource;
 use style::values::specified::text::{TextAlignKeyword, TextDecorationLine};
 use style::values::specified::{TextAlignLast, TextJustify};
 use style::Zero;
@@ -2144,18 +2143,13 @@ impl IndependentFormattingContext {
     /// Picks either the first or the last baseline, depending on `baseline-source`.
     /// <https://drafts.csswg.org/css-inline/#baseline-source>
     fn pick_baseline(&self, baselines: &Baselines) -> Option<Au> {
-        match self.style().clone_baseline_source() {
-            BaselineSource::First => baselines.first,
-            BaselineSource::Last => baselines.last,
-            BaselineSource::Auto => {
-                if let Self::NonReplaced(non_replaced) = self {
-                    if let NonReplacedFormattingContextContents::Flow(_) = non_replaced.contents {
-                        return baselines.last;
-                    }
-                }
-                baselines.first
-            },
+        // TODO: Currently this only supports the initial `baseline-source: auto`.
+        if let Self::NonReplaced(non_replaced) = self {
+            if let NonReplacedFormattingContextContents::Flow(_) = non_replaced.contents {
+                return baselines.last;
+            }
         }
+        baselines.first
     }
 
     fn get_block_sizes_and_baseline_offset(
