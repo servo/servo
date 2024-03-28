@@ -3056,6 +3056,8 @@ where
         self.webviews.remove(top_level_browsing_context_id);
         self.compositor_proxy
             .send(CompositorMsg::RemoveWebView(top_level_browsing_context_id));
+        let log = format!("RemoveWebView {top_level_browsing_context_id}");
+        dbg!(log);
         self.embedder_proxy.send((
             Some(top_level_browsing_context_id),
             EmbedderMsg::WebViewClosed(top_level_browsing_context_id),
