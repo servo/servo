@@ -360,9 +360,7 @@ impl DedicatedWorkerGlobalScope {
                     pipeline_id,
                 } = worker_load_origin;
 
-                let referrer = referrer_url
-                    .map(Referrer::ReferrerUrl)
-                    .unwrap_or(referrer);
+                let referrer = referrer_url.map(Referrer::ReferrerUrl).unwrap_or(referrer);
 
                 let request = RequestBuilder::new(worker_url.clone(), referrer)
                     .destination(Destination::Worker)

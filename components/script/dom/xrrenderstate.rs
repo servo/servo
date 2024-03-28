@@ -44,11 +44,7 @@ impl XRRenderState {
             depth_far: Cell::new(depth_far),
             inline_vertical_fov: Cell::new(inline_vertical_fov),
             base_layer: MutNullableDom::new(layer),
-            layers: DomRefCell::new(
-                layers
-                    .into_iter()
-                    .map(Dom::from_ref)
-                    .collect()),
+            layers: DomRefCell::new(layers.into_iter().map(Dom::from_ref).collect()),
         }
     }
 
