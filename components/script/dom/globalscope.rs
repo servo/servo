@@ -962,7 +962,7 @@ impl GlobalScope {
         self.list_auto_close_worker
             .borrow_mut()
             .drain(0..)
-            .for_each(|worker| drop(worker));
+            .for_each(drop);
     }
 
     /// Update our state to un-managed,

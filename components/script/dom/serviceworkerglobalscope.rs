@@ -349,7 +349,7 @@ impl ServiceWorkerGlobalScope {
                 let scope = global.upcast::<WorkerGlobalScope>();
 
                 let referrer = referrer_url
-                    .map(|url| Referrer::ReferrerUrl(url))
+                    .map(Referrer::ReferrerUrl)
                     .unwrap_or_else(|| global.upcast::<GlobalScope>().get_referrer());
 
                 let request = RequestBuilder::new(script_url, referrer)

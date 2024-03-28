@@ -458,7 +458,7 @@ impl Tokenizer {
                 system_id,
             } => {
                 let doctype = DocumentType::new(
-                    DOMString::from(String::from(name)),
+                    DOMString::from(name),
                     Some(DOMString::from(public_id)),
                     Some(DOMString::from(system_id)),
                     document,

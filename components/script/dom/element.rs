@@ -710,10 +710,12 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             use cssparser::FromParsedColor;
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::BackgroundColor(
-                    specified::Color::from_rgba(color.red, color.green, color.blue, color.alpha)
-                        .into(),
-                ),
+                PropertyDeclaration::BackgroundColor(specified::Color::from_rgba(
+                    color.red,
+                    color.green,
+                    color.blue,
+                    color.alpha,
+                )),
             ));
         }
 
@@ -749,8 +751,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::Color(longhands::color::SpecifiedValue(
-                    specified::Color::from_rgba(color.red, color.green, color.blue, color.alpha)
-                        .into(),
+                    specified::Color::from_rgba(color.red, color.green, color.blue, color.alpha),
                 )),
             ));
         }

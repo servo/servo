@@ -165,7 +165,7 @@ impl HeadersMethods for Headers {
         let valid_name = validate_name(name)?;
         Ok(
             get_value_from_header_list(&valid_name, &self.header_list.borrow())
-                .map(|v| ByteString::new(v)),
+                .map(ByteString::new),
         )
     }
 

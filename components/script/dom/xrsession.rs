@@ -441,7 +441,7 @@ impl XRSession {
             let callback = self.current_raf_callback_list.borrow()[i]
                 .1
                 .as_ref()
-                .map(|callback| Rc::clone(callback));
+                .map(Rc::clone);
             if let Some(callback) = callback {
                 let _ = callback.Call__(time, &frame, ExceptionHandling::Report);
             }
