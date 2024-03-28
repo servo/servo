@@ -3204,11 +3204,9 @@ impl<'a> SelectorsElement for DomRoot<Element> {
     }
 
     fn containing_shadow_host(&self) -> Option<Self> {
-        if let Some(shadow_root) = self.upcast::<Node>().containing_shadow_root() {
-            Some(shadow_root.Host())
-        } else {
-            None
-        }
+        self.upcast::<Node>()
+            .containing_shadow_root()
+            .map(|shadow_root| shadow_root.Host())
     }
 
     fn is_pseudo_element(&self) -> bool {
