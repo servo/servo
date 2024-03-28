@@ -123,6 +123,7 @@ mod media_platform {
     #[cfg(any(windows, target_os = "macos"))]
     pub fn init() {
         ServoMedia::init_with_backend(|| {
+            println!("Start init_with_backend");
             let mut plugin_dir = std::env::current_exe().unwrap();
             plugin_dir.pop();
 
@@ -130,7 +131,7 @@ mod media_platform {
                 plugin_dir.push("lib");
             }
 
-            match GStreamerBackend::init_with_plugins(
+            let b = match GStreamerBackend::init_with_plugins(
                 plugin_dir,
                 &gstreamer_plugins::GSTREAMER_PLUGINS,
             ) {
@@ -139,12 +140,15 @@ mod media_platform {
                     eprintln!("Error initializing GStreamer: {:?}", e);
                     std::process::exit(1);
                 },
-            }
+            };
+            println!("Done init_with_backend");
+            b
         });
     }
 
     #[cfg(not(any(windows, target_os = "macos")))]
     pub fn init() {
+        println!("Init GStreamerBackend");
         ServoMedia::init::<GStreamerBackend>();
     }
 }
@@ -153,6 +157,7 @@ mod media_platform {
 mod media_platform {
     use super::ServoMedia;
     pub fn init() {
+        println!("Init dummy");
         ServoMedia::init::<servo_media_dummy::DummyBackend>();
     }
 }
@@ -240,6 +245,7 @@ where
             .store(opts.nonincremental_layout, Ordering::Relaxed);
 
         if !opts.multiprocess {
+            println!("Init media");
             media_platform::init();
         }
 
@@ -1118,6 +1124,7 @@ pub fn run_content_process(token: String) {
 
     match unprivileged_content {
         UnprivilegedContent::Pipeline(mut content) => {
+            println!("Init media multiprocess");
             media_platform::init();
 
             set_logger(content.script_to_constellation_chan().clone());

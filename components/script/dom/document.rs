@@ -663,6 +663,7 @@ impl Document {
 
         // Set the document's activity level, reflow if necessary, and suspend or resume timers.
         self.activity.set(activity);
+        println!("Get media");
         let media = ServoMedia::get().unwrap();
         let pipeline_id = self.window().pipeline_id();
         let client_context_id =
@@ -670,7 +671,7 @@ impl Document {
 
         if activity != DocumentActivity::FullyActive {
             self.window().suspend();
-            media.suspend(&client_context_id);
+            //media.suspend(&client_context_id);
             return;
         }
 
@@ -679,7 +680,7 @@ impl Document {
         self.window()
             .reflow(ReflowGoal::Full, ReflowReason::CachedPageNeededReflow);
         self.window().resume();
-        media.resume(&client_context_id);
+        //media.resume(&client_context_id);
 
         if self.ready_state.get() != DocumentReadyState::Complete {
             return;
