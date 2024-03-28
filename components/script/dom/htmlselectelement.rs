@@ -167,11 +167,9 @@ impl HTMLSelectElement {
 
         if let Some(last_selected) = last_selected {
             last_selected.set_selectedness(true);
-        } else {
-            if self.display_size() == 1 {
-                if let Some(first_enabled) = first_enabled {
-                    first_enabled.set_selectedness(true);
-                }
+        } else if self.display_size() == 1 {
+            if let Some(first_enabled) = first_enabled {
+                first_enabled.set_selectedness(true);
             }
         }
     }
@@ -312,7 +310,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     fn NamedItem(&self, name: DOMString) -> Option<DomRoot<HTMLOptionElement>> {
         self.Options()
             .NamedGetter(name)
-            .map_or(None, |e| DomRoot::downcast::<HTMLOptionElement>(e))
+            .map_or(None, DomRoot::downcast::<HTMLOptionElement>)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-remove

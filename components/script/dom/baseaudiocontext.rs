@@ -5,7 +5,6 @@
 use std::cell::Cell;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
-use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
@@ -181,7 +180,7 @@ impl BaseAudioContext {
     /// which were taken and moved to the in-flight queue.
     fn take_pending_resume_promises(&self, result: ErrorResult) {
         let pending_resume_promises =
-            mem::replace(&mut *self.pending_resume_promises.borrow_mut(), vec![]);
+            std::mem::take(&mut *self.pending_resume_promises.borrow_mut());
         self.in_flight_resume_promises_queue
             .borrow_mut()
             .push_back((pending_resume_promises.into(), result));
@@ -405,9 +404,9 @@ impl BaseAudioContextMethods for BaseAudioContext {
         length: u32,
         sample_rate: Finite<f32>,
     ) -> Fallible<DomRoot<AudioBuffer>> {
-        if number_of_channels <= 0 ||
+        if number_of_channels == 0 ||
             number_of_channels > MAX_CHANNEL_COUNT ||
-            length <= 0 ||
+            length == 0 ||
             *sample_rate <= 0.
         {
             return Err(Error::NotSupported);

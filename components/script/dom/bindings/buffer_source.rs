@@ -124,7 +124,7 @@ where
 {
     pub fn default() -> HeapBufferSource<T> {
         HeapBufferSource {
-            buffer_source: BufferSource::Default(Box::new(Heap::default())),
+            buffer_source: BufferSource::Default(Box::default()),
             phantom: PhantomData,
         }
     }

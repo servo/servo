@@ -627,15 +627,13 @@ impl<T: ClipboardProvider> TextInput<T> {
             if self.selection_origin.is_none() {
                 self.selection_origin = Some(self.edit_point);
             }
-        } else {
-            if self.has_selection() {
-                self.edit_point = match adjust {
-                    Direction::Backward => self.selection_start(),
-                    Direction::Forward => self.selection_end(),
-                };
-                self.clear_selection();
-                return true;
-            }
+        } else if self.has_selection() {
+            self.edit_point = match adjust {
+                Direction::Backward => self.selection_start(),
+                Direction::Forward => self.selection_end(),
+            };
+            self.clear_selection();
+            return true;
         }
         false
     }

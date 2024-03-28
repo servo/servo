@@ -2393,7 +2393,10 @@ impl<'a> ContentSizesComputation<'a> {
                     self.containing_block_writing_mode,
                 );
 
-                self.current_line.min_content += self.pending_whitespace + outer.min_content;
+                // For the min-content size we should wrap lines wherever is possible,
+                // so wrappable spaces shouldn't increase the length of the line,
+                // they will just be removed or hang at the end of the line.
+                self.current_line.min_content += outer.min_content;
                 self.current_line.max_content += self.pending_whitespace + outer.max_content;
                 self.pending_whitespace = Au::zero();
                 self.had_content_yet = true;

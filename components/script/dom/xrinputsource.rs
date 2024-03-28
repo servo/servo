@@ -58,7 +58,7 @@ impl XRInputSource {
             global,
         );
 
-        let _ac = enter_realm(&*global);
+        let _ac = enter_realm(global);
         let cx = GlobalScope::get_cx();
         unsafe {
             rooted!(in(*cx) let mut profiles = UndefinedValue());

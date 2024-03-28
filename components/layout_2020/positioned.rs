@@ -18,7 +18,8 @@ use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::{
-    AbsoluteBoxOffsets, BoxFragment, CollapsedBlockMargins, Fragment, HoistedSharedFragment,
+    AbsoluteBoxOffsets, BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags,
+    HoistedSharedFragment,
 };
 use crate::geom::{
     AuOrAuto, LengthOrAuto, LengthPercentageOrAuto, LogicalRect, LogicalSides, LogicalVec2,
@@ -144,9 +145,13 @@ impl PositioningContext {
     }
 
     pub(crate) fn new_for_style(style: &ComputedValues) -> Option<Self> {
-        if style.establishes_containing_block_for_all_descendants() {
+        // NB: We never make PositioningContexts for replaced elements, which is why we always
+        // pass false here.
+        if style.establishes_containing_block_for_all_descendants(FragmentFlags::empty()) {
             Some(Self::new_for_containing_block_for_all_descendants())
-        } else if style.establishes_containing_block_for_absolute_descendants() {
+        } else if style
+            .establishes_containing_block_for_absolute_descendants(FragmentFlags::empty())
+        {
             Some(Self {
                 for_nearest_positioned_ancestor: Some(Vec::new()),
                 for_nearest_containing_block_for_all_descendants: Vec::new(),

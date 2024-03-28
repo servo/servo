@@ -785,7 +785,7 @@ impl Node {
     }
 
     pub fn to_trusted_node_address(&self) -> TrustedNodeAddress {
-        TrustedNodeAddress(&*self as *const Node as *const libc::c_void)
+        TrustedNodeAddress(self as *const Node as *const libc::c_void)
     }
 
     /// Returns the rendered bounding content box if the element is rendered,
@@ -1242,7 +1242,7 @@ impl Node {
 
     /// <https://dom.spec.whatwg.org/#retarget>
     pub fn retarget(&self, b: &Node) -> DomRoot<Node> {
-        let mut a = DomRoot::from_ref(&*self);
+        let mut a = DomRoot::from_ref(self);
         loop {
             // Step 1.
             let a_root = a.GetRootNode(&GetRootNodeOptions::empty());
@@ -1562,12 +1562,12 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
 
     fn iframe_browsing_context_id(self) -> Option<BrowsingContextId> {
         self.downcast::<HTMLIFrameElement>()
-            .map_or(None, |iframe_element| iframe_element.browsing_context_id())
+            .and_then(|iframe_element| iframe_element.browsing_context_id())
     }
 
     fn iframe_pipeline_id(self) -> Option<PipelineId> {
         self.downcast::<HTMLIFrameElement>()
-            .map_or(None, |iframe_element| iframe_element.pipeline_id())
+            .and_then(|iframe_element| iframe_element.pipeline_id())
     }
 
     #[allow(unsafe_code)]
@@ -1870,7 +1870,6 @@ impl Node {
         // Step 1.
         match parent.type_id() {
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
-                ()
             },
             _ => return Err(Error::HierarchyRequest),
         }
@@ -1919,7 +1918,7 @@ impl Node {
                         0 => (),
                         // Step 6.1.2
                         1 => {
-                            if !parent.child_elements().next().is_none() {
+                            if parent.child_elements().next().is_some() {
                                 return Err(Error::HierarchyRequest);
                             }
                             if let Some(child) = child {
@@ -1937,10 +1936,10 @@ impl Node {
                 },
                 // Step 6.2
                 NodeTypeId::Element(_) => {
-                    if !parent.child_elements().next().is_none() {
+                    if parent.child_elements().next().is_some() {
                         return Err(Error::HierarchyRequest);
                     }
-                    if let Some(ref child) = child {
+                    if let Some(child) = child {
                         if child
                             .inclusively_following_siblings()
                             .any(|child| child.is_doctype())
@@ -1965,7 +1964,7 @@ impl Node {
                             }
                         },
                         None => {
-                            if !parent.child_elements().next().is_none() {
+                            if parent.child_elements().next().is_some() {
                                 return Err(Error::HierarchyRequest);
                             }
                         },
@@ -2019,7 +2018,7 @@ impl Node {
         suppress_observers: SuppressObserver,
     ) {
         node.owner_doc().add_script_and_layout_blocker();
-        debug_assert!(&*node.owner_doc() == &*parent.owner_doc());
+        debug_assert!(*node.owner_doc() == *parent.owner_doc());
         debug_assert!(child.map_or(true, |child| Some(parent) ==
             child.GetParentNode().as_deref()));
 
@@ -2637,7 +2636,6 @@ impl NodeMethods for Node {
         // Step 1.
         match self.type_id() {
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
-                ()
             },
             _ => return Err(Error::HierarchyRequest),
         }
@@ -2954,7 +2952,7 @@ impl NodeMethods for Node {
         // The compiler doesn't know the lifetime of attr1.GetOwnerElement
         // is guaranteed by the lifetime of attr1, so we hold it explicitly
         let attr1owner;
-        if let Some(ref a) = other.downcast::<Attr>() {
+        if let Some(a) = other.downcast::<Attr>() {
             attr1 = Some(a);
             attr1owner = a.GetOwnerElement();
             node1 = match attr1owner {
@@ -2966,11 +2964,11 @@ impl NodeMethods for Node {
         // step 5.1: spec says to operate on node2 here,
         // node2 is definitely just Some(self) going into this step
         let attr2owner;
-        if let Some(ref a) = self.downcast::<Attr>() {
+        if let Some(a) = self.downcast::<Attr>() {
             attr2 = Some(a);
             attr2owner = a.GetOwnerElement();
             node2 = match attr2owner {
-                Some(ref e) => Some(&*e.upcast()),
+                Some(ref e) => Some(e.upcast()),
                 None => None,
             }
         }
@@ -2981,33 +2979,30 @@ impl NodeMethods for Node {
         // same owner element.
         if let Some(node2) = node2 {
             if Some(node2) == node1 {
-                match (attr1, attr2) {
-                    (Some(a1), Some(a2)) => {
-                        let attrs = node2.downcast::<Element>().unwrap().attrs();
-                        // go through the attrs in order to see if self
-                        // or other is first; spec is clear that we
-                        // want value-equality, not reference-equality
-                        for attr in attrs.iter() {
-                            if (*attr.namespace() == *a1.namespace()) &&
-                                (attr.local_name() == a1.local_name()) &&
-                                (**attr.value() == **a1.value())
-                            {
-                                return NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC +
-                                    NodeConstants::DOCUMENT_POSITION_PRECEDING;
-                            }
-                            if (*attr.namespace() == *a2.namespace()) &&
-                                (attr.local_name() == a2.local_name()) &&
-                                (**attr.value() == **a2.value())
-                            {
-                                return NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC +
-                                    NodeConstants::DOCUMENT_POSITION_FOLLOWING;
-                            }
+                if let (Some(a1), Some(a2)) = (attr1, attr2) {
+                    let attrs = node2.downcast::<Element>().unwrap().attrs();
+                    // go through the attrs in order to see if self
+                    // or other is first; spec is clear that we
+                    // want value-equality, not reference-equality
+                    for attr in attrs.iter() {
+                        if (*attr.namespace() == *a1.namespace()) &&
+                            (attr.local_name() == a1.local_name()) &&
+                            (**attr.value() == **a1.value())
+                        {
+                            return NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC +
+                                NodeConstants::DOCUMENT_POSITION_PRECEDING;
                         }
-                        // both attrs have node2 as their owner element, so
-                        // we can't have left the loop without seeing them
-                        unreachable!();
-                    },
-                    (_, _) => {},
+                        if (*attr.namespace() == *a2.namespace()) &&
+                            (attr.local_name() == a2.local_name()) &&
+                            (**attr.value() == **a2.value())
+                        {
+                            return NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC +
+                                NodeConstants::DOCUMENT_POSITION_FOLLOWING;
+                        }
+                    }
+                    // both attrs have node2 as their owner element, so
+                    // we can't have left the loop without seeing them
+                    unreachable!();
                 }
             }
         }
@@ -3181,7 +3176,7 @@ impl VirtualMethods for Node {
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.children_changed(mutation);
         }
         if let Some(list) = self.child_list.get() {

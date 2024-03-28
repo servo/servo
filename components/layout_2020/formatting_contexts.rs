@@ -16,7 +16,7 @@ use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
-use crate::fragment_tree::{BaseFragmentInfo, Fragment};
+use crate::fragment_tree::{BaseFragmentInfo, Fragment, FragmentFlags};
 use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContent;
 use crate::sizing::{self, ContentSizes};
@@ -131,11 +131,15 @@ impl IndependentFormattingContext {
                     contents,
                 })
             },
-            Err(contents) => Self::Replaced(ReplacedFormattingContext {
-                base_fragment_info: node_and_style_info.into(),
-                style: Arc::clone(&node_and_style_info.style),
-                contents,
-            }),
+            Err(contents) => {
+                let mut base_fragment_info: BaseFragmentInfo = node_and_style_info.into();
+                base_fragment_info.flags.insert(FragmentFlags::IS_REPLACED);
+                Self::Replaced(ReplacedFormattingContext {
+                    base_fragment_info,
+                    style: Arc::clone(&node_and_style_info.style),
+                    contents,
+                })
+            },
         }
     }
 

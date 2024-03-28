@@ -83,8 +83,8 @@ use crate::textinput::KeyReaction::{
 use crate::textinput::Lines::Single;
 use crate::textinput::{Direction, SelectionDirection, TextInput, UTF16CodeUnits, UTF8Bytes};
 
-const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
-const DEFAULT_RESET_VALUE: &'static str = "Reset";
+const DEFAULT_SUBMIT_VALUE: &str = "Submit";
+const DEFAULT_RESET_VALUE: &str = "Reset";
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
 
 #[derive(Clone, Copy, JSTraceable, PartialEq)]
@@ -768,7 +768,7 @@ impl HTMLInputElement {
         first_with_id
             .as_ref()
             .and_then(|el| el.downcast::<HTMLDataListElement>())
-            .map(|el| DomRoot::from_ref(&*el))
+            .map(|el| DomRoot::from_ref(el))
     }
 
     // https://html.spec.whatwg.org/multipage/#suffering-from-being-missing
@@ -1642,7 +1642,7 @@ fn radio_group_iter<'a>(
 
     // If group is None, in_same_group always fails, but we need to always return elem.
     root.traverse_preorder(ShadowIncluding::No)
-        .filter_map(|r| DomRoot::downcast::<HTMLInputElement>(r))
+        .filter_map(DomRoot::downcast::<HTMLInputElement>)
         .filter(move |r| &**r == elem || in_same_group(r, owner.as_deref(), group, None))
 }
 
@@ -1869,7 +1869,7 @@ impl HTMLInputElement {
             let (chan, recv) = ipc::channel(self.global().time_profiler_chan().clone())
                 .expect("Error initializing channel");
             let msg = FileManagerThreadMsg::SelectFiles(filter, chan, origin, opt_test_paths);
-            let _ = resource_threads
+            resource_threads
                 .send(CoreResourceMsg::ToFileManager(msg))
                 .unwrap();
 
@@ -1896,7 +1896,7 @@ impl HTMLInputElement {
             let (chan, recv) = ipc::channel(self.global().time_profiler_chan().clone())
                 .expect("Error initializing channel");
             let msg = FileManagerThreadMsg::SelectFile(filter, chan, origin, opt_test_path);
-            let _ = resource_threads
+            resource_threads
                 .send(CoreResourceMsg::ToFileManager(msg))
                 .unwrap();
 
@@ -2582,7 +2582,7 @@ impl VirtualMethods for HTMLInputElement {
         {
             if event.IsTrusted() {
                 let window = window_from_node(self);
-                let _ = window
+                window
                     .task_manager()
                     .user_interaction_task_source()
                     .queue_event(
@@ -2832,25 +2832,27 @@ impl Activatable for HTMLInputElement {
                 // https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit):activation-behavior
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 // Check if document owner is fully active
-                self.form_owner().map(|o| {
+                if let Some(o) = self.form_owner() {
                     o.submit(
                         SubmittedFrom::NotFromForm,
                         FormSubmitter::InputElement(self),
                     )
-                });
+                }
             },
             InputType::Reset => {
                 // https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):activation-behavior
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 // Check if document owner is fully active
-                self.form_owner().map(|o| o.reset(ResetFrom::NotFromForm));
+                if let Some(o) = self.form_owner() {
+                    o.reset(ResetFrom::NotFromForm)
+                }
             },
             InputType::Checkbox | InputType::Radio => {
                 // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):activation-behavior
                 // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):activation-behavior
                 // Check if document owner is fully active
                 if !self.upcast::<Node>().is_connected() {
-                    return ();
+                    return;
                 }
                 let target = self.upcast::<EventTarget>();
                 target.fire_bubbling_event(atom!("input"));
@@ -2868,11 +2870,9 @@ fn filter_from_accept(s: &DOMString) -> Vec<FilterPattern> {
     for p in split_commas(s) {
         if let Some('.') = p.chars().nth(0) {
             filter.push(FilterPattern(p[1..].to_string()));
-        } else {
-            if let Some(exts) = mime_guess::get_mime_extensions_str(p) {
-                for ext in exts {
-                    filter.push(FilterPattern(ext.to_string()));
-                }
+        } else if let Some(exts) = mime_guess::get_mime_extensions_str(p) {
+            for ext in exts {
+                filter.push(FilterPattern(ext.to_string()));
             }
         }
     }

@@ -165,7 +165,7 @@ impl HeadersMethods for Headers {
         let valid_name = validate_name(name)?;
         Ok(
             get_value_from_header_list(&valid_name, &self.header_list.borrow())
-                .map(|v| ByteString::new(v)),
+                .map(ByteString::new),
         )
     }
 
@@ -443,7 +443,7 @@ fn index_of_last_non_whitespace(value: &ByteString) -> Option<usize> {
 
 // http://tools.ietf.org/html/rfc7230#section-3.2
 fn is_field_name(name: &ByteString) -> bool {
-    is_token(&*name)
+    is_token(name)
 }
 
 // https://fetch.spec.whatg.org/#concept-header-value

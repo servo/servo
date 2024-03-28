@@ -539,7 +539,7 @@ impl BluetoothMethods for Bluetooth {
         let sender = response_async(&p, self);
         self.request_bluetooth_devices(&p, &option.filters, &option.optionalServices, sender);
         //Note: Step 3 - 4. in response function, Step 5. in handle_response function.
-        return p;
+        p
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-getavailability

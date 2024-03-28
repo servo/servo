@@ -143,7 +143,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         self.set_range(
             Some(start),
             Some(end),
-            direction.map(|d| SelectionDirection::from(d)),
+            direction.map(SelectionDirection::from),
             None,
         );
         Ok(())

@@ -287,7 +287,7 @@ impl DocumentOrShadowRoot {
         assert!(element.upcast::<Node>().is_connected());
         assert!(!id.is_empty());
         let mut id_map = id_map.borrow_mut();
-        let elements = id_map.entry(id.clone()).or_insert(Vec::new());
+        let elements = id_map.entry(id.clone()).or_default();
         elements.insert_pre_order(element, &root);
     }
 }

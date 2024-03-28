@@ -67,7 +67,7 @@ impl VirtualMethods for HTMLTitleElement {
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.children_changed(mutation);
         }
         let node = self.upcast::<Node>();
@@ -77,7 +77,7 @@ impl VirtualMethods for HTMLTitleElement {
     }
 
     fn bind_to_tree(&self, context: &BindContext) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.bind_to_tree(context);
         }
         let node = self.upcast::<Node>();

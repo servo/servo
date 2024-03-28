@@ -31,6 +31,7 @@ CERTS_PATH = os.path.join(WPT_TOOLS_PATH, "certs")
 TRACKER_API = "https://build.servo.org/intermittent-tracker"
 TRACKER_API_ENV_VAR = "INTERMITTENT_TRACKER_API"
 TRACKER_DASHBOARD_SECRET_ENV_VAR = "INTERMITTENT_TRACKER_DASHBOARD_SECRET"
+TRACKER_DASHBOARD_MAXIMUM_OUTPUT_LENGTH = 1024
 
 
 def set_if_none(args: dict, key: str, value):
@@ -235,7 +236,10 @@ class TrackerDashboardFilter():
             'expected': result.expected,
             'actual': result.actual,
             'time': result.time // 1000,
-            'message': result.message,
+            # Truncate the message, to avoid issues with lots of output causing "HTTP
+            # Error 413: Request Entity Too Large."
+            # See https://github.com/servo/servo/issues/31845.
+            'message': result.message[0:TRACKER_DASHBOARD_MAXIMUM_OUTPUT_LENGTH],
             'stack': result.stack,
         }
         if isinstance(result, UnexpectedSubtestResult):

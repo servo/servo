@@ -144,7 +144,7 @@ pub fn run_worker_event_loop<T, WorkerMsg, Event>(
     }
     // Step 3
     for event in sequential {
-        let _realm = enter_realm(&*worker_scope);
+        let _realm = enter_realm(worker_scope);
         if !worker_scope.handle_event(event) {
             // Shutdown
             return;

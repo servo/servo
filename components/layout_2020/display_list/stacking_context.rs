@@ -474,7 +474,7 @@ impl StackingContext {
         if effects.filter.0.is_empty() &&
             effects.opacity == 1.0 &&
             effects.mix_blend_mode == ComputedMixBlendMode::Normal &&
-            !style.has_transform_or_perspective()
+            !style.has_transform_or_perspective(FragmentFlags::empty())
         {
             return false;
         }
@@ -896,7 +896,7 @@ struct ReferenceFrameData {
 
 impl BoxFragment {
     fn get_stacking_context_type(&self) -> Option<StackingContextType> {
-        if self.style.establishes_stacking_context() {
+        if self.style.establishes_stacking_context(self.base.flags) {
             return Some(StackingContextType::RealStackingContext);
         }
 
@@ -986,7 +986,7 @@ impl BoxFragment {
         // properties will be replaced before recursing into children.
         assert!(self
             .style
-            .establishes_containing_block_for_all_descendants());
+            .establishes_containing_block_for_all_descendants(self.base.flags));
         let adjusted_containing_block = ContainingBlock::new(
             containing_block
                 .rect
@@ -1168,7 +1168,7 @@ impl BoxFragment {
         // absolute and fixed descendants.
         let new_containing_block_info = if self
             .style
-            .establishes_containing_block_for_all_descendants()
+            .establishes_containing_block_for_all_descendants(self.base.flags)
         {
             containing_block_info.new_for_absolute_and_fixed_descendants(
                 &for_non_absolute_descendants,
@@ -1176,7 +1176,7 @@ impl BoxFragment {
             )
         } else if self
             .style
-            .establishes_containing_block_for_absolute_descendants()
+            .establishes_containing_block_for_absolute_descendants(self.base.flags)
         {
             containing_block_info.new_for_absolute_descendants(
                 &for_non_absolute_descendants,
@@ -1389,7 +1389,7 @@ impl BoxFragment {
         &self,
         containing_block_rect: &PhysicalRect<Length>,
     ) -> Option<ReferenceFrameData> {
-        if !self.style.has_transform_or_perspective() {
+        if !self.style.has_transform_or_perspective(self.base.flags) {
             return None;
         }
 

@@ -441,7 +441,7 @@ impl XRSession {
             let callback = self.current_raf_callback_list.borrow()[i]
                 .1
                 .as_ref()
-                .map(|callback| Rc::clone(callback));
+                .map(Rc::clone);
             if let Some(callback) = callback {
                 let _ = callback.Call__(time, &frame, ExceptionHandling::Report);
             }
@@ -784,7 +784,7 @@ impl XRSessionMethods for XRSession {
                         .borrow()
                         .granted_features()
                         .iter()
-                        .find(|f| &**f == s)
+                        .find(|f| **f == s)
                         .is_none()
                     {
                         p.reject_error(Error::NotSupported);

@@ -125,7 +125,7 @@ macro_rules! make_form_action_getter(
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             let element = self.upcast::<Element>();
-            let doc = crate::dom::node::document_from_node(self);
+            let doc = $crate::dom::node::document_from_node(self);
             let attr = element.get_attribute(&html5ever::ns!(), &html5ever::local_name!($htmlname));
             let value = attr.as_ref().map(|attr| attr.value());
             let value = match value {
@@ -205,7 +205,7 @@ macro_rules! make_uint_setter(
         fn $attr(&self, value: u32) {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
-            use crate::dom::values::UNSIGNED_LONG_MAX;
+            use $crate::dom::values::UNSIGNED_LONG_MAX;
             let value = if value > UNSIGNED_LONG_MAX {
                 $default
             } else {
@@ -226,7 +226,7 @@ macro_rules! make_limited_uint_setter(
         fn $attr(&self, value: u32) -> $crate::dom::bindings::error::ErrorResult {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
-            use crate::dom::values::UNSIGNED_LONG_MAX;
+            use $crate::dom::values::UNSIGNED_LONG_MAX;
             let value = if value == 0 {
                 return Err($crate::dom::bindings::error::Error::IndexSize);
             } else if value > UNSIGNED_LONG_MAX {

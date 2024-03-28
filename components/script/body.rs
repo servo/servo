@@ -287,7 +287,7 @@ struct TransmitBodyPromiseHandler {
 impl Callback for TransmitBodyPromiseHandler {
     /// Step 5 of <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
     fn callback(&self, cx: JSContext, v: HandleValue, _realm: InRealm) {
-        let is_done = match get_read_promise_done(cx.clone(), &v) {
+        let is_done = match get_read_promise_done(cx, &v) {
             Ok(is_done) => is_done,
             Err(_) => {
                 // Step 5.5, the "otherwise" steps.
@@ -304,7 +304,7 @@ impl Callback for TransmitBodyPromiseHandler {
             return self.stream.stop_reading();
         }
 
-        let chunk = match get_read_promise_bytes(cx.clone(), &v) {
+        let chunk = match get_read_promise_bytes(cx, &v) {
             Ok(chunk) => chunk,
             Err(_) => {
                 // Step 5.5, the "otherwise" steps.
@@ -656,7 +656,7 @@ impl Callback for ConsumeBodyPromiseHandler {
             .as_ref()
             .expect("ConsumeBodyPromiseHandler has no stream in callback.");
 
-        let is_done = match get_read_promise_done(cx.clone(), &v) {
+        let is_done = match get_read_promise_done(cx, &v) {
             Ok(is_done) => is_done,
             Err(err) => {
                 stream.stop_reading();
@@ -667,9 +667,9 @@ impl Callback for ConsumeBodyPromiseHandler {
 
         if is_done {
             // When read is fulfilled with an object whose done property is true.
-            self.resolve_result_promise(cx.clone());
+            self.resolve_result_promise(cx);
         } else {
-            let chunk = match get_read_promise_bytes(cx.clone(), &v) {
+            let chunk = match get_read_promise_bytes(cx, &v) {
                 Ok(chunk) => chunk,
                 Err(err) => {
                     stream.stop_reading();
