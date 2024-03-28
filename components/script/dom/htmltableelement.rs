@@ -50,7 +50,7 @@ impl CollectionFilter for TableRowFilter {
             (root.is_parent_of(elem.upcast()) ||
                 self.sections
                     .iter()
-                    .any(|ref section| section.is_parent_of(elem.upcast())))
+                    .any(|section| section.is_parent_of(elem.upcast())))
     }
 }
 

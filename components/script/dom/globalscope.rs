@@ -1209,7 +1209,7 @@ impl GlobalScope {
             if let Some(channels) = channels.get(&channel_name) {
                 channels
                     .iter()
-                    .filter(|ref channel| {
+                    .filter(|channel| {
                         // Step 8.
                         // Filter out the sender.
                         if let Some(id) = channel_id {
@@ -1355,7 +1355,7 @@ impl GlobalScope {
         {
             let to_be_removed: Vec<MessagePortId> = message_ports
                 .iter()
-                .filter_map(|(id, ref managed_port)| {
+                .filter_map(|(id, managed_port)| {
                     if managed_port.closed {
                         // Let the constellation know to drop this port and the one it is entangled with,
                         // and to forward this message to the script-process where the entangled is found.
@@ -1388,7 +1388,7 @@ impl GlobalScope {
             &mut *self.broadcast_channel_state.borrow_mut()
         {
             channels.retain(|name, ref mut channels| {
-                channels.retain(|ref chan| !chan.closed());
+                channels.retain(|chan| !chan.closed());
                 if channels.is_empty() {
                     let _ = self.script_to_constellation_chan().send(
                         ScriptMsg::RemoveBroadcastChannelNameInRouter(

@@ -2483,7 +2483,7 @@ impl VirtualMethods for HTMLInputElement {
     }
 
     fn bind_to_tree(&self, context: &BindContext) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.bind_to_tree(context);
         }
         self.upcast::<Element>()
@@ -2620,7 +2620,7 @@ impl VirtualMethods for HTMLInputElement {
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
     ) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.cloning_steps(copy, maybe_doc, clone_children);
         }
         let elem = copy.downcast::<HTMLInputElement>().unwrap();
