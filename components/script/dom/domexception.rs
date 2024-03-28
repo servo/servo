@@ -41,6 +41,7 @@ pub enum DOMErrorName {
     TimeoutError = DOMExceptionConstants::TIMEOUT_ERR,
     InvalidNodeTypeError = DOMExceptionConstants::INVALID_NODE_TYPE_ERR,
     DataCloneError = DOMExceptionConstants::DATA_CLONE_ERR,
+    EncodingError,
     NotReadableError,
     OperationError,
 }
@@ -70,6 +71,7 @@ impl DOMErrorName {
             "TimeoutError" => Some(DOMErrorName::TimeoutError),
             "InvalidNodeTypeError" => Some(DOMErrorName::InvalidNodeTypeError),
             "DataCloneError" => Some(DOMErrorName::DataCloneError),
+            "EncodingError" => Some(DOMErrorName::EncodingError),
             "NotReadableError" => Some(DOMErrorName::NotReadableError),
             "OperationError" => Some(DOMErrorName::OperationError),
             _ => None,
@@ -115,6 +117,9 @@ impl DOMException {
                 "The supplied node is incorrect or has an incorrect ancestor for this operation."
             },
             DOMErrorName::DataCloneError => "The object can not be cloned.",
+            DOMErrorName::EncodingError => {
+                "The encoding operation (either encoded or decoding) failed."
+            },
             DOMErrorName::NotReadableError => "The I/O read operation failed.",
             DOMErrorName::OperationError => {
                 "The operation failed for an operation-specific reason."
