@@ -462,7 +462,6 @@ pub enum LayoutHangAnnotation {
     RemoveStylesheet,
     SetQuirksMode,
     Reflow,
-    GetRPC,
     CollectReports,
     ExitNow,
     GetCurrentEpoch,
