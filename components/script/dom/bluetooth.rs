@@ -330,7 +330,7 @@ where
             sender,
         ))
         .unwrap();
-    return p;
+    p
 }
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothlescanfilterinit-canonicalizing

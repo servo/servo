@@ -448,7 +448,7 @@ impl DOMString {
                 return Some(val);
             }
         }
-        return None;
+        None
     }
 
     /// <https://html.spec.whatwg.org/multipage/#best-representation-of-the-number-as-a-floating-point-number>

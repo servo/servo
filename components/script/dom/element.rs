@@ -2878,7 +2878,7 @@ impl ElementMethods for Element {
         match self.as_maybe_activatable() {
             Some(a) => {
                 a.exit_formal_activation_state();
-                return Ok(());
+                Ok(())
             },
             None => Err(Error::NotSupported),
         }

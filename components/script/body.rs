@@ -338,7 +338,7 @@ impl Callback for TransmitBodyPromiseRejectionHandler {
     fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm) {
         // Step 5.4, the "rejection" steps.
         let _ = self.control_sender.send(BodyChunkRequest::Error);
-        return self.stream.stop_reading();
+        self.stream.stop_reading();
     }
 }
 

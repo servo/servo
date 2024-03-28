@@ -602,7 +602,7 @@ fn get_proto_id_for_new_target(new_target: HandleObject) -> Option<PrototypeList
             let dom_class = &(*domjsclass).dom_class;
             return Some(dom_class.interface_chain[dom_class.depth as usize]);
         }
-        return None;
+        None
     }
 }
 
@@ -698,6 +698,6 @@ pub fn get_desired_proto(
         }
 
         maybe_wrap_object(*cx, desired_proto);
-        return Ok(());
+        Ok(())
     }
 }
