@@ -2978,8 +2978,6 @@ where
             Some(top_level_browsing_context_id),
             EmbedderMsg::WebViewOpened(top_level_browsing_context_id),
         );
-        let log = format!("WebViewOpened {top_level_browsing_context_id}");
-        dbg!(log);
         self.embedder_proxy.send(msg);
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         let load_data = LoadData::new(
@@ -3056,8 +3054,6 @@ where
         self.webviews.remove(top_level_browsing_context_id);
         self.compositor_proxy
             .send(CompositorMsg::RemoveWebView(top_level_browsing_context_id));
-        let log = format!("RemoveWebView {top_level_browsing_context_id}");
-        dbg!(log);
         self.embedder_proxy.send((
             Some(top_level_browsing_context_id),
             EmbedderMsg::WebViewClosed(top_level_browsing_context_id),
@@ -5424,8 +5420,6 @@ where
         let browsing_context_id = BrowsingContextId::from(webview_id);
         if let Some(frame_tree) = self.browsing_context_to_sendable(browsing_context_id) {
             debug!("{}: Sending frame tree", browsing_context_id);
-            let log = format!("CreateOrUpdateWebView {webview_id}");
-            dbg!(log);
             self.compositor_proxy
                 .send(CompositorMsg::CreateOrUpdateWebView(frame_tree));
         }
