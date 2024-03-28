@@ -124,8 +124,7 @@ impl TextTrackListMethods for TextTrackList {
         self.dom_tracks
             .borrow()
             .iter()
-            .filter(|track| track.id() == id_str)
-            .next()
+            .find(|track| track.id() == id_str)
             .map(|t| DomRoot::from_ref(&**t))
     }
 
