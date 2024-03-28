@@ -764,19 +764,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 let mut transaction = Transaction::new();
                 transaction
                     .set_display_list(display_list_info.epoch, (pipeline_id, built_display_list));
-
-                for node in details.scroll_tree.nodes.iter() {
-                    if let (Some(offset), Some(external_id)) = (node.offset(), node.external_id()) {
-                        let offset = LayoutVector2D::new(-offset.x, -offset.y);
-                        transaction.set_scroll_offsets(
-                            external_id,
-                            vec![SampledScrollOffset {
-                                offset,
-                                generation: 0,
-                            }],
-                        );
-                    }
-                }
+                self.update_transaction_with_all_scroll_offsets(&mut transaction);
                 self.generate_frame(&mut transaction, RenderReasons::SCENE);
                 self.webrender_api
                     .send_transaction(self.webrender_document, transaction);
@@ -1091,6 +1079,34 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         // be an issue. WebRender will still update the scene and generate a new
         // frame even though the epoch hasn't changed.
         transaction.set_display_list(WebRenderEpoch(0), built_display_list);
+        self.update_transaction_with_all_scroll_offsets(transaction);
+    }
+
+    /// Update the given transaction with the scroll offsets of all active scroll nodes in
+    /// the WebRender scene. This is necessary because WebRender does not preserve scroll
+    /// offsets between scroll tree modifications. If a display list could potentially
+    /// modify a scroll tree branch, WebRender needs to have scroll offsets for that
+    /// branch.
+    ///
+    /// TODO(mrobinson): Could we only send offsets for the branch being modified
+    /// and not the entire scene?
+    fn update_transaction_with_all_scroll_offsets(&self, transaction: &mut Transaction) {
+        for details in self.pipeline_details.values() {
+            for node in details.scroll_tree.nodes.iter() {
+                let (Some(offset), Some(external_id)) = (node.offset(), node.external_id()) else {
+                    continue;
+                };
+
+                let offset = LayoutVector2D::new(-offset.x, -offset.y);
+                transaction.set_scroll_offsets(
+                    external_id,
+                    vec![SampledScrollOffset {
+                        offset,
+                        generation: 0,
+                    }],
+                );
+            }
+        }
     }
 
     fn set_frame_tree(&mut self, frame_tree: &SendableFrameTree) {
