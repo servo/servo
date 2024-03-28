@@ -125,8 +125,8 @@ impl Serializable for Blob {
         let new_blob_id = blob_impl.blob_id();
 
         // 2. Store the object at a given key.
-        let blobs = blob_impls.get_or_insert_with(HashMap::new);
-        blobs.insert(new_blob_id.clone(), blob_impl);
+        let blobs = blob_impls.get_or_insert_with(|| HashMap::new());
+        blobs.insert(new_blob_id, blob_impl);
 
         let PipelineNamespaceId(name_space) = new_blob_id.namespace_id;
         let BlobIndex(index) = new_blob_id.index;
