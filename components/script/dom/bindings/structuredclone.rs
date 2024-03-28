@@ -65,7 +65,7 @@ unsafe fn read_blob(
         &mut index as *mut u32
     ));
     let storage_key = StorageKey { index, name_space };
-    if <Blob as Serializable>::deserialize(owner, sc_holder, storage_key.clone()).is_ok() {
+    if <Blob as Serializable>::deserialize(owner, sc_holder, storage_key).is_ok() {
         let blobs = match sc_holder {
             StructuredDataHolder::Read { blobs, .. } => blobs,
             _ => panic!("Unexpected variant of StructuredDataHolder"),
@@ -107,7 +107,7 @@ unsafe fn write_blob(
         "Writing structured data for a blob failed in {:?}.",
         owner.get_url()
     );
-    return false;
+    false
 }
 
 unsafe extern "C" fn read_callback(
@@ -134,7 +134,7 @@ unsafe extern "C" fn read_callback(
             &mut *(closure as *mut StructuredDataHolder),
         );
     }
-    return ptr::null_mut();
+    ptr::null_mut()
 }
 
 unsafe extern "C" fn write_callback(
@@ -153,7 +153,7 @@ unsafe extern "C" fn write_callback(
             &mut *(closure as *mut StructuredDataHolder),
         );
     }
-    return false;
+    false
 }
 
 unsafe extern "C" fn read_transfer_callback(

@@ -71,7 +71,7 @@ impl DOMTokenList {
     // https://dom.spec.whatwg.org/#concept-dtl-update
     fn perform_update_steps(&self, atoms: Vec<Atom>) {
         // Step 1
-        if !self.element.has_attribute(&self.local_name) && atoms.len() == 0 {
+        if !self.element.has_attribute(&self.local_name) && atoms.is_empty() {
             return;
         }
         // step 2

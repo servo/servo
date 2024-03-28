@@ -84,16 +84,14 @@ pub fn view<Eye>(view: &FakeXRViewInit) -> Fallible<MockViewInit<Eye>> {
     };
     let viewport = Rect::new(origin, size);
 
-    let fov = if let Some(ref fov) = view.fieldOfView {
-        Some((
+    let fov = view.fieldOfView.as_ref().map(|fov| {
+        (
             fov.leftDegrees.to_radians(),
             fov.rightDegrees.to_radians(),
             fov.upDegrees.to_radians(),
             fov.downDegrees.to_radians(),
-        ))
-    } else {
-        None
-    };
+        )
+    });
 
     Ok(MockViewInit {
         projection,

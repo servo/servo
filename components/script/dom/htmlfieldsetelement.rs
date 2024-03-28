@@ -186,20 +186,19 @@ impl VirtualMethods for HTMLFieldSetElement {
                 let fields = children.flat_map(|child| {
                     child
                         .traverse_preorder(ShadowIncluding::No)
-                        .filter(|descendant| match descendant.type_id() {
-                            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                                HTMLElementTypeId::HTMLButtonElement,
-                            )) |
-                            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                                HTMLElementTypeId::HTMLInputElement,
-                            )) |
-                            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                                HTMLElementTypeId::HTMLSelectElement,
-                            )) |
-                            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                                HTMLElementTypeId::HTMLTextAreaElement,
-                            )) => true,
-                            _ => false,
+                        .filter(|descendant| {
+                            matches!(
+                                descendant.type_id(),
+                                NodeTypeId::Element(ElementTypeId::HTMLElement(
+                                    HTMLElementTypeId::HTMLButtonElement,
+                                )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
+                                    HTMLElementTypeId::HTMLInputElement,
+                                )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
+                                    HTMLElementTypeId::HTMLSelectElement,
+                                )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
+                                    HTMLElementTypeId::HTMLTextAreaElement,
+                                ))
+                            )
                         })
                 });
                 if disabled_state {

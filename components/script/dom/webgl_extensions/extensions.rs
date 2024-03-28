@@ -458,10 +458,10 @@ impl WebGLExtensions {
     }
 
     pub fn effective_type(&self, type_: u32) -> u32 {
-        if type_ == OESTextureHalfFloatConstants::HALF_FLOAT_OES {
-            if !self.supports_gl_extension("GL_OES_texture_half_float") {
-                return gl::HALF_FLOAT;
-            }
+        if type_ == OESTextureHalfFloatConstants::HALF_FLOAT_OES &&
+            !self.supports_gl_extension("GL_OES_texture_half_float")
+        {
+            return gl::HALF_FLOAT;
         }
         type_
     }

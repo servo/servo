@@ -1259,7 +1259,9 @@ impl TreeSink for Sink {
 
     fn mark_script_already_started(&mut self, node: &Dom<Node>) {
         let script = node.downcast::<HTMLScriptElement>();
-        script.map(|script| script.set_already_started(true));
+        if let Some(script) = script {
+            script.set_already_started(true)
+        }
     }
 
     fn complete_script(&mut self, node: &Dom<Node>) -> NextParserState {
@@ -1399,10 +1401,7 @@ impl NetworkDecoder {
 
     fn decode(&mut self, chunk: Vec<u8>) -> StrTendril {
         self.decoder.process(ByteTendril::from(&*chunk));
-        mem::replace(
-            &mut self.decoder.inner_sink_mut().output,
-            Default::default(),
-        )
+        std::mem::take(&mut self.decoder.inner_sink_mut().output)
     }
 
     fn finish(self) -> StrTendril {

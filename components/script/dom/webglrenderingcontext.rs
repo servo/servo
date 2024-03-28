@@ -871,10 +871,10 @@ impl WebGLRenderingContext {
         }
 
         // See https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.1.6
-        if self.webgl_version() == WebGLVersion::WebGL1 {
-            if data_type != image_info.data_type().unwrap() {
-                return self.webgl_error(InvalidOperation);
-            }
+        if self.webgl_version() == WebGLVersion::WebGL1 &&
+            data_type != image_info.data_type().unwrap()
+        {
+            return self.webgl_error(InvalidOperation);
         }
 
         let settings = self.texture_unpacking_settings.get();
@@ -2066,7 +2066,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 let format_ids = self.extension_manager.get_tex_compression_ids();
 
                 rooted!(in(*cx) let mut rval = ptr::null_mut::<JSObject>());
-                let _ = Uint32Array::create(*cx, CreateWith::Slice(&format_ids), rval.handle_mut())
+                Uint32Array::create(*cx, CreateWith::Slice(&format_ids), rval.handle_mut())
                     .unwrap();
                 return ObjectValue(rval.get());
             },
@@ -2165,7 +2165,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterInt2(param, sender));
                 rooted!(in(*cx) let mut rval = ptr::null_mut::<JSObject>());
-                let _ = Int32Array::create(
+                Int32Array::create(
                     *cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
@@ -2177,7 +2177,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterInt4(param, sender));
                 rooted!(in(*cx) let mut rval = ptr::null_mut::<JSObject>());
-                let _ = Int32Array::create(
+                Int32Array::create(
                     *cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
@@ -2194,7 +2194,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterFloat2(param, sender));
                 rooted!(in(*cx) let mut rval = ptr::null_mut::<JSObject>());
-                let _ = Float32Array::create(
+                Float32Array::create(
                     *cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
@@ -2206,7 +2206,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterFloat4(param, sender));
                 rooted!(in(*cx) let mut rval = ptr::null_mut::<JSObject>());
-                let _ = Float32Array::create(
+                Float32Array::create(
                     *cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
@@ -3145,23 +3145,20 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             .attachment(attachment)
         {
             Some(attachment_root) => match attachment_root {
-                WebGLFramebufferAttachmentRoot::Renderbuffer(_) => match pname {
+                WebGLFramebufferAttachmentRoot::Renderbuffer(_) => matches!(
+                    pname,
                     constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE |
-                    constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME => true,
-                    _ => false,
-                },
-                WebGLFramebufferAttachmentRoot::Texture(_) => match pname {
+                        constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME
+                ),
+                WebGLFramebufferAttachmentRoot::Texture(_) => matches!(
+                    pname,
                     constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE |
-                    constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME |
-                    constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL |
-                    constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE => true,
-                    _ => false,
-                },
+                        constants::FRAMEBUFFER_ATTACHMENT_OBJECT_NAME |
+                        constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL |
+                        constants::FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE
+                ),
             },
-            _ => match pname {
-                constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE => true,
-                _ => false,
-            },
+            _ => matches!(pname, constants::FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE),
         };
 
         if !target_matches || !attachment_matches || !pname_matches || !bound_attachment_matches {
@@ -3211,18 +3208,18 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         // https://github.com/immersive-web/webxr/issues/862
         let target_matches = target == constants::RENDERBUFFER;
 
-        let pname_matches = match pname {
+        let pname_matches = matches!(
+            pname,
             constants::RENDERBUFFER_WIDTH |
-            constants::RENDERBUFFER_HEIGHT |
-            constants::RENDERBUFFER_INTERNAL_FORMAT |
-            constants::RENDERBUFFER_RED_SIZE |
-            constants::RENDERBUFFER_GREEN_SIZE |
-            constants::RENDERBUFFER_BLUE_SIZE |
-            constants::RENDERBUFFER_ALPHA_SIZE |
-            constants::RENDERBUFFER_DEPTH_SIZE |
-            constants::RENDERBUFFER_STENCIL_SIZE => true,
-            _ => false,
-        };
+                constants::RENDERBUFFER_HEIGHT |
+                constants::RENDERBUFFER_INTERNAL_FORMAT |
+                constants::RENDERBUFFER_RED_SIZE |
+                constants::RENDERBUFFER_GREEN_SIZE |
+                constants::RENDERBUFFER_BLUE_SIZE |
+                constants::RENDERBUFFER_ALPHA_SIZE |
+                constants::RENDERBUFFER_DEPTH_SIZE |
+                constants::RENDERBUFFER_STENCIL_SIZE
+        );
 
         if !target_matches || !pname_matches {
             self.webgl_error(InvalidEnum);
@@ -3383,7 +3380,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                         let value = [x, y, z, w];
                         unsafe {
                             rooted!(in(*cx) let mut result = ptr::null_mut::<JSObject>());
-                            let _ = Float32Array::create(
+                            Float32Array::create(
                                 *cx,
                                 CreateWith::Slice(&value),
                                 result.handle_mut(),
@@ -3396,12 +3393,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                         let value = [x, y, z, w];
                         unsafe {
                             rooted!(in(*cx) let mut result = ptr::null_mut::<JSObject>());
-                            let _ = Int32Array::create(
-                                *cx,
-                                CreateWith::Slice(&value),
-                                result.handle_mut(),
-                            )
-                            .unwrap();
+                            Int32Array::create(*cx, CreateWith::Slice(&value), result.handle_mut())
+                                .unwrap();
                             return ObjectValue(result.get());
                         }
                     },
@@ -3409,7 +3402,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                         let value = [x, y, z, w];
                         unsafe {
                             rooted!(in(*cx) let mut result = ptr::null_mut::<JSObject>());
-                            let _ = Uint32Array::create(
+                            Uint32Array::create(
                                 *cx,
                                 CreateWith::Slice(&value),
                                 result.handle_mut(),

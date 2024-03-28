@@ -27,7 +27,7 @@ use crate::dom::performanceobserverentrylist::PerformanceObserverEntryList;
 use crate::script_runtime::JSContext;
 
 /// List of allowed performance entry types, in alphabetical order.
-pub const VALID_ENTRY_TYPES: &'static [&'static str] = &[
+pub const VALID_ENTRY_TYPES: &[&str] = &[
     // "frame", //TODO Frame Timing API
     "mark",       // User Timing API
     "measure",    // User Timing API

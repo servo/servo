@@ -106,7 +106,7 @@ unsafe extern "C" fn off_thread_compilation_callback(
     let final_url = context.final_url.clone();
     let script_element = context.script_element.clone();
     let script_kind = context.script_kind;
-    let script = replace(&mut context.script_text, String::new());
+    let script = std::mem::take(&mut context.script_text);
     let fetch_options = context.fetch_options.clone();
 
     // Continue with <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>

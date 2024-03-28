@@ -127,13 +127,13 @@ impl Range {
 
     /// <https://dom.spec.whatwg.org/#contained>
     fn contains(&self, node: &Node) -> bool {
-        match (
-            bp_position(node, 0, &self.start_container(), self.start_offset()),
-            bp_position(node, node.len(), &self.end_container(), self.end_offset()),
-        ) {
-            (Some(Ordering::Greater), Some(Ordering::Less)) => true,
-            _ => false,
-        }
+        matches!(
+            (
+                bp_position(node, 0, &self.start_container(), self.start_offset()),
+                bp_position(node, node.len(), &self.end_container(), self.end_offset()),
+            ),
+            (Some(Ordering::Greater), Some(Ordering::Less))
+        )
     }
 
     /// <https://dom.spec.whatwg.org/#partially-contained>

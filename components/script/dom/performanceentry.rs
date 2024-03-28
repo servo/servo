@@ -69,12 +69,12 @@ impl PerformanceEntry {
 impl PerformanceEntryMethods for PerformanceEntry {
     // https://w3c.github.io/performance-timeline/#dom-performanceentry-name
     fn Name(&self) -> DOMString {
-        DOMString::from(self.name.clone())
+        self.name.clone()
     }
 
     // https://w3c.github.io/performance-timeline/#dom-performanceentry-entrytype
     fn EntryType(&self) -> DOMString {
-        DOMString::from(self.entry_type.clone())
+        self.entry_type.clone()
     }
 
     // https://w3c.github.io/performance-timeline/#dom-performanceentry-starttime

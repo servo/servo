@@ -74,10 +74,9 @@ impl GPUQueueMethods for GPUQueue {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-submit>
     fn Submit(&self, command_buffers: Vec<DomRoot<GPUCommandBuffer>>) {
         let valid = command_buffers.iter().all(|cb| {
-            cb.buffers().iter().all(|b| match b.state() {
-                GPUBufferState::Unmapped => true,
-                _ => false,
-            })
+            cb.buffers()
+                .iter()
+                .all(|b| matches!(b.state(), GPUBufferState::Unmapped))
         });
         let scope_id = self.device.borrow().as_ref().unwrap().use_current_scope();
         if !valid {

@@ -109,7 +109,7 @@ impl BluetoothDevice {
             service.instance_id.clone(),
         );
         service_map.insert(service.instance_id.clone(), Dom::from_ref(&bt_service));
-        return bt_service;
+        bt_service
     }
 
     pub fn get_or_create_characteristic(
@@ -145,7 +145,7 @@ impl BluetoothDevice {
             characteristic.instance_id.clone(),
             Dom::from_ref(&bt_characteristic),
         );
-        return bt_characteristic;
+        bt_characteristic
     }
 
     pub fn is_represented_device_null(&self) -> bool {
@@ -179,7 +179,7 @@ impl BluetoothDevice {
             descriptor.instance_id.clone(),
             Dom::from_ref(&bt_descriptor),
         );
-        return bt_descriptor;
+        bt_descriptor
     }
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
@@ -231,11 +231,8 @@ impl BluetoothDevice {
         let context = self.get_context();
         for (id, device) in context.get_device_map().borrow().iter() {
             // Step 2.1 - 2.2.
-            if id == &self.Id().to_string() {
-                if device.get_gatt().Connected() {
-                    return Ok(());
-                }
-                // TODO: Step 2.3: Implement activeAlgorithms internal slot for BluetoothRemoteGATTServer.
+            if id == &self.Id().to_string() && device.get_gatt().Connected() {
+                return Ok(());
             }
         }
 
@@ -291,7 +288,7 @@ impl BluetoothDeviceMethods for BluetoothDevice {
                 sender,
             ))
             .unwrap();
-        return p;
+        p
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-unwatchadvertisements
