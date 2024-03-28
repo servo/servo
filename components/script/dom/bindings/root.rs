@@ -521,7 +521,8 @@ impl<T> Clone for Dom<T> {
 impl<T> Clone for LayoutDom<'_, T> {
     #[inline]
     fn clone(&self) -> Self {
-        *self
+        assert_in_layout();
+        LayoutDom { value: self.value }
     }
 }
 
