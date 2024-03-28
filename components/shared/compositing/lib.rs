@@ -24,7 +24,7 @@ use script_traits::{
     ScriptToCompositorMsg,
 };
 use style_traits::CSSPixel;
-use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
+use webrender_api::units::{DeviceIntPoint, DeviceIntSize, DeviceRect};
 use webrender_api::{self, FontInstanceKey, FontKey, ImageKey};
 
 /// Sends messages to the compositor.
@@ -73,8 +73,18 @@ pub enum CompositorMsg {
     ShutdownComplete,
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
-    /// Replaces the current frame tree, typically called during main frame navigation.
-    SetFrameTree(SendableFrameTree),
+    /// Create or update a webview, given its frame tree.
+    CreateOrUpdateWebView(SendableFrameTree),
+    /// Remove a webview.
+    RemoveWebView(TopLevelBrowsingContextId),
+    /// Move and/or resize a webview to the given rect.
+    MoveResizeWebView(TopLevelBrowsingContextId, DeviceRect),
+    /// Start painting a webview, and optionally stop painting all others.
+    ShowWebView(TopLevelBrowsingContextId, bool),
+    /// Stop painting a webview.
+    HideWebView(TopLevelBrowsingContextId),
+    /// Start painting a webview on top of all others, and optionally stop painting all others.
+    RaiseWebViewToTop(TopLevelBrowsingContextId, bool),
     /// Script has handled a touch event, and either prevented or allowed default actions.
     TouchEventProcessed(EventResult),
     /// Composite to a PNG file and return the Image over a passed channel.
@@ -153,7 +163,12 @@ impl Debug for CompositorMsg {
             CompositorMsg::ChangeRunningAnimationsState(_, state) => {
                 write!(f, "ChangeRunningAnimationsState({:?})", state)
             },
-            CompositorMsg::SetFrameTree(..) => write!(f, "SetFrameTree"),
+            CompositorMsg::CreateOrUpdateWebView(..) => write!(f, "CreateOrUpdateWebView"),
+            CompositorMsg::RemoveWebView(..) => write!(f, "RemoveWebView"),
+            CompositorMsg::MoveResizeWebView(..) => write!(f, "MoveResizeWebView"),
+            CompositorMsg::ShowWebView(..) => write!(f, "ShowWebView"),
+            CompositorMsg::HideWebView(..) => write!(f, "HideWebView"),
+            CompositorMsg::RaiseWebViewToTop(..) => write!(f, "RaiseWebViewToTop"),
             CompositorMsg::TouchEventProcessed(..) => write!(f, "TouchEventProcessed"),
             CompositorMsg::CreatePng(..) => write!(f, "CreatePng"),
             CompositorMsg::IsReadyToSaveImageReply(..) => write!(f, "IsReadyToSaveImageReply"),

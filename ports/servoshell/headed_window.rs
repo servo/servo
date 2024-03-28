@@ -8,7 +8,6 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use euclid::num::Zero;
 use euclid::{Angle, Length, Point2D, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D};
 use log::{debug, info, trace};
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
@@ -309,8 +308,11 @@ impl WindowPortsMethods for Window {
     }
 
     fn set_inner_size(&self, size: DeviceIntSize) {
+        let toolbar_height = self.toolbar_height() * self.hidpi_factor();
+        let toolbar_height = toolbar_height.get().ceil() as i32;
+        let total_size = PhysicalSize::new(size.width, size.height + toolbar_height);
         self.winit_window
-            .set_inner_size::<PhysicalSize<i32>>(PhysicalSize::new(size.width, size.height))
+            .set_inner_size::<PhysicalSize<i32>>(total_size)
     }
 
     fn set_position(&self, point: DeviceIntPoint) {
@@ -399,9 +401,7 @@ impl WindowPortsMethods for Window {
                 }
             },
             winit::event::WindowEvent::CursorMoved { position, .. } => {
-                let toolbar_height = self.toolbar_height.get() * self.hidpi_factor();
-                let mut position = winit_position_to_euclid_point(position).to_f32();
-                position -= Size2D::from_lengths(Length::zero(), toolbar_height);
+                let position = winit_position_to_euclid_point(position);
                 self.mouse_pos.set(position.to_i32());
                 self.event_queue
                     .borrow_mut()
@@ -476,7 +476,9 @@ impl WindowPortsMethods for Window {
                         .resize(physical_size.to_i32())
                         .expect("Failed to resize");
                     self.inner_size.set(new_size);
-                    self.event_queue.borrow_mut().push(EmbedderEvent::Resize);
+                    self.event_queue
+                        .borrow_mut()
+                        .push(EmbedderEvent::WindowResize);
                 }
             },
             _ => {},
@@ -510,6 +512,10 @@ impl WindowPortsMethods for Window {
         Some(&self.winit_window)
     }
 
+    fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel> {
+        self.toolbar_height.get()
+    }
+
     fn set_toolbar_height(&self, height: Length<f32, DeviceIndependentPixel>) {
         self.toolbar_height.set(height);
     }
@@ -520,13 +526,8 @@ impl WindowMethods for Window {
         let window_size = winit_size_to_euclid_size(self.winit_window.outer_size()).to_i32();
         let window_origin = self.winit_window.outer_position().unwrap_or_default();
         let window_origin = winit_position_to_euclid_point(window_origin).to_i32();
-        let inner_size = winit_size_to_euclid_size(self.winit_window.inner_size()).to_f32();
-
-        // Subtract the minibrowser toolbar height if any
-        let toolbar_height = self.toolbar_height.get() * self.hidpi_factor();
-        let viewport_size = inner_size - Size2D::from_lengths(Length::zero(), toolbar_height);
-
         let viewport_origin = DeviceIntPoint::zero(); // bottom left
+        let viewport_size = winit_size_to_euclid_size(self.winit_window.inner_size()).to_f32();
         let viewport = DeviceIntRect::from_origin_and_size(viewport_origin, viewport_size.to_i32());
         let screen = self.screen_size.to_i32();
 

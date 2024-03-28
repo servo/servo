@@ -600,7 +600,7 @@ where
                 self.compositor.composite();
             },
 
-            EmbedderEvent::Resize => {
+            EmbedderEvent::WindowResize => {
                 return self.compositor.on_resize_window_event();
             },
             EmbedderEvent::InvalidateNativeSurface => {
@@ -763,6 +763,23 @@ where
                 }
             },
 
+            EmbedderEvent::MoveResizeWebView(webview_id, rect) => {
+                self.compositor.move_resize_webview(webview_id, rect);
+            },
+            EmbedderEvent::ShowWebView(webview_id, hide_others) => {
+                self.compositor.show_webview(webview_id, hide_others);
+            },
+            EmbedderEvent::HideWebView(webview_id) => {
+                self.compositor.hide_webview(webview_id);
+            },
+            EmbedderEvent::RaiseWebViewToTop(webview_id, hide_others) => {
+                self.compositor
+                    .raise_webview_to_top(webview_id, hide_others);
+            },
+            EmbedderEvent::BlurWebView => {
+                self.send_to_constellation(ConstellationMsg::BlurWebView);
+            },
+
             EmbedderEvent::SendError(top_level_browsing_context_id, e) => {
                 let msg = ConstellationMsg::SendError(top_level_browsing_context_id, e);
                 if let Err(e) = self.constellation_chan.send(msg) {
@@ -801,6 +818,13 @@ where
             },
         }
         return false;
+    }
+
+    fn send_to_constellation(&self, msg: ConstellationMsg) {
+        let variant_name = msg.variant_name();
+        if let Err(e) = self.constellation_chan.send(msg) {
+            warn!("Sending {variant_name} to constellation failed: {e:?}");
+        }
     }
 
     fn receive_messages(&mut self) {
@@ -882,10 +906,6 @@ where
 
     pub fn present(&mut self) {
         self.compositor.present();
-    }
-
-    pub fn recomposite(&mut self) {
-        self.compositor.composite();
     }
 
     /// Return the OpenGL framebuffer name of the most-recently-completed frame when compositing to

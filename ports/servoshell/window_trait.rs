@@ -47,5 +47,6 @@ pub trait WindowPortsMethods: WindowMethods {
         events_loop: &winit::event_loop::EventLoopWindowTarget<WakerEvent>,
     ) -> Box<dyn webxr::glwindow::GlWindow>;
     fn winit_window(&self) -> Option<&winit::window::Window>;
+    fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel>;
     fn set_toolbar_height(&self, height: Length<f32, DeviceIndependentPixel>);
 }
