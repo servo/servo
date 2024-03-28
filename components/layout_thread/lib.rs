@@ -230,7 +230,7 @@ impl DerefMut for ScriptReflowResult {
 impl ScriptReflowResult {
     fn new(script_reflow: ScriptReflow) -> ScriptReflowResult {
         ScriptReflowResult {
-            script_reflow: script_reflow,
+            script_reflow,
             result: RefCell::new(Some(Default::default())),
         }
     }
@@ -470,7 +470,7 @@ impl LayoutThread {
                 registered_speculative_painters: &self.registered_painters,
                 current_time_for_animations: animation_timeline_value,
                 traversal_flags,
-                snapshot_map: snapshot_map,
+                snapshot_map,
             },
             image_cache: self.image_cache.clone(),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
@@ -784,9 +784,7 @@ impl LayoutThread {
 
                 layout_root.mut_base().clip = data.page_clip_rect;
 
-                let traversal = ComputeStackingRelativePositions {
-                    layout_context: layout_context,
-                };
+                let traversal = ComputeStackingRelativePositions { layout_context };
                 traversal.traverse(layout_root);
 
                 if layout_root
@@ -1676,8 +1674,8 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
 
     Ok(UserAgentStylesheets {
         shared_lock: shared_lock.clone(),
-        user_or_user_agent_stylesheets: user_or_user_agent_stylesheets,
-        quirks_mode_stylesheet: quirks_mode_stylesheet,
+        user_or_user_agent_stylesheets,
+        quirks_mode_stylesheet,
     })
 }
 
