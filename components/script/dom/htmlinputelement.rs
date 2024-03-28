@@ -1184,10 +1184,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-files
     fn GetFiles(&self) -> Option<DomRoot<FileList>> {
-        match self.filelist.get() {
-            Some(ref fl) => Some(fl.clone()),
-            None => None,
-        }
+        self.filelist.get().as_ref().map(|fl| fl.clone())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-defaultchecked

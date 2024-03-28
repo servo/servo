@@ -3352,10 +3352,10 @@ impl ScriptThread {
             _ => IsHTMLDocument::HTMLDocument,
         };
 
-        let referrer = match metadata.referrer {
-            Some(ref referrer) => Some(referrer.clone().into_string()),
-            None => None,
-        };
+        let referrer = metadata
+            .referrer
+            .as_ref()
+            .map(|referrer| referrer.clone().into_string());
 
         let referrer_policy = metadata
             .headers
