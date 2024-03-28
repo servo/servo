@@ -1854,7 +1854,6 @@ impl ScriptThread {
 
         // Squash any pending resize, reflow, animation tick, and mouse-move events in the queue.
         let mut mouse_move_event_index = None;
-        let mut animation_ticks = HashSet::new();
         loop {
             let pipeline_id = self.message_to_pipeline(&event);
             let _realm = pipeline_id.map(|id| {
@@ -1915,11 +1914,11 @@ impl ScriptThread {
                         self.handle_set_scroll_state(id, &scroll_state);
                     })
                 },
-                FromConstellation(ConstellationControlMsg::TickAllAnimations(pipeline_id, _)) => {
-                    if !animation_ticks.contains(&pipeline_id) {
-                        animation_ticks.insert(pipeline_id);
-                        sequential.push(event);
-                    }
+                FromConstellation(ConstellationControlMsg::TickAllAnimations(pipeline_id, tick_type)) => {
+                    self.rendering_opportunity(pipeline_id);
+                    self.documents
+                        .borrow_mut()
+                        .note_pending_animation_tick(pipeline_id, tick_type);
                 },
                 FromConstellation(ConstellationControlMsg::SendEvent(
                     _,
@@ -1934,6 +1933,9 @@ impl ScriptThread {
                 FromScript(MainThreadScriptMsg::Inactive) => {
                     // An event came-in from a document that is not fully-active, it has been stored by the task-queue.
                     // Continue without adding it to "sequential".
+                },
+                FromScript(MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, task, pipeline_id, TaskSourceName::Rendering))) => {
+                    task.run_box();
                 },
                 FromConstellation(ConstellationControlMsg::ExitFullScreen(id)) => self
                     .profile_event(ScriptThreadEventCategory::ExitFullscreen, Some(id), || {
@@ -1971,7 +1973,7 @@ impl ScriptThread {
         // Process the gathered events.
         debug!("Processing events.");
         for msg in sequential {
-
+            println!("Sequential event: {:?}", msg);
             let category = self.categorize_msg(&msg);
             let pipeline_id = self.message_to_pipeline(&msg);
 
@@ -2318,7 +2320,7 @@ impl ScriptThread {
                 self.handle_get_title_msg(pipeline_id)
             },
             ConstellationControlMsg::SetDocumentActivity(pipeline_id, activity) => {
-                self.handle_set_document_activity_msg(pipeline_id, activity)
+                self.handle_set_document_activity_msg(pipeline_id, activity);
             },
             ConstellationControlMsg::SetThrottled(pipeline_id, throttled) => {
                 self.handle_set_throttled_msg(pipeline_id, throttled)
@@ -2372,12 +2374,6 @@ impl ScriptThread {
             ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) => {
                 self.handle_webdriver_msg(pipeline_id, msg)
             },
-            ConstellationControlMsg::TickAllAnimations(pipeline_id, tick_type) => {
-                self.rendering_opportunity(pipeline_id);
-                self.documents
-                    .borrow_mut()
-                    .note_pending_animation_tick(pipeline_id, tick_type);
-            },
             ConstellationControlMsg::WebFontLoaded(pipeline_id) => {
                 self.handle_web_font_loaded(pipeline_id)
             },
@@ -2420,6 +2416,7 @@ impl ScriptThread {
             msg @ ConstellationControlMsg::SetScrollState(..) |
             msg @ ConstellationControlMsg::Resize(..) |
             msg @ ConstellationControlMsg::ExitFullScreen(..) |
+            msg @ ConstellationControlMsg::TickAllAnimations(..) |
             msg @ ConstellationControlMsg::ExitScriptThread => {
                 panic!("should have handled {:?} already", msg)
             },
