@@ -95,10 +95,7 @@ impl CanvasRenderingContext2D {
     }
 
     pub fn take_missing_image_urls(&self) -> Vec<ServoUrl> {
-        mem::replace(
-            &mut self.canvas_state.get_missing_image_urls().borrow_mut(),
-            vec![],
-        )
+        std::mem::take(&mut self.canvas_state.get_missing_image_urls().borrow_mut())
     }
 
     pub fn get_canvas_id(&self) -> CanvasId {
