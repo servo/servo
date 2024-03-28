@@ -377,8 +377,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     ) -> Self {
         let embedder_coordinates = window.get_coordinates();
         let mut webviews = WebViewManager::default();
-        let log = format!("initial {top_level_browsing_context_id}");
-        dbg!(log);
         webviews.add(
             top_level_browsing_context_id,
             WebView {
@@ -1149,8 +1147,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 "{:?}: Creating new webview with pipeline {:?}",
                 top_level_browsing_context_id, pipeline_id
             );
-            let log = format!("new {top_level_browsing_context_id}");
-            dbg!(log);
             self.webviews.add(
                 top_level_browsing_context_id,
                 WebView {
@@ -1169,8 +1165,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     fn remove_webview(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         debug!("{}: Removing", top_level_browsing_context_id);
-        let log = format!("remove_webview {top_level_browsing_context_id}");
-        dbg!(log);
         let Some(webview) = self.webviews.remove(top_level_browsing_context_id) else {
             return;
         };
@@ -1213,8 +1207,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     pub fn show_webview(&mut self, webview_id: WebViewId, hide_others: bool) {
         trace!("show_webview {webview_id} hide_others={hide_others}");
-        let log = format!("show_webview {webview_id}");
-        dbg!(log);
         let painting_order_changed = if hide_others {
             let result = self
                 .webviews
