@@ -605,7 +605,7 @@ impl Node {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.len() == 0
+        self.data.len() == 0
     }
 
     // https://dom.spec.whatwg.org/#concept-tree-index
@@ -1207,7 +1207,7 @@ impl Node {
                 match last_child.and_then(|node| {
                     node.inclusively_preceding_siblings()
                         .filter_map(DomRoot::downcast::<Element>)
-                        .find(|elem| is_delete_type(elem))
+                        .find(is_delete_type)
                 }) {
                     Some(element) => element,
                     None => return Ok(()),
@@ -1317,10 +1317,10 @@ where
 #[allow(unsafe_code)]
 pub unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress) -> DomRoot<Node> {
     // https://github.com/servo/servo/issues/6383
-    let candidate: uintptr_t = mem::transmute(candidate.0 as usize);
-    //        let object: *mut JSObject = jsfriendapi::bindgen::JS_GetAddressableObject(runtime,
+    let candidate = candidate.0 as usize;
+     //        let object: *mut JSObject = jsfriendapi::bindgen::JS_GetAddressableObject(runtime,
     //                                                                                  candidate);
-    let object: *mut JSObject = mem::transmute(candidate as *mut js::jsapi::JSObject);
+    let object = candidate as *mut JSObject;
     if object.is_null() {
         panic!("Attempted to create a `Dom<Node>` from an invalid pointer!")
     }

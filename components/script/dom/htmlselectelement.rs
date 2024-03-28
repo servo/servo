@@ -520,10 +520,10 @@ impl Validatable for HTMLSelectElement {
         // https://html.spec.whatwg.org/multipage/#the-select-element%3Asuffering-from-being-missing
         if validate_flags.contains(ValidationFlags::VALUE_MISSING) && self.Required() {
             let placeholder = self.get_placeholder_label_option();
-            let selected_option = self
+            let is_value_missing = !self
                 .list_of_options()
-                .find(|e| e.Selected() && placeholder.as_ref() != Some(e));
-            failed_flags.set(ValidationFlags::VALUE_MISSING, selected_option.is_none());
+                .any(|e| e.Selected() && placeholder.as_ref() != Some(e));
+            failed_flags.set(ValidationFlags::VALUE_MISSING, is_value_missing);
         }
 
         failed_flags
