@@ -142,7 +142,7 @@ impl TextTrackMethods for TextTrack {
             // gecko calls RemoveCue when the given cue
             // has an associated track, but doesn't return
             // the error from it, so we wont either.
-            if let Err(_) = old_track.RemoveCue(cue) {
+            if old_track.RemoveCue(cue).is_err() {
                 warn!("Failed to remove cues for the added cue's text track");
             }
         }

@@ -49,8 +49,7 @@ impl TextTrackList {
             .borrow()
             .iter()
             .enumerate()
-            .filter(|(_, t)| **t == track)
-            .next()
+            .find(|(_, t)| **t == track)
             .map(|(i, _)| i)
     }
 
@@ -125,8 +124,7 @@ impl TextTrackListMethods for TextTrackList {
         self.dom_tracks
             .borrow()
             .iter()
-            .filter(|track| track.id() == id_str)
-            .next()
+            .find(|track| track.id() == id_str)
             .map(|t| DomRoot::from_ref(&**t))
     }
 
