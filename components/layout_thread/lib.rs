@@ -816,14 +816,10 @@ impl LayoutThread {
                         build_state.root_stacking_context.overflow = origin;
 
                         // We will not use build_state.iframe_sizes again, so it's safe to move it.
-                        let iframe_sizes =
-                            std::mem::replace(&mut build_state.iframe_sizes, FnvHashMap::default());
+                        let iframe_sizes = std::mem::take(&mut build_state.iframe_sizes);
                         self.update_iframe_sizes(iframe_sizes);
 
-                        rw_data.indexable_text = std::mem::replace(
-                            &mut build_state.indexable_text,
-                            IndexableText::default(),
-                        );
+                        rw_data.indexable_text = std::mem::take(&mut build_state.indexable_text);
                         rw_data.display_list = Some(build_state.to_display_list());
                     }
                 }
@@ -1186,8 +1182,7 @@ impl LayoutThread {
         reflow_result: &mut ReflowComplete,
         shared_lock: &SharedRwLock,
     ) {
-        reflow_result.pending_images =
-            std::mem::replace(&mut *context.pending_images.lock().unwrap(), vec![]);
+        reflow_result.pending_images = std::mem::take(&mut *context.pending_images.lock().unwrap());
 
         let mut root_flow = match self.root_flow.borrow().clone() {
             Some(root_flow) => root_flow,
