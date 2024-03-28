@@ -1914,7 +1914,10 @@ impl ScriptThread {
                         self.handle_set_scroll_state(id, &scroll_state);
                     })
                 },
-                FromConstellation(ConstellationControlMsg::TickAllAnimations(pipeline_id, tick_type)) => {
+                FromConstellation(ConstellationControlMsg::TickAllAnimations(
+                    pipeline_id,
+                    tick_type,
+                )) => {
                     self.rendering_opportunity(pipeline_id);
                     self.documents
                         .borrow_mut()
@@ -1934,7 +1937,12 @@ impl ScriptThread {
                     // An event came-in from a document that is not fully-active, it has been stored by the task-queue.
                     // Continue without adding it to "sequential".
                 },
-                FromScript(MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, task, pipeline_id, TaskSourceName::Rendering))) => {
+                FromScript(MainThreadScriptMsg::Common(CommonScriptMsg::Task(
+                    _,
+                    task,
+                    pipeline_id,
+                    TaskSourceName::Rendering,
+                ))) => {
                     task.run_box();
                 },
                 FromConstellation(ConstellationControlMsg::ExitFullScreen(id)) => self
@@ -2019,7 +2027,7 @@ impl ScriptThread {
             if let Some(retval) = result {
                 return retval;
             }
-            
+
             // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 6
             self.perform_a_microtask_checkpoint();
         }

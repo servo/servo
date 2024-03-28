@@ -143,8 +143,6 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
                 },
             }
         }
-        
-        
 
         for msg in incoming {
             // Always run "update the rendering" tasks,
