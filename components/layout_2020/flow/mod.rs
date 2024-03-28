@@ -244,7 +244,7 @@ impl BlockFormattingContext {
             fragments: flow_layout.fragments,
             content_block_size: Au::from(flow_layout.content_block_size) +
                 flow_layout.collapsible_margins_in_children.end.solve() +
-                clearance.unwrap_or_else(Au::zero),
+                clearance.unwrap_or_default(),
             content_inline_size_for_table: None,
             baselines: flow_layout.baselines,
         }
@@ -669,7 +669,6 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
                 "We should know whether we are collapsing the block start margin with the parent \
                 when laying out sequentially",
             ).0 && style.get_box().clear == Clear::None;
-
             if !collapsible_with_parent_start_margin && start_margin_can_collapse_with_children {
                 if let BlockContainer::BlockLevelBoxes(child_boxes) = contents {
                     BlockLevelBox::find_block_margin_collapsing_with_parent_from_slice(
@@ -1418,7 +1417,9 @@ fn solve_inline_margins_for_in_flow_block_level(
             let start = Au::zero().max(free_space / 2);
             (start, free_space - start)
         },
-        (AuOrAuto::Auto, AuOrAuto::LengthPercentage(end)) => (free_space - end, end),
+        (AuOrAuto::Auto, AuOrAuto::LengthPercentage(end)) => {
+            (Au::zero().max(free_space - end), end)
+        },
         (AuOrAuto::LengthPercentage(start), AuOrAuto::Auto) => (start, free_space - start),
         (AuOrAuto::LengthPercentage(start), AuOrAuto::LengthPercentage(end)) => {
             // In the cases above, the free space is zero after taking 'auto' margins into account.
@@ -1426,7 +1427,7 @@ fn solve_inline_margins_for_in_flow_block_level(
             // This aligns the margin box within the containing block, or in other words,
             // aligns the border box within the margin-shrunken containing block.
             let free_space = Au::zero().max(free_space - start - end);
-            let mut justification = justify_self_alignment(containing_block, free_space);
+            justification = justify_self_alignment(containing_block, free_space);
             (start, end)
         },
     };
@@ -1629,7 +1630,8 @@ impl PlacementState {
                     self.current_margin
                         .adjoin_assign(&fragment_block_margins.end);
                 } else {
-                    (self.current_margin.solve() + fragment_block_size.into());
+                    self.current_block_direction_position +=
+                        (self.current_margin.solve() + fragment_block_size.into()).into();
                     self.current_margin = fragment_block_margins.end;
                 }
             },
