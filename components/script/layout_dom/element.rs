@@ -255,8 +255,8 @@ impl<'dom, LayoutDataType: LayoutDataTrait> style::dom::TElement
     where
         F: FnMut(&AtomIdent),
     {
-        if let Some(ref classes) = self.element.get_classes_for_layout() {
-            for class in *classes {
+        if let Some(classes) = self.element.get_classes_for_layout() {
+            for class in classes {
                 callback(AtomIdent::cast(class))
             }
         }
@@ -520,7 +520,7 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ::selectors::Element
         operation: &AttrSelectorOperation<&AtomString>,
     ) -> bool {
         match *ns {
-            NamespaceConstraint::Specific(ref ns) => self
+            NamespaceConstraint::Specific(ns) => self
                 .get_attr_enum(ns, local_name)
                 .map_or(false, |value| value.eval_selector(operation)),
             NamespaceConstraint::Any => self
@@ -875,7 +875,7 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ::selectors::Element
         operation: &AttrSelectorOperation<&AtomString>,
     ) -> bool {
         match *ns {
-            NamespaceConstraint::Specific(ref ns) => self
+            NamespaceConstraint::Specific(ns) => self
                 .get_attr_enum(ns, local_name)
                 .map_or(false, |value| value.eval_selector(operation)),
             NamespaceConstraint::Any => self
