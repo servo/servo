@@ -4,7 +4,6 @@
 
 use std::cell::Cell;
 use std::collections::VecDeque;
-use std::ops::Deref;
 use std::rc::Rc;
 use std::{mem, ptr};
 
