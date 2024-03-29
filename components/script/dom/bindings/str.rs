@@ -222,7 +222,7 @@ impl DOMString {
     /// Removes leading and trailing ASCII whitespaces according to
     /// <https://infra.spec.whatwg.org/#strip-leading-and-trailing-ascii-whitespace>.
     pub fn strip_leading_and_trailing_ascii_whitespace(&mut self) {
-        if self.0.len() == 0 {
+        if self.0.is_empty() {
             return;
         }
 

@@ -1881,7 +1881,7 @@ impl HTMLInputElement {
         } else {
             let opt_test_path = match opt_test_paths {
                 Some(paths) => {
-                    if paths.len() == 0 {
+                    if paths.is_empty() {
                         return;
                     } else {
                         Some(paths[0].to_string()) // neglect other paths
