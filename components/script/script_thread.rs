@@ -3359,8 +3359,7 @@ impl ScriptThread {
 
         let referrer_policy = metadata
             .headers
-            .as_ref()
-            .map(Serde::deref)
+            .as_deref()
             .and_then(|h| h.typed_get::<ReferrerPolicyHeader>())
             .map(ReferrerPolicy::from);
 

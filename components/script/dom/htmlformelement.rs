@@ -791,7 +791,7 @@ impl HTMLFormElement {
                 Some(submitter.target())
             } else {
                 let form_owner = submitter.form_owner();
-                let form = form_owner.as_ref().map(|form| &**form).unwrap_or(self);
+                let form = form_owner.as_deref().unwrap_or(self);
                 get_element_target(form.upcast::<Element>())
             };
 

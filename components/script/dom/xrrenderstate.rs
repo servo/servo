@@ -74,7 +74,7 @@ impl XRRenderState {
             self.depth_near.get(),
             self.depth_far.get(),
             self.inline_vertical_fov.get(),
-            self.base_layer.get().as_ref().map(|x| &**x),
+            self.base_layer.get().as_deref(),
             self.layers.borrow().iter().map(|x| &**x).collect(),
         )
     }
