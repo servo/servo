@@ -1548,34 +1548,35 @@ impl HTMLMediaElement {
                                 // If at any time the user agent learns that an audio or video
                                 // track has ended..
 
-                                // 1. Remove the track..
-                                let idx = self.VideoTracks().selected_index().unwrap();
-                                let video_track = self.VideoTracks().remove(idx);
-                                let idx = self.AudioTracks().enabled_index().unwrap();
-                                let audio_track = self.AudioTracks().remove(idx);
+                                if let Some(idx) = self.VideoTracks().selected_index() {
+                                    // 1. Remove the track..
+                                    let video_track = self.VideoTracks().remove(idx);
+                                    // 2. Fire an event named removetrack
+                                    let event = TrackEvent::new(
+                                        &self.global(),
+                                        atom!("removetrack"),
+                                        false,
+                                        false,
+                                        &Some(VideoTrackOrAudioTrackOrTextTrack::VideoTrack(
+                                            video_track,
+                                        )),
+                                    );
+                                    event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+                                }
 
-                                // 2. Fire an event named removetrack
-                                let event = TrackEvent::new(
-                                    &self.global(),
-                                    atom!("removetrack"),
-                                    false,
-                                    false,
-                                    &Some(VideoTrackOrAudioTrackOrTextTrack::VideoTrack(
-                                        video_track,
-                                    )),
-                                );
-                                event.upcast::<Event>().fire(self.upcast::<EventTarget>());
-
-                                let event = TrackEvent::new(
-                                    &self.global(),
-                                    atom!("removetrack"),
-                                    false,
-                                    false,
-                                    &Some(VideoTrackOrAudioTrackOrTextTrack::AudioTrack(
-                                        audio_track,
-                                    )),
-                                );
-                                event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+                                if let Some(idx) = self.AudioTracks().enabled_index() {
+                                    let audio_track = self.AudioTracks().remove(idx);
+                                    let event = TrackEvent::new(
+                                        &self.global(),
+                                        atom!("removetrack"),
+                                        false,
+                                        false,
+                                        &Some(VideoTrackOrAudioTrackOrTextTrack::AudioTrack(
+                                            audio_track,
+                                        )),
+                                    );
+                                    event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+                                }
                             }
                         },
 
@@ -1591,34 +1592,35 @@ impl HTMLMediaElement {
                                 // If at any time the user agent learns that an audio or video
                                 // track has ended..
 
-                                // 1. Remove the track..
-                                let idx = self.VideoTracks().selected_index().unwrap();
-                                let video_track = self.VideoTracks().remove(idx);
-                                let idx = self.AudioTracks().enabled_index().unwrap();
-                                let audio_track = self.AudioTracks().remove(idx);
+                                if let Some(idx) = self.VideoTracks().selected_index() {
+                                    // 1. Remove the track..
+                                    let video_track = self.VideoTracks().remove(idx);
+                                    // 2. Fire an event named removetrack
+                                    let event = TrackEvent::new(
+                                        &self.global(),
+                                        atom!("removetrack"),
+                                        false,
+                                        false,
+                                        &Some(VideoTrackOrAudioTrackOrTextTrack::VideoTrack(
+                                            video_track,
+                                        )),
+                                    );
+                                    event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+                                }
 
-                                // 2. Fire an event named removetrack
-                                let event = TrackEvent::new(
-                                    &self.global(),
-                                    atom!("removetrack"),
-                                    false,
-                                    false,
-                                    &Some(VideoTrackOrAudioTrackOrTextTrack::VideoTrack(
-                                        video_track,
-                                    )),
-                                );
-                                event.upcast::<Event>().fire(self.upcast::<EventTarget>());
-
-                                let event = TrackEvent::new(
-                                    &self.global(),
-                                    atom!("removetrack"),
-                                    false,
-                                    false,
-                                    &Some(VideoTrackOrAudioTrackOrTextTrack::AudioTrack(
-                                        audio_track,
-                                    )),
-                                );
-                                event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+                                if let Some(idx) = self.AudioTracks().enabled_index() {
+                                    let audio_track = self.AudioTracks().remove(idx);
+                                    let event = TrackEvent::new(
+                                        &self.global(),
+                                        atom!("removetrack"),
+                                        false,
+                                        false,
+                                        &Some(VideoTrackOrAudioTrackOrTextTrack::AudioTrack(
+                                            audio_track,
+                                        )),
+                                    );
+                                    event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+                                }
                             }
                         },
                     }
