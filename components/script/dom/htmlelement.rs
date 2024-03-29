@@ -454,10 +454,11 @@ impl HTMLElementMethods for HTMLElement {
             return node.GetTextContent().unwrap();
         }
 
-        window.layout_reflow(QueryMsg::ElementInnerTextQuery(
-            node.to_trusted_node_address(),
-        ));
-        DOMString::from(window.layout_rpc().element_inner_text())
+        window.layout_reflow(QueryMsg::ElementInnerTextQuery);
+        let text = window
+            .with_layout(|layout| layout.query_element_inner_text(node.to_trusted_node_address()))
+            .unwrap_or_default();
+        DOMString::from(text)
     }
 
     // https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute
