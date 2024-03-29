@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
-use html5ever::{local_name, LocalName, Prefix};
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::rust::HandleObject;
@@ -20,8 +20,10 @@ use net_traits::{
     CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, FetchResponseMsg,
     NetworkError, ResourceFetchTiming, ResourceTimingType,
 };
+use script_layout_interface::HTMLMediaData;
 use servo_media::player::video::VideoFrame;
 use servo_url::ServoUrl;
+use style::attr::{parse_length, LengthOrPercentageOrAuto};
 
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::attr::Attr;
@@ -30,10 +32,10 @@ use crate::dom::bindings::codegen::Bindings::HTMLVideoElementBinding::HTMLVideoE
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{DomRoot, LayoutDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlmediaelement::{HTMLMediaElement, ReadyState};
 use crate::dom::node::{document_from_node, window_from_node, Node};
@@ -278,14 +280,23 @@ impl VirtualMethods for HTMLVideoElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
 
-        if let Some(new_value) = mutation.new_value(attr) {
-            match attr.local_name() {
-                &local_name!("poster") => {
-                    self.fetch_poster_frame(&new_value);
+        match attr.local_name() {
+            &local_name!("poster") => match mutation {
+                AttributeMutation::Set(_) => {
+                    if let Some(new_value) = mutation.new_value(attr) {
+                        self.fetch_poster_frame(&new_value)
+                    }
                 },
-                _ => (),
-            };
-        }
+                AttributeMutation::Removed => self.htmlmediaelement.clear_current_frame(),
+            },
+            &local_name!("src") => {
+                if matches!(mutation, AttributeMutation::Removed) {
+                    self.set_video_width(DEFAULT_WIDTH);
+                    self.set_video_height(DEFAULT_HEIGHT);
+                }
+            },
+            _ => (),
+        };
     }
 }
 
@@ -415,6 +426,71 @@ impl PosterFrameFetchContext {
             cancelled: false,
             resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             url,
+        }
+    }
+}
+
+pub trait LayoutHTMLVideoElementHelpers {
+    fn data(self) -> HTMLMediaData;
+    fn get_width(self) -> Option<u32>;
+    fn get_height(self) -> Option<u32>;
+}
+
+impl LayoutHTMLVideoElementHelpers for LayoutDom<'_, HTMLVideoElement> {
+    fn get_width(self) -> Option<u32> {
+        match self
+            .upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("width"))
+        {
+            Some(x) => match parse_length(&x) {
+                LengthOrPercentageOrAuto::Length(x) => Some(x.to_px() as u32),
+                _ => None,
+            },
+            None => None,
+        }
+    }
+
+    fn get_height(self) -> Option<u32> {
+        match self
+            .upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("height"))
+        {
+            Some(x) => match parse_length(&x) {
+                LengthOrPercentageOrAuto::Length(x) => Some(x.to_px() as u32),
+                _ => None,
+            },
+            None => None,
+        }
+    }
+
+    fn data(self) -> HTMLMediaData {
+        #[allow(unsafe_code)]
+        let video = unsafe { &*self.unsafe_get() };
+        let current_frame = video.htmlmediaelement.get_current_frame_data();
+        let current_frame = current_frame.as_ref();
+
+        // Default size is 300x150
+        let named_width = self.get_width();
+        let named_height = self.get_height();
+
+        // Default height is half the width
+        if let Some(x) = named_height {
+            video.set_video_height(x);
+        } else if let Some(x) = named_width {
+            video.set_video_height(x / 2);
+        };
+
+        // Default width is twice the height
+        if let Some(x) = named_width {
+            video.set_video_width(x);
+        } else if let Some(x) = named_height {
+            video.set_video_width(x * 2);
+        };
+
+        HTMLMediaData {
+            current_frame: current_frame.map(|frame| frame.0),
+            width: current_frame.map_or(video.get_video_width() as i32, |frame| frame.1),
+            height: current_frame.map_or(video.get_video_height() as i32, |frame| frame.2),
         }
     }
 }
