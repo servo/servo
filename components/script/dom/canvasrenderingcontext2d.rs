@@ -88,8 +88,7 @@ impl CanvasRenderingContext2D {
     }
 
     pub fn mark_as_dirty(&self) {
-        self.canvas_state
-            .mark_as_dirty(self.canvas.as_ref().map(|c| &**c))
+        self.canvas_state.mark_as_dirty(self.canvas.as_deref())
     }
 
     pub fn take_missing_image_urls(&self) -> Vec<ServoUrl> {
@@ -455,7 +454,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
         self.canvas_state
-            .set_stroke_style(self.canvas.as_ref().map(|c| &**c), value)
+            .set_stroke_style(self.canvas.as_deref(), value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle

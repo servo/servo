@@ -1019,8 +1019,7 @@ impl ElementQueue {
         self.queue
             .borrow_mut()
             .pop_front()
-            .as_ref()
-            .map(Dom::deref)
+            .as_deref()
             .map(DomRoot::from_ref)
     }
 
