@@ -1575,7 +1575,7 @@ impl WebGLRenderingContext {
         constants::COLOR_ATTACHMENT0 <= attachment && attachment <= last_slot
     }
 
-    pub fn compressed_tex_image_2d<'a>(
+    pub fn compressed_tex_image_2d(
         &self,
         target: u32,
         level: i32,
@@ -1583,7 +1583,7 @@ impl WebGLRenderingContext {
         width: i32,
         height: i32,
         border: i32,
-        data: &'a [u8],
+        data: &[u8],
     ) {
         let validator = CompressedTexImage2DValidator::new(
             self,
@@ -1642,7 +1642,7 @@ impl WebGLRenderingContext {
         }
     }
 
-    pub fn compressed_tex_sub_image_2d<'a>(
+    pub fn compressed_tex_sub_image_2d(
         &self,
         target: u32,
         level: i32,
@@ -1651,7 +1651,7 @@ impl WebGLRenderingContext {
         width: i32,
         height: i32,
         format: u32,
-        data: &'a [u8],
+        data: &[u8],
     ) {
         let validator = CompressedTexSubImage2DValidator::new(
             self,

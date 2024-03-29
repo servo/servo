@@ -87,7 +87,7 @@ where
         T::name()
     }
 
-    fn as_any<'a>(&'a self) -> &'a dyn Any {
+    fn as_any(&self) -> &dyn Any {
         self
     }
 }
