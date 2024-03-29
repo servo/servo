@@ -88,7 +88,7 @@ unsafe impl<T> StableTraceObject for Dom<T>
 where
     T: DomObject,
 {
-    fn stable_trace_object<'a>(&'a self) -> *const dyn JSTraceable {
+    fn stable_trace_object(&self) -> *const dyn JSTraceable {
         // The JSTraceable impl for Reflector doesn't actually do anything,
         // so we need this shenanigan to actually trace the reflector of the
         // T pointer in Dom<T>.
@@ -107,7 +107,7 @@ unsafe impl<T> StableTraceObject for MaybeUnreflectedDom<T>
 where
     T: DomObject,
 {
-    fn stable_trace_object<'a>(&'a self) -> *const dyn JSTraceable {
+    fn stable_trace_object(&self) -> *const dyn JSTraceable {
         // The JSTraceable impl for Reflector doesn't actually do anything,
         // so we need this shenanigan to actually trace the reflector of the
         // T pointer in Dom<T>.

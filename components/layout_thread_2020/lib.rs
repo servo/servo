@@ -489,10 +489,10 @@ impl LayoutThread {
     }
 
     /// Receives and dispatches messages from other threads.
-    fn handle_request_helper<'a, 'b>(
+    fn handle_request_helper(
         &mut self,
         request: Msg,
-        possibly_locked_rw_data: &mut RwData<'a, 'b>,
+        possibly_locked_rw_data: &mut RwData<'_, '_>,
     ) {
         match request {
             Msg::SetQuirksMode(mode) => self.handle_set_quirks_mode(mode),
@@ -522,10 +522,10 @@ impl LayoutThread {
         }
     }
 
-    fn collect_reports<'a, 'b>(
+    fn collect_reports(
         &self,
         reports_chan: ReportsChan,
-        possibly_locked_rw_data: &mut RwData<'a, 'b>,
+        possibly_locked_rw_data: &mut RwData<'_, '_>,
     ) {
         let mut reports = vec![];
         // Servo uses vanilla jemalloc, which doesn't have a
@@ -590,10 +590,10 @@ impl LayoutThread {
     }
 
     /// The high-level routine that performs layout.
-    fn handle_reflow<'a, 'b>(
+    fn handle_reflow(
         &mut self,
         data: &mut ScriptReflowResult,
-        possibly_locked_rw_data: &mut RwData<'a, 'b>,
+        possibly_locked_rw_data: &mut RwData<'_, '_>,
     ) {
         let document = unsafe { ServoLayoutNode::<DOMLayoutData>::new(&data.document) };
         let document = document.as_document().unwrap();
@@ -976,10 +976,10 @@ impl LayoutThread {
         );
     }
 
-    fn set_scroll_states<'a, 'b>(
+    fn set_scroll_states(
         &mut self,
         new_scroll_states: Vec<ScrollState>,
-        possibly_locked_rw_data: &mut RwData<'a, 'b>,
+        possibly_locked_rw_data: &mut RwData<'_, '_>,
     ) {
         let mut rw_data = possibly_locked_rw_data.lock();
         let mut script_scroll_states = vec![];
