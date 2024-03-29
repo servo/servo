@@ -188,6 +188,14 @@ where
 
 #[allow(unsafe_code)]
 #[inline]
+/// Constructs layout flows up to the ancestors of a given node.
+///
+/// # Safety
+///
+/// This function is `unsafe` because it modifies the layout tree and context without any synchronization.
+///  The caller must ensure that:
+/// - There are no concurrent modifications to the layout tree.
+/// - The `LayoutContext` and `node` references are valid for the duration of the call.
 pub unsafe fn construct_flows_at_ancestors<'dom>(
     context: &LayoutContext,
     mut node: impl LayoutNode<'dom>,

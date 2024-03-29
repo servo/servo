@@ -89,8 +89,37 @@ pub trait LayoutNode<'dom>:
     /// Returns the type ID of this node.
     fn type_id(&self) -> LayoutNodeType;
 
+    /// Initializes the data associated with the wrapper.
+    ///
+    /// # Safety
+    ///
+    /// This function is marked as `unsafe` because it may involve operations that are inherently
+    /// unsafe or rely on external conditions for correctness. It is the caller's responsibility
+    /// to ensure that the initialization process is performed correctly and safely. Incorrect
+    /// usage may lead to memory safety violations or undefined behavior.
     unsafe fn initialize_data(&self);
+
+    /// Initializes the style and opaque layout data associated with the wrapper.
+    ///
+    /// # Safety
+    ///
+    /// This function is marked as `unsafe` because it may involve operations that are inherently
+    /// unsafe or rely on external conditions for correctness. It is the caller's responsibility
+    /// to ensure that the initialization process is performed correctly and safely. The provided
+    /// `data` parameter must be a valid boxed instance of `StyleAndOpaqueLayoutData`. Incorrect
+    /// usage may lead to memory safety violations or undefined behavior.
     unsafe fn init_style_and_opaque_layout_data(&self, data: Box<StyleAndOpaqueLayoutData>);
+
+    /// Takes ownership of the style and opaque layout data associated with the wrapper.
+    ///
+    /// # Safety
+    ///
+    /// This function is marked as `unsafe` because it may involve operations that are inherently
+    /// unsafe or rely on external conditions for correctness. It is the caller's responsibility
+    /// to ensure that calling this function does not lead to data races or memory safety
+    /// violations. Additionally, the caller must ensure that the returned boxed instance of
+    /// `StyleAndOpaqueLayoutData` is correctly used and managed. Incorrect usage may lead to
+    /// memory safety violations or undefined behavior.
     unsafe fn take_style_and_opaque_layout_data(&self) -> Box<StyleAndOpaqueLayoutData>;
 
     fn rev_children(self) -> LayoutIterator<ReverseChildrenIterator<Self>> {
@@ -253,12 +282,14 @@ pub trait ThreadSafeLayoutNode<'dom>:
         self.type_id().is_some()
     }
 
-    /// Returns access to the underlying LayoutNode. This is breaks the abstraction
-    /// barrier of ThreadSafeLayout wrapper layer, and can lead to races if not used
-    /// carefully.
+    /// Unsafely retrieves the concrete node.
     ///
-    /// We need this because the implementation of some methods need to access the layout
-    /// data flags, and we have this annoying trait separation between script and layout :-(
+    /// # Safety
+    ///
+    /// This function is marked as `unsafe` because it may involve operations that are inherently
+    /// unsafe or rely on external conditions for correctness. It is the caller's responsibility
+    /// to ensure that the retrieved concrete node is used in a safe and correct manner. Incorrect
+    /// usage may lead to memory safety violations or undefined behavior.
     unsafe fn unsafe_get(self) -> Self::ConcreteNode;
 
     fn node_text_content(self) -> Cow<'dom, str>;
@@ -332,12 +363,14 @@ pub trait ThreadSafeLayoutElement<'dom>:
     /// Returns `None` if this is a pseudo-element; otherwise, returns `Some`.
     fn type_id(&self) -> Option<LayoutNodeType>;
 
-    /// Returns access to the underlying TElement. This is breaks the abstraction
-    /// barrier of ThreadSafeLayout wrapper layer, and can lead to races if not used
-    /// carefully.
+    /// Unsafely retrieves the concrete element.
     ///
-    /// We need this so that the functions defined on this trait can call
-    /// lazily_compute_pseudo_element_style, which operates on TElement.
+    /// # Safety
+    ///
+    /// This function is marked as `unsafe` because it may involve operations that are inherently
+    /// unsafe or rely on external conditions for correctness. It is the caller's responsibility
+    /// to ensure that the retrieved concrete element is used in a safe and correct manner. Incorrect
+    /// usage may lead to memory safety violations or undefined behavior.
     unsafe fn unsafe_get(self) -> Self::ConcreteElement;
 
     /// Get the local name of this element. See

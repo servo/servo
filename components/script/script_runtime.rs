@@ -433,6 +433,15 @@ lazy_static! {
     static ref JS_ENGINE: Mutex<Option<JSEngineHandle>> = Mutex::new(None);
 }
 
+/// Creates a new child runtime.
+///
+/// # Safety
+///
+/// This function is marked as `unsafe` because it constructs a new runtime instance
+/// without performing any validation or checks. It is the caller's responsibility
+/// to ensure that the parent runtime provided is valid and that all parameters are
+/// correctly initialized. Incorrect usage may lead to memory safety violations or
+/// undefined behavior.
 #[allow(unsafe_code)]
 pub unsafe fn new_child_runtime(
     parent: ParentRuntime,
@@ -690,6 +699,15 @@ unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
     }
 }
 
+/// Retrieves reports from the specified context and path segment.
+///
+/// # Safety
+///
+/// This function is marked as `unsafe` because it operates on a raw JavaScript context pointer (`cx`)
+/// without performing any validation or checks. It is the caller's responsibility to ensure that
+/// the context pointer is valid and points to a correctly initialized JavaScript context. Additionally,
+/// the `path_seg` parameter should be a valid string representing the path segment. Incorrect usage may
+/// lead to memory safety violations or undefined behavior.
 #[allow(unsafe_code)]
 pub unsafe fn get_reports(cx: *mut RawJSContext, path_seg: String) -> Vec<Report> {
     let mut reports = vec![];
@@ -891,6 +909,15 @@ unsafe impl Send for ContextForRequestInterrupt {}
 pub struct JSContext(*mut RawJSContext);
 
 #[allow(unsafe_code)]
+/// Constructs a new `ScriptRuntime` instance from a raw JavaScript context pointer.
+///
+/// # Safety
+///
+/// This function is marked as `unsafe` because it constructs a `ScriptRuntime` instance
+/// from a raw JavaScript context pointer without performing any validation or checks.
+/// It is the caller's responsibility to ensure that the `raw_js_context` pointer is
+/// valid and points to a correctly initialized JavaScript context. Incorrect usage may
+/// lead to memory safety violations or undefined behavior.
 impl JSContext {
     pub unsafe fn from_ptr(raw_js_context: *mut RawJSContext) -> Self {
         JSContext(raw_js_context)

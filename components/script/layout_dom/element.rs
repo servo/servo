@@ -115,12 +115,28 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ServoLayoutElement<'dom, LayoutDataT
             .map(|data| &data.style_data)
     }
 
+    /// Unsets the snapshot flags.
+    ///
+    /// # Safety
+    ///
+    /// This function is marked as `unsafe` because it operates on internal data structures
+    /// without any form of synchronization or protection. It is the caller's responsibility
+    /// to ensure that calling this function does not lead to data races or memory safety
+    /// violations.
     pub unsafe fn unset_snapshot_flags(&self) {
         self.as_node()
             .node
             .set_flag(NodeFlags::HAS_SNAPSHOT | NodeFlags::HANDLED_SNAPSHOT, false);
     }
 
+    /// Sets the snapshot flag.
+    ///
+    /// # Safety
+    ///
+    /// This function is marked as `unsafe` because it operates on internal data structures
+    /// without any form of synchronization or protection. It is the caller's responsibility
+    /// to ensure that calling this function does not lead to data races or memory safety
+    /// violations.
     pub unsafe fn set_has_snapshot(&self) {
         self.as_node().node.set_flag(NodeFlags::HAS_SNAPSHOT, true);
     }

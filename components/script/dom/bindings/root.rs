@@ -332,6 +332,12 @@ impl<T> MallocSizeOf for Dom<T> {
 
 impl<T> Dom<T> {
     /// Returns `LayoutDom<T>` containing the same pointer.
+    ///
+    ///  # Safety
+    ///
+    /// This function is marked as `unsafe` because it returns a `LayoutDom<T>` instance without
+    /// any form of synchronization or protection. It is the caller's responsibility to ensure
+    /// that the conversion is safe and that the resulting layout is correctly managed.
     pub unsafe fn to_layout(&self) -> LayoutDom<T> {
         assert_in_layout();
         LayoutDom {

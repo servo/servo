@@ -30,6 +30,8 @@ pub struct DomRefCell<T> {
 impl<T> DomRefCell<T> {
     /// Return a reference to the contents.
     ///
+    /// # Safety
+    ///
     /// For use in layout only.
     #[allow(unsafe_code)]
     pub unsafe fn borrow_for_layout(&self) -> &T {
@@ -41,6 +43,13 @@ impl<T> DomRefCell<T> {
 
     /// Borrow the contents for the purpose of script deallocation.
     ///
+    /// # Safety
+    ///
+    /// This function is marked as `unsafe` because it returns a mutable reference to the inner data
+    /// without any form of synchronization or protection. It is the caller's responsibility
+    /// to ensure that the borrow is valid and does not result in data races or memory safety
+    /// violations. Additionally, this function is intended for script deallocation, and incorrect
+    /// usage may lead to memory leaks or other memory-related issues.
     #[allow(unsafe_code, clippy::mut_from_ref)]
     pub unsafe fn borrow_for_script_deallocation(&self) -> &mut T {
         assert_in_script();
@@ -49,6 +58,13 @@ impl<T> DomRefCell<T> {
 
     /// Mutably borrow a cell for layout. Ideally this would use
     /// `RefCell::try_borrow_mut_unguarded` but that doesn't exist yet.
+    ///
+    /// # Safety
+    ///
+    /// This function is marked as `unsafe` because it returns a mutable reference to the inner data
+    /// without any form of synchronization or protection. It is the caller's responsibility
+    /// to ensure that the borrow is valid and exclusive, and that it does not result in data races
+    /// or memory safety violations.
     #[allow(unsafe_code, clippy::mut_from_ref)]
     pub unsafe fn borrow_mut_for_layout(&self) -> &mut T {
         assert_in_layout();
