@@ -21,7 +21,6 @@ use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 use std::collections::{hash_map, HashMap, HashSet};
 use std::default::Default;
-use std::ops::Deref;
 use std::option::Option;
 use std::rc::Rc;
 use std::result::Result;
