@@ -142,8 +142,8 @@ impl App {
             let now = Instant::now();
             trace_winit_event!(event, "@{:?} (+{:?}) {event:?}", now - t_start, now - t);
             t = now;
-            match event {
-                winit::event::Event::NewEvents(winit::event::StartCause::Init) => {
+            if let
+                winit::event::Event::NewEvents(winit::event::StartCause::Init) = event {
                     let surfman = window.rendering_context();
 
                     let xr_discovery = if pref!(dom.webxr.glwindow.enabled) && !opts::get().headless
@@ -196,8 +196,6 @@ impl App {
 
                     app.windows.insert(window.id(), window.clone());
                     app.servo = Some(servo);
-                },
-                _ => {},
             }
 
             // If self.servo is None here, it means that we're in the process of shutting down,
@@ -415,7 +413,7 @@ impl App {
 
         // Take any outstanding embedder events from the App and its Windows.
         let mut embedder_events = self.get_events();
-        for (_win_id, window) in &self.windows {
+        for window in self.windows.values() {
             embedder_events.extend(window.get_events());
         }
 
