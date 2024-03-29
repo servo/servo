@@ -1186,6 +1186,13 @@ impl HTMLInputElementMethods for HTMLInputElement {
         self.filelist.get().as_ref().cloned()
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-files>
+    fn SetFiles(&self, files: Option<&FileList>) {
+        if self.input_type() == InputType::File && files.is_some() {
+            self.filelist.set(files);
+        }
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-input-defaultchecked
     make_bool_getter!(DefaultChecked, "checked");
 
