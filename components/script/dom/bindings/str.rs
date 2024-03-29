@@ -40,6 +40,11 @@ impl ByteString {
         self.0.len()
     }
 
+    /// Checks if the ByteString is empty.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     /// Returns `self` with A–Z replaced by a–z.
     pub fn to_lower(&self) -> ByteString {
         ByteString::new(self.0.to_ascii_lowercase())
@@ -365,7 +370,7 @@ impl DOMString {
         let (year_int, month_int) = parse_month_component(value)?;
 
         // Step 4
-        if value.split("-").nth(2).is_some() {
+        if value.split('-').nth(2).is_some() {
             return None;
         }
         // Step 5
@@ -443,7 +448,7 @@ impl DOMString {
             if !(
                 // A valid number is the same as what rust considers to be valid,
                 // except for +1., NaN, and Infinity.
-                val.is_infinite() || val.is_nan() || input.ends_with(".") || input.starts_with('+')
+                val.is_infinite() || val.is_nan() || input.ends_with('.') || input.starts_with('+')
             ) {
                 return Some(val);
             }
@@ -677,7 +682,7 @@ fn parse_month_component(value: &str) -> Option<(i32, u32)> {
 
     // Step 4, 5
     let month_int = month.parse::<u32>().ok()?;
-    if month.len() != 2 || month_int > 12 || month_int < 1 {
+    if month.len() != 2 || !(1..=12).contains(&month_int) {
         return None;
     }
 
