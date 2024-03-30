@@ -524,9 +524,7 @@ impl<T> Clone for LayoutDom<'_, T> {
     #[allow(clippy::non_canonical_clone_impl)]
     fn clone(&self) -> Self {
         assert_in_layout();
-        {
-            *self
-        }
+        *self
     }
 }
 
