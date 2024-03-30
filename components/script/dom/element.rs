@@ -345,7 +345,7 @@ impl Element {
         self.is.borrow().clone()
     }
 
-    /// <https://dom.spec.whatwg.org/#concept-element-defined>
+    /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
     pub fn set_custom_element_state(&self, state: CustomElementState) {
         // no need to inflate rare data for uncustomized
         if state != CustomElementState::Uncustomized || self.rare_data().is_some() {
