@@ -628,7 +628,7 @@ pub trait LayoutElementHelpers<'dom> {
     fn get_lang_for_layout(self) -> String;
     fn get_state_for_layout(self) -> ElementState;
     fn insert_selector_flags(self, flags: ElementSelectorFlags);
-    fn has_selector_flags(self, flags: ElementSelectorFlags) -> bool;
+    fn get_selector_flags(self) -> ElementSelectorFlags;
     /// The shadow root this element is a host of.
     fn get_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>>;
     fn get_attr_for_layout(
@@ -708,7 +708,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         };
 
         if let Some(color) = bgcolor {
-            use cssparser::FromParsedColor;
+            use style::color::parsing::FromParsedColor;
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::BackgroundColor(specified::Color::from_rgba(
@@ -748,7 +748,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         };
 
         if let Some(color) = color {
-            use cssparser::FromParsedColor;
+            use style::color::parsing::FromParsedColor;
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::Color(longhands::color::SpecifiedValue(
@@ -1108,8 +1108,8 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
 
     #[inline]
     #[allow(unsafe_code)]
-    fn has_selector_flags(self, flags: ElementSelectorFlags) -> bool {
-        unsafe { (self.unsafe_get()).selector_flags.get().contains(flags) }
+    fn get_selector_flags(self) -> ElementSelectorFlags {
+        unsafe { self.unsafe_get().selector_flags.get() }
     }
 
     #[inline]
