@@ -6125,51 +6125,16 @@ class CGClassConstructHook(CGAbstractExternMethod):
         self.exposureSet = descriptor.interface.exposureSet
 
     def definition_body(self):
-        preamble = """let cx = SafeJSContext::from_ptr(cx);
-let args = CallArgs::from_vp(vp, argc);
-let global = GlobalScope::from_object(JS_CALLEE(*cx, vp).to_object());
-"""
-        if len(self.exposureSet) == 1:
-            preamble += """\
-let global = DomRoot::downcast::<dom::types::%s>(global).unwrap();
-""" % list(self.exposureSet)[0]
-        if self.constructor.isHTMLConstructor():
-            signatures = self.constructor.signatures()
-            assert len(signatures) == 1
-            constructorCall = CGGeneric("""dom::bindings::htmlconstructor::call_html_constructor::<dom::types::%s>(
-                cx,
-                &args,
-                &global,
-                PrototypeList::ID::%s,
-                CreateInterfaceObjects,
-            )""" % (self.descriptor.name, MakeNativeName(self.descriptor.name)))
-        else:
-            ctorName = GetConstructorNameForReporting(self.descriptor, self.constructor)
-            preamble += """
-if !callargs_is_constructing(&args) {
-  throw_constructor_without_new(*cx, "%s");
-  return false;
-}
+      preamble = "let global = get_global_scope(cx, vp, argc, &self.exposureSet);"
 
-rooted!(in(*cx) let mut desired_proto = ptr::null_mut::<JSObject>());
-let proto_result = get_desired_proto(
-  cx,
-  &args,
-  PrototypeList::ID::%s,
-  CreateInterfaceObjects,
-  desired_proto.handle_mut(),
-);
-assert!(proto_result.is_ok());
-if proto_result.is_err() {
-  return false;
-}
-""" % (ctorName, MakeNativeName(self.descriptor.name))
-            name = self.constructor.identifier.name
-            nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
-            args = ["&global", "Some(desired_proto.handle())"]
-            constructorCall = CGMethodCall(args, nativeName, True,
-                                           self.descriptor, self.constructor)
-        return CGList([CGGeneric(preamble), constructorCall])
+      if self.constructor.isHTMLConstructor():
+        # Calls the extracted function for handling HTML constructor logic
+        constructorCall = "handle_constructor(cx, &argc, &global, &descriptor, &aconstructor);"
+      else:
+        # Similar call for non-HTML constructors, handled within the same function
+        constructorCall = "handle_constructor(cx, &argc, &global, &self.descriptor, &self.constructor);"
+
+      return CGList([CGGeneric(preamble), CGGeneric(constructorCall)])
 
 
 class CGClassFinalizeHook(CGAbstractClassHook):
