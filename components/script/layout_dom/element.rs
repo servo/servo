@@ -149,10 +149,7 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ServoLayoutElement<'dom, LayoutDataT
     fn is_root(&self) -> bool {
         match self.as_node().parent_node() {
             None => false,
-            Some(node) => match node.script_type_id() {
-                NodeTypeId::Document(_) => true,
-                _ => false,
-            },
+            Some(node) => matches!(node.script_type_id(), NodeTypeId::Document(_)),
         }
     }
 }
@@ -587,15 +584,11 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ::selectors::Element
 
             NonTSPseudoClass::Lang(ref lang) => self.match_element_lang(None, lang),
 
-            NonTSPseudoClass::ServoNonZeroBorder => {
-                match self
-                    .element
-                    .get_attr_for_layout(&ns!(), &local_name!("border"))
-                {
-                    None | Some(&AttrValue::UInt(_, 0)) => false,
-                    _ => true,
-                }
-            },
+            NonTSPseudoClass::ServoNonZeroBorder => !matches!(
+                self.element
+                    .get_attr_for_layout(&ns!(), &local_name!("border")),
+                None | Some(&AttrValue::UInt(_, 0))
+            ),
             NonTSPseudoClass::ReadOnly => !self
                 .element
                 .get_state_for_layout()

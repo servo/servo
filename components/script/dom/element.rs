@@ -345,16 +345,17 @@ impl Element {
         self.is.borrow().clone()
     }
 
+    /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
     pub fn set_custom_element_state(&self, state: CustomElementState) {
         // no need to inflate rare data for uncustomized
         if state != CustomElementState::Uncustomized || self.rare_data().is_some() {
             self.ensure_rare_data().custom_element_state = state;
         }
-        // https://dom.spec.whatwg.org/#concept-element-defined
-        let in_defined_state = match state {
-            CustomElementState::Uncustomized | CustomElementState::Custom => true,
-            _ => false,
-        };
+
+        let in_defined_state = matches!(
+            state,
+            CustomElementState::Uncustomized | CustomElementState::Custom
+        );
         self.set_state(ElementState::DEFINED, in_defined_state)
     }
 
@@ -1393,21 +1394,18 @@ impl Element {
         }
 
         // <a>, <input>, <select>, and <textrea> are inherently focusable.
-        match node.type_id() {
+        matches!(
+            node.type_id(),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLAnchorElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
+            )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLInputElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
+            )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLSelectElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
+            )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLTextAreaElement,
-            )) => true,
-            _ => false,
-        }
+            ))
+        )
     }
 
     pub fn is_actually_disabled(&self) -> bool {
@@ -1493,7 +1491,7 @@ impl Element {
             .map(|js| DomRoot::from_ref(&**js))
     }
 
-    // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
+    /// <https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name>
     pub fn get_attribute_by_name(&self, name: DOMString) -> Option<DomRoot<Attr>> {
         let name = &self.parsed_name(name);
         let maybe_attribute = self
@@ -1506,10 +1504,7 @@ impl Element {
             if *name == local_name!("id") || *name == local_name!("name") {
                 match maybe_attr {
                     None => true,
-                    Some(ref attr) => match *attr.value() {
-                        AttrValue::Atom(_) => true,
-                        _ => false,
-                    },
+                    Some(ref attr) => matches!(*attr.value(), AttrValue::Atom(_)),
                 }
             } else {
                 true
@@ -2932,10 +2927,7 @@ impl VirtualMethods for Element {
                         //
                         // Juggle a bit to keep the borrow checker happy
                         // while avoiding the extra clone.
-                        let is_declaration = match *attr.value() {
-                            AttrValue::Declaration(..) => true,
-                            _ => false,
-                        };
+                        let is_declaration = matches!(*attr.value(), AttrValue::Declaration(..));
 
                         let block = if is_declaration {
                             let mut value = AttrValue::String(String::new());
