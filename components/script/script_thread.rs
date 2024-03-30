@@ -174,9 +174,9 @@ thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = Cel
 ///
 /// # Safety
 ///
-/// Marked as `unsafe` due to using a raw `JSTracer` pointer (`tr`) without validation. 
-/// The caller must ensure the pointer's validity and that it references an initialized tracer. 
-/// Failure to validate `tr` could result in memory safety issues or undefined behavior. It's 
+/// Marked as `unsafe` due to using a raw `JSTracer` pointer (`tr`) without validation.
+/// The caller must ensure the pointer's validity and that it references an initialized tracer.
+/// Failure to validate `tr` could result in memory safety issues or undefined behavior. It's
 /// crucial to confirm the tracer's appropriateness before invocation.
 pub unsafe fn trace_thread(tr: *mut JSTracer) {
     SCRIPT_THREAD_ROOT.with(|root| {

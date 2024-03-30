@@ -72,12 +72,12 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ServoShadowRoot<'dom, LayoutDataType
     }
 
     /// Flushes stylesheets in the shadow root.
-///
-/// # Safety
-///
-/// Unsafe as it modifies internal structures without locks, risking data races and memory issues. 
-/// Callers must ensure the `stylist` and `guard` are properly initialized and valid, preventing 
-/// unsafe states. The operation demands careful management of context and concurrency to maintain safety.
+    ///
+    /// # Safety
+    ///
+    /// Unsafe as it modifies internal structures without locks, risking data races and memory issues.
+    /// Callers must ensure the `stylist` and `guard` are properly initialized and valid, preventing
+    /// unsafe states. The operation demands careful management of context and concurrency to maintain safety.
     pub unsafe fn flush_stylesheets(
         &self,
         stylist: &mut Stylist,

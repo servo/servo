@@ -192,7 +192,8 @@ where
 ///
 /// # Safety
 ///
-/// Marked `unsafe` because it directly modifies the layout tree and context without internal synchronization. Safe usage requires:
+/// Marked `unsafe` because it directly modifies the layout tree and context without internal synchronization.
+///  Safe usage requires:
 /// - No concurrent access or modifications to the layout tree.
 /// - Valid `LayoutContext` and `node` references for the function's duration.
 ///

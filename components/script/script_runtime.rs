@@ -437,9 +437,9 @@ lazy_static! {
 ///
 /// # Safety
 ///
-/// Marked `unsafe` as it instantiates a new runtime without checks, entrusting parameter 
-/// validation to the caller. Ensuring the parent runtime's validity and the correct initialization 
-/// of all parameters is essential to avoid memory safety issues or undefined behavior. Misuse 
+/// Marked `unsafe` as it instantiates a new runtime without checks, entrusting parameter
+/// validation to the caller. Ensuring the parent runtime's validity and the correct initialization
+/// of all parameters is essential to avoid memory safety issues or undefined behavior. Misuse
 /// could compromise the integrity of the runtime environment
 #[allow(unsafe_code)]
 pub unsafe fn new_child_runtime(
@@ -702,10 +702,10 @@ unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
 ///
 /// # Safety
 ///
-/// Marked as `unsafe` due to use of a raw JavaScript context pointer (`cx`) without validation. 
-/// Ensuring the `cx` points to a valid and properly initialized JavaScript context is critical. 
-/// The `path_seg` parameter must be a valid path segment string. Failure to validate these can 
-/// result in memory safety violations or undefined behavior. Careful handling is required to 
+/// Marked as `unsafe` due to use of a raw JavaScript context pointer (`cx`) without validation.
+/// Ensuring the `cx` points to a valid and properly initialized JavaScript context is critical.
+/// The `path_seg` parameter must be a valid path segment string. Failure to validate these can
+/// result in memory safety violations or undefined behavior. Careful handling is required to
 /// avoid compromising the execution environment.
 #[allow(unsafe_code)]
 pub unsafe fn get_reports(cx: *mut RawJSContext, path_seg: String) -> Vec<Report> {
@@ -912,10 +912,10 @@ pub struct JSContext(*mut RawJSContext);
 ///
 /// # Safety
 ///
-/// Declared `unsafe` as it initializes a `ScriptRuntime` with a raw JavaScript context pointer 
-/// (`raw_js_context`) without any validation. The caller must verify the pointer's validity and 
-/// that it refers to a properly initialized JavaScript context. Misuse could result in memory 
-/// safety breaches or undefined behavior. Ensuring the integrity and appropriateness of the 
+/// Declared `unsafe` as it initializes a `ScriptRuntime` with a raw JavaScript context pointer
+/// (`raw_js_context`) without any validation. The caller must verify the pointer's validity and
+/// that it refers to a properly initialized JavaScript context. Misuse could result in memory
+/// safety breaches or undefined behavior. Ensuring the integrity and appropriateness of the
 /// `raw_js_context` is essential.
 impl JSContext {
     pub unsafe fn from_ptr(raw_js_context: *mut RawJSContext) -> Self {
