@@ -12,7 +12,7 @@ use servo_arc::Arc;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style::values::generics::box_::{GenericVerticalAlign, VerticalAlignKeyword};
-use style::values::generics::text::LineHeight;
+use style::values::generics::font::LineHeight;
 use style::values::specified::box_::DisplayOutside;
 use style::values::specified::text::TextDecorationLine;
 use style::Zero;
@@ -581,8 +581,9 @@ impl FloatLineItem {
 }
 
 fn line_height(parent_style: &ComputedValues, font_metrics: &FontMetrics) -> Length {
-    let font_size = parent_style.get_font().font_size.computed_size();
-    match parent_style.get_inherited_text().line_height {
+    let font = parent_style.get_font();
+    let font_size = font.font_size.computed_size();
+    match font.line_height {
         LineHeight::Normal => Length::from(font_metrics.line_gap),
         LineHeight::Number(number) => font_size * number.0,
         LineHeight::Length(length) => length.0,

@@ -4,11 +4,10 @@
 
 use cssparser::{Parser, ParserInput};
 use euclid::{Scale, Size2D};
-use servo_arc::Arc;
 use style::applicable_declarations::CascadePriority;
 use style::context::QuirksMode;
 use style::custom_properties::{
-    CustomPropertiesBuilder, CustomPropertiesMap, Name, SpecifiedValue,
+    ComputedCustomProperties, CustomPropertiesBuilder, Name, SpecifiedValue,
 };
 use style::media_queries::{Device, MediaType};
 use style::properties::{CustomDeclaration, CustomDeclarationValue};
@@ -19,8 +18,8 @@ use test::{self, Bencher};
 
 fn cascade(
     name_and_value: &[(&str, &str)],
-    inherited: Option<&Arc<CustomPropertiesMap>>,
-) -> Option<Arc<CustomPropertiesMap>> {
+    inherited: &ComputedCustomProperties,
+) -> ComputedCustomProperties {
     let declarations = name_and_value
         .iter()
         .map(|&(name, value)| {
@@ -39,7 +38,7 @@ fn cascade(
         Scale::new(1.0),
     );
     let stylist = Stylist::new(device, QuirksMode::NoQuirks);
-    let mut builder = CustomPropertiesBuilder::new(inherited, &stylist);
+    let mut builder = CustomPropertiesBuilder::new(inherited, &stylist, false);
 
     for declaration in &declarations {
         builder.cascade(
@@ -54,11 +53,14 @@ fn cascade(
 #[bench]
 fn cascade_custom_simple(b: &mut Bencher) {
     b.iter(|| {
-        let parent = cascade(&[("foo", "10px"), ("bar", "100px")], None);
+        let parent = cascade(
+            &[("foo", "10px"), ("bar", "100px")],
+            &ComputedCustomProperties::default(),
+        );
 
         test::black_box(cascade(
             &[("baz", "calc(40em + 4px)"), ("bazz", "calc(30em + 4px)")],
-            parent.as_ref(),
+            &parent,
         ))
     })
 }
