@@ -115,28 +115,25 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ServoLayoutElement<'dom, LayoutDataT
             .map(|data| &data.style_data)
     }
 
-    /// Unsets the snapshot flags.
-    ///
-    /// # Safety
-    ///
-    /// This function is marked as `unsafe` because it operates on internal data structures
-    /// without any form of synchronization or protection. It is the caller's responsibility
-    /// to ensure that calling this function does not lead to data races or memory safety
-    /// violations.
+    /// Clears snapshot-related flags of a node.
+///
+/// # Safety
+///
+/// Marked `unsafe` as it alters node flags without lock or check, risking data races and state corruption.
+/// Caller must ensure exclusive access to prevent concurrent modifications. Careful management is required
+/// to maintain node integrity and execution safety.
     pub unsafe fn unset_snapshot_flags(&self) {
         self.as_node()
             .node
             .set_flag(NodeFlags::HAS_SNAPSHOT | NodeFlags::HANDLED_SNAPSHOT, false);
     }
-
-    /// Sets the snapshot flag.
-    ///
-    /// # Safety
-    ///
-    /// This function is marked as `unsafe` because it operates on internal data structures
-    /// without any form of synchronization or protection. It is the caller's responsibility
-    /// to ensure that calling this function does not lead to data races or memory safety
-    /// violations.
+ /// Sets the `HAS_SNAPSHOT` flag for a node.
+///
+/// # Safety
+///
+/// Unsafe due to direct modification of node flags without synchronization, posing a risk of data races
+/// and memory safety issues. The caller must ensure exclusive access and that the operation is safe
+/// in the current context to prevent compromising the node's integrity.
     pub unsafe fn set_has_snapshot(&self) {
         self.as_node().node.set_flag(NodeFlags::HAS_SNAPSHOT, true);
     }

@@ -41,35 +41,33 @@ impl<T> DomRefCell<T> {
             .expect("cell is mutably borrowed")
     }
 
-    /// Borrow the contents for the purpose of script deallocation.
-    ///
-    /// # Safety
-    ///
-    /// This function is marked as `unsafe` because it returns a mutable reference to the inner data
-    /// without any form of synchronization or protection. It is the caller's responsibility
-    /// to ensure that the borrow is valid and does not result in data races or memory safety
-    /// violations. Additionally, this function is intended for script deallocation, and incorrect
-    /// usage may lead to memory leaks or other memory-related issues.
-    #[allow(unsafe_code, clippy::mut_from_ref)]
-    pub unsafe fn borrow_for_script_deallocation(&self) -> &mut T {
-        assert_in_script();
-        &mut *self.value.as_ptr()
-    }
+    /// Gets a mutable reference for script deallocation.
+///
+/// # Safety
+///
+/// Unsafe as it exposes internal data without synchronization, risking data races and memory safety issues. 
+/// The caller must ensure no concurrent access and adhere to borrowing rules. Intended solely for script 
+/// deallocation; improper use may cause memory leaks or corruption. `assert_in_script` checks the operation 
+/// context but does not ensure safety.
+#[allow(unsafe_code, clippy::mut_from_ref)]
+pub unsafe fn borrow_for_script_deallocation(&self) -> &mut T {
+    assert_in_script();
+    &mut *self.value.as_ptr()
+}
 
-    /// Mutably borrow a cell for layout. Ideally this would use
-    /// `RefCell::try_borrow_mut_unguarded` but that doesn't exist yet.
-    ///
-    /// # Safety
-    ///
-    /// This function is marked as `unsafe` because it returns a mutable reference to the inner data
-    /// without any form of synchronization or protection. It is the caller's responsibility
-    /// to ensure that the borrow is valid and exclusive, and that it does not result in data races
-    /// or memory safety violations.
-    #[allow(unsafe_code, clippy::mut_from_ref)]
-    pub unsafe fn borrow_mut_for_layout(&self) -> &mut T {
-        assert_in_layout();
-        &mut *self.value.as_ptr()
-    }
+    /// Mutably borrows a cell for layout adjustments.
+///
+/// # Safety
+///
+/// Declared `unsafe` as it yields a mutable reference to internal data without locking or checks, 
+/// risking data races and memory safety violations. Callers must ensure exclusive access and comply 
+/// with Rust's borrowing principles. Primarily for layout use; incorrect application may lead to 
+/// severe errors. `assert_in_layout` confirms context but not safety.
+#[allow(unsafe_code, clippy::mut_from_ref)]
+pub unsafe fn borrow_mut_for_layout(&self) -> &mut T {
+    assert_in_layout();
+    &mut *self.value.as_ptr()
+}
 }
 
 // Functionality duplicated with `std::cell::RefCell`

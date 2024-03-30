@@ -170,14 +170,14 @@ pub type ImageCacheMsg = (PipelineId, PendingImageResponse);
 
 thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = Cell::new(None));
 
-/// Traces the thread using the given `JSTracer`.
+/// Traces the current thread with a specified `JSTracer`.
 ///
 /// # Safety
 ///
-/// This function is marked as `unsafe` because it operates on a raw JavaScript tracer pointer (`tr`)
-/// without performing any validation or checks. It is the caller's responsibility to ensure that
-/// the tracer pointer is valid and points to a correctly initialized tracer object. Incorrect usage
-/// may lead to memory safety violations or undefined behavior.
+/// Marked as `unsafe` due to using a raw `JSTracer` pointer (`tr`) without validation. 
+/// The caller must ensure the pointer's validity and that it references an initialized tracer. 
+/// Failure to validate `tr` could result in memory safety issues or undefined behavior. It's 
+/// crucial to confirm the tracer's appropriateness before invocation.
 pub unsafe fn trace_thread(tr: *mut JSTracer) {
     SCRIPT_THREAD_ROOT.with(|root| {
         if let Some(script_thread) = root.get() {

@@ -98,15 +98,14 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ServoLayoutNode<'dom, LayoutDataType
         }
     }
 
-    /// Creates a new `Node` instance from the given trusted node address.
-    ///
-    /// # Safety
-    ///
-    /// This function is marked as `unsafe` because it constructs a `Node` instance
-    /// directly from a trusted node address without performing any validation or
-    /// checks. It is the caller's responsibility to ensure that the provided address
-    /// is valid and points to a valid node object. Incorrect usage may lead to memory
-    /// safety violations or undefined behavior.
+    /// Instantiates a `Node` using a trusted node address.
+///
+/// # Safety
+///
+/// Declared `unsafe` as it relies on a raw address to construct a `Node`, bypassing validation. 
+/// The caller must verify the address's validity, ensuring it corresponds to a legitimate node. 
+/// Misuse can result in memory safety breaches or undefined behavior. It's critical to confirm 
+/// the integrity and authenticity of the address prior to use.
     pub unsafe fn new(address: &TrustedNodeAddress) -> Self {
         ServoLayoutNode::from_layout_js(LayoutDom::from_trusted_node_address(*address))
     }

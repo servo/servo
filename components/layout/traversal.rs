@@ -192,10 +192,11 @@ where
 ///
 /// # Safety
 ///
-/// This function is `unsafe` because it modifies the layout tree and context without any synchronization.
-///  The caller must ensure that:
-/// - There are no concurrent modifications to the layout tree.
-/// - The `LayoutContext` and `node` references are valid for the duration of the call.
+/// Marked `unsafe` because it directly modifies the layout tree and context without internal synchronization. Safe usage requires:
+/// - No concurrent access or modifications to the layout tree.
+/// - Valid `LayoutContext` and `node` references for the function's duration.
+///
+/// Non-compliance may lead to undefined behavior including data races and memory safety violations.
 pub unsafe fn construct_flows_at_ancestors<'dom>(
     context: &LayoutContext,
     mut node: impl LayoutNode<'dom>,
