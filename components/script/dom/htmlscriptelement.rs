@@ -898,15 +898,15 @@ impl HTMLScriptElement {
             warn!("Error creating input and output files for unminify");
         }
 
-        let path;
-        match window_from_node(self).unminified_js_dir() {
-            Some(unminified_js_dir) => path = PathBuf::from(unminified_js_dir),
+        let path = match window_from_node(self).unminified_js_dir() {
+            Some(unminified_js_dir) => PathBuf::from(unminified_js_dir),
             None => {
                 warn!("Unminified script directory not found");
                 return;
             },
-        }
-        let (base, has_name) = match script.url.as_str().ends_with("/") {
+        };
+
+        let (base, has_name) = match script.url.as_str().ends_with('/') {
             true => (
                 path.join(&script.url[url::Position::BeforeHost..])
                     .as_path()
@@ -1254,7 +1254,7 @@ impl VirtualMethods for HTMLScriptElement {
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.children_changed(mutation);
         }
         if !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
@@ -1263,7 +1263,7 @@ impl VirtualMethods for HTMLScriptElement {
     }
 
     fn bind_to_tree(&self, context: &BindContext) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.bind_to_tree(context);
         }
 
@@ -1281,7 +1281,7 @@ impl VirtualMethods for HTMLScriptElement {
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
     ) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.cloning_steps(copy, maybe_doc, clone_children);
         }
 

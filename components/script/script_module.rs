@@ -721,7 +721,7 @@ impl ModuleTree {
 
         match specifier_urls {
             // Step 3.
-            Ok(valid_specifier_urls) if valid_specifier_urls.len() == 0 => {
+            Ok(valid_specifier_urls) if valid_specifier_urls.is_empty() => {
                 debug!("Module {} doesn't have any dependencies.", self.url.clone());
                 self.advance_finished_and_link(&global);
             },
@@ -746,7 +746,7 @@ impl ModuleTree {
                 }
 
                 // Step 3.
-                if urls.len() == 0 {
+                if urls.is_empty() {
                     debug!(
                         "After checking with visited urls, module {} doesn't have dependencies to load.",
                         self.url.clone()

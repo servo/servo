@@ -4,21 +4,17 @@
 
 use app_units::Au;
 use crossbeam_channel::Sender;
-use euclid::default::{Point2D, Rect};
+use euclid::default::Rect;
 use malloc_size_of_derive::MallocSizeOf;
-use msg::constellation_msg::BrowsingContextId;
 use profile_traits::mem::ReportsChan;
 use script_traits::{Painter, ScrollState, WindowSizeData};
 use servo_atoms::Atom;
 use servo_url::ImmutableOrigin;
 use style::animation::DocumentAnimationSet;
 use style::context::QuirksMode;
-use style::dom::OpaqueNode;
 use style::invalidation::element::restyle_hints::RestyleHint;
-use style::properties::PropertyId;
-use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
+use style::selector_parser::{RestyleDamage, Snapshot};
 
-use crate::rpc::LayoutRPC;
 use crate::{PendingImage, TrustedNodeAddress};
 
 /// Asynchronous messages that script can send to layout.
@@ -28,9 +24,6 @@ pub enum Msg {
 
     /// Requests a reflow.
     Reflow(ScriptReflow),
-
-    /// Get an RPC interface.
-    GetRPC(Sender<Box<dyn LayoutRPC + Send>>),
 
     /// Requests that layout measure its memory usage. The resulting reports are sent back
     /// via the supplied channel.
@@ -55,23 +48,19 @@ pub enum NodesFromPointQueryType {
 
 #[derive(Debug, PartialEq)]
 pub enum QueryMsg {
-    ContentBoxQuery(OpaqueNode),
-    ContentBoxesQuery(OpaqueNode),
-    ClientRectQuery(OpaqueNode),
-    ScrollingAreaQuery(Option<OpaqueNode>),
-    OffsetParentQuery(OpaqueNode),
-    TextIndexQuery(OpaqueNode, Point2D<f32>),
-    NodesFromPointQuery(Point2D<f32>, NodesFromPointQueryType),
-
-    // FIXME(nox): The following queries use the TrustedNodeAddress to
-    // access actual DOM nodes, but those values can be constructed from
-    // garbage values such as `0xdeadbeef as *const _`, this is unsound.
-    NodeScrollIdQuery(TrustedNodeAddress),
-    ResolvedStyleQuery(TrustedNodeAddress, Option<PseudoElement>, PropertyId),
+    ContentBox,
+    ContentBoxes,
+    ClientRectQuery,
+    ScrollingAreaQuery,
+    OffsetParentQuery,
+    TextIndexQuery,
+    NodesFromPointQuery,
+    NodeScrollIdQuery,
+    ResolvedStyleQuery,
     StyleQuery,
-    ElementInnerTextQuery(TrustedNodeAddress),
-    ResolvedFontStyleQuery(TrustedNodeAddress, PropertyId, String),
-    InnerWindowDimensionsQuery(BrowsingContextId),
+    ElementInnerTextQuery,
+    ResolvedFontStyleQuery,
+    InnerWindowDimensionsQuery,
 }
 
 /// Any query to perform with this reflow.
@@ -93,18 +82,18 @@ impl ReflowGoal {
         match *self {
             ReflowGoal::Full | ReflowGoal::TickAnimations | ReflowGoal::UpdateScrollNode(_) => true,
             ReflowGoal::LayoutQuery(ref querymsg, _) => match *querymsg {
-                QueryMsg::ElementInnerTextQuery(_) |
-                QueryMsg::InnerWindowDimensionsQuery(_) |
-                QueryMsg::NodesFromPointQuery(..) |
-                QueryMsg::ResolvedStyleQuery(..) |
-                QueryMsg::TextIndexQuery(..) => true,
-                QueryMsg::ClientRectQuery(_) |
-                QueryMsg::ContentBoxQuery(_) |
-                QueryMsg::ContentBoxesQuery(_) |
-                QueryMsg::NodeScrollIdQuery(_) |
-                QueryMsg::OffsetParentQuery(_) |
-                QueryMsg::ResolvedFontStyleQuery(..) |
-                QueryMsg::ScrollingAreaQuery(_) |
+                QueryMsg::ElementInnerTextQuery |
+                QueryMsg::InnerWindowDimensionsQuery |
+                QueryMsg::NodesFromPointQuery |
+                QueryMsg::ResolvedStyleQuery |
+                QueryMsg::TextIndexQuery => true,
+                QueryMsg::ClientRectQuery |
+                QueryMsg::ContentBox |
+                QueryMsg::ContentBoxes |
+                QueryMsg::NodeScrollIdQuery |
+                QueryMsg::OffsetParentQuery |
+                QueryMsg::ResolvedFontStyleQuery |
+                QueryMsg::ScrollingAreaQuery |
                 QueryMsg::StyleQuery => false,
             },
         }
@@ -116,18 +105,18 @@ impl ReflowGoal {
         match *self {
             ReflowGoal::Full | ReflowGoal::TickAnimations | ReflowGoal::UpdateScrollNode(_) => true,
             ReflowGoal::LayoutQuery(ref querymsg, _) => match *querymsg {
-                QueryMsg::NodesFromPointQuery(..) |
-                QueryMsg::TextIndexQuery(..) |
-                QueryMsg::ElementInnerTextQuery(_) => true,
-                QueryMsg::ContentBoxQuery(_) |
-                QueryMsg::ContentBoxesQuery(_) |
-                QueryMsg::ClientRectQuery(_) |
-                QueryMsg::ScrollingAreaQuery(_) |
-                QueryMsg::NodeScrollIdQuery(_) |
-                QueryMsg::ResolvedStyleQuery(..) |
-                QueryMsg::ResolvedFontStyleQuery(..) |
-                QueryMsg::OffsetParentQuery(_) |
-                QueryMsg::InnerWindowDimensionsQuery(_) |
+                QueryMsg::NodesFromPointQuery |
+                QueryMsg::TextIndexQuery |
+                QueryMsg::ElementInnerTextQuery => true,
+                QueryMsg::ContentBox |
+                QueryMsg::ContentBoxes |
+                QueryMsg::ClientRectQuery |
+                QueryMsg::ScrollingAreaQuery |
+                QueryMsg::NodeScrollIdQuery |
+                QueryMsg::ResolvedStyleQuery |
+                QueryMsg::ResolvedFontStyleQuery |
+                QueryMsg::OffsetParentQuery |
+                QueryMsg::InnerWindowDimensionsQuery |
                 QueryMsg::StyleQuery => false,
             },
         }
