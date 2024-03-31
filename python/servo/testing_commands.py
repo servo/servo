@@ -741,6 +741,9 @@ tests/wpt/mozilla/tests for Servo-only tests""" % reference_path)
             filedata = file.read()
         # files are mounted differently
         filedata = filedata.replace('src=/webgpu/common/runtime/wpt.js', 'src=../webgpu/common/runtime/wpt.js')
+        # long timeout
+        filedata = filedata.replace('<meta charset=utf-8>',
+                                    '<meta charset=utf-8>\n<meta name="timeout" content="long">')
         # Write the file out again
         with open(cts_html, 'w') as file:
             file.write(filedata)
