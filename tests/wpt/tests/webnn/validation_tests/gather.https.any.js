@@ -1,7 +1,6 @@
 // META: title=validation tests for WebNN API gather operation
 // META: global=window,dedicatedworker
 // META: script=../resources/utils_validation.js
-// META: timeout=long
 
 'use strict';
 
@@ -60,3 +59,23 @@ tests.forEach(
             TypeError, () => builder.gather(input, indices, options));
       }
     }, test.name));
+
+multi_builder_test(async (t, builder, otherBuilder) => {
+  const inputFromOtherBuilder =
+      otherBuilder.input('input', {dataType: 'float32', dimensions: [2, 2]});
+
+  const indices =
+      builder.input('indices', {dataType: 'int64', dimensions: [2, 2]});
+  assert_throws_js(
+      TypeError, () => builder.gather(inputFromOtherBuilder, indices));
+}, '[gather] throw if input is from another builder');
+
+multi_builder_test(async (t, builder, otherBuilder) => {
+  const indicesFromOtherBuilder =
+      otherBuilder.input('indices', {dataType: 'int64', dimensions: [2, 2]});
+
+  const input =
+      builder.input('input', {dataType: 'float32', dimensions: [2, 2]});
+  assert_throws_js(
+      TypeError, () => builder.gather(input, indicesFromOtherBuilder));
+}, '[gather] throw if indices is from another builder');

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Level 3: unconditional hanging spaces don't hang before non-overflowing conditionals</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#hanging">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<meta name="assert" content="Hanging can only happen at the end of a line, so unconditionally hanging spaces can only hang before conditionally hanging spaces if the latter would fully overflow">
+
+<style>
+  div {
+    font: 25px/1 Ahem;
+    width: 4ch;
+    height: 4ch;
+    background:
+      linear-gradient(green, green) 0 1ch / 1ch 1ch no-repeat,
+      linear-gradient(green, green) 0 2ch / 2ch 1ch no-repeat,
+      linear-gradient(green, green) 1ch 3ch / 3ch 1ch no-repeat,
+      red;
+
+    text-align: right;
+    white-space: normal;
+    color: green;
+  }
+  .pre-wrap {
+    white-space: pre-wrap;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div>XXXX&#x3000;&#x3000;<span class="pre-wrap">  </span><br>
+  XXX&#x3000;&#x3000;<span class="pre-wrap">  </span><br>
+  XX&#x3000;&#x3000;<span class="pre-wrap">  </span><br>
+  X&#x3000;&#x3000;<span class="pre-wrap">  </span></div>
+
+<!--
+  With white-space: normal, an ideographic space (U+3000) hangs unconditionally,
+  as long as every glyph after it until the end of the line also hangs.
+  With white-space: pre-wrap, a sequence of spaces that is followed by a forced
+  line break (where the end of the block counts as a forced line break) hangs
+  conditionally, meaning that the part of it that doesn't fit in the line's
+  available width is the only one that hangs. (This is independent to whether it
+  would overflow the block's content area.)
+
+  Therefore, unconditional hanging glyphs before such a sequence of conditional
+  hanging glyphs can only hang if the conditional sequence overflows the line's
+  available width.
+-->

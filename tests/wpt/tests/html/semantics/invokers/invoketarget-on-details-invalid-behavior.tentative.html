@@ -1,0 +1,49 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="author" title="Keith Cirkel" href="mailto:wpt@keithcirkel.co.uk" />
+<meta name="timeout" content="long" />
+<link rel="help" href="https://open-ui.org/components/invokers.explainer/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<details id="invokee">Details Contents</details>
+<button id="invokerbutton" invoketarget="invokee"></button>
+
+<script>
+  function resetState() {
+    invokerbutton.removeAttribute("invokeaction");
+    invokee.removeAttribute("open");
+  }
+
+  // invalid actions on details
+  [
+    "foo-bar",
+    "showpopover",
+    "showmodal",
+    "showpicker",
+    "hidepopover",
+    "hide",
+    "toggleopen",
+  ].forEach((action) => {
+    promise_test(async function (t) {
+      t.add_cleanup(resetState);
+      invokerbutton.invokeAction = action;
+      assert_false(invokee.matches("[open]"));
+      await clickOn(invokerbutton);
+      assert_false(invokee.matches("[open]"));
+    }, `invoking (as ${action}) on details does nothing`);
+
+    promise_test(async function (t) {
+      t.add_cleanup(resetState);
+      invokerbutton.invokeAction = action;
+      invokee.setAttribute("open", "");
+      assert_true(invokee.matches("[open]"));
+      await clickOn(invokerbutton);
+      assert_true(invokee.matches("[open]"));
+    }, `invoking (as ${action}) on open details does nothing`);
+  });
+</script>

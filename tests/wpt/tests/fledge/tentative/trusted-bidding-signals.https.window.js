@@ -16,7 +16,8 @@
 // META: variant=?51-55
 // META: variant=?56-60
 // META: variant=?61-65
-// META: variant=?66-last
+// META: variant=?66-70
+// META: variant=?71-last
 
 "use strict";
 
@@ -785,3 +786,156 @@ subsetTest(promise_test, async test => {
       auctionConfigOverrides,
       uuid);
 }, 'all-slots-requested-sizes trustedBiddingSignalsSlotSizeMode in a component auction');
+
+/////////////////////////////////////////////////////////////////////////////
+// maxTrustedBiddingSignalsURLLength tests
+/////////////////////////////////////////////////////////////////////////////
+
+// Trusted bidding signals can be retrieved when `maxTrustedBiddingSignalsURLLength` is set to 0,
+// which means infinite length limit.
+// In the following three tests, the generated request URL contains approximately 166 characters.
+// The target of the tests is primarily to make sure all the signals are fetched with the full URL.
+subsetTest(promise_test, async test => {
+  const name = 'group';
+  await runTrustedBiddingSignalsTest(
+      test,
+      // Check the URL length is within an approximate range to ensure the URL is not truncated.
+      ` trustedBiddingSignals["interest-group-names"] === '["${name}"]' &&
+        trustedBiddingSignals["url"].length > 150 &&
+        trustedBiddingSignals["url"].length < 180 `,
+      {
+        name: name,
+        trustedBiddingSignalsKeys: ['interest-group-names', 'url'],
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL,
+        maxTrustedBiddingSignalsURLLength: 0
+      });
+}, 'Trusted bidding signals request works with a URL length limit set to 0.');
+
+// Trusted bidding signals can be retrieved when `maxTrustedBiddingSignalsURLLength` is set to
+// a non-zero value smaller than the length of the request URL. It also tests that multiple
+// bidding keys from the same interest group will not be separated even the full URL length is
+// larger than the limit.
+subsetTest(promise_test, async test => {
+  const name = 'group';
+  await runTrustedBiddingSignalsTest(
+      test,
+      ` trustedBiddingSignals["interest-group-names"] === '["${name}"]' &&
+        trustedBiddingSignals["url"].length > 150 &&
+        trustedBiddingSignals["url"].length < 180 `,
+      {
+        name: name,
+        trustedBiddingSignalsKeys: ['interest-group-names', 'url'],
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL,
+        maxTrustedBiddingSignalsURLLength: 1
+      });
+}, 'Trusted bidding signals request works with a URL length limit smaller than the URL length.');
+
+// Trusted bidding signals can be retrieved when `maxTrustedBiddingSignalsURLLength` is set to
+// a value larger than the length of the request URL.
+subsetTest(promise_test, async test => {
+  const name = 'group';
+  await runTrustedBiddingSignalsTest(
+      test,
+      ` trustedBiddingSignals["interest-group-names"] === '["${name}"]' &&
+        trustedBiddingSignals["url"].length < 180 `,
+      {
+        name: name,
+        trustedBiddingSignalsKeys: ['interest-group-names', 'url'],
+        trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL,
+        maxTrustedBiddingSignalsURLLength: 1000
+      });
+}, 'Trusted bidding signals request works with a URL length limit larger than the URL length.');
+
+// Test whether an oversized trusted bidding signals request URL, generated from two interest
+// groups, will be split into two parts when `maxTrustedBiddingSignalsURLLength` is set to a
+// value larger than a single URL length and smaller than the combined URL length. A request
+// URL from a single interest group contains about 188 characters, while a request URL from
+// two interest groups contains about 216 characters. Note that this test can only verifies
+// the fetch status of the winner's trusted bidding signal, which is the second interest
+// group. We consider the request to be split if the URL length check passes for the second
+// interest group.
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  const name1 = 'extraordinarilyLongNameGroup1';
+  const name2 = 'extraordinarilyLongNameGroup2';
+
+  await Promise.all(
+      [ joinInterestGroup(
+          test, uuid,
+          {
+            name: name1,
+            trustedBiddingSignalsKeys: ['interest-group-names', 'url'],
+            trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL,
+            maxTrustedBiddingSignalsURLLength: 200,
+            biddingLogicURL: createBiddingScriptURL(
+                {
+                  // Return 0 as bid to force the second interest group to win. This interest group
+                  // is considered as fetching trusted bidding signals by itself if the winner's
+                  // URL length passes the limit check.
+                  generateBid:
+                    `return { bid: 0, render: interestGroup.ads[0].renderURL };`
+                })
+          }),
+        joinInterestGroup(
+          test, uuid,
+          {
+            name: name2,
+            trustedBiddingSignalsKeys: ['interest-group-names', 'url'],
+            trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL,
+            maxTrustedBiddingSignalsURLLength: 200,
+            biddingLogicURL: createBiddingScriptURL(
+                {
+                  generateBid:
+                    `if (trustedBiddingSignals["interest-group-names"] !== '["${name2}"]' ||
+                        trustedBiddingSignals["url"].length > 200) {
+                      throw "unexpected trustedBiddingSignals";
+                    }
+                    return { bid: 10, render: interestGroup.ads[0].renderURL };`})
+          })
+      ]
+  );
+  runBasicFledgeTestExpectingWinner(test, uuid);
+}, 'Trusted bidding signals splits the request if the combined URL length exceeds the limit of regular value.');
+
+// Test whether an oversized trusted bidding signals request URL, generated from two interest
+// groups, will be split into two parts when `maxTrustedBiddingSignalsURLLength` is set to a
+// value smaller than a single URL length.
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  const name1 = 'extraordinaryLongNameGroup1';
+  const name2 = 'extraordinaryLongNameGroup2';
+
+  await Promise.all(
+      [ joinInterestGroup(
+          test, uuid,
+          {
+            name: name1,
+            trustedBiddingSignalsKeys: ['interest-group-names', 'url'],
+            trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL,
+            maxTrustedBiddingSignalsURLLength: 1,
+            biddingLogicURL: createBiddingScriptURL(
+                {
+                  generateBid:
+                    `return { bid: 0, render: interestGroup.ads[0].renderURL };`
+                })
+          }),
+        joinInterestGroup(
+          test, uuid,
+          {
+            name: name2,
+            trustedBiddingSignalsKeys: ['interest-group-names', 'url'],
+            trustedBiddingSignalsURL: TRUSTED_BIDDING_SIGNALS_URL,
+            maxTrustedBiddingSignalsURLLength: 1,
+            biddingLogicURL: createBiddingScriptURL(
+                {
+                  generateBid:
+                    `if (trustedBiddingSignals["interest-group-names"] !== '["${name2}"]' ||
+                        trustedBiddingSignals["url"].length > 200) {
+                      throw "unexpected trustedBiddingSignals";
+                    }
+                    return { bid: 10, render: interestGroup.ads[0].renderURL };`})
+          })
+      ]
+  );
+  runBasicFledgeTestExpectingWinner(test, uuid);
+}, 'Trusted bidding signals splits the request if the combined URL length exceeds the limit of small value.');

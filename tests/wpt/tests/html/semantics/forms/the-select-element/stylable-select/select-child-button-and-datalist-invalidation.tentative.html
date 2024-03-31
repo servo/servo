@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/9799">
+<link rel=match href="select-child-button-and-datalist-ref.html">
+<link rel=stylesheet href="resources/select-reset-non-interoperable-styles.css">
+
+<style>
+.blue {
+  color: blue;
+}
+</style>
+
+<select>
+  <button type=popover>button</button>
+  <datalist>
+    <option>
+      <span class=blue>option</span> one
+    </option>
+    <option>
+      <span class=blue>option</span> two
+    </option>
+  </datalist>
+</select>
+
+<script>
+requestAnimationFrame(() => {
+  document.querySelector('select').style = 'appearance:bikeshed';
+  document.querySelector('button').click();
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>

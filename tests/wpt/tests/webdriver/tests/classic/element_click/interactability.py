@@ -42,8 +42,22 @@ def test_disabled(session, inline):
     assert_success(response)
 
 
+@pytest.mark.parametrize("transform", ["translate(100px, 100px)", "rotate(50deg)"])
+def test_element_interactable_css_transform(session, inline, transform):
+    # The button is transformed within the viewport.
+    session.url = inline("""
+        <div style="width: 500px; height: 100px; position: absolute; left: 50px; top: 200px;
+            background-color: blue; transform: {transform};">
+            <input type=button>
+        </div>""".format(transform=transform))
+    element = session.find.css("input", all=False)
+    response = element_click(session, element)
+    assert_success(response)
+
+
 @pytest.mark.parametrize("transform", ["translate(-100px, -100px)", "rotate(50deg)"])
 def test_element_not_interactable_css_transform(session, inline, transform):
+    # The button is transformed outside of the viewport.
     session.url = inline("""
         <div style="width: 500px; height: 100px;
             background-color: blue; transform: {transform};">

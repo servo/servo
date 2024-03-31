@@ -122,6 +122,8 @@ def main(request, response):
                         value = request.GET.first(b"hostname", b"not-found").decode("ASCII")
                     elif signalsParam == "headers":
                         value = fledge_http_server_util.headers_to_ascii(request.headers)
+                    elif signalsParam == "url":
+                        value = request.url
             if addValue:
                 if urlList["type"] not in responseBody:
                     responseBody[urlList["type"]] = {}

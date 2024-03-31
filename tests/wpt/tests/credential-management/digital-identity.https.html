@@ -1,14 +1,22 @@
 <!DOCTYPE html>
 <title>Digital Identity Credential tests.</title>
 <link rel="help" href="https://wicg.github.io/digital-identities/">
+<script src="/common/get-host-info.sub.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 
 <body>
+<script type="module">
+import { buildValidNavigatorIdentityRequest } from './support/digital-identity-helper.js';
 
-<script>
+// This regex removes the filename from the path so that we just get
+// the directory.
+const host = get_host_info();
+const basePath = window.location.pathname.replace(/\/[^\/]*$/, '/');
+const remoteBaseURL = host.HTTPS_REMOTE_ORIGIN + basePath;
+
 // Builds valid digital identity request for navigator.credentials.get() API.
 function buildValidNavigatorCredentialsRequest() {
   return {
@@ -34,28 +42,13 @@ function buildValidNavigatorCredentialsRequest() {
   };
 }
 
-// Builds valid digital identity request for navigator.identity.get() API.
-function buildValidNavigatorIdentityRequest() {
-  return {
-      digital: {
-        providers: [{
-          protocol: "protocol",
-          selector: {
-            format: ['mdoc'],
-            doctype: 'org.iso.18013.5.1.mDL',
-            fields: [
-              'org.iso.18013.5.1.family_name',
-              'org.iso.18013.5.1.portrait',
-            ]
-          },
-          params: {
-            nonce: '1234',
-            readerPublicKey: 'test_reader_public_key',
-            extraParamAsNeededByDigitalCredentials: true,
-          },
-        }],
-      },
-  };
+async function createIframeAndWaitForMessage(test, iframeUrl) {
+    const messageWatcher = new EventWatcher(test, window, "message");
+    var iframe = document.createElement("iframe");
+    iframe.src = iframeUrl;
+    document.body.appendChild(iframe);
+    const message = await messageWatcher.wait_for("message");
+    return message.data;
 }
 
 // Requires browser to have mode where OS-presented digital-identity-prompt is
@@ -96,7 +89,7 @@ promise_test(async t => {
 promise_test(async t => {
   let request = buildValidNavigatorIdentityRequest();
   let credential = await navigator.identity.get(request);
-  assert_equals("protocol", credential.protocol);
+  assert_equals("urn:openid.net:oid4vp", credential.protocol);
   assert_equals("fake_test_token", credential.data);
 }, "navigator.identity.get() API works in toplevel frame.");
 
@@ -106,6 +99,12 @@ promise_test(async t => {
 
   await promise_rejects_js(t, TypeError, navigator.identity.get(request));
 }, "navigator.identity.get() API fails if DigitalCredentialRequestOptions::providers is not specified.");
+
+promise_test(async t => {
+  let request = buildValidNavigatorIdentityRequest();
+  request.digital.providers = [];
+  await promise_rejects_js(t, TypeError, navigator.identity.get(request));
+}, "navigator.identity.get() API fails if there are no providers.");
 
 promise_test(async t => {
   let request = buildValidNavigatorIdentityRequest();
@@ -122,4 +121,18 @@ promise_test(async t=> {
   abortController.abort();
   await promise_rejects_dom(t, "AbortError", requestPromise);
 }, "navigator.identity.get() promise is rejected when the page aborts the request.");
+
+promise_test(async t=> {
+  const message = await createIframeAndWaitForMessage(
+      t, basePath + "support/digital-identity-iframe.html");
+  assert_equals(message.result, "Pass");
+  assert_equals(message.data, "fake_test_token");
+}, "navigator.identity.get() succeeds in same-origin iframe");
+
+promise_test(async t=> {
+  const message = await createIframeAndWaitForMessage(
+      t, remoteBaseURL + "support/digital-identity-iframe.html");
+  assert_equals(message.result, "Fail");
+  assert_equals(message.errorType, "NotAllowedError");
+}, "navigator.identity.get() fails in cross-origin iframe");
 </script>

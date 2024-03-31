@@ -28,7 +28,7 @@ document.oncopy = ev => {
 };
 
 promise_test(async test => {
-  await test_driver.set_permission({name: 'clipboard-read'}, 'granted');
+  await tryGrantReadPermission();
   await test_driver.click(button);
 
   await waitForUserActivation();

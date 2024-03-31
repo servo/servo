@@ -18,7 +18,7 @@ promise_test(async(t) => {
   const actions = new test_driver.Actions();
   const fencedframe = await attachFencedFrameContext({
     generator_api: 'fledge',
-    automatic_beacon: true,
+    register_beacon: true,
   });
   const beacon_event = {
     eventType: "reserved.top_navigation_start",

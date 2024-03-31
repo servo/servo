@@ -26,7 +26,7 @@ promise_test(async test => {
   let loadObserved = false;
   const observer = new PerformanceObserver(() => loadObserved = true);
   observer.observe({type: 'resource'});
-  await test_driver.set_permission({name: 'clipboard-read'}, 'granted');
+  await tryGrantReadPermission();
   await test_driver.click(button);
 
   await waitForUserActivation();

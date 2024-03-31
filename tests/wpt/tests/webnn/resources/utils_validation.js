@@ -12,6 +12,16 @@ const allWebNNOperandDataTypes = [
   'uint8'
 ];
 
+// https://webidl.spec.whatwg.org/#idl-unsigned-long
+// The unsigned long type is an unsigned integer type that has values in the
+// range [0, 4294967295].
+// 4294967295 = 2 ** 32 - 1
+const kMaxUnsignedLong = 2 ** 32 - 1;
+
+const floatingPointTypes = ['float32', 'float16'];
+
+const signedIntegerTypes = ['int32', 'int64', 'int8'];
+
 const unsignedLongType = 'unsigned long';
 
 const dimensions0D = [];
@@ -173,9 +183,7 @@ function generateOutOfRangeValuesArray(type) {
   let range, outsideValueArray;
   switch (type) {
     case 'unsigned long':
-      // https://webidl.spec.whatwg.org/#idl-unsigned-long
-      // The unsigned long type is an unsigned integer type that has values in the range [0, 4294967295].
-      range = [0, 4294967295];
+      range = [0, kMaxUnsignedLong];
       break;
     default:
       throw new Error(`Unsupport ${type}`);
@@ -251,11 +259,11 @@ function validateTwoInputsOfSameDataType(operationName) {
 
 /**
  * Validate options.axes by given operation and input rank for
- * argMin/Max / layerNormalization / Reduction operations / resample2d operations
- * @param {(String[]|String)} operationName - An operation name array or an operation name
- * @param {Number} [inputRank]
+ * argMin/Max / layerNormalization / Reduction operations operations
+ * @param {(String[]|String)} operationName - An operation name array or an
+ *     operation name
  */
-function validateOptionsAxes(operationName, inputRank) {
+function validateOptionsAxes(operationName) {
   if (navigator.ml === undefined) {
     return;
   }
@@ -271,33 +279,25 @@ function validateOptionsAxes(operationName, inputRank) {
   for (let subOperationName of operationNameArray) {
     // TypeError is expected if any of options.axes elements is not an unsigned long interger
     promise_test(async t => {
-      if (inputRank === undefined) {
-        // argMin/Max / layerNormalization / Reduction operations
-        for (let dataType of allWebNNOperandDataTypes) {
-          for (let dimensions of allWebNNDimensionsArray) {
-            const rank = getRank(dimensions);
-            if (rank >= 1) {
-              const input = builder.input(`input${++inputIndex}`, {dataType, dimensions});
-              for (let invalidAxis of invalidAxisArray) {
-                assert_throws_js(TypeError, () => builder[subOperationName](input, {axes: invalidAxis}));
-              }
-              for (let axis of notUnsignedLongAxisArray) {
-                assert_false(typeof axis === 'number' && Number.isInteger(axis), `[${subOperationName}] any of options.axes elements should be of 'unsigned long'`);
-                assert_throws_js(TypeError, () => builder[subOperationName](input, {axes: [axis]}));
-              }
+      for (let dataType of allWebNNOperandDataTypes) {
+        for (let dimensions of allWebNNDimensionsArray) {
+          const rank = getRank(dimensions);
+          if (rank >= 1) {
+            const input =
+                builder.input(`input${++inputIndex}`, {dataType, dimensions});
+            for (let invalidAxis of invalidAxisArray) {
+              assert_throws_js(
+                  TypeError,
+                  () => builder[subOperationName](input, {axes: invalidAxis}));
             }
-          }
-        }
-      } else {
-        // resample2d
-        for (let dataType of allWebNNOperandDataTypes) {
-          const input = builder.input(`input${++inputIndex}`, {dataType, dimensions: allWebNNDimensionsArray[inputRank]});
-          for (let invalidAxis of invalidAxisArray) {
-            assert_throws_js(TypeError, () => builder[subOperationName](input, {axes: invalidAxis}));
-          }
-          for (let axis of notUnsignedLongAxisArray) {
-            assert_false(typeof axis === 'number' && Number.isInteger(axis), `[${subOperationName}]  any of options.axes elements should be of 'unsigned long'`);
-            assert_throws_js(TypeError, () => builder[subOperationName](input, {axes: [axis]}));
+            for (let axis of notUnsignedLongAxisArray) {
+              assert_false(
+                  typeof axis === 'number' && Number.isInteger(axis),
+                  `[${subOperationName}] any of options.axes elements should be of 'unsigned long'`);
+              assert_throws_js(
+                  TypeError,
+                  () => builder[subOperationName](input, {axes: [axis]}));
+            }
           }
         }
       }
@@ -305,55 +305,141 @@ function validateOptionsAxes(operationName, inputRank) {
 
     // DataError is expected if any of options.axes elements is greater or equal to the size of input
     promise_test(async t => {
-      if (inputRank === undefined) {
-        // argMin/Max / layerNormalization / Reduction operations
-        for (let dataType of allWebNNOperandDataTypes) {
-          for (let dimensions of allWebNNDimensionsArray) {
-            const rank = getRank(dimensions);
-            if (rank >= 1) {
-              const input = builder.input(`input${++inputIndex}`, {dataType, dimensions});
-              assert_throws_dom('DataError', () => builder[subOperationName](input, {axes: [rank]}));
-              assert_throws_dom('DataError', () => builder[subOperationName](input, {axes: [rank + 1]}));
-            }
+      for (let dataType of allWebNNOperandDataTypes) {
+        for (let dimensions of allWebNNDimensionsArray) {
+          const rank = getRank(dimensions);
+          if (rank >= 1) {
+            const input =
+                builder.input(`input${++inputIndex}`, {dataType, dimensions});
+            assert_throws_dom(
+                'DataError',
+                () => builder[subOperationName](input, {axes: [rank]}));
+            assert_throws_dom(
+                'DataError',
+                () => builder[subOperationName](input, {axes: [rank + 1]}));
           }
-        }
-      } else {
-        // resample2d
-        for (let dataType of allWebNNOperandDataTypes) {
-          const input = builder.input(`input${++inputIndex}`, {dataType, dimensions: allWebNNDimensionsArray[inputRank]});
-          assert_throws_dom('DataError', () => builder[subOperationName](input, {axes: [inputRank]}));
-          assert_throws_dom('DataError', () => builder[subOperationName](input, {axes: [inputRank + 1]}));
         }
       }
     }, `[${subOperationName}] DataError is expected if any of options.axes elements is greater or equal to the size of input`);
 
     // DataError is expected if two or more values are same in the axes sequence
     promise_test(async t => {
-      if (inputRank === undefined) {
-        // argMin/Max / layerNormalization / Reduction operations
-        for (let dataType of allWebNNOperandDataTypes) {
-          for (let dimensions of allWebNNDimensionsArray) {
-            const rank = getRank(dimensions);
-            if (rank >= 2) {
-              const input = builder.input(`input${++inputIndex}`, {dataType, dimensions});
-              const axesArrayContainSameValues = getAxesArrayContainSameValues(dimensions);
-              for (let axes of axesArrayContainSameValues) {
-                assert_throws_dom('DataError', () => builder[subOperationName](input, {axes}));
-              }
+      for (let dataType of allWebNNOperandDataTypes) {
+        for (let dimensions of allWebNNDimensionsArray) {
+          const rank = getRank(dimensions);
+          if (rank >= 2) {
+            const input =
+                builder.input(`input${++inputIndex}`, {dataType, dimensions});
+            const axesArrayContainSameValues =
+                getAxesArrayContainSameValues(dimensions);
+            for (let axes of axesArrayContainSameValues) {
+              assert_throws_dom(
+                  'DataError', () => builder[subOperationName](input, {axes}));
             }
-          }
-        }
-      } else {
-        // resample2d
-        for (let dataType of allWebNNOperandDataTypes) {
-          const dimensions = allWebNNDimensionsArray[inputRank];
-          const input = builder.input(`input${++inputIndex}`, {dataType, dimensions});
-          const axesArrayContainSameValues = getAxesArrayContainSameValues(dimensions);
-          for (let axes of axesArrayContainSameValues) {
-            assert_throws_dom('DataError', () => builder[subOperationName](input, {axes}));
           }
         }
       }
     }, `[${subOperationName}] DataError is expected if two or more values are same in the axes sequence`);
   }
+}
+
+/**
+ * Validate a unary operation
+ * @param {String} operationName - An operation name
+ * @param {Array} supportedDataTypes - Test building with these data types
+ *     succeeds and test building with all other data types fails
+ * @param {Boolean} alsoBuildActivation - If test building this operation as an
+ *     activation
+ */
+function validateUnaryOperation(
+    operationName, supportedDataTypes, alsoBuildActivation = false) {
+  for (let dataType of supportedDataTypes) {
+    for (let dimensions of allWebNNDimensionsArray) {
+      promise_test(
+          async t => {
+            const input = builder.input(`input`, {dataType, dimensions});
+            const output = builder[operationName](input);
+            assert_equals(output.dataType(), dataType);
+            assert_array_equals(output.shape(), dimensions);
+          },
+          `[${operationName}] Test building an operator, dataType = ${
+              dataType}, dimensions = [${dimensions}]`);
+    }
+  }
+
+  const unsupportedDataTypes =
+      new Set(allWebNNOperandDataTypes).difference(new Set(supportedDataTypes));
+  for (let dataType of unsupportedDataTypes) {
+    for (let dimensions of allWebNNDimensionsArray) {
+      promise_test(
+          async t => {
+            const input = builder.input(`input`, {dataType, dimensions});
+            assert_throws_js(TypeError, () => builder[operationName](input));
+          },
+          `[${operationName}] Throw if the dataType is not supported, dataType = ${
+              dataType}, dimensions = [${dimensions}]`);
+    }
+  }
+
+  if (alsoBuildActivation) {
+    promise_test(async t => {
+      builder[operationName]();
+    }, `[${operationName}] Test building an activation`);
+  }
+}
+
+/**
+ * Basic test that the builder method specified by `operationName` throws if
+ * given an input from another builder. Operands which do not accept a float32
+ * square 2D input should pass their own `operatorDescriptor`.
+ * @param {String} operationName
+ * @param {String} operatorDescriptor
+ */
+function validateInputFromAnotherBuilder(operatorName, operatorDescriptor = {
+  dataType: 'float32',
+  dimensions: [2, 2]
+}) {
+  multi_builder_test(async (t, builder, otherBuilder) => {
+    const inputFromOtherBuilder =
+        otherBuilder.input('input', operatorDescriptor);
+    assert_throws_js(
+        TypeError, () => builder[operatorName](inputFromOtherBuilder));
+  }, `[${operatorName}] throw if input is from another builder`);
+};
+
+/**
+ * Basic test that the builder method specified by `operationName` throws if one
+ * of its inputs is from another builder. This helper may only be used by
+ * operands which accept float32 square 2D inputs.
+ * @param {String} operationName
+ */
+function validateTwoInputsFromMultipleBuilders(operatorName) {
+  const opDescriptor = {dataType: 'float32', dimensions: [2, 2]};
+
+  multi_builder_test(async (t, builder, otherBuilder) => {
+    const inputFromOtherBuilder = otherBuilder.input('other', opDescriptor);
+
+    const input = builder.input('input', opDescriptor);
+    assert_throws_js(
+        TypeError, () => builder[operatorName](inputFromOtherBuilder, input));
+  }, `[${operatorName}] throw if first input is from another builder`);
+
+  multi_builder_test(async (t, builder, otherBuilder) => {
+    const inputFromOtherBuilder = otherBuilder.input('other', opDescriptor);
+
+    const input = builder.input('input', opDescriptor);
+    assert_throws_js(
+        TypeError, () => builder[operatorName](input, inputFromOtherBuilder));
+  }, `[${operatorName}] throw if second input is from another builder`);
+};
+
+function multi_builder_test(func, description) {
+  promise_test(async t => {
+    const context = await navigator.ml.createContext();
+
+    const builder = new MLGraphBuilder(context);
+    const otherBuilder = new MLGraphBuilder(context);
+
+    await func(t, builder, otherBuilder);
+  }, description);
 }

@@ -3,27 +3,39 @@
 // (https://github.com/w3c/webref)
 // Source: CSS View Transitions Module Level 2 (https://drafts.csswg.org/css-view-transitions-2/)
 
-dictionary StartViewTransitionOptions {
-  UpdateCallback? update = null;
-  sequence<DOMString>? type = null;
-};
-
-partial interface Document {
-
-  ViewTransition startViewTransition(optional (UpdateCallback or StartViewTransitionOptions) callbackOptions = {});
-};
-
 partial interface CSSRule {
   const unsigned short VIEW_TRANSITION_RULE = 15;
 };
 
 enum ViewTransitionNavigation { "auto", "none" };
+
 [Exposed=Window]
-interface CSSViewTransitionRule : CSSRule {
-  attribute ViewTransitionNavigation navigation;
-  attribute DOMTokenList typeList;
+interface CSSViewTransitionTypeSet {
+  readonly setlike<CSSOMString>;
 };
 
+[Exposed=Window]
+interface CSSViewTransitionRule : CSSRule {
+  readonly attribute ViewTransitionNavigation navigation;
+  readonly attribute CSSViewTransitionTypeSet types;
+};
+
+[Exposed=Window]
+interface ViewTransitionTypeSet {
+  setlike<DOMString>;
+};
+
+[Exposed=Window]
 partial interface ViewTransition {
-  readonly attribute DOMTokenList typeList;
+  attribute ViewTransitionTypeSet types;
+};
+
+dictionary StartViewTransitionOptions {
+  UpdateCallback? update = null;
+  sequence<DOMString>? types = null;
+};
+
+partial interface Document {
+
+  ViewTransition startViewTransition(optional (UpdateCallback or StartViewTransitionOptions) callbackOptions = {});
 };

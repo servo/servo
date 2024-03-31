@@ -98,17 +98,6 @@ function assert_paused_times(animation, timeline_current_time,
   }
 }
 
-function createViewTimeline(t) {
-  const parent = document.querySelector('.scroller');
-  const elem = document.createElement('div');
-  elem.id = 'target';
-  t.add_cleanup(() => {
-    elem.remove();
-  });
-  parent.appendChild(elem);
-  return new ViewTimeline({ subject: elem });
-}
-
 promise_test(async t => {
   const scrollTimeline = createScrollTimeline(t);
   await updateScrollPosition(scrollTimeline, 100);

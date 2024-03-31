@@ -1,7 +1,7 @@
 - name: 2d.conformance.requirements.delete
   desc: window.CanvasRenderingContext2D is Configurable
   notes: &bindings Defined in "Web IDL" (draft)
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     @assert window.CanvasRenderingContext2D !== undefined;
     @assert delete window.CanvasRenderingContext2D === true;
@@ -172,7 +172,6 @@
   desc: void methods return undefined
   images:
   - yellow.png
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     @assert ctx.drawImage(document.getElementById('yellow.png'), 0, 0, 1, 1, 0, 0, 0, 0) === undefined;
-

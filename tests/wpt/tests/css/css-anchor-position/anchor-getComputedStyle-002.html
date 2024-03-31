@@ -13,7 +13,7 @@ body {
   margin: 0;
 }
 
-.cb {
+.rel {
   position: relative;
   background: lightgray;
 }
@@ -36,7 +36,7 @@ body {
 
 <!-- anchor is fragmented in second and third columns -->
 <div class="multicol" id="test1">
-  <div class="cb">
+  <div class="rel">
     <div class="spacer"></div>
     <div class="anchor"></div>
     <div class="target"></div>
@@ -51,7 +51,7 @@ body {
   height: 100px;
 }
 
-#test1 .cb {
+#test1 .rel{
   width: 100px;
   height: 300px;
 }
@@ -79,19 +79,23 @@ test(() => {
 
 
 <div id="test2" style="font: 20px/1 Ahem; width: 11em">
-  Lorem
-  <span class="cb">
-    ipsum <span class="anchor">dolor</span> sit
-    <span class="target"></span>
-  </span>
-  amet.<br>
+  <div>
+    Lorem
+    <span class="rel">
+      ipsum <span class="anchor">dolor</span> sit
+      <span class="target"></span>
+    </span>
+    amet.
+  </div>
 
-  Lorem
-  <span class="cb">
-    ipsum dolor <span class="anchor">sit</span>
-    <span class="target"></span>
-  </span>
-  amet.<br>
+  <div>
+    Lorem
+    <span class="rel">
+      ipsum dolor <span class="anchor">sit</span>
+      <span class="target"></span>
+    </span>
+    amet.
+  </div>
 </div>
 <script>
 test(() => {

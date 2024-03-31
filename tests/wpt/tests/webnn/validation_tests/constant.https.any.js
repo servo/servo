@@ -1,7 +1,6 @@
 // META: title=validation tests for WebNN API constant interface
 // META: global=window,dedicatedworker
 // META: script=../resources/utils_validation.js
-// META: timeout=long
 
 'use strict';
 

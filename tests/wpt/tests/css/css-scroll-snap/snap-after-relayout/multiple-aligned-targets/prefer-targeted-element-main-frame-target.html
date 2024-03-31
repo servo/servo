@@ -53,83 +53,122 @@
     // -------------------------
     // | Box 7 | Box 8 | Box 9 |
     // -------------------------
-    // This function just gets the numbers beside |box_number| on each row.
-    // E.g. 4: 4%3 = 1; so the numbers we want are 5 (4+1) and 6 (4+2).
-    function getAlignedNumbers(n) {
+    // This function just gets the boxes beside boxn on each row.
+    // E.g. box4: 4%3 = 1; so the boxes we want are box5 (4+1) and box6 (4+2).
+    function getAlignedBoxes(n) {
       n = parseInt(n);
       const mod_3 = n % 3;
+      let n1 = n - 1, n2 = n - 2;
       if (mod_3 == 1) {
-        return [n + 1, n + 2];
+        n1 = n + 1;
+        n2 = n + 2;
       } else if (mod_3 == 2) {
-        return [n - 1, n + 1];
+        n1 = n - 1;
+        n2 = n + 1;
       }
-      return [n - 1, n - 2];
+      return [document.getElementById(`box${n1}`),
+              document.getElementById(`box${n2}`)];
     }
+
     function stashResult(key, result) {
       fetch(`/css/css-scroll-snap/snap-after-relayout` +
         `/multiple-aligned-targets/stash.py?key=${key}`, {
         method: "POST",
-        body: result
+        body: JSON.stringify(result)
       }).then(() => {
         window.close();
       });
     }
-    function assert_equals(v1, v2) {
+
+    function assert_equals(test_number, v1, v2, description) {
       if (v1 != v2) {
-        throw new Error(`Expected equality of v1(${v1}) and v2(${v2}).`);
+        throw new Error(
+          `Test ${n} expected equality of ${v1} and ${v2}, ` +
+          `Description: ${description}`);
       }
     }
-    async function record() {
-      let key = (new URL(document.location)).searchParams.get("key");
+
+    async function waitForScrollReset(scroller, x = 0, y = 0) {
+      return new Promise((resolve) => {
+        if (scroller.scrollLeft == x && scroller.scrollTop == y) {
+          resolve();
+        } else {
+          scroller.addEventListener("scrollend", resolve);
+          scroller.scrollTo(x, y);
+        }
+      });
+    }
+
+    async function setLocationHash(id) {
+      return new Promise((resolve) => {
+        if (location.hash === `#${id}`) {
+          resolve();
+        } else {
+          window.addEventListener("hashchange", resolve);
+          location.hash = `#${id}`;
+        }
+      });
+    }
+
+    let result = {
+      passed: 0,
+      errors: "",
+    };
+
+    async function test(n) {
       try {
-        // Get the id of that targeted element.
-        const target_id = location.hash.substring(1);
-        const box_number = target_id.substring(3);
-
-        // Get the elements aligned with the targeted element.
+        const target_id = `box${n}`;
         const target = document.getElementById(target_id);
-        if (target == null) {
-          throw new Error("Null hash fragment target.");
-        }
-        let [aligned_number_1, aligned_number_2] =
-          getAlignedNumbers(box_number);
-        const aligned_box_1 = document.getElementById(`box${aligned_number_1}`);
-        const aligned_box_2 = document.getElementById(`box${aligned_number_2}`);
 
+        // Make boxn the targeted element.
+        await setLocationHash(target_id);
+
+        // Reset the scroll position.
+        await waitForScrollReset(scroller);
+
+        const aligned_boxes = getAlignedBoxes(n);
         // Make sure all the boxes are equally aligned.
-        assert_equals(aligned_box_1.offsetTop, target.offsetTop);
-        assert_equals(aligned_box_1.offsetTop, aligned_box_2.offsetTop);
+        assert_equals(n, aligned_boxes[0].offsetTop, target.offsetTop,
+          `${aligned_boxes[0].id} is at offset ${target.offsetTop}`);
+        assert_equals(n, aligned_boxes[1].offsetTop, target.offsetTop,
+          `${aligned_boxes[1].id} is at offset ${target.offsetTop}`);
 
-        // Scroll to the aligned boxes if necessary.
-        if (scroller.scrollTop != target.offsetTop) {
-          const scrollend_promise = new Promise((res) => {
-            scroller.addEventListener(res);
-          });
-          scroller.scrollTop = target.offsetTop;
-          await scrollend_promise;
-        }
+        // Scroll to the aligned boxes.
+        await waitForScrollReset(scroller, 0, target.offsetTop);
+        assert_equals(n, scroller.scrollTop, target.offsetTop,
+          `scrolled to ${target.id} at offset ${target.offsetTop}`);
 
-        // Save target's original top and move it down by 100px;
+        // Save target's original top.
         const original_top = getComputedStyle(target).top;
+        const original_offset_top = target.offsetTop;
+
+        // Move target along the y axis.
         target.style.top = `${target.offsetTop + 100}px`;
 
         // Assert that scroller followed target as it moved down.
-        assert_equals(scroller.scrollTop, target.offsetTop);
+        assert_equals(n, scroller.scrollTop, target.offsetTop,
+          `scrolled followed ${target.id} to offset ${target.offsetTop}`);
 
         // Cleanup: undo style change.
-        target.style.top = `${original_top}px`;
+        target.style.top = original_top;
+        assert_equals(n, target.offsetTop, original_offset_top,
+          `${target.id} is put back to offset ${original_offset_top}`);
 
-        // Stash result.
-        stashResult(key, "PASS");
+        // Record the result.
+        result.passed += 1;
       } catch (error) {
-        stashResult(key, error.message);
+        result.errors = [result.errors, error.message].join();
       }
     }
 
-    window.onload = () => {
-      window.requestAnimationFrame(function () {
-        window.requestAnimationFrame(record);
-      })
+    window.onload = async () => {
+      let key = (new URL(document.location)).searchParams.get("key");
+
+      for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9]) {
+        await test(n);
+      }
+
+      stashResult(key, result);
     }
   </script>
 </body>

@@ -21,19 +21,19 @@ test_valid_value("background-image", 'none, url("http://www.example.com/")', ['n
 test_valid_value(
     "background-image",
     "cross-fade(50% url(http://www.example.com), 50% url(http://www.example.com))", [
-        "cross-fade(50% url(http://www.example.com), 50% url(http://www.example.com))",
-        'cross-fade(50% url("http://www.example.com"), 50% url("http://www.example.com"))'
+        "cross-fade(url(http://www.example.com) 50%, url(http://www.example.com) 50%)",
+        'cross-fade(url("http://www.example.com") 50%, url("http://www.example.com") 50%)'
     ]);
 test_valid_value(
     "background-image",
-    "cross-fade(33% red, 33% white, blue)");
+    "cross-fade(red 33%, white 33%, blue)");
 test_valid_value(
     "background-image",
     "cross-fade(blue, linear-gradient(90deg, rgb(2, 0, 36) 0%, rgb(0, 212, 255) 100%))");
-test_valid_value("background-image", "cross-fade( 1% red, green)", "cross-fade(1% red, green)");
-test_valid_value("background-image", "cross-fade(1% red , green)", "cross-fade(1% red, green)");
-test_valid_value("background-image", "cross-fade(1% red, green )", "cross-fade(1% red, green)");
-test_valid_value("background-image", "cross-fade(1% red, cross-fade(2% red, green))");
+test_valid_value("background-image", "cross-fade( 1% red, green)", "cross-fade(red 1%, green)");
+test_valid_value("background-image", "cross-fade(1% red , green)", "cross-fade(red 1%, green)");
+test_valid_value("background-image", "cross-fade(1% red, green )", "cross-fade(red 1%, green)");
+test_valid_value("background-image", "cross-fade(red 1%, cross-fade(red 2%, green))");
 </script>
 </body>
 </html>
