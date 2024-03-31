@@ -615,7 +615,7 @@ impl ModuleTree {
         }
 
         // Step 2.
-        if !specifier_str.starts_with("/") &&
+        if !specifier_str.starts_with('/') &&
             !specifier_str.starts_with("./") &&
             !specifier_str.starts_with("../")
         {
