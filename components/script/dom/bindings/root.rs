@@ -275,7 +275,6 @@ impl RootCollection {
     unsafe fn unroot(&self, object: *const dyn JSTraceable) {
         assert_in_script();
         let roots = &mut *self.roots.get();
-        #[allow(clippy::vtable_address_comparisons)]
         match roots.iter().rposition(|r| std::ptr::eq(*r, object)) {
             Some(idx) => {
                 roots.remove(idx);
