@@ -826,21 +826,19 @@ impl HTMLFormElement {
 
         // Step 22
         match (&*scheme, method) {
-            (_, FormMethod::FormDialog) => {
+            (_, FormMethod::Dialog) => {
                 // TODO: Submit dialog
                 // https://html.spec.whatwg.org/multipage/#submit-dialog
             },
             // https://html.spec.whatwg.org/multipage/#submit-mutate-action
-            ("http", FormMethod::FormGet) |
-            ("https", FormMethod::FormGet) |
-            ("data", FormMethod::FormGet) => {
+            ("http", FormMethod::Get) | ("https", FormMethod::Get) | ("data", FormMethod::Get) => {
                 load_data
                     .headers
                     .typed_insert(ContentType::from(mime::APPLICATION_WWW_FORM_URLENCODED));
                 self.mutate_action_url(&mut form_data, load_data, encoding, target_window);
             },
             // https://html.spec.whatwg.org/multipage/#submit-body
-            ("http", FormMethod::FormPost) | ("https", FormMethod::FormPost) => {
+            ("http", FormMethod::Post) | ("https", FormMethod::Post) => {
                 load_data.method = Method::POST;
                 self.submit_entity_body(
                     &mut form_data,
@@ -853,16 +851,16 @@ impl HTMLFormElement {
             // https://html.spec.whatwg.org/multipage/#submit-get-action
             ("file", _) |
             ("about", _) |
-            ("data", FormMethod::FormPost) |
+            ("data", FormMethod::Post) |
             ("ftp", _) |
             ("javascript", _) => {
                 self.plan_to_navigate(load_data, target_window);
             },
-            ("mailto", FormMethod::FormPost) => {
+            ("mailto", FormMethod::Post) => {
                 // TODO: Mail as body
                 // https://html.spec.whatwg.org/multipage/#submit-mailto-body
             },
-            ("mailto", FormMethod::FormGet) => {
+            ("mailto", FormMethod::Get) => {
                 // TODO: Mail with headers
                 // https://html.spec.whatwg.org/multipage/#submit-mailto-headers
             },
@@ -1361,9 +1359,9 @@ pub enum FormEncType {
 
 #[derive(Clone, Copy, MallocSizeOf)]
 pub enum FormMethod {
-    FormGet,
-    FormPost,
-    FormDialog,
+    Get,
+    Post,
+    Dialog,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#form-associated-element>
@@ -1431,9 +1429,9 @@ impl<'a> FormSubmitter<'a> {
             ),
         };
         match &*attr {
-            "dialog" => FormMethod::FormDialog,
-            "post" => FormMethod::FormPost,
-            _ => FormMethod::FormGet,
+            "dialog" => FormMethod::Dialog,
+            "post" => FormMethod::Post,
+            _ => FormMethod::Get,
         }
     }
 

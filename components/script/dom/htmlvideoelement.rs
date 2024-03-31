@@ -245,7 +245,7 @@ impl HTMLVideoElement {
 impl HTMLVideoElementMethods for HTMLVideoElement {
     // https://html.spec.whatwg.org/multipage/#dom-video-videowidth
     fn VideoWidth(&self) -> u32 {
-        if self.htmlmediaelement.get_ready_state() == ReadyState::HaveNothing {
+        if self.htmlmediaelement.get_ready_state() == ReadyState::Nothing {
             return 0;
         }
         self.video_width.get()
@@ -253,7 +253,7 @@ impl HTMLVideoElementMethods for HTMLVideoElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-video-videoheight
     fn VideoHeight(&self) -> u32 {
-        if self.htmlmediaelement.get_ready_state() == ReadyState::HaveNothing {
+        if self.htmlmediaelement.get_ready_state() == ReadyState::Nothing {
             return 0;
         }
         self.video_height.get()
