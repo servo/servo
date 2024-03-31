@@ -70,7 +70,9 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ServoShadowRoot<'dom, LayoutDataType
             phantom: PhantomData,
         }
     }
-
+    /// # Safety
+    ///
+    /// This function should not mutate StyleSharedRwLockReadGuard.
     pub unsafe fn flush_stylesheets(
         &self,
         stylist: &mut Stylist,
