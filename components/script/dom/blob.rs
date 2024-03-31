@@ -322,5 +322,5 @@ pub fn normalize_type_string(s: &str) -> String {
 fn is_ascii_printable(string: &str) -> bool {
     // Step 5.1 in Sec 5.1 of File API spec
     // <https://w3c.github.io/FileAPI/#constructorBlob>
-    string.chars().all(|c| c >= '\x20' && c <= '\x7E')
+    string.chars().all(|c| ('\x20'..='\x7E').contains(&c))
 }
