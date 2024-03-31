@@ -3,13 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::canvas::*;
-use cssparser::RgbaLegacy;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::Angle;
 use font_kit::font::Font;
 use log::warn;
 use lyon_geom::Arc;
 use raqote::PathOp;
+use style::color::parsing::RgbaLegacy;
 
 use crate::canvas_data;
 use crate::canvas_data::{

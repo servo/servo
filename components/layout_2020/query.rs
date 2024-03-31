@@ -29,7 +29,7 @@ use style::shared_lock::SharedRwLock;
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style::stylist::RuleInclusion;
 use style::traversal::resolve_style;
-use style::values::generics::text::LineHeight;
+use style::values::generics::font::LineHeight;
 use style_traits::{ParsingMode, ToCss};
 use webrender_api::ExternalScrollId;
 
@@ -161,8 +161,9 @@ pub fn process_resolved_style_request<'dom>(
     // For line height, the resolved value is the computed value if it
     // is "normal" and the used value otherwise.
     if longhand_id == LonghandId::LineHeight {
-        let font_size = style.get_font().font_size.computed_size();
-        return match style.get_inherited_text().line_height {
+        let font = style.get_font();
+        let font_size = font.font_size.computed_size();
+        return match font.line_height {
             LineHeight::Normal => computed_style(),
             LineHeight::Number(value) => (font_size * value.0).to_css_string(),
             LineHeight::Length(value) => value.0.to_css_string(),
