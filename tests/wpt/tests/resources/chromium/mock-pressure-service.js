@@ -58,8 +58,8 @@ class MockPressureService {
     return {status: this.pressureStatus_};
   }
 
-  startPlatformCollector(sampleRate) {
-    if (sampleRate === 0)
+  startPlatformCollector(sampleInterval) {
+    if (sampleInterval === 0)
       return;
 
     if (this.pressureServiceReadingTimerId_ != null)
@@ -80,7 +80,6 @@ class MockPressureService {
     // |epochDeltaInMs| equals to base::Time::kTimeTToMicrosecondsOffset.
     const epochDeltaInMs = unixEpoch - windowsEpoch;
 
-    const timeout = (1 / sampleRate) * 1000;
     this.pressureServiceReadingTimerId_ = self.setInterval(() => {
       if (this.pressureUpdate_ === null || this.observers_.length === 0)
         return;
@@ -90,7 +89,7 @@ class MockPressureService {
       for (let observer of this.observers_)
         observer.onPressureUpdated(this.pressureUpdate_);
       this.updatesDelivered_++;
-    }, timeout);
+    }, sampleInterval);
   }
 
   stopPlatformCollector() {

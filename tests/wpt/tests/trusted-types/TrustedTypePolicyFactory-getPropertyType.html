@@ -104,5 +104,10 @@
       }, `${elem}.${attr} is maybe defined`);
     }
   }
+
+  test(t => {
+    assert_equals(trustedTypes.getPropertyType("img", "onerror"), null);
+    assert_equals(trustedTypes.getAttributeType("img", "onerror"), "TrustedScript");
+  }, "getPropertyType vs getAttributeType for event handler.");
 </script>
 </body>

@@ -38,7 +38,7 @@
 
 - name: 2d.text.font.parse.size.percentage
   canvas: 'style="font-size: 144px"'
-  canvasType: ['HtmlCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     ctx.font = '50% serif';
     @assert ctx.font === '72px serif'; @moz-todo
@@ -46,7 +46,7 @@
     @assert ctx.font === '72px serif'; @moz-todo
 
 - name: 2d.text.font.parse.size.percentage.default
-  canvasType: ['HtmlCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     var canvas2 = document.createElement('canvas');
     var ctx2 = canvas2.getContext('2d');
@@ -113,7 +113,7 @@
     @assert ctx.font === '10px sans-serif';
 
 - name: 2d.text.font.relative_size
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     var canvas2 = document.createElement('canvas');
     var ctx2 = canvas2.getContext('2d');
@@ -121,7 +121,7 @@
     @assert ctx2.font === '10px sans-serif';
 
 - name: 2d.text.font.relative_size
-  canvasType: ['OffscreenCanvas', 'Worker']
+  canvas_types: ['OffscreenCanvas', 'Worker']
   code: |
     ctx.font = '1em sans-serif';
     @assert ctx.font === '10px sans-serif';
@@ -236,16 +236,18 @@
     @assert pixel 95,45 ==~ 0,255,0,255;
   expected: green
   variants: &load-font-variant-definition
-    _HtmlCanvas:
-      canvasType: ['HtmlCanvas']
+  - HtmlCanvas:
+      append_variants_to_name: false
+      canvas_types: ['HtmlCanvas']
       load_font: |-
         await document.fonts.ready;
-    _OffscreenCanvas:
-      canvasType: ['OffscreenCanvas', 'Worker']
+    OffscreenCanvas:
+      append_variants_to_name: false
+      canvas_types: ['OffscreenCanvas', 'Worker']
       load_font: |-
         var f = new FontFace("{{ fonts[0] }}", "url('/fonts/{{ fonts[0] }}.ttf')");
         f.load();
-        {% set root = 'self' if canvas_type == 'worker' else 'document' %}
+        {% set root = 'self' if canvas_type == 'Worker' else 'document' %}
         {{ root }}.fonts.add(f);
         await {{ root }}.fonts.ready;
 
@@ -813,7 +815,7 @@
   code: |
     {{ load_font }}
     ctx.font = '50px CanvasTest';
-    {% if canvas_type != 'htmlcanvas' %}
+    {% if canvas_type != 'HtmlCanvas' %}
     ctx.direction = 'ltr';
     {% endif %}
     ctx.fillStyle = '#f00';
@@ -839,7 +841,7 @@
   code: |
     {{ load_font }}
     ctx.font = '50px CanvasTest';
-    {% if canvas_type != 'htmlcanvas' %}
+    {% if canvas_type != 'HtmlCanvas' %}
     ctx.direction = 'rtl';
     {% endif %}
     ctx.fillStyle = '#f00';
@@ -865,7 +867,7 @@
   code: |
     {{ load_font }}
     ctx.font = '50px CanvasTest';
-    {% if canvas_type != 'htmlcanvas' %}
+    {% if canvas_type != 'HtmlCanvas' %}
     ctx.direction = 'ltr';
     {% endif %}
     ctx.fillStyle = '#f00';
@@ -891,7 +893,7 @@
   code: |
     {{ load_font }}
     ctx.font = '50px CanvasTest';
-    {% if canvas_type != 'htmlcanvas' %}
+    {% if canvas_type != 'HtmlCanvas' %}
     ctx.direction = 'rtl';
     {% endif %}
     ctx.fillStyle = '#f00';

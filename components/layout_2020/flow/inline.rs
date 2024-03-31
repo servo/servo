@@ -84,7 +84,7 @@ use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style::values::generics::box_::VerticalAlignKeyword;
-use style::values::generics::text::LineHeight;
+use style::values::generics::font::LineHeight;
 use style::values::specified::text::{TextAlignKeyword, TextDecorationLine};
 use style::values::specified::{TextAlignLast, TextJustify};
 use style::Zero;
@@ -1829,7 +1829,7 @@ impl InlineContainerState {
         // when `line-height` is normal.
         let mut ascent = font_metrics.ascent;
         let mut descent = font_metrics.descent;
-        if style.get_inherited_text().line_height == LineHeight::Normal {
+        if style.get_font().line_height == LineHeight::Normal {
             let half_leading_from_line_gap =
                 (font_metrics.line_gap - descent - ascent).scale_by(0.5);
             ascent += half_leading_from_line_gap;
@@ -1856,7 +1856,7 @@ impl InlineContainerState {
         // zero in this case, the line may get some height when taking them into
         // considering with other zero line height boxes that converge on other block axis
         // locations when using the above formula.
-        if style.get_inherited_text().line_height != LineHeight::Normal {
+        if style.get_font().line_height != LineHeight::Normal {
             let half_leading =
                 (Au::from_f32_px(line_height.px()) - (ascent + descent)).scale_by(0.5);
             ascent += half_leading;
@@ -2217,8 +2217,9 @@ fn place_pending_floats(ifc: &mut InlineFormattingContextState, line_items: &mut
 }
 
 fn line_height(parent_style: &ComputedValues, font_metrics: &FontMetrics) -> Length {
-    let font_size = parent_style.get_font().font_size.computed_size();
-    match parent_style.get_inherited_text().line_height {
+    let font = parent_style.get_font();
+    let font_size = font.font_size.computed_size();
+    match font.line_height {
         LineHeight::Normal => Length::from(font_metrics.line_gap),
         LineHeight::Number(number) => font_size * number.0,
         LineHeight::Length(length) => length.0,
@@ -2367,23 +2368,29 @@ impl<'a> ContentSizesComputation<'a> {
 
                             let white_space =
                                 text_run.parent_style.get_inherited_text().white_space;
-                            // TODO: need to handle white_space.allow_wrap() too.
                             if !white_space.preserve_spaces() {
                                 // Discard any leading whitespace in the IFC. This will always be trimmed.
                                 if self.had_content_yet {
                                     // Wait to take into account other whitespace until we see more content.
                                     // Whitespace at the end of the IFC will always be trimmed.
+                                    // TODO: need to handle !white_space.allow_wrap().
                                     self.line_break_opportunity();
                                     self.pending_whitespace += advance;
                                 }
                                 continue;
                             }
+                            if white_space.allow_wrap() {
+                                self.commit_pending_whitespace();
+                                self.line_break_opportunity();
+                                self.current_line.max_content += advance;
+                                self.had_content_yet = true;
+                                continue;
+                            }
                         }
 
+                        self.commit_pending_whitespace();
+                        self.add_length(advance.into());
                         self.had_content_yet = true;
-                        self.current_line.min_content += advance;
-                        self.current_line.max_content += self.pending_whitespace + advance;
-                        self.pending_whitespace = Au::zero();
                     }
                 }
             },
@@ -2393,12 +2400,8 @@ impl<'a> ContentSizesComputation<'a> {
                     self.containing_block_writing_mode,
                 );
 
-                // For the min-content size we should wrap lines wherever is possible,
-                // so wrappable spaces shouldn't increase the length of the line,
-                // they will just be removed or hang at the end of the line.
-                self.current_line.min_content += outer.min_content;
-                self.current_line.max_content += self.pending_whitespace + outer.max_content;
-                self.pending_whitespace = Au::zero();
+                self.commit_pending_whitespace();
+                self.current_line += outer;
                 self.had_content_yet = true;
             },
             _ => {},
@@ -2424,6 +2427,14 @@ impl<'a> ContentSizesComputation<'a> {
         self.paragraph.max_content =
             std::cmp::max(self.paragraph.max_content, self.current_line.max_content);
         self.current_line.max_content = Au::zero();
+    }
+
+    fn commit_pending_whitespace(&mut self) {
+        // Only add the pending whitespace to the max-content size, because for the min-content
+        // we should wrap lines wherever is possible, so wrappable spaces shouldn't increase
+        // the length of the line (they will just be removed or hang at the end of the line).
+        self.current_line.max_content += self.pending_whitespace;
+        self.pending_whitespace = Au::zero();
     }
 
     /// Compute the [`ContentSizes`] of the given [`InlineFormattingContext`].

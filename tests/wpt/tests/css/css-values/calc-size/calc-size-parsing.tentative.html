@@ -34,13 +34,40 @@ test_invalid_value("width",    "calc-size(any, size)");
 test_invalid_value("width",    "calc-size(any, fit-content)");
 test_invalid_value("width",    "calc-size(any, max-content)");
 test_invalid_value("width",    "calc-size(any, min-content)");
-test_valid_value("width",      "calc-size(any, calc-size(10px, sign(size) * size))");
-test_invalid_value("width",    "calc-size(any, calc-size(10px, sign(size) * size) * sign(size))");
+test_valid_value("width",      "calc-size(10px, sign(size) * size)");
+test_invalid_value("width",    "size");
+test_invalid_value("width",    "sign(size)");
+test_invalid_value("width",    "calc(50px * sign(size))");
+test_invalid_value("width",    "calc-size(any, calc-size(10px, sign(size) * size))");
+test_invalid_value("width",    "calc-size(any, calc-size(any, 10px))");
+test_invalid_value("width",    "calc(calc-size(auto, size))");
+test_invalid_value("width",    "calc(50px * sign(calc-size(auto, size)))");
+test_invalid_value("width",    "calc(calc-size(auto, size) + calc-size(auto, size))");
+test_invalid_value("width",    "calc(abs(calc-size(auto, size)))");
+test_invalid_value("width",    "calc(100px * progress(calc-size(auto, size) from calc-size(auto, 0px) to calc-size(auto, size)))");
+test_invalid_value("width",    "calc(100px * progress(calc-size(auto, size) from 0px to 100px))");
+test_invalid_value("width",    "calc(100px * progress(50px from calc-size(auto, 0px) to calc-size(auto, size)))");
+test_invalid_value("width",    "min(calc-size(auto, 0px), calc-size(auto, size))");
+test_invalid_value("width",    "calc(min(calc-size(auto, 0px), calc-size(auto, size)))");
+test_invalid_value("width",    "max(calc-size(auto, 0px), calc-size(auto, size))");
+test_invalid_value("width",    "calc(max(calc-size(auto, 0px), calc-size(auto, size)))");
+test_invalid_value("width",    "clamp(calc-size(auto, 0px), calc-size(auto, 30px), calc-size(auto, size))");
+test_invalid_value("width",    "calc(clamp(calc-size(auto, 0px), calc-size(auto, 30px), calc-size(auto, size)))");
+test_invalid_value("width",    "calc(cos(calc-size(auto, 0px)))");
+test_invalid_value("width",    "calc(atan2(calc-size(auto, size), calc-size(auto, 50px)))");
+test_invalid_value("width",    "calc(sqrt(calc-size(auto, 0px)))");
+test_invalid_value("width",    "calc(hypot(calc-size(auto, size * 0.5), calc-size(auto, size)))");
+test_invalid_value("width",    "calc(round(calc-size(auto, size * 0.5), calc-size(auto, size)))");
+test_invalid_value("width",    "calc(round(calc-size(auto, size * 0.5)))");
+test_invalid_value("width",    "calc(mod(calc-size(auto, size * 0.5), calc-size(auto, size)))");
+test_invalid_value("width",    "calc(rem(calc-size(auto, size * 0.5), calc-size(auto, size)))");
 
 test_valid_value("width", "calc-size(30px, 25em)");
 test_valid_value("width", "calc-size(calc-size(any, 30px), 25em)");
 test_valid_value("width", "calc-size(calc-size(2in, 30px), 25em)", "calc-size(calc-size(192px, 30px), 25em)");
 test_valid_value("width", "calc-size(calc-size(min-content, 30px), 25em)");
 test_valid_value("width", "calc-size(calc-size(min-content, size), size)");
+
+test_invalid_value("height", "calc(12% + calc-size(any, 31%))");
 
 </script>

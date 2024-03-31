@@ -1,6 +1,6 @@
 'use strict';
 
-import {routerRules} from './router-rules.js';
+import {routerRules, cacheName} from './router-rules.js';
 import {
   recordRequest,
   recordError,
@@ -10,7 +10,7 @@ import {
 import './imported-sw.js';
 
 self.addEventListener('install', async e => {
-  e.waitUntil(caches.open('v1').then(
+  e.waitUntil(caches.open(cacheName).then(
       cache => {cache.put('cache.txt', new Response('From cache'))}));
 
   const params = new URLSearchParams(location.search);

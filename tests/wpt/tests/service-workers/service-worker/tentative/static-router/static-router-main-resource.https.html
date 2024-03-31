@@ -18,6 +18,8 @@ const ROUTER_RULE_KEY_RESPECT_CASE =
 const ROUTER_RULE_KEY_URLPATTERN_CACHE =
   'condition-urlpattern-string-source-cache';
 const ROUTER_RULE_KEY_REQUEST_CACHE = 'condition-request-navigate-source-cache';
+const ROUTER_RULE_KEY_URLPATTERN_CACHE_WITH_NAME =
+  'condition-urlpattern-string-source-cache-with-name';
 const REGISTERED_ROUTE = 'resources/direct.txt';
 const CACHED_ROUTE = 'resources/cache.txt';
 const NON_REGISTERED_ROUTE = 'resources/simple.html';
@@ -65,5 +67,10 @@ iframeTest(NON_REGISTERED_ROUTE, ROUTER_RULE_KEY_REQUEST_CACHE, async (t, iwin, 
   assert_equals(iwin.document.body.innerText, "Here's a simple html file.");
 }, 'Main resource fallback to the network when there is no cache entry');
 
+iframeTest(CACHED_ROUTE, ROUTER_RULE_KEY_URLPATTERN_CACHE_WITH_NAME, async (t, iwin, worker) => {
+  const {requests} = await get_info_from_worker(worker);
+  assert_equals(requests.length, 0);
+  assert_equals(iwin.document.body.innerText, "From cache");
+}, 'Main resource load matched with the cache source, with specifying the cache name');
 </script>
 </body>

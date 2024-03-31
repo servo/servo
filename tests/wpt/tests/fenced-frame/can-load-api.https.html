@@ -11,7 +11,7 @@
 async function runTest(expected_result, generator_api, attribute_list, header_list, use_fencedframe=false) {
   const frame = use_fencedframe ?
       await attachFencedFrameContext({generator_api: generator_api, attributes:attribute_list, headers:header_list}) :
-      await attachIFrameContext({generator_api, generator_api, attributes:attribute_list, headers:header_list});
+      await attachIFrameContext({generator_api: generator_api, attributes:attribute_list, headers:header_list});
   await frame.execute(async (expected_result, attribute_list) => {
     assert_equals(navigator.canLoadAdAuctionFencedFrame(), expected_result,
     "A frame with attributes " + attribute_list + " should return " +

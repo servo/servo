@@ -1527,7 +1527,6 @@ where
             },
             // XXX: Non-None image types unimplemented.
             Image::ImageSet(..) |
-            Image::Rect(..) |
             Image::Gradient(..) |
             Image::PaintWorklet(..) |
             Image::CrossFade(..) |

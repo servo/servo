@@ -99,9 +99,9 @@ impl XRSystem {
     }
 }
 
-impl Into<SessionMode> for XRSessionMode {
-    fn into(self) -> SessionMode {
-        match self {
+impl From<XRSessionMode> for SessionMode {
+    fn from(mode: XRSessionMode) -> SessionMode {
+        match mode {
             XRSessionMode::Immersive_vr => SessionMode::ImmersiveVR,
             XRSessionMode::Immersive_ar => SessionMode::ImmersiveAR,
             XRSessionMode::Inline => SessionMode::Inline,

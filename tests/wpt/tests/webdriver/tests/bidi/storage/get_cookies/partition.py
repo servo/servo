@@ -159,7 +159,7 @@ async def test_partition_context_with_different_domain(
         partition=BrowsingContextPartitionDescriptor(new_tab["context"])
     )
 
-    assert result["cookies"] == [
+    recursive_compare([
         {
             "domain": cookie_domain,
             "httpOnly": False,
@@ -170,7 +170,7 @@ async def test_partition_context_with_different_domain(
             "size": 6,
             "value": {"type": "string", "value": cookie_value},
         }
-    ]
+    ], result["cookies"])
 
 
 @pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])

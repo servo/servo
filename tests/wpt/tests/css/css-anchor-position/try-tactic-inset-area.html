@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: try-tactic, inset-area</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#typedef-position-try-options-try-tactic">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #cb {
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    border: 1px solid black;
+  }
+  #anchor {
+    position: absolute;
+    left: 150px;
+    top: 150px;
+    width: 100px;
+    height: 50px;
+    background-color: coral;
+  }
+  #target {
+    position: absolute;
+    left: 450px; /* force fallback */
+    width: 40px;
+    height: 40px;
+    background-color: skyblue;
+  }
+</style>
+<style id=style>
+</style>
+<div id=cb>
+  <div id=target></div>
+</div>
+<script>
+
+function test_computed_value(try_tactic, property, value, expected, direction, writing_mode) {
+  if (direction==undefined) {
+    direction = 'ltr';
+  }
+  if (writing_mode==undefined) {
+    writing_mode = 'horizontal-tb';
+  }
+  test((t) => {
+    t.add_cleanup(() => {
+      style.textContent = '';
+      document.documentElement.style = '';
+    });
+    document.documentElement.style.direction = direction;
+    document.documentElement.style.writingMode = writing_mode;
+    style.textContent = `
+      @position-try --pf {
+        inset: initial;
+        ${property}:${value};
+      }
+      #target {
+        position-try-options: --pf ${try_tactic};
+      }
+    `;
+    assert_equals(getComputedStyle(target).getPropertyValue(property), expected);
+  }, `${try_tactic}, ${property}:${value}, ${direction} ${writing_mode}`);
+}
+
+
+// Physical:
+
+test_computed_value('flip-inline', 'inset-area', 'left top', 'right top');
+test_computed_value('flip-inline', 'inset-area', 'left bottom', 'right bottom');
+test_computed_value('flip-inline', 'inset-area', 'right bottom', 'left bottom');
+test_computed_value('flip-inline', 'inset-area', 'right top', 'left top');
+
+test_computed_value('flip-block', 'inset-area', 'left top', 'left bottom');
+test_computed_value('flip-block', 'inset-area', 'left bottom', 'left top');
+test_computed_value('flip-block', 'inset-area', 'right bottom', 'right top');
+test_computed_value('flip-block', 'inset-area', 'right top', 'right bottom');
+
+test_computed_value('flip-block flip-inline', 'inset-area', 'left top', 'right bottom');
+test_computed_value('flip-block flip-inline', 'inset-area', 'left bottom', 'right top');
+test_computed_value('flip-block flip-inline', 'inset-area', 'right bottom', 'left top');
+test_computed_value('flip-block flip-inline', 'inset-area', 'right top', 'left bottom');
+
+test_computed_value('flip-start', 'inset-area', 'left top', 'left top');
+test_computed_value('flip-start', 'inset-area', 'left bottom', 'right top');
+test_computed_value('flip-start', 'inset-area', 'right bottom', 'right bottom');
+test_computed_value('flip-start', 'inset-area', 'right top', 'left bottom');
+
+test_computed_value('flip-block flip-start', 'inset-area', 'left top', 'right top');
+test_computed_value('flip-block flip-start', 'inset-area', 'left bottom', 'left top');
+test_computed_value('flip-block flip-start', 'inset-area', 'right bottom', 'left bottom');
+test_computed_value('flip-block flip-start', 'inset-area', 'right top', 'right bottom');
+
+test_computed_value('flip-inline flip-start', 'inset-area', 'left top', 'left bottom');
+test_computed_value('flip-inline flip-start', 'inset-area', 'left bottom', 'right bottom');
+test_computed_value('flip-inline flip-start', 'inset-area', 'right bottom', 'right top');
+test_computed_value('flip-inline flip-start', 'inset-area', 'right top', 'left top');
+
+test_computed_value('flip-block flip-inline flip-start', 'inset-area', 'left top', 'right bottom');
+test_computed_value('flip-block flip-inline flip-start', 'inset-area', 'left bottom', 'left bottom');
+test_computed_value('flip-block flip-inline flip-start', 'inset-area', 'right bottom', 'left top');
+test_computed_value('flip-block flip-inline flip-start', 'inset-area', 'right top', 'right top');
+
+// Variations:
+test_computed_value('flip-block flip-inline', 'inset-area', 'span-left span-top', 'span-right span-bottom');
+
+// XY:
+
+test_computed_value('flip-inline', 'inset-area', 'x-start y-start', 'x-end y-start');
+test_computed_value('flip-inline', 'inset-area', 'x-start y-end', 'x-end y-end');
+test_computed_value('flip-inline', 'inset-area', 'x-end y-end', 'x-start y-end');
+test_computed_value('flip-inline', 'inset-area', 'x-end y-start', 'x-start y-start');
+
+test_computed_value('flip-block', 'inset-area', 'x-start y-start', 'x-start y-end');
+test_computed_value('flip-block', 'inset-area', 'x-start y-end', 'x-start y-start');
+test_computed_value('flip-block', 'inset-area', 'x-end y-end', 'x-end y-start');
+test_computed_value('flip-block', 'inset-area', 'x-end y-start', 'x-end y-end');
+
+test_computed_value('flip-block flip-inline', 'inset-area', 'x-start y-start', 'x-end y-end');
+test_computed_value('flip-block flip-inline', 'inset-area', 'x-start y-end', 'x-end y-start');
+test_computed_value('flip-block flip-inline', 'inset-area', 'x-end y-end', 'x-start y-start');
+test_computed_value('flip-block flip-inline', 'inset-area', 'x-end y-start', 'x-start y-end');
+
+test_computed_value('flip-start', 'inset-area', 'x-start y-start', 'x-start y-start');
+test_computed_value('flip-start', 'inset-area', 'x-start y-end', 'x-end y-start');
+test_computed_value('flip-start', 'inset-area', 'x-end y-end', 'x-end y-end');
+test_computed_value('flip-start', 'inset-area', 'x-end y-start', 'x-start y-end');
+
+test_computed_value('flip-block flip-start', 'inset-area', 'x-start y-start', 'x-end y-start');
+test_computed_value('flip-block flip-start', 'inset-area', 'x-start y-end', 'x-start y-start');
+test_computed_value('flip-block flip-start', 'inset-area', 'x-end y-end', 'x-start y-end');
+test_computed_value('flip-block flip-start', 'inset-area', 'x-end y-start', 'x-end y-end');
+
+test_computed_value('flip-inline flip-start', 'inset-area', 'x-start y-start', 'x-start y-end');
+test_computed_value('flip-inline flip-start', 'inset-area', 'x-start y-end', 'x-end y-end');
+test_computed_value('flip-inline flip-start', 'inset-area', 'x-end y-end', 'x-end y-start');
+test_computed_value('flip-inline flip-start', 'inset-area', 'x-end y-start', 'x-start y-start');
+
+test_computed_value('flip-block flip-inline flip-start', 'inset-area', 'x-start y-start', 'x-end y-end');
+test_computed_value('flip-block flip-inline flip-start', 'inset-area', 'x-start y-end', 'x-start y-end');
+test_computed_value('flip-block flip-inline flip-start', 'inset-area', 'x-end y-end', 'x-start y-start');
+test_computed_value('flip-block flip-inline flip-start', 'inset-area', 'x-end y-start', 'x-end y-start');
+
+// Variations:
+test_computed_value('flip-block flip-inline', 'inset-area', 'span-x-start span-y-start', 'span-x-end span-y-end');
+test_computed_value('flip-block flip-inline', 'inset-area', 'x-self-start y-self-start', 'x-self-end y-self-end');
+test_computed_value('flip-block flip-inline', 'inset-area', 'span-x-self-start span-y-self-start', 'span-x-self-end span-y-self-end');
+
+// Logical:
+
+test_computed_value('flip-inline', 'inset-area', 'block-start inline-start', 'block-start inline-end');
+test_computed_value('flip-inline', 'inset-area', 'block-end inline-start', 'block-end inline-end');
+test_computed_value('flip-inline', 'inset-area', 'block-end inline-end', 'block-end inline-start');
+test_computed_value('flip-inline', 'inset-area', 'block-start inline-end', 'block-start inline-start');
+
+test_computed_value('flip-block', 'inset-area', 'block-start inline-start', 'block-end inline-start');
+test_computed_value('flip-block', 'inset-area', 'block-end inline-start', 'block-start inline-start');
+test_computed_value('flip-block', 'inset-area', 'block-end inline-end', 'block-start inline-end');
+test_computed_value('flip-block', 'inset-area', 'block-start inline-end', 'block-end inline-end');
+
+test_computed_value('flip-block flip-inline', 'inset-area', 'block-start inline-start', 'block-end inline-end');
+test_computed_value('flip-block flip-inline', 'inset-area', 'block-end inline-start', 'block-start inline-end');
+test_computed_value('flip-block flip-inline', 'inset-area', 'block-end inline-end', 'block-start inline-start');
+test_computed_value('flip-block flip-inline', 'inset-area', 'block-start inline-end', 'block-end inline-start');
+
+test_computed_value('flip-start', 'inset-area', 'block-start inline-start', 'block-start inline-start');
+test_computed_value('flip-start', 'inset-area', 'block-end inline-start', 'block-start inline-end');
+test_computed_value('flip-start', 'inset-area', 'block-end inline-end', 'block-end inline-end');
+test_computed_value('flip-start', 'inset-area', 'block-start inline-end', 'block-end inline-start');
+
+test_computed_value('flip-block flip-start', 'inset-area', 'block-start inline-start', 'block-start inline-end');
+test_computed_value('flip-block flip-start', 'inset-area', 'block-end inline-start', 'block-start inline-start');
+test_computed_value('flip-block flip-start', 'inset-area', 'block-end inline-end', 'block-end inline-start');
+test_computed_value('flip-block flip-start', 'inset-area', 'block-start inline-end', 'block-end inline-end');
+
+test_computed_value('flip-inline flip-start', 'inset-area', 'block-start inline-start', 'block-end inline-start');
+test_computed_value('flip-inline flip-start', 'inset-area', 'block-end inline-start', 'block-end inline-end');
+test_computed_value('flip-inline flip-start', 'inset-area', 'block-end inline-end', 'block-start inline-end');
+test_computed_value('flip-inline flip-start', 'inset-area', 'block-start inline-end', 'block-start inline-start');
+
+test_computed_value('flip-block flip-inline flip-start', 'inset-area', 'block-start inline-start', 'block-end inline-end');
+test_computed_value('flip-block flip-inline flip-start', 'inset-area', 'block-end inline-start', 'block-end inline-start');
+test_computed_value('flip-block flip-inline flip-start', 'inset-area', 'block-end inline-end', 'block-start inline-start');
+test_computed_value('flip-block flip-inline flip-start', 'inset-area', 'block-start inline-end', 'block-start inline-end');
+
+// Variations:
+test_computed_value('flip-block flip-inline', 'inset-area', 'span-block-start span-inline-start', 'span-block-end span-inline-end');
+test_computed_value('flip-block flip-inline', 'inset-area', 'self-block-start self-inline-start', 'self-block-end self-inline-end');
+test_computed_value('flip-block flip-inline', 'inset-area', 'span-self-block-start span-self-inline-start', 'span-self-block-end span-self-inline-end');
+
+// start/end
+
+test_computed_value('', 'inset-area', 'start end', 'start end');
+
+test_computed_value('flip-block', 'inset-area', 'start end', 'end');
+
+test_computed_value('flip-inline', 'inset-area', 'start end', 'start');
+
+test_computed_value('flip-block flip-inline', 'inset-area', 'start end', 'end start');
+
+test_computed_value('flip-start', 'inset-area', 'start', 'start');
+test_computed_value('flip-start', 'inset-area', 'end', 'end');
+test_computed_value('flip-start', 'inset-area', 'start end', 'end start');
+
+test_computed_value('flip-block flip-start', 'inset-area', 'start end', 'end');
+
+test_computed_value('flip-inline flip-start', 'inset-area', 'start end', 'start');
+
+test_computed_value('flip-block flip-inline flip-start', 'inset-area', 'start end', 'start end');
+
+// Variations:
+
+test_computed_value('flip-block flip-inline', 'inset-area', 'span-start span-end', 'span-end span-start');
+test_computed_value('flip-block flip-inline', 'inset-area', 'self-start self-end', 'self-end self-start');
+test_computed_value('flip-block flip-inline', 'inset-area', 'span-self-start span-self-end', 'span-self-end span-self-start');
+
+// center
+test_computed_value('flip-block', 'inset-area', 'left center', 'left center');
+test_computed_value('flip-block', 'inset-area', 'center top', 'center bottom');
+test_computed_value('flip-block', 'inset-area', 'center', 'center');
+test_computed_value('flip-block', 'inset-area', 'start center', 'end center');
+test_computed_value('flip-block', 'inset-area', 'center start', 'center start');
+test_computed_value('flip-inline', 'inset-area', 'center start', 'center end');
+test_computed_value('flip-start', 'inset-area', 'center start', 'start center');
+
+// span-all
+test_computed_value('flip-block', 'inset-area', 'left span-all', 'left');
+test_computed_value('flip-block', 'inset-area', 'span-all top', 'bottom');
+test_computed_value('flip-block', 'inset-area', 'span-all', 'span-all');
+test_computed_value('flip-block', 'inset-area', 'start span-all', 'end span-all');
+test_computed_value('flip-block', 'inset-area', 'span-all start', 'span-all start');
+test_computed_value('flip-inline', 'inset-area', 'span-all start', 'span-all end');
+test_computed_value('flip-start', 'inset-area', 'span-all start', 'start span-all');
+
+// Span mix:
+test_computed_value('flip-block', 'inset-area', 'left span-top', 'left span-bottom');
+test_computed_value('flip-inline', 'inset-area', 'left span-top', 'right span-top');
+test_computed_value('flip-start', 'inset-area', 'span-block-start inline-end', 'block-end span-inline-start');
+
+// Writing modes:
+test_computed_value('flip-block', 'inset-area', 'left top', 'right top', 'ltr', 'vertical-rl');
+
+test_computed_value('', 'inset-area', 'x-start y-start', 'x-start y-start', 'rtl');
+test_computed_value('flip-block', 'inset-area', 'x-start y-start', 'x-start y-end', 'rtl');
+test_computed_value('flip-inline', 'inset-area', 'x-start y-start', 'x-end y-start', 'rtl');
+test_computed_value('flip-block', 'inset-area', 'x-end y-start', 'x-start y-start', 'ltr', 'vertical-rl');
+test_computed_value('flip-inline', 'inset-area', 'x-end y-start', 'x-end y-end', 'ltr', 'vertical-rl');
+
+test_computed_value('flip-inline', 'inset-area', 'start end', 'start', 'rtl');
+test_computed_value('flip-inline', 'inset-area', 'start end', 'start', 'ltr', 'vertical-rl');
+test_computed_value('flip-block', 'inset-area', 'start end', 'end', 'rtl');
+test_computed_value('flip-block', 'inset-area', 'start end', 'end', 'ltr', 'vertical-rl');
+
+</script>

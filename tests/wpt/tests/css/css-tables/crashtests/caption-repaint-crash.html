@@ -1,0 +1,19 @@
+<style>
+*:defined {
+  outline: currentColor dashed;
+}
+*:read-write {
+  animation: kf 200ms ease-out 16384 alternate-reverse backwards
+}
+@keyframes kf {
+  20% {
+    clip-path: polygon(1px 0.75em, 128px 100%)
+  }
+}
+</style>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  a.createCaption()
+})
+</script>
+<table id="a" contenteditable="true" align="left">
