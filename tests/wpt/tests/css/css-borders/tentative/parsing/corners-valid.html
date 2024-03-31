@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4 Test: Parsing 'corners' with valid values</title>
+<link rel="author" title="Sebastian Zartner" href="mailto:sebastianzartner@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shaping">
+<meta name="assert" content="This test checks that 'corners' supports a combination of 'border-radius' and 'corner-shape' values.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<script>
+test_valid_value("corners", "round");
+test_valid_value("corners", "angle");
+test_valid_value("corners", "round angle");
+test_valid_value("corners", "round angle round");
+test_valid_value("corners", "round angle round angle");
+test_valid_value("corners", "4px");
+test_valid_value("corners", "2%");
+test_valid_value("corners", "4px 2%");
+test_valid_value("corners", "4px 2% 1em");
+test_valid_value("corners", "4px 2% 1em 4%");
+test_valid_value("corners", "4px / 2px");
+test_valid_value("corners", "2% / 2px");
+test_valid_value("corners", "4px 2% / 2px");
+test_valid_value("corners", "4px 2% 1em / 2px");
+test_valid_value("corners", "4px 2% 1em 4% / 2px");
+test_valid_value("corners", "4px / 2px 4%");
+test_valid_value("corners", "4px / 2px 4% 1em");
+test_valid_value("corners", "4px / 2px 4% 1em 2%");
+test_valid_value("corners", "4px 2% / 2px 4%");
+test_valid_value("corners", "4px 2% 1em / 2px 4% 1em");
+test_valid_value("corners", "4px 2% 1em 4% / 2px 4% 1em 2%");
+test_valid_value("corners", "4px round");
+test_valid_value("corners", "4px angle");
+test_valid_value("corners", "4px round angle");
+test_valid_value("corners", "4px round angle round");
+test_valid_value("corners", "4px round angle round angle");
+test_valid_value("corners", "4px 2% round");
+test_valid_value("corners", "4px 2% / 2px round");
+test_valid_value("corners", "4px / 2px 4% round");
+test_valid_value("corners", "4px / 2px 4% round angle");
+test_valid_value("corners", "round 4px");
+test_valid_value("corners", "round 4px 2%");
+test_valid_value("corners", "round 4px 2% / 2px");
+test_valid_value("corners", "round 4px / 2px 4%");
+test_valid_value("corners", "round angle 4px / 2px 4%");
+test_valid_value("corners", "round angle round angle 4px 2% 1em 4% / 2px 4% 1em 2%");
+</script>

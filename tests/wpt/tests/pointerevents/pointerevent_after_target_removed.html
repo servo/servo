@@ -1,4 +1,5 @@
 <!DOCTYPE HTML>
+<link rel="help" href="https://w3c.github.io/pointerevents/#firing-events-using-the-pointerevent-interface">
 <title>Enter/leave events fired to parent after child is removed</title>
 <meta name="variant" content="?mouse">
 <meta name="variant" content="?touch">
@@ -104,24 +105,12 @@
   setup();
 
   // Tests for dispatched pointer events.
-  addPromiseTest("pointerdown", "pointer",
-    pointer_type == "mouse"
-      // `pointerup` after removing the child should not cause `pointerover`
-      // on the parent if the pointer type is hoverable because pointer boundary
-      // events should be fired only when the hoverable pointer is actually
-      // moved.
-      ? [
-        "pointerover@child", "pointerenter@parent", "pointerenter@child",
-        "pointerdown@child", "(child-removed)", "pointerup@parent",
-        "pointerover@parent", "pointerdown@parent", "pointerup@parent",
-        "pointerout@parent", "pointerleave@parent"
-      ]
-      : [
-        "pointerover@child", "pointerenter@parent", "pointerenter@child",
-        "pointerdown@child", "(child-removed)", "pointerover@parent", "pointerup@parent",
-        "pointerdown@parent", "pointerup@parent",
-        "pointerout@parent", "pointerleave@parent"
-      ]);
+  addPromiseTest("pointerdown", "pointer", [
+    "pointerover@child", "pointerenter@parent", "pointerenter@child",
+    "pointerdown@child", "(child-removed)", "pointerover@parent", "pointerup@parent",
+    "pointerdown@parent", "pointerup@parent",
+    "pointerout@parent", "pointerleave@parent"
+  ]);
   addPromiseTest("pointerup", "pointer", [
     "pointerover@child", "pointerenter@parent", "pointerenter@child",
     "pointerdown@child", "pointerup@child", "(child-removed)",

@@ -28,13 +28,15 @@
     test_invalid_value(`color`, `rgb(from rebeccapurple l g b)`);
     test_invalid_value(`color`, `rgb(from rebeccapurple h g b)`);
 
-    // Testing invalid function name variation (only rgb() is valid, rgba() is invalid)
-    test_invalid_value(`color`, `rgba(from rebeccapurple r g b)`);
-    test_invalid_value(`color`, `rgba(from rgb(10%, 20%, 30%, 40%) r g b / alpha)`);
+    // Testing invalid separator
+    test_invalid_value(`color`, `rgb(from rebeccapurple, r, g, b)`);
+    test_invalid_value(`color`, `rgba(from rgb(10%, 20%, 30%, 40%), r, g, b, alpha)`);
 
     // Testing with calc().
     test_invalid_value(`color`, `rgb(from rebeccapurple calc(r + 1%) g b)`);
 
+    // Using a channel keyword without being a relative color.
+    test_invalid_value(`color`, `rgb(0 0 0 / alpha)`);
 
     // hsl(from ...)
 
@@ -47,9 +49,9 @@
     test_invalid_value(`color`, `hsl(from rebeccapurple x s l)`);
     test_invalid_value(`color`, `hsl(from rebeccapurple h g b)`);
 
-    // Testing invalid function name variation (only hsl() is valid, hsla() is invalid)
-    test_invalid_value(`color`, `hsla(from rebeccapurple h s l)`);
-    test_invalid_value(`color`, `hsla(from rgb(10%, 20%, 30%, 40%) h s l / alpha)`);
+    // Testing invalid separator
+    test_invalid_value(`color`, `hsl(from rebeccapurple, h, s, l)`);
+    test_invalid_value(`color`, `hsla(from rgb(10%, 20%, 30%, 40%), h, s, l, alpha)`);
 
     // Testing with calc().
     test_invalid_value(`color`, `hsl(from rebeccapurple calc(h + 1deg) s l)`);

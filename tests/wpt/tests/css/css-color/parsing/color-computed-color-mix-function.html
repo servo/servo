@@ -42,8 +42,8 @@
     fuzzy_test_computed_color(`color-mix(in hsl, hsl(120deg 10% 20% / 0), hsl(30deg 30% 40%))`, `color(srgb 0.46 0.52 0.28 / 0.5)`);
     fuzzy_test_computed_color(`color-mix(in hsl, hsl(120deg 10% 20% / 0) 10%, hsl(30deg 30% 40%))`, `color(srgb 0.52 0.436 0.28 / 0.9)`);
 
-    fuzzy_test_computed_color(`color-mix(in hsl, white, blue)`, `color(srgb 0.62 0.62 0.87)`);
-    fuzzy_test_computed_color(`color-mix(in hsl, white 10%, blue)`, `color(srgb 0.15 0.15 0.96)`);
+    fuzzy_test_computed_color(`color-mix(in hsl, white, blue)`, `color(srgb 0.625 0.625 0.875)`);
+    fuzzy_test_computed_color(`color-mix(in hsl, white 10%, blue)`, `color(srgb 0.145 0.145 0.955)`);
 
     fuzzy_test_computed_color(`color-mix(in hsl, hsl(40deg 50% 50%), hsl(60deg 50% 50%))`, `color(srgb 0.75 0.666667 0.25)`);
     fuzzy_test_computed_color(`color-mix(in hsl, hsl(60deg 50% 50%), hsl(40deg 50% 50%))`, `color(srgb 0.75 0.666667 0.25)`);
@@ -421,8 +421,8 @@
     fuzzy_test_computed_color(`color-mix(in oklab, oklab(0.1 0.2 0.3 / 0), oklab(0.3 0.4 0.5))`, 'oklab(0.3 0.4 0.5 / 0.5)');
     fuzzy_test_computed_color(`color-mix(in oklab, oklab(0.1 0.2 0.3 / 0) 10%, oklab(0.3 0.4 0.5))`, 'oklab(0.3 0.4 0.5 / 0.9)');
 
-    fuzzy_test_computed_color(`color-mix(in oklab, white, blue)`, `oklab(0.73 -0.02 -0.16)`);
-    fuzzy_test_computed_color(`color-mix(in oklab, white 10%, blue)`, `oklab(0.51 -0.03 -0.28)`);
+    fuzzy_test_computed_color(`color-mix(in oklab, white, blue)`, `oklab(0.726 -0.016 -0.156)`);
+    fuzzy_test_computed_color(`color-mix(in oklab, white 10%, blue)`, `oklab(0.507 -0.029 -0.28)`);
 
     fuzzy_test_computed_color(`color-mix(in oklab, oklab(none none none), oklab(none none none))`, `oklab(none none none)`);
     fuzzy_test_computed_color(`color-mix(in oklab, oklab(none none none), oklab(0.5 0.6 0.7))`, `oklab(0.5 0.6 0.7)`);

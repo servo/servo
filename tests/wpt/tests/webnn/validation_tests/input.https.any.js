@@ -1,7 +1,6 @@
 // META: title=validation tests for WebNN API input interface
 // META: global=window,dedicatedworker
 // META: script=../resources/utils_validation.js
-// META: timeout=long
 
 'use strict';
 
@@ -43,15 +42,17 @@ const tests = [
     descriptor: {dataType: 'float32', dimensions: [3, 0]}
   },
   {
+    testName:
+        '[input] Throw if the value of any element in dimensions is outside the \'unsigned long\' value range',
+    name: 'input',
+    descriptor: {dataType: 'float32', dimensions: [kMaxUnsignedLong + 1]}
+  },
+  {
     testName: '[input] Throw if the number of elements is too large',
     name: 'input',
     descriptor: {
       dataType: 'float32',
-      dimensions: [
-        // Refer to
-        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Errors/Invalid_array_length
-        2 ** 33 + 1
-      ]
+      dimensions: [kMaxUnsignedLong, kMaxUnsignedLong, kMaxUnsignedLong]
     }
   }
 ];

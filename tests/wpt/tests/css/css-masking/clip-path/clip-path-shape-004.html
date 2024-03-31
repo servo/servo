@@ -8,15 +8,6 @@
 	'shape()' for clipping. Test arcs.">
 </head>
 <style>
-  div {
-    width: 100px;
-    height: 100px;
-  }
-  #ref {
-    clip-path: path(nonzero, "M 20 20 A 25 12 0 0 1 80 20, a 33 33 120 1 1 -40 50, A 20 25 0 0 0 20 20");
-    background-color: red;
-    position: absolute;
-  }
   #rect {
     width: 100px;
     height: 100px;
@@ -28,8 +19,6 @@
   }
 </style>
 <body>
-  <p>You should see no red.</p>
-  <div id="ref"></div>
   <div id="rect"></div>
 </body>
 </html>

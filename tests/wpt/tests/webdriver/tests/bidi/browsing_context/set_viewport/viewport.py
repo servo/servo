@@ -184,3 +184,65 @@ async def test_persists_on_reload(bidi_session, inline, new_tab):
     )
 
     assert await get_viewport_dimensions(bidi_session, new_tab) == test_viewport
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "use_horizontal_scrollbar, use_vertical_scrollbar",
+    [
+        (True, False),
+        (False, True),
+        (True, True),
+    ],
+    ids=["horizontal", "vertical", "both"],
+)
+@pytest.mark.parametrize(
+    "doctype",
+    ["html", "html_quirks"],
+    ids=["standard", "quirks"],
+)
+async def test_with_scrollbars(
+    bidi_session,
+    inline,
+    new_tab,
+    use_horizontal_scrollbar,
+    use_vertical_scrollbar,
+    doctype,
+):
+    viewport_dimensions = await get_viewport_dimensions(bidi_session, new_tab)
+
+    width = 100
+    if use_horizontal_scrollbar:
+        width = viewport_dimensions["width"] + 100
+
+    height = 100
+    if use_vertical_scrollbar:
+        height = viewport_dimensions["height"] + 100
+
+    html = f"""<div style="width: {width}px; height: {height}px;">foo</div>"""
+    page_url = inline(html, doctype=doctype)
+
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=page_url, wait="complete"
+    )
+
+    test_viewport = {"width": 499, "height": 599}
+
+    assert await get_viewport_dimensions(bidi_session, new_tab) != test_viewport
+
+    await bidi_session.browsing_context.set_viewport(
+        context=new_tab["context"], viewport=test_viewport
+    )
+
+    assert await get_viewport_dimensions(bidi_session, new_tab) == test_viewport
+
+    viewport_without_scrollbar = await get_viewport_dimensions(
+        bidi_session, new_tab, with_scrollbar=False
+    )
+
+    # The side which has scrollbar takes up space on the other side
+    # (e.g. if we have a horizontal scroll height is going to be smaller than viewport height)
+    if use_horizontal_scrollbar:
+        assert viewport_without_scrollbar["height"] < test_viewport["height"]
+    if use_vertical_scrollbar:
+        assert viewport_without_scrollbar["width"] < test_viewport["width"]

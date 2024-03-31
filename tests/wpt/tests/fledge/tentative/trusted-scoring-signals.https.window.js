@@ -11,7 +11,8 @@
 // META: variant=?26-30
 // META: variant=?31-35
 // META: variant=?36-40
-// META: variant=?41-last
+// META: variant=?41-45
+// META: variant=?45-last
 
 "use strict";
 
@@ -510,3 +511,151 @@ subsetTest(promise_test, async test => {
       })
     });
 }, 'Component ads trusted scoring signals.');
+
+/////////////////////////////////////////////////////////////////////////////
+// maxTrustedBiddingSignalsURLLength tests
+/////////////////////////////////////////////////////////////////////////////
+
+// Trusted scoring signals can be retrieved when `maxTrustedScoringSignalsURLLength` is set to 0.
+// In the following three tests, the generated request URL contains approximately 294 characters.
+// The target of the tests is primarily to make sure the signals were fetched with the full URL.
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  const renderURL = createRenderURL(uuid, /*script=*/null, 'url');
+  const interestGroupOverrides = { ads: [{ renderURL: renderURL }] };
+  const auctionConfigOverrides = {
+      trustedScoringSignalsURL: TRUSTED_SCORING_SIGNALS_URL,
+      maxTrustedScoringSignalsURLLength: 0,
+      decisionLogicURL:
+        createDecisionScriptURL(uuid, {
+            // Check the URL length is within an approximate range to ensure the URL is not truncated.
+            scoreAd:
+              `if (trustedScoringSignals.renderURL["${renderURL}"].length < 280 ||
+                  trustedScoringSignals.renderURL["${renderURL}"].length > 300)
+                throw "error";`
+        })
+  };
+
+  await joinGroupAndRunBasicFledgeTestExpectingWinner(
+    test,
+    {
+      uuid: uuid,
+      interestGroupOverrides: interestGroupOverrides,
+      auctionConfigOverrides: auctionConfigOverrides
+    });
+}, 'Trusted scoring signals request works with a URL length limit set to 0.');
+
+// Trusted scoring signals can be retrieved when `maxTrustedScoringSignalsURLLength` is set to
+// a non-zero value smaller than the length of the request URL.
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  const renderURL = createRenderURL(uuid, /*script=*/null, 'url');
+  const interestGroupOverrides = { ads: [{ renderURL: renderURL }] };
+  const auctionConfigOverrides = {
+      trustedScoringSignalsURL: TRUSTED_SCORING_SIGNALS_URL,
+      maxTrustedScoringSignalsURLLength: 1,
+      decisionLogicURL:
+        createDecisionScriptURL(uuid, {
+            // Check the URL length is within an approximate range to ensure the URL is not truncated.
+            scoreAd:
+              `if (trustedScoringSignals.renderURL["${renderURL}"].length < 280 ||
+                  trustedScoringSignals.renderURL["${renderURL}"].length > 300)
+                throw "error";`
+        })
+  };
+
+  await joinGroupAndRunBasicFledgeTestExpectingWinner(
+      test,
+      {
+        uuid: uuid,
+        interestGroupOverrides: interestGroupOverrides,
+        auctionConfigOverrides: auctionConfigOverrides
+      });
+}, 'Trusted scoring signals request works with a URL length limit smaller than the URL length.');
+
+// Trusted scoring signals can be retrieved when `maxTrustedScoringSignalsURLLength` is set to
+// a value larger than the length of the request URL.
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  const renderURL = createRenderURL(uuid, /*script=*/null, 'url');
+  const interestGroupOverrides = { ads: [{ renderURL: renderURL }] };
+  const auctionConfigOverrides = {
+      trustedScoringSignalsURL: TRUSTED_SCORING_SIGNALS_URL,
+      maxTrustedScoringSignalsURLLength: 1000,
+      decisionLogicURL:
+        createDecisionScriptURL(uuid, {
+            scoreAd: `if (trustedScoringSignals.renderURL["${renderURL}"].length > 300) throw "error";`
+        })
+  };
+
+  await joinGroupAndRunBasicFledgeTestExpectingWinner(
+      test,
+      {
+        uuid: uuid,
+        interestGroupOverrides: interestGroupOverrides,
+        auctionConfigOverrides: auctionConfigOverrides
+      });
+}, 'Trusted scoring signals request works with a URL length limit larger than the URL length.');
+
+// Test whether an oversized trusted scoring signals request URL, generated from two interest
+// groups, will be split into two parts when `maxTrustedScoringSignalsURLLength` is set to a
+// value larger than a single URL length and smaller than the combined URL length. A request
+// URL from a single interest group contains about 294 characters, while a request URL from
+// two interest groups contains about 466 characters.
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  const renderURL1 = createRenderURL(uuid, /*script=*/null, 'url,group1');
+  const renderURL2 = createRenderURL(uuid, /*script=*/null, 'url,group2');
+  const auctionConfigOverrides = {
+      trustedScoringSignalsURL: TRUSTED_SCORING_SIGNALS_URL,
+      maxTrustedScoringSignalsURLLength: 300,
+      decisionLogicURL:
+        createDecisionScriptURL(uuid, {
+            // This will make the auction reject `renderURL2`, and if `renderURL1` passes the URL
+            // length check, we consider `renderURL2` is fetched by itself in the trusted scoring
+            // signals request.
+            scoreAd:
+              `if (!trustedScoringSignals.renderURL.has("${renderURL1}") ||
+                  trustedScoringSignals.renderURL.has("${renderURL2}") ||
+                  trustedScoringSignals.renderURL["${renderURL1}"].length > 300) {
+                throw "error";
+              }`
+        })
+  };
+
+  await Promise.all(
+      [ joinInterestGroup(test, uuid, { name: 'group 1', ads: [{ renderURL: renderURL1 }] }),
+        joinInterestGroup(test, uuid, { name: 'group 2', ads: [{ renderURL: renderURL2 }] }) ]
+  );
+
+  runBasicFledgeTestExpectingWinner(test, uuid, auctionConfigOverrides);
+}, 'Trusted scoring signals splits the request if the combined URL length exceeds the limit of regular value.');
+
+// Test whether an oversized trusted scoring signals request URL, generated from two interest
+// groups, will be split into two parts when `maxTrustedScoringSignalsURLLength` is set to a
+// value smaller than a single URL length.
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  const renderURL1 = createRenderURL(uuid, /*script=*/null, 'url,group1');
+  const renderURL2 = createRenderURL(uuid, /*script=*/null, 'url,group2');
+  const auctionConfigOverrides = {
+      trustedScoringSignalsURL: TRUSTED_SCORING_SIGNALS_URL,
+      maxTrustedScoringSignalsURLLength: 1,
+      decisionLogicURL:
+        createDecisionScriptURL(uuid, {
+            scoreAd:
+              `if (!trustedScoringSignals.renderURL.has("${renderURL1}") ||
+                  trustedScoringSignals.renderURL.has("${renderURL2}") ||
+                  trustedScoringSignals.renderURL["${renderURL1}"].length > 300) {
+                throw "error";
+              }`
+        })
+  };
+
+  await Promise.all(
+      [ joinInterestGroup(test, uuid, { name: 'group 1', ads: [{ renderURL: renderURL1 }] }),
+        joinInterestGroup(test, uuid, { name: 'group 2', ads: [{ renderURL: renderURL2 }] }) ]
+  );
+
+  runBasicFledgeTestExpectingWinner(test, uuid, auctionConfigOverrides);
+}, 'Trusted scoring signals splits the request if the combined URL length exceeds the limit of small value.');

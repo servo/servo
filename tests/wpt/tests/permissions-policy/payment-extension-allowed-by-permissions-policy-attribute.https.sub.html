@@ -13,7 +13,7 @@
 
     promise_test(t => {
       return test_feature_availability_with_post_message_result(
-          t, cross_origin_src, "NotSupportedError#The 'payment' feature is not " +
+          t, cross_origin_src, "NotSupportedError#The 'payment' or 'publickey-credentials-create' features are not " +
           "enabled in this document. Permissions Policy may be used to " +
           "delegate Web Payment capabilities to cross-origin child frames.");
     }, feature_name + ' is not supported in cross-origin iframe without ' + header);

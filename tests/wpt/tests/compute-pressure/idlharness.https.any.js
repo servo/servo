@@ -11,5 +11,5 @@ idl_test(['compute-pressure'], ['dom', 'html'], async idl_array => {
     PressureObserver: ['observer'],
   });
 
-  self.observer = new PressureObserver(() => {}, {sampleRate: 1.0});
+  self.observer = new PressureObserver(() => {}, {sampleInterval: 1000});
 });

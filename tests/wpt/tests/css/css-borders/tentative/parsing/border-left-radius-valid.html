@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4 Test: Parsing 'border-left-radius' with valid values</title>
+<link rel="author" title="Sebastian Zartner" href="mailto:sebastianzartner@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-sizing">
+<meta name="assert"
+  content="This test checks that 'border-left-radius' supports the syntax <length-percentage [0,∞]>{1,2} [ / <length-percentage [0,∞]>{1,2} ]?.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+
+<script>
+test_valid_value("border-left-radius", "1px");
+test_valid_value("border-left-radius", "10%");
+test_valid_value("border-left-radius", "1px 5%");
+test_valid_value("border-left-radius", "5% 1px");
+test_valid_value("border-left-radius", "1px / 2px");
+test_valid_value("border-left-radius", "1px / 1px 2%");
+test_valid_value("border-left-radius", "1px 2% / 3%");
+test_valid_value("border-left-radius", "1px 2% / 3px 4px");
+</script>
