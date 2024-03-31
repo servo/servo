@@ -36,8 +36,7 @@
 - name: 2d.color.space.p3.toBlob.p3.canvas
   desc: test if toblob returns p3 data from p3 color space canvas
   attributes: '{colorSpace: "display-p3"}'
-  canvasType:
-    ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     ctx.fillStyle = "rgba(155, 27, 27, 1)";
     ctx.fillRect(0, 0, 1, 1);
@@ -68,8 +67,7 @@
 - name: 2d.color.space.p3.toDataURL.p3.canvas
   desc: test if toDataURL returns p3 data from canvas with p3 color space
   attributes: '{colorSpace: "display-p3"}'
-  canvasType:
-    ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     ctx.fillStyle = "rgba(155, 27, 27, 1)";
     ctx.fillRect(0, 0, 1, 1);
@@ -96,8 +94,7 @@
 - name: 2d.color.space.p3.toDataURL.jpeg.p3.canvas
   desc: test if toDataURL('image/jpeg') returns p3 data from canvas with p3 color space
   attributes: '{colorSpace: "display-p3"}'
-  canvasType:
-    ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     ctx.fillStyle = "rgba(155, 27, 27, 1)";
     ctx.fillRect(0, 0, 1, 1);
@@ -124,8 +121,7 @@
 - name: 2d.color.space.p3.toBlob.with.putImageData
   desc: Use putImageData to put some p3 data in canvas and test if toBlob returns the same data
   attributes: '{colorSpace: "display-p3"}'
-  canvasType:
-    ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     canvas.width = 2;
     canvas.height = 2;
@@ -162,8 +158,7 @@
 - name: 2d.color.space.p3.toDataURL.with.putImageData
   desc: Use putImageData to put some p3 data in canvas and test if toDataURL returns the same data
   attributes: '{colorSpace: "display-p3"}'
-  canvasType:
-    ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     canvas.width = 2;
     canvas.height = 2;
@@ -197,7 +192,7 @@
 - name: 2d.color.space.p3.fillText
   desc: Test if fillText can be used with a solid display-p3 color
   attributes: '{colorSpace: "display-p3"}'
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     deferTest();
 
@@ -236,8 +231,7 @@
 - name: 2d.color.space.p3.strokeText
   desc: Test if strokeText can be used with a solid display-p3 color
   attributes: '{colorSpace: "display-p3"}'
-  canvasType:
-    ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     deferTest();
 
@@ -277,8 +271,7 @@
 - name: 2d.color.space.p3.fillText.shadow
   desc: Test if fillText can be used with a display-p3 shadow color
   attributes: '{colorSpace: "display-p3"}'
-  canvasType:
-    ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     deferTest();
 

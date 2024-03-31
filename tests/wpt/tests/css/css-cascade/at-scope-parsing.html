@@ -42,9 +42,9 @@
   test_valid('@scope to (.a)');
   test_valid('@scope (.a) to (&)');
   test_valid('@scope (.a) to (& > &)');
-  test_valid('@scope (.a) to (> .b)');
-  test_valid('@scope (.a) to (+ .b)');
-  test_valid('@scope (.a) to (~ .b)');
+  test_valid('@scope (.a) to (> .b)', '@scope (.a) to (:scope > .b)');
+  test_valid('@scope (.a) to (+ .b)', '@scope (.a) to (:scope + .b)');
+  test_valid('@scope (.a) to (~ .b)', '@scope (.a) to (:scope ~ .b)');
   test_valid('@scope ()', '@scope');
   test_valid('@scope to ()', '@scope');
   test_valid('@scope () to ()', '@scope');
@@ -75,4 +75,5 @@
   test_invalid('@scope (.a');
   test_invalid('@scope (.a to (.b)');
   test_invalid('@scope ( to (.b)');
+  test_invalid('@scope (.a) from (.c)');
 </script>

@@ -6,7 +6,7 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <div id="anchor"></div>
-<div id="not-anchor"></div>
+<div id="other-anchor"></div>
 <div id="target"></div>
 
 <script>
@@ -32,11 +32,11 @@ test(t => {
 test(t => {
   const style = createStyle(t, `
     @position-try --pf { top: anchor(top); left: 0; }
-    #anchor, #not-anchor, #target {
+    #anchor, #other-anchor, #target {
       position: absolute; width: 100px; height: 100px;
     }
     #anchor { top: 100px; left: 0; anchor-name: --a; }
-    #not-anchor { top: 200px; left: 0; anchor-name: --b; }
+    #other-anchor { top: 200px; left: 0; anchor-name: --b; }
     #target { position-try-options: --pf; position-anchor: --a; left: 999999px; }
   `);
   const positionTryRule = style.sheet.cssRules[0];
@@ -50,12 +50,17 @@ test(t => {
   assert_equals(target.getBoundingClientRect().left, 100);
   assert_equals(target.getBoundingClientRect().top, 100);
 
-  // These properties are disallowed in `@position-try` rule, and hence should not affect
+  // This property are disallowed in `@position-try` rule, and hence should not affect
   // position fallback.
-  positionTryRule.style.setProperty('position-anchor', '--b');
   positionTryRule.style.setProperty('position', 'static');
   assert_equals(target.getBoundingClientRect().left, 100);
   assert_equals(target.getBoundingClientRect().top, 100);
+
+  // `position-anchor` is an allowed property in `@position-try` and should affect position fallback.
+  positionTryRule.style.setProperty('position-anchor', '--b');
+  assert_equals(target.getBoundingClientRect().left, 100);
+  assert_equals(target.getBoundingClientRect().top, 200);
+
 }, 'CSSPositionTryRule.style.setProperty setting allowed and disallowed properties');
 
 </script>

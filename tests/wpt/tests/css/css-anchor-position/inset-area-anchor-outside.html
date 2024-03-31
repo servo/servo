@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: inset-area positioning - anchor outside containing block</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position/#inset-area">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #container {
+    position: relative;
+    width: 400px;
+    height: 400px;
+  }
+  #anchor {
+    position: absolute;
+    left: -200px;
+    top: 500px;
+    width: 100px;
+    height: 100px;
+    anchor-name: --anchor;
+  }
+  #anchored {
+    position: absolute;
+    align-self: stretch;
+    justify-self: stretch;
+    position-anchor: --anchor;
+  }
+</style>
+<div id="container">
+  <div id="anchor"></div>
+  <div id="anchored"></div>
+</div>
+<script>
+  function test_inset_area(inset_area, expected_offsets) {
+    anchored.style.insetArea = inset_area;
+
+    test(() => {
+      assert_equals(anchored.offsetLeft, expected_offsets.left, "Check expected offsetLeft");
+      assert_equals(anchored.offsetTop, expected_offsets.top, "Check expected offsetTop");
+      assert_equals(anchored.offsetWidth, expected_offsets.width, "Check expected offsetWidth");
+      assert_equals(anchored.offsetHeight, expected_offsets.height, "Check expected offsetHeight");
+    }, "Offsets for inset-area: " + inset_area);
+  }
+
+  test_inset_area("span-all", {left:0, top:0, width:400, height:400});
+
+  test_inset_area("left span-all", {left:-200, top:0, width:0, height:400});
+  test_inset_area("span-left span-all", {left:-100, top:0, width:0, height:400});
+  test_inset_area("span-all center", {left:-200, top:0, width:100, height:400});
+  test_inset_area("span-right span-all", {left:-200, top:0, width:600, height:400});
+  test_inset_area("right span-all", {left:-100, top:0, width:500, height:400});
+
+  test_inset_area("top span-all", {left:0, top:0, width:400, height:500});
+  test_inset_area("span-top span-all", {left:0, top:0, width:400, height:600});
+  test_inset_area("center span-all", {left:0, top:500, width:400, height:100});
+  test_inset_area("span-bottom span-all", {left:0, top:500, width:400, height:0});
+  test_inset_area("bottom span-all", {left:0, top:600, width:400, height:0});
+</script>

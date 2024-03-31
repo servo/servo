@@ -230,6 +230,20 @@ async function waitForConnectionStateChange(pc, wantedStates) {
   }
 }
 
+function waitForConnectionStateChangeWithTimeout(t, pc, wantedStates, timeout) {
+  return new Promise((resolve, reject) => {
+    if (wantedStates.includes(pc.connectionState)) {
+      resolve();
+      return;
+    }
+    pc.addEventListener('connectionstatechange', () => {
+      if (wantedStates.includes(pc.connectionState))
+        resolve();
+    });
+    t.step_timeout(reject, timeout);
+  });
+}
+
 async function waitForIceGatheringState(pc, wantedStates) {
   while (!wantedStates.includes(pc.iceGatheringState)) {
     await waitUntilEvent(pc, 'icegatheringstatechange');

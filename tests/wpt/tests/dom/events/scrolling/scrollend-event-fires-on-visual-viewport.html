@@ -20,28 +20,48 @@
 </style>
 <div class="large"></div>
 <script>
-  window.onload = () => {
-    promise_test(async () => {
-      await waitForCompositorCommit();
-
-      await pinchZoomIn();
-      assert_greater_than(visualViewport.scale, 1, "page should be zoomed in.");
-
+  window.onload = async () => {
+    async function pan_viewport_test(add_event_listener_func) {
       const preScrollVisualViewportOffsetTop = visualViewport.offsetTop;
       const preScrollWindowScrollOffset = window.scrollY;
-      const scrollend_promise = new Promise((resolve) => {
-        visualViewport.addEventListener("scrollend", resolve);
-      });
+
+      const scrollend_promise = add_event_listener_func();
 
       const scrollAmount = 50;
       await touchScrollInTarget(scrollAmount, document.documentElement, "up");
       await scrollend_promise;
 
-      assert_less_than(visualViewport.offsetTop, preScrollVisualViewportOffsetTop,
+      assert_less_than(visualViewport.offsetTop,
+        preScrollVisualViewportOffsetTop,
         `visualViewport should be scrolled.`);
       assert_equals(window.scrollY, preScrollWindowScrollOffset,
         "the window should not scroll.");
-    }, "scrollend fires when visual viewport is panned.");
+      // No need to undo scroll; subsequent test has room to scroll further.
+    }
+
+    await waitForCompositorCommit();
+    await pinchZoomIn();
+    assert_greater_than(visualViewport.scale, 1, "page should be zoomed in.");
+
+    promise_test(async (t) => {
+      await pan_viewport_test(() => {
+        return new Promise((resolve) => {
+          visualViewport.addEventListener("scrollend", resolve, { once: true});
+        });
+      });
+    }, "scrollend listener added via addEventlistener fires when the visual " +
+    "viewport is panned.");
+
+    promise_test(async (t) => {
+      await pan_viewport_test((t) => {
+        return new Promise((resolve) => {
+          visualViewport.onscrollend = () => {
+            visualViewport.onscrollend = undefined;
+            resolve();
+          }
+        });
+      });
+    }, "visualviewport.onscrollend fires when the visual viewport is panned.");
   }
 </script>
 </body>

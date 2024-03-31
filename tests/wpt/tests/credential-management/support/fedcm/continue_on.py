@@ -8,5 +8,7 @@ def main(request, response):
 
   response.headers.set(b"Content-Type", b"application/json")
 
-  return "{\"continue_on\": \"resolve.html\"}"
+  account = request.POST.get(b"account_id").decode("utf-8")
+  nonce = request.POST.get(b"nonce").decode("utf-8")
+  return "{\"continue_on\": \"resolve.html?selected=%s&%s\"}" % (account, nonce)
 

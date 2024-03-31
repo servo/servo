@@ -24,10 +24,7 @@ gl_enums! {
 
 impl TexImageTarget {
     pub fn is_cubic(&self) -> bool {
-        match *self {
-            TexImageTarget::Texture2D => false,
-            _ => true,
-        }
+        !matches!(*self, TexImageTarget::Texture2D)
     }
 
     pub fn dimensions(self) -> u8 {

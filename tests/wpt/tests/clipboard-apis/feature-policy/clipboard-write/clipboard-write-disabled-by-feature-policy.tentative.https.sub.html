@@ -14,7 +14,7 @@ const cross_origin_src =
   'https://{{domains[www]}}:{{ports[https][0]}}' + same_origin_src;
 
 promise_test(async t => {
-  await test_driver.set_permission({ name: 'clipboard-write' }, 'granted');
+  await tryGrantWritePermission();
   return promise_rejects_dom(t, 'NotAllowedError',
       navigator.clipboard.writeText('test text'));
 }, 'Feature-Policy header clipboard-write "none" disallows the top-level document.');

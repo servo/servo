@@ -11,7 +11,7 @@
 - name: 2d.imageData.create2.type
   desc: createImageData(sw, sh) returns an ImageData object containing a Uint8ClampedArray
     object
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     @assert window.ImageData !== undefined;
     @assert window.Uint8ClampedArray !== undefined;
@@ -24,7 +24,7 @@
 - name: 2d.imageData.create1.type
   desc: createImageData(imgdata) returns an ImageData object containing a Uint8ClampedArray
     object
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     @assert window.ImageData !== undefined;
     @assert window.Uint8ClampedArray !== undefined;
@@ -36,7 +36,7 @@
 
 - name: 2d.imageData.create2.this
   desc: createImageData(sw, sh) should throw when called with the wrong |this|
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   notes: &bindings Defined in "Web IDL" (draft)
   code: |
     @assert throws TypeError CanvasRenderingContext2D.prototype.createImageData.call(null, 1, 1); @moz-todo
@@ -45,7 +45,7 @@
 
 - name: 2d.imageData.create1.this
   desc: createImageData(imgdata) should throw when called with the wrong |this|
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   notes: *bindings
   code: |
     var imgdata = ctx.createImageData(1, 1);
@@ -160,7 +160,7 @@
 
 - name: 2d.imageData.create.and.resize
   desc: Verify no crash when resizing an image bitmap to zero.
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   images:
   - red.png
   code: |
@@ -179,7 +179,7 @@
     @assert ctx.getImageData(0, 0, 100, 50) !== null;
 
 - name: 2d.imageData.get.type
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   desc: getImageData() returns an ImageData object containing a Uint8ClampedArray
     object
   code: |
@@ -502,7 +502,7 @@
     @assert imgdata.data[3] === 0;
 
 - name: 2d.imageData.object.ctor.size
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   desc: ImageData has a usable constructor
   code: |
     @assert window.ImageData !== undefined;
@@ -516,7 +516,7 @@
     }
 
 - name: 2d.imageData.object.ctor.basics
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   desc: Testing different type of ImageData constructor
   code: |
     function setRGBA(imageData, i, rgba)
@@ -608,7 +608,7 @@
 
 - name: 2d.imageData.object.ctor.array
   desc: ImageData has a usable constructor
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     @assert window.ImageData !== undefined;
 
@@ -620,7 +620,7 @@
 
 - name: 2d.imageData.object.ctor.array.bounds
   desc: ImageData has a usable constructor
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     @assert window.ImageData !== undefined;
 
@@ -803,7 +803,7 @@
 
 - name: 2d.imageData.put.cross
   desc: putImageData() accepts image data got from a different canvas
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     var canvas2 = document.createElement('canvas');
     var ctx2 = canvas2.getContext('2d');
@@ -818,7 +818,7 @@
 
 - name: 2d.imageData.put.cross
   desc: putImageData() accepts image data got from a different canvas
-  canvasType: ['OffscreenCanvas', 'Worker']
+  canvas_types: ['OffscreenCanvas', 'Worker']
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
     var ctx2 = offscreenCanvas2.getContext('2d');

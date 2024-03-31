@@ -111,6 +111,15 @@ const invalidConfigs = [
       },
     },
   },
+  {
+    comment: 'Bitrate is too low for Opus',
+    config: {
+      codec: 'opus',
+      sampleRate: 48000,
+      numberOfChannels: 2,
+      bitrate: 1,
+    },
+  },
 ];
 
 invalidConfigs.forEach(entry => {
@@ -137,15 +146,6 @@ invalidConfigs.forEach(entry => {
 });
 
 const validButUnsupportedConfigs = [
-  {
-    comment: 'Bitrate is too low',
-    config: {
-      codec: 'opus',
-      sampleRate: 48000,
-      numberOfChannels: 2,
-      bitrate: 1,
-    },
-  },
   {
     comment: 'Unrecognized codec',
     config: {

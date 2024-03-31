@@ -26,8 +26,8 @@ function reformatHtml(html) {
 }
 
 async function readWriteTest(textInput) {
-  await test_driver.set_permission({name: 'clipboard-read'}, 'granted');
-  await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+  await tryGrantReadPermission();
+  await tryGrantWritePermission();
   const blobInput = new Blob([textInput], {type: 'text/html'});
   const clipboardItem = new ClipboardItem({'text/html': blobInput});
   await waitForUserActivation();

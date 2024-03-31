@@ -20,7 +20,7 @@ fedcm_test(async t => {
   let test_options = request_options_with_mediation_required("manifest_redirect_accounts.json");
   await select_manifest(t, test_options);
 
-  const cred = fedcm_get_and_select_first_account(t, test_options);
+  const cred = navigator.credentials.get(test_options);
   // We expect a mismatch dialog.
   const type = await fedcm_get_dialog_type_promise(t);
   assert_equals(type, 'ConfirmIdpLogin');

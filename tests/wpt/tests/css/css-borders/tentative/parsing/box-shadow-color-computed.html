@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4 Test: Computed values of 'box-shadow-color'</title>
+<link rel="author" title="Sebastian Zartner" href="mailto:sebastianzartner@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#box-shadow-color">
+<meta name="assert" content="This test checks that the computed value of 'box-shadow-color' is correct.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+
+<div id="target"></div>
+
+<script>
+test_computed_value("box-shadow-color", "currentcolor", "rgb(0, 0, 0)");
+test_computed_value("box-shadow-color", "transparent", "rgba(0, 0, 0, 0)");
+test_computed_value("box-shadow-color", "red", "rgb(255, 0, 0)");
+test_computed_value("box-shadow-color", "magenta", "rgb(255, 0, 255)");
+test_computed_value("box-shadow-color", "#234", "rgb(34, 51, 68)");
+test_computed_value("box-shadow-color", "#FEDCBA", "rgb(254, 220, 186)");
+test_computed_value("box-shadow-color", "rgb(2, 3, 4)");
+test_computed_value("box-shadow-color", "rgb(100%, 0%, 0%)", "rgb(255, 0, 0)");
+test_computed_value("box-shadow-color", "rgba(2, 3, 4, 0.5)");
+test_computed_value("box-shadow-color", "rgba(2, 3, 4, 50%)", "rgba(2, 3, 4, 0.5)");
+test_computed_value("box-shadow-color", "hsl(120, 100%, 50%)", "rgb(0, 255, 0)");
+test_computed_value("box-shadow-color", "hsla(120, 100%, 50%, 0.25)", "rgba(0, 255, 0, 0.25)");
+test_computed_value("box-shadow-color", "rgb(-2, 3, 4)", "rgb(0, 3, 4)");
+test_computed_value("box-shadow-color", "rgb(100, 200, 300)", "rgb(100, 200, 255)");
+test_computed_value("box-shadow-color", "rgb(20, 10, 0, -10)", "rgba(20, 10, 0, 0)");
+test_computed_value("box-shadow-color", "rgb(100%, 200%, 300%)", "rgb(255, 255, 255)");
+test_computed_value("box-shadow-color", "red, blue", "rgb(255, 0, 0), rgb(0, 0, 255)");
+</script>

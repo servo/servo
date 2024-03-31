@@ -771,7 +771,7 @@ impl CollapsedBorder {
         CollapsedBorder {
             style: BorderStyle::None,
             width: Au(0),
-            color: Color::TRANSPARENT,
+            color: Color::TRANSPARENT_BLACK,
             provenance: CollapsedBorderFrom::Table,
         }
     }

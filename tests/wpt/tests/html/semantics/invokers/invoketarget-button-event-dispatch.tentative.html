@@ -1,6 +1,7 @@
 <!doctype html>
 <meta charset="utf-8" />
-<meta name="author" title="Keith Cirkel" href="mailto:keithamus@github.com" />
+<meta name="author" title="Keith Cirkel" href="mailto:wpt@keithcirkel.co.uk" />
+<meta name="timeout" content="long" />
 <link rel="help" href="https://open-ui.org/components/invokers.explainer/" />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -27,35 +28,63 @@
     assert_equals(event.invoker, invokerbutton, "invoker");
   }, "event dispatches on click");
 
-  promise_test(async function (t) {
-    let event = null;
-    invokee.addEventListener("invoke", (e) => (event = e), { once: true });
-    invokerbutton.invokeAction = "fooBar";
-    await clickOn(invokerbutton);
-    assert_true(event instanceof InvokeEvent, "event is InvokeEvent");
-    assert_equals(event.type, "invoke", "type");
-    assert_equals(event.bubbles, false, "bubbles");
-    assert_equals(event.composed, true, "composed");
-    assert_equals(event.isTrusted, true, "isTrusted");
-    assert_equals(event.action, "fooBar", "action");
-    assert_equals(event.target, invokee, "target");
-    assert_equals(event.invoker, invokerbutton, "invoker");
-  }, "event action is set to invokeAction");
+  // valid custom invokeactions
+  ["-foo", "foo-", "cAsE-cArRiEs", "-", "-a-", "a-b", "---", "show-picker"].forEach(
+    (action) => {
+      promise_test(async function (t) {
+        t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
+        let event = null;
+        invokee.addEventListener("invoke", (e) => (event = e), { once: true });
+        invokerbutton.invokeAction = action;
+        await clickOn(invokerbutton);
+        assert_true(event instanceof InvokeEvent, "event is InvokeEvent");
+        assert_equals(event.type, "invoke", "type");
+        assert_equals(event.bubbles, false, "bubbles");
+        assert_equals(event.composed, true, "composed");
+        assert_equals(event.isTrusted, true, "isTrusted");
+        assert_equals(event.action, action, "action");
+        assert_equals(event.target, invokee, "target");
+        assert_equals(event.invoker, invokerbutton, "invoker");
+      }, `setting custom invokeAction property to ${action} (must include dash) sets event action`);
 
-  promise_test(async function (t) {
-    let event = null;
-    invokee.addEventListener("invoke", (e) => (event = e), { once: true });
-    invokerbutton.setAttribute("invokeaction", "BaRbAz");
-    await clickOn(invokerbutton);
-    assert_true(event instanceof InvokeEvent, "event is InvokeEvent");
-    assert_equals(event.type, "invoke", "type");
-    assert_equals(event.bubbles, false, "bubbles");
-    assert_equals(event.composed, true, "composed");
-    assert_equals(event.isTrusted, true, "isTrusted");
-    assert_equals(event.action, "BaRbAz", "action");
-    assert_equals(event.target, invokee, "target");
-    assert_equals(event.invoker, invokerbutton, "invoker");
-  }, "event action is set to invokeaction attribute");
+      promise_test(async function (t) {
+        t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
+        let event = null;
+        invokee.addEventListener("invoke", (e) => (event = e), { once: true });
+        invokerbutton.setAttribute("invokeaction", action);
+        await clickOn(invokerbutton);
+        assert_true(event instanceof InvokeEvent, "event is InvokeEvent");
+        assert_equals(event.type, "invoke", "type");
+        assert_equals(event.bubbles, false, "bubbles");
+        assert_equals(event.composed, true, "composed");
+        assert_equals(event.isTrusted, true, "isTrusted");
+        assert_equals(event.action, action, "action");
+        assert_equals(event.target, invokee, "target");
+        assert_equals(event.invoker, invokerbutton, "invoker");
+      }, `setting custom invokeaction attribute to ${action} (must include dash) sets event action`);
+    },
+  );
+
+  // invalid custom invokeactions
+  ["foo", "foobar", "foo bar", "em—dash", "hidedocument"].forEach((action) => {
+    promise_test(async function (t) {
+      t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
+      let event = null;
+      invokee.addEventListener("invoke", (e) => (event = e), { once: true });
+      invokerbutton.invokeAction = action;
+      await clickOn(invokerbutton);
+      assert_equals(event, null, "event should not have fired");
+    }, `setting custom invokeAction property to ${action} (no dash) did not dispatch an event`);
+
+    promise_test(async function (t) {
+      t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
+      let event = null;
+      invokee.addEventListener("invoke", (e) => (event = e), { once: true });
+      invokerbutton.setAttribute("invokeaction", action);
+      await clickOn(invokerbutton);
+      assert_equals(event, null, "event should not have fired");
+    }, `setting custom invokeaction attribute to ${action} (no dash) did not dispatch an event`);
+  });
 
   promise_test(async function (t) {
     let called = false;
@@ -78,7 +107,7 @@
   }, "event does not dispatch if click:preventDefault is called");
 
   promise_test(async function (t) {
-    t.add_cleanup(() => invokerbutton.removeAttribute('disabled'));
+    t.add_cleanup(() => invokerbutton.removeAttribute("disabled"));
     let called = false;
     invokee.addEventListener(
       "invoke",
@@ -93,7 +122,7 @@
   }, "event does not dispatch if invoker is disabled");
 
   promise_test(async function (t) {
-    svgInvokee = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svgInvokee = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     t.add_cleanup(() => {
       invokerbutton.invokeTargetElement = invokee;
       svgInvokee.remove();
@@ -115,7 +144,15 @@
     invokerbutton.invokeTargetElement = svgInvokee;
     await clickOn(invokerbutton);
     assert_true(called, "event was called");
-    assert_equals(eventInvoker, invokerbutton, "event.invoker is set to right element");
-    assert_equals(eventTarget, svgInvokee, "event.target is set to right element");
+    assert_equals(
+      eventInvoker,
+      invokerbutton,
+      "event.invoker is set to right element",
+    );
+    assert_equals(
+      eventTarget,
+      svgInvokee,
+      "event.target is set to right element",
+    );
   }, "event dispatches if invokee is non-HTML Element");
 </script>

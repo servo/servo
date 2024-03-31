@@ -12,7 +12,10 @@
 </head>
 <body>
 <script>
-for (const colorSpace of [ "srgb", "srgb-linear", "a98-rgb", "rec2020", "prophoto-rgb" ]) {
+const RGB_SPACES = ["srgb", "srgb-linear", "a98-rgb", "rec2020", "prophoto-rgb"];
+const XYZ_SPACES = ["xyz", "xyz-d50", "xyz-d65"];
+
+for (const colorSpace of RGB_SPACES) {
     test_invalid_value("color", `color(${colorSpace} 0 0 0 0)`);
     test_invalid_value("color", `color(${colorSpace} 0deg 0% 0)`);
     test_invalid_value("color", `color(${colorSpace} 0% 0 0 1)`);
@@ -29,7 +32,7 @@ for (const colorSpace of [ "srgb", "srgb-linear", "a98-rgb", "rec2020", "prophot
     test_invalid_value("color", `color(${colorSpace} / 0.5)`);
 }
 
-for (const colorSpace of [ "xyz", "xyz-d50", "xyz-d65" ]) {
+for (const colorSpace of XYZ_SPACES) {
     test_invalid_value("color", `color(${colorSpace} 0 0 0 0)`);
     test_invalid_value("color", `color(${colorSpace} 0deg 0% 0)`);
     test_invalid_value("color", `color(${colorSpace} 0% 0 0 1)`);
@@ -52,12 +55,17 @@ test_invalid_value("color", "color(displayp3 1 1 1)");  // Bad Display P3 color 
 test_invalid_value("color", "color(1 1 1)");  // No color space
 test_invalid_value("color", "color(srgb 1 1)");  // One missing component
 test_invalid_value("color", "color(srgb 1)");  // Two missing components
+test_invalid_value("color", "color(srgb 0, 0, 0)");  // Commas as separators
 
 test_invalid_value("color", "color(srgb 1 1 1 1)");  // Too many parameters
 test_invalid_value("color", "color(srgb 1 1 1 1 1)");  // Way too many parameters
 test_invalid_value("color", "color(srgb 1 eggs 1)");  // Bad parameters
 test_invalid_value("color", "color(srgb 1 1 1 / bacon)");  // Bad alpha
 test_invalid_value("color", "color(srgb 1 1 1 / 1 cucumber)");  // Junk after alpha
+
+for (const colorSpace of [...RGB_SPACES, ...XYZ_SPACES]) {
+    test_invalid_value("color", `${colorSpace}(0 0 0)`);
+}
 </script>
 </body>
 </html>

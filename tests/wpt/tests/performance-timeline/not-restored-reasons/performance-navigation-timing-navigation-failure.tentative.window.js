@@ -22,5 +22,5 @@ promise_test(async t => {
 
   // Check the BFCache result and the reported reasons.
   await assertBFCacheEligibility(rc1, /*shouldRestoreFromBFCache=*/ false);
-  await assertNotRestoredFromBFCache(rc1, ['navigation-failure']);
+  await assertNotRestoredFromBFCache(rc1, ['response-status-not-ok']);
 });
