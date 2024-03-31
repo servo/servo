@@ -405,11 +405,11 @@ pub enum NetworkState {
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq, PartialOrd)]
 #[repr(u8)]
 pub enum ReadyState {
-    Nothing = HTMLMediaElementConstants::HAVE_NOTHING as u8,
-    Metadata = HTMLMediaElementConstants::HAVE_METADATA as u8,
-    CurrentData = HTMLMediaElementConstants::HAVE_CURRENT_DATA as u8,
-    FutureData = HTMLMediaElementConstants::HAVE_FUTURE_DATA as u8,
-    EnoughData = HTMLMediaElementConstants::HAVE_ENOUGH_DATA as u8,
+    HaveNothing = HTMLMediaElementConstants::HAVE_NOTHING as u8,
+    HaveMetadata = HTMLMediaElementConstants::HAVE_METADATA as u8,
+    HaveCurrentData = HTMLMediaElementConstants::HAVE_CURRENT_DATA as u8,
+    HaveFutureData = HTMLMediaElementConstants::HAVE_FUTURE_DATA as u8,
+    HaveEnoughData = HTMLMediaElementConstants::HAVE_ENOUGH_DATA as u8,
 }
 
 impl HTMLMediaElement {
