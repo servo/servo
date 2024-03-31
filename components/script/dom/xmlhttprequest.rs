@@ -1334,7 +1334,7 @@ impl XMLHttpRequest {
         let mime = self
             .final_mime_type()
             .as_ref()
-            .map(|m| normalize_type_string(&m.to_string()))
+            .map(|m| normalize_type_string(m.as_ref()))
             .unwrap_or("".to_owned());
 
         // Step 3, 4
