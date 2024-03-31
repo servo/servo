@@ -18,6 +18,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::bluetooth::Bluetooth;
 use crate::dom::gamepad::Gamepad;
+use crate::dom::gamepadevent::GamepadEventType;
 use crate::dom::gpu::GPU;
 use crate::dom::mediadevices::MediaDevices;
 use crate::dom::mediasession::MediaSession;
@@ -81,8 +82,52 @@ impl Navigator {
         self.xr.get()
     }
 
-    pub fn gamepads(&self) -> RefMut<Vec<MutNullableDom<Gamepad>>> {
-        self.gamepads.borrow_mut()
+    pub fn get_gamepad(&self, index: usize) -> Option<DomRoot<Gamepad>> {
+        self.gamepads.borrow().get(index).and_then(|g| g.get())
+    }
+
+    pub fn set_gamepad(&self, index: usize, gamepad: Option<DomRoot<Gamepad>>) {
+        if index >= self.gamepads.borrow().len() {
+            self.gamepads
+                .borrow_mut()
+                .resize_with(index + 1, Default::default);
+        }
+        if let Some(gamepad_to_set) = self.gamepads.borrow().get(index) {
+            if let Some(inner_gamepad) = gamepad {
+                gamepad_to_set.set(Some(&*inner_gamepad));
+                if self.has_gamepad_gesture.get() {
+                    inner_gamepad.set_exposed(true);
+                    if self.global().as_window().Document().is_fully_active() {
+                        inner_gamepad.notify_event(GamepadEventType::Connected);
+                    }
+                }
+            } else {
+                gamepad_to_set.set(None);
+            }
+        }
+    }
+
+    /// <https://www.w3.org/TR/gamepad/#dfn-selecting-an-unused-gamepad-index>
+    pub fn select_gamepad_index(&self) -> u32 {
+        let gamepad_list = self.gamepads.borrow();
+        if gamepad_list.is_empty() {
+            0
+        } else if let Some(index) = gamepad_list.iter().position(|g| g.get().is_none()) {
+            index as u32
+        } else {
+            gamepad_list.len() as u32
+        }
+    }
+
+    pub fn shrink_gamepads_list(&self) {
+        let mut gamepad_list = self.gamepads.borrow_mut();
+        for i in (0..gamepad_list.len()).rev() {
+            if gamepad_list.get(i as usize).is_none() {
+                gamepad_list.remove(i as usize);
+            } else {
+                break;
+            }
+        }
     }
 
     pub fn has_gamepad_gesture(&self) -> bool {
