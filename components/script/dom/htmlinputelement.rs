@@ -2863,7 +2863,7 @@ impl Activatable for HTMLInputElement {
 fn filter_from_accept(s: &DOMString) -> Vec<FilterPattern> {
     let mut filter = vec![];
     for p in split_commas(s) {
-        if let Some('.') = p.chars().nth(0) {
+        if let Some('.') = p.chars().next() {
             filter.push(FilterPattern(p[1..].to_string()));
         } else if let Some(exts) = mime_guess::get_mime_extensions_str(p) {
             for ext in exts {
