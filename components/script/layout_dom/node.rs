@@ -54,12 +54,12 @@ pub struct ServoLayoutNode<'dom, LayoutDataType: LayoutDataTrait> {
     pub(super) phantom: PhantomData<LayoutDataType>,
 }
 
-//// Those are supposed to be sound, but they aren't because the entire system
-//// between script and layout so far has been designed to work around their
-//// absence. Switching the entire thing to the inert crate infra will help.
+/// Those are supposed to be sound, but they aren't because the entire system
+/// between script and layout so far has been designed to work around their
+/// absence. Switching the entire thing to the inert crate infra will help.
 ///
-//// FIXME(mrobinson): These are required because Layout 2020 sends non-threadsafe
-//// nodes to different threads. This should be adressed in a comprehensive way.
+/// FIXME(mrobinson): These are required because Layout 2020 sends non-threadsafe
+/// nodes to different threads. This should be adressed in a comprehensive way.
 unsafe impl<LayoutDataType: LayoutDataTrait> Send for ServoLayoutNode<'_, LayoutDataType> {}
 unsafe impl<LayoutDataType: LayoutDataTrait> Sync for ServoLayoutNode<'_, LayoutDataType> {}
 

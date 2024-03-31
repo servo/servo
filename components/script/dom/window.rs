@@ -2314,7 +2314,7 @@ impl Window {
         self.Document().url()
     }
 
-    pub fn with_layout<'a, T>(&self, call: impl FnOnce(&mut dyn Layout) -> T) -> Result<T, ()> {
+    pub fn with_layout<T>(&self, call: impl FnOnce(&mut dyn Layout) -> T) -> Result<T, ()> {
         ScriptThread::with_layout(self.pipeline_id(), call)
     }
 
@@ -2414,9 +2414,7 @@ impl Window {
         reply: IpcSender<Option<TimelineMarker>>,
     ) {
         *self.devtools_marker_sender.borrow_mut() = Some(reply);
-        self.devtools_markers
-            .borrow_mut()
-            .extend(markers.into_iter());
+        self.devtools_markers.borrow_mut().extend(markers);
     }
 
     pub fn drop_devtools_timeline_markers(&self, markers: Vec<TimelineMarkerType>) {
@@ -2522,6 +2520,7 @@ impl Window {
 
 impl Window {
     #[allow(unsafe_code)]
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         runtime: Rc<Runtime>,
         script_chan: MainThreadScriptChan,
