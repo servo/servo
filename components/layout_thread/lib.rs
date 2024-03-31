@@ -787,39 +787,38 @@ impl LayoutThread {
                 let traversal = ComputeStackingRelativePositions { layout_context };
                 traversal.traverse(layout_root);
 
-                if layout_root
+                if (layout_root
                     .base()
                     .restyle_damage
                     .contains(ServoRestyleDamage::REPAINT) ||
-                    rw_data.display_list.is_none()
+                    rw_data.display_list.is_none()) &&
+                    reflow_goal.needs_display_list()
                 {
-                    if reflow_goal.needs_display_list() {
-                        let background_color = get_root_flow_background_color(layout_root);
-                        let mut build_state = sequential::build_display_list_for_subtree(
-                            layout_root,
-                            layout_context,
-                            background_color,
-                            data.page_clip_rect.size,
-                        );
+                    let background_color = get_root_flow_background_color(layout_root);
+                    let mut build_state = sequential::build_display_list_for_subtree(
+                        layout_root,
+                        layout_context,
+                        background_color,
+                        data.page_clip_rect.size,
+                    );
 
-                        debug!("Done building display list.");
+                    debug!("Done building display list.");
 
-                        let root_size = {
-                            let root_flow = layout_root.base();
-                            root_flow.overflow.scroll.size
-                        };
+                    let root_size = {
+                        let root_flow = layout_root.base();
+                        root_flow.overflow.scroll.size
+                    };
 
-                        let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size).to_layout();
-                        build_state.root_stacking_context.bounds = origin;
-                        build_state.root_stacking_context.overflow = origin;
+                    let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size).to_layout();
+                    build_state.root_stacking_context.bounds = origin;
+                    build_state.root_stacking_context.overflow = origin;
 
-                        // We will not use build_state.iframe_sizes again, so it's safe to move it.
-                        let iframe_sizes = std::mem::take(&mut build_state.iframe_sizes);
-                        self.update_iframe_sizes(iframe_sizes);
+                    // We will not use build_state.iframe_sizes again, so it's safe to move it.
+                    let iframe_sizes = std::mem::take(&mut build_state.iframe_sizes);
+                    self.update_iframe_sizes(iframe_sizes);
 
-                        rw_data.indexable_text = std::mem::take(&mut build_state.indexable_text);
-                        rw_data.display_list = Some(build_state.to_display_list());
-                    }
+                    rw_data.indexable_text = std::mem::take(&mut build_state.indexable_text);
+                    rw_data.display_list = Some(build_state.to_display_list());
                 }
 
                 if !reflow_goal.needs_display() {
