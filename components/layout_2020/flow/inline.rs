@@ -2306,7 +2306,8 @@ struct ContentSizesComputation<'a> {
     current_line: ContentSizes,
     /// Size for whitepsace pending to be added to this line.
     pending_whitespace: Au,
-    /// Whether or not this IFC has seen any content, excluding collapsed whitespace.
+    /// Whether or not the current line has seen any content (excluding collapsed whitespace),
+    /// when sizing under a max-content constraint.
     had_content_yet: bool,
     /// Stack of ending padding, margin, and border to add to the length
     /// when an inline box finishes.
@@ -2366,7 +2367,6 @@ impl<'a> ContentSizesComputation<'a> {
                             // If this run is a forced line break, we *must* break the line
                             // and start measuring from the inline origin once more.
                             if text_run.glyph_run_is_preserved_newline(run) {
-                                self.had_content_yet = true;
                                 self.forced_line_break();
                                 self.current_line = ContentSizes::zero();
                                 continue;
@@ -2375,12 +2375,12 @@ impl<'a> ContentSizesComputation<'a> {
                             let white_space =
                                 text_run.parent_style.get_inherited_text().white_space;
                             if !white_space.preserve_spaces() {
-                                // Discard any leading whitespace in the IFC. This will always be trimmed.
+                                // TODO: need to handle !white_space.allow_wrap().
+                                self.line_break_opportunity();
+                                // Discard any leading whitespace in the line. This will always be trimmed.
                                 if self.had_content_yet {
                                     // Wait to take into account other whitespace until we see more content.
-                                    // Whitespace at the end of the IFC will always be trimmed.
-                                    // TODO: need to handle !white_space.allow_wrap().
-                                    self.line_break_opportunity();
+                                    // Whitespace at the end of the line will always be trimmed.
                                     self.pending_whitespace += advance;
                                 }
                                 continue;
@@ -2433,6 +2433,7 @@ impl<'a> ContentSizesComputation<'a> {
         self.paragraph.max_content =
             std::cmp::max(self.paragraph.max_content, self.current_line.max_content);
         self.current_line.max_content = Au::zero();
+        self.had_content_yet = false;
     }
 
     fn commit_pending_whitespace(&mut self) {
