@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Destroy and Hide Element in Animation Iteration Event</title>
+  <!-- Note: this is effectively a crashtest, but as crashtests do not
+       support variants, authoring as a promise test -->
+  <meta name="variant" content="?animationstart">
+  <meta name="variant" content="?animationiteration">
+  <link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=22635">
+  <style>
+    .box {
+      height: 100px;
+      width: 100px;
+      margin: 10px;
+      background-color: blue;
+      animation-duration: 0.2s;
+      animation-iteration-count: 2;
+    }
+
+    @keyframes move {
+      from { transform: translate(0px, 0px); }
+      to { transform: translate(100px, 0px); }
+    }
+  </style>
+  <div id="container">
+    <div id="box1" class="box"></div>
+    <div id="box2" class="box"></div>
+  </div>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/gc.js"></script>
+  <script>
+  'use strict';
+
+  function eventPromise(target, event, callback) {
+    return new Promise(resolve => {
+      const listener = () => {
+        callback();
+        resolve();
+      };
+      target.addEventListener(event, listener,
+                              { once: true });
+    });
+  }
+
+  promise_test(async t => {
+    const eventType = location.search.substring(1);
+    var box1 = document.getElementById('box1');
+    var box2 = document.getElementById('box2');
+
+    const promises = [];
+    promises.push(eventPromise(box1, eventType, () => {
+      box1.parentNode.removeChild(box1);
+    }));
+    box1.style.animationName = 'move';
+    promises.push(eventPromise(box2, eventType, () => {
+      box2.style.display = 'none';
+    }));
+    box2.style.animationName = 'move';
+    await Promise.all(promises);
+
+    // Garbage collection is best effort.
+    if (window.garbageCollect) {
+      await garbageCollect();
+    }
+
+    assert_equals(document.getAnimations().length, 0);
+  }, 'Triggering the cancel of an animation during event handling does not ' +
+     'crash.');
+
+  </script>
+</head>
+</html>

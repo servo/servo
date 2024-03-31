@@ -1,11 +1,10 @@
-// META: title=validation tests for WebNN API reduction  operation
+// META: title=validation tests for WebNN API reduction operation
 // META: global=window,dedicatedworker
 // META: script=../resources/utils_validation.js
-// META: timeout=long
 
 'use strict';
 
-[
+const kReductionOperators = [
   'reduceL1',
   'reduceL2',
   'reduceLogSum',
@@ -16,6 +15,9 @@
   'reduceProduct',
   'reduceSum',
   'reduceSumSquare',
-].forEach((operationName) => {
-  validateOptionsAxes(operationName);
+];
+
+kReductionOperators.forEach((operatorName) => {
+  validateOptionsAxes(operatorName);
+  validateInputFromAnotherBuilder(operatorName);
 });

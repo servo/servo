@@ -12,8 +12,8 @@
 'use strict';
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'clipboard-read'}, 'granted');
-  await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+  await tryGrantReadPermission();
+  await tryGrantWritePermission();
   const format1 = 'web application/x-custom-format-clipboard-test-format-1';
   const format2 = 'web application/x-custom-format-clipboard-test-format-2';
   const blobInput1 = new Blob(['input data 1'], {type: format1});

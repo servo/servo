@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#media-progress-func">
+<link rel="author" title="sakhapov@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/numeric-testcommon.js"></script>
+<div id="target"></div>
+<style>
+#target {
+  font-size: 10px;
+}
+</style>
+<script>
+
+let width = window.innerWidth;
+let height = window.innerHeight;
+
+// Identity tests
+  test_math_used('media-progress(height from 0px to 1px)', height, {type:'number'});
+
+// Nestings
+test_math_used('media-progress(height from media-progress(height from 0px to 1px) * 1px to media-progress(height from 0px to 1px) * 1px)', '0', {type:'number'});
+
+test_math_used('media-progress(height from media-progress(height from 0px to 1px) * 0.5px to media-progress(height from 0px to 1px) * 1px)', '1', {type:'number'});
+
+// General calculations
+test_math_used('calc(media-progress(width from 0px to 50px) * 10px + 100px)', (width / 50 * 10 + 100) + 'px');
+test_math_used('calc(media-progress(height from 10px to sign(50px - 500em) * 10px))', (height - 10) / (-10 - 10), {type:'number'});
+
+// Type checking
+test_math_used('calc(media-progress(width from 0px to 1px) * 1px)', width + 'px');
+test_math_used('calc(media-progress(height from 0px to 1px) * 1s)', height + 's', {type:'time'});
+test_math_used('calc(media-progress(width from 0px to 1px) * 1deg)', width + 'deg', {type:'angle', approx:0.001});
+</script>

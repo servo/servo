@@ -319,7 +319,7 @@ class ClickFedCMDialogButtonAction:
     def __call__(self, payload):
         dialog_button = payload["dialog_button"]
         self.logger.debug(f"Clicking FedCM dialog button: {dialog_button}")
-        return self.protocol.fedcm.click_fedcm_dialog_button()
+        return self.protocol.fedcm.click_fedcm_dialog_button(dialog_button)
 
 class SelectFedCMAccountAction:
     name = "select_fedcm_account"

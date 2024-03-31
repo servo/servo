@@ -1,6 +1,7 @@
 <!doctype html>
 <meta charset="utf-8" />
 <meta name="author" title="Luke Warlow" href="mailto:luke@warlow.dev" />
+<meta name="timeout" content="long" />
 <link rel="help" href="https://open-ui.org/components/invokers.explainer/" />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -9,210 +10,136 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="resources/invoker-utils.js"></script>
 
-<details id="invokee">
-    Details Contents
-</details>
+<details id="invokee">Details Contents</details>
 <button id="invokerbutton" invoketarget="invokee"></button>
 
 <script>
-  // auto
+  function resetState() {
+    invokerbutton.removeAttribute("invokeaction");
+    invokee.removeAttribute("open");
+  }
+
+  // Open actions
+  [
+    null,
+    "",
+    "toggle",
+    "open",
+    /* test case sensitivity */
+    "tOgGlE",
+    "oPeN",
+  ].forEach((action) => {
+    promise_test(
+      async function (t) {
+        t.add_cleanup(resetState);
+        if (action !== null) invokerbutton.invokeAction = action;
+        assert_false(invokee.matches("[open]"));
+        await clickOn(invokerbutton);
+        assert_true(invokee.matches("[open]"));
+      },
+      `invoking (as ${
+        action === null ? "auto" : action || "explicit empty"
+      }) closed details opens`,
+    );
+
+    promise_test(
+      async function (t) {
+        t.add_cleanup(resetState);
+        if (action !== null) invokerbutton.invokeAction = action;
+        assert_false(invokee.matches("[open]"));
+        invokee.addEventListener("invoke", (e) => e.preventDefault(), {
+          once: true,
+        });
+        await clickOn(invokerbutton);
+        t.add_cleanup(() => invokee.removeAttribute("open"));
+        assert_false(invokee.matches("[open]"));
+      },
+      `invoking (as ${
+        action === null ? "auto" : action || "explicit empty"
+      }) closed details with preventDefault does not open`,
+    );
+  });
+
+  // Close actions
+  [
+    null,
+    "",
+    "toggle",
+    "close",
+    /* test case sensitivity */
+    "tOgGlE",
+    "cLoSe",
+  ].forEach((action) => {
+    promise_test(
+      async function (t) {
+        t.add_cleanup(resetState);
+        if (action !== null) invokerbutton.invokeAction = action;
+        invokee.setAttribute("open", "");
+        assert_true(invokee.matches("[open]"));
+        await clickOn(invokerbutton);
+        assert_false(invokee.matches("[open]"));
+      },
+      `invoking (as ${
+        action === null ? "auto" : action || "explicit empty"
+      }) open details closes`,
+    );
+
+    promise_test(
+      async function (t) {
+        t.add_cleanup(resetState);
+        if (action !== null) invokerbutton.invokeAction = action;
+        invokee.setAttribute("open", "");
+        invokerbutton.setAttribute("invokeaction", "toggle");
+        invokee.addEventListener("invoke", (e) => e.preventDefault(), {
+          once: true,
+        });
+        assert_true(invokee.matches("[open]"));
+        await clickOn(invokerbutton);
+        assert_true(invokee.matches("[open]"));
+      },
+      `invoking (as ${
+        action === null ? "auto" : action || "explicit empty"
+      }) open details with prevent default closes`,
+    );
+  });
+
+  // toggle specific
 
   promise_test(async function (t) {
-    assert_false(invokee.matches("[open]"));
-    await clickOn(invokerbutton);
-    t.add_cleanup(() => invokee.removeAttribute('open'));
-    assert_true(invokee.matches("[open]"));
-  }, "invoking closed details with auto action opens");
-
-  promise_test(async function (t) {
-    assert_false(invokee.matches("[open]"));
-    invokee.addEventListener("invoke", (e) => e.preventDefault(), {
+    t.add_cleanup(resetState);
+    invokerbutton.invokeAction = "toggle";
+    invokee.addEventListener(
+      "invoke",
+      (e) => {
+        invokee.setAttribute("open", "");
+      },
+      {
         once: true,
-    });
-    await clickOn(invokerbutton);
-    t.add_cleanup(() => invokee.removeAttribute('open'));
-    assert_false(invokee.matches("[open]"));
-  }, "invoking closed details with auto action and preventDefault does not open");
-
-  promise_test(async function (t) {
-    invokee.setAttribute('open', '');
-    assert_true(invokee.matches("[open]"));
-    await clickOn(invokerbutton);
-    assert_false(invokee.matches("[open]"));
-  }, "invoking open details with auto action closes");
-
-  promise_test(async function (t) {
-    invokee.setAttribute('open', '');
-    t.add_cleanup(() => invokee.removeAttribute('open'));
-    invokee.addEventListener("invoke", (e) => e.preventDefault(), {
-        once: true,
-    });
-    assert_true(invokee.matches("[open]"));
-    await clickOn(invokerbutton);
-    assert_true(invokee.matches("[open]"));
-  }, "invoking open details with auto action and preventDefault does not close");
-
-  promise_test(async function (t) {
-    t.add_cleanup(() => invokee.removeAttribute('open'));
-    invokee.addEventListener("invoke", (e) => {
-        invokee.setAttribute('open', '');
-    }, {
-        once: true,
-    });
+      },
+    );
     assert_false(invokee.matches("[open]"));
     await clickOn(invokerbutton);
     assert_false(invokee.matches("[open]"));
-  }, "invoking details with auto action where event listener opens leads to a closed details");
+  }, "invoking (as toggle) closed details where event listener opens leads to a closed details");
+
+  // open specific
 
   promise_test(async function (t) {
-    invokee.setAttribute('open', '');
-    t.add_cleanup(() => invokee.removeAttribute('open'));
-    invokee.addEventListener("invoke", (e) => {
-        invokee.removeAttribute('open');
-    }, {
-        once: true,
-    });
+    t.add_cleanup(resetState);
+    invokerbutton.invokeAction = "open";
+    invokee.setAttribute("open", "");
     assert_true(invokee.matches("[open]"));
     await clickOn(invokerbutton);
-    assert_true(invokee.matches("[open]"));
-  }, "invoking open details with auto action where event listener closes leads to an open details");
-
-  // toggle
-
-  promise_test(async function (t) {
-    assert_false(invokee.matches("[open]"));
-    invokerbutton.setAttribute("invokeaction", "toggle");
-    t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
-    await clickOn(invokerbutton);
-    t.add_cleanup(() => invokee.removeAttribute('open'));
-    assert_true(invokee.matches("[open]"));
-  }, "invoking closed details with toggle action opens");
-
-  promise_test(async function (t) {
-    assert_false(invokee.matches("[open]"));
-    invokerbutton.setAttribute("invokeaction", "tOgGlE");
-    t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
-    await clickOn(invokerbutton);
-    t.add_cleanup(() => invokee.removeAttribute('open'));
-    assert_true(invokee.matches("[open]"));
-  }, "invoking closed details with toggle (case-insensitive) action opens");
-
-  promise_test(async function (t) {
-    assert_false(invokee.matches("[open]"));
-    invokerbutton.setAttribute("invokeaction", "toggle");
-    t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
-    invokee.addEventListener("invoke", (e) => e.preventDefault(), {
-        once: true,
-    });
-    await clickOn(invokerbutton);
-    t.add_cleanup(() => invokee.removeAttribute('open'));
-    assert_false(invokee.matches("[open]"));
-  }, "invoking closed details with toggle action and preventDefault does not open");
-
-  promise_test(async function (t) {
-    invokee.setAttribute('open', '');
-    invokerbutton.setAttribute("invokeaction", "toggle");
-    t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
-    assert_true(invokee.matches("[open]"));
-    await clickOn(invokerbutton);
-    assert_false(invokee.matches("[open]"));
-  }, "invoking open details with toggle action closes");
-
-  promise_test(async function (t) {
-    invokee.setAttribute('open', '');
-    t.add_cleanup(() => invokee.removeAttribute('open'));
-    invokerbutton.setAttribute("invokeaction", "toggle");
-    t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
-    invokee.addEventListener("invoke", (e) => e.preventDefault(), {
-        once: true,
-    });
-    assert_true(invokee.matches("[open]"));
-    await clickOn(invokerbutton);
-    assert_true(invokee.matches("[open]"));
-  }, "invoking open details with toggle action and preventDefault does not close");
-
-  // open
-
-  promise_test(async function (t) {
-    invokerbutton.setAttribute("invokeaction", "open");
-    t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
-    assert_false(invokee.matches("[open]"));
-    await clickOn(invokerbutton);
-    t.add_cleanup(() => invokee.removeAttribute('open'));
-    assert_true(invokee.matches("[open]"));
-  }, "invoking closed details with open action opens");
-
-  promise_test(async function (t) {
-    invokerbutton.setAttribute("invokeaction", "oPeN");
-    t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
-    assert_false(invokee.matches("[open]"));
-    await clickOn(invokerbutton);
-    t.add_cleanup(() => invokee.removeAttribute('open'));
-    assert_true(invokee.matches("[open]"));
-  }, "invoking closed details with open (case insensitive) action opens");
-
-  promise_test(async function (t) {
-    invokerbutton.setAttribute("invokeaction", "open");
-    t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
-    invokee.setAttribute('open', '');
-    assert_true(invokee.matches("[open]"));
-    await clickOn(invokerbutton);
-    t.add_cleanup(() => invokee.removeAttribute('open'));
     assert_true(invokee.matches("[open]"));
   }, "invoking open details with open action is noop");
-
-  promise_test(async function (t) {
-    invokerbutton.setAttribute("invokeaction", "open");
-    t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
-    assert_false(invokee.matches("[open]"));
-    invokee.addEventListener("invoke", (e) => e.preventDefault(), {
-        once: true,
-    });
-    await clickOn(invokerbutton);
-    t.add_cleanup(() => invokee.removeAttribute('open'));
-    assert_false(invokee.matches("[open]"));
-  }, "invoking closed popover with open action and preventDefault does not open");
 
   // close
 
   promise_test(async function (t) {
-    invokerbutton.setAttribute("invokeaction", "close");
-    t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
+    t.add_cleanup(resetState);
+    invokerbutton.invokeAction = "close";
     assert_false(invokee.matches("[open]"));
     await clickOn(invokerbutton);
     assert_false(invokee.matches("[open]"));
   }, "invoking closed details with close action is noop");
-
-  promise_test(async function (t) {
-    invokerbutton.setAttribute("invokeaction", "close");
-    t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
-    invokee.setAttribute('open', '');
-    assert_true(invokee.matches("[open]"));
-    await clickOn(invokerbutton);
-    t.add_cleanup(() => invokee.removeAttribute('open'));
-    assert_false(invokee.matches("[open]"));
-  }, "invoking open details with close action closes");
-
-  promise_test(async function (t) {
-    invokerbutton.setAttribute("invokeaction", "cLoSe");
-    t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
-    invokee.setAttribute('open', '');
-    assert_true(invokee.matches("[open]"));
-    await clickOn(invokerbutton);
-    t.add_cleanup(() => invokee.removeAttribute('open'));
-    assert_false(invokee.matches("[open]"));
-  }, "invoking open details with close (case insensitive) action closes");
-
-  promise_test(async function (t) {
-    invokerbutton.setAttribute("invokeaction", "close");
-    t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
-    invokee.setAttribute('open', '');
-    t.add_cleanup(() => invokee.removeAttribute('open'));
-    assert_true(invokee.matches("[open]"));
-    invokee.addEventListener("invoke", (e) => e.preventDefault(), {
-        once: true,
-    });
-    await clickOn(invokerbutton);
-    assert_true(invokee.matches("[open]"));
-  }, "invoking open details with close action with preventDefault does not close");
 </script>

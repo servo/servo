@@ -512,7 +512,6 @@ test_scope(document.currentScript, () => {
 }, ':scope in two different compounds');
 </script>
 
-
 <template>
   <style>
     @scope (.a:has(.c)) {
@@ -544,4 +543,25 @@ test_scope(document.currentScript, () => {
   assert_not_green('.second .b');
   assert_not_green('.second .d');
 }, 'Scope root with :has()');
+</script>
+
+<template>
+  <style>
+    @scope (.a) to (.b, .c) {
+      * { background-color:green; }
+    }
+  </style>
+  <div class=a>
+    <span id="in"></span>
+    <div class=b>
+      <span id="out"</span>
+      <div class=c></div>
+    </div>
+  </div>
+</template>
+<script>
+test_scope(document.currentScript, () => {
+  assert_green('#in');
+  assert_not_green('#out');
+}, 'Any scope limit makes the element out of scope');
 </script>

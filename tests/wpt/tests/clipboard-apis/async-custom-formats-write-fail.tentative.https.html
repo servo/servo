@@ -12,7 +12,7 @@
 'use strict';
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+  await tryGrantWritePermission();
 
   const customFormatArray = [];
   const customFormatMap = {};
@@ -28,7 +28,7 @@ promise_test(async t => {
 }, 'navigator.clipboard.write() fails for more than 100 custom formats');
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+  await tryGrantWritePermission();
 
   const format1 = 'application/x-custom-format-clipboard-test-format-1';
   const format2 = 'application/x-custom-format-clipboard-test-format-2';
@@ -42,7 +42,7 @@ promise_test(async t => {
 }, 'navigator.clipboard.write() fails for custom formats without web prefix');
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+  await tryGrantWritePermission();
 
   const format1 = 'web ';
   const format2 = 'web a';
@@ -56,7 +56,7 @@ promise_test(async t => {
 }, 'navigator.clipboard.write() fails for custom formats with web prefix, but invalid MIME types');
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+  await tryGrantWritePermission();
 
   const format1 = 'web text/plain';
   const format2 = 'text/custom';
@@ -69,7 +69,7 @@ promise_test(async t => {
 }, 'navigator.clipboard.write() fails for custom format with web prefix, but different Blob type');
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+  await tryGrantWritePermission();
 
   const format1 = 'web Text/plain';
   const format2 = 'text/plain';
@@ -82,7 +82,7 @@ promise_test(async t => {
 }, 'navigator.clipboard.write() fails for custom format with different case than the Blob type');
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+  await tryGrantWritePermission();
 
   const format1 = 'web text/plain';
   const format2 = 'Text/plain';
@@ -95,7 +95,7 @@ promise_test(async t => {
 }, 'navigator.clipboard.write() fails for invalid mime type that is different than the Blob type');
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+  await tryGrantWritePermission();
 
   const format1 = 'web Text/plain';
   const format2 = 'web text/plain';
@@ -108,7 +108,7 @@ promise_test(async t => {
 }, 'navigator.clipboard.write() fails for invalid mime type with web prefix and the Blob type');
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+  await tryGrantWritePermission();
 
   const format1 = 'Text/plain';
   const format2 = 'text/plain';

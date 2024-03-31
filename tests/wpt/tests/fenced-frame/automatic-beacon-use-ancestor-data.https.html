@@ -15,7 +15,7 @@ promise_test(async(t) => {
   const actions = new test_driver.Actions();
   const fencedframe = await attachFencedFrameContext({
     generator_api: 'fledge',
-    automatic_beacon: true
+    register_beacon: true
   });
   const new_url = new URL("resources/close.html", location.href);
   const beacon_data = "this is the beacon data";
@@ -56,7 +56,7 @@ promise_test(async(t) => {
   // have any beacon data set for `reserved.top_navigation_start`, even though
   // it does have beacon data set.
   const received_beacon_data =
-      await nextAutomaticBeacon(beacon_type, beacon_data);
+      await nextBeacon(beacon_type, beacon_data);
 }, 'Documents should use ancestor beacon data if not available');
 </script>
 </body>

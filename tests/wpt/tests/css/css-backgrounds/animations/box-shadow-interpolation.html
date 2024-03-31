@@ -211,7 +211,7 @@ test_interpolation({
 
 test_interpolation({
   property: 'box-shadow',
-  from: '10px 10px 10px 10px color(srgb 0, 0, 0)',
+  from: '10px 10px 10px 10px color(srgb 0 0 0)',
   to: '10px 10px 10px 10px rgb(255 255 255)',
 }, [
 {at: -0.3, expect: '10px 10px 10px 10px oklab(0 0 0)'},
@@ -224,7 +224,7 @@ test_interpolation({
 
 test_interpolation({
   property: 'box-shadow',
-  from: '10px 10px 10px 10px color(srgb 0, 0, 0)',
+  from: '10px 10px 10px 10px color(srgb 0 0 0)',
   to: '10px 10px 10px 10px color(srgb 1 1 1)',
 }, [
 {at: -0.3, expect: '10px 10px 10px 10px oklab(0 0 0)'},

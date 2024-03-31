@@ -1,0 +1,26 @@
+<html class="test-wait reftest-wait">
+<style>
+* {
+  backdrop-filter: hue-rotate(0deg);
+  offset: path('M 72 1 h 0 v 90') 0px 0rad;
+  mask-image: url(#x)
+}
+</style>
+<script>
+let stop = false;
+function func_01() {
+  document.execCommand("justifyCenter", false)
+  document.getSelection().collapse(a)
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (stop) {
+      document.documentElement.classList = "";
+      return;
+    }
+    // Ensure that we've painted at least twice.
+    stop = true;
+    func_01();
+  }));
+}
+document.addEventListener("DOMContentLoaded", func_01)
+</script>
+<meter id="a" contenteditable="true">AA</meter>

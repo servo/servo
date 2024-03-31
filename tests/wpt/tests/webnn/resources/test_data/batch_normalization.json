@@ -1147,7 +1147,7 @@
         "activation": "relu"
       },
       "expected": {
-        "shape": [2, 3, 2, 2],
+        "shape": [2, 2, 2, 3],
         "data": [
           0,
           200.12615966796875,
