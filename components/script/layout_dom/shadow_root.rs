@@ -70,7 +70,7 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ServoShadowRoot<'dom, LayoutDataType
             phantom: PhantomData,
         }
     }
- 
+
     pub unsafe fn flush_stylesheets(
         &self,
         stylist: &mut Stylist,
