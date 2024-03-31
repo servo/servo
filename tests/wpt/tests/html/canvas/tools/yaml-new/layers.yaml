@@ -41,7 +41,8 @@
     ctx2.fillRect(70, 70, 75, 50);
 
     ctx.drawImage(canvas2, 0, 0);
-  variants: &global-state-variants
+  variants:
+  - &global-state-variants
     no-global-states:
       render_states: // No global states.
     alpha: &global-state-alpha
@@ -168,7 +169,7 @@
     };
     img.src = 'data:image/svg+xml;base64,' + btoa(svg);
   variants:
-    <<: *global-state-variants
+  - <<: *global-state-variants
     alpha:
       <<: *global-state-alpha
       fuzzy: maxDifference=0-2; totalPixels=0-6766
@@ -556,7 +557,7 @@
 - name: 2d.layer.flush-on-frame-presentation
   desc: Check that layers state stack is flushed and rebuilt on frame renders.
   size: [200, 200]
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   test_type: "promise"
   code: |
     ctx.fillStyle = 'purple';
@@ -612,7 +613,7 @@
     assert_throws_dom("InvalidStateError",
                       () => {{ operation }});
   variants:
-    createPattern:
+  - createPattern:
       operation: ctx.createPattern(canvas, 'repeat')
     drawImage:
       setup: |-
@@ -630,10 +631,10 @@
       operation: |-
         ctx.putImageData(data, 0, 0)
     toDataURL:
-      canvasType: ['HTMLCanvas']
+      canvas_types: ['HtmlCanvas']
       operation: canvas.toDataURL()
     transferToImageBitmap:
-      canvasType: ['OffscreenCanvas', 'Worker']
+      canvas_types: ['OffscreenCanvas', 'Worker']
       operation: canvas.transferToImageBitmap()
 
 - name: 2d.layer.malformed-operations-with-promises
@@ -651,14 +652,14 @@
     ctx.beginLayer();
     await promise_rejects_dom(t, 'InvalidStateError', {{ operation }});
   variants:
-    convertToBlob:
-      canvasType: ['OffscreenCanvas', 'Worker']
+  - convertToBlob:
+      canvas_types: ['OffscreenCanvas', 'Worker']
       operation: |-
         canvas.convertToBlob()
     createImageBitmap:
       operation: createImageBitmap(canvas)
     toBlob:
-      canvasType: ['HTMLCanvas']
+      canvas_types: ['HtmlCanvas']
       operation: |-
         new Promise(resolve => canvas.toBlob(resolve))
 
@@ -824,7 +825,7 @@
 - name: 2d.layer.valid-calls
   desc: No exception raised on {{ variant_desc }}.
   variants:
-    save:
+  - save:
       variant_desc: lone save() calls
       code: ctx.save();
     beginLayer:
@@ -867,7 +868,7 @@
       {{ call_sequence | indent(2) }}
     });
   variants:
-    endLayer:
+  - endLayer:
       variant_desc: lone endLayer calls
       call_sequence: ctx.endLayer();
     save-endLayer:
@@ -995,7 +996,7 @@
     };
     img.src = 'data:image/svg+xml;base64,' + btoa(svg);
   variants:
-    no-clipping:
+  - no-clipping:
       clipping: // No clipping.
     with-clipping:
       clipping: |-
@@ -1029,7 +1030,7 @@
     ctx.fillStyle = 'green';
     ctx.fillRect(0, 0, 100, 100);
   variants:
-    short-distance:
+  - short-distance:
       distance: |-
         const delta = 1;
       clipping: // No clipping.
@@ -1056,7 +1057,7 @@
   desc: Checks that layer blending works inside opaque canvas
   size: [300, 300]
   code: |
-    {% if canvas_type == 'htmlcanvas' %}
+    {% if canvas_type == 'HtmlCanvas' %}
     const canvas2 = document.createElement('canvas');
     canvas2.width = 200;
     canvas2.height = 200;
@@ -1126,7 +1127,7 @@
       </g>
     </svg>
   variants:
-    blur:
+  - blur:
       ctx_filter: |-
         'blur(10px)'
       svg_filter: |-
@@ -1149,7 +1150,7 @@
   code: *filter-test-code
   html_reference: *filter-test-reference
   variants:
-    x-only:
+  - x-only:
       ctx_filter: |-
         { name: 'gaussianBlur', stdDeviation: [4, 0] }
       svg_filter: |-

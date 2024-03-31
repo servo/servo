@@ -43,6 +43,12 @@
     </div>
   </div>
 
+  <!--
+    CORE-AAM requires that, for elements with roles not contained in the
+    required context, user agents must ignore the role token and return the
+    computed role as if the ignored role token had not been included.
+    See https://w3c.github.io/core-aam/#roleMappingComputedRole
+  -->
   <span role="row" data-testname="orphaned row outside the context of table" class="ex-generic">x</span>
   <span role="rowgroup" data-testname="orphaned rowgroup outside the context of row" class="ex-generic">x</span>
   <div role="gridcell" data-testname="orphaned div with gridcell role outside the context of row" class="ex-generic">x</div>

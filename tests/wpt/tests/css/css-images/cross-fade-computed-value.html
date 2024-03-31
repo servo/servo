@@ -24,29 +24,29 @@
       test_computed_value(
         'background-image',
         'cross-fade(30% color-mix(in srgb, currentcolor, blue), white)',
-        'cross-fade(30% color(srgb 0.5 0 0.5), rgb(255, 255, 255))');
+        'cross-fade(color(srgb 0.5 0 0.5) 30%, rgb(255, 255, 255))');
 
       // Unneccessary percentages should be kept.
       test_computed_value('background-image', 'cross-fade(50% red, 50% green)',
-        'cross-fade(50% rgb(255, 0, 0), 50% rgb(0, 128, 0))');
+        'cross-fade(rgb(255, 0, 0) 50%, rgb(0, 128, 0) 50%)');
 
       // Percentage normalization should not be visible computed-value time.
       test_computed_value('background-image', 'cross-fade(20% red, 20% green)',
-        'cross-fade(20% rgb(255, 0, 0), 20% rgb(0, 128, 0))');
+        'cross-fade(rgb(255, 0, 0) 20%, rgb(0, 128, 0) 20%)');
 
       // More than two values.
       test_computed_value('background-image',
         'cross-fade(50% red, 50% green, 50% blue)',
-        'cross-fade(50% rgb(255, 0, 0), 50% rgb(0, 128, 0), 50% rgb(0, 0, 255))');
+        'cross-fade(rgb(255, 0, 0) 50%, rgb(0, 128, 0) 50%, rgb(0, 0, 255) 50%)');
 
       // More-than-100% should be invalid, but in calc() we can't reject it parse-time;
       // it will be clamped on serialization.
       test_computed_value('background-image',
         'cross-fade(calc(101%) red, green)',
-        'cross-fade(100% rgb(255, 0, 0), rgb(0, 128, 0))');
+        'cross-fade(rgb(255, 0, 0) 100%, rgb(0, 128, 0))');
       test_computed_value('background-image',
         'cross-fade(calc(-200%) red, green)',
-        'cross-fade(0% rgb(255, 0, 0), rgb(0, 128, 0))');
+        'cross-fade(rgb(255, 0, 0) 0%, rgb(0, 128, 0))');
     </script>
   </body>
 </html>

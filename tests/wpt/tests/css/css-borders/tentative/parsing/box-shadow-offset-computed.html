@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders and Box Decorations 4 Test: Computed values of 'box-shadow-offset'</title>
+<link rel="author" title="Sebastian Zartner" href="mailto:sebastianzartner@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#box-shadow-offset">
+<meta name="assert" content="This test checks that the computed value of 'box-shadow-offset' is correct.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+
+<div id="target"></div>
+
+<script>
+test_computed_value("box-shadow-offset", "0 0", "0px");
+test_computed_value("box-shadow-offset", "10px 0");
+test_computed_value("box-shadow-offset", "0 10px");
+test_computed_value("box-shadow-offset", "10px 10px", "10px");
+test_computed_value("box-shadow-offset", "10px 20px, 30px 40px");
+test_computed_value("box-shadow-offset", "calc(1em + 1px) calc(-1em + 1px)", "17px -15px");
+</script>

@@ -57,7 +57,7 @@
   }, `new RTCIceCandidate({ candidate: '' })`);
 
   test(t => {
-    // Throws because the candidate field is not nullable
+    // Throws because both sdpMid and sdpMLineIndex are null by default
     assert_throws_js(TypeError,
       () => new RTCIceCandidate({
         candidate: null
@@ -116,15 +116,15 @@
 
   test(t => {
     const candidate = new RTCIceCandidate({
-      candidate: '',
+      candidate: null,
       sdpMLineIndex: 0
     });
 
-    assert_equals(candidate.candidate, '', 'candidate');
+    assert_equals(candidate.candidate, 'null', 'candidate');
     assert_equals(candidate.sdpMid, null, 'sdpMid', 'sdpMid');
     assert_equals(candidate.sdpMLineIndex, 0, 'sdpMLineIndex');
     assert_equals(candidate.usernameFragment, null, 'usernameFragment');
-  }, `new RTCIceCandidate({ candidate: '', sdpMLineIndex: 0 }`);
+  }, `new RTCIceCandidate({ candidate: null, sdpMLineIndex: 0 }`);
 
   test(t => {
     const candidate = new RTCIceCandidate({
@@ -138,7 +138,7 @@
     assert_equals(candidate.usernameFragment, null, 'usernameFragment');
   }, 'new RTCIceCandidate({ ... }) with valid candidate string and sdpMid');
 
-  test(t =>{
+  test(t => {
     // candidate string is not validated in RTCIceCandidate
     const candidate = new RTCIceCandidate({
       candidate: arbitraryString,

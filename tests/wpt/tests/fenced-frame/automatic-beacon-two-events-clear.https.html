@@ -16,7 +16,7 @@
 promise_test(async(t) => {
   const actions = new test_driver.Actions();
   const fencedframe = await attachFencedFrameContext(
-      {generator_api: 'fledge', automatic_beacon: true,
+      {generator_api: 'fledge', register_beacon: true,
        origin: get_host_info().HTTPS_REMOTE_ORIGIN});
 
   let beacon_event = {

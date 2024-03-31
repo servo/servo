@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: inset-area anchored against scrolling anchor</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position/#inset-area">
+<link rel="match" href="inset-area-scroll-adjust-ref.html">
+<style>
+  #scroller {
+    width: 400px;
+    height: 200px;
+    overflow: auto;
+  }
+  #anchor {
+    background: green;
+    width: 200px;
+    height: 100px;
+  }
+  #anchored {
+    inset-area: bottom;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: green;
+    width: 200px;
+    height: 100px;
+  }
+  .filler { height: 200px; }
+</style>
+<p>You should see a green square below</p>
+<div id="scroller">
+  <div class="filler"></div>
+  <div id="anchor" popovertarget="anchored"></div>
+  <div id="anchored" anchor="anchor" popover></div>
+  <div class="filler"></div>
+  <div class="filler"></div>
+</div>
+<script>
+  anchored.showPopover();
+  scroller.scrollTop = 200;
+</script>

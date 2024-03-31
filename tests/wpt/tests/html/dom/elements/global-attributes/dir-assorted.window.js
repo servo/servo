@@ -64,6 +64,39 @@ test(() => {
   assert_true(ele2.matches(":dir(ltr)"), "child is LTR after change");
 }, "Non-HTML element text contents influence dir=auto");
 
+
+for (const tag of ["style", "script"]) {
+  test(() => {
+    const e1 = document.createElement("div");
+    e1.dir = "auto";
+
+    const e2 = document.createElement(tag);
+    const node = document.createTextNode("\u05D0");
+    e2.appendChild(node);
+    e1.appendChild(e2);
+    assert_true(e1.matches(":dir(ltr)", "is LTR before change"));
+    node.data = "ABC";
+    assert_true(e1.matches(":dir(ltr)", "is LTR after change"));
+
+  }, `${tag} element text contents do not influence dir=auto`);
+}
+
+for (const tag of ["style", "script", "input", "textarea"]) {
+  test(() => {
+    const e1 = document.createElement("div");
+    e1.dir = "auto";
+    const svg = document.createElement("svg");
+    const e2 = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    const node = document.createTextNode("\u05D0");
+    e2.appendChild(node);
+    svg.appendChild(e2);
+    e1.appendChild(svg);
+    assert_true(e1.matches(":dir(rtl)", "is RTL before change"));
+    node.data = "ABC";
+    assert_true(e1.matches(":dir(ltr)", "is LTR after change"));
+  }, `non-html ${tag} element text contents influence dir=auto`);
+}
+
 test(() => {
   const e1 = document.createElement("div");
   e1.dir = "auto";

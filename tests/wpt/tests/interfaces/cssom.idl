@@ -99,7 +99,7 @@ interface CSSRule {
 [Exposed=Window]
 interface CSSStyleRule : CSSGroupingRule {
   attribute CSSOMString selectorText;
-  [SameObject, PutForwards=cssText] readonly attribute CSSStyleDeclaration style;
+  [SameObject, PutForwards=cssText] readonly attribute CSSStyleProperties style;
 };
 
 [Exposed=Window]
@@ -119,9 +119,25 @@ interface CSSGroupingRule : CSSRule {
 };
 
 [Exposed=Window]
+interface CSSPageDescriptors : CSSStyleDeclaration {
+  attribute [LegacyNullToEmptyString] CSSOMString margin;
+  attribute [LegacyNullToEmptyString] CSSOMString marginTop;
+  attribute [LegacyNullToEmptyString] CSSOMString marginRight;
+  attribute [LegacyNullToEmptyString] CSSOMString marginBottom;
+  attribute [LegacyNullToEmptyString] CSSOMString marginLeft;
+  attribute [LegacyNullToEmptyString] CSSOMString margin-top;
+  attribute [LegacyNullToEmptyString] CSSOMString margin-right;
+  attribute [LegacyNullToEmptyString] CSSOMString margin-bottom;
+  attribute [LegacyNullToEmptyString] CSSOMString margin-left;
+  attribute [LegacyNullToEmptyString] CSSOMString size;
+  attribute [LegacyNullToEmptyString] CSSOMString marks;
+  attribute [LegacyNullToEmptyString] CSSOMString bleed;
+};
+
+[Exposed=Window]
 interface CSSPageRule : CSSGroupingRule {
            attribute CSSOMString selectorText;
-  [SameObject, PutForwards=cssText] readonly attribute CSSStyleDeclaration style;
+  [SameObject, PutForwards=cssText] readonly attribute CSSPageDescriptors style;
 };
 
 [Exposed=Window]
@@ -146,6 +162,10 @@ interface CSSStyleDeclaration {
   [CEReactions] undefined setProperty(CSSOMString property, [LegacyNullToEmptyString] CSSOMString value, optional [LegacyNullToEmptyString] CSSOMString priority = "");
   [CEReactions] CSSOMString removeProperty(CSSOMString property);
   readonly attribute CSSRule? parentRule;
+};
+
+[Exposed=Window]
+interface CSSStyleProperties : CSSStyleDeclaration {
   [CEReactions] attribute [LegacyNullToEmptyString] CSSOMString cssFloat;
 };
 

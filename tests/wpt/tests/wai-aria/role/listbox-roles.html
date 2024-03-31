@@ -31,6 +31,12 @@
     </li>
 </ul>
 
+<!--
+  CORE-AAM requires that, for elements with roles not contained in the
+  required context, user agents must ignore the role token and return the
+  computed role as if the ignored role token had not been included.
+  See https://w3c.github.io/core-aam/#roleMappingComputedRole
+-->
 <nav role="option" data-testname="orphaned option outside the context of listbox" data-expectedrole="navigation"
      class="ex">x
 </nav>

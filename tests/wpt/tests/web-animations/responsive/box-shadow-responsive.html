@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Animation with neutral keyframe is responsive to change in underlying style</title>
+  <link rel="help" href="https://www.w3.org/TR/web-animations-1/#the-effect-value-of-a-keyframe-animation-effect">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="responsive-test.js"></script>
+</head>
+<body></body>
+<script type="text/javascript">
+  promise_test(async t => {
+    const responsiveTest =
+        createResponsiveTest(t, {
+          property: 'boxShadow',
+          from: 'green 20px 20px 20px 20px',
+          to: 'inherit',
+        });
+    await responsiveTest.ready;
+    responsiveTest.inheritedValue = 'blue 0px 0px 0px 0px';
+    responsiveTest.assertResponsive([
+      {at: 0.25, is: 'rgb(0, 96, 64) 15px 15px 15px 15px'},
+      {at: 0.75, is: 'rgb(0, 32, 191) 5px 5px 5px 5px'},
+    ]);
+    responsiveTest.inheritedValue = 'yellow 100px 100px 100px 100px';
+    responsiveTest.assertResponsive([
+      {at: 0.25, is: 'rgb(64, 160, 0) 40px 40px 40px 40px'},
+      {at: 0.75, is: 'rgb(191, 223, 0) 80px 80px 80px 80px'},
+    ]);
+  }, 'Animating to inherit responsive to change in style');
+
+  promise_test(async t => {
+    const responsiveTest =
+        createResponsiveTest(t, {
+          property: 'boxShadow',
+          from: 'inherit',
+          to: 'green 20px 20px 20px 20px',
+        });
+    await responsiveTest.ready;
+    responsiveTest.inheritedValue =
+        'blue 0px 0px 0px 0px, yellow 100px 100px 100px 100px';
+    responsiveTest.assertResponsive([
+      {
+        at: 0.25,
+        is: 'rgb(0, 32, 191) 5px 5px 5px 5px, ' +
+            'rgba(255, 255, 0, 0.75) 75px 75px 75px 75px'
+      },
+      {
+        at: 0.75,
+       is: 'rgb(0, 96, 64) 15px 15px 15px 15px, ' +
+           'rgba(255, 255, 0, 0.25) 25px 25px 25px 25px'
+      },
+    ]);
+    responsiveTest.inheritedValue = 'yellow 100px 100px 100px 100px';
+    responsiveTest.assertResponsive([
+      {at: 0.25, is: 'rgb(191, 223, 0) 80px 80px 80px 80px'},
+      {at: 0.75, is: 'rgb(64, 160, 0) 40px 40px 40px 40px'},
+    ]);
+  }, 'Animating from inherit responsive to change in style');
+</script>

@@ -1,0 +1,46 @@
+<!doctype html>
+<head>
+<meta charset=utf-8>
+<title>Ancestor's activeElement should be cleared when child loses focus</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+<input placeholder="input in top level"/>
+<iframe srcdoc="<iframe srcdoc='<input>'></iframe>"></iframe>
+<script>
+const outerIFrame = document.querySelector('iframe');
+function runTest() {
+  test(() => {
+    assert_true(outerIFrame.contentDocument.activeElement === outerIFrame.contentDocument.body,
+      "Initially, the activeElement of the outer iframe should be <body>");
+
+    const innerIFrame = outerIFrame.contentDocument.querySelector("iframe");
+    const inputInInner = innerIFrame.contentDocument.querySelector('input');
+
+    // Now we focus the input in the inner iframe
+    inputInInner.focus();
+    // outerIframe is the ancestor of inner iframe, so the activeElement of
+    // it should be the inner iframe.
+    assert_true(outerIFrame.contentDocument.activeElement === innerIFrame,
+      "The activeElement of the outer iframe should be the inner iframe");
+
+    // Now we focus the input in the top level
+    document.querySelector("input").focus();
+    // Since inner iframe lost its focus, the activeElement of outer iframe
+    // should be cleared as well, hence <body> should be focused.
+    assert_true(outerIFrame.contentDocument.activeElement === outerIFrame.contentDocument.body,
+      "The activeElement of the outer iframe should be reverted back to <body>");
+
+    assert_true(document.activeElement === document.querySelector("input"),
+      "The activeElement of the top-level document should be the input");
+  });
+}
+
+window.onload = function() {
+  runTest();
+}
+</script>
+</body>

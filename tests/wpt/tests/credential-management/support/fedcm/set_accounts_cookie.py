@@ -15,6 +15,7 @@ def main(request, response):
 // If this page was opened as a popup, notify the opener.
 if (window.opener) {
   window.opener.postMessage("done_loading", "*");
+  window.close();
 }
 </script>
 Sent header value: {}".format(header_value)
