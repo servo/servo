@@ -441,6 +441,7 @@ pub trait ThreadSafeLayoutElement<'dom>:
                                 &style_pseudo,
                                 RuleInclusion::All,
                                 data.styles.primary(),
+                                data.styles.primary(),
                                 /* is_probe = */ false,
                                 /* matching_func = */ None,
                             )

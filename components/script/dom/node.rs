@@ -3454,10 +3454,10 @@ impl UniqueId {
     }
 }
 
-impl From<NodeTypeId> for LayoutNodeType {
+impl Into<LayoutNodeType> for NodeTypeId {
     #[inline(always)]
-    fn from(node_type: NodeTypeId) -> LayoutNodeType {
-        match node_type {
+    fn into(self) -> LayoutNodeType {
+        match self {
             NodeTypeId::Element(e) => LayoutNodeType::Element(e.into()),
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => LayoutNodeType::Text,
             x => unreachable!("Layout should not traverse nodes of type {:?}", x),
@@ -3465,10 +3465,10 @@ impl From<NodeTypeId> for LayoutNodeType {
     }
 }
 
-impl From<ElementTypeId> for LayoutElementType {
+impl Into<LayoutElementType> for ElementTypeId {
     #[inline(always)]
-    fn from(element_type: ElementTypeId) -> LayoutElementType {
-        match element_type {
+    fn into(self) -> LayoutElementType {
+        match self {
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement) => {
                 LayoutElementType::HTMLBodyElement
             },

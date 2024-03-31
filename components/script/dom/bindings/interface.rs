@@ -543,9 +543,9 @@ pub enum ProtoOrIfaceIndex {
     Constructor(PrototypeList::Constructor),
 }
 
-impl From<ProtoOrIfaceIndex> for usize {
-    fn from(index: ProtoOrIfaceIndex) -> usize {
-        match index {
+impl Into<usize> for ProtoOrIfaceIndex {
+    fn into(self) -> usize {
+        match self {
             ProtoOrIfaceIndex::ID(id) => id as usize,
             ProtoOrIfaceIndex::Constructor(constructor) => constructor as usize,
         }

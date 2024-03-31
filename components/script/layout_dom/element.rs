@@ -149,7 +149,10 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ServoLayoutElement<'dom, LayoutDataT
     fn is_root(&self) -> bool {
         match self.as_node().parent_node() {
             None => false,
-            Some(node) => matches!(node.script_type_id(), NodeTypeId::Document(_)),
+            Some(node) => match node.script_type_id() {
+                NodeTypeId::Document(_) => true,
+                _ => false,
+            },
         }
     }
 }
@@ -453,21 +456,6 @@ impl<'dom, LayoutDataType: LayoutDataTrait> style::dom::TElement
     ) -> euclid::default::Size2D<Option<app_units::Au>> {
         todo!();
     }
-
-    fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool {
-        self.element.get_selector_flags().contains(flags)
-    }
-
-    fn relative_selector_search_direction(&self) -> Option<ElementSelectorFlags> {
-        let flags = self.element.get_selector_flags().intersection(
-            ElementSelectorFlags::RELATIVE_SELECTOR_SEARCH_DIRECTION_ANCESTOR_SIBLING,
-        );
-        if flags.is_empty() {
-            None
-        } else {
-            Some(flags)
-        }
-    }
 }
 
 impl<'dom, LayoutDataType: LayoutDataTrait> ::selectors::Element
@@ -599,11 +587,15 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ::selectors::Element
 
             NonTSPseudoClass::Lang(ref lang) => self.match_element_lang(None, lang),
 
-            NonTSPseudoClass::ServoNonZeroBorder => !matches!(
-                self.element
-                    .get_attr_for_layout(&ns!(), &local_name!("border")),
-                None | Some(&AttrValue::UInt(_, 0))
-            ),
+            NonTSPseudoClass::ServoNonZeroBorder => {
+                match self
+                    .element
+                    .get_attr_for_layout(&ns!(), &local_name!("border"))
+                {
+                    None | Some(&AttrValue::UInt(_, 0)) => false,
+                    _ => true,
+                }
+            },
             NonTSPseudoClass::ReadOnly => !self
                 .element
                 .get_state_for_layout()
