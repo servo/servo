@@ -294,7 +294,7 @@ pub struct GlobalScope {
     ///
     /// <https://html.spec.whatwg.org/multipage/#about-to-be-notified-rejected-promises-list>
     #[ignore_malloc_size_of = "mozjs"]
-    uncaught_rejections: DomRefCell<Vec<Heap<*mut JSObject>>>,
+    uncaught_rejections: DomRefCell<Vec<Box<Heap<*mut JSObject>>>>,
 
     /// Promises in this list have previously been reported as rejected
     /// (because they were in the above list), but the rejection was handled
@@ -302,7 +302,7 @@ pub struct GlobalScope {
     ///
     /// <https://html.spec.whatwg.org/multipage/#outstanding-rejected-promises-weak-set>
     #[ignore_malloc_size_of = "mozjs"]
-    consumed_rejections: DomRefCell<Vec<Heap<*mut JSObject>>>,
+    consumed_rejections: DomRefCell<Vec<Box<Heap<*mut JSObject>>>>,
 
     /// True if headless mode.
     is_headless: bool,
@@ -2179,7 +2179,7 @@ impl GlobalScope {
     pub fn add_uncaught_rejection(&self, rejection: HandleObject) {
         self.uncaught_rejections
             .borrow_mut()
-            .push(*Heap::boxed(rejection.get()));
+            .push(Heap::boxed(rejection.get()));
     }
 
     pub fn remove_uncaught_rejection(&self, rejection: HandleObject) {
@@ -2187,20 +2187,20 @@ impl GlobalScope {
 
         if let Some(index) = uncaught_rejections
             .iter()
-            .position(|promise| *promise == *Heap::boxed(rejection.get()))
+            .position(|promise| *promise == Heap::boxed(rejection.get()))
         {
             uncaught_rejections.remove(index);
         }
     }
 
-    pub fn get_uncaught_rejections(&self) -> &DomRefCell<Vec<Heap<*mut JSObject>>> {
+    pub fn get_uncaught_rejections(&self) -> &DomRefCell<Vec<Box<Heap<*mut JSObject>>>> {
         &self.uncaught_rejections
     }
 
     pub fn add_consumed_rejection(&self, rejection: HandleObject) {
         self.consumed_rejections
             .borrow_mut()
-            .push(*Heap::boxed(rejection.get()));
+            .push(Heap::boxed(rejection.get()));
     }
 
     pub fn remove_consumed_rejection(&self, rejection: HandleObject) {
@@ -2208,13 +2208,13 @@ impl GlobalScope {
 
         if let Some(index) = consumed_rejections
             .iter()
-            .position(|promise| *promise == *Heap::boxed(rejection.get()))
+            .position(|promise| *promise == Heap::boxed(rejection.get()))
         {
             consumed_rejections.remove(index);
         }
     }
 
-    pub fn get_consumed_rejections(&self) -> &DomRefCell<Vec<Heap<*mut JSObject>>> {
+    pub fn get_consumed_rejections(&self) -> &DomRefCell<Vec<Box<Heap<*mut JSObject>>>> {
         &self.consumed_rejections
     }
 
