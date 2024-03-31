@@ -51,9 +51,9 @@ impl ByteString {
     }
 }
 
-impl From<ByteString> for Vec<u8> {
-    fn from(byte_string: ByteString) -> Vec<u8> {
-        byte_string.0
+impl Into<Vec<u8>> for ByteString {
+    fn into(self) -> Vec<u8> {
+        self.0
     }
 }
 
@@ -640,21 +640,21 @@ impl From<DOMString> for String {
     }
 }
 
-impl From<DOMString> for Vec<u8> {
-    fn from(contents: DOMString) -> Vec<u8> {
-        contents.0.into()
+impl Into<Vec<u8>> for DOMString {
+    fn into(self) -> Vec<u8> {
+        self.0.into()
     }
 }
 
-impl<'a> From<DOMString> for Cow<'a, str> {
-    fn from(contents: DOMString) -> Cow<'a, str> {
-        contents.0.into()
+impl<'a> Into<Cow<'a, str>> for DOMString {
+    fn into(self) -> Cow<'a, str> {
+        self.0.into()
     }
 }
 
-impl<'a> From<DOMString> for CowRcStr<'a> {
-    fn from(contents: DOMString) -> CowRcStr<'a> {
-        contents.0.into()
+impl<'a> Into<CowRcStr<'a>> for DOMString {
+    fn into(self) -> CowRcStr<'a> {
+        self.0.into()
     }
 }
 

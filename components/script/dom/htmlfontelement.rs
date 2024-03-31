@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use cssparser::RgbaLegacy;
 use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
 use servo_atoms::Atom;
 use style::attr::AttrValue;
-use style::color::parsing::RgbaLegacy;
 use style::str::{read_numbers, HTML_SPACE_CHARACTERS};
 
 use crate::dom::attr::Attr;

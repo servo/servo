@@ -97,6 +97,9 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ServoLayoutNode<'dom, LayoutDataType
             phantom: PhantomData,
         }
     }
+    /// # Safety
+    ///
+    /// This function should not be called if there is no TrustedNodeAddress.
     pub unsafe fn new(address: &TrustedNodeAddress) -> Self {
         ServoLayoutNode::from_layout_js(LayoutDom::from_trusted_node_address(*address))
     }
