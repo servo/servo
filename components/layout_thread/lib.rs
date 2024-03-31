@@ -621,11 +621,11 @@ impl LayoutThread {
     ) {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts.
-        if stylesheet.is_effective_for_device(self.stylist.device(), &guard) {
+        if stylesheet.is_effective_for_device(self.stylist.device(), guard) {
             let newly_loading_font_count =
                 self.font_cache_thread.add_all_web_fonts_from_stylesheet(
-                    &*stylesheet,
-                    &guard,
+                    stylesheet,
+                    guard,
                     self.stylist.device(),
                     &self.font_cache_sender,
                     self.debug.load_webfonts_synchronously,
@@ -735,7 +735,7 @@ impl LayoutThread {
             .borrow()
             .iter()
             .filter_map(|(browsing_context_id, size)| {
-                match old_iframe_sizes.get(&browsing_context_id) {
+                match old_iframe_sizes.get(browsing_context_id) {
                     Some(old_size) if old_size != size => Some(IFrameSizeMsg {
                         browsing_context_id: *browsing_context_id,
                         size: *size,
@@ -1054,7 +1054,7 @@ impl LayoutThread {
             }
 
             // Stash the data on the element for processing by the style system.
-            style_data.hint.insert(restyle.hint.into());
+            style_data.hint.insert(restyle.hint);
             style_data.damage = restyle.damage;
             debug!("Noting restyle for {:?}: {:?}", el, style_data);
         }
@@ -1633,17 +1633,17 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     //        (Does it make a difference?)
     let mut user_or_user_agent_stylesheets = vec![
         parse_ua_stylesheet(
-            &shared_lock,
+            shared_lock,
             "user-agent.css",
             &resources::read_bytes(Resource::UserAgentCSS),
         )?,
         parse_ua_stylesheet(
-            &shared_lock,
+            shared_lock,
             "servo.css",
             &resources::read_bytes(Resource::ServoCSS),
         )?,
         parse_ua_stylesheet(
-            &shared_lock,
+            shared_lock,
             "presentational-hints.css",
             &resources::read_bytes(Resource::PresentationalHintsCSS),
         )?,
@@ -1652,7 +1652,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     for &(ref contents, ref url) in &opts::get().user_stylesheets {
         user_or_user_agent_stylesheets.push(DocumentStyleSheet(ServoArc::new(
             Stylesheet::from_bytes(
-                &contents,
+                contents,
                 UrlExtraData(url.get_arc()),
                 None,
                 None,
@@ -1667,7 +1667,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     }
 
     let quirks_mode_stylesheet = parse_ua_stylesheet(
-        &shared_lock,
+        shared_lock,
         "quirks-mode.css",
         &resources::read_bytes(Resource::QuirksModeCSS),
     )?;
@@ -1738,7 +1738,7 @@ struct RegisteredPaintersImpl(FnvHashMap<Atom, RegisteredPainterImpl>);
 impl RegisteredSpeculativePainters for RegisteredPaintersImpl {
     fn get(&self, name: &Atom) -> Option<&dyn RegisteredSpeculativePainter> {
         self.0
-            .get(&name)
+            .get(name)
             .map(|painter| painter as &dyn RegisteredSpeculativePainter)
     }
 }
@@ -1746,7 +1746,7 @@ impl RegisteredSpeculativePainters for RegisteredPaintersImpl {
 impl RegisteredPainters for RegisteredPaintersImpl {
     fn get(&self, name: &Atom) -> Option<&dyn RegisteredPainter> {
         self.0
-            .get(&name)
+            .get(name)
             .map(|painter| painter as &dyn RegisteredPainter)
     }
 }
