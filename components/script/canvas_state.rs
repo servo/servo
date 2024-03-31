@@ -1207,7 +1207,7 @@ impl CanvasState {
         if sw == 0 || sh == 0 {
             return Err(Error::IndexSize);
         }
-        ImageData::new(global, sw.abs() as u32, sh.abs() as u32, None)
+        ImageData::new(global, sw.unsigned_abs(), sh.unsigned_abs(), None)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
