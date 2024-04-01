@@ -73,8 +73,7 @@ impl CSSStyleOwner {
                     let lock = attr.as_ref().unwrap();
                     let mut guard = shared_lock.write();
                     let pdb = lock.write_with(&mut guard);
-                    let result = f(pdb, &mut changed);
-                    result
+                    f(pdb, &mut changed)
                 } else {
                     let mut pdb = PropertyDeclarationBlock::new();
                     let result = f(&mut pdb, &mut changed);

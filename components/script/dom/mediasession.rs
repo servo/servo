@@ -50,14 +50,13 @@ pub struct MediaSession {
 impl MediaSession {
     #[allow(crown::unrooted_must_root)]
     fn new_inherited() -> MediaSession {
-        let media_session = MediaSession {
+        MediaSession {
             reflector_: Reflector::new(),
             metadata: DomRefCell::new(None),
             playback_state: DomRefCell::new(MediaSessionPlaybackState::None),
             action_handlers: DomRefCell::new(HashMapTracedValues::new()),
             media_instance: Default::default(),
-        };
-        media_session
+        }
     }
 
     pub fn new(window: &Window) -> DomRoot<MediaSession> {

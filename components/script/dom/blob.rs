@@ -309,11 +309,10 @@ impl BlobMethods for Blob {
 /// see <https://github.com/w3c/FileAPI/issues/43>
 pub fn normalize_type_string(s: &str) -> String {
     if is_ascii_printable(s) {
-        let s_lower = s.to_ascii_lowercase();
+        s.to_ascii_lowercase()
         // match s_lower.parse() as Result<Mime, ()> {
         // Ok(_) => s_lower,
         // Err(_) => "".to_string()
-        s_lower
     } else {
         "".to_string()
     }

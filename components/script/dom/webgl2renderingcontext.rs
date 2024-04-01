@@ -427,10 +427,9 @@ impl WebGL2RenderingContext {
             let last_row_bytes = bytes_per_pixel
                 .checked_mul(width as usize)
                 .ok_or(InvalidOperation)?;
-            let result = full_row_bytes
+            full_row_bytes
                 .checked_add(last_row_bytes)
-                .ok_or(InvalidOperation)?;
-            result
+                .ok_or(InvalidOperation)?
         };
         let skipped_bytes = {
             let skipped_row_bytes = self
@@ -443,10 +442,9 @@ impl WebGL2RenderingContext {
                 .get()
                 .checked_mul(bytes_per_pixel)
                 .ok_or(InvalidOperation)?;
-            let result = skipped_row_bytes
+            skipped_row_bytes
                 .checked_add(skipped_pixel_bytes)
-                .ok_or(InvalidOperation)?;
-            result
+                .ok_or(InvalidOperation)?
         };
         Ok(ReadPixelsSizes {
             row_stride,
@@ -4119,12 +4117,11 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             self.base.validate_ownership(program),
             return constants::INVALID_INDEX
         );
-        let index = handle_potential_webgl_error!(
+        handle_potential_webgl_error!(
             self.base,
             program.get_uniform_block_index(block_name),
             return constants::INVALID_INDEX
-        );
-        index
+        )
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16>
