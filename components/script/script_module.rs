@@ -1545,6 +1545,7 @@ struct DynamicModule {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-single-module-script>
+#[allow(clippy::too_many_arguments)]
 fn fetch_single_module_script(
     owner: ModuleOwner,
     url: ServoUrl,

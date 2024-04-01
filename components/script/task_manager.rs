@@ -65,6 +65,7 @@ pub struct TaskManager {
 }
 
 impl TaskManager {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         dom_manipulation_task_source: DOMManipulationTaskSource,
         file_reading_task_source: FileReadingTaskSource,

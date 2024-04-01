@@ -225,6 +225,7 @@ struct InProgressLoad {
 
 impl InProgressLoad {
     /// Create a new InProgressLoad object.
+    #[allow(clippy::too_many_arguments)]
     fn new(
         id: PipelineId,
         browsing_context_id: BrowsingContextId,
@@ -3645,6 +3646,7 @@ impl ScriptThread {
         ScriptThread::set_user_interacting(false);
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn handle_mouse_event(
         &self,
         pipeline_id: PipelineId,

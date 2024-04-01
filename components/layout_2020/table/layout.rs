@@ -1544,6 +1544,7 @@ impl<'a> TableLayout<'a> {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn do_final_cell_layout(
         &mut self,
         row_index: usize,
