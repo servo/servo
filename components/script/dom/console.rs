@@ -96,7 +96,7 @@ fn stringify_handle_value(message: HandleValue) -> DOMString {
             let mut ids = IdVector::new(cx);
             if !GetPropertyKeys(
                 cx,
-                obj.handle().into(),
+                obj.handle(),
                 jsapi::JSITER_OWNONLY | jsapi::JSITER_SYMBOLS,
                 ids.handle_mut(),
             ) {

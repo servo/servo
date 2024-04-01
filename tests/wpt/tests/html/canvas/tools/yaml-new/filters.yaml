@@ -34,8 +34,7 @@
 
 - name: 2d.filter.canvasFilterObject.tentative
   desc: Test CanvasFilter() object
-  canvasType:
-    ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     @assert ctx.filter == 'none';
     ctx.filter = 'blur(5px)';
@@ -63,7 +62,7 @@
 
 - name: 2d.filter.canvasFilterObject.tentative
   desc: Test CanvasFilter() object
-  canvasType: ['OffscreenCanvas', 'Worker']
+  canvas_types: ['OffscreenCanvas', 'Worker']
   code: |
     @assert ctx.filter == 'none';
     ctx.filter = 'blur(5px)';
@@ -106,7 +105,7 @@
       "{name: 'gaussianBlur', stdDeviation: {}}") }};
   append_variants_to_name: false
   variants:
-    layers:
+  - layers:
       filter_declaration: |-
         ctx.beginLayer({filter:
           param})
@@ -199,7 +198,7 @@
     @assert pixel 60,30 ==~ 0,255,0,255;
   append_variants_to_name: false
   variants:
-    layers:
+  - layers:
       filter_declaration: |-
         ctx.beginLayer({filter:
           param})
@@ -251,7 +250,7 @@
     {{ close_layer -}}
   append_variants_to_name: false
   variants:
-    layers:
+  - layers:
       filter_declaration: |-
         ctx.beginLayer({filter:
           param})
@@ -325,7 +324,7 @@
     {{ close_layer }}
   append_variants_to_name: false
   variants:
-    layers:
+  - layers:
       filter_declaration: |-
         ctx.beginLayer({filter: param})
       close_layer: ctx.endLayer();
@@ -376,7 +375,7 @@
     }
   append_variants_to_name: false
   variants:
-    layers:
+  - layers:
       filter_declaration: |-
         ctx.beginLayer({filter: param})
       close_layer: ctx.endLayer();
@@ -451,7 +450,7 @@
     }
   append_variants_to_name: false
   variants:
-    layers:
+  - layers:
       filter_declaration: |-
         ctx.beginLayer({filter: param})
       close_layer: ctx.endLayer();
@@ -530,7 +529,7 @@
     }
   append_variants_to_name: false
   variants:
-    layers:
+  - layers:
       filter_declaration: |-
         ctx.beginLayer({filter: param})
       close_layer: ctx.endLayer();
@@ -608,7 +607,7 @@
     }
   append_variants_to_name: false
   variants:
-    layers:
+  - layers:
       filter_declaration: |-
         ctx.beginLayer({filter: param})
       close_layer: ctx.endLayer();
@@ -641,30 +640,30 @@
             fill="teal" filter="url(#blur)" />
     </svg>
   append_variants_to_name: false
-  variant_matrix:
-    - layers:
-        filter_declaration: |-
-          ctx.beginLayer({filter: param});
-        close_layer: ctx.endLayer();
-      canvasFilterObject:
-        filter_declaration: |-
-          ctx.filter = new CanvasFilter(param);
-        tentative: .tentative
-    - x-only:
-        blur_x: 4
-        blur_y: 0
-      mostly-x:
-        blur_x: 4
-        blur_y: 1
-      isotropic:
-        blur_x: 4
-        blur_y: 4
-      mostly-y:
-        blur_x: 1
-        blur_y: 4
-      y-only:
-        blur_x: 0
-        blur_y: 4
+  variants:
+  - layers:
+      filter_declaration: |-
+        ctx.beginLayer({filter: param});
+      close_layer: ctx.endLayer();
+    canvasFilterObject:
+      filter_declaration: |-
+        ctx.filter = new CanvasFilter(param);
+      tentative: .tentative
+  - x-only:
+      blur_x: 4
+      blur_y: 0
+    mostly-x:
+      blur_x: 4
+      blur_y: 1
+    isotropic:
+      blur_x: 4
+      blur_y: 4
+    mostly-y:
+      blur_x: 1
+      blur_y: 4
+    y-only:
+      blur_x: 0
+      blur_y: 4
 
 - name: 2d.filter.{{ variant_names[0] }}.dropShadow{{ tentative }}
   desc: Test CanvasFilter() dropShadow object.
@@ -818,7 +817,7 @@
     </svg>
   append_variants_to_name: false
   variants:
-    layers:
+  - layers:
       filter_declaration: |-
         ctx.beginLayer({filter: param});
       close_layer: |
@@ -869,7 +868,7 @@
         <'test' | 'rgba(NaN, 3, 2, 1)' | 10 | undefined | null | NaN>}") }};
   append_variants_to_name: false
   variants:
-    layers:
+  - layers:
       filter_declaration: |-
         ctx.beginLayer({filter:
           param}); ctx.endLayer()
@@ -990,7 +989,7 @@
     }
   append_variants_to_name: false
   variants:
-    layers:
+  - layers:
       filter_declaration: |-
         ctx.beginLayer({filter: param})
       close_layer: "\n  ctx.endLayer();"

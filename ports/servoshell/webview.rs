@@ -684,12 +684,13 @@ where
                 EmbedderMsg::ReadyToPresent => {
                     need_present = true;
                 },
-                EmbedderMsg::EventDelivered(event) => match (webview_id, event) {
-                    (Some(webview_id), CompositorEventVariant::MouseButtonEvent) => {
+                EmbedderMsg::EventDelivered(event) => {
+                    if let (Some(webview_id), CompositorEventVariant::MouseButtonEvent) =
+                        (webview_id, event)
+                    {
                         // TODO Focus webview and/or raise to top if needed.
                         trace!("{}: Got a mouse button event", webview_id);
-                    },
-                    (_, _) => {},
+                    }
                 },
             }
         }
@@ -761,7 +762,7 @@ fn platform_get_selected_devices(devices: Vec<String>) -> Option<String> {
 #[cfg(not(target_os = "linux"))]
 fn platform_get_selected_devices(devices: Vec<String>) -> Option<String> {
     for device in devices {
-        if let Some(address) = device.split("|").next().map(|s| s.to_string()) {
+        if let Some(address) = device.split('|').next().map(|s| s.to_string()) {
             return Some(address);
         }
     }

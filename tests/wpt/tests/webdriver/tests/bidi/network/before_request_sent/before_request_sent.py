@@ -393,3 +393,26 @@ async def test_redirect_navigation(
 
     # Check that both requests share the same requestId
     assert events[0]["request"]["request"] == events[1]["request"]["request"]
+
+
+@pytest.mark.asyncio
+async def test_url_with_fragment(
+    url, wait_for_event, wait_for_future_safe, fetch, setup_network_test
+):
+    fragment_url = url(f"{PAGE_EMPTY_HTML}#foo")
+
+    network_events = await setup_network_test(events=[BEFORE_REQUEST_SENT_EVENT])
+    events = network_events[BEFORE_REQUEST_SENT_EVENT]
+
+    on_before_request_sent = wait_for_event(BEFORE_REQUEST_SENT_EVENT)
+    await fetch(fragment_url, method="GET")
+    await wait_for_future_safe(on_before_request_sent)
+
+    assert len(events) == 1
+
+    # Assert that the event contains the full fragment URL in requestData.
+    assert_before_request_sent_event(
+        events[0],
+        expected_request={"method": "GET", "url": fragment_url},
+        redirect_count=0,
+    )

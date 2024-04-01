@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>ref for nested iframes with css zoom</title>
+<link rel="author" title="Yotam Hacohen" href="mailto:yotha@chromium.org">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-viewport/">
+
+<head>
+  <style>
+    iframe {
+      border: none;
+      margin: 0px;
+      padding: 0px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="no_zoom">
+    <iframe style="height: 80px;" srcdoc='<body style="margin: 0;"><div id="target" style="background-color: aqua; width: 64px; height: 64px;"></div></body>'></iframe>
+  </div>
+
+  <div id="with_zoom">
+    <iframe style="height: 248px;" srcdoc='<body style="margin: 0;"><div id="target" style="background-color: aqua; width: 64px; height: 64px; zoom: 2;"></div></body>'></iframe>
+  </div>
+
+  <div id="another_with_zoom">
+    <iframe style="height: 248px;" srcdoc='<body style="margin: 0;"><div id="target" style="background-color: aqua; width: 64px; height: 64px; zoom: 2;"></div></body>'></iframe>
+  </div>
+
+  <div id="another_with_zoom">
+    <iframe style="height: 260px;" srcdoc='<body style="margin: 0;"><div id="target" style="background-color: aqua; width: 64px; height: 64px; zoom: 4;"></div></body>'></iframe>
+  </div>
+
+</body>

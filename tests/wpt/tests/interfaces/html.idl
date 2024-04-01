@@ -48,7 +48,7 @@ typedef (HTMLScriptElement or SVGScriptElement) HTMLOrSVGScriptElement;
 
 [LegacyOverrideBuiltIns]
 partial interface Document {
-  static Document parseHTMLUnsafe(DOMString html);
+  static Document parseHTMLUnsafe(HTMLString html);
 
   // resource metadata management
   [PutForwards=href, LegacyUnforgeable] readonly attribute Location? location;
@@ -77,8 +77,8 @@ partial interface Document {
   [CEReactions] Document open(optional DOMString unused1, optional DOMString unused2); // both arguments are ignored
   WindowProxy? open(USVString url, DOMString name, DOMString features);
   [CEReactions] undefined close();
-  [CEReactions] undefined write(DOMString... text);
-  [CEReactions] undefined writeln(DOMString... text);
+  [CEReactions] undefined write(HTMLString... text);
+  [CEReactions] undefined writeln(HTMLString... text);
 
   // user interaction
   readonly attribute WindowProxy? defaultView;
@@ -452,7 +452,7 @@ interface HTMLIFrameElement : HTMLElement {
   [HTMLConstructor] constructor();
 
   [CEReactions] attribute USVString src;
-  [CEReactions] attribute DOMString srcdoc;
+  [CEReactions] attribute HTMLString srcdoc;
   [CEReactions] attribute DOMString name;
   [SameObject, PutForwards=value] readonly attribute DOMTokenList sandbox;
   [CEReactions] attribute DOMString allow;
@@ -2296,7 +2296,7 @@ WorkerGlobalScope includes WindowOrWorkerGlobalScope;
 interface DOMParser {
   constructor();
 
-  [NewObject] Document parseFromString(DOMString string, DOMParserSupportedType type);
+  [NewObject] Document parseFromString(HTMLString string, DOMParserSupportedType type);
 };
 
 enum DOMParserSupportedType {
@@ -2308,11 +2308,11 @@ enum DOMParserSupportedType {
 };
 
 partial interface Element {
-  [CEReactions] undefined setHTMLUnsafe(DOMString html);
+  [CEReactions] undefined setHTMLUnsafe(HTMLString html);
 };
 
 partial interface ShadowRoot {
-  [CEReactions] undefined setHTMLUnsafe(DOMString html);
+  [CEReactions] undefined setHTMLUnsafe(HTMLString html);
 };
 
 [Exposed=Window]
@@ -2527,7 +2527,7 @@ interface WorkerGlobalScope : EventTarget {
   readonly attribute WorkerGlobalScope self;
   readonly attribute WorkerLocation location;
   readonly attribute WorkerNavigator navigator;
-  undefined importScripts(USVString... urls);
+  undefined importScripts(ScriptURLString... urls);
 
   attribute OnErrorEventHandler onerror;
   attribute EventHandler onlanguagechange;
@@ -2565,7 +2565,7 @@ interface mixin AbstractWorker {
 
 [Exposed=(Window,DedicatedWorker,SharedWorker)]
 interface Worker : EventTarget {
-  constructor(USVString scriptURL, optional WorkerOptions options = {});
+  constructor(ScriptURLString scriptURL, optional WorkerOptions options = {});
 
   undefined terminate();
 
@@ -2587,7 +2587,7 @@ Worker includes AbstractWorker;
 
 [Exposed=Window]
 interface SharedWorker : EventTarget {
-  constructor(USVString scriptURL, optional (DOMString or WorkerOptions) options = {});
+  constructor(ScriptURLString scriptURL, optional (DOMString or WorkerOptions) options = {});
 
   readonly attribute MessagePort port;
 };

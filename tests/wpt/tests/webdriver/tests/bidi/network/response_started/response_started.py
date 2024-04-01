@@ -311,3 +311,28 @@ async def test_redirect(bidi_session, url, fetch, setup_network_test):
 
     # Check that both requests share the same requestId
     assert events[0]["request"]["request"] == events[1]["request"]["request"]
+
+
+@pytest.mark.asyncio
+async def test_url_with_fragment(
+    url, wait_for_event, wait_for_future_safe, fetch, setup_network_test
+):
+    fragment_url = url(f"{PAGE_EMPTY_HTML}#foo")
+
+    network_events = await setup_network_test(events=[RESPONSE_STARTED_EVENT])
+    events = network_events[RESPONSE_STARTED_EVENT]
+
+    on_response_started = wait_for_event(RESPONSE_STARTED_EVENT)
+    await fetch(fragment_url, method="GET")
+    await wait_for_future_safe(on_response_started)
+
+    assert len(events) == 1
+
+    # Assert that the event contains the full fragment URL both in requestData
+    # and responseData
+    assert_response_event(
+        events[0],
+        expected_request={"method": "GET", "url": fragment_url},
+        expected_response={"url": fragment_url},
+        redirect_count=0,
+    )

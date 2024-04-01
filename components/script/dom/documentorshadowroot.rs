@@ -84,16 +84,15 @@ impl DocumentOrShadowRoot {
     pub fn nodes_from_point(
         &self,
         client_point: &Point2D<f32>,
-        reflow_goal: NodesFromPointQueryType,
+        query_type: NodesFromPointQueryType,
     ) -> Vec<UntrustedNodeAddress> {
-        if !self
-            .window
-            .layout_reflow(QueryMsg::NodesFromPointQuery(*client_point, reflow_goal))
-        {
+        if !self.window.layout_reflow(QueryMsg::NodesFromPointQuery) {
             return vec![];
         };
 
-        self.window.layout_rpc().nodes_from_point_response()
+        self.window
+            .with_layout(|layout| layout.query_nodes_from_point(*client_point, query_type))
+            .unwrap_or_default()
     }
 
     #[allow(unsafe_code)]
@@ -287,7 +286,7 @@ impl DocumentOrShadowRoot {
         assert!(element.upcast::<Node>().is_connected());
         assert!(!id.is_empty());
         let mut id_map = id_map.borrow_mut();
-        let elements = id_map.entry(id.clone()).or_insert(Vec::new());
+        let elements = id_map.entry(id.clone()).or_default();
         elements.insert_pre_order(element, &root);
     }
 }

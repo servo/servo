@@ -162,6 +162,7 @@ SET TIMEOUT: custom-elements/scoped-registry/scoped-registry-define-upgrade-crit
 SET TIMEOUT: encrypted-media/polyfill/chrome-polyfill.js
 SET TIMEOUT: encrypted-media/polyfill/clearkey-polyfill.js
 SET TIMEOUT: encrypted-media/scripts/playback-temporary-events.js
+SET TIMEOUT: fetch/fetch-later/resources/fetch-later-helper.js
 SET TIMEOUT: fetch/metadata/resources/helper.sub.js
 SET TIMEOUT: fetch/metadata/resources/message-opener.html
 SET TIMEOUT: fenced-frame/resources/history-length-fenced-navigations-replace-do-not-contribute-to-joint-inner.html
@@ -276,7 +277,6 @@ SET TIMEOUT: shadow-dom/scroll-to-the-fragment-in-shadow-tree.html
 SET TIMEOUT: shadow-dom/slotchange-event.html
 SET TIMEOUT: trusted-types/block-string-assignment-to-DOMWindowTimers-setTimeout-setInterval.html
 SET TIMEOUT: trusted-types/DOMWindowTimers-setTimeout-setInterval.html
-SET TIMEOUT: pending-beacon/resources/pending_beacon-helper.js
 SET TIMEOUT: user-timing/*
 SET TIMEOUT: web-animations/crashtests/reparent-animating-element-002.html
 SET TIMEOUT: web-animations/timing-model/animations/*

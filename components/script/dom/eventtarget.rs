@@ -204,7 +204,7 @@ impl CompiledEventListener {
                                 if let Ok(return_value) = return_value {
                                     rooted!(in(*cx) let return_value = return_value);
                                     if return_value.handle().is_boolean() &&
-                                        return_value.handle().to_boolean() == true
+                                        return_value.handle().to_boolean()
                                     {
                                         event.upcast::<Event>().PreventDefault();
                                     }
@@ -252,7 +252,7 @@ impl CompiledEventListener {
                             let value = value.handle();
 
                             //Step 5
-                            let should_cancel = value.is_boolean() && value.to_boolean() == false;
+                            let should_cancel = value.is_boolean() && !value.to_boolean();
 
                             if should_cancel {
                                 // FIXME: spec says to set the cancelled flag directly
@@ -342,7 +342,7 @@ impl EventListeners {
     fn has_listeners(&self) -> bool {
         // TODO: add, and take into account, a 'removed' field?
         // https://dom.spec.whatwg.org/#event-listener-removed
-        self.0.len() > 0
+        !self.0.is_empty()
     }
 }
 
@@ -417,7 +417,7 @@ impl EventTarget {
 
         let idx = entries
             .iter()
-            .position(|ref entry| matches!(entry.listener, EventListenerType::Inline(_)));
+            .position(|entry| matches!(entry.listener, EventListenerType::Inline(_)));
 
         match idx {
             Some(idx) => match listener {

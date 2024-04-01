@@ -15,18 +15,24 @@
 
 async_test(t => {
   // Step 1
-  window.addEventListener("message", t.step_func(e => {
+  window.addEventListener("message", t.step_func((e) => {
     if (e.data.type != "result") {
       return;
     }
     // Step 8
     assert_equals(e.data.message, "HasAccess for caches", "Storage Access API should be accessible and return first-party data");
+    t.add_cleanup(() => {test_driver.delete_all_cookies();});
     t.done();
   }));
 
   // Step 2
   const id = Date.now();
-  window.caches.open(id).then(() => {
+  document.cookie = "samesite_strict=test; SameSite=Strict; Secure";
+  document.cookie = "samesite_lax=test; SameSite=Lax; Secure";
+  document.cookie = "samesite_none=test; SameSite=None; Secure";
+
+  window.caches.open(id).then(async (cache) => {
+    await cache.add("https://{{hosts[][]}}:{{ports[https][0]}}/storage-access-api/resources/get_cookies.py?1");
     // Step 3
     let iframe = document.createElement("iframe");
     iframe.src = "https://{{hosts[alt][]}}:{{ports[https][0]}}/storage-access-api/resources/storage-access-beyond-cookies-iframe.sub.html?type=caches&id="+id;

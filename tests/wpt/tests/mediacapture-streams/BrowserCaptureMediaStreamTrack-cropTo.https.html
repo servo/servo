@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>BrowserCaptureMediaStreamTrack cropTo()</title>
+  <link rel="help" href="https://github.com/w3c/mediacapture-region/">
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+
+<body>
+  <p class="instructions">
+    When prompted, accept to give permission to use your audio, video devices.
+  </p>
+  <h1 class="instructions">Description</h1>
+  <p class="instructions">
+    This test checks that BrowserCaptureMediaStreamTrack cropping works as
+    expected.
+  </p>
+
+  <button id="button">Start test</button>
+  <div id='test-div' width="500px" height="600px"></div>
+
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/resources/testdriver.js></script>
+  <script src=/resources/testdriver-vendor.js></script>
+  <script src=permission-helper.js></script>
+
+  <script>
+    "use strict";
+
+    async function getDisplayMedia() {
+      const p = new Promise(r => button.onclick = r);
+      await test_driver.click(button);
+      await p;
+      return navigator.mediaDevices.getDisplayMedia(
+            {video:{displaySurface:"browser"}, selfBrowserSurface:"include"});
+    }
+
+    promise_test(async t => {
+      const stream = await getDisplayMedia();
+      assert_true(stream.active, "stream should be active.");
+
+      assert_equals(stream.getVideoTracks().length, 1);
+      const [videoTrack] = stream.getVideoTracks();
+      assert_true(videoTrack instanceof MediaStreamTrack,
+            "track should be either MediaStreamTrack or a subclass thereof.");
+      assert_equals(videoTrack.readyState, "live");
+
+      const div = document.getElementById('test-div');
+      const cropTarget = await CropTarget.fromElement(div);
+      assert_true(!!videoTrack.cropTo, "cropTo exposed.");
+      assert_true(typeof videoTrack.cropTo === 'function',
+                  "cropTo is a function.");
+      await videoTrack.cropTo(cropTarget);
+
+      assert_true(stream.active, "stream should be active.");
+      assert_false(videoTrack.muted, "track should not be muted.");
+    }, "Tests that cropping MediaStreamTrack objects works as expected");
+
+  </script>
+</body>
+
+</html>

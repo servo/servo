@@ -32,6 +32,7 @@ pub struct Window {
 }
 
 impl Window {
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(
         size: Size2D<u32, DeviceIndependentPixel>,
         device_pixel_ratio_override: Option<f32>,

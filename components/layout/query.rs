@@ -6,22 +6,14 @@
 
 use std::cmp::{max, min};
 use std::ops::Deref;
-use std::sync::{Arc, Mutex};
 
 use app_units::Au;
 use euclid::default::{Box2D, Point2D, Rect, Size2D, Vector2D};
-use euclid::Size2D as TypedSize2D;
-use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
-use script_layout_interface::rpc::{
-    ContentBoxResponse, ContentBoxesResponse, LayoutRPC, NodeGeometryResponse,
-    NodeScrollIdResponse, OffsetParentResponse, ResolvedStyleResponse, TextIndexResponse,
-};
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
-use script_layout_interface::{LayoutElementType, LayoutNodeType};
-use script_traits::{LayoutMsg as ConstellationMsg, UntrustedNodeAddress};
+use script_layout_interface::{LayoutElementType, LayoutNodeType, OffsetParentResponse};
 use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
 use style::computed_values::display::T as Display;
@@ -33,77 +25,22 @@ use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection, WritingMo
 use style::properties::style_structs::{self, Font};
 use style::properties::{
     parse_one_declaration_into, ComputedValues, Importance, LonghandId, PropertyDeclarationBlock,
-    PropertyDeclarationId, PropertyId, SourcePropertyDeclaration,
+    PropertyDeclarationId, PropertyId, ShorthandId, SourcePropertyDeclaration,
 };
 use style::selector_parser::PseudoElement;
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
-use style_traits::{CSSPixel, ParsingMode, ToCss};
+use style_traits::{ParsingMode, ToCss};
 use webrender_api::ExternalScrollId;
 
 use crate::construct::ConstructionResult;
-use crate::context::LayoutContext;
-use crate::display_list::items::{DisplayList, OpaqueNode, ScrollOffsetMap};
+use crate::display_list::items::OpaqueNode;
 use crate::display_list::IndexableText;
 use crate::flow::{Flow, GetBaseFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, FragmentFlags, SpecificFragmentInfo};
 use crate::inline::InlineFragmentNodeFlags;
 use crate::sequential;
 use crate::wrapper::LayoutNodeLayoutData;
-
-/// Mutable data belonging to the LayoutThread.
-///
-/// This needs to be protected by a mutex so we can do fast RPCs.
-pub struct LayoutThreadData {
-    /// The channel on which messages can be sent to the constellation.
-    pub constellation_chan: IpcSender<ConstellationMsg>,
-
-    /// The root stacking context.
-    pub display_list: Option<DisplayList>,
-
-    pub indexable_text: IndexableText,
-
-    /// A queued response for the union of the content boxes of a node.
-    pub content_box_response: Option<Rect<Au>>,
-
-    /// A queued response for the content boxes of a node.
-    pub content_boxes_response: Vec<Rect<Au>>,
-
-    /// A queued response for the client {top, left, width, height} of a node in pixels.
-    pub client_rect_response: Rect<i32>,
-
-    /// A queued response for the scroll id for a given node.
-    pub scroll_id_response: Option<ExternalScrollId>,
-
-    /// A queued response for the scroll {top, left, width, height} of a node in pixels.
-    pub scrolling_area_response: Rect<i32>,
-
-    /// A queued response for the resolved style property of an element.
-    pub resolved_style_response: String,
-
-    /// A queued response for the resolved font style for canvas.
-    pub resolved_font_style_response: Option<ServoArc<Font>>,
-
-    /// A queued response for the offset parent/rect of a node.
-    pub offset_parent_response: OffsetParentResponse,
-
-    /// Scroll offsets of scrolling regions.
-    pub scroll_offsets: ScrollOffsetMap,
-
-    /// Index in a text fragment. We need this do determine the insertion point.
-    pub text_index_response: TextIndexResponse,
-
-    /// A queued response for the list of nodes at a given point.
-    pub nodes_from_point_response: Vec<UntrustedNodeAddress>,
-
-    /// A queued response for the inner text of a given element.
-    pub element_inner_text_response: String,
-
-    /// A queued response for the viewport dimensions for a given browsing context.
-    pub inner_window_dimensions_response: Option<TypedSize2D<f32, CSSPixel>>,
-}
-
-pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutThreadData>>);
 
 // https://drafts.csswg.org/cssom-view/#overflow-directions
 fn overflow_direction(writing_mode: &WritingMode) -> OverflowDirection {
@@ -125,90 +62,6 @@ fn overflow_direction(writing_mode: &WritingMode) -> OverflowDirection {
         (BlockFlowDirection::LeftToRight, InlineBaseDirection::RightToLeft) => {
             OverflowDirection::RightAndUp
         },
-    }
-}
-
-impl LayoutRPC for LayoutRPCImpl {
-    // The neat thing here is that in order to answer the following two queries we only
-    // need to compare nodes for equality. Thus we can safely work only with `OpaqueNode`.
-    fn content_box(&self) -> ContentBoxResponse {
-        let LayoutRPCImpl(rw_data) = self;
-        let rw_data = rw_data.lock().unwrap();
-        ContentBoxResponse(rw_data.content_box_response)
-    }
-
-    /// Requests the dimensions of all the content boxes, as in the `getClientRects()` call.
-    fn content_boxes(&self) -> ContentBoxesResponse {
-        let LayoutRPCImpl(rw_data) = self;
-        let rw_data = rw_data.lock().unwrap();
-        ContentBoxesResponse(rw_data.content_boxes_response.clone())
-    }
-
-    fn nodes_from_point_response(&self) -> Vec<UntrustedNodeAddress> {
-        let LayoutRPCImpl(rw_data) = self;
-        let rw_data = rw_data.lock().unwrap();
-        rw_data.nodes_from_point_response.clone()
-    }
-
-    fn node_geometry(&self) -> NodeGeometryResponse {
-        let LayoutRPCImpl(rw_data) = self;
-        let rw_data = rw_data.lock().unwrap();
-        NodeGeometryResponse {
-            client_rect: rw_data.client_rect_response,
-        }
-    }
-
-    fn scrolling_area(&self) -> NodeGeometryResponse {
-        NodeGeometryResponse {
-            client_rect: self.0.lock().unwrap().scrolling_area_response,
-        }
-    }
-
-    fn node_scroll_id(&self) -> NodeScrollIdResponse {
-        NodeScrollIdResponse(
-            self.0
-                .lock()
-                .unwrap()
-                .scroll_id_response
-                .expect("scroll id is not correctly fetched"),
-        )
-    }
-
-    /// Retrieves the resolved value for a CSS style property.
-    fn resolved_style(&self) -> ResolvedStyleResponse {
-        let LayoutRPCImpl(rw_data) = self;
-        let rw_data = rw_data.lock().unwrap();
-        ResolvedStyleResponse(rw_data.resolved_style_response.clone())
-    }
-
-    fn resolved_font_style(&self) -> Option<ServoArc<Font>> {
-        let LayoutRPCImpl(rw_data) = self;
-        let rw_data = rw_data.lock().unwrap();
-        rw_data.resolved_font_style_response.clone()
-    }
-
-    fn offset_parent(&self) -> OffsetParentResponse {
-        let LayoutRPCImpl(rw_data) = self;
-        let rw_data = rw_data.lock().unwrap();
-        rw_data.offset_parent_response.clone()
-    }
-
-    fn text_index(&self) -> TextIndexResponse {
-        let LayoutRPCImpl(rw_data) = self;
-        let rw_data = rw_data.lock().unwrap();
-        rw_data.text_index_response.clone()
-    }
-
-    fn element_inner_text(&self) -> String {
-        let LayoutRPCImpl(rw_data) = self;
-        let rw_data = rw_data.lock().unwrap();
-        rw_data.element_inner_text_response.clone()
-    }
-
-    fn inner_window_dimensions(&self) -> Option<TypedSize2D<f32, CSSPixel>> {
-        let LayoutRPCImpl(rw_data) = self;
-        let rw_data = rw_data.lock().unwrap();
-        rw_data.inner_window_dimensions_response
     }
 }
 
@@ -788,14 +641,13 @@ pub fn process_scrolling_area_request(
 
 fn create_font_declaration(
     value: &str,
-    property: &PropertyId,
     url_data: &ServoUrl,
     quirks_mode: QuirksMode,
 ) -> Option<PropertyDeclarationBlock> {
     let mut declarations = SourcePropertyDeclaration::default();
     let result = parse_one_declaration_into(
         &mut declarations,
-        property.clone(),
+        PropertyId::Shorthand(ShorthandId::Font),
         value,
         Origin::Author,
         &UrlExtraData(url_data.get_arc()),
@@ -839,10 +691,9 @@ where
 }
 
 pub fn process_resolved_font_style_request<'dom, E>(
-    context: &LayoutContext,
+    context: &SharedStyleContext,
     node: E,
     value: &str,
-    property: &PropertyId,
     url_data: ServoUrl,
     shared_lock: &SharedRwLock,
 ) -> Option<ServoArc<Font>>
@@ -853,8 +704,8 @@ where
     use style::traversal::resolve_style;
 
     // 1. Parse the given font property value
-    let quirks_mode = context.style_context.quirks_mode();
-    let declarations = create_font_declaration(value, property, &url_data, quirks_mode)?;
+    let quirks_mode = context.quirks_mode();
+    let declarations = create_font_declaration(value, &url_data, quirks_mode)?;
 
     // TODO: Reject 'inherit' and 'initial' values for the font property.
 
@@ -866,7 +717,7 @@ where
         } else {
             let mut tlc = ThreadLocalStyleContext::new();
             let mut context = StyleContext {
-                shared: &context.style_context,
+                shared: context,
                 thread_local: &mut tlc,
             };
             let styles = resolve_style(&mut context, element, RuleInclusion::All, None, None);
@@ -874,22 +725,13 @@ where
         }
     } else {
         let default_declarations =
-            create_font_declaration("10px sans-serif", property, &url_data, quirks_mode).unwrap();
-        resolve_for_declarations::<E>(
-            &context.style_context,
-            None,
-            default_declarations,
-            shared_lock,
-        )
+            create_font_declaration("10px sans-serif", &url_data, quirks_mode).unwrap();
+        resolve_for_declarations::<E>(context, None, default_declarations, shared_lock)
     };
 
     // 3. Resolve the parsed value with resolved styles of the parent element
-    let computed_values = resolve_for_declarations::<E>(
-        &context.style_context,
-        Some(&*parent_style),
-        declarations,
-        shared_lock,
-    );
+    let computed_values =
+        resolve_for_declarations::<E>(context, Some(&*parent_style), declarations, shared_lock);
 
     Some(computed_values.clone_font())
 }
@@ -897,7 +739,7 @@ where
 /// Return the resolved value of property for a given (pseudo)element.
 /// <https://drafts.csswg.org/cssom/#resolved-value>
 pub fn process_resolved_style_request<'dom>(
-    context: &LayoutContext,
+    context: &SharedStyleContext,
     node: impl LayoutNode<'dom>,
     pseudo: &Option<PseudoElement>,
     property: &PropertyId,
@@ -921,7 +763,7 @@ pub fn process_resolved_style_request<'dom>(
 
     let mut tlc = ThreadLocalStyleContext::new();
     let mut context = StyleContext {
-        shared: &context.style_context,
+        shared: context,
         thread_local: &mut tlc,
     };
 
@@ -1112,7 +954,7 @@ pub fn process_offset_parent_query(
                 rect: Rect::new(origin, size),
             }
         },
-        _ => OffsetParentResponse::empty(),
+        _ => OffsetParentResponse::default(),
     }
 }
 

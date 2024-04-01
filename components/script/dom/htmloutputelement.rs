@@ -152,7 +152,7 @@ impl HTMLOutputElementMethods for HTMLOutputElement {
 }
 
 impl VirtualMethods for HTMLOutputElement {
-    fn super_type<'b>(&'b self) -> Option<&'b dyn VirtualMethods> {
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
@@ -176,7 +176,7 @@ impl FormControl for HTMLOutputElement {
         self.form_owner.set(form);
     }
 
-    fn to_element<'a>(&'a self) -> &'a Element {
+    fn to_element(&self) -> &Element {
         self.upcast::<Element>()
     }
 }

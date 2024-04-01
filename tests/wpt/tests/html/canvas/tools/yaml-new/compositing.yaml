@@ -43,7 +43,7 @@
   expected: green
 
 - name: 2d.composite.globalAlpha.canvas
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     var canvas2 = document.createElement('canvas');
     canvas2.width = 100;
@@ -61,7 +61,7 @@
   expected: green
 
 - name: 2d.composite.globalAlpha.canvaspattern
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     var canvas2 = document.createElement('canvas');
     canvas2.width = 100;
@@ -80,7 +80,7 @@
   expected: green
 
 - name: 2d.composite.globalAlpha.canvascopy
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     var canvas2 = document.createElement('canvas');
     canvas2.width = 100;
@@ -173,7 +173,7 @@
   expected: green
 
 - name: 2d.composite.globalAlpha.canvas
-  canvasType: ['OffscreenCanvas', 'Worker']
+  canvas_types: ['OffscreenCanvas', 'Worker']
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
     var ctx2 = offscreenCanvas2.getContext('2d');
@@ -203,7 +203,7 @@
   expected: green
 
 - name: 2d.composite.globalAlpha.canvaspattern
-  canvasType: ['OffscreenCanvas', 'Worker']
+  canvas_types: ['OffscreenCanvas', 'Worker']
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
     var ctx2 = offscreenCanvas2.getContext('2d');
@@ -218,7 +218,7 @@
     @assert pixel 50,25 ==~ 2,253,0,255;
 
 - name: 2d.composite.globalAlpha.canvascopy
-  canvasType: ['OffscreenCanvas', 'Worker']
+  canvas_types: ['OffscreenCanvas', 'Worker']
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
     var ctx2 = offscreenCanvas2.getContext('2d');

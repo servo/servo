@@ -239,7 +239,7 @@ impl VirtualMethods for HTMLLinkElement {
     }
 
     fn bind_to_tree(&self, context: &BindContext) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.bind_to_tree(context);
         }
 
@@ -263,7 +263,7 @@ impl VirtualMethods for HTMLLinkElement {
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.unbind_from_tree(context);
         }
 

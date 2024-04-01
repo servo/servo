@@ -33,5 +33,5 @@ interface PressureRecord {
 };
 
 dictionary PressureObserverOptions {
-  double sampleRate = 1.0;
+  [EnforceRange] unsigned long sampleInterval = 0;
 };

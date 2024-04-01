@@ -3,31 +3,14 @@
 // (https://github.com/w3c/webref)
 // Source: CSS Scroll Snap Module Level 2 (https://drafts.csswg.org/css-scroll-snap-2/)
 
+dictionary SnapEventInit : EventInit {
+  Node? snapTargetBlock;
+  Node? snapTargetInline;
+};
+
 [Exposed=Window]
 interface SnapEvent : Event {
   constructor(DOMString type, optional SnapEventInit eventInitDict = {});
-  readonly attribute EventTarget? target;
-  readonly attribute SnapTargetList snappedTargets;
-  readonly attribute SnapTargetList snapTargets;
-  readonly attribute boolean invokedProgrammatically;
-  readonly attribute boolean smoothlyScrolled;
-};
-
-[Exposed=Window]
-interface SnapTargetList {
-    readonly attribute SnapTargetArray x;
-    readonly attribute SnapTargetArray y;
-};
-
-[Exposed=Window]
-interface SnapTargetArray {
-    readonly attribute unsigned long length;
-    getter EventTarget? item (unsigned long index);
-};
-
-dictionary SnapEventInit : EventModifierInit {
-    sequence<EventTarget> snappedTargetsX = [];
-    sequence<EventTarget> snappedTargetsY = [];
-    sequence<EventTarget> snapTargetsListX = [];
-    sequence<EventTarget> snapTargetsListY = [];
+  readonly attribute Node? snapTargetBlock;
+  readonly attribute Node? snapTargetInline;
 };

@@ -6,7 +6,8 @@
 // META: variant=?1-5
 // META: variant=?6-10
 // META: variant=?11-15
-// META: variant=?16-last
+// META: variant=?16-20
+// META: variant=?21-last
 
 "use strict;"
 
@@ -205,4 +206,24 @@ makeTest({
   auctionConfigOverrides: {fieldValue:
               [{width: ' 100', height: '200.50px '},
                {width: ' 70.00sh ', height: '80.50sw'}]}
+});
+
+makeTest({
+  name: 'AuctionConfig.reportingTimeout with positive within-cap value.',
+  fieldName: 'reportingTimeout',
+  fieldValue: 100,
+});
+
+makeTest({
+  name: 'AuctionConfig.reportingTimeout above the cap value.',
+  fieldName: 'reportingTimeout',
+  fieldValue: 5000,
+  auctionConfigOverrides: {fieldValue: 1234567890}
+});
+
+makeTest({
+  name: 'AuctionConfig.reportingTimeout not provided',
+  fieldName: 'reportingTimeout',
+  fieldValue: 50,
+  auctionConfigOverrides: {fieldValue: undefined}
 });

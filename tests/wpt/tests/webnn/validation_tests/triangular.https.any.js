@@ -1,7 +1,6 @@
 // META: title=validation tests for WebNN API triangular operation
 // META: global=window,dedicatedworker
 // META: script=../resources/utils_validation.js
-// META: timeout=long
 
 'use strict';
 
@@ -14,3 +13,5 @@ promise_test(async t => {
     }
   }
 }, "[triangular] DataError is expected if input's rank is less than 2");
+
+validateInputFromAnotherBuilder('triangular');

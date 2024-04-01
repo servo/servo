@@ -16,7 +16,6 @@ xr-profile = ["webxr-api/profile", "time"]
 
 [dependencies]
 crossbeam-channel = { workspace = true }
-cssparser = { workspace = true }
 euclid = { workspace = true }
 ipc-channel = { workspace = true }
 lazy_static = { workspace = true }

@@ -1,5 +1,5 @@
 - name: 2d.drawImage.canvas
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     var canvas2 = document.createElement('canvas');
     canvas2.width = 100;
@@ -70,12 +70,12 @@
   desc: Incorrect image types in drawImage do not match any defined overloads, so
     WebIDL throws a TypeError
   notes: &bindings Defined in "Web IDL" (draft)
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     @assert throws TypeError ctx.drawImage(document.createElement('p'), 0, 0);
 
 - name: 2d.drawImage.incomplete.nosrc
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   mozilla: {throws: !!null ''}
   code: |
     ctx.fillStyle = '#0f0';
@@ -86,7 +86,7 @@
   expected: green
 
 - name: 2d.drawImage.incomplete.immediate
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   images:
   - red.png
   code: |
@@ -103,7 +103,7 @@
   expected: green
 
 - name: 2d.drawImage.incomplete.reload
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   images:
   - yellow.png
   - red.png
@@ -122,7 +122,7 @@
   expected: green
 
 - name: 2d.drawImage.incomplete.emptysrc
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   images:
   - red.png
   mozilla: {throws: !!null ''}
@@ -136,7 +136,7 @@
   expected: green
 
 - name: 2d.drawImage.incomplete.removedsrc
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   images:
   - red.png
   mozilla: {throws: !!null ''}
@@ -150,7 +150,7 @@
   expected: green
 
 - name: 2d.drawImage.nonexistent
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   images:
   - not-found-at-all.png
   code: |
@@ -159,7 +159,7 @@
 
 - name: 2d.drawImage.zerocanvas
   desc: drawImage with zero-sized canvas as the source shoud throw exception
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     var canvas2 = document.createElement('canvas');
     canvas2.width = 0;
@@ -176,7 +176,7 @@
 
 - name: 2d.drawImage.animated.gif
   desc: drawImage() of an animated GIF draws the first frame
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   images:
   - anim-gr.gif
   code: |
@@ -330,7 +330,7 @@
     @assert pixel 99,49 ==~ 0,255,0,255;
 
 - name: 2d.drawImage.canvas
-  canvasType: ['OffscreenCanvas', 'Worker']
+  canvas_types: ['OffscreenCanvas', 'Worker']
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(100, 50);
     var ctx2 = offscreenCanvas2.getContext('2d');
@@ -344,7 +344,7 @@
     @assert pixel 99,49 ==~ 0,255,0,255;
 
 - name: 2d.drawImage.zerocanvas
-  canvasType: ['OffscreenCanvas', 'Worker']
+  canvas_types: ['OffscreenCanvas', 'Worker']
   code: |
     var offscreenCanvas2 = new OffscreenCanvas(0, 10);
     @assert throws INVALID_STATE_ERR ctx.drawImage(offscreenCanvas2, 0, 0);
@@ -385,7 +385,7 @@
 - name: 2d.drawImage.zerosource.image
   desc: drawImage with zero-sized source rectangle from image draws nothing without exception
   test_type: promise
-  canvasType: ['HTMLCanvas', 'OffscreenCanvas']
+  canvas_types: ['HtmlCanvas', 'OffscreenCanvas']
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
@@ -483,7 +483,7 @@
 
 - name: 2d.drawImage.outsidesource
   DISABLED: fix this to match the current spec (transparent black outside source)
-  canvasType: ['OffscreenCanvas', 'Worker']
+  canvas_types: ['OffscreenCanvas', 'Worker']
   code: |
     const response_red = await fetch('/images/red.png');
     const blob_red = await response_red.blob();
@@ -518,7 +518,7 @@
 - name: 2d.drawImage.svg
   desc: drawImage() of an SVG image
   test_type: promise
-  canvasType: ['HTMLCanvas', 'OffscreenCanvas']
+  canvas_types: ['HtmlCanvas', 'OffscreenCanvas']
   code: |
     const img = new Image();
     const imageLoadPromise = new Promise((resolve, reject) => {
@@ -641,7 +641,7 @@
 
 - name: 2d.drawImage.detachedcanvas
   desc: drawImage with detached OffscreenCanvas as the source should throw exception
-  canvasType: ['HTMLCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     var canvas2 = new OffscreenCanvas(80, 80);
     (new MessageChannel()).port1.postMessage(canvas2, [canvas2]);

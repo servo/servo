@@ -1,0 +1,12 @@
+<!doctype html>
+OuterText
+<div id="host1">innerText1</div>
+OuterText
+<div id="host2">innerText2</div>
+<script>
+  const host1 = document.getElementById("host1");
+  const host2 = document.getElementById("host2");
+
+  getSelection().setBaseAndExtent(
+    host1.firstChild, 3, host2.firstChild, 3);
+</script>

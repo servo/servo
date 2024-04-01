@@ -165,7 +165,7 @@ impl HeadersMethods for Headers {
         let valid_name = validate_name(name)?;
         Ok(
             get_value_from_header_list(&valid_name, &self.header_list.borrow())
-                .map(|v| ByteString::new(v)),
+                .map(ByteString::new),
         )
     }
 
@@ -290,7 +290,7 @@ impl Headers {
 
     // https://fetch.spec.whatwg.org/#concept-header-extract-mime-type
     pub fn extract_mime_type(&self) -> Vec<u8> {
-        extract_mime_type(&self.header_list.borrow()).unwrap_or(vec![])
+        extract_mime_type(&self.header_list.borrow()).unwrap_or_default()
     }
 
     // https://fetch.spec.whatwg.org/#concept-header-list-sort-and-combine

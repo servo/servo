@@ -97,6 +97,12 @@ test_interpolation({
   {at: 1.5, expect: '145px'}
 ]);
 
+test_no_interpolation({
+  property: 'width',
+  from: 'auto',
+  to: '40px',
+});
+
 // The "vw" unit equals to 1% of the width of the viewport's initial containing
 // block:
 // https://developer.mozilla.org/en-US/docs/Web/CSS/length
@@ -123,5 +129,42 @@ test_interpolation({
     {at: 1, expect: calc(1)},
     {at: 1.5, expect: calc(1.5)}
 ]);
+
+test_no_interpolation({
+  property: 'width',
+  from: 'auto',
+  to: 'fit-content',
+});
+
+test_no_interpolation({
+  property: 'width',
+  from: 'stretch',
+  to: 'auto',
+});
+
+test_no_interpolation({
+  property: 'width',
+  from: '30px',
+  to: 'fit-content',
+});
+
+test_no_interpolation({
+  property: 'width',
+  from: 'max-content',
+  to: 'min-content',
+});
+
+test_no_interpolation({
+  property: 'width',
+  from: 'max-content',
+  to: neutralKeyframe,
+});
+
+test_no_interpolation({
+  property: 'width',
+  from: neutralKeyframe,
+  to: 'min-content',
+});
+
 </script>
 </body>

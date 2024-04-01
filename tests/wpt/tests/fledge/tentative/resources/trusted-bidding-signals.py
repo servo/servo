@@ -110,6 +110,8 @@ def main(request, response):
                 value = request.GET.first(b"slotSize", b"not-found").decode("ASCII")
             elif key == "allSlotsRequestedSizes":
                 value = request.GET.first(b"allSlotsRequestedSizes", b"not-found").decode("ASCII")
+            elif key == "url":
+                value = request.url
             responseBody["keys"][key] = value
 
     if "data-version" in interestGroupNames:

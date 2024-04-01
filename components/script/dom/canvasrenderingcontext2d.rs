@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::mem;
-
 use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg};
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
@@ -90,15 +88,11 @@ impl CanvasRenderingContext2D {
     }
 
     pub fn mark_as_dirty(&self) {
-        self.canvas_state
-            .mark_as_dirty(self.canvas.as_ref().map(|c| &**c))
+        self.canvas_state.mark_as_dirty(self.canvas.as_deref())
     }
 
     pub fn take_missing_image_urls(&self) -> Vec<ServoUrl> {
-        mem::replace(
-            &mut self.canvas_state.get_missing_image_urls().borrow_mut(),
-            vec![],
-        )
+        std::mem::take(&mut self.canvas_state.get_missing_image_urls().borrow_mut())
     }
 
     pub fn get_canvas_id(&self) -> CanvasId {
@@ -295,7 +289,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext
     fn FillText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
         self.canvas_state
-            .fill_text(self.canvas.as_ref().map(|c| &**c), text, x, y, max_width);
+            .fill_text(self.canvas.as_deref(), text, x, y, max_width);
         self.mark_as_dirty();
     }
 
@@ -311,8 +305,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
     fn SetFont(&self, value: DOMString) {
-        self.canvas_state
-            .set_font(self.canvas.as_ref().map(|c| &**c), value)
+        self.canvas_state.set_font(self.canvas.as_deref(), value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-textalign
@@ -348,7 +341,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     fn DrawImage(&self, image: CanvasImageSource, dx: f64, dy: f64) -> ErrorResult {
         self.canvas_state
-            .draw_image(self.canvas.as_ref().map(|c| &**c), image, dx, dy)
+            .draw_image(self.canvas.as_deref(), image, dx, dy)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
@@ -361,7 +354,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         dh: f64,
     ) -> ErrorResult {
         self.canvas_state
-            .draw_image_(self.canvas.as_ref().map(|c| &**c), image, dx, dy, dw, dh)
+            .draw_image_(self.canvas.as_deref(), image, dx, dy, dw, dh)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
@@ -378,7 +371,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         dh: f64,
     ) -> ErrorResult {
         self.canvas_state.draw_image__(
-            self.canvas.as_ref().map(|c| &**c),
+            self.canvas.as_deref(),
             image,
             sx,
             sy,
@@ -461,7 +454,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn SetStrokeStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
         self.canvas_state
-            .set_stroke_style(self.canvas.as_ref().map(|c| &**c), value)
+            .set_stroke_style(self.canvas.as_deref(), value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
@@ -472,7 +465,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-strokestyle
     fn SetFillStyle(&self, value: StringOrCanvasGradientOrCanvasPattern) {
         self.canvas_state
-            .set_fill_style(self.canvas.as_ref().map(|c| &**c), value)
+            .set_fill_style(self.canvas.as_deref(), value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
@@ -653,7 +646,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor
     fn SetShadowColor(&self, value: DOMString) {
         self.canvas_state
-            .set_shadow_color(self.canvas.as_ref().map(|c| &**c), value)
+            .set_shadow_color(self.canvas.as_deref(), value)
     }
 }
 

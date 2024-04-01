@@ -148,7 +148,7 @@ impl CharacterDataMethods for CharacterData {
             Err(()) => substring += remaining,
             // Steps 4.
             Ok((s, astral, _)) => {
-                substring = substring + s;
+                substring += s;
                 // As if we had split the UTF-16 surrogate pair in half
                 // and then transcoded that to UTF-8 lossily,
                 // since our DOMString is currently strict UTF-8.

@@ -17,24 +17,22 @@ async_test(t => {
   const id = "test";
 
   // Step 1
-  window.addEventListener("message", t.step_func(e => {
+  window.addEventListener("message", t.step_func((e) => {
     if (e.data.type != "result") {
       return;
     }
     // Step 8
     assert_equals(e.data.message, "HasAccess for estimate", "Storage Access API should be accessible and return first-party data");
-    caches.delete(id).then(() => {
-      t.done();
-    });
+    t.add_cleanup(() => {caches.delete(id);});
+    t.done();
   }));
 
   // Step 2
-  window.caches.open(id).then((cache) => {
-    cache.put('/test.json', new Response('x'.repeat(1024*1024))).then(() => {
-      // Step 3
-      let iframe = document.createElement("iframe");
-      iframe.src = "https://{{hosts[alt][]}}:{{ports[https][0]}}/storage-access-api/resources/storage-access-beyond-cookies-iframe.sub.html?type=estimate&id="+id;
-      document.body.appendChild(iframe);
-    });
+  window.caches.open(id).then(async (cache) => {
+    await cache.put('/test.json', new Response('x'.repeat(1024*1024)));
+    // Step 3
+    let iframe = document.createElement("iframe");
+    iframe.src = "https://{{hosts[alt][]}}:{{ports[https][0]}}/storage-access-api/resources/storage-access-beyond-cookies-iframe.sub.html?type=estimate&id="+id;
+    document.body.appendChild(iframe);
   });
 }, "Verify StorageAccessAPIBeyondCookies for Quota");

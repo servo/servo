@@ -1,6 +1,7 @@
 <!doctype html>
 <meta charset="utf-8" />
 <meta name="author" title="Luke Warlow" href="mailto:luke@warlow.dev" />
+<meta name="timeout" content="long" />
 <link rel="help" href="https://open-ui.org/components/invokers.explainer/" />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -25,7 +26,7 @@
     assert_true(invokee.paused);
     invokerbutton.setAttribute("invokeaction", "");
     await clickOn(invokerbutton);
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       requestAnimationFrame(resolve);
     });
     assert_true(invokee.paused);
@@ -43,7 +44,7 @@
     assert_true(invokee.paused);
     invokerbutton.setAttribute("invokeaction", "playpause");
     await clickOn(invokerbutton);
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       requestAnimationFrame(resolve);
     });
     assert_false(invokee.paused);
@@ -62,7 +63,7 @@
     assert_true(invokee.paused);
     invokerbutton.setAttribute("invokeaction", "playpause");
     await clickOn(invokerbutton);
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       requestAnimationFrame(resolve);
     });
     assert_true(invokee.paused);
@@ -75,12 +76,12 @@
       invokee.currentTime = 0;
       invokee.muted = false;
     });
-    await test_driver.bless('play video');
+    await test_driver.bless("play video");
     invokee.play();
     assert_false(invokee.paused);
     invokerbutton.setAttribute("invokeaction", "playpause");
     await clickOn(invokerbutton);
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       requestAnimationFrame(resolve);
     });
     assert_true(invokee.paused);
@@ -98,7 +99,7 @@
     assert_true(invokee.paused);
     invokerbutton.setAttribute("invokeaction", "play");
     await clickOn(invokerbutton);
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       requestAnimationFrame(resolve);
     });
     assert_false(invokee.paused);
@@ -112,12 +113,12 @@
       invokee.muted = false;
     });
     invokee.addEventListener("invoke", (e) => e.preventDefault(), {
-        once: true,
+      once: true,
     });
     assert_true(invokee.paused);
     invokerbutton.setAttribute("invokeaction", "play");
     await clickOn(invokerbutton);
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       requestAnimationFrame(resolve);
     });
     assert_true(invokee.paused);
@@ -130,12 +131,12 @@
       invokee.currentTime = 0;
       invokee.muted = false;
     });
-    await test_driver.bless('play video');
+    await test_driver.bless("play video");
     invokee.play();
     assert_false(invokee.paused);
     invokerbutton.setAttribute("invokeaction", "play");
     await clickOn(invokerbutton);
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       requestAnimationFrame(resolve);
     });
     assert_false(invokee.paused);
@@ -153,7 +154,7 @@
     assert_true(invokee.paused);
     invokerbutton.setAttribute("invokeaction", "pause");
     await clickOn(invokerbutton);
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       requestAnimationFrame(resolve);
     });
     assert_true(invokee.paused);
@@ -167,12 +168,12 @@
       invokee.muted = false;
     });
     invokee.addEventListener("invoke", (e) => e.preventDefault(), {
-        once: true,
+      once: true,
     });
     assert_true(invokee.paused);
     invokerbutton.setAttribute("invokeaction", "pause");
     await clickOn(invokerbutton);
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       requestAnimationFrame(resolve);
     });
     assert_true(invokee.paused);
@@ -185,12 +186,12 @@
       invokee.currentTime = 0;
       invokee.muted = false;
     });
-    await test_driver.bless('play video');
+    await test_driver.bless("play video");
     invokee.play();
     assert_false(invokee.paused);
     invokerbutton.setAttribute("invokeaction", "pause");
     await clickOn(invokerbutton);
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       requestAnimationFrame(resolve);
     });
     assert_true(invokee.paused);
@@ -208,7 +209,7 @@
     assert_false(invokee.muted);
     invokerbutton.setAttribute("invokeaction", "toggleMuted");
     await clickOn(invokerbutton);
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       requestAnimationFrame(resolve);
     });
     assert_true(invokee.muted);
@@ -222,12 +223,12 @@
       invokee.muted = false;
     });
     invokee.addEventListener("invoke", (e) => e.preventDefault(), {
-        once: true,
+      once: true,
     });
     assert_false(invokee.muted);
     invokerbutton.setAttribute("invokeaction", "toggleMuted");
     await clickOn(invokerbutton);
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       requestAnimationFrame(resolve);
     });
     assert_false(invokee.muted);
@@ -244,10 +245,9 @@
     assert_true(invokee.muted);
     invokerbutton.setAttribute("invokeaction", "toggleMuted");
     await clickOn(invokerbutton);
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       requestAnimationFrame(resolve);
     });
     assert_false(invokee.muted);
   }, "invoking muted video with toggleMuted action unmutes it");
-
 </script>

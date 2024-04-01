@@ -41,7 +41,7 @@ impl<T> DomRefCell<T> {
 
     /// Borrow the contents for the purpose of script deallocation.
     ///
-    #[allow(unsafe_code)]
+    #[allow(unsafe_code, clippy::mut_from_ref)]
     pub unsafe fn borrow_for_script_deallocation(&self) -> &mut T {
         assert_in_script();
         &mut *self.value.as_ptr()
@@ -49,7 +49,7 @@ impl<T> DomRefCell<T> {
 
     /// Mutably borrow a cell for layout. Ideally this would use
     /// `RefCell::try_borrow_mut_unguarded` but that doesn't exist yet.
-    #[allow(unsafe_code)]
+    #[allow(unsafe_code, clippy::mut_from_ref)]
     pub unsafe fn borrow_mut_for_layout(&self) -> &mut T {
         assert_in_layout();
         &mut *self.value.as_ptr()

@@ -23,7 +23,7 @@ interface HTMLInputElement : HTMLElement {
   [CEReactions]
            attribute boolean disabled;
   readonly attribute HTMLFormElement? form;
-  readonly attribute FileList? files;
+  attribute FileList? files;
   [CEReactions]
            attribute DOMString formAction;
   [CEReactions]

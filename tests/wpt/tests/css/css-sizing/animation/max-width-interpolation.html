@@ -65,6 +65,12 @@ test_no_interpolation({
   to: '20px',
 });
 
+test_no_interpolation({
+  property: 'max-width',
+  from: 'none',
+  to: '20px',
+});
+
 test_interpolation({
   property: 'max-width',
   from: '0px',
@@ -77,4 +83,35 @@ test_interpolation({
   {at: 1, expect: '100px'},
   {at: 1.5, expect: '150px'}
 ]);
+
+test_no_interpolation({
+  property: 'max-width',
+  from: 'stretch',
+  to: 'none',
+});
+
+test_no_interpolation({
+  property: 'max-width',
+  from: 'fit-content',
+  to: '20px',
+});
+
+test_no_interpolation({
+  property: 'max-width',
+  from: 'max-content',
+  to: 'min-content',
+});
+
+test_no_interpolation({
+  property: 'max-width',
+  from: 'min-content',
+  to: neutralKeyframe,
+});
+
+test_no_interpolation({
+  property: 'max-width',
+  from: neutralKeyframe,
+  to: 'fit-content',
+});
+
 </script>

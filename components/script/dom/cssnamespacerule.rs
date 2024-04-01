@@ -57,7 +57,7 @@ impl CSSNamespaceRuleMethods for CSSNamespaceRule {
             .prefix
             .as_ref()
             .map(|s| s.to_string().into())
-            .unwrap_or(DOMString::new())
+            .unwrap_or_default()
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssnamespacerule-namespaceuri

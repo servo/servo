@@ -197,3 +197,35 @@ test((t) => {
   assert_equals(getComputedStyle(outside_limit).zIndex, 'auto');
 }, 'Implicit @scope with limit');
 </script>
+
+<template id=test_concurrent_scope_proximity>
+<style>
+@scope {
+  * { z-index: 1;}
+}
+</style>
+  <div>
+    <style>
+      @scope {
+        * { z-index:2; }
+      }
+    </style>
+    <div id=inner>
+    </div>
+  </div>
+  <div id=outer></div>
+<style>
+@scope {
+  * { z-index: 3;}
+}
+</style>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_concurrent_scope_proximity.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(inner).zIndex, '2');
+  assert_equals(getComputedStyle(outer).zIndex, '3');
+}, 'Proximity calculation of multiple implicit @scope');
+</script>

@@ -85,6 +85,23 @@ function createScrollLinkedAnimationWithTiming(test, timing, timeline) {
     new KeyframeEffect(createDiv(test), KEYFRAMES, timing), timeline);
 }
 
+function createViewTimeline(t) {
+  const parent = document.querySelector('.scroller');
+  const elem = document.createElement('div');
+  elem.id = 'target';
+  t.add_cleanup(() => {
+    elem.remove();
+  });
+  parent.appendChild(elem);
+  return new ViewTimeline({ subject: elem });
+}
+
+function createAnimation(t) {
+  const elem = createDiv(t);
+  const animation = elem.animate({ opacity: [1, 0] }, 1000);
+  return animation;
+}
+
 function assert_approx_equals_or_null(actual, expected, tolerance, name) {
   if (actual === null || expected === null){
     assert_equals(actual, expected, name);

@@ -64,14 +64,14 @@ impl CryptoMethods for Crypto {
 }
 
 fn is_integer_buffer(array_type: Type) -> bool {
-    match array_type {
+    matches!(
+        array_type,
         Type::Uint8 |
-        Type::Uint8Clamped |
-        Type::Int8 |
-        Type::Uint16 |
-        Type::Int16 |
-        Type::Uint32 |
-        Type::Int32 => true,
-        _ => false,
-    }
+            Type::Uint8Clamped |
+            Type::Int8 |
+            Type::Uint16 |
+            Type::Int16 |
+            Type::Uint32 |
+            Type::Int32
+    )
 }

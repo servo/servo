@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<!--The permission element should have no end tag or content.
+    Therefore the parsing should stop after the beginning tag, and the following
+    element and text will become part of the 'body' element's contents.
+-->
+<permission type="geolocation"><span>this is some text</span></permission>
+
+<script>
+  test(function(){
+    assert_equals(3, document.body.childElementCount); // permission, span, script
+    assert_equals(document.body.innerText, "this is some text", "The text should be part of the 'body' element's text");
+
+    assert_true(document.body.children[0] instanceof HTMLPermissionElement, "First element should be a permission element");
+    var permission = document.body.children[0];
+    assert_equals(permission.innerText, "", "The permission element should have no text");
+    assert_equals(permission.childElementCount, 0, "The permission element should have no children");
+
+    assert_true(document.body.children[1] instanceof HTMLSpanElement, "Second element should be a span element");
+    var span = document.body.children[1];
+    assert_equals(span.innerText, "this is some text", "The span element should contain the text");
+  }, "The permission element should have no end tag or contents");
+</script>
+</body>
