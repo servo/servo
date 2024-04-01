@@ -110,7 +110,7 @@ pub mod module {
         finalize_common, finalize_global, finalize_weak_referenceable,
     };
     pub use crate::dom::bindings::construct_hook::{
-        get_global_scope, handle_constructor
+        construct_html_custom,construct_default_custom
     };
     pub use crate::dom::bindings::guard::{Condition, Guard};
     pub use crate::dom::bindings::htmlconstructor::{

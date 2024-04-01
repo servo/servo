@@ -6109,9 +6109,6 @@ class CGClassTraceHook(CGAbstractClassHook):
 
 
 class CGClassConstructHook(CGAbstractExternMethod):
-    """
-    JS-visible constructor for our objects
-    """
     def __init__(self, descriptor, constructor=None):
         args = [Argument('*mut JSContext', 'cx'), Argument('u32', 'argc'), Argument('*mut JSVal', 'vp')]
         name = CONSTRUCT_HOOK_NAME
@@ -6125,16 +6122,21 @@ class CGClassConstructHook(CGAbstractExternMethod):
         self.exposureSet = descriptor.interface.exposureSet
 
     def definition_body(self):
-      preamble = "let global = get_global_scope(cx, vp, argc, &self.exposureSet);"
+        preamble = "let cx = SafeJSContext::from_ptr(cx);\n"
+        preamble += "let args = CallArgs::from_vp(vp, argc);\n"
+        preamble += "let global = GlobalScope::from_object(JS_CALLEE(*cx, vp).to_object());\n"
 
-      if self.constructor.isHTMLConstructor():
-        # Calls the extracted function for handling HTML constructor logic
-        constructorCall = "handle_constructor(cx, &argc, &global, &descriptor, &aconstructor);"
-      else:
-        # Similar call for non-HTML constructors, handled within the same function
-        constructorCall = "handle_constructor(cx, &argc, &global, &self.descriptor, &self.constructor);"
+        rust_function_call = ""
+        if len(self.exposureSet) == 1:
+            if self.constructor.isHTMLConstructor():
+                rust_function_call = f"construct_html_custom(&global, cx, &args, \"{self.descriptor.name}\");\n"
+            else:
+                ctorName = GetConstructorNameForReporting(self.descriptor, self.constructor)
+                rust_function_call = f"construct_default_custom(&global, cx, &args, \"{self.descriptor.name}\", \"{ctorName}\");\n"
+        
+        # Assuming CGList and CGGeneric can handle the combination of Rust code and preamble
+        return CGList([CGGeneric(preamble), CGGeneric(rust_function_call)])
 
-      return CGList([CGGeneric(preamble), CGGeneric(constructorCall)])
 
 
 class CGClassFinalizeHook(CGAbstractClassHook):
