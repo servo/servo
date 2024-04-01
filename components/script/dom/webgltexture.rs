@@ -152,6 +152,7 @@ impl WebGLTexture {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn initialize(
         &self,
         target: TexImageTarget,

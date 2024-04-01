@@ -229,6 +229,7 @@ pub fn create_callback_interface_object(
 }
 
 /// Create the interface prototype object of a non-callback interface.
+#[allow(clippy::too_many_arguments)]
 pub fn create_interface_prototype_object(
     cx: SafeJSContext,
     global: HandleObject,
@@ -273,6 +274,7 @@ pub fn create_interface_prototype_object(
 }
 
 /// Create and define the interface object of a non-callback interface.
+#[allow(clippy::too_many_arguments)]
 pub fn create_noncallback_interface_object(
     cx: SafeJSContext,
     global: HandleObject,
@@ -353,6 +355,7 @@ pub fn create_named_constructors(
 }
 
 /// Create a new object with a unique type.
+#[allow(clippy::too_many_arguments)]
 pub fn create_object(
     cx: SafeJSContext,
     global: HandleObject,

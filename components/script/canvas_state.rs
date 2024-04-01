@@ -351,6 +351,7 @@ impl CanvasState {
     // is copied on the rectangle (dx, dy, dh, dw) of the destination canvas
     //
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
+    #[allow(clippy::too_many_arguments)]
     fn draw_image_internal(
         &self,
         htmlcanvas: Option<&HTMLCanvasElement>,
@@ -425,6 +426,7 @@ impl CanvasState {
         result
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn draw_offscreen_canvas(
         &self,
         canvas: &OffscreenCanvas,
@@ -479,6 +481,7 @@ impl CanvasState {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn draw_html_canvas_element(
         &self,
         canvas: &HTMLCanvasElement,             // source canvas
@@ -539,6 +542,7 @@ impl CanvasState {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn fetch_and_draw_image_data(
         &self,
         canvas: Option<&HTMLCanvasElement>,
@@ -594,6 +598,7 @@ impl CanvasState {
     // on the drawImage call arguments
     // source rectangle = area of the original image to be copied
     // destination rectangle = area of the destination canvas where the source image is going to be drawn
+    #[allow(clippy::too_many_arguments)]
     fn adjust_source_dest_rects(
         &self,
         image_size: Size2D<f64>,
@@ -840,6 +845,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createradialgradient
+    #[allow(clippy::too_many_arguments)]
     pub fn create_radial_gradient(
         &self,
         global: &GlobalScope,
@@ -1279,6 +1285,7 @@ impl CanvasState {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     #[allow(unsafe_code)]
+    #[allow(clippy::too_many_arguments)]
     pub fn put_image_data_(
         &self,
         canvas_size: Size2D<u64>,
@@ -1375,6 +1382,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
+    #[allow(clippy::too_many_arguments)]
     pub fn draw_image__(
         &self,
         canvas: Option<&HTMLCanvasElement>,
@@ -1646,6 +1654,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-ellipse
+    #[allow(clippy::too_many_arguments)]
     pub fn ellipse(
         &self,
         x: f64,

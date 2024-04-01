@@ -219,6 +219,7 @@ impl WorkerEventLoopMethods for ServiceWorkerGlobalScope {
 }
 
 impl ServiceWorkerGlobalScope {
+    #[allow(clippy::too_many_arguments)]
     fn new_inherited(
         init: WorkerGlobalScopeInit,
         worker_url: ServoUrl,
@@ -253,6 +254,7 @@ impl ServiceWorkerGlobalScope {
     }
 
     #[allow(unsafe_code)]
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         init: WorkerGlobalScopeInit,
         worker_url: ServoUrl,
@@ -285,6 +287,7 @@ impl ServiceWorkerGlobalScope {
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/ServiceWorker/#run-service-worker-algorithm
+    #[allow(clippy::too_many_arguments)]
     pub fn run_serviceworker_scope(
         scope_things: ScopeThings,
         own_sender: Sender<ServiceWorkerScriptMsg>,
