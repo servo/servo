@@ -417,7 +417,7 @@ impl HTMLMediaElement {
         Self {
             htmlelement: HTMLElement::new_inherited(tag_name, prefix, document),
             network_state: Cell::new(NetworkState::Empty),
-            ready_state: Cell::new(ReadyState::Nothing),
+            ready_state: Cell::new(ReadyState::HaveNothing),
             src_object: Default::default(),
             current_src: DomRefCell::new("".to_owned()),
             generation_id: Cell::new(0),
@@ -611,12 +611,12 @@ impl HTMLMediaElement {
 
         // Step 1.
         match (old_ready_state, ready_state) {
-            (ReadyState::Nothing, ReadyState::Metadata) => {
+            (ReadyState::HaveNothing, ReadyState::HaveMetadata) => {
                 task_source.queue_simple_event(self.upcast(), atom!("loadedmetadata"), &window);
                 // No other steps are applicable in this case.
                 return;
             },
-            (ReadyState::Metadata, new) if new >= ReadyState::CurrentData => {
+            (ReadyState::HaveMetadata, new) if new >= ReadyState::HaveCurrentData => {
                 if !self.fired_loadeddata_event.get() {
                     self.fired_loadeddata_event.set(true);
                     let this = Trusted::new(self);
@@ -635,7 +635,7 @@ impl HTMLMediaElement {
                 // or HaveFutureData also apply here, as per the next match
                 // expression.
             },
-            (ReadyState::FutureData, new) if new <= ReadyState::CurrentData => {
+            (ReadyState::HaveFutureData, new) if new <= ReadyState::HaveCurrentData => {
                 // FIXME(nox): Queue a task to fire timeupdate and waiting
                 // events if the conditions call from the spec are met.
 
@@ -646,7 +646,9 @@ impl HTMLMediaElement {
             _ => (),
         }
 
-        if old_ready_state <= ReadyState::CurrentData && ready_state >= ReadyState::FutureData {
+        if old_ready_state <= ReadyState::HaveCurrentData &&
+            ready_state >= ReadyState::HaveFutureData
+        {
             task_source.queue_simple_event(self.upcast(), atom!("canplay"), &window);
 
             if !self.Paused() {
@@ -654,7 +656,7 @@ impl HTMLMediaElement {
             }
         }
 
-        if ready_state == ReadyState::EnoughData {
+        if ready_state == ReadyState::HaveEnoughData {
             // TODO: Check sandboxed automatic features browsing context flag.
             // FIXME(nox): I have no idea what this TODO is about.
 
@@ -1064,7 +1066,7 @@ impl HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#blocked-media-element
     fn is_blocked_media_element(&self) -> bool {
-        self.ready_state.get() <= ReadyState::CurrentData ||
+        self.ready_state.get() <= ReadyState::HaveCurrentData ||
             self.is_paused_for_user_interaction() ||
             self.is_paused_for_in_band_content()
     }
@@ -1124,8 +1126,8 @@ impl HTMLMediaElement {
             self.VideoTracks().clear();
 
             // Step 6.5.
-            if self.ready_state.get() != ReadyState::Nothing {
-                self.change_ready_state(ReadyState::Nothing);
+            if self.ready_state.get() != ReadyState::HaveNothing {
+                self.change_ready_state(ReadyState::HaveNothing);
             }
 
             // Step 6.6.
@@ -1241,7 +1243,7 @@ impl HTMLMediaElement {
         self.show_poster.set(false);
 
         // Step 2.
-        if self.ready_state.get() == ReadyState::Nothing {
+        if self.ready_state.get() == ReadyState::HaveNothing {
             return;
         }
 
@@ -1481,7 +1483,7 @@ impl HTMLMediaElement {
                 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
                 // => "If the media data can be fetched but is found by inspection to be in
                 //    an unsupported format, or can otherwise not be rendered at all"
-                if self.ready_state.get() < ReadyState::Metadata {
+                if self.ready_state.get() < ReadyState::HaveMetadata {
                     self.queue_dedicated_media_source_failure_steps();
                 } else {
                     // https://html.spec.whatwg.org/multipage/#reaches-the-end
@@ -1721,7 +1723,7 @@ impl HTMLMediaElement {
                 }
 
                 // Step 6.
-                self.change_ready_state(ReadyState::Metadata);
+                self.change_ready_state(ReadyState::HaveMetadata);
 
                 // Step 7.
                 let mut jumped = false;
@@ -1840,8 +1842,8 @@ impl HTMLMediaElement {
                 match *state {
                     PlaybackState::Paused => {
                         media_session_playback_state = MediaSessionPlaybackState::Paused;
-                        if self.ready_state.get() == ReadyState::Metadata {
-                            self.change_ready_state(ReadyState::EnoughData);
+                        if self.ready_state.get() == ReadyState::HaveMetadata {
+                            self.change_ready_state(ReadyState::HaveEnoughData);
                         }
                     },
                     PlaybackState::Playing => {
@@ -1876,7 +1878,7 @@ impl HTMLMediaElement {
 
     fn render_controls(&self) {
         let element = self.htmlelement.upcast::<Element>();
-        if self.ready_state.get() < ReadyState::Metadata || element.is_shadow_host() {
+        if self.ready_state.get() < ReadyState::HaveMetadata || element.is_shadow_host() {
             // Bail out if we have no metadata yet or
             // if we are already showing the controls.
             return;
@@ -2186,14 +2188,16 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
 
             // Step 6.4.
             match state {
-                ReadyState::Nothing | ReadyState::Metadata | ReadyState::CurrentData => {
+                ReadyState::HaveNothing |
+                ReadyState::HaveMetadata |
+                ReadyState::HaveCurrentData => {
                     task_source.queue_simple_event(self.upcast(), atom!("waiting"), &window);
                 },
-                ReadyState::FutureData | ReadyState::EnoughData => {
+                ReadyState::HaveFutureData | ReadyState::HaveEnoughData => {
                     self.notify_about_playing();
                 },
             }
-        } else if state == ReadyState::FutureData || state == ReadyState::EnoughData {
+        } else if state == ReadyState::HaveFutureData || state == ReadyState::HaveEnoughData {
             // Step 7.
             self.take_pending_play_promises(Ok(()));
             let this = Trusted::new(self);
@@ -2303,7 +2307,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-media-currenttime
     fn SetCurrentTime(&self, time: Finite<f64>) {
-        if self.ready_state.get() == ReadyState::Nothing {
+        if self.ready_state.get() == ReadyState::HaveNothing {
             self.default_playback_start_position.set(*time);
         } else {
             self.playback_position.set(*time);
@@ -2318,7 +2322,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#ended-playback
     fn Ended(&self) -> bool {
-        if self.ready_state.get() < ReadyState::Metadata {
+        if self.ready_state.get() < ReadyState::HaveMetadata {
             return false;
         }
 
@@ -2805,12 +2809,12 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         }
 
         if status.is_ok() && self.latest_fetched_content != 0 {
-            if elem.ready_state.get() == ReadyState::Nothing {
+            if elem.ready_state.get() == ReadyState::HaveNothing {
                 // Make sure that we don't skip the HaveMetadata and HaveCurrentData
                 // states for short streams.
-                elem.change_ready_state(ReadyState::Metadata);
+                elem.change_ready_state(ReadyState::HaveMetadata);
             }
-            elem.change_ready_state(ReadyState::EnoughData);
+            elem.change_ready_state(ReadyState::HaveEnoughData);
 
             elem.upcast::<EventTarget>().fire_event(atom!("progress"));
 
@@ -2821,7 +2825,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             elem.delay_load_event(false);
         }
         // => "If the connection is interrupted after some media data has been received..."
-        else if elem.ready_state.get() != ReadyState::Nothing {
+        else if elem.ready_state.get() != ReadyState::HaveNothing {
             // Step 1
             if let Some(ref mut current_fetch_context) = *elem.current_fetch_context.borrow_mut() {
                 current_fetch_context.cancel(CancelReason::Error);
