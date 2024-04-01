@@ -855,7 +855,7 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
-    pub fn with_layout<'a, T>(
+    pub fn with_layout<T>(
         pipeline_id: PipelineId,
         call: impl FnOnce(&mut dyn Layout) -> T,
     ) -> Result<T, ()> {
@@ -3568,11 +3568,13 @@ impl ScriptThread {
                 // We might have to reset the anchor state
                 if !state_already_changed {
                     if let Some(target) = prev_mouse_over_target {
-                        if let Some(_) = target
+                        if  Some(
+                            target
                             .upcast::<Node>()
                             .inclusive_ancestors(ShadowIncluding::No)
                             .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
                             .next()
+                        ).is_some()
                         {
                             let event = EmbedderMsg::Status(None);
                             window.send_to_embedder(event);
