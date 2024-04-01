@@ -1909,11 +1909,7 @@ impl Window {
 
             let mut images = self.pending_layout_images.borrow_mut();
             let nodes = images.entry(id).or_default();
-            if nodes
-                .iter()
-                .find(|n| &***n as *const _ == &*node as *const _)
-                .is_none()
-            {
+            if !nodes.iter().any(|n| &**n as *const _ == &*node as *const _) {
                 let (responder, responder_listener) =
                     ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
                 let image_cache_chan = self.image_cache_chan.clone();
