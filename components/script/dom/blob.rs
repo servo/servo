@@ -80,7 +80,7 @@ impl Blob {
             },
         };
 
-        let type_string = normalize_type_string(&blobPropertyBag.type_.to_string());
+        let type_string = normalize_type_string(blobPropertyBag.type_.as_ref());
         let blob_impl = BlobImpl::new_from_bytes(bytes, type_string);
 
         Ok(Blob::new_with_proto(global, proto, blob_impl))
@@ -125,7 +125,7 @@ impl Serializable for Blob {
         let new_blob_id = blob_impl.blob_id();
 
         // 2. Store the object at a given key.
-        let blobs = blob_impls.get_or_insert_with(|| HashMap::new());
+        let blobs = blob_impls.get_or_insert_with(HashMap::new);
         blobs.insert(new_blob_id, blob_impl);
 
         let PipelineNamespaceId(name_space) = new_blob_id.namespace_id;
@@ -181,7 +181,7 @@ impl Serializable for Blob {
 
         let deserialized_blob = Blob::new(owner, blob_impl);
 
-        let blobs = blobs.get_or_insert_with(|| HashMap::new());
+        let blobs = blobs.get_or_insert_with(HashMap::new);
         blobs.insert(storage_key, deserialized_blob);
 
         Ok(())
@@ -242,7 +242,7 @@ impl BlobMethods for Blob {
         content_type: Option<DOMString>,
     ) -> DomRoot<Blob> {
         let type_string =
-            normalize_type_string(&content_type.unwrap_or(DOMString::from("")).to_string());
+            normalize_type_string(content_type.unwrap_or(DOMString::from("")).as_ref());
         let rel_pos = RelativePos::from_opts(start, end);
         let blob_impl = BlobImpl::new_sliced(rel_pos, self.blob_id, type_string);
         Blob::new(&self.global(), blob_impl)
@@ -322,5 +322,5 @@ pub fn normalize_type_string(s: &str) -> String {
 fn is_ascii_printable(string: &str) -> bool {
     // Step 5.1 in Sec 5.1 of File API spec
     // <https://w3c.github.io/FileAPI/#constructorBlob>
-    string.chars().all(|c| c >= '\x20' && c <= '\x7E')
+    string.chars().all(|c| ('\x20'..='\x7E').contains(&c))
 }

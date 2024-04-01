@@ -70,50 +70,54 @@
   let writing_direction = "containing-block: horizontal-tb / rtl";
   container.style.writingMode = "horizontal-tb";
   container.style.direction = "rtl";
-  test_inset_area(writing_direction, "start / start", top_right);
-  test_inset_area(writing_direction, "self-start / self-start", top_left);
-  test_inset_area(writing_direction, "x-start / y-start", top_right);
-  test_inset_area(writing_direction, "x-self-start / y-self-start", top_left);
+  test_inset_area(writing_direction, "start start", top_right);
+  test_inset_area(writing_direction, "self-start self-start", top_left);
+  test_inset_area(writing_direction, "x-start y-start", top_right);
+  test_inset_area(writing_direction, "x-self-start y-self-start", top_left);
+  test_inset_area(writing_direction, "inline-start block-end", bottom_right);
+  test_inset_area(writing_direction, "self-inline-start self-block-end", bottom_left);
 
   // containing-block: vertical-lr / ltr
   // self: horizontal-tb / ltr
   writing_direction = "containing-block: vertical-lr / ltr";
   container.style.writingMode = "vertical-lr";
   container.style.direction = "ltr";
-  test_inset_area(writing_direction, "start / start", top_left);
-  test_inset_area(writing_direction, "self-start / self-start", top_left);
-  test_inset_area(writing_direction, "x-start / y-start", top_left);
-  test_inset_area(writing_direction, "x-self-start / y-self-start", top_left);
+  test_inset_area(writing_direction, "start start", top_left);
+  test_inset_area(writing_direction, "self-start self-start", top_left);
+  test_inset_area(writing_direction, "x-start y-start", top_left);
+  test_inset_area(writing_direction, "x-self-start y-self-start", top_left);
+  test_inset_area(writing_direction, "inline-start block-end", top_right);
+  test_inset_area(writing_direction, "self-inline-start self-block-end", bottom_left);
 
   // containing-block: vertical-lr / rtl
   // self: horizontal-tb / ltr
   writing_direction = "containing-block: vertical-lr / rtl";
   container.style.writingMode = "vertical-lr";
   container.style.direction = "rtl";
-  test_inset_area(writing_direction, "start / start", bottom_left);
-  test_inset_area(writing_direction, "self-start / self-start", top_left);
-  test_inset_area(writing_direction, "x-start / y-start", bottom_left);
-  test_inset_area(writing_direction, "x-self-start / y-self-start", top_left);
+  test_inset_area(writing_direction, "start start", bottom_left);
+  test_inset_area(writing_direction, "self-start self-start", top_left);
+  test_inset_area(writing_direction, "x-start y-start", bottom_left);
+  test_inset_area(writing_direction, "x-self-start y-self-start", top_left);
 
   // containing-block: vertical-rl / ltr
   // self: horizontal-tb / ltr
   writing_direction = "containing-block: vertical-rl / ltr";
   container.style.writingMode = "vertical-rl";
   container.style.direction = "ltr";
-  test_inset_area(writing_direction, "start / start", top_right);
-  test_inset_area(writing_direction, "self-start / self-start", top_left);
-  test_inset_area(writing_direction, "x-start / y-start", top_right);
-  test_inset_area(writing_direction, "x-self-start / y-self-start", top_left);
+  test_inset_area(writing_direction, "start start", top_right);
+  test_inset_area(writing_direction, "self-start self-start", top_left);
+  test_inset_area(writing_direction, "x-start y-start", top_right);
+  test_inset_area(writing_direction, "x-self-start y-self-start", top_left);
 
   // containing-block: vertical-rl / rtl
   // self: horizontal-tb / ltr
   writing_direction = "containing-block: vertical-rl / rtl";
   container.style.writingMode = "vertical-rl";
   container.style.direction = "rtl";
-  test_inset_area(writing_direction, "start / start", bottom_right);
-  test_inset_area(writing_direction, "self-start / self-start", top_left);
-  test_inset_area(writing_direction, "x-start / y-start", bottom_right);
-  test_inset_area(writing_direction, "x-self-start / y-self-start", top_left);
+  test_inset_area(writing_direction, "start start", bottom_right);
+  test_inset_area(writing_direction, "self-start self-start", top_left);
+  test_inset_area(writing_direction, "x-start y-start", bottom_right);
+  test_inset_area(writing_direction, "x-self-start y-self-start", top_left);
 
   // Writing-mode and direction on self
   container.style.writingMode = "horizontal-tb";
@@ -124,49 +128,49 @@
   writing_direction = "self: horizontal-tb / rtl";
   anchored.style.writingMode = "horizontal-tb";
   anchored.style.direction = "rtl";
-  test_inset_area(writing_direction, "start / start", top_left);
-  test_inset_area(writing_direction, "self-start / self-start", top_right);
-  test_inset_area(writing_direction, "x-start / y-start", top_left);
-  test_inset_area(writing_direction, "x-self-start / y-self-start", top_right);
+  test_inset_area(writing_direction, "start start", top_left);
+  test_inset_area(writing_direction, "self-start self-start", top_right);
+  test_inset_area(writing_direction, "x-start y-start", top_left);
+  test_inset_area(writing_direction, "x-self-start y-self-start", top_right);
 
   // containing-block: horizontal-tb / ltr
   // self: vertical-lr / ltr
   writing_direction = "self: vertical-lr / ltr";
   anchored.style.writingMode = "vertical-lr";
   anchored.style.direction = "ltr";
-  test_inset_area(writing_direction, "start / start", top_left);
-  test_inset_area(writing_direction, "self-start / self-start", top_left);
-  test_inset_area(writing_direction, "x-start / y-start", top_left);
-  test_inset_area(writing_direction, "x-self-start / y-self-start", top_left);
+  test_inset_area(writing_direction, "start start", top_left);
+  test_inset_area(writing_direction, "self-start self-start", top_left);
+  test_inset_area(writing_direction, "x-start y-start", top_left);
+  test_inset_area(writing_direction, "x-self-start y-self-start", top_left);
 
   // containing-block: horizontal-tb / ltr
   // self: vertical-lr / rtl
   writing_direction = "self: vertical-lr / rtl";
   anchored.style.writingMode = "vertical-lr";
   anchored.style.direction = "rtl";
-  test_inset_area(writing_direction, "start / start", top_left);
-  test_inset_area(writing_direction, "self-start / self-start", bottom_left);
-  test_inset_area(writing_direction, "x-start / y-start", top_left);
-  test_inset_area(writing_direction, "x-self-start / y-self-start", bottom_left);
+  test_inset_area(writing_direction, "start start", top_left);
+  test_inset_area(writing_direction, "self-start self-start", bottom_left);
+  test_inset_area(writing_direction, "x-start y-start", top_left);
+  test_inset_area(writing_direction, "x-self-start y-self-start", bottom_left);
 
   // containing-block: horizontal-tb / ltr
   // self: vertical-rl / ltr
   writing_direction = "self: vertical-rl / ltr";
   anchored.style.writingMode = "vertical-rl";
   anchored.style.direction = "ltr";
-  test_inset_area(writing_direction, "start / start", top_left);
-  test_inset_area(writing_direction, "self-start / self-start", top_right);
-  test_inset_area(writing_direction, "x-start / y-start", top_left);
-  test_inset_area(writing_direction, "x-self-start / y-self-start", top_right);
+  test_inset_area(writing_direction, "start start", top_left);
+  test_inset_area(writing_direction, "self-start self-start", top_right);
+  test_inset_area(writing_direction, "x-start y-start", top_left);
+  test_inset_area(writing_direction, "x-self-start y-self-start", top_right);
 
   // containing-block: horizontal-tb / ltr
   // self: vertical-rl / rtl
   writing_direction = "self: vertical-rl / rtl";
   anchored.style.writingMode = "vertical-rl";
   anchored.style.direction = "rtl";
-  test_inset_area(writing_direction, "start / start", top_left);
-  test_inset_area(writing_direction, "self-start / self-start", bottom_right);
-  test_inset_area(writing_direction, "x-start / y-start", top_left);
-  test_inset_area(writing_direction, "x-self-start / y-self-start", bottom_right);
+  test_inset_area(writing_direction, "start start", top_left);
+  test_inset_area(writing_direction, "self-start self-start", bottom_right);
+  test_inset_area(writing_direction, "x-start y-start", top_left);
+  test_inset_area(writing_direction, "x-self-start y-self-start", bottom_right);
 
 </script>

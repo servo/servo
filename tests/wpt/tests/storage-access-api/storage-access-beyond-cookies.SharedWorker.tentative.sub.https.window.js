@@ -30,11 +30,10 @@ async_test(t => {
     assert_equals(e.data, "Same-origin handle access", "Relay worker should divert messages here");
     // Step 8
     const cookie_worker = new SharedWorker("/storage-access-api/resources/shared-worker-cookies.py", {name: id, sameSiteCookies: 'none'});
-    cookie_worker.port.onmessage = t.step_func(e => {
+    cookie_worker.port.onmessage = t.step_func(async (e) => {
       assert_equals(e.data, "ReadOnLoad:None,ReadOnFetch:None,ConnectionsMade:2", "Worker should already have been opened and only see SameSite=None cookies");
-      test_driver.delete_all_cookies().then(t.step_func(() => {
-        t.done();
-      }));
+      await test_driver.delete_all_cookies();
+      t.done();
     });
   });
 

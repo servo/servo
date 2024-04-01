@@ -49,10 +49,6 @@ use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::message::{Msg, QueryMsg, Reflow, ReflowGoal, ScriptReflow};
-use script_layout_interface::rpc::{
-    ContentBoxResponse, ContentBoxesResponse, LayoutRPC, NodeScrollIdResponse,
-    ResolvedStyleResponse, TextIndexResponse,
-};
 use script_layout_interface::{Layout, PendingImageState, TrustedNodeAddress};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{
@@ -70,7 +66,7 @@ use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::media_queries;
 use style::parser::ParserContext as CssParserContext;
 use style::properties::style_structs::Font;
-use style::properties::{PropertyId, ShorthandId};
+use style::properties::PropertyId;
 use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
@@ -2049,52 +2045,55 @@ impl Window {
     }
 
     pub fn resolved_font_style_query(&self, node: &Node, value: String) -> Option<ServoArc<Font>> {
-        let id = PropertyId::Shorthand(ShorthandId::Font);
-        if !self.layout_reflow(QueryMsg::ResolvedFontStyleQuery(
-            node.to_trusted_node_address(),
-            id,
-            value,
-        )) {
+        if !self.layout_reflow(QueryMsg::ResolvedFontStyleQuery) {
             return None;
         }
-        self.layout_rpc().resolved_font_style()
-    }
 
-    pub fn layout_rpc(&self) -> Box<dyn LayoutRPC> {
-        self.with_layout(|layout| layout.rpc()).unwrap()
+        let document = self.Document();
+        self.with_layout(|layout| {
+            layout.query_resolved_font_style(
+                node.to_trusted_node_address(),
+                &value,
+                document.animations().sets.clone(),
+                document.current_animation_timeline_value(),
+            )
+        })
+        .unwrap()
     }
 
     pub fn content_box_query(&self, node: &Node) -> Option<UntypedRect<Au>> {
-        if !self.layout_reflow(QueryMsg::ContentBoxQuery(node.to_opaque())) {
+        if !self.layout_reflow(QueryMsg::ContentBox) {
             return None;
         }
-        let ContentBoxResponse(rect) = self.layout_rpc().content_box();
-        rect
+        self.with_layout(|layout| layout.query_content_box(node.to_opaque()))
+            .unwrap_or(None)
     }
 
     pub fn content_boxes_query(&self, node: &Node) -> Vec<UntypedRect<Au>> {
-        if !self.layout_reflow(QueryMsg::ContentBoxesQuery(node.to_opaque())) {
+        if !self.layout_reflow(QueryMsg::ContentBoxes) {
             return vec![];
         }
-        let ContentBoxesResponse(rects) = self.layout_rpc().content_boxes();
-        rects
+        self.with_layout(|layout| layout.query_content_boxes(node.to_opaque()))
+            .unwrap_or_default()
     }
 
     pub fn client_rect_query(&self, node: &Node) -> UntypedRect<i32> {
-        if !self.layout_reflow(QueryMsg::ClientRectQuery(node.to_opaque())) {
+        if !self.layout_reflow(QueryMsg::ClientRectQuery) {
             return Rect::zero();
         }
-        self.layout_rpc().node_geometry().client_rect
+        self.with_layout(|layout| layout.query_client_rect(node.to_opaque()))
+            .unwrap_or_default()
     }
 
     /// Find the scroll area of the given node, if it is not None. If the node
     /// is None, find the scroll area of the viewport.
     pub fn scrolling_area_query(&self, node: Option<&Node>) -> UntypedRect<i32> {
         let opaque = node.map(|node| node.to_opaque());
-        if !self.layout_reflow(QueryMsg::ScrollingAreaQuery(opaque)) {
+        if !self.layout_reflow(QueryMsg::ScrollingAreaQuery) {
             return Rect::zero();
         }
-        self.layout_rpc().scrolling_area().client_rect
+        self.with_layout(|layout| layout.query_scrolling_area(opaque))
+            .unwrap_or_default()
     }
 
     pub fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32, LayoutPixel> {
@@ -2106,7 +2105,7 @@ impl Window {
 
     // https://drafts.csswg.org/cssom-view/#element-scrolling-members
     pub fn scroll_node(&self, node: &Node, x_: f64, y_: f64, behavior: ScrollBehavior) {
-        if !self.layout_reflow(QueryMsg::NodeScrollIdQuery(node.to_trusted_node_address())) {
+        if !self.layout_reflow(QueryMsg::NodeScrollIdQuery) {
             return;
         }
 
@@ -2117,7 +2116,9 @@ impl Window {
             .borrow_mut()
             .insert(node.to_opaque(), Vector2D::new(x_ as f32, y_ as f32));
 
-        let NodeScrollIdResponse(scroll_id) = self.layout_rpc().node_scroll_id();
+        let scroll_id = self
+            .with_layout(|layout| layout.query_scroll_id(node.to_trusted_node_address()))
+            .unwrap();
 
         // Step 12
         self.perform_a_scroll(
@@ -2135,32 +2136,45 @@ impl Window {
         pseudo: Option<PseudoElement>,
         property: PropertyId,
     ) -> DOMString {
-        if !self.layout_reflow(QueryMsg::ResolvedStyleQuery(element, pseudo, property)) {
+        if !self.layout_reflow(QueryMsg::ResolvedStyleQuery) {
             return DOMString::new();
         }
-        let ResolvedStyleResponse(resolved) = self.layout_rpc().resolved_style();
-        DOMString::from(resolved)
+
+        let document = self.Document();
+        DOMString::from(
+            self.with_layout(|layout| {
+                layout.query_resolved_style(
+                    element,
+                    pseudo,
+                    property,
+                    document.animations().sets.clone(),
+                    document.current_animation_timeline_value(),
+                )
+            })
+            .unwrap(),
+        )
     }
 
     pub fn inner_window_dimensions_query(
         &self,
         browsing_context: BrowsingContextId,
     ) -> Option<Size2D<f32, CSSPixel>> {
-        if !self.layout_reflow(QueryMsg::InnerWindowDimensionsQuery(browsing_context)) {
+        if !self.layout_reflow(QueryMsg::InnerWindowDimensionsQuery) {
             return None;
         }
-        self.layout_rpc().inner_window_dimensions()
+        self.with_layout(|layout| layout.query_inner_window_dimension(browsing_context))
+            .unwrap()
     }
 
     #[allow(unsafe_code)]
     pub fn offset_parent_query(&self, node: &Node) -> (Option<DomRoot<Element>>, UntypedRect<Au>) {
-        if !self.layout_reflow(QueryMsg::OffsetParentQuery(node.to_opaque())) {
+        if !self.layout_reflow(QueryMsg::OffsetParentQuery) {
             return (None, Rect::zero());
         }
 
-        // FIXME(nox): Layout can reply with a garbage value which doesn't
-        // actually correspond to an element, that's unsound.
-        let response = self.layout_rpc().offset_parent();
+        let response = self
+            .with_layout(|layout| layout.query_offset_parent(node.to_opaque()))
+            .unwrap();
         let element = response.node_address.and_then(|parent_node_address| {
             let node = unsafe { from_untrusted_node_address(parent_node_address) };
             DomRoot::downcast(node)
@@ -2172,11 +2186,12 @@ impl Window {
         &self,
         node: &Node,
         point_in_node: UntypedPoint2D<f32>,
-    ) -> TextIndexResponse {
-        if !self.layout_reflow(QueryMsg::TextIndexQuery(node.to_opaque(), point_in_node)) {
-            return TextIndexResponse(None);
+    ) -> Option<usize> {
+        if !self.layout_reflow(QueryMsg::TextIndexQuery) {
+            return None;
         }
-        self.layout_rpc().text_index()
+        self.with_layout(|layout| layout.query_text_indext(node.to_opaque(), point_in_node))
+            .unwrap()
     }
 
     #[allow(unsafe_code)]
@@ -2299,7 +2314,7 @@ impl Window {
         self.Document().url()
     }
 
-    pub fn with_layout<'a, T>(&self, call: impl FnOnce(&mut dyn Layout) -> T) -> Result<T, ()> {
+    pub fn with_layout<T>(&self, call: impl FnOnce(&mut dyn Layout) -> T) -> Result<T, ()> {
         ScriptThread::with_layout(self.pipeline_id(), call)
     }
 
@@ -2399,9 +2414,7 @@ impl Window {
         reply: IpcSender<Option<TimelineMarker>>,
     ) {
         *self.devtools_marker_sender.borrow_mut() = Some(reply);
-        self.devtools_markers
-            .borrow_mut()
-            .extend(markers.into_iter());
+        self.devtools_markers.borrow_mut().extend(markers);
     }
 
     pub fn drop_devtools_timeline_markers(&self, markers: Vec<TimelineMarkerType>) {
@@ -2507,6 +2520,7 @@ impl Window {
 
 impl Window {
     #[allow(unsafe_code)]
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         runtime: Rc<Runtime>,
         script_chan: MainThreadScriptChan,
@@ -2705,19 +2719,19 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
         ReflowGoal::TickAnimations => "\tTickAnimations",
         ReflowGoal::UpdateScrollNode(_) => "\tUpdateScrollNode",
         ReflowGoal::LayoutQuery(ref query_msg, _) => match *query_msg {
-            QueryMsg::ContentBoxQuery(_n) => "\tContentBoxQuery",
-            QueryMsg::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
-            QueryMsg::NodesFromPointQuery(..) => "\tNodesFromPointQuery",
-            QueryMsg::ClientRectQuery(_n) => "\tClientRectQuery",
-            QueryMsg::ScrollingAreaQuery(_n) => "\tNodeScrollGeometryQuery",
-            QueryMsg::NodeScrollIdQuery(_n) => "\tNodeScrollIdQuery",
-            QueryMsg::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
-            QueryMsg::ResolvedFontStyleQuery(..) => "\nResolvedFontStyleQuery",
-            QueryMsg::OffsetParentQuery(_n) => "\tOffsetParentQuery",
+            QueryMsg::ContentBox => "\tContentBoxQuery",
+            QueryMsg::ContentBoxes => "\tContentBoxesQuery",
+            QueryMsg::NodesFromPointQuery => "\tNodesFromPointQuery",
+            QueryMsg::ClientRectQuery => "\tClientRectQuery",
+            QueryMsg::ScrollingAreaQuery => "\tNodeScrollGeometryQuery",
+            QueryMsg::NodeScrollIdQuery => "\tNodeScrollIdQuery",
+            QueryMsg::ResolvedStyleQuery => "\tResolvedStyleQuery",
+            QueryMsg::ResolvedFontStyleQuery => "\nResolvedFontStyleQuery",
+            QueryMsg::OffsetParentQuery => "\tOffsetParentQuery",
             QueryMsg::StyleQuery => "\tStyleQuery",
-            QueryMsg::TextIndexQuery(..) => "\tTextIndexQuery",
-            QueryMsg::ElementInnerTextQuery(_) => "\tElementInnerTextQuery",
-            QueryMsg::InnerWindowDimensionsQuery(_) => "\tInnerWindowDimensionsQuery",
+            QueryMsg::TextIndexQuery => "\tTextIndexQuery",
+            QueryMsg::ElementInnerTextQuery => "\tElementInnerTextQuery",
+            QueryMsg::InnerWindowDimensionsQuery => "\tInnerWindowDimensionsQuery",
         },
     };
 

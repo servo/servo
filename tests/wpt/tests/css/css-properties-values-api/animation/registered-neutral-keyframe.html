@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@keyframes test {
+  to { --x: to; }
+}
+#target {
+  --x: underlying;
+  animation: test 1s;
+}
+</style>
+<div id="target"></div>
+<script>
+CSS.registerProperty({
+  name: '--x',
+  syntax: '*',
+  inherits: false,
+});
+
+test(() => {
+  target.style.animationDelay = '-0.25s';
+  assert_equals(getComputedStyle(target).getPropertyValue('--x'), 'underlying', 'at 25%');
+
+  target.style.animationDelay = '-0.75s';
+  assert_equals(getComputedStyle(target).getPropertyValue('--x'), 'to', 'at 25%');
+}, 'CSS Animations neutral keyframes on registered custom properties should produce the underlying value');
+</script>

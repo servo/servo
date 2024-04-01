@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Test transparent fenced frame navigations with allowed CSP</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+
+<body>
+<script>
+const allowedCSPs = [
+  "*",
+  "https://*:*",
+  get_host_info().HTTPS_ORIGIN,
+  'https://' + get_host_info().ORIGINAL_HOST + ":*"
+];
+allowedCSPs.forEach((csp) => {
+  promise_test(async() => {
+    const iframe = setupCSP(csp);
+    const key = token();
+
+    await iframe.execute(async (key) => {
+      window.addEventListener('securitypolicyviolation', function(e) {
+        // Write to the server even though the listener is in the same file in
+        // the test below.
+        writeValueToServer(key, e.violatedDirective + ";" + e.blockedURI);
+      }, {once: true});
+
+      const url = generateURL("/fenced-frame/resources/embeddee.html", [key]);
+      attachFencedFrame(url);
+    }, [key]);
+
+    const result = await nextValueFromServer(key);
+    assert_equals(result, "PASS",
+        "The fenced frame should load for CSP fenced-frame-src " + csp);
+  }, "Fenced frame loaded for CSP fenced-frame-src " + csp);
+});
+</script>
+</body>

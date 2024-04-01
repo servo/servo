@@ -5,23 +5,23 @@
 <link rel="help" href="https://drafts.csswg.org/css-viewport/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<head>
-  <style>
-    div {
+<style>
+  div {
     width: 64px;
     height: 64px;
+    line-height: 64px;
+    text-indent: 64px;
     background-color: blue
-    }
-    div.x4_zoom {
+  }
+  div.x4_zoom {
     zoom: 4.0;
     background-color: blueviolet;
-    }
-    div.x2_zoom {
+  }
+  div.x2_zoom {
     background-color: chartreuse;
     zoom: 2.0;
-    }
-
-  </style>
+  }
+</style>
 </head>
 <body>
   <div id="no_zoom"></div>
@@ -29,7 +29,7 @@
   <div class="x2_zoom" id="parent_div">
     <div class="x4_zoom" id="nested_zoom"></div>
   </div>
-  <div class="x2_zoom" id="testing_set_style" style="height: 1px; width: 1px;"></div>
+  <div class="x2_zoom" id="testing_set_style" style="height: 1px; width: 1px; line-height: 1px; text-indent: 1px;"></div>
   <script>
     test(function() {
       assert_true(!!no_zoom, "no zoom target exists");
@@ -37,38 +37,37 @@
       assert_true(!!nested_zoom, "zoom target exists");
       assert_true(!!parent_div, "parent div with zoom exists")
     });
+    function assert_length_props(style, expected) {
+      for (let prop of ["width", "height", "line-height", "text-indent"]) {
+        assert_equals(style.getPropertyValue(prop), expected, prop);
+      }
+    }
     test(function(){
-      noZoomStyle = window.getComputedStyle(no_zoom);
-      assert_equals(noZoomStyle.getPropertyValue("width"), "64px");
-      assert_equals(noZoomStyle.getPropertyValue("height"), "64px");
+      let noZoomStyle = getComputedStyle(no_zoom);
+      assert_length_props(noZoomStyle, "64px");
       assert_equals(noZoomStyle.getPropertyValue("zoom"), "1");
     });
     test(function(){
-      withZoomStyle = window.getComputedStyle(with_zoom);
-      assert_equals(withZoomStyle.getPropertyValue("width"), "64px");
-      assert_equals(withZoomStyle.getPropertyValue("height"), "64px");
+      let withZoomStyle = getComputedStyle(with_zoom);
+      assert_length_props(withZoomStyle, "64px");
       assert_equals(withZoomStyle.getPropertyValue("zoom"), "4");
     });
     test(function(){
-      parentWithZoomStyle = window.getComputedStyle(parent_div);
-      assert_equals(parentWithZoomStyle.getPropertyValue("width"), "64px");
-      assert_equals(parentWithZoomStyle.getPropertyValue("height"), "64px");
+      let parentWithZoomStyle = getComputedStyle(parent_div);
+      assert_length_props(parentWithZoomStyle, "64px");
       assert_equals(parentWithZoomStyle.getPropertyValue("zoom"), "2");
     });
     test(function(){
-      nestedZoomStyle = window.getComputedStyle(nested_zoom);
-      assert_equals(nestedZoomStyle.getPropertyValue("width"), "64px");
-      assert_equals(nestedZoomStyle.getPropertyValue("height"), "64px");
+      nestedZoomStyle = getComputedStyle(nested_zoom);
+      assert_length_props(nestedZoomStyle, "64px");
       assert_equals(nestedZoomStyle.getPropertyValue("zoom"), "4");
     });
     test(function(){
-      testDivStyle = window.getComputedStyle(testing_set_style);
-      assert_equals(testDivStyle.getPropertyValue("width"), "1px");
-      assert_equals(testDivStyle.getPropertyValue("height"), "1px");
+      testDivStyle = getComputedStyle(testing_set_style);
+      assert_length_props(testDivStyle, "1px");
       assert_equals(testDivStyle.getPropertyValue("zoom"), "2");
-      window.testing_set_style.setAttribute("style", "width: 64px; height: 64px;");
-      assert_equals(testDivStyle.getPropertyValue("width"), "64px");
-      assert_equals(testDivStyle.getPropertyValue("height"), "64px");
+      testing_set_style.setAttribute("style", "width: 64px; height: 64px; line-height: 64px; text-indent: 64px;");
+      assert_length_props(testDivStyle, "64px");
       assert_equals(testDivStyle.getPropertyValue("zoom"), "2");
     });
   </script>

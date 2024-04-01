@@ -149,44 +149,6 @@ subsetTestByKey("from-public", promise_test_parallel, t => windowOpenTest(t, {
   expected: NavigationTestResult.SUCCESS,
 }), "public to public: no preflight required.");
 
-subsetTestByKey(
-    'from-public', promise_test_parallel,
-    t => windowOpenTest(t, {
-      source: {server: Server.HTTPS_PUBLIC},
-      target: {
-        server: Server.HTTPS_PUBLIC,
-        behavior: {
-          redirect: preflightUrl({
-            server: Server.HTTPS_PRIVATE,
-            behavior: {
-              preflight: PreflightBehavior.noCorsHeader(token()),
-            }
-          }),
-        }
-      },
-      expected: NavigationTestResult.FAILURE,
-    }),
-    'public to public redirected to private: missing CORS headers.');
-
-subsetTestByKey(
-    'from-public', promise_test_parallel,
-    t => windowOpenTest(t, {
-      source: {server: Server.HTTPS_PUBLIC},
-      target: {
-        server: Server.HTTPS_PUBLIC,
-        behavior: {
-          redirect: preflightUrl({
-            server: Server.HTTPS_PRIVATE,
-            behavior: {
-              preflight: PreflightBehavior.navigation(token()),
-            }
-          }),
-        }
-      },
-      expected: NavigationTestResult.SUCCESS,
-    }),
-    'public to public to private: success.');
-
 // The following tests verify that `CSP: treat-as-public-address` makes
 // documents behave as if they had been served from a public IP address.
 

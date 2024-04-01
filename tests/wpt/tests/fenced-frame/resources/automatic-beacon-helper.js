@@ -92,13 +92,12 @@ async function setupAutomaticBeacon(
 async function verifyBeaconData(
     event_type, event_data, expected_success = true, t) {
   if (expected_success) {
-    const beacon_initiator_origin =
-        await nextAutomaticBeacon(event_type, event_data);
+    const beacon_initiator_origin = await nextBeacon(event_type, event_data);
     assert_equals(beacon_initiator_origin, get_host_info().HTTPS_ORIGIN);
   } else {
     const timeout = new Promise(r => t.step_timeout(r, 1000));
-    const result = await Promise.race(
-        [nextAutomaticBeacon(event_type, event_data), timeout]);
+    const result =
+        await Promise.race([nextBeacon(event_type, event_data), timeout]);
     assert_true(typeof result === 'undefined');
   }
 }

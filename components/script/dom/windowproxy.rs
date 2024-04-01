@@ -831,7 +831,7 @@ fn tokenize_open_features(features: DOMString) -> IndexMap<String, String> {
 fn parse_open_feature_boolean(tokenized_features: &IndexMap<String, String>, name: &str) -> bool {
     if let Some(value) = tokenized_features.get(name) {
         // Step 1 & 2
-        if value == "" || value == "yes" {
+        if value.is_empty() || value == "yes" {
             return true;
         }
         // Step 3 & 4

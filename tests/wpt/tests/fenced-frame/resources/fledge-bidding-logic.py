@@ -17,7 +17,7 @@ def main(request, response):
   # Parse URL params.
   requested_size = request.GET.first(b"requested-size", None)
   ad_with_size = request.GET.first(b"ad-with-size", None)
-  automatic_beacon = request.GET.first(b"automatic-beacon", None)
+  beacon = request.GET.first(b"beacon", None)
 
   # Use URL params to modify Javascript.
   requested_size_check = ''
@@ -53,15 +53,18 @@ def main(request, response):
     )
 
   register_ad_beacon = ''
-  if automatic_beacon is not None:
+  if beacon is not None:
     register_ad_beacon = (
     '''registerAdBeacon({
         'reserved.top_navigation_start':
         browserSignals.interestGroupOwner +
-        '/fenced-frame/resources/automatic-beacon-store.py?type=reserved.top_navigation_start',
+        '/fenced-frame/resources/beacon-store.py?type=reserved.top_navigation_start',
         'reserved.top_navigation_commit':
         browserSignals.interestGroupOwner +
-        '/fenced-frame/resources/automatic-beacon-store.py?type=reserved.top_navigation_commit',
+        '/fenced-frame/resources/beacon-store.py?type=reserved.top_navigation_commit',
+        'click':
+        browserSignals.interestGroupOwner +
+        '/fenced-frame/resources/beacon-store.py?type=click',
       });
     '''
   )

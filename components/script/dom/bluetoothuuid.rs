@@ -523,7 +523,7 @@ const BLUETOOTH_ASSIGNED_CHARCTERISTICS: &[(&str, u32)] = &[
 ];
 
 //https://developer.bluetooth.org/gatt/services/Pages/ServicesHome.aspx
-const BLUETOOTH_ASSIGNED_DESCRIPTORS: &'static [(&str, u32)] = &[
+const BLUETOOTH_ASSIGNED_DESCRIPTORS: &[(&str, u32)] = &[
     (
         "org.bluetooth.descriptor.gatt.characteristic_extended_properties",
         0x2900_u32,

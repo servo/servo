@@ -459,7 +459,7 @@ impl Animations {
     pub(crate) fn send_pending_events(&self, window: &Window) {
         // Take all of the events here, in case sending one of these events
         // triggers adding new events by forcing a layout.
-        let events = std::mem::replace(&mut *self.pending_events.borrow_mut(), Vec::new());
+        let events = std::mem::take(&mut *self.pending_events.borrow_mut());
         if events.is_empty() {
             return;
         }

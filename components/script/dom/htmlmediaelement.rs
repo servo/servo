@@ -1191,8 +1191,7 @@ impl HTMLMediaElement {
     /// `fulfill_in_flight_play_promises`, to actually fulfill the promises
     /// which were taken and moved to the in-flight queue.
     fn take_pending_play_promises(&self, result: ErrorResult) {
-        let pending_play_promises =
-            mem::replace(&mut *self.pending_play_promises.borrow_mut(), vec![]);
+        let pending_play_promises = std::mem::take(&mut *self.pending_play_promises.borrow_mut());
         self.in_flight_play_promises_queue
             .borrow_mut()
             .push_back((pending_play_promises.into(), result));
@@ -1942,10 +1941,12 @@ impl HTMLMediaElement {
     }
 
     pub fn get_current_frame(&self) -> Option<VideoFrame> {
-        match self.video_renderer.lock().unwrap().current_frame_holder {
-            Some(ref holder) => Some(holder.get_frame()),
-            None => None,
-        }
+        self.video_renderer
+            .lock()
+            .unwrap()
+            .current_frame_holder
+            .as_ref()
+            .map(|holder| holder.get_frame())
     }
 
     /// By default the audio is rendered through the audio sink automatically
@@ -2089,15 +2090,14 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-media-srcobject
     fn GetSrcObject(&self) -> Option<MediaStreamOrBlob> {
-        match *self.src_object.borrow() {
-            Some(ref src_object) => Some(match src_object {
+        (*self.src_object.borrow())
+            .as_ref()
+            .map(|src_object| match src_object {
                 SrcObject::Blob(blob) => MediaStreamOrBlob::Blob(DomRoot::from_ref(blob)),
                 SrcObject::MediaStream(stream) => {
                     MediaStreamOrBlob::MediaStream(DomRoot::from_ref(stream))
                 },
-            }),
-            None => None,
-        }
+            })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-srcobject
@@ -2660,10 +2660,10 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
                 let content_length =
                     if let Some(content_range) = headers.typed_get::<ContentRange>() {
                         content_range.bytes_len()
-                    } else if let Some(content_length) = headers.typed_get::<ContentLength>() {
-                        Some(content_length.0)
                     } else {
-                        None
+                        headers
+                            .typed_get::<ContentLength>()
+                            .map(|content_length| content_length.0)
                     };
 
                 // We only set the expected input size if it changes.

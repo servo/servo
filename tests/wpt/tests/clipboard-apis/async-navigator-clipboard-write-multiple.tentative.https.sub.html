@@ -18,8 +18,8 @@
 // Permissions are required in order to invoke navigator.clipboard functions in
 // an automated test.
 async function getPermissions() {
-  await test_driver.set_permission({name: "clipboard-read"}, "granted");
-  await test_driver.set_permission({name: "clipboard-write"}, "granted");
+  await tryGrantReadPermission();
+  await tryGrantWritePermission()
   await waitForUserActivation();
 }
 

@@ -425,7 +425,7 @@ impl PaintWorkletGlobalScope {
 
                 receiver
                     .recv_timeout(Duration::from_millis(timeout))
-                    .map_err(|e| PaintWorkletError::from(e))
+                    .map_err(PaintWorkletError::from)
             }
         }
         Box::new(WorkletPainter {

@@ -5,10 +5,9 @@
   <title>CSS Containment Test: 'contain: style' and counter (with 'display: contents')</title>
 
   <link rel="help" href="https://www.w3.org/TR/css-contain-1/#containment-style">
-  <link rel=help href="https://github.com/w3c/csswg-drafts/issues/7392">
-  <link rel="match" href="reference/contain-style-counters-001-ref.html">
-
-  <meta content="This test checks that when an element has 'contain: style', then counters which may be affecting its subtree are reset to 0 for such scope. In this test, the div#test does not generate a principal box because of 'display: contents'. Despite that particular condition, 'contain: style' will have an effect on div#test." name="assert">
+  <link rel="match" href="reference/contain-style-counters-002-ref.html">
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7392">
+  <meta content="This test checks that when an element has 'contain: style', then counters which may be affecting its subtree are not reset if they don't generate a box, e.g. due to display: contents" name="assert">
 
   <style>
   div#create-counter
@@ -28,14 +27,6 @@
       display: contents;
       font-size: 3em;
     }
-
-    /*
-    Other types of containment (size, layout, paint) have no
-    effect on box that do not generate a principal box which
-    is the case here with div#test because of 'display: contents'.
-    But in this test, 'contain: style' will apply and will
-    have a rendering effect on the counter.
-    */
 
   div#test span
     {
@@ -61,7 +52,7 @@
   </style>
 
 
-  <p>Test passes if there is the digit 5.
+  <p>Test passes if there is the number 14.
 
   <div id="create-counter"></div>
 

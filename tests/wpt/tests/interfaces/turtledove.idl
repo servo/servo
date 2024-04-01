@@ -25,6 +25,7 @@ dictionary GenerateBidInterestGroup {
   boolean enableBiddingSignalsPrioritization = false;
   record<DOMString, double> priorityVector;
 
+  record<USVString, sequence<DOMString>> sellerCapabilities;
   DOMString executionMode = "compatibility";
   USVString biddingLogicURL;
   USVString biddingWasmHelperURL;
@@ -68,28 +69,30 @@ partial interface Navigator {
 dictionary AuctionAdConfig {
   required USVString seller;
   required USVString decisionLogicURL;
+
   USVString trustedScoringSignalsURL;
   long maxTrustedScoringSignalsURLLength;
   sequence<USVString> interestGroupBuyers;
   Promise<any> auctionSignals;
-  record<DOMString, DOMString> requestedSize;
-  sequence<record<DOMString, DOMString>> allSlotsRequestedSizes;
   Promise<any> sellerSignals;
   Promise<DOMString> directFromSellerSignalsHeaderAdSlot;
   Promise<record<USVString, USVString>> deprecatedRenderURLReplacements;
   unsigned long long sellerTimeout;
   unsigned short sellerExperimentGroupId;
-  USVString sellerCurrency;
   Promise<record<USVString, any>> perBuyerSignals;
   Promise<record<USVString, unsigned long long>> perBuyerTimeouts;
   Promise<record<USVString, unsigned long long>> perBuyerCumulativeTimeouts;
+  USVString sellerCurrency;
+  Promise<record<USVString, USVString>> perBuyerCurrencies;
   record<USVString, unsigned short> perBuyerGroupLimits;
   record<USVString, unsigned short> perBuyerExperimentGroupIds;
   record<USVString, record<USVString, double>> perBuyerPrioritySignals;
-  Promise<record<USVString, USVString>> perBuyerCurrencies;
-  sequence<AuctionAdConfig> componentAuctions = [];
+  sequence<DOMString> requiredSellerCapabilities;
+  record<DOMString, DOMString> requestedSize;
+  sequence<record<DOMString, DOMString>> allSlotsRequestedSizes;
   Promise<undefined> additionalBids;
   DOMString auctionNonce;
+  sequence<AuctionAdConfig> componentAuctions = [];
   AbortSignal? signal;
   Promise<boolean> resolveToConfig;
 };

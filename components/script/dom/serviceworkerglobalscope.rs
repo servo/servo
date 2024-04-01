@@ -349,7 +349,7 @@ impl ServiceWorkerGlobalScope {
                 let scope = global.upcast::<WorkerGlobalScope>();
 
                 let referrer = referrer_url
-                    .map(|url| Referrer::ReferrerUrl(url))
+                    .map(Referrer::ReferrerUrl)
                     .unwrap_or_else(|| global.upcast::<GlobalScope>().get_referrer());
 
                 let request = RequestBuilder::new(script_url, referrer)
@@ -480,7 +480,7 @@ impl ServiceWorkerGlobalScope {
 
     fn dispatch_activate(&self) {
         let event = ExtendableEvent::new(self, atom!("activate"), false, false);
-        let event = (&*event).upcast::<Event>();
+        let event = (*event).upcast::<Event>();
         self.upcast::<EventTarget>().dispatch_event(event);
     }
 }
