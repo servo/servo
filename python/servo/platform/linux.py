@@ -146,9 +146,11 @@ class Linux(Base):
             'void',
             'fedora linux asahi remix'
         ]:
-            raise NotImplementedError(f"mach bootstrap does not support {self.distro}."
-                                      " You may be able to install dependencies manually."
-                                      " See https://github.com/servo/servo/wiki/Building.")
+            print(f"mach bootstrap does not support {self.distro}."
+                  " You may be able to install dependencies manually."
+                  " See https://github.com/servo/servo/wiki/Building.")
+            input("Press Enter to continue...")
+            return False
 
         installed_something = self.install_non_gstreamer_dependencies(force)
         return installed_something
