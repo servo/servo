@@ -2119,7 +2119,7 @@ impl HTMLInputElement {
                             )
                     });
 
-                if inputs.nth(1).is_some() {
+                if inputs.skip(1).next().is_some() {
                     // lazily test for > 1 submission-blocking inputs
                     return;
                 }
