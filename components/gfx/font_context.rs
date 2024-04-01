@@ -93,12 +93,20 @@ impl<S: FontSource> FontContext<S> {
     /// Font groups are cached, so subsequent calls with the same `style` will return a reference
     /// to an existing `FontGroup`.
     pub fn font_group(&mut self, style: Arc<FontStyleStruct>) -> Rc<RefCell<FontGroup>> {
+        let font_size = style.font_size.computed_size().into();
+        self.font_group_with_size(style, font_size)
+    }
+
+    /// Like [`Self::font_group`], but overriding the size found in the [`FontStyleStruct`] with the given size
+    /// in pixels.
+    pub fn font_group_with_size(
+        &mut self,
+        style: Arc<FontStyleStruct>,
+        size: Au,
+    ) -> Rc<RefCell<FontGroup>> {
         self.expire_font_caches_if_necessary();
 
-        let cache_key = FontGroupCacheKey {
-            size: Au::from_f32_px(style.font_size.computed_size().px()),
-            style,
-        };
+        let cache_key = FontGroupCacheKey { size, style };
 
         if let Some(font_group) = self.font_group_cache.get(&cache_key) {
             return font_group.clone();

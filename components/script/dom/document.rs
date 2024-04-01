@@ -58,7 +58,7 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::attr::AttrValue;
 use style::context::QuirksMode;
 use style::invalidation::element::restyle_hints::RestyleHint;
-use style::media_queries::{Device, MediaType};
+use style::media_queries::Device;
 use style::selector_parser::Snapshot;
 use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::str::{split_html_space_chars, str_join};
@@ -3476,20 +3476,14 @@ impl Document {
         have_changed
     }
 
-    /// Returns a `Device` suitable for media query evaluation.
+    /// Runs the given closure using the Stylo `Device` suitable for media query evaluation.
     ///
-    /// FIXME(emilio): This really needs to be somehow more in sync with layout.
-    /// Feels like a hack.
-    pub fn device(&self) -> Device {
-        let window_size = self.window().window_size();
-        let viewport_size = window_size.initial_viewport;
-        let device_pixel_ratio = window_size.device_pixel_ratio;
-        Device::new(
-            MediaType::screen(),
-            self.quirks_mode(),
-            viewport_size,
-            device_pixel_ratio,
-        )
+    /// TODO: This can just become a getter when each Layout is more strongly associated with
+    /// its given Document and Window.
+    pub fn with_device<T>(&self, call: impl FnOnce(&Device) -> T) -> T {
+        self.window
+            .with_layout(move |layout| call(layout.device()))
+            .unwrap()
     }
 
     pub fn salvageable(&self) -> bool {

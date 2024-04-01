@@ -1597,11 +1597,10 @@ impl InlineFormattingContext {
 
         // It's unfortunate that it isn't possible to get this during IFC text processing, but in
         // that situation the style of the containing block is unknown.
-        let default_font_metrics =
-            crate::context::with_thread_local_font_context(layout_context, |font_context| {
-                get_font_for_first_font_for_style(style, font_context)
-                    .map(|font| font.borrow().metrics.clone())
-            });
+        let default_font_metrics = layout_context.with_font_context(|font_context| {
+            get_font_for_first_font_for_style(style, font_context)
+                .map(|font| font.borrow().metrics.clone())
+        });
 
         let mut ifc = InlineFormattingContextState {
             positioning_context,
@@ -1725,7 +1724,7 @@ impl InlineFormattingContext {
         // For the purposes of `text-transform: capitalize` the start of the IFC is a word boundary.
         let mut on_word_boundary = true;
 
-        crate::context::with_thread_local_font_context(layout_context, |font_context| {
+        layout_context.with_font_context(|font_context| {
             let mut linebreaker = None;
             self.foreach(|iter_item| match iter_item {
                 InlineFormattingContextIterItem::Item(InlineLevelBox::TextRun(
