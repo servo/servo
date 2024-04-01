@@ -118,8 +118,7 @@ impl FormDataMethods for FormData {
         self.data
             .borrow()
             .iter()
-            .filter(|(datum_name, _)| datum_name.0 == name.0)
-            .next()
+            .find(|(datum_name, _)| datum_name.0 == name.0)
             .map(|(_, datum)| match &datum.value {
                 FormDatumValue::String(ref s) => {
                     FileOrUSVString::USVString(USVString(s.to_string()))
