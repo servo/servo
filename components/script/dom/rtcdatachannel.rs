@@ -72,7 +72,7 @@ impl RTCDataChannel {
                 .expect("Expected data channel id"),
         );
 
-        let channel = RTCDataChannel {
+        RTCDataChannel {
             eventtarget: EventTarget::new_inherited(),
             servo_media_id,
             peer_connection: Dom::from_ref(peer_connection),
@@ -85,9 +85,7 @@ impl RTCDataChannel {
             id: options.id,
             ready_state: Cell::new(RTCDataChannelState::Connecting),
             binary_type: DomRefCell::new(DOMString::from("blob")),
-        };
-
-        channel
+        }
     }
 
     pub fn new(
