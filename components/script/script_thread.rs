@@ -3108,7 +3108,7 @@ impl ScriptThread {
             )
         });
 
-        let opener_browsing_context = opener.and_then(|id| ScriptThread::find_window_proxy(id));
+        let opener_browsing_context = opener.and_then(ScriptThread::find_window_proxy);
 
         let creator = CreatorBrowsingContextInfo::from(
             parent_browsing_context.as_deref(),
@@ -3164,7 +3164,7 @@ impl ScriptThread {
             _ => None,
         };
 
-        let opener_browsing_context = opener.and_then(|id| ScriptThread::find_window_proxy(id));
+        let opener_browsing_context = opener.and_then(ScriptThread::find_window_proxy);
 
         let creator = CreatorBrowsingContextInfo::from(
             parent_browsing_context.as_deref(),
