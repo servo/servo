@@ -170,8 +170,7 @@ impl HTMLLabelElement {
         self.upcast::<Node>()
             .traverse_preorder(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<HTMLElement>)
-            .filter(|elem| elem.is_labelable_element())
-            .next()
+            .find(|elem| elem.is_labelable_element())
     }
 }
 
