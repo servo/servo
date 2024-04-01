@@ -34,8 +34,8 @@ const html_with_script =
 const html_without_script =
   '<title>Title of the document</title> <p>Hello World</p>';
 promise_test(async t => {
-  await test_driver.set_permission({name: 'clipboard-read'}, 'granted');
-  await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+  await tryGrantReadPermission();
+  await tryGrantWritePermission();
   const blobInput = new Blob([html_with_script], {type: 'text/html'});
   const clipboardItem = new ClipboardItem({'text/html': blobInput});
   await waitForUserActivation();

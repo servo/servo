@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Masking: Test clip-path property and shape function with content-box</title>
+  <link rel="help" href="https://drafts.csswg.org/css-shapes-2/#funcdef-shape">
+  <link rel="match" href="reference/clip-path-path-001-ref.html">
+  <meta name="assert" content="The clip-path property takes the basic shape
+	'shape()' for clipping. Test the usage of the reference box. On pass you
+    should see a green square.">
+</head>
+<style>
+  #rect {
+    width: 140px;
+    height: 140px;
+    padding: 10px;
+    border: 10px solid red;
+    box-sizing: border-box;
+    background-color: green;
+    /* The size of the content-box is 100x100. */
+    clip-path: shape(from -10px -10%,
+                     hline by 80px, vline by 80%, hline by -80%, close)
+               content-box;
+  }
+</style>
+<body>
+  <p>The test passes if there are a green filled rect.</p>
+  <div id="rect"></div>
+</body>
+</html>

@@ -11,7 +11,7 @@
 promise_test(async(t) => {
   const fencedframe = await attachFencedFrameContext({
     generator_api: "fledge",
-    automatic_beacon: true,
+    register_beacon: true,
   });
   const new_url = new URL("resources/dummy.html", location.href);
   const beacon_data = "This is the beacon data!";
@@ -31,7 +31,7 @@ promise_test(async(t) => {
 
   const timeout = new Promise(resolve => t.step_timeout(resolve, 1000));
   const result = await Promise.race(
-      [nextAutomaticBeacon(beacon_type, beacon_data), timeout]);
+      [nextBeacon(beacon_type, beacon_data), timeout]);
   assert_true(typeof result === "undefined",
       "A beacon should not have been sent.");
 

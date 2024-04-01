@@ -29,7 +29,7 @@ fedcm_test(async t => {
   const options = alt_request_options_with_mediation_required('manifest_with_continue_on.json');
   await select_manifest(t, options);
   const cred = await fedcm_get_and_select_first_account(t, options);
-  assert_equals(cred.token, "resolved token");
+  assert_equals(cred.token, "account=1234");
 
   const iframe_in_idp_scope = `${alt_manifest_origin}/\
 credential-management/support/fedcm/userinfo-iframe.html`;

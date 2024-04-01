@@ -11,7 +11,7 @@ pytestmark = pytest.mark.asyncio
 
 @pytest.mark.parametrize("navigate", [False, True], ids=["fetch", "navigate"])
 async def test_provide_response_auth_required(
-    setup_blocked_request, subscribe_events, wait_for_event, bidi_session, navigate
+    setup_blocked_request, subscribe_events, wait_for_event, bidi_session, navigate, wait_for_future_safe
 ):
     request = await setup_blocked_request("authRequired", navigate=navigate)
 
@@ -28,13 +28,13 @@ async def test_provide_response_auth_required(
 
     await bidi_session.network.provide_response(request=request)
 
-    await on_auth_required
+    await wait_for_future_safe(on_auth_required)
 
 
 @pytest.mark.parametrize("phase", ["beforeRequestSent", "responseStarted"])
 @pytest.mark.parametrize("navigate", [False, True], ids=["fetch", "navigate"])
 async def test_provide_response_phase(
-    setup_blocked_request, subscribe_events, wait_for_event, bidi_session, phase, navigate
+    setup_blocked_request, subscribe_events, wait_for_event, bidi_session, phase, navigate, wait_for_future_safe
 ):
     request = await setup_blocked_request(phase, navigate=navigate)
 
@@ -58,10 +58,10 @@ async def test_provide_response_phase(
 
     await bidi_session.network.provide_response(request=request)
 
-    await on_response_completed
+    await wait_for_future_safe(on_response_completed)
 
     if phase == "beforeRequestSent":
-        await on_response_started
+        await wait_for_future_safe(on_response_started)
 
     if navigate:
-        await on_load
+        await wait_for_future_safe(on_load)

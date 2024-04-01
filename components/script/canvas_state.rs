@@ -12,7 +12,7 @@ use canvas_traits::canvas::{
     FillRule, LineCapStyle, LineJoinStyle, LinearGradientStyle, RadialGradientStyle,
     RepetitionStyle, TextAlign, TextBaseline,
 };
-use cssparser::{Parser, ParserInput, RgbaLegacy};
+use cssparser::{Parser, ParserInput};
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use euclid::vec2;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
@@ -22,6 +22,7 @@ use pixels::PixelFormat;
 use profile_traits::ipc as profiled_ipc;
 use script_traits::ScriptMsg;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use style::color::parsing::RgbaLegacy;
 use style::color::{AbsoluteColor, ColorSpace};
 use style::context::QuirksMode;
 use style::parser::ParserContext;
@@ -584,7 +585,7 @@ impl CanvasState {
     }
 
     pub fn mark_as_dirty(&self, canvas: Option<&HTMLCanvasElement>) {
-        if let Some(ref canvas) = canvas {
+        if let Some(canvas) = canvas {
             canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         }
     }
@@ -1705,7 +1706,7 @@ pub fn parse_color(canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<R
                 // Whenever "currentColor" is used as a color in the PaintRenderingContext2D API,
                 // it is treated as opaque black.
                 None => AbsoluteColor::BLACK,
-                Some(ref canvas) => {
+                Some(canvas) => {
                     let canvas_element = canvas.upcast::<Element>();
                     match canvas_element.style() {
                         Some(ref s) if canvas_element.has_css_layout_box() => {

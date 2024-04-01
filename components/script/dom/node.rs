@@ -10,7 +10,7 @@ use std::default::Default;
 use std::ops::Range;
 use std::slice::from_ref;
 use std::sync::Arc as StdArc;
-use std::{cmp, iter, mem};
+use std::{cmp, iter};
 
 use app_units::Au;
 use bitflags::bitflags;
@@ -232,12 +232,12 @@ impl Node {
         assert!(new_child.prev_sibling.get().is_none());
         assert!(new_child.next_sibling.get().is_none());
         match before {
-            Some(ref before) => {
+            Some(before) => {
                 assert!(before.parent_node.get().as_deref() == Some(self));
                 let prev_sibling = before.GetPreviousSibling();
                 match prev_sibling {
                     None => {
-                        assert!(self.first_child.get().as_deref() == Some(*before));
+                        assert!(self.first_child.get().as_deref() == Some(before));
                         self.first_child.set(Some(new_child));
                     },
                     Some(ref prev_sibling) => {
@@ -454,7 +454,7 @@ pub struct QuerySelectorIterator {
     iterator: TreeIterator,
 }
 
-impl<'a> QuerySelectorIterator {
+impl QuerySelectorIterator {
     fn new(iter: TreeIterator, selectors: SelectorList<SelectorImpl>) -> QuerySelectorIterator {
         QuerySelectorIterator {
             selectors,
@@ -463,7 +463,7 @@ impl<'a> QuerySelectorIterator {
     }
 }
 
-impl<'a> Iterator for QuerySelectorIterator {
+impl Iterator for QuerySelectorIterator {
     type Item = DomRoot<Node>;
 
     fn next(&mut self) -> Option<DomRoot<Node>> {
@@ -1203,8 +1203,7 @@ impl Node {
                 match last_child.and_then(|node| {
                     node.inclusively_preceding_siblings()
                         .filter_map(DomRoot::downcast::<Element>)
-                        .filter(|elem| is_delete_type(elem))
-                        .next()
+                        .find(|elem| is_delete_type(elem))
                 }) {
                     Some(element) => element,
                     None => return Ok(()),
@@ -1314,10 +1313,10 @@ where
 #[allow(unsafe_code)]
 pub unsafe fn from_untrusted_node_address(candidate: UntrustedNodeAddress) -> DomRoot<Node> {
     // https://github.com/servo/servo/issues/6383
-    let candidate: uintptr_t = mem::transmute(candidate.0);
+    let candidate = candidate.0 as usize;
     //        let object: *mut JSObject = jsfriendapi::bindgen::JS_GetAddressableObject(runtime,
     //                                                                                  candidate);
-    let object: *mut JSObject = mem::transmute(candidate);
+    let object = candidate as *mut JSObject;
     if object.is_null() {
         panic!("Attempted to create a `Dom<Node>` from an invalid pointer!")
     }
@@ -3455,10 +3454,10 @@ impl UniqueId {
     }
 }
 
-impl Into<LayoutNodeType> for NodeTypeId {
+impl From<NodeTypeId> for LayoutNodeType {
     #[inline(always)]
-    fn into(self) -> LayoutNodeType {
-        match self {
+    fn from(node_type: NodeTypeId) -> LayoutNodeType {
+        match node_type {
             NodeTypeId::Element(e) => LayoutNodeType::Element(e.into()),
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => LayoutNodeType::Text,
             x => unreachable!("Layout should not traverse nodes of type {:?}", x),
@@ -3466,10 +3465,10 @@ impl Into<LayoutNodeType> for NodeTypeId {
     }
 }
 
-impl Into<LayoutElementType> for ElementTypeId {
+impl From<ElementTypeId> for LayoutElementType {
     #[inline(always)]
-    fn into(self) -> LayoutElementType {
-        match self {
+    fn from(element_type: ElementTypeId) -> LayoutElementType {
+        match element_type {
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement) => {
                 LayoutElementType::HTMLBodyElement
             },

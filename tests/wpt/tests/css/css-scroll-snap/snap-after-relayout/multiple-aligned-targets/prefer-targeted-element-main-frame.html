@@ -25,7 +25,7 @@
           const response = await fetch(url);
           const text = await response.text();
           if (text) {
-            resolve(text);
+            resolve(JSON.parse(text));
           } else {
             requestAnimationFrame(fetchResultInternal.bind(this, url));
           }
@@ -35,28 +35,17 @@
     }
 
     function runTest() {
-      function test(n) {
-        return promise_test(async (t) => {
-          let key = token();
+      promise_test(async (t) => {
+        let key = token();
 
-          test_driver.bless("Open a URL with a text fragment directive", () => {
-            window.open(`prefer-targeted-element-main-frame-target.html` +
-              `?key=${key}#box${n}`, "_blank", "noopener");
-          });
+        test_driver.bless("Open a URL", () => {
+          window.open(`prefer-targeted-element-main-frame-target.html` +
+            `?key=${key}`, "_blank", "noopener");
+        });
 
-          assert_equals(await fetchResult(key), "PASS");
-        }, `targeted box${n} is selected snap target.`);
-      }
-
-      test(1);
-      test(2);
-      test(3);
-      test(4);
-      test(5);
-      test(6);
-      test(7);
-      test(8);
-      test(9);
+        const result = await fetchResult(key);
+        assert_equals([result.passed, result.errors].join(), "9,");
+      }, "targeted box is selected snap target.");
     }
   </script>
 </body>

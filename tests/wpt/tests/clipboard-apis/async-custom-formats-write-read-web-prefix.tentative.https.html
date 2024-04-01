@@ -12,8 +12,8 @@
 'use strict';
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'clipboard-read'}, 'granted');
-  await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+  await tryGrantReadPermission();
+  await tryGrantWritePermission();
 
   const format1 = 'web text/plain';
   const format2 = 'web text/plain';

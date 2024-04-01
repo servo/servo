@@ -90,8 +90,7 @@ pub enum XMLName {
 /// for details.
 pub fn xml_name_type(name: &str) -> XMLName {
     fn is_valid_start(c: char) -> bool {
-        match c {
-            ':' |
+        matches!(c, ':' |
             'A'..='Z' |
             '_' |
             'a'..='z' |
@@ -106,22 +105,18 @@ pub fn xml_name_type(name: &str) -> XMLName {
             '\u{3001}'..='\u{D7FF}' |
             '\u{F900}'..='\u{FDCF}' |
             '\u{FDF0}'..='\u{FFFD}' |
-            '\u{10000}'..='\u{EFFFF}' => true,
-            _ => false,
-        }
+            '\u{10000}'..='\u{EFFFF}')
     }
 
     fn is_valid_continuation(c: char) -> bool {
         is_valid_start(c) ||
-            match c {
+            matches!(c,
                 '-' |
                 '.' |
                 '0'..='9' |
                 '\u{B7}' |
                 '\u{300}'..='\u{36F}' |
-                '\u{203F}'..='\u{2040}' => true,
-                _ => false,
-            }
+                '\u{203F}'..='\u{2040}')
     }
 
     let mut iter = name.chars();

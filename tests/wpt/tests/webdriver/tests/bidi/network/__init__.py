@@ -349,3 +349,9 @@ BEFORE_REQUEST_SENT_EVENT = "network.beforeRequestSent"
 FETCH_ERROR_EVENT = "network.fetchError"
 RESPONSE_COMPLETED_EVENT = "network.responseCompleted"
 RESPONSE_STARTED_EVENT = "network.responseStarted"
+
+PHASE_TO_EVENT_MAP = {
+    "authRequired": [AUTH_REQUIRED_EVENT, assert_response_event],
+    "beforeRequestSent": [BEFORE_REQUEST_SENT_EVENT, assert_before_request_sent_event],
+    "responseStarted": [RESPONSE_STARTED_EVENT, assert_response_event],
+}

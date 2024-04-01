@@ -26,7 +26,6 @@ use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::{CoreResourceMsg, IpcSend};
 use profile_traits::ipc;
-use script_layout_interface::rpc::TextIndexResponse;
 use script_traits::ScriptToConstellationChan;
 use servo_atoms::Atom;
 use style::attr::AttrValue;
@@ -1881,7 +1880,7 @@ impl HTMLInputElement {
         } else {
             let opt_test_path = match opt_test_paths {
                 Some(paths) => {
-                    if paths.len() == 0 {
+                    if paths.is_empty() {
                         return;
                     } else {
                         Some(paths[0].to_string()) // neglect other paths
@@ -2483,7 +2482,7 @@ impl VirtualMethods for HTMLInputElement {
     }
 
     fn bind_to_tree(&self, context: &BindContext) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.bind_to_tree(context);
         }
         self.upcast::<Element>()
@@ -2537,8 +2536,7 @@ impl VirtualMethods for HTMLInputElement {
                     // now.
                     if let Some(point_in_target) = mouse_event.point_in_target() {
                         let window = window_from_node(self);
-                        let TextIndexResponse(index) =
-                            window.text_index_query(self.upcast::<Node>(), point_in_target);
+                        let index = window.text_index_query(self.upcast::<Node>(), point_in_target);
                         if let Some(i) = index {
                             self.textinput.borrow_mut().set_edit_point_index(i);
                             // trigger redraw
@@ -2620,7 +2618,7 @@ impl VirtualMethods for HTMLInputElement {
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
     ) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.cloning_steps(copy, maybe_doc, clone_children);
         }
         let elem = copy.downcast::<HTMLInputElement>().unwrap();
@@ -2645,7 +2643,7 @@ impl FormControl for HTMLInputElement {
         self.form_owner.set(form);
     }
 
-    fn to_element<'a>(&'a self) -> &'a Element {
+    fn to_element(&self) -> &Element {
         self.upcast::<Element>()
     }
 }

@@ -20,7 +20,6 @@ bitflags = { workspace = true }
 byteorder = { workspace = true }
 canvas_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
-cssparser = { workspace = true }
 euclid = { workspace = true }
 font-kit = "0.11"
 fnv = { workspace = true }

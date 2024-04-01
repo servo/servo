@@ -21,7 +21,6 @@ use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 use std::collections::{hash_map, HashMap, HashSet};
 use std::default::Default;
-use std::ops::Deref;
 use std::option::Option;
 use std::rc::Rc;
 use std::result::Result;
@@ -478,7 +477,7 @@ impl Documents {
             .and_then(|doc| doc.find_iframe(browsing_context_id))
     }
 
-    pub fn iter<'a>(&'a self) -> DocumentsIter<'a> {
+    pub fn iter(&self) -> DocumentsIter<'_> {
         DocumentsIter {
             iter: self.map.iter(),
         }
@@ -3359,8 +3358,7 @@ impl ScriptThread {
 
         let referrer_policy = metadata
             .headers
-            .as_ref()
-            .map(Serde::deref)
+            .as_deref()
             .and_then(|h| h.typed_get::<ReferrerPolicyHeader>())
             .map(ReferrerPolicy::from);
 

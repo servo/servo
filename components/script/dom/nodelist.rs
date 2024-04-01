@@ -138,7 +138,7 @@ impl NodeList {
         }
     }
 
-    pub fn iter<'a>(&'a self) -> impl Iterator<Item = DomRoot<Node>> + 'a {
+    pub fn iter(&self) -> impl Iterator<Item = DomRoot<Node>> + '_ {
         let len = self.Length();
         // There is room for optimization here in non-simple cases,
         // as calling Item repeatedly on a live list can involve redundant work.

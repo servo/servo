@@ -51,6 +51,7 @@ test_invalid_value("clip-path", 'path(evenodd, "")');
 test_invalid_value("clip-path", 'path(abc, "m 20 0 h -100 z")');
 test_invalid_value("clip-path", 'path(nonzero)');
 test_invalid_value("clip-path", 'path("m 20 0 h -100", nonzero)');
+test_invalid_value("clip-path", "path(nonzero, 'M0 0, L100 0, L0 100, L 0 0');");
 
 test_invalid_value("clip-path", "xywh(0px)");
 test_invalid_value("clip-path", "xywh(0px 1%)");

@@ -149,6 +149,53 @@
         if (local_has) {
           message = "Handle should not override window Cache Storage";
         }
+        document.cookie = "partitioned=test; SameSite=None; Secure; Partitioned;";
+        const cache = await handle.caches.open(id);
+        await cache.add("/storage-access-api/resources/get_cookies.py?2");
+        await test_driver.bless("fake user interaction", () => document.requestStorageAccess());
+        await cache.add("/storage-access-api/resources/get_cookies.py?3");
+        let req = await cache.match("/storage-access-api/resources/get_cookies.py?1");
+        let req_json = await req.json();
+        if (!req_json.hasOwnProperty("samesite_strict")) {
+          message = "Top-level cache fetch should have SameSite=Strict cookies.";
+        }
+        if (!req_json.hasOwnProperty("samesite_lax")) {
+          message = "Top-level cache fetch should have SameSite=Lax cookies.";
+        }
+        if (!req_json.hasOwnProperty("samesite_none")) {
+          message = "Top-level cache fetch should have SameSite=None cookies.";
+        }
+        if (req_json.hasOwnProperty("partitioned")) {
+          message = "Top-level cache fetch should not have partitioned cookies.";
+        }
+        req = await cache.match("/storage-access-api/resources/get_cookies.py?2");
+        req_json = await req.json();
+        if (req_json.hasOwnProperty("samesite_strict")) {
+          message = "SAA cache fetch should not have SameSite=Strict cookies.";
+        }
+        if (req_json.hasOwnProperty("samesite_lax")) {
+          message = "SAA cache fetch should not have SameSite=Lax cookies.";
+        }
+        if (req_json.hasOwnProperty("samesite_none")) {
+          message = "SAA cache fetch should not have SameSite=None cookies.";
+        }
+        if (!req_json.hasOwnProperty("partitioned")) {
+          message = "SAA cache fetch should have partitioned cookies.";
+        }
+        req = await cache.match("/storage-access-api/resources/get_cookies.py?3");
+        req_json = await req.json();
+        if (req_json.hasOwnProperty("samesite_strict")) {
+          message = "SAA cache + cookie fetch should not have SameSite=Strict cookies.";
+        }
+        if (req_json.hasOwnProperty("samesite_lax")) {
+          message = "SAA cache + cookie fetch should not have SameSite=Lax cookies.";
+        }
+        if (!req_json.hasOwnProperty("samesite_none")) {
+          message = "SAA cache + cookie fetch should have SameSite=None cookies.";
+        }
+        if (!req_json.hasOwnProperty("partitioned")) {
+          message = "SAA cache + cookie fetch should have partitioned cookies.";
+        }
         await handle.caches.delete(id);
         break;
       }

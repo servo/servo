@@ -184,7 +184,7 @@
       target.setRangeText("foo", 2, 6);
 
       await data.assert_empty_spin();
-      assert_equals(collector.events.length, 2);
+      assert_equals(collector.events.length, 1);
     }, `Calling setRangeText() after select() on ${name}`);
 
     promise_test(async () => {
@@ -196,7 +196,7 @@
       target.setRangeText("", 10, 12);
 
       await data.assert_empty_spin();
-      assert_equals(collector.events.length, 4);
+      assert_equals(collector.events.length, 1);
     }, `Calling setRangeText() repeatedly on ${name}`);
 
     promise_test(async () => {
