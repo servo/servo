@@ -1110,7 +1110,7 @@ impl FetchResponseListener for ModuleContext {
                 } else {
                     return Err(NetworkError::Internal(format!(
                         "Failed to parse MIME type: {}",
-                        content_type.to_string()
+                        content_type
                     )));
                 }
             } else {
