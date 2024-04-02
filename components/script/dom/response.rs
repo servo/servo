@@ -299,7 +299,7 @@ impl ResponseMethods for Response {
         match *self.status.borrow() {
             Some(s) => {
                 let status_num = s.as_u16();
-                status_num >= 200 && status_num <= 299
+                (200..=299).contains(&status_num)
             },
             None => false,
         }

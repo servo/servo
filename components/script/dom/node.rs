@@ -3309,8 +3309,7 @@ impl<'a> ChildrenMutation<'a> {
                 ..
             } => next
                 .inclusively_following_siblings()
-                .filter(|node| node.is::<Element>())
-                .next(),
+                .find(|node| node.is::<Element>()),
             // Add/remove at end of container: Return the last preceding element.
             ChildrenMutation::Append { prev, .. } |
             ChildrenMutation::Replace {
@@ -3319,8 +3318,7 @@ impl<'a> ChildrenMutation<'a> {
                 ..
             } => prev
                 .inclusively_preceding_siblings()
-                .filter(|node| node.is::<Element>())
-                .next(),
+                .find(|node| node.is::<Element>()),
             // Insert or replace in the middle:
             ChildrenMutation::Insert { prev, next, .. } |
             ChildrenMutation::Replace {
@@ -3334,16 +3332,14 @@ impl<'a> ChildrenMutation<'a> {
                 {
                     // Before the first element: Return the first following element.
                     next.inclusively_following_siblings()
-                        .filter(|node| node.is::<Element>())
-                        .next()
+                        .find(|node| node.is::<Element>())
                 } else if next
                     .inclusively_following_siblings()
                     .all(|node| !node.is::<Element>())
                 {
                     // After the last element: Return the last preceding element.
                     prev.inclusively_preceding_siblings()
-                        .filter(|node| node.is::<Element>())
-                        .next()
+                        .find(|node| node.is::<Element>())
                 } else {
                     None
                 }

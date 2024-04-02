@@ -615,7 +615,7 @@ impl ModuleTree {
         }
 
         // Step 2.
-        if !specifier_str.starts_with("/") &&
+        if !specifier_str.starts_with('/') &&
             !specifier_str.starts_with("./") &&
             !specifier_str.starts_with("../")
         {
@@ -1110,7 +1110,7 @@ impl FetchResponseListener for ModuleContext {
                 } else {
                     return Err(NetworkError::Internal(format!(
                         "Failed to parse MIME type: {}",
-                        content_type.to_string()
+                        content_type
                     )));
                 }
             } else {
@@ -1545,6 +1545,7 @@ struct DynamicModule {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-single-module-script>
+#[allow(clippy::too_many_arguments)]
 fn fetch_single_module_script(
     owner: ModuleOwner,
     url: ServoUrl,

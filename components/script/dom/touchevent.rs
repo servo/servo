@@ -63,6 +63,7 @@ impl TouchEvent {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         window: &Window,
         type_: DOMString,

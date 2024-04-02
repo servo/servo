@@ -129,6 +129,7 @@ pub struct WorkerGlobalScope {
 }
 
 impl WorkerGlobalScope {
+    #[allow(clippy::too_many_arguments)]
     pub fn new_inherited(
         init: WorkerGlobalScopeInit,
         worker_name: DOMString,

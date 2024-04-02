@@ -64,6 +64,7 @@ impl StorageEvent {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         global: &Window,
         type_: Atom,
@@ -89,6 +90,7 @@ impl StorageEvent {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
         global: &Window,
         proto: Option<HandleObject>,

@@ -779,13 +779,12 @@ impl XRSessionMethods for XRSession {
                     (!self.is_immersive() || ty != XRReferenceSpaceType::Local)
                 {
                     let s = ty.as_str();
-                    if self
+                    if !self
                         .session
                         .borrow()
                         .granted_features()
                         .iter()
-                        .find(|f| **f == s)
-                        .is_none()
+                        .any(|f| *f == s)
                     {
                         p.reject_error(Error::NotSupported);
                         return p;
@@ -833,13 +832,12 @@ impl XRSessionMethods for XRSession {
     fn RequestHitTestSource(&self, options: &XRHitTestOptionsInit) -> Rc<Promise> {
         let p = Promise::new(&self.global());
 
-        if self
+        if !self
             .session
             .borrow()
             .granted_features()
             .iter()
-            .find(|f| &**f == "hit-test")
-            .is_none()
+            .any(|f| &*f == "hit-test")
         {
             p.reject_error(Error::NotSupported);
             return p;

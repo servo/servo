@@ -597,7 +597,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
         // Step 7-8
         let mut names_vec: Vec<DOMString> = Vec::new();
         for elem in sourced_names_vec.iter() {
-            if names_vec.iter().find(|name| **name == *elem.name).is_none() {
+            if !names_vec.iter().any(|name| *name == *elem.name) {
                 names_vec.push(DOMString::from(&*elem.name));
             }
         }
@@ -654,7 +654,7 @@ impl HTMLFormElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#text/plain-encoding-algorithm
-    fn encode_plaintext(&self, form_data: &mut Vec<FormDatum>) -> String {
+    fn encode_plaintext(&self, form_data: &mut [FormDatum]) -> String {
         // Step 1
         let mut result = String::new();
 

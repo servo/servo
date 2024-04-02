@@ -67,8 +67,7 @@ impl XRFrame {
         self.data
             .sub_images
             .iter()
-            .filter(|sub_images| sub_images.layer_id == layer_id)
-            .next()
+            .find(|sub_images| sub_images.layer_id == layer_id)
     }
 }
 

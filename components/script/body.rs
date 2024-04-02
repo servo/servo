@@ -751,10 +751,7 @@ fn consume_body_with_promise<T: BodyMixin + DomObject>(
     // Step 2.
     let stream = match object.body() {
         Some(stream) => stream,
-        None => {
-            let stream = ReadableStream::new_from_bytes(&global, Vec::with_capacity(0));
-            stream
-        },
+        None => ReadableStream::new_from_bytes(&global, Vec::with_capacity(0)),
     };
 
     // Step 3.
