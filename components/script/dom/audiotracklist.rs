@@ -70,29 +70,24 @@ impl AudioTrackList {
     }
 
     pub fn set_enabled(&self, idx: usize, value: bool) {
-        let track = match self.item(idx) {
-            Some(t) => t,
-            None => return,
-        };
-
-        // If the chosen tracks enabled status is the same as the new status, return early.
+        let track = self.item(idx).unwrap_or_else(|| return);
+    
         if track.enabled() == value {
             return;
         }
-        // Set the tracks enabled status.
+    
         track.set_enabled(value);
-        if let Some(media_element) = self.media_element.as_ref() {
+        if let Some(media_element) = &self.media_element {
             media_element.set_audio_track(idx, value);
         }
-
-        // Queue a task to fire an event named change.
+    
         let global = &self.global();
         let this = Trusted::new(self);
         let (source, canceller) = global
             .as_window()
             .task_manager()
             .media_element_task_source_with_canceller();
-
+    
         let _ = source.queue_with_canceller(
             task!(media_track_change: move || {
                 let this = this.root();
@@ -102,17 +97,16 @@ impl AudioTrackList {
         );
     }
 
+
     pub fn add(&self, track: &AudioTrack) {
         self.tracks.borrow_mut().push(Dom::from_ref(track));
         track.add_track_list(self);
     }
 
     pub fn clear(&self) {
-        self.tracks
-            .borrow()
-            .iter()
-            .for_each(|t| t.remove_track_list());
-        self.tracks.borrow_mut().clear();
+        let mut tracks = self.tracks.borrow_mut();
+        tracks.iter().for_each(|t| t.remove_track_list());
+        tracks.clear();
     }
 }
 
