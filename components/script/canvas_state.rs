@@ -333,6 +333,7 @@ impl CanvasState {
     ///
     /// drawImage coordinates explained
     ///
+    /// ```
     ///  Source Image      Destination Canvas
     /// +-------------+     +-------------+
     /// |             |     |             |
@@ -345,7 +346,7 @@ impl CanvasState {
     /// |     sw      |     |     dw      |
     /// |             |     |             |
     /// +-------------+     +-------------+
-    ///
+    /// ```
     ///
     /// The rectangle (sx, sy, sw, sh) from the source image
     /// is copied on the rectangle (dx, dy, dh, dw) of the destination canvas
