@@ -766,7 +766,7 @@ fn tokenize_open_features(features: DOMString) -> IndexMap<String, String> {
     let mut cur = iter.next();
 
     // Step 3
-    while cur != None {
+    while cur.is_some() {
         // Step 3.1 & 3.2
         let mut name = String::new();
         let mut value = String::new();
