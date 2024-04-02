@@ -254,7 +254,7 @@ pub struct TexImage2DValidator<'a> {
 }
 
 impl<'a> TexImage2DValidator<'a> {
-    // TODO: Move data validation logic here.
+    /// TODO: Move data validation logic here.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         context: &'a WebGLRenderingContext,

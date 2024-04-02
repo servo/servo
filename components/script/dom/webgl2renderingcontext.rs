@@ -453,8 +453,7 @@ impl WebGL2RenderingContext {
         })
     }
 
-    #[allow(unsafe_code)]
-    #[allow(clippy::too_many_arguments)]
+    #[allow(unsafe_code, clippy::too_many_arguments)]
     fn read_pixels_into(
         &self,
         x: i32,

@@ -10,7 +10,6 @@
 #![crate_name = "devtools"]
 #![crate_type = "rlib"]
 #![allow(non_snake_case)]
-#![allow(clippy::too_many_arguments)]
 #![deny(unsafe_code)]
 
 use std::borrow::ToOwned;
@@ -420,6 +419,7 @@ fn run_server(
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn handle_network_event(
         actors: Arc<Mutex<ActorRegistry>>,
         mut connections: Vec<TcpStream>,

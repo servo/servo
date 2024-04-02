@@ -50,6 +50,7 @@ impl CloseEvent {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,

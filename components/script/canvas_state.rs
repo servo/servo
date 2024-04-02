@@ -330,27 +330,28 @@ impl CanvasState {
         pixels
     }
 
-    //
-    // drawImage coordinates explained
-    //
-    //  Source Image      Destination Canvas
-    // +-------------+     +-------------+
-    // |             |     |             |
-    // |(sx,sy)      |     |(dx,dy)      |
-    // |   +----+    |     |   +----+    |
-    // |   |    |    |     |   |    |    |
-    // |   |    |sh  |---->|   |    |dh  |
-    // |   |    |    |     |   |    |    |
-    // |   +----+    |     |   +----+    |
-    // |     sw      |     |     dw      |
-    // |             |     |             |
-    // +-------------+     +-------------+
-    //
-    //
-    // The rectangle (sx, sy, sw, sh) from the source image
-    // is copied on the rectangle (dx, dy, dh, dw) of the destination canvas
-    //
-    // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
+    ///
+    /// drawImage coordinates explained
+    ///
+    /// ```
+    ///  Source Image      Destination Canvas
+    /// +-------------+     +-------------+
+    /// |             |     |             |
+    /// |(sx,sy)      |     |(dx,dy)      |
+    /// |   +----+    |     |   +----+    |
+    /// |   |    |    |     |   |    |    |
+    /// |   |    |sh  |---->|   |    |dh  |
+    /// |   |    |    |     |   |    |    |
+    /// |   +----+    |     |   +----+    |
+    /// |     sw      |     |     dw      |
+    /// |             |     |             |
+    /// +-------------+     +-------------+
+    /// ```
+    ///
+    /// The rectangle (sx, sy, sw, sh) from the source image
+    /// is copied on the rectangle (dx, dy, dh, dw) of the destination canvas
+    ///
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage>
     #[allow(clippy::too_many_arguments)]
     fn draw_image_internal(
         &self,
@@ -594,10 +595,10 @@ impl CanvasState {
         }
     }
 
-    // It is used by DrawImage to calculate the size of the source and destination rectangles based
-    // on the drawImage call arguments
-    // source rectangle = area of the original image to be copied
-    // destination rectangle = area of the destination canvas where the source image is going to be drawn
+    /// It is used by DrawImage to calculate the size of the source and destination rectangles based
+    /// on the drawImage call arguments
+    /// source rectangle = area of the original image to be copied
+    /// destination rectangle = area of the destination canvas where the source image is going to be drawn
     #[allow(clippy::too_many_arguments)]
     fn adjust_source_dest_rects(
         &self,
@@ -844,7 +845,7 @@ impl CanvasState {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-context-2d-createradialgradient
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-createradialgradient>
     #[allow(clippy::too_many_arguments)]
     pub fn create_radial_gradient(
         &self,
@@ -1283,9 +1284,8 @@ impl CanvasState {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
-    #[allow(unsafe_code)]
-    #[allow(clippy::too_many_arguments)]
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata>
+    #[allow(unsafe_code, clippy::too_many_arguments)]
     pub fn put_image_data_(
         &self,
         canvas_size: Size2D<u64>,
@@ -1381,7 +1381,7 @@ impl CanvasState {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage>
     #[allow(clippy::too_many_arguments)]
     pub fn draw_image__(
         &self,
@@ -1653,7 +1653,7 @@ impl CanvasState {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-context-2d-ellipse
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-ellipse>
     #[allow(clippy::too_many_arguments)]
     pub fn ellipse(
         &self,

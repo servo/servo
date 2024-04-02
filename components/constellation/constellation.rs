@@ -84,8 +84,6 @@
 //!
 //! See <https://github.com/servo/servo/issues/14704>
 
-#![allow(clippy::too_many_arguments)]
-
 use std::borrow::{Cow, ToOwned};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -615,6 +613,7 @@ where
     SWF: ServiceWorkerManagerFactory,
 {
     /// Create a new constellation thread.
+    #[allow(clippy::too_many_arguments)]
     pub fn start(
         state: InitialConstellationState,
         layout_factory: Arc<dyn LayoutFactory>,
@@ -941,6 +940,7 @@ where
     }
 
     /// Helper function for creating a pipeline
+    #[allow(clippy::too_many_arguments)]
     fn new_pipeline(
         &mut self,
         pipeline_id: PipelineId,
@@ -1126,6 +1126,7 @@ where
     }
 
     /// Create a new browsing context and update the internal bookkeeping.
+    #[allow(clippy::too_many_arguments)]
     fn new_browsing_context(
         &mut self,
         browsing_context_id: BrowsingContextId,

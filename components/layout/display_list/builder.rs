@@ -8,8 +8,6 @@
 //! list building, as the actual painting does not happen here—only deciding *what* we're going to
 //! paint.
 
-#![allow(clippy::too_many_arguments)]
-
 use std::default::Default;
 use std::sync::Arc;
 use std::{f32, mem};
@@ -1079,6 +1077,7 @@ impl Fragment {
 
     /// Adds the display items necessary to paint the borders of this fragment to a display list if
     /// necessary.
+    #[allow(clippy::too_many_arguments)]
     fn build_display_list_for_borders_if_applicable(
         &self,
         state: &mut DisplayListBuildState,

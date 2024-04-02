@@ -26,6 +26,7 @@ pub struct BluetoothCharacteristicProperties {
 
 #[allow(non_snake_case)]
 impl BluetoothCharacteristicProperties {
+    #[allow(clippy::too_many_arguments)]
     pub fn new_inherited(
         broadcast: bool,
         read: bool,
@@ -51,6 +52,7 @@ impl BluetoothCharacteristicProperties {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         global: &GlobalScope,
         broadcast: bool,
