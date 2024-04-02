@@ -2,10 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
+
+use dom_struct::dom_struct;
+use html5ever::local_name;
+
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::ElementInternalsBinding::ElementInternalsMethods;
-use crate::dom::bindings::codegen::Bindings::ElementInternalsBinding::{ValidityStateFlags, Wrap};
-use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use crate::dom::bindings::codegen::Bindings::ElementInternalsBinding::{
+    ElementInternalsMethods, ValidityStateFlags,
+};
 use crate::dom::bindings::codegen::UnionTypes::FileOrUSVStringOrFormData;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -13,18 +18,13 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::element::Element;
-use crate::dom::event::{EventBubbles, EventCancelable};
-use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlformelement::{FormDatum, FormDatumValue, HTMLFormElement};
 use crate::dom::node::{window_from_node, Node};
 use crate::dom::nodelist::NodeList;
-use crate::dom::validitystate::ValidationFlags;
-use crate::dom::validitystate::ValidityState;
-use std::cell::Cell;
-
-use dom_struct::dom_struct;
+use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
+use crate::dom::validitystate::{ValidationFlags, ValidityState};
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 enum SubmissionValue {
@@ -42,7 +42,7 @@ pub struct ElementInternals {
     // necessary because it might have a form owner.
     attached: Cell<bool>,
     target_element: Dom<HTMLElement>,
-    validity: Cell<ValidationFlags>,
+    validity_state: MutNullableDom<ValidityState>,
     validation_message: DomRefCell<DOMString>,
     custom_validity_error_message: DomRefCell<DOMString>,
     validation_anchor: MutNullableDom<HTMLElement>,
@@ -58,7 +58,7 @@ impl ElementInternals {
             reflector_: Reflector::new(),
             attached: Cell::new(false),
             target_element: Dom::from_ref(element),
-            validity: Cell::new(ValidationFlags::empty()),
+            validity_state: Default::default(),
             validation_message: DomRefCell::new(DOMString::new()),
             custom_validity_error_message: DomRefCell::new(DOMString::new()),
             validation_anchor: MutNullableDom::new(None),
@@ -71,11 +71,7 @@ impl ElementInternals {
 
     pub fn new(element: &HTMLElement) -> DomRoot<ElementInternals> {
         let global = window_from_node(element);
-        reflect_dom_object(
-            Box::new(ElementInternals::new_inherited(element)),
-            &*global,
-            Wrap,
-        )
+        reflect_dom_object(Box::new(ElementInternals::new_inherited(element)), &*global)
     }
 
     fn is_target_form_associated(&self) -> bool {
@@ -112,10 +108,6 @@ impl ElementInternals {
 
     pub fn attached(&self) -> bool {
         self.attached.get()
-    }
-
-    pub fn satisfies_constraints(&self) -> bool {
-        self.validity.get().is_empty()
     }
 
     pub fn perform_entry_construction(&self, entry_list: &mut Vec<FormDatum>) {
@@ -166,7 +158,7 @@ impl ElementInternals {
 }
 
 impl ElementInternalsMethods for ElementInternals {
-    // https://html.spec.whatwg.org/multipage#dom-elementinternals-setformvalue
+    /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-setformvalue>
     fn SetFormValue(
         &self,
         value: Option<FileOrUSVStringOrFormData>,
@@ -189,7 +181,7 @@ impl ElementInternalsMethods for ElementInternals {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage#dom-elementinternals-setvalidity
+    /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-setvalidity>
     fn SetValidity(
         &self,
         flags: &ValidityStateFlags,
@@ -211,7 +203,7 @@ impl ElementInternalsMethods for ElementInternals {
         }
 
         // Step 4
-        self.validity.set(bits);
+        self.validity_state().update_invalid_flags(bits);
 
         // Step 5
         if bits.is_empty() {
@@ -245,29 +237,25 @@ impl ElementInternalsMethods for ElementInternals {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage#dom-elementinternals-validationmessage
+    /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-validationmessage>
     fn GetValidationMessage(&self) -> Fallible<DOMString> {
         // This check isn't in the spec but it's in WPT tests and it maintains
         // consistency with other methods that do specify it
         if !self.is_target_form_associated() {
             return Err(Error::NotSupported);
         }
-
         Ok(self.validation_message.borrow().clone())
     }
 
-    // https://html.spec.whatwg.org/multipage#dom-elementinternals-validity
+    /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-validity>
     fn GetValidity(&self) -> Fallible<DomRoot<ValidityState>> {
         if !self.is_target_form_associated() {
             return Err(Error::NotSupported);
         }
-        Ok(ValidityState::new(
-            &*window_from_node(self.target_element.upcast::<Node>()),
-            self.target_element.upcast(),
-        ))
+        Ok(self.validity_state())
     }
 
-    // https://html.spec.whatwg.org/multipage#dom-elementinternals-labels
+    /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-labels>
     fn GetLabels(&self) -> Fallible<DomRoot<NodeList>> {
         if !self.is_target_form_associated() {
             return Err(Error::NotSupported);
@@ -280,15 +268,15 @@ impl ElementInternalsMethods for ElementInternals {
         }))
     }
 
-    // https://html.spec.whatwg.org/multipage#dom-elementinternals-willvalidate
+    /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-willvalidate>
     fn GetWillValidate(&self) -> Fallible<bool> {
         if !self.is_target_form_associated() {
             return Err(Error::NotSupported);
         }
-        return Ok(!self.target_element.upcast::<Element>().disabled_state());
+        Ok(self.is_instance_validatable())
     }
 
-    // https://html.spec.whatwg.org/multipage#dom-elementinternals-form
+    /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-form>
     fn GetForm(&self) -> Fallible<Option<DomRoot<HTMLFormElement>>> {
         if !self.is_target_form_associated() {
             return Err(Error::NotSupported);
@@ -296,53 +284,20 @@ impl ElementInternalsMethods for ElementInternals {
         Ok(self.form_owner.get())
     }
 
-    // https://html.spec.whatwg.org/multipage#dom-elementinternals-checkvalidity
+    /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-checkvalidity>
     fn CheckValidity(&self) -> Fallible<bool> {
         if !self.is_target_form_associated() {
             return Err(Error::NotSupported);
         }
-        let satisfies_constraints = self.satisfies_constraints();
-        if !satisfies_constraints {
-            // CheckValidity fires a cancelable event but ignores the
-            // canceled status thereof.
-            let _ = self
-                .target_element
-                .upcast::<EventTarget>()
-                .fire_event_with_params(
-                    atom!("invalid"),
-                    EventBubbles::DoesNotBubble,
-                    EventCancelable::Cancelable,
-                );
-            return Ok(false);
-        }
-        Ok(true)
+        Ok(self.check_validity())
     }
 
-    // https://html.spec.whatwg.org/multipage#dom-elementinternals-reportvalidity
+    /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-reportvalidity>
     fn ReportValidity(&self) -> Fallible<bool> {
         if !self.is_target_form_associated() {
             return Err(Error::NotSupported);
         }
-        let satisfies_constraints = self.validity.get().is_empty();
-        if !satisfies_constraints {
-            // ReportValidity fires a cancelable event but ignores the
-            // canceled status thereof.
-            let ev = self
-                .target_element
-                .upcast::<EventTarget>()
-                .fire_event_with_params(
-                    atom!("invalid"),
-                    EventBubbles::DoesNotBubble,
-                    EventCancelable::Cancelable,
-                );
-            if !ev.DefaultPrevented() {
-                // TODO: do whatever other ReportValidity methods do here,
-                // once ReportValidity on form elements generally exists,
-                // and if validation_anchor is set use that as the focal point
-            }
-            return Ok(false);
-        }
-        Ok(true)
+        Ok(self.report_validity())
     }
 }
 
@@ -388,4 +343,29 @@ fn validity_bits(flags: &ValidityStateFlags) -> ValidationFlags {
         bits |= ValidationFlags::CUSTOM_ERROR;
     }
     bits
+}
+
+// Form-associated custom elements also need the Validatable trait.
+impl Validatable for ElementInternals {
+    fn as_element(&self) -> &Element {
+        debug_assert!(self.is_target_form_associated());
+        self.target_element.upcast::<Element>()
+    }
+
+    fn validity_state(&self) -> DomRoot<ValidityState> {
+        self.validity_state.or_init(|| {
+            ValidityState::new(
+                &window_from_node(self.target_element.upcast::<Node>()),
+                self.target_element.upcast(),
+            )
+        })
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#candidate-for-constraint-validation>
+    fn is_instance_validatable(&self) -> bool {
+        if !self.target_element.is_submittable_element() {
+            return false;
+        }
+        !is_barred_by_datalist_ancestor(self.target_element.upcast::<Node>())
+    }
 }

@@ -3580,10 +3580,6 @@ impl Element {
                 let element = self.downcast::<HTMLOutputElement>().unwrap();
                 Some(element as &dyn Validatable)
             },
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLElement)) => {
-                let element = self.downcast::<HTMLElement>().unwrap();
-                Some(element as &dyn Validatable)
-            },
             _ => None,
         };
         element

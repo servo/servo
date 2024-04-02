@@ -18,7 +18,6 @@ use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::{
     EventHandlerNonNull, OnErrorEventHandlerNonNull,
 };
-use crate::dom::bindings::codegen::Bindings::ElementInternalsBinding::ElementInternalsBinding::ElementInternalsMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
@@ -33,22 +32,22 @@ use crate::dom::document::{Document, FocusType};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domstringmap::DOMStringMap;
 use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::elementinternals::ElementInternals;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlbodyelement::HTMLBodyElement;
 use crate::dom::htmlbrelement::HTMLBRElement;
 use crate::dom::htmldetailselement::HTMLDetailsElement;
-use crate::dom::elementinternals::ElementInternals;
 use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::htmlframesetelement::HTMLFrameSetElement;
 use crate::dom::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::htmllabelelement::HTMLLabelElement;
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
-use crate::dom::node::{document_from_node, window_from_node, Node, ShadowIncluding, UnbindContext};
+use crate::dom::node::{
+    document_from_node, window_from_node, BindContext, Node, ShadowIncluding, UnbindContext,
+};
 use crate::dom::text::Text;
-use crate::dom::validation::Validatable;
-use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_thread::ScriptThread;
 
@@ -706,7 +705,7 @@ impl HTMLElement {
     // https://html.spec.whatwg.org/multipage/#form-associated-custom-element
     pub fn is_form_associated_custom_element(&self) -> bool {
         if let Some(dfn) = self.upcast::<Element>().get_custom_element_definition() {
-            dfn.form_associated
+            dfn.is_autonomous() && dfn.form_associated
         } else {
             false
         }
@@ -715,13 +714,26 @@ impl HTMLElement {
     // https://html.spec.whatwg.org/multipage/#category-listed
     pub fn is_listed_element(&self) -> bool {
         match self.upcast::<Node>().type_id() {
-            NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) =>
-            matche type_id {
+            NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) => match type_id {
                 HTMLElementTypeId::HTMLButtonElement |
                 HTMLElementTypeId::HTMLFieldSetElement |
                 HTMLElementTypeId::HTMLInputElement |
                 HTMLElementTypeId::HTMLObjectElement |
                 HTMLElementTypeId::HTMLOutputElement |
+                HTMLElementTypeId::HTMLSelectElement |
+                HTMLElementTypeId::HTMLTextAreaElement => true,
+                _ => self.is_form_associated_custom_element(),
+            },
+            _ => false,
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#category-submit>
+    pub fn is_submittable_element(&self) -> bool {
+        match self.upcast::<Node>().type_id() {
+            NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) => match type_id {
+                HTMLElementTypeId::HTMLButtonElement |
+                HTMLElementTypeId::HTMLInputElement |
                 HTMLElementTypeId::HTMLSelectElement |
                 HTMLElementTypeId::HTMLTextAreaElement => true,
                 _ => self.is_form_associated_custom_element(),
@@ -939,12 +951,12 @@ impl VirtualMethods for HTMLElement {
         if let Some(ref s) = self.super_type() {
             s.bind_to_tree(context);
         }
-        self.update_sequentially_focusable_status();
+        let el = self.upcast::<Element>();
+        el.update_sequentially_focusable_status();
 
         // Binding to a tree can disable a form control if one of the new
         // ancestors is a fieldset.
         if self.is_form_associated_custom_element() {
-            let el = self.upcast::<Element>();
             if el.enabled_state() {
                 el.check_ancestors_disabled_state_for_form_control();
                 if el.disabled_state() {
@@ -1001,7 +1013,7 @@ impl Activatable for HTMLElement {
     }
 
     fn is_instance_activatable(&self) -> bool {
-        self.as_element().local_name() == &local_name!("summary")
+        self.upcast::<Element>().local_name() == &local_name!("summary")
     }
 
     // Basically used to make the HTMLSummaryElement activatable (which has no IDL definition)
@@ -1040,23 +1052,4 @@ impl FormControl for HTMLElement {
     }
 
     // TODO candidate_for_validation, satisfies_constraints traits
-}
-
-// Form-associated custom elements also need the Validatable trait.
-impl Validatable for HTMLElement {
-    // https://html.spec.whatwg.org/multipage/#candidate-for-constraint-validation
-    fn is_instance_validatable(&self) -> bool {
-        debug_assert!(self.is_form_associated_custom_element());
-        self.upcast::<Element>()
-            .ensure_element_internals()
-            .GetWillValidate()
-            .expect("ElementInternals of HTMLElement used as Validatable didn't think it was form-associated!")
-    }
-    // https://html.spec.whatwg.org/multipage/#concept-fv-valid
-    fn validate(&self, _validate_flags: ValidationFlags) -> bool {
-        debug_assert!(self.is_form_associated_custom_element());
-        self.upcast::<Element>()
-            .ensure_element_internals()
-            .satisfies_constraints()
-    }
 }

@@ -27,7 +27,6 @@ use crate::dom::window::Window;
 pub struct ValidationFlags(u32);
 
 bitflags! {
-    #[derive(JSTraceable, MallocSizeOf)]
     impl ValidationFlags: u32 {
         const VALUE_MISSING    = 0b0000000001;
         const TYPE_MISMATCH    = 0b0000000010;
@@ -128,6 +127,10 @@ impl ValidityState {
 
         self.invalid_flags.set(invalid_flags);
         self.update_pseudo_classes();
+    }
+
+    pub fn update_invalid_flags(&self, update_flags: ValidationFlags) {
+        self.invalid_flags.set(update_flags);
     }
 
     pub fn invalid_flags(&self) -> ValidationFlags {

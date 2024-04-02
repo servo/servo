@@ -7,13 +7,13 @@
 interface ElementInternals {
   // Form-associated custom elements
 
-  [Throws] void setFormValue((File or USVString or FormData)? value,
+  [Throws] undefined setFormValue((File or USVString or FormData)? value,
                     optional (File or USVString or FormData)? state);
 
   [Throws] readonly attribute HTMLFormElement? form;
 
   // flags shouldn't be optional here, #25704
-  [Throws] void setValidity(optional ValidityStateFlags flags = {},
+  [Throws] undefined setValidity(optional ValidityStateFlags flags = {},
                    optional DOMString message,
                    optional HTMLElement anchor);
   [Throws] readonly attribute boolean willValidate;

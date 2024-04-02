@@ -1054,6 +1054,7 @@ impl HTMLFormElement {
             .iter()
             .filter_map(|field| {
                 if let Some(el) = field.downcast::<Element>() {
+                    // TODO, should consider of validatable of elementInternals
                     let validatable = match el.as_maybe_validatable() {
                         Some(v) => v,
                         None => return None,
@@ -1061,8 +1062,7 @@ impl HTMLFormElement {
                     validatable
                         .validity_state()
                         .perform_validation_and_update(ValidationFlags::all());
-                    if !validatable.is_instance_validatable() ||
-                        validatable.validity_state().invalid_flags().is_empty()
+                    if !validatable.is_instance_validatable() || validatable.satisfies_constraints()
                     {
                         None
                     } else {

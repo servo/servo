@@ -28,9 +28,14 @@ pub trait Validatable {
         ValidationFlags::empty()
     }
 
+    // https://html.spec.whatwg.org/multipage/#concept-fv-valid
+    fn satisfies_constraints(&self) -> bool {
+        self.validity_state().invalid_flags().is_empty()
+    }
+
     // https://html.spec.whatwg.org/multipage/#check-validity-steps
     fn check_validity(&self) -> bool {
-        if self.is_instance_validatable() && !self.validity_state().invalid_flags().is_empty() {
+        if self.is_instance_validatable() && !self.satisfies_constraints() {
             self.as_element()
                 .upcast::<EventTarget>()
                 .fire_cancelable_event(atom!("invalid"));
@@ -47,8 +52,7 @@ pub trait Validatable {
             return true;
         }
 
-        let flags = self.validity_state().invalid_flags();
-        if flags.is_empty() {
+        if self.satisfies_constraints() {
             return true;
         }
 
@@ -60,6 +64,7 @@ pub trait Validatable {
 
         // Step 1.2.
         if !event.DefaultPrevented() {
+            let flags = self.validity_state().invalid_flags();
             println!(
                 "Validation error: {}",
                 validation_message_for_flags(&self.validity_state(), flags)

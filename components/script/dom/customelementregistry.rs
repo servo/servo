@@ -12,7 +12,7 @@ use html5ever::{namespace_url, ns, LocalName, Namespace, Prefix};
 use js::conversions::ToJSValConvertible;
 use js::glue::UnwrapObjectStatic;
 use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor, JSAutoRealm, JSObject};
-use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
+use js::jsval::{BooleanValue, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{Construct1, JS_GetProperty, SameValue};
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 
@@ -45,7 +45,6 @@ use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::node::{document_from_node, window_from_node, Node, ShadowIncluding};
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
-use js::jsval::BooleanValue;
 use crate::microtask::Microtask;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::JSContext;
@@ -1178,7 +1177,7 @@ impl CustomElementReactionStack {
                 (definition.callbacks.form_associated_callback.clone(), args)
             },
             CallbackReaction::FormDisabled(disabled) => {
-                let cx = element.global().get_cx();
+                let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut disabled_value = BooleanValue(disabled));
                 let args = vec![Heap::default()];
                 args[0].set(disabled_value.get());
