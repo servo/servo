@@ -114,6 +114,7 @@ pub struct GPUDevice {
 }
 
 impl GPUDevice {
+    #[allow(clippy::too_many_arguments)]
     fn new_inherited(
         channel: WebGPU,
         adapter: &GPUAdapter,
@@ -144,6 +145,7 @@ impl GPUDevice {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         global: &GlobalScope,
         channel: WebGPU,

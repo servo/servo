@@ -742,6 +742,7 @@ impl FileListener {
 }
 
 impl GlobalScope {
+    #[allow(clippy::too_many_arguments)]
     pub fn new_inherited(
         pipeline_id: PipelineId,
         devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,

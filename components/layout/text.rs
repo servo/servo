@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Text layout.
-#![allow(clippy::too_many_arguments)]
 
 use std::borrow::ToOwned;
 use std::collections::LinkedList;
@@ -705,6 +704,7 @@ impl RunMapping {
 
     /// Flushes this run mapping to the list. `run_info` describes the text run that we're
     /// currently working on. `text` refers to the text of this fragment.
+    #[allow(clippy::too_many_arguments)]
     fn flush(
         mut self,
         mappings: &mut Vec<RunMapping>,

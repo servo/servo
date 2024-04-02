@@ -237,6 +237,7 @@ impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
 }
 
 impl DedicatedWorkerGlobalScope {
+    #[allow(clippy::too_many_arguments)]
     fn new_inherited(
         init: WorkerGlobalScopeInit,
         worker_name: DOMString,
@@ -274,7 +275,7 @@ impl DedicatedWorkerGlobalScope {
         }
     }
 
-    #[allow(unsafe_code)]
+    #[allow(unsafe_code, clippy::too_many_arguments)]
     pub fn new(
         init: WorkerGlobalScopeInit,
         worker_name: DOMString,
@@ -311,8 +312,8 @@ impl DedicatedWorkerGlobalScope {
         unsafe { DedicatedWorkerGlobalScopeBinding::Wrap(SafeJSContext::from_ptr(cx), scope) }
     }
 
-    #[allow(unsafe_code)]
-    // https://html.spec.whatwg.org/multipage/#run-a-worker
+    /// <https://html.spec.whatwg.org/multipage/#run-a-worker>
+    #[allow(unsafe_code, clippy::too_many_arguments)]
     pub fn run_worker_scope(
         mut init: WorkerGlobalScopeInit,
         worker_url: ServoUrl,

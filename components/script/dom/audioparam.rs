@@ -64,8 +64,7 @@ impl AudioParam {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
-    #[allow(clippy::too_many_arguments)]
+    #[allow(crown::unrooted_must_root, clippy::too_many_arguments)]
     pub fn new(
         window: &Window,
         context: &BaseAudioContext,

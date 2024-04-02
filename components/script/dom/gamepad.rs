@@ -52,6 +52,7 @@ pub struct Gamepad {
 }
 
 impl Gamepad {
+    #[allow(clippy::too_many_arguments)]
     fn new_inherited(
         gamepad_id: u32,
         id: String,

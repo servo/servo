@@ -253,8 +253,7 @@ impl ServiceWorkerGlobalScope {
         }
     }
 
-    #[allow(unsafe_code)]
-    #[allow(clippy::too_many_arguments)]
+    #[allow(unsafe_code, clippy::too_many_arguments)]
     pub fn new(
         init: WorkerGlobalScopeInit,
         worker_url: ServoUrl,
@@ -285,9 +284,8 @@ impl ServiceWorkerGlobalScope {
         unsafe { ServiceWorkerGlobalScopeBinding::Wrap(SafeJSContext::from_ptr(cx), scope) }
     }
 
-    #[allow(unsafe_code)]
-    // https://w3c.github.io/ServiceWorker/#run-service-worker-algorithm
-    #[allow(clippy::too_many_arguments)]
+    /// <https://w3c.github.io/ServiceWorker/#run-service-worker-algorithm>
+    #[allow(unsafe_code, clippy::too_many_arguments)]
     pub fn run_serviceworker_scope(
         scope_things: ScopeThings,
         own_sender: Sender<ServiceWorkerScriptMsg>,

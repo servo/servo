@@ -3060,6 +3060,7 @@ pub enum HasBrowsingContext {
 }
 
 impl Document {
+    #[allow(clippy::too_many_arguments)]
     pub fn new_inherited(
         window: &Window,
         has_browsing_context: HasBrowsingContext,
@@ -3315,6 +3316,7 @@ impl Document {
         ))
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         window: &Window,
         has_browsing_context: HasBrowsingContext,
@@ -3348,6 +3350,7 @@ impl Document {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
