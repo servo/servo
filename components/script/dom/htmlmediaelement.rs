@@ -2903,6 +2903,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             }
         }
 
+        // => "Once the entire media resource has been fetched..."
         if status.is_ok() && self.latest_fetched_content != 0 {
             elem.upcast::<EventTarget>().fire_event(atom!("progress"));
 
