@@ -232,6 +232,7 @@ class Descriptor(DescriptorProvider):
         self.register = desc.get('register', True)
         self.path = desc.get('path', pathDefault)
         self.inRealmMethods = [name for name in desc.get('inRealms', [])]
+        self.ifaceName = ifaceName
         self.bindingPath = f"crate::dom::bindings::codegen::Bindings::{ifaceName}Binding::{ifaceName}_Binding"
         self.outerObjectHook = desc.get('outerObjectHook', 'None')
         self.proxy = False
