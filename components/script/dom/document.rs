@@ -2934,40 +2934,40 @@ pub enum DocumentSource {
 #[allow(unsafe_code)]
 pub trait LayoutDocumentHelpers<'dom> {
     fn is_html_document_for_layout(self) -> bool;
-    unsafe fn needs_paint_from_layout(self);
-    unsafe fn will_paint(self);
+    fn needs_paint_from_layout(self);
+    fn will_paint(self);
     fn quirks_mode(self) -> QuirksMode;
     fn style_shared_lock(self) -> &'dom StyleSharedRwLock;
     fn shadow_roots(self) -> Vec<LayoutDom<'dom, ShadowRoot>>;
     fn shadow_roots_styles_changed(self) -> bool;
-    unsafe fn flush_shadow_roots_stylesheets(self);
+    fn flush_shadow_roots_stylesheets(self);
 }
 
 #[allow(unsafe_code)]
 impl<'dom> LayoutDocumentHelpers<'dom> for LayoutDom<'dom, Document> {
     #[inline]
     fn is_html_document_for_layout(self) -> bool {
-        unsafe { self.unsafe_get().is_html_document }
+        self.unsafe_get().is_html_document
     }
 
     #[inline]
-    unsafe fn needs_paint_from_layout(self) {
+    fn needs_paint_from_layout(self) {
         (self.unsafe_get()).needs_paint.set(true)
     }
 
     #[inline]
-    unsafe fn will_paint(self) {
+    fn will_paint(self) {
         (self.unsafe_get()).needs_paint.set(false)
     }
 
     #[inline]
     fn quirks_mode(self) -> QuirksMode {
-        unsafe { self.unsafe_get().quirks_mode.get() }
+        self.unsafe_get().quirks_mode.get()
     }
 
     #[inline]
     fn style_shared_lock(self) -> &'dom StyleSharedRwLock {
-        unsafe { self.unsafe_get().style_shared_lock() }
+        self.unsafe_get().style_shared_lock()
     }
 
     #[inline]
@@ -2988,11 +2988,11 @@ impl<'dom> LayoutDocumentHelpers<'dom> for LayoutDom<'dom, Document> {
 
     #[inline]
     fn shadow_roots_styles_changed(self) -> bool {
-        unsafe { self.unsafe_get().shadow_roots_styles_changed.get() }
+        self.unsafe_get().shadow_roots_styles_changed.get()
     }
 
     #[inline]
-    unsafe fn flush_shadow_roots_stylesheets(self) {
+    fn flush_shadow_roots_stylesheets(self) {
         (*self.unsafe_get()).flush_shadow_roots_stylesheets()
     }
 }

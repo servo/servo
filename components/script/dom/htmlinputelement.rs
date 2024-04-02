@@ -1000,7 +1000,7 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
     }
 
     fn input_type(self) -> InputType {
-        unsafe { self.unsafe_get().input_type.get() }
+        self.unsafe_get().input_type.get()
     }
 
     fn textinput_sorted_selection_offsets_range(self) -> Range<UTF8Bytes> {
@@ -1054,9 +1054,8 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
         }
     }
 
-    #[allow(unsafe_code)]
     fn size_for_layout(self) -> u32 {
-        unsafe { self.unsafe_get().size.get() }
+        self.unsafe_get().size.get()
     }
 
     fn selection_for_layout(self) -> Option<Range<usize>> {

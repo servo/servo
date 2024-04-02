@@ -641,9 +641,8 @@ pub trait LayoutElementHelpers<'dom> {
 }
 
 impl<'dom> LayoutDom<'dom, Element> {
-    #[allow(unsafe_code)]
     pub(super) fn focus_state(self) -> bool {
-        unsafe { self.unsafe_get().state.get().contains(ElementState::FOCUS) }
+        self.unsafe_get().state.get().contains(ElementState::FOCUS)
     }
 }
 
@@ -1059,12 +1058,11 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
 
     #[allow(unsafe_code)]
     fn local_name(self) -> &'dom LocalName {
-        unsafe { &(self.unsafe_get()).local_name }
+        &(self.unsafe_get()).local_name
     }
 
-    #[allow(unsafe_code)]
     fn namespace(self) -> &'dom Namespace {
-        unsafe { &(self.unsafe_get()).namespace }
+        &(self.unsafe_get()).namespace
     }
 
     fn get_lang_for_layout(self) -> String {
@@ -1091,25 +1089,20 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     }
 
     #[inline]
-    #[allow(unsafe_code)]
     fn get_state_for_layout(self) -> ElementState {
-        unsafe { (self.unsafe_get()).state.get() }
+        (self.unsafe_get()).state.get()
     }
 
     #[inline]
-    #[allow(unsafe_code)]
     fn insert_selector_flags(self, flags: ElementSelectorFlags) {
         debug_assert!(thread_state::get().is_layout());
-        unsafe {
-            let f = &(self.unsafe_get()).selector_flags;
-            f.set(f.get() | flags);
-        }
+        let f = &(self.unsafe_get()).selector_flags;
+        f.set(f.get() | flags);
     }
 
     #[inline]
-    #[allow(unsafe_code)]
     fn get_selector_flags(self) -> ElementSelectorFlags {
-        unsafe { self.unsafe_get().selector_flags.get() }
+        self.unsafe_get().selector_flags.get()
     }
 
     #[inline]

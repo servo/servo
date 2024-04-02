@@ -2482,11 +2482,14 @@ pub trait LayoutHTMLMediaElementHelpers {
 }
 
 impl LayoutHTMLMediaElementHelpers for LayoutDom<'_, HTMLMediaElement> {
-    #[allow(unsafe_code)]
     fn data(self) -> HTMLMediaData {
-        let media = unsafe { self.unsafe_get() };
         HTMLMediaData {
-            current_frame: media.video_renderer.lock().unwrap().current_frame,
+            current_frame: self
+                .unsafe_get()
+                .video_renderer
+                .lock()
+                .unwrap()
+                .current_frame,
         }
     }
 }

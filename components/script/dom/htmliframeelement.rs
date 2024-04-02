@@ -515,15 +515,13 @@ pub trait HTMLIFrameElementLayoutMethods {
 
 impl HTMLIFrameElementLayoutMethods for LayoutDom<'_, HTMLIFrameElement> {
     #[inline]
-    #[allow(unsafe_code)]
     fn pipeline_id(self) -> Option<PipelineId> {
-        unsafe { (self.unsafe_get()).pipeline_id.get() }
+        (self.unsafe_get()).pipeline_id.get()
     }
 
     #[inline]
-    #[allow(unsafe_code)]
     fn browsing_context_id(self) -> Option<BrowsingContextId> {
-        unsafe { (self.unsafe_get()).browsing_context_id.get() }
+        (self.unsafe_get()).browsing_context_id.get()
     }
 
     fn get_width(self) -> LengthOrPercentageOrAuto {

@@ -1344,7 +1344,23 @@ pub trait LayoutNodeHelpers<'dom> {
     fn children_count(self) -> u32;
 
     fn get_style_and_opaque_layout_data(self) -> Option<&'dom StyleAndOpaqueLayoutData>;
+
+    /// Initialize the style and opaque layout data of this node.
+    ///
+    /// # Safety
+    ///
+    /// This method is unsafe because it modifies the given node during
+    /// layout. Callers should ensure that no other layout thread is
+    /// attempting to read or modify the opaque layout data of this node.
     unsafe fn init_style_and_opaque_layout_data(self, data: Box<StyleAndOpaqueLayoutData>);
+
+    /// Unset and return the style and opaque layout data of this node.
+    ///
+    /// # Safety
+    ///
+    /// This method is unsafe because it modifies the given node during
+    /// layout. Callers should ensure that no other layout thread is
+    /// attempting to read or modify the opaque layout data of this node.
     unsafe fn take_style_and_opaque_layout_data(self) -> Box<StyleAndOpaqueLayoutData>;
 
     fn text_content(self) -> Cow<'dom, str>;
@@ -1370,9 +1386,8 @@ impl<'dom> LayoutDom<'dom, Node> {
 
 impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[inline]
-    #[allow(unsafe_code)]
     fn type_id_for_layout(self) -> NodeTypeId {
-        unsafe { self.unsafe_get().type_id() }
+        self.unsafe_get().type_id()
     }
 
     #[inline]
@@ -1461,9 +1476,8 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     }
 
     #[inline]
-    #[allow(unsafe_code)]
     fn children_count(self) -> u32 {
-        unsafe { self.unsafe_get().children_count.get() }
+        self.unsafe_get().children_count.get()
     }
 
     // FIXME(nox): How we handle style and layout data needs to be completely
