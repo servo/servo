@@ -8,7 +8,6 @@ use std::env;
 use std::fs::{create_dir_all, File};
 use std::io::Write;
 use std::iter::once;
-use std::num::NonZeroU32;
 use std::rc::Rc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -27,9 +26,7 @@ use image::{DynamicImage, ImageFormat};
 use ipc_channel::ipc;
 use libc::c_void;
 use log::{debug, error, info, trace, warn};
-use msg::constellation_msg::{
-    PipelineId, PipelineIndex, PipelineNamespaceId, TopLevelBrowsingContextId, WebViewId,
-};
+use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId, WebViewId};
 use net_traits::image::base::Image;
 use net_traits::image_cache::CorsStatus;
 use pixels::PixelFormat;
@@ -78,20 +75,6 @@ enum NotReadyToPaint {
 // Default viewport constraints
 const MAX_ZOOM: f32 = 8.0;
 const MIN_ZOOM: f32 = 0.1;
-
-trait ConvertPipelineIdFromWebRender {
-    #[allow(clippy::wrong_self_convention)]
-    fn from_webrender(&self) -> PipelineId;
-}
-
-impl ConvertPipelineIdFromWebRender for WebRenderPipelineId {
-    fn from_webrender(&self) -> PipelineId {
-        PipelineId {
-            namespace_id: PipelineNamespaceId(self.0),
-            index: PipelineIndex(NonZeroU32::new(self.1).expect("Webrender pipeline zero?")),
-        }
-    }
-}
 
 /// Holds the state when running reftests that determines when it is
 /// safe to save the output image.
@@ -725,7 +708,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     external_scroll_id,
                 ),
             ) => {
-                let pipeline_id = PipelineId::from_webrender(pipeline_id);
+                let pipeline_id = pipeline_id.into();
                 let pipeline_details = match self.pipeline_details.get_mut(&pipeline_id) {
                     Some(details) => details,
                     None => return,
@@ -798,7 +781,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 );
 
                 let pipeline_id = display_list_info.pipeline_id;
-                let details = self.pipeline_details(PipelineId::from_webrender(pipeline_id));
+                let details = self.pipeline_details(pipeline_id.into());
                 details.most_recent_display_list_epoch = Some(display_list_info.epoch);
                 details.hit_test_items = display_list_info.hit_test_info;
                 details.install_new_scroll_tree(display_list_info.scroll_tree);
@@ -1114,7 +1097,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                         spatial_id: zoom_reference_frame,
                         clip_chain_id,
                     },
-                    pipeline_id.to_webrender(),
+                    pipeline_id.into(),
                     true,
                 );
             }
@@ -1480,7 +1463,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             .items
             .iter()
             .filter_map(|item| {
-                let pipeline_id = PipelineId::from_webrender(item.pipeline);
+                let pipeline_id = item.pipeline.into();
                 let details = match self.pipeline_details.get(&pipeline_id) {
                     Some(details) => details,
                     None => return None,
@@ -1949,10 +1932,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 // frame tree.
                 let mut pipeline_epochs = HashMap::new();
                 for id in self.pipeline_details.keys() {
-                    let webrender_pipeline_id = id.to_webrender();
                     if let Some(WebRenderEpoch(epoch)) = self
                         .webrender
-                        .current_epoch(self.webrender_document, webrender_pipeline_id)
+                        .current_epoch(self.webrender_document, id.into())
                     {
                         let epoch = Epoch(epoch);
                         pipeline_epochs.insert(*id, epoch);
@@ -2104,7 +2086,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 // we get the last painted frame id from webrender
                 if let Some(WebRenderEpoch(epoch)) = self
                     .webrender
-                    .current_epoch(self.webrender_document, id.to_webrender())
+                    .current_epoch(self.webrender_document, id.into())
                 {
                     // and check if it is the one layout is expecting,
                     let epoch = Epoch(epoch);

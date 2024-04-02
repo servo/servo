@@ -223,14 +223,14 @@ impl PipelineId {
         })
     }
 
-    pub fn to_webrender(&self) -> WebRenderPipelineId {
-        let PipelineNamespaceId(namespace_id) = self.namespace_id;
-        let PipelineIndex(index) = self.index;
-        WebRenderPipelineId(namespace_id, index.get())
+    pub fn root_scroll_id(&self) -> webrender_api::ExternalScrollId {
+        ExternalScrollId(0, self.into())
     }
+}
 
+impl From<WebRenderPipelineId> for PipelineId {
     #[allow(unsafe_code)]
-    pub fn from_webrender(pipeline: WebRenderPipelineId) -> PipelineId {
+    fn from(pipeline: WebRenderPipelineId) -> Self {
         let WebRenderPipelineId(namespace_id, index) = pipeline;
         unsafe {
             PipelineId {
@@ -239,9 +239,19 @@ impl PipelineId {
             }
         }
     }
+}
 
-    pub fn root_scroll_id(&self) -> webrender_api::ExternalScrollId {
-        ExternalScrollId(0, self.to_webrender())
+impl From<PipelineId> for WebRenderPipelineId {
+    fn from(value: PipelineId) -> Self {
+        let PipelineNamespaceId(namespace_id) = value.namespace_id;
+        let PipelineIndex(index) = value.index;
+        WebRenderPipelineId(namespace_id, index.get())
+    }
+}
+
+impl From<&PipelineId> for WebRenderPipelineId {
+    fn from(value: &PipelineId) -> Self {
+        (*value).into()
     }
 }
 

@@ -291,7 +291,7 @@ impl Fragment {
                             spatial_id: common.spatial_id,
                             clip_chain_id: common.clip_chain_id,
                         },
-                        iframe.pipeline_id.to_webrender(),
+                        iframe.pipeline_id.into(),
                         true,
                     );
                 },

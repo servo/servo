@@ -9,7 +9,6 @@ use app_units::Au;
 use euclid::default::{Point2D, Rect};
 use euclid::{SideOffsets2D, Size2D, Vector2D};
 use log::warn;
-use msg::constellation_msg::PipelineId;
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
@@ -31,7 +30,6 @@ use style::stylist::RuleInclusion;
 use style::traversal::resolve_style;
 use style::values::generics::font::LineHeight;
 use style_traits::{ParsingMode, ToCss};
-use webrender_api::ExternalScrollId;
 
 use crate::fragment_tree::{Fragment, FragmentFlags, FragmentTree, Tag};
 
@@ -69,14 +67,6 @@ pub fn process_node_geometry_request(
     } else {
         Rect::zero()
     }
-}
-
-pub fn process_node_scroll_id_request<'dom>(
-    id: PipelineId,
-    requested_node: impl LayoutNode<'dom>,
-) -> ExternalScrollId {
-    let layout_node = requested_node.to_threadsafe();
-    layout_node.generate_scroll_id(id)
 }
 
 /// <https://drafts.csswg.org/cssom-view/#scrolling-area>

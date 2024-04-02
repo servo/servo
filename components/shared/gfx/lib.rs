@@ -8,7 +8,7 @@
 
 pub mod print_tree;
 
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use malloc_size_of_derive::MallocSizeOf;
 use range::{int_range_index, RangeIndex};
@@ -90,30 +90,30 @@ pub enum FragmentType {
 /// The next ID that will be used for a special scroll root id.
 ///
 /// A special scroll root is a scroll root that is created for generated content.
-static NEXT_SPECIAL_SCROLL_ROOT_ID: AtomicUsize = AtomicUsize::new(0);
+static NEXT_SPECIAL_SCROLL_ROOT_ID: AtomicU64 = AtomicU64::new(0);
 
 /// If none of the bits outside this mask are set, the scroll root is a special scroll root.
 /// Note that we assume that the top 16 bits of the address space are unused on the platform.
-const SPECIAL_SCROLL_ROOT_ID_MASK: usize = 0xffff;
+const SPECIAL_SCROLL_ROOT_ID_MASK: u64 = 0xffff;
 
 /// Returns a new scroll root ID for a scroll root.
-fn next_special_id() -> usize {
+fn next_special_id() -> u64 {
     // We shift this left by 2 to make room for the fragment type ID.
     ((NEXT_SPECIAL_SCROLL_ROOT_ID.fetch_add(1, Ordering::SeqCst) + 1) << 2) &
         SPECIAL_SCROLL_ROOT_ID_MASK
 }
 
-pub fn combine_id_with_fragment_type(id: usize, fragment_type: FragmentType) -> usize {
+pub fn combine_id_with_fragment_type(id: usize, fragment_type: FragmentType) -> u64 {
     debug_assert_eq!(id & (fragment_type as usize), 0);
     if fragment_type == FragmentType::FragmentBody {
-        id
+        id as u64
     } else {
-        next_special_id() | (fragment_type as usize)
+        next_special_id() | (fragment_type as u64)
     }
 }
 
 pub fn node_id_from_scroll_id(id: usize) -> Option<usize> {
-    if (id & !SPECIAL_SCROLL_ROOT_ID_MASK) != 0 {
+    if (id as u64 & !SPECIAL_SCROLL_ROOT_ID_MASK) != 0 {
         return Some(id & !3);
     }
     None

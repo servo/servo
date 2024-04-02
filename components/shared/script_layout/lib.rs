@@ -46,7 +46,7 @@ use style::properties::PropertyId;
 use style::selector_parser::PseudoElement;
 use style::stylesheets::Stylesheet;
 use style_traits::CSSPixel;
-use webrender_api::{ExternalScrollId, ImageKey};
+use webrender_api::ImageKey;
 
 pub type GenericLayoutData = dyn Any + Send + Sync;
 
@@ -235,7 +235,6 @@ pub trait Layout {
         animations: DocumentAnimationSet,
         animation_timeline_value: f64,
     ) -> Option<ServoArc<Font>>;
-    fn query_scroll_id(&self, node: TrustedNodeAddress) -> ExternalScrollId;
     fn query_scrolling_area(&self, node: Option<OpaqueNode>) -> Rect<i32>;
     fn query_text_indext(&self, node: OpaqueNode, point: Point2D<f32>) -> Option<usize>;
 }

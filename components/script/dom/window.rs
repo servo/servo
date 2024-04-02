@@ -26,6 +26,7 @@ use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, PromptDefinition, PromptOrigin, PromptResult};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
+use gfx_traits::combine_id_with_fragment_type;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::conversions::ToJSValConvertible;
@@ -2101,20 +2102,19 @@ impl Window {
 
     // https://drafts.csswg.org/cssom-view/#element-scrolling-members
     pub fn scroll_node(&self, node: &Node, x_: f64, y_: f64, behavior: ScrollBehavior) {
-        if !self.layout_reflow(QueryMsg::NodeScrollIdQuery) {
-            return;
-        }
-
         // The scroll offsets are immediatly updated since later calls
         // to topScroll and others may access the properties before
         // webrender has a chance to update the offsets.
         self.scroll_offsets
             .borrow_mut()
             .insert(node.to_opaque(), Vector2D::new(x_ as f32, y_ as f32));
-
-        let scroll_id = self
-            .with_layout(|layout| layout.query_scroll_id(node.to_trusted_node_address()))
-            .unwrap();
+        let scroll_id = ExternalScrollId(
+            combine_id_with_fragment_type(
+                node.to_opaque().id(),
+                gfx_traits::FragmentType::FragmentBody,
+            ),
+            self.pipeline_id().into(),
+        );
 
         // Step 12
         self.perform_a_scroll(
@@ -2720,7 +2720,6 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
             QueryMsg::NodesFromPointQuery => "\tNodesFromPointQuery",
             QueryMsg::ClientRectQuery => "\tClientRectQuery",
             QueryMsg::ScrollingAreaQuery => "\tNodeScrollGeometryQuery",
-            QueryMsg::NodeScrollIdQuery => "\tNodeScrollIdQuery",
             QueryMsg::ResolvedStyleQuery => "\tResolvedStyleQuery",
             QueryMsg::ResolvedFontStyleQuery => "\nResolvedFontStyleQuery",
             QueryMsg::OffsetParentQuery => "\tOffsetParentQuery",
