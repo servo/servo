@@ -301,6 +301,7 @@ impl WorkletThreadPool {
     /// If all of the threads load successfully, the promise is resolved.
     /// If any of the threads fails to load, the promise is rejected.
     /// <https://drafts.css-houdini.org/worklets/#fetch-and-invoke-a-worklet-script>
+    #[allow(clippy::too_many_arguments)]
     fn fetch_and_invoke_a_worklet_script(
         &self,
         pipeline_id: PipelineId,
@@ -625,6 +626,7 @@ impl WorkletThread {
 
     /// Fetch and invoke a worklet script.
     /// <https://drafts.css-houdini.org/worklets/#fetch-and-invoke-a-worklet-script>
+    #[allow(clippy::too_many_arguments)]
     fn fetch_and_invoke_a_worklet_script(
         &self,
         global_scope: &WorkletGlobalScope,

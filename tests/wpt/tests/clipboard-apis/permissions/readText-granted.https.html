@@ -12,7 +12,7 @@
 'use strict';
 
 promise_test(async () => {
-  await test_driver.set_permission({name: 'clipboard-read'}, 'granted');
+  await tryGrantReadPermission();
   await waitForUserActivation();
   await navigator.clipboard.readText();
 }, 'navigator.clipboard.readText() succeeds when permission granted');

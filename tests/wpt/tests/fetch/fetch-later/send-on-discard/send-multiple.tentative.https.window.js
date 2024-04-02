@@ -1,5 +1,5 @@
 // META: script=/common/utils.js
-// META: script=/pending-beacon/resources/pending_beacon-helper.js
+// META: script=/fetch/fetch-later/resources/fetch-later-helper.js
 // META: timeout=long
 
 'use strict';

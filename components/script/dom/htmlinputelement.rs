@@ -767,7 +767,7 @@ impl HTMLInputElement {
         first_with_id
             .as_ref()
             .and_then(|el| el.downcast::<HTMLDataListElement>())
-            .map(|el| DomRoot::from_ref(el))
+            .map(DomRoot::from_ref)
     }
 
     // https://html.spec.whatwg.org/multipage/#suffering-from-being-missing
@@ -1183,7 +1183,14 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-files
     fn GetFiles(&self) -> Option<DomRoot<FileList>> {
-        self.filelist.get().as_ref().map(|fl| fl.clone())
+        self.filelist.get().as_ref().cloned()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-files>
+    fn SetFiles(&self, files: Option<&FileList>) {
+        if self.input_type() == InputType::File && files.is_some() {
+            self.filelist.set(files);
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-defaultchecked
@@ -2863,7 +2870,7 @@ impl Activatable for HTMLInputElement {
 fn filter_from_accept(s: &DOMString) -> Vec<FilterPattern> {
     let mut filter = vec![];
     for p in split_commas(s) {
-        if let Some('.') = p.chars().nth(0) {
+        if let Some('.') = p.chars().next() {
             filter.push(FilterPattern(p[1..].to_string()));
         } else if let Some(exts) = mime_guess::get_mime_extensions_str(p) {
             for ext in exts {

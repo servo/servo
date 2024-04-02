@@ -1,0 +1,11 @@
+<!doctype html>
+<head>
+<link rel="match" href="cross-shadow-boundary-2-ref.html" />
+</head>
+OuterText
+<div id="host"></div>
+OuterText
+<script>
+  document.getElementById("host").attachShadow({ mode: "open" }).innerHTML = "innerText";
+  getSelection().selectAllChildren(document.body);
+</script>

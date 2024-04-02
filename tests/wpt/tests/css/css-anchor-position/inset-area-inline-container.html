@@ -23,13 +23,15 @@
   }
   .anchored {
     position: absolute;
+    align-self: stretch;
+    justify-self: stretch;
     position-anchor: --anchor;
     background-color: blue;
   }
-  #top-left { inset-area: top / left; }
-  #top-right { inset-area: top / right; }
-  #bottom-left { inset-area: bottom / left; }
-  #bottom-right { inset-area: bottom / right; }
+  #top-left { inset-area: top left; }
+  #top-right { inset-area: top right; }
+  #bottom-left { inset-area: bottom left; }
+  #bottom-right { inset-area: bottom right; }
 </style>
 <div id="in-flow">
   <br>

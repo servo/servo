@@ -877,6 +877,29 @@
         ],
         "type": "float32"
       }
+    },
+    {
+      "name": "add float32 large inputs",
+      "inputs": {
+        "a": {
+          "shape": [6000, 6000],
+          "data": 89.32998288116718,
+          "type": "float32",
+          "constant": true
+        },
+        "b": {
+          "shape": [6000, 6000],
+          "data": 77.24720464493949,
+          "type": "float32",
+          "constant": false
+        }
+      },
+      "expected": {
+        "name": "output",
+        "shape": [6000, 6000],
+        "data": 166.57718752610668,
+        "type": "float32"
+      }
     }
   ]
 }

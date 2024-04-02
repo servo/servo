@@ -1,0 +1,36 @@
+<svg id="svg-root" viewBox="0 0 800 600"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Paint: 'context-fill' for markers with gradient</title>
+    <html:link rel="author"
+          title="Stefan Zager"
+          href="mailto:szager@chromium.org"/>
+    <html:link rel="help"
+          href="https://www.w3.org/TR/SVG2/painting.html#SpecifyingPaint"/>
+    <html:link rel="match"  href="paint-context-006-ref.svg" />
+  </g>
+
+  <defs>
+    <linearGradient id="lg">
+      <stop offset="0" stop-color="red"/>
+      <stop offset="1" stop-color="blue"/>
+    </linearGradient>
+
+    <marker id="inner-marker" refX="50" refY="20" markerWidth="100" markerHeight="50">
+      <rect width="100" height="50" fill="context-fill"/>
+    </marker>
+
+    <marker id="marker" refX="50" refY="340" markerWidth="100" markerHeight="400" orient="0.25turn">
+      <g fill="context-fill">
+        <rect y="40" width="100" height="360"/>
+        <text x="30" y="200" style="font-size:96px" stroke="black" rotate="-45">A</text>
+        <path d="M 50 40 v -20" marker-end="url(#inner-marker)"/>
+      </g>
+    </marker>
+  </defs>
+
+  <path id="test-body-content" fill="url(#lg)"
+        d="M 150 125 h 540 v 400 h -540 Z"
+        marker-start="url(#marker)"/>
+</svg>

@@ -1,3 +1,4 @@
+"""Script invoking the old and the new Canvas test generator."""
 # To use this script:
 # -make a python virtual environment somewhere (it doesn't matter where)
 #   python3 -m venv venv
@@ -9,10 +10,10 @@
 #   python3 gentest.py
 
 from gentestutils import genTestUtils
-from gentestutilsunion import genTestUtils_union
+import gentestutilsunion
 
 genTestUtils('../element', '../element', 'templates.yaml',
              'name2dir-canvas.yaml', False)
 genTestUtils('../offscreen', '../offscreen', 'templates.yaml',
              'name2dir-offscreen.yaml', True)
-genTestUtils_union('name2dir.yaml')
+gentestutilsunion.generate_test_files('name2dir.yaml')

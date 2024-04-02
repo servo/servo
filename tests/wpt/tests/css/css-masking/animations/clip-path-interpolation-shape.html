@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <meta charset="UTF-8">
-<meta charset="UTF-8">
 <title>clip-path-interpolation</title>
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-clip-path">
-<meta name="assert" content="clip-path supports animation">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-2/#interpolating-shape">
+<meta name="assert" content="clip-path supports animation for shape()">
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -149,14 +149,14 @@ test_interpolation({
   {at: -0.3, expect: 'shape(from 2% 2px, arc to 18% -12px of 7px 17px ccw small, arc by 12% -2px of 33px 33px rotate -42deg cw large , arc to 25% 20px of 10px 5px ccw small)'},
   {at: 0, expect: 'shape(from 5% 5px, arc to 15% -15px of 10px 20px, arc by 15% -5px of 30px cw rotate 30deg large, arc to 25% 20px of 10px 5px small)'},
   {at: 0.3, expect: 'shape(from 8% 8px, arc to 12% -18px of 13px 23px ccw small, arc by 18% -8px of 27px 27px rotate 102deg cw large, arc to 25% 20px of 10px 5px ccw small )'},
-  {at: 0.5, expect: 'shape(from 10% 10px, arc to 10% -20px of 15px 25px ccw small, arc by 20% -10px of 25px rotate 150deg cw small, arc to 25% 20px of 10px 5px cw small)'},
+  {at: 0.5, expect: 'shape(from 10% 10px, arc to 10% -20px of 15px 25px ccw small, arc by 20% -10px of 25px rotate 150deg cw large, arc to 25% 20px of 10px 5px cw small)'},
   {at: 1, expect: 'shape(from 15% 15px, arc to 5% -25px of 20px 30px, arc by 25% -15px of 20px rotate 270deg cw small, arc to 25% 20px of 10px 5px cw small)'},
   {at: 1.5, expect: 'shape(from 20% 20px, arc to 0% -30px of 25px 35px ccw small, arc by 30% -20px of 15px rotate 390deg cw small, arc to 25% 20px of 10px 5px cw small)'},
 ]);
 
 test_interpolation({
   property: 'clip-path',
-  from: 'shape(from 5px -5%, hline to 10px, vline by 10rem, hline by 1vh, close, vline by 3pt)',
+  from: 'shape(from 5px -5%, hline to 10px, vline by 10rem, hline by 8.25px, close, vline by 3pt)',
   to: 'shape(from -5px 5px, hline to 20px, vline by 10%, hline by 1em, close, vline by 6pt)',
 }, [
   {at: -0.3, expect: 'shape(from 8px calc(-6.5% - 1.5px), hline to 7px, vline by calc(-3% + 208px), hline by 5.92px, close, vline by 2.8px)'},

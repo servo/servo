@@ -3,36 +3,49 @@
 // (https://github.com/w3c/webref)
 // Source: HTML Sanitizer API (https://wicg.github.io/sanitizer-api/)
 
-[
-  Exposed=(Window),
-  SecureContext
-] interface Sanitizer {
-  constructor(optional SanitizerConfig config = {});
-
-  DocumentFragment sanitize((Document or DocumentFragment) input);
-  Element? sanitizeFor(DOMString element, DOMString input);
-
-  SanitizerConfig getConfiguration();
-  static SanitizerConfig getDefaultConfiguration();
-};
-
-dictionary SetHTMLOptions {
-  Sanitizer sanitizer;
-};
-[SecureContext]
 partial interface Element {
-  undefined setHTML(DOMString input, optional SetHTMLOptions options = {});
+  [CEReactions] undefined setHTMLUnsafe__TO_BE_MERGED(DOMString html, optional SanitizerConfig config = {});
+  [CEReactions] undefined setHTML(DOMString html, optional SanitizerConfig config = {});
 };
+
+partial interface ShadowRoot {
+  [CEReactions] undefined setHTMLUnsafe__TO_BE_MERGED(DOMString html, optional SanitizerConfig config = {});
+  [CEReactions] undefined setHTML(DOMString html, optional SanitizerConfig config = {});
+};
+
+partial interface Document {
+  static Document parseHTMLUnsafe__TO_BE_MERGED(DOMString html, optional SanitizerConfig config = {});
+  static Document parseHTML(DOMString html, optional SanitizerConfig config = {});
+};
+
+dictionary SanitizerElementNamespace {
+  required DOMString name;
+  DOMString? _namespace = "http://www.w3.org/1999/xhtml";
+};
+
+// Used by "elements"
+dictionary SanitizerElementNamespaceWithAttributes : SanitizerElementNamespace {
+  sequence<SanitizerAttribute> attributes;
+  sequence<SanitizerAttribute> removeAttributes;
+};
+
+typedef (DOMString or SanitizerElementNamespace) SanitizerElement;
+typedef (DOMString or SanitizerElementNamespaceWithAttributes) SanitizerElementWithAttributes;
+
+dictionary SanitizerAttributeNamespace {
+  required DOMString name;
+  DOMString? _namespace = null;
+};
+typedef (DOMString or SanitizerAttributeNamespace) SanitizerAttribute;
 
 dictionary SanitizerConfig {
-  sequence<DOMString> allowElements;
-  sequence<DOMString> blockElements;
-  sequence<DOMString> dropElements;
-  AttributeMatchList allowAttributes;
-  AttributeMatchList dropAttributes;
-  boolean allowCustomElements;
-  boolean allowUnknownMarkup;
-  boolean allowComments;
-};
+  sequence<SanitizerElementWithAttributes> elements;
+  sequence<SanitizerElement> removeElements;
+  sequence<SanitizerElement> replaceWithChildrenElements;
 
-typedef record<DOMString, sequence<DOMString>> AttributeMatchList;
+  sequence<SanitizerAttribute> attributes;
+  sequence<SanitizerAttribute> removeAttributes;
+
+  boolean comments;
+  boolean dataAttributes;
+};

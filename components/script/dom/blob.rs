@@ -309,11 +309,10 @@ impl BlobMethods for Blob {
 /// see <https://github.com/w3c/FileAPI/issues/43>
 pub fn normalize_type_string(s: &str) -> String {
     if is_ascii_printable(s) {
-        let s_lower = s.to_ascii_lowercase();
+        s.to_ascii_lowercase()
         // match s_lower.parse() as Result<Mime, ()> {
         // Ok(_) => s_lower,
         // Err(_) => "".to_string()
-        s_lower
     } else {
         "".to_string()
     }
@@ -322,5 +321,5 @@ pub fn normalize_type_string(s: &str) -> String {
 fn is_ascii_printable(string: &str) -> bool {
     // Step 5.1 in Sec 5.1 of File API spec
     // <https://w3c.github.io/FileAPI/#constructorBlob>
-    string.chars().all(|c| c >= '\x20' && c <= '\x7E')
+    string.chars().all(|c| ('\x20'..='\x7E').contains(&c))
 }

@@ -24,7 +24,7 @@
     @assert ctx.{{ state_name }} == default_value;
 
   variants:
-    letter_spacing:
+  - letter_spacing:
       state_name: letterSpacing
       new_value: "'12px'"
 

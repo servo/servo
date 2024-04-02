@@ -12,7 +12,7 @@ use canvas_traits::canvas::{
     FillRule, LineCapStyle, LineJoinStyle, LinearGradientStyle, RadialGradientStyle,
     RepetitionStyle, TextAlign, TextBaseline,
 };
-use cssparser::{Parser, ParserInput, RgbaLegacy};
+use cssparser::{Parser, ParserInput};
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use euclid::vec2;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
@@ -22,6 +22,7 @@ use pixels::PixelFormat;
 use profile_traits::ipc as profiled_ipc;
 use script_traits::ScriptMsg;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use style::color::parsing::RgbaLegacy;
 use style::color::{AbsoluteColor, ColorSpace};
 use style::context::QuirksMode;
 use style::parser::ParserContext;
@@ -350,6 +351,7 @@ impl CanvasState {
     // is copied on the rectangle (dx, dy, dh, dw) of the destination canvas
     //
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
+    #[allow(clippy::too_many_arguments)]
     fn draw_image_internal(
         &self,
         htmlcanvas: Option<&HTMLCanvasElement>,
@@ -424,6 +426,7 @@ impl CanvasState {
         result
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn draw_offscreen_canvas(
         &self,
         canvas: &OffscreenCanvas,
@@ -478,6 +481,7 @@ impl CanvasState {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn draw_html_canvas_element(
         &self,
         canvas: &HTMLCanvasElement,             // source canvas
@@ -538,6 +542,7 @@ impl CanvasState {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn fetch_and_draw_image_data(
         &self,
         canvas: Option<&HTMLCanvasElement>,
@@ -593,6 +598,7 @@ impl CanvasState {
     // on the drawImage call arguments
     // source rectangle = area of the original image to be copied
     // destination rectangle = area of the destination canvas where the source image is going to be drawn
+    #[allow(clippy::too_many_arguments)]
     fn adjust_source_dest_rects(
         &self,
         image_size: Size2D<f64>,
@@ -839,6 +845,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createradialgradient
+    #[allow(clippy::too_many_arguments)]
     pub fn create_radial_gradient(
         &self,
         global: &GlobalScope,
@@ -952,7 +959,7 @@ impl CanvasState {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalalpha
     pub fn set_global_alpha(&self, alpha: f64) {
-        if !alpha.is_finite() || alpha > 1.0 || alpha < 0.0 {
+        if !alpha.is_finite() || !(0.0..=1.0).contains(&alpha) {
             return;
         }
 
@@ -1206,7 +1213,7 @@ impl CanvasState {
         if sw == 0 || sh == 0 {
             return Err(Error::IndexSize);
         }
-        ImageData::new(global, sw.abs() as u32, sh.abs() as u32, None)
+        ImageData::new(global, sw.unsigned_abs(), sh.unsigned_abs(), None)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
@@ -1278,6 +1285,7 @@ impl CanvasState {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     #[allow(unsafe_code)]
+    #[allow(clippy::too_many_arguments)]
     pub fn put_image_data_(
         &self,
         canvas_size: Size2D<u64>,
@@ -1374,6 +1382,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
+    #[allow(clippy::too_many_arguments)]
     pub fn draw_image__(
         &self,
         canvas: Option<&HTMLCanvasElement>,
@@ -1645,6 +1654,7 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-ellipse
+    #[allow(clippy::too_many_arguments)]
     pub fn ellipse(
         &self,
         x: f64,

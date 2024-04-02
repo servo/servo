@@ -109,7 +109,7 @@ impl XRRenderState {
         if let Some(base_layer) = self.base_layer.get() {
             match sub_images.len() {
                 // For inline sessions, there may be a base layer, but it won't have a framebuffer
-                0 => base_layer.layer_id() == None,
+                0 => base_layer.layer_id().is_none(),
                 // For immersive sessions, the base layer will have a framebuffer,
                 // so we make sure the layer id's match up
                 1 => base_layer.layer_id() == Some(sub_images[0].layer_id),

@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <link rel="help" href="https://www.w3.org/TR/1999/REC-xpath-19991116/#function-lang">
-<link rel="help" href="https://www.w3.org/TR/xpath-functions-31/#func-lang">
 <body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -35,13 +34,7 @@ testFirstChild('lang("ja")', '<root xml:lang="ja"><match/></root>');
 // equal to the argument ignoring that suffix of the attribute value
 testFirstChild('lang("ja")', '<root xml:lang="ja-jp"><unmatch xml:lang="ja_JP"/></root>');
 
-// U+212A should match to ASCII 'k'.
-// XPath 1.0 says:
-// ... such that the attribute value is equal to the argument ignoring that suffix
-// of the attribute value and ignoring case.
-// XPath 3.1 says:
-// ... true if and only if, based on a caseless default match as specified in
-// section 3.13 of The Unicode Standard,
-testFirstChild('lang("ko")', '<root><match xml:lang="&#x212A;o"/></root>');
+// XPath 3.1 is not to be followed as per: https://github.com/whatwg/dom/issues/1199
+testFirstChild('lang("ko")', '<root><unmatch xml:lang="&#x212A;o"/></root>');
 </script>
 </body>

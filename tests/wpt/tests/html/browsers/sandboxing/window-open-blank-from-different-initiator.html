@@ -68,8 +68,7 @@ const runTest = (description, createNewPopup) => {
 // Open a new window and start loading from an unresponsive server. The frame
 // will be left with the initial empty document and a pending navigation.
 runTest("One pending navigation", async (test, popup_name) => {
-  const unresponsive_path =
-    "/fetch/api/resources/infinite-slow-response.py";
+  const unresponsive_path = "/common/slow.py?delay=1000000";
   return window.open(same_origin + unresponsive_path, popup_name);
 });
 

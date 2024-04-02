@@ -12,7 +12,7 @@
 'use strict';
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'clipboard-read'}, 'granted');
+  await tryGrantReadPermission();
 
   await waitForUserActivation();
   await promise_rejects_dom(t, 'NotAllowedError',
@@ -20,7 +20,7 @@ promise_test(async t => {
 }, 'navigator.clipboard.read() fails for multiple unsanitized formats requested.');
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'clipboard-read'}, 'granted');
+  await tryGrantReadPermission();
 
   await waitForUserActivation();
   await promise_rejects_dom(t, 'NotAllowedError',
@@ -28,7 +28,7 @@ promise_test(async t => {
 }, 'navigator.clipboard.read() fails for unsanitized text/plain requested.');
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'clipboard-read'}, 'granted');
+  await tryGrantReadPermission();
 
   await waitForUserActivation();
   await promise_rejects_dom(t, 'NotAllowedError',
@@ -36,7 +36,7 @@ promise_test(async t => {
 }, 'navigator.clipboard.read() fails for unsanitized image/png requested.');
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'clipboard-read'}, 'granted');
+  await tryGrantReadPermission();
 
   await waitForUserActivation();
   await promise_rejects_dom(t, 'NotAllowedError',

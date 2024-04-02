@@ -106,13 +106,13 @@ impl VertexArrayObject {
             .get_mut(index as usize)
             .ok_or(WebGLError::InvalidValue)?;
 
-        if size < 1 || size > 4 {
+        if !(1..=4).contains(&size) {
             return Err(WebGLError::InvalidValue);
         }
 
         // https://www.khronos.org/registry/webgl/specs/latest/1.0/#BUFFER_OFFSET_AND_STRIDE
         // https://www.khronos.org/registry/webgl/specs/latest/1.0/#VERTEX_STRIDE
-        if stride < 0 || stride > 255 || offset < 0 {
+        if !(0..=255).contains(&stride) || offset < 0 {
             return Err(WebGLError::InvalidValue);
         }
 

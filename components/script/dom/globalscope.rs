@@ -2771,7 +2771,7 @@ impl GlobalScope {
             return p;
         }
 
-        let promise = match image {
+        match image {
             ImageBitmapSource::HTMLCanvasElement(ref canvas) => {
                 // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
                 if !canvas.is_valid() {
@@ -2815,8 +2815,7 @@ impl GlobalScope {
                 p.reject_error(Error::NotSupported);
                 return p;
             },
-        };
-        promise
+        }
     }
 
     pub fn fire_timer(&self, handle: TimerEventId) {

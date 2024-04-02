@@ -17,7 +17,8 @@ promise_test(async t => {
     const scriptElement = document.createElement("script");
     scriptElement.src = scriptLocation;
     document.body.appendChild(scriptElement);
-  }, script => script.invoker === "StreamPromise.resolve.then", t);
+  }, script => {
+     return script.invoker === "Promise.resolve" }, t);
 
   assert_true(script.sourceURL.includes("stream-promise-generates-loaf.js"));
 }, "Source location should be extracted for stream promises");

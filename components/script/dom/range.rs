@@ -296,11 +296,11 @@ impl Range {
     }
 
     fn start(&self) -> &BoundaryPoint {
-        &self.abstract_range().start()
+        self.abstract_range().start()
     }
 
     fn end(&self) -> &BoundaryPoint {
-        &self.abstract_range().end()
+        self.abstract_range().end()
     }
 
     pub fn start_container(&self) -> DomRoot<Node> {

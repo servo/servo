@@ -44,6 +44,7 @@ impl WheelEvent {
         reflect_dom_object_with_proto(Box::new(WheelEvent::new_inherited()), window, proto)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         window: &Window,
         type_: DOMString,
@@ -62,6 +63,7 @@ impl WheelEvent {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,

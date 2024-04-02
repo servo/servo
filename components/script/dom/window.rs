@@ -1909,11 +1909,7 @@ impl Window {
 
             let mut images = self.pending_layout_images.borrow_mut();
             let nodes = images.entry(id).or_default();
-            if nodes
-                .iter()
-                .find(|n| &***n as *const _ == &*node as *const _)
-                .is_none()
-            {
+            if !nodes.iter().any(|n| &**n as *const _ == &*node as *const _) {
                 let (responder, responder_listener) =
                     ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
                 let image_cache_chan = self.image_cache_chan.clone();
@@ -2314,7 +2310,7 @@ impl Window {
         self.Document().url()
     }
 
-    pub fn with_layout<'a, T>(&self, call: impl FnOnce(&mut dyn Layout) -> T) -> Result<T, ()> {
+    pub fn with_layout<T>(&self, call: impl FnOnce(&mut dyn Layout) -> T) -> Result<T, ()> {
         ScriptThread::with_layout(self.pipeline_id(), call)
     }
 
@@ -2414,9 +2410,7 @@ impl Window {
         reply: IpcSender<Option<TimelineMarker>>,
     ) {
         *self.devtools_marker_sender.borrow_mut() = Some(reply);
-        self.devtools_markers
-            .borrow_mut()
-            .extend(markers.into_iter());
+        self.devtools_markers.borrow_mut().extend(markers);
     }
 
     pub fn drop_devtools_timeline_markers(&self, markers: Vec<TimelineMarkerType>) {
@@ -2522,6 +2516,7 @@ impl Window {
 
 impl Window {
     #[allow(unsafe_code)]
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         runtime: Rc<Runtime>,
         script_chan: MainThreadScriptChan,

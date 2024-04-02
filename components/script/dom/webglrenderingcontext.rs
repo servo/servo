@@ -747,6 +747,7 @@ impl WebGLRenderingContext {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn tex_image_2d(
         &self,
         texture: &WebGLTexture,
@@ -834,6 +835,7 @@ impl WebGLRenderingContext {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn tex_sub_image_2d(
         &self,
         texture: DomRoot<WebGLTexture>,
@@ -1575,6 +1577,7 @@ impl WebGLRenderingContext {
         constants::COLOR_ATTACHMENT0 <= attachment && attachment <= last_slot
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn compressed_tex_image_2d(
         &self,
         target: u32,
@@ -1642,6 +1645,7 @@ impl WebGLRenderingContext {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn compressed_tex_sub_image_2d(
         &self,
         target: u32,

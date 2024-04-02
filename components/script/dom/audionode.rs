@@ -258,7 +258,7 @@ impl AudioNodeMethods for AudioNode {
             EventTargetTypeId::AudioNode(AudioNodeTypeId::AudioDestinationNode) => {
                 if self.context.is_offline() {
                     return Err(Error::InvalidState);
-                } else if value < 1 || value > MAX_CHANNEL_COUNT {
+                } else if !(1..=MAX_CHANNEL_COUNT).contains(&value) {
                     return Err(Error::IndexSize);
                 }
             },
