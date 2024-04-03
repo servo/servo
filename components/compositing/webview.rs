@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
+use std::time::Instant;
 
 use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId, WebViewId};
 use webrender_api::units::DeviceRect;
@@ -21,6 +22,31 @@ pub struct WebViewManager<WebView> {
 
     /// The order to paint them in, topmost last.
     painting_order: Vec<TopLevelBrowsingContextId>,
+
+    #[cfg(debug_assertions)]
+    crash_log: CrashLog,
+}
+
+#[derive(Debug, Default)]
+struct CrashLog(VecDeque<(Instant, Operation)>);
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Operation {
+    Add(WebViewId),
+    Remove(WebViewId),
+    Show(WebViewId),
+    Hide(WebViewId),
+    HideAll,
+    RaiseToTop(WebViewId),
+}
+
+impl CrashLog {
+    fn push(&mut self, operation: Operation) {
+        self.0.push_back((Instant::now(), operation));
+        while self.0.len() > 100 {
+            self.0.pop_front();
+        }
+    }
 }
 
 impl<WebView> WebViewManager<WebView> {
@@ -29,7 +55,13 @@ impl<WebView> WebViewManager<WebView> {
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         webview: WebView,
     ) {
-        debug_assert!(!self.webviews.contains_key(&top_level_browsing_context_id));
+        self.crash_log
+            .push(Operation::Add(top_level_browsing_context_id));
+        debug_assert!(
+            !self.webviews.contains_key(&top_level_browsing_context_id),
+            "{:?}",
+            self.crash_log
+        );
         self.webviews.insert(top_level_browsing_context_id, webview);
     }
 
@@ -37,6 +69,8 @@ impl<WebView> WebViewManager<WebView> {
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
     ) -> Option<WebView> {
+        self.crash_log
+            .push(Operation::Remove(top_level_browsing_context_id));
         self.painting_order
             .retain(|b| *b != top_level_browsing_context_id);
         self.webviews.remove(&top_level_browsing_context_id)
@@ -58,7 +92,16 @@ impl<WebView> WebViewManager<WebView> {
 
     /// Returns true iff the painting order actually changed.
     pub fn show(&mut self, webview_id: WebViewId) -> bool {
-        debug_assert!(self.webviews.contains_key(&webview_id));
+        self.crash_log.push(Operation::Show(webview_id));
+        self.show_without_crash_logging(webview_id)
+    }
+
+    fn show_without_crash_logging(&mut self, webview_id: WebViewId) -> bool {
+        debug_assert!(
+            self.webviews.contains_key(&webview_id),
+            "{:?}",
+            self.crash_log
+        );
         if !self.painting_order.contains(&webview_id) {
             self.painting_order.push(webview_id);
             return true;
@@ -68,7 +111,16 @@ impl<WebView> WebViewManager<WebView> {
 
     /// Returns true iff the painting order actually changed.
     pub fn hide(&mut self, webview_id: WebViewId) -> bool {
-        debug_assert!(self.webviews.contains_key(&webview_id));
+        self.crash_log.push(Operation::Hide(webview_id));
+        self.hide_without_crash_logging(webview_id)
+    }
+
+    fn hide_without_crash_logging(&mut self, webview_id: WebViewId) -> bool {
+        debug_assert!(
+            self.webviews.contains_key(&webview_id),
+            "{:?}",
+            self.crash_log
+        );
         if self.painting_order.contains(&webview_id) {
             self.painting_order.retain(|b| *b != webview_id);
             return true;
@@ -78,6 +130,7 @@ impl<WebView> WebViewManager<WebView> {
 
     /// Returns true iff the painting order actually changed.
     pub fn hide_all(&mut self) -> bool {
+        self.crash_log.push(Operation::HideAll);
         if !self.painting_order.is_empty() {
             self.painting_order.clear();
             return true;
@@ -87,9 +140,10 @@ impl<WebView> WebViewManager<WebView> {
 
     /// Returns true iff the painting order actually changed.
     pub fn raise_to_top(&mut self, webview_id: WebViewId) -> bool {
+        self.crash_log.push(Operation::RaiseToTop(webview_id));
         if self.painting_order.last() != Some(&webview_id) {
-            self.hide(webview_id);
-            self.show(webview_id);
+            self.hide_without_crash_logging(webview_id);
+            self.show_without_crash_logging(webview_id);
             return true;
         }
         false
