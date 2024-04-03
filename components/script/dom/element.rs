@@ -3955,7 +3955,7 @@ pub(crate) fn referrer_policy_for_element(element: &Element) -> Option<ReferrerP
 }
 
 pub(crate) fn cors_setting_for_element(element: &Element) -> Option<CorsSettings> {
-    reflect_cross_origin_attribute(element).map_or(None, |attr| match &*attr {
+    reflect_cross_origin_attribute(element).and_then(|attr| match &*attr {
         "anonymous" => Some(CorsSettings::Anonymous),
         "use-credentials" => Some(CorsSettings::UseCredentials),
         _ => unreachable!(),
