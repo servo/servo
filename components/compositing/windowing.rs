@@ -242,13 +242,13 @@ pub struct EmbedderCoordinates {
 impl EmbedderCoordinates {
     /// Get the unflipped viewport rectangle for use with the WebRender API.
     pub fn get_viewport(&self) -> DeviceIntRect {
-        self.viewport.clone()
+        self.viewport
     }
 
     /// Flip the given rect.
     /// This should be used when drawing directly to the framebuffer with OpenGL commands.
     pub fn flip_rect(&self, rect: &DeviceIntRect) -> DeviceIntRect {
-        let mut result = rect.clone();
+        let mut result = *rect;
         result.min.y = self.framebuffer.height - result.min.y - result.size().height;
         result
     }
