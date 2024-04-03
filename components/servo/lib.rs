@@ -30,6 +30,7 @@ use bluetooth_traits::BluetoothRequest;
 use canvas::canvas_paint_thread::{self, CanvasPaintThread};
 use canvas::WebGLComm;
 use canvas_traits::webgl::WebGLThreads;
+use compositing::webview::UnknownWebView;
 use compositing::windowing::{EmbedderEvent, EmbedderMethods, WindowMethods};
 use compositing::{CompositeTarget, IOCompositor, InitialCompositorState, ShutdownState};
 use compositing_traits::{
@@ -765,14 +766,24 @@ where
                 self.compositor.move_resize_webview(webview_id, rect);
             },
             EmbedderEvent::ShowWebView(webview_id, hide_others) => {
-                self.compositor.show_webview(webview_id, hide_others);
+                if let Err(UnknownWebView(webview_id)) =
+                    self.compositor.show_webview(webview_id, hide_others)
+                {
+                    warn!("{webview_id}: ShowWebView on unknown webview id");
+                }
             },
             EmbedderEvent::HideWebView(webview_id) => {
-                self.compositor.hide_webview(webview_id);
+                if let Err(UnknownWebView(webview_id)) = self.compositor.hide_webview(webview_id) {
+                    warn!("{webview_id}: HideWebView on unknown webview id");
+                }
             },
             EmbedderEvent::RaiseWebViewToTop(webview_id, hide_others) => {
-                self.compositor
-                    .raise_webview_to_top(webview_id, hide_others);
+                if let Err(UnknownWebView(webview_id)) = self
+                    .compositor
+                    .raise_webview_to_top(webview_id, hide_others)
+                {
+                    warn!("{webview_id}: RaiseWebViewToTop on unknown webview id");
+                }
             },
             EmbedderEvent::BlurWebView => {
                 self.send_to_constellation(ConstellationMsg::BlurWebView);

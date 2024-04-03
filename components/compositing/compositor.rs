@@ -57,7 +57,7 @@ use webrender_api::{
 
 use crate::gl::RenderTargetInfo;
 use crate::touch::{TouchAction, TouchHandler};
-use crate::webview::{WebView, WebViewManager};
+use crate::webview::{UnknownWebView, WebView, WebViewAlreadyExists, WebViewManager};
 use crate::windowing::{
     self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods,
 };
@@ -377,14 +377,18 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     ) -> Self {
         let embedder_coordinates = window.get_coordinates();
         let mut webviews = WebViewManager::default();
-        webviews.add(
-            top_level_browsing_context_id,
-            WebView {
-                pipeline_id: None,
-                rect: embedder_coordinates.get_viewport().to_f32(),
-            },
-        );
-        webviews.show(top_level_browsing_context_id);
+        webviews
+            .add(
+                top_level_browsing_context_id,
+                WebView {
+                    pipeline_id: None,
+                    rect: embedder_coordinates.get_viewport().to_f32(),
+                },
+            )
+            .expect("Infallible with a new WebViewManager");
+        webviews
+            .show(top_level_browsing_context_id)
+            .expect("Infallible due to add");
 
         IOCompositor {
             embedder_coordinates: window.get_coordinates(),
@@ -569,15 +573,24 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             CompositorMsg::ShowWebView(webview_id, hide_others) => {
-                self.show_webview(webview_id, hide_others);
+                if let Err(UnknownWebView(webview_id)) = self.show_webview(webview_id, hide_others)
+                {
+                    warn!("{webview_id}: ShowWebView on unknown webview id");
+                }
             },
 
             CompositorMsg::HideWebView(webview_id) => {
-                self.hide_webview(webview_id);
+                if let Err(UnknownWebView(webview_id)) = self.hide_webview(webview_id) {
+                    warn!("{webview_id}: HideWebView on unknown webview id");
+                }
             },
 
             CompositorMsg::RaiseWebViewToTop(webview_id, hide_others) => {
-                self.raise_webview_to_top(webview_id, hide_others);
+                if let Err(UnknownWebView(webview_id)) =
+                    self.raise_webview_to_top(webview_id, hide_others)
+                {
+                    warn!("{webview_id}: RaiseWebViewToTop on unknown webview id");
+                }
             },
 
             CompositorMsg::TouchEventProcessed(result) => {
@@ -1147,13 +1160,16 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 "{:?}: Creating new webview with pipeline {:?}",
                 top_level_browsing_context_id, pipeline_id
             );
-            self.webviews.add(
+            if let Err(WebViewAlreadyExists(webview_id)) = self.webviews.add(
                 top_level_browsing_context_id,
                 WebView {
                     pipeline_id,
                     rect: self.embedder_coordinates.get_viewport().to_f32(),
                 },
-            );
+            ) {
+                error!("{webview_id}: Creating webview that already exists");
+                return;
+            }
         }
 
         self.send_root_pipeline_display_list();
@@ -1165,7 +1181,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
     fn remove_webview(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
         debug!("{}: Removing", top_level_browsing_context_id);
-        let Some(webview) = self.webviews.remove(top_level_browsing_context_id) else {
+        let Ok(webview) = self.webviews.remove(top_level_browsing_context_id) else {
+            warn!("{top_level_browsing_context_id}: Removing unknown webview");
             return;
         };
 
@@ -1178,7 +1195,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     }
 
     pub fn move_resize_webview(&mut self, webview_id: TopLevelBrowsingContextId, rect: DeviceRect) {
-        trace!("move_resize_webview {webview_id} rect={rect:?}");
+        debug!("{webview_id}: Moving and/or resizing webview; rect={rect:?}");
         let rect_changed;
         let size_changed;
         match self.webviews.get_mut(webview_id) {
@@ -1188,10 +1205,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 webview.rect = rect;
             },
             None => {
-                warn!(
-                    "{}: MoveResizeWebView on unknown top-level browsing context",
-                    webview_id
-                );
+                warn!("{webview_id}: MoveResizeWebView on unknown webview id");
                 return;
             },
         };
@@ -1205,8 +1219,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
     }
 
-    pub fn show_webview(&mut self, webview_id: WebViewId, hide_others: bool) {
-        trace!("show_webview {webview_id} hide_others={hide_others}");
+    pub fn show_webview(
+        &mut self,
+        webview_id: WebViewId,
+        hide_others: bool,
+    ) -> Result<(), UnknownWebView> {
+        debug!("{webview_id}: Showing webview; hide_others={hide_others}");
         let painting_order_changed = if hide_others {
             let result = self
                 .webviews
@@ -1214,25 +1232,31 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 .map(|(&id, _)| id)
                 .ne(once(webview_id));
             self.webviews.hide_all();
-            self.webviews.show(webview_id);
+            self.webviews.show(webview_id)?;
             result
         } else {
-            self.webviews.show(webview_id)
+            self.webviews.show(webview_id)?
         };
         if painting_order_changed {
             self.send_root_pipeline_display_list();
         }
+        Ok(())
     }
 
-    pub fn hide_webview(&mut self, webview_id: WebViewId) {
-        trace!("hide_webview {webview_id}");
-        if self.webviews.hide(webview_id) {
+    pub fn hide_webview(&mut self, webview_id: WebViewId) -> Result<(), UnknownWebView> {
+        debug!("{webview_id}: Hiding webview");
+        if self.webviews.hide(webview_id)? {
             self.send_root_pipeline_display_list();
         }
+        Ok(())
     }
 
-    pub fn raise_webview_to_top(&mut self, webview_id: WebViewId, hide_others: bool) {
-        trace!("raise_webview_to_top {webview_id} hide_others={hide_others}");
+    pub fn raise_webview_to_top(
+        &mut self,
+        webview_id: WebViewId,
+        hide_others: bool,
+    ) -> Result<(), UnknownWebView> {
+        debug!("{webview_id}: Raising webview to top; hide_others={hide_others}");
         let painting_order_changed = if hide_others {
             let result = self
                 .webviews
@@ -1240,14 +1264,15 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 .map(|(&id, _)| id)
                 .ne(once(webview_id));
             self.webviews.hide_all();
-            self.webviews.raise_to_top(webview_id);
+            self.webviews.raise_to_top(webview_id)?;
             result
         } else {
-            self.webviews.raise_to_top(webview_id)
+            self.webviews.raise_to_top(webview_id)?
         };
         if painting_order_changed {
             self.send_root_pipeline_display_list();
         }
+        Ok(())
     }
 
     fn send_window_size_message_for_top_level_browser_context(
