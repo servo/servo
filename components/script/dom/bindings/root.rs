@@ -757,7 +757,7 @@ where
 {
     /// Returns a reference to the interior of this JS object. The fact
     /// that this is unsafe is what necessitates the layout wrappers.
-    pub unsafe fn unsafe_get(self) -> &'dom T {
+    pub fn unsafe_get(self) -> &'dom T {
         assert_in_layout();
         self.value
     }

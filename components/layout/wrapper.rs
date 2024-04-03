@@ -140,7 +140,7 @@ where
         // We need the underlying node to potentially access the parent in the
         // case of text nodes. This is safe as long as we don't let the parent
         // escape and never access its descendants.
-        let mut node = unsafe { self.unsafe_get() };
+        let mut node = self.unsafe_get();
 
         // If this is a text node, use the parent element, since that's what
         // controls our style.

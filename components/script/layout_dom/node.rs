@@ -207,21 +207,17 @@ impl<'dom, LayoutDataType: LayoutDataTrait> LayoutNode<'dom>
     }
 
     unsafe fn initialize_data(&self) {
-        if self.get_style_and_opaque_layout_data().is_none() {
-            let opaque = StyleAndOpaqueLayoutData::new(
-                StyleData::default(),
-                AtomicRefCell::new(LayoutDataType::default()),
-            );
-            self.init_style_and_opaque_layout_data(opaque);
-        };
-    }
+        if self.get_style_and_opaque_layout_data().is_some() {
+            return;
+        }
 
-    unsafe fn init_style_and_opaque_layout_data(&self, data: Box<StyleAndOpaqueLayoutData>) {
-        self.get_jsmanaged().init_style_and_opaque_layout_data(data);
-    }
+        let opaque = StyleAndOpaqueLayoutData::new(
+            StyleData::default(),
+            AtomicRefCell::new(LayoutDataType::default()),
+        );
 
-    unsafe fn take_style_and_opaque_layout_data(&self) -> Box<StyleAndOpaqueLayoutData> {
-        self.get_jsmanaged().take_style_and_opaque_layout_data()
+        self.get_jsmanaged()
+            .init_style_and_opaque_layout_data(opaque);
     }
 
     fn is_connected(&self) -> bool {
@@ -402,7 +398,7 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ThreadSafeLayoutNode<'dom>
         }
     }
 
-    unsafe fn unsafe_get(self) -> Self::ConcreteNode {
+    fn unsafe_get(self) -> Self::ConcreteNode {
         self.node
     }
 

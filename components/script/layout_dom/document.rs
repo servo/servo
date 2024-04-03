@@ -64,11 +64,11 @@ impl<'ld, LayoutDataType: LayoutDataTrait> ServoLayoutDocument<'ld, LayoutDataTy
     }
 
     pub fn needs_paint_from_layout(&self) {
-        unsafe { self.document.needs_paint_from_layout() }
+        self.document.needs_paint_from_layout()
     }
 
     pub fn will_paint(&self) {
-        unsafe { self.document.will_paint() }
+        self.document.will_paint()
     }
 
     pub fn style_shared_lock(&self) -> &StyleSharedRwLock {

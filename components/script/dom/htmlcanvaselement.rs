@@ -122,8 +122,7 @@ impl HTMLCanvasElement {
 }
 
 pub trait LayoutCanvasRenderingContextHelpers {
-    #[allow(unsafe_code)]
-    unsafe fn canvas_data_source(self) -> HTMLCanvasDataSource;
+    fn canvas_data_source(self) -> HTMLCanvasDataSource;
 }
 
 pub trait LayoutHTMLCanvasElementHelpers {
@@ -178,8 +177,8 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
 
     #[allow(unsafe_code)]
     fn get_canvas_id_for_layout(self) -> CanvasId {
+        let canvas = self.unsafe_get();
         unsafe {
-            let canvas = self.unsafe_get();
             if let &Some(CanvasContext::Context2d(ref context)) = canvas.context.borrow_for_layout()
             {
                 context.to_layout().get_canvas_id()

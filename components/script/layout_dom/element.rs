@@ -323,7 +323,11 @@ impl<'dom, LayoutDataType: LayoutDataTrait> style::dom::TElement
 
     unsafe fn clear_data(&self) {
         if self.get_style_and_opaque_layout_data().is_some() {
-            drop(self.as_node().take_style_and_opaque_layout_data());
+            drop(
+                self.as_node()
+                    .get_jsmanaged()
+                    .take_style_and_opaque_layout_data(),
+            );
         }
     }
 
@@ -758,7 +762,7 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ThreadSafeLayoutElement<'dom>
         self.as_node().type_id()
     }
 
-    unsafe fn unsafe_get(self) -> ServoLayoutElement<'dom, LayoutDataType> {
+    fn unsafe_get(self) -> ServoLayoutElement<'dom, LayoutDataType> {
         self.element
     }
 

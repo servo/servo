@@ -4680,8 +4680,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 }
 
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, WebGLRenderingContext> {
-    #[allow(unsafe_code)]
-    unsafe fn canvas_data_source(self) -> HTMLCanvasDataSource {
+    fn canvas_data_source(self) -> HTMLCanvasDataSource {
         (*self.unsafe_get()).layout_handle()
     }
 }

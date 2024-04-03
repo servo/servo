@@ -89,9 +89,14 @@ pub trait LayoutNode<'dom>:
     /// Returns the type ID of this node.
     fn type_id(&self) -> LayoutNodeType;
 
+    /// Initialize this node with empty style and opaque layout data.
+    ///
+    /// # Safety
+    ///
+    /// This method is unsafe because it modifies the given node during
+    /// layout. Callers should ensure that no other layout thread is
+    /// attempting to read or modify the opaque layout data of this node.
     unsafe fn initialize_data(&self);
-    unsafe fn init_style_and_opaque_layout_data(&self, data: Box<StyleAndOpaqueLayoutData>);
-    unsafe fn take_style_and_opaque_layout_data(&self) -> Box<StyleAndOpaqueLayoutData>;
 
     fn rev_children(self) -> LayoutIterator<ReverseChildrenIterator<Self>> {
         LayoutIterator(ReverseChildrenIterator {
@@ -259,7 +264,7 @@ pub trait ThreadSafeLayoutNode<'dom>:
     ///
     /// We need this because the implementation of some methods need to access the layout
     /// data flags, and we have this annoying trait separation between script and layout :-(
-    unsafe fn unsafe_get(self) -> Self::ConcreteNode;
+    fn unsafe_get(self) -> Self::ConcreteNode;
 
     fn node_text_content(self) -> Cow<'dom, str>;
 
@@ -338,7 +343,7 @@ pub trait ThreadSafeLayoutElement<'dom>:
     ///
     /// We need this so that the functions defined on this trait can call
     /// lazily_compute_pseudo_element_style, which operates on TElement.
-    unsafe fn unsafe_get(self) -> Self::ConcreteElement;
+    fn unsafe_get(self) -> Self::ConcreteElement;
 
     /// Get the local name of this element. See
     /// <https://dom.spec.whatwg.org/#concept-element-local-name>.
@@ -437,7 +442,7 @@ pub trait ThreadSafeLayoutElement<'dom>:
                             .stylist
                             .lazily_compute_pseudo_element_style(
                                 &context.guards,
-                                unsafe { self.unsafe_get() },
+                                self.unsafe_get(),
                                 &style_pseudo,
                                 RuleInclusion::All,
                                 data.styles.primary(),

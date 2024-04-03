@@ -268,11 +268,11 @@ impl<'dom> AttrHelpersForLayout<'dom> for LayoutDom<'dom, Attr> {
 
     #[inline]
     fn local_name(self) -> &'dom LocalName {
-        unsafe { &self.unsafe_get().identifier.local_name.0 }
+        &self.unsafe_get().identifier.local_name.0
     }
 
     #[inline]
     fn namespace(self) -> &'dom Namespace {
-        unsafe { &self.unsafe_get().identifier.namespace.0 }
+        &self.unsafe_get().identifier.namespace.0
     }
 }
