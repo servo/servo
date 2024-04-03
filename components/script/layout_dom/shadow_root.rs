@@ -3,9 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::fmt;
-use std::marker::PhantomData;
 
-use script_layout_interface::wrapper_traits::LayoutDataTrait;
 use style::dom::TShadowRoot;
 use style::shared_lock::SharedRwLockReadGuard as StyleSharedRwLockReadGuard;
 use style::stylist::{CascadeData, Stylist};
@@ -14,44 +12,26 @@ use crate::dom::bindings::root::LayoutDom;
 use crate::dom::shadowroot::{LayoutShadowRootHelpers, ShadowRoot};
 use crate::layout_dom::{ServoLayoutElement, ServoLayoutNode};
 
-pub struct ServoShadowRoot<'dom, LayoutDataType: LayoutDataTrait> {
+#[derive(Clone, Copy, PartialEq)]
+pub struct ServoShadowRoot<'dom> {
     /// The wrapped private DOM ShadowRoot.
     shadow_root: LayoutDom<'dom, ShadowRoot>,
-
-    /// A PhantomData that is used to track the type of the stored layout data.
-    phantom: PhantomData<LayoutDataType>,
 }
 
-impl<'dom, LayoutDataType: LayoutDataTrait> Clone for ServoShadowRoot<'dom, LayoutDataType> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-impl<'dom, LayoutDataType: LayoutDataTrait> Copy for ServoShadowRoot<'dom, LayoutDataType> {}
-
-impl<'a, LayoutDataType: LayoutDataTrait> PartialEq for ServoShadowRoot<'a, LayoutDataType> {
-    #[inline]
-    fn eq(&self, other: &Self) -> bool {
-        self.shadow_root == other.shadow_root
-    }
-}
-
-impl<'dom, LayoutDataType: LayoutDataTrait> fmt::Debug for ServoShadowRoot<'dom, LayoutDataType> {
+impl<'dom> fmt::Debug for ServoShadowRoot<'dom> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.as_node().fmt(f)
     }
 }
 
-impl<'dom, LayoutDataType: LayoutDataTrait> ::style::dom::TShadowRoot
-    for ServoShadowRoot<'dom, LayoutDataType>
-{
-    type ConcreteNode = ServoLayoutNode<'dom, LayoutDataType>;
+impl<'dom> TShadowRoot for ServoShadowRoot<'dom> {
+    type ConcreteNode = ServoLayoutNode<'dom>;
 
     fn as_node(&self) -> Self::ConcreteNode {
         ServoLayoutNode::from_layout_js(self.shadow_root.upcast())
     }
 
-    fn host(&self) -> ServoLayoutElement<'dom, LayoutDataType> {
+    fn host(&self) -> ServoLayoutElement<'dom> {
         ServoLayoutElement::from_layout_js(self.shadow_root.get_host_for_layout())
     }
 
@@ -63,12 +43,9 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ::style::dom::TShadowRoot
     }
 }
 
-impl<'dom, LayoutDataType: LayoutDataTrait> ServoShadowRoot<'dom, LayoutDataType> {
+impl<'dom> ServoShadowRoot<'dom> {
     pub(super) fn from_layout_js(shadow_root: LayoutDom<'dom, ShadowRoot>) -> Self {
-        ServoShadowRoot {
-            shadow_root,
-            phantom: PhantomData,
-        }
+        ServoShadowRoot { shadow_root }
     }
 
     pub unsafe fn flush_stylesheets(
@@ -77,6 +54,6 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ServoShadowRoot<'dom, LayoutDataType
         guard: &StyleSharedRwLockReadGuard,
     ) {
         self.shadow_root
-            .flush_stylesheets::<ServoLayoutElement<LayoutDataType>>(stylist, guard)
+            .flush_stylesheets::<ServoLayoutElement>(stylist, guard)
     }
 }

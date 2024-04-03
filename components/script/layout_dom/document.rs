@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::marker::PhantomData;
-
-use script_layout_interface::wrapper_traits::LayoutDataTrait;
 use selectors::matching::QuirksMode;
 use style::dom::{TDocument, TNode};
 use style::shared_lock::{
@@ -18,25 +15,14 @@ use crate::dom::node::{LayoutNodeHelpers, Node, NodeFlags};
 use crate::layout_dom::{ServoLayoutElement, ServoLayoutNode, ServoShadowRoot};
 
 // A wrapper around documents that ensures ayout can only ever access safe properties.
-pub struct ServoLayoutDocument<'dom, LayoutDataType: LayoutDataTrait> {
+#[derive(Clone, Copy)]
+pub struct ServoLayoutDocument<'dom> {
     /// The wrapped private DOM Document
     document: LayoutDom<'dom, Document>,
-
-    /// A PhantomData that is used to track the type of the stored layout data.
-    phantom: PhantomData<LayoutDataType>,
 }
 
-impl<'dom, LayoutDataType: LayoutDataTrait> Clone for ServoLayoutDocument<'dom, LayoutDataType> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-impl<'dom, LayoutDataType: LayoutDataTrait> Copy for ServoLayoutDocument<'dom, LayoutDataType> {}
-
-impl<'ld, LayoutDataType: LayoutDataTrait> ::style::dom::TDocument
-    for ServoLayoutDocument<'ld, LayoutDataType>
-{
-    type ConcreteNode = ServoLayoutNode<'ld, LayoutDataType>;
+impl<'ld> ::style::dom::TDocument for ServoLayoutDocument<'ld> {
+    type ConcreteNode = ServoLayoutNode<'ld>;
 
     fn as_node(&self) -> Self::ConcreteNode {
         ServoLayoutNode::from_layout_js(self.document.upcast())
@@ -55,8 +41,8 @@ impl<'ld, LayoutDataType: LayoutDataTrait> ::style::dom::TDocument
     }
 }
 
-impl<'ld, LayoutDataType: LayoutDataTrait> ServoLayoutDocument<'ld, LayoutDataType> {
-    pub fn root_element(&self) -> Option<ServoLayoutElement<'ld, LayoutDataType>> {
+impl<'ld> ServoLayoutDocument<'ld> {
+    pub fn root_element(&self) -> Option<ServoLayoutElement<'ld>> {
         self.as_node()
             .dom_children()
             .flat_map(|n| n.as_element())
@@ -75,7 +61,7 @@ impl<'ld, LayoutDataType: LayoutDataTrait> ServoLayoutDocument<'ld, LayoutDataTy
         self.document.style_shared_lock()
     }
 
-    pub fn shadow_roots(&self) -> Vec<ServoShadowRoot<LayoutDataType>> {
+    pub fn shadow_roots(&self) -> Vec<ServoShadowRoot> {
         unsafe {
             self.document
                 .shadow_roots()
@@ -104,10 +90,7 @@ impl<'ld, LayoutDataType: LayoutDataTrait> ServoLayoutDocument<'ld, LayoutDataTy
         }
     }
 
-    pub fn from_layout_js(doc: LayoutDom<'ld, Document>) -> Self {
-        ServoLayoutDocument {
-            document: doc,
-            phantom: PhantomData,
-        }
+    pub fn from_layout_js(document: LayoutDom<'ld, Document>) -> Self {
+        ServoLayoutDocument { document }
     }
 }
