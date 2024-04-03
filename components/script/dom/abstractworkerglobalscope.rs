@@ -109,10 +109,9 @@ pub fn run_worker_event_loop<T, WorkerMsg, Event>(
         + DomObject,
 {
     let scope = worker_scope.upcast::<WorkerGlobalScope>();
-    let devtools_port = match scope.from_devtools_sender() {
-        Some(_) => Some(scope.from_devtools_receiver()),
-        None => None,
-    };
+    let devtools_port = scope
+        .from_devtools_sender()
+        .map(|_| scope.from_devtools_receiver());
     let task_queue = worker_scope.task_queue();
     let event = select! {
         recv(worker_scope.control_receiver()) -> msg => worker_scope.from_control_msg(msg.unwrap()),
@@ -144,7 +143,7 @@ pub fn run_worker_event_loop<T, WorkerMsg, Event>(
     }
     // Step 3
     for event in sequential {
-        let _realm = enter_realm(&*worker_scope);
+        let _realm = enter_realm(worker_scope);
         if !worker_scope.handle_event(event) {
             // Shutdown
             return;

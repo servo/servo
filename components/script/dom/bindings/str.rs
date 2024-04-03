@@ -40,15 +40,20 @@ impl ByteString {
         self.0.len()
     }
 
+    /// Checks if the ByteString is empty.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     /// Returns `self` with A–Z replaced by a–z.
     pub fn to_lower(&self) -> ByteString {
         ByteString::new(self.0.to_ascii_lowercase())
     }
 }
 
-impl Into<Vec<u8>> for ByteString {
-    fn into(self) -> Vec<u8> {
-        self.0
+impl From<ByteString> for Vec<u8> {
+    fn from(byte_string: ByteString) -> Vec<u8> {
+        byte_string.0
     }
 }
 
@@ -222,7 +227,7 @@ impl DOMString {
     /// Removes leading and trailing ASCII whitespaces according to
     /// <https://infra.spec.whatwg.org/#strip-leading-and-trailing-ascii-whitespace>.
     pub fn strip_leading_and_trailing_ascii_whitespace(&mut self) {
-        if self.0.len() == 0 {
+        if self.0.is_empty() {
             return;
         }
 
@@ -236,7 +241,7 @@ impl DOMString {
         }
 
         let first_non_whitespace = self.0.find(|ref c| !char::is_ascii_whitespace(c)).unwrap();
-        let _ = self.0.replace_range(0..first_non_whitespace, "");
+        self.0.replace_range(0..first_non_whitespace, "");
     }
 
     /// Validates this `DOMString` is a time string according to
@@ -275,7 +280,7 @@ impl DOMString {
                     '2' => State::HourLow03,
                     _ => State::Error,
                 },
-                State::HourLow09 => next_state(c.is_digit(10), State::MinuteColon),
+                State::HourLow09 => next_state(c.is_ascii_digit(), State::MinuteColon),
                 State::HourLow03 => next_state(c.is_digit(4), State::MinuteColon),
 
                 // Step 2 ":"
@@ -283,20 +288,20 @@ impl DOMString {
 
                 // Step 3 "mm"
                 State::MinuteHigh => next_state(c.is_digit(6), State::MinuteLow),
-                State::MinuteLow => next_state(c.is_digit(10), State::SecondColon),
+                State::MinuteLow => next_state(c.is_ascii_digit(), State::SecondColon),
 
                 // Step 4.1 ":"
                 State::SecondColon => next_state(c == ':', State::SecondHigh),
                 // Step 4.2 "ss"
                 State::SecondHigh => next_state(c.is_digit(6), State::SecondLow),
-                State::SecondLow => next_state(c.is_digit(10), State::MilliStop),
+                State::SecondLow => next_state(c.is_ascii_digit(), State::MilliStop),
 
                 // Step 4.3.1 "."
                 State::MilliStop => next_state(c == '.', State::MilliHigh),
                 // Step 4.3.2 "SSS"
-                State::MilliHigh => next_state(c.is_digit(10), State::MilliMiddle),
-                State::MilliMiddle => next_state(c.is_digit(10), State::MilliLow),
-                State::MilliLow => next_state(c.is_digit(10), State::Done),
+                State::MilliHigh => next_state(c.is_ascii_digit(), State::MilliMiddle),
+                State::MilliMiddle => next_state(c.is_ascii_digit(), State::MilliLow),
+                State::MilliLow => next_state(c.is_ascii_digit(), State::Done),
 
                 _ => State::Error,
             }
@@ -365,7 +370,7 @@ impl DOMString {
         let (year_int, month_int) = parse_month_component(value)?;
 
         // Step 4
-        if value.split("-").nth(2).is_some() {
+        if value.split('-').nth(2).is_some() {
             return None;
         }
         // Step 5
@@ -443,12 +448,12 @@ impl DOMString {
             if !(
                 // A valid number is the same as what rust considers to be valid,
                 // except for +1., NaN, and Infinity.
-                val.is_infinite() || val.is_nan() || input.ends_with(".") || input.starts_with("+")
+                val.is_infinite() || val.is_nan() || input.ends_with('.') || input.starts_with('+')
             ) {
                 return Some(val);
             }
         }
-        return None;
+        None
     }
 
     /// <https://html.spec.whatwg.org/multipage/#best-representation-of-the-number-as-a-floating-point-number>
@@ -529,7 +534,7 @@ impl DOMString {
     pub fn is_valid_simple_color_string(&self) -> bool {
         let mut chars = self.0.chars();
         if self.0.len() == 7 && chars.next() == Some('#') {
-            chars.all(|c| c.is_digit(16))
+            chars.all(|c| c.is_ascii_hexdigit())
         } else {
             false
         }
@@ -635,21 +640,21 @@ impl From<DOMString> for String {
     }
 }
 
-impl Into<Vec<u8>> for DOMString {
-    fn into(self) -> Vec<u8> {
-        self.0.into()
+impl From<DOMString> for Vec<u8> {
+    fn from(contents: DOMString) -> Vec<u8> {
+        contents.0.into()
     }
 }
 
-impl<'a> Into<Cow<'a, str>> for DOMString {
-    fn into(self) -> Cow<'a, str> {
-        self.0.into()
+impl<'a> From<DOMString> for Cow<'a, str> {
+    fn from(contents: DOMString) -> Cow<'a, str> {
+        contents.0.into()
     }
 }
 
-impl<'a> Into<CowRcStr<'a>> for DOMString {
-    fn into(self) -> CowRcStr<'a> {
-        self.0.into()
+impl<'a> From<DOMString> for CowRcStr<'a> {
+    fn from(contents: DOMString) -> CowRcStr<'a> {
+        contents.0.into()
     }
 }
 
@@ -677,7 +682,7 @@ fn parse_month_component(value: &str) -> Option<(i32, u32)> {
 
     // Step 4, 5
     let month_int = month.parse::<u32>().ok()?;
-    if month.len() != 2 || month_int > 12 || month_int < 1 {
+    if month.len() != 2 || !(1..=12).contains(&month_int) {
         return None;
     }
 
@@ -741,13 +746,10 @@ fn parse_time_component(value: &str) -> Option<(u32, u32, f64)> {
             if second_iterator.next()?.len() != 2 {
                 return None;
             }
-            match second_iterator.next() {
-                Some(second_last) => {
-                    if second_last.len() > 3 {
-                        return None;
-                    }
-                },
-                None => {},
+            if let Some(second_last) = second_iterator.next() {
+                if second_last.len() > 3 {
+                    return None;
+                }
             }
 
             second.parse::<f64>().ok()?

@@ -122,9 +122,9 @@ impl FileManager {
         self.store.invalidate_token(token, file_id);
     }
 
-    // Read a file for the Fetch implementation.
-    // It gets the required headers synchronously and reads the actual content
-    // in a separate thread.
+    /// Read a file for the Fetch implementation.
+    /// It gets the required headers synchronously and reads the actual content
+    /// in a separate thread.
     #[allow(clippy::too_many_arguments)]
     pub fn fetch_file(
         &self,

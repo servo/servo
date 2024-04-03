@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#media-progress">
+<link rel="author" title="sakhapov@chromuim.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/parsing-testcommon.js"></script>
+<script>
+function test_invalid_number(value) {
+  test_invalid_value('opacity', value);
+}
+function test_invalid_length(value) {
+  // 'letter-spacing' accepts <length> only, not <percentage> or any mixes.
+  test_invalid_value('letter-spacing', value);
+}
+
+// Syntax checking
+test_invalid_number('media-progress()');
+test_invalid_number('media-progress( )');
+test_invalid_number('media-progress(,)');
+test_invalid_number('media-progress(1 from )');
+test_invalid_number('media-progress(1)');
+test_invalid_number('media-progress(50% to 0)');
+test_invalid_number('media-progress(0 from 1 to)');
+test_invalid_number('media-progress(from to)');
+test_invalid_number('media-progress(from 1 to 0)');
+test_invalid_number('media-progress(from 1 to 0 1)');
+test_invalid_number('media-progress(from 1 0)');
+test_invalid_number('media-progress(0 from to 0)');
+test_invalid_number('media-progress(to to to to to)');
+test_invalid_number('media-progress(0, from, 10, to 200)');
+test_invalid_number('media-progress(0, from, 10, to, 200)');
+test_invalid_number('media-progress(0, from 10, to 200)');
+test_invalid_number('media-progress(0, 10, 200)');
+
+// General tests
+test_invalid_number('media-progress(height from 0 to 8');
+test_invalid_number('media-progress(depth from 0px to 8px');
+test_invalid_number('media-progress(width from 0deg to 8deg');
+test_invalid_number('media-progress(5 from 0deg to 8deg');
+test_invalid_number('media-progress(5 from 0% to 8deg');
+test_invalid_number('media-progress(height from 0% to sign(10px)');
+test_invalid_number('media-progress(5% from 0px to 10px');
+test_invalid_length('calc(1px * media-progress(10deg from 0 to 10))');
+test_invalid_length('calc(1px * media-progress(10 from 0px to 10))');
+</script>

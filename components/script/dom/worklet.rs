@@ -70,9 +70,9 @@ struct DroppableField {
 impl Drop for DroppableField {
     fn drop(&mut self) {
         let worklet_id = self.worklet_id;
-        self.thread_pool.get_mut().map(|thread_pool| {
+        if let Some(thread_pool) = self.thread_pool.get_mut() {
             thread_pool.exit_worklet(worklet_id);
-        });
+        }
     }
 }
 
@@ -301,6 +301,7 @@ impl WorkletThreadPool {
     /// If all of the threads load successfully, the promise is resolved.
     /// If any of the threads fails to load, the promise is rejected.
     /// <https://drafts.css-houdini.org/worklets/#fetch-and-invoke-a-worklet-script>
+    #[allow(clippy::too_many_arguments)]
     fn fetch_and_invoke_a_worklet_script(
         &self,
         pipeline_id: PipelineId,
@@ -625,6 +626,7 @@ impl WorkletThread {
 
     /// Fetch and invoke a worklet script.
     /// <https://drafts.css-houdini.org/worklets/#fetch-and-invoke-a-worklet-script>
+    #[allow(clippy::too_many_arguments)]
     fn fetch_and_invoke_a_worklet_script(
         &self,
         global_scope: &WorkletGlobalScope,

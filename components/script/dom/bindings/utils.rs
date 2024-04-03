@@ -197,7 +197,7 @@ pub unsafe fn get_array_index_from_id(_cx: *mut JSContext, id: HandleId) -> Opti
     let first_char = char::decode_utf16(chars.iter().cloned())
         .next()
         .map_or('\0', |r| r.unwrap_or('\0'));
-    if first_char < 'a' || first_char > 'z' {
+    if !first_char.is_ascii_lowercase() {
         return None;
     }
 

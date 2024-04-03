@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<!--
+  'display' should either be 'none' or 'inline-block'
+-->
+<style>
+  #id1 {
+    display: inline-block;
+  }
+  #id2 {
+    display: block;
+  }
+  #id3 {
+    display: none;
+  }
+</style>
+
+
+<permission id="id1" type="geolocation">
+<permission id="id2" type="camera">
+<permission id="id3" type="microphone">
+
+<script>
+  test(function(){
+    assert_equals(getComputedStyle(document.getElementById("id1")).display, "inline-block", "'inline-block' should be kept");
+    assert_equals(getComputedStyle(document.getElementById("id2")).display, "inline-block", "'block' should be changed to 'inline-block'");
+    assert_equals(getComputedStyle(document.getElementById("id3")).display, "none", "'none' should be kept");
+  }, "'display' should be either 'inline-block' or 'none'");
+</script>
+</body>

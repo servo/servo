@@ -933,7 +933,7 @@ impl Document {
     pub fn register_form_id_listener<T: ?Sized + FormControl>(&self, id: DOMString, listener: &T) {
         let mut map = self.form_id_listener_map.borrow_mut();
         let listener = listener.to_element();
-        let set = map.entry(Atom::from(id)).or_insert(HashSet::new());
+        let set = map.entry(Atom::from(id)).or_default();
         set.insert(Dom::from_ref(listener));
     }
 
@@ -1075,11 +1075,11 @@ impl Document {
 
     /// <https://html.spec.whatwg.org/multipage/#focus-fixup-rule>
     pub(crate) fn perform_focus_fixup_rule(&self, not_focusable: &Element) {
-        if Some(not_focusable) != self.focused.get().as_ref().map(|e| &**e) {
+        if Some(not_focusable) != self.focused.get().as_deref() {
             return;
         }
         self.request_focus(
-            self.GetBody().as_ref().map(|e| &*e.upcast()),
+            self.GetBody().as_ref().map(|e| e.upcast()),
             FocusType::Element,
         )
     }
@@ -1114,7 +1114,7 @@ impl Document {
             },
         };
         *self.focus_transaction.borrow_mut() = FocusTransaction::NotInTransaction;
-        if self.focused == possibly_focused.as_ref().map(|e| &**e) {
+        if self.focused == possibly_focused.as_deref() {
             return;
         }
         if let Some(ref elem) = self.focused.get() {
@@ -1129,7 +1129,7 @@ impl Document {
             }
         }
 
-        self.focused.set(possibly_focused.as_ref().map(|e| &**e));
+        self.focused.set(possibly_focused.as_deref());
 
         if let Some(ref elem) = self.focused.get() {
             elem.set_focus_state(true);
@@ -1152,7 +1152,7 @@ impl Document {
                 let (text, multiline) = if let Some(input) = elem.downcast::<HTMLInputElement>() {
                     (
                         Some((
-                            (&input.Value()).to_string(),
+                            input.Value().to_string(),
                             input.GetSelectionEnd().unwrap_or(0) as i32,
                         )),
                         false,
@@ -1160,7 +1160,7 @@ impl Document {
                 } else if let Some(textarea) = elem.downcast::<HTMLTextAreaElement>() {
                     (
                         Some((
-                            (&textarea.Value()).to_string(),
+                            textarea.Value().to_string(),
                             textarea.GetSelectionEnd().unwrap_or(0) as i32,
                         )),
                         true,
@@ -1188,7 +1188,7 @@ impl Document {
                 title.clone(),
             ));
             let global = self.window.upcast::<GlobalScope>();
-            if let Some(ref chan) = global.devtools_chan() {
+            if let Some(chan) = global.devtools_chan() {
                 let _ = chan.send(ScriptToDevtoolsControlMsg::TitleChanged(
                     global.pipeline_id(),
                     title,
@@ -1837,7 +1837,7 @@ impl Document {
 
     pub fn ime_dismissed(&self) {
         self.request_focus(
-            self.GetBody().as_ref().map(|e| &*e.upcast()),
+            self.GetBody().as_ref().map(|e| e.upcast()),
             FocusType::Element,
         )
     }
@@ -3031,7 +3031,7 @@ fn get_registrable_domain_suffix_of_or_is_equal_to(
         let index = original_host.len().checked_sub(host.len())?;
         let (prefix, suffix) = original_host.split_at(index);
 
-        if !prefix.ends_with(".") {
+        if !prefix.ends_with('.') {
             return None;
         }
         if suffix != host {
@@ -3060,6 +3060,7 @@ pub enum HasBrowsingContext {
 }
 
 impl Document {
+    #[allow(clippy::too_many_arguments)]
     pub fn new_inherited(
         window: &Window,
         has_browsing_context: HasBrowsingContext,
@@ -3315,6 +3316,7 @@ impl Document {
         ))
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         window: &Window,
         has_browsing_context: HasBrowsingContext,
@@ -3348,6 +3350,7 @@ impl Document {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
@@ -3529,7 +3532,7 @@ impl Document {
         self.id_map
             .borrow()
             .get(id)
-            .map(|ref elements| DomRoot::from_ref(&*(*elements)[0]))
+            .map(|elements| DomRoot::from_ref(&*elements[0]))
     }
 
     pub fn ensure_pending_restyle(&self, el: &Element) -> RefMut<PendingRestyle> {
@@ -3605,7 +3608,7 @@ impl Document {
 
     //TODO - default still at no-referrer
     pub fn get_referrer_policy(&self) -> Option<ReferrerPolicy> {
-        return self.referrer_policy.get();
+        self.referrer_policy.get()
     }
 
     pub fn set_target_element(&self, node: Option<&Element>) {
@@ -3853,10 +3856,10 @@ impl Document {
         let cloned_stylesheet = sheet.clone();
         let insertion_point2 = insertion_point.clone();
         let _ = self.window.with_layout(move |layout| {
-            layout.process(Msg::AddStylesheet(
+            layout.add_stylesheet(
                 cloned_stylesheet,
                 insertion_point2.as_ref().map(|s| s.sheet.clone()),
-            ));
+            );
         });
 
         DocumentOrShadowRoot::add_stylesheet(
@@ -3868,13 +3871,20 @@ impl Document {
         );
     }
 
+    /// Given a stylesheet, load all web fonts from it in Layout.
+    pub fn load_web_fonts_from_stylesheet(&self, stylesheet: Arc<Stylesheet>) {
+        let _ = self.window.with_layout(move |layout| {
+            layout.load_web_fonts_from_stylesheet(stylesheet);
+        });
+    }
+
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
     #[allow(crown::unrooted_must_root)] // Owner needs to be rooted already necessarily.
     pub fn remove_stylesheet(&self, owner: &Element, stylesheet: &Arc<Stylesheet>) {
         let cloned_stylesheet = stylesheet.clone();
         let _ = self
             .window
-            .with_layout(|layout| layout.process(Msg::RemoveStylesheet(cloned_stylesheet)));
+            .with_layout(|layout| layout.remove_stylesheet(cloned_stylesheet));
 
         DocumentOrShadowRoot::remove_stylesheet(
             owner,
@@ -5264,7 +5274,7 @@ impl DocumentMethods for Document {
     // media element matching the given id.
     fn ServoGetMediaControls(&self, id: DOMString) -> Fallible<DomRoot<ShadowRoot>> {
         match self.media_controls.borrow().get(&*id) {
-            Some(m) => Ok(DomRoot::from_ref(&*m)),
+            Some(m) => Ok(DomRoot::from_ref(m)),
             None => Err(Error::InvalidAccess),
         }
     }

@@ -82,14 +82,14 @@ impl TrustedPromise {
     /// lifetime.
     #[allow(crown::unrooted_must_root)]
     pub fn new(promise: Rc<Promise>) -> TrustedPromise {
-        LIVE_REFERENCES.with(|ref r| {
+        LIVE_REFERENCES.with(|r| {
             let r = r.borrow();
             let live_references = r.as_ref().unwrap();
             let ptr = &*promise as *const Promise;
             live_references.addref_promise(promise);
             TrustedPromise {
                 dom_object: ptr,
-                owner_thread: (&*live_references) as *const _ as *const libc::c_void,
+                owner_thread: (live_references) as *const _ as *const libc::c_void,
             }
         })
     }
@@ -98,12 +98,12 @@ impl TrustedPromise {
     /// a different thread than the original value from which this `TrustedPromise` was
     /// obtained.
     pub fn root(self) -> Rc<Promise> {
-        LIVE_REFERENCES.with(|ref r| {
+        LIVE_REFERENCES.with(|r| {
             let r = r.borrow();
             let live_references = r.as_ref().unwrap();
             assert_eq!(
                 self.owner_thread,
-                (&*live_references) as *const _ as *const libc::c_void
+                (live_references) as *const _ as *const libc::c_void
             );
             // Borrow-check error requires the redundant `let promise = ...; promise` here.
             let promise = match live_references
@@ -176,7 +176,7 @@ impl<T: DomObject> Trusted<T> {
         fn add_live_reference(
             ptr: *const libc::c_void,
         ) -> (Arc<TrustedReference>, *const LiveDOMReferences) {
-            LIVE_REFERENCES.with(|ref r| {
+            LIVE_REFERENCES.with(|r| {
                 let r = r.borrow();
                 let live_references = r.as_ref().unwrap();
                 let refcount = unsafe { live_references.addref(ptr) };
@@ -197,7 +197,7 @@ impl<T: DomObject> Trusted<T> {
     /// obtained.
     pub fn root(&self) -> DomRoot<T> {
         fn validate(owner_thread: *const LiveDOMReferences) {
-            assert!(LIVE_REFERENCES.with(|ref r| {
+            assert!(LIVE_REFERENCES.with(|r| {
                 let r = r.borrow();
                 let live_references = r.as_ref().unwrap();
                 owner_thread == live_references
@@ -230,7 +230,7 @@ pub struct LiveDOMReferences {
 impl LiveDOMReferences {
     /// Set up the thread-local data required for storing the outstanding DOM references.
     pub fn initialize() {
-        LIVE_REFERENCES.with(|ref r| {
+        LIVE_REFERENCES.with(|r| {
             *r.borrow_mut() = Some(LiveDOMReferences {
                 reflectable_table: RefCell::new(HashMap::new()),
                 promise_table: RefCell::new(HashMap::new()),
@@ -239,7 +239,7 @@ impl LiveDOMReferences {
     }
 
     pub fn destruct() {
-        LIVE_REFERENCES.with(|ref r| {
+        LIVE_REFERENCES.with(|r| {
             *r.borrow_mut() = None;
         });
     }
@@ -247,7 +247,7 @@ impl LiveDOMReferences {
     #[allow(crown::unrooted_must_root)]
     fn addref_promise(&self, promise: Rc<Promise>) {
         let mut table = self.promise_table.borrow_mut();
-        table.entry(&*promise).or_insert(vec![]).push(promise)
+        table.entry(&*promise).or_default().push(promise)
     }
 
     /// ptr must be a pointer to a type that implements DOMObject.
@@ -297,7 +297,7 @@ fn remove_nulls<K: Eq + Hash + Clone, V>(table: &mut HashMap<K, Weak<V>>) {
 #[allow(crown::unrooted_must_root)]
 pub unsafe fn trace_refcounted_objects(tracer: *mut JSTracer) {
     info!("tracing live refcounted references");
-    LIVE_REFERENCES.with(|ref r| {
+    LIVE_REFERENCES.with(|r| {
         let r = r.borrow();
         let live_references = r.as_ref().unwrap();
         {

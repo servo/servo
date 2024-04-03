@@ -140,62 +140,58 @@ impl App {
             let now = Instant::now();
             trace_winit_event!(event, "@{:?} (+{:?}) {event:?}", now - t_start, now - t);
             t = now;
-            match event {
-                winit::event::Event::NewEvents(winit::event::StartCause::Init) => {
-                    let surfman = window.rendering_context();
+            if let winit::event::Event::NewEvents(winit::event::StartCause::Init) = event {
+                let surfman = window.rendering_context();
 
-                    let xr_discovery = if pref!(dom.webxr.glwindow.enabled) && !opts::get().headless
-                    {
-                        let window = window.clone();
-                        // This should be safe because run_forever does, in fact,
-                        // run forever. The event loop window target doesn't get
-                        // moved, and does outlast this closure, and we won't
-                        // ever try to make use of it once shutdown begins and
-                        // it stops being valid.
-                        let w = unsafe {
-                            std::mem::transmute::<
-                                &EventLoopWindowTarget<WakerEvent>,
-                                &'static EventLoopWindowTarget<WakerEvent>,
-                            >(w.unwrap())
-                        };
-                        let factory = Box::new(move || Ok(window.new_glwindow(w)));
-                        Some(GlWindowDiscovery::new(
-                            surfman.connection(),
-                            surfman.adapter(),
-                            surfman.context_attributes(),
-                            factory,
-                        ))
-                    } else {
-                        None
-                    };
-
+                let xr_discovery = if pref!(dom.webxr.glwindow.enabled) && !opts::get().headless {
                     let window = window.clone();
-                    // Implements embedder methods, used by libservo and constellation.
-                    let embedder = Box::new(EmbedderCallbacks::new(ev_waker.clone(), xr_discovery));
-
-                    let composite_target = if app.minibrowser.is_some() {
-                        CompositeTarget::Fbo
-                    } else {
-                        CompositeTarget::Window
+                    // This should be safe because run_forever does, in fact,
+                    // run forever. The event loop window target doesn't get
+                    // moved, and does outlast this closure, and we won't
+                    // ever try to make use of it once shutdown begins and
+                    // it stops being valid.
+                    let w = unsafe {
+                        std::mem::transmute::<
+                            &EventLoopWindowTarget<WakerEvent>,
+                            &'static EventLoopWindowTarget<WakerEvent>,
+                        >(w.unwrap())
                     };
-                    let servo_data = Servo::new(
-                        embedder,
-                        window.clone(),
-                        user_agent.clone(),
-                        composite_target,
-                    );
-                    let mut servo = servo_data.servo;
+                    let factory = Box::new(move || Ok(window.new_glwindow(w)));
+                    Some(GlWindowDiscovery::new(
+                        surfman.connection(),
+                        surfman.adapter(),
+                        surfman.context_attributes(),
+                        factory,
+                    ))
+                } else {
+                    None
+                };
 
-                    servo.handle_events(vec![EmbedderEvent::NewWebView(
-                        initial_url.to_owned(),
-                        servo_data.browser_id,
-                    )]);
-                    servo.setup_logging();
+                let window = window.clone();
+                // Implements embedder methods, used by libservo and constellation.
+                let embedder = Box::new(EmbedderCallbacks::new(ev_waker.clone(), xr_discovery));
 
-                    app.windows.insert(window.id(), window.clone());
-                    app.servo = Some(servo);
-                },
-                _ => {},
+                let composite_target = if app.minibrowser.is_some() {
+                    CompositeTarget::Fbo
+                } else {
+                    CompositeTarget::Window
+                };
+                let servo_data = Servo::new(
+                    embedder,
+                    window.clone(),
+                    user_agent.clone(),
+                    composite_target,
+                );
+                let mut servo = servo_data.servo;
+
+                servo.handle_events(vec![EmbedderEvent::NewWebView(
+                    initial_url.to_owned(),
+                    servo_data.browser_id,
+                )]);
+                servo.setup_logging();
+
+                app.windows.insert(window.id(), window.clone());
+                app.servo = Some(servo);
             }
 
             // If self.servo is None here, it means that we're in the process of shutting down,
@@ -405,7 +401,7 @@ impl App {
 
         // Take any outstanding embedder events from the App and its Windows.
         let mut embedder_events = self.get_events();
-        for (_win_id, window) in &self.windows {
+        for window in self.windows.values() {
             embedder_events.extend(window.get_events());
         }
 

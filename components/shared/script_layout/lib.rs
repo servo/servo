@@ -9,7 +9,6 @@
 #![deny(unsafe_code)]
 
 pub mod message;
-pub mod rpc;
 pub mod wrapper_traits;
 
 use std::any::Any;
@@ -17,24 +16,36 @@ use std::borrow::Cow;
 use std::sync::atomic::AtomicIsize;
 use std::sync::Arc;
 
+use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
+use euclid::default::{Point2D, Rect};
+use euclid::Size2D;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
 use malloc_size_of_derive::MallocSizeOf;
+use message::NodesFromPointQueryType;
 use metrics::PaintTimeMetrics;
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use profile_traits::time;
 use script_traits::{
     ConstellationControlMsg, InitialScriptState, LayoutControlMsg, LayoutMsg, LoadData,
     UntrustedNodeAddress, WebrenderIpcSender, WindowSizeData,
 };
+use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use style::animation::DocumentAnimationSet;
 use style::data::ElementData;
-use webrender_api::ImageKey;
+use style::dom::OpaqueNode;
+use style::properties::style_structs::Font;
+use style::properties::PropertyId;
+use style::selector_parser::PseudoElement;
+use style::stylesheets::Stylesheet;
+use style_traits::CSSPixel;
+use webrender_api::{ExternalScrollId, ImageKey};
 
 #[derive(MallocSizeOf)]
 pub struct StyleData {
@@ -193,16 +204,60 @@ pub trait Layout {
     /// Handle a a single mesasge from the FontCacheThread.
     fn handle_font_cache_msg(&mut self);
 
-    /// Return the interface used for scipt queries.
-    /// TODO: Make this part of the the Layout interface itself now that the
-    /// layout thread has been removed.
-    fn rpc(&self) -> Box<dyn rpc::LayoutRPC>;
-
     /// Whether or not this layout is waiting for fonts from loaded stylesheets to finish loading.
     fn waiting_for_web_fonts_to_load(&self) -> bool;
 
     /// The currently laid out Epoch that this Layout has finished.
     fn current_epoch(&self) -> Epoch;
+
+    /// Load all fonts from the given stylesheet, returning the number of fonts that
+    /// need to be loaded.
+    fn load_web_fonts_from_stylesheet(&self, stylesheet: ServoArc<Stylesheet>);
+
+    /// Add a stylesheet to this Layout. This will add it to the Layout's `Stylist` as well as
+    /// loading all web fonts defined in the stylesheet. The second stylesheet is the insertion
+    /// point (if it exists, the sheet needs to be inserted before it).
+    fn add_stylesheet(
+        &mut self,
+        stylesheet: ServoArc<Stylesheet>,
+        before_stylsheet: Option<ServoArc<Stylesheet>>,
+    );
+
+    /// Removes a stylesheet from the Layout.
+    fn remove_stylesheet(&mut self, stylesheet: ServoArc<Stylesheet>);
+
+    fn query_content_box(&self, node: OpaqueNode) -> Option<Rect<Au>>;
+    fn query_content_boxes(&self, node: OpaqueNode) -> Vec<Rect<Au>>;
+    fn query_client_rect(&self, node: OpaqueNode) -> Rect<i32>;
+    fn query_element_inner_text(&self, node: TrustedNodeAddress) -> String;
+    fn query_inner_window_dimension(
+        &self,
+        context: BrowsingContextId,
+    ) -> Option<Size2D<f32, CSSPixel>>;
+    fn query_nodes_from_point(
+        &self,
+        point: Point2D<f32>,
+        query_type: NodesFromPointQueryType,
+    ) -> Vec<UntrustedNodeAddress>;
+    fn query_offset_parent(&self, node: OpaqueNode) -> OffsetParentResponse;
+    fn query_resolved_style(
+        &self,
+        node: TrustedNodeAddress,
+        pseudo: Option<PseudoElement>,
+        property_id: PropertyId,
+        animations: DocumentAnimationSet,
+        animation_timeline_value: f64,
+    ) -> String;
+    fn query_resolved_font_style(
+        &self,
+        node: TrustedNodeAddress,
+        value: &str,
+        animations: DocumentAnimationSet,
+        animation_timeline_value: f64,
+    ) -> Option<ServoArc<Font>>;
+    fn query_scroll_id(&self, node: TrustedNodeAddress) -> ExternalScrollId;
+    fn query_scrolling_area(&self, node: Option<OpaqueNode>) -> Rect<i32>;
+    fn query_text_indext(&self, node: OpaqueNode, point: Point2D<f32>) -> Option<usize>;
 }
 
 /// This trait is part of `script_layout_interface` because it depends on both `script_traits`
@@ -217,4 +272,9 @@ pub trait ScriptThreadFactory {
         load_data: LoadData,
         user_agent: Cow<'static, str>,
     );
+}
+#[derive(Clone, Default)]
+pub struct OffsetParentResponse {
+    pub node_address: Option<UntrustedNodeAddress>,
+    pub rect: Rect<Au>,
 }

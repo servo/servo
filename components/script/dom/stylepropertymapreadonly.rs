@@ -92,12 +92,10 @@ impl StylePropertyMapReadOnlyMethods for StylePropertyMapReadOnly {
                 } else {
                     Ordering::Greater
                 }
+            } else if custom_properties::parse_name(key2).is_ok() {
+                Ordering::Less
             } else {
-                if let Ok(_) = custom_properties::parse_name(key2) {
-                    Ordering::Less
-                } else {
-                    key1.cmp(key2)
-                }
+                key1.cmp(key2)
             }
         });
         result

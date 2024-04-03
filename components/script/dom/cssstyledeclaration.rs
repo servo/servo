@@ -73,8 +73,7 @@ impl CSSStyleOwner {
                     let lock = attr.as_ref().unwrap();
                     let mut guard = shared_lock.write();
                     let pdb = lock.write_with(&mut guard);
-                    let result = f(pdb, &mut changed);
-                    result
+                    f(pdb, &mut changed)
                 } else {
                     let mut pdb = PropertyDeclarationBlock::new();
                     let result = f(&mut pdb, &mut changed);
@@ -257,7 +256,7 @@ impl CSSStyleDeclaration {
                     return DOMString::new();
                 }
                 let addr = node.to_trusted_node_address();
-                window_from_node(node).resolved_style_query(addr, self.pseudo.clone(), property)
+                window_from_node(node).resolved_style_query(addr, self.pseudo, property)
             },
         }
     }
@@ -361,8 +360,8 @@ lazy_static! {
         enabled_longhands.sort_unstable_by(|a, b| {
             let a = a.name();
             let b = b.name();
-            let is_a_vendor_prefixed = a.starts_with("-");
-            let is_b_vendor_prefixed = b.starts_with("-");
+            let is_a_vendor_prefixed = a.starts_with('-');
+            let is_b_vendor_prefixed = b.starts_with('-');
             if is_a_vendor_prefixed == is_b_vendor_prefixed {
                 a.partial_cmp(b).unwrap()
             } else if is_b_vendor_prefixed {

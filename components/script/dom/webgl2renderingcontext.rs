@@ -427,10 +427,9 @@ impl WebGL2RenderingContext {
             let last_row_bytes = bytes_per_pixel
                 .checked_mul(width as usize)
                 .ok_or(InvalidOperation)?;
-            let result = full_row_bytes
+            full_row_bytes
                 .checked_add(last_row_bytes)
-                .ok_or(InvalidOperation)?;
-            result
+                .ok_or(InvalidOperation)?
         };
         let skipped_bytes = {
             let skipped_row_bytes = self
@@ -443,10 +442,9 @@ impl WebGL2RenderingContext {
                 .get()
                 .checked_mul(bytes_per_pixel)
                 .ok_or(InvalidOperation)?;
-            let result = skipped_row_bytes
+            skipped_row_bytes
                 .checked_add(skipped_pixel_bytes)
-                .ok_or(InvalidOperation)?;
-            result
+                .ok_or(InvalidOperation)?
         };
         Ok(ReadPixelsSizes {
             row_stride,
@@ -455,7 +453,7 @@ impl WebGL2RenderingContext {
         })
     }
 
-    #[allow(unsafe_code)]
+    #[allow(unsafe_code, clippy::too_many_arguments)]
     fn read_pixels_into(
         &self,
         x: i32,
@@ -848,6 +846,7 @@ impl WebGL2RenderingContext {
             .send_command(WebGLCommand::VertexAttribU(index, x, y, z, w));
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn tex_storage(
         &self,
         dimensions: u8,
@@ -4117,12 +4116,11 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             self.base.validate_ownership(program),
             return constants::INVALID_INDEX
         );
-        let index = handle_potential_webgl_error!(
+        handle_potential_webgl_error!(
             self.base,
             program.get_uniform_block_index(block_name),
             return constants::INVALID_INDEX
-        );
-        index
+        )
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.16>
@@ -4154,8 +4152,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             constants::UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES => unsafe {
                 let values = values.iter().map(|&v| v as u32).collect::<Vec<_>>();
                 rooted!(in(*cx) let mut result = ptr::null_mut::<JSObject>());
-                let _ = Uint32Array::create(*cx, CreateWith::Slice(&values), result.handle_mut())
-                    .unwrap();
+                Uint32Array::create(*cx, CreateWith::Slice(&values), result.handle_mut()).unwrap();
                 ObjectValue(result.get())
             },
             constants::UNIFORM_BLOCK_REFERENCED_BY_VERTEX_SHADER |
@@ -4385,7 +4382,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
                     ));
 
                 rooted!(in(*cx) let mut rval = ptr::null_mut::<JSObject>());
-                let _ = Int32Array::create(
+                Int32Array::create(
                     *cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
@@ -4478,7 +4475,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, WebGL2RenderingContext> {
     #[allow(unsafe_code)]
     unsafe fn canvas_data_source(self) -> HTMLCanvasDataSource {
-        let this = &*self.unsafe_get();
+        let this = self.unsafe_get();
         (*this.base.to_layout().unsafe_get()).layout_handle()
     }
 }

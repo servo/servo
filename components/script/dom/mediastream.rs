@@ -125,13 +125,13 @@ impl MediaStreamMethods for MediaStream {
         self.tracks
             .borrow()
             .iter()
-            .find(|x| x.id().id().to_string() == &*id)
+            .find(|x| x.id().id().to_string() == *id)
             .map(|x| DomRoot::from_ref(&**x))
     }
 
     /// <https://w3c.github.io/mediacapture-main/#dom-mediastream-addtrack>
     fn AddTrack(&self, track: &MediaStreamTrack) {
-        let existing = self.tracks.borrow().iter().find(|x| *x == &track).is_some();
+        let existing = self.tracks.borrow().iter().any(|x| x == &track);
 
         if existing {
             return;

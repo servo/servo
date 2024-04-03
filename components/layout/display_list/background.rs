@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![allow(clippy::too_many_arguments)]
-
 use app_units::Au;
 use euclid::default::{Point2D, Rect, SideOffsets2D, Size2D};
 use style::computed_values::background_attachment::single_value::T as BackgroundAttachment;
@@ -145,6 +143,7 @@ pub fn clip(
 /// no intrinsic size.
 ///
 /// Return `None` if the background size is zero, otherwise a [`BackgroundPlacement`].
+#[allow(clippy::too_many_arguments)]
 pub fn placement(
     bg: &Background,
     viewport_size: Size2D<Au>,
@@ -304,6 +303,7 @@ fn tile_image(position: &mut Au, size: &mut Au, absolute_anchor_origin: Au, imag
 /// For either the x or the y axis adjust various values to account for tiling.
 ///
 /// This is done separately for both axes because the repeat keywords may differ.
+#[allow(clippy::too_many_arguments)]
 fn tile_image_axis(
     repeat: BackgroundRepeatKeyword,
     position: &mut Au,

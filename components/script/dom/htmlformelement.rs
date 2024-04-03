@@ -578,17 +578,16 @@ impl HTMLFormElementMethods for HTMLFormElement {
                 } else {
                     a.source.cmp(&b.source)
                 }
+            } else if a
+                .element
+                .upcast::<Node>()
+                .CompareDocumentPosition(b.element.upcast::<Node>()) &
+                NodeConstants::DOCUMENT_POSITION_FOLLOWING ==
+                NodeConstants::DOCUMENT_POSITION_FOLLOWING
+            {
+                std::cmp::Ordering::Less
             } else {
-                if a.element
-                    .upcast::<Node>()
-                    .CompareDocumentPosition(b.element.upcast::<Node>()) &
-                    NodeConstants::DOCUMENT_POSITION_FOLLOWING ==
-                    NodeConstants::DOCUMENT_POSITION_FOLLOWING
-                {
-                    std::cmp::Ordering::Less
-                } else {
-                    std::cmp::Ordering::Greater
-                }
+                std::cmp::Ordering::Greater
             }
         });
 
@@ -598,11 +597,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
         // Step 7-8
         let mut names_vec: Vec<DOMString> = Vec::new();
         for elem in sourced_names_vec.iter() {
-            if names_vec
-                .iter()
-                .find(|name| &**name == &*elem.name)
-                .is_none()
-            {
+            if !names_vec.iter().any(|name| *name == *elem.name) {
                 names_vec.push(DOMString::from(&*elem.name));
             }
         }
@@ -659,7 +654,7 @@ impl HTMLFormElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#text/plain-encoding-algorithm
-    fn encode_plaintext(&self, form_data: &mut Vec<FormDatum>) -> String {
+    fn encode_plaintext(&self, form_data: &mut [FormDatum]) -> String {
         // Step 1
         let mut result = String::new();
 
@@ -742,7 +737,7 @@ impl HTMLFormElement {
                 atom!("submit"),
                 true,
                 true,
-                submitter_button.map(|s| DomRoot::from_ref(s)),
+                submitter_button.map(DomRoot::from_ref),
             );
             let event = event.upcast::<Event>();
             event.fire(self.upcast::<EventTarget>());
@@ -796,7 +791,7 @@ impl HTMLFormElement {
                 Some(submitter.target())
             } else {
                 let form_owner = submitter.form_owner();
-                let form = form_owner.as_ref().map(|form| &**form).unwrap_or(self);
+                let form = form_owner.as_deref().unwrap_or(self);
                 get_element_target(form.upcast::<Element>())
             };
 
@@ -871,7 +866,7 @@ impl HTMLFormElement {
                 // TODO: Mail with headers
                 // https://html.spec.whatwg.org/multipage/#submit-mailto-headers
             },
-            _ => return,
+            _ => (),
         }
     }
 
@@ -1054,9 +1049,9 @@ impl HTMLFormElement {
                     validatable
                         .validity_state()
                         .perform_validation_and_update(ValidationFlags::all());
-                    if !validatable.is_instance_validatable() {
-                        None
-                    } else if validatable.validity_state().invalid_flags().is_empty() {
+                    if !validatable.is_instance_validatable() ||
+                        validatable.validity_state().invalid_flags().is_empty()
+                    {
                         None
                     } else {
                         Some(DomRoot::from_ref(el))
@@ -1126,7 +1121,6 @@ impl HTMLFormElement {
                     },
                     HTMLElementTypeId::HTMLObjectElement => {
                         // Unimplemented
-                        ()
                     },
                     HTMLElementTypeId::HTMLSelectElement => {
                         let select = child.downcast::<HTMLSelectElement>().unwrap();

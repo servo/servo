@@ -25,6 +25,7 @@ pub struct Touch {
 }
 
 impl Touch {
+    #[allow(clippy::too_many_arguments)]
     fn new_inherited(
         identifier: i32,
         target: &EventTarget,
@@ -48,6 +49,7 @@ impl Touch {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         window: &Window,
         identifier: i32,

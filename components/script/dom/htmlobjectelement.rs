@@ -74,17 +74,14 @@ impl<'a> ProcessDataURL for &'a HTMLObjectElement {
     // Makes the local `data` member match the status of the `data` attribute and starts
     /// prefetching the image. This method must be called after `data` is changed.
     fn process_data_url(&self) {
-        let elem = self.upcast::<Element>();
+        let element = self.upcast::<Element>();
 
         // TODO: support other values
-        match (
-            elem.get_attribute(&ns!(), &local_name!("type")),
-            elem.get_attribute(&ns!(), &local_name!("data")),
+        if let (None, Some(_uri)) = (
+            element.get_attribute(&ns!(), &local_name!("type")),
+            element.get_attribute(&ns!(), &local_name!("data")),
         ) {
-            (None, Some(_uri)) => {
-                // TODO(gw): Prefetch the image here.
-            },
-            _ => {},
+            // TODO(gw): Prefetch the image here.
         }
     }
 }
@@ -178,7 +175,7 @@ impl FormControl for HTMLObjectElement {
         self.form_owner.set(form);
     }
 
-    fn to_element<'a>(&'a self) -> &'a Element {
+    fn to_element(&self) -> &Element {
         self.upcast::<Element>()
     }
 }

@@ -20,6 +20,7 @@ use style::Zero;
 use webrender_api as wr;
 
 use crate::dom_traversal::Contents;
+use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
     AuOrAuto, LengthOrAuto, LengthPercentageOrAuto, LogicalSides, LogicalVec2, PhysicalSides,
     PhysicalSize,
@@ -179,13 +180,19 @@ pub(crate) trait ComputedValuesExt {
         &self,
         containing_block_writing_mode: WritingMode,
     ) -> LogicalSides<LengthPercentageOrAuto<'_>>;
-    fn has_transform_or_perspective(&self) -> bool;
+    fn has_transform_or_perspective(&self, fragment_flags: FragmentFlags) -> bool;
     fn effective_z_index(&self) -> i32;
     fn establishes_block_formatting_context(&self) -> bool;
-    fn establishes_stacking_context(&self) -> bool;
+    fn establishes_stacking_context(&self, fragment_flags: FragmentFlags) -> bool;
     fn establishes_scroll_container(&self) -> bool;
-    fn establishes_containing_block_for_absolute_descendants(&self) -> bool;
-    fn establishes_containing_block_for_all_descendants(&self) -> bool;
+    fn establishes_containing_block_for_absolute_descendants(
+        &self,
+        fragment_flags: FragmentFlags,
+    ) -> bool;
+    fn establishes_containing_block_for_all_descendants(
+        &self,
+        fragment_flags: FragmentFlags,
+    ) -> bool;
     fn background_is_transparent(&self) -> bool;
     fn get_webrender_primitive_flags(&self) -> wr::PrimitiveFlags;
 }
@@ -411,7 +418,7 @@ impl ComputedValuesExt for ComputedValues {
 
     /// Returns true if this style has a transform, or perspective property set and
     /// it applies to this element.
-    fn has_transform_or_perspective(&self) -> bool {
+    fn has_transform_or_perspective(&self, fragment_flags: FragmentFlags) -> bool {
         // "A transformable element is an element in one of these categories:
         //   * all elements whose layout is governed by the CSS box model except for
         //     non-replaced inline boxes, table-column boxes, and table-column-group
@@ -420,8 +427,9 @@ impl ComputedValuesExt for ComputedValues {
         //     elements with the exception of any descendant element of text content
         //     elements."
         // https://drafts.csswg.org/css-transforms/#transformable-element
-        // FIXME(mrobinson): Properly handle tables and replaced elements here.
-        if self.get_box().display.is_inline_flow() {
+        if self.get_box().display.is_inline_flow() &&
+            !fragment_flags.contains(FragmentFlags::IS_REPLACED)
+        {
             return false;
         }
 
@@ -464,7 +472,7 @@ impl ComputedValuesExt for ComputedValues {
     }
 
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
-    fn establishes_stacking_context(&self) -> bool {
+    fn establishes_stacking_context(&self, fragment_flags: FragmentFlags) -> bool {
         let effects = self.get_effects();
         if effects.opacity != 1.0 {
             return true;
@@ -474,7 +482,7 @@ impl ComputedValuesExt for ComputedValues {
             return true;
         }
 
-        if self.has_transform_or_perspective() {
+        if self.has_transform_or_perspective(fragment_flags) {
             return true;
         }
 
@@ -513,8 +521,11 @@ impl ComputedValuesExt for ComputedValues {
     /// descendants) this method will return true, but a true return value does
     /// not imply that the style establishes a containing block for all descendants.
     /// Use `establishes_containing_block_for_all_descendants()` instead.
-    fn establishes_containing_block_for_absolute_descendants(&self) -> bool {
-        if self.establishes_containing_block_for_all_descendants() {
+    fn establishes_containing_block_for_absolute_descendants(
+        &self,
+        fragment_flags: FragmentFlags,
+    ) -> bool {
+        if self.establishes_containing_block_for_all_descendants(fragment_flags) {
             return true;
         }
 
@@ -525,8 +536,11 @@ impl ComputedValuesExt for ComputedValues {
     /// all descendants, including fixed descendants (`position: fixed`).
     /// Note that this also implies that it establishes a containing block
     /// for absolute descendants (`position: absolute`).
-    fn establishes_containing_block_for_all_descendants(&self) -> bool {
-        if self.has_transform_or_perspective() {
+    fn establishes_containing_block_for_all_descendants(
+        &self,
+        fragment_flags: FragmentFlags,
+    ) -> bool {
+        if self.has_transform_or_perspective(fragment_flags) {
             return true;
         }
 

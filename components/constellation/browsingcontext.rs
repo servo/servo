@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![allow(clippy::too_many_arguments)]
-
 use std::collections::{HashMap, HashSet};
 
 use euclid::Size2D;
@@ -81,6 +79,7 @@ pub struct BrowsingContext {
 impl BrowsingContext {
     /// Create a new browsing context.
     /// Note this just creates the browsing context, it doesn't add it to the constellation's set of browsing contexts.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         bc_group_id: BrowsingContextGroupId,
         id: BrowsingContextId,

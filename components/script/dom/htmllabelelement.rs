@@ -170,8 +170,7 @@ impl HTMLLabelElement {
         self.upcast::<Node>()
             .traverse_preorder(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<HTMLElement>)
-            .filter(|elem| elem.is_labelable_element())
-            .next()
+            .find(|elem| elem.is_labelable_element())
     }
 }
 
@@ -190,7 +189,7 @@ impl FormControl for HTMLLabelElement {
         // form owner. Therefore it doesn't hold form owner itself.
     }
 
-    fn to_element<'a>(&'a self) -> &'a Element {
+    fn to_element(&self) -> &Element {
         self.upcast::<Element>()
     }
 }

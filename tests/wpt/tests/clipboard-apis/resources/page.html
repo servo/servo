@@ -9,8 +9,8 @@
 window.addEventListener("message", async (e) => {
   if (e.data && e.data[0] == "write") {
     test_driver.set_test_context(window.parent);
-    await test_driver.set_permission({name: 'clipboard-read'}, 'granted');
-    await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+    await tryGrantReadPermission();
+    await tryGrantWritePermission();
     await waitForUserActivation();
     await navigator.clipboard.write([
       new ClipboardItem({

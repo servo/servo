@@ -4,8 +4,6 @@
 
 //! CSS table formatting contexts.
 
-#![allow(clippy::too_many_arguments)]
-
 use std::cmp::max;
 use std::fmt;
 use std::iter::{Enumerate, Peekable};
@@ -771,7 +769,7 @@ impl CollapsedBorder {
         CollapsedBorder {
             style: BorderStyle::None,
             width: Au(0),
-            color: Color::TRANSPARENT,
+            color: Color::TRANSPARENT_BLACK,
             provenance: CollapsedBorderFrom::Table,
         }
     }
@@ -982,6 +980,7 @@ pub fn propagate_column_inline_sizes_to_child(
 }
 
 /// Lay out table cells inline according to the computer column sizes.
+#[allow(clippy::too_many_arguments)]
 fn set_inline_position_of_child_flow(
     child_flow: &mut dyn Flow,
     child_index: usize,

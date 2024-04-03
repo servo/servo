@@ -21,7 +21,6 @@ use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 use std::collections::{hash_map, HashMap, HashSet};
 use std::default::Default;
-use std::ops::Deref;
 use std::option::Option;
 use std::rc::Rc;
 use std::result::Result;
@@ -226,6 +225,7 @@ struct InProgressLoad {
 
 impl InProgressLoad {
     /// Create a new InProgressLoad object.
+    #[allow(clippy::too_many_arguments)]
     fn new(
         id: PipelineId,
         browsing_context_id: BrowsingContextId,
@@ -478,7 +478,7 @@ impl Documents {
             .and_then(|doc| doc.find_iframe(browsing_context_id))
     }
 
-    pub fn iter<'a>(&'a self) -> DocumentsIter<'a> {
+    pub fn iter(&self) -> DocumentsIter<'_> {
         DocumentsIter {
             iter: self.map.iter(),
         }
@@ -2548,7 +2548,7 @@ impl ScriptThread {
         let path_seg = format!("url({})", urls);
 
         let mut reports = vec![];
-        reports.extend(get_reports(*self.get_cx(), path_seg));
+        reports.extend(unsafe { get_reports(*self.get_cx(), path_seg) });
         reports_chan.send(reports);
     }
 
@@ -2778,31 +2778,29 @@ impl ScriptThread {
             Some(idx) => {
                 // https://html.spec.whatwg.org/multipage/#process-a-navigate-response
                 // 2. If response's status is 204 or 205, then abort these steps.
-                match metadata {
-                    Some(Metadata {
-                        status: Some((204..=205, _)),
-                        ..
-                    }) => {
-                        // If we have an existing window that is being navigated:
-                        if let Some(window) = self.documents.borrow().find_window(*id) {
-                            let window_proxy = window.window_proxy();
-                            // https://html.spec.whatwg.org/multipage/
-                            // #navigating-across-documents:delaying-load-events-mode-2
-                            if window_proxy.parent().is_some() {
-                                // The user agent must take this nested browsing context
-                                // out of the delaying load events mode
-                                // when this navigation algorithm later matures,
-                                // or when it terminates (whether due to having run all the steps,
-                                // or being canceled, or being aborted), whichever happens first.
-                                window_proxy.stop_delaying_load_events_mode();
-                            }
+                if let Some(Metadata {
+                    status: Some((204..=205, _)),
+                    ..
+                }) = metadata
+                {
+                    // If we have an existing window that is being navigated:
+                    if let Some(window) = self.documents.borrow().find_window(*id) {
+                        let window_proxy = window.window_proxy();
+                        // https://html.spec.whatwg.org/multipage/
+                        // #navigating-across-documents:delaying-load-events-mode-2
+                        if window_proxy.parent().is_some() {
+                            // The user agent must take this nested browsing context
+                            // out of the delaying load events mode
+                            // when this navigation algorithm later matures,
+                            // or when it terminates (whether due to having run all the steps,
+                            // or being canceled, or being aborted), whichever happens first.
+                            window_proxy.stop_delaying_load_events_mode();
                         }
-                        self.script_sender
-                            .send((*id, ScriptMsg::AbortLoadUrl))
-                            .unwrap();
-                        return None;
-                    },
-                    _ => (),
+                    }
+                    self.script_sender
+                        .send((*id, ScriptMsg::AbortLoadUrl))
+                        .unwrap();
+                    return None;
                 };
 
                 let load = self.incomplete_loads.borrow_mut().remove(idx);
@@ -3111,7 +3109,7 @@ impl ScriptThread {
             )
         });
 
-        let opener_browsing_context = opener.and_then(|id| ScriptThread::find_window_proxy(id));
+        let opener_browsing_context = opener.and_then(ScriptThread::find_window_proxy);
 
         let creator = CreatorBrowsingContextInfo::from(
             parent_browsing_context.as_deref(),
@@ -3167,7 +3165,7 @@ impl ScriptThread {
             _ => None,
         };
 
-        let opener_browsing_context = opener.and_then(|id| ScriptThread::find_window_proxy(id));
+        let opener_browsing_context = opener.and_then(ScriptThread::find_window_proxy);
 
         let creator = CreatorBrowsingContextInfo::from(
             parent_browsing_context.as_deref(),
@@ -3354,15 +3352,14 @@ impl ScriptThread {
             _ => IsHTMLDocument::HTMLDocument,
         };
 
-        let referrer = match metadata.referrer {
-            Some(ref referrer) => Some(referrer.clone().into_string()),
-            None => None,
-        };
+        let referrer = metadata
+            .referrer
+            .as_ref()
+            .map(|referrer| referrer.clone().into_string());
 
         let referrer_policy = metadata
             .headers
-            .as_ref()
-            .map(Serde::deref)
+            .as_deref()
             .and_then(|h| h.typed_get::<ReferrerPolicyHeader>())
             .map(ReferrerPolicy::from);
 
@@ -3463,7 +3460,7 @@ impl ScriptThread {
 
     /// Reflows non-incrementally, rebuilding the entire layout tree in the process.
     fn rebuild_and_force_reflow(&self, document: &Document, reason: ReflowReason) {
-        let window = window_from_node(&*document);
+        let window = window_from_node(document);
         document.dirty_all_nodes();
         window.reflow(ReflowGoal::Full, reason);
     }
@@ -3649,6 +3646,7 @@ impl ScriptThread {
         ScriptThread::set_user_interacting(false);
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn handle_mouse_event(
         &self,
         pipeline_id: PipelineId,

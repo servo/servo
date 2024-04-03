@@ -22,6 +22,7 @@ pub struct InputEvent {
 }
 
 impl InputEvent {
+    #[allow(clippy::too_many_arguments)]
     fn new(
         window: &Window,
         proto: Option<HandleObject>,

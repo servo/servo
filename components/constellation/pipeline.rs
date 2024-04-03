@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![allow(clippy::too_many_arguments)]
-
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
@@ -349,6 +347,7 @@ impl Pipeline {
     }
 
     /// Creates a new `Pipeline`, after the script has been spawned.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: PipelineId,
         browsing_context_id: BrowsingContextId,

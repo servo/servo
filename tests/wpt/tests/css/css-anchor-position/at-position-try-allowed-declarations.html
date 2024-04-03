@@ -44,7 +44,7 @@ test_allowed_declaration('inset-inline-end');
 test_allowed_declaration('inset-block');
 test_allowed_declaration('inset-inline');
 test_allowed_declaration('inset');
-test_allowed_declaration('inset-area', 'all');
+test_allowed_declaration('inset-area', 'span-all');
 
 // Margin properties are allowed
 test_allowed_declaration('margin-top');
@@ -74,12 +74,12 @@ test_allowed_declaration('max-block-size');
 test_allowed_declaration('max-inline-size');
 
 // Box alignment properties are allowed
-test_allowed_declaration('justify-content', 'normal');
-test_allowed_declaration('align-content', 'normal');
-test_allowed_declaration('justify-items', 'normal');
-test_allowed_declaration('align-items', 'normal');
 test_allowed_declaration('justify-self', 'normal');
 test_allowed_declaration('align-self', 'normal');
+test_allowed_declaration('place-self', 'normal');
+
+// The 'position-anchor' property is allowed
+test_allowed_declaration('position-anchor', '--anchor');
 
 // Custom properties are disallowed
 test_disallowed_declaration('--custom');
@@ -91,12 +91,16 @@ test_disallowed_declaration('padding');
 test_disallowed_declaration('display');
 test_disallowed_declaration('position');
 test_disallowed_declaration('float');
+test_disallowed_declaration('justify-content', 'normal');
+test_disallowed_declaration('align-content', 'normal');
+test_disallowed_declaration('justify-items', 'normal');
+test_disallowed_declaration('align-items', 'normal');
 
-// 'revert' and 'revert-layer' are disallowed
-test_disallowed_declaration('top', 'revert');
-test_disallowed_declaration('top', 'revert-layer');
-test_disallowed_declaration('inset', 'revert');
-test_disallowed_declaration('inset', 'revert-layer');
+// 'revert' and 'revert-layer' are allowed
+test_allowed_declaration('top', 'revert');
+test_allowed_declaration('top', 'revert-layer');
+test_allowed_declaration('inset', 'revert');
+test_allowed_declaration('inset', 'revert-layer');
 
 // !important is disallowed
 test_disallowed_declaration('top', '1px !important');

@@ -50,14 +50,13 @@ pub struct MediaSession {
 impl MediaSession {
     #[allow(crown::unrooted_must_root)]
     fn new_inherited() -> MediaSession {
-        let media_session = MediaSession {
+        MediaSession {
             reflector_: Reflector::new(),
             metadata: DomRefCell::new(None),
             playback_state: DomRefCell::new(MediaSessionPlaybackState::None),
             action_handlers: DomRefCell::new(HashMapTracedValues::new()),
             media_instance: Default::default(),
-        };
-        media_session
+        }
     }
 
     pub fn new(window: &Window) -> DomRoot<MediaSession> {
@@ -141,7 +140,7 @@ impl MediaSessionMethods for MediaSession {
 
     /// <https://w3c.github.io/mediasession/#dom-mediasession-metadata>
     fn SetMetadata(&self, metadata: Option<&MediaMetadata>) {
-        if let Some(ref metadata) = metadata {
+        if let Some(metadata) = metadata {
             metadata.set_session(self);
         }
 
@@ -240,8 +239,7 @@ impl MediaSessionMethods for MediaSession {
         if let Some(media_instance) = self.media_instance.get() {
             media_instance.set_duration(state.duration.map(|v| *v).unwrap());
             // If the playbackRate is not present or its value is null, set it to 1.0.
-            let _ =
-                media_instance.SetPlaybackRate(state.playbackRate.unwrap_or(Finite::wrap(1.0)))?;
+            media_instance.SetPlaybackRate(state.playbackRate.unwrap_or(Finite::wrap(1.0)))?;
             // If the position is not present or its value is null, set it to zero.
             media_instance.SetCurrentTime(state.position.unwrap_or(Finite::wrap(0.0)));
         }

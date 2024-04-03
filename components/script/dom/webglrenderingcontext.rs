@@ -747,6 +747,7 @@ impl WebGLRenderingContext {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn tex_image_2d(
         &self,
         texture: &WebGLTexture,
@@ -830,10 +831,11 @@ impl WebGLRenderingContext {
         }
 
         if let Some(fb) = self.bound_draw_framebuffer.get() {
-            fb.invalidate_texture(&*texture);
+            fb.invalidate_texture(texture);
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn tex_sub_image_2d(
         &self,
         texture: DomRoot<WebGLTexture>,
@@ -1575,7 +1577,8 @@ impl WebGLRenderingContext {
         constants::COLOR_ATTACHMENT0 <= attachment && attachment <= last_slot
     }
 
-    pub fn compressed_tex_image_2d<'a>(
+    #[allow(clippy::too_many_arguments)]
+    pub fn compressed_tex_image_2d(
         &self,
         target: u32,
         level: i32,
@@ -1583,7 +1586,7 @@ impl WebGLRenderingContext {
         width: i32,
         height: i32,
         border: i32,
-        data: &'a [u8],
+        data: &[u8],
     ) {
         let validator = CompressedTexImage2DValidator::new(
             self,
@@ -1642,7 +1645,8 @@ impl WebGLRenderingContext {
         }
     }
 
-    pub fn compressed_tex_sub_image_2d<'a>(
+    #[allow(clippy::too_many_arguments)]
+    pub fn compressed_tex_sub_image_2d(
         &self,
         target: u32,
         level: i32,
@@ -1651,7 +1655,7 @@ impl WebGLRenderingContext {
         width: i32,
         height: i32,
         format: u32,
-        data: &'a [u8],
+        data: &[u8],
     ) {
         let validator = CompressedTexSubImage2DValidator::new(
             self,
@@ -2066,7 +2070,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 let format_ids = self.extension_manager.get_tex_compression_ids();
 
                 rooted!(in(*cx) let mut rval = ptr::null_mut::<JSObject>());
-                let _ = Uint32Array::create(*cx, CreateWith::Slice(&format_ids), rval.handle_mut())
+                Uint32Array::create(*cx, CreateWith::Slice(&format_ids), rval.handle_mut())
                     .unwrap();
                 return ObjectValue(rval.get());
             },
@@ -2165,7 +2169,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterInt2(param, sender));
                 rooted!(in(*cx) let mut rval = ptr::null_mut::<JSObject>());
-                let _ = Int32Array::create(
+                Int32Array::create(
                     *cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
@@ -2177,7 +2181,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterInt4(param, sender));
                 rooted!(in(*cx) let mut rval = ptr::null_mut::<JSObject>());
-                let _ = Int32Array::create(
+                Int32Array::create(
                     *cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
@@ -2194,7 +2198,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterFloat2(param, sender));
                 rooted!(in(*cx) let mut rval = ptr::null_mut::<JSObject>());
-                let _ = Float32Array::create(
+                Float32Array::create(
                     *cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
@@ -2206,7 +2210,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterFloat4(param, sender));
                 rooted!(in(*cx) let mut rval = ptr::null_mut::<JSObject>());
-                let _ = Float32Array::create(
+                Float32Array::create(
                     *cx,
                     CreateWith::Slice(&receiver.recv().unwrap()),
                     rval.handle_mut(),
@@ -3380,7 +3384,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                         let value = [x, y, z, w];
                         unsafe {
                             rooted!(in(*cx) let mut result = ptr::null_mut::<JSObject>());
-                            let _ = Float32Array::create(
+                            Float32Array::create(
                                 *cx,
                                 CreateWith::Slice(&value),
                                 result.handle_mut(),
@@ -3393,12 +3397,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                         let value = [x, y, z, w];
                         unsafe {
                             rooted!(in(*cx) let mut result = ptr::null_mut::<JSObject>());
-                            let _ = Int32Array::create(
-                                *cx,
-                                CreateWith::Slice(&value),
-                                result.handle_mut(),
-                            )
-                            .unwrap();
+                            Int32Array::create(*cx, CreateWith::Slice(&value), result.handle_mut())
+                                .unwrap();
                             return ObjectValue(result.get());
                         }
                     },
@@ -3406,7 +3406,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                         let value = [x, y, z, w];
                         unsafe {
                             rooted!(in(*cx) let mut result = ptr::null_mut::<JSObject>());
-                            let _ = Uint32Array::create(
+                            Uint32Array::create(
                                 *cx,
                                 CreateWith::Slice(&value),
                                 result.handle_mut(),
@@ -4140,7 +4140,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
             Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
         };
-        if values.len() < 1 {
+        if values.is_empty() {
             // https://github.com/KhronosGroup/WebGL/issues/2700
             return self.webgl_error(InvalidValue);
         }

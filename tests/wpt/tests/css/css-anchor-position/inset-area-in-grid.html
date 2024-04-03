@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: inset-area positioning inside grid</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position/#inset-area">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!--
+    Grid:
+
+          100      100      100      100
+      +--------+--------+--------+--------+
+      |        |        |        |        |
+  100 |        |        |        |        |
+      |        |        |        |        |
+      +--------+--------+--------+--------+
+      |        |        |XXXXXXXX|XXXXXXXX|
+  100 |        |        |XXXXXXXX|XXXXXXXX|
+      |        |        |XXXXXXXX|XXXXXXXX|
+      +--------+--------+--------+--------+
+      |        |        |XXXXXXXX|XXXXXXXX|
+  100 |        |        |XXXXXXXX|XXXXXXXX|
+      |        |        |XXXXXXXX|XXXXXXXX|
+      +--------+--------+--------+--------+
+      |        |        |        |        |
+  100 |        |        |        |        |
+      |        |        |        |        |
+      +--------+--------+--------+--------+
+
+
+    Inset regions:
+
+          100        150           150
+      +--------+-------------+------------+
+      |        |             |            |
+      |        |             |            |
+  150 |        |             |            |
+      |        |             |            |
+      |        |             |            |
+      +--------+-------------+------------+
+      |        |             |            |
+   75 |        |             |            |
+      |        |             |            |
+      +--------+-------------+------------+
+      |        |             |            |
+      |        |             |            |
+  175 |        |             |            |
+      |        |             |            |
+      |        |             |            |
+      +--------+-------------+------------+
+
+  -->
+
+<style>
+  #container {
+    display: grid;
+    grid: 1fr 1fr 1fr 1fr / 1fr 1fr 1fr 1fr;
+    position: relative;
+    width: 400px;
+    height: 400px;
+  }
+
+  #anchor {
+    position: absolute;
+    left: 100px;
+    top: 150px;
+    width: 150px;
+    height: 75px;
+    anchor-name: --anchor;
+  }
+
+  #anchored {
+    grid-row-start: 2;
+    grid-row-end: span 2;
+    grid-column-start: 3;
+    grid-column-end: auto;
+    position: absolute;
+    align-self: stretch;
+    justify-self: stretch;
+    position-anchor: --anchor;
+  }
+</style>
+
+<div id="container">
+  <div id="anchor"></div>
+  <div id="anchored"></div>
+</div>
+<script>
+  function test_inset_area(inset_area, insets, expected_offsets) {
+    anchored.style.insetArea = inset_area;
+    for (const [prop, value] of Object.entries(insets)) {
+      anchored.style[prop] = value;
+    }
+
+    test(() => {
+      assert_equals(anchored.offsetLeft, expected_offsets.left, "Check expected offsetLeft");
+      assert_equals(anchored.offsetTop, expected_offsets.top, "Check expected offsetTop");
+      assert_equals(anchored.offsetWidth, expected_offsets.width, "Check expected offsetWidth");
+      assert_equals(anchored.offsetHeight, expected_offsets.height, "Check expected offsetHeight");
+    }, "Offsets for inset-area: " + inset_area + " and insets: " + JSON.stringify(insets));
+  }
+
+  test_inset_area("span-bottom span-left", {left:"auto", right:"auto", top:"auto", bottom:"auto"},
+                  {left:200, top:150, width:50, height:150});
+
+  test_inset_area("span-bottom span-left", {left:"10px", right:"10px", top:"10px", bottom:"10px"},
+                  {left:210, top:160, width:30, height:130});
+</script>

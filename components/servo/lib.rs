@@ -187,9 +187,7 @@ struct RenderNotifier {
 
 impl RenderNotifier {
     pub fn new(compositor_proxy: CompositorProxy) -> RenderNotifier {
-        RenderNotifier {
-            compositor_proxy: compositor_proxy,
-        }
+        RenderNotifier { compositor_proxy }
     }
 }
 
@@ -338,7 +336,7 @@ where
                     use_optimized_shaders: true,
                     resource_override_path: opts.shaders_dir.clone(),
                     enable_aa: !opts.debug.disable_text_antialiasing,
-                    debug_flags: debug_flags,
+                    debug_flags,
                     precache_flags: if opts.debug.precache_shaders {
                         ShaderPrecacheFlags::FULL_COMPILE
                     } else {
@@ -461,8 +459,8 @@ where
                 sender: compositor_proxy,
                 receiver: compositor_receiver,
                 constellation_chan: constellation_chan.clone(),
-                time_profiler_chan: time_profiler_chan,
-                mem_profiler_chan: mem_profiler_chan,
+                time_profiler_chan,
+                mem_profiler_chan,
                 webrender,
                 webrender_document,
                 webrender_api,
@@ -477,9 +475,9 @@ where
         );
 
         let servo = Servo {
-            compositor: compositor,
-            constellation_chan: constellation_chan,
-            embedder_receiver: embedder_receiver,
+            compositor,
+            constellation_chan,
+            embedder_receiver,
             messages_for_embedder: Vec::new(),
             profiler_enabled: false,
             _js_engine_setup: js_engine_setup,
@@ -817,7 +815,7 @@ where
                 }
             },
         }
-        return false;
+        false
     }
 
     fn send_to_constellation(&self, msg: ConstellationMsg) {
@@ -921,10 +919,10 @@ fn create_embedder_channel(
     let (sender, receiver) = unbounded();
     (
         EmbedderProxy {
-            sender: sender,
-            event_loop_waker: event_loop_waker,
+            sender,
+            event_loop_waker,
         },
-        EmbedderReceiver { receiver: receiver },
+        EmbedderReceiver { receiver },
     )
 }
 
@@ -934,10 +932,10 @@ fn create_compositor_channel(
     let (sender, receiver) = unbounded();
     (
         CompositorProxy {
-            sender: sender,
-            event_loop_waker: event_loop_waker,
+            sender,
+            event_loop_waker,
         },
-        CompositorReceiver { receiver: receiver },
+        CompositorReceiver { receiver },
     )
 }
 

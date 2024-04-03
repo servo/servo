@@ -7,7 +7,6 @@ use std::mem;
 use std::sync::{Arc, Mutex};
 
 use canvas_traits::canvas::*;
-use cssparser::RgbaLegacy;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::{point2, vec2};
 use font_kit::family_name::FamilyName;
@@ -22,6 +21,7 @@ use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use log::{debug, error, warn};
 use num_traits::ToPrimitive;
 use servo_arc::Arc as ServoArc;
+use style::color::parsing::RgbaLegacy;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font;
 use style_traits::values::ToCss;

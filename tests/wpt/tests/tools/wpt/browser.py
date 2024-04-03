@@ -1559,7 +1559,23 @@ class ChromeiOS(Browser):
         raise NotImplementedError
 
     def version(self, binary=None, webdriver_binary=None):
-        return None
+        if webdriver_binary is None:
+            self.logger.warning(
+                "Cannot find ChromeiOS version without CWTChromeDriver")
+            return None
+        # Use `chrome iOS driver --version` to get the version. Example output:
+        # "125.0.6378.0"
+        try:
+            version_string = call(webdriver_binary, "--version").strip()
+        except subprocess.CalledProcessError as e:
+            self.logger.warning(f"Failed to call {webdriver_binary}: {e}")
+            return None
+        m = re.match(r"[\d][\d\.]*", version_string)
+        if not m:
+            self.logger.warning(
+                f"Failed to extract version from: {version_string}")
+            return None
+        return m.group(0)
 
 
 class Opera(Browser):

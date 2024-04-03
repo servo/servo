@@ -58,7 +58,7 @@ impl XRInputSource {
             global,
         );
 
-        let _ac = enter_realm(&*global);
+        let _ac = enter_realm(global);
         let cx = GlobalScope::get_cx();
         unsafe {
             rooted!(in(*cx) let mut profiles = UndefinedValue());
@@ -122,13 +122,9 @@ impl XRInputSourceMethods for XRInputSource {
 
     // https://github.com/immersive-web/webxr-hands-input/blob/master/explainer.md
     fn GetHand(&self) -> Option<DomRoot<XRHand>> {
-        if let Some(ref hand) = self.info.hand_support {
-            Some(
-                self.hand
-                    .or_init(|| XRHand::new(&self.global(), self, hand.clone())),
-            )
-        } else {
-            None
-        }
+        self.info.hand_support.as_ref().map(|hand| {
+            self.hand
+                .or_init(|| XRHand::new(&self.global(), self, hand.clone()))
+        })
     }
 }

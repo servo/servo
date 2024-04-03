@@ -40,6 +40,7 @@ pub struct AudioParam {
 }
 
 impl AudioParam {
+    #[allow(clippy::too_many_arguments)]
     pub fn new_inherited(
         context: &BaseAudioContext,
         node: NodeId,
@@ -63,7 +64,7 @@ impl AudioParam {
         }
     }
 
-    #[allow(crown::unrooted_must_root)]
+    #[allow(crown::unrooted_must_root, clippy::too_many_arguments)]
     pub fn new(
         window: &Window,
         context: &BaseAudioContext,

@@ -14,7 +14,7 @@ const cross_origin_src =
   'https://{{domains[www]}}:{{ports[https][0]}}' + same_origin_src;
 
 promise_test(async t => {
-  await test_driver.set_permission({ name: 'clipboard-read' }, 'granted');
+  await tryGrantReadPermission();
   return promise_rejects_dom(t, 'NotAllowedError',
       navigator.clipboard.readText('test text'));
 }, 'Feature-Policy header clipboard-read "none" disallows the top-level document.');

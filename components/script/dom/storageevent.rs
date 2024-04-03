@@ -64,6 +64,7 @@ impl StorageEvent {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         global: &Window,
         type_: Atom,
@@ -89,6 +90,7 @@ impl StorageEvent {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
         global: &Window,
         proto: Option<HandleObject>,
@@ -192,11 +194,8 @@ impl StorageEventMethods for StorageEvent {
         url: USVString,
         storageArea: Option<&Storage>,
     ) {
-        self.event.init_event(
-            Atom::from(type_),
-            bool::from(bubbles),
-            bool::from(cancelable),
-        );
+        self.event
+            .init_event(Atom::from(type_), bubbles, cancelable);
         *self.key.borrow_mut() = key;
         *self.old_value.borrow_mut() = oldValue;
         *self.new_value.borrow_mut() = newValue;

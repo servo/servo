@@ -237,6 +237,7 @@ impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
 }
 
 impl DedicatedWorkerGlobalScope {
+    #[allow(clippy::too_many_arguments)]
     fn new_inherited(
         init: WorkerGlobalScopeInit,
         worker_name: DOMString,
@@ -274,7 +275,7 @@ impl DedicatedWorkerGlobalScope {
         }
     }
 
-    #[allow(unsafe_code)]
+    #[allow(unsafe_code, clippy::too_many_arguments)]
     pub fn new(
         init: WorkerGlobalScopeInit,
         worker_name: DOMString,
@@ -311,8 +312,8 @@ impl DedicatedWorkerGlobalScope {
         unsafe { DedicatedWorkerGlobalScopeBinding::Wrap(SafeJSContext::from_ptr(cx), scope) }
     }
 
-    #[allow(unsafe_code)]
-    // https://html.spec.whatwg.org/multipage/#run-a-worker
+    /// <https://html.spec.whatwg.org/multipage/#run-a-worker>
+    #[allow(unsafe_code, clippy::too_many_arguments)]
     pub fn run_worker_scope(
         mut init: WorkerGlobalScopeInit,
         worker_url: ServoUrl,
@@ -357,9 +358,7 @@ impl DedicatedWorkerGlobalScope {
                     pipeline_id,
                 } = worker_load_origin;
 
-                let referrer = referrer_url
-                    .map(|url| Referrer::ReferrerUrl(url))
-                    .unwrap_or(referrer);
+                let referrer = referrer_url.map(Referrer::ReferrerUrl).unwrap_or(referrer);
 
                 let request = RequestBuilder::new(worker_url.clone(), referrer)
                     .destination(Destination::Worker)
@@ -461,7 +460,7 @@ impl DedicatedWorkerGlobalScope {
 
                 {
                     let _ar = AutoWorkerReset::new(&global, worker.clone());
-                    let _ac = enter_realm(&*scope);
+                    let _ac = enter_realm(scope);
                     scope.execute_script(DOMString::from(source));
                 }
 

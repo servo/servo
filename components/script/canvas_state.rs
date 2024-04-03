@@ -12,7 +12,7 @@ use canvas_traits::canvas::{
     FillRule, LineCapStyle, LineJoinStyle, LinearGradientStyle, RadialGradientStyle,
     RepetitionStyle, TextAlign, TextBaseline,
 };
-use cssparser::{Parser, ParserInput, RgbaLegacy};
+use cssparser::{Parser, ParserInput};
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use euclid::vec2;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
@@ -22,6 +22,7 @@ use pixels::PixelFormat;
 use profile_traits::ipc as profiled_ipc;
 use script_traits::ScriptMsg;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use style::color::parsing::RgbaLegacy;
 use style::color::{AbsoluteColor, ColorSpace};
 use style::context::QuirksMode;
 use style::parser::ParserContext;
@@ -329,27 +330,29 @@ impl CanvasState {
         pixels
     }
 
-    //
-    // drawImage coordinates explained
-    //
-    //  Source Image      Destination Canvas
-    // +-------------+     +-------------+
-    // |             |     |             |
-    // |(sx,sy)      |     |(dx,dy)      |
-    // |   +----+    |     |   +----+    |
-    // |   |    |    |     |   |    |    |
-    // |   |    |sh  |---->|   |    |dh  |
-    // |   |    |    |     |   |    |    |
-    // |   +----+    |     |   +----+    |
-    // |     sw      |     |     dw      |
-    // |             |     |             |
-    // +-------------+     +-------------+
-    //
-    //
-    // The rectangle (sx, sy, sw, sh) from the source image
-    // is copied on the rectangle (dx, dy, dh, dw) of the destination canvas
-    //
-    // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
+    ///
+    /// drawImage coordinates explained
+    ///
+    /// ```
+    ///  Source Image      Destination Canvas
+    /// +-------------+     +-------------+
+    /// |             |     |             |
+    /// |(sx,sy)      |     |(dx,dy)      |
+    /// |   +----+    |     |   +----+    |
+    /// |   |    |    |     |   |    |    |
+    /// |   |    |sh  |---->|   |    |dh  |
+    /// |   |    |    |     |   |    |    |
+    /// |   +----+    |     |   +----+    |
+    /// |     sw      |     |     dw      |
+    /// |             |     |             |
+    /// +-------------+     +-------------+
+    /// ```
+    ///
+    /// The rectangle (sx, sy, sw, sh) from the source image
+    /// is copied on the rectangle (dx, dy, dh, dw) of the destination canvas
+    ///
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage>
+    #[allow(clippy::too_many_arguments)]
     fn draw_image_internal(
         &self,
         htmlcanvas: Option<&HTMLCanvasElement>,
@@ -424,6 +427,7 @@ impl CanvasState {
         result
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn draw_offscreen_canvas(
         &self,
         canvas: &OffscreenCanvas,
@@ -478,6 +482,7 @@ impl CanvasState {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn draw_html_canvas_element(
         &self,
         canvas: &HTMLCanvasElement,             // source canvas
@@ -538,6 +543,7 @@ impl CanvasState {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn fetch_and_draw_image_data(
         &self,
         canvas: Option<&HTMLCanvasElement>,
@@ -584,15 +590,16 @@ impl CanvasState {
     }
 
     pub fn mark_as_dirty(&self, canvas: Option<&HTMLCanvasElement>) {
-        if let Some(ref canvas) = canvas {
+        if let Some(canvas) = canvas {
             canvas.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         }
     }
 
-    // It is used by DrawImage to calculate the size of the source and destination rectangles based
-    // on the drawImage call arguments
-    // source rectangle = area of the original image to be copied
-    // destination rectangle = area of the destination canvas where the source image is going to be drawn
+    /// It is used by DrawImage to calculate the size of the source and destination rectangles based
+    /// on the drawImage call arguments
+    /// source rectangle = area of the original image to be copied
+    /// destination rectangle = area of the destination canvas where the source image is going to be drawn
+    #[allow(clippy::too_many_arguments)]
     fn adjust_source_dest_rects(
         &self,
         image_size: Size2D<f64>,
@@ -746,10 +753,10 @@ impl CanvasState {
                 StringOrCanvasGradientOrCanvasPattern::String(DOMString::from(result))
             },
             CanvasFillOrStrokeStyle::Gradient(ref gradient) => {
-                StringOrCanvasGradientOrCanvasPattern::CanvasGradient(DomRoot::from_ref(&*gradient))
+                StringOrCanvasGradientOrCanvasPattern::CanvasGradient(DomRoot::from_ref(gradient))
             },
             CanvasFillOrStrokeStyle::Pattern(ref pattern) => {
-                StringOrCanvasGradientOrCanvasPattern::CanvasPattern(DomRoot::from_ref(&*pattern))
+                StringOrCanvasGradientOrCanvasPattern::CanvasPattern(DomRoot::from_ref(pattern))
             },
         }
     }
@@ -789,10 +796,10 @@ impl CanvasState {
                 StringOrCanvasGradientOrCanvasPattern::String(DOMString::from(result))
             },
             CanvasFillOrStrokeStyle::Gradient(ref gradient) => {
-                StringOrCanvasGradientOrCanvasPattern::CanvasGradient(DomRoot::from_ref(&*gradient))
+                StringOrCanvasGradientOrCanvasPattern::CanvasGradient(DomRoot::from_ref(gradient))
             },
             CanvasFillOrStrokeStyle::Pattern(ref pattern) => {
-                StringOrCanvasGradientOrCanvasPattern::CanvasPattern(DomRoot::from_ref(&*pattern))
+                StringOrCanvasGradientOrCanvasPattern::CanvasPattern(DomRoot::from_ref(pattern))
             },
         }
     }
@@ -838,7 +845,8 @@ impl CanvasState {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-context-2d-createradialgradient
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-createradialgradient>
+    #[allow(clippy::too_many_arguments)]
     pub fn create_radial_gradient(
         &self,
         global: &GlobalScope,
@@ -952,7 +960,7 @@ impl CanvasState {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-globalalpha
     pub fn set_global_alpha(&self, alpha: f64) {
-        if !alpha.is_finite() || alpha > 1.0 || alpha < 0.0 {
+        if !alpha.is_finite() || !(0.0..=1.0).contains(&alpha) {
             return;
         }
 
@@ -1038,7 +1046,7 @@ impl CanvasState {
             None => return, // offscreen canvas doesn't have a placeholder canvas
         };
         let node = canvas.upcast::<Node>();
-        let window = window_from_node(&*canvas);
+        let window = window_from_node(canvas);
         let resolved_font_style = match window.resolved_font_style_query(node, value.to_string()) {
             Some(value) => value,
             None => return, // syntax error
@@ -1206,7 +1214,7 @@ impl CanvasState {
         if sw == 0 || sh == 0 {
             return Err(Error::IndexSize);
         }
-        ImageData::new(global, sw.abs() as u32, sh.abs() as u32, None)
+        ImageData::new(global, sw.unsigned_abs(), sh.unsigned_abs(), None)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
@@ -1276,8 +1284,8 @@ impl CanvasState {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
-    #[allow(unsafe_code)]
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata>
+    #[allow(unsafe_code, clippy::too_many_arguments)]
     pub fn put_image_data_(
         &self,
         canvas_size: Size2D<u64>,
@@ -1373,7 +1381,8 @@ impl CanvasState {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage>
+    #[allow(clippy::too_many_arguments)]
     pub fn draw_image__(
         &self,
         canvas: Option<&HTMLCanvasElement>,
@@ -1644,7 +1653,8 @@ impl CanvasState {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-context-2d-ellipse
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-ellipse>
+    #[allow(clippy::too_many_arguments)]
     pub fn ellipse(
         &self,
         x: f64,
@@ -1705,7 +1715,7 @@ pub fn parse_color(canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<R
                 // Whenever "currentColor" is used as a color in the PaintRenderingContext2D API,
                 // it is treated as opaque black.
                 None => AbsoluteColor::BLACK,
-                Some(ref canvas) => {
+                Some(canvas) => {
                     let canvas_element = canvas.upcast::<Element>();
                     match canvas_element.style() {
                         Some(ref s) if canvas_element.has_css_layout_box() => {

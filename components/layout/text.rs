@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Text layout.
-#![allow(clippy::too_many_arguments)]
 
 use std::borrow::ToOwned;
 use std::collections::LinkedList;
@@ -23,7 +22,7 @@ use style::computed_values::word_break::T as WordBreak;
 use style::logical_geometry::{LogicalSize, WritingMode};
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::properties::ComputedValues;
-use style::values::generics::text::LineHeight;
+use style::values::generics::font::LineHeight;
 use style::values::specified::text::{TextTransform, TextTransformCase};
 use unicode_bidi as bidi;
 use unicode_script::Script;
@@ -550,8 +549,9 @@ pub fn font_metrics_for_style(
 
 /// Returns the line block-size needed by the given computed style and font size.
 pub fn line_height_from_style(style: &ComputedValues, metrics: &FontMetrics) -> Au {
-    let font_size = style.get_font().font_size.computed_size();
-    match style.get_inherited_text().line_height {
+    let font = style.get_font();
+    let font_size = font.font_size.computed_size();
+    match font.line_height {
         LineHeight::Normal => metrics.line_gap,
         LineHeight::Number(l) => Au::from(font_size * l.0),
         LineHeight::Length(l) => Au::from(l),
@@ -704,6 +704,7 @@ impl RunMapping {
 
     /// Flushes this run mapping to the list. `run_info` describes the text run that we're
     /// currently working on. `text` refers to the text of this fragment.
+    #[allow(clippy::too_many_arguments)]
     fn flush(
         mut self,
         mappings: &mut Vec<RunMapping>,

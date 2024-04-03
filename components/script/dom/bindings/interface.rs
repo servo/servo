@@ -229,6 +229,7 @@ pub fn create_callback_interface_object(
 }
 
 /// Create the interface prototype object of a non-callback interface.
+#[allow(clippy::too_many_arguments)]
 pub fn create_interface_prototype_object(
     cx: SafeJSContext,
     global: HandleObject,
@@ -273,6 +274,7 @@ pub fn create_interface_prototype_object(
 }
 
 /// Create and define the interface object of a non-callback interface.
+#[allow(clippy::too_many_arguments)]
 pub fn create_noncallback_interface_object(
     cx: SafeJSContext,
     global: HandleObject,
@@ -353,6 +355,7 @@ pub fn create_named_constructors(
 }
 
 /// Create a new object with a unique type.
+#[allow(clippy::too_many_arguments)]
 pub fn create_object(
     cx: SafeJSContext,
     global: HandleObject,
@@ -502,7 +505,7 @@ fn define_name(cx: SafeJSContext, obj: HandleObject, name: &[u8]) {
             *cx,
             obj,
             b"name\0".as_ptr() as *const libc::c_char,
-            name.handle().into(),
+            name.handle(),
             JSPROP_READONLY as u32
         ));
     }
@@ -543,9 +546,9 @@ pub enum ProtoOrIfaceIndex {
     Constructor(PrototypeList::Constructor),
 }
 
-impl Into<usize> for ProtoOrIfaceIndex {
-    fn into(self) -> usize {
-        match self {
+impl From<ProtoOrIfaceIndex> for usize {
+    fn from(index: ProtoOrIfaceIndex) -> usize {
+        match index {
             ProtoOrIfaceIndex::ID(id) => id as usize,
             ProtoOrIfaceIndex::Constructor(constructor) => constructor as usize,
         }
@@ -602,7 +605,7 @@ fn get_proto_id_for_new_target(new_target: HandleObject) -> Option<PrototypeList
             let dom_class = &(*domjsclass).dom_class;
             return Some(dom_class.interface_chain[dom_class.depth as usize]);
         }
-        return None;
+        None
     }
 }
 
@@ -638,7 +641,7 @@ pub fn get_desired_proto(
             // constructor.  CheckedUnwrapStatic is fine here, because we're looking for
             // DOM constructors and those can't be cross-origin objects.
             *new_target = CheckedUnwrapStatic(*new_target);
-            if !new_target.is_null() && &*new_target != &*original_new_target {
+            if !new_target.is_null() && *new_target != *original_new_target {
                 get_proto_id_for_new_target(new_target.handle())
             } else {
                 None
@@ -649,7 +652,7 @@ pub fn get_desired_proto(
             let global = GetNonCCWObjectGlobal(*new_target);
             let proto_or_iface_cache = get_proto_or_iface_array(global);
             desired_proto.set((*proto_or_iface_cache)[proto_id as usize]);
-            if &*new_target != &*original_new_target && !JS_WrapObject(*cx, desired_proto.into()) {
+            if *new_target != *original_new_target && !JS_WrapObject(*cx, desired_proto.into()) {
                 return Err(());
             }
             return Ok(());
@@ -698,6 +701,6 @@ pub fn get_desired_proto(
         }
 
         maybe_wrap_object(*cx, desired_proto);
-        return Ok(());
+        Ok(())
     }
 }

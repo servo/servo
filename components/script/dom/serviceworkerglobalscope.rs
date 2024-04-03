@@ -219,6 +219,7 @@ impl WorkerEventLoopMethods for ServiceWorkerGlobalScope {
 }
 
 impl ServiceWorkerGlobalScope {
+    #[allow(clippy::too_many_arguments)]
     fn new_inherited(
         init: WorkerGlobalScopeInit,
         worker_url: ServoUrl,
@@ -252,7 +253,7 @@ impl ServiceWorkerGlobalScope {
         }
     }
 
-    #[allow(unsafe_code)]
+    #[allow(unsafe_code, clippy::too_many_arguments)]
     pub fn new(
         init: WorkerGlobalScopeInit,
         worker_url: ServoUrl,
@@ -283,8 +284,8 @@ impl ServiceWorkerGlobalScope {
         unsafe { ServiceWorkerGlobalScopeBinding::Wrap(SafeJSContext::from_ptr(cx), scope) }
     }
 
-    #[allow(unsafe_code)]
-    // https://w3c.github.io/ServiceWorker/#run-service-worker-algorithm
+    /// <https://w3c.github.io/ServiceWorker/#run-service-worker-algorithm>
+    #[allow(unsafe_code, clippy::too_many_arguments)]
     pub fn run_serviceworker_scope(
         scope_things: ScopeThings,
         own_sender: Sender<ServiceWorkerScriptMsg>,
@@ -349,7 +350,7 @@ impl ServiceWorkerGlobalScope {
                 let scope = global.upcast::<WorkerGlobalScope>();
 
                 let referrer = referrer_url
-                    .map(|url| Referrer::ReferrerUrl(url))
+                    .map(Referrer::ReferrerUrl)
                     .unwrap_or_else(|| global.upcast::<GlobalScope>().get_referrer());
 
                 let request = RequestBuilder::new(script_url, referrer)
@@ -362,8 +363,7 @@ impl ServiceWorkerGlobalScope {
                     .origin(origin);
 
                 let (_url, source) =
-                    match load_whole_resource(request, &resource_threads_sender, &*global.upcast())
-                    {
+                    match load_whole_resource(request, &resource_threads_sender, global.upcast()) {
                         Err(_) => {
                             println!("error loading script {}", serialized_worker_url);
                             scope.clear_js_runtime(context_for_interrupt);
@@ -381,7 +381,7 @@ impl ServiceWorkerGlobalScope {
 
                 {
                     // TODO: use AutoWorkerReset as in dedicated worker?
-                    let _ac = enter_realm(&*scope);
+                    let _ac = enter_realm(scope);
                     scope.execute_script(DOMString::from(source));
                 }
 
@@ -445,7 +445,7 @@ impl ServiceWorkerGlobalScope {
             CommonWorker(WorkerScriptMsg::DOMMessage { data, .. }) => {
                 let scope = self.upcast::<WorkerGlobalScope>();
                 let target = self.upcast();
-                let _ac = enter_realm(&*scope);
+                let _ac = enter_realm(scope);
                 rooted!(in(*scope.get_cx()) let mut message = UndefinedValue());
                 if let Ok(ports) = structuredclone::read(scope.upcast(), data, message.handle_mut())
                 {
@@ -481,7 +481,7 @@ impl ServiceWorkerGlobalScope {
 
     fn dispatch_activate(&self) {
         let event = ExtendableEvent::new(self, atom!("activate"), false, false);
-        let event = (&*event).upcast::<Event>();
+        let event = (*event).upcast::<Event>();
         self.upcast::<EventTarget>().dispatch_event(event);
     }
 }

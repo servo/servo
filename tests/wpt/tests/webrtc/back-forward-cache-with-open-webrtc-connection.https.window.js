@@ -16,5 +16,5 @@ promise_test(async t => {
   await openWebRTC(rc1);
   // The page should not be eligible for BFCache because of open WebRTC connection and live MediaStreamTrack.
   await assertBFCacheEligibility(rc1, /*shouldRestoreFromBFCache=*/ false);
-  await assertNotRestoredFromBFCache(rc1, ['webrtc', 'media-stream']);
+  await assertNotRestoredFromBFCache(rc1, ['rtc', 'mediastream']);
 });

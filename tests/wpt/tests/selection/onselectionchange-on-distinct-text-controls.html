@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://w3c.github.io/selection-api/#selectionchange-event">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<input id="input1" value="hello">
+<input id="input2" value="world">
+<textarea id="textarea1">hello</textarea>
+<textarea id="textarea2">world</textarea>
+<script>
+
+promise_test(() => {
+  return (async function() {
+    let selectionChangeCount1 = 0;
+    let selectionChangeCount2 = 0;
+    input1.addEventListener("selectionchange", () => ++selectionChangeCount1);
+    input2.addEventListener("selectionchange", () => ++selectionChangeCount2);
+    input1.setSelectionRange(1, 2);
+    input1.setSelectionRange(2, 3);
+    input2.setSelectionRange(1, 3);
+    assert_equals(selectionChangeCount1, 0);
+    assert_equals(selectionChangeCount2, 0);
+    await new Promise(setTimeout);
+    assert_equals(selectionChangeCount1, 1);
+    assert_equals(selectionChangeCount2, 1);
+  })();
+}, "selectionchange event on each input element fires independently");
+
+promise_test(() => {
+  return (async function() {
+    let selectionChangeCount1 = 0;
+    let selectionChangeCount2 = 0;
+    textarea1.addEventListener("selectionchange", () => ++selectionChangeCount1);
+    textarea2.addEventListener("selectionchange", () => ++selectionChangeCount2);
+    textarea1.setSelectionRange(1, 2);
+    textarea1.setSelectionRange(2, 3);
+    textarea2.setSelectionRange(1, 3);
+    assert_equals(selectionChangeCount1, 0);
+    assert_equals(selectionChangeCount2, 0);
+    await new Promise(setTimeout);
+    assert_equals(selectionChangeCount1, 1);
+    assert_equals(selectionChangeCount2, 1);
+  })();
+}, "selectionchange event on each textarea element fires independently");
+
+</script>

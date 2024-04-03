@@ -24,185 +24,189 @@
 <body>
 <script>
     // rgb(from ...)
+    for (const rgbFunction of ["rgb", "rgba"]) {
 
-    // Testing no modifications.
-    fuzzy_test_valid_color(`rgb(from rebeccapurple r g b)`, `color(srgb 0.4 0.2 0.6)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple r g b / alpha)`, `color(srgb 0.4 0.2 0.6)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) r g b / alpha)`, `color(srgb 0.2 0.4 0.6 / 0.8)`);
-    fuzzy_test_valid_color(`rgb(from hsl(120deg 20% 50% / .5) r g b / alpha)`, `color(srgb 0.4 0.6 0.4 / 0.5)`);
+        // Testing no modifications.
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple r g b)`, `color(srgb 0.4 0.2 0.6)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple r g b / alpha)`, `color(srgb 0.4 0.2 0.6)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) r g b / alpha)`, `color(srgb 0.2 0.4 0.6 / 0.8)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from hsl(120deg 20% 50% / .5) r g b / alpha)`, `color(srgb 0.4 0.6 0.4 / 0.5)`);
 
-    // Test nesting relative colors.
-    fuzzy_test_valid_color(`rgb(from rgb(from rebeccapurple r g b) r g b)`, `color(srgb 0.4 0.2 0.6)`);
+        // Test nesting relative colors.
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(from rebeccapurple r g b) r g b)`, `color(srgb 0.4 0.2 0.6)`);
 
-    // Testing replacement with 0.
-    fuzzy_test_valid_color(`rgb(from rebeccapurple 0 0 0)`, `color(srgb 0 0 0)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple 0 0 0 / 0)`, `color(srgb 0 0 0 / 0)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple 0 g b / alpha)`, `color(srgb 0 0.2 0.6)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple r 0 b / alpha)`, `color(srgb 0.4 0 0.6)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple r g 0 / alpha)`, `color(srgb 0.4 0.2 0)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple r g b / 0)`, `color(srgb 0.4 0.2 0.6 / 0)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) 0 g b / alpha)`, `color(srgb 0 0.4 0.6 / 0.8)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) r 0 b / alpha)`, `color(srgb 0.2 0 0.6 / 0.8)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) r g 0 / alpha)`, `color(srgb 0.2 0.4 0 / 0.8)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) r g b / 0)`, `color(srgb 0.2 0.4 0.6 / 0)`);
+        // Testing replacement with 0.
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple 0 0 0)`, `color(srgb 0 0 0)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple 0 0 0 / 0)`, `color(srgb 0 0 0 / 0)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple 0 g b / alpha)`, `color(srgb 0 0.2 0.6)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple r 0 b / alpha)`, `color(srgb 0.4 0 0.6)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple r g 0 / alpha)`, `color(srgb 0.4 0.2 0)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple r g b / 0)`, `color(srgb 0.4 0.2 0.6 / 0)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) 0 g b / alpha)`, `color(srgb 0 0.4 0.6 / 0.8)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) r 0 b / alpha)`, `color(srgb 0.2 0 0.6 / 0.8)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) r g 0 / alpha)`, `color(srgb 0.2 0.4 0 / 0.8)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) r g b / 0)`, `color(srgb 0.2 0.4 0.6 / 0)`);
 
-    // Testing replacement with a number.
-    fuzzy_test_valid_color(`rgb(from rebeccapurple 25 g b / alpha)`, `color(srgb 0.098 0.2 0.6)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple r 25 b / alpha)`, `color(srgb 0.4 0.098 0.6)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple r g 25 / alpha)`, `color(srgb 0.4 0.2 0.098)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple r g b / .25)`, `color(srgb 0.4 0.2 0.6 / 0.25)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) 25 g b / alpha)`, `color(srgb 0.098 0.4 0.6 / 0.8)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) r 25 b / alpha)`, `color(srgb 0.2 0.098 0.6 / 0.8)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) r g 25 / alpha)`, `color(srgb 0.2 0.4 0.098 / 0.8)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) r g b / .20)`, `color(srgb 0.2 0.4 0.6 / 0.2)`);
+        // Testing replacement with a number.
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple 25 g b / alpha)`, `color(srgb 0.098 0.2 0.6)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple r 25 b / alpha)`, `color(srgb 0.4 0.098 0.6)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple r g 25 / alpha)`, `color(srgb 0.4 0.2 0.098)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple r g b / .25)`, `color(srgb 0.4 0.2 0.6 / 0.25)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) 25 g b / alpha)`, `color(srgb 0.098 0.4 0.6 / 0.8)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) r 25 b / alpha)`, `color(srgb 0.2 0.098 0.6 / 0.8)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) r g 25 / alpha)`, `color(srgb 0.2 0.4 0.098 / 0.8)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) r g b / .20)`, `color(srgb 0.2 0.4 0.6 / 0.2)`);
 
-    // Testing replacement with a percentage.
-    fuzzy_test_valid_color(`rgb(from rebeccapurple 20% g b / alpha)`, `color(srgb 0.2 0.2 0.6)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple r 20% b / alpha)`, `color(srgb 0.4 0.2 0.6)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple r g 20% / alpha)`, `color(srgb 0.4 0.2 0.2)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple r g b / 20%)`, `color(srgb 0.4 0.2 0.6 / 0.2)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) 20% g b / alpha)`, `color(srgb 0.2 0.4 0.6 / 0.8)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) r 20% b / alpha)`, `color(srgb 0.2 0.2 0.6 / 0.8)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) r g 20% / alpha)`, `color(srgb 0.2 0.4 0.2 / 0.8)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) r g b / 20%)`, `color(srgb 0.2 0.4 0.6 / 0.2)`);
+        // Testing replacement with a percentage.
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple 20% g b / alpha)`, `color(srgb 0.2 0.2 0.6)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple r 20% b / alpha)`, `color(srgb 0.4 0.2 0.6)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple r g 20% / alpha)`, `color(srgb 0.4 0.2 0.2)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple r g b / 20%)`, `color(srgb 0.4 0.2 0.6 / 0.2)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) 20% g b / alpha)`, `color(srgb 0.2 0.4 0.6 / 0.8)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) r 20% b / alpha)`, `color(srgb 0.2 0.2 0.6 / 0.8)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) r g 20% / alpha)`, `color(srgb 0.2 0.4 0.2 / 0.8)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) r g b / 20%)`, `color(srgb 0.2 0.4 0.6 / 0.2)`);
 
-    // Testing replacement with a number for r, g, b but percent for alpha.
-    fuzzy_test_valid_color(`rgb(from rebeccapurple 25 g b / 25%)`, `color(srgb 0.098 0.2 0.6 / 0.25)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple r 25 b / 25%)`, `color(srgb 0.4 0.098 0.6 / 0.25)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple r g 25 / 25%)`, `color(srgb 0.4 0.2 0.098 / 0.25)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) 25 g b / 25%)`, `color(srgb 0.098 0.4 0.6 / 0.25)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) r 25 b / 25%)`, `color(srgb 0.2 0.098 0.6 / 0.25)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) r g 25 / 25%)`, `color(srgb 0.2 0.4 0.098 / 0.25)`);
+        // Testing replacement with a number for r, g, b but percent for alpha.
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple 25 g b / 25%)`, `color(srgb 0.098 0.2 0.6 / 0.25)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple r 25 b / 25%)`, `color(srgb 0.4 0.098 0.6 / 0.25)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple r g 25 / 25%)`, `color(srgb 0.4 0.2 0.098 / 0.25)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) 25 g b / 25%)`, `color(srgb 0.098 0.4 0.6 / 0.25)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) r 25 b / 25%)`, `color(srgb 0.2 0.098 0.6 / 0.25)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) r g 25 / 25%)`, `color(srgb 0.2 0.4 0.098 / 0.25)`);
 
-    // Testing permutation.
-    fuzzy_test_valid_color(`rgb(from rebeccapurple g b r)`, `color(srgb 0.2 0.6 0.4)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple b alpha r / g)`, `color(srgb 0.6 1 0.4 / 0.2)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple r r r / r)`, `color(srgb 0.4 0.4 0.4 / 0.4)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple alpha alpha alpha / alpha)`, `color(srgb 1 1 1)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) g b r)`, `color(srgb 0.4 0.6 0.2 / 0.8)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) b alpha r / g)`, `color(srgb 0.6 0.8 0.2 / 0.4)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) r r r / r)`, `color(srgb 0.2 0.2 0.2 / 0.2)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) alpha alpha alpha / alpha)`, `color(srgb 0.8 0.8 0.8 / 0.8)`);
+        // Testing permutation.
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple g b r)`, `color(srgb 0.2 0.6 0.4)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple b alpha r / g)`, `color(srgb 0.6 0.004 0.4)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple r r r / r)`, `color(srgb 0.4 0.4 0.4)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple alpha alpha alpha / alpha)`, `color(srgb 0.004 0.004 0.004)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) g b r)`, `color(srgb 0.4 0.6 0.2 / 0.8)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) b alpha r / g)`, `color(srgb 0.6 0.003 0.2)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) r r r / r)`, `color(srgb 0.2 0.2 0.2)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) alpha alpha alpha / alpha)`, `color(srgb 0.003 0.003 0.003 / 0.8)`);
 
-    // Testing mixes of number and percentage. (These would not be allowed in the non-relative syntax).
-    fuzzy_test_valid_color(`rgb(from rebeccapurple r 20% 10)`, `color(srgb 0.4 0.2 0.0392)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple r 10 20%)`, `color(srgb 0.4 0.0392 0.2)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple 0% 10 10)`, `color(srgb 0 0.0392 0.0392)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) r 20% 10)`, `color(srgb 0.2 0.2 0.0392 / 0.8)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) r 10 20%)`, `color(srgb 0.2 0.0392 0.2 / 0.8)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) 0% 10 10)`, `color(srgb 0 0.0392 0.0392 / 0.8)`);
+        // Testing mixes of number and percentage. (These would not be allowed in the non-relative syntax).
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple r 20% 10)`, `color(srgb 0.4 0.2 0.0392)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple r 10 20%)`, `color(srgb 0.4 0.0392 0.2)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple 0% 10 10)`, `color(srgb 0 0.0392 0.0392)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) r 20% 10)`, `color(srgb 0.2 0.2 0.0392 / 0.8)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) r 10 20%)`, `color(srgb 0.2 0.0392 0.2 / 0.8)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) 0% 10 10)`, `color(srgb 0 0.0392 0.0392 / 0.8)`);
 
-    // r    g    b
-    // 102  51   153
-    // 40%  20%  60%
-    // Testing with calc().
-    fuzzy_test_valid_color(`rgb(from rebeccapurple calc(r) calc(g) calc(b))`, `color(srgb 0.4 0.2 0.6)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple r calc(g * 2) 10)`, `color(srgb 0.4 0.4 0.0392)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple b calc(r * .5) 10)`, `color(srgb 0.6 0.2 0.0392)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple r calc(g * .5 + g * .5) 10)`, `color(srgb 0.4 0.2 0.0392)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple r calc(b * .5 - g * .5) 10)`, `color(srgb 0.4 0.2 0.0392)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20%, 40%, 60%, 80%) calc(r) calc(g) calc(b) / calc(alpha))`, `color(srgb 0.2 0.4 0.6 / 0.8)`);
+        // r    g    b
+        // 102  51   153
+        // 40%  20%  60%
+        // Testing with calc().
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple calc(r) calc(g) calc(b))`, `color(srgb 0.4 0.2 0.6)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple r calc(g * 2) 10)`, `color(srgb 0.4 0.4 0.0392)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple b calc(r * .5) 10)`, `color(srgb 0.6 0.2 0.0392)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple r calc(g * .5 + g * .5) 10)`, `color(srgb 0.4 0.2 0.0392)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple r calc(b * .5 - g * .5) 10)`, `color(srgb 0.4 0.2 0.0392)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20%, 40%, 60%, 80%) calc(r) calc(g) calc(b) / calc(alpha))`, `color(srgb 0.2 0.4 0.6 / 0.8)`);
 
-    // Testing with 'none'.
-    fuzzy_test_valid_color(`rgb(from rebeccapurple none none none)`, `color(srgb none none none)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple none none none / none)`, `color(srgb none none none / none)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple r g none)`, `color(srgb 0.4 0.2 none)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple r g none / alpha)`, `color(srgb 0.4 0.2 none)`);
-    fuzzy_test_valid_color(`rgb(from rebeccapurple r g b / none)`, `color(srgb 0.4 0.2 0.6 / none)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20% 40% 60% / 80%) r g none / alpha)`, `color(srgb 0.2 0.4 none / 0.8)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20% 40% 60% / 80%) r g b / none)`, `color(srgb 0.2 0.4 0.6 / none)`);
-    // FIXME: Clarify with spec editors if 'none' should pass through to the constants.
-    fuzzy_test_valid_color(`rgb(from rgb(none none none) r g b)`, `color(srgb 0 0 0)`);
-    fuzzy_test_valid_color(`rgb(from rgb(none none none / none) r g b / alpha)`, `color(srgb 0 0 0 / 0)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20% none 60%) r g b)`, `color(srgb 0.2 0 0.6)`);
-    fuzzy_test_valid_color(`rgb(from rgb(20% 40% 60% / none) r g b / alpha)`, `color(srgb 0.2 0.4 0.6 / 0)`);
+        // Testing with 'none'.
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple none none none)`, `color(srgb none none none)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple none none none / none)`, `color(srgb none none none / none)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple r g none)`, `color(srgb 0.4 0.2 none)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple r g none / alpha)`, `color(srgb 0.4 0.2 none)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rebeccapurple r g b / none)`, `color(srgb 0.4 0.2 0.6 / none)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20% 40% 60% / 80%) r g none / alpha)`, `color(srgb 0.2 0.4 none / 0.8)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20% 40% 60% / 80%) r g b / none)`, `color(srgb 0.2 0.4 0.6 / none)`);
+        // FIXME: Clarify with spec editors if 'none' should pass through to the constants.
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(none none none) r g b)`, `color(srgb 0 0 0)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(none none none / none) r g b / alpha)`, `color(srgb 0 0 0 / 0)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20% none 60%) r g b)`, `color(srgb 0.2 0 0.6)`);
+        fuzzy_test_valid_color(`${rgbFunction}(from rgb(20% 40% 60% / none) r g b / alpha)`, `color(srgb 0.2 0.4 0.6 / 0)`);
 
-    // Testing with 'currentColor'
-    fuzzy_test_valid_color(`rgb(from currentColor r g b)`, `rgb(from currentColor r g b)`);
+        // Testing with 'currentColor'
+        fuzzy_test_valid_color(`${rgbFunction}(from currentColor r g b)`, `rgb(from currentColor r g b)`);
 
-    // color-mix
-    fuzzy_test_valid_color(`rgb(from color-mix(in srgb, red, red) r g b / alpha)`, `color(srgb 1 0 0)`);
+        // color-mix
+        fuzzy_test_valid_color(`${rgbFunction}(from color-mix(in srgb, red, red) r g b / alpha)`, `color(srgb 1 0 0)`);
+    }
 
     // hsl(from ...)
+    for (const hslFunction of ["hsl", "hsla"]) {
 
-    // Testing no modifications.
-    fuzzy_test_valid_color(`hsl(from rebeccapurple h s l)`, `color(srgb 0.4 0.2 0.6)`);
-    fuzzy_test_valid_color(`hsl(from rebeccapurple h s l / alpha)`, `color(srgb 0.4 0.2 0.6)`);
-    fuzzy_test_valid_color(`hsl(from rgb(20%, 40%, 60%, 80%) h s l / alpha)`, `color(srgb 0.2 0.4 0.6 / 0.8)`);
-    fuzzy_test_valid_color(`hsl(from hsl(120deg 20% 50% / .5) h s l / alpha)`, `color(srgb 0.4 0.6 0.4 / 0.5)`);
+        // Testing no modifications.
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple h s l)`, `color(srgb 0.4 0.2 0.6)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple h s l / alpha)`, `color(srgb 0.4 0.2 0.6)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rgb(20%, 40%, 60%, 80%) h s l / alpha)`, `color(srgb 0.2 0.4 0.6 / 0.8)`);
+        fuzzy_test_valid_color(`${hslFunction}(from hsl(120deg 20% 50% / .5) h s l / alpha)`, `color(srgb 0.4 0.6 0.4 / 0.5)`);
 
-    // Test nesting relative colors.
-    fuzzy_test_valid_color(`hsl(from hsl(from rebeccapurple h s l) h s l)`, `color(srgb 0.4 0.2 0.6)`);
+        // Test nesting relative colors.
+        fuzzy_test_valid_color(`${hslFunction}(from hsl(from rebeccapurple h s l) h s l)`, `color(srgb 0.4 0.2 0.6)`);
 
-    // Testing replacement with 0.
-    fuzzy_test_valid_color(`hsl(from rebeccapurple 0 0% 0%)`, `color(srgb 0 0 0)`);
-    fuzzy_test_valid_color(`hsl(from rebeccapurple 0deg 0% 0%)`, `color(srgb 0 0 0)`);
-    fuzzy_test_valid_color(`hsl(from rebeccapurple 0 0% 0% / 0)`, `color(srgb 0 0 0 / 0)`);
-    fuzzy_test_valid_color(`hsl(from rebeccapurple 0deg 0% 0% / 0)`, `color(srgb 0 0 0 / 0)`);
-    fuzzy_test_valid_color(`hsl(from rebeccapurple 0 s l / alpha)`, `color(srgb 0.6 0.2 0.2)`);
-    fuzzy_test_valid_color(`hsl(from rebeccapurple 0deg s l / alpha)`, `color(srgb 0.6 0.2 0.2)`);
-    fuzzy_test_valid_color(`hsl(from rebeccapurple h 0% l / alpha)`, `color(srgb 0.4 0.4 0.4)`);
-    fuzzy_test_valid_color(`hsl(from rebeccapurple h s 0% / alpha)`, `color(srgb 0 0 0)`);
-    fuzzy_test_valid_color(`hsl(from rebeccapurple h s l / 0)`, `color(srgb 0.4 0.2 0.6 / 0)`);
-    fuzzy_test_valid_color(`hsl(from rgb(20%, 40%, 60%, 80%) 0 s l / alpha)`, `color(srgb 0.6 0.2 0.2 / 0.8)`);
-    fuzzy_test_valid_color(`hsl(from rgb(20%, 40%, 60%, 80%) 0deg s l / alpha)`, `color(srgb 0.6 0.2 0.2 / 0.8)`);
-    fuzzy_test_valid_color(`hsl(from rgb(20%, 40%, 60%, 80%) h 0% l / alpha)`, `color(srgb 0.4 0.4 0.4 / 0.8)`);
-    fuzzy_test_valid_color(`hsl(from rgb(20%, 40%, 60%, 80%) h s 0% / alpha)`, `color(srgb 0 0 0 / 0.8)`);
-    fuzzy_test_valid_color(`hsl(from rgb(20%, 40%, 60%, 80%) h s l / 0)`, `color(srgb 0.2 0.4 0.6 / 0)`);
+        // Testing replacement with 0.
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple 0 0% 0%)`, `color(srgb 0 0 0)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple 0deg 0% 0%)`, `color(srgb 0 0 0)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple 0 0% 0% / 0)`, `color(srgb 0 0 0 / 0)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple 0deg 0% 0% / 0)`, `color(srgb 0 0 0 / 0)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple 0 s l / alpha)`, `color(srgb 0.6 0.2 0.2)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple 0deg s l / alpha)`, `color(srgb 0.6 0.2 0.2)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple h 0% l / alpha)`, `color(srgb 0.4 0.4 0.4)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple h s 0% / alpha)`, `color(srgb 0 0 0)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple h s l / 0)`, `color(srgb 0.4 0.2 0.6 / 0)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rgb(20%, 40%, 60%, 80%) 0 s l / alpha)`, `color(srgb 0.6 0.2 0.2 / 0.8)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rgb(20%, 40%, 60%, 80%) 0deg s l / alpha)`, `color(srgb 0.6 0.2 0.2 / 0.8)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rgb(20%, 40%, 60%, 80%) h 0% l / alpha)`, `color(srgb 0.4 0.4 0.4 / 0.8)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rgb(20%, 40%, 60%, 80%) h s 0% / alpha)`, `color(srgb 0 0 0 / 0.8)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rgb(20%, 40%, 60%, 80%) h s l / 0)`, `color(srgb 0.2 0.4 0.6 / 0)`);
 
-    fuzzy_test_valid_color(`hsl(from rebeccapurple 25 s l / alpha)`, `color(srgb 0.6 0.3667 0.2)`);
-    fuzzy_test_valid_color(`hsl(from rebeccapurple 25deg s l / alpha)`, `color(srgb 0.6 0.3667 0.2)`);
-    fuzzy_test_valid_color(`hsl(from rebeccapurple h 20% l / alpha)`, `color(srgb 0.4 0.32 0.48)`);
-    // hsl(from rebeccapurple h s 20% / alpha) is equivalent to color(srgb 0.2 0.1 0.3).
-    // For the green channel: 0.1 * 255 = 25.5. This should get rounded towards infinity to 26.
-    // https://www.w3.org/TR/css-color-4/#rgb-functions
-    fuzzy_test_valid_color(`hsl(from rebeccapurple h s 20% / alpha)`, `color(srgb 0.2 0.1 0.3)`);
-    fuzzy_test_valid_color(`hsl(from rebeccapurple h s l / .25)`, `color(srgb 0.4 0.2 0.6 / 0.25)`);
-    fuzzy_test_valid_color(`hsl(from rgb(20%, 40%, 60%, 80%) 25 s l / alpha)`, `color(srgb 0.6 0.3667 0.2 / 0.8)`);
-    fuzzy_test_valid_color(`hsl(from rgb(20%, 40%, 60%, 80%) 25deg s l / alpha)`, `color(srgb 0.6 0.3667 0.2 / 0.8)`);
-    fuzzy_test_valid_color(`hsl(from rgb(20%, 40%, 60%, 80%) h 20% l / alpha)`, `color(srgb 0.32 0.4 0.48 / 0.8)`);
-    // hsl(from rgb(20%, 40%, 60%, 80%) h s 20% / alpha) is equivalent to color(srgb 0.1 0.2 0.3).
-    // For the red channel: 0.1 * 255 = 25.5. This should get rounded towards infinity to 26.
-    // https://www.w3.org/TR/css-color-4/#rgb-functions
-    fuzzy_test_valid_color(`hsl(from rgb(20%, 40%, 60%, 80%) h s 20% / alpha)`, `color(srgb 0.1 0.2 0.3 / 0.8)`);
-    fuzzy_test_valid_color(`hsl(from rgb(20%, 40%, 60%, 80%) h s l / .2)`, `color(srgb 0.2 0.4 0.6 / 0.2)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple 25 s l / alpha)`, `color(srgb 0.6 0.3667 0.2)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple 25deg s l / alpha)`, `color(srgb 0.6 0.3667 0.2)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple h 20% l / alpha)`, `color(srgb 0.4 0.32 0.48)`);
+        // hsl(from rebeccapurple h s 20% / alpha) is equivalent to color(srgb 0.2 0.1 0.3).
+        // For the green channel: 0.1 * 255 = 25.5. This should get rounded towards infinity to 26.
+        // https://www.w3.org/TR/css-color-4/#rgb-functions
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple h s 20% / alpha)`, `color(srgb 0.2 0.1 0.3)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple h s l / .25)`, `color(srgb 0.4 0.2 0.6 / 0.25)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rgb(20%, 40%, 60%, 80%) 25 s l / alpha)`, `color(srgb 0.6 0.3667 0.2 / 0.8)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rgb(20%, 40%, 60%, 80%) 25deg s l / alpha)`, `color(srgb 0.6 0.3667 0.2 / 0.8)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rgb(20%, 40%, 60%, 80%) h 20% l / alpha)`, `color(srgb 0.32 0.4 0.48 / 0.8)`);
+        // hsl(from rgb(20%, 40%, 60%, 80%) h s 20% / alpha) is equivalent to color(srgb 0.1 0.2 0.3).
+        // For the red channel: 0.1 * 255 = 25.5. This should get rounded towards infinity to 26.
+        // https://www.w3.org/TR/css-color-4/#rgb-functions
+        fuzzy_test_valid_color(`${hslFunction}(from rgb(20%, 40%, 60%, 80%) h s 20% / alpha)`, `color(srgb 0.1 0.2 0.3 / 0.8)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rgb(20%, 40%, 60%, 80%) h s l / .2)`, `color(srgb 0.2 0.4 0.6 / 0.2)`);
 
-    // Testing valid permutation (types match).
-    fuzzy_test_valid_color(`hsl(from rebeccapurple h l s)`, `color(srgb 0.5 0.3 0.7)`);
-    fuzzy_test_valid_color(`hsl(from rebeccapurple h alpha l / s)`, `color(srgb 0.4 0 0.8 / 0.5)`);
-    fuzzy_test_valid_color(`hsl(from rebeccapurple h l l / l)`, `color(srgb 0.4 0.24 0.56 / 0.4)`);
-    fuzzy_test_valid_color(`hsl(from rebeccapurple h alpha alpha / alpha)`, `color(srgb 1 1 1)`);
-    fuzzy_test_valid_color(`hsl(from rgb(20%, 40%, 60%, 80%) h l s)`, `color(srgb 0.3 0.5 0.7 / 0.8)`);
-    fuzzy_test_valid_color(`hsl(from rgb(20%, 40%, 60%, 80%) h alpha l / s)`, `color(srgb 0.08 0.4 0.72 / 0.5)`);
-    fuzzy_test_valid_color(`hsl(from rgb(20%, 40%, 60%, 80%) h l l / l)`, `color(srgb 0.24 0.4 0.56 / 0.4)`);
-    fuzzy_test_valid_color(`hsl(from rgb(20%, 40%, 60%, 80%) h alpha alpha / alpha)`, `color(srgb 0.64 0.8 0.96 / 0.8)`);
+        // Testing valid permutation (types match).
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple h l s)`, `color(srgb 0.5 0.3 0.7)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple h alpha l / s)`, `color(srgb 0.4 0.396 0.404)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple h l l / l)`, `color(srgb 0.4 0.24 0.56)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple h alpha alpha / alpha)`, `color(srgb 0.01 0.01 0.01)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rgb(20%, 40%, 60%, 80%) h l s)`, `color(srgb 0.3 0.5 0.7 / 0.8)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rgb(20%, 40%, 60%, 80%) h alpha l / s)`, `color(srgb 0.4 0.4 0.4)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rgb(20%, 40%, 60%, 80%) h l l / l)`, `color(srgb 0.24 0.4 0.56)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rgb(20%, 40%, 60%, 80%) h alpha alpha / alpha)`, `color(srgb 0.01 0.01 0.01 / 0.8)`);
 
-    // Testing with calc().
-    fuzzy_test_valid_color(`hsl(from rebeccapurple calc(h) calc(s) calc(l))`, `color(srgb 0.4 0.2 0.6)`);
-    fuzzy_test_valid_color(`hsl(from rgb(20%, 40%, 60%, 80%) calc(h) calc(s) calc(l) / calc(alpha))`, `color(srgb 0.2 0.4 0.6 / 0.8)`);
+        // Testing with calc().
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple calc(h) calc(s) calc(l))`, `color(srgb 0.4 0.2 0.6)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rgb(20%, 40%, 60%, 80%) calc(h) calc(s) calc(l) / calc(alpha))`, `color(srgb 0.2 0.4 0.6 / 0.8)`);
 
-    // Testing with 'none'.
-    fuzzy_test_valid_color(`hsl(from rebeccapurple none none none)`, `color(srgb none none none)`);
-    fuzzy_test_valid_color(`hsl(from rebeccapurple none none none / none)`, `color(srgb none none none / none)`);
-    fuzzy_test_valid_color(`hsl(from rebeccapurple h s none)`, `color(srgb 0 0 none)`);
-    fuzzy_test_valid_color(`hsl(from rebeccapurple h s none / alpha)`, `color(srgb 0 0 none)`);
-    fuzzy_test_valid_color(`hsl(from rebeccapurple h s l / none)`, `color(srgb 0.4 0.2 0.6 / none)`);
-    fuzzy_test_valid_color(`hsl(from rebeccapurple none s l / alpha)`, `color(srgb none 0.2 0.2)`);
-    fuzzy_test_valid_color(`hsl(from hsl(120deg 20% 50% / .5) h s none / alpha)`, `color(srgb 0 0 none / 0.5)`);
-    fuzzy_test_valid_color(`hsl(from hsl(120deg 20% 50% / .5) h s l / none)`, `color(srgb 0.4 0.6 0.4 / none)`);
-    fuzzy_test_valid_color(`hsl(from hsl(120deg 20% 50% / .5) none s l / alpha)`, `color(srgb none 0.4 0.4 / 0.5)`);
-    // FIXME: Clarify with spec editors if 'none' should pass through to the constants.
-    fuzzy_test_valid_color(`hsl(from hsl(none none none) h s l)`, `color(srgb 0 0 0)`);
-    fuzzy_test_valid_color(`hsl(from hsl(none none none / none) h s l / alpha)`, `color(srgb 0 0 0 / 0)`);
-    fuzzy_test_valid_color(`hsl(from hsl(120deg none 50% / .5) h s l)`, `color(srgb 0.5 0.5 0.5 / 0.5)`);
-    fuzzy_test_valid_color(`hsl(from hsl(120deg 20% 50% / none) h s l / alpha)`, `color(srgb 0.4 0.6 0.4 / 0)`);
-    fuzzy_test_valid_color(`hsl(from hsl(none 20% 50% / .5) h s l / alpha)`, `color(srgb 0.6 0.4 0.4 / 0.5)`);
+        // Testing with 'none'.
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple none none none)`, `color(srgb 0 0 0)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple none none none / none)`, `color(srgb 0 0 0 / 0)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple h s none)`, `color(srgb 0 0 0)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple h s none / alpha)`, `color(srgb 0 0 0)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple h s l / none)`, `color(srgb 0.4 0.2 0.6 / none)`);
+        fuzzy_test_valid_color(`${hslFunction}(from rebeccapurple none s l / alpha)`, `color(srgb 0.6 0.2 0.2)`);
+        fuzzy_test_valid_color(`${hslFunction}(from hsl(120deg 20% 50% / .5) h s none / alpha)`, `color(srgb 0 0 0 / 0.5)`);
+        fuzzy_test_valid_color(`${hslFunction}(from hsl(120deg 20% 50% / .5) h s l / none)`, `color(srgb 0.4 0.6 0.4 / none)`);
+        fuzzy_test_valid_color(`${hslFunction}(from hsl(120deg 20% 50% / .5) none s l / alpha)`, `color(srgb 0.6 0.4 0.4 / 0.5)`);
+        // FIXME: Clarify with spec editors if 'none' should pass through to the constants.
+        fuzzy_test_valid_color(`${hslFunction}(from hsl(none none none) h s l)`, `color(srgb 0 0 0)`);
+        fuzzy_test_valid_color(`${hslFunction}(from hsl(none none none / none) h s l / alpha)`, `color(srgb 0 0 0 / 0)`);
+        fuzzy_test_valid_color(`${hslFunction}(from hsl(120deg none 50% / .5) h s l)`, `color(srgb 0.5 0.5 0.5 / 0.5)`);
+        fuzzy_test_valid_color(`${hslFunction}(from hsl(120deg 20% 50% / none) h s l / alpha)`, `color(srgb 0.4 0.6 0.4 / 0)`);
+        fuzzy_test_valid_color(`${hslFunction}(from hsl(none 20% 50% / .5) h s l / alpha)`, `color(srgb 0.6 0.4 0.4 / 0.5)`);
 
-    // Testing with 'currentColor'
-    fuzzy_test_valid_color(`hsl(from currentColor h s l)`, `hsl(from currentColor h s l)`);
+        // Testing with 'currentColor'
+        fuzzy_test_valid_color(`${hslFunction}(from currentColor h s l)`, `hsl(from currentColor h s l)`);
 
-    // color-mix
-    fuzzy_test_valid_color(`hsl(from color-mix(in srgb, red, red) h s l / alpha)`, `color(srgb 1 0 0)`);
+        // color-mix
+        fuzzy_test_valid_color(`${hslFunction}(from color-mix(in srgb, red, red) h s l / alpha)`, `color(srgb 1 0 0)`);
+    }
 
     // hwb(from ...)
 
@@ -245,28 +249,28 @@
 
     // Testing valid permutation (types match).
     fuzzy_test_valid_color(`hwb(from rebeccapurple h b w)`, `color(srgb 0.6 0.4 0.8)`);
-    fuzzy_test_valid_color(`hwb(from rebeccapurple h alpha w / b)`, `color(srgb 0.8333 0.8333 0.8333 / 0.4)`);
-    fuzzy_test_valid_color(`hwb(from rebeccapurple h w w / w)`, `color(srgb 0.5 0.2 0.8 / 0.2)`);
-    fuzzy_test_valid_color(`hwb(from rebeccapurple h alpha alpha / alpha)`, `color(srgb 0.5 0.5 0.5)`);
+    fuzzy_test_valid_color(`hwb(from rebeccapurple h alpha w / b)`, `color(srgb 0.405 0.01 0.8)`);
+    fuzzy_test_valid_color(`hwb(from rebeccapurple h w w / w)`, `color(srgb 0.5 0.2 0.8)`);
+    fuzzy_test_valid_color(`hwb(from rebeccapurple h alpha alpha / alpha)`, `color(srgb 0.5 0.01 0.99)`);
     fuzzy_test_valid_color(`hwb(from rgb(20%, 40%, 60%, 80%) h b w)`, `color(srgb 0.4 0.6 0.8 / 0.8)`);
-    fuzzy_test_valid_color(`hwb(from rgb(20%, 40%, 60%, 80%) h alpha w / b)`, `color(srgb 0.8 0.8 0.8 / 0.4)`);
-    fuzzy_test_valid_color(`hwb(from rgb(20%, 40%, 60%, 80%) h w w / w)`, `color(srgb 0.2 0.5 0.8 / 0.2)`);
-    fuzzy_test_valid_color(`hwb(from rgb(20%, 40%, 60%, 80%) h alpha alpha / alpha)`, `color(srgb 0.5 0.5 0.5 / 0.8)`);
+    fuzzy_test_valid_color(`hwb(from rgb(20%, 40%, 60%, 80%) h alpha w / b)`, `color(srgb 0.01 0.404 0.8)`);
+    fuzzy_test_valid_color(`hwb(from rgb(20%, 40%, 60%, 80%) h w w / w)`, `color(srgb 0.2 0.5 0.8)`);
+    fuzzy_test_valid_color(`hwb(from rgb(20%, 40%, 60%, 80%) h alpha alpha / alpha)`, `color(srgb 0.01 0.5 0.99 / 0.8)`);
 
     // Testing with calc().
     fuzzy_test_valid_color(`hwb(from rebeccapurple calc(h) calc(w) calc(b))`, `color(srgb 0.4 0.2 0.6)`);
     fuzzy_test_valid_color(`hwb(from rgb(20%, 40%, 60%, 80%) calc(h) calc(w) calc(b) / calc(alpha))`, `color(srgb 0.2 0.4 0.6 / 0.8)`);
 
     // Testing with 'none'.
-    fuzzy_test_valid_color(`hwb(from rebeccapurple none none none)`, `color(srgb none none none)`);
-    fuzzy_test_valid_color(`hwb(from rebeccapurple none none none / none)`, `color(srgb none none none / none)`);
-    fuzzy_test_valid_color(`hwb(from rebeccapurple h w none)`, `color(srgb 0.6 0.2 none)`);
-    fuzzy_test_valid_color(`hwb(from rebeccapurple h w none / alpha)`, `color(srgb 0.6 0.2 none)`);
+    fuzzy_test_valid_color(`hwb(from rebeccapurple none none none)`, `color(srgb 1 0 0)`);
+    fuzzy_test_valid_color(`hwb(from rebeccapurple none none none / none)`, `color(srgb 1 0 0 / none)`);
+    fuzzy_test_valid_color(`hwb(from rebeccapurple h w none)`, `color(srgb 0.6 0.2 1)`);
+    fuzzy_test_valid_color(`hwb(from rebeccapurple h w none / alpha)`, `color(srgb 0.6 0.2 1)`);
     fuzzy_test_valid_color(`hwb(from rebeccapurple h w b / none)`, `color(srgb 0.4 0.2 0.6 / none)`);
-    fuzzy_test_valid_color(`hwb(from rebeccapurple none w b / alpha)`, `color(srgb none 0.2 0.2)`);
-    fuzzy_test_valid_color(`hwb(from hwb(120deg 20% 50% / .5) h w none / alpha)`, `color(srgb 0.2 1 none / 0.5)`);
+    fuzzy_test_valid_color(`hwb(from rebeccapurple none w b / alpha)`, `color(srgb 0.6 0.2 0.2)`);
+    fuzzy_test_valid_color(`hwb(from hwb(120deg 20% 50% / .5) h w none / alpha)`, `color(srgb 0.2 1 0.2 / 0.5)`);
     fuzzy_test_valid_color(`hwb(from hwb(120deg 20% 50% / .5) h w b / none)`, `color(srgb 0.2 0.5 0.2 / none)`);
-    fuzzy_test_valid_color(`hwb(from hwb(120deg 20% 50% / .5) none w b / alpha)`, `color(srgb none 0.2 0.2 / 0.5)`);
+    fuzzy_test_valid_color(`hwb(from hwb(120deg 20% 50% / .5) none w b / alpha)`, `color(srgb 0.5 0.2 0.2 / 0.5)`);
     // FIXME: Clarify with spec editors if 'none' should pass through to the constants.
     fuzzy_test_valid_color(`hwb(from hwb(none none none) h w b)`, `color(srgb 1 0 0)`);
     fuzzy_test_valid_color(`hwb(from hwb(none none none / none) h w b / alpha)`, `color(srgb 1 0 0 / 0)`);
@@ -400,7 +404,7 @@
     fuzzy_test_valid_color(`oklab(from oklab(0.25 0.2 0.5) calc(l) calc(a) calc(b))`, `oklab(0.25 0.2 0.5)`);
     fuzzy_test_valid_color(`oklab(from oklab(0.25 0.2 0.5 / 40%) calc(l) calc(a) calc(b) / calc(alpha))`, `oklab(0.25 0.2 0.5 / 0.4)`);
     fuzzy_test_valid_color(`oklab(from oklab(0.7 0.25 -0.15) calc(l - 0.2) a b)`, `oklab(0.5 0.25 -0.15)`);
-    fuzzy_test_valid_color(`oklab(from oklab(0.7 0.25 -0.15) l calc(a / 2) calc(b / 3))`, `oklab(0.7 0.125 -0.075)`);
+    fuzzy_test_valid_color(`oklab(from oklab(0.7 0.25 -0.15) l calc(a / 2) calc(b / 3))`, `oklab(0.7 0.125 -0.05)`);
 
     // Testing with 'none'.
     fuzzy_test_valid_color(`oklab(from oklab(0.25 0.2 0.5) none none none)`, `oklab(none none none)`);

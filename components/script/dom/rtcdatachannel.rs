@@ -72,7 +72,7 @@ impl RTCDataChannel {
                 .expect("Expected data channel id"),
         );
 
-        let channel = RTCDataChannel {
+        RTCDataChannel {
             eventtarget: EventTarget::new_inherited(),
             servo_media_id,
             peer_connection: Dom::from_ref(peer_connection),
@@ -85,9 +85,7 @@ impl RTCDataChannel {
             id: options.id,
             ready_state: Cell::new(RTCDataChannelState::Connecting),
             binary_type: DomRefCell::new(DOMString::from("blob")),
-        };
-
-        channel
+        }
     }
 
     pub fn new(
@@ -200,17 +198,14 @@ impl RTCDataChannel {
     }
 
     pub fn on_state_change(&self, state: DataChannelState) {
-        match state {
-            DataChannelState::Closing => {
-                let event = Event::new(
-                    &self.global(),
-                    atom!("closing"),
-                    EventBubbles::DoesNotBubble,
-                    EventCancelable::NotCancelable,
-                );
-                event.upcast::<Event>().fire(self.upcast());
-            },
-            _ => {},
+        if let DataChannelState::Closing = state {
+            let event = Event::new(
+                &self.global(),
+                atom!("closing"),
+                EventBubbles::DoesNotBubble,
+                EventCancelable::NotCancelable,
+            );
+            event.upcast::<Event>().fire(self.upcast());
         };
         self.ready_state.set(state.into());
     }

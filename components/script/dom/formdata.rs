@@ -110,7 +110,7 @@ impl FormDataMethods for FormData {
     fn Delete(&self, name: USVString) {
         self.data
             .borrow_mut()
-            .retain(|(datum_name, _)| datum_name.0 != LocalName::from(name.0.clone()));
+            .retain(|(datum_name, _)| datum_name.0 != name.0);
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-get
@@ -118,13 +118,12 @@ impl FormDataMethods for FormData {
         self.data
             .borrow()
             .iter()
-            .filter(|(datum_name, _)| datum_name.0 == LocalName::from(name.0.clone()))
-            .next()
+            .find(|(datum_name, _)| datum_name.0 == name.0)
             .map(|(_, datum)| match &datum.value {
                 FormDatumValue::String(ref s) => {
                     FileOrUSVString::USVString(USVString(s.to_string()))
                 },
-                FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(&*b)),
+                FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(b)),
             })
     }
 
@@ -134,7 +133,7 @@ impl FormDataMethods for FormData {
             .borrow()
             .iter()
             .filter_map(|(datum_name, datum)| {
-                if datum_name.0 != LocalName::from(name.0.clone()) {
+                if datum_name.0 != name.0 {
                     return None;
                 }
 
@@ -142,7 +141,7 @@ impl FormDataMethods for FormData {
                     FormDatumValue::String(ref s) => {
                         FileOrUSVString::USVString(USVString(s.to_string()))
                     },
-                    FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(&*b)),
+                    FormDatumValue::File(ref b) => FileOrUSVString::File(DomRoot::from_ref(b)),
                 })
             })
             .collect()
@@ -153,7 +152,7 @@ impl FormDataMethods for FormData {
         self.data
             .borrow()
             .iter()
-            .any(|(datum_name, _0)| datum_name.0 == LocalName::from(name.0.clone()))
+            .any(|(datum_name, _0)| datum_name.0 == name.0)
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-set
@@ -211,7 +210,7 @@ impl FormData {
             },
         };
 
-        let bytes = blob.get_bytes().unwrap_or(vec![]);
+        let bytes = blob.get_bytes().unwrap_or_default();
 
         File::new(
             &self.global(),

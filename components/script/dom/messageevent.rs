@@ -41,13 +41,13 @@ impl From<&WindowProxyOrMessagePortOrServiceWorker> for SrcObject {
     fn from(src_object: &WindowProxyOrMessagePortOrServiceWorker) -> SrcObject {
         match src_object {
             WindowProxyOrMessagePortOrServiceWorker::WindowProxy(blob) => {
-                SrcObject::WindowProxy(Dom::from_ref(&*blob))
+                SrcObject::WindowProxy(Dom::from_ref(blob))
             },
             WindowProxyOrMessagePortOrServiceWorker::MessagePort(stream) => {
-                SrcObject::MessagePort(Dom::from_ref(&*stream))
+                SrcObject::MessagePort(Dom::from_ref(stream))
             },
             WindowProxyOrMessagePortOrServiceWorker::ServiceWorker(stream) => {
-                SrcObject::ServiceWorker(Dom::from_ref(&*stream))
+                SrcObject::ServiceWorker(Dom::from_ref(stream))
             },
         }
     }
@@ -131,6 +131,7 @@ impl MessageEvent {
         ev
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         global: &GlobalScope,
         type_: Atom,
@@ -156,6 +157,7 @@ impl MessageEvent {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -258,13 +260,13 @@ impl MessageEventMethods for MessageEvent {
     fn GetSource(&self) -> Option<WindowProxyOrMessagePortOrServiceWorker> {
         match &*self.source.borrow() {
             Some(SrcObject::WindowProxy(i)) => Some(
-                WindowProxyOrMessagePortOrServiceWorker::WindowProxy(DomRoot::from_ref(&*i)),
+                WindowProxyOrMessagePortOrServiceWorker::WindowProxy(DomRoot::from_ref(i)),
             ),
             Some(SrcObject::MessagePort(i)) => Some(
-                WindowProxyOrMessagePortOrServiceWorker::MessagePort(DomRoot::from_ref(&*i)),
+                WindowProxyOrMessagePortOrServiceWorker::MessagePort(DomRoot::from_ref(i)),
             ),
             Some(SrcObject::ServiceWorker(i)) => Some(
-                WindowProxyOrMessagePortOrServiceWorker::ServiceWorker(DomRoot::from_ref(&*i)),
+                WindowProxyOrMessagePortOrServiceWorker::ServiceWorker(DomRoot::from_ref(i)),
             ),
             None => None,
         }

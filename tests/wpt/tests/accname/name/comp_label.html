@@ -154,13 +154,6 @@
 <textarea aria-label="label" data-expectedlabel="label" data-testname="label valid on textarea element" class="ex">x</textarea>
 <ul aria-label="label" data-expectedlabel="label" data-testname="label valid on list (unordered) element" class="ex">x</ul>
 
-<h2>Undefined aria-label tests</h2>
-<img alt="alt" aria-label="undefined" data-expectedlabel="alt" data-testname="aria-label undefined on img w/ alt" class="ex" />
-<img aria-label="undefined" data-expectedlabel="" data-testname="aria-label undefined on img w/o alt" class="ex" />
-<img alt="" aria-label="undefined" data-expectedlabel="" data-testname="aria-label undefined on img w/ empty alt" class="ex" />
-<img aria-label="undefined" data-expectedlabel="title" data-testname="aria-label undefined on img w/o alt but w/ title" class="ex" />
-<img alt="" aria-label="undefined" data-expectedlabel="title" data-testname="aria-label undefined on img w/ empty alt but w/ title" class="ex" />
-
 <h2>Name computation precedence tests</h2>
 <!-- Name computation: https://w3c.github.io/accname/#computation-steps -->
 
@@ -179,9 +172,9 @@ x
   x
 </button>
 
-<button aria-labelledby="span4" aria-label="foo" data-expectedlabel="foo" data-testname="button's hidden referenced name (visibility:hidden) with hidden aria-labelledby traversal falls back to aria-label" class="ex">
-  <span id="span4">
-    <span id="span5" style="visibility:hidden;">label</span>
+<button aria-labelledby="span5" aria-label="foo" data-expectedlabel="foo" data-testname="button's hidden referenced name (visibility:hidden) with hidden aria-labelledby traversal falls back to aria-label" class="ex">
+  <span id="span5">
+    <span id="span6" style="visibility:hidden;">label</span>
   </span>
   x
 </button>
@@ -193,8 +186,8 @@ x
 </span>
 
 <!-- Step 2B: LabelledBy supercedes 2D: AriaLabel, also see wpt/accname/name/comp_labelledby.html -->
-<a href="#" aria-labelledby="span6" aria-label="foo" data-expectedlabel="label" data-testname="link's aria-labelledby name supercedes aria-label" class="ex">x</a>
-<span id="span6">label</span>
+<a href="#" aria-labelledby="span7" aria-label="foo" data-expectedlabel="label" data-testname="link's aria-labelledby name supercedes aria-label" class="ex">x</a>
+<span id="span7">label</span>
 
 <!-- Step 2C: Embedded Control labelling supercedes 2D: AriaLabel, see wpt/accname/name/comp_embedded_control.html -->
 

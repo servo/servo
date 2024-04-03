@@ -43,7 +43,7 @@ impl XRInputSourceArray {
             // This is quadratic, but won't be a problem for the only case
             // where we add multiple input sources (the initial input sources case)
             debug_assert!(
-                input_sources.iter().find(|i| i.id() == info.id).is_none(),
+                !input_sources.iter().any(|i| i.id() == info.id),
                 "Should never add a duplicate input id!"
             );
             let input = XRInputSource::new(&global, session, info.clone());

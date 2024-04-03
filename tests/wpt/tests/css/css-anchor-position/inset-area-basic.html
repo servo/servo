@@ -57,65 +57,61 @@
   }
 
   test_inset_area("none", {left:0, top:0, width:0, height:0});
-  test_inset_area("all", {left:0, top:0, width:400, height:400});
-  test_inset_area("all / all", {left:0, top:0, width:400, height:400});
+  test_inset_area("span-all", {left:0, top:0, width:400, height:400});
+  test_inset_area("span-all span-all", {left:0, top:0, width:400, height:400});
 
   // Single region spans
-  test_inset_area("top / left", {left:0, top:0, width:100, height:150});
-  test_inset_area("top / center", {left:100, top:0, width:150, height:150});
-  test_inset_area("top / right", {left:250, top:0, width:150, height:150});
-  test_inset_area("center / left", {left:0, top:150, width:100, height:75});
-  test_inset_area("center / center", {left:100, top:150, width:150, height:75});
-  test_inset_area("center / right", {left:250, top:150, width:150, height:75});
-  test_inset_area("bottom / left", {left:0, top:225, width:100, height:175});
-  test_inset_area("bottom / center", {left:100, top:225, width:150, height:175});
-  test_inset_area("bottom / right", {left:250, top:225, width:150, height:175});
+  test_inset_area("top left", {left:0, top:0, width:100, height:150});
+  test_inset_area("top center", {left:100, top:0, width:150, height:150});
+  test_inset_area("top right", {left:250, top:0, width:150, height:150});
+  test_inset_area("center left", {left:0, top:150, width:100, height:75});
+  test_inset_area("center center", {left:100, top:150, width:150, height:75});
+  test_inset_area("center right", {left:250, top:150, width:150, height:75});
+  test_inset_area("bottom left", {left:0, top:225, width:100, height:175});
+  test_inset_area("bottom center", {left:100, top:225, width:150, height:175});
+  test_inset_area("bottom right", {left:250, top:225, width:150, height:175});
 
-  test_inset_area("start / start", {left:0, top:0, width:100, height:150});
-  test_inset_area("start / center", {left:100, top:0, width:150, height:150});
-  test_inset_area("start / end", {left:250, top:0, width:150, height:150});
-  test_inset_area("center / start", {left:0, top:150, width:100, height:75});
-  test_inset_area("center / end", {left:250, top:150, width:150, height:75});
-  test_inset_area("end / start", {left:0, top:225, width:100, height:175});
-  test_inset_area("end / center", {left:100, top:225, width:150, height:175});
-  test_inset_area("end / end", {left:250, top:225, width:150, height:175});
+  test_inset_area("start start", {left:0, top:0, width:100, height:150});
+  test_inset_area("start center", {left:100, top:0, width:150, height:150});
+  test_inset_area("start end", {left:250, top:0, width:150, height:150});
+  test_inset_area("center start", {left:0, top:150, width:100, height:75});
+  test_inset_area("center end", {left:250, top:150, width:150, height:75});
+  test_inset_area("end start", {left:0, top:225, width:100, height:175});
+  test_inset_area("end center", {left:100, top:225, width:150, height:175});
+  test_inset_area("end end", {left:250, top:225, width:150, height:175});
 
-  test_inset_area("self-start / self-start", {left:0, top:0, width:100, height:150});
-  test_inset_area("self-start / center", {left:100, top:0, width:150, height:150});
-  test_inset_area("self-start / self-end", {left:250, top:0, width:150, height:150});
-  test_inset_area("center / self-start", {left:0, top:150, width:100, height:75});
-  test_inset_area("center / self-end", {left:250, top:150, width:150, height:75});
-  test_inset_area("self-end / self-start", {left:0, top:225, width:100, height:175});
-  test_inset_area("self-end / center", {left:100, top:225, width:150, height:175});
-  test_inset_area("self-end / self-end", {left:250, top:225, width:150, height:175});
+  test_inset_area("self-start self-start", {left:0, top:0, width:100, height:150});
+  test_inset_area("self-start center", {left:100, top:0, width:150, height:150});
+  test_inset_area("self-start self-end", {left:250, top:0, width:150, height:150});
+  test_inset_area("center self-start", {left:0, top:150, width:100, height:75});
+  test_inset_area("center self-end", {left:250, top:150, width:150, height:75});
+  test_inset_area("self-end self-start", {left:0, top:225, width:100, height:175});
+  test_inset_area("self-end center", {left:100, top:225, width:150, height:175});
+  test_inset_area("self-end self-end", {left:250, top:225, width:150, height:175});
 
-  test_inset_area("y-start / x-start", {left:0, top:0, width:100, height:150});
-  test_inset_area("y-start / center", {left:100, top:0, width:150, height:150});
-  test_inset_area("y-start / x-end", {left:250, top:0, width:150, height:150});
-  test_inset_area("center / x-start", {left:0, top:150, width:100, height:75});
-  test_inset_area("center / x-end", {left:250, top:150, width:150, height:75});
-  test_inset_area("y-end / x-start", {left:0, top:225, width:100, height:175});
-  test_inset_area("y-end / center", {left:100, top:225, width:150, height:175});
-  test_inset_area("y-end / x-end", {left:250, top:225, width:150, height:175});
+  test_inset_area("y-start x-start", {left:0, top:0, width:100, height:150});
+  test_inset_area("y-start center", {left:100, top:0, width:150, height:150});
+  test_inset_area("y-start x-end", {left:250, top:0, width:150, height:150});
+  test_inset_area("center x-start", {left:0, top:150, width:100, height:75});
+  test_inset_area("center x-end", {left:250, top:150, width:150, height:75});
+  test_inset_area("y-end x-start", {left:0, top:225, width:100, height:175});
+  test_inset_area("y-end center", {left:100, top:225, width:150, height:175});
+  test_inset_area("y-end x-end", {left:250, top:225, width:150, height:175});
 
-  test_inset_area("y-self-start / x-self-start", {left:0, top:0, width:100, height:150});
-  test_inset_area("y-self-start / center", {left:100, top:0, width:150, height:150});
-  test_inset_area("y-self-start / x-self-end", {left:250, top:0, width:150, height:150});
-  test_inset_area("center / x-self-start", {left:0, top:150, width:100, height:75});
-  test_inset_area("center / x-self-end", {left:250, top:150, width:150, height:75});
-  test_inset_area("y-self-end / x-self-start", {left:0, top:225, width:100, height:175});
-  test_inset_area("y-self-end / center", {left:100, top:225, width:150, height:175});
-  test_inset_area("y-self-end / x-self-end", {left:250, top:225, width:150, height:175});
+  test_inset_area("y-self-start x-self-start", {left:0, top:0, width:100, height:150});
+  test_inset_area("y-self-start center", {left:100, top:0, width:150, height:150});
+  test_inset_area("y-self-start x-self-end", {left:250, top:0, width:150, height:150});
+  test_inset_area("center x-self-start", {left:0, top:150, width:100, height:75});
+  test_inset_area("center x-self-end", {left:250, top:150, width:150, height:75});
+  test_inset_area("y-self-end x-self-start", {left:0, top:225, width:100, height:175});
+  test_inset_area("y-self-end center", {left:100, top:225, width:150, height:175});
+  test_inset_area("y-self-end x-self-end", {left:250, top:225, width:150, height:175});
 
   // Multi-region spans
-  test_inset_area("y-self-start center / self-end center", {left:100, top:0, width:300, height:225});
-  test_inset_area("bottom center / x-start x-end", {left:0, top:150, width:400, height:250});
-
-  // Non-orthogonal axes.
-  test_inset_area("x-start / left", {left:0, top:0, width:0, height:0});
-  test_inset_area("y-end / y-self-start", {left:0, top:0, width:0, height:0});
+  test_inset_area("span-y-self-start span-x-self-end", {left:100, top:0, width:300, height:225});
+  test_inset_area("span-bottom span-all", {left:0, top:150, width:400, height:250});
 
   // No implicit anchor means the inset-area should not apply.
   anchored.style.positionAnchor = "implicit";
-  test_inset_area("all / top", {left:0, top:0, width:0, height:0});
+  test_inset_area("span-all top", {left:0, top:0, width:0, height:0});
 </script>

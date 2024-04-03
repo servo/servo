@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1422275">
+<link rel=help href="https://github.com/openui/open-ui/issues/433#issuecomment-1452461404">
+<link rel=help href="https://github.com/openui/open-ui/issues/386#issuecomment-1452469497">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<style>
+select {
+  appearance: bikeshed;
+}
+</style>
+
+<form></form>
+
+<div id=notform>
+  <select id=defaultbutton-defaultdatalist>
+    <option class=one>one</option>
+    <option class=two>two</option>
+    <option class=three>three</option>
+  </select>
+
+  <select id=defaultbutton-customdatalist>
+    <datalist>
+      <option class=one>one</option>
+      <option class=two>two</option>
+      <option class=three>three</option>
+    </datalist>
+  </select>
+
+  <select id=custombutton-defaultdatalist>
+    <button type=popover>custom button</button>
+    <option class=one>one</option>
+    <option class=two>two</option>
+    <option class=three>three</option>
+  </select>
+
+  <select id=custombutton-customdatalist>
+    <button type=popover>custom button</button>
+    <datalist>
+      <option class=one>one</option>
+      <option class=two>two</option>
+      <option class=three>three</option>
+    </datalist>
+  </select>
+</div>
+
+<script>
+const Enter = '\uE007';
+const Escape = '\uE00C';
+const ArrowLeft = '\uE012';
+const ArrowUp = '\uE013';
+const ArrowRight = '\uE014';
+const ArrowDown = '\uE015';
+const Space = ' ';
+const form = document.querySelector('form');
+const notform = document.getElementById('notform');
+
+for (const id of ['defaultbutton-defaultdatalist',
+                  'defaultbutton-customdatalist',
+                  'custombutton-defaultdatalist',
+                  'custombutton-customdatalist']) {
+  const select = document.getElementById(id);
+
+  async function closeListbox() {
+    await test_driver.click(select);
+  }
+
+  function addCloseCleanup(t) {
+    t.add_cleanup(async () => {
+      if (select.matches(':open')) {
+        await closeListbox();
+      }
+      if (select.matches(':open')) {
+        throw new Error('select failed to close!');
+      }
+      select.value = 'one';
+    });
+  }
+
+  promise_test(async t => {
+    addCloseCleanup(t);
+    // TODO(http://crbug.com/1350299): When focus for custom buttons is fixed,
+    // then we shouldn't need to explicitly focus the custom button like this
+    // anymore.
+    const customButton = select.querySelector('button');
+    if (customButton) {
+      customButton.focus();
+    } else {
+      select.focus();
+    }
+    assert_false(select.matches(':open'),
+      'The select should initially be closed.');
+    await test_driver.send_keys(document.activeElement, Space);
+    assert_true(select.matches(':open'),
+      'The select should be open after pressing space.');
+  }, `${id}: When the listbox is closed, spacebar should open the listbox.`);
+
+  promise_test(async t => {
+    addCloseCleanup(t);
+    select.value = 'two';
+    select.focus();
+    assert_false(select.matches(':open'),
+      'The select should initially be closed.');
+
+    await test_driver.send_keys(document.activeElement, ArrowLeft);
+    assert_true(select.matches(':open'),
+      'Arrow left should open the listbox.');
+    assert_equals(select.value, 'two',
+      'Arrow left should not change the selected value.');
+    await closeListbox();
+
+    await test_driver.send_keys(document.activeElement, ArrowUp);
+    assert_true(select.matches(':open'),
+      'Arrow up should open the listbox.');
+    assert_equals(select.value, 'two',
+      'Arrow up should not change the selected value.');
+    await closeListbox();
+
+    await test_driver.send_keys(document.activeElement, ArrowRight);
+    assert_true(select.matches(':open'),
+      'Arrow right should open the listbox.');
+    assert_equals(select.value, 'two',
+      'Arrow right should not change the selected value.');
+    await closeListbox();
+
+    await test_driver.send_keys(document.activeElement, ArrowDown);
+    assert_true(select.matches(':open'),
+      'Arrow down should open the listbox.');
+    assert_equals(select.value, 'two',
+      'Arrow down should not change the selected value.');
+  }, `${id}: When the listbox is closed, all arrow keys should open the listbox.`);
+
+  promise_test(async t => {
+    addCloseCleanup(t);
+
+    // TODO(http://crbug.com/1350299): When focus for custom buttons is fixed,
+    // then we shouldn't need to explicitly use the custom button like this
+    // anymore.
+    const customButton = select.querySelector('button');
+    if (customButton) {
+      await test_driver.send_keys(customButton, Enter);
+    } else {
+      await test_driver.send_keys(select, Enter);
+    }
+    assert_false(select.matches(':open'),
+      'Enter should not open the listbox when outside a form.');
+
+    form.appendChild(select);
+    let formWasSubmitted = false;
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      formWasSubmitted = true;
+    }, {once: true});
+    if (customButton) {
+      await test_driver.send_keys(customButton, Enter);
+    } else {
+      await test_driver.send_keys(select, Enter);
+    }
+    assert_true(formWasSubmitted,
+      'Enter should submit the form when the listbox is closed.');
+    assert_false(select.matches(':open'),
+      'Enter should not open the listbox when it is in a form.');
+  }, `${id}: When the listbox is closed, the enter key should submit the form or do nothing.`);
+
+  promise_test(async t => {
+    addCloseCleanup(t);
+    const optionOne = select.querySelector('.one');
+    const optionTwo = select.querySelector('.two');
+    const optionThree = select.querySelector('.three');
+
+    select.value = 'two';
+    await test_driver.click(select);
+    assert_true(select.matches(':open'),
+      'The select should open when clicked.');
+    assert_equals(document.activeElement, optionTwo,
+      'The selected option should receive initial focus.');
+
+    await test_driver.send_keys(document.activeElement, ArrowDown);
+    assert_equals(document.activeElement, optionThree,
+      'The next option should receive focus when the down arrow key is pressed.');
+    assert_equals(select.value, 'two',
+      'The selects value should not change when focusing another option.');
+
+    await test_driver.send_keys(document.activeElement, ArrowUp);
+    assert_equals(document.activeElement, optionTwo,
+      'The previous option should receive focus when the up arrow key is pressed.');
+    assert_equals(select.value, 'two',
+      'The selects value should not change when focusing another option.');
+
+    await test_driver.send_keys(document.activeElement, ArrowUp);
+    assert_equals(document.activeElement, optionOne,
+      'The first option should be selected.');
+    assert_equals(select.value, 'two',
+      'The selects value should not change when focusing another option.');
+
+    await test_driver.send_keys(document.activeElement, Enter);
+    assert_false(select.matches(':open'),
+      'The listbox should be closed after pressing enter.');
+    assert_equals(select.value, 'one',
+      'The selects value should change after pressing enter on a different option.');
+  }, `${id}: When the listbox is open, the enter key should commit the selected option.`);
+}
+</script>

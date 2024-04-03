@@ -287,7 +287,7 @@ struct TransmitBodyPromiseHandler {
 impl Callback for TransmitBodyPromiseHandler {
     /// Step 5 of <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
     fn callback(&self, cx: JSContext, v: HandleValue, _realm: InRealm) {
-        let is_done = match get_read_promise_done(cx.clone(), &v) {
+        let is_done = match get_read_promise_done(cx, &v) {
             Ok(is_done) => is_done,
             Err(_) => {
                 // Step 5.5, the "otherwise" steps.
@@ -304,7 +304,7 @@ impl Callback for TransmitBodyPromiseHandler {
             return self.stream.stop_reading();
         }
 
-        let chunk = match get_read_promise_bytes(cx.clone(), &v) {
+        let chunk = match get_read_promise_bytes(cx, &v) {
             Ok(chunk) => chunk,
             Err(_) => {
                 // Step 5.5, the "otherwise" steps.
@@ -338,7 +338,7 @@ impl Callback for TransmitBodyPromiseRejectionHandler {
     fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm) {
         // Step 5.4, the "rejection" steps.
         let _ = self.control_sender.send(BodyChunkRequest::Error);
-        return self.stream.stop_reading();
+        self.stream.stop_reading();
     }
 }
 
@@ -656,7 +656,7 @@ impl Callback for ConsumeBodyPromiseHandler {
             .as_ref()
             .expect("ConsumeBodyPromiseHandler has no stream in callback.");
 
-        let is_done = match get_read_promise_done(cx.clone(), &v) {
+        let is_done = match get_read_promise_done(cx, &v) {
             Ok(is_done) => is_done,
             Err(err) => {
                 stream.stop_reading();
@@ -667,9 +667,9 @@ impl Callback for ConsumeBodyPromiseHandler {
 
         if is_done {
             // When read is fulfilled with an object whose done property is true.
-            self.resolve_result_promise(cx.clone());
+            self.resolve_result_promise(cx);
         } else {
-            let chunk = match get_read_promise_bytes(cx.clone(), &v) {
+            let chunk = match get_read_promise_bytes(cx, &v) {
                 Ok(chunk) => chunk,
                 Err(err) => {
                     stream.stop_reading();
@@ -751,10 +751,7 @@ fn consume_body_with_promise<T: BodyMixin + DomObject>(
     // Step 2.
     let stream = match object.body() {
         Some(stream) => stream,
-        None => {
-            let stream = ReadableStream::new_from_bytes(&global, Vec::with_capacity(0));
-            stream
-        },
+        None => ReadableStream::new_from_bytes(&global, Vec::with_capacity(0)),
     };
 
     // Step 3.

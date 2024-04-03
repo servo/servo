@@ -26,7 +26,6 @@ use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::{CoreResourceMsg, IpcSend};
 use profile_traits::ipc;
-use script_layout_interface::rpc::TextIndexResponse;
 use script_traits::ScriptToConstellationChan;
 use servo_atoms::Atom;
 use style::attr::AttrValue;
@@ -83,8 +82,8 @@ use crate::textinput::KeyReaction::{
 use crate::textinput::Lines::Single;
 use crate::textinput::{Direction, SelectionDirection, TextInput, UTF16CodeUnits, UTF8Bytes};
 
-const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
-const DEFAULT_RESET_VALUE: &'static str = "Reset";
+const DEFAULT_SUBMIT_VALUE: &str = "Submit";
+const DEFAULT_RESET_VALUE: &str = "Reset";
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
 
 #[derive(Clone, Copy, JSTraceable, PartialEq)]
@@ -768,7 +767,7 @@ impl HTMLInputElement {
         first_with_id
             .as_ref()
             .and_then(|el| el.downcast::<HTMLDataListElement>())
-            .map(|el| DomRoot::from_ref(&*el))
+            .map(DomRoot::from_ref)
     }
 
     // https://html.spec.whatwg.org/multipage/#suffering-from-being-missing
@@ -1184,9 +1183,13 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-files
     fn GetFiles(&self) -> Option<DomRoot<FileList>> {
-        match self.filelist.get() {
-            Some(ref fl) => Some(fl.clone()),
-            None => None,
+        self.filelist.get().as_ref().cloned()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-files>
+    fn SetFiles(&self, files: Option<&FileList>) {
+        if self.input_type() == InputType::File && files.is_some() {
+            self.filelist.set(files);
         }
     }
 
@@ -1642,7 +1645,7 @@ fn radio_group_iter<'a>(
 
     // If group is None, in_same_group always fails, but we need to always return elem.
     root.traverse_preorder(ShadowIncluding::No)
-        .filter_map(|r| DomRoot::downcast::<HTMLInputElement>(r))
+        .filter_map(DomRoot::downcast::<HTMLInputElement>)
         .filter(move |r| &**r == elem || in_same_group(r, owner.as_deref(), group, None))
 }
 
@@ -1869,7 +1872,7 @@ impl HTMLInputElement {
             let (chan, recv) = ipc::channel(self.global().time_profiler_chan().clone())
                 .expect("Error initializing channel");
             let msg = FileManagerThreadMsg::SelectFiles(filter, chan, origin, opt_test_paths);
-            let _ = resource_threads
+            resource_threads
                 .send(CoreResourceMsg::ToFileManager(msg))
                 .unwrap();
 
@@ -1884,7 +1887,7 @@ impl HTMLInputElement {
         } else {
             let opt_test_path = match opt_test_paths {
                 Some(paths) => {
-                    if paths.len() == 0 {
+                    if paths.is_empty() {
                         return;
                     } else {
                         Some(paths[0].to_string()) // neglect other paths
@@ -1896,7 +1899,7 @@ impl HTMLInputElement {
             let (chan, recv) = ipc::channel(self.global().time_profiler_chan().clone())
                 .expect("Error initializing channel");
             let msg = FileManagerThreadMsg::SelectFile(filter, chan, origin, opt_test_path);
-            let _ = resource_threads
+            resource_threads
                 .send(CoreResourceMsg::ToFileManager(msg))
                 .unwrap();
 
@@ -2486,7 +2489,7 @@ impl VirtualMethods for HTMLInputElement {
     }
 
     fn bind_to_tree(&self, context: &BindContext) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.bind_to_tree(context);
         }
         self.upcast::<Element>()
@@ -2540,8 +2543,7 @@ impl VirtualMethods for HTMLInputElement {
                     // now.
                     if let Some(point_in_target) = mouse_event.point_in_target() {
                         let window = window_from_node(self);
-                        let TextIndexResponse(index) =
-                            window.text_index_query(self.upcast::<Node>(), point_in_target);
+                        let index = window.text_index_query(self.upcast::<Node>(), point_in_target);
                         if let Some(i) = index {
                             self.textinput.borrow_mut().set_edit_point_index(i);
                             // trigger redraw
@@ -2582,7 +2584,7 @@ impl VirtualMethods for HTMLInputElement {
         {
             if event.IsTrusted() {
                 let window = window_from_node(self);
-                let _ = window
+                window
                     .task_manager()
                     .user_interaction_task_source()
                     .queue_event(
@@ -2623,7 +2625,7 @@ impl VirtualMethods for HTMLInputElement {
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
     ) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.cloning_steps(copy, maybe_doc, clone_children);
         }
         let elem = copy.downcast::<HTMLInputElement>().unwrap();
@@ -2648,7 +2650,7 @@ impl FormControl for HTMLInputElement {
         self.form_owner.set(form);
     }
 
-    fn to_element<'a>(&'a self) -> &'a Element {
+    fn to_element(&self) -> &Element {
         self.upcast::<Element>()
     }
 }
@@ -2832,25 +2834,27 @@ impl Activatable for HTMLInputElement {
                 // https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit):activation-behavior
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 // Check if document owner is fully active
-                self.form_owner().map(|o| {
+                if let Some(o) = self.form_owner() {
                     o.submit(
                         SubmittedFrom::NotFromForm,
                         FormSubmitter::InputElement(self),
                     )
-                });
+                }
             },
             InputType::Reset => {
                 // https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):activation-behavior
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 // Check if document owner is fully active
-                self.form_owner().map(|o| o.reset(ResetFrom::NotFromForm));
+                if let Some(o) = self.form_owner() {
+                    o.reset(ResetFrom::NotFromForm)
+                }
             },
             InputType::Checkbox | InputType::Radio => {
                 // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):activation-behavior
                 // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):activation-behavior
                 // Check if document owner is fully active
                 if !self.upcast::<Node>().is_connected() {
-                    return ();
+                    return;
                 }
                 let target = self.upcast::<EventTarget>();
                 target.fire_bubbling_event(atom!("input"));
@@ -2866,13 +2870,11 @@ impl Activatable for HTMLInputElement {
 fn filter_from_accept(s: &DOMString) -> Vec<FilterPattern> {
     let mut filter = vec![];
     for p in split_commas(s) {
-        if let Some('.') = p.chars().nth(0) {
+        if let Some('.') = p.chars().next() {
             filter.push(FilterPattern(p[1..].to_string()));
-        } else {
-            if let Some(exts) = mime_guess::get_mime_extensions_str(p) {
-                for ext in exts {
-                    filter.push(FilterPattern(ext.to_string()));
-                }
+        } else if let Some(exts) = mime_guess::get_mime_extensions_str(p) {
+            for ext in exts {
+                filter.push(FilterPattern(ext.to_string()));
             }
         }
     }

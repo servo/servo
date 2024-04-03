@@ -258,7 +258,7 @@ impl AudioNodeMethods for AudioNode {
             EventTargetTypeId::AudioNode(AudioNodeTypeId::AudioDestinationNode) => {
                 if self.context.is_offline() {
                     return Err(Error::InvalidState);
-                } else if value < 1 || value > MAX_CHANNEL_COUNT {
+                } else if !(1..=MAX_CHANNEL_COUNT).contains(&value) {
                     return Err(Error::IndexSize);
                 }
             },
@@ -354,11 +354,10 @@ impl AudioNodeMethods for AudioNode {
             return Ok(());
         }
 
-        match self.upcast::<EventTarget>().type_id() {
-            EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelSplitterNode) => {
-                return Err(Error::InvalidState);
-            },
-            _ => (),
+        if let EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelSplitterNode) =
+            self.upcast::<EventTarget>().type_id()
+        {
+            return Err(Error::InvalidState);
         };
 
         self.channel_interpretation.set(value);

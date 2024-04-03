@@ -213,7 +213,7 @@ impl Performance {
             let buffer = self.buffer.borrow();
             let mut new_entries =
                 buffer.get_entries_by_name_and_type(None, Some(entry_type.clone()));
-            if new_entries.len() > 0 {
+            if !new_entries.is_empty() {
                 let mut obs_entries = observer.entries();
                 obs_entries.append(&mut new_entries);
                 observer.set_entries(obs_entries);
@@ -408,7 +408,7 @@ impl PerformanceMethods for Performance {
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#performance-timing-attribute
     fn Timing(&self) -> DomRoot<PerformanceNavigationTiming> {
         let entries = self.GetEntriesByType(DOMString::from("navigation"));
-        if entries.len() > 0 {
+        if !entries.is_empty() {
             return DomRoot::from_ref(
                 entries[0]
                     .downcast::<PerformanceNavigationTiming>()

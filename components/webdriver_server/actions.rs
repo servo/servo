@@ -434,7 +434,7 @@ impl Handler {
         Ok(())
     }
 
-    // https://w3c.github.io/webdriver/#dfn-perform-a-pointer-move
+    /// <https://w3c.github.io/webdriver/#dfn-perform-a-pointer-move>
     #[allow(clippy::too_many_arguments)]
     fn perform_pointer_move(
         &mut self,

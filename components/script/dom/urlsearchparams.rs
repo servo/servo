@@ -131,7 +131,7 @@ impl URLSearchParamsMethods for URLSearchParams {
         let list = self.list.borrow();
         list.iter()
             .find(|&kv| kv.0 == name.0)
-            .map(|ref kv| USVString(kv.1.clone()))
+            .map(|kv| USVString(kv.1.clone()))
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-getall

@@ -766,7 +766,7 @@ fn tokenize_open_features(features: DOMString) -> IndexMap<String, String> {
     let mut cur = iter.next();
 
     // Step 3
-    while cur != None {
+    while cur.is_some() {
         // Step 3.1 & 3.2
         let mut name = String::new();
         let mut value = String::new();
@@ -831,7 +831,7 @@ fn tokenize_open_features(features: DOMString) -> IndexMap<String, String> {
 fn parse_open_feature_boolean(tokenized_features: &IndexMap<String, String>, name: &str) -> bool {
     if let Some(value) = tokenized_features.get(name) {
         // Step 1 & 2
-        if value == "" || value == "yes" {
+        if value.is_empty() || value == "yes" {
             return true;
         }
         // Step 3 & 4

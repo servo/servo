@@ -167,11 +167,9 @@ impl HTMLSelectElement {
 
         if let Some(last_selected) = last_selected {
             last_selected.set_selectedness(true);
-        } else {
-            if self.display_size() == 1 {
-                if let Some(first_enabled) = first_enabled {
-                    first_enabled.set_selectedness(true);
-                }
+        } else if self.display_size() == 1 {
+            if let Some(first_enabled) = first_enabled {
+                first_enabled.set_selectedness(true);
             }
         }
     }
@@ -312,7 +310,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     fn NamedItem(&self, name: DOMString) -> Option<DomRoot<HTMLOptionElement>> {
         self.Options()
             .NamedGetter(name)
-            .map_or(None, |e| DomRoot::downcast::<HTMLOptionElement>(e))
+            .map_or(None, DomRoot::downcast::<HTMLOptionElement>)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-remove
@@ -449,7 +447,7 @@ impl VirtualMethods for HTMLSelectElement {
     }
 
     fn bind_to_tree(&self, context: &BindContext) {
-        if let Some(ref s) = self.super_type() {
+        if let Some(s) = self.super_type() {
             s.bind_to_tree(context);
         }
 
@@ -492,7 +490,7 @@ impl FormControl for HTMLSelectElement {
         self.form_owner.set(form);
     }
 
-    fn to_element<'a>(&'a self) -> &'a Element {
+    fn to_element(&self) -> &Element {
         self.upcast::<Element>()
     }
 }
@@ -520,11 +518,10 @@ impl Validatable for HTMLSelectElement {
         // https://html.spec.whatwg.org/multipage/#the-select-element%3Asuffering-from-being-missing
         if validate_flags.contains(ValidationFlags::VALUE_MISSING) && self.Required() {
             let placeholder = self.get_placeholder_label_option();
-            let selected_option = self
+            let is_value_missing = !self
                 .list_of_options()
-                .filter(|e| e.Selected() && placeholder.as_ref() != Some(e))
-                .next();
-            failed_flags.set(ValidationFlags::VALUE_MISSING, selected_option.is_none());
+                .any(|e| e.Selected() && placeholder != Some(e));
+            failed_flags.set(ValidationFlags::VALUE_MISSING, is_value_missing);
         }
 
         failed_flags

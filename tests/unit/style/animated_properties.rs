@@ -21,9 +21,10 @@ fn srgb_legacy_from_floats(red: f32, green: f32, blue: f32, alpha: f32) -> Absol
 // Color
 #[test]
 fn test_rgba_color_interepolation_preserves_transparent() {
+    let transparent = AbsoluteColor::TRANSPARENT_BLACK;
     assert_eq!(
-        interpolate_color(AbsoluteColor::TRANSPARENT, AbsoluteColor::TRANSPARENT, 0.5),
-        AbsoluteColor::TRANSPARENT
+        interpolate_color(transparent, transparent, 0.5),
+        transparent
     );
 }
 
