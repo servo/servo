@@ -411,8 +411,8 @@ impl Deref for Runtime {
 
 pub struct JSEngineSetup(JSEngine);
 
-impl JSEngineSetup {
-    pub fn new() -> Self {
+impl Default for JSEngineSetup {
+    fn default() -> Self {
         let engine = JSEngine::init().unwrap();
         *JS_ENGINE.lock().unwrap() = Some(engine.handle());
         Self(engine)

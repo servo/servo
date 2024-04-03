@@ -61,11 +61,13 @@ pub struct TimeRangesContainer {
     ranges: Vec<TimeRange>,
 }
 
-impl TimeRangesContainer {
-    pub fn new() -> Self {
+impl Default for TimeRangesContainer {
+    fn default() -> Self {
         Self { ranges: Vec::new() }
     }
+}
 
+impl TimeRangesContainer {
     pub fn len(&self) -> u32 {
         self.ranges.len() as u32
     }

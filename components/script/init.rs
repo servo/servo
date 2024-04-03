@@ -72,5 +72,5 @@ pub fn init() -> JSEngineSetup {
 
     perform_platform_specific_initialization();
 
-    JSEngineSetup::new()
+    JSEngineSetup::default()
 }

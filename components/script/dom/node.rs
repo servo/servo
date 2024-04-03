@@ -208,8 +208,8 @@ bitflags! {
     }
 }
 
-impl NodeFlags {
-    pub fn new() -> NodeFlags {
+impl Default for NodeFlags {
+    fn default() -> NodeFlags {
         NodeFlags::empty()
     }
 }
@@ -1805,13 +1805,13 @@ impl Node {
     }
 
     pub fn new_inherited(doc: &Document) -> Node {
-        Node::new_(NodeFlags::new(), Some(doc))
+        Node::new_(NodeFlags::default(), Some(doc))
     }
 
     #[allow(crown::unrooted_must_root)]
     pub fn new_document_node() -> Node {
         Node::new_(
-            NodeFlags::new() | NodeFlags::IS_IN_DOC | NodeFlags::IS_CONNECTED,
+            NodeFlags::default() | NodeFlags::IS_IN_DOC | NodeFlags::IS_CONNECTED,
             None,
         )
     }
@@ -1832,7 +1832,7 @@ impl Node {
             children_count: Cell::new(0u32),
             flags: Cell::new(flags),
             inclusive_descendants_version: Cell::new(0),
-            ranges: WeakRangeVec::new(),
+            ranges: WeakRangeVec::default(),
 
             style_and_layout_data: Default::default(),
         }

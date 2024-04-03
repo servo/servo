@@ -64,8 +64,8 @@ pub struct Identities {
     dummy_hub: IdentityHub,
 }
 
-impl Identities {
-    pub fn new() -> Self {
+impl Default for Identities {
+    fn default() -> Self {
         Identities {
             _surface: IdentityManager::default(),
             #[cfg(any(target_os = "linux", target_os = "windows"))]
@@ -79,7 +79,9 @@ impl Identities {
             dummy_hub: IdentityHub::new(),
         }
     }
+}
 
+impl Identities {
     fn select(&mut self, backend: Backend) -> &mut IdentityHub {
         match backend {
             #[cfg(any(target_os = "linux", target_os = "windows"))]

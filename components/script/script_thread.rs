@@ -855,7 +855,7 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
-    pub fn with_layout<'a, T>(
+    pub fn with_layout<T>(
         pipeline_id: PipelineId,
         call: impl FnOnce(&mut dyn Layout) -> T,
     ) -> Result<T, ()> {
@@ -1426,7 +1426,7 @@ impl ScriptThread {
 
             node_ids: Default::default(),
             is_user_interacting: Cell::new(false),
-            gpu_id_hub: Arc::new(Mutex::new(Identities::new())),
+            gpu_id_hub: Arc::new(Mutex::new(Identities::default())),
             webgpu_port: RefCell::new(None),
             inherited_secure_context: state.inherited_secure_context,
             layouts: Default::default(),
