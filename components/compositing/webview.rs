@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::backtrace::Backtrace;
 use std::collections::{HashMap, VecDeque};
 use std::time::Instant;
 
@@ -23,12 +24,19 @@ pub struct WebViewManager<WebView> {
     /// The order to paint them in, topmost last.
     painting_order: Vec<TopLevelBrowsingContextId>,
 
-    #[cfg(debug_assertions)]
     crash_log: CrashLog,
 }
 
 #[derive(Debug, Default)]
-struct CrashLog(VecDeque<(Instant, Operation)>);
+struct CrashLog(#[cfg(debug_assertions)] VecDeque<CrashLogEntry>);
+
+#[derive(Debug)]
+#[allow(dead_code)]
+struct CrashLogEntry {
+    instant: Instant,
+    operation: Operation,
+    backtrace: Backtrace,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Operation {
@@ -42,9 +50,16 @@ enum Operation {
 
 impl CrashLog {
     fn push(&mut self, operation: Operation) {
-        self.0.push_back((Instant::now(), operation));
-        while self.0.len() > 100 {
-            self.0.pop_front();
+        #[cfg(debug_assertions)]
+        {
+            self.0.push_back(CrashLogEntry {
+                instant: Instant::now(),
+                operation,
+                backtrace: Backtrace::capture(),
+            });
+            while self.0.len() > 100 {
+                self.0.pop_front();
+            }
         }
     }
 }
