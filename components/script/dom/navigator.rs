@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use js::jsval::JSVal;
 use lazy_static::lazy_static;
 
-use crate::dom::bindings::cell::{DomRefCell, RefMut};
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -86,25 +86,28 @@ impl Navigator {
         self.gamepads.borrow().get(index).and_then(|g| g.get())
     }
 
-    pub fn set_gamepad(&self, index: usize, gamepad: Option<DomRoot<Gamepad>>) {
+    pub fn set_gamepad(&self, index: usize, gamepad: &Gamepad) {
         if index >= self.gamepads.borrow().len() {
             self.gamepads
                 .borrow_mut()
                 .resize_with(index + 1, Default::default);
         }
         if let Some(gamepad_to_set) = self.gamepads.borrow().get(index) {
-            if let Some(inner_gamepad) = gamepad {
-                gamepad_to_set.set(Some(&*inner_gamepad));
-                if self.has_gamepad_gesture.get() {
-                    inner_gamepad.set_exposed(true);
-                    if self.global().as_window().Document().is_fully_active() {
-                        inner_gamepad.notify_event(GamepadEventType::Connected);
-                    }
+            gamepad_to_set.set(Some(gamepad));
+            if self.has_gamepad_gesture.get() {
+                gamepad.set_exposed(true);
+                if self.global().as_window().Document().is_fully_active() {
+                    gamepad.notify_event(GamepadEventType::Connected);
                 }
-            } else {
-                gamepad_to_set.set(None);
             }
         }
+    }
+
+    pub fn remove_gamepad(&self, index: usize) {
+        if let Some(gamepad_to_remove) = self.gamepads.borrow_mut().get(index) {
+            gamepad_to_remove.set(None);
+        }
+        self.shrink_gamepads_list();
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-selecting-an-unused-gamepad-index>
@@ -119,7 +122,7 @@ impl Navigator {
         }
     }
 
-    pub fn shrink_gamepads_list(&self) {
+    fn shrink_gamepads_list(&self) {
         let mut gamepad_list = self.gamepads.borrow_mut();
         for i in (0..gamepad_list.len()).rev() {
             if gamepad_list.get(i as usize).is_none() {

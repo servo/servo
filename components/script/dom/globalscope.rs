@@ -3121,7 +3121,7 @@ impl GlobalScope {
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepadconnected>
     pub fn handle_gamepad_connect(
         &self,
-        index: usize,
+        _index: usize,
         name: String,
         axis_bounds: (f64, f64),
         button_bounds: (f64, f64),
@@ -3137,7 +3137,7 @@ impl GlobalScope {
                     let navigator = window.Navigator();
                     let selected_index = navigator.select_gamepad_index();
                     let gamepad = Gamepad::new(&global, selected_index, name, axis_bounds, button_bounds);
-                    navigator.set_gamepad(selected_index as usize, Some(gamepad));
+                    navigator.set_gamepad(selected_index as usize, &*gamepad);
                 }
             }),
             &self.task_canceller(TaskSourceName::Gamepad)
@@ -3157,10 +3157,9 @@ impl GlobalScope {
                         if let Some(gamepad) = navigator.get_gamepad(index) {
                             if window.Document().is_fully_active() {
                                 gamepad.update_connected(false, gamepad.exposed());
-                                navigator.set_gamepad(index, None);
+                                navigator.remove_gamepad(index);
                             }
                         }
-                        navigator.shrink_gamepads_list();
                     }
                 }),
                 &self.task_canceller(TaskSourceName::Gamepad),
@@ -3192,8 +3191,10 @@ impl GlobalScope {
                             };
                             if !navigator.has_gamepad_gesture() && contains_user_gesture(update_type) {
                                 navigator.set_has_gamepad_gesture(true);
-                                navigator.GetGamepads().iter().for_each(|g| {
-                                    if let Some(gamepad) = g {
+                                navigator.GetGamepads()
+                                    .iter()
+                                    .filter_map(|g| g.as_ref())
+                                    .for_each(|gamepad| {
                                         gamepad.set_exposed(true);
                                         gamepad.update_timestamp(*current_time);
                                         let new_gamepad = Trusted::new(&**gamepad);
@@ -3208,7 +3209,6 @@ impl GlobalScope {
                                             )
                                             .expect("Failed to queue update gamepad connect task.");
                                         }
-                                    }
                                 });
                             }
                         }
