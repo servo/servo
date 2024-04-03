@@ -47,6 +47,8 @@ use style::stylesheets::Stylesheet;
 use style_traits::CSSPixel;
 use webrender_api::{ExternalScrollId, ImageKey};
 
+pub type GenericLayoutData = dyn Any + Send + Sync;
+
 #[derive(MallocSizeOf)]
 pub struct StyleData {
     /// Data that the style system associates with a node. When the
@@ -66,33 +68,6 @@ impl Default for StyleData {
             element_data: AtomicRefCell::new(ElementData::default()),
             parallel: DomParallelInfo::default(),
         }
-    }
-}
-
-pub type StyleAndOpaqueLayoutData = StyleAndGenericData<dyn Any + Send + Sync>;
-
-#[derive(MallocSizeOf)]
-pub struct StyleAndGenericData<T>
-where
-    T: ?Sized,
-{
-    /// The style data.
-    pub style_data: StyleData,
-    /// The opaque layout data.
-    #[ignore_malloc_size_of = "Trait objects are hard"]
-    pub generic_data: T,
-}
-
-impl StyleAndOpaqueLayoutData {
-    #[inline]
-    pub fn new<T>(style_data: StyleData, layout_data: T) -> Box<Self>
-    where
-        T: Any + Send + Sync,
-    {
-        Box::new(StyleAndGenericData {
-            style_data,
-            generic_data: layout_data,
-        })
     }
 }
 

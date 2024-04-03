@@ -18,7 +18,8 @@ use crate::construct::FlowConstructor;
 use crate::context::LayoutContext;
 use crate::display_list::DisplayListBuildState;
 use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
-use crate::wrapper::{GetStyleAndLayoutData, LayoutNodeLayoutData, ThreadSafeLayoutNodeHelpers};
+use crate::wrapper::ThreadSafeLayoutNodeHelpers;
+use crate::LayoutData;
 
 pub struct RecalcStyleAndConstructFlows<'a> {
     context: LayoutContext<'a>,
@@ -58,7 +59,7 @@ where
     {
         // FIXME(pcwalton): Stop allocating here. Ideally this should just be
         // done by the HTML parser.
-        unsafe { node.initialize_data() };
+        unsafe { node.initialize_style_and_layout_data::<LayoutData>() };
 
         if !node.is_text_node() {
             let el = node.as_element().unwrap();
@@ -76,7 +77,7 @@ where
         // flow construction:
         // (1) They child doesn't yet have layout data (preorder traversal initializes it).
         // (2) The parent element has restyle damage (so the text flow also needs fixup).
-        node.get_style_and_layout_data().is_none() || !parent_data.damage.is_empty()
+        node.layout_data().is_none() || !parent_data.damage.is_empty()
     }
 
     fn shared_context(&self) -> &SharedStyleContext {

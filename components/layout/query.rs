@@ -40,7 +40,7 @@ use crate::flow::{Flow, GetBaseFlow};
 use crate::fragment::{Fragment, FragmentBorderBoxIterator, FragmentFlags, SpecificFragmentInfo};
 use crate::inline::InlineFragmentNodeFlags;
 use crate::sequential;
-use crate::wrapper::LayoutNodeLayoutData;
+use crate::wrapper::ThreadSafeLayoutNodeHelpers;
 
 // https://drafts.csswg.org/cssom-view/#overflow-directions
 fn overflow_direction(writing_mode: &WritingMode) -> OverflowDirection {
@@ -851,7 +851,7 @@ fn process_resolved_style_request_internal<'dom>(
     where
         N: LayoutNode<'dom>,
     {
-        let maybe_data = layout_el.borrow_layout_data();
+        let maybe_data = layout_el.as_node().borrow_layout_data();
         let position = maybe_data.map_or(Point2D::zero(), |data| {
             match data.flow_construction_result {
                 ConstructionResult::Flow(ref flow_ref, _) => flow_ref
@@ -1021,8 +1021,8 @@ fn inner_text_collection_steps<'dom>(
             _ => child,
         };
 
-        let element_data = match node.get_style_and_opaque_layout_data() {
-            Some(data) => &data.style_data.element_data,
+        let element_data = match node.style_data() {
+            Some(data) => &data.element_data,
             None => continue,
         };
 

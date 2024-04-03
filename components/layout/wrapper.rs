@@ -32,59 +32,20 @@
 
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use script_layout_interface::wrapper_traits::{
-    GetStyleAndOpaqueLayoutData, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+    LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
 use style::dom::{NodeInfo, TElement, TNode};
 use style::selector_parser::RestyleDamage;
 use style::values::computed::counters::ContentItem;
 use style::values::generics::counters::Content;
 
-use crate::data::{LayoutData, LayoutDataFlags, StyleAndLayoutData};
+use crate::data::{InnerLayoutData, LayoutData, LayoutDataFlags};
 
-pub trait LayoutNodeLayoutData<'dom> {
-    fn borrow_layout_data(self) -> Option<AtomicRef<'dom, LayoutData>>;
-    fn mutate_layout_data(self) -> Option<AtomicRefMut<'dom, LayoutData>>;
+pub trait ThreadSafeLayoutNodeHelpers<'dom> {
+    fn borrow_layout_data(self) -> Option<AtomicRef<'dom, InnerLayoutData>>;
+    fn mutate_layout_data(self) -> Option<AtomicRefMut<'dom, InnerLayoutData>>;
     fn flow_debug_id(self) -> usize;
-}
 
-impl<'dom, T> LayoutNodeLayoutData<'dom> for T
-where
-    T: GetStyleAndOpaqueLayoutData<'dom>,
-{
-    fn borrow_layout_data(self) -> Option<AtomicRef<'dom, LayoutData>> {
-        self.get_style_and_layout_data()
-            .map(|d| d.layout_data.borrow())
-    }
-
-    fn mutate_layout_data(self) -> Option<AtomicRefMut<'dom, LayoutData>> {
-        self.get_style_and_layout_data()
-            .map(|d| d.layout_data.borrow_mut())
-    }
-
-    fn flow_debug_id(self) -> usize {
-        self.borrow_layout_data()
-            .map_or(0, |d| d.flow_construction_result.debug_id())
-    }
-}
-
-pub trait GetStyleAndLayoutData<'dom> {
-    fn get_style_and_layout_data(self) -> Option<StyleAndLayoutData<'dom>>;
-}
-
-impl<'dom, T> GetStyleAndLayoutData<'dom> for T
-where
-    T: GetStyleAndOpaqueLayoutData<'dom>,
-{
-    fn get_style_and_layout_data(self) -> Option<StyleAndLayoutData<'dom>> {
-        self.get_style_and_opaque_layout_data()
-            .map(|data| StyleAndLayoutData {
-                style_data: &data.style_data,
-                layout_data: data.generic_data.downcast_ref().unwrap(),
-            })
-    }
-}
-
-pub trait ThreadSafeLayoutNodeHelpers {
     /// Returns the layout data flags for this node.
     fn flags(self) -> LayoutDataFlags;
 
@@ -107,10 +68,26 @@ pub trait ThreadSafeLayoutNodeHelpers {
     fn restyle_damage(self) -> RestyleDamage;
 }
 
-impl<'dom, T> ThreadSafeLayoutNodeHelpers for T
+impl<'dom, T> ThreadSafeLayoutNodeHelpers<'dom> for T
 where
     T: ThreadSafeLayoutNode<'dom>,
 {
+    fn borrow_layout_data(self) -> Option<AtomicRef<'dom, InnerLayoutData>> {
+        self.layout_data()
+            .map(|data| data.downcast_ref::<LayoutData>().unwrap().0.borrow())
+    }
+
+    fn mutate_layout_data(self) -> Option<AtomicRefMut<'dom, InnerLayoutData>> {
+        self.layout_data()
+            .and_then(|data| data.downcast_ref::<LayoutData>())
+            .map(|data| data.0.borrow_mut())
+    }
+
+    fn flow_debug_id(self) -> usize {
+        self.borrow_layout_data()
+            .map_or(0, |d| d.flow_construction_result.debug_id())
+    }
+
     fn flags(self) -> LayoutDataFlags {
         self.borrow_layout_data().as_ref().unwrap().flags
     }
@@ -150,17 +127,16 @@ where
         }
 
         let damage = {
-            let data = match node.get_style_and_layout_data() {
-                Some(data) => data,
-                None => panic!(
+            let (layout_data, style_data) = match (node.layout_data(), node.style_data()) {
+                (Some(layout_data), Some(style_data)) => (layout_data, style_data),
+                _ => panic!(
                     "could not get style and layout data for <{}>",
                     node.as_element().unwrap().local_name()
                 ),
             };
 
-            if !data
-                .layout_data
-                .borrow()
+            let layout_data = layout_data.downcast_ref::<LayoutData>().unwrap().0.borrow();
+            if !layout_data
                 .flags
                 .contains(crate::data::LayoutDataFlags::HAS_BEEN_TRAVERSED)
             {
@@ -169,7 +145,7 @@ where
                 // because that's what the code expects.
                 RestyleDamage::rebuild_and_reflow()
             } else {
-                data.style_data.element_data.borrow().damage
+                style_data.element_data.borrow().damage
             }
         };
 

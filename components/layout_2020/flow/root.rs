@@ -141,16 +141,13 @@ impl BoxTree {
                 return None;
             }
 
-            // Don't update unstyled nodes.
-            let data = node.get_style_and_layout_data()?;
-
-            // Don't update nodes that have pseudo-elements.
-            let element_data = data.style_data.element_data.borrow();
+            // Don't update unstyled nodes or nodes that have pseudo-elements.
+            let element_data = node.style_data()?.element_data.borrow();
             if !element_data.styles.pseudos.is_empty() {
                 return None;
             }
 
-            let layout_data = data.layout_data.borrow();
+            let layout_data = node.layout_data()?;
             if layout_data.pseudo_before_box.borrow().is_some() {
                 return None;
             }

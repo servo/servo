@@ -26,8 +26,8 @@ use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
 use script_layout_interface::message::QueryMsg;
 use script_layout_interface::{
-    HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType, SVGSVGData,
-    StyleAndOpaqueLayoutData, TrustedNodeAddress,
+    GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType,
+    SVGSVGData, StyleData, TrustedNodeAddress,
 };
 use script_traits::{DocumentActivity, UntrustedNodeAddress};
 use selectors::matching::{
@@ -155,10 +155,16 @@ pub struct Node {
     /// are this node.
     ranges: WeakRangeVec,
 
-    /// Style+Layout information.
+    /// Style data for this node. This is accessed and mutated by style
+    /// passes and is used to lay out this node and populate layout data.
+    #[no_trace]
+    style_data: DomRefCell<Option<Box<StyleData>>>,
+
+    /// Layout data for this node. This is populated during layout and can
+    /// be used for incremental relayout and script queries.
     #[ignore_malloc_size_of = "trait object"]
     #[no_trace]
-    style_and_layout_data: DomRefCell<Option<Box<StyleAndOpaqueLayoutData>>>,
+    layout_data: DomRefCell<Option<Box<GenericLayoutData>>>,
 }
 
 /// Flags for node items
@@ -289,9 +295,10 @@ impl Node {
         }
     }
 
-    pub fn clean_up_layout_data(&self) {
+    pub fn clean_up_style_and_layout_data(&self) {
         self.owner_doc().cancel_animations_for_node(self);
-        self.style_and_layout_data.borrow_mut().take();
+        self.style_data.borrow_mut().take();
+        self.layout_data.borrow_mut().take();
     }
 
     /// Clean up flags and unbind from tree.
@@ -308,7 +315,7 @@ impl Node {
             );
         }
         for node in root.traverse_preorder(ShadowIncluding::Yes) {
-            node.clean_up_layout_data();
+            node.clean_up_style_and_layout_data();
 
             // This needs to be in its own loop, because unbind_from_tree may
             // rely on the state of IS_IN_DOC of the context node's descendants,
@@ -1261,37 +1268,29 @@ impl Node {
     }
 
     pub fn is_styled(&self) -> bool {
-        self.style_and_layout_data.borrow().is_some()
+        self.style_data.borrow().is_some()
     }
 
     pub fn is_display_none(&self) -> bool {
-        self.style_and_layout_data
-            .borrow()
-            .as_ref()
-            .map_or(true, |data| {
-                data.style_data
-                    .element_data
-                    .borrow()
-                    .styles
-                    .primary()
-                    .get_box()
-                    .display
-                    .is_none()
-            })
+        self.style_data.borrow().as_ref().map_or(true, |data| {
+            data.element_data
+                .borrow()
+                .styles
+                .primary()
+                .get_box()
+                .display
+                .is_none()
+        })
     }
 
     pub fn style(&self) -> Option<Arc<ComputedValues>> {
         if !window_from_node(self).layout_reflow(QueryMsg::StyleQuery) {
             return None;
         }
-        self.style_and_layout_data.borrow().as_ref().map(|data| {
-            data.style_data
-                .element_data
-                .borrow()
-                .styles
-                .primary()
-                .clone()
-        })
+        self.style_data
+            .borrow()
+            .as_ref()
+            .map(|data| data.element_data.borrow().styles.primary().clone())
     }
 }
 
@@ -1343,25 +1342,35 @@ pub trait LayoutNodeHelpers<'dom> {
 
     fn children_count(self) -> u32;
 
-    fn get_style_and_opaque_layout_data(self) -> Option<&'dom StyleAndOpaqueLayoutData>;
+    fn style_data(self) -> Option<&'dom StyleData>;
+    fn layout_data(self) -> Option<&'dom GenericLayoutData>;
 
-    /// Initialize the style and opaque layout data of this node.
+    /// Initialize the style data of this node.
     ///
     /// # Safety
     ///
     /// This method is unsafe because it modifies the given node during
     /// layout. Callers should ensure that no other layout thread is
     /// attempting to read or modify the opaque layout data of this node.
-    unsafe fn init_style_and_opaque_layout_data(self, data: Box<StyleAndOpaqueLayoutData>);
+    unsafe fn initialize_style_data(self);
 
-    /// Unset and return the style and opaque layout data of this node.
+    /// Initialize the opaque layout data of this node.
     ///
     /// # Safety
     ///
     /// This method is unsafe because it modifies the given node during
     /// layout. Callers should ensure that no other layout thread is
     /// attempting to read or modify the opaque layout data of this node.
-    unsafe fn take_style_and_opaque_layout_data(self) -> Box<StyleAndOpaqueLayoutData>;
+    unsafe fn initialize_layout_data(self, data: Box<GenericLayoutData>);
+
+    /// Clear the style and opaque layout data of this node.
+    ///
+    /// # Safety
+    ///
+    /// This method is unsafe because it modifies the given node during
+    /// layout. Callers should ensure that no other layout thread is
+    /// attempting to read or modify the opaque layout data of this node.
+    unsafe fn clear_style_and_layout_data(self);
 
     fn text_content(self) -> Cow<'dom, str>;
     fn selection(self) -> Option<Range<usize>>;
@@ -1482,37 +1491,39 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
 
     // FIXME(nox): How we handle style and layout data needs to be completely
     // revisited so we can do that more cleanly and safely in layout 2020.
-
     #[inline]
     #[allow(unsafe_code)]
-    fn get_style_and_opaque_layout_data(self) -> Option<&'dom StyleAndOpaqueLayoutData> {
-        unsafe {
-            self.unsafe_get()
-                .style_and_layout_data
-                .borrow_for_layout()
-                .as_deref()
-        }
+    fn style_data(self) -> Option<&'dom StyleData> {
+        unsafe { self.unsafe_get().style_data.borrow_for_layout().as_deref() }
     }
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn init_style_and_opaque_layout_data(self, val: Box<StyleAndOpaqueLayoutData>) {
-        let data = self
-            .unsafe_get()
-            .style_and_layout_data
-            .borrow_mut_for_layout();
+    fn layout_data(self) -> Option<&'dom GenericLayoutData> {
+        unsafe { self.unsafe_get().layout_data.borrow_for_layout().as_deref() }
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    unsafe fn initialize_style_data(self) {
+        let data = self.unsafe_get().style_data.borrow_mut_for_layout();
         debug_assert!(data.is_none());
-        *data = Some(val);
+        *data = Some(Box::default());
     }
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn take_style_and_opaque_layout_data(self) -> Box<StyleAndOpaqueLayoutData> {
-        self.unsafe_get()
-            .style_and_layout_data
-            .borrow_mut_for_layout()
-            .take()
-            .unwrap()
+    unsafe fn initialize_layout_data(self, new_data: Box<GenericLayoutData>) {
+        let data = self.unsafe_get().layout_data.borrow_mut_for_layout();
+        debug_assert!(data.is_none());
+        *data = Some(new_data);
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    unsafe fn clear_style_and_layout_data(self) {
+        self.unsafe_get().style_data.borrow_mut_for_layout().take();
+        self.unsafe_get().layout_data.borrow_mut_for_layout().take();
     }
 
     fn text_content(self) -> Cow<'dom, str> {
@@ -1833,8 +1844,8 @@ impl Node {
             flags: Cell::new(flags),
             inclusive_descendants_version: Cell::new(0),
             ranges: WeakRangeVec::new(),
-
-            style_and_layout_data: Default::default(),
+            style_data: Default::default(),
+            layout_data: Default::default(),
         }
     }
 

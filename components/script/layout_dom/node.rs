@@ -9,18 +9,16 @@ use std::fmt;
 use std::marker::PhantomData;
 use std::sync::Arc as StdArc;
 
-use atomic_refcell::AtomicRefCell;
 use gfx_traits::ByteIndex;
 use html5ever::{local_name, namespace_url, ns};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
 use range::Range;
 use script_layout_interface::wrapper_traits::{
-    GetStyleAndOpaqueLayoutData, LayoutDataTrait, LayoutNode, PseudoElementType,
-    ThreadSafeLayoutNode,
+    LayoutDataTrait, LayoutNode, PseudoElementType, ThreadSafeLayoutNode,
 };
 use script_layout_interface::{
-    HTMLCanvasData, HTMLMediaData, LayoutNodeType, SVGSVGData, StyleAndOpaqueLayoutData, StyleData,
+    GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutNodeType, SVGSVGData, StyleData,
     TrustedNodeAddress,
 };
 use servo_arc::Arc;
@@ -206,30 +204,35 @@ impl<'dom, LayoutDataType: LayoutDataTrait> LayoutNode<'dom>
         self.script_type_id().into()
     }
 
-    unsafe fn initialize_data(&self) {
-        if self.get_style_and_opaque_layout_data().is_some() {
-            return;
+    unsafe fn initialize_style_and_layout_data<RequestedLayoutDataType: LayoutDataTrait>(&self) {
+        let inner = self.get_jsmanaged();
+        if inner.style_data().is_none() {
+            inner.initialize_style_data();
         }
+        if inner.layout_data().is_none() {
+            inner.initialize_layout_data(Box::<RequestedLayoutDataType>::default());
+        }
+    }
 
-        let opaque = StyleAndOpaqueLayoutData::new(
-            StyleData::default(),
-            AtomicRefCell::new(LayoutDataType::default()),
-        );
-
-        self.get_jsmanaged()
-            .init_style_and_opaque_layout_data(opaque);
+    fn initialize_layout_data<RequestedLayoutDataType: LayoutDataTrait>(&self) {
+        let inner = self.get_jsmanaged();
+        if inner.layout_data().is_none() {
+            unsafe {
+                inner.initialize_layout_data(Box::<RequestedLayoutDataType>::default());
+            }
+        }
     }
 
     fn is_connected(&self) -> bool {
         unsafe { self.node.get_flag(NodeFlags::IS_CONNECTED) }
     }
-}
 
-impl<'dom, LayoutDataType: LayoutDataTrait> GetStyleAndOpaqueLayoutData<'dom>
-    for ServoLayoutNode<'dom, LayoutDataType>
-{
-    fn get_style_and_opaque_layout_data(self) -> Option<&'dom StyleAndOpaqueLayoutData> {
-        self.get_jsmanaged().get_style_and_opaque_layout_data()
+    fn style_data(&self) -> Option<&'dom StyleData> {
+        self.get_jsmanaged().style_data()
+    }
+
+    fn layout_data(&self) -> Option<&'dom GenericLayoutData> {
+        self.get_jsmanaged().layout_data()
     }
 }
 
@@ -369,8 +372,12 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ThreadSafeLayoutNode<'dom>
             })
     }
 
-    fn get_style_and_opaque_layout_data(self) -> Option<&'dom StyleAndOpaqueLayoutData> {
-        self.node.get_style_and_opaque_layout_data()
+    fn style_data(&self) -> Option<&'dom StyleData> {
+        self.node.style_data()
+    }
+
+    fn layout_data(&self) -> Option<&'dom GenericLayoutData> {
+        self.node.layout_data()
     }
 
     fn is_ignorable_whitespace(&self, context: &SharedStyleContext) -> bool {
@@ -582,13 +589,5 @@ impl<'dom, LayoutDataType: LayoutDataTrait> Iterator
                 node
             },
         }
-    }
-}
-
-impl<'dom, LayoutDataType: LayoutDataTrait> GetStyleAndOpaqueLayoutData<'dom>
-    for ServoThreadSafeLayoutNode<'dom, LayoutDataType>
-{
-    fn get_style_and_opaque_layout_data(self) -> Option<&'dom StyleAndOpaqueLayoutData> {
-        self.node.get_style_and_opaque_layout_data()
     }
 }

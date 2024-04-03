@@ -43,7 +43,7 @@ use style::LocalName;
 
 use crate::block::BlockFlow;
 use crate::context::{with_thread_local_font_context, LayoutContext};
-use crate::data::{LayoutData, LayoutDataFlags};
+use crate::data::{InnerLayoutData, LayoutDataFlags};
 use crate::display_list::items::OpaqueNode;
 use crate::flex::FlexFlow;
 use crate::floats::FloatKind;
@@ -71,14 +71,15 @@ use crate::table_rowgroup::TableRowGroupFlow;
 use crate::table_wrapper::TableWrapperFlow;
 use crate::text::TextRunScanner;
 use crate::traversal::PostorderNodeMutTraversal;
-use crate::wrapper::{LayoutNodeLayoutData, TextContent, ThreadSafeLayoutNodeHelpers};
+use crate::wrapper::{TextContent, ThreadSafeLayoutNodeHelpers};
 use crate::{parallel, ServoArc};
 
 /// The results of flow construction for a DOM node.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub enum ConstructionResult {
     /// This node contributes nothing at all (`display: none`). Alternately, this is what newly
     /// created nodes have their `ConstructionResult` set to.
+    #[default]
     None,
 
     /// This node contributed a flow at the proper position in the tree.
@@ -1992,7 +1993,7 @@ trait NodeUtils {
     /// Returns true if this node doesn't render its kids and false otherwise.
     fn is_replaced_content(&self) -> bool;
 
-    fn construction_result_mut(self, layout_data: &mut LayoutData) -> &mut ConstructionResult;
+    fn construction_result_mut(self, layout_data: &mut InnerLayoutData) -> &mut ConstructionResult;
 
     /// Sets the construction result of a flow.
     fn set_flow_construction_result(self, result: ConstructionResult);
@@ -2029,7 +2030,7 @@ where
         }
     }
 
-    fn construction_result_mut(self, data: &mut LayoutData) -> &mut ConstructionResult {
+    fn construction_result_mut(self, data: &mut InnerLayoutData) -> &mut ConstructionResult {
         match self.get_pseudo_element_type() {
             PseudoElementType::Before => &mut data.before_flow_construction_result,
             PseudoElementType::After => &mut data.after_flow_construction_result,
