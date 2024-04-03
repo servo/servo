@@ -8,8 +8,8 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use egui::{
-    CentralPanel, Color32, Frame, Key, Modifiers, PaintCallback, Pos2, Spinner, TopBottomPanel,
-    Vec2,
+    pos2, CentralPanel, Color32, Frame, Key, Modifiers, PaintCallback, Pos2, Spinner,
+    TopBottomPanel, Vec2,
 };
 use egui_glow::CallbackFn;
 use egui_winit::EventResponse;
@@ -49,6 +49,8 @@ pub struct Minibrowser {
     location_dirty: Cell<bool>,
 
     load_status: LoadStatus,
+
+    hovered_link: Option<String>,
 }
 
 pub enum MinibrowserEvent {
@@ -86,6 +88,7 @@ impl Minibrowser {
             location: RefCell::new(initial_url.to_string()),
             location_dirty: false.into(),
             load_status: LoadStatus::LoadComplete,
+            hovered_link: None,
         }
     }
 
@@ -235,6 +238,23 @@ impl Minibrowser {
                 return;
             };
             let mut embedder_events = vec![];
+
+            if self.hovered_link.is_some() {
+                TopBottomPanel::bottom("innner_hover_links")
+                    .max_height(0.0)
+                    .show(ctx, |ui| {
+                        let position = Some(pos2(0.0, ui.cursor().max.y));
+                        egui::containers::popup::show_tooltip_at(
+                            ctx,
+                            "tooltip_for_hovered_link".into(),
+                            position,
+                            |ui| {
+                                ui.label(self.hovered_link.clone().unwrap().to_string());
+                            },
+                        )
+                    });
+            }
+
             CentralPanel::default()
                 .frame(Frame::none())
                 .show(ctx, |ui| {
@@ -389,6 +409,15 @@ impl Minibrowser {
         need_update
     }
 
+    pub fn update_hovered_link(
+        &mut self,
+        browser: &mut WebViewManager<dyn WindowPortsMethods>,
+    ) -> bool {
+        let need_update = browser.hovered_link() != self.hovered_link;
+        self.hovered_link = browser.hovered_link();
+        need_update
+    }
+
     /// Updates all fields taken from the given [WebViewManager], such as the location field.
     /// Returns true iff the egui needs an update.
     pub fn update_webview_data(
@@ -399,6 +428,8 @@ impl Minibrowser {
         //       because logical OR would short-circuit if any of the functions return true.
         //       We want to ensure that all functions are called. The "bitwise OR" operator
         //       does not short-circuit.
-        self.update_location_in_toolbar(browser) | self.update_spinner_in_toolbar(browser)
+        self.update_location_in_toolbar(browser) |
+            self.update_spinner_in_toolbar(browser) |
+            self.update_hovered_link(browser)
     }
 }
