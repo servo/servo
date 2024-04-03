@@ -1189,8 +1189,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
 
         self.send_root_pipeline_display_list();
-        self.create_or_update_pipeline_details_with_frame_tree(&frame_tree, None);
-        self.reset_scroll_tree_for_unattached_pipelines(&frame_tree);
+        self.create_or_update_pipeline_details_with_frame_tree(frame_tree, None);
+        self.reset_scroll_tree_for_unattached_pipelines(frame_tree);
 
         self.frame_tree_id.next();
     }
