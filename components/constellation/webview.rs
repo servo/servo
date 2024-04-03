@@ -101,12 +101,12 @@ mod test {
 
     use msg::constellation_msg::{
         BrowsingContextId, BrowsingContextIndex, PipelineNamespace, PipelineNamespaceId,
-        TopLevelBrowsingContextId,
+        TopLevelBrowsingContextId, WebViewId,
     };
 
     use crate::webview::WebViewManager;
 
-    fn top_level_id(namespace_id: u32, index: u32) -> TopLevelBrowsingContextId {
+    fn id(namespace_id: u32, index: u32) -> WebViewId {
         TopLevelBrowsingContextId(BrowsingContextId {
             namespace_id: PipelineNamespaceId(namespace_id),
             index: BrowsingContextIndex(NonZeroU32::new(index).expect("Incorrect test case")),
@@ -115,7 +115,7 @@ mod test {
 
     fn webviews_sorted<WebView: Clone>(
         webviews: &WebViewManager<WebView>,
-    ) -> Vec<(TopLevelBrowsingContextId, WebView)> {
+    ) -> Vec<(WebViewId, WebView)> {
         let mut keys = webviews.webviews.keys().collect::<Vec<_>>();
         keys.sort();
         keys.iter()
@@ -138,59 +138,59 @@ mod test {
         let mut webviews = WebViewManager::default();
 
         // add() adds the webview to the map, but does not focus it.
-        webviews.add(TopLevelBrowsingContextId::new(), 'a');
-        webviews.add(TopLevelBrowsingContextId::new(), 'b');
-        webviews.add(TopLevelBrowsingContextId::new(), 'c');
+        webviews.add(WebViewId::new(), 'a');
+        webviews.add(WebViewId::new(), 'b');
+        webviews.add(WebViewId::new(), 'c');
         assert_eq!(
             webviews_sorted(&webviews),
-            vec![
-                (top_level_id(0, 1), 'a'),
-                (top_level_id(0, 2), 'b'),
-                (top_level_id(0, 3), 'c'),
-            ]
+            vec![(id(0, 1), 'a'), (id(0, 2), 'b'), (id(0, 3), 'c'),]
         );
         assert!(webviews.focus_order.is_empty());
         assert_eq!(webviews.is_focused, false);
 
         // focus() makes the given webview the latest in focus order.
-        webviews.focus(top_level_id(0, 2));
-        assert_eq!(webviews.focus_order, vec![top_level_id(0, 2)]);
+        webviews.focus(id(0, 2));
+        assert_eq!(webviews.focus_order, vec![id(0, 2)]);
         assert_eq!(webviews.is_focused, true);
-        webviews.focus(top_level_id(0, 1));
-        assert_eq!(
-            webviews.focus_order,
-            vec![top_level_id(0, 2), top_level_id(0, 1)]
-        );
+        webviews.focus(id(0, 1));
+        assert_eq!(webviews.focus_order, vec![id(0, 2), id(0, 1)]);
         assert_eq!(webviews.is_focused, true);
-        webviews.focus(top_level_id(0, 3));
-        assert_eq!(
-            webviews.focus_order,
-            vec![top_level_id(0, 2), top_level_id(0, 1), top_level_id(0, 3)]
-        );
+        webviews.focus(id(0, 3));
+        assert_eq!(webviews.focus_order, vec![id(0, 2), id(0, 1), id(0, 3)]);
         assert_eq!(webviews.is_focused, true);
 
         // unfocus() clears the “is focused” flag, but does not touch the focus order.
         webviews.unfocus();
-        assert_eq!(
-            webviews.focus_order,
-            vec![top_level_id(0, 2), top_level_id(0, 1), top_level_id(0, 3)]
-        );
+        assert_eq!(webviews.focus_order, vec![id(0, 2), id(0, 1), id(0, 3)]);
         assert_eq!(webviews.is_focused, false);
 
         // focus() avoids duplicates in focus order, when the given webview has been focused before.
-        webviews.focus(top_level_id(0, 1));
-        assert_eq!(
-            webviews.focus_order,
-            vec![top_level_id(0, 2), top_level_id(0, 3), top_level_id(0, 1)]
-        );
+        webviews.focus(id(0, 1));
+        assert_eq!(webviews.focus_order, vec![id(0, 2), id(0, 3), id(0, 1)]);
         assert_eq!(webviews.is_focused, true);
 
         // remove() clears the “is focused” flag iff the given webview was focused.
-        webviews.remove(top_level_id(0, 2));
+        webviews.remove(id(1, 1));
         assert_eq!(webviews.is_focused, true);
-        webviews.remove(top_level_id(0, 1));
+        webviews.remove(id(1, 2));
+        assert_eq!(webviews.is_focused, true);
+        webviews.remove(id(2, 1));
+        assert_eq!(webviews.is_focused, true);
+        webviews.remove(id(2, 2));
+        assert_eq!(webviews.is_focused, true);
+        webviews.remove(id(2, 3));
+        assert_eq!(webviews.is_focused, true);
+        webviews.remove(id(2, 4));
+        assert_eq!(webviews.is_focused, true);
+        webviews.remove(id(3, 1));
+        assert_eq!(webviews.is_focused, true);
+        webviews.remove(id(4, 1));
+        assert_eq!(webviews.is_focused, true);
+        webviews.remove(id(0, 2));
+        assert_eq!(webviews.is_focused, true);
+        webviews.remove(id(0, 1));
         assert_eq!(webviews.is_focused, false);
-        webviews.remove(top_level_id(0, 3));
+        webviews.remove(id(0, 3));
         assert_eq!(webviews.is_focused, false);
 
         // remove() removes the given webview from both the map and the focus order.

@@ -26,6 +26,7 @@ use servo::script_traits::{
 };
 use servo::servo_config::opts;
 use servo::servo_url::ServoUrl;
+use servo::webrender_api::units::DeviceRect;
 use servo::webrender_api::ScrollLocation;
 use tinyfiledialogs::{self, MessageBoxIcon, OkCancel, YesNo};
 
@@ -60,7 +61,9 @@ pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
 }
 
 #[derive(Debug)]
-pub struct WebView {}
+pub struct WebView {
+    pub rect: DeviceRect,
+}
 
 pub struct ServoEventResponse {
     pub need_present: bool,
@@ -109,6 +112,14 @@ where
 
     pub fn webview_id(&self) -> Option<WebViewId> {
         self.focused_webview_id
+    }
+
+    pub fn get_mut(&mut self, webview_id: WebViewId) -> Option<&mut WebView> {
+        self.webviews.get_mut(&webview_id)
+    }
+
+    pub fn focused_webview_id(&self) -> Option<WebViewId> {
+        self.focused_webview_id.clone()
     }
 
     pub fn current_url_string(&self) -> Option<&str> {
@@ -453,6 +464,20 @@ where
                     self.window.set_position(point);
                 },
                 EmbedderMsg::ResizeTo(size) => {
+                    if let Some(webview_id) = webview_id {
+                        let new_rect = self.get_mut(webview_id).and_then(|webview| {
+                            if webview.rect.size() != size.to_f32() {
+                                webview.rect.set_size(size.to_f32());
+                                Some(webview.rect)
+                            } else {
+                                None
+                            }
+                        });
+                        if let Some(new_rect) = new_rect {
+                            self.event_queue
+                                .push(EmbedderEvent::MoveResizeWebView(webview_id, new_rect));
+                        }
+                    }
                     self.window.set_inner_size(size);
                 },
                 EmbedderMsg::Prompt(definition, origin) => {
@@ -555,10 +580,22 @@ where
                     };
                 },
                 EmbedderMsg::WebViewOpened(new_webview_id) => {
-                    self.webviews.insert(new_webview_id, WebView {});
+                    let scale = self.window.hidpi_factor().get();
+                    let toolbar = self.window.toolbar_height().get();
+
+                    // Adjust for our toolbar height.
+                    // TODO: Adjust for egui window decorations if we end up using those
+                    let mut rect = self.window.get_coordinates().get_viewport().to_f32();
+                    rect.min.y += toolbar * scale;
+
+                    self.webviews.insert(new_webview_id, WebView { rect });
                     self.creation_order.push(new_webview_id);
                     self.event_queue
                         .push(EmbedderEvent::FocusWebView(new_webview_id));
+                    self.event_queue
+                        .push(EmbedderEvent::MoveResizeWebView(new_webview_id, rect));
+                    self.event_queue
+                        .push(EmbedderEvent::RaiseWebViewToTop(new_webview_id, true));
                 },
                 EmbedderMsg::WebViewClosed(webview_id) => {
                     self.webviews.retain(|&id, _| id != webview_id);
@@ -573,6 +610,10 @@ where
                 },
                 EmbedderMsg::WebViewFocused(webview_id) => {
                     self.focused_webview_id = Some(webview_id);
+                    // Show the most recently created webview and hide all others.
+                    // TODO: Stop doing this once we have full multiple webviews support
+                    self.event_queue
+                        .push(EmbedderEvent::ShowWebView(webview_id, true));
                 },
                 EmbedderMsg::WebViewBlurred => {
                     self.focused_webview_id = None;
@@ -681,15 +722,18 @@ where
                 EmbedderMsg::ShowContextMenu(sender, ..) => {
                     let _ = sender.send(ContextMenuResult::Ignored);
                 },
-                EmbedderMsg::ReadyToPresent => {
+                EmbedderMsg::ReadyToPresent(_webview_ids) => {
                     need_present = true;
                 },
                 EmbedderMsg::EventDelivered(event) => {
                     if let (Some(webview_id), CompositorEventVariant::MouseButtonEvent) =
                         (webview_id, event)
                     {
-                        // TODO Focus webview and/or raise to top if needed.
                         trace!("{}: Got a mouse button event", webview_id);
+                        self.event_queue
+                            .push(EmbedderEvent::RaiseWebViewToTop(webview_id, true));
+                        self.event_queue
+                            .push(EmbedderEvent::FocusWebView(webview_id));
                     }
                 },
             }

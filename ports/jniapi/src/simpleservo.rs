@@ -435,7 +435,7 @@ impl ServoGlue {
     pub fn resize(&mut self, coordinates: Coordinates) -> Result<(), &'static str> {
         info!("resize");
         *self.callbacks.coordinates.borrow_mut() = coordinates;
-        self.process_event(EmbedderEvent::Resize)
+        self.process_event(EmbedderEvent::WindowResize)
     }
 
     /// Start scrolling.
@@ -818,7 +818,7 @@ impl ServoGlue {
                 EmbedderMsg::Panic(reason, backtrace) => {
                     self.callbacks.host_callbacks.on_panic(reason, backtrace);
                 },
-                EmbedderMsg::ReadyToPresent => {
+                EmbedderMsg::ReadyToPresent(_webview_ids) => {
                     need_present = true;
                 },
                 EmbedderMsg::Status(..) |

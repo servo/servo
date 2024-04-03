@@ -10,7 +10,7 @@ use crossbeam_channel::{Receiver, Sender};
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
 use log::warn;
-use msg::constellation_msg::{InputMethodType, PipelineId, TopLevelBrowsingContextId};
+use msg::constellation_msg::{InputMethodType, PipelineId, TopLevelBrowsingContextId, WebViewId};
 use num_derive::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
@@ -156,13 +156,13 @@ pub enum EmbedderMsg {
     AllowNavigationRequest(PipelineId, ServoUrl),
     /// Whether or not to allow script to open a new tab/browser
     AllowOpeningWebView(IpcSender<bool>),
-    /// A browser was created
+    /// A webview was created.
     WebViewOpened(TopLevelBrowsingContextId),
-    /// A browser was destroyed
+    /// A webview was destroyed.
     WebViewClosed(TopLevelBrowsingContextId),
-    /// A browser gained focus for keyboard events
+    /// A webview gained focus for keyboard events.
     WebViewFocused(TopLevelBrowsingContextId),
-    /// All browsers lost focus for keyboard events
+    /// All webviews lost focus for keyboard events.
     WebViewBlurred,
     /// Wether or not to unload a document
     AllowUnload(IpcSender<bool>),
@@ -210,8 +210,8 @@ pub enum EmbedderMsg {
     MediaSessionEvent(MediaSessionEvent),
     /// Report the status of Devtools Server with a token that can be used to bypass the permission prompt.
     OnDevtoolsStarted(Result<u16, ()>, String),
-    /// Compositing done, but external code needs to present.
-    ReadyToPresent,
+    /// Notify the embedder that it needs to present a new frame.
+    ReadyToPresent(Vec<WebViewId>),
     /// The given event was delivered to a pipeline in the given browser.
     EventDelivered(CompositorEventVariant),
 }
@@ -261,12 +261,12 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::WebViewOpened(..) => write!(f, "WebViewOpened"),
             EmbedderMsg::WebViewClosed(..) => write!(f, "WebViewClosed"),
             EmbedderMsg::WebViewFocused(..) => write!(f, "WebViewFocused"),
-            EmbedderMsg::WebViewBlurred => write!(f, "WebViewUnfocused"),
+            EmbedderMsg::WebViewBlurred => write!(f, "WebViewBlurred"),
             EmbedderMsg::ReportProfile(..) => write!(f, "ReportProfile"),
             EmbedderMsg::MediaSessionEvent(..) => write!(f, "MediaSessionEvent"),
             EmbedderMsg::OnDevtoolsStarted(..) => write!(f, "OnDevtoolsStarted"),
             EmbedderMsg::ShowContextMenu(..) => write!(f, "ShowContextMenu"),
-            EmbedderMsg::ReadyToPresent => write!(f, "ReadyToPresent"),
+            EmbedderMsg::ReadyToPresent(..) => write!(f, "ReadyToPresent"),
             EmbedderMsg::EventDelivered(..) => write!(f, "HitTestedEvent"),
         }
     }

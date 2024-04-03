@@ -19,7 +19,7 @@ use script_traits::{
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use style_traits::DevicePixel;
-use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint};
+use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, DeviceRect};
 use webrender_api::ScrollLocation;
 
 #[derive(Clone)]
@@ -51,7 +51,7 @@ pub enum EmbedderEvent {
     /// message, the window must make the same GL context as in `PrepareRenderingEvent` current.
     Refresh,
     /// Sent when the window is resized.
-    Resize,
+    WindowResize,
     /// Sent when a navigation request from script is allowed/refused.
     AllowNavigationResponse(PipelineId, bool),
     /// Sent when a new URL is to be loaded.
@@ -83,15 +83,24 @@ pub enum EmbedderEvent {
     Keyboard(KeyboardEvent),
     /// Sent when Ctr+R/Apple+R is called to reload the current page.
     Reload(TopLevelBrowsingContextId),
-    /// Create a new top level browsing context
+    /// Create a new top-level browsing context.
     NewWebView(ServoUrl, TopLevelBrowsingContextId),
-    /// Close a top level browsing context
+    /// Close a top-level browsing context.
     CloseWebView(TopLevelBrowsingContextId),
-    /// Panic a top level browsing context.
+    /// Panic a top-level browsing context.
     SendError(Option<TopLevelBrowsingContextId>, String),
-    /// Make a top level browsing context visible, hiding the previous
-    /// visible one.
+    /// Move and/or resize a webview to the given rect.
+    MoveResizeWebView(TopLevelBrowsingContextId, DeviceRect),
+    /// Start painting a webview, and optionally stop painting all others.
+    ShowWebView(TopLevelBrowsingContextId, bool),
+    /// Stop painting a webview.
+    HideWebView(TopLevelBrowsingContextId),
+    /// Start painting a webview on top of all others, and optionally stop painting all others.
+    RaiseWebViewToTop(TopLevelBrowsingContextId, bool),
+    /// Make a webview focused.
     FocusWebView(TopLevelBrowsingContextId),
+    /// Make none of the webviews focused.
+    BlurWebView,
     /// Toggles a debug flag in WebRender
     ToggleWebRenderDebug(WebRenderDebugOption),
     /// Capture current WebRender
@@ -124,7 +133,7 @@ impl Debug for EmbedderEvent {
         match *self {
             EmbedderEvent::Idle => write!(f, "Idle"),
             EmbedderEvent::Refresh => write!(f, "Refresh"),
-            EmbedderEvent::Resize => write!(f, "Resize"),
+            EmbedderEvent::WindowResize => write!(f, "Resize"),
             EmbedderEvent::Keyboard(..) => write!(f, "Keyboard"),
             EmbedderEvent::AllowNavigationResponse(..) => write!(f, "AllowNavigationResponse"),
             EmbedderEvent::LoadUrl(..) => write!(f, "LoadUrl"),
@@ -139,10 +148,32 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::Navigation(..) => write!(f, "Navigation"),
             EmbedderEvent::Quit => write!(f, "Quit"),
             EmbedderEvent::Reload(..) => write!(f, "Reload"),
-            EmbedderEvent::NewWebView(..) => write!(f, "NewWebView"),
+            EmbedderEvent::NewWebView(_, TopLevelBrowsingContextId(webview_id)) => {
+                write!(f, "NewWebView({webview_id:?})")
+            },
             EmbedderEvent::SendError(..) => write!(f, "SendError"),
-            EmbedderEvent::CloseWebView(..) => write!(f, "CloseWebView"),
-            EmbedderEvent::FocusWebView(..) => write!(f, "FocusWebView"),
+            EmbedderEvent::CloseWebView(TopLevelBrowsingContextId(webview_id)) => {
+                write!(f, "CloseWebView({webview_id:?})")
+            },
+            EmbedderEvent::MoveResizeWebView(webview_id, _) => {
+                write!(f, "MoveResizeWebView({webview_id:?})")
+            },
+            EmbedderEvent::ShowWebView(TopLevelBrowsingContextId(webview_id), hide_others) => {
+                write!(f, "ShowWebView({webview_id:?}, {hide_others})")
+            },
+            EmbedderEvent::HideWebView(TopLevelBrowsingContextId(webview_id)) => {
+                write!(f, "HideWebView({webview_id:?})")
+            },
+            EmbedderEvent::RaiseWebViewToTop(
+                TopLevelBrowsingContextId(webview_id),
+                hide_others,
+            ) => {
+                write!(f, "RaiseWebViewToTop({webview_id:?}, {hide_others})")
+            },
+            EmbedderEvent::FocusWebView(TopLevelBrowsingContextId(webview_id)) => {
+                write!(f, "FocusWebView({webview_id:?})")
+            },
+            EmbedderEvent::BlurWebView => write!(f, "BlurWebView"),
             EmbedderEvent::ToggleWebRenderDebug(..) => write!(f, "ToggleWebRenderDebug"),
             EmbedderEvent::CaptureWebRender => write!(f, "CaptureWebRender"),
             EmbedderEvent::ToggleSamplingProfiler(..) => write!(f, "ToggleSamplingProfiler"),
@@ -211,15 +242,20 @@ pub struct EmbedderCoordinates {
 impl EmbedderCoordinates {
     /// Get the unflipped viewport rectangle for use with the WebRender API.
     pub fn get_viewport(&self) -> DeviceIntRect {
-        DeviceIntRect::from_untyped(&self.viewport.to_untyped())
+        self.viewport.clone()
     }
 
-    /// Get the flipped viewport rectangle. This should be used when drawing directly
-    /// to the framebuffer with OpenGL commands.
+    /// Flip the given rect.
+    /// This should be used when drawing directly to the framebuffer with OpenGL commands.
+    pub fn flip_rect(&self, rect: &DeviceIntRect) -> DeviceIntRect {
+        let mut result = rect.clone();
+        result.min.y = self.framebuffer.height - result.min.y - result.size().height;
+        result
+    }
+
+    /// Get the flipped viewport rectangle.
+    /// This should be used when drawing directly to the framebuffer with OpenGL commands.
     pub fn get_flipped_viewport(&self) -> DeviceIntRect {
-        let fb_height = self.framebuffer.height;
-        let mut view = self.viewport;
-        view.min.y = fb_height - view.min.y - view.size().height;
-        DeviceIntRect::from_untyped(&view.to_untyped())
+        self.flip_rect(&self.get_viewport())
     }
 }

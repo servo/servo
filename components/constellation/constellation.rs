@@ -1471,6 +1471,48 @@ where
                 }
                 self.handle_panic(top_level_browsing_context_id, error, None);
             },
+            FromCompositorMsg::MoveResizeWebView(top_level_browsing_context_id, rect) => {
+                if self.webviews.get(top_level_browsing_context_id).is_none() {
+                    return warn!(
+                        "{}: MoveResizeWebView on unknown top-level browsing context",
+                        top_level_browsing_context_id
+                    );
+                }
+                self.compositor_proxy.send(CompositorMsg::MoveResizeWebView(
+                    top_level_browsing_context_id,
+                    rect,
+                ));
+            },
+            FromCompositorMsg::ShowWebView(webview_id, hide_others) => {
+                if self.webviews.get(webview_id).is_none() {
+                    return warn!(
+                        "{}: ShowWebView on unknown top-level browsing context",
+                        webview_id
+                    );
+                }
+                self.compositor_proxy
+                    .send(CompositorMsg::ShowWebView(webview_id, hide_others));
+            },
+            FromCompositorMsg::HideWebView(webview_id) => {
+                if self.webviews.get(webview_id).is_none() {
+                    return warn!(
+                        "{}: HideWebView on unknown top-level browsing context",
+                        webview_id
+                    );
+                }
+                self.compositor_proxy
+                    .send(CompositorMsg::HideWebView(webview_id));
+            },
+            FromCompositorMsg::RaiseWebViewToTop(webview_id, hide_others) => {
+                if self.webviews.get(webview_id).is_none() {
+                    return warn!(
+                        "{}: RaiseWebViewToTop on unknown top-level browsing context",
+                        webview_id
+                    );
+                }
+                self.compositor_proxy
+                    .send(CompositorMsg::RaiseWebViewToTop(webview_id, hide_others));
+            },
             FromCompositorMsg::FocusWebView(top_level_browsing_context_id) => {
                 if self.webviews.get(top_level_browsing_context_id).is_none() {
                     return warn!("{top_level_browsing_context_id}: FocusWebView on unknown top-level browsing context");
@@ -1480,9 +1522,6 @@ where
                     Some(top_level_browsing_context_id),
                     EmbedderMsg::WebViewFocused(top_level_browsing_context_id),
                 ));
-                if !cfg!(feature = "multiview") {
-                    self.update_frame_tree_if_focused(top_level_browsing_context_id);
-                }
             },
             FromCompositorMsg::BlurWebView => {
                 self.webviews.unfocus();
@@ -1539,11 +1578,9 @@ where
             FromCompositorMsg::SetWebViewThrottled(webview_id, throttled) => {
                 self.set_webview_throttled(webview_id, throttled);
             },
-            FromCompositorMsg::ReadyToPresent(top_level_browsing_context_id) => {
-                self.embedder_proxy.send((
-                    Some(top_level_browsing_context_id),
-                    EmbedderMsg::ReadyToPresent,
-                ));
+            FromCompositorMsg::ReadyToPresent(webview_ids) => {
+                self.embedder_proxy
+                    .send((None, EmbedderMsg::ReadyToPresent(webview_ids)));
             },
             FromCompositorMsg::Gamepad(gamepad_event) => {
                 self.handle_gamepad_msg(gamepad_event);
@@ -3016,7 +3053,8 @@ where
                 .send((None, EmbedderMsg::WebViewBlurred));
         }
         self.webviews.remove(top_level_browsing_context_id);
-        // TODO Send the compositor a RemoveWebView event.
+        self.compositor_proxy
+            .send(CompositorMsg::RemoveWebView(top_level_browsing_context_id));
         self.embedder_proxy.send((
             Some(top_level_browsing_context_id),
             EmbedderMsg::WebViewClosed(top_level_browsing_context_id),
@@ -3804,7 +3842,7 @@ where
         self.notify_history_changed(top_level_browsing_context_id);
 
         self.trim_history(top_level_browsing_context_id);
-        self.update_frame_tree_if_focused(top_level_browsing_context_id);
+        self.update_webview_in_compositor(top_level_browsing_context_id);
     }
 
     fn update_browsing_context(
@@ -4763,7 +4801,7 @@ where
         }
 
         self.notify_history_changed(change.top_level_browsing_context_id);
-        self.update_frame_tree_if_focused(change.top_level_browsing_context_id);
+        self.update_webview_in_compositor(change.top_level_browsing_context_id);
     }
 
     fn focused_browsing_context_is_descendant_of(
@@ -5376,24 +5414,15 @@ where
     }
 
     /// Send the frame tree for the given webview to the compositor.
-    fn update_frame_tree_if_focused(
-        &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-    ) {
-        // Only send the frame tree if the given webview is focused.
-        if let Some(focused_webview_id) = self.webviews.focused_webview().map(|(id, _)| id) {
-            if top_level_browsing_context_id != focused_webview_id {
-                return;
-            }
-        }
+    fn update_webview_in_compositor(&mut self, webview_id: WebViewId) {
         // Note that this function can panic, due to ipc-channel creation failure.
         // avoiding this panic would require a mechanism for dealing
         // with low-resource scenarios.
-        let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
+        let browsing_context_id = BrowsingContextId::from(webview_id);
         if let Some(frame_tree) = self.browsing_context_to_sendable(browsing_context_id) {
             debug!("{}: Sending frame tree", browsing_context_id);
             self.compositor_proxy
-                .send(CompositorMsg::SetFrameTree(frame_tree));
+                .send(CompositorMsg::CreateOrUpdateWebView(frame_tree));
         }
     }
 

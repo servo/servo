@@ -11,13 +11,14 @@ use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
 use msg::constellation_msg::{
-    BrowsingContextId, PipelineId, TopLevelBrowsingContextId, TraversalDirection,
+    BrowsingContextId, PipelineId, TopLevelBrowsingContextId, TraversalDirection, WebViewId,
 };
 use script_traits::{
     AnimationTickType, CompositorEvent, GamepadEvent, LogEntry, MediaSessionActionType,
     WebDriverCommandMsg, WindowSizeData, WindowSizeType,
 };
 use servo_url::ServoUrl;
+use webrender_api::units::DeviceRect;
 
 /// Messages to the constellation.
 pub enum ConstellationMsg {
@@ -60,9 +61,17 @@ pub enum ConstellationMsg {
     CloseWebView(TopLevelBrowsingContextId),
     /// Panic a top level browsing context.
     SendError(Option<TopLevelBrowsingContextId>, String),
-    /// Make a top-level browsing context focused.
+    /// Move and/or resize a webview to the given rect.
+    MoveResizeWebView(TopLevelBrowsingContextId, DeviceRect),
+    /// Start painting a webview, and optionally stop painting all others.
+    ShowWebView(TopLevelBrowsingContextId, bool),
+    /// Stop painting a webview.
+    HideWebView(TopLevelBrowsingContextId),
+    /// Start painting a webview on top of all others, and optionally stop painting all others.
+    RaiseWebViewToTop(TopLevelBrowsingContextId, bool),
+    /// Make a webview focused.
     FocusWebView(TopLevelBrowsingContextId),
-    /// Make none of the top-level browsing contexts focused.
+    /// Make none of the webviews focused.
     BlurWebView,
     /// Forward an event to the script task of the given pipeline.
     ForwardEvent(PipelineId, CompositorEvent),
@@ -80,16 +89,23 @@ pub enum ConstellationMsg {
     SetWebViewThrottled(TopLevelBrowsingContextId, bool),
     /// Virtual keyboard was dismissed
     IMEDismissed,
-    /// Compositing done, but external code needs to present.
-    ReadyToPresent(TopLevelBrowsingContextId),
+    /// Notify the embedder that it needs to present a new frame.
+    ReadyToPresent(Vec<WebViewId>),
     /// Gamepad state has changed
     Gamepad(GamepadEvent),
 }
 
 impl fmt::Debug for ConstellationMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "ConstellationMsg::{}", self.variant_name())
+    }
+}
+
+impl ConstellationMsg {
+    /// Return the variant name, for error logging that happens after the message is consumed.
+    pub fn variant_name(&self) -> &'static str {
         use self::ConstellationMsg::*;
-        let variant = match *self {
+        match *self {
             Exit => "Exit",
             GetBrowsingContext(..) => "GetBrowsingContext",
             GetPipeline(..) => "GetPipeline",
@@ -106,6 +122,10 @@ impl fmt::Debug for ConstellationMsg {
             LogEntry(..) => "LogEntry",
             NewWebView(..) => "NewWebView",
             CloseWebView(..) => "CloseWebView",
+            MoveResizeWebView(..) => "MoveResizeWebView",
+            ShowWebView(..) => "ShowWebView",
+            HideWebView(..) => "HideWebView",
+            RaiseWebViewToTop(..) => "RaiseWebViewToTop",
             FocusWebView(..) => "FocusWebView",
             BlurWebView => "BlurWebView",
             SendError(..) => "SendError",
@@ -120,7 +140,6 @@ impl fmt::Debug for ConstellationMsg {
             ClearCache => "ClearCache",
             ReadyToPresent(..) => "ReadyToPresent",
             Gamepad(..) => "Gamepad",
-        };
-        write!(formatter, "ConstellationMsg::{}", variant)
+        }
     }
 }

@@ -15,9 +15,13 @@ use webrender_api::DocumentId;
 
 pub use crate::compositor::{CompositeTarget, IOCompositor, ShutdownState};
 
+#[macro_use]
+mod tracing;
+
 mod compositor;
 mod gl;
 mod touch;
+pub mod webview;
 pub mod windowing;
 
 /// Data used to construct a compositor.
