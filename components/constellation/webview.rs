@@ -97,7 +97,6 @@ impl<WebView> WebViewManager<WebView> {
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashSet;
     use std::num::NonZeroU32;
 
     use msg::constellation_msg::{
@@ -107,22 +106,16 @@ mod test {
 
     use crate::webview::WebViewManager;
 
-    fn id(namespace_id: u32, index: u32) -> TopLevelBrowsingContextId {
+    fn id(namespace_id: u32, index: u32) -> WebViewId {
         TopLevelBrowsingContextId(BrowsingContextId {
             namespace_id: PipelineNamespaceId(namespace_id),
             index: BrowsingContextIndex(NonZeroU32::new(index).expect("Incorrect test case")),
         })
     }
 
-    fn ids(ids: impl IntoIterator<Item = (u32, u32)>) -> HashSet<WebViewId> {
-        ids.into_iter()
-            .map(|(namespace_id, index)| id(namespace_id, index))
-            .collect()
-    }
-
     fn webviews_sorted<WebView: Clone>(
         webviews: &WebViewManager<WebView>,
-    ) -> Vec<(TopLevelBrowsingContextId, WebView)> {
+    ) -> Vec<(WebViewId, WebView)> {
         let mut keys = webviews.webviews.keys().collect::<Vec<_>>();
         keys.sort();
         keys.iter()
@@ -145,9 +138,9 @@ mod test {
         let mut webviews = WebViewManager::default();
 
         // add() adds the webview to the map, but does not focus it.
-        webviews.add(TopLevelBrowsingContextId::new(), 'a');
-        webviews.add(TopLevelBrowsingContextId::new(), 'b');
-        webviews.add(TopLevelBrowsingContextId::new(), 'c');
+        webviews.add(WebViewId::new(), 'a');
+        webviews.add(WebViewId::new(), 'b');
+        webviews.add(WebViewId::new(), 'c');
         assert_eq!(
             webviews_sorted(&webviews),
             vec![(id(0, 1), 'a'), (id(0, 2), 'b'), (id(0, 3), 'c'),]
