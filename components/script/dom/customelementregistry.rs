@@ -185,7 +185,7 @@ impl CustomElementRegistry {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
-    /// Step 14.13
+    /// Step 14.13: Add form associated callbacks to LifecycleCallbacks
     #[allow(unsafe_code)]
     unsafe fn add_form_callbacks(
         &self,
@@ -207,8 +207,6 @@ impl CustomElementRegistry {
         Ok(())
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
-    /// Step 14.5
     #[allow(unsafe_code)]
     fn get_observed_attributes(&self, constructor: HandleObject) -> Fallible<Vec<DOMString>> {
         let cx = GlobalScope::get_cx();
@@ -243,7 +241,7 @@ impl CustomElementRegistry {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
-    /// Step 14.11
+    /// Step 14.11: get formAssociated value
     #[allow(unsafe_code)]
     fn get_form_associated(&self, constructor: HandleObject) -> Fallible<bool> {
         let cx = self.window.get_cx();
@@ -273,7 +271,7 @@ impl CustomElementRegistry {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
-    /// Step 14.7
+    /// Step 14.7: get disabledFeatures value
     #[allow(unsafe_code)]
     fn get_disabled_features(&self, constructor: HandleObject) -> Fallible<Vec<DOMString>> {
         let cx = self.window.get_cx();
@@ -309,7 +307,7 @@ impl CustomElementRegistry {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
-/// Step 14.4
+/// Step 14.4: get callback value
 #[allow(unsafe_code)]
 fn get_callback(
     cx: JSContext,
@@ -419,7 +417,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
         // Steps 10-13 are fallback values for variables being set later
 
-        // Steps 14.1 - 14.2
+        // Steps 14.1 - 14.2: get prototype value
         rooted!(in(*cx) let mut prototype = UndefinedValue());
         {
             let _ac = JSAutoRealm::new(*cx, constructor.get());
@@ -446,7 +444,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
             }
         };
 
-        // Step 14.5
+        // Step 14.5: handle with attributeChangedCallback
         let observed_attributes = if callbacks.attribute_changed_callback.is_some() {
             let _ac = JSAutoRealm::new(*cx, constructor.get());
             match self.get_observed_attributes(constructor.handle()) {
@@ -460,7 +458,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
             Vec::new()
         };
 
-        // Steps 14.6 - 14.10
+        // Steps 14.6 - 14.10: handle with disabledFeatures
         let (disable_internals, disable_shadow) = {
             let _ac = JSAutoRealm::new(*cx, constructor.get());
             match self.get_disabled_features(constructor.handle()) {
@@ -475,7 +473,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
             }
         };
 
-        // Step 14.11 - 14.12
+        // Step 14.11 - 14.12: handle with formAssociated stuff
         let form_associated = {
             let _ac = JSAutoRealm::new(*cx, constructor.get());
             match self.get_form_associated(constructor.handle()) {
@@ -487,7 +485,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
             }
         };
 
-        // Steps 14.13
+        // Steps 14.13: add formAssociated callbacks
         if form_associated {
             let _ac = JSAutoRealm::new(*cx, proto_object.get());
             unsafe {
@@ -503,7 +501,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
         self.element_definition_is_running.set(false);
 
-        // Step 15
+        // Step 15: new definition
         let definition = Rc::new(CustomElementDefinition::new(
             name.clone(),
             local_name.clone(),
@@ -515,15 +513,15 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
             disable_shadow,
         ));
 
-        // Step 16
+        // Step 16: Add definition to this CustomElementRegistry
         self.definitions
             .borrow_mut()
             .insert(name.clone(), definition.clone());
 
-        // Step 17
+        // Step 17: Let document be this CustomElementRegistry's relevant global object's associated Document
         let document = self.window.Document();
 
-        // Steps 18-19
+        // Steps 18-19: enqueue custom elements upgrade reaction for upgrade candidates
         for candidate in document
             .upcast::<Node>()
             .traverse_preorder(ShadowIncluding::Yes)
@@ -844,11 +842,11 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
         return;
     }
 
-    // Step 9
+    // Step 9: handle with form-associated custom element
     if let Some(html_element) = element.downcast::<HTMLElement>() {
         if html_element.is_form_associated_custom_element() {
             // Because it's form-associated, we can use FormControl for HTMLElement
-            // Step 9.1
+            // Step 9.1: Reset the form owner of element
             html_element.reset_form_owner();
             if let Some(form) = html_element.form_owner() {
                 // Even though the tree hasn't structurally mutated,
@@ -868,7 +866,7 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
             element.check_disabled_attribute();
             element.check_ancestors_disabled_state_for_form_control();
 
-            // Step 9.2
+            // Step 9.2: If element is disabled, then enqueue a custom element callback reaction with element
             if element.disabled_state() {
                 ScriptThread::enqueue_callback_reaction(
                     element,

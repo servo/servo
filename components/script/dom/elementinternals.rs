@@ -164,18 +164,18 @@ impl ElementInternalsMethods for ElementInternals {
         value: Option<FileOrUSVStringOrFormData>,
         maybe_state: Option<Option<FileOrUSVStringOrFormData>>,
     ) -> ErrorResult {
-        // Steps 1-2
+        // Steps 1-2: If element is not a form-associated custom element, then throw a "NotSupportedError" DOMException
         if !self.is_target_form_associated() {
             return Err(Error::NotSupported);
         }
 
-        // Step 3
+        // Step 3: Set target element's submission value
         self.set_submission_value(submission_value_from(&value));
 
         match maybe_state {
-            // Step 4
+            // Step 4: If the state argument of the function is omitted, set element's state to its submission value
             None => self.set_state(submission_value_from(&value)),
-            // Steps 5-6
+            // Steps 5-6: Otherwise, set element's state to state
             Some(state) => self.set_state(submission_value_from(&state)),
         }
         Ok(())
@@ -188,12 +188,12 @@ impl ElementInternalsMethods for ElementInternals {
         message: Option<DOMString>,
         anchor: Option<&HTMLElement>,
     ) -> ErrorResult {
-        // Steps 1-2
+        // Steps 1-2: Check form-associated custom element
         if !self.is_target_form_associated() {
             return Err(Error::NotSupported);
         }
 
-        // Step 3
+        // Step 3: Check bits and message
         let bits = validity_bits(flags);
         if !bits.is_empty() && !message.iter().any(|m| m.len() > 0) {
             return Err(Error::Type(
@@ -202,24 +202,24 @@ impl ElementInternalsMethods for ElementInternals {
             ));
         }
 
-        // Step 4
+        // Step 4: For each entry flag → value of flags, set element's validity flag with the name flag to value
         self.validity_state().update_invalid_flags(bits);
 
-        // Step 5
+        // Step 5: Set element's validation message to the empty string
         if bits.is_empty() {
             self.set_validation_message(DOMString::new());
         } else {
             self.set_validation_message(message.unwrap_or_else(|| DOMString::new()));
         }
 
-        // Step 6
+        // Step 6: set element's custom validity error message to element's validation message
         if bits.contains(ValidationFlags::CUSTOM_ERROR) {
             self.set_custom_validity_error_message(self.validation_message.borrow().clone());
         } else {
             self.set_custom_validity_error_message(DOMString::new());
         }
 
-        // Step 7
+        // Step 7: Set element's validation anchor to null
         match anchor {
             None => self.validation_anchor.set(None),
             Some(a) => {

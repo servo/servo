@@ -551,39 +551,39 @@ impl HTMLElementMethods for HTMLElement {
         // TODO: https://github.com/servo/servo/issues/12776
         false
     }
-    // https://html.spec.whatwg.org/multipage#dom-attachinternals
+    /// <https://html.spec.whatwg.org/multipage#dom-attachinternals>
     fn AttachInternals(&self) -> Fallible<DomRoot<ElementInternals>> {
         let element = self.upcast::<Element>();
-        // Step 1
+        // Step 1: If this's is value is not null, then throw a "NotSupportedError" DOMException
         if element.get_is().is_some() {
             return Err(Error::NotSupported);
         }
 
-        // Step 2
+        // Step 2: Let definition be the result of looking up a custom element definition
         // Note: the element can pass this check without yet being a custom
         // element, as long as there is a registered definition
         // that could upgrade it to one later.
         let registry = document_from_node(self).window().CustomElements();
         let dfn = registry.lookup_definition(self.upcast::<Element>().local_name(), None);
 
-        // Step 3
+        // Step 3: If definition is null, then throw an "NotSupportedError" DOMException
         let dfn = match dfn {
             Some(d) => d,
             None => return Err(Error::NotSupported),
         };
 
-        // Step 4
+        // Step 4: If definition's disable internals is true, then throw a "NotSupportedError" DOMException
         if dfn.disable_internals {
             return Err(Error::NotSupported);
         }
 
-        // Step 5
+        // Step 5: If this's attached internals is non-null, then throw an "NotSupportedError" DOMException
         let internals = element.ensure_element_internals();
         if internals.attached() {
             return Err(Error::NotSupported);
         }
 
-        // Step 6-7
+        // Step 6-7: Set this's attached internals to a new ElementInternals instance
         internals.set_attached();
         Ok(internals)
     }
@@ -683,7 +683,7 @@ impl HTMLElement {
             .remove_attribute(&ns!(), &local_name);
     }
 
-    // https://html.spec.whatwg.org/multipage/#category-label
+    /// <https://html.spec.whatwg.org/multipage/#category-label>
     pub fn is_labelable_element(&self) -> bool {
         match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) => match type_id {
@@ -702,7 +702,7 @@ impl HTMLElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#form-associated-custom-element
+    /// <https://html.spec.whatwg.org/multipage/#form-associated-custom-element>
     pub fn is_form_associated_custom_element(&self) -> bool {
         if let Some(dfn) = self.upcast::<Element>().get_custom_element_definition() {
             dfn.is_autonomous() && dfn.form_associated
@@ -711,7 +711,7 @@ impl HTMLElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#category-listed
+    /// <https://html.spec.whatwg.org/multipage/#category-listed>
     pub fn is_listed_element(&self) -> bool {
         match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) => match type_id {
