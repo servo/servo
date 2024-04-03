@@ -208,7 +208,7 @@ impl GPUQueueMethods for GPUQueue {
                 queue_id: self.queue.0,
             },
         )) {
-            todo!("QueueOnSubmittedWorkDone failed with {e}")
+            warn!("QueueOnSubmittedWorkDone failed with {e}")
         }
         promise
     }
