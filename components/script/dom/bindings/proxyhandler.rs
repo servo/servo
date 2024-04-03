@@ -563,13 +563,13 @@ pub unsafe fn cross_origin_set(
 
 unsafe fn get_getter_object(d: &PropertyDescriptor, out: RawMutableHandleObject) {
     if d.hasGetter_() {
-        out.set(std::mem::transmute(d.getter_));
+        out.set(d.getter_);
     }
 }
 
 unsafe fn get_setter_object(d: &PropertyDescriptor, out: RawMutableHandleObject) {
     if d.hasSetter_() {
-        out.set(std::mem::transmute(d.setter_));
+        out.set(d.setter_);
     }
 }
 

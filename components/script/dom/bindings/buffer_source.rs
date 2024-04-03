@@ -418,7 +418,7 @@ where
     /// without causing conflicts , unexpected behavior.
     /// <https://github.com/servo/mozjs/blob/main/mozjs-sys/mozjs/js/public/ArrayBuffer.h#L89>
     unsafe extern "C" fn free_func(_contents: *mut c_void, free_user_data: *mut c_void) {
-        let _ = Arc::from_raw(free_user_data as _);
+        let _ = Arc::from_raw(free_user_data as *const _);
     }
 
     unsafe {
