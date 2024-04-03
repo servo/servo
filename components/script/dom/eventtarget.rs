@@ -731,10 +731,10 @@ impl EventTarget {
         listener: Option<Rc<EventListener>>,
         options: EventListenerOptions,
     ) {
-        let ref listener = match listener {
+        let listener = &(match listener {
             Some(l) => l,
             None => return,
-        };
+        });
         let mut handlers = self.handlers.borrow_mut();
         let entry = handlers.get_mut(&Atom::from(ty));
         if let Some(entry) = entry {
