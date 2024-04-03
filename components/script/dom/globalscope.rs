@@ -294,7 +294,8 @@ pub struct GlobalScope {
     ///
     /// <https://html.spec.whatwg.org/multipage/#about-to-be-notified-rejected-promises-list>
     #[ignore_malloc_size_of = "mozjs"]
-    // `Heap` values must stay boxed, as they need semantics like `Pin` ie they cannot be moved
+    // `Heap` values must stay boxed, as they need semantics like `Pin`
+    // (that is, they cannot be moved).
     #[allow(clippy::vec_box)]
     uncaught_rejections: DomRefCell<Vec<Box<Heap<*mut JSObject>>>>,
 
@@ -304,7 +305,8 @@ pub struct GlobalScope {
     ///
     /// <https://html.spec.whatwg.org/multipage/#outstanding-rejected-promises-weak-set>
     #[ignore_malloc_size_of = "mozjs"]
-    // `Heap` values must stay boxed, as they need semantics like `Pin` ie they cannot be moved
+    // `Heap` values must stay boxed, as they need semantics like `Pin`
+    // (that is, they cannot be moved).
     #[allow(clippy::vec_box)]
     consumed_rejections: DomRefCell<Vec<Box<Heap<*mut JSObject>>>>,
 
@@ -2198,7 +2200,8 @@ impl GlobalScope {
         }
     }
 
-    // `Heap` values must stay boxed, as they need semantics like `Pin` ie they cannot be moved
+    // `Heap` values must stay boxed, as they need semantics like `Pin`
+    // (that is, they cannot be moved).
     #[allow(clippy::vec_box)]
     pub fn get_uncaught_rejections(&self) -> &DomRefCell<Vec<Box<Heap<*mut JSObject>>>> {
         &self.uncaught_rejections
@@ -2221,7 +2224,8 @@ impl GlobalScope {
         }
     }
 
-    // `Heap` values must stay boxed, as they need semantics like `Pin` ie they cannot be moved
+    // `Heap` values must stay boxed, as they need semantics like `Pin`
+    // (that is, they cannot be moved).
     #[allow(clippy::vec_box)]
     pub fn get_consumed_rejections(&self) -> &DomRefCell<Vec<Box<Heap<*mut JSObject>>>> {
         &self.consumed_rejections
