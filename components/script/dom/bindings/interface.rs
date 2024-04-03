@@ -165,7 +165,7 @@ pub unsafe fn create_global_object(
     let private_val = PrivateValue(private);
     JS_SetReservedSlot(rval.get(), DOM_OBJECT_SLOT, &private_val);
     let proto_array: Box<ProtoOrIfaceArray> =
-        Box::new([0 as *mut JSObject; PrototypeList::PROTO_OR_IFACE_LENGTH]);
+        Box::new([ptr::null_mut::<JSObject>(); PrototypeList::PROTO_OR_IFACE_LENGTH]);
     let val = PrivateValue(Box::into_raw(proto_array) as *const libc::c_void);
     JS_SetReservedSlot(rval.get(), DOM_PROTOTYPE_SLOT, &val);
 
