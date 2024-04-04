@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::{WebGPU, WebGPUDevice, WebGPURenderBundle};
+use webgpu::{WebGPU, WebGPUDevice, WebGPURenderBundle, WebGPURequest};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPURenderBundleMethods;
@@ -75,5 +75,20 @@ impl GPURenderBundleMethods for GPURenderBundle {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
+    }
+}
+
+impl Drop for GPURenderBundle {
+    fn drop(&mut self) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send((None, WebGPURequest::DropRenderBundle(self.render_bundle.0)))
+        {
+            warn!(
+                "Failed to send DropRenderBundle ({:?}) ({})",
+                self.render_bundle.0, e
+            );
+        }
     }
 }

@@ -242,7 +242,7 @@ impl ServiceWorkerGlobalScope {
                 runtime,
                 from_devtools_receiver,
                 closing,
-                Arc::new(Mutex::new(Identities::default())),
+                Arc::new(Mutex::new(Identities::new())),
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
             own_sender,

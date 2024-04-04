@@ -130,8 +130,18 @@ impl GPUBuffer {
 
 impl Drop for GPUBuffer {
     fn drop(&mut self) {
-        if let Err(e) = self.Destroy() {
-            error!("GPUBuffer destruction failed with {e:?}!"); // TODO: should we allow panic here?
+        if matches!(self.state(), GPUBufferState::Destroyed) {
+            return;
+        }
+        if let Err(e) = self
+            .channel
+            .0
+            .send((None, WebGPURequest::DropBuffer(self.buffer.0)))
+        {
+            warn!(
+                "Failed to send WebGPURequest::DropBuffer({:?}) ({})",
+                self.buffer.0, e
+            );
         };
     }
 }

@@ -287,7 +287,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
             .expect("Failed to create WebGPU SwapChain");
 
         self.texture
-            .set(Some(&descriptor.device.CreateTexture(&text_desc)));
+            .set(Some(&descriptor.device.CreateTexture(&text_desc).unwrap()));
 
         self.webrender_image.set(Some(receiver.recv().unwrap()));
     }

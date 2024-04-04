@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::WebGPUBindGroupLayout;
+use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPURequest};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUBindGroupLayoutMethods;
@@ -15,15 +15,23 @@ use crate::dom::globalscope::GlobalScope;
 #[dom_struct]
 pub struct GPUBindGroupLayout {
     reflector_: Reflector,
+    #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
+    channel: WebGPU,
     label: DomRefCell<USVString>,
     #[no_trace]
     bind_group_layout: WebGPUBindGroupLayout,
 }
 
 impl GPUBindGroupLayout {
-    fn new_inherited(bind_group_layout: WebGPUBindGroupLayout, label: USVString) -> Self {
+    fn new_inherited(
+        channel: WebGPU,
+        bind_group_layout: WebGPUBindGroupLayout,
+        label: USVString,
+    ) -> Self {
         Self {
             reflector_: Reflector::new(),
+            channel,
             label: DomRefCell::new(label),
             bind_group_layout,
         }
@@ -31,11 +39,16 @@ impl GPUBindGroupLayout {
 
     pub fn new(
         global: &GlobalScope,
+        channel: WebGPU,
         bind_group_layout: WebGPUBindGroupLayout,
         label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(GPUBindGroupLayout::new_inherited(bind_group_layout, label)),
+            Box::new(GPUBindGroupLayout::new_inherited(
+                channel,
+                bind_group_layout,
+                label,
+            )),
             global,
         )
     }
@@ -44,6 +57,20 @@ impl GPUBindGroupLayout {
 impl GPUBindGroupLayout {
     pub fn id(&self) -> WebGPUBindGroupLayout {
         self.bind_group_layout
+    }
+}
+
+impl Drop for GPUBindGroupLayout {
+    fn drop(&mut self) {
+        if let Err(e) = self.channel.0.send((
+            None,
+            WebGPURequest::DropBindGroupLayout(self.bind_group_layout.0),
+        )) {
+            warn!(
+                "Failed to send WebGPURequest::DropBindGroupLayout({:?}) ({})",
+                self.bind_group_layout.0, e
+            );
+        };
     }
 }
 

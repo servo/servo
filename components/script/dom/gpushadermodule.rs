@@ -5,7 +5,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use webgpu::WebGPUShaderModule;
+use webgpu::{WebGPU, WebGPURequest, WebGPUShaderModule};
 
 use super::bindings::error::Fallible;
 use super::promise::Promise;
@@ -19,15 +19,19 @@ use crate::dom::globalscope::GlobalScope;
 #[dom_struct]
 pub struct GPUShaderModule {
     reflector_: Reflector,
+    #[ignore_malloc_size_of = "defined in webgpu"]
+    #[no_trace]
+    channel: WebGPU,
     label: DomRefCell<USVString>,
     #[no_trace]
     shader_module: WebGPUShaderModule,
 }
 
 impl GPUShaderModule {
-    fn new_inherited(shader_module: WebGPUShaderModule, label: USVString) -> Self {
+    fn new_inherited(channel: WebGPU, shader_module: WebGPUShaderModule, label: USVString) -> Self {
         Self {
             reflector_: Reflector::new(),
+            channel,
             label: DomRefCell::new(label),
             shader_module,
         }
@@ -35,11 +39,16 @@ impl GPUShaderModule {
 
     pub fn new(
         global: &GlobalScope,
+        channel: WebGPU,
         shader_module: WebGPUShaderModule,
         label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(GPUShaderModule::new_inherited(shader_module, label)),
+            Box::new(GPUShaderModule::new_inherited(
+                channel,
+                shader_module,
+                label,
+            )),
             global,
         )
     }
@@ -65,5 +74,20 @@ impl GPUShaderModuleMethods for GPUShaderModule {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpushadermodule-getcompilationinfo>
     fn GetCompilationInfo(&self) -> Fallible<Rc<Promise>> {
         todo!("Missing in wgpu: https://github.com/gfx-rs/wgpu/issues/2170")
+    }
+}
+
+impl Drop for GPUShaderModule {
+    fn drop(&mut self) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send((None, WebGPURequest::DropShaderModule(self.shader_module.0)))
+        {
+            warn!(
+                "Failed to send DropShaderModule ({:?}) ({})",
+                self.shader_module.0, e
+            );
+        }
     }
 }

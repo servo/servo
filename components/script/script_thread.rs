@@ -1430,7 +1430,7 @@ impl ScriptThread {
 
             node_ids: Default::default(),
             is_user_interacting: Cell::new(false),
-            gpu_id_hub: Arc::new(Mutex::new(Identities::default())),
+            gpu_id_hub: Arc::new(Mutex::new(Identities::new())),
             webgpu_port: RefCell::new(None),
             inherited_secure_context: state.inherited_secure_context,
             layouts: Default::default(),
@@ -2122,7 +2122,10 @@ impl ScriptThread {
             WebGPUMsg::FreeBindGroupLayout(id) => {
                 self.gpu_id_hub.lock().kill_bind_group_layout_id(id)
             },
-            WebGPUMsg::FreeCommandBuffer(id) => self.gpu_id_hub.lock().kill_command_buffer_id(id),
+            WebGPUMsg::FreeCommandBuffer(id) => self
+                .gpu_id_hub
+                .lock()
+                .kill_command_buffer_id(id.transmute()),
             WebGPUMsg::FreeSampler(id) => self.gpu_id_hub.lock().kill_sampler_id(id),
             WebGPUMsg::FreeShaderModule(id) => self.gpu_id_hub.lock().kill_shader_module_id(id),
             WebGPUMsg::FreeRenderBundle(id) => self.gpu_id_hub.lock().kill_render_bundle_id(id),

@@ -2,20 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use serde::{Deserialize, Serialize};
 
 use crate::wgpu::id::{
     AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, ComputePipelineId,
     DeviceId, PipelineLayoutId, QuerySetId, RenderBundleId, RenderPipelineId, SamplerId,
-    ShaderModuleId, StagingBufferId, SurfaceId, TextureId, TextureViewId, TypedId,
+    ShaderModuleId, StagingBufferId, SurfaceId, TextureId, TextureViewId,
 };
-use crate::wgpu::identity::{
-    GlobalIdentityHandlerFactory, IdentityHandler, IdentityHandlerFactory,
-};
-use crate::wgt::Backend;
-use crate::{ErrorScopeId, WebGPUDevice, WebGPURequest};
+use crate::{ErrorScopeId, WebGPUDevice};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebGPUOpResult {
@@ -54,118 +49,4 @@ pub enum WebGPUMsg {
         pipeline_id: PipelineId,
     },
     Exit,
-}
-
-#[derive(Debug)]
-pub struct IdentityRecycler {
-    sender: IpcSender<WebGPUMsg>,
-    self_sender: IpcSender<(Option<ErrorScopeId>, WebGPURequest)>,
-}
-
-pub struct IdentityRecyclerFactory {
-    pub sender: IpcSender<WebGPUMsg>,
-    pub self_sender: IpcSender<(Option<ErrorScopeId>, WebGPURequest)>,
-}
-
-macro_rules! impl_identity_handler {
-    ($id:ty, $st:tt, $($var:tt)*) => {
-        impl IdentityHandler<$id> for IdentityRecycler {
-            type Input = $id;
-            fn process(&self, id: $id, _backend: Backend) -> Self::Input {
-                log::debug!("process {} {:?}", $st, id);
-                //debug_assert_eq!(id.unzip().2, backend);
-                id
-            }
-            fn free(&self, id: $id) {
-                log::debug!("free {} {:?}", $st, id);
-                let msg = $($var)*(id);
-                if self.sender.send(msg.clone()).is_err() {
-                    log::error!("Failed to send {:?}", msg);
-                }
-            }
-        }
-    };
-}
-
-impl_identity_handler!(AdapterId, "adapter", WebGPUMsg::FreeAdapter);
-impl_identity_handler!(SurfaceId, "surface", WebGPUMsg::FreeSurface);
-impl_identity_handler!(SamplerId, "sampler", WebGPUMsg::FreeSampler);
-impl_identity_handler!(TextureId, "texture", WebGPUMsg::FreeTexture);
-impl_identity_handler!(TextureViewId, "texture_view", WebGPUMsg::FreeTextureView);
-impl_identity_handler!(BufferId, "buffer", WebGPUMsg::FreeBuffer);
-impl_identity_handler!(BindGroupId, "bind_group", WebGPUMsg::FreeBindGroup);
-impl_identity_handler!(ShaderModuleId, "shader_module", WebGPUMsg::FreeShaderModule);
-impl_identity_handler!(RenderBundleId, "render_bundle", WebGPUMsg::FreeRenderBundle);
-impl_identity_handler!(
-    StagingBufferId,
-    "staging_buffer",
-    WebGPUMsg::FreeStagingBuffer
-);
-impl_identity_handler!(QuerySetId, "quary_set", WebGPUMsg::FreeQuerySet);
-impl_identity_handler!(
-    RenderPipelineId,
-    "render_pipeline",
-    WebGPUMsg::FreeRenderPipeline
-);
-impl_identity_handler!(
-    ComputePipelineId,
-    "compute_pipeline",
-    WebGPUMsg::FreeComputePipeline
-);
-impl_identity_handler!(
-    CommandBufferId,
-    "command_buffer",
-    WebGPUMsg::FreeCommandBuffer
-);
-impl_identity_handler!(
-    BindGroupLayoutId,
-    "bind_group_layout",
-    WebGPUMsg::FreeBindGroupLayout
-);
-impl_identity_handler!(
-    PipelineLayoutId,
-    "pipeline_layout",
-    WebGPUMsg::FreePipelineLayout
-);
-
-impl IdentityHandler<DeviceId> for IdentityRecycler {
-    type Input = DeviceId;
-    fn process(&self, id: DeviceId, _backend: Backend) -> Self::Input {
-        log::debug!("process device {:?}", id);
-        //debug_assert_eq!(id.unzip().2, backend);
-        id
-    }
-    fn free(&self, id: DeviceId) {
-        log::debug!("free device {:?}", id);
-        if self.sender.send(WebGPUMsg::FreeDevice(id)).is_err() {
-            log::error!("Failed to send FreeDevice({:?}) to script", id);
-        }
-        if self
-            .self_sender
-            .send((None, WebGPURequest::FreeDevice(id)))
-            .is_err()
-        {
-            log::error!("Failed to send FreeDevice({:?}) to server", id);
-        }
-    }
-}
-
-impl<I: TypedId + Clone + std::fmt::Debug> IdentityHandlerFactory<I> for IdentityRecyclerFactory
-where
-    I: TypedId + Clone + std::fmt::Debug,
-    IdentityRecycler: IdentityHandler<I>,
-{
-    type Filter = IdentityRecycler;
-    fn spawn(&self) -> Self::Filter {
-        IdentityRecycler {
-            sender: self.sender.clone(),
-            self_sender: self.self_sender.clone(),
-        }
-    }
-}
-
-impl GlobalIdentityHandlerFactory for IdentityRecyclerFactory {
-    fn ids_are_generated_in_wgpu() -> bool {
-        false
-    }
 }

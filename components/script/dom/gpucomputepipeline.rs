@@ -5,7 +5,7 @@
 use std::string::String;
 
 use dom_struct::dom_struct;
-use webgpu::{WebGPUBindGroupLayout, WebGPUComputePipeline};
+use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPUComputePipeline, WebGPURequest};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUComputePipelineMethods;
@@ -20,6 +20,9 @@ use crate::dom::gpudevice::GPUDevice;
 #[dom_struct]
 pub struct GPUComputePipeline {
     reflector_: Reflector,
+    #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
+    channel: WebGPU,
     label: DomRefCell<USVString>,
     #[no_trace]
     compute_pipeline: WebGPUComputePipeline,
@@ -30,6 +33,7 @@ pub struct GPUComputePipeline {
 
 impl GPUComputePipeline {
     fn new_inherited(
+        channel: WebGPU,
         compute_pipeline: WebGPUComputePipeline,
         label: USVString,
         bgls: Vec<WebGPUBindGroupLayout>,
@@ -37,6 +41,7 @@ impl GPUComputePipeline {
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
+            channel,
             label: DomRefCell::new(label),
             compute_pipeline,
             bind_group_layouts: bgls,
@@ -46,6 +51,7 @@ impl GPUComputePipeline {
 
     pub fn new(
         global: &GlobalScope,
+        channel: WebGPU,
         compute_pipeline: WebGPUComputePipeline,
         label: USVString,
         bgls: Vec<WebGPUBindGroupLayout>,
@@ -53,6 +59,7 @@ impl GPUComputePipeline {
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUComputePipeline::new_inherited(
+                channel,
                 compute_pipeline,
                 label,
                 bgls,
@@ -87,8 +94,23 @@ impl GPUComputePipelineMethods for GPUComputePipeline {
         }
         Ok(GPUBindGroupLayout::new(
             &self.global(),
+            self.channel.clone(),
             self.bind_group_layouts[index as usize],
             USVString::default(),
         ))
+    }
+}
+
+impl Drop for GPUComputePipeline {
+    fn drop(&mut self) {
+        if let Err(e) = self.channel.0.send((
+            None,
+            WebGPURequest::DropComputePipeline(self.compute_pipeline.0),
+        )) {
+            warn!(
+                "Failed to send WebGPURequest::DropComputePipeline({:?}) ({})",
+                self.compute_pipeline.0, e
+            );
+        };
     }
 }

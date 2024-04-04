@@ -176,6 +176,10 @@ impl GPUDevice {
         self.device
     }
 
+    pub fn channel(&self) -> WebGPU {
+        self.channel.clone()
+    }
+
     pub fn handle_server_msg(&self, scope: Option<ErrorScopeId>, result: WebGPUOpResult) {
         let result = match result {
             WebGPUOpResult::Success => Ok(()),
@@ -542,6 +546,7 @@ impl GPUDeviceMethods for GPUDevice {
 
         GPUBindGroupLayout::new(
             &self.global(),
+            self.channel.clone(),
             bgl,
             descriptor.parent.label.clone().unwrap_or_default(),
         )
@@ -591,6 +596,7 @@ impl GPUDeviceMethods for GPUDevice {
         let pipeline_layout = webgpu::WebGPUPipelineLayout(pipeline_layout_id);
         GPUPipelineLayout::new(
             &self.global(),
+            self.channel.clone(),
             pipeline_layout,
             descriptor.parent.label.clone().unwrap_or_default(),
             bgls,
@@ -651,6 +657,7 @@ impl GPUDeviceMethods for GPUDevice {
 
         GPUBindGroup::new(
             &self.global(),
+            self.channel.clone(),
             bind_group,
             self.device,
             &descriptor.layout,
@@ -686,6 +693,7 @@ impl GPUDeviceMethods for GPUDevice {
         let shader_module = webgpu::WebGPUShaderModule(program_id);
         GPUShaderModule::new(
             &self.global(),
+            self.channel.clone(),
             shader_module,
             descriptor.parent.label.clone().unwrap_or_default(),
         )
@@ -730,6 +738,7 @@ impl GPUDeviceMethods for GPUDevice {
         let compute_pipeline = webgpu::WebGPUComputePipeline(compute_pipeline_id);
         GPUComputePipeline::new(
             &self.global(),
+            self.channel.clone(),
             compute_pipeline,
             descriptor.parent.parent.label.clone().unwrap_or_default(),
             bgls,
@@ -783,7 +792,7 @@ impl GPUDeviceMethods for GPUDevice {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture>
-    fn CreateTexture(&self, descriptor: &GPUTextureDescriptor) -> DomRoot<GPUTexture> {
+    fn CreateTexture(&self, descriptor: &GPUTextureDescriptor) -> Fallible<DomRoot<GPUTexture>> {
         let size = convert_texture_size_to_dict(&descriptor.size);
         let desc = wgt::TextureUsages::from_bits(descriptor.usage).map(|usg| {
             wgpu_res::TextureDescriptor {
@@ -814,10 +823,7 @@ impl GPUDeviceMethods for GPUDevice {
 
         let scope_id = self.use_current_scope();
         if desc.is_none() {
-            self.handle_server_msg(
-                scope_id,
-                WebGPUOpResult::ValidationError(String::from("Invalid GPUTextureUsage")),
-            );
+            return Err(Error::Type(String::from("Invalid GPUTextureUsage")));
         }
         self.channel
             .0
@@ -833,7 +839,7 @@ impl GPUDeviceMethods for GPUDevice {
 
         let texture = webgpu::WebGPUTexture(texture_id);
 
-        GPUTexture::new(
+        Ok(GPUTexture::new(
             &self.global(),
             texture,
             self,
@@ -845,7 +851,7 @@ impl GPUDeviceMethods for GPUDevice {
             descriptor.format,
             descriptor.usage,
             descriptor.parent.label.clone().unwrap_or_default(),
-        )
+        ))
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createsampler>
@@ -890,6 +896,7 @@ impl GPUDeviceMethods for GPUDevice {
 
         GPUSampler::new(
             &self.global(),
+            self.channel.clone(),
             self.device,
             compare_enable,
             sampler,
@@ -1173,8 +1180,20 @@ impl GPUDeviceMethods for GPUDevice {
 }
 
 impl Drop for GPUDevice {
-    // not sure about this but this is non failable version of destroy
     fn drop(&mut self) {
-        self.Destroy()
+        if let Err(e) = self
+            .channel
+            .0
+            .send((None, WebGPURequest::DestroyDevice(self.device.0)))
+        {
+            warn!("Failed to send DestroyDevice ({:?}) ({})", self.device.0, e);
+        }
+        if let Err(e) = self
+            .channel
+            .0
+            .send((None, WebGPURequest::DropDevice(self.device.0)))
+        {
+            warn!("Failed to send DropDevice ({:?}) ({})", self.device.0, e);
+        }
     }
 }
