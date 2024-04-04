@@ -10,10 +10,9 @@ use std::sync::atomic::Ordering;
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use html5ever::{local_name, namespace_url, ns, LocalName, Namespace};
 use script_layout_interface::wrapper_traits::{
-    GetStyleAndOpaqueLayoutData, LayoutDataTrait, LayoutNode, PseudoElementType,
-    ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+    LayoutDataTrait, LayoutNode, PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
-use script_layout_interface::{LayoutNodeType, StyleAndOpaqueLayoutData, StyleData};
+use script_layout_interface::{LayoutNodeType, StyleData};
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::{BloomFilter, BLOOM_HASH_MASK};
 use selectors::matching::{ElementSelectorFlags, MatchingContext, VisitedHandlingMode};
@@ -111,8 +110,7 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ServoLayoutElement<'dom, LayoutDataT
     }
 
     fn get_style_data(&self) -> Option<&StyleData> {
-        self.get_style_and_opaque_layout_data()
-            .map(|data| &data.style_data)
+        self.as_node().style_data()
     }
 
     pub unsafe fn unset_snapshot_flags(&self) {
@@ -151,14 +149,6 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ServoLayoutElement<'dom, LayoutDataT
             None => false,
             Some(node) => matches!(node.script_type_id(), NodeTypeId::Document(_)),
         }
-    }
-}
-
-impl<'dom, LayoutDataType: LayoutDataTrait> GetStyleAndOpaqueLayoutData<'dom>
-    for ServoLayoutElement<'dom, LayoutDataType>
-{
-    fn get_style_and_opaque_layout_data(self) -> Option<&'dom StyleAndOpaqueLayoutData> {
-        self.as_node().get_style_and_opaque_layout_data()
     }
 }
 
@@ -322,17 +312,11 @@ impl<'dom, LayoutDataType: LayoutDataTrait> style::dom::TElement
     }
 
     unsafe fn clear_data(&self) {
-        if self.get_style_and_opaque_layout_data().is_some() {
-            drop(
-                self.as_node()
-                    .get_jsmanaged()
-                    .take_style_and_opaque_layout_data(),
-            );
-        }
+        self.as_node().get_jsmanaged().clear_style_and_layout_data()
     }
 
     unsafe fn ensure_data(&self) -> AtomicRefMut<ElementData> {
-        self.as_node().initialize_data();
+        self.as_node().get_jsmanaged().initialize_style_data();
         self.mutate_data().unwrap()
     }
 
@@ -966,13 +950,5 @@ impl<'dom, LayoutDataType: LayoutDataTrait> ::selectors::Element
             filter.insert_hash(hash & BLOOM_HASH_MASK)
         });
         true
-    }
-}
-
-impl<'dom, LayoutDataType: LayoutDataTrait> GetStyleAndOpaqueLayoutData<'dom>
-    for ServoThreadSafeLayoutElement<'dom, LayoutDataType>
-{
-    fn get_style_and_opaque_layout_data(self) -> Option<&'dom StyleAndOpaqueLayoutData> {
-        self.element.as_node().get_style_and_opaque_layout_data()
     }
 }

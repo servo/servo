@@ -5,11 +5,11 @@
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
 
-use atomic_refcell::{AtomicRefCell, AtomicRefMut};
+use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::Image as NetImage;
 use script_layout_interface::wrapper_traits::{LayoutDataTrait, LayoutNode, ThreadSafeLayoutNode};
-use script_layout_interface::{HTMLCanvasDataSource, StyleData};
+use script_layout_interface::HTMLCanvasDataSource;
 use servo_arc::Arc as ServoArc;
 use style::properties::ComputedValues;
 
@@ -24,7 +24,7 @@ use crate::replaced::{CanvasInfo, CanvasSource};
 
 /// The data that is stored in each DOM node that is used by layout.
 #[derive(Default)]
-pub struct DOMLayoutData {
+pub struct InnerDOMLayoutData {
     pub(super) self_box: ArcRefCell<Option<LayoutBox>>,
     pub(super) pseudo_before_box: ArcRefCell<Option<LayoutBox>>,
     pub(super) pseudo_after_box: ArcRefCell<Option<LayoutBox>>,
@@ -38,13 +38,14 @@ pub(super) enum LayoutBox {
     FlexLevel(ArcRefCell<FlexLevelBox>),
 }
 
+/// A wrapper for [`InnerDOMLayoutData`]. This is necessary to give the entire data
+/// structure interior mutability, as we will need to mutate the layout data of
+/// non-mutable DOM nodes.
+#[derive(Default)]
+pub struct DOMLayoutData(AtomicRefCell<InnerDOMLayoutData>);
+
 // The implementation of this trait allows the data to be stored in the DOM.
 impl LayoutDataTrait for DOMLayoutData {}
-
-pub struct StyleAndLayoutData<'dom> {
-    pub style_data: &'dom StyleData,
-    pub(super) layout_data: &'dom AtomicRefCell<DOMLayoutData>,
-}
 
 pub struct BoxSlot<'dom> {
     pub(crate) slot: Option<ArcRefCell<Option<LayoutBox>>>,
@@ -96,8 +97,8 @@ pub(crate) trait NodeExt<'dom>: 'dom + LayoutNode<'dom> {
     fn as_video(self) -> Option<(webrender_api::ImageKey, PhysicalSize<f64>)>;
     fn style(self, context: &LayoutContext) -> ServoArc<ComputedValues>;
 
-    fn get_style_and_layout_data(self) -> Option<StyleAndLayoutData<'dom>>;
-    fn layout_data_mut(self) -> AtomicRefMut<'dom, DOMLayoutData>;
+    fn layout_data_mut(self) -> AtomicRefMut<'dom, InnerDOMLayoutData>;
+    fn layout_data(self) -> Option<AtomicRef<'dom, InnerDOMLayoutData>>;
     fn element_box_slot(&self) -> BoxSlot<'dom>;
     fn pseudo_element_box_slot(&self, which: WhichPseudoElement) -> BoxSlot<'dom>;
     fn unset_pseudo_element_box(self, which: WhichPseudoElement);
@@ -166,10 +167,21 @@ where
         self.to_threadsafe().style(context.shared_context())
     }
 
-    fn layout_data_mut(self) -> AtomicRefMut<'dom, DOMLayoutData> {
-        self.get_style_and_layout_data()
-            .map(|d| d.layout_data.borrow_mut())
+    fn layout_data_mut(self) -> AtomicRefMut<'dom, InnerDOMLayoutData> {
+        if LayoutNode::layout_data(&self).is_none() {
+            self.initialize_layout_data::<DOMLayoutData>();
+        }
+        LayoutNode::layout_data(&self)
             .unwrap()
+            .downcast_ref::<DOMLayoutData>()
+            .unwrap()
+            .0
+            .borrow_mut()
+    }
+
+    fn layout_data(self) -> Option<AtomicRef<'dom, InnerDOMLayoutData>> {
+        LayoutNode::layout_data(&self)
+            .map(|data| data.downcast_ref::<DOMLayoutData>().unwrap().0.borrow())
     }
 
     fn element_box_slot(&self) -> BoxSlot<'dom> {
@@ -201,13 +213,5 @@ where
         *data.pseudo_after_box.borrow_mut() = None;
         // Stylo already takes care of removing all layout data
         // for DOM descendants of elements with `display: none`.
-    }
-
-    fn get_style_and_layout_data(self) -> Option<StyleAndLayoutData<'dom>> {
-        self.get_style_and_opaque_layout_data()
-            .map(|data| StyleAndLayoutData {
-                style_data: &data.style_data,
-                layout_data: data.generic_data.downcast_ref().unwrap(),
-            })
     }
 }

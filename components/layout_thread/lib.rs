@@ -47,7 +47,7 @@ use layout::traversal::{
     construct_flows_at_ancestors, ComputeStackingRelativePositions, PreorderFlowTraversal,
     RecalcStyleAndConstructFlows,
 };
-use layout::wrapper::LayoutNodeLayoutData;
+use layout::wrapper::ThreadSafeLayoutNodeHelpers;
 use layout::{layout_debug, layout_debug_scope, parallel, sequential, LayoutData};
 use lazy_static::lazy_static;
 use log::{debug, error, trace, warn};
@@ -761,7 +761,11 @@ impl LayoutThread {
     }
 
     fn try_get_layout_root<'dom>(&self, node: impl LayoutNode<'dom>) -> Option<FlowRef> {
-        let result = node.mutate_layout_data()?.flow_construction_result.get();
+        let result = node
+            .to_threadsafe()
+            .mutate_layout_data()?
+            .flow_construction_result
+            .get();
 
         let mut flow = match result {
             ConstructionResult::Flow(mut flow, abs_descendants) => {
