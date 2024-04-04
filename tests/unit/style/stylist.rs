@@ -8,17 +8,37 @@ use selectors::parser::{AncestorHashes, Selector};
 use servo_arc::Arc;
 use servo_atoms::Atom;
 use style::context::QuirksMode;
+use style::font_metrics::FontMetrics;
 use style::media_queries::{Device, MediaType};
+use style::properties::style_structs::Font;
 use style::properties::{longhands, Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use style::selector_map::SelectorMap;
 use style::selector_parser::{SelectorImpl, SelectorParser};
+use style::servo::media_queries::FontMetricsProvider;
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::StyleRule;
 use style::stylist::{
     needs_revalidation_for_testing, ContainerConditionId, LayerId, Rule, Stylist,
 };
 use style::thread_state::{self, ThreadState};
+use style::values::computed::Length;
 use url::Url;
+
+#[derive(Debug)]
+struct DummyMetricsProvider;
+
+impl FontMetricsProvider for DummyMetricsProvider {
+    fn query_font_metrics(
+        &self,
+        _vertical: bool,
+        _font: &Font,
+        _base_size: Length,
+        _in_media_query: bool,
+        _retrieve_math_scales: bool,
+    ) -> FontMetrics {
+        Default::default()
+    }
+}
 
 /// Helper method to get some Rules from selector strings.
 /// Each sublist of the result contains the Rules for one StyleRule.
@@ -223,6 +243,7 @@ fn mock_stylist() -> Stylist {
         QuirksMode::NoQuirks,
         Size2D::new(0f32, 0f32),
         Scale::new(1.0),
+        Box::new(DummyMetricsProvider),
     );
     Stylist::new(device, QuirksMode::NoQuirks)
 }

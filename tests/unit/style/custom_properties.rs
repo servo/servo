@@ -9,12 +9,32 @@ use style::context::QuirksMode;
 use style::custom_properties::{
     ComputedCustomProperties, CustomPropertiesBuilder, Name, SpecifiedValue,
 };
+use style::font_metrics::FontMetrics;
 use style::media_queries::{Device, MediaType};
+use style::properties::style_structs::Font;
 use style::properties::{CustomDeclaration, CustomDeclarationValue};
 use style::rule_tree::CascadeLevel;
+use style::servo::media_queries::FontMetricsProvider;
 use style::stylesheets::layer_rule::LayerOrder;
 use style::stylist::Stylist;
+use style::values::computed::Length;
 use test::{self, Bencher};
+
+#[derive(Debug)]
+struct DummyMetricsProvider;
+
+impl FontMetricsProvider for DummyMetricsProvider {
+    fn query_font_metrics(
+        &self,
+        _vertical: bool,
+        _font: &Font,
+        _base_size: Length,
+        _in_media_query: bool,
+        _retrieve_math_scales: bool,
+    ) -> FontMetrics {
+        Default::default()
+    }
+}
 
 fn cascade(
     name_and_value: &[(&str, &str)],
@@ -36,6 +56,7 @@ fn cascade(
         QuirksMode::NoQuirks,
         Size2D::new(800., 600.),
         Scale::new(1.0),
+        Box::new(DummyMetricsProvider),
     );
     let stylist = Stylist::new(device, QuirksMode::NoQuirks);
     let mut builder = CustomPropertiesBuilder::new(inherited, &stylist, false);

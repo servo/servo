@@ -42,7 +42,7 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
-use parking_lot::RwLock;
+use parking_lot::{ReentrantMutex, RwLock};
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use profile_traits::path;
 use profile_traits::time::{
@@ -69,14 +69,15 @@ use style::context::{
     QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters, SharedStyleContext,
 };
 use style::dom::{OpaqueNode, TElement, TNode};
-use style::driver;
 use style::error_reporting::RustLogReporter;
+use style::font_metrics::FontMetrics;
 use style::global_style_data::{GLOBAL_STYLE_DATA, STYLE_THREAD_POOL};
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::properties::style_structs::Font;
 use style::properties::PropertyId;
 use style::selector_parser::{PseudoElement, SnapshotMap};
+use style::servo::media_queries::FontMetricsProvider;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{
     DocumentStyleSheet, Origin, Stylesheet, StylesheetInDocument, UrlExtraData,
@@ -85,6 +86,8 @@ use style::stylesheets::{
 use style::stylist::Stylist;
 use style::traversal::DomTraversal;
 use style::traversal_flags::TraversalFlags;
+use style::values::computed::CSSPixelLength;
+use style::{driver, Zero};
 use style_traits::{CSSPixel, DevicePixel, SpeculativePainter};
 use url::Url;
 use webrender_api::units::LayoutPixel;
@@ -119,8 +122,9 @@ pub struct LayoutThread {
     /// Reference to the script thread image cache.
     image_cache: Arc<dyn ImageCache>,
 
-    /// Public interface to the font cache thread.
-    font_cache_thread: FontCacheThread,
+    /// Public interface to the font cache thread. This needs to be behind a [`ReentrantMutex`],
+    /// because some font cache operations can trigger others.
+    font_cache_thread: Arc<ReentrantMutex<FontCacheThread>>,
 
     /// Is this the first reflow in this LayoutThread?
     first_reflow: Cell<bool>,
@@ -234,6 +238,10 @@ impl Layout for LayoutThread {
 
     fn handle_font_cache_msg(&mut self) {
         self.handle_request(Request::FromFontCache);
+    }
+
+    fn device<'a>(&'a self) -> &'a Device {
+        self.stylist.device()
     }
 
     fn waiting_for_web_fonts_to_load(&self) -> bool {
@@ -448,11 +456,13 @@ impl LayoutThread {
 
         // The device pixel ratio is incorrect (it does not have the hidpi value),
         // but it will be set correctly when the initial reflow takes place.
+        let font_cache_thread = Arc::new(ReentrantMutex::new(font_cache_thread));
         let device = Device::new(
             MediaType::screen(),
             QuirksMode::NoQuirks,
             window_size.initial_viewport,
             window_size.device_pixel_ratio,
+            Box::new(LayoutFontMetricsProvider(font_cache_thread.clone())),
         );
 
         // Ask the router to proxy IPC messages from the font cache thread to layout.
@@ -546,7 +556,7 @@ impl LayoutThread {
                 traversal_flags,
             ),
             image_cache: self.image_cache.clone(),
-            font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
+            font_cache_thread: self.font_cache_thread.clone(),
             webrender_image_cache: self.webrender_image_cache.clone(),
             pending_images: Mutex::new(vec![]),
             use_rayon,
@@ -629,8 +639,10 @@ impl LayoutThread {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts.
         if stylesheet.is_effective_for_device(self.stylist.device(), &guard) {
-            let newly_loading_font_count =
-                self.font_cache_thread.add_all_web_fonts_from_stylesheet(
+            let newly_loading_font_count = self
+                .font_cache_thread
+                .lock()
+                .add_all_web_fonts_from_stylesheet(
                     &*stylesheet,
                     &guard,
                     self.stylist.device(),
@@ -1092,6 +1104,7 @@ impl LayoutThread {
             self.stylist.quirks_mode(),
             window_size_data.initial_viewport,
             window_size_data.device_pixel_ratio,
+            Box::new(LayoutFontMetricsProvider(self.font_cache_thread.clone())),
         );
 
         // Preserve any previously computed root font size.
@@ -1246,5 +1259,46 @@ impl RegisteredSpeculativePainters for RegisteredPaintersImpl {
         self.0
             .get(&name)
             .map(|painter| painter as &dyn RegisteredSpeculativePainter)
+    }
+}
+
+#[derive(Debug)]
+struct LayoutFontMetricsProvider(Arc<ReentrantMutex<FontCacheThread>>);
+
+impl FontMetricsProvider for LayoutFontMetricsProvider {
+    fn query_font_metrics(
+        &self,
+        _vertical: bool,
+        font: &Font,
+        base_size: CSSPixelLength,
+        _in_media_query: bool,
+        _retrieve_math_scales: bool,
+    ) -> FontMetrics {
+        layout::context::with_thread_local_font_context(&self.0, move |font_context| {
+            let Some(servo_metrics) = font_context
+                .font_group_with_size(ServoArc::new(font.clone()), base_size.into())
+                .borrow_mut()
+                .first(font_context)
+                .map(|font| font.borrow().metrics.clone())
+            else {
+                return Default::default();
+            };
+
+            // Only use the x-height of this font if it is non-zero. Some fonts return
+            // inaccurate metrics, which shouldn't be used.
+            let x_height = Some(servo_metrics.x_height)
+                .filter(|x_height| !x_height.is_zero())
+                .map(CSSPixelLength::from);
+
+            FontMetrics {
+                x_height,
+                zero_advance_measure: None,
+                cap_height: None,
+                ic_width: None,
+                ascent: servo_metrics.ascent.into(),
+                script_percent_scale_down: None,
+                script_script_percent_scale_down: None,
+            }
+        })
     }
 }

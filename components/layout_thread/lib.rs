@@ -92,6 +92,7 @@ use style::media_queries::{Device, MediaList, MediaType};
 use style::properties::style_structs::Font;
 use style::properties::PropertyId;
 use style::selector_parser::{PseudoElement, SnapshotMap};
+use style::servo::media_queries::FontMetricsProvider;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{
@@ -261,6 +262,10 @@ impl Layout for LayoutThread {
 
     fn handle_font_cache_msg(&mut self) {
         self.handle_request(Request::FromFontCache);
+    }
+
+    fn device<'a>(&'a self) -> &'a Device {
+        self.stylist.device()
     }
 
     fn waiting_for_web_fonts_to_load(&self) -> bool {
@@ -506,6 +511,7 @@ impl LayoutThread {
             QuirksMode::NoQuirks,
             window_size.initial_viewport,
             window_size.device_pixel_ratio,
+            Box::new(LayoutFontMetricsProvider),
         );
 
         // Ask the router to proxy IPC messages from the font cache thread to layout.
@@ -1477,6 +1483,7 @@ impl LayoutThread {
             self.stylist.quirks_mode(),
             window_size_data.initial_viewport,
             window_size_data.device_pixel_ratio,
+            Box::new(LayoutFontMetricsProvider),
         );
 
         // Preserve any previously computed root font size.
@@ -1682,5 +1689,21 @@ impl RegisteredPainters for RegisteredPaintersImpl {
         self.0
             .get(name)
             .map(|painter| painter as &dyn RegisteredPainter)
+    }
+}
+
+#[derive(Debug)]
+struct LayoutFontMetricsProvider;
+
+impl FontMetricsProvider for LayoutFontMetricsProvider {
+    fn query_font_metrics(
+        &self,
+        _vertical: bool,
+        _font: &Font,
+        _base_size: style::values::computed::CSSPixelLength,
+        _in_media_query: bool,
+        _retrieve_math_scales: bool,
+    ) -> style::font_metrics::FontMetrics {
+        Default::default()
     }
 }

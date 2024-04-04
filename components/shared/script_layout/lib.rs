@@ -40,6 +40,7 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 use style::animation::DocumentAnimationSet;
 use style::data::ElementData;
 use style::dom::OpaqueNode;
+use style::media_queries::Device;
 use style::properties::style_structs::Font;
 use style::properties::PropertyId;
 use style::selector_parser::PseudoElement;
@@ -178,6 +179,10 @@ pub trait Layout {
 
     /// Handle a a single mesasge from the FontCacheThread.
     fn handle_font_cache_msg(&mut self);
+
+    /// Get a reference to this Layout's Stylo `Device` used to handle media queries and
+    /// resolve font metrics.
+    fn device<'a>(&'a self) -> &'a Device;
 
     /// Whether or not this layout is waiting for fonts from loaded stylesheets to finish loading.
     fn waiting_for_web_fonts_to_load(&self) -> bool;
