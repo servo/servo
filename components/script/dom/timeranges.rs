@@ -56,16 +56,12 @@ pub enum TimeRangesError {
     OutOfRange,
 }
 
-#[derive(Clone, Debug, JSTraceable, MallocSizeOf)]
+#[derive(Clone, Debug, Default, JSTraceable, MallocSizeOf)]
 pub struct TimeRangesContainer {
     ranges: Vec<TimeRange>,
 }
 
 impl TimeRangesContainer {
-    pub fn new() -> Self {
-        Self { ranges: Vec::new() }
-    }
-
     pub fn len(&self) -> u32 {
         self.ranges.len() as u32
     }

@@ -11,7 +11,7 @@ use webgpu::wgpu::id::{
 use webgpu::wgpu::identity::IdentityManager;
 use webgpu::wgt::Backend;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct IdentityHub {
     adapters: IdentityManager,
     devices: IdentityManager,
@@ -29,28 +29,7 @@ pub struct IdentityHub {
     render_bundles: IdentityManager,
 }
 
-impl IdentityHub {
-    fn new() -> Self {
-        IdentityHub {
-            adapters: IdentityManager::default(),
-            devices: IdentityManager::default(),
-            buffers: IdentityManager::default(),
-            bind_groups: IdentityManager::default(),
-            bind_group_layouts: IdentityManager::default(),
-            compute_pipelines: IdentityManager::default(),
-            pipeline_layouts: IdentityManager::default(),
-            shader_modules: IdentityManager::default(),
-            command_encoders: IdentityManager::default(),
-            textures: IdentityManager::default(),
-            texture_views: IdentityManager::default(),
-            samplers: IdentityManager::default(),
-            render_pipelines: IdentityManager::default(),
-            render_bundles: IdentityManager::default(),
-        }
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Identities {
     _surface: IdentityManager,
     #[cfg(any(target_os = "linux", target_os = "windows"))]
@@ -65,21 +44,6 @@ pub struct Identities {
 }
 
 impl Identities {
-    pub fn new() -> Self {
-        Identities {
-            _surface: IdentityManager::default(),
-            #[cfg(any(target_os = "linux", target_os = "windows"))]
-            vk_hub: IdentityHub::new(),
-            #[cfg(target_os = "windows")]
-            dx12_hub: IdentityHub::new(),
-            #[cfg(target_os = "windows")]
-            dx11_hub: IdentityHub::new(),
-            #[cfg(any(target_os = "ios", target_os = "macos"))]
-            metal_hub: IdentityHub::new(),
-            dummy_hub: IdentityHub::new(),
-        }
-    }
-
     fn select(&mut self, backend: Backend) -> &mut IdentityHub {
         match backend {
             #[cfg(any(target_os = "linux", target_os = "windows"))]

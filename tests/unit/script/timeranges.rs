@@ -13,7 +13,7 @@ fn check(time_ranges: &TimeRangesContainer, expected: &'static str) {
 
 #[test]
 fn initial_state() {
-    let time_ranges = TimeRangesContainer::new();
+    let time_ranges = TimeRangesContainer::default();
     assert_eq!(time_ranges.len(), 0);
     assert!(time_ranges.start(0).is_err());
     assert!(time_ranges.end(0).is_err());
@@ -21,13 +21,13 @@ fn initial_state() {
 
 #[test]
 fn error_if_start_is_older_than_end() {
-    let mut time_ranges = TimeRangesContainer::new();
+    let mut time_ranges = TimeRangesContainer::default();
     assert!(time_ranges.add(2., 1.).is_err());
 }
 
 #[test]
 fn single_range() {
-    let mut time_ranges = TimeRangesContainer::new();
+    let mut time_ranges = TimeRangesContainer::default();
     time_ranges.add(1., 2.).unwrap();
     check(&time_ranges, "[1,2)");
     assert_eq!(time_ranges.start(0).unwrap(), 1.);
@@ -36,14 +36,14 @@ fn single_range() {
 
 #[test]
 fn add_order() {
-    let mut time_ranges_a = TimeRangesContainer::new();
+    let mut time_ranges_a = TimeRangesContainer::default();
     for range in vec![(0., 2.), (3., 4.), (5., 100.)].iter() {
         time_ranges_a.add(range.0, range.1).unwrap();
     }
     let expected = "[0,2), [3,4), [5,100)";
     check(&time_ranges_a, expected);
 
-    let mut time_ranges_b = TimeRangesContainer::new();
+    let mut time_ranges_b = TimeRangesContainer::default();
     // Add the values in time_ranges_a to time_ranges_b in reverse order.
     for i in (0..time_ranges_a.len()).rev() {
         time_ranges_b
@@ -58,7 +58,7 @@ fn add_order() {
 
 #[test]
 fn add_overlapping() {
-    let mut time_ranges = TimeRangesContainer::new();
+    let mut time_ranges = TimeRangesContainer::default();
 
     time_ranges.add(0., 2.).unwrap();
     time_ranges.add(10., 11.).unwrap();

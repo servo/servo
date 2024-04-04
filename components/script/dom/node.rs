@@ -214,12 +214,6 @@ bitflags! {
     }
 }
 
-impl NodeFlags {
-    pub fn new() -> NodeFlags {
-        NodeFlags::empty()
-    }
-}
-
 /// suppress observers flag
 /// <https://dom.spec.whatwg.org/#concept-node-insert>
 /// <https://dom.spec.whatwg.org/#concept-node-remove>
@@ -1816,15 +1810,12 @@ impl Node {
     }
 
     pub fn new_inherited(doc: &Document) -> Node {
-        Node::new_(NodeFlags::new(), Some(doc))
+        Node::new_(NodeFlags::empty(), Some(doc))
     }
 
     #[allow(crown::unrooted_must_root)]
     pub fn new_document_node() -> Node {
-        Node::new_(
-            NodeFlags::new() | NodeFlags::IS_IN_DOC | NodeFlags::IS_CONNECTED,
-            None,
-        )
+        Node::new_(NodeFlags::IS_IN_DOC | NodeFlags::IS_CONNECTED, None)
     }
 
     #[allow(crown::unrooted_must_root)]
