@@ -28,7 +28,6 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::context::LayoutContext;
 use layout::display_list::{DisplayList, WebRenderImageInfo};
-use layout::dom::DOMLayoutData;
 use layout::query::{
     process_content_box_request, process_content_boxes_request, process_element_inner_text_query,
     process_node_geometry_request, process_node_scroll_area_request,
@@ -293,7 +292,7 @@ impl Layout for LayoutThread {
         &self,
         node: script_layout_interface::TrustedNodeAddress,
     ) -> String {
-        let node = unsafe { ServoLayoutNode::<DOMLayoutData>::new(&node) };
+        let node = unsafe { ServoLayoutNode::new(&node) };
         process_element_inner_text_query(node)
     }
 
@@ -340,7 +339,7 @@ impl Layout for LayoutThread {
         animations: DocumentAnimationSet,
         animation_timeline_value: f64,
     ) -> String {
-        let node: ServoLayoutNode<DOMLayoutData> = unsafe { ServoLayoutNode::new(&node) };
+        let node = unsafe { ServoLayoutNode::new(&node) };
         let document = node.owner_doc();
         let document_shared_lock = document.style_shared_lock();
         let guards = StylesheetGuards {
@@ -374,7 +373,7 @@ impl Layout for LayoutThread {
         animations: DocumentAnimationSet,
         animation_timeline_value: f64,
     ) -> Option<ServoArc<Font>> {
-        let node: ServoLayoutNode<DOMLayoutData> = unsafe { ServoLayoutNode::new(&node) };
+        let node = unsafe { ServoLayoutNode::new(&node) };
         let document = node.owner_doc();
         let document_shared_lock = document.style_shared_lock();
         let guards = StylesheetGuards {
@@ -403,7 +402,7 @@ impl Layout for LayoutThread {
         &self,
         node: script_layout_interface::TrustedNodeAddress,
     ) -> ExternalScrollId {
-        let node = unsafe { ServoLayoutNode::<DOMLayoutData>::new(&node) };
+        let node = unsafe { ServoLayoutNode::new(&node) };
         process_node_scroll_id_request(self.id, node)
     }
 
@@ -662,7 +661,7 @@ impl LayoutThread {
 
     /// The high-level routine that performs layout.
     fn handle_reflow(&mut self, data: &mut ScriptReflowResult) {
-        let document = unsafe { ServoLayoutNode::<DOMLayoutData>::new(&data.document) };
+        let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
         let Some(root_element) = document.root_element() else {
             debug!("layout: No root node: bailing");
@@ -726,19 +725,11 @@ impl LayoutThread {
         let elements_with_snapshot: Vec<_> = restyles
             .iter()
             .filter(|r| r.1.snapshot.is_some())
-            .map(|r| unsafe {
-                ServoLayoutNode::<DOMLayoutData>::new(&r.0)
-                    .as_element()
-                    .unwrap()
-            })
+            .map(|r| unsafe { ServoLayoutNode::new(&r.0).as_element().unwrap() })
             .collect();
 
         for (el, restyle) in restyles {
-            let el = unsafe {
-                ServoLayoutNode::<DOMLayoutData>::new(&el)
-                    .as_element()
-                    .unwrap()
-            };
+            let el = unsafe { ServoLayoutNode::new(&el).as_element().unwrap() };
 
             // If we haven't styled this node yet, we don't need to track a
             // restyle.
@@ -779,20 +770,19 @@ impl LayoutThread {
         );
 
         let dirty_root = unsafe {
-            ServoLayoutNode::<DOMLayoutData>::new(&data.dirty_root.unwrap())
+            ServoLayoutNode::new(&data.dirty_root.unwrap())
                 .as_element()
                 .unwrap()
         };
 
         let traversal = RecalcStyle::new(layout_context);
         let token = {
-            let shared =
-                DomTraversal::<ServoLayoutElement<DOMLayoutData>>::shared_context(&traversal);
+            let shared = DomTraversal::<ServoLayoutElement>::shared_context(&traversal);
             RecalcStyle::pre_traverse(dirty_root, shared)
         };
 
         if token.should_traverse() {
-            let dirty_root: ServoLayoutNode<DOMLayoutData> =
+            let dirty_root: ServoLayoutNode =
                 driver::traverse_dom(&traversal, token, rayon_pool).as_node();
 
             let root_node = root_element.as_node();
@@ -908,7 +898,7 @@ impl LayoutThread {
         &self,
         fragment_tree: Arc<FragmentTree>,
         reflow_goal: &ReflowGoal,
-        document: Option<&ServoLayoutDocument<DOMLayoutData>>,
+        document: Option<&ServoLayoutDocument>,
         context: &mut LayoutContext,
     ) {
         Self::cancel_animations_for_nodes_not_in_fragment_tree(

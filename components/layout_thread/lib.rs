@@ -48,7 +48,7 @@ use layout::traversal::{
     RecalcStyleAndConstructFlows,
 };
 use layout::wrapper::ThreadSafeLayoutNodeHelpers;
-use layout::{layout_debug, layout_debug_scope, parallel, sequential, LayoutData};
+use layout::{layout_debug, layout_debug_scope, parallel, sequential};
 use lazy_static::lazy_static;
 use log::{debug, error, trace, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -331,7 +331,7 @@ impl Layout for LayoutThread {
         &self,
         node: script_layout_interface::TrustedNodeAddress,
     ) -> String {
-        let node: ServoLayoutNode<LayoutData> = unsafe { ServoLayoutNode::new(&node) };
+        let node = unsafe { ServoLayoutNode::new(&node) };
         process_element_inner_text_query(node, &self.indexable_text.borrow())
     }
 
@@ -383,7 +383,7 @@ impl Layout for LayoutThread {
         animations: DocumentAnimationSet,
         animation_timeline_value: f64,
     ) -> String {
-        let node: ServoLayoutNode<LayoutData> = unsafe { ServoLayoutNode::new(&node) };
+        let node = unsafe { ServoLayoutNode::new(&node) };
         let document = node.owner_doc();
         let document_shared_lock = document.style_shared_lock();
         let guards = StylesheetGuards {
@@ -421,7 +421,7 @@ impl Layout for LayoutThread {
         animations: DocumentAnimationSet,
         animation_timeline_value: f64,
     ) -> Option<ServoArc<Font>> {
-        let node: ServoLayoutNode<LayoutData> = unsafe { ServoLayoutNode::new(&node) };
+        let node = unsafe { ServoLayoutNode::new(&node) };
         let document = node.owner_doc();
         let document_shared_lock = document.style_shared_lock();
         let guards = StylesheetGuards {
@@ -450,7 +450,7 @@ impl Layout for LayoutThread {
         &self,
         node: script_layout_interface::TrustedNodeAddress,
     ) -> webrender_api::ExternalScrollId {
-        let node: ServoLayoutNode<LayoutData> = unsafe { ServoLayoutNode::new(&node) };
+        let node = unsafe { ServoLayoutNode::new(&node) };
         process_node_scroll_id_request(self.id, node)
     }
 
@@ -877,7 +877,7 @@ impl LayoutThread {
         &self,
         data: &Reflow,
         reflow_goal: &ReflowGoal,
-        document: Option<&ServoLayoutDocument<LayoutData>>,
+        document: Option<&ServoLayoutDocument>,
         layout_root: &mut dyn Flow,
         layout_context: &mut LayoutContext,
     ) {
@@ -1085,16 +1085,11 @@ impl LayoutThread {
         let elements_with_snapshot: Vec<_> = restyles
             .iter()
             .filter(|r| r.1.snapshot.is_some())
-            .map(|r| unsafe {
-                ServoLayoutNode::<LayoutData>::new(&r.0)
-                    .as_element()
-                    .unwrap()
-            })
+            .map(|r| unsafe { ServoLayoutNode::new(&r.0).as_element().unwrap() })
             .collect();
 
         for (el, restyle) in restyles {
-            let el: ServoLayoutElement<LayoutData> =
-                unsafe { ServoLayoutNode::new(&el).as_element().unwrap() };
+            let el = unsafe { ServoLayoutNode::new(&el).as_element().unwrap() };
 
             // If we haven't styled this node yet, we don't need to track a
             // restyle.
@@ -1145,9 +1140,10 @@ impl LayoutThread {
 
         let traversal = RecalcStyleAndConstructFlows::new(layout_context);
         let token = {
-            let shared = <RecalcStyleAndConstructFlows as DomTraversal<
-                ServoLayoutElement<LayoutData>,
-            >>::shared_context(&traversal);
+            let shared =
+                <RecalcStyleAndConstructFlows as DomTraversal<ServoLayoutElement>>::shared_context(
+                    &traversal,
+                );
             RecalcStyleAndConstructFlows::pre_traverse(dirty_root, shared)
         };
 
@@ -1160,7 +1156,7 @@ impl LayoutThread {
                 || {
                     // Perform CSS selector matching and flow construction.
                     let root = driver::traverse_dom::<
-                        ServoLayoutElement<LayoutData>,
+                        ServoLayoutElement,
                         RecalcStyleAndConstructFlows,
                     >(&traversal, token, thread_pool);
                     unsafe {
@@ -1310,7 +1306,7 @@ impl LayoutThread {
         root_flow: &mut FlowRef,
         data: &Reflow,
         reflow_goal: &ReflowGoal,
-        document: Option<&ServoLayoutDocument<LayoutData>>,
+        document: Option<&ServoLayoutDocument>,
         context: &mut LayoutContext,
         thread_pool: Option<&rayon::ThreadPool>,
     ) {
@@ -1404,7 +1400,7 @@ impl LayoutThread {
         data: &Reflow,
         mut root_flow: &mut FlowRef,
         reflow_goal: &ReflowGoal,
-        document: Option<&ServoLayoutDocument<LayoutData>>,
+        document: Option<&ServoLayoutDocument>,
         layout_context: &mut LayoutContext,
     ) {
         // Build the display list if necessary, and send it to the painter.
