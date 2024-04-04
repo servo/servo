@@ -56,15 +56,9 @@ pub enum TimeRangesError {
     OutOfRange,
 }
 
-#[derive(Clone, Debug, JSTraceable, MallocSizeOf)]
+#[derive(Clone, Debug, Default, JSTraceable, MallocSizeOf)]
 pub struct TimeRangesContainer {
     ranges: Vec<TimeRange>,
-}
-
-impl Default for TimeRangesContainer {
-    fn default() -> Self {
-        Self { ranges: Vec::new() }
-    }
 }
 
 impl TimeRangesContainer {

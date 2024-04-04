@@ -208,12 +208,6 @@ bitflags! {
     }
 }
 
-impl Default for NodeFlags {
-    fn default() -> NodeFlags {
-        NodeFlags::empty()
-    }
-}
-
 /// suppress observers flag
 /// <https://dom.spec.whatwg.org/#concept-node-insert>
 /// <https://dom.spec.whatwg.org/#concept-node-remove>
@@ -1805,15 +1799,12 @@ impl Node {
     }
 
     pub fn new_inherited(doc: &Document) -> Node {
-        Node::new_(NodeFlags::default(), Some(doc))
+        Node::new_(NodeFlags::empty(), Some(doc))
     }
 
     #[allow(crown::unrooted_must_root)]
     pub fn new_document_node() -> Node {
-        Node::new_(
-            NodeFlags::default() | NodeFlags::IS_IN_DOC | NodeFlags::IS_CONNECTED,
-            None,
-        )
+        Node::new_(NodeFlags::IS_IN_DOC | NodeFlags::IS_CONNECTED, None)
     }
 
     #[allow(crown::unrooted_must_root)]
@@ -1832,7 +1823,7 @@ impl Node {
             children_count: Cell::new(0u32),
             flags: Cell::new(flags),
             inclusive_descendants_version: Cell::new(0),
-            ranges: WeakRangeVec::default(),
+            ranges: WeakRangeVec::new(),
 
             style_and_layout_data: Default::default(),
         }

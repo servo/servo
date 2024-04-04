@@ -1082,9 +1082,7 @@ pub struct WeakRangeVec {
     cell: UnsafeCell<WeakRefVec<Range>>,
 }
 
-#[allow(unsafe_code)]
 impl Default for WeakRangeVec {
-    /// Create a new vector of weak references.
     fn default() -> Self {
         WeakRangeVec {
             cell: UnsafeCell::new(WeakRefVec::new()),
@@ -1094,6 +1092,11 @@ impl Default for WeakRangeVec {
 
 #[allow(unsafe_code)]
 impl WeakRangeVec {
+    /// Create a new vector of weak references.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     /// Whether that vector of ranges is empty.
     pub fn is_empty(&self) -> bool {
         unsafe { (*self.cell.get()).is_empty() }
