@@ -991,8 +991,7 @@ dictionary GPURenderBundleEncoderDescriptor : GPURenderPassLayout {
 interface GPUQueue {
     undefined submit(sequence<GPUCommandBuffer> buffers);
 
-    //TODO:
-    //Promise<undefined> onSubmittedWorkDone();
+    Promise<undefined> onSubmittedWorkDone();
 
     [Throws]
     undefined writeBuffer(

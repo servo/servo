@@ -2,19 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
+
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
 use webgpu::identity::WebGPUOpResult;
-use webgpu::{wgt, WebGPU, WebGPUQueue, WebGPURequest};
+use webgpu::{wgt, WebGPU, WebGPUQueue, WebGPURequest, WebGPUResponse};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::{GPUImageCopyTexture, GPUImageDataLayout};
+use super::gpu::{response_async, AsyncWGPUListener};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUExtent3D, GPUQueueMethods, GPUSize64,
 };
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer as BufferSource;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
@@ -25,6 +28,7 @@ use crate::dom::gpuconvert::{
     convert_texture_size_to_wgt,
 };
 use crate::dom::gpudevice::GPUDevice;
+use crate::dom::promise::Promise;
 
 #[dom_struct]
 pub struct GPUQueue {
@@ -190,5 +194,40 @@ impl GPUQueueMethods for GPUQueue {
         }
 
         Ok(())
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-onsubmittedworkdone>
+    fn OnSubmittedWorkDone(&self) -> Rc<Promise> {
+        let global = self.global();
+        let promise = Promise::new(&global);
+        let sender = response_async(&promise, self);
+        if let Err(e) = self.channel.0.send((
+            self.device.borrow().as_ref().unwrap().use_current_scope(),
+            WebGPURequest::QueueOnSubmittedWorkDone {
+                sender,
+                queue_id: self.queue.0,
+            },
+        )) {
+            warn!("QueueOnSubmittedWorkDone failed with {e}")
+        }
+        promise
+    }
+}
+
+impl AsyncWGPUListener for GPUQueue {
+    fn handle_response(
+        &self,
+        response: Option<Result<webgpu::WebGPUResponse, String>>,
+        promise: &Rc<Promise>,
+    ) {
+        match response {
+            Some(Ok(WebGPUResponse::SubmittedWorkDone)) => {
+                promise.resolve_native(&());
+            },
+            _ => {
+                warn!("GPUQueue received wrong WebGPUResponse");
+                promise.reject_error(Error::Operation);
+            },
+        }
     }
 }

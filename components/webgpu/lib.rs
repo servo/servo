@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use log::{error, warn};
+use wgpu::device::queue::SubmittedWorkDoneClosure;
 use wgpu::gfx_select;
 pub use {wgpu_core as wgpu, wgpu_types as wgt};
 
@@ -69,6 +70,7 @@ pub enum WebGPUResponse {
         descriptor: wgt::DeviceDescriptor<Option<String>>,
     },
     BufferMapAsync(IpcSharedMemory),
+    SubmittedWorkDone,
 }
 
 pub type WebGPUResponseResult = Result<WebGPUResponse, String>;
@@ -256,6 +258,10 @@ pub enum WebGPURequest {
         data_layout: wgt::ImageDataLayout,
         size: wgt::Extent3d,
         data: IpcSharedMemory,
+    },
+    QueueOnSubmittedWorkDone {
+        sender: IpcSender<Option<WebGPUResponseResult>>,
+        queue_id: id::QueueId,
     },
 }
 
@@ -1247,6 +1253,18 @@ impl<'a> WGPU<'a> {
                             &data_layout,
                             &size
                         ));
+                        self.send_result(queue_id, scope_id, result);
+                    },
+                    WebGPURequest::QueueOnSubmittedWorkDone { sender, queue_id } => {
+                        let global = &self.global;
+
+                        let callback = SubmittedWorkDoneClosure::from_rust(Box::from(move || {
+                            if let Err(e) = sender.send(Some(Ok(WebGPUResponse::SubmittedWorkDone)))
+                            {
+                                warn!("Could not send SubmittedWorkDone Response ({})", e);
+                            }
+                        }));
+                        let result = gfx_select!(queue_id => global.queue_on_submitted_work_done(queue_id, callback));
                         self.send_result(queue_id, scope_id, result);
                     },
                 }
