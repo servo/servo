@@ -87,18 +87,13 @@ impl Navigator {
     }
 
     pub fn set_gamepad(&self, index: usize, gamepad: &Gamepad) {
-        if index >= self.gamepads.borrow().len() {
-            self.gamepads
-                .borrow_mut()
-                .resize_with(index + 1, Default::default);
-        }
         if let Some(gamepad_to_set) = self.gamepads.borrow().get(index) {
             gamepad_to_set.set(Some(gamepad));
-            if self.has_gamepad_gesture.get() {
-                gamepad.set_exposed(true);
-                if self.global().as_window().Document().is_fully_active() {
-                    gamepad.notify_event(GamepadEventType::Connected);
-                }
+        }
+        if self.has_gamepad_gesture.get() {
+            gamepad.set_exposed(true);
+            if self.global().as_window().Document().is_fully_active() {
+                gamepad.notify_event(GamepadEventType::Connected);
             }
         }
     }
@@ -112,13 +107,13 @@ impl Navigator {
 
     /// <https://www.w3.org/TR/gamepad/#dfn-selecting-an-unused-gamepad-index>
     pub fn select_gamepad_index(&self) -> u32 {
-        let gamepad_list = self.gamepads.borrow();
-        if gamepad_list.is_empty() {
-            0
-        } else if let Some(index) = gamepad_list.iter().position(|g| g.get().is_none()) {
+        let mut gamepad_list = self.gamepads.borrow_mut();
+        if let Some(index) = gamepad_list.iter().position(|g| g.get().is_none()) {
             index as u32
         } else {
-            gamepad_list.len() as u32
+            let len = gamepad_list.len();
+            gamepad_list.resize_with(len + 1, Default::default);
+            len as u32
         }
     }
 

@@ -3121,6 +3121,9 @@ impl GlobalScope {
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepadconnected>
     pub fn handle_gamepad_connect(
         &self,
+        // As the spec actually defines how to set the gamepad index, the GilRs index
+        // is currently unused, though in practice it will almost always be the same.
+        // More infra is currently needed to track gamepads across windows.
         _index: usize,
         name: String,
         axis_bounds: (f64, f64),
