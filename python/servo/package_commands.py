@@ -8,6 +8,9 @@
 # except according to those terms.
 
 from datetime import datetime
+import random
+import time
+from typing import List
 from github import Github
 
 import hashlib
@@ -100,6 +103,24 @@ def change_prefs(resources_path, platform, vr=False):
         with open(prefs_path, "w") as out:
             json.dump(prefs, out, sort_keys=True, indent=2)
     delete(package_prefs_path)
+
+
+def check_call_with_randomized_backoff(args: List[str], retries: int) -> int:
+    """
+    Run the given command-line arguments via `subprocess.check_call()`. If the command
+    fails sleep for a random number of seconds between 2 and 5 and then try to the command
+    again, the given number of times.
+    """
+    try:
+        return subprocess.check_call(args)
+    except subprocess.CalledProcessError as e:
+        if retries == 0:
+            raise e
+
+        sleep_time = random.uniform(2, 5)
+        print(f"Running {args} failed with {e.returncode}. Trying again in {sleep_time}s")
+        time.sleep(sleep_time)
+        return check_call_with_randomized_backoff(args, retries - 1)
 
 
 @CommandProvider
@@ -234,15 +255,19 @@ class PackageCommands(CommandBase):
                 print("Deleting existing dmg")
                 os.remove(dmg_path)
 
+            # `hdiutil` gives "Resource busy" failures on GitHub Actions at times. This
+            # is an attempt to get around those issues by retrying the command a few times
+            # after a random wait.
             try:
-                subprocess.check_call(['hdiutil', 'create',
-                                       '-volname', 'Servo',
-                                       '-megabytes', '900',
-                                       dmg_path,
-                                       '-srcfolder', dir_to_dmg])
+                check_call_with_randomized_backoff(
+                    ['hdiutil', 'create', '-volname', 'Servo',
+                     '-megabytes', '900', dmg_path,
+                     '-srcfolder', dir_to_dmg],
+                    retries=3)
             except subprocess.CalledProcessError as e:
                 print("Packaging MacOS dmg exited with return value %d" % e.returncode)
                 return e.returncode
+
             print("Cleaning up")
             delete(dir_to_dmg)
             print("Packaged Servo into " + dmg_path)
