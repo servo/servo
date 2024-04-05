@@ -159,6 +159,7 @@ pub struct MediaFrameRenderer {
     old_frame: Option<ImageKey>,
     very_old_frame: Option<ImageKey>,
     current_frame_holder: Option<FrameHolder>,
+    show_poster: bool,
 }
 
 impl MediaFrameRenderer {
@@ -170,18 +171,25 @@ impl MediaFrameRenderer {
             old_frame: None,
             very_old_frame: None,
             current_frame_holder: None,
+            show_poster: false,
         }
     }
 
     fn render_poster_frame(&mut self, image: Arc<Image>) {
         if let Some(image_id) = image.id {
             self.current_frame = Some((image_id, image.width as i32, image.height as i32));
+            self.show_poster = true;
         }
     }
 }
 
 impl VideoFrameRenderer for MediaFrameRenderer {
     fn render(&mut self, frame: VideoFrame) {
+        // Don't render new frames if the poster should be shown
+        if self.show_poster {
+            return;
+        }
+
         let mut updates = vec![];
 
         if let Some(old_image_key) = mem::replace(&mut self.very_old_frame, self.old_frame.take()) {
@@ -666,7 +674,7 @@ impl HTMLMediaElement {
                 self.paused.set(false);
                 // Step 2
                 if self.show_poster.get() {
-                    self.show_poster.set(false);
+                    self.set_show_poster(false);
                     self.time_marches_on();
                 }
                 // Step 3
@@ -689,7 +697,7 @@ impl HTMLMediaElement {
         self.network_state.set(NetworkState::NoSource);
 
         // Step 2.
-        self.show_poster.set(true);
+        self.set_show_poster(true);
 
         // Step 3.
         self.delay_load_event(true);
@@ -1025,7 +1033,7 @@ impl HTMLMediaElement {
                     this.network_state.set(NetworkState::NoSource);
 
                     // Step 4.
-                    this.show_poster.set(true);
+                    this.set_show_poster(true);
 
                     // Step 5.
                     this.upcast::<EventTarget>().fire_event(atom!("error"));
@@ -1240,7 +1248,7 @@ impl HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-media-seek
     fn seek(&self, time: f64, _approximate_for_speed: bool) {
         // Step 1.
-        self.show_poster.set(false);
+        self.set_show_poster(false);
 
         // Step 2.
         if self.ready_state.get() == ReadyState::HaveNothing {
@@ -1976,6 +1984,15 @@ impl HTMLMediaElement {
         self.duration.set(duration);
     }
 
+    /// Sets a new value for the show_poster propperty. If the poster is being hidden
+    /// because new frames should render, updates video_renderer to allow it.
+    fn set_show_poster(&self, show_poster: bool) {
+        self.show_poster.set(show_poster);
+        if !show_poster {
+            self.video_renderer.lock().unwrap().show_poster = false;
+        }
+    }
+
     pub fn reset(&self) {
         if let Some(ref player) = *self.player.borrow() {
             if let Err(e) = player.lock().unwrap().stop() {
@@ -2179,7 +2196,7 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
 
             // Step 6.2.
             if self.show_poster.get() {
-                self.show_poster.set(false);
+                self.set_show_poster(false);
                 self.time_marches_on();
             }
 
