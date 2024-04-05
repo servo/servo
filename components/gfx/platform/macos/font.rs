@@ -14,7 +14,6 @@ use core_foundation::base::CFIndex;
 use core_foundation::data::CFData;
 use core_foundation::string::UniChar;
 use core_graphics::font::CGGlyph;
-use core_graphics::geometry::CGRect;
 use core_text::font::CTFont;
 use core_text::font_descriptor::{
     kCTFontDefaultOrientation, SymbolicTraitAccessors, TraitAccessors,
@@ -38,17 +37,8 @@ pub struct FontTable {
 }
 
 // assumes 72 points per inch, and 96 px per inch
-fn px_to_pt(px: f64) -> f64 {
-    px / 96. * 72.
-}
-
-// assumes 72 points per inch, and 96 px per inch
 fn pt_to_px(pt: f64) -> f64 {
     pt / 72. * 96.
-}
-
-fn au_from_pt(pt: f64) -> Au {
-    Au::from_f64_px(pt_to_px(pt))
 }
 
 impl FontTable {
@@ -281,43 +271,38 @@ impl FontHandleMethods for FontHandle {
         // TODO(mrobinson): Gecko first tries to get metrics from the SFNT tables via
         // HarfBuzz and only afterward falls back to platform APIs. We should do something
         // similar here. This will likely address issue #201 mentioned below.
-        let bounding_rect: CGRect = self.ctfont.bounding_box();
         let ascent = self.ctfont.ascent();
         let descent = self.ctfont.descent();
-        let em_size = Au::from_f64_px(self.ctfont.pt_size());
         let leading = self.ctfont.leading();
-
-        let scale = px_to_pt(self.ctfont.pt_size()) / (ascent + descent);
+        let x_height = self.ctfont.x_height();
+        let underline_thickness = self.ctfont.underline_thickness();
         let line_gap = (ascent + descent + leading + 0.5).floor();
 
-        let max_advance = au_from_pt(bounding_rect.size.width);
+        let max_advance = Au::from_f64_px(self.ctfont.bounding_box().size.width);
         let average_advance = self
             .glyph_index('0')
             .and_then(|idx| self.glyph_h_advance(idx))
             .map(Au::from_f64_px)
             .unwrap_or(max_advance);
 
-        let underline_size = au_from_pt(self.ctfont.underline_thickness());
-        let x_height = au_from_pt(self.ctfont.x_height() * scale);
-
         let metrics = FontMetrics {
-            underline_size,
+            underline_size: Au::from_f64_au(underline_thickness),
             // TODO(Issue #201): underline metrics are not reliable. Have to pull out of font table
             // directly.
             //
             // see also: https://bugs.webkit.org/show_bug.cgi?id=16768
             // see also: https://bugreports.qt-project.org/browse/QTBUG-13364
-            underline_offset: au_from_pt(self.ctfont.underline_position()),
+            underline_offset: Au::from_f64_px(self.ctfont.underline_position()),
             // There is no way to get these from CoreText or CoreGraphics APIs, so
             // derive them from the other font metrics. These should eventually be
             // found in the font tables directly when #201 is fixed.
-            strikeout_size: underline_size,
-            strikeout_offset: x_height.scale_by(0.5) + underline_size.scale_by(0.5),
-            leading: au_from_pt(leading),
-            x_height,
-            em_size,
-            ascent: au_from_pt(ascent * scale),
-            descent: au_from_pt(descent * scale),
+            strikeout_size: Au::from_f64_px(underline_thickness),
+            strikeout_offset: Au::from_f64_px((x_height + underline_thickness) / 2.0),
+            leading: Au::from_f64_px(leading),
+            x_height: Au::from_f64_px(x_height),
+            em_size: Au::from_f64_px(self.ctfont.pt_size()),
+            ascent: Au::from_f64_px(ascent),
+            descent: Au::from_f64_px(descent),
             max_advance,
             average_advance,
             line_gap: Au::from_f64_px(line_gap),
