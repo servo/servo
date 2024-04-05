@@ -104,9 +104,9 @@ pub enum DedicatedWorkerScriptMsg {
 }
 
 pub enum MixedMessage {
-    FromWorker(DedicatedWorkerScriptMsg),
-    FromDevtools(DevtoolScriptControlMsg),
-    FromControl(DedicatedWorkerControlMsg),
+    Worker(DedicatedWorkerScriptMsg),
+    Devtools(DevtoolScriptControlMsg),
+    Control(DedicatedWorkerControlMsg),
 }
 
 impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
@@ -220,15 +220,15 @@ impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
     }
 
     fn from_control_msg(&self, msg: DedicatedWorkerControlMsg) -> MixedMessage {
-        MixedMessage::FromControl(msg)
+        MixedMessage::Control(msg)
     }
 
     fn from_worker_msg(&self, msg: DedicatedWorkerScriptMsg) -> MixedMessage {
-        MixedMessage::FromWorker(msg)
+        MixedMessage::Worker(msg)
     }
 
     fn from_devtools_msg(&self, msg: DevtoolScriptControlMsg) -> MixedMessage {
-        MixedMessage::FromDevtools(msg)
+        MixedMessage::Devtools(msg)
     }
 
     fn control_receiver(&self) -> &Receiver<DedicatedWorkerControlMsg> {
@@ -539,7 +539,7 @@ impl DedicatedWorkerGlobalScope {
     fn handle_mixed_message(&self, msg: MixedMessage) -> bool {
         // FIXME(#26324): `self.worker` is None in devtools messages.
         match msg {
-            MixedMessage::FromDevtools(msg) => match msg {
+            MixedMessage::Devtools(msg) => match msg {
                 DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) => {
                     devtools::handle_evaluate_js(self.upcast(), string, sender)
                 },
@@ -548,15 +548,12 @@ impl DedicatedWorkerGlobalScope {
                 },
                 _ => debug!("got an unusable devtools control message inside the worker!"),
             },
-            MixedMessage::FromWorker(DedicatedWorkerScriptMsg::CommonWorker(
-                linked_worker,
-                msg,
-            )) => {
+            MixedMessage::Worker(DedicatedWorkerScriptMsg::CommonWorker(linked_worker, msg)) => {
                 let _ar = AutoWorkerReset::new(self, linked_worker);
                 self.handle_script_event(msg);
             },
-            MixedMessage::FromWorker(DedicatedWorkerScriptMsg::WakeUp) => {},
-            MixedMessage::FromControl(DedicatedWorkerControlMsg::Exit) => {
+            MixedMessage::Worker(DedicatedWorkerScriptMsg::WakeUp) => {},
+            MixedMessage::Control(DedicatedWorkerControlMsg::Exit) => {
                 return false;
             },
         }
