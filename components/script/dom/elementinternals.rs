@@ -366,6 +366,12 @@ impl Validatable for ElementInternals {
         if !self.target_element.is_submittable_element() {
             return false;
         }
-        !is_barred_by_datalist_ancestor(self.target_element.upcast::<Node>())
+
+        // The form-associated custom element is barred from constraint validation,
+        // if the readonly attribute is specified, the element is disabled,
+        // or the element has a datalist element ancestor.
+        !self.as_element().read_write_state() &&
+            !self.as_element().disabled_state() &&
+            !is_barred_by_datalist_ancestor(self.target_element.upcast::<Node>())
     }
 }

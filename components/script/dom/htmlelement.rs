@@ -943,6 +943,19 @@ impl VirtualMethods for HTMLElement {
                     }
                 }
             },
+            (&local_name!("readonly"), mutation) => {
+                if self.is_form_associated_custom_element() {
+                    let el = self.upcast::<Element>();
+                    match mutation {
+                        AttributeMutation::Set(_) => {
+                            el.set_read_write_state(true);
+                        },
+                        AttributeMutation::Removed => {
+                            el.set_read_write_state(false);
+                        },
+                    }
+                }
+            },
             _ => {},
         }
     }
