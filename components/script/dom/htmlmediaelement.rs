@@ -2766,15 +2766,12 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             // restart the download later from where we left, we cancel
             // the current request. Otherwise, we continue the request
             // assuming that we may drop some frames.
-            match e {
-                PlayerError::EnoughData => {
-                    if let Some(ref mut current_fetch_context) =
-                        *elem.current_fetch_context.borrow_mut()
-                    {
-                        current_fetch_context.cancel(CancelReason::Backoff);
-                    }
-                },
-                _ => (),
+            if e == PlayerError::EnoughData {
+                if let Some(ref mut current_fetch_context) =
+                    *elem.current_fetch_context.borrow_mut()
+                {
+                    current_fetch_context.cancel(CancelReason::Backoff);
+                }
             }
             warn!("Could not push input data to player {:?}", e);
             return;

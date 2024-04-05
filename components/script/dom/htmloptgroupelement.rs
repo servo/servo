@@ -87,38 +87,35 @@ impl VirtualMethods for HTMLOptGroupElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        match attr.local_name() {
-            &local_name!("disabled") => {
-                let disabled_state = match mutation {
-                    AttributeMutation::Set(None) => true,
-                    AttributeMutation::Set(Some(_)) => {
-                        // Option group was already disabled.
-                        return;
-                    },
-                    AttributeMutation::Removed => false,
-                };
-                let el = self.upcast::<Element>();
-                el.set_disabled_state(disabled_state);
-                el.set_enabled_state(!disabled_state);
-                let options = el
-                    .upcast::<Node>()
-                    .children()
-                    .filter(|child| child.is::<HTMLOptionElement>())
-                    .map(|child| DomRoot::from_ref(child.downcast::<HTMLOptionElement>().unwrap()));
-                if disabled_state {
-                    for option in options {
-                        let el = option.upcast::<Element>();
-                        el.set_disabled_state(true);
-                        el.set_enabled_state(false);
-                    }
-                } else {
-                    for option in options {
-                        let el = option.upcast::<Element>();
-                        el.check_disabled_attribute();
-                    }
+        if attr.local_name() == &local_name!("disabled") {
+            let disabled_state = match mutation {
+                AttributeMutation::Set(None) => true,
+                AttributeMutation::Set(Some(_)) => {
+                    // Option group was already disabled.
+                    return;
+                },
+                AttributeMutation::Removed => false,
+            };
+            let el = self.upcast::<Element>();
+            el.set_disabled_state(disabled_state);
+            el.set_enabled_state(!disabled_state);
+            let options = el
+                .upcast::<Node>()
+                .children()
+                .filter(|child| child.is::<HTMLOptionElement>())
+                .map(|child| DomRoot::from_ref(child.downcast::<HTMLOptionElement>().unwrap()));
+            if disabled_state {
+                for option in options {
+                    let el = option.upcast::<Element>();
+                    el.set_disabled_state(true);
+                    el.set_enabled_state(false);
                 }
-            },
-            _ => {},
+            } else {
+                for option in options {
+                    let el = option.upcast::<Element>();
+                    el.check_disabled_attribute();
+                }
+            }
         }
     }
 
