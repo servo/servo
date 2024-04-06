@@ -84,7 +84,10 @@ pub enum WebGPURequest {
         host_map: HostMap,
         map_range: std::ops::Range<u64>,
     },
-    BufferMapComplete(id::BufferId),
+    BufferMapComplete {
+        sender: IpcSender<Option<WebGPUResponseResult>>,
+        buffer_id: id::BufferId,
+    },
     CommandEncoderFinish {
         command_encoder_id: id::CommandEncoderId,
         device_id: id::DeviceId,
@@ -428,54 +431,35 @@ impl<'a> WGPU<'a> {
                         host_map,
                         map_range,
                     } => {
-                        let map_info = BufferMapInfo {
-                            buffer_id,
-                            sender: sender.clone(),
-                            global: &self.global,
-                            size: (map_range.end - map_range.start) as usize,
-                            external_id: None,
-                        };
-                        self.buffer_maps.insert(buffer_id, Rc::new(map_info));
-                        // TODO(sagudev): replace with safe callback
-                        unsafe extern "C" fn callback(
-                            status: BufferMapAsyncStatus,
-                            userdata: *mut u8,
-                        ) {
-                            let info = Rc::from_raw(
-                                userdata as *const BufferMapInfo<Option<WebGPUResponseResult>>,
-                            );
-                            let msg = match status {
-                                BufferMapAsyncStatus::Success => {
-                                    let global = &info.global;
-                                    let (slice_pointer, range_size) = gfx_select!(info.buffer_id =>
-                                        global.buffer_get_mapped_range(info.buffer_id, 0, None))
-                                    .unwrap();
-                                    let data =
-                                        slice::from_raw_parts(slice_pointer, range_size as usize);
-                                    Ok(WebGPUResponse::BufferMapAsync(IpcSharedMemory::from_bytes(
-                                        data,
-                                    )))
+                        let self_sender = self.sender.clone();
+                        let resp_sender = sender.clone();
+                        let callback = BufferMapCallback::from_rust(Box::from(move |result| {
+                            match result {
+                                Ok(()) => {
+                                    if let Err(e) = self_sender.send((
+                                        None,
+                                        WebGPURequest::BufferMapComplete {
+                                            sender: resp_sender,
+                                            buffer_id,
+                                        },
+                                    )) {
+                                        warn!("Could not send BufferMapComplete ({})", e);
+                                    }
                                 },
-                                _ => {
-                                    warn!("Could not map buffer({:?})", info.buffer_id);
-                                    Err(String::from("Failed to map Buffer"))
+                                Err(_) => {
+                                    warn!("Could not map buffer({:?})", buffer_id);
+                                    if let Err(e) = resp_sender
+                                        .send(Some(Err(String::from("Failed to map Buffer"))))
+                                    {
+                                        warn!("Could not send BufferMapAsync Response ({})", e);
+                                    }
                                 },
                             };
-                            if let Err(e) = info.sender.send(Some(msg)) {
-                                warn!("Could not send BufferMapAsync Response ({})", e);
-                            }
-                        }
+                        }));
 
                         let operation = BufferMapOperation {
                             host: host_map,
-                            callback: unsafe {
-                                Some(BufferMapCallback::from_c(BufferMapCallbackC {
-                                    callback,
-                                    user_data: convert_to_pointer(
-                                        self.buffer_maps.get(&buffer_id).unwrap().clone(),
-                                    ),
-                                }))
-                            },
+                            callback: Some(callback),
                         };
                         let global = &self.global;
                         let result = gfx_select!(buffer_id => global.buffer_map_async(buffer_id, map_range, operation));
@@ -486,8 +470,20 @@ impl<'a> WGPU<'a> {
                         }
                         self.send_result(device_id, scope_id, result);
                     },
-                    WebGPURequest::BufferMapComplete(buffer_id) => {
-                        self.buffer_maps.remove(&buffer_id);
+                    WebGPURequest::BufferMapComplete { sender, buffer_id } => {
+                        let global = &self.global;
+                        let (slice_pointer, range_size) = gfx_select!(buffer_id =>
+                                    global.buffer_get_mapped_range(buffer_id, 0, None))
+                        .unwrap();
+                        // SAFETY: guarantee to be safe from wgpu
+                        let data =
+                            unsafe { slice::from_raw_parts(slice_pointer, range_size as usize) };
+
+                        if let Err(e) = sender.send(Some(Ok(WebGPUResponse::BufferMapAsync(
+                            IpcSharedMemory::from_bytes(data),
+                        )))) {
+                            warn!("Could not send BufferMapAsync Response ({})", e);
+                        }
                     },
                     WebGPURequest::CommandEncoderFinish {
                         command_encoder_id,
