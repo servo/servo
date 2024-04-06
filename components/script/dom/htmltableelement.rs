@@ -398,16 +398,20 @@ impl HTMLTableElementMethods for HTMLTableElement {
     // https://html.spec.whatwg.org/multipage/#dom-table-deleterow
     fn DeleteRow(&self, mut index: i32) -> Fallible<()> {
         let rows = self.Rows();
+
         // Step 1.
-        if index == -1 {
-            index = rows.Length() as i32 - 1;
-        }
-        // Step 2.
-        if index < 0 || index as u32 >= rows.Length() {
+        if index < -1 || index >= rows.Length() as i32 {
             return Err(Error::IndexSize);
         }
-        // Step 3.
-        DomRoot::upcast::<Node>(rows.Item(index as u32).unwrap()).remove_self();
+
+        // Step 2
+        if index == -1 && rows.Length() > 0 {
+            index = rows.Length() as i32 - 1;
+
+            // Step 3.
+            DomRoot::upcast::<Node>(rows.Item(index as u32).unwrap()).remove_self();
+        }
+
         Ok(())
     }
 
