@@ -13,7 +13,6 @@ use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::num::NonZeroU64;
-use std::rc::Rc;
 use std::slice;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -45,8 +44,8 @@ use wgpu::id;
 use wgpu::instance::RequestAdapterOptions;
 use wgpu::pipeline::{ComputePipelineDescriptor, RenderPipelineDescriptor, ShaderModuleDescriptor};
 use wgpu::resource::{
-    BufferDescriptor, BufferMapAsyncStatus, BufferMapCallback, BufferMapCallbackC,
-    BufferMapOperation, SamplerDescriptor, TextureDescriptor, TextureViewDescriptor,
+    BufferDescriptor, BufferMapCallback, BufferMapOperation, SamplerDescriptor, TextureDescriptor,
+    TextureViewDescriptor,
 };
 use wgt::InstanceDescriptor;
 
@@ -284,14 +283,6 @@ pub enum WebGPURequest {
     },
 }
 
-struct BufferMapInfo<'a, T> {
-    buffer_id: id::BufferId,
-    sender: IpcSender<T>,
-    global: &'a wgpu::global::Global,
-    size: usize,
-    external_id: Option<u64>,
-}
-
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WebGPU(pub IpcSender<(Option<ErrorScopeId>, WebGPURequest)>);
 
@@ -356,13 +347,8 @@ impl WebGPU {
     }
 }
 
-type WebGPUBufferMaps<'a> =
-    HashMap<id::BufferId, Rc<BufferMapInfo<'a, Option<WebGPUResponseResult>>>>;
-type WebGPUPresentBufferMaps<'a> =
-    HashMap<id::BufferId, Rc<BufferMapInfo<'a, (Option<ErrorScopeId>, WebGPURequest)>>>;
-
 #[allow(clippy::upper_case_acronyms)] // Name of the library
-struct WGPU<'a> {
+struct WGPU {
     receiver: IpcReceiver<(Option<ErrorScopeId>, WebGPURequest)>,
     sender: IpcSender<(Option<ErrorScopeId>, WebGPURequest)>,
     script_sender: IpcSender<WebGPUMsg>,
@@ -371,8 +357,6 @@ struct WGPU<'a> {
     devices: HashMap<WebGPUDevice, PipelineId>,
     // Track invalid adapters https://gpuweb.github.io/gpuweb/#invalid
     _invalid_adapters: Vec<WebGPUAdapter>,
-    // Buffers with pending mapping
-    buffer_maps: WebGPUBufferMaps<'a>,
     //TODO: Remove this (https://github.com/gfx-rs/wgpu/issues/867)
     error_command_encoders: RefCell<HashMap<id::CommandEncoderId, String>>,
     webrender_api: RenderApi,
@@ -382,7 +366,7 @@ struct WGPU<'a> {
     last_poll: Instant,
 }
 
-impl<'a> WGPU<'a> {
+impl WGPU {
     fn new(
         receiver: IpcReceiver<(Option<ErrorScopeId>, WebGPURequest)>,
         sender: IpcSender<(Option<ErrorScopeId>, WebGPURequest)>,
@@ -406,7 +390,6 @@ impl<'a> WGPU<'a> {
             adapters: Vec::new(),
             devices: HashMap::new(),
             _invalid_adapters: Vec::new(),
-            buffer_maps: HashMap::new(),
             error_command_encoders: RefCell::new(HashMap::new()),
             webrender_api: webrender_api_sender.create_api(),
             webrender_document,
@@ -416,7 +399,7 @@ impl<'a> WGPU<'a> {
         }
     }
 
-    fn run(&'a mut self) {
+    fn run(&mut self) {
         loop {
             if self.last_poll.elapsed() >= Duration::from_millis(DEVICE_POLL_INTERVAL) {
                 let _ = self.global.poll_all_devices(false);
@@ -1406,10 +1389,6 @@ impl<'a> WGPU<'a> {
                 .or_insert_with(|| format!("{:?}", e));
         }
     }
-}
-
-fn convert_to_pointer<T: Sized>(obj: Rc<T>) -> *mut u8 {
-    Rc::into_raw(obj) as *mut u8
 }
 
 fn tuple_to_result<T, E>(res: (T, Option<E>)) -> Result<T, E> {
