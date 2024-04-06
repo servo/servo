@@ -395,22 +395,31 @@ impl HTMLTableElementMethods for HTMLTableElement {
         Ok(new_row)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-table-deleterow
+    /// <https://html.spec.whatwg.org/multipage/#dom-table-deleterow>
     fn DeleteRow(&self, mut index: i32) -> Fallible<()> {
         let rows = self.Rows();
+        let num_rows = rows.Length() as i32;
 
-        // Step 1.
-        if index < -1 || index >= rows.Length() as i32 {
+        // Step 1: If index is less than −1 or greater than or equal to the number of elements
+        // in the rows collection, then throw an "IndexSizeError".
+        if !(-1..num_rows).contains(&index) {
             return Err(Error::IndexSize);
         }
 
-        // Step 2
-        if index == -1 && rows.Length() > 0 {
-            index = rows.Length() as i32 - 1;
+        let num_rows = rows.Length() as i32;
 
-            // Step 3.
-            DomRoot::upcast::<Node>(rows.Item(index as u32).unwrap()).remove_self();
+        // Step 2: If index is −1, then remove the last element in the rows collection from its
+        // parent, or do nothing if the rows collection is empty.
+        if index == -1 {
+            index = num_rows - 1;
         }
+
+        if num_rows == 0 {
+            return Ok(());
+        }
+
+        // Step 3: Otherwise, remove the indexth element in the rows collection from its parent.
+        DomRoot::upcast::<Node>(rows.Item(index as u32).unwrap()).remove_self();
 
         Ok(())
     }
