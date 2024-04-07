@@ -657,21 +657,20 @@ impl HTMLScriptElement {
         if script_type == ScriptType::Classic {
             let for_attribute = element.get_attribute(&ns!(), &local_name!("for"));
             let event_attribute = element.get_attribute(&ns!(), &local_name!("event"));
-            match (for_attribute, event_attribute) {
-                (Some(ref for_attribute), Some(ref event_attribute)) => {
-                    let for_value = for_attribute.value().to_ascii_lowercase();
-                    let for_value = for_value.trim_matches(HTML_SPACE_CHARACTERS);
-                    if for_value != "window" {
-                        return;
-                    }
+            if let (Some(ref for_attribute), Some(ref event_attribute)) =
+                (for_attribute, event_attribute)
+            {
+                let for_value = for_attribute.value().to_ascii_lowercase();
+                let for_value = for_value.trim_matches(HTML_SPACE_CHARACTERS);
+                if for_value != "window" {
+                    return;
+                }
 
-                    let event_value = event_attribute.value().to_ascii_lowercase();
-                    let event_value = event_value.trim_matches(HTML_SPACE_CHARACTERS);
-                    if event_value != "onload" && event_value != "onload()" {
-                        return;
-                    }
-                },
-                (_, _) => (),
+                let event_value = event_attribute.value().to_ascii_lowercase();
+                let event_value = event_value.trim_matches(HTML_SPACE_CHARACTERS);
+                if event_value != "onload" && event_value != "onload()" {
+                    return;
+                }
             }
         }
 
@@ -1239,15 +1238,12 @@ impl VirtualMethods for HTMLScriptElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        match *attr.local_name() {
-            local_name!("src") => {
-                if let AttributeMutation::Set(_) = mutation {
-                    if !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
-                        self.prepare();
-                    }
+        if *attr.local_name() == local_name!("src") {
+            if let AttributeMutation::Set(_) = mutation {
+                if !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
+                    self.prepare();
                 }
-            },
-            _ => {},
+            }
         }
     }
 

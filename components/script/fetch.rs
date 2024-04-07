@@ -288,10 +288,9 @@ impl FetchResponseListener for FetchContext {
 
     fn submit_resource_timing(&mut self) {
         // navigation submission is handled in servoparser/mod.rs
-        match self.resource_timing.timing_type {
-            ResourceTimingType::Resource => network_listener::submit_timing(self),
-            _ => {},
-        };
+        if self.resource_timing.timing_type == ResourceTimingType::Resource {
+            network_listener::submit_timing(self)
+        }
     }
 }
 
