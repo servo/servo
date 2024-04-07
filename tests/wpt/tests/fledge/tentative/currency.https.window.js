@@ -501,7 +501,7 @@ subsetTest(promise_test, async test => {
     topLevelSellerScriptParamsOverride: {
       scoreAd: `
                 // scoreAd sees what's actually passed in.
-                if (bid != 9)
+                if (bid !== 9)
                   throw 'Wrong bid';
                 if (browserSignals.bidCurrency !== '???')
                   throw 'Wrong currency';`

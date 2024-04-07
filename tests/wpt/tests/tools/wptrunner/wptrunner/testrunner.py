@@ -773,6 +773,8 @@ class TestRunnerManager(threading.Thread):
                                             test.max_assertion_count)
 
         file_result.extra["test_timeout"] = test.timeout * self.executor_kwargs['timeout_multiplier']
+        if self.browser.browser_pid:
+            file_result.extra["browser_pid"] = self.browser.browser_pid
 
         self.logger.test_end(test.id,
                              status,

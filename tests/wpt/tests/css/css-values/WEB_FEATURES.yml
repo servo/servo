@@ -1,0 +1,17 @@
+features:
+- name: abs-sign
+  files:
+  - signs-abs-*
+- name: cap
+  files:
+  - cap-*
+- name: ic
+  files:
+  - ic-*
+- name: lh
+  files:
+  - lh-*
+- name: round-mod-rem
+  files:
+  - round-function.html
+  - round-mod-rem-*

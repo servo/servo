@@ -10,6 +10,10 @@ importScripts("/html/canvas/resources/canvas-tests.js");
 {# Promise vs. async test header: #}
 {% if test_type == 'promise' %}
 promise_test(async t => {
+{% elif test_type == 'async' %}
+async_test(t => {
+{% elif test_type == 'sync' %}
+test(t => {
 {% else %}
 var t = async_test("{{ desc | double_quote_escape }}");
 var t_pass = t.done.bind(t);
@@ -17,19 +21,20 @@ var t_fail = t.step_func(function(reason) {
     throw reason;
 });
 t.step(function() {
+
 {% endif %}
 
-{# Test body: #}
+{#- Test body: #}
   var canvas = new OffscreenCanvas({{ size[0] }}, {{ size[1] }});
   var ctx = canvas.getContext('2d'{% if attributes %}, {{ attributes }}{% endif %});
 
-  {{ code | trim | indent(2)}}
-  t.done();
+  {{ code_worker | trim | indent(2)}}
 
 {#- Promise vs. async test footer: +#}
-{% if test_type == 'promise' %}
-}, "{{ desc }}");
-{% else %}
+{% if not test_type %}
+  t.done();
 });
+{% else %}
+}, "{{ desc | double_quote_escape }}");
 {% endif %}
 done();

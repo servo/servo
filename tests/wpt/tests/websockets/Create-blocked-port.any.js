@@ -79,6 +79,7 @@ async_test(t => {
   2049, // nfs
   3659, // apple-sasl
   4045, // lockd
+  4190, // sieve
   6000, // x11
   6566, // sane-port
   6665, // irc (alternate)
@@ -86,6 +87,7 @@ async_test(t => {
   6667, // irc (default)
   6668, // irc (alternate)
   6669, // irc (alternate)
+  6679, // osaut
   6697, // irc+tls
   10080, // amanda
 ].forEach(blockedPort => {

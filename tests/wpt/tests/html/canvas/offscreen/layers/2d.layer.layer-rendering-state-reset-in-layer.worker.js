@@ -6,13 +6,7 @@
 importScripts("/resources/testharness.js");
 importScripts("/html/canvas/resources/canvas-tests.js");
 
-var t = async_test("Tests that layers ignore the global context filter.");
-var t_pass = t.done.bind(t);
-var t_fail = t.step_func(function(reason) {
-    throw reason;
-});
-t.step(function() {
-
+test(t => {
   var canvas = new OffscreenCanvas(100, 50);
   var ctx = canvas.getContext('2d');
 
@@ -47,6 +41,5 @@ t.step(function() {
   _assertSame(ctx.shadowOffsetX, 10, "ctx.shadowOffsetX", "10");
   _assertSame(ctx.shadowOffsetY, 20, "ctx.shadowOffsetY", "20");
   _assertSame(ctx.shadowBlur, 30, "ctx.shadowBlur", "30");
-  t.done();
-});
+}, "Tests that layers ignore the global context filter.");
 done();

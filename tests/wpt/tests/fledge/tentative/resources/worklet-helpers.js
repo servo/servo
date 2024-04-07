@@ -11,10 +11,10 @@ function deepEquals(a, b) {
     return a === b;
 
   let aKeys = Object.keys(a);
-  if (aKeys.length != Object.keys(b).length)
+  if (aKeys.length !== Object.keys(b).length)
     return false;
   for (let key of aKeys) {
-    if (a.hasOwnProperty(key) != b.hasOwnProperty(key) ||
+    if (a.hasOwnProperty(key) !== b.hasOwnProperty(key) ||
         !deepEquals(a[key], b[key])) {
       return false;
     }

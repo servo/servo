@@ -1,0 +1,4 @@
+features:
+- name: animation-composition
+  files:
+  - animation-composition-*

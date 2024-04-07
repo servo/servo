@@ -1,0 +1,106 @@
+<!doctype html>
+<meta charset="utf8">
+<link rel="help" href="https://w3c.github.io/payment-request/#updatewith()-method">
+<title>
+  updateWith() method - duplicate shippingOption ids
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({ explicit_done: true, explicit_timeout: true });
+const applePay = Object.freeze({
+  supportedMethods: "https://apple.com/apple-pay",
+  data: {
+    version: 3,
+    merchantIdentifier: "merchant.com.example",
+    countryCode: "US",
+    merchantCapabilities: ["supports3DS"],
+    supportedNetworks: ["visa"],
+  }
+});
+const validMethod = Object.freeze({ supportedMethods: "basic-card" });
+const validMethods = [validMethod, applePay];
+const validAmount = Object.freeze({
+  currency: "USD",
+  value: "5.00",
+});
+const validShippingOption = Object.freeze({
+  id: "option1",
+  label: "Option 1",
+  amount: validAmount,
+  selected: true,
+});
+const validShippingOptions = Object.freeze([validShippingOption]);
+const validDetails = Object.freeze({
+  total: {
+    label: "Total due",
+    amount: validAmount,
+  },
+  shippingOptions: validShippingOptions,
+});
+const validOptions = Object.freeze({
+  requestShipping: true,
+});
+
+test(() => {
+  try {
+    const request = new PaymentRequest(validMethods, validDetails);
+  } catch (err) {
+    done();
+    throw err;
+  }
+}, "Must construct a PaymentRequest (smoke test)");
+
+function testFireEvents(button) {
+  button.disabled = true;
+  promise_test(async t => {
+    const request = new PaymentRequest(
+      validMethods,
+      validDetails,
+      validOptions
+    );
+    request.addEventListener("shippingaddresschange", event => {
+      // Same option, so duplicate ids
+      const otherShippingOption = Object.assign({}, validShippingOption, {
+        id: "other",
+      });
+      const shippingOptions = [
+        validShippingOption,
+        otherShippingOption,
+        validShippingOption,
+      ];
+      const newDetails = Object.assign({}, validDetails, { shippingOptions });
+      event.updateWith(newDetails);
+    });
+    const acceptPromise = request.show();
+    await promise_rejects_js(
+      t,
+      TypeError,
+      acceptPromise,
+      "Duplicate shippingOption ids must abort with TypeError"
+    );
+  }, button.textContent.trim());
+  done();
+}
+</script>
+<h2>updateWith() method - duplicate shippingOptions ids</h2>
+<p>
+  Click on each button in sequence from top to bottom without refreshing the page.
+  Each button will bring up the Payment Request UI window.
+</p>
+<p>
+  When the payment sheet is shown, select a different shipping address.
+  If you have to manually abort the test from the payment sheet, then the
+  test has failed.
+</p>
+<ol>
+  <li>
+    <button onclick="testFireEvents(this)">
+      If there are duplicate shippingOption ids, then abort payment request.
+    </button>
+  </li>
+</ol>
+<small>
+  If you find a buggy test, please <a href="https://github.com/web-platform-tests/wpt/issues">file a bug</a>
+  and tag one of the <a href="https://github.com/web-platform-tests/wpt/blob/master/payment-request/META.yml">suggested reviewers</a>.
+</small>

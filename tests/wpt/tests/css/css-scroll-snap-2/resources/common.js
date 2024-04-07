@@ -17,9 +17,17 @@ function assertSnapEvent(evt, expected_ids) {
     "snap event supplied expected target in inline axis");
 }
 
-async function test_snap_event(test, test_data, event_type) {
+async function snap_test_setup(test, scroller, event_type) {
   checkSnapEventSupport(event_type);
-  await waitForScrollReset(test, test_data.scroller);
+  await waitForScrollReset(test, scroller);
+  await waitForCompositorCommit();
+  test.add_cleanup(async () => {
+    await waitForScrollReset(test, scroller);
+  });
+}
+
+async function test_snap_event(test, test_data, event_type) {
+  await snap_test_setup(test, test_data.scroller, event_type);
 
   let listener = test_data.scroller ==
     document.scrollingElement ? document : test_data.scroller;
@@ -64,6 +72,20 @@ function waitForEventsUntil(event_target, event_type, wait_until) {
     event_target.addEventListener(event_type, listener);
     wait_until.then(() => {
       event_target.removeEventListener(event_type, listener);
+      resolve(result);
+    });
+  });
+}
+
+function waitForOnSnapchanging(event_target) {
+  return new Promise(resolve => {
+    let result = null;
+    const listener = (evt) => {
+      result = evt;
+    };
+    event_target.onsnapchanging = listener;
+    waitForScrollendEventNoTimeout(event_target).then(() => {
+      event_target.onsnapchanging = null;
       resolve(result);
     });
   });

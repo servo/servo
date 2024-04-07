@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: when clamping by lines, lines after clamp are hidden even when they don't overflow</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-010-ref.html">
+<meta name="assert" content="When line-clamp is used with a number of lines, it should hide all lines after clamp, regardless of whether the box's height is set so they don't overflow">
+<style>
+.clamp {
+  line-clamp: 2;
+  font: 16px / 32px serif;
+  height: 4lh;
+  padding: 0 4px;
+  white-space: pre;
+  background-color: yellow;
+}
+</style>
+<div class="clamp">Line 1
+Line 2
+Line 3
+Line 4
+Line 5</div>

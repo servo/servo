@@ -357,6 +357,13 @@ async function pointerdown(target) {
     .send();
 }
 
+async function pointerup(target) {
+  const actions = new test_driver.Actions();
+  return actions.addPointer("mousePointer", "mouse")
+    .pointerMove(0, 0, { origin: target })
+    .pointerUp()
+    .send();
+}
 async function auxPointerdown(target) {
   const actions = new test_driver.Actions();
   return actions.addPointer("mousePointer", "mouse")
@@ -441,6 +448,11 @@ async function interactAndObserve(interactionType, target, observerPromise) {
       addListeners(target,
         ['mousedown', 'pointerdown', 'contextmenu']);
       interactionPromise = Promise.all([auxPointerdown(target), pointerdown(target)]);
+      break;
+    }
+    case 'orphan-pointerup': {
+      addListeners(target, ['pointerup']);
+      interactionPromise = pointerup(target);
       break;
     }
   }

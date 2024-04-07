@@ -1,0 +1,44 @@
+<!doctype html>
+<html class="reftest-wait">
+<head>
+<link rel=match href="cross-shadow-boundary-6-ref.html">
+</head>
+<span id="span">Start
+<div>
+  <template shadowrootmode="open">
+    <span id="inner1">inner1</p>
+    <span id="inner2">inner2</p>
+  </template>
+</div>
+</span>
+<script>
+  const start = document.getElementById("span").firstChild;
+  const end = document.querySelector('div').shadowRoot.getElementById("inner2");
+
+  async function waitForRAFs() {
+    return new Promise(resolve => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            resolve();
+          });
+        });
+      });
+    });
+  }
+
+  async function runTest() {
+    window.getSelection().setBaseAndExtent(start, 3, end.firstChild, 3);
+    await waitForRAFs();
+
+    window.getSelection().removeAllRanges();
+    await waitForRAFs();
+
+    window.getSelection().setBaseAndExtent(start, 3, end.firstChild, 3);
+    await waitForRAFs();
+    document.documentElement.className = "";
+  }
+
+  runTest();
+</script>
+</html>

@@ -7,7 +7,6 @@ importScripts("/resources/testharness.js");
 importScripts("/html/canvas/resources/canvas-tests.js");
 
 promise_test(async t => {
-
   var canvas = new OffscreenCanvas(100, 50);
   var ctx = canvas.getContext('2d');
 
@@ -28,6 +27,5 @@ promise_test(async t => {
   _assertPixelApprox(canvas, 51,48, 0,255,0,255, 2);
   _assertPixelApprox(canvas, 25,25, 0,255,0,255, 2);
   _assertPixelApprox(canvas, 75,25, 0,255,0,255, 2);
-  t.done();
 }, "Negative dimensions do not affect the direction of the image");
 done();

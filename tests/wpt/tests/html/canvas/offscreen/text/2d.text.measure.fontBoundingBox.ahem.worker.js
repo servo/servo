@@ -7,7 +7,6 @@ importScripts("/resources/testharness.js");
 importScripts("/html/canvas/resources/canvas-tests.js");
 
 promise_test(async t => {
-
   var canvas = new OffscreenCanvas(100, 50);
   var ctx = canvas.getContext('2d');
 
@@ -22,6 +21,5 @@ promise_test(async t => {
   _assertSame(ctx.measureText('A').fontBoundingBoxDescent, 10, "ctx.measureText('A').fontBoundingBoxDescent", "10");
   _assertSame(ctx.measureText('ABCD').fontBoundingBoxAscent, 40, "ctx.measureText('ABCD').fontBoundingBoxAscent", "40");
   _assertSame(ctx.measureText('ABCD').fontBoundingBoxDescent, 10, "ctx.measureText('ABCD').fontBoundingBoxDescent", "10");
-  t.done();
 }, "Testing fontBoundingBox for font ahem");
 done();

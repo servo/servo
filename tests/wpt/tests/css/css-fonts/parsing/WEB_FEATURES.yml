@@ -1,0 +1,14 @@
+features:
+- name: font-optical-sizing
+  files:
+  - font-optical-sizing-*
+- name: font-palette
+  files:
+  - font-palette-*
+  - font-palette-values-*
+- name: font-synthesis
+  files:
+  - font-synthesis-*
+- name: font-variant-alternates
+  files:
+  - font-variant-alternates-*

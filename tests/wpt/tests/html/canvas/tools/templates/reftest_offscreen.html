@@ -18,7 +18,7 @@
   const canvas = new OffscreenCanvas({{ size[0] }}, {{ size[1] }});
   const ctx = canvas.getContext('2d'{% if attributes %}, {{ attributes }}{% endif %});
 
-  {{ code | trim | indent(2) }}
+  {{ code_offscreen | trim | indent(2) }}
 
   const outputCanvas = document.getElementById("canvas");
   outputCanvas.getContext('2d'{% if attributes %}, {{ attributes }}{% endif %}).drawImage(canvas, 0, 0);

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>button (in button layout) with display: none/contents</title>
+<link rel=match href=display-none-or-contents-ref.html>
+<link rel=help href=https://html.spec.whatwg.org/multipage/rendering.html#button-layout-2>
+<style>
+#none{ display: none}
+#contents { display: contents; font: initial }
+</style>
+<!-- Button layout should not impact "display: none" or "display: contents" on button elements -->
+<!-- https://github.com/whatwg/html/pull/10244 -->
+<button id=none>1</button>
+<button id=contents>2</button>

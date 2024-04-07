@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#container-progress-func">
+<link rel="author" title="sakhapov@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/numeric-testcommon.js"></script>
+<div id="out-of-scope-container"></div>
+<div id="extra-container">
+  <div id="outer-container">
+    <div id="inner-container">
+      <div id=target></div>
+    </div>
+  </div>
+</div>
+<style>
+:root {
+  font-size: 10px;
+}
+#out-of-scope-container {
+  container: my-container-3 / size;
+  width: 1px;
+  height: 1px;
+}
+#extra-container {
+  container: my-container-2 / size;
+  width: 5051px;
+  height: 1337px;
+}
+#outer-container {
+  container: my-container / size;
+  width: 322px;
+  height: 228px;
+}
+#inner-container {
+  container-type: size;
+  width: 228px;
+  height: 322px;
+}
+#target {
+  font-size: 10px;
+}
+</style>
+<script>
+
+let width = window.innerWidth;
+let height = window.innerHeight;
+
+let extraWidth = 5051;
+let extraHeight = 1337;
+let innerWidth = 228;
+let innerHeight = 322;
+let outerWidth = 322;
+let outerHeight = 228;
+
+// Identity tests
+test_math_used('container-progress(height from 0px to 1px)', innerHeight, {type:'number'});
+test_math_used('container-progress(width of my-container from 0px to 1px)', outerWidth, {type:'number'});
+
+// Nestings
+test_math_used('container-progress(height from container-progress(height from 0px to 1px) * 1px to container-progress(height from 0px to 1px) * 1px)', '0', {type:'number'});
+test_math_used('container-progress(height from container-progress(height from 0px to 1px) * 0.5px to container-progress(height from 0px to 1px) * 1px)', '1', {type:'number'});
+test_math_used('container-progress(height from container-progress(width of my-container from 0px to 1px) * 1px to container-progress(height of my-container-2 from 0px to 1px) * 1px)', (innerHeight - outerWidth) / (extraHeight - outerWidth), {type:'number'});
+
+// General calculations
+test_math_used('calc(container-progress(width from 0px to 50px) * 10px + 100px)', (innerWidth / 50 * 10 + 100) + 'px');
+test_math_used('calc(container-progress(height from 10px to sign(50px - 500em) * 10px))', (innerHeight - 10) / (-10 - 10), {type:'number'});
+test_math_used('calc(container-progress(width of my-container from 0px to 50px) * 10px + 100px)', (outerWidth / 50 * 10 + 100) + 'px');
+test_math_used('calc(container-progress(height of my-container from 10px to sign(50px - 500em) * 10px))', (outerHeight - 10) / (-10 - 10), {type:'number'});
+
+// Fallback
+test_math_used('container-progress(width of non-existing-container from 0px to 1px)', width, {type:'number'});
+test_math_used('container-progress(height of non-existing-container from 0px to 1px)', height, {type:'number'});
+test_math_used('container-progress(width of out-of-scope-container from 0px to 1px)', width, {type:'number'});
+test_math_used('container-progress(height of out-of-scope-container from 0px to 1px)', height, {type:'number'});
+
+// Type checking
+test_math_used('calc(container-progress(width from 0px to 1px) * 1px)', innerWidth + 'px');
+test_math_used('calc(container-progress(height of my-container from 0px to 1px) * 1s)', outerHeight + 's', {type:'time'});
+test_math_used('calc(container-progress(width of my-container-2 from 0px to 1px) * 1deg)', extraWidth + 'deg', {type:'angle', approx:0.001});
+</script>

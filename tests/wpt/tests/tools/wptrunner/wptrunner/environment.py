@@ -1,5 +1,6 @@
 # mypy: allow-untyped-defs
 
+import contextlib
 import errno
 import json
 import os
@@ -7,8 +8,11 @@ import signal
 import socket
 import sys
 import time
+from typing import Optional
 
+import mozprocess
 from mozlog import get_default_logger, handlers
+from mozlog.structuredlog import StructuredLogger
 
 from . import mpcontext
 from .wptlogging import LogLevelRewriter, QueueHandler, LogQueueThread
@@ -110,6 +114,7 @@ class TestEnvironment:
         self.options = options if options is not None else {}
 
         mp_context = mpcontext.get_context()
+        self._stack = contextlib.ExitStack()
         self.cache_manager = mp_context.Manager()
         self.stash = serve.stash.StashServer(mp_context=mp_context)
         self.env_extras = env_extras
@@ -121,13 +126,13 @@ class TestEnvironment:
         self.suppress_handler_traceback = suppress_handler_traceback
 
     def __enter__(self):
-        server_log_handler = self.server_logging_ctx.__enter__()
+        server_log_handler = self._stack.enter_context(self.server_logging_ctx)
         self.config_ctx = self.build_config()
 
-        self.config = self.config_ctx.__enter__()
+        self.config = self._stack.enter_context(self.config_ctx)
 
-        self.stash.__enter__()
-        self.cache_manager.__enter__()
+        self._stack.enter_context(self.stash)
+        self._stack.enter_context(self.cache_manager)
 
         assert self.env_extras_cms is None, (
             "A TestEnvironment object cannot be nested")
@@ -136,7 +141,7 @@ class TestEnvironment:
 
         for env in self.env_extras:
             cm = env(self.options, self.config)
-            cm.__enter__()
+            self._stack.enter_context(cm)
             self.env_extras_cms.append(cm)
 
         self.servers = serve.start(self.server_logger,
@@ -147,33 +152,27 @@ class TestEnvironment:
                                    webtransport_h3=self.enable_webtransport)
 
         if self.options.get("supports_debugger") and self.debug_info and self.debug_info.interactive:
-            self.ignore_interrupts()
+            self._stack.enter_context(self.ignore_interrupts())
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.process_interrupts()
-
         for servers in self.servers.values():
             for _, server in servers:
                 server.request_shutdown()
         for servers in self.servers.values():
             for _, server in servers:
                 server.wait()
-        for cm in self.env_extras_cms:
-            cm.__exit__(exc_type, exc_val, exc_tb)
 
+        self._stack.__exit__(exc_type, exc_val, exc_tb)
         self.env_extras_cms = None
 
-        self.cache_manager.__exit__(exc_type, exc_val, exc_tb)
-        self.stash.__exit__()
-        self.config_ctx.__exit__(exc_type, exc_val, exc_tb)
-        self.server_logging_ctx.__exit__(exc_type, exc_val, exc_tb)
-
+    @contextlib.contextmanager
     def ignore_interrupts(self):
-        signal.signal(signal.SIGINT, signal.SIG_IGN)
-
-    def process_interrupts(self):
-        signal.signal(signal.SIGINT, signal.SIG_DFL)
+        prev_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
+        try:
+            yield
+        finally:
+            signal.signal(signal.SIGINT, prev_handler)
 
     def build_config(self):
         override_path = os.path.join(serve_path(self.test_paths), "config.json")
@@ -331,7 +330,11 @@ class TestdriverLoader:
         return self._handler(request, response)
 
 
-def wait_for_service(logger, host, port, timeout=60, server_process=None):
+def wait_for_service(logger: StructuredLogger,
+                     host: str,
+                     port: int,
+                     timeout: float = 60,
+                     server_process: Optional[mozprocess.ProcessHandler] = None) -> bool:
     """Waits until network service given as a tuple of (host, port) becomes
     available, `timeout` duration is reached, or the `server_process` exits at
     which point ``socket.error`` is raised."""

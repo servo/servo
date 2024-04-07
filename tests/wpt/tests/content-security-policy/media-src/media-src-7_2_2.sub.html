@@ -48,7 +48,7 @@
     <script>
         let source = document.createElement("source");
         source.src = mediaURL;
-        source.type = "audio/ogg";
+        source.type = "audio/webm";
         source.onerror = _ => { media_error_handler(source_test); }
         document.getElementById("audioObject").appendChild(source);
         document.getElementById("audioObject2").src = mediaURL;

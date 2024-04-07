@@ -2111,7 +2111,7 @@
 
 - name: 2d.gradient.colormix
   desc: color-mix works as CanvasGradient color input
-  canvasType: ['HtmlCanvas']
+  canvas_types: ['HtmlCanvas']
   code: |
     var g = ctx.createLinearGradient(0, 0, 100, 0);
     g.addColorStop(0, '#f00');

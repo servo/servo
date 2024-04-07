@@ -939,7 +939,7 @@ subsetTest(promise_test, async test => {
                  if (!deepEquals(Object.keys(instance.exports), ["increment"]))
                    throw "Unexpected exports: " + JSON.stringify(instance.exports);
 
-                 if (instance.exports.increment(1) != 2)
+                 if (instance.exports.increment(1) !== 2)
                    throw "Unexpected increment result: " + instance.exports.increment(1);` })
       }
     });

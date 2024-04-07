@@ -98,7 +98,7 @@ promise_test(async test => {
   auctionConfigOverrides.decisionLogicURL =
       createDecisionScriptURL(
         uuid,
-        {scoreAd: `if (browserSignals.renderURL == "${winningAdURL}")
+        {scoreAd: `if (browserSignals.renderURL === "${winningAdURL}")
                      return 0;`});
 
   // Add an abort controller, so can cancel extra auctions.

@@ -7,7 +7,6 @@ importScripts("/resources/testharness.js");
 importScripts("/html/canvas/resources/canvas-tests.js");
 
 promise_test(async t => {
-
   var canvas = new OffscreenCanvas(100, 50);
   var ctx = canvas.getContext('2d');
 
@@ -41,6 +40,5 @@ promise_test(async t => {
   _assert(ctx.measureText('ABCD').actualBoundingBoxRight >= 200, "ctx.measureText('ABCD').actualBoundingBoxRight >= 200");
   _assert(ctx.measureText('ABCD').actualBoundingBoxAscent >= 85, "ctx.measureText('ABCD').actualBoundingBoxAscent >= 85");
   _assert(ctx.measureText('ABCD').actualBoundingBoxDescent >= 37, "ctx.measureText('ABCD').actualBoundingBoxDescent >= 37");
-  t.done();
 }, "Testing actualBoundingBox");
 done();

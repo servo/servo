@@ -9,6 +9,9 @@ setup(() => {
 
 test(() => {
   assert_equals(typeof AbstractModuleSource, "undefined");
+}, "AbstractModuleSource is not a global");
+
+test(() => {
   const AbstractModuleSource = Object.getPrototypeOf(WebAssembly.Module);
   assert_equals(AbstractModuleSource.name, "AbstractModuleSource");
   assert_not_equals(AbstractModuleSource, Function);
@@ -16,22 +19,13 @@ test(() => {
 
 test(() => {
   const AbstractModuleSourceProto = Object.getPrototypeOf(WebAssembly.Module.prototype);
-  assert_not_equals(AbstractModuleSourceProto, Object);
+  assert_not_equals(AbstractModuleSourceProto, Object.prototype);
   const AbstractModuleSource = Object.getPrototypeOf(WebAssembly.Module);
   assert_equals(AbstractModuleSource.prototype, AbstractModuleSourceProto);
 }, "AbstractModuleSourceProto intrinsic");
 
 test(() => {
-  const builder = new WasmModuleBuilder();
-
-  builder
-    .addFunction("fn", kSig_v_v)
-    .addBody([])
-    .exportFunc();
-  builder.addMemory(0, 256, true);
-
-  const buffer = builder.toBuffer()
-  const module = new WebAssembly.Module(buffer);
+  const module = new WebAssembly.Module(emptyModuleBinary);
 
   const AbstractModuleSource = Object.getPrototypeOf(WebAssembly.Module);
   const toStringTag = Object.getOwnPropertyDescriptor(AbstractModuleSource.prototype, Symbol.toStringTag).get;

@@ -16,8 +16,9 @@
 
 <ul id="d"></ul>
 <script>
-var t = async_test("Tests that layers ignore the global context filter.");
-_addTest(function(canvas, ctx) {
+test(t => {
+  var canvas = document.getElementById('c');
+  var ctx = canvas.getContext('2d');
 
   ctx.globalAlpha = 0.5;
   ctx.globalCompositeOperation = 'xor';
@@ -51,6 +52,6 @@ _addTest(function(canvas, ctx) {
   _assertSame(ctx.shadowOffsetY, 20, "ctx.shadowOffsetY", "20");
   _assertSame(ctx.shadowBlur, 30, "ctx.shadowBlur", "30");
 
-});
+}, "Tests that layers ignore the global context filter.");
 </script>
 

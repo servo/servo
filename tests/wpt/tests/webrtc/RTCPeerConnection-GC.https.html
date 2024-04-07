@@ -85,6 +85,36 @@ promise_test(async t => {
   await onVideoChange();
   assert_not_equals(color, getVideoSignal(destVideo));
   }, "GC does not collect a peer connection pipe rendering to a video element");
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  const [track, stream] = await createTrackAndStreamWithCleanup(t, "video");
+  pc1.addTrack(track, stream);
+  exchangeIceCandidates(pc1, pc2);
+
+  const metadataToBeLoaded = [];
+  pc2.ontrack = (e) => {
+    const stream = e.streams[0];
+    const v = document.createElement('video');
+    v.autoplay = true;
+    v.srcObject = stream;
+    v.id = stream.id
+    metadataToBeLoaded.push(new Promise((resolve) => {
+        v.addEventListener('loadedmetadata', () => {
+            resolve();
+        });
+    }));
+  };
+  await exchangeOfferAnswer(pc1, pc2);
+
+  garbageCollect();
+
+  await Promise.all(metadataToBeLoaded);
+}, "GC does not collect an HTMLMediaElement playing a video track");
 </script>
 </body>
 </html>

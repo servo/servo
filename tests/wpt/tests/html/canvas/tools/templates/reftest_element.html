@@ -20,7 +20,8 @@
   const canvas = document.getElementById("canvas");
   const ctx = canvas.getContext('2d'{% if attributes %}, {{ attributes }}{% endif %});
 
-  {{ code | trim | indent(2) }}
+  {{ reference | trim | indent(2) if is_test_reference else
+     code_element | trim | indent(2) }}
   {% if test_type == 'promise' %}
   document.documentElement.classList.remove("reftest-wait");
   {% endif %}

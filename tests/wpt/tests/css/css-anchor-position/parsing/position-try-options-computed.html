@@ -19,6 +19,15 @@
   test_computed_value("position-try-options", "flip-start flip-inline flip-block");
   test_computed_value("position-try-options", "flip-start --flop", "--flop flip-start");
   test_computed_value("position-try-options", "--flop flip-start");
+  test_computed_value("position-try-options", "inset-area(left top)");
+  test_computed_value("position-try-options", "inset-area(top left)", "inset-area(left top)");
+  test_computed_value("position-try-options", "inset-area(start start)", "inset-area(start)");
+  test_computed_value("position-try-options", "inset-area(left), inset-area(right)");
+  test_computed_value("position-try-options", "--foo, inset-area(left)");
+  test_computed_value("position-try-options", "--foo, inset-area(left), --bar");
+  test_computed_value("position-try-options", "--foo, flip-start, inset-area(left)");
+  test_computed_value("position-try-options", "--foo flip-start, inset-area(left)");
+  test_computed_value("position-try-options", "inset-area(left), --bar flip-start");
 
   assert_not_inherited("position-try-options", "none", "flip-inline");
 </script>

@@ -530,6 +530,7 @@ def get_test_queue_builder(**kwargs: Any) -> Tuple[TestQueueBuilder, Mapping[str
 
 
 TestGroup = namedtuple("TestGroup", ["group", "subsuite", "test_type", "metadata"])
+GroupMetadata = Mapping[str, Any]
 
 
 class TestQueueBuilder:
@@ -573,7 +574,7 @@ class TestQueueBuilder:
     def tests_by_group(self, tests_by_type: TestsByType) -> Mapping[str, List[str]]:
         pass
 
-    def group_metadata(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
+    def group_metadata(self, state: Mapping[str, Any]) -> GroupMetadata:
         return {"scope": "/"}
 
     def process_count(self, requested_processes: int, num_test_groups: int) -> int:
@@ -654,7 +655,7 @@ class PathGroupedSource(TestQueueBuilder):
                 groups[group_name].append(test.id)
         return groups
 
-    def group_metadata(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
+    def group_metadata(self, state: Mapping[str, Any]) -> GroupMetadata:
         return {"scope": "/%s" % "/".join(state["prev_group_key"][2])}
 
 

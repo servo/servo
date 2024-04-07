@@ -288,6 +288,7 @@
 
 - name: 2d.layer.layer-rendering-state-reset-in-layer
   desc: Tests that layers ignore the global context filter.
+  test_type: sync
   code: |
     ctx.globalAlpha = 0.5;
     ctx.globalCompositeOperation = 'xor';

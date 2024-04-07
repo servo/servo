@@ -177,7 +177,7 @@ async function waitForObservedRequestsIgnoreDebugOnlyReports(
 function createBiddingScriptURL(params = {}) {
   let origin = params.origin ? params.origin : new URL(BASE_URL).origin;
   let url = new URL(`${origin}${RESOURCE_PATH}bidding-logic.sub.py`);
-  // These checks use "==" to ignore null and not provided arguments, while
+  // These checks use "!=" to ignore null and not provided arguments, while
   // treating '' as a valid argument.
   if (params.generateBid != null)
     url.searchParams.append('generateBid', params.generateBid);
@@ -213,7 +213,7 @@ function createDecisionScriptURL(uuid, params = {}) {
   let origin = params.origin ? params.origin : new URL(BASE_URL).origin;
   let url = new URL(`${origin}${RESOURCE_PATH}decision-logic.sub.py`);
   url.searchParams.append('uuid', uuid);
-  // These checks use "==" to ignore null and not provided arguments, while
+  // These checks use "!=" to ignore null and not provided arguments, while
   // treating '' as a valid argument.
   if (params.scoreAd != null)
     url.searchParams.append('scoreAd', params.scoreAd);
@@ -230,8 +230,8 @@ function createDecisionScriptURL(uuid, params = {}) {
 // be last.  "signalsParams" also has no effect, but is used by
 // trusted-scoring-signals.py to affect the response.
 function createRenderURL(uuid, script, signalsParams, origin) {
-  // These checks use "==" to ignore null and not provided arguments, while
-  // treating '' as a valid argument.
+  // These checks use "==" and "!=" to ignore null and not provided
+  // arguments, while treating '' as a valid argument.
   if (origin == null)
     origin = new URL(BASE_URL).origin;
   let url = new URL(`${origin}${RESOURCE_PATH}fenced-frame.sub.py`);
@@ -260,6 +260,15 @@ function createInterestGroupForOrigin(uuid, origin,
   };
 }
 
+// Waits for the join command to complete. Adds cleanup command to `test` to
+// leave the interest group when the test completes.
+async function joinInterestGroupWithoutDefaults(test, interestGroup,
+                                                durationSeconds = 60) {
+  await navigator.joinAdInterestGroup(interestGroup, durationSeconds);
+  test.add_cleanup(
+    async () => { await navigator.leaveAdInterestGroup(interestGroup); });
+}
+
 // Joins an interest group that, by default, is owned by the current frame's
 // origin, is named DEFAULT_INTEREST_GROUP_NAME, has a bidding script that
 // issues a bid of 9 with a renderURL of "https://not.checked.test/${uuid}",
@@ -271,12 +280,33 @@ function createInterestGroupForOrigin(uuid, origin,
 // interest group.
 async function joinInterestGroup(test, uuid, interestGroupOverrides = {},
                                  durationSeconds = 60) {
-  let interestGroup = createInterestGroupForOrigin(uuid, window.location.origin,
-                                                   interestGroupOverrides);
+  await joinInterestGroupWithoutDefaults(
+      test, createInterestGroupForOrigin(
+          uuid, window.location.origin, interestGroupOverrides),
+      durationSeconds);
+}
 
-  await navigator.joinAdInterestGroup(interestGroup, durationSeconds);
-  test.add_cleanup(
-    async () => { await navigator.leaveAdInterestGroup(interestGroup) });
+// Joins a negative interest group with the specified owner, name, and
+// additionalBidKey. Because these are the only valid fields for a negative
+// interest groups, this function doesn't expose an 'overrides' parameter.
+// Adds cleanup command to `test` to leave the interest group when the test
+// completes.
+async function joinNegativeInterestGroup(
+    test, owner, name, additionalBidKey) {
+  let interestGroup = {
+    owner: owner,
+    name: name,
+    additionalBidKey: additionalBidKey
+  };
+  if (owner !== window.location.origin) {
+    let iframe = await createIframe(test, owner, 'join-ad-interest-group');
+    await runInFrame(
+      test, iframe,
+      `await joinInterestGroupWithoutDefaults(` +
+          `test_instance, ${JSON.stringify(interestGroup)})`);
+  } else {
+    await joinInterestGroupWithoutDefaults(test_instance, interestGroup);
+  }
 }
 
 // Similar to joinInterestGroup, but leaves the interest group instead.
@@ -487,6 +517,17 @@ async function runReportTest(test, uuid, codeToInsert, expectedReportURLs,
   await waitForObservedRequests(uuid, expectedReportURLs);
 }
 
+// Helper function for running a standard test of the additional bid and
+// negative targeting features. This helper verifies that the auction produces a
+// winner. It takes the following arguments:
+// - test/uuid: the test object and uuid from the test case (see generateUuid)
+// - buyers: array of strings, each a domain for a buyer participating in this
+//       auction
+// - actionNonce: string, the auction nonce for this auction, typically
+//       retrieved from a prior call to navigator.createAuctionNonce
+// - highestScoringOtherBid: the amount of the second-highest bid,
+//       or zero if there's no second-highest bid
+// - winningAdditionalBidId: the label of the winning bid
 async function runAdditionalBidTest(test, uuid, buyers, auctionNonce,
                                     additionalBidsPromise,
                                     highestScoringOtherBid,
@@ -516,7 +557,7 @@ async function runInFrame(test, child_window, script, param) {
 
   let promise = new Promise(function(resolve, reject) {
     function WaitForMessage(event) {
-      if (event.data.messageUuid != messageUuid)
+      if (event.data.messageUuid !== messageUuid)
         return;
       receivedResponse = event.data;
       if (event.data.result === 'success') {
@@ -548,7 +589,7 @@ async function createFrame(test, origin, is_iframe = true, permissions = null) {
       `${origin}${RESOURCE_PATH}subordinate-frame.sub.html?uuid=${frameUuid}`;
   let promise = new Promise(function(resolve, reject) {
     function WaitForMessage(event) {
-      if (event.data.messageUuid != frameUuid)
+      if (event.data.messageUuid !== frameUuid)
         return;
       if (event.data.result === 'load complete') {
         resolve();
@@ -662,79 +703,130 @@ function directFromSellerSignalsValidatorCode(uuid, expectedSellerSignals,
   return {
     // Seller worklets
     scoreAd:
-      `if (directFromSellerSignals === null ||
+      `if (directFromSellerSignals == null ||
            directFromSellerSignals.sellerSignals !== ${expectedSellerSignals} ||
            directFromSellerSignals.auctionSignals !== ${expectedAuctionSignals} ||
-           Object.keys(directFromSellerSignals).length != 2) {
+           Object.keys(directFromSellerSignals).length !== 2) {
               throw 'Failed to get expected directFromSellerSignals in scoreAd(): ' +
                 JSON.stringify(directFromSellerSignals);
           }`,
     reportResultSuccessCondition:
-      `directFromSellerSignals !== null &&
+      `directFromSellerSignals != null &&
            directFromSellerSignals.sellerSignals === ${expectedSellerSignals} &&
            directFromSellerSignals.auctionSignals === ${expectedAuctionSignals} &&
-           Object.keys(directFromSellerSignals).length == 2`,
+           Object.keys(directFromSellerSignals).length === 2`,
     reportResult:
       `sendReportTo("${createSellerReportURL(uuid)}");`,
 
     // Bidder worklets
     generateBid:
-      `if (directFromSellerSignals === null ||
+      `if (directFromSellerSignals == null ||
            directFromSellerSignals.perBuyerSignals !== ${expectedPerBuyerSignals} ||
            directFromSellerSignals.auctionSignals !== ${expectedAuctionSignals} ||
-           Object.keys(directFromSellerSignals).length != 2) {
+           Object.keys(directFromSellerSignals).length !== 2) {
               throw 'Failed to get expected directFromSellerSignals in generateBid(): ' +
                 JSON.stringify(directFromSellerSignals);
         }`,
     reportWinSuccessCondition:
-      `directFromSellerSignals !== null &&
+      `directFromSellerSignals != null &&
            directFromSellerSignals.perBuyerSignals === ${expectedPerBuyerSignals} &&
            directFromSellerSignals.auctionSignals === ${expectedAuctionSignals} &&
-           Object.keys(directFromSellerSignals).length == 2`,
+           Object.keys(directFromSellerSignals).length === 2`,
     reportWin:
       `sendReportTo("${createBidderReportURL(uuid)}");`,
   };
 }
 
-// Creates an additional bid with the given parameters. This additional bid
-// specifies a biddingLogicURL that provides an implementation of
-// reportAdditionalBidWin that triggers a sendReportTo() to the bidder report
-// URL of the winning additional bid. Additional bids are described in more
-// detail at
-// https://github.com/WICG/turtledove/blob/main/FLEDGE.md#6-additional-bids.
-function createAdditionalBid(uuid, auctionNonce, seller, buyer, interestGroupName, bidAmount,
-                             additionalBidOverrides = {}) {
-  return {
-    interestGroup: {
-      name: interestGroupName,
-      biddingLogicURL: createBiddingScriptURL(
-        {
-          origin: buyer,
-          reportAdditionalBidWin: `sendReportTo("${createBidderReportURL(uuid, interestGroupName)}");`
-        }),
-      owner: buyer
-    },
-    bid: {
-      ad: ['metadata'],
-      bid: bidAmount,
-      render: createRenderURL(uuid)
-    },
-    auctionNonce: auctionNonce,
-    seller: seller,
-    ...additionalBidOverrides
+let additionalBidHelper = function() {
+  // Creates an additional bid with the given parameters. This additional bid
+  // specifies a biddingLogicURL that provides an implementation of
+  // reportAdditionalBidWin that triggers a sendReportTo() to the bidder report
+  // URL of the winning additional bid. Additional bids are described in more
+  // detail at
+  // https://github.com/WICG/turtledove/blob/main/FLEDGE.md#6-additional-bids.
+  function createAdditionalBid(uuid, auctionNonce, seller, buyer, interestGroupName, bidAmount,
+                               additionalBidOverrides = {}) {
+    return {
+      interestGroup: {
+        name: interestGroupName,
+        biddingLogicURL: createBiddingScriptURL(
+          {
+            origin: buyer,
+            reportAdditionalBidWin: `sendReportTo("${createBidderReportURL(uuid, interestGroupName)}");`
+          }),
+        owner: buyer
+      },
+      bid: {
+        ad: ['metadata'],
+        bid: bidAmount,
+        render: createRenderURL(uuid)
+      },
+      auctionNonce: auctionNonce,
+      seller: seller,
+      ...additionalBidOverrides
+    };
   }
-}
 
-// Fetch some number of additional bid from a seller and verify that the
-// 'Ad-Auction-Additional-Bid' header is not visible in this JavaScript context.
-// The `additionalBids` parameter is a list of additional bids.
-async function fetchAdditionalBids(seller, additionalBids) {
-  const url = new URL(`${seller}${RESOURCE_PATH}additional-bids.py`);
-  url.searchParams.append('additionalBids', JSON.stringify(additionalBids));
-  const response = await fetch(url.href, {adAuctionHeaders: true});
+  // Gets the testMetadata for an additional bid, initializing it if needed.
+  function getAndMaybeInitializeTestMetadata(additionalBid) {
+    if (additionalBid.testMetadata === undefined) {
+      additionalBid.testMetadata = {};
+    }
+    return additionalBid.testMetadata;
+  }
 
-  assert_equals(response.status, 200, 'Failed to fetch additional bid: ' + await response.text());
-  assert_false(
-      response.headers.has('Ad-Auction-Additional-Bid'),
-      'Header "Ad-Auction-Additional-Bid" should not be available in JavaScript context.');
-}
+  // Tells the additional bid endpoint to correctly sign the additional bid with
+  // the given secret keys before returning that as a signed additional bid.
+  function signWithSecretKeys(additionalBid, secretKeys) {
+    getAndMaybeInitializeTestMetadata(additionalBid).
+        secretKeysForValidSignatures = secretKeys;
+  }
+
+  // Tells the additional bid endpoint to incorrectly sign the additional bid with
+  // the given secret keys before returning that as a signed additional bid. This
+  // is used for testing the behavior when the auction encounters an invalid
+  // signature.
+  function incorrectlySignWithSecretKeys(additionalBid, secretKeys) {
+    getAndMaybeInitializeTestMetadata(additionalBid).
+        secretKeysForInvalidSignatures = secretKeys;
+  }
+
+  // Adds a single negative interest group to an additional bid, as described at:
+  // https://github.com/WICG/turtledove/blob/main/FLEDGE.md#622-how-additional-bids-specify-their-negative-interest-groups
+  function addNegativeInterestGroup(additionalBid, negativeInterestGroup) {
+    additionalBid["negativeInterestGroup"] = negativeInterestGroup;
+  }
+
+  // Adds multiple negative interest groups to an additional bid, as described at:
+  // https://github.com/WICG/turtledove/blob/main/FLEDGE.md#622-how-additional-bids-specify-their-negative-interest-groups
+  function addNegativeInterestGroups(additionalBid, negativeInterestGroups,
+                                     joiningOrigin) {
+    additionalBid["negativeInterestGroups"] = {
+      joiningOrigin: joiningOrigin,
+      interestGroupNames: negativeInterestGroups
+    };
+  }
+
+  // Fetch some number of additional bid from a seller and verify that the
+  // 'Ad-Auction-Additional-Bid' header is not visible in this JavaScript context.
+  // The `additionalBids` parameter is a list of additional bids.
+  async function fetchAdditionalBids(seller, additionalBids) {
+    const url = new URL(`${seller}${RESOURCE_PATH}additional-bids.py`);
+    url.searchParams.append('additionalBids', JSON.stringify(additionalBids));
+    const response = await fetch(url.href, {adAuctionHeaders: true});
+
+    assert_equals(response.status, 200, 'Failed to fetch additional bid: ' + await response.text());
+    assert_false(
+        response.headers.has('Ad-Auction-Additional-Bid'),
+        'Header "Ad-Auction-Additional-Bid" should not be available in JavaScript context.');
+  }
+
+  return {
+    createAdditionalBid: createAdditionalBid,
+    signWithSecretKeys: signWithSecretKeys,
+    incorrectlySignWithSecretKeys: incorrectlySignWithSecretKeys,
+    addNegativeInterestGroup: addNegativeInterestGroup,
+    addNegativeInterestGroups: addNegativeInterestGroups,
+    fetchAdditionalBids: fetchAdditionalBids
+  };
+}();

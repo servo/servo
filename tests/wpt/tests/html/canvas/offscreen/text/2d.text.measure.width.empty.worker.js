@@ -7,7 +7,6 @@ importScripts("/resources/testharness.js");
 importScripts("/html/canvas/resources/canvas-tests.js");
 
 promise_test(async t => {
-
   var canvas = new OffscreenCanvas(100, 50);
   var ctx = canvas.getContext('2d');
 
@@ -17,6 +16,5 @@ promise_test(async t => {
   await self.fonts.ready;
   ctx.font = '50px CanvasTest';
   _assertSame(ctx.measureText("").width, 0, "ctx.measureText(\"\").width", "0");
-  t.done();
 }, "The empty string has zero width");
 done();

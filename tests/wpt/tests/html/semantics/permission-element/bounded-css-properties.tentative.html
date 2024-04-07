@@ -8,46 +8,57 @@
   * font-weight is adjusted to be at least 200.
   * font-style should only have "normal" or "italic" values.
   * word-spacing should be at most 0.5 of the font size, and non-negative.
+  * letter-spacing should be between -0.05 and 0.2 of the font size.
 -->
 <style>
-  #id1 {
+  #id-over-bounds {
     font-weight: 100;
     font-style: oblique 30deg;
     word-spacing: 1em;
     font-size: 100px;
+    letter-spacing: 21px;
   }
-  #id2 {
+  #id-under-bounds {
+    word-spacing: -1px;
+    font-size: 100px;
+    letter-spacing: -6px;
+  }
+  #id-within-bounds {
     font-weight: 300;
     font-style: italic;
     word-spacing: 0.4em;
     font-size: 100px;
-  }
-  #id3 {
-    word-spacing: -1px;
+    letter-spacing: 15px;
   }
 </style>
 
 
-<permission id="id1" type="geolocation">
-<permission id="id2" type="camera">
-<permission id="id3" type="microphone">
+<permission id="id-over-bounds" type="geolocation">
+<permission id="id-under-bounds" type="camera">
+<permission id="id-within-bounds" type="microphone">
 
 <script>
   test(function(){
-    var el_outside_bounds = document.getElementById("id1");
-    assert_equals(getComputedStyle(el_outside_bounds).fontWeight, "200", "font-weight");
-    assert_equals(getComputedStyle(el_outside_bounds).fontStyle, "normal", "font-style");
-    assert_equals(getComputedStyle(el_outside_bounds).wordSpacing, "50px", "word-spacing");
+    var el = document.getElementById("id-over-bounds");
+    assert_equals(getComputedStyle(el).fontWeight, "200", "font-weight");
+    assert_equals(getComputedStyle(el).fontStyle, "normal", "font-style");
+    assert_equals(getComputedStyle(el).wordSpacing, "50px", "word-spacing");
+    assert_equals(getComputedStyle(el).letterSpacing, "20px", "letter-spacing");
 
-    var el_negative_bounds = document.getElementById("id3");
-    assert_equals(getComputedStyle(el_negative_bounds).wordSpacing, "0px", "word-spacing, negative");
+    el = document.getElementById("id-under-bounds");
+    assert_equals(getComputedStyle(el).wordSpacing, "0px", "word-spacing, negative");
+    assert_equals(getComputedStyle(el).letterSpacing, "-5px", "letter-spacing, negative");
   }, "Properties with out-of-bounds values should be corrected");
 
   test(function(){
-    var el_inside_bounds = document.getElementById("id2");
-    assert_equals(getComputedStyle(el_inside_bounds).fontWeight, "300", "font-weight");
-    assert_equals(getComputedStyle(el_inside_bounds).fontStyle, "italic", "font-style");
-    assert_equals(getComputedStyle(el_inside_bounds).wordSpacing, "40px", "word-spacing");
+    var el = document.getElementById("id-within-bounds");
+    assert_equals(getComputedStyle(el).fontWeight, "300", "font-weight");
+    assert_equals(getComputedStyle(el).fontStyle, "italic", "font-style");
+    assert_equals(getComputedStyle(el).wordSpacing, "40px", "word-spacing");
+    assert_equals(getComputedStyle(el).letterSpacing, "15px", "letter-spacing");
+
+    el.style.letterSpacing = "-4px";
+    assert_equals(getComputedStyle(el).letterSpacing, "-4px", "letter-spacing, negative");
   }, "Properties with values in bounds should not be modified");
 </script>
 </body>

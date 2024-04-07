@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: Transition when the dereferenced anchor name changes</title>
+<link rel="help" href="https://drafts4.csswg.org/css-anchor-position-1/">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/9598">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #cb {
+    display: inline-block;
+    position: relative;
+    width: 250px;
+    height: 250px;
+    border: 1px solid black;
+  }
+  #anchor1, #anchor2 {
+    width: 100px;
+  }
+  #anchor1 {
+    background: wheat;
+    height: 50px;
+  }
+  #anchor2 {
+    background: tomato;
+    height: 90px;
+  }
+  .anchor-name {
+    anchor-name: --a;
+  }
+  #anchored {
+    position: absolute;
+    width: anchor-size(width);
+    height: anchor-size(height);
+    position-anchor: --a;
+    top: anchor(top);
+    left: anchor(right);
+    transition-duration: 1000s;
+    transition-timing-function: steps(2, start);
+    transition-property: top, height;
+    background-color: skyblue;
+  }
+</style>
+<div id=cb>
+  <div id=anchor1 class=anchor-name>Anchor1</div>
+  <div id=anchor2>Anchor2</div>
+  <div id=anchored></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(anchored.offsetTop, 0);
+    assert_equals(anchored.offsetHeight, 50);
+    anchor1.classList.toggle('anchor-name');
+    anchor2.classList.toggle('anchor-name');
+    assert_equals(anchored.offsetTop, 25);
+    assert_equals(anchored.offsetHeight, 70);
+  }, 'Transition when the dereferenced anchor name changes');
+</script>

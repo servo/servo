@@ -1,0 +1,4 @@
+features:
+- name: text-spacing-trim
+  files:
+  - text-spacing-trim-*

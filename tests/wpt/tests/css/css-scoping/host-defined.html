@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Shadow host is considered, but does not match :defined</title>
+<link rel="author" title="Steinar H. Gunderson" href="mailto:sesse@chromium.org">
+<link rel="help" href="https://crbug.com/332587538">
+<link rel="help" href="https://drafts.csswg.org/selectors/#featureless">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<p>Test passes if there is a filled green square.</p>
+<div id="host"></div>
+<script>
+  host.attachShadow({mode: "open"}).innerHTML = `
+    <style>
+      :host div {
+        width: 100px;
+        height: 100px;
+        background-color: red;
+      }
+      :not(:defined) div {
+        background-color: green;
+      }
+    </style>
+    <div></div>
+  `;
+</script>

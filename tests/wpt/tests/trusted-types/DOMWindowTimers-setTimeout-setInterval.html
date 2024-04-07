@@ -19,7 +19,14 @@
     setInterval(script);
   }, "window.setInterval assigned via policy (successful Script transformation).");
 
-  trustedTypes.createPolicy("default", {createScript: s => "window." + s + ".done()"});
+  trustedTypes.createPolicy("default", {createScript: (s, _, sink) => {
+    if (s === "timeoutStringTest") {
+      assert_equals(sink, 'Window setTimeout');
+    } else if (s === "intervalStringTest") {
+      assert_equals(sink, 'Window setInterval');
+    }
+    return "window." + s + ".done()";
+  }});
 
   async_test(t => {
     window.timeoutStringTest = t;

@@ -13,7 +13,7 @@ const AbstractModuleSource = Object.getPrototypeOf(WebAssembly.Module);
 assert_equals(AbstractModuleSource.name, "AbstractModuleSource");
 assert_true(exportedNamesSource instanceof AbstractModuleSource);
 
-assert_array_equals(WebAssembly.Module.exports(exportedNamesSource).sort(),
+assert_array_equals(WebAssembly.Module.exports(exportedNamesSource).map(({ name }) => name).sort(),
                     ["func", "glob", "mem", "tab"]);
 
 const wasmImportFromWasmSource = await import.source("./resources/wasm-import-from-wasm.wasm");

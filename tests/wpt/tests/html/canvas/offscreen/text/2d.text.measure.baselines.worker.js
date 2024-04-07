@@ -7,7 +7,6 @@ importScripts("/resources/testharness.js");
 importScripts("/html/canvas/resources/canvas-tests.js");
 
 promise_test(async t => {
-
   var canvas = new OffscreenCanvas(100, 50);
   var ctx = canvas.getContext('2d');
 
@@ -25,6 +24,5 @@ promise_test(async t => {
   _assertSame(Math.abs(ctx.measureText('ABCD').alphabeticBaseline), 0, "Math.abs(ctx.measureText('ABCD').alphabeticBaseline)", "0");
   _assertSame(ctx.measureText('ABCD').ideographicBaseline, 6.25, "ctx.measureText('ABCD').ideographicBaseline", "6.25");
   _assertSame(ctx.measureText('ABCD').hangingBaseline, 25, "ctx.measureText('ABCD').hangingBaseline", "25");
-  t.done();
 }, "Testing baselines");
 done();

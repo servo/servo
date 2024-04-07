@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:xhtml="http://www.w3.org/1999/xhtml" lang="en" >
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="default-namespace"></div>
+  <xhtml:div id="explicit-namespace"></xhtml:div>
+
+  <script>
+    <![CDATA[
+      test(function() {
+        const defaultNamespaceHost = document.getElementById('default-namespace');
+        defaultNamespaceHost.attachShadow({mode: 'open'});
+        assert_not_equals(defaultNamespaceHost.shadowRoot, null, "attachShadow should work on node with default namespace");
+      }, 'attachShadow with a default-namespaced element');
+
+      test(function() {
+        const explicitNamespaceHost = document.getElementById('explicit-namespace');
+        explicitNamespaceHost.attachShadow({mode: 'open'});
+        assert_not_equals(explicitNamespaceHost.shadowRoot, null, "attachShadow should work on node with explicit namespace");
+      }, 'Test attachShadow with a namespaced element');
+    ]]>
+  </script>
+</body>
+</html>

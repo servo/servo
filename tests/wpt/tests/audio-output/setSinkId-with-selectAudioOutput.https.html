@@ -29,7 +29,7 @@ promise_test(async t => {
   assert_equals(r, undefined, "resetting sinkid on default audio output should always work");
 }, "setSinkId() after selectAudioOutput()");
 
-const src = "/media/movie_5.ogv";
+const src = "/media/movie_5.webm";
 
 promise_test(async t => {
   assert_not_equals(deviceId, undefined, "selectAudioOutput() resolved");

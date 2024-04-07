@@ -1,0 +1,5 @@
+features:
+- name: scroll-into-view
+  files:
+  - scrollIntoView-*
+  - scrollintoview.html

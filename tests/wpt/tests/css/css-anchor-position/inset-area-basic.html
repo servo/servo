@@ -49,10 +49,10 @@
   function test_inset_area(inset_area, expected_offsets) {
     anchored.style.insetArea = inset_area;
     test(() => {
-      assert_equals(anchored.offsetLeft, expected_offsets.left);
-      assert_equals(anchored.offsetTop, expected_offsets.top);
-      assert_equals(anchored.offsetWidth, expected_offsets.width);
-      assert_equals(anchored.offsetHeight, expected_offsets.height);
+      assert_equals(anchored.offsetLeft, expected_offsets.left, "Check expected offsetLeft");
+      assert_equals(anchored.offsetTop, expected_offsets.top, "Check expected offsetTop");
+      assert_equals(anchored.offsetWidth, expected_offsets.width, "Check expected offsetWidth");
+      assert_equals(anchored.offsetHeight, expected_offsets.height, "Check expected offsetHeight");
     }, "Offsets for: " + inset_area);
   }
 

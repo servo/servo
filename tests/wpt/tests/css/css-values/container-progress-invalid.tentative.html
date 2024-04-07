@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#container-progress-func">
+<link rel="author" title="sakhapov@chromuim.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/parsing-testcommon.js"></script>
+<script>
+function test_invalid_number(value) {
+  test_invalid_value('opacity', value);
+}
+function test_invalid_length(value) {
+  // 'letter-spacing' accepts <length> only, not <percentage> or any mixes.
+  test_invalid_value('letter-spacing', value);
+}
+
+// Syntax checking
+test_invalid_number('container-progress()');
+test_invalid_number('container-progress( )');
+test_invalid_number('container-progress(,)');
+test_invalid_number('container-progress(1 from )');
+test_invalid_number('container-progress(1)');
+test_invalid_number('container-progress(50% to 0)');
+test_invalid_number('container-progress(0 from 1 to)');
+test_invalid_number('container-progress(from to)');
+test_invalid_number('container-progress(from 1 to 0)');
+test_invalid_number('container-progress(3 of 2 from 1 to 0)');
+test_invalid_number('container-progress(width of 2 from 1 to 0)');
+test_invalid_number('container-progress(from 1 to 0 1)');
+test_invalid_number('container-progress(from 1 0)');
+test_invalid_number('container-progress(0 from to 0)');
+test_invalid_number('container-progress(to to to to to)');
+test_invalid_number('container-progress(0, from, 10, to 200)');
+test_invalid_number('container-progress(0, from, 10, to, 200)');
+test_invalid_number('container-progress(0, from 10, to 200)');
+test_invalid_number('container-progress(0, 10, 200)');
+
+// General tests
+test_invalid_number('container-progress(height from 0 to 8');
+test_invalid_number('container-progress(height container from 0 to 8');
+test_invalid_number('container-progress(height of from 0 to 8');
+test_invalid_number('container-progress(depth from 0px to 8px');
+test_invalid_number('container-progress(width of 10 from 0px to 8px');
+test_invalid_number('container-progress(height of 10 from 0px to 8px');
+test_invalid_number('container-progress(height of name from 0deg to 8deg');
+test_invalid_number('container-progress(height of name from 0 to 8px');
+test_invalid_number('container-progress(10px from 0px to 8px');
+test_invalid_number('container-progress(depth of name from 0px to 8px');
+test_invalid_number('container-progress(width from 0deg to 8deg');
+test_invalid_number('container-progress(5 from 0deg to 8deg');
+test_invalid_number('container-progress(5 from 0% to 8deg');
+test_invalid_number('container-progress(height from 0% to sign(10px)');
+test_invalid_number('container-progress(5% from 0px to 10px');
+test_invalid_length('calc(1px * container-progress(10deg from 0 to 10))');
+test_invalid_length('calc(1px * container-progress(10 from 0px to 10))');
+</script>

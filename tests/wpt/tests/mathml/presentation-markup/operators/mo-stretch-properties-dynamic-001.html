@@ -42,7 +42,8 @@
 
           element = document.getElementById("minsize_remove");
           element.removeAttribute("minsize");
-          assert_approx_equals(element.getBoundingClientRect().height, 1 * emToPx, epsilon, "remove");
+          const unstretched_size = 1 * emToPx;
+          assert_approx_equals(element.getBoundingClientRect().height, unstretched_size, epsilon, "remove");
       }, `minsize`);
 
       test(function() {

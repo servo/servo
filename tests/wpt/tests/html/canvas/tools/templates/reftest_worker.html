@@ -18,7 +18,7 @@
     const canvas = new OffscreenCanvas({{ size[0] }}, {{ size[1] }});
     const ctx = canvas.getContext('2d'{% if attributes %}, {{ attributes }}{% endif %});
 
-    {{ code | trim | indent(4) }}
+    {{ code_worker | trim | indent(4) }}
 
     const bitmap = canvas.transferToImageBitmap();
     self.postMessage(bitmap, bitmap);

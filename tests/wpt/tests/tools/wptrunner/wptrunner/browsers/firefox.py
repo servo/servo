@@ -864,6 +864,7 @@ class FirefoxBrowser(Browser):
         self.instance_manager.stop_current(force)
         self.logger.debug("stopped")
 
+    @property
     def pid(self):
         return self.instance.pid()
 

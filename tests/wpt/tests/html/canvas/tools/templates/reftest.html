@@ -5,7 +5,7 @@
 <p class="desc">{{ desc }}</p>
 {% if notes %}<p class="notes">{{ notes }}{% endif %}
 
-{{ code | trim }}
+{{ html_reference | trim }}
 {% for image in images %}
 <img src="/images/{{ image }}" id="{{ image }}" class="resource">
 {% endfor -%}

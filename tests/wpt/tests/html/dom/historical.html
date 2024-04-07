@@ -52,4 +52,9 @@ test(() => {
 test(() => {
   assert_false("HTMLTableHeaderCellElement" in window);
 }, "HTMLTableHeaderCellElement interface is removed")
+
+// removed in https://github.com/whatwg/html/commit/6e4bcf5630d08e03212ad4e1a3c78beecf2a92fa
+test(() => {
+  assert_false("initHashChangeEvent" in HashChangeEvent.prototype);
+}, "HashChangeEvent's initHashChangeEvent method is removed")
 </script>
