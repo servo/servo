@@ -267,9 +267,9 @@ impl App {
 
             // Block until the window gets an event
             if !animating || app.suspended.get() {
-                *control_flow = winit::event_loop::ControlFlow::Wait;
+                control_flow.set_wait();
             } else {
-                *control_flow = winit::event_loop::ControlFlow::Poll;
+                control_flow.set_poll();
             }
 
             // Consume and handle any events from the Minibrowser.
@@ -281,7 +281,7 @@ impl App {
 
             match app.handle_events() {
                 PumpResult::Shutdown => {
-                    *control_flow = winit::event_loop::ControlFlow::Exit;
+                    control_flow.set_exit();
                     app.servo.take().unwrap().deinit();
                     if let Some(mut minibrowser) = app.minibrowser() {
                         minibrowser.context.destroy();
