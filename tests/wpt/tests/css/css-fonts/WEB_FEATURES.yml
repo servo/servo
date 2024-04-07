@@ -1,0 +1,13 @@
+features:
+- name: font-palette
+  files:
+  - font-palette.html
+  - font-palette-*
+  - palette-values-rule-*
+- name: font-synthesis
+  files:
+  - font-synthesis-*
+- name: font-variant-alternates
+  files:
+  - alternates-order.html
+  - font-variant-alternates-*

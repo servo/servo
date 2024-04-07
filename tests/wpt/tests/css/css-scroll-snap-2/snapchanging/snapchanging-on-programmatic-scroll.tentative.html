@@ -9,6 +9,7 @@
   <script src="/resources/testdriver-vendor.js"></script>
   <script src="/dom/events/scrolling/scroll_support.js"></script>
   <script src="/css/css-scroll-snap-2/resources/common.js"></script>
+  <script src="/css/css-scroll-snap-2/resources/programmatic-scroll-common.js"></script>
   <script src="/web-animations/testcommon.js"></script>
 </head>
 
@@ -93,6 +94,12 @@
     " snap targets.");
 
     promise_test(async (t) => {
+      await test_programmatic_scroll_onsnapchanging(t, scroller, scroller,
+                                                    snap_area_2);
+    }, "programmatic scroll triggers Element.onsnapchanging when scrolling a " +
+       "snap container");
+
+    promise_test(async (t) => {
       checkSnapEventSupport("snapchanging");
       await waitForScrollReset(t, scroller);
       await waitForCompositorCommit();
@@ -107,7 +114,7 @@
       assert_equals(evt, null, "no snap event since scroller is back to top");
       assert_equals(scroller.scrollTop, 0, "scroller snaps back to the top");
       assert_equals(scroller.scrollLeft, 0, "scroller snaps back to the left");
-    });
+    }, "snapchanging should not fire since the snap target doesn't change.");
   </script>
 </body>
 

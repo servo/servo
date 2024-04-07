@@ -1,55 +1,48 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
+<meta name="assert" content="Position-visibility: anchors-visible should hide an element with an out-of-view anchor." />
 <title>CSS Anchor Positioning Test: position-visibility: anchors-visible</title>
 <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/7758">
 <link rel="match" href="position-visibility-anchors-visible-ref.html">
 <style>
   #scroll-container {
     overflow: hidden scroll;
-    width: 400px;
+    width: 300px;
     height: 100px;
   }
 
-  #contents-container {
-    height: 400px;
-  }
-
-  .anchor {
+  #anchor {
+    anchor-name: --a1;
     width: 100px;
     height: 100px;
     background: orange;
-    display: inline-block;
   }
 
-  .target {
-    position: absolute;
+  #spacer {
+    height: 100px;
+  }
+
+  #target {
+    position-anchor: --a1;
     position-visibility: anchors-visible;
-    inset-area: block-end;
+    inset-area: bottom right;
     width: 100px;
     height: 100px;
     background: red;
+    position: absolute;
     top: 0;
     left: 0;
   }
 </style>
 
 <div id="scroll-container">
-  <div id="contents-container">
-    <!-- #target1 should not be visible because anchor is scrolled to not be visible. -->
-    <div class="anchor" style="anchor-name: --a1;">anchor1</div>
-    <div id="target1" class="target" style="position-anchor: --a1;">target1</div>
-
-    <!-- #target2 should not be visible because referenced name in anchor() is not visible. -->
-    <div class="anchor" style="anchor-name: --a2; height: 150px;">anchor2</div>
-    <div id="target2" class="target" style="position-anchor: --a2; top: anchor(--a1 bottom);">target2</div>
-
-    <!-- #target3 should not be visible because referenced name in anchor-size() is not visible. -->
-    <div class="anchor" style="anchor-name: --a3; height: 150px;">anchor3</div>
-    <div id="target3" class="target" style="position-anchor: --a3; min-width: anchor-width(--a1 width);">target3</div>
-  </div>
+  <div id="anchor">anchor</div>
+  <div id="spacer"></div>
+  <div id="target">target</div>
 </div>
 
 <script>
   const scroller = document.getElementById('scroll-container');
   scroller.scrollTop = 100;
+  // #target should not be visible because #anchor is scrolled out of view.
 </script>

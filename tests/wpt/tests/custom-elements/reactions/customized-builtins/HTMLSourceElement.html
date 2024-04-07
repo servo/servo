@@ -22,7 +22,7 @@ function getParentElement(id) {
 }
 
 testReflectAttributeWithParentNode(
-  'src', 'src', '/media/video.ogv',
+  'src', 'src', '/media/video.webm',
   '/media/white.mp4', 'src on HTMLSourceElement', 'source',
   () => getParentElement('video'), HTMLSourceElement
 );

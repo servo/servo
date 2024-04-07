@@ -7,7 +7,6 @@ importScripts("/resources/testharness.js");
 importScripts("/html/canvas/resources/canvas-tests.js");
 
 promise_test(async t => {
-
   var canvas = new OffscreenCanvas(100, 50);
   var ctx = canvas.getContext('2d');
 
@@ -16,6 +15,5 @@ promise_test(async t => {
   const bitmap = await createImageBitmap(blob);
   ctx.drawImage(bitmap, 10.1, 10.1, 0.1, 0.1, 0, 0, 100, 50);
   _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
-  t.done();
 }, "");
 done();

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<!-- Copyright © 2017 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<meta charset="utf-8">
+<title>Test for PaymentRequest shippingAddress attribute</title>
+<link rel="help" href="https://w3c.github.io/payment-request/#shippingaddress-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const validMethod = Object.freeze({ supportedMethods: "foo" });
+const validMethods = Object.freeze([validMethod]);
+const validAmount = Object.freeze({ currency: "USD", value: "5.00" });
+const validTotal = Object.freeze({
+  label: "label",
+  amount: validAmount,
+});
+const validDetails = Object.freeze({ total: validTotal });
+
+test(() => {
+  const request = new PaymentRequest(validMethods, validDetails);
+  assert_idl_attribute(request, "shippingAddress");
+}, "Must have a .shippingAddress IDL attribute.");
+
+test(() => {
+  const request = new PaymentRequest(validMethods, validDetails);
+  assert_equals(request.shippingAddress, null, "expected null");
+}, ".shippingAddress attribute must default to null.");
+
+</script>

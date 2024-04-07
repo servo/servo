@@ -44,28 +44,28 @@
     <video id="videoObject" width="320" height="240" controls
            onloadeddata="media_loaded(source_test)">
         <source id="videoSourceObject"
-                type="video/ogg"
+                type="video/webm"
                 onerror="media_error_handler(source_test)"
-                src="http://{{domains[www2]}}:{{ports[http][0]}}/media/A4.ogv">
+                src="http://{{domains[www2]}}:{{ports[http][0]}}/media/A4.webm">
     </video>
 
     <video id="videoObject2" width="320" height="240" controls
            onerror="media_error_handler(src_test)"
            onloadeddata="media_loaded(src_test)"
-           src="http://{{domains[www2]}}:{{ports[http][0]}}/media/A4.ogv">
+           src="http://{{domains[www2]}}:{{ports[http][0]}}/media/A4.webm">
 
     <video id="videoObject3" width="320" height="240" controls
            onloadeddata="media_loaded(source_redir_test)">
         <source id="videoSourceObject"
-                type="video/ogg"
+                type="video/webm"
                 onerror="media_error_handler(source_test)"
-                src="/common/redirect.py?location=http://{{domains[www2]}}:{{ports[http][0]}}/media/A4.ogv">
+                src="/common/redirect.py?location=http://{{domains[www2]}}:{{ports[http][0]}}/media/A4.webm">
     </video>
 
     <video id="videoObject2" width="320" height="240" controls
            onerror="media_error_handler(src_redir_test)"
            onloadeddata="media_loaded(src_redir_test)"
-           src="/common/redirect.py?location=http://{{domains[www2]}}:{{ports[http][0]}}/media/A4.ogv">
+           src="/common/redirect.py?location=http://{{domains[www2]}}:{{ports[http][0]}}/media/A4.webm">
 
 </body>
 </html>

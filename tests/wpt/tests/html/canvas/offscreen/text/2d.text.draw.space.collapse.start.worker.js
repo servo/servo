@@ -7,7 +7,6 @@ importScripts("/resources/testharness.js");
 importScripts("/html/canvas/resources/canvas-tests.js");
 
 promise_test(async t => {
-
   var canvas = new OffscreenCanvas(100, 50);
   var ctx = canvas.getContext('2d');
 
@@ -22,6 +21,5 @@ promise_test(async t => {
   ctx.fillText(' EE', 0, 37.5);
   _assertPixelApprox(canvas, 25,25, 255,0,0,255, 2);
   _assertPixelApprox(canvas, 75,25, 0,255,0,255, 2);
-  t.done();
 }, "Space characters at the start of a line are NOT collapsed");
 done();

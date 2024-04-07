@@ -24,7 +24,7 @@
       }));
 
       // we assume tests are run from 'hostname' and 'www.hostname' or 'www2.hostname' is a valid alias
-      var mediaURL = location.protocol + "//{{domains[www2]}}:{{ports[http][0]}}/media/A4.ogv";
+      var mediaURL = location.protocol + "//{{domains[www2]}}:{{ports[http][0]}}/media/A4.webm";
 
     function media_loaded(t) {
       t.step( function () {
@@ -41,7 +41,7 @@
     <video id="videoObject" width="320" height="240" controls
            onloadeddata="media_loaded(source_test)">
         <source id="videoSourceObject"
-                type="video/ogg"
+                type="video/webm"
                 onerror="media_error_handler(source_test)">
     </video>
     <video id="videoObject2" width="320" height="240" controls

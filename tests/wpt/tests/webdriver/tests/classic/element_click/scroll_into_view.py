@@ -31,9 +31,9 @@ def test_scroll_into_view(session, inline):
     assert session.execute_script("""
         let input = arguments[0];
         rect = input.getBoundingClientRect();
-        return rect["top"] >= 0 && rect["left"] >= 0 &&
-            (rect["top"] + rect["height"]) <= window.innerHeight &&
-            (rect["left"] + rect["width"]) <= window.innerWidth;
+        return rect.top >= 0 && rect.left >= 0 &&
+            Math.floor(rect.bottom) <= window.innerHeight &&
+            Math.floor(rect.right) <= window.innerWidth;
             """, args=(element,)) is True
 
 
@@ -69,4 +69,4 @@ def test_partially_visible_does_not_scroll(session, offset, inline):
     assert_success(response)
     assert session.execute_script("return window.scrollY || document.documentElement.scrollTop") == 0
     click_point = assert_one_click(session)
-    assert click_point == center_point(target)
+    assert click_point == pytest.approx(center_point(target), abs=1.0)

@@ -231,6 +231,7 @@ class SauceBrowser(Browser):
     def stop(self, force=False):
         pass
 
+    @property
     def pid(self):
         return None
 

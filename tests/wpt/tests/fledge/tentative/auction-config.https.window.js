@@ -10,7 +10,9 @@
 // META: variant=?21-25
 // META: variant=?26-30
 // META: variant=?31-35
-// META: variant=?36-last
+// META: variant=?36-40
+// META: variant=?40-45
+// META: variant=?46-last
 
 "use strict;"
 
@@ -86,6 +88,14 @@ const EXPECT_NO_WINNER = auctionResult => {
   assert_equals(auctionResult, null, 'Auction unexpected had a winner');
 };
 
+// Expect a winner (FencedFrameConfig).
+const EXPECT_WINNER =
+    auctionResult => {
+      assert_true(
+          auctionResult instanceof FencedFrameConfig,
+          'Auction did not return expected FencedFrameConfig');
+    }
+
 // Expect an exception of the given type.
 const EXPECT_EXCEPTION = exceptionType => auctionResult => {
   assert_not_equals(auctionResult, null, "got null instead of expected error");
@@ -127,6 +137,50 @@ makeTest({
   name: 'trustedScoringSignalsURL is invalid',
   expect: EXPECT_EXCEPTION(TypeError),
   auctionConfigOverrides: { trustedScoringSignalsURL: "https://foo:99999999999" },
+});
+
+makeTest({
+  name: 'valid trustedScoringSignalsURL',
+  expect: EXPECT_WINNER,
+  auctionConfigOverrides:
+      {trustedScoringSignalsURL: window.location.origin + '/resource.json'}
+});
+
+makeTest({
+  name: 'trustedScoringSignalsURL should not have a fragment',
+  expect: EXPECT_EXCEPTION(TypeError),
+  auctionConfigOverrides:
+      {trustedScoringSignalsURL: window.location.origin + '/resource.json#foo'}
+});
+
+makeTest({
+  name: 'trustedScoringSignalsURL with an empty fragment is not OK',
+  expect: EXPECT_EXCEPTION(TypeError),
+  auctionConfigOverrides:
+      {trustedScoringSignalsURL: window.location.origin + '/resource.json#'}
+});
+
+makeTest({
+  name: 'trustedScoringSignalsURL should not have a query',
+  expect: EXPECT_EXCEPTION(TypeError),
+  auctionConfigOverrides:
+      {trustedScoringSignalsURL: window.location.origin + '/resource.json?foo'}
+});
+
+makeTest({
+  name: 'trustedScoringSignalsURL with an empty query is not OK',
+  expect: EXPECT_EXCEPTION(TypeError),
+  auctionConfigOverrides:
+      {trustedScoringSignalsURL: window.location.origin + '/resource.json?'}
+});
+
+makeTest({
+  name: 'trustedScoringSignalsURL should not have embedded credentials',
+  expect: EXPECT_EXCEPTION(TypeError),
+  auctionConfigOverrides: {
+    trustedScoringSignalsURL: (window.location.origin + '/resource.json')
+                                  .replace('https://', 'https://user:pass@')
+  }
 });
 
 makeTest({
@@ -420,9 +474,9 @@ subsetTest(promise_test, async test => {
         let bid = browserSignals.forDebuggingOnlyInCooldownOrLockout ? 1 : 2;
         return {bid: bid, render: '${renderURL}'};`,
       reportWin: `
-        if (browserSignals.bid == 1)
+        if (browserSignals.bid === 1)
           sendReportTo('${bidderReportURL1}');
-        if (browserSignals.bid == 2)
+        if (browserSignals.bid === 2)
           sendReportTo('${bidderReportURL2}');`
 
     })
@@ -443,9 +497,9 @@ subsetTest(promise_test, async test => {
             browserSignals.forDebuggingOnlyInCooldownOrLockout ? 1 : 2;
         return {desirability: desirability};`,
       reportResult: `
-        if (browserSignals.desirability == 1)
+        if (browserSignals.desirability === 1)
           sendReportTo('${sellerReportURL1}');
-        if (browserSignals.desirability == 2)
+        if (browserSignals.desirability === 2)
           sendReportTo('${sellerReportURL2}');`
     })
   };

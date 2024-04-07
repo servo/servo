@@ -323,6 +323,7 @@ class FirefoxAndroidBrowser(Browser):
             self.runner.cleanup()
         self.logger.debug("stopped")
 
+    @property
     def pid(self):
         if self.runner.process_handler is None:
             return None

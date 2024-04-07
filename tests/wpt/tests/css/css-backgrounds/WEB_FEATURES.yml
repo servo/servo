@@ -1,0 +1,9 @@
+features:
+- name: background-clip
+  files:
+  - background-clip*
+  - css3-background-clip*
+- name: border-image
+  files:
+  - border-image*
+  - css3-border-image*

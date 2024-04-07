@@ -60,9 +60,7 @@ for (const fn of functionPseudoElements) {
     test_invalid_selector(`${fn}(foo bar)`);
     test_invalid_selector_combinations(`${fn}(foo bar)`);
 
-    // Test function with selector arguments.
-    test_invalid_selector(`${fn}(.foo)`);
-    test_invalid_selector_combinations(`${fn}(.foo)`);
+  // Test function with selector arguments.
     test_invalid_selector(`${fn}(#bar)`);
     test_invalid_selector_combinations(`${fn}(#bar)`);
 }

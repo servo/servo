@@ -69,3 +69,32 @@ async function test_no_snapchanged(t, scroller, delta) {
 async function test_no_snapchanging(t, scroller, delta) {
   await test_no_snap_event(t, scroller, delta, "snapchanging");
 }
+
+// Utility function to test that onsnapchanging is triggered for
+// snapchanging-on-user-* tests which set up a similar layout in which
+// the |scroller| has 3 snap targets that form a vertical column along
+// |scroller|'s middle. onsnapchanging should be triggered by touch-dragging
+// |scroller|'s content so that |snap_target|'s top aligns to |snap_target|.
+async function test_user_scroll_onsnapchanging(test, scroller, event_target,
+                                                snap_target) {
+  await snap_test_setup(test, scroller, "snapchanging");
+
+  // Compute touch positions to drag the top of snap_target to the top of
+  // the scroller.
+  const scroller_middle = Math.round(scroller.clientWidth / 2);
+  const start_pos = { x: scroller_middle, y: snap_target.offsetTop };
+  const end_pos = { x: scroller_middle, y: 0 };
+  const expected_snap_targets = { block: snap_target, inline: null };
+
+  // Scroll and wait for a snapchanging event.
+  const snapchanging_promise = waitForOnSnapchanging(event_target);
+  await snap_event_touch_scroll_helper(start_pos, end_pos);
+  const snapchanging_event = await snapchanging_promise;
+
+  // Assert that snapchanging fired and indicated that snap_target would
+  // be snapped to.
+  assertSnapEvent(snapchanging_event, expected_snap_targets);
+  assert_equals(scroller.scrollLeft, 0, "scrollLeft is zero");
+  assert_equals(scroller.scrollTop, snap_target.offsetTop,
+    "snapped to snap_target");
+}

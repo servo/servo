@@ -14,9 +14,6 @@ function getVideoURI(base)
       if (videotag.canPlayType('video/webm; codecs="vp9, opus"') )
       {
           extension = '.webm';
-      } else if ( videotag.canPlayType('video/ogg; codecs="theora, vorbis"') )
-      {
-          extension = '.ogv';
       }
     }
 
@@ -52,7 +49,6 @@ function getMediaContentType(url) {
     var extension = new URL(url, location).pathname.split(".").pop();
     var map = {
         "mp4" : "video/mp4",
-        "ogv" : "application/ogg",
         "webm": "video/webm",
         "mp3" : "audio/mp3",
         "oga" : "application/ogg",

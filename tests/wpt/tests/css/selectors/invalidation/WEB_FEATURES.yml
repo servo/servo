@@ -1,0 +1,6 @@
+features:
+- name: has
+  files:
+  - has-*
+  - "*-in-has.*"
+  - "*-in-has-*"

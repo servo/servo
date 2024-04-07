@@ -3590,6 +3590,34 @@
     "search": "",
     "hash": ""
   },
+  {
+    "input": "file:.",
+    "base": null,
+    "href": "file:///",
+    "protocol": "file:",
+    "username": "",
+    "password": "",
+    "host": "",
+    "hostname": "",
+    "port": "",
+    "pathname": "/",
+    "search": "",
+    "hash": ""
+  },
+  {
+    "input": "file:.",
+    "base": "http://www.example.com/test",
+    "href": "file:///",
+    "protocol": "file:",
+    "username": "",
+    "password": "",
+    "host": "",
+    "hostname": "",
+    "port": "",
+    "pathname": "/",
+    "search": "",
+    "hash": ""
+  },
   "# Based on http://trac.webkit.org/browser/trunk/LayoutTests/fast/url/host.html",
   "Basic canonicalization, uppercase should be converted to lowercase",
   {

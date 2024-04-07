@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <title>getHTML behavior</title>
+<meta name="timeout" content="long">
 <link rel='author' href='mailto:masonf@chromium.org'>
 <link rel='help' href='https://github.com/whatwg/html/issues/8867'>
 <script src='/resources/testharness.js'></script>
@@ -9,7 +10,9 @@
 <body>
 
 <script>
-function testElementType(allowsShadowDom, elementType, runGetHTMLOnShadowRoot, declarativeShadowDom, mode, delegatesFocus, serializable, clonable) {
+function testElementType(allowsShadowDom, elementType, runGetHTMLOnShadowRoot,
+      lightDOMContent, declarativeShadowDom, mode, delegatesFocus,
+      serializable, clonable) {
   const t = test(t => {
     // Create and attach element
     let wrapper;
@@ -40,7 +43,9 @@ function testElementType(allowsShadowDom, elementType, runGetHTMLOnShadowRoot, d
     const clonableAttr = clonable ? ' shadowrootclonable=""' : '';
 
     if (allowsShadowDom && declarativeShadowDom) {
-      const html = `<${elementType}><template shadowrootmode=${mode}${delegatesAttr}${serializableAttr}${clonableAttr}>`;
+      const html = `<${elementType}>${lightDOMContent}<template ` +
+          `shadowrootmode=${mode}${delegatesAttr}${serializableAttr}` +
+          `${clonableAttr}>`;
       wrapper.setHTMLUnsafe(html);
       if (isOpen) {
         shadowRoot = wrapper.firstElementChild.shadowRoot;
@@ -52,6 +57,9 @@ function testElementType(allowsShadowDom, elementType, runGetHTMLOnShadowRoot, d
       // Imperative shadow dom
       const element = document.createElement(elementType);
       wrapper.appendChild(element);
+      const temp = document.createElement('div');
+      temp.innerHTML = lightDOMContent;
+      element.append(...temp.childNodes);
       if (allowsShadowDom) {
         shadowRoot = element.attachShadow(initDict);
       }
@@ -59,28 +67,39 @@ function testElementType(allowsShadowDom, elementType, runGetHTMLOnShadowRoot, d
     assert_true(!allowsShadowDom || !!shadowRoot);
 
     if (allowsShadowDom) {
-      const correctShadowHtml = `<template shadowrootmode="${mode}"${delegatesAttr}${serializableAttr}${clonableAttr}><slot></slot></template>`;
-      const correctHtml = `<${elementType}>${correctShadowHtml}</${elementType}>`;
+      const correctShadowHtml = `<template shadowrootmode="${mode}"` +
+          `${delegatesAttr}${serializableAttr}${clonableAttr}><slot></slot>` +
+          `</template>`;
+      const correctHtml = `<${elementType}>${correctShadowHtml}` +
+          `${lightDOMContent}</${elementType}>`;
       assert_equals(shadowRoot.mode,mode);
       assert_equals(shadowRoot.delegatesFocus,delegatesFocus);
       assert_equals(shadowRoot.serializable,expectedSerializable);
       assert_equals(shadowRoot.clonable,clonable);
       shadowRoot.appendChild(document.createElement('slot'));
-      const emptyElement = `<${elementType}></${elementType}>`;
+      const emptyElement = `<${elementType}>${lightDOMContent}</${elementType}>`;
       if (isOpen) {
         if (expectedSerializable) {
-          assert_equals(wrapper.getHTML({serializableShadowRoots: true}), correctHtml);
+          assert_equals(wrapper.getHTML({serializableShadowRoots: true}),
+              correctHtml);
+          assert_equals(wrapper.firstElementChild.getHTML({
+              serializableShadowRoots: true}),
+              `${correctShadowHtml}${lightDOMContent}`);
         } else {
           assert_equals(wrapper.getHTML({serializableShadowRoots: true}), emptyElement);
         }
       } else {
         // Closed shadow roots should not be returned unless shadowRoots specifically contains the shadow root:
-        assert_equals(wrapper.getHTML({serializableShadowRoots: true}), emptyElement);
-        assert_equals(wrapper.getHTML({serializableShadowRoots: true, shadowRoots: []}), emptyElement);
+        assert_equals(wrapper.getHTML({serializableShadowRoots: true}),
+            emptyElement);
+        assert_equals(wrapper.getHTML({serializableShadowRoots: true,
+            shadowRoots: []}), emptyElement);
       }
       // If we provide the shadow root, serialize it, regardless of serializableShadowRoots.
-      assert_equals(wrapper.getHTML({serializableShadowRoots: true, shadowRoots: [shadowRoot]}),correctHtml);
-      assert_equals(wrapper.getHTML({serializableShadowRoots: false, shadowRoots: [shadowRoot]}),correctHtml);
+      assert_equals(wrapper.getHTML({serializableShadowRoots: true, shadowRoots:
+          [shadowRoot]}),correctHtml);
+      assert_equals(wrapper.getHTML({serializableShadowRoots: false, shadowRoots:
+          [shadowRoot]}),correctHtml);
       assert_equals(wrapper.getHTML({shadowRoots: [shadowRoot]}),correctHtml);
     } else {
       // For non-shadow hosts, getHTML() should also match .innerHTML
@@ -88,11 +107,17 @@ function testElementType(allowsShadowDom, elementType, runGetHTMLOnShadowRoot, d
     }
 
     // Either way, make sure getHTML({serializableShadowRoots: false}) matches .innerHTML
-    assert_equals(wrapper.getHTML({serializableShadowRoots: false}),wrapper.innerHTML,'getHTML() with serializableShadowRoots false should return the same as .innerHTML');
+    assert_equals(wrapper.getHTML({serializableShadowRoots: false}),wrapper.innerHTML,
+        'getHTML() with serializableShadowRoots false should return the same as .innerHTML');
     // ...and that the default for serializableShadowRoots is false.
-    assert_equals(wrapper.getHTML(),wrapper.innerHTML,'The default for serializableShadowRoots should be false');
+    assert_equals(wrapper.getHTML(),wrapper.innerHTML,
+        'The default for serializableShadowRoots should be false');
 
-  }, `${runGetHTMLOnShadowRoot ? 'ShadowRoot' : 'Element'}.getHTML() on <${elementType}>${allowsShadowDom ? `, with ${declarativeShadowDom ? 'declarative' : 'imperative'} shadow, mode=${mode}, delegatesFocus=${delegatesFocus}, serializable=${serializable}, clonable=${clonable}.` : ''}`);
+  }, `${runGetHTMLOnShadowRoot ? 'ShadowRoot' : 'Element'}.getHTML() on ` +
+      `<${elementType}>${lightDOMContent}${allowsShadowDom ?
+      `, with ${declarativeShadowDom ? 'declarative' : 'imperative'} shadow, ` +
+      `mode=${mode}, delegatesFocus=${delegatesFocus}, ` +
+      `serializable=${serializable}, clonable=${clonable}.` : ''}`);
 }
 
 function runAllTests() {
@@ -101,20 +126,25 @@ function runAllTests() {
   for (const elementName of allElements) {
     const allowsShadowDom = safelisted.includes(elementName);
     for (const runGetHTMLOnShadowRoot of [false, true]) {
-      if (allowsShadowDom) {
-        for (const declarativeShadowDom of [false, true]) {
-          for (const delegatesFocus of [false, true]) {
-            for (const clonable of [false, true]) {
-              for (const mode of ['open', 'closed']) {
-                for (const serializable of [undefined, 'false', 'true']) {
-                  testElementType(true, elementName, runGetHTMLOnShadowRoot, declarativeShadowDom, mode, delegatesFocus, serializable, clonable);
+      for (const lightDOMContent of ['','<span>light</span>']) {
+        if (allowsShadowDom) {
+          for (const declarativeShadowDom of [false, true]) {
+            for (const delegatesFocus of [false, true]) {
+              for (const clonable of [false, true]) {
+                for (const mode of ['open', 'closed']) {
+                  for (const serializable of [undefined, 'false', 'true']) {
+                    testElementType(true, elementName, runGetHTMLOnShadowRoot,
+                        lightDOMContent, declarativeShadowDom, mode,
+                        delegatesFocus, serializable, clonable);
+                  }
                 }
               }
             }
           }
+        } else {
+          testElementType(false, elementName, runGetHTMLOnShadowRoot,
+              lightDOMContent);
         }
-      } else {
-        testElementType(false, elementName, runGetHTMLOnShadowRoot);
       }
     }
   }

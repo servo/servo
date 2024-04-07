@@ -202,8 +202,7 @@ def test_valid_schema():
         write_manifest_file("test_file.json", web_features_map)
         mock_file.assert_called_once_with("test_file.json", "w")
         mock_file.return_value.write.assert_called_once_with(
-            ('{"version": 1,'
-            ' "data": {"grid": ["/grid_test1.js", "/grid_test2.js"], "avif": ["/avif_test1.js"]}}'))
+            '{"data": {"avif": ["/avif_test1.js"], "grid": ["/grid_test1.js", "/grid_test2.js"]}, "version": 1}')
         args = mock_file.return_value.write.call_args
         file_dict = json.loads(args[0][0])
         # Should not throw an exception

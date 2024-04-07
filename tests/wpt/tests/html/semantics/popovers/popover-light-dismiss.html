@@ -11,6 +11,19 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="resources/popover-utils.js"></script>
 
+<style>
+  [popover] {
+    /* Position most popovers at the bottom-right, out of the way */
+    inset:auto;
+    bottom:0;
+    right:0;
+  }
+  [popover]::backdrop {
+    /* This should *not* affect anything: */
+    pointer-events: auto;
+  }
+</style>
+
 <button id=b1t popovertarget='p1'>Popover 1</button>
 <button id=b1s popovertarget='p1' popovertargetaction=show>Popover 1</button>
 <span id=outside>Outside all popovers</span>
@@ -26,11 +39,6 @@
 <style>
   #p1 {top: 50px;}
   #p2 {top: 120px;}
-  [popover] {bottom:auto;}
-  [popover]::backdrop {
-    /* This should *not* affect anything: */
-    pointer-events: auto;
-  }
 </style>
 <script>
   const popover1 = document.querySelector('#p1');
@@ -584,24 +592,50 @@ promise_test(async () => {
 
 <div id=p29 popover>Popover 29</div>
 <button id=b29 popovertarget=p29>Open popover 29</button>
-<iframe id=iframe29 width=100 height=100></iframe>
+<iframe id=iframe29 width=100 height=30></iframe>
 <script>
 promise_test(async () => {
   let iframe_url = (new URL("/common/blank.html", location.href)).href;
   iframe29.src = iframe_url;
   iframe29.contentDocument.body.style.height = '100%';
-  assert_false(p29.matches(':popover-open'));
+  assert_false(p29.matches(':popover-open'),'initially hidden');
   p29.showPopover();
-  assert_true(p29.matches(':popover-open'));
+  assert_true(p29.matches(':popover-open'),'showing');
   let actions = new test_driver.Actions();
   await actions.pointerMove(0,0,{origin: b29})
       .pointerDown({button: actions.ButtonType.LEFT})
       .send();
+  await waitForRender();
+  assert_true(p29.matches(':popover-open'),'showing after pointerdown');
 
   actions = new test_driver.Actions();
   await actions.pointerMove(0,0,{origin: iframe29.contentDocument.body})
       .pointerUp({button: actions.ButtonType.LEFT})
       .send();
-  assert_true(p29.matches(':popover-open'));
+  await waitForRender();
+  assert_true(p29.matches(':popover-open'),'showing after pointerup');
 },`Pointer down in one document and pointer up in another document shouldn't dismiss popover`);
+</script>
+
+<div id=p30 popover>Popover 30</div>
+<button id=b30 popovertarget=p30>Open popover 30</button>
+<button id=b30b>Non-invoker</button>
+<script>
+promise_test(async () => {
+  assert_false(p30.matches(':popover-open'),'initially hidden');
+  p30.showPopover();
+  assert_true(p30.matches(':popover-open'),'showing');
+  let actions = new test_driver.Actions();
+  await actions.pointerMove(0,0,{origin: b30})
+      .pointerDown({button: actions.ButtonType.LEFT})
+      .send();
+  await waitForRender();
+  assert_true(p30.matches(':popover-open'),'showing after pointerdown');
+  actions = new test_driver.Actions();
+  await actions.pointerMove(0,0,{origin: b30b})
+      .pointerUp({button: actions.ButtonType.LEFT})
+      .send();
+  await waitForRender();
+  assert_true(p30.matches(':popover-open'),'showing after pointerup');
+},`Pointer down inside invoker and up outside that invoker shouldn't dismiss popover`);
 </script>

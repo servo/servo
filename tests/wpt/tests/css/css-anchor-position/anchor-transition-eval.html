@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: Transition when the result of anchor()/anchor-size() changes</title>
+<link rel="help" href="https://drafts4.csswg.org/css-anchor-position-1/">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/9598">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .cb {
+    display: inline-block;
+    position: relative;
+    width: 250px;
+    height: 250px;
+    border: 1px solid black;
+  }
+  .anchor {
+    position: absolute;
+    width: 50px;
+    height: 40px;
+    left: 60px;
+    top: 40px;
+    background: coral;
+    anchor-name: --a;
+  }
+  .shift {
+    left: 80px;
+  }
+  .grow {
+    width: 70px;
+  }
+  .anchored {
+    position: absolute;
+    width: anchor-size(width);
+    height: 40px;
+    position-anchor: --a;
+    top: anchor(bottom);
+    left: anchor(right);
+    transition-duration: 1000s;
+    transition-timing-function: steps(2, start);
+    background-color: skyblue;
+  }
+</style>
+
+<div id=anchor_test class=cb>
+  <div class=anchor></div>
+  <div class=anchored style="transition-property:left"></div>
+</div>
+<script>
+  test(() => {
+    let anchor = anchor_test.querySelector('.anchor');
+    let anchored = anchor_test.querySelector('.anchored');
+    assert_equals(anchored.offsetLeft, 110);
+    anchor.classList.add('shift');
+    assert_equals(anchored.offsetLeft, 120);
+  }, 'Transition when the result of anchor() changes');
+</script>
+
+<div id=anchor_size_test class=cb>
+  <div class=anchor></div>
+  <div class=anchored style="transition-property:width"></div>
+</div>
+<script>
+  test(() => {
+    let anchor = anchor_size_test.querySelector('.anchor');
+    let anchored = anchor_size_test.querySelector('.anchored');
+    assert_equals(anchored.offsetWidth, 50);
+    anchor.classList.add('grow');
+    assert_equals(anchored.offsetWidth, 60);
+  }, 'Transition when the result of anchor-size() changes');
+</script>

@@ -7,7 +7,6 @@ importScripts("/resources/testharness.js");
 importScripts("/html/canvas/resources/canvas-tests.js");
 
 promise_test(async t => {
-
   var canvas = new OffscreenCanvas(100, 50);
   var ctx = canvas.getContext('2d');
 
@@ -22,6 +21,5 @@ promise_test(async t => {
   ctx.fillRect(0, 0, 100, 50);
 
   _assertPixel(canvas, 50,25, 0,255,0,255);
-  t.done();
 }, "");
 done();

@@ -7,29 +7,53 @@
 <div id="div">hello</div>
 <script>
 let scriptRan = false;
-let computedStyleDuringInsertion = null;
+let computedStyleInPreScript = null;
+let computedStyleInPostScript = null;
 test(() => {
   const div = document.getElementById("div");
+
+  // 1. Gets inserted *before* the `<meta>` tag. Cannot observe the meta tag's
+  // effect, because this script runs before the meta tag's post-insertion steps
+  // run, and the meta tag's post-insertion steps is where the default style
+  // sheet actually changes.
+  const preScript = document.createElement("script");
+  preScript.textContent =  `
+    computedStyleInPreScript = getComputedStyle(div).display;
+    scriptRan = true;
+  `;
+
+  // 2. The `<meta>` tag itself.
   const meta = document.createElement("meta");
   meta.httpEquiv = "default-style";
   meta.content = "alternative";
-  const script = document.createElement("script");
-  script.textContent = `
-    computedStyleDuringInsertion = getComputedStyle(div).display;
+
+  // 3. Gets inserted *after* the `<meta>` tag. Observes the meta tag's effect,
+  // because this script runs after the meta tag's post-insertion steps, which
+  // has the script-observable change to the default style sheet.
+  const postScript = document.createElement("script");
+  postScript.textContent = `
+    computedStyleInPostScript = getComputedStyle(div).display;
     scriptRan = true;
   `;
+
   const df = document.createDocumentFragment();
-  df.appendChild(script);
-  df.appendChild(meta);
-  assert_equals(getComputedStyle(div).display, "block", "div has block display");
+  df.append(preScript, meta, postScript);
+
+  assert_equals(getComputedStyle(div).display, "block",
+      "div still has block display before meta insertion");
   assert_false(scriptRan, "script has not run before insertion");
+
   document.head.appendChild(df);
   assert_true(scriptRan, "script has run after insertion");
-  assert_equals(computedStyleDuringInsertion, "none",
-      "display: none; style was applied during DOM insertion, before " +
-      "later-inserted script runs");
+  assert_equals(computedStyleInPreScript, "block",
+      "display: none; style was NOT applied during DOM insertion steps, " +
+      "before earlier-inserted script post-insertion steps run");
+  assert_equals(computedStyleInPostScript, "none",
+      "display: none; style WAS applied during DOM post-insertion steps, " +
+      "before later-inserted script runs");
   assert_equals(getComputedStyle(div).display, "none",
       "style remains display: none; after insertion");
+
 }, "Inserting <meta> that uses alternate stylesheets, applies the style " +
-   "during DOM insertion, and before script runs as a result of any atomic insertions");
+   "during DOM post-insertion steps");
 </script>

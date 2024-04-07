@@ -21,8 +21,10 @@
       fencedframe.element.addEventListener('fencedtreeclick', () => notified = true);
 
       await fencedframe.execute(async (frame_type) => {
-        window.addEventListener('message', (event) => {
-          window.click_error = event.data;
+        window.click_error = new Promise((resolve, reject) => {
+          window.addEventListener('message', (event) => {
+            resolve(event.data);
+          });
         });
 
         let iframe = null;
@@ -54,9 +56,10 @@
       await multiClick(10, 10, fencedframe.element);
 
       // Ensure the correct exception was thrown.
-      await fencedframe.execute(() => {
-        assert_equals(window.click_error.name, 'SecurityError');
-        assert_equals(window.click_error.message,
+      await fencedframe.execute(async () => {
+        let err = await window.click_error;
+        assert_equals(err.name, 'SecurityError');
+        assert_equals(err.message,
           "Failed to execute 'notifyEvent' on 'Fence': notifyEvent is only available in fenced frame roots.");
       });
 
@@ -74,8 +77,10 @@
     }, "Test that fenced frame notifyEvent() fails in a nested cross-origin iframe.");
 
     promise_test(async (t) => {
-      window.addEventListener('message', (event) => {
-        window.click_error = event.data;
+      window.click_error = new Promise((resolve, reject) => {
+        window.addEventListener('message', (event) => {
+           resolve(event.data);
+        });
       });
 
       const urn_iframe = await attachIFrameContext(
@@ -95,8 +100,9 @@
 
       await multiClick(10, 10, urn_iframe.element);
 
-      assert_equals(window.click_error.name, 'SecurityError');
-      assert_equals(window.click_error.message,
+      let err = await window.click_error
+      assert_equals(err.name, 'SecurityError');
+      assert_equals(err.message,
         "Failed to execute 'notifyEvent' on 'Fence': notifyEvent is only available in fenced frame roots.");
     }, "Test that notifyEvent() fails in a URN iframe.");
   </script>

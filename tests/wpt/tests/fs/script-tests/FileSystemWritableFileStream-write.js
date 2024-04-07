@@ -362,3 +362,13 @@ directory_test(async (t, root) => {
   const newStream = await handle.createWritable({mode: 'exclusive'});
   await newStream.close();
 }, 'an errored writable stream releases its lock');
+
+directory_test(async (t, root) => {
+  const handle = await createFileWithContents(t, 'file.txt', 'contents', root);
+  const stream = await handle.createWritable({mode: 'exclusive'});
+
+  const writer = stream.getWriter();
+
+  await promise_rejects_js(t, TypeError, writer.write(null), 'write with null data');
+  await promise_rejects_js(t, TypeError, writer.write("foo"), 'write with text data');
+}, 'an errored writable stream should reject the next write call');

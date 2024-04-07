@@ -11,7 +11,7 @@
 
 <style>
 select {
-  appearance: bikeshed;
+  appearance: base-select;
 }
 </style>
 
@@ -41,7 +41,7 @@ promise_test(async () => {
   await test_driver.click(button);
   assert_false(select.matches(':open'),
     'Select should be closed after clicking the button a second time.');
-}, 'Select with appearance:bikeshed should open and close when clicking the button.');
+}, 'Select with appearance:base-select should open and close when clicking the button.');
 
 promise_test(async () => {
   assert_false(select.matches(':open'),
@@ -58,5 +58,5 @@ promise_test(async () => {
     'Select should be closed after clicking an option.');
   assert_equals(select.value, 'two',
     'Select.value should be two after clicking the option.');
-}, 'Clicking an option in an appearance:bikeshed select should choose the option and close the popover.');
+}, 'Clicking an option in an appearance:base-select select should choose the option and close the popover.');
 </script>

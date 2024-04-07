@@ -72,6 +72,7 @@ var BLOCKED_PORTS_LIST = [
     2049, // nfs
     3659, // apple-sasl
     4045, // lockd
+    4190, // sieve
     5060, // sip
     5061, // sips
     6000, // x11
@@ -81,6 +82,7 @@ var BLOCKED_PORTS_LIST = [
     6667, // irc (default)
     6668, // irc (alternate)
     6669, // irc (alternate)
+    6679, // osaut
     6697, // irc+tls
     10080, // amanda
 ];

@@ -42,21 +42,29 @@
 {% if test_type == 'promise' %}
 promise_test(async t => {
 
-  var canvas = document.getElementById('c');
-  var ctx = canvas.getContext('2d'{% if attributes %}, {{ attributes }}{% endif %});
-{% else %}
+{% elif test_type == 'async' %}
+async_test(t => {
+{% elif test_type == 'sync' %}
+test(t => {
+{% endif %}
+{% if not test_type %}
 var t = async_test("{{ desc | double_quote_escape }}");
 _addTest(function(canvas, ctx) {
+
+{% else %}
+  var canvas = document.getElementById('c');
+  var ctx = canvas.getContext('2d'{% if attributes %}, {{ attributes }}{% endif %});
+
 {% endif %}
 
-  {# Test body: #}
-  {{ code | trim | indent(2) }}
+  {#- Test body: #}
+  {{ code_element | trim | indent(2) }}
 
 {# Promise vs. async test footer: #}
-{% if test_type == 'promise' %}
-}, "{{ desc }}");
-{% else %}
+{% if not test_type %}
 }{% if attributes %}, {{ attributes }}{% endif %});
+{% else %}
+}, "{{ desc | double_quote_escape }}");
 {% endif -%}
 
 </script>

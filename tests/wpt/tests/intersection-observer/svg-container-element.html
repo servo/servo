@@ -14,6 +14,7 @@
 <script>
 const viewportWidth = document.documentElement.clientWidth;
 const viewportHeight = document.documentElement.clientHeight;
+const kEpsilon = 1; // clientHeight and clientWidth are rounded if the viewport is fractional.
 setup(() => {
   window.entries = [];
   window.target = document.getElementById("target");
@@ -40,7 +41,7 @@ function step0() {
     0, 0, 0, 0,
     0, viewportWidth, 0, viewportHeight,
     false,
-  ]);
+  ], kEpsilon);
 }
 function step1() {
   checkLastEntry(entries, 1, [
@@ -48,6 +49,6 @@ function step1() {
     8, 8 + targetRect.width, 8, 8 + targetRect.height,
     0, viewportWidth, 0, viewportHeight,
     true,
-  ]);
+  ], kEpsilon);
 }
 </script>

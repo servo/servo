@@ -55,10 +55,13 @@ function type_codecs_test(type, audioCodecs, videoCodecs) {
   var typeSupported = false;
   var codecSupported = false;
 
+  var mimeSupported = canPlayType(type);
+
   // Test 'type' without codecs.
   // Spec: Generally, a user agent should never return "probably" for a type
   // that allows the codecs parameter if that parameter is not present.
   test(function() {
+    assert_implements_optional(mimeSupported, type)
     t(type, 'maybe');
     t(type + ';', 'maybe');
     t(type + ';codecs', 'maybe');
@@ -69,6 +72,7 @@ function type_codecs_test(type, audioCodecs, videoCodecs) {
   function test_codec(codec) {
     var typeWithCodec = mime(type, [codec]);
     test(function() {
+      assert_implements_optional(canPlayType(typeWithCodec), type)
       t(typeWithCodec, 'probably');
       codecSupported = true;
     }, typeWithCodec + ' (optional)');
@@ -81,6 +85,7 @@ function type_codecs_test(type, audioCodecs, videoCodecs) {
   // Test different pairings and orderings of audio+video codecs.
   if (audioCodecs.length > 0 && videoCodecs.length > 0) {
     test(function() {
+      assert_implements_optional(mimeSupported, type)
       audioCodecs.forEach(function(ac) {
         videoCodecs.forEach(function(vc) {
           var canPlayBoth = canPlayType(mime(type, [ac, vc]));
@@ -93,6 +98,7 @@ function type_codecs_test(type, audioCodecs, videoCodecs) {
     }, type + ' codecs subset');
 
     test(function() {
+      assert_implements_optional(mimeSupported, type)
       audioCodecs.forEach(function(ac) {
         videoCodecs.forEach(function(vc) {
           assert_equals(canPlayType(mime(type, [ac, vc])),

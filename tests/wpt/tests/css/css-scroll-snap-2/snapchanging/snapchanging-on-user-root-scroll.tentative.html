@@ -159,6 +159,11 @@
       await test_snap_event(t, test_data, "snapchanging");
     }, "keyboard scroll triggers snapchanging.");
 
+    promise_test(async (t) => {
+      await test_user_scroll_onsnapchanging(t, scroller, document,
+                                             snap_area_2);
+    }, "Document.onsnapchanging fires when scrolling a snap container.");
+
     // Touch scroll test: peek at snap_area_2 and then drag back to
     // snap_area_1.
     promise_test(async (t) => {

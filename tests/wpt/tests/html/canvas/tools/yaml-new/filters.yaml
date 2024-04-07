@@ -837,10 +837,6 @@
         <10 | -1 | 0.5 | null | true | false | [] | [20] | '30'>}") }};
     @unroll {{ filter_declaration | replace("param", "{\-
         name: 'dropShadow', \-
-        <dx | dy | floodOpacity>: \-
-        <10 | -1 | 0.5 | null | true | false | [] | [20] | '30'>}") }};
-    @unroll {{ filter_declaration | replace("param", "{\-
-        name: 'dropShadow', \-
         <stdDeviation>: \-
         <10 | -1 | 0.5 | null | true | false | [] | [20] | '30' | \-
          [10, -1] | [0.5, null] | [true, false] | [[], [20]] | \-

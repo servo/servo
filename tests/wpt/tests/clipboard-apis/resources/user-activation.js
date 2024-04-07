@@ -34,7 +34,7 @@ async function trySetPermission(perm, state) {
   }
 }
 
-async function tryGrantReadPermission(state) {
+async function tryGrantReadPermission() {
   await trySetPermission("clipboard-read", "granted");
 }
 

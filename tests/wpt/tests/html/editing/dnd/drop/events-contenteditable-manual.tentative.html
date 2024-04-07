@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Selection drag and drop: events for contenteditable</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+[data-placeholder]:empty::before { content: attr(data-placeholder); }
+</style>
+<body data-expected-events="
+  b:drop:,
+  a:beforeinput:deleteByDrag,
+  a:input:deleteByDrag,
+  b:beforeinput:insertFromDrop,
+  b:textInput:,
+  b:input:insertFromDrop">
+<div><input id=a data-select="0,7" value="Drag me"></div>
+<div contenteditable=true id=b data-placeholder="...to here"></div>
+<script src="/uievents/textInput/support/common.js"></script>
+<script src="support/events.js"></script>

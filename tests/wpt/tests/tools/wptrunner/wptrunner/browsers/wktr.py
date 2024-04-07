@@ -186,6 +186,7 @@ class WKTRBrowser(Browser):
     def is_alive(self):
         return self._proc is not None and self._proc.poll() is None
 
+    @property
     def pid(self):
         return self._proc.pid if self._proc else None
 

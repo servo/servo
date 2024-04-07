@@ -356,7 +356,7 @@ subsetTest(promise_test, async test => {
                           throw "Wrong origin: " + interestGroup.owner;
                         if (!interestGroup.biddingLogicURL.startsWith("${bidderOrigin}"))
                           throw "Wrong origin: " + interestGroup.biddingLogicURL;
-                        if (interestGroup.ads[0].renderURL != "${renderURL}")
+                        if (interestGroup.ads[0].renderURL !== "${renderURL}")
                           throw "Wrong renderURL: " + interestGroup.ads[0].renderURL;
                         if (browserSignals.seller !== "${sellerOrigin}")
                           throw "Wrong origin: " + browserSignals.seller;`,

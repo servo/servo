@@ -2,3 +2,6 @@ features:
 - name: focus-visible
   files:
   - focus-visible-*
+- name: has
+  files:
+  - has-*

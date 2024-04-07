@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp doesn't propagate to abspos</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-with-abspos-010-ref.html">
+<meta name="assert" content="Absolute positioned boxes create a new BFC, and line-clamp does not propagate into independent BFCs">
+<style>
+.clamp {
+  line-clamp: 4;
+  font: 16px / 32px serif;
+  padding: 0 4px;
+  white-space: pre;
+  background-color: yellow;
+}
+.abspos {
+  position: absolute;
+  right: 0;
+  margin: 4px;
+  white-space: pre;
+  background-color: skyblue;
+}
+</style>
+<div class="clamp">Line 1
+Line 2
+Line 3
+Line 4<div class="abspos">Line A
+Line B
+Line C
+Line D
+Line E</div>
+Line 5</div>

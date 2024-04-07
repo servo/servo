@@ -101,8 +101,8 @@
 
   function checkRedaction(billingAddress) {
     assert_true(
-      billingAddress instanceof PaymentAddress,
-      "Expected instance of PaymentAddress"
+      billingAddress instanceof ContactAddress,
+      "Expected instance of ContactAddress"
     );
     for (const item of ["organization", "phone", "recipient"]) {
       assert_equals(
@@ -134,7 +134,7 @@
     <button onclick="requestBillingAddress()">
       When billing address is
       requested,`PaymentMethodChangeEvent.methodData.billingAddress` is a
-      `PaymentAddress`.
+      `ContactAddress`.
     </button>
   </li>
   <li><button onclick="done()">Done!</button></li>

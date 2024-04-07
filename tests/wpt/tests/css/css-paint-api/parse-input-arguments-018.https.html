@@ -22,11 +22,15 @@ should never be called. In other words, there should be no red painted in the re
 <div id="canvas-geometry" class="container"></div>
 
 <script id="code" type="text/worklet">
-function generateRandString(length) {
-    var text = "";
-    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    for (var i = 0; i < length; i++)
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
+function generateRandomIdentifier(length) {
+    const firstChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    const nthChars = firstChars + "0123456789";
+    // Pick a letter for the first character so that the string is a valid
+    // identifier.
+    var text = firstChars.charAt(Math.floor(Math.random() * firstChars.length));
+    for (var i = 0; i < length - 1; i++) {
+        text += nthChars.charAt(Math.floor(Math.random() * nthChars.length));
+    }
     return text;
 }
 
@@ -39,7 +43,7 @@ try {
             // the input properties here. We make the string length 100 to make sure
             // that it is veryyyyyyyyyyyy unlikely that two strings will be the same
             // when running this test.
-            var current_str = generateRandString(100);
+            var current_str = generateRandomIdentifier(100);
             return [current_str];
         }
         // The paint function here should never be called because the inputArguments

@@ -161,6 +161,7 @@ class ServoWebDriverBrowser(Browser):
         if self.output_handler is not None:
             self.output_handler.after_process_stop()
 
+    @property
     def pid(self):
         if self.proc is None:
             return None

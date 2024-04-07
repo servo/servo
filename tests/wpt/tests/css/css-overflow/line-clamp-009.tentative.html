@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: sizing of line-clamp affected elements with clamped block boxes</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-006-ref.html">
+<meta name="assert" content="line-clamp should size the element to the clamped number of lines, regardless of whether there are hidden block boxes after the clamp point">
+<style>
+.clamp {
+  line-clamp: 4;
+  font: 16px / 32px serif;
+  padding: 0 4px;
+  background-color: yellow;
+}
+.pre {
+  white-space: pre;
+}
+.red {
+  background-color: red;
+}
+</style>
+<div class="clamp">
+<div class="pre">Line 1
+Line 2
+Line 3
+Line 4
+Line 5</div>
+
+<div class="red">Test</div>
+
+<table class="red">
+  <tr>
+    <td>A</td>
+    <td>B</td>
+  </tr>
+  <tr>
+    <td>C</td>
+    <td>D</td>
+  </tr>
+</table>
+
+</div>
+
+<p>Following content.</p>

@@ -61,7 +61,7 @@ async function runComponentAdLoadingTest(test, uuid, numComponentAdsInInterestGr
       `// "status" is passed to the beacon URL, to be verified by waitForObservedRequests().
        let status = "ok";
        const componentAds = window.fence.getNestedConfigs()
-       if (componentAds.length != 40)
+       if (componentAds.length !== 40)
          status = "unexpected getNestedConfigs() length";
        for (let i of ${JSON.stringify(componentAdsToLoad)}) {
          let fencedFrame = document.createElement("fencedframe");
@@ -144,7 +144,7 @@ subsetTest(promise_test, async test => {
      const nestedConfigsLength = window.fence.getNestedConfigs().length
      // "getNestedConfigs()" should return a list of 40 configs, to avoid leaking
      // whether there were any component URLs to the page.
-     if (nestedConfigsLength != 40)
+     if (nestedConfigsLength !== 40)
        status = "unexpected getNestedConfigs() length: " + nestedConfigsLength;
      window.fence.reportEvent({eventType: "beacon",
                                eventData: status,

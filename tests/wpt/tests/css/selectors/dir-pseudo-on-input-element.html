@@ -1,14 +1,10 @@
 <!DOCTYPE html>
-<html>
-<head>
 <meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
 <link rel="help" href="https://html.spec.whatwg.org/multipage/dom.html#the-directionality">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-</head>
 <body>
 <script>
-
 test(() => {
     const input = document.createElement('input');
     input.type = 'tel';
@@ -195,9 +191,17 @@ for (const type of ['date', 'time', 'number', 'range', 'color', 'checkbox', 'rad
         input.removeAttribute('dir');
         assert_true(input.matches(':dir(ltr)'));
         assert_false(input.matches(':dir(rtl)'));
+
+        let rtlParent = document.createElement("div");
+        rtlParent.dir = "rtl";
+        input.dir = "auto";
+        rtlParent.appendChild(input);
+        document.body.appendChild(rtlParent); // Just for good measure.
+        assert_true(input.matches(':dir(ltr)'));
+        assert_false(input.matches(':dir(rtl)'));
+        rtlParent.remove();
     }, `input element whose type attribute is in the ${type} state`);
 }
 
 </script>
-</body>
 </html>

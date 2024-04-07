@@ -7,7 +7,6 @@ importScripts("/resources/testharness.js");
 importScripts("/html/canvas/resources/canvas-tests.js");
 
 promise_test(async t => {
-
   var canvas = new OffscreenCanvas(100, 50);
   var ctx = canvas.getContext('2d');
 
@@ -21,6 +20,5 @@ promise_test(async t => {
   _assertPixelApprox(canvas, 45,25, 0,255,0,255, 2);
   _assertPixelApprox(canvas, 50,25, 0,255,0,255, 2);
   _assertPixelApprox(canvas, 55,25, 0,255,0,255, 2);
-  t.done();
 }, "Stretched images do not get pixels wrapping around the edges");
 done();

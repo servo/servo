@@ -1,0 +1,5 @@
+features:
+- name: animation-composition
+  files:
+  - animation-composition.html
+  - animation-composition-*

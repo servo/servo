@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="help" href="https://drafts.csswg.org/css-values-5/#media-progress-func">
 <link rel="author" title="sakhapov@chromium.org">
 <script src="/resources/testharness.js"></script>
@@ -9,26 +10,33 @@
 #target {
   font-size: 10px;
 }
+:root {
+  width: 100vw;
+  height: 100vh;
+}
 </style>
 <script>
-
-let width = window.innerWidth;
-let height = window.innerHeight;
+// innerWidth and innerHeight have lossy precision, see
+// https://github.com/w3c/csswg-drafts/issues/5260.
+let { width, height } = document.documentElement.getBoundingClientRect();
 
 // Identity tests
-  test_math_used('media-progress(height from 0px to 1px)', height, {type:'number'});
+// NOTE(emilio): We provide custom messages so that the test name doesn't
+// depend on the viewport size (since in testharness.js files the viewport size is
+// not guaranteed to be fixed, unlike in reftests).
+test_math_used('media-progress(height from 0px to 1px)', height, { type:'number', 'msg': 'media-progress() identity check' });
 
 // Nestings
 test_math_used('media-progress(height from media-progress(height from 0px to 1px) * 1px to media-progress(height from 0px to 1px) * 1px)', '0', {type:'number'});
 
 test_math_used('media-progress(height from media-progress(height from 0px to 1px) * 0.5px to media-progress(height from 0px to 1px) * 1px)', '1', {type:'number'});
 
-// General calculations
-test_math_used('calc(media-progress(width from 0px to 50px) * 10px + 100px)', (width / 50 * 10 + 100) + 'px');
-test_math_used('calc(media-progress(height from 10px to sign(50px - 500em) * 10px))', (height - 10) / (-10 - 10), {type:'number'});
+// General calculations.
+test_math_used('calc(media-progress(width from 0px to 50px) * 10px + 100px)', (width / 50 * 10 + 100) + 'px', { msg: 'media-progress() with length product' });
+test_math_used('calc(media-progress(height from 10px to sign(50px - 500em) * 10px))', (height - 10) / (-10 - 10), { type:'number', msg: 'media-progress with complex to calculation' });
 
 // Type checking
-test_math_used('calc(media-progress(width from 0px to 1px) * 1px)', width + 'px');
-test_math_used('calc(media-progress(height from 0px to 1px) * 1s)', height + 's', {type:'time'});
-test_math_used('calc(media-progress(width from 0px to 1px) * 1deg)', width + 'deg', {type:'angle', approx:0.001});
+test_math_used('calc(media-progress(width from 0px to 1px) * 1px)', width + 'px', { msg: 'media-progress() as length' });
+test_math_used('calc(media-progress(height from 0px to 1px) * 1s)', height + 's', { type:'time', msg: 'media-progress() as time' });
+test_math_used('calc(media-progress(width from 0px to 1px) * 1deg)', width + 'deg', { type:'angle', approx:0.001, msg: 'media-progress() as angle' });
 </script>

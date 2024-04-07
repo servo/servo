@@ -67,11 +67,11 @@
         var otherHost = get_host_info().HTTP_NOTSAMESITE_ORIGIN.slice(0, -4); // cut of http port
         var url = new URL(
           otherHost +
-            "{{ports[https][0]}}/mixed-content/tentative/resources/test.ogv?pipe=header(Access-Control-Allow-Origin,*)"
+            "{{ports[https][0]}}/mixed-content/tentative/resources/test.webm?pipe=header(Access-Control-Allow-Origin,*)"
         );
         var i = document.createElement("video");
         i.oncanplaythrough = test.step_func_done((_) => {
-          assert_equals(Math.floor(i.duration), 300, "Length. Other host");
+          assert_equals(Math.floor(i.duration), 1, "Length. Other host");
         });
         i.crossOrigin = "anonymous";
         i.onerror = test.unreached_func(

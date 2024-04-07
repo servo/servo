@@ -1,0 +1,101 @@
+<!doctype html>
+<meta charset="utf8">
+<link rel="help" href="https://w3c.github.io/payment-request/#dom-paymentresponse-shippingaddress">
+<title>
+  PaymentResponse.prototype.shippingAddress
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="helpers.js"></script>
+<script>
+async function checkNullShippingAddress(button, options) {
+  button.disabled = true;
+  const { request, response } = await getPaymentRequestResponse(options);
+  await response.complete();
+  test(() => {
+    assert_idl_attribute(response, "shippingAddress");
+    assert_equals(
+      response.shippingAddress,
+      null,
+      "Expected response.shippingAddress to be null"
+    );
+    assert_equals(
+      request.shippingAddress,
+      null,
+      "Expected request.shippingAddress to be null"
+    );
+  }, button.textContent.trim());
+}
+
+async function runManualTest(button, options = {}, expected = {}, id) {
+  button.disabled = true;
+  const { request, response } = await getPaymentRequestResponse(options, id);
+  await response.complete();
+  test(() => {
+    assert_equals(response.requestId, request.id, `Expected ids to match`);
+    assert_idl_attribute(response, "shippingAddress");
+    const { shippingAddress: addr } = request;
+    assert_true(
+      addr instanceof ContactAddress,
+      "Expect instance of ContactAddress"
+    );
+    try {
+      addr.toJSON();
+    } catch (err) {
+      assert_unreached(
+        `Unexpected exception calling ContactAddress.toJSON(): ${err}`
+      );
+    }
+    if (expected.shippingAddress === null) {
+      return;
+    }
+    assert_equals(addr.country, "AF", "Expected AF for country");
+    assert_true(
+      addr.addressLine instanceof Array,
+      "Expected addressLine to be an array"
+    );
+    assert_equals(
+      addr.addressLine.toString(),
+      "1 wpt street",
+      "Expected '1 wpt street' for addressLine"
+    );
+    assert_equals(addr.city, "Kabul", "Expected city to be Kabul");
+    assert_equals(addr.postalCode, "1001", "Expect postalCode to be 1001");
+    assert_equals(addr.recipient, "web platform test");
+  }, button.textContent.trim());
+}
+</script>
+<h2>shippingAddress attribute</h2>
+<p>
+  Click on each button in sequence from top to bottom without refreshing the page.
+  Each button will bring up the Payment Request UI window.
+</p>
+<p>
+  When prompted, please enter "web platform test" as recipient, at address "1 wpt street" in "Kabul, Afghanistan", zip/postal code 1001.
+</p>
+<ol>
+  <li>
+    <button onclick="checkNullShippingAddress(this, undefined)">
+      If options is undefined, then shippingAddress must be null.
+    </button>
+  </li>
+  <li>
+    <button onclick="checkNullShippingAddress(this, {})">
+      If the requestShipping member is missing, then shippingAddress must be null.
+    </button>
+  </li>
+  <li>
+    <button onclick="checkNullShippingAddress(this, {requestShipping: false})">
+      If the requestShipping member is false, then shippingAddress must be null.
+    </button>
+  </li>
+  <li>
+    <button onclick="runManualTest(this, {requestShipping: true}).then(done)">
+      If the requestShipping member is true, then shippingAddress must be "1 wpt street" in "Kabul, Afghanistan", zip code 1001.
+    </button>
+  </li>
+</ol>
+<small>
+  If you find a buggy test, please <a href="https://github.com/web-platform-tests/wpt/issues">file a bug</a>
+  and tag one of the <a href="https://github.com/web-platform-tests/wpt/blob/master/payment-request/META.yml">suggested reviewers</a>.
+</small>
