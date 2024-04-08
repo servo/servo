@@ -2453,9 +2453,9 @@ dependencies = [
 
 [[package]]
 name = "gstreamer-video"
-version = "0.22.1"
+version = "0.22.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ab3f4045ddb92bf2b469f5db8825d4f5eb46e4beff661fc97f50bb4e2b2c626"
+checksum = "5fc0a96481ecfcdd120d5057bb7ab5a6f6cd392cc34ba1e8b86cac3ba082f788"
 dependencies = [
  "cfg-if",
  "futures-channel",
@@ -3289,7 +3289,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.4",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
