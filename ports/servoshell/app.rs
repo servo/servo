@@ -407,7 +407,10 @@ impl App {
 
         // Catch some keyboard events, and push the rest onto the WebViewManager event queue.
         webviews.handle_window_events(embedder_events);
-        if pref!(dom.gamepad.enabled) && webviews.webview_id().is_some() {
+
+        // If the Gamepad API is enabled, handle gamepad events from GilRs.
+        // Checking for current_url_string should ensure we'll have a valid browsing context.
+        if pref!(dom.gamepad.enabled) && webviews.current_url_string().is_some() {
             webviews.handle_gamepad_events();
         }
 

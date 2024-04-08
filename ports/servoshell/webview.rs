@@ -155,14 +155,14 @@ where
                 let gamepad = gilrs.gamepad(event.id);
                 let name = gamepad.name();
                 let index = GamepadIndex(event.id.into());
+                let mut gamepad_event: Option<GamepadEvent> = None;
                 match event.event {
                     EventType::ButtonPressed(button, _) => {
                         let mapped_index = Self::map_gamepad_button(button);
                         // We only want to send this for a valid digital button, aka on/off only
                         if !matches!(mapped_index, 6 | 7 | 17) {
                             let update_type = GamepadUpdateType::Button(mapped_index, 1.0);
-                            let event = GamepadEvent::Updated(index, update_type);
-                            self.event_queue.push(EmbedderEvent::Gamepad(event));
+                            gamepad_event = Some(GamepadEvent::Updated(index, update_type));
                         }
                     },
                     EventType::ButtonReleased(button, _) => {
@@ -170,8 +170,7 @@ where
                         // We only want to send this for a valid digital button, aka on/off only
                         if !matches!(mapped_index, 6 | 7 | 17) {
                             let update_type = GamepadUpdateType::Button(mapped_index, 0.0);
-                            let event = GamepadEvent::Updated(index, update_type);
-                            self.event_queue.push(EmbedderEvent::Gamepad(event));
+                            gamepad_event = Some(GamepadEvent::Updated(index, update_type));
                         }
                     },
                     EventType::ButtonChanged(button, value, _) => {
@@ -179,8 +178,7 @@ where
                         // We only want to send this for a valid non-digital button, aka the triggers
                         if matches!(mapped_index, 6 | 7) {
                             let update_type = GamepadUpdateType::Button(mapped_index, value as f64);
-                            let event = GamepadEvent::Updated(index, update_type);
-                            self.event_queue.push(EmbedderEvent::Gamepad(event));
+                            gamepad_event = Some(GamepadEvent::Updated(index, update_type));
                         }
                     },
                     EventType::AxisChanged(axis, value, _) => {
@@ -203,8 +201,7 @@ where
                             };
                             let update_type =
                                 GamepadUpdateType::Axis(mapped_axis, axis_value as f64);
-                            let event = GamepadEvent::Updated(index, update_type);
-                            self.event_queue.push(EmbedderEvent::Gamepad(event));
+                            gamepad_event = Some(GamepadEvent::Updated(index, update_type));
                         }
                     },
                     EventType::Connected => {
@@ -213,14 +210,16 @@ where
                             axis_bounds: (-1.0, 1.0),
                             button_bounds: (0.0, 1.0),
                         };
-                        let event = GamepadEvent::Connected(index, name, bounds);
-                        self.event_queue.push(EmbedderEvent::Gamepad(event));
+                        gamepad_event = Some(GamepadEvent::Connected(index, name, bounds));
                     },
                     EventType::Disconnected => {
-                        let event = GamepadEvent::Disconnected(index);
-                        self.event_queue.push(EmbedderEvent::Gamepad(event));
+                        gamepad_event = Some(GamepadEvent::Disconnected(index));
                     },
                     _ => {},
+                }
+
+                if let Some(event) = gamepad_event {
+                    self.event_queue.push(EmbedderEvent::Gamepad(event));
                 }
             }
         }

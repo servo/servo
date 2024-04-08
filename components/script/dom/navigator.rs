@@ -9,6 +9,7 @@ use dom_struct::dom_struct;
 use js::jsval::JSVal;
 use lazy_static::lazy_static;
 
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -17,7 +18,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::bluetooth::Bluetooth;
 use crate::dom::gamepad::Gamepad;
-use crate::dom::gamepadlist::GamepadList;
+use crate::dom::gamepadevent::GamepadEventType;
 use crate::dom::gpu::GPU;
 use crate::dom::mediadevices::MediaDevices;
 use crate::dom::mediasession::MediaSession;
@@ -47,7 +48,7 @@ pub struct Navigator {
     xr: MutNullableDom<XRSystem>,
     mediadevices: MutNullableDom<MediaDevices>,
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepads>
-    gamepads: MutNullableDom<GamepadList>,
+    gamepads: DomRefCell<Vec<MutNullableDom<Gamepad>>>,
     permissions: MutNullableDom<Permissions>,
     mediasession: MutNullableDom<MediaSession>,
     gpu: MutNullableDom<GPU>,
@@ -81,9 +82,50 @@ impl Navigator {
         self.xr.get()
     }
 
-    pub fn gamepads(&self) -> DomRoot<GamepadList> {
-        self.gamepads
-            .or_init(|| GamepadList::new(&self.global(), &[]))
+    pub fn get_gamepad(&self, index: usize) -> Option<DomRoot<Gamepad>> {
+        self.gamepads.borrow().get(index).and_then(|g| g.get())
+    }
+
+    pub fn set_gamepad(&self, index: usize, gamepad: &Gamepad) {
+        if let Some(gamepad_to_set) = self.gamepads.borrow().get(index) {
+            gamepad_to_set.set(Some(gamepad));
+        }
+        if self.has_gamepad_gesture.get() {
+            gamepad.set_exposed(true);
+            if self.global().as_window().Document().is_fully_active() {
+                gamepad.notify_event(GamepadEventType::Connected);
+            }
+        }
+    }
+
+    pub fn remove_gamepad(&self, index: usize) {
+        if let Some(gamepad_to_remove) = self.gamepads.borrow_mut().get(index) {
+            gamepad_to_remove.set(None);
+        }
+        self.shrink_gamepads_list();
+    }
+
+    /// <https://www.w3.org/TR/gamepad/#dfn-selecting-an-unused-gamepad-index>
+    pub fn select_gamepad_index(&self) -> u32 {
+        let mut gamepad_list = self.gamepads.borrow_mut();
+        if let Some(index) = gamepad_list.iter().position(|g| g.get().is_none()) {
+            index as u32
+        } else {
+            let len = gamepad_list.len();
+            gamepad_list.resize_with(len + 1, Default::default);
+            len as u32
+        }
+    }
+
+    fn shrink_gamepads_list(&self) {
+        let mut gamepad_list = self.gamepads.borrow_mut();
+        for i in (0..gamepad_list.len()).rev() {
+            if gamepad_list.get(i as usize).is_none() {
+                gamepad_list.remove(i as usize);
+            } else {
+                break;
+            }
+        }
     }
 
     pub fn has_gamepad_gesture(&self) -> bool {
@@ -200,9 +242,7 @@ impl NavigatorMethods for Navigator {
             return Vec::new();
         }
 
-        let root = self.gamepads.or_init(|| GamepadList::new(&global, &[]));
-
-        root.list()
+        self.gamepads.borrow().iter().map(|g| g.get()).collect()
     }
     // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
     fn Permissions(&self) -> DomRoot<Permissions> {
