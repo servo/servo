@@ -2254,9 +2254,9 @@ dependencies = [
 
 [[package]]
 name = "gstreamer-audio"
-version = "0.22.0"
+version = "0.22.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7529f913cb6cbf1305ebc58ace01391cf9bb5a833810cf6e7c09e9a37d130f2"
+checksum = "73a5de9ced05f9650168a74c7a4afeddbf3e63af595a7d56a700765be3b4869c"
 dependencies = [
  "cfg-if",
  "glib",
