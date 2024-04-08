@@ -420,7 +420,7 @@ impl WGPU {
                             match result {
                                 Ok(()) => {
                                     if let Err(e) = self_sender.send((
-                                        None,
+                                        scope_id,
                                         WebGPURequest::BufferMapComplete {
                                             sender: resp_sender,
                                             buffer_id,
