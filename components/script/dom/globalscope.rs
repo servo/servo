@@ -2826,7 +2826,7 @@ impl GlobalScope {
             },
             _ => {
                 p.reject_error(Error::NotSupported);
-                return p;
+                p
             },
         }
     }

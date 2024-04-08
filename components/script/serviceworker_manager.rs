@@ -497,17 +497,18 @@ impl ServiceWorkerManagerFactory for ServiceWorkerManager {
         let from_constellation = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(receiver);
         let resource_port = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(resource_port);
         let _ = resource_sender.send(CoreResourceMsg::NetworkMediator(resource_chan, origin));
+        let swmanager_thread = move || {
+            ServiceWorkerManager::new(
+                own_sender,
+                from_constellation,
+                resource_port,
+                constellation_sender,
+            )
+            .handle_message()
+        };
         if thread::Builder::new()
             .name("SvcWorkerManager".to_owned())
-            .spawn(move || {
-                ServiceWorkerManager::new(
-                    own_sender,
-                    from_constellation,
-                    resource_port,
-                    constellation_sender,
-                )
-                .handle_message();
-            })
+            .spawn(swmanager_thread)
             .is_err()
         {
             warn!("ServiceWorkerManager thread spawning failed");

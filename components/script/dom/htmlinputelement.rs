@@ -708,11 +708,10 @@ impl HTMLInputElement {
                 },
             };
         } else {
-            value = value +
-                match dir {
-                    StepDirection::Down => -f64::from(n) * allowed_value_step,
-                    StepDirection::Up => f64::from(n) * allowed_value_step,
-                };
+            value += match dir {
+                StepDirection::Down => -f64::from(n) * allowed_value_step,
+                StepDirection::Up => f64::from(n) * allowed_value_step,
+            };
         }
 
         // Step 8
@@ -2085,8 +2084,7 @@ impl HTMLInputElement {
         if self.upcast::<Element>().click_in_progress() {
             return;
         }
-        let submit_button;
-        submit_button = node
+        let submit_button = node
             .query_selector_iter(DOMString::from("input[type=submit]"))
             .unwrap()
             .filter_map(DomRoot::downcast::<HTMLInputElement>)
@@ -2102,7 +2100,7 @@ impl HTMLInputElement {
                 }
             },
             None => {
-                let inputs = node
+                let mut inputs = node
                     .query_selector_iter(DOMString::from("input"))
                     .unwrap()
                     .filter_map(DomRoot::downcast::<HTMLInputElement>)
@@ -2125,7 +2123,7 @@ impl HTMLInputElement {
                             )
                     });
 
-                if inputs.skip(1).next().is_some() {
+                if inputs.nth(1).is_some() {
                     // lazily test for > 1 submission-blocking inputs
                     return;
                 }
