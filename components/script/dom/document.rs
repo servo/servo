@@ -1256,7 +1256,8 @@ impl Document {
         debug!("{} on {:?}", mouse_event_type_string, node.debug_str());
         // Prevent click event if form control element is disabled.
         if let MouseEventType::Click = mouse_event_type {
-            if el.click_event_filter_by_disabled_state() {
+            // The click event is filtered by the disabled state.
+            if el.is_actually_disabled() {
                 return;
             }
 
@@ -3978,12 +3979,6 @@ impl Document {
     }
     pub(crate) fn set_declarative_refresh(&self, refresh: DeclarativeRefresh) {
         *self.declarative_refresh.borrow_mut() = Some(refresh);
-    }
-}
-
-impl Element {
-    fn click_event_filter_by_disabled_state(&self) -> bool {
-        self.is_actually_disabled()
     }
 }
 

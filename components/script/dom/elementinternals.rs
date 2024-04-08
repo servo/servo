@@ -37,9 +37,9 @@ enum SubmissionValue {
 #[dom_struct]
 pub struct ElementInternals {
     reflector_: Reflector,
-    // if attached is false, we're using this to hold form-related state
-    // on an element for which attachInternals() wasn't called yet; this is
-    // necessary because it might have a form owner.
+    /// If `attached` is false, we're using this to hold form-related state
+    /// on an element for which `attachInternals()` wasn't called yet; this is
+    /// necessary because it might have a form owner.
     attached: Cell<bool>,
     target_element: Dom<HTMLElement>,
     validity_state: MutNullableDom<ValidityState>,
@@ -53,11 +53,11 @@ pub struct ElementInternals {
 }
 
 impl ElementInternals {
-    fn new_inherited(element: &HTMLElement) -> ElementInternals {
+    fn new_inherited(target_element: &HTMLElement) -> ElementInternals {
         ElementInternals {
             reflector_: Reflector::new(),
             attached: Cell::new(false),
-            target_element: Dom::from_ref(element),
+            target_element: Dom::from_ref(target_element),
             validity_state: Default::default(),
             validation_message: DomRefCell::new(DOMString::new()),
             custom_validity_error_message: DomRefCell::new(DOMString::new()),
@@ -133,24 +133,26 @@ impl ElementInternals {
             .target_element
             .upcast::<Element>()
             .get_string_attribute(&local_name!("name"));
-        if name == "" {
+        if name.is_empty() {
             return;
         }
         match &*self.submission_value.borrow() {
-            SubmissionValue::FormData(_) => unreachable!(),
+            SubmissionValue::FormData(_) => unreachable!(
+                "The FormData submission value has been handled before name empty checking"
+            ),
             SubmissionValue::None => {},
-            SubmissionValue::USVString(s) => {
+            SubmissionValue::USVString(string) => {
                 entry_list.push(FormDatum {
                     ty: DOMString::from("string"),
                     name: name,
-                    value: FormDatumValue::String(DOMString::from(s.to_string())),
+                    value: FormDatumValue::String(DOMString::from(string.to_string())),
                 });
             },
-            SubmissionValue::File(f) => {
+            SubmissionValue::File(file) => {
                 entry_list.push(FormDatum {
                     ty: DOMString::from("file"),
                     name: name,
-                    value: FormDatumValue::File(DomRoot::from_ref(&*f)),
+                    value: FormDatumValue::File(DomRoot::from_ref(&*file)),
                 });
             },
         }
@@ -170,13 +172,13 @@ impl ElementInternalsMethods for ElementInternals {
         }
 
         // Step 3: Set target element's submission value
-        self.set_submission_value(submission_value_from(&value));
+        self.set_submission_value(SubmissionValue::from(&value));
 
         match maybe_state {
             // Step 4: If the state argument of the function is omitted, set element's state to its submission value
-            None => self.set_state(submission_value_from(&value)),
+            None => self.set_state(SubmissionValue::from(&value)),
             // Steps 5-6: Otherwise, set element's state to state
-            Some(state) => self.set_state(submission_value_from(&state)),
+            Some(state) => self.set_state(SubmissionValue::from(&state)),
         }
         Ok(())
     }
@@ -193,33 +195,38 @@ impl ElementInternalsMethods for ElementInternals {
             return Err(Error::NotSupported);
         }
 
-        // Step 3: Check bits and message
-        let bits = validity_bits(flags);
-        if !bits.is_empty() && !message.iter().any(|m| m.len() > 0) {
+        // Step 3: If flags contains one or more true values and message is not given or is the empty
+        // string, then throw a TypeError.
+        let bits = ValidationFlags::from(flags);
+        if !bits.is_empty() && !message.as_ref().map_or_else(|| false, |m| !m.is_empty()) {
             return Err(Error::Type(
                 "Setting an element to invalid requires a message string as the second argument."
                     .to_string(),
             ));
         }
 
-        // Step 4: For each entry flag → value of flags, set element's validity flag with the name flag to value
+        // Step 4: For each entry `flag` → `value` of `flags`, set element's validity flag with the name
+        // `flag` to `value`.
         self.validity_state().update_invalid_flags(bits);
 
-        // Step 5: Set element's validation message to the empty string
+        // Step 5: Set element's validation message to the empty string if message is not given
+        // or all of element's validity flags are false, or to message otherwise.
         if bits.is_empty() {
             self.set_validation_message(DOMString::new());
         } else {
             self.set_validation_message(message.unwrap_or_else(|| DOMString::new()));
         }
 
-        // Step 6: set element's custom validity error message to element's validation message
+        // Step 6: If element's customError validity flag is true, then set element's custom validity error
+        // message to element's validation message. Otherwise, set element's custom validity error
+        // message to the empty string.
         if bits.contains(ValidationFlags::CUSTOM_ERROR) {
             self.set_custom_validity_error_message(self.validation_message.borrow().clone());
         } else {
             self.set_custom_validity_error_message(DOMString::new());
         }
 
-        // Step 7: Set element's validation anchor to null
+        // Step 7: Set element's validation anchor to null if anchor is not given.
         match anchor {
             None => self.validation_anchor.set(None),
             Some(a) => {
@@ -301,48 +308,58 @@ impl ElementInternalsMethods for ElementInternals {
     }
 }
 
-fn submission_value_from(value: &Option<FileOrUSVStringOrFormData>) -> SubmissionValue {
-    match value {
-        None => SubmissionValue::None,
-        Some(FileOrUSVStringOrFormData::File(f)) => SubmissionValue::File(DomRoot::from_ref(f)),
-        Some(FileOrUSVStringOrFormData::USVString(s)) => SubmissionValue::USVString(s.clone()),
-        Some(FileOrUSVStringOrFormData::FormData(fd)) => SubmissionValue::FormData(fd.datums()),
+impl From<&Option<FileOrUSVStringOrFormData>> for SubmissionValue {
+    fn from(value: &Option<FileOrUSVStringOrFormData>) -> Self {
+        match value {
+            None => SubmissionValue::None,
+            Some(FileOrUSVStringOrFormData::File(file)) => {
+                SubmissionValue::File(DomRoot::from_ref(file))
+            },
+            Some(FileOrUSVStringOrFormData::USVString(usv_string)) => {
+                SubmissionValue::USVString(usv_string.clone())
+            },
+            Some(FileOrUSVStringOrFormData::FormData(form_data)) => {
+                SubmissionValue::FormData(form_data.datums())
+            },
+        }
     }
 }
 
-fn validity_bits(flags: &ValidityStateFlags) -> ValidationFlags {
-    let mut bits = ValidationFlags::empty();
-    if flags.valueMissing {
-        bits |= ValidationFlags::VALUE_MISSING;
+impl From<&ValidityStateFlags> for ValidationFlags {
+    fn from(flags: &ValidityStateFlags) -> Self {
+        let mut bits = ValidationFlags::empty();
+        if flags.valueMissing {
+            bits |= ValidationFlags::VALUE_MISSING;
+        }
+        if flags.typeMismatch {
+            bits |= ValidationFlags::TYPE_MISMATCH;
+        }
+        if flags.patternMismatch {
+            bits |= ValidationFlags::PATTERN_MISMATCH;
+        }
+        if flags.tooLong {
+            bits |= ValidationFlags::TOO_LONG;
+        }
+        if flags.tooShort {
+            bits |= ValidationFlags::TOO_SHORT;
+        }
+        if flags.rangeUnderflow {
+            bits |= ValidationFlags::RANGE_UNDERFLOW;
+        }
+        if flags.rangeOverflow {
+            bits |= ValidationFlags::RANGE_OVERFLOW;
+        }
+        if flags.stepMismatch {
+            bits |= ValidationFlags::STEP_MISMATCH;
+        }
+        if flags.badInput {
+            bits |= ValidationFlags::BAD_INPUT;
+        }
+        if flags.customError {
+            bits |= ValidationFlags::CUSTOM_ERROR;
+        }
+        bits
     }
-    if flags.typeMismatch {
-        bits |= ValidationFlags::TYPE_MISMATCH;
-    }
-    if flags.patternMismatch {
-        bits |= ValidationFlags::PATTERN_MISMATCH;
-    }
-    if flags.tooLong {
-        bits |= ValidationFlags::TOO_LONG;
-    }
-    if flags.tooShort {
-        bits |= ValidationFlags::TOO_SHORT;
-    }
-    if flags.rangeUnderflow {
-        bits |= ValidationFlags::RANGE_UNDERFLOW;
-    }
-    if flags.rangeOverflow {
-        bits |= ValidationFlags::RANGE_OVERFLOW;
-    }
-    if flags.stepMismatch {
-        bits |= ValidationFlags::STEP_MISMATCH;
-    }
-    if flags.badInput {
-        bits |= ValidationFlags::BAD_INPUT;
-    }
-    if flags.customError {
-        bits |= ValidationFlags::CUSTOM_ERROR;
-    }
-    bits
 }
 
 // Form-associated custom elements also need the Validatable trait.
@@ -353,6 +370,7 @@ impl Validatable for ElementInternals {
     }
 
     fn validity_state(&self) -> DomRoot<ValidityState> {
+        debug_assert!(self.is_target_form_associated());
         self.validity_state.or_init(|| {
             ValidityState::new(
                 &window_from_node(self.target_element.upcast::<Node>()),
@@ -361,8 +379,9 @@ impl Validatable for ElementInternals {
         })
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#candidate-for-constraint-validation>
+    /// <https://html.spec.whatwg.org/multipage#candidate-for-constraint-validation>
     fn is_instance_validatable(&self) -> bool {
+        debug_assert!(self.is_target_form_associated());
         if !self.target_element.is_submittable_element() {
             return false;
         }

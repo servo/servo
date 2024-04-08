@@ -1039,8 +1039,8 @@ impl HTMLFormElement {
             }
         }
 
-        // (If it's form_associated and has a validation anchor, point the
-        //  user there instead of the element itself)
+        // If it's form-associated and has a validation anchor, point the
+        //  user there instead of the element itself.
         // Step 4
         Err(())
     }
@@ -1054,7 +1054,7 @@ impl HTMLFormElement {
             .iter()
             .filter_map(|field| {
                 if let Some(el) = field.downcast::<Element>() {
-                    // TODO, should consider of validatable of elementInternals
+                    // TODO: Should consider whether ElementInternals is validatable.
                     let validatable = match el.as_maybe_validatable() {
                         Some(v) => v,
                         None => return None,
@@ -1155,7 +1155,7 @@ impl HTMLFormElement {
                             // https://html.spec.whatwg.org/multipage/#face-entry-construction
                             let internals = custom.upcast::<Element>().ensure_element_internals();
                             internals.perform_entry_construction(&mut data_set);
-                            // else no form value has been set so nothing to do
+                            // Otherwise no form value has been set so there is nothing to do.
                         }
                     },
                     _ => (),
@@ -1311,10 +1311,10 @@ impl HTMLFormElement {
                     child.downcast::<HTMLOutputElement>().unwrap().reset();
                 },
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLElement)) => {
-                    let html_elem = child.downcast::<HTMLElement>().unwrap();
-                    if html_elem.is_form_associated_custom_element() {
+                    let html_element = child.downcast::<HTMLElement>().unwrap();
+                    if html_element.is_form_associated_custom_element() {
                         ScriptThread::enqueue_callback_reaction(
-                            html_elem.upcast::<Element>(),
+                            html_element.upcast::<Element>(),
                             CallbackReaction::FormReset,
                             None,
                         )

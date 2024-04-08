@@ -1874,7 +1874,7 @@ impl Element {
         // TODO(#11995): XML case.
         let new_children = ServoParser::parse_html_fragment(self, markup);
         // Step 3.
-        // w3c/DOM-Parsing#61
+        // See https://github.com/w3c/DOM-Parsing/issues/61.
         let context_document = {
             if let Some(template) = self.downcast::<HTMLTemplateElement>() {
                 template.Content().upcast::<Node>().owner_doc()
@@ -1996,24 +1996,21 @@ impl Element {
     }
 
     pub fn get_element_internals(&self) -> Option<DomRoot<ElementInternals>> {
-        self.rare_data().as_ref().and_then(|r| {
-            r.element_internals
-                .as_ref()
-                .map(|a_i| DomRoot::from_ref(&**a_i))
-        })
+        self.rare_data()
+            .as_ref()?
+            .element_internals
+            .as_ref()
+            .map(|sr| DomRoot::from_ref(&**sr))
     }
 
     pub fn ensure_element_internals(&self) -> DomRoot<ElementInternals> {
         let mut rare_data = self.ensure_rare_data();
-        if let Some(internals) = &rare_data.element_internals {
-            return DomRoot::from_ref(&*internals);
-        }
-        let elem = self
-            .downcast::<HTMLElement>()
-            .expect("ensure_element_internals should only be called for an HTMLElement");
-        let internals = ElementInternals::new(elem);
-        rare_data.element_internals = Some(Dom::from_ref(&*internals));
-        internals
+        DomRoot::from_ref(rare_data.element_internals.get_or_insert_with(|| {
+            let elem = self
+                .downcast::<HTMLElement>()
+                .expect("ensure_element_internals should only be called for an HTMLElement");
+            Dom::from_ref(&*ElementInternals::new(elem))
+        }))
     }
 }
 

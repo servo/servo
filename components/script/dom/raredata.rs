@@ -55,6 +55,6 @@ pub struct ElementRareData {
     /// The client rect reported by layout.
     #[no_trace]
     pub client_rect: Option<LayoutValue<Rect<i32>>>,
-    /// <https://html.spec.whatwg.org/multipage#elementinternals>,
+    /// <https://html.spec.whatwg.org/multipage#elementinternals>
     pub element_internals: Option<Dom<ElementInternals>>,
 }

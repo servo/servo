@@ -171,9 +171,9 @@ impl VirtualMethods for HTMLFieldSetElement {
                     AttributeMutation::Removed => false,
                 };
                 let node = self.upcast::<Node>();
-                let el = self.upcast::<Element>();
-                el.set_disabled_state(disabled_state);
-                el.set_enabled_state(!disabled_state);
+                let element = self.upcast::<Element>();
+                element.set_disabled_state(disabled_state);
+                element.set_enabled_state(!disabled_state);
                 let mut found_legend = false;
                 let children = node.children().filter(|node| {
                     if found_legend {
@@ -190,15 +190,9 @@ impl VirtualMethods for HTMLFieldSetElement {
                         .traverse_preorder(ShadowIncluding::No)
                         .filter(|descendant| match descendant.type_id() {
                             NodeTypeId::Element(ElementTypeId::HTMLElement(
-                                HTMLElementTypeId::HTMLButtonElement,
-                            )) |
-                            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                                HTMLElementTypeId::HTMLInputElement,
-                            )) |
-                            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                                HTMLElementTypeId::HTMLSelectElement,
-                            )) |
-                            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                                HTMLElementTypeId::HTMLButtonElement |
+                                HTMLElementTypeId::HTMLInputElement |
+                                HTMLElementTypeId::HTMLSelectElement |
                                 HTMLElementTypeId::HTMLTextAreaElement,
                             )) => true,
                             NodeTypeId::Element(ElementTypeId::HTMLElement(
@@ -212,45 +206,46 @@ impl VirtualMethods for HTMLFieldSetElement {
                 });
                 if disabled_state {
                     for field in fields {
-                        let el = field.downcast::<Element>().unwrap();
-                        if el.enabled_state() {
-                            el.set_disabled_state(true);
-                            el.set_enabled_state(false);
-                            if el
+                        let element = field.downcast::<Element>().unwrap();
+                        if element.enabled_state() {
+                            element.set_disabled_state(true);
+                            element.set_enabled_state(false);
+                            if element
                                 .downcast::<HTMLElement>()
                                 .map_or(false, |h| h.is_form_associated_custom_element())
                             {
                                 ScriptThread::enqueue_callback_reaction(
-                                    el,
+                                    element,
                                     CallbackReaction::FormDisabled(true),
                                     None,
                                 );
                             }
                         }
-                        el.update_sequentially_focusable_status();
+                        element.update_sequentially_focusable_status();
                     }
                 } else {
                     for field in fields {
-                        let el = field.downcast::<Element>().unwrap();
-                        if el.disabled_state() {
-                            el.check_disabled_attribute();
-                            el.check_ancestors_disabled_state_for_form_control();
+                        let element = field.downcast::<Element>().unwrap();
+                        if element.disabled_state() {
+                            element.check_disabled_attribute();
+                            element.check_ancestors_disabled_state_for_form_control();
                             // Fire callback only if this has actually enabled the custom element
-                            if el.enabled_state() &&
-                                el.downcast::<HTMLElement>()
+                            if element.enabled_state() &&
+                                element
+                                    .downcast::<HTMLElement>()
                                     .map_or(false, |h| h.is_form_associated_custom_element())
                             {
                                 ScriptThread::enqueue_callback_reaction(
-                                    el,
+                                    element,
                                     CallbackReaction::FormDisabled(false),
                                     None,
                                 );
                             }
                         }
-                        el.update_sequentially_focusable_status();
+                        element.update_sequentially_focusable_status();
                     }
                 }
-                el.update_sequentially_focusable_status();
+                element.update_sequentially_focusable_status();
             },
             local_name!("form") => {
                 self.form_attribute_mutated(mutation);
