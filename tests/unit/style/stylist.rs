@@ -67,7 +67,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
                 let guard = shared_lock.read();
                 let rule = locked.read_with(&guard);
                 rule.selectors
-                    .0
+                    .slice()
                     .iter()
                     .map(|s| {
                         Rule::new(
@@ -93,10 +93,11 @@ fn parse_selectors(selectors: &[&str]) -> Vec<Selector<SelectorImpl>> {
         .map(|x| {
             SelectorParser::parse_author_origin_no_namespace(x, &dummy_url_data)
                 .unwrap()
-                .0
+                .slice()
                 .into_iter()
                 .next()
                 .unwrap()
+                .clone()
         })
         .collect()
 }
