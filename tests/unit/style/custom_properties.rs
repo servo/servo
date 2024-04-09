@@ -61,7 +61,8 @@ fn cascade(
         Box::new(DummyMetricsProvider),
     );
     let stylist = Stylist::new(device, QuirksMode::NoQuirks);
-    let builder = StyleBuilder::new(stylist.device(), Some(&stylist), None, None, None, false);
+    let mut builder = StyleBuilder::new(stylist.device(), Some(&stylist), None, None, None, false);
+    builder.custom_properties = inherited.clone();
     let mut rule_cache_conditions = RuleCacheConditions::default();
     let context = Context::new(
         builder,
@@ -69,7 +70,7 @@ fn cascade(
         &mut rule_cache_conditions,
         ContainerSizeQuery::none(),
     );
-    let mut builder = CustomPropertiesBuilder::new(inherited, &stylist, &context, false);
+    let mut builder = CustomPropertiesBuilder::new(&stylist, &context, false);
 
     for declaration in &declarations {
         builder.cascade(
