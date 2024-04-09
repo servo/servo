@@ -1021,7 +1021,7 @@ impl RangeMethods for Range {
 
         // Step 4.
         let ancestor = self.CommonAncestorContainer();
-        let mut iter = start_node
+        let iter = start_node
             .following_nodes(&ancestor)
             .filter_map(DomRoot::downcast::<Text>);
 
@@ -1190,7 +1190,7 @@ impl WeakRangeVec {
                 let move_end = node_is_end && range.end_offset() == offset;
 
                 let remove_from_node =
-                    !(!move_start || !move_end && node_is_end) || move_end && !node_is_start;
+                    move_start && (move_end || !node_is_end) || move_end && !node_is_start;
 
                 let already_in_child = range.start().node() == child || range.end().node() == child;
                 let push_to_child = !already_in_child && (move_start || move_end);
@@ -1252,7 +1252,7 @@ impl WeakRangeVec {
                 let move_end = node_is_end && end_offset > offset;
 
                 let remove_from_node =
-                    !(!move_start || !move_end && node_is_end) || move_end && !node_is_start;
+                    move_start && (move_end || !node_is_end) || move_end && !node_is_start;
 
                 let already_in_sibling =
                     range.start().node() == sibling || range.end().node() == sibling;
