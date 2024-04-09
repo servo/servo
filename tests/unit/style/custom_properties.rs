@@ -12,12 +12,14 @@ use style::custom_properties::{
 use style::font_metrics::FontMetrics;
 use style::media_queries::{Device, MediaType};
 use style::properties::style_structs::Font;
-use style::properties::{CustomDeclaration, CustomDeclarationValue};
+use style::properties::{CustomDeclaration, CustomDeclarationValue, StyleBuilder};
+use style::rule_cache::RuleCacheConditions;
 use style::rule_tree::CascadeLevel;
 use style::servo::media_queries::FontMetricsProvider;
+use style::stylesheets::container_rule::ContainerSizeQuery;
 use style::stylesheets::layer_rule::LayerOrder;
 use style::stylist::Stylist;
-use style::values::computed::Length;
+use style::values::computed::{Context, Length};
 use test::{self, Bencher};
 
 #[derive(Debug)]
@@ -59,7 +61,15 @@ fn cascade(
         Box::new(DummyMetricsProvider),
     );
     let stylist = Stylist::new(device, QuirksMode::NoQuirks);
-    let mut builder = CustomPropertiesBuilder::new(inherited, &stylist, false);
+    let builder = StyleBuilder::new(stylist.device(), Some(&stylist), None, None, None, false);
+    let mut rule_cache_conditions = RuleCacheConditions::default();
+    let context = Context::new(
+        builder,
+        stylist.quirks_mode(),
+        &mut rule_cache_conditions,
+        ContainerSizeQuery::none(),
+    );
+    let mut builder = CustomPropertiesBuilder::new(inherited, &stylist, &context, false);
 
     for declaration in &declarations {
         builder.cascade(
