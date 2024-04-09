@@ -2,20 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
 use std::fmt::{Debug, Error, Formatter};
 use std::io::Error as IoError;
-use std::sync::{Arc, Weak};
+use std::rc::Rc;
+use std::sync::Arc;
 
+use log::warn;
 use serde::{Deserialize, Serialize};
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_style::T as FontStyle;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::FontWeight;
+use webrender_api::NativeFontHandle;
 
 use crate::font::FontHandleMethods;
 use crate::font_cache_thread::FontIdentifier;
 use crate::platform::font::FontHandle;
-use crate::platform::font_template::FontTemplateData;
+
+/// A reference to a [`FontTemplate`] with shared ownership and mutability.
+pub(crate) type FontTemplateRef = Rc<RefCell<FontTemplate>>;
 
 /// Describes how to select a font from a given family. This is very basic at the moment and needs
 /// to be expanded or refactored when we support more of the font styling parameters.
@@ -84,12 +90,14 @@ impl<'a> From<&'a FontStyleStruct> for FontTemplateDescriptor {
 /// font instance handles. It contains a unique
 /// FontTemplateData structure that is platform specific.
 pub struct FontTemplate {
-    identifier: FontIdentifier,
-    descriptor: Option<FontTemplateDescriptor>,
-    weak_ref: Option<Weak<FontTemplateData>>,
-    // GWTODO: Add code path to unset the strong_ref for web fonts!
-    strong_ref: Option<Arc<FontTemplateData>>,
-    is_valid: bool,
+    pub identifier: FontIdentifier,
+    pub descriptor: Option<FontTemplateDescriptor>,
+    /// The data to use for this [`FontTemplate`]. For web fonts, this is always filled, but
+    /// for local fonts, this is loaded only lazily in layout.
+    ///
+    /// TODO: There is no mechanism for web fonts to unset their data!
+    pub data: Option<Arc<Vec<u8>>>,
+    pub is_valid: bool,
 }
 
 impl Debug for FontTemplate {
@@ -102,24 +110,11 @@ impl Debug for FontTemplate {
 /// is common, regardless of the number of instances of
 /// this font handle per thread.
 impl FontTemplate {
-    pub fn new(
-        identifier: FontIdentifier,
-        maybe_bytes: Option<Vec<u8>>,
-    ) -> Result<FontTemplate, IoError> {
-        let maybe_data = match maybe_bytes {
-            Some(_) => Some(FontTemplateData::new(identifier.clone(), maybe_bytes)?),
-            None => None,
-        };
-
-        let maybe_strong_ref = maybe_data.map(Arc::new);
-
-        let maybe_weak_ref = maybe_strong_ref.as_ref().map(Arc::downgrade);
-
+    pub fn new(identifier: FontIdentifier, data: Option<Vec<u8>>) -> Result<FontTemplate, IoError> {
         Ok(FontTemplate {
             identifier,
             descriptor: None,
-            weak_ref: maybe_weak_ref,
-            strong_ref: maybe_strong_ref,
+            data: data.map(Arc::new),
             is_valid: true,
         })
     }
@@ -128,63 +123,79 @@ impl FontTemplate {
         &self.identifier
     }
 
+    /// Returns a reference to the bytes in this font if they are in memory.
+    /// This function never performs disk I/O.
+    pub fn data_if_in_memory(&self) -> Option<Arc<Vec<u8>>> {
+        self.data.clone()
+    }
+
+    /// Returns a [`NativeFontHandle`] for this font template, if it is local.
+    pub fn native_font_handle(&self) -> Option<NativeFontHandle> {
+        match &self.identifier {
+            FontIdentifier::Local(local_identifier) => local_identifier.native_font_handle(),
+            FontIdentifier::Web(_) => None,
+        }
+    }
+}
+
+pub trait FontTemplateRefMethods {
+    /// Returns a reference to the data in this font. This may be a hugely expensive
+    /// operation (depending on the platform) which performs synchronous disk I/O
+    /// and should never be done lightly.
+    fn data(&self) -> Arc<Vec<u8>>;
+    /// Return true if this is a valid [`FontTemplate`] ie it is possible to construct a [`FontHandle`]
+    /// from its data.
+    fn is_valid(&self) -> bool;
+    /// If not done already for this [`FontTemplate`] load the font into a platform font face and
+    /// populate the `descriptor` field. Note that calling [`FontTemplateRefMethods::descriptor()`]
+    /// does this implicitly. If this fails, [`FontTemplateRefMethods::is_valid()`] will return
+    /// false in the future.
+    fn instantiate(&self) -> Result<(), &'static str>;
     /// Get the descriptor. Returns `None` when instantiating the data fails.
-    pub fn descriptor(&mut self) -> Option<FontTemplateDescriptor> {
-        // The font template data can be unloaded when nothing is referencing
-        // it (via the Weak reference to the Arc above). However, if we have
-        // already loaded a font, store the style information about it separately,
-        // so that we can do font matching against it again in the future
-        // without having to reload the font (unless it is an actual match).
+    fn descriptor(&self) -> Option<FontTemplateDescriptor>;
+    /// Returns true if the given descriptor matches the one in this [`FontTemplate`].
+    fn descriptor_matches(&self, requested_desc: &FontTemplateDescriptor) -> bool;
+    /// Calculate the distance from this [`FontTemplate`]s descriptor and return it
+    /// or None if this is not a valid [`FontTemplate`].
+    fn descriptor_distance(&self, requested_descriptor: &FontTemplateDescriptor) -> Option<f32>;
+}
 
-        self.descriptor.or_else(|| {
-            if self.instantiate().is_err() {
-                return None;
-            };
+impl FontTemplateRefMethods for FontTemplateRef {
+    fn descriptor(&self) -> Option<FontTemplateDescriptor> {
+        // Store the style information about the template separately from the data,
+        // so that we can do font matching against it again in the future without
+        // having to reload the font (unless it is an actual match).
+        if let Some(descriptor) = self.borrow().descriptor {
+            return Some(descriptor);
+        }
 
-            Some(
-                self.descriptor
-                    .expect("Instantiation succeeded but no descriptor?"),
-            )
-        })
+        if let Err(error) = self.instantiate() {
+            warn!("Could not initiate FonteTemplate descriptor: {error:?}");
+        }
+
+        self.borrow().descriptor
     }
 
-    /// Get the data for creating a font if it matches a given descriptor.
-    pub fn data_for_descriptor(
-        &mut self,
-        requested_desc: &FontTemplateDescriptor,
-    ) -> Option<Arc<FontTemplateData>> {
-        self.descriptor().and_then(|descriptor| {
-            if *requested_desc == descriptor {
-                self.data().ok()
-            } else {
-                None
-            }
-        })
+    fn descriptor_matches(&self, requested_desc: &FontTemplateDescriptor) -> bool {
+        self.descriptor()
+            .map_or(false, |descriptor| descriptor == *requested_desc)
     }
 
-    /// Returns the font data along with the distance between this font's descriptor and the given
-    /// descriptor, if the font can be loaded.
-    pub fn data_for_approximate_descriptor(
-        &mut self,
-        requested_descriptor: &FontTemplateDescriptor,
-    ) -> Option<(Arc<FontTemplateData>, f32)> {
-        self.descriptor().and_then(|descriptor| {
-            self.data()
-                .ok()
-                .map(|data| (data, descriptor.distance_from(requested_descriptor)))
-        })
+    fn descriptor_distance(&self, requested_descriptor: &FontTemplateDescriptor) -> Option<f32> {
+        self.descriptor()
+            .map(|descriptor| descriptor.distance_from(requested_descriptor))
     }
 
-    fn instantiate(&mut self) -> Result<(), &'static str> {
-        if !self.is_valid {
+    fn instantiate(&self) -> Result<(), &'static str> {
+        if !self.borrow().is_valid {
             return Err("Invalid font template");
         }
 
-        let data = self.data().map_err(|_| "Could not get FontTemplate data")?;
-        let handle = FontHandleMethods::new_from_template(data, None);
-        self.is_valid = handle.is_ok();
+        let handle = FontHandleMethods::new_from_template(self.clone(), None);
+        let mut template = self.borrow_mut();
+        template.is_valid = handle.is_ok();
         let handle: FontHandle = handle?;
-        self.descriptor = Some(FontTemplateDescriptor::new(
+        template.descriptor = Some(FontTemplateDescriptor::new(
             handle.boldness(),
             handle.stretchiness(),
             handle.style(),
@@ -192,31 +203,21 @@ impl FontTemplate {
         Ok(())
     }
 
-    /// Get the data for creating a font.
-    pub fn get(&mut self) -> Option<Arc<FontTemplateData>> {
-        if self.is_valid {
-            self.data().ok()
-        } else {
-            None
-        }
+    fn is_valid(&self) -> bool {
+        self.instantiate().is_ok()
     }
 
-    /// Get the font template data. If any strong references still
-    /// exist, it will return a clone, otherwise it will load the
-    /// font data and store a weak reference to it internally.
-    pub fn data(&mut self) -> Result<Arc<FontTemplateData>, IoError> {
-        let maybe_data = match self.weak_ref {
-            Some(ref data) => data.upgrade(),
-            None => None,
-        };
-
-        if let Some(data) = maybe_data {
-            return Ok(data);
-        }
-
-        assert!(self.strong_ref.is_none());
-        let template_data = Arc::new(FontTemplateData::new(self.identifier.clone(), None)?);
-        self.weak_ref = Some(Arc::downgrade(&template_data));
-        Ok(template_data)
+    fn data(&self) -> Arc<Vec<u8>> {
+        let mut template = self.borrow_mut();
+        let identifier = template.identifier.clone();
+        template
+            .data
+            .get_or_insert_with(|| match identifier {
+                FontIdentifier::Local(local_identifier) => {
+                    Arc::new(local_identifier.read_data_from_file())
+                },
+                FontIdentifier::Web(_) => unreachable!("Web fonts should always have data."),
+            })
+            .clone()
     }
 }

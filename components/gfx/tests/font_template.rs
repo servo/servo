@@ -6,12 +6,14 @@
 #[cfg(not(target_os = "macos"))]
 #[test]
 fn test_font_template_descriptor() {
+    use std::cell::RefCell;
     use std::fs::File;
     use std::io::prelude::*;
     use std::path::PathBuf;
+    use std::rc::Rc;
 
     use gfx::font_cache_thread::FontIdentifier;
-    use gfx::font_template::{FontTemplate, FontTemplateDescriptor};
+    use gfx::font_template::{FontTemplate, FontTemplateDescriptor, FontTemplateRefMethods};
     use servo_url::ServoUrl;
     use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
 
@@ -28,11 +30,12 @@ fn test_font_template_descriptor() {
         path.push(format!("{}.ttf", filename));
 
         let file = File::open(path.clone()).unwrap();
-        let mut template = FontTemplate::new(
+        let template = FontTemplate::new(
             FontIdentifier::Web(ServoUrl::from_file_path(path).unwrap()),
             Some(file.bytes().map(|b| b.unwrap()).collect()),
         )
         .unwrap();
+        let template = Rc::new(RefCell::new(template));
 
         template.descriptor().unwrap()
     }

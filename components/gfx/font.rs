@@ -26,10 +26,9 @@ use webrender_api::FontInstanceKey;
 
 use crate::font_cache_thread::FontIdentifier;
 use crate::font_context::{FontContext, FontSource};
-use crate::font_template::FontTemplateDescriptor;
+use crate::font_template::{FontTemplateDescriptor, FontTemplateRef};
 use crate::platform::font::{FontHandle, FontTable};
 pub use crate::platform::font_list::fallback_font_families;
-use crate::platform::font_template::FontTemplateData;
 use crate::text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use crate::text::shaping::ShaperMethods;
 use crate::text::Shaper;
@@ -55,11 +54,11 @@ static TEXT_SHAPING_PERFORMANCE_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 pub trait FontHandleMethods: Sized {
     fn new_from_template(
-        template: Arc<FontTemplateData>,
+        template: FontTemplateRef,
         pt_size: Option<Au>,
     ) -> Result<Self, &'static str>;
 
-    fn template(&self) -> Arc<FontTemplateData>;
+    fn template(&self) -> FontTemplateRef;
     fn family_name(&self) -> Option<String>;
     fn face_name(&self) -> Option<String>;
 
@@ -75,9 +74,6 @@ pub trait FontHandleMethods: Sized {
     fn can_do_fast_shaping(&self) -> bool;
     fn metrics(&self) -> FontMetrics;
     fn table_for_tag(&self, _: FontTableTag) -> Option<FontTable>;
-
-    /// A unique identifier for the font, allowing comparison.
-    fn identifier(&self) -> &FontIdentifier;
 }
 
 // Used to abstract over the shaper's choice of fixed int representation.
@@ -201,8 +197,8 @@ impl Font {
     }
 
     /// A unique identifier for the font, allowing comparison.
-    pub fn identifier(&self) -> &FontIdentifier {
-        self.handle.identifier()
+    pub fn identifier(&self) -> FontIdentifier {
+        self.handle.template().borrow().identifier.clone()
     }
 }
 

@@ -8,7 +8,6 @@
 
 use std::fmt;
 use std::ops::Deref;
-use std::sync::Arc;
 
 use app_units::Au;
 use dwrote::{Font, FontFace, FontFile, FontStretch, FontStyle};
@@ -22,7 +21,7 @@ use crate::font::{
     FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, FractionalPixel,
 };
 use crate::font_cache_thread::FontIdentifier;
-use crate::platform::font_template::FontTemplateData;
+use crate::font_template::{FontTemplateRef, FontTemplateRefMethods};
 use crate::text::glyph::GlyphId;
 
 // 1em = 12pt = 16px, assuming 72 points per inch and 96 px per inch
@@ -200,7 +199,7 @@ impl FontInfo {
 
 #[derive(Debug)]
 pub struct FontHandle {
-    font_data: Arc<FontTemplateData>,
+    font_template: FontTemplateRef,
     face: Nondebug<FontFace>,
     info: FontInfo,
     em_size: f32,
@@ -227,13 +226,18 @@ impl FontHandle {}
 
 impl FontHandleMethods for FontHandle {
     fn new_from_template(
-        template: Arc<FontTemplateData>,
+        font_template: FontTemplateRef,
         pt_size: Option<Au>,
     ) -> Result<Self, &'static str> {
-        let (face, info) = match template.get_font() {
+        let direct_write_font = match font_template.borrow().identifier {
+            FontIdentifier::Local(ref local_identifier) => local_identifier.direct_write_font(),
+            FontIdentifier::Web(_) => None,
+        };
+
+        let (face, info) = match direct_write_font {
             Some(font) => (font.create_font_face(), FontInfo::new_from_font(&font)?),
             None => {
-                let bytes = template.bytes();
+                let bytes = font_template.data();
                 let font_file =
                     FontFile::new_from_data(bytes).ok_or("Could not create FontFile")?;
                 let face = font_file
@@ -254,7 +258,7 @@ impl FontHandleMethods for FontHandle {
         let scaled_design_units_to_pixels = em_size / design_units_per_pixel;
 
         Ok(FontHandle {
-            font_data: template.clone(),
+            font_template,
             face: Nondebug(face),
             info,
             em_size,
@@ -263,8 +267,8 @@ impl FontHandleMethods for FontHandle {
         })
     }
 
-    fn template(&self) -> Arc<FontTemplateData> {
-        self.font_data.clone()
+    fn template(&self) -> FontTemplateRef {
+        self.font_template.clone()
     }
 
     fn family_name(&self) -> Option<String> {
@@ -351,9 +355,5 @@ impl FontHandleMethods for FontHandle {
         self.face
             .get_font_table(tag)
             .map(|bytes| FontTable { data: bytes })
-    }
-
-    fn identifier(&self) -> &FontIdentifier {
-        &self.font_data.identifier
     }
 }
