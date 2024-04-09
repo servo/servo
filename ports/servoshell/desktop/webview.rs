@@ -12,7 +12,7 @@ use std::{env, thread};
 
 use arboard::Clipboard;
 use euclid::{Point2D, Vector2D};
-use gilrs::ff::{BaseEffect, BaseEffectType, EffectBuilder, Repeat, Replay, Ticks};
+use gilrs::ff::{BaseEffect, BaseEffectType, Effect, EffectBuilder, Repeat, Replay, Ticks};
 use gilrs::{EventType, Gilrs};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use log::{debug, error, info, trace, warn};
@@ -61,6 +61,7 @@ pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
     event_queue: Vec<EmbedderEvent>,
     clipboard: Option<Clipboard>,
     gamepad: Option<Gilrs>,
+    haptic_effects: Vec<Effect>,
     shutdown_requested: bool,
     load_status: LoadStatus,
 }
@@ -110,6 +111,7 @@ where
                     None
                 },
             },
+            haptic_effects: vec![],
             event_queue: Vec::new(),
             shutdown_requested: false,
             load_status: LoadStatus::LoadComplete,
@@ -225,6 +227,9 @@ where
                     EventType::Disconnected => {
                         gamepad_event = Some(GamepadEvent::Disconnected(index));
                     },
+                    EventType::ForceFeedbackEffectCompleted => {
+                        gamepad_event = Some(GamepadEvent::HapticEffectCompleted(index));
+                    }
                     _ => {},
                 }
 
@@ -266,34 +271,35 @@ where
                 .gamepads()
                 .find(|gamepad| usize::from(gamepad.0) == index)
             {
-                let gamepad = connected_gamepad.1;
+                let start_delay = Ticks::from_ms(params.start_delay as u32);
                 let duration = Ticks::from_ms(params.duration as u32);
+                let strong_magnitude = (params.strong_magnitude * u16::MAX as f64).round() as u16;
+                let weak_magnitude = (params.weak_magnitude * u16::MAX as f64).round() as u16;
+
                 let scheduling = Replay {
-                    after: Ticks::from_ms(params.start_delay as u32),
+                    after: start_delay,
                     play_for: duration,
                     with_delay: Ticks::from_ms(0),
                 };
                 let effect = EffectBuilder::new()
                     .add_effect(BaseEffect {
-                        kind: BaseEffectType::Strong { magnitude: params.strong_magnitude as u16 },
+                        kind: BaseEffectType::Strong { magnitude: strong_magnitude },
                         scheduling,
                         envelope: Default::default(),
                     })
                     .add_effect(BaseEffect {
-                        kind: BaseEffectType::Weak { magnitude: params.weak_magnitude as u16 },
+                        kind: BaseEffectType::Weak { magnitude: weak_magnitude },
                         scheduling,
                         envelope: Default::default(),
                     })
-                    .repeat(Repeat::For(duration))
-                    .add_gamepad(&gamepad)
+                    .repeat(Repeat::For(start_delay + duration))
+                    .add_gamepad(&connected_gamepad.1)
                     .finish(gilrs)
                     .expect("Failed to create haptic effect, gamepad is either disconnected or doesn't support force feedback.");
-                effect.play().expect("Failed to play haptic effect.");
-
-                // Until we have a way to poll for effect completion or get an event for it,
-                // just send the completed event immediately.
-                let event = GamepadEvent::HapticEffectCompleted(GamepadIndex(index));
-                self.event_queue.push(EmbedderEvent::Gamepad(event));
+                self.haptic_effects.push(effect);
+                self.haptic_effects[0].play().expect("Failed to play haptic effect.");
+            } else {
+                println!("Couldn't find connected gamepad to play haptic effect on");
             }
         }
     }

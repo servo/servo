@@ -5,6 +5,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use embedder_traits::{DualRumbleEffectParams, EmbedderMsg};
 use js::jsval::JSVal;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -27,27 +28,29 @@ use crate::task_source::TaskSource;
 #[dom_struct]
 pub struct GamepadHapticActuator {
     reflector_: Reflector,
+    gamepad_index: u32,
     effects: Vec<GamepadHapticEffectType>,
     #[ignore_malloc_size_of = "promises are hard"]
     playing_effect_promise: DomRefCell<Option<Rc<Promise>>>,
 }
 
 impl GamepadHapticActuator {
-    fn new_inherited() -> GamepadHapticActuator {
+    fn new_inherited(gamepad_index: u32) -> GamepadHapticActuator {
         Self {
             reflector_: Reflector::new(),
+            gamepad_index: gamepad_index.into(),
             effects: vec![GamepadHapticEffectType::Dual_rumble],
             playing_effect_promise: DomRefCell::new(None),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<GamepadHapticActuator> {
-        Self::new_with_proto(global)
+    pub fn new(global: &GlobalScope, gamepad_index: u32) -> DomRoot<GamepadHapticActuator> {
+        Self::new_with_proto(global, gamepad_index)
     }
 
-    fn new_with_proto(global: &GlobalScope) -> DomRoot<GamepadHapticActuator> {
+    fn new_with_proto(global: &GlobalScope, gamepad_index: u32) -> DomRoot<GamepadHapticActuator> {
         let haptic_actuator = reflect_dom_object_with_proto(
-            Box::new(GamepadHapticActuator::new_inherited()),
+            Box::new(GamepadHapticActuator::new_inherited(gamepad_index)),
             global,
             None,
         );
@@ -115,7 +118,14 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
         *self.playing_effect_promise.borrow_mut() = Some(playing_effect_promise.clone());
         let play_effect_timestamp = self.global().performance().Now();
 
-        // TODO: Play haptic effect
+        let params = DualRumbleEffectParams {
+            duration: params.duration as f64,
+            start_delay: params.startDelay as f64,
+            strong_magnitude: *params.strongMagnitude,
+            weak_magnitude: *params.weakMagnitude,
+        };
+        let event = EmbedderMsg::GamepadHapticEffect(self.gamepad_index as usize, embedder_traits::GamepadHapticEffectType::DualRumble(params));
+        self.global().as_window().send_to_embedder(event);
 
         playing_effect_promise
     }

@@ -3271,8 +3271,7 @@ impl GlobalScope {
                 task!(gamepad_haptic_effect_completed: move || {
                     let global = this.root();
                     if let Some(window) = global.downcast::<Window>() {
-                        let gamepad_list = window.Navigator().gamepads();
-                        if let Some(gamepad) = gamepad_list.Item(index as u32) {
+                        if let Some(gamepad) = window.Navigator().get_gamepad(index) {
                             if gamepad.vibration_actuator().has_playing_effect_promise() {
                                 gamepad.vibration_actuator().resolve_playing_effect_promise();
                             }
