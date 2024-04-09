@@ -1616,13 +1616,12 @@ impl XMLHttpRequest {
     /// <https://xhr.spec.whatwg.org/#response-mime-type>
     fn response_mime_type(&self) -> Option<Mime> {
         return extract_mime_type(&self.response_headers.borrow())
-            .map(|mime_as_bytes| {
+            .and_then(|mime_as_bytes| {
                 String::from_utf8(mime_as_bytes)
                     .unwrap_or_default()
                     .parse()
                     .ok()
             })
-            .flatten()
             .or(Some(mime::TEXT_XML));
     }
 
