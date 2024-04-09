@@ -1673,6 +1673,7 @@ impl BlockFlow {
                     .style()
                     .get_inherited_text()
                     .text_indent
+                    .length
                     .to_used_value(containing_block_size);
             }
         }
