@@ -237,6 +237,7 @@ mod from_script {
                 Self::OnDevtoolsStarted(..) => target_variant!("OnDevtoolsStarted"),
                 Self::ReadyToPresent(..) => target_variant!("ReadyToPresent"),
                 Self::EventDelivered(..) => target_variant!("EventDelivered"),
+                Self::GamepadHapticEffect(..) => target_variant!("GamepadHapticEffect"),
             }
         }
     }
