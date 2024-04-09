@@ -329,7 +329,7 @@ dependencies = [
  "bitflags 2.5.0",
  "cexpr",
  "clang-sys",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "lazy_static",
  "lazycell",
  "log",
@@ -2201,9 +2201,9 @@ dependencies = [
 
 [[package]]
 name = "gstreamer"
-version = "0.22.3"
+version = "0.22.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "066f3c354c526792a3deb8b6d349eba8ffcc13bae4d0bf05d4adf4bf1b91e459"
+checksum = "fc6f2d7dcde4b42b5297d25e9f51914cacfa148c99ba6ddabebf006fb2b18c20"
 dependencies = [
  "cfg-if",
  "futures-channel",
