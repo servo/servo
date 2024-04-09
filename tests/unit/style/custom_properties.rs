@@ -70,7 +70,7 @@ fn cascade(
         &mut rule_cache_conditions,
         ContainerSizeQuery::none(),
     );
-    let mut builder = CustomPropertiesBuilder::new(&stylist, &context, false);
+    let mut builder = CustomPropertiesBuilder::new(&stylist, &context);
 
     for declaration in &declarations {
         builder.cascade(
