@@ -1350,19 +1350,28 @@ fn test_fetch_with_devtools() {
     //Creating default headers for request
     let mut headers = HeaderMap::new();
 
-    headers.insert(
-        header::ACCEPT_ENCODING,
-        HeaderValue::from_static("gzip, deflate, br"),
-    );
-
     headers.insert(header::ACCEPT, HeaderValue::from_static("*/*"));
 
     headers.insert(
         header::ACCEPT_LANGUAGE,
-        HeaderValue::from_static("en-US, en; q=0.5"),
+        HeaderValue::from_static("en-US,en;q=0.5"),
     );
 
     headers.typed_insert::<UserAgent>(DEFAULT_USER_AGENT.parse().unwrap());
+
+    let host = if url.port().is_none() {
+        url.host_str().unwrap().to_string()
+    } else {
+        format!("{}:{}", url.host_str().unwrap(), url.port().unwrap())
+    };
+    headers.typed_insert(headers::Host::from(
+        host.parse::<http::uri::Authority>().unwrap(),
+    ));
+
+    headers.insert(
+        header::ACCEPT_ENCODING,
+        HeaderValue::from_static("gzip, deflate, br"),
+    );
 
     let httprequest = DevtoolsHttpRequest {
         url: url,

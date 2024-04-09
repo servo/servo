@@ -136,14 +136,12 @@ fn test_check_default_headers_loaded_in_every_request() {
 
     headers.insert(
         header::ACCEPT,
-        HeaderValue::from_static(
-            "text/html, application/xhtml+xml, application/xml; q=0.9, */*; q=0.8",
-        ),
+        HeaderValue::from_static("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"),
     );
 
     headers.insert(
         header::ACCEPT_LANGUAGE,
-        HeaderValue::from_static("en-US, en; q=0.5"),
+        HeaderValue::from_static("en-US,en;q=0.5"),
     );
 
     headers.typed_insert::<UserAgent>(crate::DEFAULT_USER_AGENT.parse().unwrap());
@@ -268,24 +266,24 @@ fn test_request_and_response_data_with_network_messages() {
     //Creating default headers for request
     let mut headers = HeaderMap::new();
 
-    headers.insert(
-        header::ACCEPT_ENCODING,
-        HeaderValue::from_static("gzip, deflate, br"),
-    );
+    headers.insert(header::HOST, HeaderValue::from_static("bar.foo"));
 
     headers.insert(
         header::ACCEPT,
-        HeaderValue::from_static(
-            "text/html, application/xhtml+xml, application/xml; q=0.9, */*; q=0.8",
-        ),
+        HeaderValue::from_static("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"),
     );
 
     headers.insert(
         header::ACCEPT_LANGUAGE,
-        HeaderValue::from_static("en-US, en; q=0.5"),
+        HeaderValue::from_static("en-US,en;q=0.5"),
     );
 
     headers.typed_insert::<UserAgent>(crate::DEFAULT_USER_AGENT.parse().unwrap());
+
+    headers.insert(
+        header::ACCEPT_ENCODING,
+        HeaderValue::from_static("gzip, deflate, br"),
+    );
 
     let httprequest = DevtoolsHttpRequest {
         url: url,
@@ -902,7 +900,7 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
                 .unwrap()
                 .to_str()
                 .unwrap(),
-            "text/html, application/xhtml+xml, application/xml; q=0.9, */*; q=0.8"
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
         );
         *response.body_mut() = b"Yay!".to_vec().into();
     };
