@@ -133,7 +133,7 @@ impl DisplayList {
         viewport_size: LayoutSize,
         epoch: Epoch,
     ) -> (DisplayListBuilder, CompositorDisplayListInfo, IsContentful) {
-        let webrender_pipeline = pipeline_id.to_webrender();
+        let webrender_pipeline = pipeline_id.into();
         let mut builder = DisplayListBuilder::new(webrender_pipeline);
         builder.begin();
 
@@ -314,7 +314,7 @@ impl DisplayItem {
                         spatial_id: common.spatial_id,
                         clip_chain_id: common.clip_chain_id,
                     },
-                    item.iframe.to_webrender(),
+                    item.iframe.into(),
                     true,
                 );
                 IsContentful(false)

@@ -9,7 +9,6 @@ use std::ops::Deref;
 
 use app_units::Au;
 use euclid::default::{Box2D, Point2D, Rect, Size2D, Vector2D};
-use msg::constellation_msg::PipelineId;
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
@@ -31,7 +30,6 @@ use style::selector_parser::PseudoElement;
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style_traits::{ParsingMode, ToCss};
-use webrender_api::ExternalScrollId;
 
 use crate::construct::ConstructionResult;
 use crate::display_list::items::OpaqueNode;
@@ -569,14 +567,6 @@ pub fn process_client_rect_query(
     let mut iterator = FragmentClientRectQueryIterator::new(requested_node);
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
     iterator.client_rect
-}
-
-pub fn process_node_scroll_id_request<'dom>(
-    id: PipelineId,
-    requested_node: impl LayoutNode<'dom>,
-) -> ExternalScrollId {
-    let layout_node = requested_node.to_threadsafe();
-    layout_node.generate_scroll_id(id)
 }
 
 /// <https://drafts.csswg.org/cssom-view/#scrolling-area>

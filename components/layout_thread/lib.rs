@@ -39,7 +39,7 @@ use layout::flow_ref::FlowRef;
 use layout::incremental::{RelayoutMode, SpecialRestyleDamage};
 use layout::query::{
     process_client_rect_query, process_content_box_request, process_content_boxes_request,
-    process_element_inner_text_query, process_node_scroll_id_request, process_offset_parent_query,
+    process_element_inner_text_query, process_offset_parent_query,
     process_resolved_font_style_request, process_resolved_style_request,
     process_scrolling_area_request,
 };
@@ -365,9 +365,9 @@ impl Layout for LayoutThread {
         flags.insert(HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT);
 
         let client_point = units::DevicePoint::from_untyped(point);
-        let results =
-            self.webrender_api
-                .hit_test(Some(self.id.to_webrender()), client_point, flags);
+        let results = self
+            .webrender_api
+            .hit_test(Some(self.id.into()), client_point, flags);
 
         results.iter().map(|result| result.node).collect()
     }
@@ -451,14 +451,6 @@ impl Layout for LayoutThread {
         )
     }
 
-    fn query_scroll_id(
-        &self,
-        node: script_layout_interface::TrustedNodeAddress,
-    ) -> webrender_api::ExternalScrollId {
-        let node = unsafe { ServoLayoutNode::new(&node) };
-        process_node_scroll_id_request(self.id, node)
-    }
-
     fn query_scrolling_area(&self, node: Option<OpaqueNode>) -> UntypedRect<i32> {
         let Some(mut root_flow) = self.root_flow_for_query() else {
             return UntypedRect::zero();
@@ -504,7 +496,7 @@ impl LayoutThread {
         window_size: WindowSizeData,
     ) -> LayoutThread {
         // Let webrender know about this pipeline by sending an empty display list.
-        webrender_api.send_initial_transaction(id.to_webrender());
+        webrender_api.send_initial_transaction(id.into());
 
         let device = Device::new(
             MediaType::screen(),
@@ -1238,7 +1230,7 @@ impl LayoutThread {
 
         let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
         self.webrender_api.send_scroll_node(
-            self.id.to_webrender(),
+            self.id.into(),
             units::LayoutPoint::from_untyped(point),
             state.scroll_id,
         );

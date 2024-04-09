@@ -30,9 +30,8 @@ use layout::context::LayoutContext;
 use layout::display_list::{DisplayList, WebRenderImageInfo};
 use layout::query::{
     process_content_box_request, process_content_boxes_request, process_element_inner_text_query,
-    process_node_geometry_request, process_node_scroll_area_request,
-    process_node_scroll_id_request, process_offset_parent_query, process_resolved_font_style_query,
-    process_resolved_style_request, process_text_index_request,
+    process_node_geometry_request, process_node_scroll_area_request, process_offset_parent_query,
+    process_resolved_font_style_query, process_resolved_style_request, process_text_index_request,
 };
 use layout::traversal::RecalcStyle;
 use layout::{layout_debug, BoxTree, FragmentTree};
@@ -328,9 +327,9 @@ impl Layout for LayoutThread {
         flags.insert(HitTestFlags::POINT_RELATIVE_TO_PIPELINE_VIEWPORT);
 
         let client_point = units::DevicePoint::from_untyped(point);
-        let results =
-            self.webrender_api
-                .hit_test(Some(self.id.to_webrender()), client_point, flags);
+        let results = self
+            .webrender_api
+            .hit_test(Some(self.id.into()), client_point, flags);
 
         results.iter().map(|result| result.node).collect()
     }
@@ -406,14 +405,6 @@ impl Layout for LayoutThread {
         )
     }
 
-    fn query_scroll_id(
-        &self,
-        node: script_layout_interface::TrustedNodeAddress,
-    ) -> ExternalScrollId {
-        let node = unsafe { ServoLayoutNode::new(&node) };
-        process_node_scroll_id_request(self.id, node)
-    }
-
     fn query_scrolling_area(&self, node: Option<OpaqueNode>) -> UntypedRect<i32> {
         process_node_scroll_area_request(node, self.fragment_tree.borrow().clone())
     }
@@ -452,7 +443,7 @@ impl LayoutThread {
         window_size: WindowSizeData,
     ) -> LayoutThread {
         // Let webrender know about this pipeline by sending an empty display list.
-        webrender_api_sender.send_initial_transaction(id.to_webrender());
+        webrender_api_sender.send_initial_transaction(id.into());
 
         // The device pixel ratio is incorrect (it does not have the hidpi value),
         // but it will be set correctly when the initial reflow takes place.
@@ -878,7 +869,7 @@ impl LayoutThread {
             .insert(state.scroll_id, state.scroll_offset);
         let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
         self.webrender_api.send_scroll_node(
-            self.id.to_webrender(),
+            self.id.into(),
             units::LayoutPoint::from_untyped(point),
             state.scroll_id,
         );
@@ -950,7 +941,7 @@ impl LayoutThread {
         let mut display_list = DisplayList::new(
             viewport_size,
             fragment_tree.scrollable_overflow(),
-            self.id.to_webrender(),
+            self.id.into(),
             epoch.into(),
             fragment_tree.root_scroll_sensitivity,
         );

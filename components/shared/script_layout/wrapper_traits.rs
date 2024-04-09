@@ -9,7 +9,7 @@ use std::fmt::Debug;
 use std::sync::Arc as StdArc;
 
 use atomic_refcell::AtomicRef;
-use gfx_traits::{combine_id_with_fragment_type, ByteIndex, FragmentType};
+use gfx_traits::{ByteIndex, FragmentType};
 use html5ever::{local_name, namespace_url, ns, LocalName, Namespace};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
@@ -23,7 +23,6 @@ use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, TElement, TNode};
 use style::properties::ComputedValues;
 use style::selector_parser::{PseudoElement, PseudoElementCascadeType, SelectorImpl};
 use style::stylist::RuleInclusion;
-use webrender_api::ExternalScrollId;
 
 use crate::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutNodeType, SVGSVGData, StyleData,
@@ -314,11 +313,6 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
 
     fn fragment_type(&self) -> FragmentType {
         self.get_pseudo_element_type().fragment_type()
-    }
-
-    fn generate_scroll_id(&self, pipeline_id: PipelineId) -> ExternalScrollId {
-        let id = combine_id_with_fragment_type(self.opaque().id(), self.fragment_type());
-        ExternalScrollId(id as u64, pipeline_id.to_webrender())
     }
 }
 

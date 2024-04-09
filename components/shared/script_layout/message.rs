@@ -55,7 +55,6 @@ pub enum QueryMsg {
     OffsetParentQuery,
     TextIndexQuery,
     NodesFromPointQuery,
-    NodeScrollIdQuery,
     ResolvedStyleQuery,
     StyleQuery,
     ElementInnerTextQuery,
@@ -90,7 +89,6 @@ impl ReflowGoal {
                 QueryMsg::ClientRectQuery |
                 QueryMsg::ContentBox |
                 QueryMsg::ContentBoxes |
-                QueryMsg::NodeScrollIdQuery |
                 QueryMsg::OffsetParentQuery |
                 QueryMsg::ResolvedFontStyleQuery |
                 QueryMsg::ScrollingAreaQuery |
@@ -112,7 +110,6 @@ impl ReflowGoal {
                 QueryMsg::ContentBoxes |
                 QueryMsg::ClientRectQuery |
                 QueryMsg::ScrollingAreaQuery |
-                QueryMsg::NodeScrollIdQuery |
                 QueryMsg::ResolvedStyleQuery |
                 QueryMsg::ResolvedFontStyleQuery |
                 QueryMsg::OffsetParentQuery |
