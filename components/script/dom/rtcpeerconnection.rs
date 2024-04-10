@@ -565,9 +565,9 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
 
         // XXXManishearth add support for sdpMid
         if candidate.sdpMLineIndex.is_none() {
-            p.reject_error(Error::Type(format!(
-                "servo only supports sdpMLineIndex right now"
-            )));
+            p.reject_error(Error::Type(
+                "servo only supports sdpMLineIndex right now".to_string(),
+            ));
             return p;
         }
 

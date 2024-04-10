@@ -291,7 +291,7 @@ impl WindowProxy {
             .currently_active
             .get()
             .and_then(ScriptThread::find_document)
-            .and_then(|doc| Some(DomRoot::from_ref(doc.window())))
+            .map(|doc| DomRoot::from_ref(doc.window()))
             .unwrap();
         let msg = EmbedderMsg::AllowOpeningWebView(chan);
         window.send_to_embedder(msg);
