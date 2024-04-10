@@ -12,13 +12,17 @@ use style::custom_properties::{
 use style::font_metrics::FontMetrics;
 use style::media_queries::{Device, MediaType};
 use style::properties::style_structs::Font;
-use style::properties::{CustomDeclaration, CustomDeclarationValue};
+use style::properties::{CustomDeclaration, CustomDeclarationValue, StyleBuilder};
+use style::rule_cache::RuleCacheConditions;
 use style::rule_tree::CascadeLevel;
 use style::servo::media_queries::FontMetricsProvider;
+use style::stylesheets::container_rule::ContainerSizeQuery;
 use style::stylesheets::layer_rule::LayerOrder;
+use style::stylesheets::UrlExtraData;
 use style::stylist::Stylist;
-use style::values::computed::Length;
+use style::values::computed::{Context, Length};
 use test::{self, Bencher};
+use url::Url;
 
 #[derive(Debug)]
 struct DummyMetricsProvider;
@@ -40,13 +44,16 @@ fn cascade(
     name_and_value: &[(&str, &str)],
     inherited: &ComputedCustomProperties,
 ) -> ComputedCustomProperties {
+    let dummy_url_data = UrlExtraData::from(Url::parse("about:blank").unwrap());
     let declarations = name_and_value
         .iter()
         .map(|&(name, value)| {
             let mut input = ParserInput::new(value);
             let mut parser = Parser::new(&mut input);
             let name = Name::from(name);
-            let value = CustomDeclarationValue::Value(SpecifiedValue::parse(&mut parser).unwrap());
+            let value = CustomDeclarationValue::Value(
+                SpecifiedValue::parse(&mut parser, &dummy_url_data).unwrap(),
+            );
             CustomDeclaration { name, value }
         })
         .collect::<Vec<_>>();
@@ -59,7 +66,16 @@ fn cascade(
         Box::new(DummyMetricsProvider),
     );
     let stylist = Stylist::new(device, QuirksMode::NoQuirks);
-    let mut builder = CustomPropertiesBuilder::new(inherited, &stylist, false);
+    let mut builder = StyleBuilder::new(stylist.device(), Some(&stylist), None, None, None, false);
+    builder.custom_properties = inherited.clone();
+    let mut rule_cache_conditions = RuleCacheConditions::default();
+    let context = Context::new(
+        builder,
+        stylist.quirks_mode(),
+        &mut rule_cache_conditions,
+        ContainerSizeQuery::none(),
+    );
+    let mut builder = CustomPropertiesBuilder::new(&stylist, &context);
 
     for declaration in &declarations {
         builder.cascade(
