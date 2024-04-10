@@ -11,7 +11,6 @@ fn test_font_template_descriptor() {
     use std::path::PathBuf;
 
     use gfx::font_cache_thread::FontIdentifier;
-    use gfx::font_context::FontContextHandle;
     use gfx::font_template::{FontTemplate, FontTemplateDescriptor};
     use servo_url::ServoUrl;
     use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
@@ -35,9 +34,7 @@ fn test_font_template_descriptor() {
         )
         .unwrap();
 
-        let context = FontContextHandle::default();
-
-        template.descriptor(&context).unwrap()
+        template.descriptor().unwrap()
     }
 
     assert_eq!(

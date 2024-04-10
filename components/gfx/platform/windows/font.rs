@@ -23,7 +23,6 @@ use crate::font::{
 };
 use crate::font_cache_thread::FontIdentifier;
 use crate::platform::font_template::FontTemplateData;
-use crate::platform::windows::font_context::FontContextHandle;
 use crate::text::glyph::GlyphId;
 
 // 1em = 12pt = 16px, assuming 72 points per inch and 96 px per inch
@@ -228,7 +227,6 @@ impl FontHandle {}
 
 impl FontHandleMethods for FontHandle {
     fn new_from_template(
-        _: &FontContextHandle,
         template: Arc<FontTemplateData>,
         pt_size: Option<Au>,
     ) -> Result<Self, &'static str> {

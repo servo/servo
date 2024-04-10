@@ -28,7 +28,6 @@ use crate::font_cache_thread::FontIdentifier;
 use crate::font_context::{FontContext, FontSource};
 use crate::font_template::FontTemplateDescriptor;
 use crate::platform::font::{FontHandle, FontTable};
-use crate::platform::font_context::FontContextHandle;
 pub use crate::platform::font_list::fallback_font_families;
 use crate::platform::font_template::FontTemplateData;
 use crate::text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
@@ -56,7 +55,6 @@ static TEXT_SHAPING_PERFORMANCE_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 pub trait FontHandleMethods: Sized {
     fn new_from_template(
-        fctx: &FontContextHandle,
         template: Arc<FontTemplateData>,
         pt_size: Option<Au>,
     ) -> Result<Self, &'static str>;

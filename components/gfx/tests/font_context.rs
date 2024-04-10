@@ -14,7 +14,7 @@ use gfx::font::{
     fallback_font_families, FontDescriptor, FontFamilyDescriptor, FontFamilyName, FontSearchScope,
 };
 use gfx::font_cache_thread::{FontIdentifier, FontTemplateInfo, FontTemplates};
-use gfx::font_context::{FontContext, FontContextHandle, FontSource};
+use gfx::font_context::{FontContext, FontSource};
 use gfx::font_template::FontTemplateDescriptor;
 use servo_arc::Arc;
 use servo_atoms::Atom;
@@ -30,7 +30,6 @@ use style::values::generics::font::LineHeight;
 use webrender_api::{FontInstanceKey, FontKey, IdNamespace};
 
 struct TestFontSource {
-    handle: FontContextHandle,
     families: HashMap<String, FontTemplates>,
     find_font_count: Rc<Cell<isize>>,
 }
@@ -52,7 +51,6 @@ impl TestFontSource {
         families.insert(fallback_font_families(None)[0].to_owned(), fallback);
 
         TestFontSource {
-            handle: FontContextHandle::default(),
             families,
             find_font_count: Rc::new(Cell::new(0)),
         }
@@ -90,12 +88,10 @@ impl FontSource for TestFontSource {
         template_descriptor: FontTemplateDescriptor,
         family_descriptor: FontFamilyDescriptor,
     ) -> Option<FontTemplateInfo> {
-        let handle = &self.handle;
-
         self.find_font_count.set(self.find_font_count.get() + 1);
         self.families
             .get_mut(family_descriptor.name())
-            .and_then(|family| family.find_font_for_style(&template_descriptor, handle))
+            .and_then(|family| family.find_font_for_style(&template_descriptor))
             .map(|template| FontTemplateInfo {
                 font_template: template,
                 font_key: FontKey(IdNamespace(0), 0),

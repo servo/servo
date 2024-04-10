@@ -26,7 +26,6 @@ use webrender_api::{FontInstanceKey, FontKey};
 use crate::font::{FontFamilyDescriptor, FontFamilyName, FontSearchScope};
 use crate::font_context::FontSource;
 use crate::font_template::{FontTemplate, FontTemplateDescriptor};
-use crate::platform::font_context::FontContextHandle;
 use crate::platform::font_list::{
     for_each_available_family, for_each_variation, system_default_family, LocalFontIdentifier,
     SANS_SERIF_FONT_FAMILY,
@@ -75,13 +74,12 @@ impl FontTemplates {
     pub fn find_font_for_style(
         &mut self,
         desc: &FontTemplateDescriptor,
-        fctx: &FontContextHandle,
     ) -> Option<Arc<FontTemplateData>> {
         // TODO(Issue #189): optimize lookup for
         // regular/bold/italic/bolditalic with fixed offsets and a
         // static decision table for fallback between these values.
         for template in &mut self.templates {
-            let maybe_template = template.data_for_descriptor(fctx, desc);
+            let maybe_template = template.data_for_descriptor(desc);
             if maybe_template.is_some() {
                 return maybe_template;
             }
@@ -91,8 +89,7 @@ impl FontTemplates {
         // TODO(#190): Do a better job.
         let (mut best_template_data, mut best_distance) = (None, f32::MAX);
         for template in &mut self.templates {
-            if let Some((template_data, distance)) =
-                template.data_for_approximate_descriptor(fctx, desc)
+            if let Some((template_data, distance)) = template.data_for_approximate_descriptor(desc)
             {
                 if distance < best_distance {
                     best_template_data = Some(template_data);
@@ -159,7 +156,6 @@ struct FontCache {
     generic_fonts: HashMap<FontFamilyName, LowercaseString>,
     local_families: HashMap<LowercaseString, FontTemplates>,
     web_families: HashMap<LowercaseString, FontTemplates>,
-    font_context: FontContextHandle,
     core_resource_thread: CoreResourceThread,
     webrender_api: Box<dyn WebrenderApi>,
     webrender_fonts: HashMap<FontIdentifier, FontKey>,
@@ -404,7 +400,7 @@ impl FontCache {
             // TODO(Issue #192: handle generic font families, like 'serif' and 'sans-serif'.
             // if such family exists, try to match style to a font
 
-            s.find_font_for_style(template_descriptor, &self.font_context)
+            s.find_font_for_style(template_descriptor)
         } else {
             debug!(
                 "FontList: Couldn't find font family with name={}",
@@ -423,7 +419,7 @@ impl FontCache {
 
         if self.web_families.contains_key(&family_name) {
             let templates = self.web_families.get_mut(&family_name).unwrap();
-            templates.find_font_for_style(template_descriptor, &self.font_context)
+            templates.find_font_for_style(template_descriptor)
         } else {
             None
         }
@@ -498,7 +494,6 @@ impl FontCacheThread {
                     generic_fonts,
                     local_families: HashMap::new(),
                     web_families: HashMap::new(),
-                    font_context: FontContextHandle::default(),
                     core_resource_thread,
                     webrender_api,
                     webrender_fonts: HashMap::new(),

@@ -27,7 +27,6 @@ use crate::font::{
 };
 use crate::font_cache_thread::FontIdentifier;
 use crate::platform::font_template::FontTemplateData;
-use crate::platform::macos::font_context::FontContextHandle;
 use crate::text::glyph::GlyphId;
 
 const KERN_PAIR_LEN: usize = 6;
@@ -158,7 +157,6 @@ impl fmt::Debug for CachedKernTable {
 
 impl FontHandleMethods for FontHandle {
     fn new_from_template(
-        _fctx: &FontContextHandle,
         template: Arc<FontTemplateData>,
         pt_size: Option<Au>,
     ) -> Result<FontHandle, &'static str> {

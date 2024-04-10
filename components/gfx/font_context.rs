@@ -12,7 +12,6 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use app_units::Au;
 use fnv::FnvHasher;
 use log::debug;
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use servo_arc::Arc;
 use style::computed_values::font_variant_caps::T as FontVariantCaps;
 use style::properties::style_structs::Font as FontStyleStruct;
@@ -24,7 +23,6 @@ use crate::font::{
 use crate::font_cache_thread::FontTemplateInfo;
 use crate::font_template::FontTemplateDescriptor;
 use crate::platform::font::FontHandle;
-pub use crate::platform::font_context::FontContextHandle;
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
 
@@ -48,7 +46,6 @@ pub trait FontSource {
 /// required.
 #[derive(Debug)]
 pub struct FontContext<S: FontSource> {
-    platform_handle: FontContextHandle,
     font_source: S,
 
     // TODO: The font context holds a strong ref to the cached fonts
@@ -66,9 +63,7 @@ pub struct FontContext<S: FontSource> {
 impl<S: FontSource> FontContext<S> {
     pub fn new(font_source: S) -> FontContext<S> {
         #[allow(clippy::default_constructed_unit_structs)]
-        let handle = FontContextHandle::default();
         FontContext {
-            platform_handle: handle,
             font_source,
             font_cache: HashMap::new(),
             font_template_cache: HashMap::new(),
@@ -217,11 +212,7 @@ impl<S: FontSource> FontContext<S> {
         descriptor: FontDescriptor,
         synthesized_small_caps: Option<FontRef>,
     ) -> Result<Font, &'static str> {
-        let handle = FontHandle::new_from_template(
-            &self.platform_handle,
-            info.font_template,
-            Some(descriptor.pt_size),
-        )?;
+        let handle = FontHandle::new_from_template(info.font_template, Some(descriptor.pt_size))?;
 
         let font_instance_key = self
             .font_source
@@ -232,13 +223,6 @@ impl<S: FontSource> FontContext<S> {
             font_instance_key,
             synthesized_small_caps,
         ))
-    }
-}
-
-impl<S: FontSource> MallocSizeOf for FontContext<S> {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        // FIXME(njn): Measure other fields eventually.
-        self.platform_handle.size_of(ops)
     }
 }
 
