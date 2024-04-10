@@ -7,6 +7,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use embedder_traits::{DualRumbleEffectParams, EmbedderMsg};
 use js::jsval::JSVal;
+use script_traits::GamepadSupportedHapticEffects;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GamepadHapticActuatorBinding::{
@@ -37,24 +38,44 @@ pub struct GamepadHapticActuator {
 }
 
 impl GamepadHapticActuator {
-    fn new_inherited(gamepad_index: u32) -> GamepadHapticActuator {
+    fn new_inherited(
+        gamepad_index: u32,
+        supported_haptic_effects: GamepadSupportedHapticEffects,
+    ) -> GamepadHapticActuator {
+        let mut effects = vec![];
+        if supported_haptic_effects.supports_dual_rumble {
+            effects.push(GamepadHapticEffectType::Dual_rumble);
+        }
+        if supported_haptic_effects.supports_trigger_rumble {
+            effects.push(GamepadHapticEffectType::Trigger_rumble);
+        }
         Self {
             reflector_: Reflector::new(),
             gamepad_index: gamepad_index.into(),
-            // TODO: Determine support from gilrs instead of assuming
-            effects: vec![GamepadHapticEffectType::Dual_rumble],
+            effects,
             playing_effect_promise: DomRefCell::new(None),
             reset_result_promise: DomRefCell::new(None),
         }
     }
 
-    pub fn new(global: &GlobalScope, gamepad_index: u32) -> DomRoot<GamepadHapticActuator> {
-        Self::new_with_proto(global, gamepad_index)
+    pub fn new(
+        global: &GlobalScope,
+        gamepad_index: u32,
+        supported_haptic_effects: GamepadSupportedHapticEffects,
+    ) -> DomRoot<GamepadHapticActuator> {
+        Self::new_with_proto(global, gamepad_index, supported_haptic_effects)
     }
 
-    fn new_with_proto(global: &GlobalScope, gamepad_index: u32) -> DomRoot<GamepadHapticActuator> {
+    fn new_with_proto(
+        global: &GlobalScope,
+        gamepad_index: u32,
+        supported_haptic_effects: GamepadSupportedHapticEffects,
+    ) -> DomRoot<GamepadHapticActuator> {
         let haptic_actuator = reflect_dom_object_with_proto(
-            Box::new(GamepadHapticActuator::new_inherited(gamepad_index)),
+            Box::new(GamepadHapticActuator::new_inherited(
+                gamepad_index,
+                supported_haptic_effects,
+            )),
             global,
             None,
         );

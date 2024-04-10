@@ -50,8 +50,9 @@ use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_tim
 use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
 use script_traits::transferable::MessagePortImpl;
 use script_traits::{
-    BroadcastMsg, GamepadEvent, GamepadUpdateType, MessagePortMsg, MsDuration, PortMessageTask,
-    ScriptMsg, ScriptToConstellationChan, TimerEvent, TimerEventId, TimerSchedulerMsg, TimerSource,
+    BroadcastMsg, GamepadEvent, GamepadSupportedHapticEffects, GamepadUpdateType, MessagePortMsg,
+    MsDuration, PortMessageTask, ScriptMsg, ScriptToConstellationChan, TimerEvent, TimerEventId,
+    TimerSchedulerMsg, TimerSource,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use uuid::Uuid;
@@ -3140,12 +3141,13 @@ impl GlobalScope {
 
     pub fn handle_gamepad_event(&self, gamepad_event: GamepadEvent) {
         match gamepad_event {
-            GamepadEvent::Connected(index, name, bounds) => {
+            GamepadEvent::Connected(index, name, bounds, supported_haptic_effects) => {
                 self.handle_gamepad_connect(
                     index.0,
                     name,
                     bounds.axis_bounds,
                     bounds.button_bounds,
+                    supported_haptic_effects,
                 );
             },
             GamepadEvent::Disconnected(index) => {
@@ -3173,6 +3175,7 @@ impl GlobalScope {
         name: String,
         axis_bounds: (f64, f64),
         button_bounds: (f64, f64),
+        supported_haptic_effects: GamepadSupportedHapticEffects,
     ) {
         // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
         //          then abort these steps.
