@@ -22,7 +22,7 @@ use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
 
 use super::font_template::CoreTextFontTemplateMethods;
 use crate::font::{
-    FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, GPOS, GSUB,
+    FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, PlatformFontMethods, GPOS, GSUB,
     KERN,
 };
 use crate::font_template::FontTemplateRef;
@@ -52,14 +52,16 @@ impl FontTableMethods for FontTable {
 }
 
 #[derive(Debug)]
-pub struct FontHandle {
-    font_template: FontTemplateRef,
+pub struct PlatformFont {
     ctfont: CTFont,
+    /// A reference to this data used to create this [`PlatformFont`], ensuring the
+    /// data stays alive of the lifetime of this struct.
+    data: Option<Arc<Vec<u8>>>,
     h_kern_subtable: Option<CachedKernTable>,
     can_do_fast_shaping: bool,
 }
 
-impl FontHandle {
+impl PlatformFont {
     /// Cache all the data needed for basic horizontal kerning. This is used only as a fallback or
     /// fast path (when the GPOS table is missing or unnecessary) so it needn't handle every case.
     fn find_h_kern_subtable(&self) -> Option<CachedKernTable> {
@@ -154,11 +156,11 @@ impl fmt::Debug for CachedKernTable {
     }
 }
 
-impl FontHandleMethods for FontHandle {
+impl PlatformFontMethods for PlatformFont {
     fn new_from_template(
         font_template: FontTemplateRef,
         pt_size: Option<Au>,
-    ) -> Result<FontHandle, &'static str> {
+    ) -> Result<PlatformFont, &'static str> {
         let size = match pt_size {
             Some(s) => s.to_f64_px(),
             None => 0.0,
@@ -167,8 +169,8 @@ impl FontHandleMethods for FontHandle {
             return Err("Could not generate CTFont for FontTemplateData");
         };
 
-        let mut handle = FontHandle {
-            font_template,
+        let mut handle = PlatformFont {
+            data: font_template.data_if_in_memory(),
             ctfont: core_text_font.clone_with_font_size(size),
             h_kern_subtable: None,
             can_do_fast_shaping: false,

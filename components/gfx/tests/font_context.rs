@@ -11,8 +11,7 @@ use std::rc::Rc;
 
 use app_units::Au;
 use gfx::font::{
-    fallback_font_families, FontDescriptor, FontFamilyDescriptor, FontFamilyName,
-    FontHandleMethods, FontSearchScope,
+    fallback_font_families, FontDescriptor, FontFamilyDescriptor, FontFamilyName, FontSearchScope,
 };
 use gfx::font_cache_thread::{FontIdentifier, FontTemplateAndWebRenderFontKey, FontTemplates};
 use gfx::font_context::{FontContext, FontSource};
@@ -176,7 +175,7 @@ fn test_font_group_find_by_codepoint() {
         .find_by_codepoint(&mut context, 'a')
         .unwrap();
     assert_eq!(
-        font.borrow().handle.template().borrow().identifier,
+        font.borrow().template.borrow().identifier,
         TestFontSource::identifier_for_font_name("csstest-ascii")
     );
     assert_eq!(
@@ -190,7 +189,7 @@ fn test_font_group_find_by_codepoint() {
         .find_by_codepoint(&mut context, 'a')
         .unwrap();
     assert_eq!(
-        font.borrow().handle.template().borrow().identifier,
+        font.borrow().template.borrow().identifier,
         TestFontSource::identifier_for_font_name("csstest-ascii")
     );
     assert_eq!(
@@ -204,7 +203,7 @@ fn test_font_group_find_by_codepoint() {
         .find_by_codepoint(&mut context, 'á')
         .unwrap();
     assert_eq!(
-        font.borrow().handle.template().borrow().identifier,
+        font.borrow().template.borrow().identifier,
         TestFontSource::identifier_for_font_name("csstest-basic-regular")
     );
     assert_eq!(count.get(), 2, "both fonts should now have been loaded");
@@ -225,7 +224,7 @@ fn test_font_fallback() {
         .find_by_codepoint(&mut context, 'a')
         .unwrap();
     assert_eq!(
-        font.borrow().handle.template().borrow().identifier,
+        font.borrow().template.borrow().identifier,
         TestFontSource::identifier_for_font_name("csstest-ascii"),
         "a family in the group should be used if there is a matching glyph"
     );
@@ -235,7 +234,7 @@ fn test_font_fallback() {
         .find_by_codepoint(&mut context, 'á')
         .unwrap();
     assert_eq!(
-        font.borrow().handle.template().borrow().identifier,
+        font.borrow().template.borrow().identifier,
         TestFontSource::identifier_for_font_name("csstest-basic-regular"),
         "a fallback font should be used if there is no matching glyph in the group"
     );

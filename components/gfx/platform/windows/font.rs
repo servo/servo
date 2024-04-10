@@ -18,7 +18,7 @@ use style::values::computed::font::FontStyle as StyleFontStyle;
 use style::values::specified::font::FontStretchKeyword;
 
 use crate::font::{
-    FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, FractionalPixel,
+    FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, PlatformFontMethods,
 };
 use crate::font_cache_thread::FontIdentifier;
 use crate::font_template::{FontTemplateRef, FontTemplateRefMethods};
@@ -198,9 +198,11 @@ impl FontInfo {
 }
 
 #[derive(Debug)]
-pub struct FontHandle {
-    font_template: FontTemplateRef,
+pub struct PlatformFont {
     face: Nondebug<FontFace>,
+    /// A reference to this data used to create this [`PlatformFont`], ensuring the
+    /// data stays alive of the lifetime of this struct.
+    data: Option<Arc<Vec<u8>>>,
     info: FontInfo,
     em_size: f32,
     du_to_px: f32,
@@ -222,9 +224,7 @@ impl<T> Deref for Nondebug<T> {
     }
 }
 
-impl FontHandle {}
-
-impl FontHandleMethods for FontHandle {
+impl PlatformFontMethods for PlatformFont {
     fn new_from_template(
         font_template: FontTemplateRef,
         pt_size: Option<Au>,
@@ -234,8 +234,12 @@ impl FontHandleMethods for FontHandle {
             FontIdentifier::Web(_) => None,
         };
 
-        let (face, info) = match direct_write_font {
-            Some(font) => (font.create_font_face(), FontInfo::new_from_font(&font)?),
+        let (face, info, data) = match direct_write_font {
+            Some(font) => (
+                font.create_font_face(),
+                FontInfo::new_from_font(&font)?,
+                None,
+            ),
             None => {
                 let bytes = font_template.data();
                 let font_file =
@@ -257,18 +261,15 @@ impl FontHandleMethods for FontHandle {
         let design_units_to_pixels = 1. / design_units_per_pixel;
         let scaled_design_units_to_pixels = em_size / design_units_per_pixel;
 
-        Ok(FontHandle {
+        Ok(PlatformFont {
             font_template,
             face: Nondebug(face),
+            data,
             info,
             em_size,
             du_to_px: design_units_to_pixels,
             scaled_du_to_px: scaled_design_units_to_pixels,
         })
-    }
-
-    fn template(&self) -> FontTemplateRef {
-        self.font_template.clone()
     }
 
     fn family_name(&self) -> Option<String> {
