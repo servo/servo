@@ -911,36 +911,32 @@ impl VirtualMethods for HTMLElement {
             (&local_name!("form"), mutation) if self.is_form_associated_custom_element() => {
                 self.form_attribute_mutated(mutation);
             },
+            // Adding a "disabled" attribute disables an enabled form element.
             (&local_name!("disabled"), AttributeMutation::Set(_))
-                if self.is_form_associated_custom_element() =>
+                if self.is_form_associated_custom_element() && element.enabled_state() =>
             {
-                // Adding a "disabled" attribute disables an enabled form element.
+                element.set_disabled_state(true);
+                element.set_enabled_state(false);
+                ScriptThread::enqueue_callback_reaction(
+                    element,
+                    CallbackReaction::FormDisabled(true),
+                    None,
+                );
+            },
+            // Removing the "disabled" attribute may enable a disabled
+            // form element, but a fieldset ancestor may keep it disabled.
+            (&local_name!("disabled"), AttributeMutation::Removed)
+                if self.is_form_associated_custom_element() && element.disabled_state() =>
+            {
+                element.set_disabled_state(false);
+                element.set_enabled_state(true);
+                element.check_ancestors_disabled_state_for_form_control();
                 if element.enabled_state() {
-                    element.set_disabled_state(true);
-                    element.set_enabled_state(false);
                     ScriptThread::enqueue_callback_reaction(
                         element,
-                        CallbackReaction::FormDisabled(true),
+                        CallbackReaction::FormDisabled(false),
                         None,
                     );
-                }
-            },
-            (&local_name!("disabled"), AttributeMutation::Removed)
-                if self.is_form_associated_custom_element() =>
-            {
-                // Removing the "disabled" attribute may enable a disabled
-                // form element, but a fieldset ancestor may keep it disabled.
-                if element.disabled_state() {
-                    element.set_disabled_state(false);
-                    element.set_enabled_state(true);
-                    element.check_ancestors_disabled_state_for_form_control();
-                    if element.enabled_state() {
-                        ScriptThread::enqueue_callback_reaction(
-                            element,
-                            CallbackReaction::FormDisabled(false),
-                            None,
-                        );
-                    }
                 }
             },
             (&local_name!("readonly"), mutation) if self.is_form_associated_custom_element() => {

@@ -34,6 +34,23 @@ enum SubmissionValue {
     None,
 }
 
+impl From<Option<&FileOrUSVStringOrFormData>> for SubmissionValue {
+    fn from(value: Option<&FileOrUSVStringOrFormData>) -> Self {
+        match value {
+            None => SubmissionValue::None,
+            Some(FileOrUSVStringOrFormData::File(file)) => {
+                SubmissionValue::File(DomRoot::from_ref(file))
+            },
+            Some(FileOrUSVStringOrFormData::USVString(usv_string)) => {
+                SubmissionValue::USVString(usv_string.clone())
+            },
+            Some(FileOrUSVStringOrFormData::FormData(form_data)) => {
+                SubmissionValue::FormData(form_data.datums())
+            },
+        }
+    }
+}
+
 #[dom_struct]
 pub struct ElementInternals {
     reflector_: Reflector,
@@ -178,13 +195,13 @@ impl ElementInternalsMethods for ElementInternals {
         }
 
         // Step 3: Set target element's submission value
-        self.set_submission_value(SubmissionValue::from(&value));
+        self.set_submission_value(value.as_ref().into());
 
         match maybe_state {
             // Step 4: If the state argument of the function is omitted, set element's state to its submission value
-            None => self.set_state(SubmissionValue::from(&value)),
+            None => self.set_state(value.as_ref().into()),
             // Steps 5-6: Otherwise, set element's state to state
-            Some(state) => self.set_state(SubmissionValue::from(&state)),
+            Some(state) => self.set_state(state.as_ref().into()),
         }
         Ok(())
     }
@@ -203,7 +220,7 @@ impl ElementInternalsMethods for ElementInternals {
 
         // Step 3: If flags contains one or more true values and message is not given or is the empty
         // string, then throw a TypeError.
-        let bits = ValidationFlags::from(flags);
+        let bits: ValidationFlags = flags.into();
         if !bits.is_empty() && !message.as_ref().map_or_else(|| false, |m| !m.is_empty()) {
             return Err(Error::Type(
                 "Setting an element to invalid requires a message string as the second argument."
@@ -312,60 +329,6 @@ impl ElementInternalsMethods for ElementInternals {
             return Err(Error::NotSupported);
         }
         Ok(self.report_validity())
-    }
-}
-
-impl From<&Option<FileOrUSVStringOrFormData>> for SubmissionValue {
-    fn from(value: &Option<FileOrUSVStringOrFormData>) -> Self {
-        match value {
-            None => SubmissionValue::None,
-            Some(FileOrUSVStringOrFormData::File(file)) => {
-                SubmissionValue::File(DomRoot::from_ref(file))
-            },
-            Some(FileOrUSVStringOrFormData::USVString(usv_string)) => {
-                SubmissionValue::USVString(usv_string.clone())
-            },
-            Some(FileOrUSVStringOrFormData::FormData(form_data)) => {
-                SubmissionValue::FormData(form_data.datums())
-            },
-        }
-    }
-}
-
-impl From<&ValidityStateFlags> for ValidationFlags {
-    fn from(flags: &ValidityStateFlags) -> Self {
-        let mut bits = ValidationFlags::empty();
-        if flags.valueMissing {
-            bits |= ValidationFlags::VALUE_MISSING;
-        }
-        if flags.typeMismatch {
-            bits |= ValidationFlags::TYPE_MISMATCH;
-        }
-        if flags.patternMismatch {
-            bits |= ValidationFlags::PATTERN_MISMATCH;
-        }
-        if flags.tooLong {
-            bits |= ValidationFlags::TOO_LONG;
-        }
-        if flags.tooShort {
-            bits |= ValidationFlags::TOO_SHORT;
-        }
-        if flags.rangeUnderflow {
-            bits |= ValidationFlags::RANGE_UNDERFLOW;
-        }
-        if flags.rangeOverflow {
-            bits |= ValidationFlags::RANGE_OVERFLOW;
-        }
-        if flags.stepMismatch {
-            bits |= ValidationFlags::STEP_MISMATCH;
-        }
-        if flags.badInput {
-            bits |= ValidationFlags::BAD_INPUT;
-        }
-        if flags.customError {
-            bits |= ValidationFlags::CUSTOM_ERROR;
-        }
-        bits
     }
 }
 
