@@ -25,7 +25,7 @@ use servo::embedder_traits::{
 };
 use servo::script_traits::{
     GamepadEvent, GamepadIndex, GamepadInputBounds, GamepadUpdateType, TouchEventType,
-    TraversalDirection,
+    TraversalDirection, GamepadSupportedHapticEffects,
 };
 use servo::servo_config::opts;
 use servo::servo_url::ServoUrl;
@@ -225,7 +225,17 @@ where
                             axis_bounds: (-1.0, 1.0),
                             button_bounds: (0.0, 1.0),
                         };
-                        gamepad_event = Some(GamepadEvent::Connected(index, name, bounds));
+                        // GilRs does not yet support trigger rumble
+                        let supported_haptic_effects = GamepadSupportedHapticEffects {
+                            supports_dual_rumble: true,
+                            supports_trigger_rumble: false,
+                        };
+                        gamepad_event = Some(GamepadEvent::Connected(
+                            index,
+                            name,
+                            bounds,
+                            supported_haptic_effects,
+                        ));
                     },
                     EventType::Disconnected => {
                         gamepad_event = Some(GamepadEvent::Disconnected(index));

@@ -1093,11 +1093,25 @@ pub struct GamepadInputBounds {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+/// The haptic effects supported by this gamepad
+pub struct GamepadSupportedHapticEffects {
+    /// Gamepad support for dual rumble effects
+    pub supports_dual_rumble: bool,
+    /// Gamepad support for trigger rumble effects
+    pub supports_trigger_rumble: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 /// The type of Gamepad event
 pub enum GamepadEvent {
     /// A new gamepad has been connected
     /// <https://www.w3.org/TR/gamepad/#event-gamepadconnected>
-    Connected(GamepadIndex, String, GamepadInputBounds),
+    Connected(
+        GamepadIndex,
+        String,
+        GamepadInputBounds,
+        GamepadSupportedHapticEffects,
+    ),
     /// An existing gamepad has been disconnected
     /// <https://www.w3.org/TR/gamepad/#event-gamepaddisconnected>
     Disconnected(GamepadIndex),

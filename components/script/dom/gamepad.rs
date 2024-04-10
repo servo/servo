@@ -6,7 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::typedarray::{Float64, Float64Array};
-use script_traits::GamepadUpdateType;
+use script_traits::{GamepadSupportedHapticEffects, GamepadUpdateType};
 
 use super::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::GamepadBinding::{GamepadHand, GamepadMethods};
@@ -94,8 +94,16 @@ impl Gamepad {
         id: String,
         axis_bounds: (f64, f64),
         button_bounds: (f64, f64),
+        supported_haptic_effects: GamepadSupportedHapticEffects,
     ) -> DomRoot<Gamepad> {
-        Self::new_with_proto(global, gamepad_id, id, axis_bounds, button_bounds)
+        Self::new_with_proto(
+            global,
+            gamepad_id,
+            id,
+            axis_bounds,
+            button_bounds,
+            supported_haptic_effects,
+        )
     }
 
     /// When we construct a new gamepad, we initialize the number of buttons and
@@ -109,9 +117,11 @@ impl Gamepad {
         id: String,
         axis_bounds: (f64, f64),
         button_bounds: (f64, f64),
+        supported_haptic_effects: GamepadSupportedHapticEffects,
     ) -> DomRoot<Gamepad> {
         let button_list = GamepadButtonList::init_buttons(global);
-        let vibration_actuator = GamepadHapticActuator::new(global, gamepad_id);
+        let vibration_actuator =
+            GamepadHapticActuator::new(global, gamepad_id, supported_haptic_effects);
         let gamepad = reflect_dom_object_with_proto(
             Box::new(Gamepad::new_inherited(
                 gamepad_id,
