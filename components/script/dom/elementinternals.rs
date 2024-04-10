@@ -159,11 +159,9 @@ impl ElementInternals {
     }
 
     pub fn is_invalid(&self) -> bool {
-        if !self.is_target_form_associated() {
-            return false;
-        }
-
-        self.is_instance_validatable() && !self.satisfies_constraints()
+        self.is_target_form_associated() &&
+            self.is_instance_validatable() &&
+            !self.satisfies_constraints()
     }
 }
 

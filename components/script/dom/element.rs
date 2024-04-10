@@ -3139,8 +3139,8 @@ impl VirtualMethods for Element {
 
         if let Some(f) = self.as_maybe_form_control() {
             // TODO: The valid state of ancestors might be wrong if the form control element
-            // is with a fieldset ancestor, for instance: `<form><fieldset><input>`,
-            // if `<input>` is unbinded, `<form><fieldset>` should `update_validity()`.
+            // has a fieldset ancestor, for instance: `<form><fieldset><input>`,
+            // if `<input>` is unbound, `<form><fieldset>` should trigger a call to `update_validity()`.
             f.unbind_form_control_from_tree();
         }
 
@@ -3819,7 +3819,7 @@ impl Element {
         self.set_enabled_state(!has_disabled_attrib);
     }
 
-    pub fn check_readonly_attribute(&self) {
+    pub fn update_read_write_state_from_readonly_attribute(&self) {
         let has_readonly_attribute = self.has_attribute(&local_name!("readonly"));
         self.set_read_write_state(has_readonly_attribute);
     }

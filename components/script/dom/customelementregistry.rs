@@ -239,7 +239,7 @@ impl CustomElementRegistry {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
-    /// Step 14.11: get `formAssociated` value
+    /// Step 14.11: Get the value of `formAssociated`.
     #[allow(unsafe_code)]
     fn get_form_associated_value(&self, constructor: HandleObject) -> Fallible<bool> {
         let cx = self.window.get_cx();
@@ -413,7 +413,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         // Step 9
         self.element_definition_is_running.set(true);
 
-        // Steps 10-13 initialize `formAssociated`, `disableInternals`, `disableShadow`, and
+        // Steps 10-13: Initialize `formAssociated`, `disableInternals`, `disableShadow`, and
         // `observedAttributes` with default values, but this is done later.
 
         // Steps 14.1 - 14.2: Get the value of the prototype.
@@ -867,7 +867,7 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
             // so it doesn't describe this check as an action.)
             element.check_disabled_attribute();
             element.check_ancestors_disabled_state_for_form_control();
-            element.check_readonly_attribute();
+            element.update_read_write_state_from_readonly_attribute();
 
             // Step 9.2: If element is disabled, then enqueue a custom element callback reaction
             // with element.
