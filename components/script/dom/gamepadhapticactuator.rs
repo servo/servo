@@ -100,7 +100,7 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
                         "Weak magnitude value is not within range of 0.0 to 1.0.".to_string(),
                     ));
                 }
-            }
+            },
         }
 
         let document = self.global().as_window().Document();
@@ -139,7 +139,10 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
             strong_magnitude: *params.strongMagnitude,
             weak_magnitude: *params.weakMagnitude,
         };
-        let event = EmbedderMsg::PlayGamepadHapticEffect(self.gamepad_index as usize, embedder_traits::GamepadHapticEffectType::DualRumble(params));
+        let event = EmbedderMsg::PlayGamepadHapticEffect(
+            self.gamepad_index as usize,
+            embedder_traits::GamepadHapticEffectType::DualRumble(params),
+        );
         self.global().as_window().send_to_embedder(event);
 
         playing_effect_promise
@@ -153,7 +156,6 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
         if !document.is_fully_active() {
             reset_result_promise.reject_error(Error::InvalidState);
         }
-
 
         if self.playing_effect_promise.borrow().is_some() {
             *self.reset_result_promise.borrow_mut() = Some(reset_result_promise.clone());
@@ -193,7 +195,7 @@ impl GamepadHapticActuator {
         if playing_effect_promise.is_some() {
             let trusted_promise = TrustedPromise::new(
                 self.playing_effect_promise
-                .borrow()
+                    .borrow()
                     .clone()
                     .expect("Promise is null!"),
             );

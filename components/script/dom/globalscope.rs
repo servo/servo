@@ -3159,7 +3159,7 @@ impl GlobalScope {
             },
             GamepadEvent::HapticEffectStopped(index) => {
                 self.handle_gamepad_haptic_effect_stopped(index.0);
-            }
+            },
         };
     }
 
@@ -3300,7 +3300,7 @@ impl GlobalScope {
                         }
                     }
                 }),
-                &self.task_canceller(TaskSourceName::Gamepad)
+                &self.task_canceller(TaskSourceName::Gamepad),
             )
             .expect("Failed to queue gamepad haptic effect stopped task.");
     }
