@@ -32,6 +32,8 @@ pub struct GamepadHapticActuator {
     effects: Vec<GamepadHapticEffectType>,
     #[ignore_malloc_size_of = "promises are hard"]
     playing_effect_promise: DomRefCell<Option<Rc<Promise>>>,
+    #[ignore_malloc_size_of = "promises are hard"]
+    reset_result_promise: DomRefCell<Option<Rc<Promise>>>,
 }
 
 impl GamepadHapticActuator {
@@ -42,6 +44,7 @@ impl GamepadHapticActuator {
             // TODO: Determine support from gilrs instead of assuming
             effects: vec![GamepadHapticEffectType::Dual_rumble],
             playing_effect_promise: DomRefCell::new(None),
+            reset_result_promise: DomRefCell::new(None),
         }
     }
 
@@ -136,7 +139,7 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
             strong_magnitude: *params.strongMagnitude,
             weak_magnitude: *params.weakMagnitude,
         };
-        let event = EmbedderMsg::GamepadHapticEffect(self.gamepad_index as usize, embedder_traits::GamepadHapticEffectType::DualRumble(params));
+        let event = EmbedderMsg::PlayGamepadHapticEffect(self.gamepad_index as usize, embedder_traits::GamepadHapticEffectType::DualRumble(params));
         self.global().as_window().send_to_embedder(event);
 
         playing_effect_promise
@@ -151,13 +154,15 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
             reset_result_promise.reject_error(Error::InvalidState);
         }
 
+
         if self.playing_effect_promise.borrow().is_some() {
-            // TODO: Stop existing haptic effect
-            let completed_successfully = true;
-            if completed_successfully {
-                let message = DOMString::from("completed");
-                reset_result_promise.resolve_native(&message);
-            }
+            *self.reset_result_promise.borrow_mut() = Some(reset_result_promise.clone());
+
+            let event = EmbedderMsg::StopGamepadHapticEffect(self.gamepad_index as usize);
+            self.global().as_window().send_to_embedder(event);
+        } else {
+            let message = DOMString::from("complete");
+            reset_result_promise.resolve_native(&message);
         }
 
         reset_result_promise
@@ -172,7 +177,39 @@ impl GamepadHapticActuator {
     pub fn resolve_playing_effect_promise(&self) {
         let playing_effect_promise = self.playing_effect_promise.borrow().clone();
         if let Some(promise) = playing_effect_promise {
-            let message = DOMString::from("completed");
+            let message = DOMString::from("complete");
+            promise.resolve_native(&message);
+        }
+    }
+
+    pub fn has_reset_result_promise(&self) -> bool {
+        self.reset_result_promise.borrow().is_some()
+    }
+
+    pub fn resolve_reset_result_promise(&self) {
+        let playing_effect_promise = self.playing_effect_promise.borrow().clone();
+        let reset_result_promise = self.reset_result_promise.borrow().clone();
+
+        if playing_effect_promise.is_some() {
+            let trusted_promise = TrustedPromise::new(
+                self.playing_effect_promise
+                .borrow()
+                    .clone()
+                    .expect("Promise is null!"),
+            );
+            let _ = self.global().gamepad_task_source().queue(
+                task!(preempt_promise: move || {
+                    let promise = trusted_promise.root();
+                    let message = DOMString::from("preempted");
+                    promise.resolve_native(&message);
+                }),
+                &self.global(),
+            );
+            *self.playing_effect_promise.borrow_mut() = None;
+        }
+
+        if let Some(promise) = reset_result_promise {
+            let message = DOMString::from("complete");
             promise.resolve_native(&message);
         }
     }
@@ -204,6 +241,7 @@ impl GamepadHapticActuator {
             &self.global(),
         );
 
-        // TODO: Stop haptic effect
+        let event = EmbedderMsg::StopGamepadHapticEffect(self.gamepad_index as usize);
+        self.global().as_window().send_to_embedder(event);
     }
 }

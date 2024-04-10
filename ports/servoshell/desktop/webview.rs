@@ -61,7 +61,7 @@ pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
     event_queue: Vec<EmbedderEvent>,
     clipboard: Option<Clipboard>,
     gamepad: Option<Gilrs>,
-    haptic_effects: Vec<Effect>,
+    haptic_effects: Vec<Option<Effect>>,
     shutdown_requested: bool,
     load_status: LoadStatus,
 }
@@ -217,6 +217,9 @@ where
                         }
                     },
                     EventType::Connected => {
+                        let len = self.haptic_effects.len();
+                        self.haptic_effects.resize_with(len + 1, Default::default);
+
                         let name = String::from(name);
                         let bounds = GamepadInputBounds {
                             axis_bounds: (-1.0, 1.0),
@@ -296,12 +299,28 @@ where
                     .add_gamepad(&connected_gamepad.1)
                     .finish(gilrs)
                     .expect("Failed to create haptic effect, gamepad is either disconnected or doesn't support force feedback.");
-                self.haptic_effects.push(effect);
-                self.haptic_effects[0].play().expect("Failed to play haptic effect.");
+                self.haptic_effects.as_mut_slice()[index] = Some(effect);
+                self.haptic_effects[index].as_ref().expect("No haptic effect found").play().expect("Failed to play haptic effect.");
             } else {
                 println!("Couldn't find connected gamepad to play haptic effect on");
             }
         }
+    }
+
+    fn stop_haptic_effect(&mut self, index: usize) {
+        let Some(ref effect) = self.haptic_effects[index] else {
+            return;
+        };
+
+        effect.stop().expect("Failed to stop haptic effect.");
+        self.haptic_effects.as_mut_slice()[index] = None;
+
+        if self.haptic_effects.iter().all(Option::is_none) {
+            self.haptic_effects.clear();
+        }
+
+        let event = GamepadEvent::HapticEffectStopped(GamepadIndex(index));
+        self.event_queue.push(EmbedderEvent::Gamepad(event));
     }
 
     pub fn shutdown_requested(&self) -> bool {
@@ -790,11 +809,14 @@ where
                             .push(EmbedderEvent::FocusWebView(webview_id));
                     }
                 },
-                EmbedderMsg::GamepadHapticEffect(index, effect) => match effect {
+                EmbedderMsg::PlayGamepadHapticEffect(index, effect) => match effect {
                     GamepadHapticEffectType::DualRumble(params) => {
                         self.play_haptic_effect(index, params)
                     },
                 },
+                EmbedderMsg::StopGamepadHapticEffect(index) => {
+                    self.stop_haptic_effect(index)
+                }
             }
         }
 
