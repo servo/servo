@@ -78,7 +78,6 @@ use crate::dom::node::{
 use crate::dom::nodelist::{NodeList, RadioListMode};
 use crate::dom::radionodelist::RadioNodeList;
 use crate::dom::submitevent::SubmitEvent;
-use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::script_thread::ScriptThread;
@@ -683,14 +682,7 @@ impl HTMLFormElement {
 
     pub fn update_validity(&self) {
         let controls = self.controls.borrow();
-
-        let is_any_invalid = controls
-            .iter()
-            .filter_map(|control| control.as_maybe_validatable())
-            .any(|validatable| {
-                validatable.is_instance_validatable() &&
-                    !validatable.validity_state().invalid_flags().is_empty()
-            });
+        let is_any_invalid = controls.iter().any(|control| control.is_invalid(false));
 
         self.upcast::<Element>()
             .set_state(ElementState::VALID, !is_any_invalid);
@@ -1053,20 +1045,11 @@ impl HTMLFormElement {
         let invalid_controls = controls
             .iter()
             .filter_map(|field| {
-                if let Some(el) = field.downcast::<Element>() {
-                    // TODO: Should consider whether ElementInternals is validatable.
-                    let validatable = match el.as_maybe_validatable() {
-                        Some(v) => v,
-                        None => return None,
-                    };
-                    validatable
-                        .validity_state()
-                        .perform_validation_and_update(ValidationFlags::all());
-                    if !validatable.is_instance_validatable() || validatable.satisfies_constraints()
-                    {
-                        None
+                if let Some(element) = field.downcast::<Element>() {
+                    if element.is_invalid(true) {
+                        Some(DomRoot::from_ref(element))
                     } else {
-                        Some(DomRoot::from_ref(el))
+                        None
                     }
                 } else {
                     None

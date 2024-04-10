@@ -157,6 +157,14 @@ impl ElementInternals {
             },
         }
     }
+
+    pub fn is_invalid(&self) -> bool {
+        if !self.is_target_form_associated() {
+            return false;
+        }
+
+        self.is_instance_validatable() && !self.satisfies_constraints()
+    }
 }
 
 impl ElementInternalsMethods for ElementInternals {
@@ -208,6 +216,7 @@ impl ElementInternalsMethods for ElementInternals {
         // Step 4: For each entry `flag` → `value` of `flags`, set element's validity flag with the name
         // `flag` to `value`.
         self.validity_state().update_invalid_flags(bits);
+        self.validity_state().update_pseudo_classes();
 
         // Step 5: Set element's validation message to the empty string if message is not given
         // or all of element's validity flags are false, or to message otherwise.

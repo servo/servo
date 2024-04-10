@@ -583,6 +583,10 @@ impl HTMLElementMethods for HTMLElement {
             return Err(Error::NotSupported);
         }
 
+        if self.is_form_associated_custom_element() {
+            element.init_state_for_internals();
+        }
+
         // Step 6-7: Set this's attached internals to a new ElementInternals instance
         internals.set_attached();
         Ok(internals)
@@ -984,16 +988,19 @@ impl VirtualMethods for HTMLElement {
         // (The fact that it's enabled doesn't do much while it's
         // disconnected, but it is an observable fact to keep track of.)
         let element = self.as_element();
-        if self.is_form_associated_custom_element() && element.disabled_state() {
-            element.check_disabled_attribute();
-            element.check_ancestors_disabled_state_for_form_control();
-            if element.enabled_state() {
-                ScriptThread::enqueue_callback_reaction(
-                    element,
-                    CallbackReaction::FormDisabled(false),
-                    None,
-                );
+        if self.is_form_associated_custom_element() {
+            if element.disabled_state() {
+                element.check_disabled_attribute();
+                element.check_ancestors_disabled_state_for_form_control();
+                if element.enabled_state() {
+                    ScriptThread::enqueue_callback_reaction(
+                        element,
+                        CallbackReaction::FormDisabled(false),
+                        None,
+                    );
+                }
             }
+            element.check_readonly_attribute();
         }
     }
 

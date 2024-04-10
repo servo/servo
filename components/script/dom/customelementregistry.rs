@@ -867,6 +867,7 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
             // so it doesn't describe this check as an action.)
             element.check_disabled_attribute();
             element.check_ancestors_disabled_state_for_form_control();
+            element.check_readonly_attribute();
 
             // Step 9.2: If element is disabled, then enqueue a custom element callback reaction
             // with element.

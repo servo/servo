@@ -175,14 +175,6 @@ unsafe fn html_constructor(
             // Step 8.4
             element.set_custom_element_definition(definition.clone());
 
-            // The spec has no positive sense of enabledness, but Servo
-            // has effectively an enabled/disabled/not-a-form-element
-            // tri-state; a form element needs its enabled bit set as soon
-            // as it knows it's a form element.
-            if definition.form_associated {
-                element.upcast::<Element>().set_enabled_state(true);
-            }
-
             // Step 8.5
             if !check_type(&element) {
                 throw_dom_exception(cx, global, Error::InvalidState);

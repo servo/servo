@@ -137,16 +137,14 @@ impl ValidityState {
         self.invalid_flags.get()
     }
 
-    fn update_pseudo_classes(&self) {
-        if let Some(validatable) = self.element.as_maybe_validatable() {
-            if validatable.is_instance_validatable() {
-                let is_valid = self.invalid_flags.get().is_empty();
-                self.element.set_state(ElementState::VALID, is_valid);
-                self.element.set_state(ElementState::INVALID, !is_valid);
-            } else {
-                self.element.set_state(ElementState::VALID, false);
-                self.element.set_state(ElementState::INVALID, false);
-            }
+    pub fn update_pseudo_classes(&self) {
+        if self.element.is_instance_validatable() {
+            let is_valid = self.invalid_flags.get().is_empty();
+            self.element.set_state(ElementState::VALID, is_valid);
+            self.element.set_state(ElementState::INVALID, !is_valid);
+        } else {
+            self.element.set_state(ElementState::VALID, false);
+            self.element.set_state(ElementState::INVALID, false);
         }
 
         if let Some(form_control) = self.element.as_maybe_form_control() {

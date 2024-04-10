@@ -146,6 +146,7 @@ use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::text::Text;
 use crate::dom::validation::Validatable;
+use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
 use crate::dom::window::ReflowReason;
 use crate::script_thread::ScriptThread;
@@ -3137,6 +3138,9 @@ impl VirtualMethods for Element {
         self.super_type().unwrap().unbind_from_tree(context);
 
         if let Some(f) = self.as_maybe_form_control() {
+            // TODO: The valid state of ancestors might be wrong if the form control element
+            // is with a fieldset ancestor, for instance: `<form><fieldset><input>`,
+            // if `<input>` is unbinded, `<form><fieldset>` should `update_validity()`.
             f.unbind_form_control_from_tree();
         }
 
@@ -3582,6 +3586,38 @@ impl Element {
         element
     }
 
+    pub fn is_invalid(&self, needs_update: bool) -> bool {
+        if let Some(validatable) = self.as_maybe_validatable() {
+            if needs_update {
+                validatable
+                    .validity_state()
+                    .perform_validation_and_update(ValidationFlags::all());
+            }
+            return !validatable.is_instance_validatable() || validatable.satisfies_constraints();
+        }
+
+        if let Some(internals) = self.get_element_internals() {
+            return internals.is_invalid();
+        }
+        true
+    }
+
+    pub fn is_instance_validatable(&self) -> bool {
+        if let Some(validatable) = self.as_maybe_validatable() {
+            return !validatable.is_instance_validatable();
+        }
+        if let Some(internals) = self.get_element_internals() {
+            return internals.is_instance_validatable();
+        }
+        false
+    }
+
+    pub fn init_state_for_internals(&self) {
+        self.set_enabled_state(true);
+        self.set_state(ElementState::VALID, true);
+        self.set_state(ElementState::INVALID, false);
+    }
+
     pub fn click_in_progress(&self) -> bool {
         self.upcast::<Node>().get_flag(NodeFlags::CLICK_IN_PROGRESS)
     }
@@ -3781,6 +3817,11 @@ impl Element {
         let has_disabled_attrib = self.has_attribute(&local_name!("disabled"));
         self.set_disabled_state(has_disabled_attrib);
         self.set_enabled_state(!has_disabled_attrib);
+    }
+
+    pub fn check_readonly_attribute(&self) {
+        let has_readonly_attribute = self.has_attribute(&local_name!("readonly"));
+        self.set_read_write_state(has_readonly_attribute);
     }
 }
 

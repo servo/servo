@@ -73,14 +73,7 @@ impl HTMLFieldSetElement {
             .upcast::<Node>()
             .traverse_preorder(ShadowIncluding::No)
             .flat_map(DomRoot::downcast::<Element>)
-            .any(|element| {
-                if let Some(validatable) = element.as_maybe_validatable() {
-                    validatable.is_instance_validatable() &&
-                        !validatable.validity_state().invalid_flags().is_empty()
-                } else {
-                    false
-                }
-            });
+            .any(|element| element.is_invalid(false));
 
         self.upcast::<Element>()
             .set_state(ElementState::VALID, !has_invalid_child);
