@@ -232,7 +232,7 @@ where
                     },
                     EventType::ForceFeedbackEffectCompleted => {
                         gamepad_event = Some(GamepadEvent::HapticEffectCompleted(index));
-                    }
+                    },
                     _ => {},
                 }
 
@@ -298,9 +298,13 @@ where
                     .repeat(Repeat::For(start_delay + duration))
                     .add_gamepad(&connected_gamepad.1)
                     .finish(gilrs)
-                    .expect("Failed to create haptic effect, gamepad is either disconnected or doesn't support force feedback.");
+                    .expect("Failed to create haptic effect, ensure connected gamepad supports force feedback.");
                 self.haptic_effects.as_mut_slice()[index] = Some(effect);
-                self.haptic_effects[index].as_ref().expect("No haptic effect found").play().expect("Failed to play haptic effect.");
+                self.haptic_effects[index]
+                    .as_ref()
+                    .expect("No haptic effect found")
+                    .play()
+                    .expect("Failed to play haptic effect.");
             } else {
                 println!("Couldn't find connected gamepad to play haptic effect on");
             }
@@ -814,9 +818,7 @@ where
                         self.play_haptic_effect(index, params)
                     },
                 },
-                EmbedderMsg::StopGamepadHapticEffect(index) => {
-                    self.stop_haptic_effect(index)
-                }
+                EmbedderMsg::StopGamepadHapticEffect(index) => self.stop_haptic_effect(index),
             }
         }
 

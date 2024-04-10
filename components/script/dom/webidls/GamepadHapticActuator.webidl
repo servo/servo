@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// https://www.w3.org/TR/gamepad/#gamepadhapticactuator-interface
+// https://w3c.github.io/gamepad/#gamepadhapticactuator-interface
 [Exposed=Window, Pref="dom.gamepad.enabled"]
 interface GamepadHapticActuator {
   /* [SameObject] */ readonly attribute /* FrozenArray<GamepadHapticEffectType> */ any effects;
@@ -13,19 +13,19 @@ interface GamepadHapticActuator {
   Promise<GamepadHapticsResult> reset();
 };
 
-// https://www.w3.org/TR/gamepad/#gamepadhapticsresult-enum
+// https://w3c.github.io/gamepad/#gamepadhapticsresult-enum
 enum GamepadHapticsResult {
   "complete",
   "preempted"
 };
 
-// https://www.w3.org/TR/gamepad/#dom-gamepadhapticeffecttype
+// https://w3c.github.io/gamepad/#dom-gamepadhapticeffecttype
 enum GamepadHapticEffectType {
   "dual-rumble",
   "trigger-rumble"
 };
 
-// https://www.w3.org/TR/gamepad/#dom-gamepadeffectparameters
+// https://w3c.github.io/gamepad/#dom-gamepadeffectparameters
 dictionary GamepadEffectParameters {
   unsigned long long duration = 0;
   unsigned long long startDelay = 0;
