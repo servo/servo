@@ -21,7 +21,8 @@ enum GamepadHapticsResult {
 
 // https://www.w3.org/TR/gamepad/#dom-gamepadhapticeffecttype
 enum GamepadHapticEffectType {
-  "dual-rumble"
+  "dual-rumble",
+  "trigger-rumble"
 };
 
 // https://www.w3.org/TR/gamepad/#dom-gamepadeffectparameters
@@ -30,4 +31,6 @@ dictionary GamepadEffectParameters {
   unsigned long long startDelay = 0;
   double strongMagnitude = 0.0;
   double weakMagnitude = 0.0;
+  double leftTrigger = 0.0;
+  double rightTrigger = 0.0;
 };
