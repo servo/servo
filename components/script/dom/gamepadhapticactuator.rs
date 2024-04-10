@@ -99,6 +99,14 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
                     playing_effect_promise.reject_error(Error::Type(
                         "Weak magnitude value is not within range of 0.0 to 1.0.".to_string(),
                     ));
+                } else if *params.leftTrigger < 0.0 || *params.leftTrigger > 1.0 {
+                    playing_effect_promise.reject_error(Error::Type(
+                        "Left trigger value is not within range of 0.0 to 1.0.".to_string(),
+                    ));
+                } else if *params.rightTrigger < 0.0 || *params.rightTrigger > 1.0 {
+                    playing_effect_promise.reject_error(Error::Type(
+                        "Right trigger value is not within range of 0.0 to 1.0.".to_string(),
+                    ));
                 }
             },
         }
