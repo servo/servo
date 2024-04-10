@@ -39,6 +39,7 @@ impl GamepadHapticActuator {
         Self {
             reflector_: Reflector::new(),
             gamepad_index: gamepad_index.into(),
+            // TODO: Determine support from gilrs instead of assuming
             effects: vec![GamepadHapticEffectType::Dual_rumble],
             playing_effect_promise: DomRefCell::new(None),
         }
@@ -86,6 +87,17 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
                     ));
                 }
             },
+            GamepadHapticEffectType::Trigger_rumble => {
+                if *params.strongMagnitude < 0.0 || *params.strongMagnitude > 1.0 {
+                    playing_effect_promise.reject_error(Error::Type(
+                        "Strong magnitude value is not within range of 0.0 to 1.0.".to_string(),
+                    ));
+                } else if *params.weakMagnitude < 0.0 || *params.weakMagnitude > 1.0 {
+                    playing_effect_promise.reject_error(Error::Type(
+                        "Weak magnitude value is not within range of 0.0 to 1.0.".to_string(),
+                    ));
+                }
+            }
         }
 
         let document = self.global().as_window().Document();
