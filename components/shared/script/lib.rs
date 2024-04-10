@@ -1106,6 +1106,8 @@ pub enum GamepadEvent {
     Updated(GamepadIndex, GamepadUpdateType),
     /// A gamepad haptic effect has completed
     HapticEffectCompleted(GamepadIndex),
+    /// A gamepad haptic effect has been stopped
+    HapticEffectStopped(GamepadIndex),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

@@ -176,7 +176,8 @@ mod from_servo {
                 Self::OnDevtoolsStarted(..) => target!("OnDevtoolsStarted"),
                 Self::ReadyToPresent(..) => target!("ReadyToPresent"),
                 Self::EventDelivered(..) => target!("EventDelivered"),
-                Self::GamepadHapticEffect(..) => target!("GamepadHapticEffect"),
+                Self::PlayGamepadHapticEffect(..) => target!("PlayGamepadHapticEffect"),
+                Self::StopGamepadHapticEffect(..) => target!("StopGamepadHapticEffect"),
             }
         }
     }

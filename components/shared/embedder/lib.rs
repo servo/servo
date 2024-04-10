@@ -215,7 +215,9 @@ pub enum EmbedderMsg {
     /// The given event was delivered to a pipeline in the given browser.
     EventDelivered(CompositorEventVariant),
     /// Request to play a haptic effect on a connected gamepad.
-    GamepadHapticEffect(usize, GamepadHapticEffectType),
+    PlayGamepadHapticEffect(usize, GamepadHapticEffectType),
+    /// Request to stop a haptic effect on a connected gamepad.
+    StopGamepadHapticEffect(usize),
 }
 
 /// The variant of CompositorEvent that was delivered to a pipeline.
@@ -270,7 +272,8 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::ShowContextMenu(..) => write!(f, "ShowContextMenu"),
             EmbedderMsg::ReadyToPresent(..) => write!(f, "ReadyToPresent"),
             EmbedderMsg::EventDelivered(..) => write!(f, "HitTestedEvent"),
-            EmbedderMsg::GamepadHapticEffect(..) => write!(f, "GamepadHapticEffect"),
+            EmbedderMsg::PlayGamepadHapticEffect(..) => write!(f, "PlayGamepadHapticEffect"),
+            EmbedderMsg::StopGamepadHapticEffect(..) => write!(f, "StopGamepadHapticEffect"),
         }
     }
 }
