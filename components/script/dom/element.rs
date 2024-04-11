@@ -102,6 +102,7 @@ use crate::dom::document::{
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domrect::DOMRect;
 use crate::dom::domtokenlist::DOMTokenList;
+use crate::dom::elementinternals::ElementInternals;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementLayoutHelpers};
@@ -145,6 +146,7 @@ use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::text::Text;
 use crate::dom::validation::Validatable;
+use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::{vtable_for, VirtualMethods};
 use crate::dom::window::ReflowReason;
 use crate::script_thread::ScriptThread;
@@ -1419,6 +1421,12 @@ impl Element {
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLOptionElement,
             )) => self.disabled_state(),
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLElement)) => {
+                self.downcast::<HTMLElement>()
+                    .unwrap()
+                    .is_form_associated_custom_element() &&
+                    self.disabled_state()
+            },
             // TODO:
             // an optgroup element that has a disabled attribute
             // a menuitem element that has a disabled attribute
@@ -1857,10 +1865,17 @@ impl Element {
     // https://w3c.github.io/DOM-Parsing/#parsing
     pub fn parse_fragment(&self, markup: DOMString) -> Fallible<DomRoot<DocumentFragment>> {
         // Steps 1-2.
-        let context_document = document_from_node(self);
         // TODO(#11995): XML case.
         let new_children = ServoParser::parse_html_fragment(self, markup);
         // Step 3.
+        // See https://github.com/w3c/DOM-Parsing/issues/61.
+        let context_document = {
+            if let Some(template) = self.downcast::<HTMLTemplateElement>() {
+                template.Content().upcast::<Node>().owner_doc()
+            } else {
+                document_from_node(self)
+            }
+        };
         let fragment = DocumentFragment::new(&context_document);
         // Step 4.
         for child in new_children {
@@ -1972,6 +1987,24 @@ impl Element {
             let document = document_from_node(self);
             document.perform_focus_fixup_rule(self);
         }
+    }
+
+    pub fn get_element_internals(&self) -> Option<DomRoot<ElementInternals>> {
+        self.rare_data()
+            .as_ref()?
+            .element_internals
+            .as_ref()
+            .map(|sr| DomRoot::from_ref(&**sr))
+    }
+
+    pub fn ensure_element_internals(&self) -> DomRoot<ElementInternals> {
+        let mut rare_data = self.ensure_rare_data();
+        DomRoot::from_ref(rare_data.element_internals.get_or_insert_with(|| {
+            let elem = self
+                .downcast::<HTMLElement>()
+                .expect("ensure_element_internals should only be called for an HTMLElement");
+            Dom::from_ref(&*ElementInternals::new(elem))
+        }))
     }
 }
 
@@ -3098,6 +3131,9 @@ impl VirtualMethods for Element {
         self.super_type().unwrap().unbind_from_tree(context);
 
         if let Some(f) = self.as_maybe_form_control() {
+            // TODO: The valid state of ancestors might be wrong if the form control element
+            // has a fieldset ancestor, for instance: `<form><fieldset><input>`,
+            // if `<input>` is unbound, `<form><fieldset>` should trigger a call to `update_validity()`.
             f.unbind_form_control_from_tree();
         }
 
@@ -3543,6 +3579,38 @@ impl Element {
         element
     }
 
+    pub fn is_invalid(&self, needs_update: bool) -> bool {
+        if let Some(validatable) = self.as_maybe_validatable() {
+            if needs_update {
+                validatable
+                    .validity_state()
+                    .perform_validation_and_update(ValidationFlags::all());
+            }
+            return validatable.is_instance_validatable() && !validatable.satisfies_constraints();
+        }
+
+        if let Some(internals) = self.get_element_internals() {
+            return internals.is_invalid();
+        }
+        false
+    }
+
+    pub fn is_instance_validatable(&self) -> bool {
+        if let Some(validatable) = self.as_maybe_validatable() {
+            return validatable.is_instance_validatable();
+        }
+        if let Some(internals) = self.get_element_internals() {
+            return internals.is_instance_validatable();
+        }
+        false
+    }
+
+    pub fn init_state_for_internals(&self) {
+        self.set_enabled_state(true);
+        self.set_state(ElementState::VALID, true);
+        self.set_state(ElementState::INVALID, false);
+    }
+
     pub fn click_in_progress(&self) -> bool {
         self.upcast::<Node>().get_flag(NodeFlags::CLICK_IN_PROGRESS)
     }
@@ -3742,6 +3810,11 @@ impl Element {
         let has_disabled_attrib = self.has_attribute(&local_name!("disabled"));
         self.set_disabled_state(has_disabled_attrib);
         self.set_enabled_state(!has_disabled_attrib);
+    }
+
+    pub fn update_read_write_state_from_readonly_attribute(&self) {
+        let has_readonly_attribute = self.has_attribute(&local_name!("readonly"));
+        self.set_read_write_state(has_readonly_attribute);
     }
 }
 

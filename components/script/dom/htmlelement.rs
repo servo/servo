@@ -22,28 +22,34 @@ use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMeth
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::error::{Error, ErrorResult};
+use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
+use crate::dom::customelementregistry::CallbackReaction;
 use crate::dom::document::{Document, FocusType};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domstringmap::DOMStringMap;
 use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::elementinternals::ElementInternals;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlbodyelement::HTMLBodyElement;
 use crate::dom::htmlbrelement::HTMLBRElement;
 use crate::dom::htmldetailselement::HTMLDetailsElement;
+use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::htmlframesetelement::HTMLFrameSetElement;
 use crate::dom::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::htmllabelelement::HTMLLabelElement;
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
-use crate::dom::node::{document_from_node, window_from_node, Node, ShadowIncluding};
+use crate::dom::node::{
+    document_from_node, window_from_node, BindContext, Node, ShadowIncluding, UnbindContext,
+};
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
+use crate::script_thread::ScriptThread;
 
 #[dom_struct]
 pub struct HTMLElement {
@@ -352,7 +358,7 @@ impl HTMLElementMethods for HTMLElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-click
     fn Click(&self) {
-        let element = self.upcast::<Element>();
+        let element = self.as_element();
         if element.disabled_state() {
             return;
         }
@@ -377,7 +383,7 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#dom-blur
     fn Blur(&self) {
         // TODO: Run the unfocusing steps.
-        if !self.upcast::<Element>().focus_state() {
+        if !self.as_element().focus_state() {
             return;
         }
         // https://html.spec.whatwg.org/multipage/#unfocusing-steps
@@ -446,7 +452,7 @@ impl HTMLElementMethods for HTMLElement {
     fn InnerText(&self) -> DOMString {
         let node = self.upcast::<Node>();
         let window = window_from_node(node);
-        let element = self.upcast::<Element>();
+        let element = self.as_element();
 
         // Step 1.
         let element_not_rendered = !node.is_connected() || !element.has_css_layout_box();
@@ -511,12 +517,12 @@ impl HTMLElementMethods for HTMLElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-translate
     fn Translate(&self) -> bool {
-        self.upcast::<Element>().is_translate_enabled()
+        self.as_element().is_translate_enabled()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-translate
     fn SetTranslate(&self, yesno: bool) {
-        self.upcast::<Element>().set_string_attribute(
+        self.as_element().set_string_attribute(
             &html5ever::local_name!("translate"),
             match yesno {
                 true => DOMString::from("yes"),
@@ -528,7 +534,7 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#dom-contenteditable
     fn ContentEditable(&self) -> DOMString {
         // TODO: https://github.com/servo/servo/issues/12776
-        self.upcast::<Element>()
+        self.as_element()
             .get_attribute(&ns!(), &local_name!("contenteditable"))
             .map(|attr| DOMString::from(&**attr.value()))
             .unwrap_or_else(|| DOMString::from("inherit"))
@@ -544,6 +550,46 @@ impl HTMLElementMethods for HTMLElement {
     fn IsContentEditable(&self) -> bool {
         // TODO: https://github.com/servo/servo/issues/12776
         false
+    }
+    /// <https://html.spec.whatwg.org/multipage#dom-attachinternals>
+    fn AttachInternals(&self) -> Fallible<DomRoot<ElementInternals>> {
+        let element = self.as_element();
+        // Step 1: If this's is value is not null, then throw a "NotSupportedError" DOMException
+        if element.get_is().is_some() {
+            return Err(Error::NotSupported);
+        }
+
+        // Step 2: Let definition be the result of looking up a custom element definition
+        // Note: the element can pass this check without yet being a custom
+        // element, as long as there is a registered definition
+        // that could upgrade it to one later.
+        let registry = document_from_node(self).window().CustomElements();
+        let definition = registry.lookup_definition(self.as_element().local_name(), None);
+
+        // Step 3: If definition is null, then throw an "NotSupportedError" DOMException
+        let definition = match definition {
+            Some(definition) => definition,
+            None => return Err(Error::NotSupported),
+        };
+
+        // Step 4: If definition's disable internals is true, then throw a "NotSupportedError" DOMException
+        if definition.disable_internals {
+            return Err(Error::NotSupported);
+        }
+
+        // Step 5: If this's attached internals is non-null, then throw an "NotSupportedError" DOMException
+        let internals = element.ensure_element_internals();
+        if internals.attached() {
+            return Err(Error::NotSupported);
+        }
+
+        if self.is_form_associated_custom_element() {
+            element.init_state_for_internals();
+        }
+
+        // Step 6-7: Set this's attached internals to a new ElementInternals instance
+        internals.set_attached();
+        Ok(internals)
     }
 }
 
@@ -620,14 +666,14 @@ impl HTMLElement {
         {
             return Err(Error::Syntax);
         }
-        self.upcast::<Element>()
+        self.as_element()
             .set_custom_attribute(to_snake_case(name), value)
     }
 
     pub fn get_custom_attr(&self, local_name: DOMString) -> Option<DOMString> {
         // FIXME(ajeffrey): Convert directly from DOMString to LocalName
         let local_name = LocalName::from(to_snake_case(local_name));
-        self.upcast::<Element>()
+        self.as_element()
             .get_attribute(&ns!(), &local_name)
             .map(|attr| {
                 DOMString::from(&**attr.value()) // FIXME(ajeffrey): Convert directly from AttrValue to DOMString
@@ -637,11 +683,10 @@ impl HTMLElement {
     pub fn delete_custom_attr(&self, local_name: DOMString) {
         // FIXME(ajeffrey): Convert directly from DOMString to LocalName
         let local_name = LocalName::from(to_snake_case(local_name));
-        self.upcast::<Element>()
-            .remove_attribute(&ns!(), &local_name);
+        self.as_element().remove_attribute(&ns!(), &local_name);
     }
 
-    // https://html.spec.whatwg.org/multipage/#category-label
+    /// <https://html.spec.whatwg.org/multipage/#category-label>
     pub fn is_labelable_element(&self) -> bool {
         match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) => match type_id {
@@ -654,31 +699,54 @@ impl HTMLElement {
                 HTMLElementTypeId::HTMLProgressElement |
                 HTMLElementTypeId::HTMLSelectElement |
                 HTMLElementTypeId::HTMLTextAreaElement => true,
-                _ => false,
+                _ => self.is_form_associated_custom_element(),
             },
             _ => false,
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#category-listed
+    /// <https://html.spec.whatwg.org/multipage/#form-associated-custom-element>
+    pub fn is_form_associated_custom_element(&self) -> bool {
+        if let Some(definition) = self.as_element().get_custom_element_definition() {
+            definition.is_autonomous() && definition.form_associated
+        } else {
+            false
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#category-listed>
     pub fn is_listed_element(&self) -> bool {
         match self.upcast::<Node>().type_id() {
-            NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) => matches!(
-                type_id,
+            NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) => match type_id {
                 HTMLElementTypeId::HTMLButtonElement |
-                    HTMLElementTypeId::HTMLFieldSetElement |
-                    HTMLElementTypeId::HTMLInputElement |
-                    HTMLElementTypeId::HTMLObjectElement |
-                    HTMLElementTypeId::HTMLOutputElement |
-                    HTMLElementTypeId::HTMLSelectElement |
-                    HTMLElementTypeId::HTMLTextAreaElement
-            ),
+                HTMLElementTypeId::HTMLFieldSetElement |
+                HTMLElementTypeId::HTMLInputElement |
+                HTMLElementTypeId::HTMLObjectElement |
+                HTMLElementTypeId::HTMLOutputElement |
+                HTMLElementTypeId::HTMLSelectElement |
+                HTMLElementTypeId::HTMLTextAreaElement => true,
+                _ => self.is_form_associated_custom_element(),
+            },
+            _ => false,
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#category-submit>
+    pub fn is_submittable_element(&self) -> bool {
+        match self.upcast::<Node>().type_id() {
+            NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) => match type_id {
+                HTMLElementTypeId::HTMLButtonElement |
+                HTMLElementTypeId::HTMLInputElement |
+                HTMLElementTypeId::HTMLSelectElement |
+                HTMLElementTypeId::HTMLTextAreaElement => true,
+                _ => self.is_form_associated_custom_element(),
+            },
             _ => false,
         }
     }
 
     pub fn supported_prop_names_custom_attr(&self) -> Vec<DOMString> {
-        let element = self.upcast::<Element>();
+        let element = self.as_element();
         element
             .attrs()
             .iter()
@@ -692,7 +760,7 @@ impl HTMLElement {
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
     // This gets the nth label in tree order.
     pub fn label_at(&self, index: u32) -> Option<DomRoot<Node>> {
-        let element = self.upcast::<Element>();
+        let element = self.as_element();
 
         // Traverse entire tree for <label> elements that have
         // this as their control.
@@ -721,7 +789,7 @@ impl HTMLElement {
     // This counts the labels of the element, to support NodeList::Length
     pub fn labels_count(&self) -> u32 {
         // see label_at comments about performance
-        let element = self.upcast::<Element>();
+        let element = self.as_element();
         let root_element = element.root_element();
         let root_node = root_element.upcast::<Node>();
         root_node
@@ -814,7 +882,7 @@ impl HTMLElement {
             .child_elements()
             .find(|el| el.local_name() == &local_name!("summary"));
         match first_summary_element {
-            Some(first_summary) => &*first_summary == self.upcast::<Element>(),
+            Some(first_summary) => &*first_summary == self.as_element(),
             None => false,
         }
     }
@@ -822,11 +890,12 @@ impl HTMLElement {
 
 impl VirtualMethods for HTMLElement {
     fn super_type(&self) -> Option<&dyn VirtualMethods> {
-        Some(self.upcast::<Element>() as &dyn VirtualMethods)
+        Some(self.as_element() as &dyn VirtualMethods)
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
+        let element = self.as_element();
         match (attr.local_name(), mutation) {
             (name, AttributeMutation::Set(_)) if name.starts_with("on") => {
                 let evtarget = self.upcast::<EventTarget>();
@@ -839,7 +908,92 @@ impl VirtualMethods for HTMLElement {
                     DOMString::from(&**attr.value()),
                 );
             },
+            (&local_name!("form"), mutation) if self.is_form_associated_custom_element() => {
+                self.form_attribute_mutated(mutation);
+            },
+            // Adding a "disabled" attribute disables an enabled form element.
+            (&local_name!("disabled"), AttributeMutation::Set(_))
+                if self.is_form_associated_custom_element() && element.enabled_state() =>
+            {
+                element.set_disabled_state(true);
+                element.set_enabled_state(false);
+                ScriptThread::enqueue_callback_reaction(
+                    element,
+                    CallbackReaction::FormDisabled(true),
+                    None,
+                );
+            },
+            // Removing the "disabled" attribute may enable a disabled
+            // form element, but a fieldset ancestor may keep it disabled.
+            (&local_name!("disabled"), AttributeMutation::Removed)
+                if self.is_form_associated_custom_element() && element.disabled_state() =>
+            {
+                element.set_disabled_state(false);
+                element.set_enabled_state(true);
+                element.check_ancestors_disabled_state_for_form_control();
+                if element.enabled_state() {
+                    ScriptThread::enqueue_callback_reaction(
+                        element,
+                        CallbackReaction::FormDisabled(false),
+                        None,
+                    );
+                }
+            },
+            (&local_name!("readonly"), mutation) if self.is_form_associated_custom_element() => {
+                match mutation {
+                    AttributeMutation::Set(_) => {
+                        element.set_read_write_state(true);
+                    },
+                    AttributeMutation::Removed => {
+                        element.set_read_write_state(false);
+                    },
+                }
+            },
             _ => {},
+        }
+    }
+
+    fn bind_to_tree(&self, context: &BindContext) {
+        if let Some(ref super_type) = self.super_type() {
+            super_type.bind_to_tree(context);
+        }
+        let element = self.as_element();
+        element.update_sequentially_focusable_status();
+
+        // Binding to a tree can disable a form control if one of the new
+        // ancestors is a fieldset.
+        if self.is_form_associated_custom_element() && element.enabled_state() {
+            element.check_ancestors_disabled_state_for_form_control();
+            if element.disabled_state() {
+                ScriptThread::enqueue_callback_reaction(
+                    element,
+                    CallbackReaction::FormDisabled(true),
+                    None,
+                );
+            }
+        }
+    }
+
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        if let Some(ref super_type) = self.super_type() {
+            super_type.unbind_from_tree(context);
+        }
+
+        // Unbinding from a tree might enable a form control, if a
+        // fieldset ancestor is the only reason it was disabled.
+        // (The fact that it's enabled doesn't do much while it's
+        // disconnected, but it is an observable fact to keep track of.)
+        let element = self.as_element();
+        if self.is_form_associated_custom_element() && element.disabled_state() {
+            element.check_disabled_attribute();
+            element.check_ancestors_disabled_state_for_form_control();
+            if element.enabled_state() {
+                ScriptThread::enqueue_callback_reaction(
+                    element,
+                    CallbackReaction::FormDisabled(false),
+                    None,
+                );
+            }
         }
     }
 
@@ -868,4 +1022,36 @@ impl Activatable for HTMLElement {
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
         self.summary_activation_behavior();
     }
+}
+// Form-associated custom elements are the same interface type as
+// normal HTMLElements, so HTMLElement needs to have the FormControl trait
+// even though it's usually more specific trait implementations, like the
+// HTMLInputElement one, that we really want. (Alternately we could put
+// the FormControl trait on ElementInternals, but that raises lifetime issues.)
+impl FormControl for HTMLElement {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
+        debug_assert!(self.is_form_associated_custom_element());
+        self.as_element()
+            .get_element_internals()
+            .and_then(|e| e.form_owner())
+    }
+
+    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+        debug_assert!(self.is_form_associated_custom_element());
+        self.as_element()
+            .ensure_element_internals()
+            .set_form_owner(form);
+    }
+
+    fn to_element<'a>(&'a self) -> &'a Element {
+        debug_assert!(self.is_form_associated_custom_element());
+        self.as_element()
+    }
+
+    fn is_listed(&self) -> bool {
+        debug_assert!(self.is_form_associated_custom_element());
+        true
+    }
+
+    // TODO candidate_for_validation, satisfies_constraints traits
 }

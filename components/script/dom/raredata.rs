@@ -11,6 +11,7 @@ use crate::dom::bindings::root::Dom;
 use crate::dom::customelementregistry::{
     CustomElementDefinition, CustomElementReaction, CustomElementState,
 };
+use crate::dom::elementinternals::ElementInternals;
 use crate::dom::mutationobserver::RegisteredObserver;
 use crate::dom::node::UniqueId;
 use crate::dom::shadowroot::ShadowRoot;
@@ -54,4 +55,6 @@ pub struct ElementRareData {
     /// The client rect reported by layout.
     #[no_trace]
     pub client_rect: Option<LayoutValue<Rect<i32>>>,
+    /// <https://html.spec.whatwg.org/multipage#elementinternals>
+    pub element_internals: Option<Dom<ElementInternals>>,
 }

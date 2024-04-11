@@ -46,6 +46,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomOnceCell, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::blob::Blob;
+use crate::dom::customelementregistry::CallbackReaction;
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::{AttributeMutation, Element};
@@ -77,9 +78,9 @@ use crate::dom::node::{
 use crate::dom::nodelist::{NodeList, RadioListMode};
 use crate::dom::radionodelist::RadioNodeList;
 use crate::dom::submitevent::SubmitEvent;
-use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
+use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSource;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
@@ -362,6 +363,14 @@ impl HTMLFormElementMethods for HTMLFormElement {
                         },
                         HTMLElementTypeId::HTMLTextAreaElement => {
                             elem.downcast::<HTMLTextAreaElement>().unwrap().form_owner()
+                        },
+                        HTMLElementTypeId::HTMLElement => {
+                            let html_element = elem.downcast::<HTMLElement>().unwrap();
+                            if html_element.is_form_associated_custom_element() {
+                                html_element.form_owner()
+                            } else {
+                                return false;
+                            }
                         },
                         _ => {
                             debug_assert!(!elem
@@ -673,14 +682,7 @@ impl HTMLFormElement {
 
     pub fn update_validity(&self) {
         let controls = self.controls.borrow();
-
-        let is_any_invalid = controls
-            .iter()
-            .filter_map(|control| control.as_maybe_validatable())
-            .any(|validatable| {
-                validatable.is_instance_validatable() &&
-                    !validatable.validity_state().invalid_flags().is_empty()
-            });
+        let is_any_invalid = controls.iter().any(|control| control.is_invalid(false));
 
         self.upcast::<Element>()
             .set_state(ElementState::VALID, !is_any_invalid);
@@ -1027,6 +1029,8 @@ impl HTMLFormElement {
             }
         }
 
+        // If it's form-associated and has a validation anchor, point the
+        //  user there instead of the element itself.
         // Step 4
         Err(())
     }
@@ -1039,20 +1043,11 @@ impl HTMLFormElement {
         let invalid_controls = controls
             .iter()
             .filter_map(|field| {
-                if let Some(el) = field.downcast::<Element>() {
-                    let validatable = match el.as_maybe_validatable() {
-                        Some(v) => v,
-                        None => return None,
-                    };
-                    validatable
-                        .validity_state()
-                        .perform_validation_and_update(ValidationFlags::all());
-                    if !validatable.is_instance_validatable() ||
-                        validatable.validity_state().invalid_flags().is_empty()
-                    {
-                        None
+                if let Some(element) = field.downcast::<Element>() {
+                    if element.is_invalid(true) {
+                        Some(DomRoot::from_ref(element))
                     } else {
-                        Some(DomRoot::from_ref(el))
+                        None
                     }
                 } else {
                     None
@@ -1133,6 +1128,15 @@ impl HTMLFormElement {
                                 name,
                                 value: FormDatumValue::String(textarea.Value()),
                             });
+                        }
+                    },
+                    HTMLElementTypeId::HTMLElement => {
+                        let custom = child.downcast::<HTMLElement>().unwrap();
+                        if custom.is_form_associated_custom_element() {
+                            // https://html.spec.whatwg.org/multipage/#face-entry-construction
+                            let internals = custom.upcast::<Element>().ensure_element_internals();
+                            internals.perform_entry_construction(&mut data_set);
+                            // Otherwise no form value has been set so there is nothing to do.
                         }
                     },
                     _ => (),
@@ -1286,6 +1290,16 @@ impl HTMLFormElement {
                     HTMLElementTypeId::HTMLOutputElement,
                 )) => {
                     child.downcast::<HTMLOutputElement>().unwrap().reset();
+                },
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLElement)) => {
+                    let html_element = child.downcast::<HTMLElement>().unwrap();
+                    if html_element.is_form_associated_custom_element() {
+                        ScriptThread::enqueue_callback_reaction(
+                            html_element.upcast::<Element>(),
+                            CallbackReaction::FormReset,
+                            None,
+                        )
+                    }
                 },
                 _ => {},
             }
@@ -1550,6 +1564,19 @@ pub trait FormControl: DomObject {
             if let Some(ref new_owner) = new_owner {
                 new_owner.add_control(self);
             }
+            // https://html.spec.whatwg.org/multipage/#custom-element-reactions:reset-the-form-owner
+            if let Some(html_elem) = elem.downcast::<HTMLElement>() {
+                if html_elem.is_form_associated_custom_element() {
+                    ScriptThread::enqueue_callback_reaction(
+                        elem,
+                        CallbackReaction::FormAssociated(match new_owner {
+                            None => None,
+                            Some(ref form) => Some(DomRoot::from_ref(&**form)),
+                        }),
+                        None,
+                    )
+                }
+            }
             self.set_form_owner(new_owner.as_deref());
         }
     }
@@ -1745,7 +1772,13 @@ impl FormControlElementHelpers for Element {
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLTextAreaElement,
             )) => Some(self.downcast::<HTMLTextAreaElement>().unwrap() as &dyn FormControl),
-            _ => None,
+            _ => self.downcast::<HTMLElement>().and_then(|elem| {
+                if elem.is_form_associated_custom_element() {
+                    Some(elem as &dyn FormControl)
+                } else {
+                    None
+                }
+            }),
         }
     }
 }

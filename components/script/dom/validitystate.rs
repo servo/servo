@@ -10,6 +10,7 @@ use dom_struct::dom_struct;
 use itertools::Itertools;
 use style_traits::dom::ElementState;
 
+use super::bindings::codegen::Bindings::ElementInternalsBinding::ValidityStateFlags;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -129,20 +130,22 @@ impl ValidityState {
         self.update_pseudo_classes();
     }
 
+    pub fn update_invalid_flags(&self, update_flags: ValidationFlags) {
+        self.invalid_flags.set(update_flags);
+    }
+
     pub fn invalid_flags(&self) -> ValidationFlags {
         self.invalid_flags.get()
     }
 
-    fn update_pseudo_classes(&self) {
-        if let Some(validatable) = self.element.as_maybe_validatable() {
-            if validatable.is_instance_validatable() {
-                let is_valid = self.invalid_flags.get().is_empty();
-                self.element.set_state(ElementState::VALID, is_valid);
-                self.element.set_state(ElementState::INVALID, !is_valid);
-            } else {
-                self.element.set_state(ElementState::VALID, false);
-                self.element.set_state(ElementState::INVALID, false);
-            }
+    pub fn update_pseudo_classes(&self) {
+        if self.element.is_instance_validatable() {
+            let is_valid = self.invalid_flags.get().is_empty();
+            self.element.set_state(ElementState::VALID, is_valid);
+            self.element.set_state(ElementState::INVALID, !is_valid);
+        } else {
+            self.element.set_state(ElementState::VALID, false);
+            self.element.set_state(ElementState::INVALID, false);
         }
 
         if let Some(form_control) = self.element.as_maybe_form_control() {
@@ -223,5 +226,42 @@ impl ValidityStateMethods for ValidityState {
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-valid
     fn Valid(&self) -> bool {
         self.invalid_flags().is_empty()
+    }
+}
+
+impl From<&ValidityStateFlags> for ValidationFlags {
+    fn from(flags: &ValidityStateFlags) -> Self {
+        let mut bits = ValidationFlags::empty();
+        if flags.valueMissing {
+            bits |= ValidationFlags::VALUE_MISSING;
+        }
+        if flags.typeMismatch {
+            bits |= ValidationFlags::TYPE_MISMATCH;
+        }
+        if flags.patternMismatch {
+            bits |= ValidationFlags::PATTERN_MISMATCH;
+        }
+        if flags.tooLong {
+            bits |= ValidationFlags::TOO_LONG;
+        }
+        if flags.tooShort {
+            bits |= ValidationFlags::TOO_SHORT;
+        }
+        if flags.rangeUnderflow {
+            bits |= ValidationFlags::RANGE_UNDERFLOW;
+        }
+        if flags.rangeOverflow {
+            bits |= ValidationFlags::RANGE_OVERFLOW;
+        }
+        if flags.stepMismatch {
+            bits |= ValidationFlags::STEP_MISMATCH;
+        }
+        if flags.badInput {
+            bits |= ValidationFlags::BAD_INPUT;
+        }
+        if flags.customError {
+            bits |= ValidationFlags::CUSTOM_ERROR;
+        }
+        bits
     }
 }
