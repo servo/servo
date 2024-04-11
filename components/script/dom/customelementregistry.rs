@@ -695,9 +695,9 @@ impl CustomElementDefinition {
             observed_attributes,
             callbacks,
             construction_stack: Default::default(),
-            form_associated: form_associated,
-            disable_internals: disable_internals,
-            disable_shadow: disable_shadow,
+            form_associated,
+            disable_internals,
+            disable_shadow,
         }
     }
 

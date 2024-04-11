@@ -161,14 +161,14 @@ impl ElementInternals {
             SubmissionValue::USVString(string) => {
                 entry_list.push(FormDatum {
                     ty: DOMString::from("string"),
-                    name: name,
+                    name,
                     value: FormDatumValue::String(DOMString::from(string.to_string())),
                 });
             },
             SubmissionValue::File(file) => {
                 entry_list.push(FormDatum {
                     ty: DOMString::from("file"),
-                    name: name,
+                    name,
                     value: FormDatumValue::File(DomRoot::from_ref(&*file)),
                 });
             },
