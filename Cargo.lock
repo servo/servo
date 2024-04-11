@@ -2132,7 +2132,7 @@ dependencies = [
 [[package]]
 name = "gilrs"
 version = "0.10.6"
-source = "git+https://gitlab.com/gilrs-project/gilrs#eba723a27a324a631cb65c62c9410a4f928d4da2"
+source = "git+https://gitlab.com/gilrs-project/gilrs?rev=09576ad0fb29db4a9238d34b86e7a5eaf628ee95#09576ad0fb29db4a9238d34b86e7a5eaf628ee95"
 dependencies = [
  "fnv",
  "gilrs-core",
@@ -2144,7 +2144,7 @@ dependencies = [
 [[package]]
 name = "gilrs-core"
 version = "0.5.11"
-source = "git+https://gitlab.com/gilrs-project/gilrs#eba723a27a324a631cb65c62c9410a4f928d4da2"
+source = "git+https://gitlab.com/gilrs-project/gilrs?rev=09576ad0fb29db4a9238d34b86e7a5eaf628ee95#09576ad0fb29db4a9238d34b86e7a5eaf628ee95"
 dependencies = [
  "core-foundation",
  "inotify",

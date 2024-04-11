@@ -65,7 +65,7 @@ egui_glow = { version = "0.22.0", features = ["winit"] }
 egui-winit = { version = "0.22.0", default-features = false, features = ["clipboard", "wayland"] }
 euclid = { workspace = true }
 getopts = { workspace = true }
-gilrs = { git = "https://gitlab.com/gilrs-project/gilrs" }
+gilrs = { git = "https://gitlab.com/gilrs-project/gilrs", rev="09576ad0fb29db4a9238d34b86e7a5eaf628ee95"}
 gleam = { workspace = true }
 glow = "0.12.2"
 keyboard-types = { workspace = true }
