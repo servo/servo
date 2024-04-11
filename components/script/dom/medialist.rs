@@ -137,7 +137,7 @@ impl MediaListMethods for MediaList {
         );
         let m = MediaQuery::parse(&context, &mut parser);
         // Step 2
-        if let Err(_) = m {
+        if m.is_err() {
             return;
         }
         // Step 3
@@ -176,7 +176,7 @@ impl MediaListMethods for MediaList {
         );
         let m = MediaQuery::parse(&context, &mut parser);
         // Step 2
-        if let Err(_) = m {
+        if m.is_err() {
             return;
         }
         // Step 3

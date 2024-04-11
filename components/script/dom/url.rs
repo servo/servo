@@ -129,12 +129,8 @@ impl URL {
                 },
             },
         };
-        match ServoUrl::parse_with_base(parsed_base.as_ref(), &url.0) {
-            // Step 3
-            Ok(_) => true,
-            // Step 2.2
-            Err(_) => false,
-        }
+        // Step 2.2, 3
+        ServoUrl::parse_with_base(parsed_base.as_ref(), &url.0).is_ok()
     }
 
     // https://w3c.github.io/FileAPI/#dfn-createObjectURL

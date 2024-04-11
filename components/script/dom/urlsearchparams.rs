@@ -79,7 +79,7 @@ impl URLSearchParams {
             USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString::USVString(init) => {
                 // Step 4.
                 let init_bytes = match init.0.chars().next() {
-                    Some(first_char) if first_char == '?' => {
+                    Some('?') => {
                         let (_, other_bytes) = init.0.as_bytes().split_at(1);
 
                         other_bytes

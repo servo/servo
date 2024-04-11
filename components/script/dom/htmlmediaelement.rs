@@ -984,7 +984,7 @@ impl HTMLMediaElement {
                         SrcObject::MediaStream(ref stream) => {
                             let tracks = &*stream.get_tracks();
                             for (pos, track) in tracks.iter().enumerate() {
-                                if let Err(_) = self
+                                if self
                                     .player
                                     .borrow()
                                     .as_ref()
@@ -992,6 +992,7 @@ impl HTMLMediaElement {
                                     .lock()
                                     .unwrap()
                                     .set_stream(&track.id(), pos == tracks.len() - 1)
+                                    .is_err()
                                 {
                                     self.queue_dedicated_media_source_failure_steps();
                                 }
