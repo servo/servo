@@ -129,8 +129,7 @@ impl CharacterDataMethods for CharacterData {
         let data = self.data.borrow();
         // Step 1.
         let mut substring = String::new();
-        let remaining;
-        match split_at_utf16_code_unit_offset(&data, offset, replace_surrogates) {
+        let remaining = match split_at_utf16_code_unit_offset(&data, offset, replace_surrogates) {
             Ok((_, astral, s)) => {
                 // As if we had split the UTF-16 surrogate pair in half
                 // and then transcoded that to UTF-8 lossily,
@@ -138,11 +137,11 @@ impl CharacterDataMethods for CharacterData {
                 if astral.is_some() {
                     substring += "\u{FFFD}";
                 }
-                remaining = s;
+                s
             },
             // Step 2.
             Err(()) => return Err(Error::IndexSize),
-        }
+        };
         match split_at_utf16_code_unit_offset(remaining, count, replace_surrogates) {
             // Steps 3.
             Err(()) => substring += remaining,
