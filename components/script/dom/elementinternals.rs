@@ -161,14 +161,14 @@ impl ElementInternals {
             SubmissionValue::USVString(string) => {
                 entry_list.push(FormDatum {
                     ty: DOMString::from("string"),
-                    name: name,
+                    name,
                     value: FormDatumValue::String(DOMString::from(string.to_string())),
                 });
             },
             SubmissionValue::File(file) => {
                 entry_list.push(FormDatum {
                     ty: DOMString::from("file"),
-                    name: name,
+                    name,
                     value: FormDatumValue::File(DomRoot::from_ref(&*file)),
                 });
             },
@@ -238,7 +238,7 @@ impl ElementInternalsMethods for ElementInternals {
         if bits.is_empty() {
             self.set_validation_message(DOMString::new());
         } else {
-            self.set_validation_message(message.unwrap_or_else(|| DOMString::new()));
+            self.set_validation_message(message.unwrap_or_else(DOMString::new));
         }
 
         // Step 6: If element's customError validity flag is true, then set element's custom validity error

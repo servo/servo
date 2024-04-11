@@ -24,16 +24,16 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::urlsearchparams::URLSearchParams;
 
-// https://url.spec.whatwg.org/#url
+/// <https://url.spec.whatwg.org/#url>
 #[dom_struct]
 pub struct URL {
     reflector_: Reflector,
 
-    // https://url.spec.whatwg.org/#concept-url-url
+    /// <https://url.spec.whatwg.org/#concept-url-url>
     #[no_trace]
     url: DomRefCell<ServoUrl>,
 
-    // https://url.spec.whatwg.org/#dom-url-searchparams
+    /// <https://url.spec.whatwg.org/#dom-url-searchparams>
     search_params: MutNullableDom<URLSearchParams>,
 }
 
@@ -75,7 +75,7 @@ impl URL {
 
 #[allow(non_snake_case)]
 impl URL {
-    // https://url.spec.whatwg.org/#constructors
+    /// <https://url.spec.whatwg.org/#constructors>
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -116,7 +116,7 @@ impl URL {
         Ok(URL::new(global, proto, parsed_url))
     }
 
-    // https://url.spec.whatwg.org/#dom-url-canparse
+    /// <https://url.spec.whatwg.org/#dom-url-canparse>
     pub fn CanParse(_global: &GlobalScope, url: USVString, base: Option<USVString>) -> bool {
         // Step 1.
         let parsed_base = match base {
@@ -129,15 +129,11 @@ impl URL {
                 },
             },
         };
-        match ServoUrl::parse_with_base(parsed_base.as_ref(), &url.0) {
-            // Step 3
-            Ok(_) => true,
-            // Step 2.2
-            Err(_) => false,
-        }
+        // Step 2.2, 3
+        ServoUrl::parse_with_base(parsed_base.as_ref(), &url.0).is_ok()
     }
 
-    // https://w3c.github.io/FileAPI/#dfn-createObjectURL
+    /// <https://w3c.github.io/FileAPI/#dfn-createObjectURL>
     pub fn CreateObjectURL(global: &GlobalScope, blob: &Blob) -> DOMString {
         // XXX: Second field is an unicode-serialized Origin, it is a temporary workaround
         //      and should not be trusted. See issue https://github.com/servo/servo/issues/11722
@@ -148,7 +144,7 @@ impl URL {
         DOMString::from(URL::unicode_serialization_blob_url(&origin, &id))
     }
 
-    // https://w3c.github.io/FileAPI/#dfn-revokeObjectURL
+    /// <https://w3c.github.io/FileAPI/#dfn-revokeObjectURL>
     pub fn RevokeObjectURL(global: &GlobalScope, url: DOMString) {
         // If the value provided for the url argument is not a Blob URL OR
         // if the value provided for the url argument does not have an entry in the Blob URL Store,
@@ -169,7 +165,7 @@ impl URL {
         }
     }
 
-    // https://w3c.github.io/FileAPI/#unicodeSerializationOfBlobURL
+    /// <https://w3c.github.io/FileAPI/#unicodeSerializationOfBlobURL>
     fn unicode_serialization_blob_url(origin: &str, id: &Uuid) -> String {
         // Step 1, 2
         let mut result = "blob:".to_string();
@@ -188,42 +184,42 @@ impl URL {
 }
 
 impl URLMethods for URL {
-    // https://url.spec.whatwg.org/#dom-url-hash
+    /// <https://url.spec.whatwg.org/#dom-url-hash>
     fn Hash(&self) -> USVString {
         UrlHelper::Hash(&self.url.borrow())
     }
 
-    // https://url.spec.whatwg.org/#dom-url-hash
+    /// <https://url.spec.whatwg.org/#dom-url-hash>
     fn SetHash(&self, value: USVString) {
         UrlHelper::SetHash(&mut self.url.borrow_mut(), value);
     }
 
-    // https://url.spec.whatwg.org/#dom-url-host
+    /// <https://url.spec.whatwg.org/#dom-url-host>
     fn Host(&self) -> USVString {
         UrlHelper::Host(&self.url.borrow())
     }
 
-    // https://url.spec.whatwg.org/#dom-url-host
+    /// <https://url.spec.whatwg.org/#dom-url-host>
     fn SetHost(&self, value: USVString) {
         UrlHelper::SetHost(&mut self.url.borrow_mut(), value);
     }
 
-    // https://url.spec.whatwg.org/#dom-url-hostname
+    /// <https://url.spec.whatwg.org/#dom-url-hostname>
     fn Hostname(&self) -> USVString {
         UrlHelper::Hostname(&self.url.borrow())
     }
 
-    // https://url.spec.whatwg.org/#dom-url-hostname
+    /// <https://url.spec.whatwg.org/#dom-url-hostname>
     fn SetHostname(&self, value: USVString) {
         UrlHelper::SetHostname(&mut self.url.borrow_mut(), value);
     }
 
-    // https://url.spec.whatwg.org/#dom-url-href
+    /// <https://url.spec.whatwg.org/#dom-url-href>
     fn Href(&self) -> USVString {
         UrlHelper::Href(&self.url.borrow())
     }
 
-    // https://url.spec.whatwg.org/#dom-url-href
+    /// <https://url.spec.whatwg.org/#dom-url-href>
     fn SetHref(&self, value: USVString) -> ErrorResult {
         match ServoUrl::parse(&value.0) {
             Ok(url) => {
@@ -235,57 +231,57 @@ impl URLMethods for URL {
         }
     }
 
-    // https://url.spec.whatwg.org/#dom-url-password
+    /// <https://url.spec.whatwg.org/#dom-url-password>
     fn Password(&self) -> USVString {
         UrlHelper::Password(&self.url.borrow())
     }
 
-    // https://url.spec.whatwg.org/#dom-url-password
+    /// <https://url.spec.whatwg.org/#dom-url-password>
     fn SetPassword(&self, value: USVString) {
         UrlHelper::SetPassword(&mut self.url.borrow_mut(), value);
     }
 
-    // https://url.spec.whatwg.org/#dom-url-pathname
+    /// <https://url.spec.whatwg.org/#dom-url-pathname>
     fn Pathname(&self) -> USVString {
         UrlHelper::Pathname(&self.url.borrow())
     }
 
-    // https://url.spec.whatwg.org/#dom-url-pathname
+    /// <https://url.spec.whatwg.org/#dom-url-pathname>
     fn SetPathname(&self, value: USVString) {
         UrlHelper::SetPathname(&mut self.url.borrow_mut(), value);
     }
 
-    // https://url.spec.whatwg.org/#dom-url-port
+    /// <https://url.spec.whatwg.org/#dom-url-port>
     fn Port(&self) -> USVString {
         UrlHelper::Port(&self.url.borrow())
     }
 
-    // https://url.spec.whatwg.org/#dom-url-port
+    /// <https://url.spec.whatwg.org/#dom-url-port>
     fn SetPort(&self, value: USVString) {
         UrlHelper::SetPort(&mut self.url.borrow_mut(), value);
     }
 
-    // https://url.spec.whatwg.org/#dom-url-protocol
+    /// <https://url.spec.whatwg.org/#dom-url-protocol>
     fn Protocol(&self) -> USVString {
         UrlHelper::Protocol(&self.url.borrow())
     }
 
-    // https://url.spec.whatwg.org/#dom-url-protocol
+    /// <https://url.spec.whatwg.org/#dom-url-protocol>
     fn SetProtocol(&self, value: USVString) {
         UrlHelper::SetProtocol(&mut self.url.borrow_mut(), value);
     }
 
-    // https://url.spec.whatwg.org/#dom-url-origin
+    /// <https://url.spec.whatwg.org/#dom-url-origin>
     fn Origin(&self) -> USVString {
         UrlHelper::Origin(&self.url.borrow())
     }
 
-    // https://url.spec.whatwg.org/#dom-url-search
+    /// <https://url.spec.whatwg.org/#dom-url-search>
     fn Search(&self) -> USVString {
         UrlHelper::Search(&self.url.borrow())
     }
 
-    // https://url.spec.whatwg.org/#dom-url-search
+    /// <https://url.spec.whatwg.org/#dom-url-search>
     fn SetSearch(&self, value: USVString) {
         UrlHelper::SetSearch(&mut self.url.borrow_mut(), value);
         if let Some(search_params) = self.search_params.get() {
@@ -293,23 +289,23 @@ impl URLMethods for URL {
         }
     }
 
-    // https://url.spec.whatwg.org/#dom-url-searchparams
+    /// <https://url.spec.whatwg.org/#dom-url-searchparams>
     fn SearchParams(&self) -> DomRoot<URLSearchParams> {
         self.search_params
             .or_init(|| URLSearchParams::new(&self.global(), Some(self)))
     }
 
-    // https://url.spec.whatwg.org/#dom-url-username
+    /// <https://url.spec.whatwg.org/#dom-url-username>
     fn Username(&self) -> USVString {
         UrlHelper::Username(&self.url.borrow())
     }
 
-    // https://url.spec.whatwg.org/#dom-url-username
+    /// <https://url.spec.whatwg.org/#dom-url-username>
     fn SetUsername(&self, value: USVString) {
         UrlHelper::SetUsername(&mut self.url.borrow_mut(), value);
     }
 
-    // https://url.spec.whatwg.org/#dom-url-tojson
+    /// <https://url.spec.whatwg.org/#dom-url-tojson>
     fn ToJSON(&self) -> USVString {
         self.Href()
     }

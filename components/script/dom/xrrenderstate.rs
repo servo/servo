@@ -93,10 +93,7 @@ impl XRRenderState {
         self.base_layer.set(layer)
     }
     pub fn set_layers(&self, layers: Vec<&XRLayer>) {
-        *self.layers.borrow_mut() = layers
-            .into_iter()
-            .map(|layer| Dom::from_ref(layer))
-            .collect();
+        *self.layers.borrow_mut() = layers.into_iter().map(Dom::from_ref).collect();
     }
     pub fn with_layers<F, R>(&self, f: F) -> R
     where

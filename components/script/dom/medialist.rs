@@ -59,13 +59,13 @@ impl MediaList {
 }
 
 impl MediaListMethods for MediaList {
-    // https://drafts.csswg.org/cssom/#dom-medialist-mediatext
+    /// <https://drafts.csswg.org/cssom/#dom-medialist-mediatext>
     fn MediaText(&self) -> DOMString {
         let guard = self.shared_lock().read();
         DOMString::from(self.media_queries.read_with(&guard).to_css_string())
     }
 
-    // https://drafts.csswg.org/cssom/#dom-medialist-mediatext
+    /// <https://drafts.csswg.org/cssom/#dom-medialist-mediatext>
     fn SetMediaText(&self, value: DOMString) {
         let mut guard = self.shared_lock().write();
         let media_queries = self.media_queries.write_with(&mut guard);
@@ -101,7 +101,7 @@ impl MediaListMethods for MediaList {
         self.media_queries.read_with(&guard).media_queries.len() as u32
     }
 
-    // https://drafts.csswg.org/cssom/#dom-medialist-item
+    /// <https://drafts.csswg.org/cssom/#dom-medialist-item>
     fn Item(&self, index: u32) -> Option<DOMString> {
         let guard = self.shared_lock().read();
         self.media_queries
@@ -111,12 +111,12 @@ impl MediaListMethods for MediaList {
             .map(|query| query.to_css_string().into())
     }
 
-    // https://drafts.csswg.org/cssom/#dom-medialist-item
+    /// <https://drafts.csswg.org/cssom/#dom-medialist-item>
     fn IndexedGetter(&self, index: u32) -> Option<DOMString> {
         self.Item(index)
     }
 
-    // https://drafts.csswg.org/cssom/#dom-medialist-appendmedium
+    /// <https://drafts.csswg.org/cssom/#dom-medialist-appendmedium>
     fn AppendMedium(&self, medium: DOMString) {
         // Step 1
         let mut input = ParserInput::new(&medium);
@@ -137,7 +137,7 @@ impl MediaListMethods for MediaList {
         );
         let m = MediaQuery::parse(&context, &mut parser);
         // Step 2
-        if let Err(_) = m {
+        if m.is_err() {
             return;
         }
         // Step 3
@@ -155,7 +155,7 @@ impl MediaListMethods for MediaList {
         mq.media_queries.push(m.unwrap());
     }
 
-    // https://drafts.csswg.org/cssom/#dom-medialist-deletemedium
+    /// <https://drafts.csswg.org/cssom/#dom-medialist-deletemedium>
     fn DeleteMedium(&self, medium: DOMString) {
         // Step 1
         let mut input = ParserInput::new(&medium);
@@ -176,7 +176,7 @@ impl MediaListMethods for MediaList {
         );
         let m = MediaQuery::parse(&context, &mut parser);
         // Step 2
-        if let Err(_) = m {
+        if m.is_err() {
             return;
         }
         // Step 3
