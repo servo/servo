@@ -59,9 +59,9 @@ where
         fmt::Display::fmt(&self.item, fmt)?;
         match self.quality.0 {
             1000 => Ok(()),
-            0 => fmt.write_str("; q=0"),
+            0 => fmt.write_str(";q=0"),
             mut x => {
-                fmt.write_str("; q=0.")?;
+                fmt.write_str(";q=0.")?;
                 let mut digits = *b"000";
                 digits[2] = (x % 10) as u8 + b'0';
                 x /= 10;
@@ -81,7 +81,7 @@ pub fn quality_to_value(q: Vec<QualityItem<Mime>>) -> HeaderValue {
         &q.iter()
             .map(|q| q.to_string())
             .collect::<Vec<String>>()
-            .join(", "),
+            .join(","),
     )
     .unwrap()
 }

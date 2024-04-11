@@ -177,7 +177,7 @@ pub fn set_default_accept_language(headers: &mut HeaderMap) {
     // TODO(eijebong): Change this once typed headers are done
     headers.insert(
         header::ACCEPT_LANGUAGE,
-        HeaderValue::from_static("en-US, en; q=0.5"),
+        HeaderValue::from_static("en-US,en;q=0.5"),
     );
 }
 
@@ -1225,7 +1225,20 @@ async fn http_network_or_cache_fetch(
 
     // Step 5.16
     let current_url = http_request.current_url();
-    http_request.headers.remove(header::HOST);
+    if !http_request.headers.contains_key(header::HOST) {
+        let host = if current_url.port().is_none() {
+            current_url.host_str().unwrap().to_string()
+        } else {
+            format!(
+                "{}:{}",
+                current_url.host_str().unwrap(),
+                current_url.port().unwrap()
+            )
+        };
+        http_request.headers.typed_insert(headers::Host::from(
+            host.parse::<http::uri::Authority>().unwrap(),
+        ));
+    }
 
     // unlike http_loader, we should not set the accept header
     // here, according to the fetch spec
