@@ -3593,18 +3593,18 @@ impl Element {
                     .validity_state()
                     .perform_validation_and_update(ValidationFlags::all());
             }
-            return !validatable.is_instance_validatable() || validatable.satisfies_constraints();
+            return validatable.is_instance_validatable() && !validatable.satisfies_constraints();
         }
 
         if let Some(internals) = self.get_element_internals() {
             return internals.is_invalid();
         }
-        true
+        false
     }
 
     pub fn is_instance_validatable(&self) -> bool {
         if let Some(validatable) = self.as_maybe_validatable() {
-            return !validatable.is_instance_validatable();
+            return validatable.is_instance_validatable();
         }
         if let Some(internals) = self.get_element_internals() {
             return internals.is_instance_validatable();
