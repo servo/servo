@@ -91,9 +91,7 @@ impl AudioBufferSourceNode {
         };
         if let Some(ref buffer) = options.buffer {
             if let Some(ref buffer) = buffer {
-                if let Err(err) = node.SetBuffer(Some(&**buffer)) {
-                    return Err(err);
-                }
+                node.SetBuffer(Some(&**buffer))?
             }
         }
         Ok(node)
