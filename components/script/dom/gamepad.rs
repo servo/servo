@@ -181,6 +181,7 @@ impl GamepadMethods for Gamepad {
         DomRoot::from_ref(&*self.buttons)
     }
 
+    // https://w3c.github.io/gamepad/#dom-gamepad-vibrationactuator
     fn VibrationActuator(&self) -> DomRoot<GamepadHapticActuator> {
         DomRoot::from_ref(&*self.vibration_actuator)
     }
