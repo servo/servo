@@ -437,12 +437,6 @@ pub struct Documents {
 }
 
 impl Documents {
-    pub fn new() -> Documents {
-        Documents {
-            map: HashMapTracedValues::new(),
-        }
-    }
-
     pub fn insert(&mut self, pipeline_id: PipelineId, doc: &Document) {
         self.map.insert(pipeline_id, Dom::from_ref(doc));
     }
@@ -481,6 +475,15 @@ impl Documents {
     pub fn iter(&self) -> DocumentsIter<'_> {
         DocumentsIter {
             iter: self.map.iter(),
+        }
+    }
+}
+
+impl Default for Documents {
+    #[allow(crown::unrooted_must_root)]
+    fn default() -> Self {
+        Self {
+            map: HashMapTracedValues::new(),
         }
     }
 }
@@ -1340,7 +1343,7 @@ impl ScriptThread {
         let control_port = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(state.control_port);
 
         ScriptThread {
-            documents: DomRefCell::new(Documents::new()),
+            documents: DomRefCell::new(Documents::default()),
             window_proxies: DomRefCell::new(HashMapTracedValues::new()),
             incomplete_loads: DomRefCell::new(vec![]),
             incomplete_parser_contexts: IncompleteParserContexts(RefCell::new(vec![])),
