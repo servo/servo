@@ -13,7 +13,7 @@ use style::computed_values::clear::T as Clear;
 use style::computed_values::float::T as Float;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, LengthOrAuto};
+use style::values::computed::{Length, LengthOrAuto, Size};
 use style::values::specified::{Display, TextAlignKeyword};
 use style::Zero;
 
@@ -131,13 +131,12 @@ impl BlockLevelBox {
             return false;
         }
 
-        let min_inline_size = style
+        let min_size = style
             .content_min_box_size(containing_block, &pbm)
-            .auto_is(Length::zero)
-            .inline;
-        let max_inline_size = style.content_max_box_size(containing_block, &pbm).inline;
-        let inline_size = style
-            .content_box_size(containing_block, &pbm)
+            .auto_is(Length::zero);
+        let max_size = style.content_max_box_size(containing_block, &pbm);
+        let prefered_size = style.content_box_size(containing_block, &pbm);
+        let inline_size = prefered_size
             .inline
             .auto_is(|| {
                 let margin_inline_start = pbm.margin.inline_start.auto_is(Au::zero);
@@ -148,10 +147,10 @@ impl BlockLevelBox {
                     margin_inline_end)
                     .into()
             })
-            .clamp_between_extremums(min_inline_size, max_inline_size);
-
-        // The block size is irrelevant here.
-        let block_size = AuOrAuto::Auto;
+            .clamp_between_extremums(min_size.inline, max_size.inline);
+        let block_size = prefered_size
+            .block
+            .map(|size| Au::from(size.clamp_between_extremums(min_size.block, max_size.block)));
 
         let containing_block_for_children = ContainingBlock {
             inline_size: inline_size.into(),
@@ -167,11 +166,10 @@ impl BlockLevelBox {
             return false;
         }
 
-        let block_size_zero =
-            style.content_block_size().is_definitely_zero() || style.content_block_size().is_auto();
-        let min_block_size_zero =
-            style.min_block_size().is_definitely_zero() || style.min_block_size().is_auto();
-        if !min_block_size_zero || !block_size_zero || pbm.padding_border_sums.block != Au::zero() {
+        if !block_size_is_zero_or_auto(style.content_block_size(), containing_block) ||
+            !block_size_is_zero_or_auto(style.min_block_size(), containing_block) ||
+            pbm.padding_border_sums.block != Au::zero()
+        {
             return false;
         }
 
@@ -755,12 +753,11 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         content_block_size += collapsible_margins_in_children.end.solve().into();
     }
 
-    let computed_min_block_size = style.min_block_size();
     block_margins_collapsed_with_children.collapsed_through = collapsible_margins_in_children
         .collapsed_through &&
         pbm.padding_border_sums.block == Au::zero() &&
-        (computed_block_size.is_definitely_zero() || computed_block_size.is_auto()) &&
-        (computed_min_block_size.is_definitely_zero() || computed_min_block_size.is_auto());
+        block_size_is_zero_or_auto(computed_block_size, containing_block) &&
+        block_size_is_zero_or_auto(style.min_block_size(), containing_block);
 
     let block_size = containing_block_for_children.block_size.auto_is(|| {
         content_block_size
@@ -1673,5 +1670,16 @@ impl PlacementState {
             },
             self.inflow_baselines,
         )
+    }
+}
+
+fn block_size_is_zero_or_auto(size: &Size, containing_block: &ContainingBlock) -> bool {
+    match size {
+        Size::Auto => true,
+        Size::LengthPercentage(ref lp) => {
+            // TODO: Should this resolve definite percentages? Blink does it, Gecko and WebKit don't.
+            lp.is_definitely_zero() ||
+                (lp.0.has_percentage() && containing_block.block_size.is_auto())
+        },
     }
 }
