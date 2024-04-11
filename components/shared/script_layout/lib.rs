@@ -182,7 +182,7 @@ pub trait Layout {
 
     /// Get a reference to this Layout's Stylo `Device` used to handle media queries and
     /// resolve font metrics.
-    fn device<'a>(&'a self) -> &'a Device;
+    fn device(&self) -> &Device;
 
     /// Whether or not this layout is waiting for fonts from loaded stylesheets to finish loading.
     fn waiting_for_web_fonts_to_load(&self) -> bool;
