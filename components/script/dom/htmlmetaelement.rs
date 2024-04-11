@@ -85,7 +85,7 @@ impl HTMLMetaElement {
             if name == "referrer" {
                 self.apply_referrer();
             }
-        } else if &*self.HttpEquiv() != "" {
+        } else if !self.HttpEquiv().is_empty() {
             self.declarative_refresh();
         }
     }

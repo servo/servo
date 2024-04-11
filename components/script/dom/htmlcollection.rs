@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::cmp::Ordering;
 
 use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, QualName};
@@ -24,9 +25,9 @@ pub trait CollectionFilter: JSTraceable {
     fn filter<'a>(&self, elem: &'a Element, root: &'a Node) -> bool;
 }
 
-// An optional u32, using maxint to represent None.
-// It would be nicer just to use Option<u32> for this, but that would produce word
-// alignment issues since Option<u32> uses 33 bits.
+/// An optional u32, using maxint to represent None.
+/// It would be nicer just to use Option<u32> for this, but that would produce word
+/// alignment issues since Option<u32> uses 33 bits.
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
 struct OptionU32 {
     bits: u32,
@@ -146,7 +147,7 @@ impl HTMLCollection {
         }
     }
 
-    // https://dom.spec.whatwg.org/#concept-getelementsbytagname
+    /// <https://dom.spec.whatwg.org/#concept-getelementsbytagname>
     pub fn by_qualified_name(
         window: &Window,
         root: &Node,
@@ -317,7 +318,7 @@ impl HTMLCollection {
 }
 
 impl HTMLCollectionMethods for HTMLCollection {
-    // https://dom.spec.whatwg.org/#dom-htmlcollection-length
+    /// <https://dom.spec.whatwg.org/#dom-htmlcollection-length>
     fn Length(&self) -> u32 {
         self.validate_cache();
 
@@ -332,30 +333,34 @@ impl HTMLCollectionMethods for HTMLCollection {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-htmlcollection-item
+    /// <https://dom.spec.whatwg.org/#dom-htmlcollection-item>
     fn Item(&self, index: u32) -> Option<DomRoot<Element>> {
         self.validate_cache();
 
         if let Some(element) = self.cached_cursor_element.get() {
             // Cache hit, the cursor element is set
             if let Some(cached_index) = self.cached_cursor_index.get().to_option() {
-                if cached_index == index {
-                    // The cursor is the element we're looking for
-                    Some(element)
-                } else if cached_index < index {
-                    // The cursor is before the element we're looking for
-                    // Iterate forwards, starting at the cursor.
-                    let offset = index - (cached_index + 1);
-                    let node: DomRoot<Node> = DomRoot::upcast(element);
-                    let mut iter = self.elements_iter_after(&node);
-                    self.set_cached_cursor(index, iter.nth(offset as usize))
-                } else {
-                    // The cursor is after the element we're looking for
-                    // Iterate backwards, starting at the cursor.
-                    let offset = cached_index - (index + 1);
-                    let node: DomRoot<Node> = DomRoot::upcast(element);
-                    let mut iter = self.elements_iter_before(&node);
-                    self.set_cached_cursor(index, iter.nth(offset as usize))
+                match cached_index.cmp(&index) {
+                    Ordering::Equal => {
+                        // The cursor is the element we're looking for
+                        Some(element)
+                    },
+                    Ordering::Less => {
+                        // The cursor is before the element we're looking for
+                        // Iterate forwards, starting at the cursor.
+                        let offset = index - (cached_index + 1);
+                        let node: DomRoot<Node> = DomRoot::upcast(element);
+                        let mut iter = self.elements_iter_after(&node);
+                        self.set_cached_cursor(index, iter.nth(offset as usize))
+                    },
+                    Ordering::Greater => {
+                        // The cursor is after the element we're looking for
+                        // Iterate backwards, starting at the cursor.
+                        let offset = cached_index - (index + 1);
+                        let node: DomRoot<Node> = DomRoot::upcast(element);
+                        let mut iter = self.elements_iter_before(&node);
+                        self.set_cached_cursor(index, iter.nth(offset as usize))
+                    },
                 }
             } else {
                 // Cache miss
@@ -369,7 +374,7 @@ impl HTMLCollectionMethods for HTMLCollection {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
+    /// <https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem>
     fn NamedItem(&self, key: DOMString) -> Option<DomRoot<Element>> {
         // Step 1.
         if key.is_empty() {
