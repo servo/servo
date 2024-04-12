@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::cmp::Ordering;
 
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
@@ -37,7 +38,7 @@ enum PushOrReplace {
     Replace,
 }
 
-// https://html.spec.whatwg.org/multipage/#the-history-interface
+/// <https://html.spec.whatwg.org/multipage/#the-history-interface>
 #[dom_struct]
 pub struct History {
     reflector_: Reflector,
@@ -79,8 +80,8 @@ impl History {
         Ok(())
     }
 
-    // https://html.spec.whatwg.org/multipage/#history-traversal
-    // Steps 5-16
+    /// <https://html.spec.whatwg.org/multipage/#history-traversal>
+    /// Steps 5-16
     #[allow(unsafe_code)]
     pub fn activate_state(&self, state_id: Option<HistoryStateId>, url: ServoUrl) {
         // Steps 5
@@ -165,8 +166,8 @@ impl History {
             .send(CoreResourceMsg::RemoveHistoryStates(states));
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-history-pushstate
-    // https://html.spec.whatwg.org/multipage/#dom-history-replacestate
+    /// <https://html.spec.whatwg.org/multipage/#dom-history-pushstate>
+    /// <https://html.spec.whatwg.org/multipage/#dom-history-replacestate>
     fn push_or_replace_state(
         &self,
         cx: JSContext,
@@ -285,7 +286,7 @@ impl History {
 }
 
 impl HistoryMethods for History {
-    // https://html.spec.whatwg.org/multipage/#dom-history-state
+    /// <https://html.spec.whatwg.org/multipage/#dom-history-state>
     fn GetState(&self, _cx: JSContext) -> Fallible<JSVal> {
         if !self.window.Document().is_fully_active() {
             return Err(Error::Security);
@@ -293,7 +294,7 @@ impl HistoryMethods for History {
         Ok(self.state.get())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-history-length
+    /// <https://html.spec.whatwg.org/multipage/#dom-history-length>
     fn GetLength(&self) -> Fallible<u32> {
         if !self.window.Document().is_fully_active() {
             return Err(Error::Security);
@@ -309,30 +310,28 @@ impl HistoryMethods for History {
         Ok(recv.recv().unwrap())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-history-go
+    /// <https://html.spec.whatwg.org/multipage/#dom-history-go>
     fn Go(&self, delta: i32) -> ErrorResult {
-        let direction = if delta > 0 {
-            TraversalDirection::Forward(delta as usize)
-        } else if delta < 0 {
-            TraversalDirection::Back(-delta as usize)
-        } else {
-            return self.window.Location().Reload();
+        let direction = match delta.cmp(&0) {
+            Ordering::Greater => TraversalDirection::Forward(delta as usize),
+            Ordering::Less => TraversalDirection::Back(-delta as usize),
+            Ordering::Equal => return self.window.Location().Reload(),
         };
 
         self.traverse_history(direction)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-history-back
+    /// <https://html.spec.whatwg.org/multipage/#dom-history-back>
     fn Back(&self) -> ErrorResult {
         self.traverse_history(TraversalDirection::Back(1))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-history-forward
+    /// <https://html.spec.whatwg.org/multipage/#dom-history-forward>
     fn Forward(&self) -> ErrorResult {
         self.traverse_history(TraversalDirection::Forward(1))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-history-pushstate
+    /// <https://html.spec.whatwg.org/multipage/#dom-history-pushstate>
     fn PushState(
         &self,
         cx: JSContext,
@@ -343,7 +342,7 @@ impl HistoryMethods for History {
         self.push_or_replace_state(cx, data, title, url, PushOrReplace::Push)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-history-replacestate
+    /// <https://html.spec.whatwg.org/multipage/#dom-history-replacestate>
     fn ReplaceState(
         &self,
         cx: JSContext,

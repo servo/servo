@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cmp::Ordering;
+
 use dom_struct::dom_struct;
 use html5ever::local_name;
 
@@ -120,27 +122,31 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-length
+    /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-length>
     fn Length(&self) -> u32 {
         self.upcast().Length()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-length
+    /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-length>
     fn SetLength(&self, length: u32) {
         let current_length = self.upcast().Length();
         let delta = length as i32 - current_length as i32;
-        if delta < 0 {
-            // new length is lower - deleting last option elements
-            for index in (length..current_length).rev() {
-                self.Remove(index as i32)
-            }
-        } else if delta > 0 {
-            // new length is higher - adding new option elements
-            self.add_new_elements(delta as u32).unwrap();
+        match delta.cmp(&0) {
+            Ordering::Less => {
+                // new length is lower - deleting last option elements
+                for index in (length..current_length).rev() {
+                    self.Remove(index as i32)
+                }
+            },
+            Ordering::Greater => {
+                // new length is higher - adding new option elements
+                self.add_new_elements(delta as u32).unwrap();
+            },
+            _ => {},
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-add
+    /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-add>
     fn Add(
         &self,
         element: HTMLOptionElementOrHTMLOptGroupElement,
@@ -195,14 +201,14 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
         Node::pre_insert(node, &parent, reference_node.as_deref()).map(|_| ())
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-remove
+    /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-remove>
     fn Remove(&self, index: i32) {
         if let Some(element) = self.upcast().IndexedGetter(index as u32) {
             element.Remove();
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-selectedindex
+    /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-selectedindex>
     fn SelectedIndex(&self) -> i32 {
         self.upcast()
             .root_node()
@@ -211,7 +217,7 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
             .SelectedIndex()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-selectedindex
+    /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-selectedindex>
     fn SetSelectedIndex(&self, index: i32) {
         self.upcast()
             .root_node()
