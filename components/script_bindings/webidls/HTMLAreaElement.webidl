@@ -25,7 +25,7 @@ interface HTMLAreaElement : HTMLElement {
   [CEReactions] attribute DOMString referrerPolicy;
   // hreflang and type are not reflected
 };
-//HTMLAreaElement includes HTMLHyperlinkElementUtils;
+HTMLAreaElement includes HTMLHyperlinkElementUtils;
 
 // https://html.spec.whatwg.org/multipage/#HTMLAreaElement-partial
 partial interface HTMLAreaElement {

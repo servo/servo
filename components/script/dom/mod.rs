@@ -370,6 +370,7 @@ pub(crate) mod htmlheadelement;
 pub(crate) mod htmlheadingelement;
 pub(crate) mod htmlhrelement;
 pub(crate) mod htmlhtmlelement;
+pub(crate) mod htmlhyperlinkelementutils;
 pub(crate) mod htmliframeelement;
 pub(crate) mod htmlimageelement;
 pub(crate) mod htmlinputelement;
