@@ -15,7 +15,6 @@ use style::values::computed::font::FontWeight;
 use crate::font::FontHandleMethods;
 use crate::font_cache_thread::FontIdentifier;
 use crate::platform::font::FontHandle;
-use crate::platform::font_context::FontContextHandle;
 use crate::platform::font_template::FontTemplateData;
 
 /// Describes how to select a font from a given family. This is very basic at the moment and needs
@@ -130,10 +129,7 @@ impl FontTemplate {
     }
 
     /// Get the descriptor. Returns `None` when instantiating the data fails.
-    pub fn descriptor(
-        &mut self,
-        font_context: &FontContextHandle,
-    ) -> Option<FontTemplateDescriptor> {
+    pub fn descriptor(&mut self) -> Option<FontTemplateDescriptor> {
         // The font template data can be unloaded when nothing is referencing
         // it (via the Weak reference to the Arc above). However, if we have
         // already loaded a font, store the style information about it separately,
@@ -141,7 +137,7 @@ impl FontTemplate {
         // without having to reload the font (unless it is an actual match).
 
         self.descriptor.or_else(|| {
-            if self.instantiate(font_context).is_err() {
+            if self.instantiate().is_err() {
                 return None;
             };
 
@@ -155,10 +151,9 @@ impl FontTemplate {
     /// Get the data for creating a font if it matches a given descriptor.
     pub fn data_for_descriptor(
         &mut self,
-        fctx: &FontContextHandle,
         requested_desc: &FontTemplateDescriptor,
     ) -> Option<Arc<FontTemplateData>> {
-        self.descriptor(fctx).and_then(|descriptor| {
+        self.descriptor().and_then(|descriptor| {
             if *requested_desc == descriptor {
                 self.data().ok()
             } else {
@@ -171,23 +166,22 @@ impl FontTemplate {
     /// descriptor, if the font can be loaded.
     pub fn data_for_approximate_descriptor(
         &mut self,
-        font_context: &FontContextHandle,
         requested_descriptor: &FontTemplateDescriptor,
     ) -> Option<(Arc<FontTemplateData>, f32)> {
-        self.descriptor(font_context).and_then(|descriptor| {
+        self.descriptor().and_then(|descriptor| {
             self.data()
                 .ok()
                 .map(|data| (data, descriptor.distance_from(requested_descriptor)))
         })
     }
 
-    fn instantiate(&mut self, font_context: &FontContextHandle) -> Result<(), &'static str> {
+    fn instantiate(&mut self) -> Result<(), &'static str> {
         if !self.is_valid {
             return Err("Invalid font template");
         }
 
         let data = self.data().map_err(|_| "Could not get FontTemplate data")?;
-        let handle = FontHandleMethods::new_from_template(font_context, data, None);
+        let handle = FontHandleMethods::new_from_template(data, None);
         self.is_valid = handle.is_ok();
         let handle: FontHandle = handle?;
         self.descriptor = Some(FontTemplateDescriptor::new(

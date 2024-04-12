@@ -1949,6 +1949,7 @@ dependencies = [
  "log",
  "malloc_size_of",
  "net_traits",
+ "parking_lot",
  "range",
  "serde",
  "servo_allocator",

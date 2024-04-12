@@ -27,6 +27,7 @@ libc = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 net_traits = { workspace = true }
+parking_lot = { workspace = true }
 range = { path = "../range" }
 serde = { workspace = true }
 servo_arc = { workspace = true }
