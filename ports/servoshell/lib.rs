@@ -63,11 +63,6 @@ pub fn main() {
     let mut opts = Options::new();
     opts.optflag(
         "",
-        "angle",
-        "Use ANGLE to create a GL context (Windows-only)",
-    );
-    opts.optflag(
-        "",
         "clean-shutdown",
         "Do not shutdown until all threads have finished (macos only)",
     );
