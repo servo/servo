@@ -1472,10 +1472,7 @@ impl<'a> TableLayout<'a> {
         // space for the entire table wrapper, but here we are using that amount for the table grid.
         // Therefore, if there is a caption, this will cause overflow. Gecko and WebKit have the
         // same problem, but not Blink.
-        let table_height_from_style = match containing_block_for_children.size.block {
-            SizeConstraint::Definite(size) => size,
-            SizeConstraint::MinMax(min, _) => min,
-        };
+        let table_height_from_style = containing_block_for_children.size.block.definite_or_min();
 
         let block_border_spacing = self.table.total_border_spacing().block;
         let table_height_from_rows = row_sizes.iter().sum::<Au>() + block_border_spacing;
