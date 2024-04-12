@@ -938,13 +938,16 @@ impl FloatBox {
                         });
                         let inline_size = tentative_inline_size
                             .clamp_between_extremums(min_box_size.inline, max_box_size.inline);
+                        let block_size = box_size.block.map(|size| {
+                            size.clamp_between_extremums(min_box_size.block, max_box_size.block)
+                        });
 
                         // Calculate block size.
                         // https://drafts.csswg.org/css2/#block-root-margin
                         // FIXME(pcwalton): Is a tree rank of zero correct here?
                         let containing_block_for_children = ContainingBlock {
                             inline_size: inline_size.into(),
-                            block_size: box_size.block.map(|t| t.into()),
+                            block_size: block_size.map(|t| t.into()),
                             style: &non_replaced.style,
                         };
                         let independent_layout = non_replaced.layout(
@@ -955,9 +958,10 @@ impl FloatBox {
                         );
                         content_size = LogicalVec2 {
                             inline: inline_size,
-                            block: box_size
-                                .block
-                                .auto_is(|| independent_layout.content_block_size.into()),
+                            block: block_size.auto_is(|| {
+                                Length::from(independent_layout.content_block_size)
+                                    .clamp_between_extremums(min_box_size.block, max_box_size.block)
+                            }),
                         };
                         children = independent_layout.fragments;
                     },
