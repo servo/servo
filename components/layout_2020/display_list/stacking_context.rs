@@ -21,6 +21,7 @@ use style::values::computed::{ClipRectOrAuto, Length};
 use style::values::generics::box_::Perspective;
 use style::values::generics::transform;
 use style::values::specified::box_::DisplayOutside;
+use style::Zero;
 use webrender_api as wr;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutTransform, LayoutVector2D};
 use wr::units::{LayoutPixel, LayoutSize};
@@ -242,6 +243,7 @@ pub(crate) enum StackingContextContent {
     /// A fragment that does not generate a stacking context or stacking container.
     Fragment {
         scroll_node_id: ScrollTreeNodeId,
+        reference_frame_scroll_node_id: ScrollTreeNodeId,
         clip_chain_id: wr::ClipChainId,
         section: StackingContextSection,
         containing_block: PhysicalRect<Length>,
@@ -270,12 +272,14 @@ impl StackingContextContent {
         match self {
             Self::Fragment {
                 scroll_node_id,
+                reference_frame_scroll_node_id,
                 clip_chain_id,
                 section,
                 containing_block,
                 fragment,
             } => {
                 builder.current_scroll_node_id = *scroll_node_id;
+                builder.current_reference_frame_scroll_node_id = *reference_frame_scroll_node_id;
                 builder.current_clip_chain_id = *clip_chain_id;
                 fragment
                     .borrow()
@@ -879,6 +883,9 @@ impl Fragment {
                     .push(StackingContextContent::Fragment {
                         section: StackingContextSection::Foreground,
                         scroll_node_id: containing_block.scroll_node_id,
+                        reference_frame_scroll_node_id: containing_block_info
+                            .for_absolute_and_fixed_descendants
+                            .scroll_node_id,
                         clip_chain_id: containing_block.clip_chain_id,
                         containing_block: containing_block.rect,
                         fragment: fragment_ref.clone(),
@@ -1104,21 +1111,38 @@ impl BoxFragment {
             new_clip_chain_id = clip_chain_id;
         }
 
+        let establishes_containing_block_for_all_descendants = self
+            .style
+            .establishes_containing_block_for_all_descendants(self.base.flags);
+        let establishes_containing_block_for_absolute_descendants = self
+            .style
+            .establishes_containing_block_for_absolute_descendants(self.base.flags);
+
+        let reference_frame_scroll_node_id_for_fragments =
+            if establishes_containing_block_for_all_descendants {
+                new_scroll_node_id
+            } else {
+                containing_block_info
+                    .for_absolute_and_fixed_descendants
+                    .scroll_node_id
+            };
         stacking_context
             .contents
             .push(StackingContextContent::Fragment {
                 scroll_node_id: new_scroll_node_id,
+                reference_frame_scroll_node_id: reference_frame_scroll_node_id_for_fragments,
                 clip_chain_id: new_clip_chain_id,
                 section: self.get_stacking_context_section(),
                 containing_block: containing_block.rect,
                 fragment: fragment.clone(),
             });
-        use style::Zero;
+
         if !self.style.get_outline().outline_width.is_zero() {
             stacking_context
                 .contents
                 .push(StackingContextContent::Fragment {
                     scroll_node_id: new_scroll_node_id,
+                    reference_frame_scroll_node_id: reference_frame_scroll_node_id_for_fragments,
                     clip_chain_id: new_clip_chain_id,
                     section: StackingContextSection::Outline,
                     containing_block: containing_block.rect,
@@ -1166,18 +1190,12 @@ impl BoxFragment {
         // Create a new `ContainingBlockInfo` for descendants depending on
         // whether or not this fragment establishes a containing block for
         // absolute and fixed descendants.
-        let new_containing_block_info = if self
-            .style
-            .establishes_containing_block_for_all_descendants(self.base.flags)
-        {
+        let new_containing_block_info = if establishes_containing_block_for_all_descendants {
             containing_block_info.new_for_absolute_and_fixed_descendants(
                 &for_non_absolute_descendants,
                 &for_absolute_descendants,
             )
-        } else if self
-            .style
-            .establishes_containing_block_for_absolute_descendants(self.base.flags)
-        {
+        } else if establishes_containing_block_for_absolute_descendants {
             containing_block_info.new_for_absolute_descendants(
                 &for_non_absolute_descendants,
                 &for_absolute_descendants,

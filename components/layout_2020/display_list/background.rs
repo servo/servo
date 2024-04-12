@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use euclid::{Size2D, Vector2D};
+use euclid::{Point2D, Size2D, Vector2D};
+use style::computed_values::background_attachment::SingleComputedValue as BackgroundAttachment;
 use style::computed_values::background_clip::single_value::T as Clip;
 use style::computed_values::background_origin::single_value::T as Origin;
 use style::properties::ComputedValues;
@@ -13,6 +14,8 @@ use style::values::specified::background::{
     BackgroundRepeat as RepeatXY, BackgroundRepeatKeyword as Repeat,
 };
 use webrender_api::{self as wr, units};
+use wr::units::LayoutSize;
+use wr::ClipChainId;
 
 use crate::replaced::IntrinsicSizes;
 
@@ -43,49 +46,119 @@ pub(super) struct BackgroundPainter<'a> {
 }
 
 impl<'a> BackgroundPainter<'a> {
+    /// Get the painting area for this background, which is the actual rectangle in the
+    /// current coordinate system that the background will be painted.
     pub(super) fn painting_area(
         &self,
         fragment_builder: &'a super::BuilderForBoxFragment,
         builder: &mut super::DisplayListBuilder,
         layer_index: usize,
-    ) -> (&units::LayoutRect, wr::CommonItemProperties) {
+    ) -> units::LayoutRect {
         let fb = fragment_builder;
-        let (painting_area, clip) = match self.painting_area_override {
-            Some(ref painting_area) => (painting_area, None),
-            None if self.positioning_area_override.is_none() => {
-                let b = self.style.get_background();
-                match get_cyclic(&b.background_clip.0, layer_index) {
-                    Clip::ContentBox => (fb.content_rect(), fb.content_edge_clip(builder)),
-                    Clip::PaddingBox => (fb.padding_rect(), fb.padding_edge_clip(builder)),
-                    Clip::BorderBox => (&fb.border_rect, fb.border_edge_clip(builder)),
-                }
-            },
-            None => (&fb.border_rect, fb.border_edge_clip(builder)),
-        };
+        if let Some(painting_area_override) = self.painting_area_override.as_ref() {
+            return *painting_area_override;
+        }
+        if self.positioning_area_override.is_some() {
+            return fb.border_rect;
+        }
+
+        let background = self.style.get_background();
+        if &BackgroundAttachment::Fixed ==
+            get_cyclic(&background.background_attachment.0, layer_index)
+        {
+            let viewport_size = builder.display_list.compositor_info.viewport_size;
+            return units::LayoutRect::from_origin_and_size(Point2D::origin(), viewport_size);
+        }
+
+        match get_cyclic(&background.background_clip.0, layer_index) {
+            Clip::ContentBox => *fragment_builder.content_rect(),
+            Clip::PaddingBox => *fragment_builder.padding_rect(),
+            Clip::BorderBox => fragment_builder.border_rect,
+        }
+    }
+
+    fn clip(
+        &self,
+        fragment_builder: &'a super::BuilderForBoxFragment,
+        builder: &mut super::DisplayListBuilder,
+        layer_index: usize,
+    ) -> Option<ClipChainId> {
+        if self.painting_area_override.is_some() {
+            return None;
+        }
+
+        if self.positioning_area_override.is_some() {
+            return fragment_builder.border_edge_clip(builder, false);
+        }
 
         // The 'backgound-clip' property maps directly to `clip_rect` in `CommonItemProperties`:
-        let mut common = builder.common_properties(*painting_area, &fb.fragment.style);
+        let background = self.style.get_background();
+        let force_clip_creation = get_cyclic(&background.background_attachment.0, layer_index) ==
+            &BackgroundAttachment::Fixed;
+        match get_cyclic(&background.background_clip.0, layer_index) {
+            Clip::ContentBox => fragment_builder.content_edge_clip(builder, force_clip_creation),
+            Clip::PaddingBox => fragment_builder.padding_edge_clip(builder, force_clip_creation),
+            Clip::BorderBox => fragment_builder.border_edge_clip(builder, force_clip_creation),
+        }
+    }
+
+    /// Get the [`wr::CommonItemProperties`] for this background. This includes any clipping
+    /// established by border radii as well as special clipping and spatial node assignment
+    /// necessary for `background-attachment`.
+    pub(super) fn common_properties(
+        &self,
+        fragment_builder: &'a super::BuilderForBoxFragment,
+        builder: &mut super::DisplayListBuilder,
+        layer_index: usize,
+        painting_area: units::LayoutRect,
+    ) -> wr::CommonItemProperties {
+        let clip = self.clip(fragment_builder, builder, layer_index);
+        let style = &fragment_builder.fragment.style;
+        let mut common = builder.common_properties(painting_area, style);
         if let Some(clip_chain_id) = clip {
             common.clip_chain_id = clip_chain_id;
         }
-        (painting_area, common)
+        if &BackgroundAttachment::Fixed ==
+            get_cyclic(&style.get_background().background_attachment.0, layer_index)
+        {
+            common.spatial_id = builder.current_reference_frame_scroll_node_id.spatial_id;
+        }
+        common
     }
 
+    /// Get the positioning area of the background which is the rectangle that defines where
+    /// the origin of the background content is, regardless of where the background is actual
+    /// painted.
     pub(super) fn positioning_area(
         &self,
         fragment_builder: &'a super::BuilderForBoxFragment,
         layer_index: usize,
-    ) -> &units::LayoutRect {
-        self.positioning_area_override.as_ref().unwrap_or_else(|| {
-            match get_cyclic(
+    ) -> units::LayoutRect {
+        if let Some(positioning_area_override) = self.positioning_area_override {
+            return positioning_area_override;
+        }
+
+        match get_cyclic(
+            &self.style.get_background().background_attachment.0,
+            layer_index,
+        ) {
+            BackgroundAttachment::Scroll => match get_cyclic(
                 &self.style.get_background().background_origin.0,
                 layer_index,
             ) {
-                Origin::ContentBox => fragment_builder.content_rect(),
-                Origin::PaddingBox => fragment_builder.padding_rect(),
-                Origin::BorderBox => &fragment_builder.border_rect,
-            }
-        })
+                Origin::ContentBox => *fragment_builder.content_rect(),
+                Origin::PaddingBox => *fragment_builder.padding_rect(),
+                Origin::BorderBox => fragment_builder.border_rect,
+            },
+            BackgroundAttachment::Fixed => {
+                // This isn't the viewport size because that rects larger than the viewport might be
+                // transformed down into areas smaller than the viewport.
+                units::LayoutRect::from_origin_and_size(
+                    Point2D::origin(),
+                    LayoutSize::new(f32::MAX, f32::MAX),
+                )
+            },
+        }
     }
 }
 
@@ -96,8 +169,9 @@ pub(super) fn layout_layer(
     layer_index: usize,
     intrinsic: IntrinsicSizes,
 ) -> Option<BackgroundLayer> {
-    let (painting_area, common) = painter.painting_area(fragment_builder, builder, layer_index);
+    let painting_area = painter.painting_area(fragment_builder, builder, layer_index);
     let positioning_area = painter.positioning_area(fragment_builder, layer_index);
+    let common = painter.common_properties(fragment_builder, builder, layer_index, painting_area);
 
     // https://drafts.csswg.org/css-backgrounds/#background-size
     enum ContainOrCover {
