@@ -90,7 +90,7 @@ jobs:
       - name: Copy resources
         run: cp D:\a\servo\servo\resources C:\a\servo\servo -Recurse
       - name: Smoketest
-        run: python mach smoketest --angle --${{ inputs.profile }}
+        run: python mach smoketest --${{ inputs.profile }}
       - name: Unit tests
         if: ${{ inputs.unit-tests }}
         uses: nick-fields/retry@v3
