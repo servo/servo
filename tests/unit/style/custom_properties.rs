@@ -4,6 +4,7 @@
 
 use cssparser::{Parser, ParserInput};
 use euclid::{Scale, Size2D};
+use servo_arc::Arc;
 use style::applicable_declarations::CascadePriority;
 use style::context::QuirksMode;
 use style::custom_properties::{
@@ -51,9 +52,9 @@ fn cascade(
             let mut input = ParserInput::new(value);
             let mut parser = Parser::new(&mut input);
             let name = Name::from(name);
-            let value = CustomDeclarationValue::Value(
+            let value = CustomDeclarationValue::Value(Arc::new(
                 SpecifiedValue::parse(&mut parser, &dummy_url_data).unwrap(),
-            );
+            ));
             CustomDeclaration { name, value }
         })
         .collect::<Vec<_>>();
