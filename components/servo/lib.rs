@@ -124,12 +124,25 @@ mod media_platform {
     #[cfg(any(windows, target_os = "macos"))]
     pub fn init() {
         ServoMedia::init_with_backend(|| {
-            let mut plugin_dir = std::env::current_exe().unwrap();
-            plugin_dir.pop();
+            // Allow overriding  of plugin path via standard GStreamer env var.
+            let plugin_dir = if let Ok(value) = std::env::var("GST_PLUGIN_PATH") {
+                std::path::PathBuf::from(value)
+            } else {
+                // Prefer the path of the folder containing the current module,
+                // or if that's not available the folder containing the currrent
+                // executable.
+                let mut file_path = process_path::get_dylib_path()
+                    .unwrap_or_else(|| std::env::current_exe().unwrap());
+                file_path.pop();
 
-            if cfg!(target_os = "macos") {
-                plugin_dir.push("lib");
-            }
+                // Mac OS GStreamer distro has plugins at lib subfolder of rpath.
+                if cfg!(target_os = "macos") {
+                    file_path.push("lib");
+                }
+
+                file_path
+            };
+            println!("GStreamer plugin dir: {:?}", plugin_dir);
 
             match GStreamerBackend::init_with_plugins(
                 plugin_dir,

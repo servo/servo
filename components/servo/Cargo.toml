@@ -61,6 +61,7 @@ mozangle = { workspace = true }
 msg = { workspace = true }
 net = { path = "../net" }
 net_traits = { workspace = true }
+process_path = "0.1"
 profile = { path = "../profile" }
 profile_traits = { workspace = true }
 script = { path = "../script" }

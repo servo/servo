@@ -3340,6 +3340,7 @@ dependencies = [
  "msg",
  "net",
  "net_traits",
+ "process_path",
  "profile",
  "profile_traits",
  "script",
@@ -4474,6 +4475,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e835ff2298f5721608eb1a980ecaee1aef2c132bf95ecc026a11b7bf3c01c02e"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "process_path"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f676f11eb0b3e2ea0fbaee218fa6b806689e2297b8c8adc5bf73df465c4f6171"
+dependencies = [
+ "libc",
+ "winapi",
 ]
 
 [[package]]
