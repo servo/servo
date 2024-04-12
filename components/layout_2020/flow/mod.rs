@@ -13,7 +13,7 @@ use style::computed_values::clear::T as Clear;
 use style::computed_values::float::T as Float;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, LengthOrAuto, Size};
+use style::values::computed::{Length, LengthOrAuto};
 use style::values::specified::{Display, TextAlignKeyword};
 use style::Zero;
 
@@ -166,8 +166,8 @@ impl BlockLevelBox {
             return false;
         }
 
-        if !block_size_is_zero_or_auto(style.content_block_size(), containing_block) ||
-            !block_size_is_zero_or_auto(style.min_block_size(), containing_block) ||
+        if !prefered_size.block.auto_is(Length::zero).is_zero() ||
+            !min_size.block.is_zero() ||
             pbm.padding_border_sums.block != Au::zero()
         {
             return false;
@@ -626,6 +626,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     let ContainingBlockPaddingAndBorder {
         containing_block: containing_block_for_children,
         pbm,
+        box_size,
         min_box_size,
         max_box_size,
     } = solve_containing_block_padding_and_border_for_in_flow_box(containing_block, style);
@@ -744,9 +745,9 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     }
 
     let collapsed_through = collapsible_margins_in_children.collapsed_through &&
-        pbm.padding_border_sums.block == Au::zero() &&
-        block_size_is_zero_or_auto(computed_block_size, containing_block) &&
-        block_size_is_zero_or_auto(style.min_block_size(), containing_block);
+        pbm.padding_border_sums.block.is_zero() &&
+        box_size.block.auto_is(Length::zero).is_zero() &&
+        min_box_size.block.is_zero();
     block_margins_collapsed_with_children.collapsed_through = collapsed_through;
 
     let end_margin_can_collapse_with_children = collapsed_through ||
@@ -848,6 +849,7 @@ impl NonReplacedFormattingContext {
             pbm,
             min_box_size,
             max_box_size,
+            ..
         } = solve_containing_block_padding_and_border_for_in_flow_box(
             containing_block,
             &self.style,
@@ -1266,6 +1268,7 @@ fn layout_in_flow_replaced_block_level(
 struct ContainingBlockPaddingAndBorder<'a> {
     containing_block: ContainingBlock<'a>,
     pbm: PaddingBorderMargin,
+    box_size: LogicalVec2<LengthOrAuto>,
     min_box_size: LogicalVec2<Length>,
     max_box_size: LogicalVec2<Option<Length>>,
 }
@@ -1334,6 +1337,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     ContainingBlockPaddingAndBorder {
         containing_block: containing_block_for_children,
         pbm,
+        box_size,
         min_box_size,
         max_box_size,
     }
@@ -1672,16 +1676,5 @@ impl PlacementState {
             },
             self.inflow_baselines,
         )
-    }
-}
-
-fn block_size_is_zero_or_auto(size: &Size, containing_block: &ContainingBlock) -> bool {
-    match size {
-        Size::Auto => true,
-        Size::LengthPercentage(ref lp) => {
-            // TODO: Should this resolve definite percentages? Blink does it, Gecko and WebKit don't.
-            lp.is_definitely_zero() ||
-                (lp.0.has_percentage() && containing_block.block_size.is_auto())
-        },
     }
 }
