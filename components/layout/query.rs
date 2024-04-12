@@ -637,7 +637,7 @@ fn create_font_declaration(
     let mut declarations = SourcePropertyDeclaration::default();
     let result = parse_one_declaration_into(
         &mut declarations,
-        PropertyId::Shorthand(ShorthandId::Font),
+        PropertyId::NonCustom(ShorthandId::Font.into()),
         value,
         Origin::Author,
         &UrlExtraData(url_data.get_arc()),
@@ -766,10 +766,14 @@ pub fn process_resolved_style_request<'dom>(
     );
     let style = styles.primary();
     let longhand_id = match *property {
-        PropertyId::LonghandAlias(id, _) | PropertyId::Longhand(id) => id,
-        // Firefox returns blank strings for the computed value of shorthands,
-        // so this should be web-compatible.
-        PropertyId::ShorthandAlias(..) | PropertyId::Shorthand(_) => return String::new(),
+        PropertyId::NonCustom(id) => {
+            match id.unaliased().as_longhand() {
+                Some(id) => id,
+                // Firefox returns blank strings for the computed value of shorthands,
+                // so this should be web-compatible.
+                None => return String::new(),
+            }
+        },
         PropertyId::Custom(ref name) => {
             return style.computed_value_to_string(PropertyDeclarationId::Custom(name));
         },
@@ -811,10 +815,14 @@ fn process_resolved_style_request_internal<'dom>(
 
     let style = &*layout_el.resolved_style();
     let longhand_id = match *property {
-        PropertyId::LonghandAlias(id, _) | PropertyId::Longhand(id) => id,
-        // Firefox returns blank strings for the computed value of shorthands,
-        // so this should be web-compatible.
-        PropertyId::ShorthandAlias(..) | PropertyId::Shorthand(_) => return String::new(),
+        PropertyId::NonCustom(id) => {
+            match id.unaliased().as_longhand() {
+                Some(id) => id,
+                // Firefox returns blank strings for the computed value of shorthands,
+                // so this should be web-compatible.
+                None => return String::new(),
+            }
+        },
         PropertyId::Custom(ref name) => {
             return style.computed_value_to_string(PropertyDeclarationId::Custom(name));
         },
