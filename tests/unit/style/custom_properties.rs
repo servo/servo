@@ -85,7 +85,7 @@ fn cascade(
         );
     }
 
-    builder.build()
+    builder.build().0
 }
 
 #[bench]
