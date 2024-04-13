@@ -349,10 +349,10 @@ lazy_static! {
         // The 'all' shorthand contains all the enabled longhands with 2 exceptions:
         // 'direction' and 'unicode-bidi', so these must be added afterward.
         let mut enabled_longhands: Vec<LonghandId> = ShorthandId::All.longhands().collect();
-        if PropertyId::Longhand(LonghandId::Direction).enabled_for_all_content() {
+        if PropertyId::NonCustom(LonghandId::Direction.into()).enabled_for_all_content() {
             enabled_longhands.push(LonghandId::Direction);
         }
-        if PropertyId::Longhand(LonghandId::UnicodeBidi).enabled_for_all_content() {
+        if PropertyId::NonCustom(LonghandId::UnicodeBidi.into()).enabled_for_all_content() {
             enabled_longhands.push(LonghandId::UnicodeBidi);
         }
 
@@ -459,13 +459,13 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
     fn CssFloat(&self) -> DOMString {
-        self.get_property_value(PropertyId::Longhand(LonghandId::Float))
+        self.get_property_value(PropertyId::NonCustom(LonghandId::Float.into()))
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
     fn SetCssFloat(&self, value: DOMString) -> ErrorResult {
         self.set_property(
-            PropertyId::Longhand(LonghandId::Float),
+            PropertyId::NonCustom(LonghandId::Float.into()),
             value,
             DOMString::new(),
         )

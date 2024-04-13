@@ -4,10 +4,12 @@
 
 use cssparser::{Parser, ParserInput};
 use euclid::{Scale, Size2D};
+use servo_arc::Arc;
 use style::applicable_declarations::CascadePriority;
 use style::context::QuirksMode;
 use style::custom_properties::{
-    ComputedCustomProperties, CustomPropertiesBuilder, Name, SpecifiedValue,
+    ComputedCustomProperties, CustomPropertiesBuilder, DeferFontRelativeCustomPropertyResolution,
+    Name, SpecifiedValue,
 };
 use style::font_metrics::FontMetrics;
 use style::media_queries::{Device, MediaType};
@@ -51,9 +53,9 @@ fn cascade(
             let mut input = ParserInput::new(value);
             let mut parser = Parser::new(&mut input);
             let name = Name::from(name);
-            let value = CustomDeclarationValue::Value(
+            let value = CustomDeclarationValue::Value(Arc::new(
                 SpecifiedValue::parse(&mut parser, &dummy_url_data).unwrap(),
-            );
+            ));
             CustomDeclaration { name, value }
         })
         .collect::<Vec<_>>();
@@ -69,13 +71,13 @@ fn cascade(
     let mut builder = StyleBuilder::new(stylist.device(), Some(&stylist), None, None, None, false);
     builder.custom_properties = inherited.clone();
     let mut rule_cache_conditions = RuleCacheConditions::default();
-    let context = Context::new(
+    let mut context = Context::new(
         builder,
         stylist.quirks_mode(),
         &mut rule_cache_conditions,
         ContainerSizeQuery::none(),
     );
-    let mut builder = CustomPropertiesBuilder::new(&stylist, &context);
+    let mut builder = CustomPropertiesBuilder::new(&stylist, &mut context);
 
     for declaration in &declarations {
         builder.cascade(
@@ -84,7 +86,8 @@ fn cascade(
         );
     }
 
-    builder.build()
+    builder.build(DeferFontRelativeCustomPropertyResolution::No);
+    context.builder.custom_properties
 }
 
 #[bench]

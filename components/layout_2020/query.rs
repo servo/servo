@@ -127,9 +127,9 @@ pub fn process_resolved_style_request<'dom>(
 
     let style = &*layout_element.resolved_style();
     let longhand_id = match *property {
-        PropertyId::LonghandAlias(id, _) | PropertyId::Longhand(id) => id,
-        PropertyId::ShorthandAlias(id, _) | PropertyId::Shorthand(id) => {
-            return shorthand_to_css_string(id, style);
+        PropertyId::NonCustom(id) => match id.longhand_or_shorthand() {
+            Ok(longhand_id) => longhand_id,
+            Err(shorthand_id) => return shorthand_to_css_string(shorthand_id, style),
         },
         PropertyId::Custom(ref name) => {
             return style.computed_value_to_string(PropertyDeclarationId::Custom(name));
@@ -263,9 +263,9 @@ pub fn process_resolved_style_request_for_unstyled_node<'dom>(
     );
     let style = styles.primary();
     let longhand_id = match *property {
-        PropertyId::LonghandAlias(id, _) | PropertyId::Longhand(id) => id,
-        PropertyId::ShorthandAlias(id, _) | PropertyId::Shorthand(id) => {
-            return shorthand_to_css_string(id, style);
+        PropertyId::NonCustom(id) => match id.longhand_or_shorthand() {
+            Ok(longhand_id) => longhand_id,
+            Err(shorthand_id) => return shorthand_to_css_string(shorthand_id, style),
         },
         PropertyId::Custom(ref name) => {
             return style.computed_value_to_string(PropertyDeclarationId::Custom(name));
@@ -528,7 +528,7 @@ where
         let mut declarations = SourcePropertyDeclaration::default();
         let result = parse_one_declaration_into(
             &mut declarations,
-            PropertyId::Shorthand(ShorthandId::Font),
+            PropertyId::NonCustom(ShorthandId::Font.into()),
             value,
             Origin::Author,
             &UrlExtraData(url_data.get_arc()),

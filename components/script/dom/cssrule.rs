@@ -116,6 +116,7 @@ impl CSSRule {
             },
             StyleCssRule::FontPaletteValues(_) => unimplemented!(), // TODO
             StyleCssRule::Property(_) => unimplemented!(),          // TODO
+            StyleCssRule::Margin(_) => unimplemented!(),            // TODO
         }
     }
 
