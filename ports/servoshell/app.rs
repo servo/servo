@@ -246,6 +246,16 @@ impl App {
                     },
                     winit::event::Event::WindowEvent { ref event, .. } => {
                         let response = minibrowser.on_event(event);
+                        // Update minibrowser if there's resize event to sync up with window.
+                        if let WindowEvent::Resized(_) = event {
+                            minibrowser.update(
+                                window.winit_window().unwrap(),
+                                &mut app.webviews.borrow_mut(),
+                                app.servo.as_ref().unwrap().offscreen_framebuffer_id(),
+                                "WebView resize on Window Resize",
+                            );
+                        }
+
                         if response.repaint {
                             // Request a winit redraw event, so we can recomposite, update and paint
                             // the minibrowser, and present the new frame.
