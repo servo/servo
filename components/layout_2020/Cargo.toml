@@ -44,6 +44,8 @@ style = { workspace = true }
 style_traits = { workspace = true }
 unicode-script = { workspace = true }
 unicode-segmentation = { workspace = true }
+url = { workspace = true }
+data-url = { workspace = true }
 webrender_api = { workspace = true }
 xi-unicode = { workspace = true }
 

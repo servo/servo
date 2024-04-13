@@ -175,7 +175,7 @@ fn traverse_element<'dom, Node>(
 ) where
     Node: NodeExt<'dom>,
 {
-    let replaced = ReplacedContent::for_element(element);
+    let replaced = ReplacedContent::for_element(element, context);
     let style = element.style(context);
     match Display::from(style.get_box().display) {
         Display::None => element.unset_all_boxes(),

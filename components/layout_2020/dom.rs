@@ -6,10 +6,15 @@ use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
+use html5ever::{local_name, namespace_url, ns};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::Image as NetImage;
-use script_layout_interface::wrapper_traits::{LayoutDataTrait, LayoutNode, ThreadSafeLayoutNode};
-use script_layout_interface::HTMLCanvasDataSource;
+use script_layout_interface::wrapper_traits::{
+    LayoutDataTrait, LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+};
+use script_layout_interface::{
+    HTMLCanvasDataSource, LayoutElementType, LayoutNodeType as ScriptLayoutNodeType,
+};
 use servo_arc::Arc as ServoArc;
 use style::properties::ComputedValues;
 
@@ -95,6 +100,7 @@ pub(crate) trait NodeExt<'dom>: 'dom + LayoutNode<'dom> {
     fn as_canvas(self) -> Option<(CanvasInfo, PhysicalSize<f64>)>;
     fn as_iframe(self) -> Option<(PipelineId, BrowsingContextId)>;
     fn as_video(self) -> Option<(webrender_api::ImageKey, PhysicalSize<f64>)>;
+    fn as_typeless_object_with_data_attribute(self) -> Option<String>;
     fn style(self, context: &LayoutContext) -> ServoArc<ComputedValues>;
 
     fn layout_data_mut(self) -> AtomicRefMut<'dom, InnerDOMLayoutData>;
@@ -161,6 +167,25 @@ where
             },
             _ => None,
         }
+    }
+
+    fn as_typeless_object_with_data_attribute(self) -> Option<String> {
+        if self.type_id() != ScriptLayoutNodeType::Element(LayoutElementType::HTMLObjectElement) {
+            return None;
+        }
+        let Some(element) = self.to_threadsafe().as_element() else {
+            return None;
+        };
+
+        // TODO: This is the what the legacy layout system does, but really if Servo
+        // supports any `<object>` that's an image, it should support those with URLs
+        // and `type` attributes with image mime types.
+        if element.get_attr(&ns!(), &local_name!("type")).is_some() {
+            return None;
+        }
+        element
+            .get_attr(&ns!(), &local_name!("data"))
+            .map(|string| string.to_owned())
     }
 
     fn style(self, context: &LayoutContext) -> ServoArc<ComputedValues> {
