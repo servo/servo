@@ -17,9 +17,9 @@ pressure_test(async (t, mockPressureService) => {
     const observerChanges = [];
     const observer = new PressureObserver(changes => {
       observerChanges.push(changes);
-    }, {sampleInterval: sampleIntervalInMs});
+    });
 
-    observer.observe('cpu');
+    observer.observe('cpu', {sampleInterval: sampleIntervalInMs});
     mockPressureService.startPlatformCollector(sampleIntervalInMs);
     let i = 0;
     // mockPressureService.updatesDelivered() does not necessarily match

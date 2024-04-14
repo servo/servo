@@ -38,7 +38,26 @@ promise_test(async t => {
   );
   // We are done, so clean up.
   iframe.remove();
-}, "navigator.wakeLock.request() aborts if the document is not active.");
+}, "navigator.wakeLock.request() aborts if the document becomes not active.");
+
+promise_test(async t => {
+  const iframe = document.createElement("iframe");
+  document.body.appendChild(iframe);
+  const wakeLock = await getWakeLockObject(
+    iframe,
+    "/screen-wake-lock/resources/page1.html"
+  );
+  // Save the DOMException of page1.html before navigating away.
+  const frameDOMException = iframe.contentWindow.DOMException;
+  iframe.remove();
+  await promise_rejects_dom(
+    t,
+    "NotAllowedError",
+    frameDOMException,
+    wakeLock.request('screen'),
+    "Inactive document, so must throw NotAllowedError"
+  );
+}, "navigator.wakeLock.request() aborts if the document is not fully active.");
 
 promise_test(async t => {
   // We nest two iframes and wait for them to load.

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test fractional values in meta http-equiv=refresh</title>
+<link rel="author" title="Psychpsyo"  href="mailto:psychpsyo@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/#pragma-directives">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+  async function sleep(ms, test) {
+    return new Promise(resolve => {test.step_timeout(resolve, ms)});
+  }
+
+  promise_test(async test => {
+    const frame = document.createElement("iframe");
+    document.body.appendChild(frame);
+    frame.src = "resources/refresh1.html";
+    await sleep(500, test);
+    assert_equals(frame.contentWindow.document.title, "refresh 1");
+    await sleep(1000, test);
+    assert_equals(frame.contentWindow.document.title, "got refreshed");
+  }, "Ensure that refresh is observed");
+
+  promise_test(async test => {
+    const frame = document.createElement("iframe");
+    document.body.appendChild(frame);
+    frame.src = "resources/refresh.99.html";
+    await sleep(500, test);
+    assert_equals(frame.contentWindow.document.title, "got refreshed");
+  }, "Ensure that fractions in refresh time are ignored");
+
+  promise_test(async test => {
+    const frame = document.createElement("iframe");
+    document.body.appendChild(frame);
+    frame.src = "resources/refresh1.99.html";
+    await sleep(500, test);
+    assert_equals(frame.contentWindow.document.title, "refresh 1.99");
+    await sleep(1000, test);
+    assert_equals(frame.contentWindow.document.title, "got refreshed");
+  }, "Ensure that non-fractional part in refresh time does not get discarded");
+
+  promise_test(async test => {
+    const frame = document.createElement("iframe");
+    document.body.appendChild(frame);
+    frame.src = "resources/refresh1dotdot5dot.html";
+    await sleep(500, test);
+    assert_equals(frame.contentWindow.document.title, "refresh 1..5.");
+    await sleep(750, test);
+    assert_equals(frame.contentWindow.document.title, "got refreshed");
+  }, "Ensure that multiple periods in refresh time just get ignored");
+</script>
+</body>

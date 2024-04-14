@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<title>Node.moveBefore</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<!-- First test shared pre-insertion checks that work similarly for replaceChild
+     and moveBefore -->
+<script>
+  var insertFunc = Node.prototype.moveBefore;
+</script>
+<script src="../../pre-insertion-validation-notfound.js"></script>
+<script src="../../pre-insertion-validation-hierarchy.js"></script>
+<script>
+preInsertionValidateHierarchy("moveBefore");
+
+function testLeafNode(nodeName, createNodeFunction) {
+  test(function() {
+    var node = createNodeFunction();
+    assert_throws_js(TypeError, function() { node.moveBefore(null, null) })
+  }, "Calling moveBefore with a non-Node first argument on a leaf node " + nodeName + " must throw TypeError.")
+  test(function() {
+    var node = createNodeFunction();
+    assert_throws_dom("HIERARCHY_REQUEST_ERR", function() { node.moveBefore(document.createTextNode("fail"), null) })
+    // Would be step 2.
+    assert_throws_dom("HIERARCHY_REQUEST_ERR", function() { node.moveBefore(node, null) })
+    // Would be step 3.
+    assert_throws_dom("HIERARCHY_REQUEST_ERR", function() { node.moveBefore(node, document.createTextNode("child")) })
+  }, "Calling moveBefore an a leaf node " + nodeName + " must throw HIERARCHY_REQUEST_ERR.")
+}
+
+test(function() {
+  // WebIDL: first argument.
+  assert_throws_js(TypeError, function() { document.body.moveBefore(null, null) })
+  assert_throws_js(TypeError, function() { document.body.moveBefore(null, document.body.firstChild) })
+  assert_throws_js(TypeError, function() { document.body.moveBefore({'a':'b'}, document.body.firstChild) })
+}, "Calling moveBefore with a non-Node first argument must throw TypeError.")
+
+test(function() {
+  // WebIDL: second argument.
+  assert_throws_js(TypeError, function() { document.body.moveBefore(document.createTextNode("child")) })
+  assert_throws_js(TypeError, function() { document.body.moveBefore(document.createTextNode("child"), {'a':'b'}) })
+}, "Calling moveBefore with second argument missing, or other than Node, null, or undefined, must throw TypeError.")
+
+testLeafNode("DocumentType", function () { return document.doctype; } )
+testLeafNode("Text", function () { return document.createTextNode("Foo") })
+testLeafNode("Comment", function () { return document.createComment("Foo") })
+testLeafNode("ProcessingInstruction", function () { return document.createProcessingInstruction("foo", "bar") })
+
+test(function() {
+  // Step 2.
+  assert_throws_dom("HIERARCHY_REQUEST_ERR", function() { document.body.moveBefore(document.body, document.getElementById("log")) })
+  assert_throws_dom("HIERARCHY_REQUEST_ERR", function() { document.body.moveBefore(document.documentElement, document.getElementById("log")) })
+}, "Calling moveBefore with an inclusive ancestor of the context object must throw HIERARCHY_REQUEST_ERR.")
+
+// Step 3.
+test(function() {
+  var a = document.createElement("div");
+  var b = document.createElement("div");
+  var c = document.createElement("div");
+  assert_throws_dom("NotFoundError", function() {
+    a.moveBefore(b, c);
+  });
+}, "Calling moveBefore with a reference child whose parent is not the context node must throw a NotFoundError.")
+
+// Step 4.1.
+test(function() {
+  var doc = document.implementation.createHTMLDocument("title");
+  var doc2 = document.implementation.createHTMLDocument("title2");
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.moveBefore(doc2, doc.documentElement);
+  });
+
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.moveBefore(doc.createTextNode("text"), doc.documentElement);
+  });
+}, "If the context node is a document, inserting a document or text node should throw a HierarchyRequestError.")
+
+// Step 4.2.1.
+test(function() {
+  var doc = document.implementation.createHTMLDocument("title");
+  doc.removeChild(doc.documentElement);
+
+  var df = doc.createDocumentFragment();
+  df.appendChild(doc.createElement("a"));
+  df.appendChild(doc.createElement("b"));
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.moveBefore(df, doc.firstChild);
+  });
+
+  df = doc.createDocumentFragment();
+  df.appendChild(doc.createTextNode("text"));
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.moveBefore(df, doc.firstChild);
+  });
+
+  df = doc.createDocumentFragment();
+  df.appendChild(doc.createComment("comment"));
+  df.appendChild(doc.createTextNode("text"));
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.moveBefore(df, doc.firstChild);
+  });
+}, "If the context node is a document, inserting a DocumentFragment that contains a text node or too many elements should throw a HierarchyRequestError.")
+
+// Step 4.2.2.
+test(function() {
+  // The context node has an element child.
+  var doc = document.implementation.createHTMLDocument("title");
+  var comment = doc.appendChild(doc.createComment("foo"));
+  assert_array_equals(doc.childNodes, [doc.doctype, doc.documentElement, comment]);
+
+  var df = doc.createDocumentFragment();
+  df.appendChild(doc.createElement("a"));
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.moveBefore(df, doc.doctype);
+  });
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.moveBefore(df, doc.documentElement);
+  });
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.moveBefore(df, comment);
+  });
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.moveBefore(df, null);
+  });
+}, "If the context node is a document, inserting a DocumentFragment with an element if there already is an element child should throw a HierarchyRequestError.")
+test(function() {
+  // /child/ is a doctype.
+  var doc = document.implementation.createHTMLDocument("title");
+  var comment = doc.moveBefore(doc.createComment("foo"), doc.firstChild);
+  doc.removeChild(doc.documentElement);
+  assert_array_equals(doc.childNodes, [comment, doc.doctype]);
+
+  var df = doc.createDocumentFragment();
+  df.appendChild(doc.createElement("a"));
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.moveBefore(df, doc.doctype);
+  });
+}, "If the context node is a document and a doctype is following the reference child, inserting a DocumentFragment with an element should throw a HierarchyRequestError.")
+test(function() {
+  // /child/ is not null and a doctype is following /child/.
+  var doc = document.implementation.createHTMLDocument("title");
+  var comment = doc.moveBefore(doc.createComment("foo"), doc.firstChild);
+  doc.removeChild(doc.documentElement);
+  assert_array_equals(doc.childNodes, [comment, doc.doctype]);
+
+  var df = doc.createDocumentFragment();
+  df.appendChild(doc.createElement("a"));
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.moveBefore(df, comment);
+  });
+}, "If the context node is a document, inserting a DocumentFragment with an element before the doctype should throw a HierarchyRequestError.")
+
+// Step 4.3.
+test(function() {
+  // The context node has an element child.
+  var doc = document.implementation.createHTMLDocument("title");
+  var comment = doc.appendChild(doc.createComment("foo"));
+  assert_array_equals(doc.childNodes, [doc.doctype, doc.documentElement, comment]);
+
+  var a = doc.createElement("a");
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.moveBefore(a, doc.doctype);
+  });
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.moveBefore(a, doc.documentElement);
+  });
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.moveBefore(a, comment);
+  });
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.moveBefore(a, null);
+  });
+}, "If the context node is a document, inserting an element if there already is an element child should throw a HierarchyRequestError.")
+test(function() {
+  // /child/ is a doctype.
+  var doc = document.implementation.createHTMLDocument("title");
+  var comment = doc.moveBefore(doc.createComment("foo"), doc.firstChild);
+  doc.removeChild(doc.documentElement);
+  assert_array_equals(doc.childNodes, [comment, doc.doctype]);
+
+  var a = doc.createElement("a");
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.moveBefore(a, doc.doctype);
+  });
+}, "If the context node is a document, inserting an element before the doctype should throw a HierarchyRequestError.")
+test(function() {
+  // /child/ is not null and a doctype is following /child/.
+  var doc = document.implementation.createHTMLDocument("title");
+  var comment = doc.moveBefore(doc.createComment("foo"), doc.firstChild);
+  doc.removeChild(doc.documentElement);
+  assert_array_equals(doc.childNodes, [comment, doc.doctype]);
+
+  var a = doc.createElement("a");
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.moveBefore(a, comment);
+  });
+}, "If the context node is a document and a doctype is following the reference child, inserting an element should throw a HierarchyRequestError.")
+
+// Step 4.4.
+test(function() {
+  var doc = document.implementation.createHTMLDocument("title");
+  var comment = doc.moveBefore(doc.createComment("foo"), doc.firstChild);
+  assert_array_equals(doc.childNodes, [comment, doc.doctype, doc.documentElement]);
+
+  var doctype = document.implementation.createDocumentType("html", "", "");
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.moveBefore(doctype, comment);
+  });
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.moveBefore(doctype, doc.doctype);
+  });
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.moveBefore(doctype, doc.documentElement);
+  });
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.moveBefore(doctype, null);
+  });
+}, "If the context node is a document, inserting a doctype if there already is a doctype child should throw a HierarchyRequestError.")
+test(function() {
+  var doc = document.implementation.createHTMLDocument("title");
+  var comment = doc.appendChild(doc.createComment("foo"));
+  doc.removeChild(doc.doctype);
+  assert_array_equals(doc.childNodes, [doc.documentElement, comment]);
+
+  var doctype = document.implementation.createDocumentType("html", "", "");
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.moveBefore(doctype, comment);
+  });
+}, "If the context node is a document, inserting a doctype after the document element should throw a HierarchyRequestError.")
+test(function() {
+  var doc = document.implementation.createHTMLDocument("title");
+  var comment = doc.appendChild(doc.createComment("foo"));
+  doc.removeChild(doc.doctype);
+  assert_array_equals(doc.childNodes, [doc.documentElement, comment]);
+
+  var doctype = document.implementation.createDocumentType("html", "", "");
+  assert_throws_dom("HierarchyRequestError", function() {
+    doc.moveBefore(doctype, null);
+  });
+}, "If the context node is a document with and element child, appending a doctype should throw a HierarchyRequestError.")
+
+// Step 5.
+test(function() {
+  var df = document.createDocumentFragment();
+  var a = df.appendChild(document.createElement("a"));
+
+  var doc = document.implementation.createHTMLDocument("title");
+  assert_throws_dom("HierarchyRequestError", function() {
+    df.moveBefore(doc, a);
+  });
+  assert_throws_dom("HierarchyRequestError", function() {
+    df.moveBefore(doc, null);
+  });
+
+  var doctype = document.implementation.createDocumentType("html", "", "");
+  assert_throws_dom("HierarchyRequestError", function() {
+    df.moveBefore(doctype, a);
+  });
+  assert_throws_dom("HierarchyRequestError", function() {
+    df.moveBefore(doctype, null);
+  });
+}, "If the context node is a DocumentFragment, inserting a document or a doctype should throw a HierarchyRequestError.")
+test(function() {
+  var el = document.createElement("div");
+  var a = el.appendChild(document.createElement("a"));
+
+  var doc = document.implementation.createHTMLDocument("title");
+  assert_throws_dom("HierarchyRequestError", function() {
+    el.moveBefore(doc, a);
+  });
+  assert_throws_dom("HierarchyRequestError", function() {
+    el.moveBefore(doc, null);
+  });
+
+  var doctype = document.implementation.createDocumentType("html", "", "");
+  assert_throws_dom("HierarchyRequestError", function() {
+    el.moveBefore(doctype, a);
+  });
+  assert_throws_dom("HierarchyRequestError", function() {
+    el.moveBefore(doctype, null);
+  });
+}, "If the context node is an element, inserting a document or a doctype should throw a HierarchyRequestError.")
+
+// Step 7.
+test(function() {
+  var a = document.createElement("div");
+  var b = document.createElement("div");
+  var c = document.createElement("div");
+  a.appendChild(b);
+  a.appendChild(c);
+  assert_array_equals(a.childNodes, [b, c]);
+  assert_equals(a.moveBefore(b, b), b);
+  assert_array_equals(a.childNodes, [b, c]);
+  assert_equals(a.moveBefore(c, c), c);
+  assert_array_equals(a.childNodes, [b, c]);
+}, "Inserting a node before itself should not move the node");
+</script>

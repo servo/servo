@@ -23,10 +23,12 @@ promise_test(async testCase => {
   // too late to delete buckets.
   await bucketManager.delete('iframe-bucket');
 
+  const IFrameTypeError = iframe.contentWindow.TypeError;
   iframe.remove();
 
   // Calling open() from a detached iframe should fail but not crash.
-  assert_equals(bucketManager.open('iframe-bucket'), undefined);
+  await promise_rejects_js(testCase, IFrameTypeError,
+                           bucketManager.open('iframe-bucket'));
 }, 'Verify open() on detached iframe returns an error');
 
 promise_test(async testCase => {
@@ -39,10 +41,12 @@ promise_test(async testCase => {
   assert_equals(bucketKeys.length, 1);
   await bucketManager.delete('iframe-bucket');
 
+  const IFrameTypeError = iframe.contentWindow.TypeError;
   iframe.remove();
 
   // Calling keys() from a detached iframe should fail but not crash.
-  assert_equals(bucketManager.keys(), undefined);
+  await promise_rejects_js(testCase, IFrameTypeError,
+                           bucketManager.keys());
 }, 'Verify keys() on detached iframe returns an error');
 
 promise_test(async testCase => {
@@ -52,10 +56,12 @@ promise_test(async testCase => {
   await bucketManager.open('iframe-bucket');
   await bucketManager.delete('iframe-bucket');
 
+  const IFrameTypeError = iframe.contentWindow.TypeError;
   iframe.remove();
 
   // Calling delete() from a detached iframe should fail but not crash.
-  assert_equals(bucketManager.delete('foo-bucket'), undefined);
+  await promise_rejects_js(testCase, IFrameTypeError,
+                           bucketManager.delete('foo-bucket'));
 }, 'Verify delete() on detached iframe returns an error');
 
 </script>

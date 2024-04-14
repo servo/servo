@@ -162,8 +162,8 @@ async function generateURNFromFledgeRawURL(
 // @param {boolean} [ad_with_size = false] - Determines whether the auction is
 //                                           run with ad sizes specified.
 // @param {boolean} [register_beacon = false] - If true, FLEDGE logic will
-//                                               register reporting beacons
-//                                               after completion.
+//                                              register reporting beacons after
+//                                              completion.
 async function generateURNFromFledge(
     href, keylist, nested_urls = [], resolve_to_config = false,
     ad_with_size = false, requested_size = null, register_beacon = false) {
@@ -345,6 +345,19 @@ function attachFrameContext(
       generator_api, resolve_to_config, ad_with_size, requested_size,
       register_beacon, frame_constructor, html, headers, origin,
       num_components);
+}
+
+// Performs a content-initiated navigation of a frame proxy. This navigated page
+// uses a new urn:uuid as its communication channel to prevent potential clashes
+// with the currently loaded document.
+async function navigateFrameContext(frame_proxy, {headers = [], origin = ''}) {
+  const [uuid, url] = generateRemoteContextURL(headers, origin);
+  frame_proxy.execute((url) => {
+    window.executor.suspend(() => {
+      window.location = url;
+    });
+  }, [url])
+  frame_proxy.context_id = uuid;
 }
 
 function replaceFrameContext(frame_proxy, {

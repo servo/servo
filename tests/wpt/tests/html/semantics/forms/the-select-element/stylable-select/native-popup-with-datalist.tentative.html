@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/9799">
+<link rel=match href="native-popup-with-datalist-ref.html">
+<link rel=assert title="The native popup of a select should show options descending from datalists">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<select>
+  <datalist>
+    <div>
+      <option>one</option>
+      <hr>
+      <option>two</option>
+    </div>
+  </datalist>
+</select>
+
+<script>
+(async () => {
+  await test_driver.click(document.querySelector('select'));
+  document.documentElement.classList.remove('reftest-wait');
+})();
+</script>

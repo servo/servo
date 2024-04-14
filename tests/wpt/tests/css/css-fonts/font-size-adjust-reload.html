@@ -16,8 +16,7 @@ body {
 </body>
 <script>
     const iframe = document.getElementById('iframe');
-    // Forcing reload
-    iframe.src += '';
+    iframe.contentWindow.location.reload();
     iframe.contentWindow.onload = function(){
         document.documentElement.classList.remove("reftest-wait");
     };

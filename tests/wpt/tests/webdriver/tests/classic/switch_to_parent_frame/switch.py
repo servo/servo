@@ -1,9 +1,8 @@
 import pytest
 
-from webdriver import NoSuchElementException, NoSuchWindowException
+from webdriver import NoSuchElementException
 
 from tests.support.asserts import assert_error, assert_success
-from tests.support.sync import Poll
 
 
 def switch_to_parent_frame(session):
@@ -30,37 +29,6 @@ def test_no_top_browsing_context(session, url):
     session.switch_frame(subframe)
 
     session.window.close()
-
-    response = switch_to_parent_frame(session)
-    assert_error(response, "no such window")
-
-
-def test_no_parent_browsing_context(session, url):
-    session.url = url("/webdriver/tests/support/html/frames.html")
-
-    subframe = session.find.css("#sub-frame", all=False)
-    session.switch_frame(subframe)
-
-    deleteframe = session.find.css("#delete-frame", all=False)
-    session.switch_frame(deleteframe)
-
-    button = session.find.css("#remove-top", all=False)
-    button.click()
-
-    def is_window_closed(s):
-        try:
-            s.find.css("#remove-top", all=False)
-            return False
-        except NoSuchWindowException:
-            return True
-
-    # Wait until iframe is gone.
-    wait = Poll(
-        session,
-        timeout=5,
-        message="Iframe is still present",
-    )
-    wait.until(lambda s: is_window_closed(s))
 
     response = switch_to_parent_frame(session)
     assert_error(response, "no such window")

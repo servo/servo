@@ -7,6 +7,8 @@ def main(request, response):
     return request_error
 
   response.headers.set(b"Content-Type", b"application/json")
+  response.headers.set(b"Access-Control-Allow-Origin", request.headers.get(b"Origin"))
+  response.headers.set(b"Access-Control-Allow-Credentials", "true")
 
   is_auto_selected = request.POST.get(b"is_auto_selected")
   return "{\"token\": \"is_auto_selected=" + is_auto_selected.decode("utf-8") + "\"}"

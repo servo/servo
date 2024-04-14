@@ -12,8 +12,8 @@ pressure_test(async (t, mockPressureService) => {
       observer_changes.push(changes);
       if (++n === 2)
         resolve(observer_changes);
-    }, {sampleInterval: 200});
-    observer.observe('cpu');
+    });
+    observer.observe('cpu', {sampleInterval: 200});
     const updatesDelivered = mockPressureService.updatesDelivered();
     mockPressureService.setPressureUpdate('cpu', 'critical');
     mockPressureService.startPlatformCollector(/*sampleInterval*/ 200);

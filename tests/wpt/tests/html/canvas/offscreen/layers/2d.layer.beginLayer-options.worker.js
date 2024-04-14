@@ -6,13 +6,7 @@
 importScripts("/resources/testharness.js");
 importScripts("/html/canvas/resources/canvas-tests.js");
 
-var t = async_test("Checks beginLayer works for different option parameter values");
-var t_pass = t.done.bind(t);
-var t_fail = t.step_func(function(reason) {
-    throw reason;
-});
-t.step(function() {
-
+test(t => {
   var canvas = new OffscreenCanvas(100, 50);
   var ctx = canvas.getContext('2d');
 
@@ -41,6 +35,5 @@ t.step(function() {
   ctx.beginLayer({filter: 1}); ctx.endLayer();
   ctx.beginLayer({filter: true}); ctx.endLayer();
   ctx.beginLayer({filter: false}); ctx.endLayer();
-  t.done();
-});
+}, "Checks beginLayer works for different option parameter values");
 done();

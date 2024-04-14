@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="match" href="bounded-sizes-reftest-ref.html">
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<body>
+  <div>
+    The permission element should have some limits for the min/max-width/height:
+    <ul>
+    <li>min-width should be sufficient to fit the element text (depends on user agent implementation)</li>
+    <li>max-width should be at most 3x min-width</li>
+    <li>min-height should be sufficient to fit the element text (1em)</li>
+    <li>max-height should be at most 3x min-height</li>
+    </ul>
+  </div>
+
+<style>
+  #id1 {
+    font-size: 10px;
+    min-height: 1px;
+    max-height: 100px;
+
+    /* These values are extreme enough that they should be out of bounds for any implementation */
+    min-width: 10px;
+    max-width: 1000px;
+
+    /* This element will be as tiny as possible */
+    width: 1px;
+    height: 1px;
+  }
+  #id2 {
+    font-size: 10px;
+    min-height: 1px;
+    max-height: 100px;
+
+    /* These values are extreme enough that they should be out of bounds for any implementation */
+    min-width: 10px;
+    max-width: 1000px;
+
+    /* This element will be as large as possible */
+    width: 1000px;
+    height: 1000px;
+  }
+</style>
+
+<permission id="id1" type="geolocation">
+<permission id="id2" type="camera">
+</body>

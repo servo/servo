@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp hidden abspos should count as ink overflow</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-with-abspos-011-ref.html">
+<meta name="assert" content="Any overflowing content hidden from paint by line-clamp is treated as ink overflow, including absolute positioned boxes, and therefore doesn't cause the scrollable overflow rectangle to grow. Meanwhile, non-hidden abspos count as scrollable overflow.">
+<style>
+#scrollContainer {
+  overflow: scroll;
+  position: relative;
+  font: 16px / 32px serif;
+  height: 4lh;
+  border: 1px solid black;
+}
+.clamp {
+  line-clamp: 4;
+  padding: 0 4px;
+  white-space: pre;
+  background-color: yellow;
+}
+.abspos {
+  position: absolute;
+  right: 0;
+  width: 50px;
+  height: 50px;
+  margin: 4px;
+  background-color: skyblue;
+}
+#abspos1 {
+  top: 4.5lh;
+}
+#abspos2 {
+  top: 6lh;
+}
+</style>
+
+<div id="scrollContainer">
+<div class="clamp">Line 1
+Line 2
+Line 3
+Line 4<div class="abspos" id="abspos1"></div>
+Line 5
+Line 6<div class="abspos" id="abspos2"></div></div>
+</div>
+
+<script>
+  window.addEventListener("load", () => {
+    const scrollContainer = document.getElementById("scrollContainer");
+    scrollContainer.scrollTop = scrollContainer.scrollHeight;
+  });
+</script>

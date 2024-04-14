@@ -16,8 +16,9 @@
 
 <ul id="d"></ul>
 <script>
-var t = async_test("Tests getTransform inside layers.");
-_addTest(function(canvas, ctx) {
+test(t => {
+  var canvas = document.getElementById('c');
+  var ctx = canvas.getContext('2d');
 
   ctx.translate(10, 20);
   ctx.beginLayer();
@@ -26,6 +27,6 @@ _addTest(function(canvas, ctx) {
   assert_array_equals([m.a, m.b, m.c, m.d, m.e, m.f], [2, 0, 0, 3, 10, 20]);
   ctx.endLayer();
 
-});
+}, "Tests getTransform inside layers.");
 </script>
 

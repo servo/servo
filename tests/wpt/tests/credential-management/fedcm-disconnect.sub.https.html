@@ -11,7 +11,6 @@
 <script type="module">
 import {fedcm_test,
         mark_signed_in,
-        set_fedcm_cookie,
         disconnect_options,
         fedcm_get_and_select_first_account,
         request_options_with_mediation_required,
@@ -21,10 +20,9 @@ import {fedcm_test,
         set_alt_fedcm_cookie} from './support/fedcm-helper.sub.js';
 
 fedcm_test(async t => {
-  await mark_signed_in();
-  await set_fedcm_cookie();
+  await mark_signed_in(alt_manifest_origin);
   // Get at least one connected account that can be disconnected.
-  const cred = await fedcm_get_and_select_first_account(t, request_options_with_mediation_required());
+  const cred = await fedcm_get_and_select_first_account(t, alt_request_options_with_mediation_required());
   // The IDP implementation will accept any account hint, so this is really testing that the user
   // agent eventually stops sending the requests to the IDP.
   // This test clears the connection just created above, but it also clears any previously existing
@@ -32,7 +30,7 @@ fedcm_test(async t => {
   return new Promise(async resolve => {
     while (true) {
       try {
-        await IdentityCredential.disconnect(disconnect_options("1234"));
+        await IdentityCredential.disconnect(alt_disconnect_options("1234"));
       } catch(e) {
         resolve();
         break;
@@ -43,34 +41,37 @@ fedcm_test(async t => {
 
 fedcm_test(async t => {
   const disconnect = IdentityCredential.disconnect(
-      disconnect_options("nonExistent"));
+      alt_disconnect_options("nonExistent"));
   return promise_rejects_dom(t, 'NetworkError', disconnect);
 }, 'Test that disconnect fails when there is no account to disconnect');
 
 fedcm_test(async t => {
-  const cred = await fedcm_get_and_select_first_account(t, request_options_with_mediation_required());
+  await mark_signed_in(alt_manifest_origin);
+  const cred = await fedcm_get_and_select_first_account(t, alt_request_options_with_mediation_required());
 
-  return IdentityCredential.disconnect(disconnect_options("1234"));
+  return IdentityCredential.disconnect(alt_disconnect_options("1234"));
 }, 'Test that disconnect succeeds when there is an account to disconnect');
 
 fedcm_test(async t => {
-  const cred = await fedcm_get_and_select_first_account(t, request_options_with_mediation_required());
+  await mark_signed_in(alt_manifest_origin);
+  const cred = await fedcm_get_and_select_first_account(t, alt_request_options_with_mediation_required());
 
-  await IdentityCredential.disconnect(disconnect_options("1234"));
+  await IdentityCredential.disconnect(alt_disconnect_options("1234"));
 
-  const disconnect = IdentityCredential.disconnect(disconnect_options("1234"));
+  const disconnect = IdentityCredential.disconnect(alt_disconnect_options("1234"));
   return promise_rejects_dom(t, 'NetworkError', disconnect);
 }, 'Test that disconnecting the same account twice results in failure.');
 
 fedcm_test(async t => {
-  const cred = await fedcm_get_and_select_first_account(t, request_options_with_mediation_required());
+  await mark_signed_in(alt_manifest_origin);
+  const cred = await fedcm_get_and_select_first_account(t, alt_request_options_with_mediation_required());
   // A connected account is guaranteed by the above, and IDP accepts any account hint, so this tests
   // that the user agent allows the request to go through to the IDP.
-  return IdentityCredential.disconnect(disconnect_options("noMatch"));
+  return IdentityCredential.disconnect(alt_disconnect_options("noMatch"));
 }, 'Disconnect passing an incorrect ID can still succeed');
 
 fedcm_test(async t => {
-  await set_alt_fedcm_cookie();
+  await mark_signed_in();
   await mark_signed_in(alt_manifest_origin);
   await fedcm_get_and_select_first_account(t, alt_request_options_with_mediation_required());
   await fedcm_get_and_select_first_account(t,

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<meta charset="utf-8">
+<meta name="assert" content="Position-visibility: anchors-visible should show an element after an anchor changes from visibility: hidden to visibility: visible." />
+<title>CSS Anchor Positioning Test: position-visibility: anchors-visible</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-visibility">
+<link rel="match" href="position-visibility-anchors-visible-change-css-visibility-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+  #container {
+    visibility: hidden;
+  }
+
+  #anchor {
+    anchor-name: --a1;
+    width: 100px;
+    height: 100px;
+    background: orange;
+  }
+
+  #target {
+    position-anchor: --a1;
+    position-visibility: anchors-visible;
+    inset-area: bottom;
+    width: 100px;
+    height: 100px;
+    background: green;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+</style>
+
+<div id="container">
+  <div id="anchor">anchor</div>
+</div>
+<div id="target">target</div>
+
+<script>
+  // #target should be initially hidden because it is anchored to #anchor,
+  // which is hidden with "visibility: hidden".
+
+  waitForAtLeastOneFrame().then(() => {
+    // Change #container to "visibility: visible". #target should become
+    // visible again, because #anchor is no longer hidden.
+    container.style.visibility = 'visible';
+    takeScreenshot();
+  });
+</script>

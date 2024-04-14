@@ -6,13 +6,7 @@
 importScripts("/resources/testharness.js");
 importScripts("/html/canvas/resources/canvas-tests.js");
 
-var t = async_test("Checks that the context state is left unchanged if beginLayer throws.");
-var t_pass = t.done.bind(t);
-var t_fail = t.step_func(function(reason) {
-    throw reason;
-});
-t.step(function() {
-
+test(t => {
   var canvas = new OffscreenCanvas(100, 50);
   var ctx = canvas.getContext('2d');
 
@@ -22,6 +16,5 @@ t.step(function() {
                                                   values: 'foo'}}));
   // `beginLayer` shouldn't have opened the layer, so `endLayer` should throw.
   assert_throws_dom("InvalidStateError", () => ctx.endLayer());
-  t.done();
-});
+}, "Checks that the context state is left unchanged if beginLayer throws.");
 done();

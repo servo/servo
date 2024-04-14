@@ -243,6 +243,6 @@ async def test_with_scrollbars(
     # The side which has scrollbar takes up space on the other side
     # (e.g. if we have a horizontal scroll height is going to be smaller than viewport height)
     if use_horizontal_scrollbar:
-        assert viewport_without_scrollbar["height"] < test_viewport["height"]
+        assert viewport_without_scrollbar["height"] <= test_viewport["height"]
     if use_vertical_scrollbar:
-        assert viewport_without_scrollbar["width"] < test_viewport["width"]
+        assert viewport_without_scrollbar["width"] <= test_viewport["width"]

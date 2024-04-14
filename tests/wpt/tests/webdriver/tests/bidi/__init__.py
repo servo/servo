@@ -71,6 +71,15 @@ def int_interval(start: int, end: int) -> Callable[[Any], None]:
     return _
 
 
+def assert_cookies(cookies, expected_cookies):
+    assert len(cookies) == len(expected_cookies)
+
+    expected = sorted(expected_cookies, key=lambda cookie: cookie["name"])
+    actual = sorted(cookies, key=lambda cookie: cookie["name"])
+
+    recursive_compare(expected, actual)
+
+
 def assert_handle(obj: Mapping[str, Any], should_contain_handle: bool) -> None:
     if should_contain_handle:
         assert "handle" in obj, f"Result should contain `handle`. Actual: {obj}"

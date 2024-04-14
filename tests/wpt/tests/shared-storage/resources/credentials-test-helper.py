@@ -19,6 +19,9 @@ def main(request, response):
     if b"access_control_allow_origin_header" in request.GET:
       response.headers.append(b"Access-Control-Allow-Origin", request.GET[b"access_control_allow_origin_header"])
 
+    if b"shared_storage_cross_origin_worklet_allowed_header" in request.GET:
+      response.headers.append(b"Shared-Storage-Cross-Origin-Worklet-Allowed", request.GET[b"shared_storage_cross_origin_worklet_allowed_header"])
+
     if action == b"store-cookie":
       cookie = request.headers.get(b"Cookie", b"NO_COOKIE_HEADER")
       request.server.stash.put(token, cookie)

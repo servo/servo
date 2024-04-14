@@ -29,7 +29,6 @@ function testElementType(allowsShadowDom, elementType, runGetHTMLOnShadowRoot,
     }
 
     let shadowRoot;
-    const isOpen = mode === 'open';
     let initDict = {mode: mode, delegatesFocus: delegatesFocus, clonable};
     let expectedSerializable = null;
     switch (serializable) {
@@ -47,12 +46,8 @@ function testElementType(allowsShadowDom, elementType, runGetHTMLOnShadowRoot,
           `shadowrootmode=${mode}${delegatesAttr}${serializableAttr}` +
           `${clonableAttr}>`;
       wrapper.setHTMLUnsafe(html);
-      if (isOpen) {
-        shadowRoot = wrapper.firstElementChild.shadowRoot;
-      } else {
-        // For closed shadow root, we rely on the behavior of attachShadow to return it to us
-        shadowRoot = wrapper.firstElementChild.attachShadow(initDict);
-      }
+      // Get hold of the declarative shadow root in a way that works when its mode is "closed"
+      shadowRoot = wrapper.firstElementChild.attachShadow(initDict);
     } else {
       // Imperative shadow dom
       const element = document.createElement(elementType);
@@ -78,22 +73,14 @@ function testElementType(allowsShadowDom, elementType, runGetHTMLOnShadowRoot,
       assert_equals(shadowRoot.clonable,clonable);
       shadowRoot.appendChild(document.createElement('slot'));
       const emptyElement = `<${elementType}>${lightDOMContent}</${elementType}>`;
-      if (isOpen) {
-        if (expectedSerializable) {
-          assert_equals(wrapper.getHTML({serializableShadowRoots: true}),
-              correctHtml);
-          assert_equals(wrapper.firstElementChild.getHTML({
-              serializableShadowRoots: true}),
-              `${correctShadowHtml}${lightDOMContent}`);
-        } else {
-          assert_equals(wrapper.getHTML({serializableShadowRoots: true}), emptyElement);
-        }
-      } else {
-        // Closed shadow roots should not be returned unless shadowRoots specifically contains the shadow root:
+      if (expectedSerializable) {
         assert_equals(wrapper.getHTML({serializableShadowRoots: true}),
-            emptyElement);
-        assert_equals(wrapper.getHTML({serializableShadowRoots: true,
-            shadowRoots: []}), emptyElement);
+            correctHtml);
+        assert_equals(wrapper.firstElementChild.getHTML({
+            serializableShadowRoots: true}),
+            `${correctShadowHtml}${lightDOMContent}`);
+      } else {
+        assert_equals(wrapper.getHTML({serializableShadowRoots: true}), emptyElement);
       }
       // If we provide the shadow root, serialize it, regardless of serializableShadowRoots.
       assert_equals(wrapper.getHTML({serializableShadowRoots: true, shadowRoots:

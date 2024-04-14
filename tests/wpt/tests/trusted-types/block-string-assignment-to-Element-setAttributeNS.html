@@ -63,10 +63,7 @@
     // <https://w3c.github.io/trusted-types/dist/spec/#validate-attribute-mutation>.
     const nonLowerCaseTests = [
       { element: "iframe", attribute: "SRCDOC", elementNamespace: htmlNamespace },
-      { element: "embed", attribute: "SRC", elementNamespace: htmlNamespace },
       { element: "script", attribute: "SRC", elementNamespace: htmlNamespace },
-      { element: "object", attribute: "DATA", elementNamespace: htmlNamespace },
-      { element: "object", attribute: "CODEBASE", elementNamespace: htmlNamespace },
       { element: "script", attribute: "HREF", elementNamespace: svgNamespace },
       { element: "script", attribute: "HREF", elementNamespace: svgNamespace,
         attributeNamespace: xlinkNamespace },

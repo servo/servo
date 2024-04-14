@@ -6,6 +6,7 @@ from .. import (
     any_list,
     any_string,
     any_string_or_null,
+    assert_cookies,
     recursive_compare,
 )
 
@@ -13,21 +14,6 @@ from .. import (
 def assert_bytes_value(bytes_value):
     assert bytes_value["type"] in ["string", "base64"]
     any_string(bytes_value["value"])
-
-
-def assert_cookies(event_cookies, expected_cookies):
-    assert len(event_cookies) == len(expected_cookies)
-
-    # Simple helper to find a cookie by key and value only.
-    def match_cookie(cookie, expected):
-        for key in expected:
-            if cookie[key] != expected[key]:
-                return False
-
-        return True
-
-    for cookie in expected_cookies:
-        assert next(c for c in event_cookies if match_cookie(c, cookie)) is not None
 
 
 def assert_headers(event_headers, expected_headers):

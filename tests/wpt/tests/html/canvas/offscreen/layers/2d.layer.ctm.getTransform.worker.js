@@ -6,13 +6,7 @@
 importScripts("/resources/testharness.js");
 importScripts("/html/canvas/resources/canvas-tests.js");
 
-var t = async_test("Tests getTransform inside layers.");
-var t_pass = t.done.bind(t);
-var t_fail = t.step_func(function(reason) {
-    throw reason;
-});
-t.step(function() {
-
+test(t => {
   var canvas = new OffscreenCanvas(100, 50);
   var ctx = canvas.getContext('2d');
 
@@ -22,6 +16,5 @@ t.step(function() {
   const m = ctx.getTransform();
   assert_array_equals([m.a, m.b, m.c, m.d, m.e, m.f], [2, 0, 0, 3, 10, 20]);
   ctx.endLayer();
-  t.done();
-});
+}, "Tests getTransform inside layers.");
 done();

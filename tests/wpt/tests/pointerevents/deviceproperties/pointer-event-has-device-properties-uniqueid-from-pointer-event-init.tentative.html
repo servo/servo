@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<!--
+   Tentative; contingent on merge of:
+   https://github.com/w3c/pointerevents/pull/495
+-->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="console"></div>
+
+<!-- This test verifies that if the kPointerEventDeviceId flag is enabled,
+     pointerEvent.deviceProperties.uniqueId can be set via PointerEventInit. If not, it is
+     undefined. -->
+<script>
+    const UNIQUE_ID = 1001;
+    const INVALID_UNIQUE_ID = -1;
+
+    function CheckDeviceId(event, uniqueId) {
+        assert_equals(event.deviceProperties.uniqueId, uniqueId, "uniqueId is populated");
+    }
+
+    promise_test(async () => {
+        if (!window.internals)
+          return;
+        var deviceProps = new DeviceProperties({
+          uniqueId: 1001
+        });
+        var downEvent = new PointerEvent("pointerdown",
+          {pointerId: 1,
+            bubbles: true,
+            cancelable: true,
+            pointerType: "pen",
+            width: 100,
+            height: 100,
+            isPrimary: true,
+            deviceProperties: deviceProps
+          });
+        CheckDeviceId(downEvent, UNIQUE_ID);
+        var moveEvent = new PointerEvent("pointermove",
+          {pointerId: 1,
+            bubbles: true,
+            cancelable: true,
+            pointerType: "pen",
+            width: 100,
+            height: 100,
+            isPrimary: true,
+            deviceProperties: deviceProps
+          });
+        CheckDeviceId(moveEvent, UNIQUE_ID);
+        var upEvent = new PointerEvent("pointerup",
+          {pointerId: 1,
+            bubbles: true,
+            cancelable: true,
+            pointerType: "pen",
+            width: 100,
+            height: 100,
+            isPrimary: true,
+            deviceProperties: deviceProps
+          });
+        CheckDeviceId(upEvent, UNIQUE_ID);
+    }, 'PointerEvent.deviceProperties via DevicePropertiesInit');
+
+    promise_test(async () => {
+        if (!window.internals)
+          return;
+        var emptyDeviceProps = new DeviceProperties({});
+        var downEventEmptyProps = new PointerEvent("pointerdown",
+          {pointerId: 1,
+            bubbles: true,
+            cancelable: true,
+            pointerType: "pen",
+            width: 100,
+            height: 100,
+            isPrimary: true,
+            deviceProperties: emptyDeviceProps
+        });
+        CheckDeviceId(downEventEmptyProps, INVALID_UNIQUE_ID);
+    }, 'PointerEvent.deviceProperties via empty DevicePropertiesInit');
+
+    promise_test(async () => {
+        if (!window.internals)
+          return;
+        var downEventEmptyProps = new PointerEvent("pointerdown",
+          {pointerId: 1,
+            bubbles: true,
+            cancelable: true,
+            pointerType: "pen",
+            width: 100,
+            height: 100,
+            isPrimary: true,
+        });
+        CheckDeviceId(downEventEmptyProps, INVALID_UNIQUE_ID);
+    }, 'No deviceProperties in PointerEventInit');
+</script>

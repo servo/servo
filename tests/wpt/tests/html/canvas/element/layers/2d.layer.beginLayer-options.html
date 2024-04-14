@@ -16,8 +16,9 @@
 
 <ul id="d"></ul>
 <script>
-var t = async_test("Checks beginLayer works for different option parameter values");
-_addTest(function(canvas, ctx) {
+test(t => {
+  var canvas = document.getElementById('c');
+  var ctx = canvas.getContext('2d');
 
   ctx.beginLayer(); ctx.endLayer();
   ctx.beginLayer(null); ctx.endLayer();
@@ -45,6 +46,6 @@ _addTest(function(canvas, ctx) {
   ctx.beginLayer({filter: true}); ctx.endLayer();
   ctx.beginLayer({filter: false}); ctx.endLayer();
 
-});
+}, "Checks beginLayer works for different option parameter values");
 </script>
 

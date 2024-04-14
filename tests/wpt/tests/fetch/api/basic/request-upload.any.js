@@ -60,6 +60,10 @@ testUpload("Fetch with POST with Int8Array body", url,
   "POST",
   () => new Int8Array(4),
   "\0\0\0\0");
+testUpload("Fetch with POST with Float16Array body", url,
+  "POST",
+  () => new Float16Array(2),
+  "\0\0\0\0");
 testUpload("Fetch with POST with Float32Array body", url,
   "POST",
   () => new Float32Array(1),

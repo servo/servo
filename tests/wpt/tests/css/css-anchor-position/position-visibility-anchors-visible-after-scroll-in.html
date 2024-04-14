@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<meta charset="utf-8">
+<meta name="assert" content="Scrolling an anchor in to view should cause a position-visibility: anchors-visible element to appear." />
+<title>CSS Anchor Positioning Test: position-visibility: anchors-visible</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-visibility">
+<link rel="match" href="position-visibility-anchors-visible-after-scroll-in-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+  #scroll-container {
+    overflow: hidden scroll;
+    width: 300px;
+    height: 100px;
+  }
+
+  #anchor {
+    anchor-name: --a1;
+    width: 100px;
+    height: 100px;
+    background: orange;
+  }
+
+  #spacer {
+    height: 100px;
+  }
+
+  #target {
+    position-anchor: --a1;
+    position-visibility: anchors-visible;
+    inset-area: block-end;
+    width: 100px;
+    height: 100px;
+    background: green;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+</style>
+
+<div id="scroll-container">
+  <div id="anchor">anchor</div>
+  <div id="spacer"></div>
+  <div id="target">target</div>
+</div>
+
+<script>
+  // #target should be initially visible because it is anchored to #anchor,
+  // which is visible.
+  waitForAtLeastOneFrame().then(() => {
+    // Scroll #anchor out of view.
+    const scroller = document.getElementById('scroll-container');
+    scroller.scrollTop = 100;
+    // #target should now be invisible.
+
+    waitForAtLeastOneFrame().then(() => {
+      // Scroll #anchor back into view.
+      scroller.scrollTop = 0;
+
+      // #target should now be visible again.
+      takeScreenshot();
+    });
+  });
+</script>
