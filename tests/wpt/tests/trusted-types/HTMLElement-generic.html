@@ -41,7 +41,6 @@ function getTrusted(element, attr) {
 // Types is currently enabled (& enforced) or not.
 function runTests(is_tt_enabled) {
   for (const [element, attr] of [
-      [ 'embed', 'src' ],
       [ 'script', 'src' ],
       [ 'div', 'innerHTML' ],
       [ 'iframe', 'srcdoc' ],

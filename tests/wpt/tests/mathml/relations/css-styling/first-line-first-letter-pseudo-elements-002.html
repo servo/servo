@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>MathML and ::first-line/::first-letter pseudo-elements</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#legacy-mathml-style-attributes">
+<link rel="match" href="first-line-first-letter-pseudo-elements-002-ref.html"/>
+<meta name="assert" content="::first-line and ::first-letter do apply to non-MathML specified display math elements, because their computed values are block/inline flow.">
+<style>
+  .firstline::first-line { background: lime; }
+  .firstletter::first-letter { background: lime; }
+</style>
+<p>PASS if the first line or letter is green.</p>
+<ol>
+  <li>
+    <div style="display: inline math" class="firstline">
+      Hello,<br/>World!
+    </div>
+  </li>
+  <li>
+    <div style="display: inline math" class="firstletter">
+      Hello, World!
+    </div>
+  </li>
+  <li>
+    <div style="display: block math" class="firstline">
+      Hello,<br/>World!
+    </div>
+  </li>
+  <li>
+    <div style="display: block math" class="firstletter">
+      Hello, World!
+    </div>
+  </li>
+</ol>

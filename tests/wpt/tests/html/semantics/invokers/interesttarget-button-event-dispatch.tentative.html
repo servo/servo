@@ -12,7 +12,6 @@
 
 <div id="interestee"></div>
 <button id="interestbutton" interesttarget="interestee">Button</button>
-<a href="/" id="interestanchor" interesttarget="interestee">Anchor</a>
 <button id="otherbutton">Other Button</button>
 
 <script>
@@ -45,36 +44,6 @@
     assert_equals(event.target, interestee, "target");
     assert_equals(event.invoker, interestbutton, "invoker");
   }, "InterestEvent dispatches on button hover");
-
-  promise_test(async function (t) {
-    t.add_cleanup(() => otherbutton.focus());
-    let event = null;
-    interestee.addEventListener("interest", (e) => (event = e), { once: true });
-    interestanchor.focus();
-    assert_true(event instanceof InterestEvent, "event is InterestEvent");
-    assert_equals(event.type, "interest", "type");
-    assert_equals(event.bubbles, false, "bubbles");
-    assert_equals(event.composed, true, "composed");
-    assert_equals(event.isTrusted, true, "isTrusted");
-    assert_equals(event.action, "", "action");
-    assert_equals(event.target, interestee, "target");
-    assert_equals(event.invoker, interestanchor, "invoker");
-  }, "InterestEvent dispatches on anchor focus");
-
-  promise_test(async function (t) {
-    t.add_cleanup(() => otherbutton.focus());
-    let event = null;
-    interestee.addEventListener("interest", (e) => (event = e), { once: true });
-    await hoverOver(interestanchor);
-    assert_true(event instanceof InterestEvent, "event is InterestEvent");
-    assert_equals(event.type, "interest", "type");
-    assert_equals(event.bubbles, false, "bubbles");
-    assert_equals(event.composed, true, "composed");
-    assert_equals(event.isTrusted, true, "isTrusted");
-    assert_equals(event.action, "", "action");
-    assert_equals(event.target, interestee, "target");
-    assert_equals(event.invoker, interestanchor, "invoker");
-  }, "InterestEvent dispatches on anchor hover");
 
   promise_test(async function (t) {
     t.add_cleanup(() => otherbutton.focus());

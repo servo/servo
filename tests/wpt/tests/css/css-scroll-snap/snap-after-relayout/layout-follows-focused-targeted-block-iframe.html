@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <style>
+      .scroller {
+        width: 200px;
+        height: 200px;
+        border: solid 1px black;
+        overflow: scroll;
+        scroll-snap-type: both mandatory;
+        position: relative;
+        resize: both;
+      }
+      .target {
+        scroll-snap-align: start;
+        width: 50px;
+        height: 50px;
+        background-color: green;
+        position: absolute;
+      }
+      .target:target {
+        background-color: blue;
+      }
+      .target:focus {
+        background-color: yellow;
+      }
+      #box1 {
+        left: 150px;
+        top: 0px;
+      }
+      #box2 {
+        left: 0px;
+        top: 150px;
+      }
+      .space {
+        width: 500%;
+        height: 500%;
+        position: absolute;
+      }
+    </style>
+    <div class="scroller" id="scroller">
+        <div tabindex="1" id="box1" class="target">Box 1</div>
+        <div tabindex="1" id="box2" class="target">Box 2</div>
+      <div class="space"></div>
+    </div>
+  </body>
+
+</html>

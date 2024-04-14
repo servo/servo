@@ -8,6 +8,7 @@
 
 <script type="module">
 import {request_options_with_mediation_required,
+        fedcm_error_dialog_click_button,
         fedcm_test,
         select_manifest,
         fedcm_get_and_select_first_account} from './support/fedcm-helper.sub.js';
@@ -18,6 +19,15 @@ fedcm_test(async t => {
   await select_manifest(t, test_options);
 
   const cred = fedcm_get_and_select_first_account(t, test_options);
-  return promise_rejects_dom(t, 'NetworkError', cred);
+  fedcm_error_dialog_click_button(t, "ErrorGotIt");
+  try {
+    await cred;
+    assert_unreached("An IdentityCredentialError exception should be thrown.");
+  } catch (e) {
+    assert_true(e instanceof DOMException);
+    assert_equals(e.name, "IdentityCredentialError");
+    assert_equals(e.code, "");
+    assert_equals(e.url, "");
+  }
 }, 'Test that the promise will be rejected if the response has http error');
 </script>

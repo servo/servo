@@ -111,10 +111,9 @@ otherwise install OpenSSL and ensure that it's on your $PATH.""")
 
 
 def check_environ(product):
-    if product not in ("android_weblayer", "android_webview", "chrome",
-                       "chrome_android", "chrome_ios", "content_shell",
-                       "edgechromium", "firefox", "firefox_android", "ladybird", "servo",
-                       "wktr"):
+    if product not in ("android_webview", "chrome", "chrome_android", "chrome_ios",
+                       "content_shell", "edgechromium", "firefox", "firefox_android",
+                       "ladybird", "servo", "wktr"):
         config_builder = serve.build_config(os.path.join(wpt_root, "config.json"))
         # Override the ports to avoid looking for free ports
         config_builder.ssl = {"type": "none"}
@@ -613,17 +612,6 @@ class ChromeiOS(BrowserSetup):
             raise WptrunError("Unable to locate or install chromedriver binary")
 
 
-class AndroidWeblayer(ChromeAndroidBase):
-    name = "android_weblayer"
-    browser_cls = browser.AndroidWeblayer
-
-    def setup_kwargs(self, kwargs):
-        super().setup_kwargs(kwargs)
-        if kwargs["browser_channel"] in self.experimental_channels and kwargs["enable_experimental"] is None:
-            logger.info("Automatically turning on experimental features for WebLayer Dev/Canary")
-            kwargs["enable_experimental"] = True
-
-
 class AndroidWebview(ChromeAndroidBase):
     name = "android_webview"
     browser_cls = browser.AndroidWebview
@@ -870,7 +858,6 @@ class Epiphany(BrowserSetup):
 
 
 product_setup = {
-    "android_weblayer": AndroidWeblayer,
     "android_webview": AndroidWebview,
     "firefox": Firefox,
     "firefox_android": FirefoxAndroid,

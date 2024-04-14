@@ -23,9 +23,11 @@ function createSVGElement(test, tag, parent, attrs) {
     }
   }
   parent.appendChild(elem);
-  test.add_cleanup(function() {
-    elem.remove();
-  });
+  if (test) {
+    test.add_cleanup(function() {
+      elem.remove();
+    });
+  }
   return elem;
 }
 

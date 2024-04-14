@@ -7,6 +7,8 @@ def main(request, response):
     return request_error
 
   response.headers.set(b"Content-Type", b"application/json")
+  response.headers.set(b"Access-Control-Allow-Origin", request.headers.get(b"Origin"))
+  response.headers.set(b"Access-Control-Allow-Credentials", "true")
 
   account_id = request.POST.get(b"account_id")
   return "{\"token\": \"account_id=" + account_id.decode("utf-8") + "\"}"

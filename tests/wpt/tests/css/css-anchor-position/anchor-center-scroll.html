@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning Test: scroll adjusted anchor-center</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-center">
+<link rel="match" href="anchor-center-scroll-ref.html">
+<style>
+  body { margin: 0; }
+  #scroller {
+    width: 400px;
+    height: 400px;
+    overflow: auto;
+    background: orange;
+  }
+  #anchor {
+    margin-top: 100px;
+    width: 100px;
+    height: 100px;
+    background: pink;
+    anchor-name: --anchor;
+  }
+  #anchored {
+    position: absolute;
+    position-anchor: --anchor;
+    align-self: anchor-center;
+    width: 50px;
+    height: 50px;
+    background: purple;
+  }
+  #filler { height: 1000px; }
+</style>
+<div id="scroller">
+  <div id="anchor"></div>
+  <div id="anchored"></div>
+  <div id="filler"></div>
+</div>
+<script>
+  scroller.offsetTop;
+  scroller.scrollTop = 100;
+</script>

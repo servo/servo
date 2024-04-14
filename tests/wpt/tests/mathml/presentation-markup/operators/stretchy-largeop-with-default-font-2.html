@@ -11,8 +11,8 @@
       function contentOf(aElement) {
         return document.getElementById(aElement).textContent;
       }
-      function heightOf(aElement) {
-        return document.getElementById(aElement).getBoundingClientRect().height;
+      function boxOf(aElement) {
+        return document.getElementById(aElement).getBoundingClientRect();
       }
       promise_test(() => {
         return new Promise(resolve => {
@@ -21,7 +21,10 @@
           const numTests = 10; // zero indexed
           for (let i = 0; i < numTests; i++) {
             const operatorName = contentOf(`mo${i}`);
-            assert_greater_than(heightOf(`mo${i}`), heightOf(`moRef${i}`), `size of largeop '${operatorName}'`);
+            const box = boxOf(`mo${i}`);
+            const ref = boxOf(`moRef${i}`);
+            assert_greater_than(box.width, ref.width, `width of largeop '${operatorName}'`);
+            assert_greater_than(box.height, ref.height, `height of largeop '${operatorName}'`);
           }
         });
       }, "Test that non-stretchy largeops are bigger in display mode.");

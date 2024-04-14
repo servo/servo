@@ -12,8 +12,8 @@ pressure_test(async (t, mockPressureService) => {
     const observerChanges = [];
     const observer = new PressureObserver(changes => {
       observerChanges.push(changes);
-    }, {sampleInterval});
-    observer.observe('cpu');
+    });
+    observer.observe('cpu', {sampleInterval});
 
     mockPressureService.startPlatformCollector(sampleInterval / 2);
     let i = 0;
@@ -46,10 +46,10 @@ pressure_test(async (t, mockPressureService) => {
   const sampleInterval = 1000;
   const observer = new PressureObserver(changes => {
     pressureChanges.push(changes);
-  }, {sampleInterval});
+  });
 
   await new Promise(async resolve => {
-    observer.observe('cpu');
+    observer.observe('cpu', {sampleInterval});
     mockPressureService.setPressureUpdate('cpu', 'critical');
     mockPressureService.startPlatformCollector(sampleInterval);
     await t.step_wait(() => pressureChanges.length == 1);

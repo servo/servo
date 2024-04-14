@@ -1,9 +1,6 @@
 /* These are UA styles for select and stylable select. */
 
 .stylable-select-container {
-  background-color: Field;
-  border: 1px solid rgba(0, 0, 0, 0);
-  border-radius: 0;
   box-sizing: border-box;
   display: inline-block;
 }

@@ -13,7 +13,7 @@ test(() => {
 
 ["Int8Array", "Uint8Array", "Uint8ClampedArray", "Int16Array", "Uint16Array",
  "Int32Array", "Uint32Array", "BigInt64Array", "BigUint64Array",
- "Float32Array", "Float64Array", "DataView"].forEach((type) => {
+ "Float16Array", "Float32Array", "Float64Array", "DataView"].forEach((type) => {
     test(() => {
         const xhr = new XMLHttpRequest();
         // See https://github.com/whatwg/html/issues/5380 for why not `new SharedArrayBuffer()`

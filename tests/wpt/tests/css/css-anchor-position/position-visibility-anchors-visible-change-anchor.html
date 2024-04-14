@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<meta charset="utf-8">
+<meta name="assert" content="Position-visibility should not be affected by the visibility of a previous anchor." />
+<title>CSS Anchor Positioning Test: position-visibility: anchors-visible</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-visibility">
+<link rel="match" href="position-visibility-anchors-visible-change-anchor-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+  #scroll-container {
+    overflow: hidden scroll;
+    width: 300px;
+    height: 100px;
+  }
+
+  .anchor {
+    width: 100px;
+    height: 100px;
+    background: orange;
+    display: inline-block;
+  }
+
+  #anchor1 {
+    height: 200px;
+    anchor-name: --a1;
+  }
+
+  #anchor2 {
+    anchor-name: --a2;
+  }
+
+  #target {
+    position-anchor: --a2;
+    position-visibility: anchors-visible;
+    inset-area: bottom;
+    width: 100px;
+    height: 100px;
+    background: green;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+</style>
+
+<div id="scroll-container">
+  <div id="anchor1" class="anchor">anchor1</div>
+  <div id="anchor2" class="anchor">anchor2</div>
+  <div id="target">target</div>
+</div>
+
+<script>
+  // #target should be initially visible because it is anchored to #anchor2,
+  // which is visible.
+  waitForAtLeastOneFrame().then(() => {
+    // Change #target to be anchored to #anchor1.
+    target.style.positionAnchor = '--a1';
+    // #target should be still be visible because #anchor1 is also visible.
+    waitForAtLeastOneFrame().then(() => {
+      // Scroll #anchor2 out of view, with #anchor1 still in view.
+      const scroller = document.getElementById('scroll-container');
+      scroller.scrollTop = 100;
+      // #target should still be visible because it is anchored to #anchor1,
+      // which is still visible.
+      takeScreenshot();
+    });
+  });
+</script>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Anchor Positioning Test: position-visibility: no-overflow</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-visibility">
+<link rel="match" href="position-visibility-no-overflow-ref.html">
+<style>
+  #scroll-container {
+    position: relative;
+    overflow: hidden scroll;
+    width: 400px;
+    height: 100px;
+  }
+
+  .anchor {
+    width: 100px;
+    height: 100px;
+    background: orange;
+    display: inline-block;
+  }
+
+  .target {
+    position: absolute;
+    position-visibility: no-overflow;
+    inset-area: block-end;
+    width: 100px;
+    height: 100px;
+    background: red;
+    top: 0;
+    left: 0;
+  }
+</style>
+
+<div id="scroll-container">
+  <!-- #target1 should not be visible because it overflows the containing block. -->
+  <div class="anchor" style="anchor-name: --a1;">anchor1</div>
+  <div id="target1" class="target" style="position-anchor: --a1;">target1</div>
+</div>

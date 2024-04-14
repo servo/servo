@@ -1,5 +1,0 @@
-/* TODO(crbug.com/1511354): linux.css sets background-color on select, consider
- * removing it. */
-select {
-  background-color: Field;
-}

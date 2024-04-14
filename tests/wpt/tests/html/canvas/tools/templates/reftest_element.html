@@ -3,7 +3,7 @@
 {% if test_type == 'promise' %}<html class="reftest-wait">
 {% endif %}
 {% if not is_test_reference %}
-<link rel="match" href="{{ name }}-expected.html">
+<link rel="match" href="{{ reference_file }}">
 {% if fuzzy %}<meta name=fuzzy content="{{ fuzzy }}">
 {% endif %}
 {% endif %}

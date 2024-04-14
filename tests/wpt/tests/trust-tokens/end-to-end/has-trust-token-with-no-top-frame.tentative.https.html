@@ -12,11 +12,13 @@
     const frame = document.createElement('iframe');
     document.body.appendChild(frame);
     const cachedDocument = window[0].document;
+    const IFrameDOMException = frame.contentWindow.DOMException;
     frame.remove();
 
-    test(() => {
-      assert_equals(cachedDocument.hasPrivateToken("https://issuer.example"), undefined,
-        "Can't construct a Promise in a destroyed execution context.");
+    promise_test(async t => {
+      await promise_rejects_dom(
+          t, 'InvalidStateError', IFrameDOMException,
+          cachedDocument.hasPrivateToken("https://issuer.example"));
     }, 'hasPrivateToken in a destroyed document.');
   </script>
 </body>

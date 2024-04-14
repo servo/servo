@@ -87,10 +87,22 @@
     " snap targets.");
 
     promise_test(async (t) => {
-      await test_programmatic_scroll_onsnapchanging(t, scroller, document,
-                                                    snap_area_2);
-    }, "programmatic scroll triggers Document.snapchanging when scrolling a " +
-       "snap container");
+      await waitForCompositorCommit();
+      const test_data = {
+        scroller: scroller,
+        scrolling_function: async () => {
+          scroller.scrollTo(0, snap_area_2.offsetTop);
+        },
+        expected_snap_targets: { block: snap_area_2, inline: null },
+        expected_scroll_offsets: {
+          x: 0,
+          y: snap_area_2.offsetTop
+        }
+      };
+      await test_snap_event(t, test_data, "snapchanging",
+                            /*use_onsnap_member*/true);
+    }, "Document.snapchanging fires on programmatic scrolls that changes a" +
+       "scroller's snap targets.");
 
     promise_test(async (t) => {
       checkSnapEventSupport("snapchanging");

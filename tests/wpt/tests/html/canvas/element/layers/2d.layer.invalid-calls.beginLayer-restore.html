@@ -16,14 +16,15 @@
 
 <ul id="d"></ul>
 <script>
-var t = async_test("Raises exception on beginLayer() + restore().");
-_addTest(function(canvas, ctx) {
+test(t => {
+  var canvas = document.getElementById('c');
+  var ctx = canvas.getContext('2d');
 
   assert_throws_dom("INVALID_STATE_ERR", function() {
     ctx.beginLayer();
     ctx.restore();
   });
 
-});
+}, "Raises exception on beginLayer() + restore().");
 </script>
 

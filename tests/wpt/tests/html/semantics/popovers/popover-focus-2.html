@@ -80,7 +80,7 @@ promise_test(async t => {
   assert_equals(document.activeElement,invoker2,'Focus should move within popover');
   await sendShiftTab();
   await sendShiftTab();
-  assert_equals(document.activeElement, button1 ,'Focus should not move back to invoker as it is non-focusable');
+  assert_equals(document.activeElement,invoker0,'Focus should not move back to invoker as it is non-focusable');
   // Reset invoker1 to focusable.
   invoker1.disabled = false;
   await verifyFocusOrder([button1, button2, invoker0, invoker1, inside_popover1, invoker2, inside_popover2, button3, button4],'set 1');

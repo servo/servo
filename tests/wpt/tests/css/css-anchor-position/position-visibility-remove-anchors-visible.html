@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<meta charset="utf-8">
+<meta name="assert" content="Removing position-visibility: anchors-visible from an invisible anchored element should cause it to become visible." />
+<title>CSS Anchor Positioning Test: position-visibility: anchors-visible</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-visibility">
+<link rel="match" href="position-visibility-remove-anchors-visible-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+  #scroll-container {
+    overflow: hidden scroll;
+    width: 300px;
+    height: 100px;
+  }
+
+  #anchor {
+    anchor-name: --a1;
+    width: 100px;
+    height: 100px;
+    background: orange;
+  }
+
+  #spacer {
+    height: 100px;
+  }
+
+  #target {
+    position-anchor: --a1;
+    position-visibility: anchors-visible;
+    inset-area: bottom;
+    width: 100px;
+    height: 100px;
+    background: green;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+</style>
+
+<div id="scroll-container">
+  <div id="anchor">anchor</div>
+  <div id="spacer"></div>
+  <div id="target">target</div>
+</div>
+
+<script>
+  // #target should be initially visible because it is anchored to #anchor,
+  // which is visible.
+
+  // Scroll #anchor so that it is no longer visible.
+  const scroller = document.getElementById('scroll-container');
+  scroller.scrollTop = 100;
+
+  waitForAtLeastOneFrame().then(() => {
+    // Remove position-visibility: anchors-visible. #target should become
+    // visible again.
+    target.style.positionVisibility = 'initial';
+    takeScreenshot();
+  });
+</script>

@@ -8,6 +8,7 @@
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script src="/css/css-scroll-snap-2/resources/common.js"></script>
+  <script src="/css/css-scroll-snap-2/resources/programmatic-scroll-common.js"></script>
   <script src="/dom/events/scrolling/scroll_support.js"></script>
   <script src="/web-animations/testcommon.js"></script>
 </head>
@@ -61,6 +62,7 @@
 
   <script>
     let scroller = document.scrollingElement;
+    let snap_point_2 = document.getElementById("snap_point_2");
 
     promise_test(async (t) => {
       await waitForCompositorCommit();
@@ -77,6 +79,23 @@
       };
       await test_snapchanged(t, test_data);
     }, "snapchanged event fires after snap target changes via scrollTo");
+
+    promise_test(async (t) => {
+      await waitForCompositorCommit();
+      const test_data = {
+        scroller: scroller,
+        scrolling_function: () => {
+            scroller.scrollTo(snap_point_2.offsetLeft, snap_point_2.offsetTop);
+        },
+        expected_snap_targets: { block: snap_point_2, inline: snap_point_2 },
+        expected_scroll_offsets: {
+          x: snap_point_2.offsetLeft,
+          y: snap_point_2.offsetTop,
+        }
+      };
+      await test_snapchanged(t, test_data, /*use_onsnap_member*/true);
+    }, "Document.onsnapchanged event fires after snap target changes via" +
+       "scrollTo");
 
     promise_test(async (t) => {
       checkSnapEventSupport("snapchanged");

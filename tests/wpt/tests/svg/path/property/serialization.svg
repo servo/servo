@@ -17,7 +17,7 @@
 
   let test2 = 'path("M 0 0 L 100 100 m 0 100 l 100 0 Z l 160 20 Z")';
   test_valid_value('d', test2);
-  test_computed_value('d', test2);
+  test_computed_value('d', test2, 'path("M 0 0 L 100 100 M 100 200 L 200 200 Z L 260 220 Z")');
 
   let test3 = 'path("m 10 20   l 20 30   Z   l 50 60   Z   m 70 80   l 90 60   Z   t 70 120")';
   test_valid_value('d', test3, 'path("m 10 20 l 20 30 Z l 50 60 Z m 70 80 l 90 60 Z t 70 120")');

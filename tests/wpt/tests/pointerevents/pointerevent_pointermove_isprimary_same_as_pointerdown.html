@@ -6,6 +6,8 @@
         <link rel="author" title="Microsoft" href="http://www.microsoft.com/"/>
         <meta name="assert" content="The isPrimary attribute of a pointermove event must have the same value as the isPrimary attribute of the last pointerdown event with the same pointerId attribute."/>
         <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
+        <meta name="variant" content="?mouse">
+        <meta name="variant" content="?touch">
         <!-- /resources/testharness.js -->
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
@@ -22,45 +24,82 @@
             // will fail unless the async_test is created with the var name "test_pointerEvent".
             add_completion_callback(showPointerTypes);
 
-            var pointermove_event = null;
-            var pointerdown_event = null;
+            var pointermove_events = new Map();
+            var pointerdown_events = new Map();
 
             function run() {
                 var target0 = document.getElementById("target0");
                 var actions_promise;
 
                 on_event(target0, "pointermove", function (event) {
-                    if (pointerdown_event != null) {
+                    let pointerdown_event = pointerdown_events.get(event.pointerId);
+                    if (pointerdown_event) {
                         test_pointerEvent.step(function () {
                             assert_equals(event.pointerId, pointerdown_event.pointerId, "pointermove.pointerId should be the same as pointerdown.pointerId.");
                             assert_equals(event.isPrimary, pointerdown_event.isPrimary, "pointermove.isPrimary should be the same as pointerdown.isPrimary.");
                         });
-                        pointermove_event = event;
+                        pointermove_events.set(event.pointerId, event);
                     }
                 });
 
                 on_event(target0, "pointerdown", function (event) {
-                    pointerdown_event = event;
+                    assert_equals(event.isPrimary, !!(pointerdown_events.size == 0), "pointerdown.isPrimary should only be true for first pointer.");
+                    pointerdown_events.set(event.pointerId, event);
                     detected_pointertypes[event.pointerType] = true;
                 });
 
                 on_event(target0, "pointerup", function (event) {
+                    let pointerdown_event = pointerdown_events.get(event.pointerId);
                     test_pointerEvent.step(function () {
-                        assert_not_equals(pointermove_event, null, "pointermove event was never received: ");
+                        assert_true(!!pointerdown_event, "pointerdown event was received.");
+                        assert_true(!!pointermove_events.size, "pointermove event was received.");
+                        assert_equals(event.pointerId, pointerdown_event.pointerId, "pointerup.pointerId should be the same as pointerdown.pointerId.");
+                        assert_equals(event.isPrimary, pointerdown_event.isPrimary, "pointerup.isPrimary should be the same as pointerdown.isPrimary.");
                     });
-                    // Make sure the test finishes after all the input actions are completed.
-                    actions_promise.then( () => {
-                        test_pointerEvent.done();
-                    });
+                    pointermove_events.delete(event.pointerId);
+                    pointerdown_events.delete(event.pointerId);
+                    if (pointerdown_events.size == 0) {
+                        // Make sure the test finishes after all the input actions are completed.
+                        actions_promise.then(() => {
+                            test_pointerEvent.done();
+                        });
+                    }
                 });
 
-                // Dispatch a mouse drag in target0.
-                actions_promise = new test_driver.Actions()
-                    .pointerMove(0, 0, {origin: target0})
-                    .pointerDown()
-                    .pointerMove(3, 3, {origin: target0})
-                    .pointerUp()
-                    .send();
+                // Dispatch a mouse/touch drag in target0.
+                var pointerType = location.search.substring(1);
+                switch (pointerType) {
+                    case "mouse":
+                        actions_promise = new test_driver.Actions()
+                            .pointerMove(0, 0, {origin: target0})
+                            .pointerDown()
+                            .pointerMove(3, 3, {origin: target0})
+                            .pointerUp()
+                            .send();
+                        break;
+                    case "touch":
+                        actions_promise = new test_driver.Actions()
+                            .addPointer("touchPointer1", "touch")
+                            .pointerMove(0, 0, {origin: target0, sourceName: "touchPointer1"})
+                            .pointerDown({sourceName: "touchPointer1"})
+                            .pointerMove(3, 3, {origin: target0, sourceName: "touchPointer1"})
+                            .addPointer("touchPointer2", "touch")
+                            .pointerMove(0, 0, {origin: target0, sourceName: "touchPointer2"})
+                            .pointerDown({sourceName: "touchPointer2"})
+                            .pointerMove(5, 5, {origin: target0, sourceName: "touchPointer2"})
+                            .addPointer("touchPointer3", "touch")
+                            .pointerMove(0, 0, {origin: target0, sourceName: "touchPointer3"})
+                            .pointerDown({sourceName: "touchPointer3"})
+                            .pointerMove(7, 7, {origin: target0, sourceName: "touchPointer3"})
+                            .pointerUp({sourceName: "touchPointer3"})
+                            .pointerUp({sourceName: "touchPointer1"})
+                            .pointerUp({sourceName: "touchPointer2"})
+                            .send();
+                        break;
+                    default:
+                        assert_true(false, `does support testing ${pointerType} input`);
+                        break;
+                }
             }
         </script>
     </head>

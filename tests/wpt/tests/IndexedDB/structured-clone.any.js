@@ -170,7 +170,7 @@ cloneObjectTest(new Uint8Array([0, 1, 254, 255]).buffer, (orig, clone) => {
 // TODO SharedArrayBuffer
 
 // Array Buffer Views
-[
+let byteArrays = [
   new Uint8Array([]),
   new Uint8Array([0, 1, 254, 255]),
   new Uint16Array([0x0000, 0x0001, 0xFFFE, 0xFFFF]),
@@ -182,7 +182,14 @@ cloneObjectTest(new Uint8Array([0, 1, 254, 255]).buffer, (orig, clone) => {
   new Float32Array([-Infinity, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, Infinity, NaN]),
   new Float64Array([-Infinity, -Number.MAX_VALUE, -Number.MIN_VALUE, 0,
                     Number.MIN_VALUE, Number.MAX_VALUE, Infinity, NaN])
-].forEach(value => cloneObjectTest(value, (orig, clone) => {
+]
+
+if (typeof Float16Array !== 'undefined') {
+  byteArrays.push(
+      new Float16Array([-Infinity, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, Infinity, NaN]));
+}
+
+byteArrays.forEach(value => cloneObjectTest(value, (orig, clone) => {
   assert_array_equals(orig, clone);
 }));
 

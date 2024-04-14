@@ -617,8 +617,7 @@
       tentative: .tentative
 
 - name: >-
-    2d.filter.{{ variant_names[0] }}.gaussianBlur.{{ variant_names[1] }}{{
-    tentative }}
+    2d.filter.{{ variant_names[0] }}.gaussianBlur{{ tentative }}
   desc: Test CanvasFilter() with gaussianBlur.
   size: [100, 100]
   code: |
@@ -633,13 +632,14 @@
     <svg xmlns="http://www.w3.org/2000/svg"
          width="{{ size[0] }}" height="{{ size[1] }}"
          color-interpolation-filters="sRGB">
-      <filter id="blur" x="-50%" y="-50%" width="200%" height="200%">
+      <filter id="blur{{ id }}" x="-50%" y="-50%" width="200%" height="200%">
         <feGaussianBlur stdDeviation="{{ blur_x }} {{blur_y}}" />
       </filter>
       <rect x="25" y="25" width="50" height="50"
-            fill="teal" filter="url(#blur)" />
+            fill="teal" filter="url(#blur{{ id }})" />
     </svg>
   append_variants_to_name: false
+  variants_layout: [multi_files, single_file]
   variants:
   - layers:
       filter_declaration: |-

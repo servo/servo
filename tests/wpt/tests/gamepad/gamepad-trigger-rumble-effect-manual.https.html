@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <p>
+      This test requires a gamepad device to be connected. Please interact with
+      the gamepad for it to be recognized. The "Trigger rumble!" button will be
+      enabled after that.
+    </p>
+    <p>
+      After pressing the "Trigger rumble!" button below, you should expect to
+      feel a localized vibration in both triggers of all connected
+      trigger-rumble compatible gamepads for one second.
+    </p>
+    <p>
+      Please press the "Confirm effect has played" button to conclude
+      the test.
+    </p>
+    <button id="play_trigger_rumble_button" disabled>No trigger-rumble gamepads detected</button>
+    <button id="confirm_effect_button" disabled>Confirm effect has played</button>
+    <script>
+      async_test(t => {
+        let connectedTriggerRumbleGamepads = {};
+        playEffectButton = document.getElementById('play_trigger_rumble_button');
+
+        function isTriggerRumbleSupported(gamepad) {
+          return gamepad.vibrationActuator.effects.includes('trigger-rumble');
+        }
+
+        window.addEventListener('gamepadconnected', (e) => {
+          if (!e.gamepad || !e.gamepad.vibrationActuator || !e.gamepad.vibrationActuator.effects) {
+            return;
+          }
+
+          if (isTriggerRumbleSupported(e.gamepad)) {
+            connectedTriggerRumbleGamepads[e.gamepad.index] = e.gamepad;
+
+            if (playEffectButton.disabled) {
+              playEffectButton.disabled = false;
+              playEffectButton.innerText = 'Trigger rumble!'
+            }
+          }
+        });
+
+        window.addEventListener('gamepaddisconnected', (e) => {
+          delete connectedTriggerRumbleGamepads[e.gamepad.index];
+
+          let anyTriggerRumbleGamepad = false;
+          for (let index in connectedTriggerRumbleGamepads){
+            const gamepad = connectedTriggerRumbleGamepads[index];
+            if (!gamepad || !gamepad.vibrationActuator || !gamepad.vibrationActuator.effects) {
+              continue;
+            }
+
+            if (isTriggerRumbleSupported(gamepad)){
+              anyTriggerRumbleGamepad = true;
+              break;
+            }
+          }
+
+          if (!anyTriggerRumbleGamepad && !playEffectButton.disabled) {
+            playEffectButton.disabled = true;
+            playEffectButton.innerText = "No trigger-rumble gamepads detected";
+          }
+        });
+
+        playEffectButton.addEventListener("click", () => {
+          let gamepads = navigator.getGamepads();
+          for (const gamepad of gamepads) {
+            if (gamepad && isTriggerRumbleSupported(gamepad)) {
+              gamepad.vibrationActuator.playEffect("trigger-rumble", {
+                duration: 1000,
+                leftTrigger: 1.0,
+                rightTrigger: 1.0,
+              });
+            }
+          }
+
+          const confirmButton = document.getElementById("confirm_effect_button");
+          if (confirmButton.disabled) {
+            confirmButton.disabled = false;
+          }
+          confirmButton.addEventListener('click', () => {
+            t.done();
+          });
+        });
+      }, "Gamepads with trigger-rumble capabilities should have the triggers' motors activated.");
+    </script>
+  </body>
+</html>

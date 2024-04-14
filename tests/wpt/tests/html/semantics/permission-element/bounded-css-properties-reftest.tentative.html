@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="match" href="bounded-css-properties-reftest-ref.html">
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<body>
+  <div>
+    The permission element should have some limits for specific properties:
+    <ul>
+    <li>font-weight is adjusted to be at least 200.</li>
+    <li>font-style should only have "normal" or "italic" values.</li>
+    <li>word-spacing should be at most 0.5 of the font size, and non-negative.</li>
+    <li>letter-spacing should be between -0.05 and 0.2 of the font size.</li>
+    </ul>
+  </div>
+
+<style>
+  #id1 {
+    font-weight: 100;
+    font-style: oblique 30deg;
+    word-spacing: 1em;
+    font-size: 100px;
+    height: auto;
+    width: auto;
+    letter-spacing: 25px;
+  }
+  #id2 {
+    word-spacing: -1000px;
+    height: auto;
+    width: auto;
+    font-size: 10px;
+    letter-spacing: -1px;
+  }
+</style>
+
+<permission id="id1" type="geolocation">
+<permission id="id2" type="camera">
+</body>

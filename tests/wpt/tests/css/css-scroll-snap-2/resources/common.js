@@ -26,13 +26,15 @@ async function snap_test_setup(test, scroller, event_type) {
   });
 }
 
-async function test_snap_event(test, test_data, event_type) {
+async function test_snap_event(test, test_data, event_type,
+                               use_onsnap_member = false) {
   await snap_test_setup(test, test_data.scroller, event_type);
 
   let listener = test_data.scroller ==
     document.scrollingElement ? document : test_data.scroller;
 
-  const event_promise = waitForSnapEvent(listener, event_type);
+  const event_promise = waitForSnapEvent(listener, event_type, true,
+                                         use_onsnap_member);
   await test_data.scrolling_function();
   let evt = await event_promise;
 
@@ -45,19 +47,36 @@ async function test_snap_event(test, test_data, event_type) {
     "horizontal scroll offset mismatch.");
 }
 
-async function test_snapchanged(test, test_data) {
-  await test_snap_event(test, test_data, "snapchanged");
+async function test_snapchanged(test, test_data, use_onsnap_member = false) {
+  await test_snap_event(test, test_data, "snapchanged", use_onsnap_member);
 }
 
-function waitForEventUntil(event_target, event_type, wait_until) {
+function waitForEventUntil(event_target, event_type, wait_until,
+                           use_onsnap_member = false) {
   return new Promise(resolve => {
     let result = null;
     const listener = (evt) => {
       result = evt;
     };
-    event_target.addEventListener(event_type, listener);
+    if (use_onsnap_member) {
+      if (event_type === "snapchanging") {
+        event_target.onsnapchanging = listener;
+      } else {
+        event_target.onsnapchanged = listener;
+      }
+    } else {
+      event_target.addEventListener(event_type, listener);
+    }
     wait_until.then(() => {
-      event_target.removeEventListener(event_type, listener);
+      if (use_onsnap_member) {
+        if (event_type === "snapchanging") {
+          event_target.onsnapchanging = null;
+        } else {
+          event_target.onsnapchanged = null;
+        }
+      } else {
+        event_target.removeEventListener(event_type, listener);
+      }
       resolve(result);
     });
   });
@@ -77,30 +96,19 @@ function waitForEventsUntil(event_target, event_type, wait_until) {
   });
 }
 
-function waitForOnSnapchanging(event_target) {
-  return new Promise(resolve => {
-    let result = null;
-    const listener = (evt) => {
-      result = evt;
-    };
-    event_target.onsnapchanging = listener;
-    waitForScrollendEventNoTimeout(event_target).then(() => {
-      event_target.onsnapchanging = null;
-      resolve(result);
-    });
-  });
-}
-
 // Proxy a wait for a snap event. We want to avoid having a test
 // timeout in the event of an expected snap event not firing in a particular
 // test case as that would cause the entire file to fail.
 // Snap events should fire before scrollend, so if a scroll should happen, wait
 // for a scrollend event. Otherwise, just do a rAF-based wait.
-function waitForSnapEvent(event_target, event_type, scroll_happens = true) {
+function waitForSnapEvent(event_target, event_type, scroll_happens = true,
+                          use_onsnap_member = false) {
   return scroll_happens ? waitForEventUntil(event_target, event_type,
-                                   waitForScrollendEventNoTimeout(event_target))
+                                   waitForScrollendEventNoTimeout(event_target),
+                                   use_onsnap_member)
                         : waitForEventUntil(event_target, event_type,
-                                   waitForAnimationFrames(2));
+                                   waitForAnimationFrames(2),
+                                   use_onsnap_member);
 }
 
 function waitForSnapChangedEvent(event_target, scroll_happens = true) {

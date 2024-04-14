@@ -16,8 +16,9 @@
 
 <ul id="d"></ul>
 <script>
-var t = async_test("Checks that the context state is left unchanged if beginLayer throws.");
-_addTest(function(canvas, ctx) {
+test(t => {
+  var canvas = document.getElementById('c');
+  var ctx = canvas.getContext('2d');
 
   // Get `beginLayer` to throw while parsing the filter.
   assert_throws_js(TypeError,
@@ -26,6 +27,6 @@ _addTest(function(canvas, ctx) {
   // `beginLayer` shouldn't have opened the layer, so `endLayer` should throw.
   assert_throws_dom("InvalidStateError", () => ctx.endLayer());
 
-});
+}, "Checks that the context state is left unchanged if beginLayer throws.");
 </script>
 

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reference</title>
+<style>
+#scrollContainer {
+  overflow: scroll;
+  position: relative;
+  font: 16px / 32px serif;
+  height: 4lh;
+  border: 1px solid black;
+}
+.clamp {
+  padding: 0 4px;
+  white-space: pre;
+  background-color: yellow;
+}
+.abspos {
+  position: absolute;
+  top: 4.5lh;
+  right: 0;
+  width: 50px;
+  height: 50px;
+  margin: 4px;
+  background-color: skyblue;
+}
+</style>
+
+<div id="scrollContainer">
+<div class="clamp">Line 1
+Line 2
+Line 3
+Line 4…<div class="abspos"></div></div>
+
+<script>
+  window.addEventListener("load", () => {
+    const scrollContainer = document.getElementById("scrollContainer");
+    scrollContainer.scrollTop = scrollContainer.scrollHeight;
+  });
+</script>

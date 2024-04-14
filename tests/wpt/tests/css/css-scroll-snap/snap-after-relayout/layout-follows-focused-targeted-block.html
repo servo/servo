@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" href="https://drafts.csswg.org/css-scroll-snap" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+  </head>
+  <body>
+    <style>
+      iframe {
+        width: 1000px;
+        height: 1000px;
+      }
+    </style>
+    <script>
+      let scroller;
+      let box1;
+      let box2;
+      let frame;
+
+      const iframe_load_promise = new Promise((resolve) => {
+        frame = document.createElement("iframe");
+        frame.onload = async () => {
+          scroller = frame.contentDocument.getElementById("scroller");
+          box1 = frame.contentDocument.getElementById("box1");
+          box2 = frame.contentDocument.getElementById("box2");
+          resolve();
+        };
+        frame.src = "./layout-follows-focused-targeted-block-iframe.html#box2";
+        document.body.appendChild(frame);
+      });
+
+      const displacement = 150;
+      async function test_resnap(t, target) {
+        // Save box1's position and setup the cleanup.
+        const box1_left = box1.style.left;
+        t.add_cleanup(async () => {
+          // Reset box1's position.
+          box1.style.left = box1_left;
+          // Reset scroller's writing-mode.
+          scroller.style.writingMode = "horizontal-tb";
+          // Reset scroll position.
+          await waitForScrollReset(t, scroller);
+        });
+
+        assert_equals(scroller.scrollTop, 0, "scroll top is reset");
+        assert_equals(scroller.scrollLeft, 0, "scroll left is reset");
+
+        // Move box1 outside the scrollport by translating it 150px
+        // horizontally.
+        const new_left = box1.offsetLeft + displacement;
+        box1.style.left = `${new_left}px`;
+
+        assert_equals(scroller.scrollLeft, target.offsetLeft,
+          `scroller followed ${target.id} in x axis`);
+
+        assert_equals(scroller.scrollTop, target.offsetTop,
+          `scroller followed ${target.id} in y axis`);
+      }
+
+      promise_test(async (t) => {
+        await iframe_load_promise;
+
+        box1.focus();
+        assert_equals(frame.contentDocument.activeElement, box1,
+          "sanity check that box1 is focused.");
+        assert_equals(frame.contentDocument.querySelector(":target"), box2,
+          "sanity check that box2 is targeted.");
+        // box2 is targeted but box1 is focused, so box1 should be
+        // followed.
+        await test_resnap(t, box1);
+
+        // Remove focus from box1.
+        scroller.focus();
+      }, "focused area prefered over targeted area.");
+
+      promise_test(async (t) => {
+        await iframe_load_promise;
+
+        assert_not_equals(frame.contentDocument.activeElement, box1,
+          "sanity check that box1 is not focused.");
+        assert_equals(frame.contentDocument.querySelector(":target"), box2,
+          "sanity check that box2 is targeted.");
+        // box2 is targeted and box1 is not focused, so box2 should be
+        // followed.
+        await test_resnap(t, box2);
+      }, "targeted area prefered over non-focused area.");
+
+      promise_test(async (t) => {
+        await iframe_load_promise;
+
+        // Clear the targeted element.
+        frame.contentDocument.location.hash = "";
+        assert_equals(frame.contentDocument.querySelector(":target"), null,
+          "sanity check that no box is targeted.");
+        assert_not_equals(frame.contentDocument.activeElement, box1,
+          "sanity check that box1 is not focused.");
+
+        // Neither box is targeted or focused; so, the block axis target should
+        // be followed.
+        await test_resnap(t, box1);
+      }, "block axis area is preferred.");
+
+      promise_test(async (t) => {
+        await iframe_load_promise;
+
+        scroller.style.writingMode = "vertical-lr";
+
+        // Clear the targeted element.
+        frame.contentDocument.location.hash = "";
+        assert_equals(frame.contentDocument.querySelector(":target"), null,
+          "sanity check that no box is targeted.");
+        assert_not_equals(frame.contentDocument.activeElement, box1,
+          "sanity check that box1 is not focused.");
+
+        // Neither box is targeted or focused; so, the block (x) axis target
+        // should be followed.
+        await test_resnap(t, box2);
+      }, "block axis area is preferred (vertical writing-mode).");
+    </script>
+  </body>
+
+</html>

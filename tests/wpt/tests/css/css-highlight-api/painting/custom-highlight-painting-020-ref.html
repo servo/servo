@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Highlight API Test: Highlighing Ligatures Ref</title>
+<style>
+  @font-face {
+    font-family: 'mplus';
+    src: url('../../../fonts/mplus-1p-regular.woff');
+  }
+  div {
+      font-size: 7em;
+      font-family: mplus, sans-serif;
+  }
+  ::selection {
+    color:green;
+    text-decoration: blue 2px line-through;
+  }
+</style>
+<body><div>fii ffi fff</div>
+<script>
+  let textNode = document.body.firstChild.firstChild;
+
+  let r1 = new Range();
+  r1.setStart(textNode, 1);
+  r1.setEnd(textNode, 9);
+  window.getSelection().addRange(r1);
+</script>

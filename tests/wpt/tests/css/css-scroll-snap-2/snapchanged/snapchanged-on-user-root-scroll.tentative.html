@@ -161,6 +161,29 @@
       await test_snapchanged(t, test_data);
     }, "snapchanged event fires after snap target changes on keydown press");
 
+    // Touch scroll test (onsnapchanged variant).
+    promise_test(async (t) => {
+      await waitForCompositorCommit();
+      const start_pos = {
+        x: scroller.clientWidth / 2,
+        y: scroller.clientHeight / 2,
+      };
+      const end_pos = { x: 0, y: 0 };
+      const test_data = {
+        scroller: scroller,
+        scrolling_function: async () => {
+          await snap_event_touch_scroll_helper(start_pos, end_pos);
+        },
+        expected_snap_targets: { block: snap_point_2, inline: snap_point_2 },
+        expected_scroll_offsets: {
+          x: offset_to_snap_point_2.x,
+          y: offset_to_snap_point_2.y,
+        }
+      };
+      await test_snapchanged(t, test_data, /*use_onsnap_memeber*/true);
+    }, "Document.snapchanged event fires after snap target changes on touch " +
+       "scroll");
+
     promise_test(async (t) => {
       await test_no_snapchanged(t, scroller, /*delta*/10);
     }, "snapchanged is not fired if snap target doesn't change on user scroll");

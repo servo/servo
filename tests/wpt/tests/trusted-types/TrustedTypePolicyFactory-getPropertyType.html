@@ -90,8 +90,8 @@
   }, "getTypeMapping tests adapted from w3c/trusted-types polyfill");
 
   // Test case handling for both attributes and properties.
-  for (let attr of ["codeBase", "CODEBASE", "codebase"]) {
-    for (let elem of ["object", "OBJECT", "oBjEcT"]) {
+  for (let attr of ["srcDoc", "SRCDOC", "srcdoc"]) {
+    for (let elem of ["iframe", "IFRAME", "iFrAmE"]) {
       test(t => {
         // attributes are case-insensitive, so all variants should be defined.
         assert_true(trustedTypes.getAttributeType(elem, attr) != undefined);
@@ -100,7 +100,7 @@
         // properties are case-sensitive, so only the "correct" spelling
         // should be defined.
         assert_equals(trustedTypes.getPropertyType(elem, attr) != undefined,
-                      attr == "codeBase");
+                      attr == "srcdoc");
       }, `${elem}.${attr} is maybe defined`);
     }
   }
