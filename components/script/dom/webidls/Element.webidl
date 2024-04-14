@@ -84,6 +84,95 @@ interface Element : Node {
   undefined insertAdjacentHTML(DOMString position, DOMString html);
 
   [Throws, Pref="dom.shadowdom.enabled"] ShadowRoot attachShadow();
+
+  [CEReactions]
+           attribute DOMString? ariaAtomic;
+  [CEReactions]
+           attribute DOMString? ariaAutoComplete;
+  [CEReactions]
+           attribute DOMString? ariaBrailleLabel;
+  [CEReactions]
+           attribute DOMString? ariaBrailleRoleDescription;
+  [CEReactions]
+           attribute DOMString? ariaBusy;
+  [CEReactions]
+           attribute DOMString? ariaChecked;
+  [CEReactions]
+           attribute DOMString? ariaColCount;
+  [CEReactions]
+           attribute DOMString? ariaColIndex;
+  [CEReactions]
+           attribute DOMString? ariaColIndexText;
+  [CEReactions]
+           attribute DOMString? ariaColSpan;
+  [CEReactions]
+           attribute DOMString? ariaCurrent;
+  [CEReactions]
+           attribute DOMString? ariaDescription;
+  [CEReactions]
+           attribute DOMString? ariaDisabled;
+  [CEReactions]
+           attribute DOMString? ariaExpanded;
+  [CEReactions]
+           attribute DOMString? ariaHasPopup;
+  [CEReactions]
+           attribute DOMString? ariaHidden;
+  [CEReactions]
+           attribute DOMString? ariaInvalid;
+  [CEReactions]
+           attribute DOMString? ariaKeyShortcuts;
+  [CEReactions]
+           attribute DOMString? ariaLabel;
+  [CEReactions]
+           attribute DOMString? ariaLevel;
+  [CEReactions]
+           attribute DOMString? ariaLive;
+  [CEReactions]
+           attribute DOMString? ariaModal;
+  [CEReactions]
+           attribute DOMString? ariaMultiLine;
+  [CEReactions]
+           attribute DOMString? ariaMultiSelectable;
+  [CEReactions]
+           attribute DOMString? ariaOrientation;
+  [CEReactions]
+           attribute DOMString? ariaPlaceholder;
+  [CEReactions]
+           attribute DOMString? ariaPosInSet;
+  [CEReactions]
+           attribute DOMString? ariaPressed;
+  [CEReactions]
+           attribute DOMString? ariaReadOnly;
+  [CEReactions]
+           attribute DOMString? ariaRelevant;
+  [CEReactions]
+           attribute DOMString? ariaRequired;
+  [CEReactions]
+           attribute DOMString? ariaRoleDescription;
+  [CEReactions]
+           attribute DOMString? ariaRowCount;
+  [CEReactions]
+           attribute DOMString? ariaRowIndex;
+  [CEReactions]
+           attribute DOMString? ariaRowIndexText;
+  [CEReactions]
+           attribute DOMString? ariaRowSpan;
+  [CEReactions]
+           attribute DOMString? ariaSelected;
+  [CEReactions]
+           attribute DOMString? ariaSetSize;
+  [CEReactions]
+           attribute DOMString? ariaSort;
+  [CEReactions]
+           attribute DOMString? ariaValueMax;
+  [CEReactions]
+           attribute DOMString? ariaValueMin;
+  [CEReactions]
+           attribute DOMString? ariaValueNow;
+  [CEReactions]
+           attribute DOMString? ariaValueText;
+  [CEReactions]
+           attribute DOMString? role;
 };
 
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-element-interface
