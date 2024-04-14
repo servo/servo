@@ -252,7 +252,7 @@ impl App {
                                 window.winit_window().unwrap(),
                                 &mut app.webviews.borrow_mut(),
                                 app.servo.as_ref().unwrap().offscreen_framebuffer_id(),
-                                "WebView resize on Window Resize",
+                                "Sync WebView size with Window Resize event",
                             );
                         }
 
