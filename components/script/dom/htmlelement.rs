@@ -9,7 +9,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
-use script_layout_interface::message::QueryMsg;
+use script_layout_interface::QueryMsg;
 use style::attr::AttrValue;
 use style_traits::dom::ElementState;
 

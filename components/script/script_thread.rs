@@ -71,8 +71,9 @@ use parking_lot::Mutex;
 use percent_encoding::percent_decode;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
-use script_layout_interface::message::{Msg, ReflowGoal};
-use script_layout_interface::{Layout, LayoutConfig, LayoutFactory, ScriptThreadFactory};
+use script_layout_interface::{
+    Layout, LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory,
+};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::CompositorEvent::{
     CompositionEvent, GamepadEvent, IMEDismissedEvent, KeyboardEvent, MouseButtonEvent,
@@ -1210,7 +1211,7 @@ impl ScriptThread {
         };
 
         let _ = window
-            .with_layout(|layout| layout.process(Msg::RegisterPaint(name, properties, painter)));
+            .with_layout(|layout| layout.register_paint_worklet_modules(name, properties, painter));
     }
 
     pub fn push_new_element_queue() {
@@ -2907,9 +2908,7 @@ impl ScriptThread {
             }
 
             debug!("{id}: Shutting down layout");
-            let _ = document.window().with_layout(|layout| {
-                layout.process(Msg::ExitNow);
-            });
+            let _ = document.window().with_layout(|layout| layout.exit_now());
 
             debug!("{id}: Sending PipelineExited message to constellation");
             self.script_sender

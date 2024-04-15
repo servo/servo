@@ -466,24 +466,6 @@ pub enum InputMethodType {
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-/// The equivalent of script_layout_interface::message::Msg
-pub enum LayoutHangAnnotation {
-    AddStylesheet,
-    RemoveStylesheet,
-    SetQuirksMode,
-    Reflow,
-    CollectReports,
-    ExitNow,
-    GetCurrentEpoch,
-    GetWebFontLoadState,
-    CreateLayoutThread,
-    SetFinalUrl,
-    SetScrollStates,
-    UpdateScrollStateFromScript,
-    RegisterPaint,
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 /// The equivalent of script::script_runtime::ScriptEventCategory
 pub enum ScriptHangAnnotation {
     AttachLayout,
@@ -518,7 +500,6 @@ pub enum ScriptHangAnnotation {
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum HangAnnotation {
-    Layout(LayoutHangAnnotation),
     Script(ScriptHangAnnotation),
 }
 

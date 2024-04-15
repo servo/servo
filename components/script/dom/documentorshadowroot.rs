@@ -5,7 +5,7 @@
 use std::fmt;
 
 use euclid::default::Point2D;
-use script_layout_interface::message::{NodesFromPointQueryType, QueryMsg};
+use script_layout_interface::{NodesFromPointQueryType, QueryMsg};
 use script_traits::UntrustedNodeAddress;
 use servo_arc::Arc;
 use servo_atoms::Atom;

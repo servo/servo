@@ -62,12 +62,10 @@ use profile_traits::time::{
     self as profile_time, profile, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
 };
 use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
-use script_layout_interface::message::{
-    Msg, NodesFromPointQueryType, Reflow, ReflowComplete, ReflowGoal, ScriptReflow,
-};
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_layout_interface::{
-    Layout, LayoutConfig, LayoutFactory, OffsetParentResponse, TrustedNodeAddress,
+    Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse, Reflow,
+    ReflowComplete, ReflowGoal, ScriptReflow, TrustedNodeAddress,
 };
 use script_traits::{
     ConstellationControlMsg, DrawAPaintImageResult, IFrameSizeMsg, LayoutControlMsg,
@@ -252,10 +250,6 @@ impl Drop for ScriptReflowResult {
 }
 
 impl Layout for LayoutThread {
-    fn process(&mut self, msg: script_layout_interface::message::Msg) {
-        self.handle_request(Request::FromScript(msg));
-    }
-
     fn handle_constellation_msg(&mut self, msg: script_traits::LayoutControlMsg) {
         self.handle_request(Request::FromPipeline(msg));
     }
@@ -470,10 +464,94 @@ impl Layout for LayoutThread {
         );
         self.indexable_text.borrow().text_index(node, point_in_node)
     }
+
+    fn exit_now(&mut self) {
+        // Drop the root flow explicitly to avoid holding style data, such as
+        // rule nodes.  The `Stylist` checks when it is dropped that all rule
+        // nodes have been GCed, so we want drop anyone who holds them first.
+        let waiting_time_min = self.layout_query_waiting_time.minimum().unwrap_or(0);
+        let waiting_time_max = self.layout_query_waiting_time.maximum().unwrap_or(0);
+        let waiting_time_mean = self.layout_query_waiting_time.mean().unwrap_or(0);
+        let waiting_time_stddev = self.layout_query_waiting_time.stddev().unwrap_or(0);
+        debug!(
+            "layout: query waiting time: min: {}, max: {}, mean: {}, standard_deviation: {}",
+            waiting_time_min, waiting_time_max, waiting_time_mean, waiting_time_stddev
+        );
+
+        self.root_flow.borrow_mut().take();
+    }
+
+    fn set_quirks_mode(&mut self, quirks_mode: QuirksMode) {
+        self.stylist.set_quirks_mode(quirks_mode);
+    }
+
+    fn register_paint_worklet_modules(
+        &mut self,
+        name: Atom,
+        mut properties: Vec<Atom>,
+        painter: Box<dyn Painter>,
+    ) {
+        debug!("Registering the painter");
+        let properties = properties
+            .drain(..)
+            .filter_map(|name| {
+                let id = PropertyId::parse_enabled_for_all_content(&*name).ok()?;
+                Some((name.clone(), id))
+            })
+            .filter(|&(_, ref id)| !id.is_shorthand())
+            .collect();
+        let registered_painter = RegisteredPainterImpl {
+            name: name.clone(),
+            properties,
+            painter,
+        };
+        self.registered_painters.0.insert(name, registered_painter);
+    }
+
+    fn collect_reports(&self, reports_chan: ReportsChan) {
+        let mut reports = vec![];
+        // Servo uses vanilla jemalloc, which doesn't have a
+        // malloc_enclosing_size_of function.
+        let mut ops = MallocSizeOfOps::new(servo_allocator::usable_size, None, None);
+
+        // FIXME(njn): Just measuring the display tree for now.
+        let display_list = self.display_list.borrow();
+        let display_list_ref = display_list.as_ref();
+        let formatted_url = &format!("url({})", self.url);
+        reports.push(Report {
+            path: path![formatted_url, "layout-thread", "display-list"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: display_list_ref.map_or(0, |sc| sc.size_of(&mut ops)),
+        });
+
+        reports.push(Report {
+            path: path![formatted_url, "layout-thread", "stylist"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: self.stylist.size_of(&mut ops),
+        });
+
+        // The LayoutThread has data in Persistent TLS...
+        reports.push(Report {
+            path: path![formatted_url, "layout-thread", "local-context"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: malloc_size_of_persistent_local_context(&mut ops),
+        });
+
+        reports_chan.send(reports);
+    }
+
+    fn reflow(&mut self, script_reflow: script_layout_interface::ScriptReflow) {
+        let mut result = ScriptReflowResult::new(script_reflow);
+        profile(
+            profile_time::ProfilerCategory::LayoutPerform,
+            self.profiler_metadata(),
+            self.time_profiler_chan.clone(),
+            || self.handle_reflow(&mut result),
+        );
+    }
 }
 enum Request {
     FromPipeline(LayoutControlMsg),
-    FromScript(Msg),
     FromFontCache,
 }
 
@@ -610,114 +688,18 @@ impl LayoutThread {
     /// Receives and dispatches messages from the script and constellation threads
     fn handle_request(&mut self, request: Request) {
         match request {
-            Request::FromPipeline(LayoutControlMsg::SetScrollStates(new_scroll_states)) => {
-                self.handle_request_helper(Msg::SetScrollStates(new_scroll_states))
-            },
-            Request::FromPipeline(LayoutControlMsg::ExitNow) => {
-                self.handle_request_helper(Msg::ExitNow);
-            },
-            Request::FromPipeline(LayoutControlMsg::PaintMetric(epoch, paint_time)) => {
-                self.paint_time_metrics.maybe_set_metric(epoch, paint_time);
-            },
-            Request::FromScript(msg) => self.handle_request_helper(msg),
             Request::FromFontCache => {
                 self.outstanding_web_fonts.fetch_sub(1, Ordering::SeqCst);
                 self.handle_web_font_loaded();
             },
-        };
-    }
-
-    /// Receives and dispatches messages from other threads.
-    fn handle_request_helper(&mut self, request: Msg) {
-        match request {
-            Msg::SetQuirksMode(mode) => self.handle_set_quirks_mode(mode),
-            Msg::Reflow(data) => {
-                let mut data = ScriptReflowResult::new(data);
-                profile(
-                    profile_time::ProfilerCategory::LayoutPerform,
-                    self.profiler_metadata(),
-                    self.time_profiler_chan.clone(),
-                    || self.handle_reflow(&mut data),
-                );
-            },
-            Msg::SetScrollStates(new_scroll_states) => {
+            Request::FromPipeline(LayoutControlMsg::ExitNow) => self.exit_now(),
+            Request::FromPipeline(LayoutControlMsg::SetScrollStates(new_scroll_states)) => {
                 self.set_scroll_states(new_scroll_states);
             },
-            Msg::CollectReports(reports_chan) => {
-                self.collect_reports(reports_chan);
+            Request::FromPipeline(LayoutControlMsg::PaintMetric(epoch, paint_time)) => {
+                self.paint_time_metrics.maybe_set_metric(epoch, paint_time);
             },
-            Msg::RegisterPaint(name, mut properties, painter) => {
-                debug!("Registering the painter");
-                let properties = properties
-                    .drain(..)
-                    .filter_map(|name| {
-                        let id = PropertyId::parse_enabled_for_all_content(&*name).ok()?;
-                        Some((name.clone(), id))
-                    })
-                    .filter(|&(_, ref id)| !id.is_shorthand())
-                    .collect();
-                let registered_painter = RegisteredPainterImpl {
-                    name: name.clone(),
-                    properties,
-                    painter,
-                };
-                self.registered_painters.0.insert(name, registered_painter);
-            },
-            // Receiving the Exit message at this stage only happens when layout is undergoing a "force exit".
-            Msg::ExitNow => {
-                debug!("layout: ExitNow received");
-                self.exit_now();
-            },
-        }
-    }
-
-    fn collect_reports(&self, reports_chan: ReportsChan) {
-        let mut reports = vec![];
-        // Servo uses vanilla jemalloc, which doesn't have a
-        // malloc_enclosing_size_of function.
-        let mut ops = MallocSizeOfOps::new(servo_allocator::usable_size, None, None);
-
-        // FIXME(njn): Just measuring the display tree for now.
-        let display_list = self.display_list.borrow();
-        let display_list_ref = display_list.as_ref();
-        let formatted_url = &format!("url({})", self.url);
-        reports.push(Report {
-            path: path![formatted_url, "layout-thread", "display-list"],
-            kind: ReportKind::ExplicitJemallocHeapSize,
-            size: display_list_ref.map_or(0, |sc| sc.size_of(&mut ops)),
-        });
-
-        reports.push(Report {
-            path: path![formatted_url, "layout-thread", "stylist"],
-            kind: ReportKind::ExplicitJemallocHeapSize,
-            size: self.stylist.size_of(&mut ops),
-        });
-
-        // The LayoutThread has data in Persistent TLS...
-        reports.push(Report {
-            path: path![formatted_url, "layout-thread", "local-context"],
-            kind: ReportKind::ExplicitJemallocHeapSize,
-            size: malloc_size_of_persistent_local_context(&mut ops),
-        });
-
-        reports_chan.send(reports);
-    }
-
-    /// Shuts down layout now.
-    fn exit_now(&mut self) {
-        // Drop the root flow explicitly to avoid holding style data, such as
-        // rule nodes.  The `Stylist` checks when it is dropped that all rule
-        // nodes have been GCed, so we want drop anyone who holds them first.
-        let waiting_time_min = self.layout_query_waiting_time.minimum().unwrap_or(0);
-        let waiting_time_max = self.layout_query_waiting_time.maximum().unwrap_or(0);
-        let waiting_time_mean = self.layout_query_waiting_time.mean().unwrap_or(0);
-        let waiting_time_stddev = self.layout_query_waiting_time.stddev().unwrap_or(0);
-        debug!(
-            "layout: query waiting time: min: {}, max: {}, mean: {}, standard_deviation: {}",
-            waiting_time_min, waiting_time_max, waiting_time_mean, waiting_time_stddev
-        );
-
-        self.root_flow.borrow_mut().take();
+        };
     }
 
     fn load_all_web_fonts_from_stylesheet_with_guard(
@@ -751,11 +733,6 @@ impl LayoutThread {
         self.script_chan
             .send(ConstellationControlMsg::WebFontLoaded(self.id))
             .unwrap();
-    }
-
-    /// Sets quirks mode for the document, causing the quirks mode stylesheet to be used.
-    fn handle_set_quirks_mode(&mut self, quirks_mode: QuirksMode) {
-        self.stylist.set_quirks_mode(quirks_mode);
     }
 
     fn try_get_layout_root<'dom>(&self, node: impl LayoutNode<'dom>) -> Option<FlowRef> {
