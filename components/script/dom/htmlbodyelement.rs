@@ -8,7 +8,7 @@ use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
-use style::color::parsing::RgbaLegacy;
+use style::color::AbsoluteColor;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLBodyElementBinding::HTMLBodyElementMethods;
@@ -100,20 +100,20 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
 }
 
 pub trait HTMLBodyElementLayoutHelpers {
-    fn get_background_color(self) -> Option<RgbaLegacy>;
-    fn get_color(self) -> Option<RgbaLegacy>;
+    fn get_background_color(self) -> Option<AbsoluteColor>;
+    fn get_color(self) -> Option<AbsoluteColor>;
     fn get_background(self) -> Option<ServoUrl>;
 }
 
 impl HTMLBodyElementLayoutHelpers for LayoutDom<'_, HTMLBodyElement> {
-    fn get_background_color(self) -> Option<RgbaLegacy> {
+    fn get_background_color(self) -> Option<AbsoluteColor> {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
             .and_then(AttrValue::as_color)
             .cloned()
     }
 
-    fn get_color(self) -> Option<RgbaLegacy> {
+    fn get_color(self) -> Option<AbsoluteColor> {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("text"))
             .and_then(AttrValue::as_color)

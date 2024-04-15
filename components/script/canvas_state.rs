@@ -12,6 +12,7 @@ use canvas_traits::canvas::{
     FillRule, LineCapStyle, LineJoinStyle, LinearGradientStyle, RadialGradientStyle,
     RepetitionStyle, TextAlign, TextBaseline,
 };
+use cssparser::color::clamp_unit_f32;
 use cssparser::{Parser, ParserInput};
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use euclid::vec2;
@@ -22,8 +23,7 @@ use pixels::PixelFormat;
 use profile_traits::ipc as profiled_ipc;
 use script_traits::ScriptMsg;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use style::color::parsing::RgbaLegacy;
-use style::color::{AbsoluteColor, ColorSpace};
+use style::color::{AbsoluteColor, ColorFlags, ColorSpace};
 use style::context::QuirksMode;
 use style::parser::ParserContext;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
@@ -32,7 +32,7 @@ use style::stylesheets::{CssRuleType, Origin};
 use style::values::computed::font::FontStyle;
 use style::values::specified::color::Color;
 use style_traits::values::ToCss;
-use style_traits::ParsingMode;
+use style_traits::{CssWriter, ParsingMode};
 use url::Url;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -63,7 +63,7 @@ use crate::unpremultiplytable::UNPREMULTIPLY_TABLE;
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[allow(dead_code)]
 pub(crate) enum CanvasFillOrStrokeStyle {
-    Color(#[no_trace] RgbaLegacy),
+    Color(#[no_trace] AbsoluteColor),
     Gradient(Dom<CanvasGradient>),
     Pattern(Dom<CanvasPattern>),
 }
@@ -99,7 +99,7 @@ pub(crate) struct CanvasContextState {
     shadow_offset_y: f64,
     shadow_blur: f64,
     #[no_trace]
-    shadow_color: RgbaLegacy,
+    shadow_color: AbsoluteColor,
     #[no_trace]
     font_style: Option<Font>,
     #[no_trace]
@@ -114,13 +114,12 @@ impl CanvasContextState {
     const DEFAULT_FONT_STYLE: &'static str = "10px sans-serif";
 
     pub(crate) fn new() -> CanvasContextState {
-        let black = RgbaLegacy::new(0, 0, 0, 1.0);
         CanvasContextState {
             global_alpha: 1.0,
             global_composition: CompositionOrBlending::default(),
             image_smoothing_enabled: true,
-            fill_style: CanvasFillOrStrokeStyle::Color(black),
-            stroke_style: CanvasFillOrStrokeStyle::Color(black),
+            fill_style: CanvasFillOrStrokeStyle::Color(AbsoluteColor::BLACK),
+            stroke_style: CanvasFillOrStrokeStyle::Color(AbsoluteColor::BLACK),
             line_width: 1.0,
             line_cap: LineCapStyle::Butt,
             line_join: LineJoinStyle::Miter,
@@ -129,7 +128,7 @@ impl CanvasContextState {
             shadow_offset_x: 0.0,
             shadow_offset_y: 0.0,
             shadow_blur: 0.0,
-            shadow_color: RgbaLegacy::new(0, 0, 0, 0.0),
+            shadow_color: AbsoluteColor::TRANSPARENT_BLACK,
             font_style: None,
             text_align: Default::default(),
             text_baseline: Default::default(),
@@ -1689,7 +1688,7 @@ impl CanvasState {
     }
 }
 
-pub fn parse_color(canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<RgbaLegacy, ()> {
+pub fn parse_color(canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<AbsoluteColor, ()> {
     let mut input = ParserInput::new(string);
     let mut parser = Parser::new(&mut input);
     let url = Url::parse("about:blank").unwrap().into();
@@ -1726,15 +1725,7 @@ pub fn parse_color(canvas: Option<&HTMLCanvasElement>, string: &str) -> Result<R
                 },
             };
 
-            let rgba = color
-                .resolve_to_absolute(&current_color)
-                .to_color_space(ColorSpace::Srgb);
-            Ok(RgbaLegacy::from_floats(
-                rgba.components.0,
-                rgba.components.1,
-                rgba.components.2,
-                rgba.alpha,
-            ))
+            Ok(color.resolve_to_absolute(&current_color))
         },
         None => Err(()),
     }
@@ -1747,17 +1738,21 @@ pub fn is_rect_valid(rect: Rect<f64>) -> bool {
 }
 
 // https://html.spec.whatwg.org/multipage/#serialisation-of-a-color
-pub fn serialize<W>(color: &RgbaLegacy, dest: &mut W) -> fmt::Result
+pub fn serialize<W>(color: &AbsoluteColor, dest: &mut W) -> fmt::Result
 where
     W: fmt::Write,
 {
-    let RgbaLegacy {
-        red,
-        green,
-        blue,
-        alpha,
-    } = color;
-    if *alpha == 1.0 {
+    let srgb = match color.color_space {
+        ColorSpace::Srgb if color.flags.contains(ColorFlags::IS_LEGACY_SRGB) => *color,
+        ColorSpace::Hsl | ColorSpace::Hwb => color.into_srgb_legacy(),
+        _ => return color.to_css(&mut CssWriter::new(dest)),
+    };
+    debug_assert!(srgb.flags.contains(ColorFlags::IS_LEGACY_SRGB));
+    let red = clamp_unit_f32(srgb.components.0);
+    let green = clamp_unit_f32(srgb.components.1);
+    let blue = clamp_unit_f32(srgb.components.2);
+    let alpha = srgb.alpha;
+    if alpha == 1.0 {
         write!(
             dest,
             "#{:x}{:x}{:x}{:x}{:x}{:x}",

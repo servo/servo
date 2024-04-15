@@ -10,7 +10,7 @@ use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSender, IpcSharedMem
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
-use style::color::parsing::RgbaLegacy;
+use style::color::AbsoluteColor;
 use style::properties::style_structs::Font as FontStyleStruct;
 use webrender_api::ImageKey;
 
@@ -75,7 +75,7 @@ pub enum Canvas2dMsg {
     SetShadowOffsetX(f64),
     SetShadowOffsetY(f64),
     SetShadowBlur(f64),
-    SetShadowColor(RgbaLegacy),
+    SetShadowColor(AbsoluteColor),
     SetFont(FontStyleStruct),
     SetTextAlign(TextAlign),
     SetTextBaseline(TextBaseline),
@@ -94,7 +94,7 @@ pub enum FromScriptMsg {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct CanvasGradientStop {
     pub offset: f64,
-    pub color: RgbaLegacy,
+    pub color: AbsoluteColor,
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -183,7 +183,7 @@ impl SurfaceStyle {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FillOrStrokeStyle {
-    Color(RgbaLegacy),
+    Color(AbsoluteColor),
     LinearGradient(LinearGradientStyle),
     RadialGradient(RadialGradientStyle),
     Surface(SurfaceStyle),

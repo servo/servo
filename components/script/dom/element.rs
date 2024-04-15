@@ -709,15 +709,9 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         };
 
         if let Some(color) = bgcolor {
-            use style::color::parsing::FromParsedColor;
             hints.push(from_declaration(
                 shared_lock,
-                PropertyDeclaration::BackgroundColor(specified::Color::from_rgba(
-                    color.red,
-                    color.green,
-                    color.blue,
-                    color.alpha,
-                )),
+                PropertyDeclaration::BackgroundColor(specified::Color::from_absolute_color(color)),
             ));
         }
 
@@ -749,11 +743,10 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
         };
 
         if let Some(color) = color {
-            use style::color::parsing::FromParsedColor;
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::Color(longhands::color::SpecifiedValue(
-                    specified::Color::from_rgba(color.red, color.green, color.blue, color.alpha),
+                    specified::Color::from_absolute_color(color),
                 )),
             ));
         }

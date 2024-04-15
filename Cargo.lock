@@ -572,6 +572,7 @@ dependencies = [
  "byteorder",
  "canvas_traits",
  "crossbeam-channel",
+ "cssparser",
  "euclid",
  "fnv",
  "font-kit",
