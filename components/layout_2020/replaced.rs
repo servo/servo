@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex};
 
 use app_units::Au;
 use canvas_traits::canvas::{CanvasId, CanvasMsg, FromLayoutMsg};
+use data_url::DataUrl;
 use ipc_channel::ipc::{self, IpcSender};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::Image;
@@ -19,6 +20,7 @@ use style::values::computed::image::Image as ComputedImage;
 use style::values::computed::{Length, LengthOrAuto};
 use style::values::CSSFloat;
 use style::Zero;
+use url::Url;
 use webrender_api::ImageKey;
 
 use crate::context::LayoutContext;
@@ -131,7 +133,17 @@ pub(crate) enum ReplacedContentKind {
 }
 
 impl ReplacedContent {
-    pub fn for_element<'dom>(element: impl NodeExt<'dom>) -> Option<Self> {
+    pub fn for_element<'dom>(element: impl NodeExt<'dom>, context: &LayoutContext) -> Option<Self> {
+        if let Some(ref data_attribute_string) = element.as_typeless_object_with_data_attribute() {
+            if let Some(url) = try_to_parse_image_data_url(data_attribute_string) {
+                return Self::from_image_url(
+                    element,
+                    context,
+                    &ComputedUrl::Valid(ServoArc::new(url)),
+                );
+            }
+        }
+
         let (kind, intrinsic_size_in_dots) = {
             if let Some((image, intrinsic_size_in_dots)) = element.as_image() {
                 (
@@ -557,4 +569,29 @@ impl ReplacedContent {
             },
         }
     }
+}
+
+fn try_to_parse_image_data_url(string: &str) -> Option<Url> {
+    if !string.starts_with("data:") {
+        return None;
+    }
+    let Some(data_url) = DataUrl::process(string).ok() else {
+        return None;
+    };
+
+    let mime_type = data_url.mime_type();
+    if mime_type.type_ != "image" {
+        return None;
+    }
+
+    // TODO: Find a better way to test for supported image formats. Currently this type of check is
+    // repeated several places in Servo, but should be centralized somehow.
+    if !matches!(
+        mime_type.subtype.as_str(),
+        "png" | "jpeg" | "gif" | "webp" | "bmp" | "ico"
+    ) {
+        return None;
+    }
+
+    Url::parse(string).ok()
 }
