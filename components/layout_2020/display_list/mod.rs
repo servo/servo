@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::OnceCell;
+use std::cell::{OnceCell, RefCell};
 use std::sync::Arc;
 
 use embedder_traits::Cursor;
@@ -122,6 +122,11 @@ pub(crate) struct DisplayListBuilder<'a> {
     /// list building functions.
     current_scroll_node_id: ScrollTreeNodeId,
 
+    /// The current [ScrollNodeTreeId] for this [DisplayListBuilder]. This is necessary in addition
+    /// to the [Self::current_scroll_node_id], because some pieces of fragments as backgrounds with
+    /// `background-attachment: fixed` need to not scroll while the rest of the fragment does.
+    current_reference_frame_scroll_node_id: ScrollTreeNodeId,
+
     /// The current [wr::ClipId] for this [DisplayListBuilder]. This allows
     /// only passing the builder instead passing the containing
     /// [stacking_context::StackingContextContent::Fragment] as an argument to display
@@ -160,6 +165,7 @@ impl DisplayList {
     ) -> (FnvHashMap<BrowsingContextId, Size2D<f32, CSSPixel>>, bool) {
         let mut builder = DisplayListBuilder {
             current_scroll_node_id: self.compositor_info.root_reference_frame_id,
+            current_reference_frame_scroll_node_id: self.compositor_info.root_reference_frame_id,
             current_clip_chain_id: ClipChainId::INVALID,
             element_for_canvas_background: fragment_tree.canvas_background.from_element,
             is_contentful: false,
@@ -473,9 +479,9 @@ struct BuilderForBoxFragment<'a> {
     padding_rect: OnceCell<units::LayoutRect>,
     content_rect: OnceCell<units::LayoutRect>,
     border_radius: wr::BorderRadius,
-    border_edge_clip_chain_id: OnceCell<Option<ClipChainId>>,
-    padding_edge_clip_chain_id: OnceCell<Option<ClipChainId>>,
-    content_edge_clip_chain_id: OnceCell<Option<ClipChainId>>,
+    border_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
+    padding_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
+    content_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
 }
 
 impl<'a> BuilderForBoxFragment<'a> {
@@ -530,9 +536,9 @@ impl<'a> BuilderForBoxFragment<'a> {
             border_radius,
             padding_rect: OnceCell::new(),
             content_rect: OnceCell::new(),
-            border_edge_clip_chain_id: OnceCell::new(),
-            padding_edge_clip_chain_id: OnceCell::new(),
-            content_edge_clip_chain_id: OnceCell::new(),
+            border_edge_clip_chain_id: RefCell::new(None),
+            padding_edge_clip_chain_id: RefCell::new(None),
+            content_edge_clip_chain_id: RefCell::new(None),
         }
     }
 
@@ -556,41 +562,66 @@ impl<'a> BuilderForBoxFragment<'a> {
         })
     }
 
-    fn border_edge_clip(&self, builder: &mut DisplayListBuilder) -> Option<ClipChainId> {
-        *self
-            .border_edge_clip_chain_id
-            .get_or_init(|| clip_for_radii(self.border_radius, self.border_rect, builder))
+    fn border_edge_clip(
+        &self,
+        builder: &mut DisplayListBuilder,
+        force_clip_creation: bool,
+    ) -> Option<ClipChainId> {
+        if let Some(clip) = *self.border_edge_clip_chain_id.borrow() {
+            return Some(clip);
+        }
+
+        let maybe_clip = create_clip_chain(
+            self.border_radius,
+            self.border_rect,
+            builder,
+            force_clip_creation,
+        );
+        *self.border_edge_clip_chain_id.borrow_mut() = maybe_clip;
+        maybe_clip
     }
 
-    fn padding_edge_clip(&self, builder: &mut DisplayListBuilder) -> Option<ClipChainId> {
-        *self.padding_edge_clip_chain_id.get_or_init(|| {
-            clip_for_radii(
-                inner_radii(
-                    self.border_radius,
-                    self.fragment
-                        .border
-                        .to_physical(self.fragment.style.writing_mode)
-                        .to_webrender(),
-                ),
-                *self.padding_rect(),
-                builder,
-            )
-        })
+    fn padding_edge_clip(
+        &self,
+        builder: &mut DisplayListBuilder,
+        force_clip_creation: bool,
+    ) -> Option<ClipChainId> {
+        if let Some(clip) = *self.padding_edge_clip_chain_id.borrow() {
+            return Some(clip);
+        }
+
+        let radii = inner_radii(
+            self.border_radius,
+            self.fragment
+                .border
+                .to_physical(self.fragment.style.writing_mode)
+                .to_webrender(),
+        );
+        let maybe_clip =
+            create_clip_chain(radii, *self.padding_rect(), builder, force_clip_creation);
+        *self.padding_edge_clip_chain_id.borrow_mut() = maybe_clip;
+        maybe_clip
     }
 
-    fn content_edge_clip(&self, builder: &mut DisplayListBuilder) -> Option<ClipChainId> {
-        *self.content_edge_clip_chain_id.get_or_init(|| {
-            clip_for_radii(
-                inner_radii(
-                    self.border_radius,
-                    (&self.fragment.border + &self.fragment.padding)
-                        .to_physical(self.fragment.style.writing_mode)
-                        .to_webrender(),
-                ),
-                *self.content_rect(),
-                builder,
-            )
-        })
+    fn content_edge_clip(
+        &self,
+        builder: &mut DisplayListBuilder,
+        force_clip_creation: bool,
+    ) -> Option<ClipChainId> {
+        if let Some(clip) = *self.content_edge_clip_chain_id.borrow() {
+            return Some(clip);
+        }
+
+        let radii = inner_radii(
+            self.border_radius,
+            (&self.fragment.border + &self.fragment.padding)
+                .to_physical(self.fragment.style.writing_mode)
+                .to_webrender(),
+        );
+        let maybe_clip =
+            create_clip_chain(radii, *self.content_rect(), builder, force_clip_creation);
+        *self.content_edge_clip_chain_id.borrow_mut() = maybe_clip;
+        maybe_clip
     }
 
     fn build(&mut self, builder: &mut DisplayListBuilder, section: StackingContextSection) {
@@ -616,7 +647,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         };
 
         let mut common = builder.common_properties(self.border_rect, &self.fragment.style);
-        if let Some(clip_chain_id) = self.border_edge_clip(builder) {
+        if let Some(clip_chain_id) = self.border_edge_clip(builder, false) {
             common.clip_chain_id = clip_chain_id;
         }
         builder.wr().push_hit_test(
@@ -640,10 +671,11 @@ impl<'a> BuilderForBoxFragment<'a> {
             // “The background color is clipped according to the background-clip
             //  value associated with the bottom-most background image layer.”
             let layer_index = b.background_image.0.len() - 1;
-            let (bounds, common) = painter.painting_area(self, builder, layer_index);
+            let bounds = painter.painting_area(self, builder, layer_index);
+            let common = painter.common_properties(self, builder, layer_index, bounds);
             builder
                 .wr()
-                .push_rect(&common, *bounds, rgba(background_color))
+                .push_rect(&common, bounds, rgba(background_color))
         }
 
         self.build_background_image(builder, painter);
@@ -1044,28 +1076,34 @@ fn offset_radii(mut radii: wr::BorderRadius, offset: f32) -> wr::BorderRadius {
     radii
 }
 
-fn clip_for_radii(
+fn create_clip_chain(
     radii: wr::BorderRadius,
     rect: units::LayoutRect,
     builder: &mut DisplayListBuilder,
+    force_clip_creation: bool,
 ) -> Option<ClipChainId> {
-    if radii.is_zero() {
-        None
+    if radii.is_zero() && !force_clip_creation {
+        return None;
+    }
+
+    let spatial_id = builder.current_scroll_node_id.spatial_id;
+    let parent_clip_chain_id = builder.current_clip_chain_id;
+    let new_clip_id = if radii.is_zero() {
+        builder.wr().define_clip_rect(spatial_id, rect)
     } else {
-        let spatial_id = builder.current_scroll_node_id.spatial_id;
-        let parent_clip_chain_id = builder.current_clip_chain_id;
-        let new_clip_id = builder.wr().define_clip_rounded_rect(
+        builder.wr().define_clip_rounded_rect(
             spatial_id,
             wr::ComplexClipRegion {
                 rect,
                 radii,
                 mode: wr::ClipMode::Clip,
             },
-        );
-        Some(
-            builder
-                .display_list
-                .define_clip_chain(parent_clip_chain_id, [new_clip_id]),
         )
-    }
+    };
+
+    Some(
+        builder
+            .display_list
+            .define_clip_chain(parent_clip_chain_id, [new_clip_id]),
+    )
 }
