@@ -1002,6 +1002,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "core_maths"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3b02505ccb8c50b0aa21ace0fc08c3e53adebd4e58caa18a36152803c7709a3"
+dependencies = [
+ "libm",
+]
+
+[[package]]
 name = "cpufeatures"
 version = "0.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1196,7 +1205,7 @@ dependencies = [
 [[package]]
 name = "derive_common"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-01-16#e801dd17ccf274844d7484e37172664fa3f99488"
+source = "git+https://github.com/servo/stylo?branch=2024-03-01#df595694fd3182d68ad2f4373795cd3b50eff9ac"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -1295,6 +1304,17 @@ name = "dispatch"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bd0c93bb4b0c6d9b77f4435b0ae98c24d17f1c45b2ff844c6151a07256ca923b"
+
+[[package]]
+name = "displaydoc"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "487585f4d0c6655fe74905e2504d8ad6908e4db67f744eb140876906c2f3175d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.58",
+]
 
 [[package]]
 name = "dlib"
@@ -2768,6 +2788,80 @@ dependencies = [
 ]
 
 [[package]]
+name = "icu_collections"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "137d96353afc8544d437e8a99eceb10ab291352699573b0de5b08bda38c78c60"
+dependencies = [
+ "displaydoc",
+ "yoke",
+ "zerofrom",
+ "zerovec",
+]
+
+[[package]]
+name = "icu_locid"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c0aa2536adc14c07e2a521e95512b75ed8ef832f0fdf9299d4a0a45d2be2a9d"
+dependencies = [
+ "displaydoc",
+ "litemap",
+ "tinystr",
+ "writeable",
+]
+
+[[package]]
+name = "icu_provider"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba58e782287eb6950247abbf11719f83f5d4e4a5c1f2cd490d30a334bc47c2f4"
+dependencies = [
+ "displaydoc",
+ "icu_locid",
+ "icu_provider_macros",
+ "stable_deref_trait",
+ "tinystr",
+ "writeable",
+ "yoke",
+ "zerofrom",
+ "zerovec",
+]
+
+[[package]]
+name = "icu_provider_macros"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2abdd3a62551e8337af119c5899e600ca0c88ec8f23a46c60ba216c803dcf1a"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.58",
+]
+
+[[package]]
+name = "icu_segmenter"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2dc1e8f4ba33a6a4956770ac5c08570f255d6605519fb3a859a0c0a270a2f8f"
+dependencies = [
+ "core_maths",
+ "displaydoc",
+ "icu_collections",
+ "icu_locid",
+ "icu_provider",
+ "icu_segmenter_data",
+ "utf8_iter",
+ "zerovec",
+]
+
+[[package]]
+name = "icu_segmenter_data"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3673d6698dcffce08cfe8fc5da3c11c3f2c663d5d6137fd58ab2cbf44235ab46"
+
+[[package]]
 name = "ident_case"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3394,6 +3488,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "01cda141df6706de531b6c46c3a33ecca755538219bd484262fa09410c13539c"
 
 [[package]]
+name = "litemap"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9d642685b028806386b2b6e75685faadd3eb65a85fff7df711ce18446a422da"
+
+[[package]]
 name = "lock_api"
 version = "0.4.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3447,7 +3547,7 @@ dependencies = [
 [[package]]
 name = "malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-01-16#e801dd17ccf274844d7484e37172664fa3f99488"
+source = "git+https://github.com/servo/stylo?branch=2024-03-01#df595694fd3182d68ad2f4373795cd3b50eff9ac"
 dependencies = [
  "accountable-refcell",
  "app_units",
@@ -5068,7 +5168,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.24.0"
-source = "git+https://github.com/servo/stylo?branch=2024-01-16#e801dd17ccf274844d7484e37172664fa3f99488"
+source = "git+https://github.com/servo/stylo?branch=2024-03-01#df595694fd3182d68ad2f4373795cd3b50eff9ac"
 dependencies = [
  "bitflags 2.5.0",
  "cssparser",
@@ -5356,7 +5456,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.2.0"
-source = "git+https://github.com/servo/stylo?branch=2024-01-16#e801dd17ccf274844d7484e37172664fa3f99488"
+source = "git+https://github.com/servo/stylo?branch=2024-03-01#df595694fd3182d68ad2f4373795cd3b50eff9ac"
 dependencies = [
  "nodrop",
  "serde",
@@ -5366,7 +5466,7 @@ dependencies = [
 [[package]]
 name = "servo_atoms"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-01-16#e801dd17ccf274844d7484e37172664fa3f99488"
+source = "git+https://github.com/servo/stylo?branch=2024-03-01#df595694fd3182d68ad2f4373795cd3b50eff9ac"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -5564,7 +5664,7 @@ checksum = "38b58827f4464d87d377d175e90bf58eb00fd8716ff0a62f80356b5e61555d0d"
 [[package]]
 name = "size_of_test"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-01-16#e801dd17ccf274844d7484e37172664fa3f99488"
+source = "git+https://github.com/servo/stylo?branch=2024-03-01#df595694fd3182d68ad2f4373795cd3b50eff9ac"
 dependencies = [
  "static_assertions",
 ]
@@ -5690,7 +5790,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "static_prefs"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2024-01-16#e801dd17ccf274844d7484e37172664fa3f99488"
+source = "git+https://github.com/servo/stylo?branch=2024-03-01#df595694fd3182d68ad2f4373795cd3b50eff9ac"
 
 [[package]]
 name = "strict-num"
@@ -5727,7 +5827,7 @@ dependencies = [
 [[package]]
 name = "style"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-01-16#e801dd17ccf274844d7484e37172664fa3f99488"
+source = "git+https://github.com/servo/stylo?branch=2024-03-01#df595694fd3182d68ad2f4373795cd3b50eff9ac"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -5740,6 +5840,7 @@ dependencies = [
  "euclid",
  "fxhash",
  "html5ever",
+ "icu_segmenter",
  "indexmap 1.9.3",
  "itertools 0.10.5",
  "itoa",
@@ -5777,7 +5878,6 @@ dependencies = [
  "to_shmem_derive",
  "uluru",
  "unicode-bidi",
- "unicode-segmentation",
  "url",
  "void",
  "walkdir",
@@ -5786,7 +5886,7 @@ dependencies = [
 [[package]]
 name = "style_config"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-01-16#e801dd17ccf274844d7484e37172664fa3f99488"
+source = "git+https://github.com/servo/stylo?branch=2024-03-01#df595694fd3182d68ad2f4373795cd3b50eff9ac"
 dependencies = [
  "lazy_static",
 ]
@@ -5794,7 +5894,7 @@ dependencies = [
 [[package]]
 name = "style_derive"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-01-16#e801dd17ccf274844d7484e37172664fa3f99488"
+source = "git+https://github.com/servo/stylo?branch=2024-03-01#df595694fd3182d68ad2f4373795cd3b50eff9ac"
 dependencies = [
  "darling",
  "derive_common",
@@ -5825,7 +5925,7 @@ dependencies = [
 [[package]]
 name = "style_traits"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-01-16#e801dd17ccf274844d7484e37172664fa3f99488"
+source = "git+https://github.com/servo/stylo?branch=2024-03-01#df595694fd3182d68ad2f4373795cd3b50eff9ac"
 dependencies = [
  "app_units",
  "bitflags 2.5.0",
@@ -6162,6 +6262,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinystr"
+version = "0.7.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "83c02bf3c538ab32ba913408224323915f4ef9a6d61c0e85d493f355921c0ece"
+dependencies = [
+ "displaydoc",
+]
+
+[[package]]
 name = "tinyvec"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6179,7 +6288,7 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 [[package]]
 name = "to_shmem"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-01-16#e801dd17ccf274844d7484e37172664fa3f99488"
+source = "git+https://github.com/servo/stylo?branch=2024-03-01#df595694fd3182d68ad2f4373795cd3b50eff9ac"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -6192,7 +6301,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-01-16#e801dd17ccf274844d7484e37172664fa3f99488"
+source = "git+https://github.com/servo/stylo?branch=2024-03-01#df595694fd3182d68ad2f4373795cd3b50eff9ac"
 dependencies = [
  "darling",
  "derive_common",
@@ -6523,6 +6632,12 @@ name = "utf-8"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09cc8ee72d2a9becf2f2febe0205bbed8fc6615b7cb429ad062dc7b7ddd036a9"
+
+[[package]]
+name = "utf8_iter"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
 
 [[package]]
 name = "uuid"
@@ -7404,6 +7519,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "writeable"
+version = "0.5.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dad7bb64b8ef9c0aa27b6da38b452b0ee9fd82beaf276a87dd796fb55cbae14e"
+
+[[package]]
 name = "x11"
 version = "2.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7494,6 +7615,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "yoke"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "65e71b2e4f287f467794c671e2b8f8a5f3716b3c829079a1c44740148eff07e4"
+dependencies = [
+ "serde",
+ "stable_deref_trait",
+ "yoke-derive",
+ "zerofrom",
+]
+
+[[package]]
+name = "yoke-derive"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9e6936f0cce458098a201c245a11bef556c6a0181129c7034d10d76d1ec3a2b8"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.58",
+ "synstructure 0.13.1",
+]
+
+[[package]]
 name = "zerocopy"
 version = "0.7.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7507,6 +7652,49 @@ name = "zerocopy-derive"
 version = "0.7.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ce1b18ccd8e73a9321186f97e46f9f04b778851177567b1975109d26a08d2a6"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.58",
+]
+
+[[package]]
+name = "zerofrom"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "655b0814c5c0b19ade497851070c640773304939a6c0fd5f5fb43da0696d05b7"
+dependencies = [
+ "zerofrom-derive",
+]
+
+[[package]]
+name = "zerofrom-derive"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e6a647510471d372f2e6c2e6b7219e44d8c574d24fdc11c610a61455782f18c3"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.58",
+ "synstructure 0.13.1",
+]
+
+[[package]]
+name = "zerovec"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eff4439ae91fb5c72b8abc12f3f2dbf51bd27e6eadb9f8a5bc8898dddb0e27ea"
+dependencies = [
+ "yoke",
+ "zerofrom",
+ "zerovec-derive",
+]
+
+[[package]]
+name = "zerovec-derive"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b4e5997cbf58990550ef1f0e5124a05e47e1ebd33a84af25739be6031a62c20"
 dependencies = [
  "proc-macro2",
  "quote",
