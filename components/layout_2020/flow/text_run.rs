@@ -211,13 +211,13 @@ impl TextRun {
         font_context: &mut FontContext<FontCacheThread>,
         linebreaker: &mut Option<LineBreakLeafIter>,
         font_cache: &mut Vec<FontKeyAndMetrics>,
-        last_inline_box_ended_with_white_space: &mut bool,
+        last_inline_box_ended_with_collapsible_white_space: &mut bool,
         on_word_boundary: &mut bool,
     ) {
         let segment_results = self.segment_text(
             font_context,
             font_cache,
-            last_inline_box_ended_with_white_space,
+            last_inline_box_ended_with_collapsible_white_space,
             on_word_boundary,
         );
         let inherited_text_style = self.parent_style.get_inherited_text().clone();
@@ -282,7 +282,7 @@ impl TextRun {
         &mut self,
         font_context: &mut FontContext<FontCacheThread>,
         font_cache: &mut Vec<FontKeyAndMetrics>,
-        last_inline_box_ended_with_white_space: &mut bool,
+        last_inline_box_ended_with_collapsible_white_space: &mut bool,
         on_word_boundary: &mut bool,
     ) -> Vec<(TextRunSegment, FontRef)> {
         let font_group = font_context.font_group(self.parent_style.clone_font());
@@ -291,10 +291,11 @@ impl TextRun {
 
         // TODO: Eventually the text should come directly from the Cow strings of the DOM nodes.
         let text = std::mem::take(&mut self.text);
+        let white_space = self.parent_style.clone_white_space();
         let collapsed = WhitespaceCollapse::new(
             text.as_str().chars(),
-            self.parent_style.clone_white_space(),
-            *last_inline_box_ended_with_white_space,
+            white_space,
+            *last_inline_box_ended_with_collapsible_white_space,
         );
 
         let text_transform = self.parent_style.clone_text_transform();
@@ -304,8 +305,9 @@ impl TextRun {
                 // `TextTransformation` doesn't support capitalization, so we must capitalize the whole
                 // string at once and make a copy. Here `on_word_boundary` indicates whether or not the
                 // inline formatting context as a whole is on a word boundary. This is different from
-                // `last_inline_box_ended_with_white_space` because the word boundaries are between
-                // atomic inlines and at the start of the IFC.
+                // `last_inline_box_ended_with_collapsible_white_space` because the word boundaries are
+                // between atomic inlines and at the start of the IFC, and because preserved spaces
+                // are a word boundary.
                 let collapsed_string: String = collapsed.collect();
                 collected_text = capitalize_string(&collapsed_string, *on_word_boundary);
                 Box::new(collected_text.chars())
@@ -323,8 +325,9 @@ impl TextRun {
                 let current_byte_index = next_byte_index;
                 next_byte_index += character.len_utf8();
 
-                *last_inline_box_ended_with_white_space = character.is_whitespace();
-                *on_word_boundary = *last_inline_box_ended_with_white_space;
+                *on_word_boundary = character.is_whitespace();
+                *last_inline_box_ended_with_collapsible_white_space =
+                    *on_word_boundary && !white_space.preserve_spaces();
 
                 let prevents_soft_wrap_opportunity =
                     char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character);
