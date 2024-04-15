@@ -17,7 +17,7 @@ use gfx::text::util::{self, CompressionMode};
 use log::{debug, warn};
 use range::Range;
 use style::computed_values::text_rendering::T as TextRendering;
-use style::computed_values::white_space::T as WhiteSpace;
+use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
 use style::logical_geometry::{LogicalSize, WritingMode};
 use style::properties::style_structs::Font as FontStyleStruct;
@@ -46,7 +46,7 @@ fn text(fragments: &LinkedList<Fragment>) -> String {
 
     for fragment in fragments {
         if let SpecificFragmentInfo::UnscannedText(ref info) = fragment.specific {
-            if fragment.white_space().preserve_newlines() {
+            if fragment.white_space_collapse() != WhiteSpaceCollapse::Collapse {
                 text.push_str(&info.text);
             } else {
                 text.push_str(&info.text.replace('\n', " "));
@@ -190,12 +190,10 @@ impl TextRunScanner {
                 let font_style = in_fragment.style().clone_font();
                 let inherited_text_style = in_fragment.style().get_inherited_text();
                 font_group = font_context.font_group(font_style);
-                compression = match in_fragment.white_space() {
-                    WhiteSpace::Normal | WhiteSpace::Nowrap => {
-                        CompressionMode::CompressWhitespaceNewline
-                    },
-                    WhiteSpace::Pre | WhiteSpace::PreWrap => CompressionMode::CompressNone,
-                    WhiteSpace::PreLine => CompressionMode::CompressWhitespace,
+                compression = match in_fragment.white_space_collapse() {
+                    WhiteSpaceCollapse::Collapse => CompressionMode::CompressWhitespaceNewline,
+                    WhiteSpaceCollapse::Preserve => CompressionMode::CompressNone,
+                    WhiteSpaceCollapse::PreserveBreaks => CompressionMode::CompressWhitespace,
                 };
                 text_transform = inherited_text_style.text_transform;
                 letter_spacing = inherited_text_style.letter_spacing;
@@ -568,7 +566,7 @@ fn split_first_fragment_at_newline_if_necessary(fragments: &mut LinkedList<Fragm
         let string_before;
         let selection_before;
         {
-            if !first_fragment.white_space().preserve_newlines() {
+            if first_fragment.white_space_collapse() == WhiteSpaceCollapse::Collapse {
                 return;
             }
 

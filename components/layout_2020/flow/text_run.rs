@@ -16,7 +16,7 @@ use range::Range;
 use serde::Serialize;
 use servo_arc::Arc;
 use style::computed_values::text_rendering::T as TextRendering;
-use style::computed_values::white_space::T as WhiteSpace;
+use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
 use style::properties::ComputedValues;
 use style::values::specified::text::TextTransformCase;
@@ -189,8 +189,8 @@ impl TextRun {
     /// Whether or not this [`TextRun`] has uncollapsible content. This is used
     /// to determine if an [`super::InlineFormattingContext`] is considered empty or not.
     pub(super) fn has_uncollapsible_content(&self) -> bool {
-        let white_space = self.parent_style.clone_white_space();
-        if white_space.preserve_spaces() && !self.text.is_empty() {
+        let white_space_collapse = self.parent_style.clone_white_space_collapse();
+        if white_space_collapse == WhiteSpaceCollapse::Preserve && !self.text.is_empty() {
             return true;
         }
 
@@ -198,7 +198,7 @@ impl TextRun {
             if !character.is_ascii_whitespace() {
                 return true;
             }
-            if character == '\n' && white_space.preserve_newlines() {
+            if character == '\n' && white_space_collapse != WhiteSpaceCollapse::Collapse {
                 return true;
             }
         }
@@ -291,10 +291,10 @@ impl TextRun {
 
         // TODO: Eventually the text should come directly from the Cow strings of the DOM nodes.
         let text = std::mem::take(&mut self.text);
-        let white_space = self.parent_style.clone_white_space();
+        let white_space_collapse = self.parent_style.clone_white_space_collapse();
         let collapsed = WhitespaceCollapse::new(
             text.as_str().chars(),
-            white_space,
+            white_space_collapse,
             *last_inline_box_ended_with_collapsible_white_space,
         );
 
@@ -327,7 +327,7 @@ impl TextRun {
 
                 *on_word_boundary = character.is_whitespace();
                 *last_inline_box_ended_with_collapsible_white_space =
-                    *on_word_boundary && !white_space.preserve_spaces();
+                    *on_word_boundary && white_space_collapse != WhiteSpaceCollapse::Preserve;
 
                 let prevents_soft_wrap_opportunity =
                     char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character);
@@ -437,11 +437,8 @@ impl TextRun {
         if !run.glyph_store.is_whitespace() || run.range.length() != ByteIndex(1) {
             return false;
         }
-        if !self
-            .parent_style
-            .get_inherited_text()
-            .white_space
-            .preserve_newlines()
+        if self.parent_style.get_inherited_text().white_space_collapse ==
+            WhiteSpaceCollapse::Collapse
         {
             return false;
         }
@@ -526,7 +523,7 @@ fn preserve_segment_break() -> bool {
 
 pub struct WhitespaceCollapse<InputIterator> {
     char_iterator: InputIterator,
-    white_space: WhiteSpace,
+    white_space_collapse: WhiteSpaceCollapse,
 
     /// Whether or not we should collapse white space completely at the start of the string.
     /// This is true when the last character handled in our owning [`super::InlineFormattingContext`]
@@ -555,12 +552,12 @@ pub struct WhitespaceCollapse<InputIterator> {
 impl<InputIterator> WhitespaceCollapse<InputIterator> {
     pub fn new(
         char_iterator: InputIterator,
-        white_space: WhiteSpace,
+        white_space_collapse: WhiteSpaceCollapse,
         trim_beginning_white_space: bool,
     ) -> Self {
         Self {
             char_iterator,
-            white_space,
+            white_space_collapse,
             remove_collapsible_white_space_at_start: trim_beginning_white_space,
             inside_white_space: false,
             following_newline: false,
@@ -594,7 +591,7 @@ where
         // > characters are considered collapsible
         // If whitespace is not considered collapsible, it is preserved entirely, which
         // means that we can simply return the input string exactly.
-        if self.white_space.preserve_spaces() {
+        if self.white_space_collapse == WhiteSpaceCollapse::Preserve {
             return self.char_iterator.next();
         }
 
@@ -623,7 +620,7 @@ where
                 //
                 // > When white-space is pre, pre-wrap, or pre-line, segment breaks are not
                 // > collapsible and are instead transformed into a preserved line feed"
-                if self.white_space == WhiteSpace::PreLine {
+                if self.white_space_collapse != WhiteSpaceCollapse::Collapse {
                     self.inside_white_space = false;
                     self.following_newline = true;
                     return Some(character);

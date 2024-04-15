@@ -41,8 +41,9 @@ use style::computed_values::overflow_wrap::T as OverflowWrap;
 use style::computed_values::overflow_x::T as StyleOverflow;
 use style::computed_values::position::T as Position;
 use style::computed_values::text_decoration_line::T as TextDecorationLine;
+use style::computed_values::text_wrap_mode::T as TextWrapMode;
 use style::computed_values::transform_style::T as TransformStyle;
-use style::computed_values::white_space::T as WhiteSpace;
+use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
 use style::logical_geometry::{Direction, LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
@@ -1539,8 +1540,12 @@ impl Fragment {
         &self.selected_style
     }
 
-    pub fn white_space(&self) -> WhiteSpace {
-        self.style().get_inherited_text().white_space
+    pub fn white_space_collapse(&self) -> WhiteSpaceCollapse {
+        self.style().get_inherited_text().white_space_collapse
+    }
+
+    pub fn text_wrap_mode(&self) -> TextWrapMode {
+        self.style().get_inherited_text().text_wrap_mode
     }
 
     pub fn color(&self) -> Color {
@@ -1586,7 +1591,7 @@ impl Fragment {
     /// Returns true if this element can be split. This is true for text fragments, unless
     /// `white-space: pre` or `white-space: nowrap` is set.
     pub fn can_split(&self) -> bool {
-        self.is_scanned_text_fragment() && self.white_space().allow_wrap()
+        self.is_scanned_text_fragment() && self.text_wrap_mode() == TextWrapMode::Wrap
     }
 
     /// Returns true if and only if this fragment is a generated content fragment.
@@ -1703,7 +1708,7 @@ impl Fragment {
                 .metrics_for_range(range)
                 .advance_width;
 
-            let min_line_inline_size = if self_.white_space().allow_wrap() {
+            let min_line_inline_size = if self_.text_wrap_mode() == TextWrapMode::Wrap {
                 text_fragment_info.run.min_width_for_range(range)
             } else {
                 max_line_inline_size
@@ -1968,7 +1973,7 @@ impl Fragment {
             // see if we're going to overflow the line. If so, perform a best-effort split.
             let mut remaining_range = slice.text_run_range();
             let split_is_empty = inline_start_range.is_empty() &&
-                (self.white_space().allow_wrap() ||
+                (self.text_wrap_mode() == TextWrapMode::Wrap ||
                     !self.requires_line_break_afterward_if_wrapping_on_newlines());
             if split_is_empty {
                 // We're going to overflow the line.
@@ -2520,7 +2525,8 @@ impl Fragment {
                 // FIXME: Should probably use a whitelist of styles that can safely differ (#3165)
                 if self.style().get_font() != other.style().get_font() ||
                     self.text_decoration_line() != other.text_decoration_line() ||
-                    self.white_space() != other.white_space() ||
+                    self.white_space_collapse() != other.white_space_collapse() ||
+                    self.text_wrap_mode() != other.text_wrap_mode() ||
                     self.color() != other.color()
                 {
                     return false;
@@ -2893,7 +2899,7 @@ impl Fragment {
     }
 
     pub fn strip_leading_whitespace_if_necessary(&mut self) -> WhitespaceStrippingResult {
-        if self.white_space().preserve_spaces() {
+        if self.white_space_collapse() == WhiteSpaceCollapse::Preserve {
             return WhitespaceStrippingResult::RetainFragment;
         }
 
@@ -2963,7 +2969,7 @@ impl Fragment {
 
     /// Returns true if the entire fragment was stripped.
     pub fn strip_trailing_whitespace_if_necessary(&mut self) -> WhitespaceStrippingResult {
-        if self.white_space().preserve_spaces() {
+        if self.white_space_collapse() == WhiteSpaceCollapse::Preserve {
             return WhitespaceStrippingResult::RetainFragment;
         }
 
