@@ -1225,20 +1225,7 @@ async fn http_network_or_cache_fetch(
 
     // Step 5.16
     let current_url = http_request.current_url();
-    if !http_request.headers.contains_key(header::HOST) {
-        let host = if current_url.port().is_none() {
-            current_url.host_str().unwrap().to_string()
-        } else {
-            format!(
-                "{}:{}",
-                current_url.host_str().unwrap(),
-                current_url.port().unwrap()
-            )
-        };
-        http_request.headers.typed_insert(headers::Host::from(
-            host.parse::<http::uri::Authority>().unwrap(),
-        ));
-    }
+    http_request.headers.remove(header::HOST);
 
     // unlike http_loader, we should not set the accept header
     // here, according to the fetch spec

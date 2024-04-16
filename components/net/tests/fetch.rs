@@ -1359,15 +1359,6 @@ fn test_fetch_with_devtools() {
 
     headers.typed_insert::<UserAgent>(DEFAULT_USER_AGENT.parse().unwrap());
 
-    let host = if url.port().is_none() {
-        url.host_str().unwrap().to_string()
-    } else {
-        format!("{}:{}", url.host_str().unwrap(), url.port().unwrap())
-    };
-    headers.typed_insert(headers::Host::from(
-        host.parse::<http::uri::Authority>().unwrap(),
-    ));
-
     headers.insert(
         header::ACCEPT_ENCODING,
         HeaderValue::from_static("gzip, deflate, br"),
