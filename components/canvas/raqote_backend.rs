@@ -3,13 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::canvas::*;
+use cssparser::color::clamp_unit_f32;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::Angle;
 use font_kit::font::Font;
 use log::warn;
 use lyon_geom::Arc;
 use raqote::PathOp;
-use style::color::parsing::RgbaLegacy;
+use style::color::AbsoluteColor;
 
 use crate::canvas_data;
 use crate::canvas_data::{
@@ -29,7 +30,7 @@ impl Backend for RaqoteBackend {
         color.as_raqote().a != 0
     }
 
-    fn set_shadow_color(&mut self, color: RgbaLegacy, state: &mut CanvasPaintState<'_>) {
+    fn set_shadow_color(&mut self, color: AbsoluteColor, state: &mut CanvasPaintState<'_>) {
         state.shadow_color = Color::Raqote(color.to_raqote_style());
     }
 
@@ -850,40 +851,14 @@ pub trait ToRaqoteGradientStop {
     fn to_raqote(self) -> raqote::GradientStop;
 }
 
-/// Clamp a 0..1 number to a 0..255 range to u8.
-///
-/// Whilst scaling by 256 and flooring would provide
-/// an equal distribution of integers to percentage inputs,
-/// this is not what Gecko does so we instead multiply by 255
-/// and round (adding 0.5 and flooring is equivalent to rounding)
-///
-/// Chrome does something similar for the alpha value, but not
-/// the rgb values.
-///
-/// See <https://bugzilla.mozilla.org/show_bug.cgi?id=1340484>
-///
-/// Clamping to 256 and rounding after would let 1.0 map to 256, and
-/// `256.0_f32 as u8` is undefined behavior:
-///
-/// <https://github.com/rust-lang/rust/issues/10184>
-#[inline]
-pub fn clamp_unit_f32(val: f32) -> u8 {
-    clamp_floor_256_f32(val * 255.)
-}
-
-/// Round and clamp a single number to a u8.
-#[inline]
-pub fn clamp_floor_256_f32(val: f32) -> u8 {
-    val.round().clamp(0., 255.) as u8
-}
-
 impl ToRaqoteGradientStop for CanvasGradientStop {
     fn to_raqote(self) -> raqote::GradientStop {
+        let srgb = self.color.into_srgb_legacy();
         let color = raqote::Color::new(
-            clamp_unit_f32(self.color.alpha),
-            self.color.red,
-            self.color.green,
-            self.color.blue,
+            clamp_unit_f32(srgb.alpha),
+            clamp_unit_f32(srgb.components.0),
+            clamp_unit_f32(srgb.components.1),
+            clamp_unit_f32(srgb.components.2),
         );
         let position = self.offset as f32;
         raqote::GradientStop { position, color }
@@ -896,12 +871,15 @@ impl ToRaqotePattern<'_> for FillOrStrokeStyle {
         use canvas_traits::canvas::FillOrStrokeStyle::*;
 
         match self {
-            Color(color) => Some(Pattern::Color(
-                clamp_unit_f32(color.alpha),
-                color.red,
-                color.green,
-                color.blue,
-            )),
+            Color(color) => {
+                let srgb = color.into_srgb_legacy();
+                Some(Pattern::Color(
+                    clamp_unit_f32(srgb.alpha),
+                    clamp_unit_f32(srgb.components.0),
+                    clamp_unit_f32(srgb.components.1),
+                    clamp_unit_f32(srgb.components.2),
+                ))
+            },
             LinearGradient(style) => {
                 let start = Point2D::new(style.x0 as f32, style.y0 as f32);
                 let end = Point2D::new(style.x1 as f32, style.y1 as f32);
@@ -951,15 +929,16 @@ impl Color {
     }
 }
 
-impl ToRaqoteStyle for RgbaLegacy {
+impl ToRaqoteStyle for AbsoluteColor {
     type Target = raqote::SolidSource;
 
     fn to_raqote_style(self) -> Self::Target {
+        let srgb = self.into_srgb_legacy();
         raqote::SolidSource::from_unpremultiplied_argb(
-            clamp_unit_f32(self.alpha),
-            self.red,
-            self.green,
-            self.blue,
+            clamp_unit_f32(srgb.alpha),
+            clamp_unit_f32(srgb.components.0),
+            clamp_unit_f32(srgb.components.1),
+            clamp_unit_f32(srgb.components.2),
         )
     }
 }

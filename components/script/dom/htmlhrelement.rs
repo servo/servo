@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
-use style::color::parsing::RgbaLegacy;
+use style::color::AbsoluteColor;
 
 use crate::dom::bindings::codegen::Bindings::HTMLHRElementBinding::HTMLHRElementMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -70,12 +70,12 @@ impl HTMLHRElementMethods for HTMLHRElement {
 }
 
 pub trait HTMLHRLayoutHelpers {
-    fn get_color(self) -> Option<RgbaLegacy>;
+    fn get_color(self) -> Option<AbsoluteColor>;
     fn get_width(self) -> LengthOrPercentageOrAuto;
 }
 
 impl HTMLHRLayoutHelpers for LayoutDom<'_, HTMLHRElement> {
-    fn get_color(self) -> Option<RgbaLegacy> {
+    fn get_color(self) -> Option<AbsoluteColor> {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("color"))
             .and_then(AttrValue::as_color)

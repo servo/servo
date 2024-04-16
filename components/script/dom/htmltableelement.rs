@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
 use style::attr::{parse_unsigned_integer, AttrValue, LengthOrPercentageOrAuto};
-use style::color::parsing::RgbaLegacy;
+use style::color::AbsoluteColor;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
@@ -438,7 +438,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
 }
 
 pub trait HTMLTableElementLayoutHelpers {
-    fn get_background_color(self) -> Option<RgbaLegacy>;
+    fn get_background_color(self) -> Option<AbsoluteColor>;
     fn get_border(self) -> Option<u32>;
     fn get_cellpadding(self) -> Option<u32>;
     fn get_cellspacing(self) -> Option<u32>;
@@ -446,7 +446,7 @@ pub trait HTMLTableElementLayoutHelpers {
 }
 
 impl HTMLTableElementLayoutHelpers for LayoutDom<'_, HTMLTableElement> {
-    fn get_background_color(self) -> Option<RgbaLegacy> {
+    fn get_background_color(self) -> Option<AbsoluteColor> {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("bgcolor"))
             .and_then(AttrValue::as_color)

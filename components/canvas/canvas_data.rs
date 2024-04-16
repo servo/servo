@@ -21,7 +21,7 @@ use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use log::{debug, error, warn};
 use num_traits::ToPrimitive;
 use servo_arc::Arc as ServoArc;
-use style::color::parsing::RgbaLegacy;
+use style::color::AbsoluteColor;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font;
 use style_traits::values::ToCss;
@@ -74,7 +74,7 @@ impl PathState {
 pub trait Backend {
     fn get_composition_op(&self, opts: &DrawOptions) -> CompositionOp;
     fn need_to_draw_shadow(&self, color: &Color) -> bool;
-    fn set_shadow_color(&mut self, color: RgbaLegacy, state: &mut CanvasPaintState<'_>);
+    fn set_shadow_color(&mut self, color: AbsoluteColor, state: &mut CanvasPaintState<'_>);
     fn set_fill_style(
         &mut self,
         style: FillOrStrokeStyle,
@@ -1155,7 +1155,7 @@ impl<'a> CanvasData<'a> {
         self.state.shadow_blur = value;
     }
 
-    pub fn set_shadow_color(&mut self, value: RgbaLegacy) {
+    pub fn set_shadow_color(&mut self, value: AbsoluteColor) {
         self.backend.set_shadow_color(value, &mut self.state);
     }
 

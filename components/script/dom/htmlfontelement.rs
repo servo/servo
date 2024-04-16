@@ -7,7 +7,7 @@ use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
 use servo_atoms::Atom;
 use style::attr::AttrValue;
-use style::color::parsing::RgbaLegacy;
+use style::color::AbsoluteColor;
 use style::str::{read_numbers, HTML_SPACE_CHARACTERS};
 
 use crate::dom::attr::Attr;
@@ -107,13 +107,13 @@ impl VirtualMethods for HTMLFontElement {
 }
 
 pub trait HTMLFontElementLayoutHelpers {
-    fn get_color(self) -> Option<RgbaLegacy>;
+    fn get_color(self) -> Option<AbsoluteColor>;
     fn get_face(self) -> Option<Atom>;
     fn get_size(self) -> Option<u32>;
 }
 
 impl HTMLFontElementLayoutHelpers for LayoutDom<'_, HTMLFontElement> {
-    fn get_color(self) -> Option<RgbaLegacy> {
+    fn get_color(self) -> Option<AbsoluteColor> {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("color"))
             .and_then(AttrValue::as_color)
