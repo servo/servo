@@ -266,8 +266,6 @@ fn test_request_and_response_data_with_network_messages() {
     //Creating default headers for request
     let mut headers = HeaderMap::new();
 
-    headers.insert(header::HOST, HeaderValue::from_static("bar.foo"));
-
     headers.insert(
         header::ACCEPT,
         HeaderValue::from_static("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"),
