@@ -14,7 +14,7 @@ use gfx::font::{
     fallback_font_families, FontDescriptor, FontFamilyDescriptor, FontFamilyName,
     FontHandleMethods, FontSearchScope,
 };
-use gfx::font_cache_thread::{FontIdentifier, FontTemplateInfo, FontTemplates};
+use gfx::font_cache_thread::{FontIdentifier, FontTemplateAndWebRenderFontKey, FontTemplates};
 use gfx::font_context::{FontContext, FontSource};
 use gfx::font_template::FontTemplateDescriptor;
 use servo_arc::Arc;
@@ -88,12 +88,12 @@ impl FontSource for TestFontSource {
         &mut self,
         template_descriptor: FontTemplateDescriptor,
         family_descriptor: FontFamilyDescriptor,
-    ) -> Option<FontTemplateInfo> {
+    ) -> Option<FontTemplateAndWebRenderFontKey> {
         self.find_font_count.set(self.find_font_count.get() + 1);
         self.families
             .get_mut(family_descriptor.name())
             .and_then(|family| family.find_font_for_style(&template_descriptor))
-            .map(|template| FontTemplateInfo {
+            .map(|template| FontTemplateAndWebRenderFontKey {
                 font_template: template,
                 font_key: FontKey(IdNamespace(0), 0),
             })

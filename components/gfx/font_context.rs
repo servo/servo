@@ -20,7 +20,7 @@ use webrender_api::{FontInstanceKey, FontKey};
 use crate::font::{
     Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontHandleMethods, FontRef,
 };
-use crate::font_cache_thread::FontTemplateInfo;
+use crate::font_cache_thread::FontTemplateAndWebRenderFontKey;
 #[cfg(target_os = "macos")]
 use crate::font_template::FontTemplate;
 use crate::font_template::FontTemplateDescriptor;
@@ -39,7 +39,7 @@ pub trait FontSource {
         &mut self,
         template_descriptor: FontTemplateDescriptor,
         family_descriptor: FontFamilyDescriptor,
-    ) -> Option<FontTemplateInfo>;
+    ) -> Option<FontTemplateAndWebRenderFontKey>;
 }
 
 /// The FontContext represents the per-thread/thread state necessary for
@@ -54,7 +54,7 @@ pub struct FontContext<S: FontSource> {
     // so they will never be released. Find out a good time to drop them.
     // See bug https://github.com/servo/servo/issues/3300
     font_cache: HashMap<FontCacheKey, Option<FontRef>>,
-    font_template_cache: HashMap<FontTemplateCacheKey, Option<FontTemplateInfo>>,
+    font_template_cache: HashMap<FontTemplateCacheKey, Option<FontTemplateAndWebRenderFontKey>>,
 
     font_group_cache:
         HashMap<FontGroupCacheKey, Rc<RefCell<FontGroup>>, BuildHasherDefault<FnvHasher>>,
@@ -183,7 +183,7 @@ impl<S: FontSource> FontContext<S> {
         &mut self,
         template_descriptor: &FontTemplateDescriptor,
         family_descriptor: &FontFamilyDescriptor,
-    ) -> Option<FontTemplateInfo> {
+    ) -> Option<FontTemplateAndWebRenderFontKey> {
         let cache_key = FontTemplateCacheKey {
             template_descriptor: *template_descriptor,
             family_descriptor: family_descriptor.clone(),
@@ -210,7 +210,7 @@ impl<S: FontSource> FontContext<S> {
     /// cache thread and a `FontDescriptor` which contains the styling parameters.
     fn create_font(
         &mut self,
-        info: FontTemplateInfo,
+        info: FontTemplateAndWebRenderFontKey,
         descriptor: FontDescriptor,
         synthesized_small_caps: Option<FontRef>,
     ) -> Result<Font, &'static str> {
