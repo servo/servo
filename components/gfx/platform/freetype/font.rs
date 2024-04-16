@@ -4,7 +4,6 @@
 
 use std::ffi::CString;
 use std::os::raw::{c_char, c_long};
-use std::sync::Arc;
 use std::{mem, ptr};
 
 use app_units::Au;
@@ -28,7 +27,7 @@ use crate::font::{
     KERN,
 };
 use crate::font_cache_thread::FontIdentifier;
-use crate::platform::font_template::FontTemplateData;
+use crate::font_template::FontTemplateRef;
 use crate::text::glyph::GlyphId;
 use crate::text::util::fixed_to_float;
 
@@ -72,9 +71,9 @@ struct OS2Table {
 #[derive(Debug)]
 #[allow(unused)]
 pub struct FontHandle {
-    // The font binary. This must stay valid for the lifetime of the font,
-    // if the font is created using FT_Memory_Face.
-    font_data: Arc<FontTemplateData>,
+    // The template contains the font data, which must stay valid for the
+    // lifetime of the platform [`FT_Face`], if it's created via [`FT_Memory_Face`].
+    font_template: FontTemplateRef,
     face: FT_Face,
     can_do_fast_shaping: bool,
 }
@@ -94,15 +93,18 @@ impl Drop for FontHandle {
     }
 }
 
-fn create_face(template: &FontTemplateData, pt_size: Option<Au>) -> Result<FT_Face, &'static str> {
+fn create_face(template: &FontTemplateRef, pt_size: Option<Au>) -> Result<FT_Face, &'static str> {
     unsafe {
         let mut face: FT_Face = ptr::null_mut();
         let face_index = 0 as FT_Long;
         let library = FreeTypeLibraryHandle::get().lock();
 
-        let result = match template.identifier {
+        let result = match template.borrow().identifier {
             FontIdentifier::Web(_) => {
-                let bytes = template.bytes();
+                let bytes = template
+                    .borrow()
+                    .data_if_in_memory()
+                    .expect("Web font should always have data.");
                 FT_New_Memory_Face(
                     library.freetype_library,
                     bytes.as_ptr(),
@@ -141,13 +143,13 @@ fn create_face(template: &FontTemplateData, pt_size: Option<Au>) -> Result<FT_Fa
 
 impl FontHandleMethods for FontHandle {
     fn new_from_template(
-        template: Arc<FontTemplateData>,
+        template: FontTemplateRef,
         pt_size: Option<Au>,
     ) -> Result<FontHandle, &'static str> {
         let face = create_face(&template, pt_size)?;
         let mut handle = FontHandle {
             face,
-            font_data: template,
+            font_template: template.clone(),
             can_do_fast_shaping: false,
         };
         // TODO (#11310): Implement basic support for GPOS and GSUB.
@@ -156,8 +158,8 @@ impl FontHandleMethods for FontHandle {
         Ok(handle)
     }
 
-    fn template(&self) -> Arc<FontTemplateData> {
-        self.font_data.clone()
+    fn template(&self) -> FontTemplateRef {
+        self.font_template.clone()
     }
 
     fn family_name(&self) -> Option<String> {
@@ -357,10 +359,6 @@ impl FontHandleMethods for FontHandle {
             }
             Some(FontTable { buffer: buf })
         }
-    }
-
-    fn identifier(&self) -> &FontIdentifier {
-        &self.font_data.identifier
     }
 }
 

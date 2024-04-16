@@ -2,10 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::fs::File;
+use std::io::Read;
+use std::path::Path;
+
 use log::debug;
 use serde::{Deserialize, Serialize};
 use style::Atom;
 use ucd::{Codepoint, UnicodeBlock};
+use webrender_api::NativeFontHandle;
 
 use crate::text::util::unicode_plane;
 
@@ -16,6 +21,24 @@ use crate::text::util::unicode_plane;
 pub struct LocalFontIdentifier {
     pub postscript_name: Atom,
     pub path: Atom,
+}
+
+impl LocalFontIdentifier {
+    pub(crate) fn native_font_handle(&self) -> Option<NativeFontHandle> {
+        Some(NativeFontHandle {
+            name: self.postscript_name.to_string(),
+            path: self.path.to_string(),
+        })
+    }
+
+    pub(crate) fn read_data_from_file(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        File::open(Path::new(&*self.path))
+            .expect("Couldn't open font file!")
+            .read_to_end(&mut bytes)
+            .unwrap();
+        bytes
+    }
 }
 
 pub fn for_each_available_family<F>(mut callback: F)

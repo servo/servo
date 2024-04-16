@@ -3,6 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::ffi::CString;
+use std::fs::File;
+use std::io::Read;
+use std::path::{Path, PathBuf};
 use std::ptr;
 
 use fontconfig_sys::{
@@ -15,6 +18,7 @@ use libc::{c_char, c_int};
 use log::debug;
 use serde::{Deserialize, Serialize};
 use style::Atom;
+use webrender_api::NativeFontHandle;
 
 use super::c_str_to_string;
 use crate::text::util::is_cjk;
@@ -31,6 +35,25 @@ pub struct LocalFontIdentifier {
     pub path: Atom,
     /// The variation index within the font.
     pub variation_index: i32,
+}
+
+impl LocalFontIdentifier {
+    pub(crate) fn native_font_handle(&self) -> Option<NativeFontHandle> {
+        Some(NativeFontHandle {
+            path: PathBuf::from(&*self.path),
+            // TODO: Shouldn't this be using the variation index from the LocalFontIdentifier?
+            index: 0,
+        })
+    }
+
+    pub(crate) fn read_data_from_file(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        File::open(Path::new(&*self.path))
+            .expect("Couldn't open font file!")
+            .read_to_end(&mut bytes)
+            .unwrap();
+        bytes
+    }
 }
 
 pub fn for_each_available_family<F>(mut callback: F)

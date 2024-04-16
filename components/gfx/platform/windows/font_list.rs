@@ -5,9 +5,10 @@
 use std::hash::Hash;
 use std::sync::Arc;
 
-use dwrote::{FontCollection, FontDescriptor};
+use dwrote::{Font, FontCollection, FontDescriptor};
 use serde::{Deserialize, Serialize};
 use ucd::{Codepoint, UnicodeBlock};
+use webrender_api::NativeFontHandle;
 
 use crate::text::util::unicode_plane;
 
@@ -32,6 +33,32 @@ where
 pub struct LocalFontIdentifier {
     /// The FontDescriptor of this font.
     pub font_descriptor: Arc<FontDescriptor>,
+}
+
+impl LocalFontIdentifier {
+    /// Create a [`Font`] for this font.
+    pub fn direct_write_font(&self) -> Option<Font> {
+        FontCollection::system().get_font_from_descriptor(&self.font_descriptor)
+    }
+
+    pub fn native_font_handle(&self) -> Option<NativeFontHandle> {
+        let face = self.direct_write_font()?.create_font_face();
+        let path = face.get_files().first()?.get_font_file_path()?;
+        Some(NativeFontHandle {
+            path,
+            index: face.get_index(),
+        })
+    }
+
+    pub(crate) fn read_data_from_file(&self) -> Vec<u8> {
+        let font = FontCollection::system()
+            .get_font_from_descriptor(&self.font_descriptor)
+            .unwrap();
+        let face = font.create_font_face();
+        let files = face.get_files();
+        assert!(!files.is_empty());
+        files[0].get_font_file_bytes()
+    }
 }
 
 impl Eq for LocalFontIdentifier {}

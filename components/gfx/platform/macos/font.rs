@@ -4,7 +4,6 @@
 
 use std::cmp::Ordering;
 use std::ops::Range;
-use std::sync::Arc;
 use std::{fmt, ptr};
 
 /// Implementation of Quartz (CoreGraphics) fonts.
@@ -21,12 +20,12 @@ use core_text::font_descriptor::{
 use log::debug;
 use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
 
+use super::font_template::CoreTextFontTemplateMethods;
 use crate::font::{
     FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, GPOS, GSUB,
     KERN,
 };
-use crate::font_cache_thread::FontIdentifier;
-use crate::platform::font_template::FontTemplateData;
+use crate::font_template::FontTemplateRef;
 use crate::text::glyph::GlyphId;
 
 const KERN_PAIR_LEN: usize = 6;
@@ -54,7 +53,7 @@ impl FontTableMethods for FontTable {
 
 #[derive(Debug)]
 pub struct FontHandle {
-    font_data: Arc<FontTemplateData>,
+    font_template: FontTemplateRef,
     ctfont: CTFont,
     h_kern_subtable: Option<CachedKernTable>,
     can_do_fast_shaping: bool,
@@ -157,34 +156,33 @@ impl fmt::Debug for CachedKernTable {
 
 impl FontHandleMethods for FontHandle {
     fn new_from_template(
-        template: Arc<FontTemplateData>,
+        font_template: FontTemplateRef,
         pt_size: Option<Au>,
     ) -> Result<FontHandle, &'static str> {
         let size = match pt_size {
             Some(s) => s.to_f64_px(),
             None => 0.0,
         };
-        match template.ctfont(size) {
-            Some(ref ctfont) => {
-                let mut handle = FontHandle {
-                    font_data: template.clone(),
-                    ctfont: ctfont.clone_with_font_size(size),
-                    h_kern_subtable: None,
-                    can_do_fast_shaping: false,
-                };
-                handle.h_kern_subtable = handle.find_h_kern_subtable();
-                // TODO (#11310): Implement basic support for GPOS and GSUB.
-                handle.can_do_fast_shaping = handle.h_kern_subtable.is_some() &&
-                    handle.table_for_tag(GPOS).is_none() &&
-                    handle.table_for_tag(GSUB).is_none();
-                Ok(handle)
-            },
-            None => Err("Could not generate CTFont for FontTemplateData"),
-        }
+        let Some(core_text_font) = font_template.core_text_font(size) else {
+            return Err("Could not generate CTFont for FontTemplateData");
+        };
+
+        let mut handle = FontHandle {
+            font_template,
+            ctfont: core_text_font.clone_with_font_size(size),
+            h_kern_subtable: None,
+            can_do_fast_shaping: false,
+        };
+        handle.h_kern_subtable = handle.find_h_kern_subtable();
+        // TODO (#11310): Implement basic support for GPOS and GSUB.
+        handle.can_do_fast_shaping = handle.h_kern_subtable.is_some() &&
+            handle.table_for_tag(GPOS).is_none() &&
+            handle.table_for_tag(GSUB).is_none();
+        Ok(handle)
     }
 
-    fn template(&self) -> Arc<FontTemplateData> {
-        self.font_data.clone()
+    fn template(&self) -> FontTemplateRef {
+        self.font_template.clone()
     }
 
     fn family_name(&self) -> Option<String> {
@@ -316,9 +314,5 @@ impl FontHandleMethods for FontHandle {
     fn table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
         let result: Option<CFData> = self.ctfont.get_font_table(tag);
         result.map(FontTable::wrap)
-    }
-
-    fn identifier(&self) -> &FontIdentifier {
-        &self.font_data.identifier
     }
 }

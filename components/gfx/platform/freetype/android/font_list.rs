@@ -2,12 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::path::Path;
+use std::fs::File;
+use std::io::Read;
+use std::path::{Path, PathBuf};
 
 use log::warn;
 use serde::{Deserialize, Serialize};
 use style::Atom;
 use ucd::{Codepoint, UnicodeBlock};
+use webrender_api::NativeFontHandle;
 
 use super::xml::{Attribute, Node};
 use crate::text::util::is_cjk;
@@ -21,6 +24,24 @@ lazy_static::lazy_static! {
 pub struct LocalFontIdentifier {
     /// The path to the font.
     pub path: Atom,
+}
+
+impl LocalFontIdentifier {
+    pub(crate) fn native_font_handle(&self) -> Option<NativeFontHandle> {
+        Some(NativeFontHandle {
+            path: PathBuf::from(&*self.path),
+            index: 0,
+        })
+    }
+
+    pub(crate) fn read_data_from_file(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        File::open(Path::new(&*self.path))
+            .expect("Couldn't open font file!")
+            .read_to_end(&mut bytes)
+            .unwrap();
+        bytes
+    }
 }
 
 // Android doesn't provide an API to query system fonts until Android O:
