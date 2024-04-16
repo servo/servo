@@ -82,7 +82,7 @@ use style::computed_values::white_space::T as WhiteSpace;
 use style::context::QuirksMode;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::computed::Length;
+use style::values::computed::{Clear, Length};
 use style::values::generics::box_::VerticalAlignKeyword;
 use style::values::generics::font::LineHeight;
 use style::values::specified::box_::BaselineSource;
@@ -640,6 +640,11 @@ pub(super) struct InlineFormattingContextState<'a, 'b> {
     /// [`InlineFormattingContextState::finish_inline_box()`].
     linebreak_before_new_content: bool,
 
+    /// When a `<br>` element has `clear`, this needs to be applied after the linebreak,
+    /// which will be processed *after* the `<br>` element is processed. This member
+    /// stores any deferred `clear` to apply after a linebreak.
+    deferred_br_clear: Clear,
+
     /// Whether or not a soft wrap opportunity is queued. Soft wrap opportunities are
     /// queued after replaced content and they are processed when the next text content
     /// is encountered.
@@ -733,6 +738,20 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 .into()
         }
 
+        // If we are starting a `<br>` element prepare to clear after its deferred linebreak has been
+        // processed. Note that a `<br>` is composed of the element itself and the inner pseudo-element
+        // with the actual linebreak. Both will have this `FragmentFlag`; that's why this code only
+        // sets `deferred_br_clear` if it isn't set yet.
+        if inline_box_state
+            .base_fragment_info
+            .flags
+            .contains(FragmentFlags::IS_BR_ELEMENT)
+        {
+            if self.deferred_br_clear == Clear::None {
+                self.deferred_br_clear = inline_box_state.base.style.clone_clear();
+            }
+        }
+
         let line_item = inline_box_state
             .layout_into_line_item(inline_box.is_first_fragment, inline_box.is_last_fragment);
         self.push_line_item_to_unbreakable_segment(LineItem::StartInlineBox(line_item));
@@ -817,12 +836,24 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             LineBlockSizes::zero()
         };
 
-        let block_end_position = block_start_position + effective_block_advance.resolve().into();
+        let resolved_block_advance = effective_block_advance.resolve().into();
+        let mut block_end_position = block_start_position + resolved_block_advance;
         if let Some(sequential_layout_state) = self.sequential_layout_state.as_mut() {
             // This amount includes both the block size of the line and any extra space
             // added to move the line down in order to avoid overlapping floats.
             let increment = block_end_position - self.current_line.start_position.block.into();
             sequential_layout_state.advance_block_position(increment);
+
+            // This newline may have been triggered by a `<br>` with clearance, in which case we
+            // want to make sure that we make space not only for the current line, but any clearance
+            // from floats.
+            if let Some(clearance) = sequential_layout_state
+                .calculate_clearance(self.deferred_br_clear, &CollapsedMargin::zero())
+            {
+                sequential_layout_state.advance_block_position(clearance);
+                block_end_position += clearance;
+            };
+            self.deferred_br_clear = Clear::None;
         }
 
         let mut line_items = std::mem::take(&mut self.current_line.line_items);
@@ -1624,6 +1655,7 @@ impl InlineFormattingContext {
             inline_box_state_stack: Vec::new(),
             current_line_segment: UnbreakableSegmentUnderConstruction::new(),
             linebreak_before_new_content: false,
+            deferred_br_clear: Clear::None,
             have_deferred_soft_wrap_opportunity: false,
             prevent_soft_wrap_opportunity_before_next_atomic: false,
             had_inflow_content: false,
