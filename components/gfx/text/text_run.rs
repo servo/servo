@@ -16,8 +16,7 @@ use unicode_bidi as bidi;
 use webrender_api::FontInstanceKey;
 use xi_unicode::LineBreakLeafIter;
 
-use crate::font::{Font, FontHandleMethods, FontMetrics, RunMetrics, ShapingFlags, ShapingOptions};
-use crate::font_template::FontTemplateRefMethods;
+use crate::font::{Font, FontMetrics, RunMetrics, ShapingFlags, ShapingOptions};
 use crate::text::glyph::{ByteIndex, GlyphStore};
 
 thread_local! {
@@ -30,8 +29,6 @@ thread_local! {
 pub struct TextRun {
     /// The UTF-8 string represented by this text run.
     pub text: Arc<String>,
-    /// This ensures the data stays alive as long as this TextRun is using this font.
-    font_data: Arc<Vec<u8>>,
     pub pt_size: Au,
     pub font_metrics: FontMetrics,
     pub font_key: FontInstanceKey,
@@ -194,7 +191,6 @@ impl<'a> TextRun {
             TextRun {
                 text: Arc::new(text),
                 font_metrics: font.metrics.clone(),
-                font_data: font.handle.template().data(),
                 font_key: font.font_key,
                 pt_size: font.descriptor.pt_size,
                 glyphs: Arc::new(glyphs),

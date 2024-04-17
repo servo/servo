@@ -17,14 +17,11 @@ use style::computed_values::font_variant_caps::T as FontVariantCaps;
 use style::properties::style_structs::Font as FontStyleStruct;
 use webrender_api::{FontInstanceKey, FontKey};
 
-use crate::font::{
-    Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontHandleMethods, FontRef,
-};
+use crate::font::{Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontRef};
 use crate::font_cache_thread::FontTemplateAndWebRenderFontKey;
 #[cfg(target_os = "macos")]
 use crate::font_template::FontTemplate;
 use crate::font_template::FontTemplateDescriptor;
-use crate::platform::font::FontHandle;
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
 
@@ -214,17 +211,15 @@ impl<S: FontSource> FontContext<S> {
         descriptor: FontDescriptor,
         synthesized_small_caps: Option<FontRef>,
     ) -> Result<Font, &'static str> {
-        let handle = FontHandle::new_from_template(info.font_template, Some(descriptor.pt_size))?;
-
         let font_instance_key = self
             .font_source
             .get_font_instance(info.font_key, descriptor.pt_size);
-        Ok(Font::new(
-            handle,
+        Font::new(
+            info.font_template,
             descriptor,
             font_instance_key,
             synthesized_small_caps,
-        ))
+        )
     }
 }
 

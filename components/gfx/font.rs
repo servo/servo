@@ -27,7 +27,7 @@ use webrender_api::FontInstanceKey;
 use crate::font_cache_thread::FontIdentifier;
 use crate::font_context::{FontContext, FontSource};
 use crate::font_template::{FontTemplateDescriptor, FontTemplateRef};
-use crate::platform::font::{FontHandle, FontTable};
+use crate::platform::font::{FontTable, PlatformFont};
 pub use crate::platform::font_list::fallback_font_families;
 use crate::text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use crate::text::shaping::ShaperMethods;
@@ -47,18 +47,17 @@ pub const LAST_RESORT_GLYPH_ADVANCE: FractionalPixel = 10.0;
 
 static TEXT_SHAPING_PERFORMANCE_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
-// FontHandle encapsulates access to the platform's font API,
+// PlatformFont encapsulates access to the platform's font API,
 // e.g. quartz, FreeType. It provides access to metrics and tables
 // needed by the text shaper as well as access to the underlying font
 // resources needed by the graphics layer to draw glyphs.
 
-pub trait FontHandleMethods: Sized {
+pub trait PlatformFontMethods: Sized {
     fn new_from_template(
         template: FontTemplateRef,
         pt_size: Option<Au>,
     ) -> Result<Self, &'static str>;
 
-    fn template(&self) -> FontTemplateRef;
     fn family_name(&self) -> Option<String>;
     fn face_name(&self) -> Option<String>;
 
@@ -161,7 +160,8 @@ impl<'a> From<&'a FontStyleStruct> for FontDescriptor {
 
 #[derive(Debug)]
 pub struct Font {
-    pub handle: FontHandle,
+    pub handle: PlatformFont,
+    pub template: FontTemplateRef,
     pub metrics: FontMetrics,
     pub descriptor: FontDescriptor,
     shaper: Option<Shaper>,
@@ -177,15 +177,17 @@ pub struct Font {
 
 impl Font {
     pub fn new(
-        handle: FontHandle,
+        template: FontTemplateRef,
         descriptor: FontDescriptor,
         font_key: FontInstanceKey,
         synthesized_small_caps: Option<FontRef>,
-    ) -> Font {
+    ) -> Result<Font, &'static str> {
+        let handle = PlatformFont::new_from_template(template.clone(), Some(descriptor.pt_size))?;
         let metrics = handle.metrics();
 
-        Font {
+        Ok(Font {
             handle,
+            template,
             shaper: None,
             descriptor,
             metrics,
@@ -193,12 +195,12 @@ impl Font {
             glyph_advance_cache: RefCell::new(HashMap::new()),
             font_key,
             synthesized_small_caps,
-        }
+        })
     }
 
     /// A unique identifier for the font, allowing comparison.
     pub fn identifier(&self) -> FontIdentifier {
-        self.handle.template().borrow().identifier.clone()
+        self.template.borrow().identifier.clone()
     }
 }
 

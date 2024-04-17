@@ -4,6 +4,7 @@
 
 use std::ffi::CString;
 use std::os::raw::{c_char, c_long};
+use std::sync::Arc;
 use std::{mem, ptr};
 
 use app_units::Au;
@@ -23,7 +24,7 @@ use style::values::computed::font::FontStyle;
 use super::c_str_to_string;
 use super::library_handle::FreeTypeLibraryHandle;
 use crate::font::{
-    FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, GPOS, GSUB,
+    FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, PlatformFontMethods, GPOS, GSUB,
     KERN,
 };
 use crate::font_cache_thread::FontIdentifier;
@@ -70,15 +71,18 @@ struct OS2Table {
 
 #[derive(Debug)]
 #[allow(unused)]
-pub struct FontHandle {
-    // The template contains the font data, which must stay valid for the
-    // lifetime of the platform [`FT_Face`], if it's created via [`FT_Memory_Face`].
-    font_template: FontTemplateRef,
+pub struct PlatformFont {
+    /// The font data itself, which must stay valid for the lifetime of the
+    /// platform [`FT_Face`], if it's created via [`FT_New_Memory_Face`]. A reference
+    /// to this data is also stored in the [`crate::font::Font`] that holds
+    /// this [`PlatformFont`], but if it's ever separated from it's font,
+    /// this ensures the data stays alive.
+    font_data: Option<Arc<Vec<u8>>>,
     face: FT_Face,
     can_do_fast_shaping: bool,
 }
 
-impl Drop for FontHandle {
+impl Drop for PlatformFont {
     fn drop(&mut self) {
         assert!(!self.face.is_null());
         unsafe {
@@ -134,32 +138,28 @@ fn create_face(template: &FontTemplateRef, pt_size: Option<Au>) -> Result<FT_Fac
         }
 
         if let Some(s) = pt_size {
-            FontHandle::set_char_size(face, s)?
+            PlatformFont::set_char_size(face, s)?
         }
 
         Ok(face)
     }
 }
 
-impl FontHandleMethods for FontHandle {
+impl PlatformFontMethods for PlatformFont {
     fn new_from_template(
         template: FontTemplateRef,
         pt_size: Option<Au>,
-    ) -> Result<FontHandle, &'static str> {
+    ) -> Result<PlatformFont, &'static str> {
         let face = create_face(&template, pt_size)?;
-        let mut handle = FontHandle {
+        let mut handle = PlatformFont {
             face,
-            font_template: template.clone(),
+            font_data: template.borrow().data_if_in_memory(),
             can_do_fast_shaping: false,
         };
         // TODO (#11310): Implement basic support for GPOS and GSUB.
         handle.can_do_fast_shaping =
             handle.has_table(KERN) && !handle.has_table(GPOS) && !handle.has_table(GSUB);
         Ok(handle)
-    }
-
-    fn template(&self) -> FontTemplateRef {
-        self.font_template.clone()
     }
 
     fn family_name(&self) -> Option<String> {
@@ -362,7 +362,7 @@ impl FontHandleMethods for FontHandle {
     }
 }
 
-impl<'a> FontHandle {
+impl<'a> PlatformFont {
     fn set_char_size(face: FT_Face, pt_size: Au) -> Result<(), &'static str> {
         let char_size = pt_size.to_f64_px() * 64.0 + 0.5;
 

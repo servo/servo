@@ -16,9 +16,9 @@ use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::FontWeight;
 use webrender_api::NativeFontHandle;
 
-use crate::font::FontHandleMethods;
+use crate::font::PlatformFontMethods;
 use crate::font_cache_thread::FontIdentifier;
-use crate::platform::font::FontHandle;
+use crate::platform::font::PlatformFont;
 
 /// A reference to a [`FontTemplate`] with shared ownership and mutability.
 pub(crate) type FontTemplateRef = Rc<RefCell<FontTemplate>>;
@@ -191,10 +191,10 @@ impl FontTemplateRefMethods for FontTemplateRef {
             return Err("Invalid font template");
         }
 
-        let handle = FontHandleMethods::new_from_template(self.clone(), None);
+        let handle = PlatformFontMethods::new_from_template(self.clone(), None);
         let mut template = self.borrow_mut();
         template.is_valid = handle.is_ok();
-        let handle: FontHandle = handle?;
+        let handle: PlatformFont = handle?;
         template.descriptor = Some(FontTemplateDescriptor::new(
             handle.boldness(),
             handle.stretchiness(),

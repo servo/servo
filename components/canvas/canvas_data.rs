@@ -14,7 +14,6 @@ use font_kit::font::Font;
 use font_kit::metrics::Metrics;
 use font_kit::properties::{Properties, Stretch, Style, Weight};
 use font_kit::source::SystemSource;
-use gfx::font::FontHandleMethods;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
 use gfx::font_template::FontTemplateRefMethods;
@@ -502,7 +501,7 @@ impl<'a> CanvasData<'a> {
                         .first(font_context)
                         .expect("couldn't find font");
                     let font = font.borrow_mut();
-                    Font::from_bytes(font.handle.template().data(), 0)
+                    Font::from_bytes(font.template.data(), 0)
                         .ok()
                         .or_else(|| load_system_font_from_style(Some(style)))
                 })
