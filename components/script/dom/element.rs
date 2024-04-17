@@ -1711,7 +1711,7 @@ impl Element {
     // Used for string attribute reflections where absence of the attribute returns null
     pub fn get_nullable_string_attribute(&self, local_name: &LocalName) -> Option<DOMString> {
         if self.has_attribute(local_name) {
-            Option::from(self.get_string_attribute(local_name))
+            Some(self.get_string_attribute(local_name))
         } else {
             None
         }
