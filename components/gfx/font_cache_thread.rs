@@ -42,13 +42,13 @@ pub struct FontTemplates {
 }
 
 #[derive(Clone, Debug)]
-pub struct FontTemplateInfo {
+pub struct FontTemplateAndWebRenderFontKey {
     pub font_template: FontTemplateRef,
     pub font_key: FontKey,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct SerializedFontTemplateInfo {
+pub struct SerializedFontTemplateAndWebRenderFontKey {
     pub serialized_font_template: SerializedFontTemplate,
     pub font_key: FontKey,
 }
@@ -151,7 +151,7 @@ pub enum Command {
 /// Reply messages sent from the font cache thread to the FontContext caller.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Reply {
-    GetFontTemplateReply(Option<SerializedFontTemplateInfo>),
+    GetFontTemplateReply(Option<SerializedFontTemplateAndWebRenderFontKey>),
 }
 
 /// The font cache thread itself. It maintains a list of reference counted
@@ -218,7 +218,7 @@ impl FontCache {
                     };
 
                     let _ = result.send(Reply::GetFontTemplateReply(Some(
-                        SerializedFontTemplateInfo {
+                        SerializedFontTemplateAndWebRenderFontKey {
                             serialized_font_template,
                             font_key: font_template_info.font_key,
                         },
@@ -452,7 +452,7 @@ impl FontCache {
         &mut self,
         template_descriptor: &FontTemplateDescriptor,
         family_descriptor: &FontFamilyDescriptor,
-    ) -> Option<FontTemplateInfo> {
+    ) -> Option<FontTemplateAndWebRenderFontKey> {
         match family_descriptor.scope {
             FontSearchScope::Any => self
                 .find_font_in_web_family(template_descriptor, &family_descriptor.name)
@@ -464,7 +464,7 @@ impl FontCache {
                 self.find_font_in_local_family(template_descriptor, &family_descriptor.name)
             },
         }
-        .map(|font_template| FontTemplateInfo {
+        .map(|font_template| FontTemplateAndWebRenderFontKey {
             font_key: self.get_font_key_for_template(&font_template),
             font_template,
         })
@@ -600,7 +600,7 @@ impl FontSource for FontCacheThread {
         &mut self,
         template_descriptor: FontTemplateDescriptor,
         family_descriptor: FontFamilyDescriptor,
-    ) -> Option<FontTemplateInfo> {
+    ) -> Option<FontTemplateAndWebRenderFontKey> {
         let (response_chan, response_port) = ipc::channel().expect("failed to create IPC channel");
         self.chan
             .send(Command::GetFontTemplate(
@@ -629,7 +629,7 @@ impl FontSource for FontCacheThread {
                             .serialized_font_template
                             .to_font_template(),
                     ));
-                    FontTemplateInfo {
+                    FontTemplateAndWebRenderFontKey {
                         font_template,
                         font_key: serialized_font_template_info.font_key,
                     }
