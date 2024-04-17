@@ -73,7 +73,7 @@ struct OS2Table {
 #[allow(unused)]
 pub struct PlatformFont {
     /// The font data itself, which must stay valid for the lifetime of the
-    /// platform [`FT_Face`], if it's created via [`FT_Memory_Face`]. A reference
+    /// platform [`FT_Face`], if it's created via [`FT_New_Memory_Face`]. A reference
     /// to this data is also stored in the [`crate::font::Font`] that holds
     /// this [`PlatformFont`], but if it's ever separated from it's font,
     /// this ensures the data stays alive.
