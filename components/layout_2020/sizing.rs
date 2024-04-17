@@ -24,13 +24,6 @@ pub(crate) struct ContentSizes {
 
 /// <https://drafts.csswg.org/css-sizing/#intrinsic-sizes>
 impl ContentSizes {
-    pub fn map(&self, f: impl Fn(Au) -> Au) -> Self {
-        Self {
-            min_content: f(self.min_content),
-            max_content: f(self.max_content),
-        }
-    }
-
     pub fn max(&self, other: Self) -> Self {
         Self {
             min_content: self.min_content.max(other.min_content),
@@ -90,70 +83,97 @@ impl ContentSizes {
 pub(crate) fn outer_inline(
     style: &ComputedValues,
     containing_block_writing_mode: WritingMode,
+    is_replaced: bool,
     get_content_size: impl FnOnce() -> ContentSizes,
 ) -> ContentSizes {
     let padding = style.padding(containing_block_writing_mode);
     let border = style.border_width(containing_block_writing_mode);
     let margin = style.margin(containing_block_writing_mode);
+    let box_sizing = style.get_position().box_sizing;
 
     // For margins and paddings, a cyclic percentage is resolved against zero
     // for determining intrinsic size contributions.
     // https://drafts.csswg.org/css-sizing-3/#min-percentage-contribution
     let zero = Length::zero();
-    let pb_lengths = border.inline_sum() +
+    let pb = (border.inline_sum() +
         padding.inline_start.percentage_relative_to(zero) +
-        padding.inline_end.percentage_relative_to(zero);
-    let mut m_lengths = zero;
+        padding.inline_end.percentage_relative_to(zero))
+    .into();
+    let mut margins = Au::zero();
     if let Some(m) = margin.inline_start.non_auto() {
-        m_lengths += m.percentage_relative_to(zero)
+        margins += m.percentage_relative_to(zero).into()
     }
     if let Some(m) = margin.inline_end.non_auto() {
-        m_lengths += m.percentage_relative_to(zero)
+        margins += m.percentage_relative_to(zero).into()
     }
 
-    let box_sizing = style.get_position().box_sizing;
+    // Percentages for 'width' are treated as 'auto', except for the min-content
+    // contribution of replaced elements, then they resolve against zero instead.
+    // https://drafts.csswg.org/css-sizing-3/#non-replaced-percentage-contribution
+    // https://drafts.csswg.org/css-sizing-3/#replaced-percentage-max-contribution
+    // https://drafts.csswg.org/css-sizing-3/#replaced-percentage-min-contribution
     let inline_size = style
         .box_size(containing_block_writing_mode)
         .inline
-        .non_auto()
-        // Percentages for 'width' are treated as 'auto'
-        .and_then(|lp| lp.to_length());
+        .non_auto();
+    let inline_size_for_max_content = inline_size.and_then(|lp| lp.to_length()).map(Au::from);
+    let inline_size_for_min_content = if is_replaced {
+        inline_size.map(|lp| lp.percentage_relative_to(zero).into())
+    } else {
+        inline_size_for_max_content
+    };
+
+    // Percentages for 'max-width' are treated as 'none', except for the min-content
+    // contribution of replaced elements, then they resolve against zero instead.
+    // https://drafts.csswg.org/css-sizing-3/#non-replaced-percentage-contribution
+    // https://drafts.csswg.org/css-sizing-3/#replaced-percentage-max-contribution
+    // https://drafts.csswg.org/css-sizing-3/#replaced-percentage-min-contribution
+    let max_inline_size = style.max_box_size(containing_block_writing_mode).inline;
+    let max_inline_size_for_max_content =
+        max_inline_size.and_then(|lp| lp.to_length()).map(Au::from);
+    let max_inline_size_for_min_content = if is_replaced {
+        max_inline_size.map(|lp| lp.percentage_relative_to(zero).into())
+    } else {
+        max_inline_size_for_max_content
+    };
+
+    // Percentages for 'min-width' are resolved against zero.
+    // https://drafts.csswg.org/css-sizing-3/#min-percentage-contribution
     let min_inline_size = style
         .min_box_size(containing_block_writing_mode)
         .inline
-        // Percentages for 'min-width' are treated as zero
         .percentage_relative_to(zero)
+        .map(Au::from)
         // FIXME: 'auto' is not zero in Flexbox
-        .auto_is(Length::zero);
-    let max_inline_size = style
-        .max_box_size(containing_block_writing_mode)
-        .inline
-        // Percentages for 'max-width' are treated as 'none'
-        .and_then(|lp| lp.to_length());
-    let clamp = |l: Au| {
-        l.clamp_between_extremums(min_inline_size.into(), max_inline_size.map(|t| t.into()))
+        .auto_is(Au::zero);
+
+    let border_box_size = |min, preferred: Option<Au>, max, content: Au| {
+        let clamp = |size: Au| size.clamp_between_extremums(min, max);
+        match box_sizing {
+            BoxSizing::ContentBox => clamp(preferred.unwrap_or(content)) + pb,
+            BoxSizing::BorderBox => clamp(preferred.unwrap_or(content + pb)),
+        }
     };
 
-    let border_box_sizes = match inline_size {
-        Some(non_auto) => {
-            let clamped = clamp(non_auto.into());
-            let border_box_size = match box_sizing {
-                BoxSizing::ContentBox => clamped + pb_lengths.into(),
-                BoxSizing::BorderBox => clamped,
-            };
-            ContentSizes {
-                min_content: border_box_size,
-                max_content: border_box_size,
-            }
-        },
-        None => get_content_size().map(|content_box_size| {
-            match box_sizing {
-                // Clamp to 'min-width' and 'max-width', which are sizing the…
-                BoxSizing::ContentBox => clamp(content_box_size) + pb_lengths.into(),
-                BoxSizing::BorderBox => clamp(content_box_size + pb_lengths.into()),
-            }
-        }),
-    };
-
-    border_box_sizes.map(|s| s + m_lengths.into())
+    let content_box_sizes =
+        if inline_size_for_max_content.is_none() || inline_size_for_min_content.is_none() {
+            get_content_size()
+        } else {
+            // The value is irrelevant.
+            ContentSizes::zero()
+        };
+    ContentSizes {
+        max_content: border_box_size(
+            min_inline_size,
+            inline_size_for_max_content,
+            max_inline_size_for_max_content,
+            content_box_sizes.max_content,
+        ) + margins,
+        min_content: border_box_size(
+            min_inline_size,
+            inline_size_for_min_content,
+            max_inline_size_for_min_content,
+            content_box_sizes.min_content,
+        ) + margins,
+    }
 }

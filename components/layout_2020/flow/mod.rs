@@ -273,10 +273,11 @@ fn calculate_inline_content_size_for_block_level_boxes(
             BlockLevelBox::SameFormattingContextBlock {
                 style, contents, ..
             } => {
-                let size = sizing::outer_inline(style, writing_mode, || {
-                    contents.inline_content_sizes(layout_context, style.writing_mode)
-                })
-                .max(ContentSizes::zero());
+                let size =
+                    sizing::outer_inline(style, writing_mode, /* is_replaced = */ false, || {
+                        contents.inline_content_sizes(layout_context, style.writing_mode)
+                    })
+                    .max(ContentSizes::zero());
                 // A block in the same BFC can overlap floats, it's not moved next to them,
                 // so we shouldn't add its size to the size of the floats.
                 // Instead, we treat it like an independent block with 'clear: both'.
