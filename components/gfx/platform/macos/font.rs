@@ -4,6 +4,7 @@
 
 use std::cmp::Ordering;
 use std::ops::Range;
+use std::sync::Arc;
 use std::{fmt, ptr};
 
 /// Implementation of Quartz (CoreGraphics) fonts.
@@ -56,7 +57,7 @@ pub struct PlatformFont {
     ctfont: CTFont,
     /// A reference to this data used to create this [`PlatformFont`], ensuring the
     /// data stays alive of the lifetime of this struct.
-    data: Option<Arc<Vec<u8>>>,
+    _data: Option<Arc<Vec<u8>>>,
     h_kern_subtable: Option<CachedKernTable>,
     can_do_fast_shaping: bool,
 }
@@ -170,7 +171,7 @@ impl PlatformFontMethods for PlatformFont {
         };
 
         let mut handle = PlatformFont {
-            data: font_template.data_if_in_memory(),
+            _data: font_template.borrow().data_if_in_memory(),
             ctfont: core_text_font.clone_with_font_size(size),
             h_kern_subtable: None,
             can_do_fast_shaping: false,
@@ -181,10 +182,6 @@ impl PlatformFontMethods for PlatformFont {
             handle.table_for_tag(GPOS).is_none() &&
             handle.table_for_tag(GSUB).is_none();
         Ok(handle)
-    }
-
-    fn template(&self) -> FontTemplateRef {
-        self.font_template.clone()
     }
 
     fn family_name(&self) -> Option<String> {

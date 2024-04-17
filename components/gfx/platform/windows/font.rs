@@ -8,6 +8,7 @@
 
 use std::fmt;
 use std::ops::Deref;
+use std::sync::Arc;
 
 use app_units::Au;
 use dwrote::{Font, FontFace, FontFile, FontStretch, FontStyle};
@@ -248,7 +249,7 @@ impl PlatformFontMethods for PlatformFont {
                     .create_face(0, dwrote::DWRITE_FONT_SIMULATIONS_NONE)
                     .map_err(|_| "Could not create FontFace")?;
                 let info = FontInfo::new_from_face(&face)?;
-                (face, info)
+                (face, info, font_template.borrow().data_if_in_memory())
             },
         };
 
@@ -262,7 +263,6 @@ impl PlatformFontMethods for PlatformFont {
         let scaled_design_units_to_pixels = em_size / design_units_per_pixel;
 
         Ok(PlatformFont {
-            font_template,
             face: Nondebug(face),
             data,
             info,
