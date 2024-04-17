@@ -9,6 +9,7 @@
 pub mod print_tree;
 
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
 use malloc_size_of_derive::MallocSizeOf;
 use range::{int_range_index, RangeIndex};
@@ -126,5 +127,5 @@ pub enum FontData {
 
 pub trait WebrenderApi {
     fn add_font_instance(&self, font_key: FontKey, size: f32) -> FontInstanceKey;
-    fn add_font(&self, data: FontData) -> FontKey;
+    fn add_font(&self, data: Arc<Vec<u8>>, index: u32) -> FontKey;
 }

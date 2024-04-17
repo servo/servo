@@ -2,31 +2,36 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::convert::TryInto;
 use std::ffi::CString;
 use std::fs::File;
 use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::ptr;
 
+use fontconfig_sys::constants::{
+    FC_FAMILY, FC_FILE, FC_FONTFORMAT, FC_INDEX, FC_SLANT, FC_SLANT_ITALIC, FC_SLANT_OBLIQUE,
+    FC_WEIGHT, FC_WEIGHT_BOLD, FC_WEIGHT_EXTRABLACK, FC_WEIGHT_REGULAR, FC_WIDTH,
+    FC_WIDTH_CONDENSED, FC_WIDTH_EXPANDED, FC_WIDTH_EXTRACONDENSED, FC_WIDTH_EXTRAEXPANDED,
+    FC_WIDTH_NORMAL, FC_WIDTH_SEMICONDENSED, FC_WIDTH_SEMIEXPANDED, FC_WIDTH_ULTRACONDENSED,
+    FC_WIDTH_ULTRAEXPANDED,
+};
 use fontconfig_sys::{
     FcChar8, FcConfigGetCurrent, FcConfigGetFonts, FcConfigSubstitute, FcDefaultSubstitute,
     FcFontMatch, FcFontSetDestroy, FcFontSetList, FcMatchPattern, FcNameParse, FcObjectSetAdd,
-    FcObjectSetCreate, FcObjectSetDestroy, FcPatternAddString, FcPatternCreate, FcPatternDestroy,
-    FcPatternGetInteger, FcPatternGetString, FcResultMatch, FcSetSystem,
+    FcObjectSetCreate, FcObjectSetDestroy, FcPattern, FcPatternAddString, FcPatternCreate,
+    FcPatternDestroy, FcPatternGetInteger, FcPatternGetString, FcResultMatch, FcSetSystem,
 };
 use libc::{c_char, c_int};
 use log::debug;
 use serde::{Deserialize, Serialize};
+use style::values::computed::{FontStretch, FontStyle, FontWeight};
 use style::Atom;
-use webrender_api::NativeFontHandle;
 
 use super::c_str_to_string;
+use crate::font::map_platform_values_to_style_values;
+use crate::font_template::{FontTemplate, FontTemplateDescriptor};
 use crate::text::util::is_cjk;
-
-static FC_FAMILY: &[u8] = b"family\0";
-static FC_FILE: &[u8] = b"file\0";
-static FC_INDEX: &[u8] = b"index\0";
-static FC_FONTFORMAT: &[u8] = b"fontformat\0";
 
 /// An identifier for a local font on systems using Freetype.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
@@ -38,12 +43,8 @@ pub struct LocalFontIdentifier {
 }
 
 impl LocalFontIdentifier {
-    pub(crate) fn native_font_handle(&self) -> Option<NativeFontHandle> {
-        Some(NativeFontHandle {
-            path: PathBuf::from(&*self.path),
-            // TODO: Shouldn't this be using the variation index from the LocalFontIdentifier?
-            index: 0,
-        })
+    pub(crate) fn index(&self) -> u32 {
+        self.variation_index.try_into().unwrap()
     }
 
     pub(crate) fn read_data_from_file(&self) -> Vec<u8> {
@@ -93,21 +94,19 @@ where
 
 pub fn for_each_variation<F>(family_name: &str, mut callback: F)
 where
-    F: FnMut(LocalFontIdentifier),
+    F: FnMut(FontTemplate),
 {
-    debug!("getting variations for {}", family_name);
     unsafe {
         let config = FcConfigGetCurrent();
         let mut font_set = FcConfigGetFonts(config, FcSetSystem);
         let font_set_array_ptr = &mut font_set;
         let pattern = FcPatternCreate();
         assert!(!pattern.is_null());
-        let family_name_c = CString::new(family_name).unwrap();
-        let family_name = family_name_c.as_ptr();
+        let family_name_cstr: CString = CString::new(family_name).unwrap();
         let ok = FcPatternAddString(
             pattern,
             FC_FAMILY.as_ptr() as *mut c_char,
-            family_name as *mut FcChar8,
+            family_name_cstr.as_ptr() as *const FcChar8,
         );
         assert_ne!(ok, 0);
 
@@ -116,12 +115,15 @@ where
 
         FcObjectSetAdd(object_set, FC_FILE.as_ptr() as *mut c_char);
         FcObjectSetAdd(object_set, FC_INDEX.as_ptr() as *mut c_char);
+        FcObjectSetAdd(object_set, FC_WEIGHT.as_ptr() as *mut c_char);
+        FcObjectSetAdd(object_set, FC_SLANT.as_ptr() as *mut c_char);
+        FcObjectSetAdd(object_set, FC_WIDTH.as_ptr() as *mut c_char);
 
         let matches = FcFontSetList(config, font_set_array_ptr, 1, pattern, object_set);
-        debug!("found {} variations", (*matches).nfont);
+        debug!("Found {} variations for {}", (*matches).nfont, family_name);
 
-        for i in 0..((*matches).nfont as isize) {
-            let font = (*matches).fonts.offset(i);
+        for variation_index in 0..((*matches).nfont as isize) {
+            let font = (*matches).fonts.offset(variation_index);
 
             let mut path: *mut FcChar8 = ptr::null_mut();
             let result = FcPatternGetString(*font, FC_FILE.as_ptr() as *mut c_char, 0, &mut path);
@@ -132,10 +134,27 @@ where
                 FcPatternGetInteger(*font, FC_INDEX.as_ptr() as *mut c_char, 0, &mut index);
             assert_eq!(result, FcResultMatch);
 
-            callback(LocalFontIdentifier {
+            let Some(weight) = font_weight_from_fontconfig_pattern(*font) else {
+                continue;
+            };
+            let Some(stretch) = font_stretch_from_fontconfig_pattern(*font) else {
+                continue;
+            };
+            let Some(style) = font_style_from_fontconfig_pattern(*font) else {
+                continue;
+            };
+
+            let local_font_identifier = LocalFontIdentifier {
                 path: Atom::from(c_str_to_string(path as *const c_char)),
                 variation_index: index as i32,
-            });
+            };
+            let descriptor = FontTemplateDescriptor {
+                weight,
+                stretch,
+                style,
+            };
+
+            callback(FontTemplate::new_local(local_font_identifier, descriptor))
         }
 
         FcFontSetDestroy(matches);
@@ -203,4 +222,61 @@ pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {
     }
 
     families
+}
+
+fn font_style_from_fontconfig_pattern(pattern: *mut FcPattern) -> Option<FontStyle> {
+    let mut slant: c_int = 0;
+    unsafe {
+        if FcResultMatch != FcPatternGetInteger(pattern, FC_SLANT.as_ptr(), 0, &mut slant) {
+            return None;
+        }
+    }
+    Some(match slant {
+        FC_SLANT_ITALIC => FontStyle::ITALIC,
+        FC_SLANT_OBLIQUE => FontStyle::OBLIQUE,
+        _ => FontStyle::NORMAL,
+    })
+}
+
+fn font_stretch_from_fontconfig_pattern(pattern: *mut FcPattern) -> Option<FontStretch> {
+    let mut width: c_int = 0;
+    unsafe {
+        if FcResultMatch != FcPatternGetInteger(pattern, FC_WIDTH.as_ptr(), 0, &mut width) {
+            return None;
+        }
+    }
+    let mapping = [
+        (FC_WIDTH_ULTRACONDENSED as f64, 0.5),
+        (FC_WIDTH_EXTRACONDENSED as f64, 0.625),
+        (FC_WIDTH_CONDENSED as f64, 0.75),
+        (FC_WIDTH_SEMICONDENSED as f64, 0.875),
+        (FC_WIDTH_NORMAL as f64, 1.0),
+        (FC_WIDTH_SEMIEXPANDED as f64, 1.125),
+        (FC_WIDTH_EXPANDED as f64, 1.25),
+        (FC_WIDTH_EXTRAEXPANDED as f64, 1.50),
+        (FC_WIDTH_ULTRAEXPANDED as f64, 2.00),
+    ];
+
+    let mapped_width = map_platform_values_to_style_values(&mapping, width as f64);
+    Some(FontStretch::from_percentage(mapped_width as f32))
+}
+
+fn font_weight_from_fontconfig_pattern(pattern: *mut FcPattern) -> Option<FontWeight> {
+    let mut weight: c_int = 0;
+    unsafe {
+        let result = FcPatternGetInteger(pattern, FC_WEIGHT.as_ptr(), 0, &mut weight);
+        if result != FcResultMatch {
+            return None;
+        }
+    }
+
+    let mapping = [
+        (0., 0.),
+        (FC_WEIGHT_REGULAR as f64, 400 as f64),
+        (FC_WEIGHT_BOLD as f64, 700 as f64),
+        (FC_WEIGHT_EXTRABLACK as f64, 1000 as f64),
+    ];
+
+    let mapped_weight = map_platform_values_to_style_values(&mapping, weight as f64);
+    Some(FontWeight::from_float(mapped_weight as f32))
 }

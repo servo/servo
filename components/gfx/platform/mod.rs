@@ -5,7 +5,7 @@
 #[cfg(any(target_os = "linux", target_os = "android"))]
 pub use crate::platform::freetype::{font, font_list, library_handle};
 #[cfg(target_os = "macos")]
-pub use crate::platform::macos::{font, font_list, font_template};
+pub use crate::platform::macos::{core_text_font_cache, font, font_list};
 #[cfg(target_os = "windows")]
 pub use crate::platform::windows::{font, font_list};
 
@@ -41,9 +41,9 @@ mod freetype {
 
 #[cfg(target_os = "macos")]
 mod macos {
+    pub mod core_text_font_cache;
     pub mod font;
     pub mod font_list;
-    pub mod font_template;
 }
 
 #[cfg(target_os = "windows")]

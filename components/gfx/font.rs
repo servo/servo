@@ -26,7 +26,7 @@ use webrender_api::FontInstanceKey;
 
 use crate::font_cache_thread::FontIdentifier;
 use crate::font_context::{FontContext, FontSource};
-use crate::font_template::{FontTemplateDescriptor, FontTemplateRef};
+use crate::font_template::{FontTemplateDescriptor, FontTemplateRef, FontTemplateRefMethods};
 use crate::platform::font::{FontTable, PlatformFont};
 pub use crate::platform::font_list::fallback_font_families;
 use crate::text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
@@ -56,7 +56,19 @@ pub trait PlatformFontMethods: Sized {
     fn new_from_template(
         template: FontTemplateRef,
         pt_size: Option<Au>,
-    ) -> Result<Self, &'static str>;
+    ) -> Result<PlatformFont, &'static str> {
+        let data = template.data();
+        let face_index = template.borrow().identifier().index();
+        let font_identifier = template.borrow().identifier.clone();
+        Self::new_from_data(font_identifier, data, face_index, pt_size)
+    }
+
+    fn new_from_data(
+        font_identifier: FontIdentifier,
+        data: Arc<Vec<u8>>,
+        face_index: u32,
+        pt_size: Option<Au>,
+    ) -> Result<PlatformFont, &'static str>;
 
     fn family_name(&self) -> Option<String>;
     fn face_name(&self) -> Option<String>;
@@ -396,7 +408,7 @@ impl FontGroup {
     pub fn new(style: &FontStyleStruct) -> FontGroup {
         let descriptor = FontDescriptor::from(style);
 
-        let families = style
+        let families: SmallVec<[FontGroupFamily; 8]> = style
             .font_family
             .families
             .iter()
@@ -641,4 +653,37 @@ impl FontFamilyDescriptor {
     pub fn name(&self) -> &str {
         self.name.name()
     }
+}
+
+/// Given a mapping array `mapping` and a value, map that value onto
+/// the value specified by the array. For instance, for FontConfig
+/// values of weights, we would map these onto the CSS [0..1000] range
+/// by creating an array as below. Values that fall between two mapped
+/// values, will be adjusted by the weighted mean.
+///
+/// ```rust
+/// let mapping = [
+///     (0., 0.),
+///     (FC_WEIGHT_REGULAR as f64, 400 as f64),
+///     (FC_WEIGHT_BOLD as f64, 700 as f64),
+///     (FC_WEIGHT_EXTRABLACK as f64, 1000 as f64),
+/// ];
+/// let mapped_weight = apply_font_config_to_style_mapping(&mapping, weight as f64);
+/// ```
+pub(crate) fn map_platform_values_to_style_values(mapping: &[(f64, f64)], value: f64) -> f64 {
+    if value < mapping[0].0 {
+        return mapping[0].1;
+    }
+
+    for window in mapping.windows(2) {
+        let (font_config_value_a, css_value_a) = window[0];
+        let (font_config_value_b, css_value_b) = window[1];
+
+        if value >= font_config_value_a && value <= font_config_value_b {
+            let ratio = (value - font_config_value_a) / (font_config_value_b - font_config_value_a);
+            return css_value_a + ((css_value_b - css_value_a) * ratio);
+        }
+    }
+
+    mapping[mapping.len() - 1].1
 }

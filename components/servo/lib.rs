@@ -1050,13 +1050,16 @@ impl gfx_traits::WebrenderApi for FontCacheWR {
             )));
         receiver.recv().unwrap()
     }
-    fn add_font(&self, data: gfx_traits::FontData) -> FontKey {
+    fn add_font(&self, data: Arc<Vec<u8>>, index: u32) -> FontKey {
         let (sender, receiver) = unbounded();
+        let (bytes_sender, bytes_receiver) =
+            ipc::bytes_channel().expect("failed to create IPC channel");
         let _ = self
             .0
             .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
-                FontToCompositorMsg::AddFont(data, sender),
+                FontToCompositorMsg::AddFont(sender, index, bytes_receiver),
             )));
+        let _ = bytes_sender.send(&data);
         receiver.recv().unwrap()
     }
 }

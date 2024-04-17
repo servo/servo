@@ -5,11 +5,13 @@
 use std::hash::Hash;
 use std::sync::Arc;
 
-use dwrote::{Font, FontCollection, FontDescriptor};
+use dwrote::{Font, FontCollection, FontDescriptor, FontStretch, FontStyle};
 use serde::{Deserialize, Serialize};
+use style::values::computed::{FontStyle as StyleFontStyle, FontWeight as StyleFontWeight};
+use style::values::specified::font::FontStretchKeyword;
 use ucd::{Codepoint, UnicodeBlock};
-use webrender_api::NativeFontHandle;
 
+use crate::font_template::{FontTemplate, FontTemplateDescriptor};
 use crate::text::util::unicode_plane;
 
 pub static SANS_SERIF_FONT_FAMILY: &str = "Arial";
@@ -36,18 +38,10 @@ pub struct LocalFontIdentifier {
 }
 
 impl LocalFontIdentifier {
-    /// Create a [`Font`] for this font.
-    pub fn direct_write_font(&self) -> Option<Font> {
-        FontCollection::system().get_font_from_descriptor(&self.font_descriptor)
-    }
-
-    pub fn native_font_handle(&self) -> Option<NativeFontHandle> {
-        let face = self.direct_write_font()?.create_font_face();
-        let path = face.get_files().first()?.get_font_file_path()?;
-        Some(NativeFontHandle {
-            path,
-            index: face.get_index(),
-        })
+    pub fn index(&self) -> u32 {
+        FontCollection::system()
+            .get_font_from_descriptor(&self.font_descriptor)
+            .map_or(0, |font| font.create_font_face().get_index())
     }
 
     pub(crate) fn read_data_from_file(&self) -> Vec<u8> {
@@ -72,27 +66,23 @@ impl Hash for LocalFontIdentifier {
     }
 }
 
-// for_each_variation is supposed to return a string that can be
-// atomized and then uniquely used to return back to this font.
-// Some platforms use the full postscript name (MacOS X), or
-// a font filename.
-//
-// For windows we're going to use just a basic integer value that
-// we'll stringify, and then put them all in a HashMap with
-// the actual FontDescriptor there.
-
 pub fn for_each_variation<F>(family_name: &str, mut callback: F)
 where
-    F: FnMut(LocalFontIdentifier),
+    F: FnMut(FontTemplate),
 {
     let system_fc = FontCollection::system();
     if let Some(family) = system_fc.get_font_family_by_name(family_name) {
         let count = family.get_font_count();
         for i in 0..count {
             let font = family.get_font(i);
-            callback(LocalFontIdentifier {
+            let template_descriptor = (&font).into();
+            let local_font_identifier = LocalFontIdentifier {
                 font_descriptor: Arc::new(font.to_descriptor()),
-            });
+            };
+            callback(FontTemplate::new_local(
+                local_font_identifier,
+                template_descriptor,
+            ))
         }
     }
 }
@@ -356,4 +346,29 @@ pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {
 
     families.push("Arial Unicode MS");
     families
+}
+
+impl From<&Font> for FontTemplateDescriptor {
+    fn from(font: &Font) -> Self {
+        let style = match font.style() {
+            FontStyle::Normal => StyleFontStyle::NORMAL,
+            FontStyle::Oblique => StyleFontStyle::OBLIQUE,
+            FontStyle::Italic => StyleFontStyle::ITALIC,
+        };
+        let weight = StyleFontWeight::from_float(font.weight().to_u32() as f32);
+        let stretch = match font.stretch() {
+            FontStretch::Undefined => FontStretchKeyword::Normal,
+            FontStretch::UltraCondensed => FontStretchKeyword::UltraCondensed,
+            FontStretch::ExtraCondensed => FontStretchKeyword::ExtraCondensed,
+            FontStretch::Condensed => FontStretchKeyword::Condensed,
+            FontStretch::SemiCondensed => FontStretchKeyword::SemiCondensed,
+            FontStretch::Normal => FontStretchKeyword::Normal,
+            FontStretch::SemiExpanded => FontStretchKeyword::SemiExpanded,
+            FontStretch::Expanded => FontStretchKeyword::Expanded,
+            FontStretch::ExtraExpanded => FontStretchKeyword::ExtraExpanded,
+            FontStretch::UltraExpanded => FontStretchKeyword::UltraExpanded,
+        }
+        .compute();
+        FontTemplateDescriptor::new(weight, stretch, style)
+    }
 }

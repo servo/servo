@@ -19,9 +19,9 @@ use webrender_api::{FontInstanceKey, FontKey};
 
 use crate::font::{Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontRef};
 use crate::font_cache_thread::FontTemplateAndWebRenderFontKey;
-#[cfg(target_os = "macos")]
-use crate::font_template::FontTemplate;
 use crate::font_template::FontTemplateDescriptor;
+#[cfg(target_os = "macos")]
+use crate::platform::core_text_font_cache::CoreTextFontCache;
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
 
@@ -263,5 +263,5 @@ pub fn invalidate_font_caches() {
     FONT_CACHE_EPOCH.fetch_add(1, Ordering::SeqCst);
 
     #[cfg(target_os = "macos")]
-    FontTemplate::clear_core_text_font_cache();
+    CoreTextFontCache::clear_core_text_font_cache();
 }

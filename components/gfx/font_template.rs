@@ -4,21 +4,18 @@
 
 use std::cell::RefCell;
 use std::fmt::{Debug, Error, Formatter};
-use std::io::Error as IoError;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use log::warn;
 use serde::{Deserialize, Serialize};
+use servo_url::ServoUrl;
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_style::T as FontStyle;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::FontWeight;
-use webrender_api::NativeFontHandle;
 
-use crate::font::PlatformFontMethods;
 use crate::font_cache_thread::FontIdentifier;
-use crate::platform::font::PlatformFont;
+use crate::platform::font_list::LocalFontIdentifier;
 
 /// A reference to a [`FontTemplate`] with shared ownership and mutability.
 pub(crate) type FontTemplateRef = Rc<RefCell<FontTemplate>>;
@@ -91,13 +88,12 @@ impl<'a> From<&'a FontStyleStruct> for FontTemplateDescriptor {
 /// FontTemplateData structure that is platform specific.
 pub struct FontTemplate {
     pub identifier: FontIdentifier,
-    pub descriptor: Option<FontTemplateDescriptor>,
+    pub descriptor: FontTemplateDescriptor,
     /// The data to use for this [`FontTemplate`]. For web fonts, this is always filled, but
     /// for local fonts, this is loaded only lazily in layout.
     ///
     /// TODO: There is no mechanism for web fonts to unset their data!
     pub data: Option<Arc<Vec<u8>>>,
-    pub is_valid: bool,
 }
 
 impl Debug for FontTemplate {
@@ -110,13 +106,27 @@ impl Debug for FontTemplate {
 /// is common, regardless of the number of instances of
 /// this font handle per thread.
 impl FontTemplate {
-    pub fn new(identifier: FontIdentifier, data: Option<Vec<u8>>) -> Result<FontTemplate, IoError> {
-        Ok(FontTemplate {
-            identifier,
-            descriptor: None,
-            data: data.map(Arc::new),
-            is_valid: true,
-        })
+    pub fn new_local(
+        identifier: LocalFontIdentifier,
+        descriptor: FontTemplateDescriptor,
+    ) -> FontTemplate {
+        FontTemplate {
+            identifier: FontIdentifier::Local(identifier),
+            descriptor,
+            data: None,
+        }
+    }
+
+    pub fn new_web_font(
+        url: ServoUrl,
+        descriptor: FontTemplateDescriptor,
+        data: Arc<Vec<u8>>,
+    ) -> FontTemplate {
+        FontTemplate {
+            identifier: FontIdentifier::Web(url),
+            descriptor,
+            data: Some(data),
+        }
     }
 
     pub fn identifier(&self) -> &FontIdentifier {
@@ -128,14 +138,6 @@ impl FontTemplate {
     pub fn data_if_in_memory(&self) -> Option<Arc<Vec<u8>>> {
         self.data.clone()
     }
-
-    /// Returns a [`NativeFontHandle`] for this font template, if it is local.
-    pub fn native_font_handle(&self) -> Option<NativeFontHandle> {
-        match &self.identifier {
-            FontIdentifier::Local(local_identifier) => local_identifier.native_font_handle(),
-            FontIdentifier::Web(_) => None,
-        }
-    }
 }
 
 pub trait FontTemplateRefMethods {
@@ -143,68 +145,26 @@ pub trait FontTemplateRefMethods {
     /// operation (depending on the platform) which performs synchronous disk I/O
     /// and should never be done lightly.
     fn data(&self) -> Arc<Vec<u8>>;
-    /// Return true if this is a valid [`FontTemplate`] ie it is possible to construct a [`FontHandle`]
-    /// from its data.
-    fn is_valid(&self) -> bool;
-    /// If not done already for this [`FontTemplate`] load the font into a platform font face and
-    /// populate the `descriptor` field. Note that calling [`FontTemplateRefMethods::descriptor()`]
-    /// does this implicitly. If this fails, [`FontTemplateRefMethods::is_valid()`] will return
-    /// false in the future.
-    fn instantiate(&self) -> Result<(), &'static str>;
     /// Get the descriptor. Returns `None` when instantiating the data fails.
-    fn descriptor(&self) -> Option<FontTemplateDescriptor>;
+    fn descriptor(&self) -> FontTemplateDescriptor;
     /// Returns true if the given descriptor matches the one in this [`FontTemplate`].
     fn descriptor_matches(&self, requested_desc: &FontTemplateDescriptor) -> bool;
     /// Calculate the distance from this [`FontTemplate`]s descriptor and return it
     /// or None if this is not a valid [`FontTemplate`].
-    fn descriptor_distance(&self, requested_descriptor: &FontTemplateDescriptor) -> Option<f32>;
+    fn descriptor_distance(&self, requested_descriptor: &FontTemplateDescriptor) -> f32;
 }
 
 impl FontTemplateRefMethods for FontTemplateRef {
-    fn descriptor(&self) -> Option<FontTemplateDescriptor> {
-        // Store the style information about the template separately from the data,
-        // so that we can do font matching against it again in the future without
-        // having to reload the font (unless it is an actual match).
-        if let Some(descriptor) = self.borrow().descriptor {
-            return Some(descriptor);
-        }
-
-        if let Err(error) = self.instantiate() {
-            warn!("Could not initiate FonteTemplate descriptor: {error:?}");
-        }
-
+    fn descriptor(&self) -> FontTemplateDescriptor {
         self.borrow().descriptor
     }
 
-    fn descriptor_matches(&self, requested_desc: &FontTemplateDescriptor) -> bool {
-        self.descriptor()
-            .map_or(false, |descriptor| descriptor == *requested_desc)
+    fn descriptor_matches(&self, requested_descriptor: &FontTemplateDescriptor) -> bool {
+        self.descriptor() == *requested_descriptor
     }
 
-    fn descriptor_distance(&self, requested_descriptor: &FontTemplateDescriptor) -> Option<f32> {
-        self.descriptor()
-            .map(|descriptor| descriptor.distance_from(requested_descriptor))
-    }
-
-    fn instantiate(&self) -> Result<(), &'static str> {
-        if !self.borrow().is_valid {
-            return Err("Invalid font template");
-        }
-
-        let handle = PlatformFontMethods::new_from_template(self.clone(), None);
-        let mut template = self.borrow_mut();
-        template.is_valid = handle.is_ok();
-        let handle: PlatformFont = handle?;
-        template.descriptor = Some(FontTemplateDescriptor::new(
-            handle.boldness(),
-            handle.stretchiness(),
-            handle.style(),
-        ));
-        Ok(())
-    }
-
-    fn is_valid(&self) -> bool {
-        self.instantiate().is_ok()
+    fn descriptor_distance(&self, requested_descriptor: &FontTemplateDescriptor) -> f32 {
+        self.descriptor().distance_from(requested_descriptor)
     }
 
     fn data(&self) -> Arc<Vec<u8>> {

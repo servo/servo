@@ -10,8 +10,9 @@ use log::debug;
 use serde::{Deserialize, Serialize};
 use style::Atom;
 use ucd::{Codepoint, UnicodeBlock};
-use webrender_api::NativeFontHandle;
 
+use crate::font_template::{FontTemplate, FontTemplateDescriptor};
+use crate::platform::font::CoreTextFontTraitsMapping;
 use crate::text::util::unicode_plane;
 
 /// An identifier for a local font on a MacOS system. These values comes from the CoreText
@@ -24,11 +25,8 @@ pub struct LocalFontIdentifier {
 }
 
 impl LocalFontIdentifier {
-    pub(crate) fn native_font_handle(&self) -> Option<NativeFontHandle> {
-        Some(NativeFontHandle {
-            name: self.postscript_name.to_string(),
-            path: self.path.to_string(),
-        })
+    pub(crate) fn index(&self) -> u32 {
+        0
     }
 
     pub(crate) fn read_data_from_file(&self) -> Vec<u8> {
@@ -53,10 +51,9 @@ where
 
 pub fn for_each_variation<F>(family_name: &str, mut callback: F)
 where
-    F: FnMut(LocalFontIdentifier),
+    F: FnMut(FontTemplate),
 {
     debug!("Looking for faces of family: {}", family_name);
-
     let family_collection = core_text::font_collection::create_for_family(family_name);
     if let Some(family_collection) = family_collection {
         if let Some(family_descriptors) = family_collection.get_descriptors() {
@@ -66,10 +63,18 @@ where
                     Some(path) => path,
                     None => continue,
                 };
-                callback(LocalFontIdentifier {
+
+                let traits = family_descriptor.traits();
+                let descriptor = FontTemplateDescriptor {
+                    weight: traits.weight(),
+                    stretch: traits.stretch(),
+                    style: traits.style(),
+                };
+                let identifier = LocalFontIdentifier {
                     postscript_name: Atom::from(family_descriptor.font_name()),
                     path: Atom::from(path),
-                })
+                };
+                callback(FontTemplate::new_local(identifier, descriptor));
             }
         }
     }

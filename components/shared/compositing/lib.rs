@@ -140,7 +140,7 @@ pub struct CompositionPipeline {
 
 pub enum FontToCompositorMsg {
     AddFontInstance(FontKey, f32, Sender<FontInstanceKey>),
-    AddFont(gfx_traits::FontData, Sender<FontKey>),
+    AddFont(Sender<FontKey>, u32, ipc_channel::ipc::IpcBytesReceiver),
 }
 
 pub enum CanvasToCompositorMsg {

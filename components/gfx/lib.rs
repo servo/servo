@@ -9,6 +9,6 @@ pub mod font_cache_thread;
 pub mod font_context;
 pub mod font_template;
 #[allow(unsafe_code)]
-mod platform;
+pub mod platform;
 pub mod rendering_context;
 pub mod text;
