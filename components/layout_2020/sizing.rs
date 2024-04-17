@@ -10,6 +10,7 @@ use std::ops::{Add, AddAssign};
 use app_units::Au;
 use serde::Serialize;
 use style::properties::ComputedValues;
+use style::values::computed::LengthPercentage;
 use style::Zero;
 
 use crate::context::LayoutContext;
@@ -115,6 +116,7 @@ pub(crate) fn outer_inline(
     containing_block: &IndefiniteContainingBlock,
     auto_minimum: &LogicalVec2<Au>,
     auto_block_size_stretches_to_containing_block: bool,
+    is_replaced: bool,
     is_table: bool,
     establishes_containing_block: bool,
     get_preferred_aspect_ratio: impl FnOnce(&LogicalVec2<Au>) -> Option<AspectRatio>,
@@ -187,7 +189,7 @@ pub(crate) fn outer_inline(
             ),
         })
     };
-    let (preferred_min_content, preferred_max_content, preferred_depends_on_block_constraints) =
+    let (mut preferred_min_content, preferred_max_content, preferred_depends_on_block_constraints) =
         resolve_non_initial(content_box_sizes.inline.preferred)
             .unwrap_or_else(|| resolve_non_initial(Size::FitContent).unwrap());
     let (mut min_min_content, mut min_max_content, mut min_depends_on_block_constraints) =
@@ -196,7 +198,7 @@ pub(crate) fn outer_inline(
             auto_minimum.inline,
             false,
         ));
-    let (max_min_content, max_max_content, max_depends_on_block_constraints) =
+    let (mut max_min_content, max_max_content, max_depends_on_block_constraints) =
         resolve_non_initial(content_box_sizes.inline.max)
             .map(|(min_content, max_content, depends_on_block_constraints)| {
                 (
@@ -206,6 +208,30 @@ pub(crate) fn outer_inline(
                 )
             })
             .unwrap_or_default();
+
+    // https://drafts.csswg.org/css-sizing-3/#replaced-percentage-min-contribution
+    // > If the box is replaced, a cyclic percentage in the value of any max size property
+    // > or preferred size property (width/max-width/height/max-height), is resolved against
+    // > zero when calculating the min-content contribution in the corresponding axis.
+    //
+    // This means that e.g. the min-content contribution of `width: calc(100% + 100px)`
+    // should be 100px, but it's just zero on other browsers, so we do the same.
+    if is_replaced {
+        let has_percentage = |size: Size<LengthPercentage>| {
+            // We need a comment here to avoid breaking `./mach test-tidy`.
+            matches!(size, Size::Numeric(numeric) if numeric.has_percentage())
+        };
+        if content_box_sizes.inline.preferred.is_initial() &&
+            has_percentage(style.box_size(containing_block.writing_mode).inline)
+        {
+            preferred_min_content = Au::zero();
+        }
+        if content_box_sizes.inline.max.is_initial() &&
+            has_percentage(style.max_box_size(containing_block.writing_mode).inline)
+        {
+            max_min_content = Some(Au::zero());
+        }
+    }
 
     // Regardless of their sizing properties, tables are always forced to be at least
     // as big as their min-content size, so floor the minimums.
