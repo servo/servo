@@ -112,8 +112,7 @@ impl CSSRuleList {
         let owner = self
             .parent_stylesheet
             .get_owner()
-            .map(DomRoot::downcast::<HTMLElement>)
-            .flatten();
+            .and_then(DomRoot::downcast::<HTMLElement>);
         let loader = owner
             .as_ref()
             .map(|element| StylesheetLoader::for_element(element));
