@@ -134,7 +134,7 @@ impl CSSRuleList {
         Ok(idx)
     }
 
-    // In case of a keyframe rule, index must be valid.
+    /// In case of a keyframe rule, index must be valid.
     pub fn remove_rule(&self, index: u32) -> ErrorResult {
         let index = index as usize;
         let mut guard = self.parent_stylesheet.shared_lock().write();
@@ -162,7 +162,7 @@ impl CSSRuleList {
         }
     }
 
-    // Remove parent stylesheets from all children
+    /// Remove parent stylesheets from all children
     pub fn deparent_all(&self) {
         for rule in self.dom_rules.borrow().iter() {
             if let Some(r) = rule.get() {
