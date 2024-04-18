@@ -3023,7 +3023,7 @@ impl GlobalScope {
         unreachable!();
     }
 
-    // https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute
+    /// <https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute>
     pub fn supported_performance_entry_types(&self, cx: SafeJSContext) -> JSVal {
         if let Some(types) = &*self.frozen_supported_performance_entry_types.borrow() {
             return types.get();
