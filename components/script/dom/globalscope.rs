@@ -3152,7 +3152,7 @@ impl GlobalScope {
                     let navigator = window.Navigator();
                     let selected_index = navigator.select_gamepad_index();
                     let gamepad = Gamepad::new(&global, selected_index, name, axis_bounds, button_bounds);
-                    navigator.set_gamepad(selected_index as usize, &*gamepad);
+                    navigator.set_gamepad(selected_index as usize, &gamepad);
                 }
             }),
             &self.task_canceller(TaskSourceName::Gamepad)

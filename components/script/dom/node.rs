@@ -2102,7 +2102,7 @@ impl Node {
                         );
                     }
                 } else {
-                    try_upgrade_element(&*descendant);
+                    try_upgrade_element(&descendant);
                 }
             }
         }

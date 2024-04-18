@@ -294,7 +294,7 @@ impl ElementInternalsMethods for ElementInternals {
         Ok(self.labels_node_list.or_init(|| {
             NodeList::new_labels_list(
                 self.target_element.upcast::<Node>().owner_doc().window(),
-                &*self.target_element,
+                &self.target_element,
             )
         }))
     }
