@@ -71,7 +71,7 @@ impl SerializedFontTemplate {
         let font_data = self.bytes_receiver.recv().ok();
         FontTemplate {
             identifier: self.identifier.clone(),
-            descriptor: self.descriptor.clone(),
+            descriptor: self.descriptor,
             data: font_data.map(Arc::new),
             is_valid: true,
         }
@@ -213,7 +213,7 @@ impl FontCache {
                         ipc::bytes_channel().expect("failed to create IPC channel");
                     let serialized_font_template = SerializedFontTemplate {
                         identifier: font_template_info.font_template.borrow().identifier.clone(),
-                        descriptor: font_template_info.font_template.borrow().descriptor.clone(),
+                        descriptor: font_template_info.font_template.borrow().descriptor,
                         bytes_receiver,
                     };
 
