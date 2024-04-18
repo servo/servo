@@ -6,7 +6,6 @@
 
 use std::cell::Cell;
 use std::cmp;
-use std::cmp::Ordering;
 
 use canvas_traits::webgl::{
     webgl_channel, TexDataType, TexFormat, TexParameter, TexParameterBool, TexParameterInt,
@@ -327,7 +326,7 @@ impl WebGLTexture {
             },
             EXTTextureFilterAnisotropicConstants::TEXTURE_MAX_ANISOTROPY_EXT => {
                 // NaN is not less than 1., what a time to be alive.
-                if float_value.partial_cmp(&1.) == Some(Ordering::Less) {
+                if float_value < 1. || !float_value.is_normal() {
                     return Err(WebGLError::InvalidValue);
                 }
                 self.upcast::<WebGLObject>()
