@@ -128,14 +128,11 @@ impl MediaFragmentParser {
     fn parse_utc_timestamp(&self, input: &str) -> Result<(Option<f64>, Option<f64>), ()> {
         if input.ends_with('-') || input.starts_with(',') || !input.contains('-') {
             let sec = parse_hms(
-                NaiveDateTime::parse_from_str(
-                    &input.replace('-', "").replace(',', ""),
-                    "%Y%m%dT%H%M%S%.fZ",
-                )
-                .map_err(|_| ())?
-                .time()
-                .to_string()
-                .as_ref(),
+                NaiveDateTime::parse_from_str(&input.replace(['-', ','], ""), "%Y%m%dT%H%M%S%.fZ")
+                    .map_err(|_| ())?
+                    .time()
+                    .to_string()
+                    .as_ref(),
             )?;
             if input.starts_with(',') {
                 Ok((Some(0.), Some(sec)))

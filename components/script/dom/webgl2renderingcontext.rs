@@ -2953,7 +2953,10 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
 
         if pbo_offset < 0 || pbo_offset as usize > pixel_unpack_buffer.capacity() {
-            return Ok(self.base.webgl_error(InvalidValue));
+            return {
+                self.base.webgl_error(InvalidValue);
+                Ok(())
+            };
         }
 
         let unpacking_alignment = self.base.texture_unpacking_alignment();
@@ -4119,7 +4122,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         handle_potential_webgl_error!(
             self.base,
             program.get_uniform_block_index(block_name),
-            return constants::INVALID_INDEX
+            constants::INVALID_INDEX
         )
     }
 

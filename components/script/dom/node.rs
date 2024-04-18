@@ -719,15 +719,11 @@ impl Node {
         other: &Node,
         shadow_including: ShadowIncluding,
     ) -> Option<DomRoot<Node>> {
-        for ancestor in self.inclusive_ancestors(shadow_including) {
-            if other
+        self.inclusive_ancestors(shadow_including).find(|ancestor| {
+            other
                 .inclusive_ancestors(shadow_including)
-                .any(|node| node == ancestor)
-            {
-                return Some(ancestor);
-            }
-        }
-        None
+                .any(|node| node == *ancestor)
+        })
     }
 
     pub fn is_inclusive_ancestor_of(&self, parent: &Node) -> bool {

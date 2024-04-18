@@ -557,9 +557,9 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
     fn AddIceCandidate(&self, candidate: &RTCIceCandidateInit, comp: InRealm) -> Rc<Promise> {
         let p = Promise::new_in_current_realm(comp);
         if candidate.sdpMid.is_none() && candidate.sdpMLineIndex.is_none() {
-            p.reject_error(Error::Type(format!(
-                "one of sdpMid and sdpMLineIndex must be set"
-            )));
+            p.reject_error(Error::Type(
+                "one of sdpMid and sdpMLineIndex must be set".to_string(),
+            ));
             return p;
         }
 

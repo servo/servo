@@ -1043,7 +1043,7 @@ impl FormControl for HTMLElement {
             .set_form_owner(form);
     }
 
-    fn to_element<'a>(&'a self) -> &'a Element {
+    fn to_element(&self) -> &Element {
         debug_assert!(self.is_form_associated_custom_element());
         self.as_element()
     }
