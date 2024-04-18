@@ -745,11 +745,10 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         if inline_box_state
             .base_fragment_info
             .flags
-            .contains(FragmentFlags::IS_BR_ELEMENT)
+            .contains(FragmentFlags::IS_BR_ELEMENT) &&
+            self.deferred_br_clear == Clear::None
         {
-            if self.deferred_br_clear == Clear::None {
-                self.deferred_br_clear = inline_box_state.base.style.clone_clear();
-            }
+            self.deferred_br_clear = inline_box_state.base.style.clone_clear();
         }
 
         let line_item = inline_box_state
