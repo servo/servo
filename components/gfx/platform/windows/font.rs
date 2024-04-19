@@ -6,22 +6,26 @@
 // information for an approach that we'll likely need to take when the
 // renderer moves to a sandboxed process.
 
+use std::cmp::{max, min};
 use std::fmt;
+use std::io::Cursor;
 use std::ops::Deref;
 use std::sync::Arc;
 
 use app_units::Au;
 use dwrote::{FontFace, FontFile};
-use log::debug;
+use log::{debug, warn};
 use style::computed_values::font_stretch::T as StyleFontStretch;
 use style::computed_values::font_weight::T as StyleFontWeight;
 use style::values::computed::font::FontStyle as StyleFontStyle;
-use style::values::specified::font::FontStretchKeyword;
+use truetype::tables::WindowsMetrics;
+use truetype::value::Read;
 
 use crate::font::{
     FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, PlatformFontMethods,
 };
 use crate::font_cache_thread::FontIdentifier;
+use crate::font_template::FontTemplateDescriptor;
 use crate::text::glyph::GlyphId;
 
 // 1em = 12pt = 16px, assuming 72 points per inch and 96 px per inch
@@ -56,23 +60,6 @@ impl FontTableMethods for FontTable {
     }
 }
 
-// We need the font (DWriteFont) in order to be able to query things like
-// the family name, face name, weight, etc.  On Windows 10, the
-// DWriteFontFace3 interface provides this on the FontFace, but that's only
-// available on Win10+.
-//
-// Instead, we do the parsing work using the truetype crate for raw fonts.
-// We're just extracting basic info, so this is sufficient for now.
-
-#[derive(Debug)]
-struct FontInfo {
-    family_name: String,
-    face_name: String,
-    weight: StyleFontWeight,
-    stretch: StyleFontStretch,
-    style: StyleFontStyle,
-}
-
 #[macro_export]
 /// Packs the components of a font tag name into 32 bytes, while respecting the
 /// necessary Rust 4-byte alignment for pointers. This is similar to
@@ -83,104 +70,12 @@ macro_rules! font_tag {
     };
 }
 
-impl FontInfo {
-    fn new_from_face(face: &FontFace) -> Result<FontInfo, &'static str> {
-        use std::cmp::{max, min};
-        use std::collections::HashMap;
-        use std::io::Cursor;
-
-        use truetype::tables::names::{NameID, Names};
-        use truetype::tables::WindowsMetrics;
-        use truetype::value::Read;
-
-        let name_tag = font_tag!('n', 'a', 'm', 'e');
-        let os2_tag = font_tag!('O', 'S', '/', '2');
-        let names_bytes = face.get_font_table(name_tag);
-        let windows_metrics_bytes = face.get_font_table(os2_tag);
-        if names_bytes.is_none() || windows_metrics_bytes.is_none() {
-            return Err("No 'name' or 'OS/2' tables");
-        }
-
-        let mut cursor = Cursor::new(names_bytes.as_ref().unwrap());
-        let table = Names::read(&mut cursor).map_err(|_| "Could not read 'name' table")?;
-        let language_tags = table.language_tags().collect::<Vec<_>>();
-        let mut names = table
-            .iter()
-            .filter(|((_, _, language_id, _), value)| {
-                value.is_some() &&
-                    language_id
-                        .tag(&language_tags)
-                        .map_or(false, |tag| tag.starts_with("en"))
-            })
-            .map(|((_, _, _, name_id), value)| (name_id, value.unwrap()))
-            .collect::<HashMap<_, _>>();
-        let family = match names.remove(&NameID::FontFamilyName) {
-            Some(family) => family,
-            _ => return Err("Could not find family"),
-        };
-        let face = match names.remove(&NameID::FontSubfamilyName) {
-            Some(face) => face,
-            _ => return Err("Could not find subfamily"),
-        };
-
-        let mut cursor = Cursor::new(windows_metrics_bytes.as_ref().unwrap());
-        let table = WindowsMetrics::read(&mut cursor).map_err(|_| "Could not read OS/2 table")?;
-        let (weight_val, width_val, italic_bool) = match table {
-            WindowsMetrics::Version0(ref m) => {
-                (m.weight_class, m.width_class, m.selection_flags.0 & 1 == 1)
-            },
-            WindowsMetrics::Version1(ref m) => {
-                (m.weight_class, m.width_class, m.selection_flags.0 & 1 == 1)
-            },
-            WindowsMetrics::Version2(ref m) |
-            WindowsMetrics::Version3(ref m) |
-            WindowsMetrics::Version4(ref m) => {
-                (m.weight_class, m.width_class, m.selection_flags.0 & 1 == 1)
-            },
-            WindowsMetrics::Version5(ref m) => {
-                (m.weight_class, m.width_class, m.selection_flags.0 & 1 == 1)
-            },
-        };
-
-        let weight = StyleFontWeight::from_float(weight_val as f32);
-
-        let stretch = match min(9, max(1, width_val)) {
-            1 => FontStretchKeyword::UltraCondensed,
-            2 => FontStretchKeyword::ExtraCondensed,
-            3 => FontStretchKeyword::Condensed,
-            4 => FontStretchKeyword::SemiCondensed,
-            5 => FontStretchKeyword::Normal,
-            6 => FontStretchKeyword::SemiExpanded,
-            7 => FontStretchKeyword::Expanded,
-            8 => FontStretchKeyword::ExtraExpanded,
-            9 => FontStretchKeyword::UltraExpanded,
-            _ => return Err("Unknown stretch size"),
-        }
-        .compute();
-
-        let style = if italic_bool {
-            StyleFontStyle::ITALIC
-        } else {
-            StyleFontStyle::NORMAL
-        };
-
-        Ok(FontInfo {
-            family_name: family,
-            face_name: face,
-            weight,
-            stretch,
-            style,
-        })
-    }
-}
-
 #[derive(Debug)]
 pub struct PlatformFont {
     face: Nondebug<FontFace>,
     /// A reference to this data used to create this [`PlatformFont`], ensuring the
     /// data stays alive of the lifetime of this struct.
     _data: Arc<Vec<u8>>,
-    info: FontInfo,
     em_size: f32,
     du_to_px: f32,
     scaled_du_to_px: f32,
@@ -212,7 +107,6 @@ impl PlatformFontMethods for PlatformFont {
         let face = font_file
             .create_face(face_index, dwrote::DWRITE_FONT_SIMULATIONS_NONE)
             .map_err(|_| "Could not create FontFace")?;
-        let info = FontInfo::new_from_face(&face)?;
 
         let pt_size = pt_size.unwrap_or(au_from_pt(12.));
         let du_per_em = face.metrics().metrics0().designUnitsPerEm as f32;
@@ -226,31 +120,77 @@ impl PlatformFontMethods for PlatformFont {
         Ok(PlatformFont {
             face: Nondebug(face),
             _data: data,
-            info,
             em_size,
             du_to_px: design_units_to_pixels,
             scaled_du_to_px: scaled_design_units_to_pixels,
         })
     }
 
-    fn family_name(&self) -> Option<String> {
-        Some(self.info.family_name.clone())
-    }
+    fn descriptor(&self) -> FontTemplateDescriptor {
+        // We need the font (DWriteFont) in order to be able to query things like
+        // the family name, face name, weight, etc.  On Windows 10, the
+        // DWriteFontFace3 interface provides this on the FontFace, but that's only
+        // available on Win10+.
+        //
+        // Instead, we do the parsing work using the truetype crate for raw fonts.
+        // We're just extracting basic info, so this is sufficient for now.
+        let windows_metrics_bytes = self.face.get_font_table(font_tag!('O', 'S', '/', '2'));
+        if windows_metrics_bytes.is_none() {
+            warn!("Could not find OS/2 table in font.");
+            return FontTemplateDescriptor::default();
+        }
 
-    fn face_name(&self) -> Option<String> {
-        Some(self.info.face_name.clone())
-    }
+        let mut cursor = Cursor::new(windows_metrics_bytes.as_ref().unwrap());
+        let Ok(table) = WindowsMetrics::read(&mut cursor) else {
+            warn!("Could not read OS/2 table in font.");
+            return FontTemplateDescriptor::default();
+        };
 
-    fn style(&self) -> StyleFontStyle {
-        self.info.style
-    }
+        let (weight_val, width_val, italic_bool) = match table {
+            WindowsMetrics::Version0(ref m) => {
+                (m.weight_class, m.width_class, m.selection_flags.0 & 1 == 1)
+            },
+            WindowsMetrics::Version1(ref m) => {
+                (m.weight_class, m.width_class, m.selection_flags.0 & 1 == 1)
+            },
+            WindowsMetrics::Version2(ref m) |
+            WindowsMetrics::Version3(ref m) |
+            WindowsMetrics::Version4(ref m) => {
+                (m.weight_class, m.width_class, m.selection_flags.0 & 1 == 1)
+            },
+            WindowsMetrics::Version5(ref m) => {
+                (m.weight_class, m.width_class, m.selection_flags.0 & 1 == 1)
+            },
+        };
 
-    fn boldness(&self) -> StyleFontWeight {
-        self.info.weight
-    }
+        let weight = StyleFontWeight::from_float(weight_val as f32);
+        let stretch = match min(9, max(1, width_val)) {
+            1 => StyleFontStretch::ULTRA_CONDENSED,
+            2 => StyleFontStretch::EXTRA_CONDENSED,
+            3 => StyleFontStretch::CONDENSED,
+            4 => StyleFontStretch::SEMI_CONDENSED,
+            5 => StyleFontStretch::NORMAL,
+            6 => StyleFontStretch::SEMI_EXPANDED,
+            7 => StyleFontStretch::EXPANDED,
+            8 => StyleFontStretch::EXTRA_EXPANDED,
+            9 => StyleFontStretch::ULTRA_CONDENSED,
+            _ => {
+                warn!("Unknown stretch size.");
+                StyleFontStretch::NORMAL
+            },
+        };
 
-    fn stretchiness(&self) -> StyleFontStretch {
-        self.info.stretch
+        let style = if italic_bool {
+            StyleFontStyle::ITALIC
+        } else {
+            StyleFontStyle::NORMAL
+        };
+
+        FontTemplateDescriptor {
+            weight,
+            stretch,
+            style,
+        }
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {

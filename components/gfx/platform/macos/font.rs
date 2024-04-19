@@ -26,6 +26,7 @@ use crate::font::{
     FractionalPixel, PlatformFontMethods, GPOS, GSUB, KERN,
 };
 use crate::font_cache_thread::FontIdentifier;
+use crate::font_template::FontTemplateDescriptor;
 use crate::text::glyph::GlyphId;
 
 const KERN_PAIR_LEN: usize = 6;
@@ -187,24 +188,13 @@ impl PlatformFontMethods for PlatformFont {
         Ok(handle)
     }
 
-    fn family_name(&self) -> Option<String> {
-        Some(self.ctfont.family_name())
-    }
-
-    fn face_name(&self) -> Option<String> {
-        Some(self.ctfont.face_name())
-    }
-
-    fn style(&self) -> FontStyle {
-        self.ctfont.all_traits().style()
-    }
-
-    fn boldness(&self) -> FontWeight {
-        self.ctfont.all_traits().weight()
-    }
-
-    fn stretchiness(&self) -> FontStretch {
-        self.ctfont.all_traits().stretch()
+    fn descriptor(&self) -> FontTemplateDescriptor {
+        let traits = self.ctfont.all_traits();
+        FontTemplateDescriptor {
+            weight: traits.weight(),
+            stretch: traits.stretch(),
+            style: traits.style(),
+        }
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {

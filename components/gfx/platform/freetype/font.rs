@@ -3,16 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::convert::TryInto;
-use std::os::raw::{c_char, c_long};
+use std::os::raw::c_long;
 use std::sync::Arc;
 use std::{mem, ptr};
 
 use app_units::Au;
 use freetype::freetype::{
     FT_Done_Face, FT_F26Dot6, FT_Face, FT_FaceRec, FT_Get_Char_Index, FT_Get_Kerning,
-    FT_Get_Postscript_Name, FT_Get_Sfnt_Table, FT_GlyphSlot, FT_Int32, FT_Kerning_Mode,
-    FT_Load_Glyph, FT_Load_Sfnt_Table, FT_Long, FT_New_Memory_Face, FT_Set_Char_Size, FT_Sfnt_Tag,
-    FT_SizeRec, FT_Size_Metrics, FT_UInt, FT_ULong, FT_Vector, FT_STYLE_FLAG_ITALIC,
+    FT_Get_Sfnt_Table, FT_GlyphSlot, FT_Int32, FT_Kerning_Mode, FT_Load_Glyph, FT_Load_Sfnt_Table,
+    FT_Long, FT_New_Memory_Face, FT_Set_Char_Size, FT_Sfnt_Tag, FT_SizeRec, FT_Size_Metrics,
+    FT_UInt, FT_ULong, FT_Vector, FT_STYLE_FLAG_ITALIC,
 };
 use freetype::succeeded;
 use freetype::tt_os2::TT_OS2;
@@ -21,13 +21,13 @@ use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_weight::T as FontWeight;
 use style::values::computed::font::FontStyle;
 
-use super::c_str_to_string;
 use super::library_handle::FreeTypeLibraryHandle;
 use crate::font::{
     FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, PlatformFontMethods, GPOS, GSUB,
     KERN,
 };
 use crate::font_cache_thread::FontIdentifier;
+use crate::font_template::FontTemplateDescriptor;
 use crate::text::glyph::GlyphId;
 use crate::text::util::fixed_to_float;
 
@@ -145,65 +145,39 @@ impl PlatformFontMethods for PlatformFont {
         Ok(handle)
     }
 
-    fn family_name(&self) -> Option<String> {
-        unsafe {
-            let family_name = (*self.face).family_name;
-            if !family_name.is_null() {
-                Some(c_str_to_string(family_name as *const c_char))
-            } else {
-                None
-            }
-        }
-    }
-
-    fn face_name(&self) -> Option<String> {
-        unsafe {
-            let name = FT_Get_Postscript_Name(self.face) as *const c_char;
-
-            if !name.is_null() {
-                Some(c_str_to_string(name))
-            } else {
-                None
-            }
-        }
-    }
-
-    fn style(&self) -> FontStyle {
-        if unsafe { (*self.face).style_flags & FT_STYLE_FLAG_ITALIC as c_long != 0 } {
+    fn descriptor(&self) -> FontTemplateDescriptor {
+        let style = if unsafe { (*self.face).style_flags & FT_STYLE_FLAG_ITALIC as c_long != 0 } {
             FontStyle::ITALIC
         } else {
             FontStyle::NORMAL
-        }
-    }
-
-    fn boldness(&self) -> FontWeight {
-        let os2 = match self.os2_table() {
-            None => return FontWeight::normal(),
-            Some(os2) => os2,
         };
-        let weight = os2.us_weight_class as f32;
-        FontWeight::from_float(weight)
-    }
 
-    fn stretchiness(&self) -> FontStretch {
-        use style::values::specified::font::FontStretchKeyword;
-        if let Some(os2) = self.os2_table() {
-            match os2.us_width_class {
-                1 => FontStretchKeyword::UltraCondensed,
-                2 => FontStretchKeyword::ExtraCondensed,
-                3 => FontStretchKeyword::Condensed,
-                4 => FontStretchKeyword::SemiCondensed,
-                5 => FontStretchKeyword::Normal,
-                6 => FontStretchKeyword::SemiExpanded,
-                7 => FontStretchKeyword::Expanded,
-                8 => FontStretchKeyword::ExtraExpanded,
-                9 => FontStretchKeyword::UltraExpanded,
-                _ => FontStretchKeyword::Normal,
-            }
-        } else {
-            FontStretchKeyword::Normal
+        let os2_table = self.os2_table();
+        let weight = os2_table
+            .as_ref()
+            .map(|os2| FontWeight::from_float(os2.us_weight_class as f32))
+            .unwrap_or_else(FontWeight::normal);
+        let stretch = os2_table
+            .as_ref()
+            .map(|os2| match os2.us_width_class {
+                1 => FontStretch::ULTRA_CONDENSED,
+                2 => FontStretch::EXTRA_CONDENSED,
+                3 => FontStretch::CONDENSED,
+                4 => FontStretch::SEMI_CONDENSED,
+                5 => FontStretch::NORMAL,
+                6 => FontStretch::SEMI_EXPANDED,
+                7 => FontStretch::EXPANDED,
+                8 => FontStretch::EXTRA_EXPANDED,
+                9 => FontStretch::ULTRA_EXPANDED,
+                _ => FontStretch::NORMAL,
+            })
+            .unwrap_or(FontStretch::NORMAL);
+
+        FontTemplateDescriptor {
+            weight,
+            stretch,
+            style,
         }
-        .compute()
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {

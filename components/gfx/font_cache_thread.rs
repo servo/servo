@@ -260,12 +260,7 @@ impl FontCache {
                         return;
                     };
 
-                    let descriptor = FontTemplateDescriptor::new(
-                        handle.boldness(),
-                        handle.stretchiness(),
-                        handle.style(),
-                    );
-
+                    let descriptor = handle.descriptor();
                     templates.add_template(FontTemplate::new_web_font(url, descriptor, data));
                     drop(result.send(()));
                 },

@@ -18,7 +18,7 @@ use log::debug;
 use serde::{Deserialize, Serialize};
 use servo_atoms::{atom, Atom};
 use smallvec::SmallVec;
-use style::computed_values::{font_stretch, font_style, font_variant_caps, font_weight};
+use style::computed_values::font_variant_caps;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::{GenericFontFamily, SingleFontFamily};
 use unicode_script::Script;
@@ -70,12 +70,9 @@ pub trait PlatformFontMethods: Sized {
         pt_size: Option<Au>,
     ) -> Result<PlatformFont, &'static str>;
 
-    fn family_name(&self) -> Option<String>;
-    fn face_name(&self) -> Option<String>;
-
-    fn style(&self) -> font_style::T;
-    fn boldness(&self) -> font_weight::T;
-    fn stretchiness(&self) -> font_stretch::T;
+    /// Get a [`FontTemplateDescriptor`] from a [`PlatformFont`]. This is used to get
+    /// descriptors for web fonts.
+    fn descriptor(&self) -> FontTemplateDescriptor;
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId>;
     fn glyph_h_advance(&self, _: GlyphId) -> Option<FractionalPixel>;
@@ -349,15 +346,11 @@ impl Font {
         };
 
         debug!(
-            "{} font table[{}] with family={}, face={}",
+            "{} font table[{}] in {:?},",
             status,
             tag.tag_to_str(),
-            self.handle
-                .family_name()
-                .unwrap_or("unavailable".to_owned()),
-            self.handle.face_name().unwrap_or("unavailable".to_owned())
+            self.identifier()
         );
-
         result
     }
 
