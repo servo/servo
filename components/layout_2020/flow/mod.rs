@@ -1516,7 +1516,7 @@ struct PlacementState {
     last_in_flow_margin_collapses_with_parent_end_margin: bool,
     start_margin: CollapsedMargin,
     current_margin: CollapsedMargin,
-    current_block_direction_position: Length,
+    current_block_direction_position: Au,
     inflow_baselines: Baselines,
     is_inline_block_context: bool,
 }
@@ -1534,7 +1534,7 @@ impl PlacementState {
             last_in_flow_margin_collapses_with_parent_end_margin: true,
             start_margin: CollapsedMargin::zero(),
             current_margin: CollapsedMargin::zero(),
-            current_block_direction_position: Length::zero(),
+            current_block_direction_position: Au::zero(),
             inflow_baselines: Baselines::default(),
             is_inline_block_context,
         }
@@ -1595,7 +1595,7 @@ impl PlacementState {
                     // Setting `next_in_flow_margin_collapses_with_parent_start_margin` to false
                     // prevents collapsing with the start margin of the parent, and will set
                     // `collapsed_through` to false, preventing the parent from collapsing through.
-                    self.current_block_direction_position += self.current_margin.solve().into();
+                    self.current_block_direction_position += self.current_margin.solve();
                     self.current_margin = CollapsedMargin::zero();
                     self.next_in_flow_margin_collapses_with_parent_start_margin = false;
                     if fragment_block_margins.collapsed_through {
@@ -1619,25 +1619,24 @@ impl PlacementState {
                         .adjoin_assign(&fragment_block_margins.start);
                 }
                 fragment.content_rect.start_corner.block +=
-                    Length::from(self.current_margin.solve()) +
-                        self.current_block_direction_position;
+                    (self.current_margin.solve() + self.current_block_direction_position).into();
 
                 if fragment_block_margins.collapsed_through {
                     // `fragment_block_size` is typically zero when collapsing through,
                     // but we still need to consider it in case there is clearance.
-                    self.current_block_direction_position += fragment_block_size.into();
+                    self.current_block_direction_position += fragment_block_size;
                     self.current_margin
                         .adjoin_assign(&fragment_block_margins.end);
                 } else {
                     self.current_block_direction_position +=
-                        Length::from(self.current_margin.solve()) + fragment_block_size.into();
+                        self.current_margin.solve() + fragment_block_size;
                     self.current_margin = fragment_block_margins.end;
                 }
             },
             Fragment::AbsoluteOrFixedPositioned(fragment) => {
                 let offset = LogicalVec2 {
-                    block: Length::from(self.current_margin.solve()) +
-                        self.current_block_direction_position,
+                    block: (self.current_margin.solve() + self.current_block_direction_position)
+                        .into(),
                     inline: Length::new(0.),
                 };
                 fragment.borrow_mut().adjust_offsets(offset);
@@ -1646,11 +1645,11 @@ impl PlacementState {
                 let sequential_layout_state = sequential_layout_state
                     .expect("Found float fragment without SequentialLayoutState");
                 let block_offset_from_containing_block_top =
-                    self.current_block_direction_position + self.current_margin.solve().into();
+                    self.current_block_direction_position + self.current_margin.solve();
                 sequential_layout_state.place_float_fragment(
                     box_fragment,
                     self.start_margin,
-                    block_offset_from_containing_block_top.into(),
+                    block_offset_from_containing_block_top,
                 );
             },
             Fragment::Positioning(_) => {},
@@ -1660,11 +1659,11 @@ impl PlacementState {
 
     fn finish(mut self) -> (Length, CollapsedBlockMargins, Baselines) {
         if !self.last_in_flow_margin_collapses_with_parent_end_margin {
-            self.current_block_direction_position += self.current_margin.solve().into();
+            self.current_block_direction_position += self.current_margin.solve();
             self.current_margin = CollapsedMargin::zero();
         }
         (
-            self.current_block_direction_position,
+            self.current_block_direction_position.into(),
             CollapsedBlockMargins {
                 collapsed_through: self.next_in_flow_margin_collapses_with_parent_start_margin,
                 start: self.start_margin,
