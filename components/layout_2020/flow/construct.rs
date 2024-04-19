@@ -13,10 +13,13 @@ use style::selector_parser::PseudoElement;
 use style::str::char_is_whitespace;
 use style::values::specified::text::TextDecorationLine;
 
+use super::OutsideMarker;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, LayoutBox, NodeExt};
-use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents, TraversalHandler};
+use crate::dom_traversal::{
+    Contents, NodeAndStyleInfo, NonReplacedContents, PseudoElementContentItem, TraversalHandler,
+};
 use crate::flow::float::FloatBox;
 use crate::flow::inline::{InlineBox, InlineFormattingContext, InlineLevelBox};
 use crate::flow::text_run::TextRun;
@@ -97,6 +100,9 @@ enum BlockLevelCreator {
     OutOfFlowFloatBox {
         display_inside: DisplayInside,
         contents: Contents,
+    },
+    OutsideMarker {
+        contents: Vec<PseudoElementContentItem>,
     },
     AnonymousTable {
         table_block: ArcRefCell<BlockLevelBox>,
@@ -195,17 +201,12 @@ impl BlockContainer {
 
         if is_list_item {
             if let Some(marker_contents) = crate::lists::make_marker(context, info) {
-                let _position = info.style.clone_list_style_position();
-                // FIXME: implement support for `outside` and remove this:
-                let position = ListStylePosition::Inside;
-                match position {
+                match info.style.clone_list_style_position() {
                     ListStylePosition::Inside => {
                         builder.handle_list_item_marker_inside(info, marker_contents)
                     },
                     ListStylePosition::Outside => {
-                        // FIXME: implement layout for this case
-                        // https://github.com/servo/servo/issues/27383
-                        // and enable `list-style-position` and the `list-style` shorthand in Stylo.
+                        builder.handle_list_item_marker_outside(info, marker_contents)
                     },
                 }
             }
@@ -450,6 +451,18 @@ where
             },
             Contents::OfPseudoElement(contents),
         );
+    }
+
+    fn handle_list_item_marker_outside(
+        &mut self,
+        info: &NodeAndStyleInfo<Node>,
+        contents: Vec<crate::dom_traversal::PseudoElementContentItem>,
+    ) {
+        self.block_level_boxes.push(BlockLevelJob {
+            info: info.clone(),
+            box_slot: BoxSlot::dummy(),
+            kind: BlockLevelCreator::OutsideMarker { contents },
+        });
     }
 
     fn handle_inline_level_element(
@@ -768,6 +781,29 @@ where
                 display_inside,
                 contents,
             ))),
+            BlockLevelCreator::OutsideMarker { contents } => {
+                let marker_style = context
+                    .shared_context()
+                    .stylist
+                    .style_for_anonymous::<Node::ConcreteElement>(
+                        &context.shared_context().guards,
+                        &PseudoElement::ServoLegacyText, // FIMXE: use `PseudoElement::Marker` when we add it
+                        &info.style,
+                    );
+                let info = info.new_replacing_style(marker_style.clone());
+                let contents = NonReplacedContents::OfPseudoElement(contents);
+                let block_container = BlockContainer::construct(
+                    context,
+                    &info,
+                    contents,
+                    TextDecorationLine::empty(),
+                    false, /* is_list_item */
+                );
+                ArcRefCell::new(BlockLevelBox::OutsideMarker(OutsideMarker {
+                    style: marker_style,
+                    block_container,
+                }))
+            },
             BlockLevelCreator::AnonymousTable { table_block } => table_block,
         };
         self.box_slot

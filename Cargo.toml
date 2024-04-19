@@ -105,7 +105,7 @@ string_cache_codegen = "0.5"
 style = { git = "https://github.com/servo/stylo", branch = "2024-03-01", features = ["servo"] }
 style_config = { git = "https://github.com/servo/stylo", branch = "2024-03-01" }
 style_traits = { git = "https://github.com/servo/stylo", branch = "2024-03-01", features = ["servo"] }
-# NOTE: the sm-angle feature only enables ANGLE on Windows, not other platforms!
+# NOTE: the sm-angle feature only 2024-03-01rms!
 surfman = { version = "0.9", features = ["chains", "sm-angle", "sm-angle-default"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
