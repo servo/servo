@@ -326,7 +326,7 @@ impl WebGLTexture {
             },
             EXTTextureFilterAnisotropicConstants::TEXTURE_MAX_ANISOTROPY_EXT => {
                 // NaN is not less than 1., what a time to be alive.
-                if !(float_value >= 1.) {
+                if float_value < 1. || !float_value.is_normal() {
                     return Err(WebGLError::InvalidValue);
                 }
                 self.upcast::<WebGLObject>()

@@ -98,10 +98,7 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutDom<'_, HTMLTextAreaElement> {
         if text.is_empty() {
             // FIXME(nox): Would be cool to not allocate a new string if the
             // placeholder is single line, but that's an unimportant detail.
-            self.placeholder()
-                .replace("\r\n", "\n")
-                .replace('\r', "\n")
-                .into()
+            self.placeholder().replace("\r\n", "\n").replace('\r', "\n")
         } else {
             text.into()
         }

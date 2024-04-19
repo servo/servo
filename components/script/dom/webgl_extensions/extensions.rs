@@ -406,7 +406,7 @@ impl WebGLExtensions {
             .borrow()
             .tex_compression_formats
             .keys()
-            .map(|&k| k)
+            .copied()
             .collect()
     }
 

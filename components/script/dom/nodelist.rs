@@ -438,6 +438,6 @@ impl ElementsByNameList {
     pub fn item(&self, index: u32) -> Option<DomRoot<Node>> {
         self.document
             .nth_element_by_name(index, &self.name)
-            .and_then(|n| Some(DomRoot::from_ref(&*n)))
+            .map(|n| DomRoot::from_ref(&*n))
     }
 }
