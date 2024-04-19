@@ -3023,7 +3023,7 @@ impl GlobalScope {
         unreachable!();
     }
 
-    // https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute
+    /// <https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute>
     pub fn supported_performance_entry_types(&self, cx: SafeJSContext) -> JSVal {
         if let Some(types) = &*self.frozen_supported_performance_entry_types.borrow() {
             return types.get();
@@ -3152,7 +3152,7 @@ impl GlobalScope {
                     let navigator = window.Navigator();
                     let selected_index = navigator.select_gamepad_index();
                     let gamepad = Gamepad::new(&global, selected_index, name, axis_bounds, button_bounds);
-                    navigator.set_gamepad(selected_index as usize, &*gamepad);
+                    navigator.set_gamepad(selected_index as usize, &gamepad);
                 }
             }),
             &self.task_canceller(TaskSourceName::Gamepad)

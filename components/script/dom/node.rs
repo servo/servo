@@ -389,7 +389,7 @@ impl Node {
         })
     }
 
-    // https://html.spec.whatg.org/#fire_a_synthetic_mouse_event
+    /// <https://html.spec.whatg.org/#fire_a_synthetic_mouse_event>
     pub fn fire_synthetic_mouse_event_not_trusted(&self, name: DOMString) {
         // Spec says the choice of which global to create
         // the mouse event on is not well-defined,
@@ -596,7 +596,7 @@ impl Node {
         }
     }
 
-    // https://dom.spec.whatwg.org/#concept-node-length
+    /// <https://dom.spec.whatwg.org/#concept-node-length>
     pub fn len(&self) -> u32 {
         match self.type_id() {
             NodeTypeId::DocumentType => 0,
@@ -605,7 +605,7 @@ impl Node {
         }
     }
 
-    // https://dom.spec.whatwg.org/#concept-tree-index
+    /// <https://dom.spec.whatwg.org/#concept-tree-index>
     pub fn index(&self) -> u32 {
         self.preceding_siblings().count() as u32
     }
@@ -807,8 +807,8 @@ impl Node {
         window_from_node(self).client_rect_query(self)
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth
-    // https://drafts.csswg.org/cssom-view/#dom-element-scrollheight
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth>
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-scrollheight>
     pub fn scroll_area(&self) -> Rect<i32> {
         // "1. Let document be the element’s node document.""
         let document = self.owner_doc();
@@ -854,7 +854,7 @@ impl Node {
         window.scroll_offset_query(self).to_untyped()
     }
 
-    // https://dom.spec.whatwg.org/#dom-childnode-before
+    /// <https://dom.spec.whatwg.org/#dom-childnode-before>
     pub fn before(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         // Step 1.
         let parent = &self.parent_node;
@@ -883,7 +883,7 @@ impl Node {
         Ok(())
     }
 
-    // https://dom.spec.whatwg.org/#dom-childnode-after
+    /// <https://dom.spec.whatwg.org/#dom-childnode-after>
     pub fn after(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         // Step 1.
         let parent = &self.parent_node;
@@ -906,7 +906,7 @@ impl Node {
         Ok(())
     }
 
-    // https://dom.spec.whatwg.org/#dom-childnode-replacewith
+    /// <https://dom.spec.whatwg.org/#dom-childnode-replacewith>
     pub fn replace_with(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         // Step 1.
         let parent = if let Some(parent) = self.GetParentNode() {
@@ -929,7 +929,7 @@ impl Node {
         Ok(())
     }
 
-    // https://dom.spec.whatwg.org/#dom-parentnode-prepend
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-prepend>
     pub fn prepend(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         // Step 1.
         let doc = self.owner_doc();
@@ -939,7 +939,7 @@ impl Node {
         Node::pre_insert(&node, self, first_child.as_deref()).map(|_| ())
     }
 
-    // https://dom.spec.whatwg.org/#dom-parentnode-append
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-append>
     pub fn append(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         // Step 1.
         let doc = self.owner_doc();
@@ -948,7 +948,7 @@ impl Node {
         self.AppendChild(&node).map(|_| ())
     }
 
-    // https://dom.spec.whatwg.org/#dom-parentnode-replacechildren
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-replacechildren>
     pub fn replace_children(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
         // Step 1.
         let doc = self.owner_doc();
@@ -960,7 +960,7 @@ impl Node {
         Ok(())
     }
 
-    // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>
     pub fn query_selector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
         // Step 1.
         let doc = self.owner_doc();
@@ -1012,7 +1012,7 @@ impl Node {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall>
     #[allow(unsafe_code)]
     pub fn query_selector_all(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList>> {
         let window = window_from_node(self);
@@ -1638,7 +1638,7 @@ impl FollowingNodeIterator {
 impl Iterator for FollowingNodeIterator {
     type Item = DomRoot<Node>;
 
-    // https://dom.spec.whatwg.org/#concept-tree-following
+    /// <https://dom.spec.whatwg.org/#concept-tree-following>
     fn next(&mut self) -> Option<DomRoot<Node>> {
         let current = self.current.take()?;
 
@@ -1659,7 +1659,7 @@ pub struct PrecedingNodeIterator {
 impl Iterator for PrecedingNodeIterator {
     type Item = DomRoot<Node>;
 
-    // https://dom.spec.whatwg.org/#concept-tree-preceding
+    /// <https://dom.spec.whatwg.org/#concept-tree-preceding>
     fn next(&mut self) -> Option<DomRoot<Node>> {
         let current = self.current.take()?;
 
@@ -1755,8 +1755,8 @@ impl TreeIterator {
 impl Iterator for TreeIterator {
     type Item = DomRoot<Node>;
 
-    // https://dom.spec.whatwg.org/#concept-tree-order
-    // https://dom.spec.whatwg.org/#concept-shadow-including-tree-order
+    /// <https://dom.spec.whatwg.org/#concept-tree-order>
+    /// <https://dom.spec.whatwg.org/#concept-shadow-including-tree-order>
     fn next(&mut self) -> Option<DomRoot<Node>> {
         let current = self.current.take()?;
 
@@ -1840,7 +1840,7 @@ impl Node {
         }
     }
 
-    // https://dom.spec.whatwg.org/#concept-node-adopt
+    /// <https://dom.spec.whatwg.org/#concept-node-adopt>
     pub fn adopt(node: &Node, document: &Document) {
         document.add_script_and_layout_blocker();
 
@@ -1876,7 +1876,7 @@ impl Node {
         document.remove_script_and_layout_blocker();
     }
 
-    // https://dom.spec.whatwg.org/#concept-node-ensure-pre-insertion-validity
+    /// <https://dom.spec.whatwg.org/#concept-node-ensure-pre-insertion-validity>
     pub fn ensure_pre_insertion_validity(
         node: &Node,
         parent: &Node,
@@ -1994,7 +1994,7 @@ impl Node {
         Ok(())
     }
 
-    // https://dom.spec.whatwg.org/#concept-node-pre-insert
+    /// <https://dom.spec.whatwg.org/#concept-node-pre-insert>
     pub fn pre_insert(node: &Node, parent: &Node, child: Option<&Node>) -> Fallible<DomRoot<Node>> {
         // Step 1.
         Node::ensure_pre_insertion_validity(node, parent, child)?;
@@ -2025,7 +2025,7 @@ impl Node {
         Ok(DomRoot::from_ref(node))
     }
 
-    // https://dom.spec.whatwg.org/#concept-node-insert
+    /// <https://dom.spec.whatwg.org/#concept-node-insert>
     fn insert(
         node: &Node,
         parent: &Node,
@@ -2102,7 +2102,7 @@ impl Node {
                         );
                     }
                 } else {
-                    try_upgrade_element(&*descendant);
+                    try_upgrade_element(&descendant);
                 }
             }
         }
@@ -2124,7 +2124,7 @@ impl Node {
         node.owner_doc().remove_script_and_layout_blocker();
     }
 
-    // https://dom.spec.whatwg.org/#concept-node-replace-all
+    /// <https://dom.spec.whatwg.org/#concept-node-replace-all>
     pub fn replace_all(node: Option<&Node>, parent: &Node) {
         parent.owner_doc().add_script_and_layout_blocker();
         // Step 1.
@@ -2171,7 +2171,7 @@ impl Node {
         parent.owner_doc().remove_script_and_layout_blocker();
     }
 
-    // https://dom.spec.whatwg.org/multipage/#string-replace-all
+    /// <https://dom.spec.whatwg.org/multipage/#string-replace-all>
     pub fn string_replace_all(string: DOMString, parent: &Node) {
         if string.len() == 0 {
             Node::replace_all(None, parent);
@@ -2181,7 +2181,7 @@ impl Node {
         };
     }
 
-    // https://dom.spec.whatwg.org/#concept-node-pre-remove
+    /// <https://dom.spec.whatwg.org/#concept-node-pre-remove>
     fn pre_remove(child: &Node, parent: &Node) -> Fallible<DomRoot<Node>> {
         // Step 1.
         match child.GetParentNode() {
@@ -2197,7 +2197,7 @@ impl Node {
         Ok(DomRoot::from_ref(child))
     }
 
-    // https://dom.spec.whatwg.org/#concept-node-remove
+    /// <https://dom.spec.whatwg.org/#concept-node-remove>
     fn remove(node: &Node, parent: &Node, suppress_observers: SuppressObserver) {
         parent.owner_doc().add_script_and_layout_blocker();
         assert!(node
@@ -2247,7 +2247,7 @@ impl Node {
         parent.owner_doc().remove_script_and_layout_blocker();
     }
 
-    // https://dom.spec.whatwg.org/#concept-node-clone
+    /// <https://dom.spec.whatwg.org/#concept-node-clone>
     pub fn clone(
         node: &Node,
         maybe_doc: Option<&Document>,
@@ -2440,7 +2440,7 @@ impl Node {
 }
 
 impl NodeMethods for Node {
-    // https://dom.spec.whatwg.org/#dom-node-nodetype
+    /// <https://dom.spec.whatwg.org/#dom-node-nodetype>
     fn NodeType(&self) -> u16 {
         match self.type_id() {
             NodeTypeId::Attr => NodeConstants::ATTRIBUTE_NODE,
@@ -2461,7 +2461,7 @@ impl NodeMethods for Node {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-nodename
+    /// <https://dom.spec.whatwg.org/#dom-node-nodename>
     fn NodeName(&self) -> DOMString {
         match self.type_id() {
             NodeTypeId::Attr => self.downcast::<Attr>().unwrap().qualified_name(),
@@ -2482,17 +2482,17 @@ impl NodeMethods for Node {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-baseuri
+    /// <https://dom.spec.whatwg.org/#dom-node-baseuri>
     fn BaseURI(&self) -> USVString {
         USVString(String::from(self.owner_doc().base_url().as_str()))
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-isconnected
+    /// <https://dom.spec.whatwg.org/#dom-node-isconnected>
     fn IsConnected(&self) -> bool {
         self.is_connected()
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-ownerdocument
+    /// <https://dom.spec.whatwg.org/#dom-node-ownerdocument>
     fn GetOwnerDocument(&self) -> Option<DomRoot<Document>> {
         match self.type_id() {
             NodeTypeId::Document(_) => None,
@@ -2500,7 +2500,7 @@ impl NodeMethods for Node {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-getrootnode
+    /// <https://dom.spec.whatwg.org/#dom-node-getrootnode>
     fn GetRootNode(&self, options: &GetRootNodeOptions) -> DomRoot<Node> {
         if let Some(shadow_root) = self.containing_shadow_root() {
             return if options.composed {
@@ -2520,22 +2520,22 @@ impl NodeMethods for Node {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-parentnode
+    /// <https://dom.spec.whatwg.org/#dom-node-parentnode>
     fn GetParentNode(&self) -> Option<DomRoot<Node>> {
         self.parent_node.get()
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-parentelement
+    /// <https://dom.spec.whatwg.org/#dom-node-parentelement>
     fn GetParentElement(&self) -> Option<DomRoot<Element>> {
         self.GetParentNode().and_then(DomRoot::downcast)
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-haschildnodes
+    /// <https://dom.spec.whatwg.org/#dom-node-haschildnodes>
     fn HasChildNodes(&self) -> bool {
         self.first_child.get().is_some()
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-childnodes
+    /// <https://dom.spec.whatwg.org/#dom-node-childnodes>
     fn ChildNodes(&self) -> DomRoot<NodeList> {
         self.child_list.or_init(|| {
             let doc = self.owner_doc();
@@ -2544,27 +2544,27 @@ impl NodeMethods for Node {
         })
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-firstchild
+    /// <https://dom.spec.whatwg.org/#dom-node-firstchild>
     fn GetFirstChild(&self) -> Option<DomRoot<Node>> {
         self.first_child.get()
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-lastchild
+    /// <https://dom.spec.whatwg.org/#dom-node-lastchild>
     fn GetLastChild(&self) -> Option<DomRoot<Node>> {
         self.last_child.get()
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-previoussibling
+    /// <https://dom.spec.whatwg.org/#dom-node-previoussibling>
     fn GetPreviousSibling(&self) -> Option<DomRoot<Node>> {
         self.prev_sibling.get()
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-nextsibling
+    /// <https://dom.spec.whatwg.org/#dom-node-nextsibling>
     fn GetNextSibling(&self) -> Option<DomRoot<Node>> {
         self.next_sibling.get()
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-nodevalue
+    /// <https://dom.spec.whatwg.org/#dom-node-nodevalue>
     fn GetNodeValue(&self) -> Option<DOMString> {
         match self.type_id() {
             NodeTypeId::Attr => Some(self.downcast::<Attr>().unwrap().Value()),
@@ -2575,7 +2575,7 @@ impl NodeMethods for Node {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-nodevalue
+    /// <https://dom.spec.whatwg.org/#dom-node-nodevalue>
     fn SetNodeValue(&self, val: Option<DOMString>) {
         match self.type_id() {
             NodeTypeId::Attr => {
@@ -2590,7 +2590,7 @@ impl NodeMethods for Node {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-textcontent
+    /// <https://dom.spec.whatwg.org/#dom-node-textcontent>
     fn GetTextContent(&self) -> Option<DOMString> {
         match self.type_id() {
             NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
@@ -2607,7 +2607,7 @@ impl NodeMethods for Node {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-textcontent
+    /// <https://dom.spec.whatwg.org/#dom-node-textcontent>
     fn SetTextContent(&self, value: Option<DOMString>) {
         let value = value.unwrap_or_default();
         match self.type_id() {
@@ -2634,17 +2634,17 @@ impl NodeMethods for Node {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-insertbefore
+    /// <https://dom.spec.whatwg.org/#dom-node-insertbefore>
     fn InsertBefore(&self, node: &Node, child: Option<&Node>) -> Fallible<DomRoot<Node>> {
         Node::pre_insert(node, self, child)
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-appendchild
+    /// <https://dom.spec.whatwg.org/#dom-node-appendchild>
     fn AppendChild(&self, node: &Node) -> Fallible<DomRoot<Node>> {
         Node::pre_insert(node, self, None)
     }
 
-    // https://dom.spec.whatwg.org/#concept-node-replace
+    /// <https://dom.spec.whatwg.org/#concept-node-replace>
     fn ReplaceChild(&self, node: &Node, child: &Node) -> Fallible<DomRoot<Node>> {
         // Step 1.
         match self.type_id() {
@@ -2789,12 +2789,12 @@ impl NodeMethods for Node {
         Ok(DomRoot::from_ref(child))
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-removechild
+    /// <https://dom.spec.whatwg.org/#dom-node-removechild>
     fn RemoveChild(&self, node: &Node) -> Fallible<DomRoot<Node>> {
         Node::pre_remove(node, self)
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-normalize
+    /// <https://dom.spec.whatwg.org/#dom-node-normalize>
     fn Normalize(&self) {
         let mut children = self.children().enumerate().peekable();
         while let Some((_, node)) = children.next() {
@@ -2826,7 +2826,7 @@ impl NodeMethods for Node {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-clonenode
+    /// <https://dom.spec.whatwg.org/#dom-node-clonenode>
     fn CloneNode(&self, deep: bool) -> Fallible<DomRoot<Node>> {
         if deep && self.is::<ShadowRoot>() {
             return Err(Error::NotSupported);
@@ -2842,7 +2842,7 @@ impl NodeMethods for Node {
         ))
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-isequalnode
+    /// <https://dom.spec.whatwg.org/#dom-node-isequalnode>
     fn IsEqualNode(&self, maybe_node: Option<&Node>) -> bool {
         fn is_equal_doctype(node: &Node, other: &Node) -> bool {
             let doctype = node.downcast::<DocumentType>().unwrap();
@@ -2937,7 +2937,7 @@ impl NodeMethods for Node {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-issamenode
+    /// <https://dom.spec.whatwg.org/#dom-node-issamenode>
     fn IsSameNode(&self, other_node: Option<&Node>) -> bool {
         match other_node {
             Some(node) => self == node,
@@ -2945,7 +2945,7 @@ impl NodeMethods for Node {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-comparedocumentposition
+    /// <https://dom.spec.whatwg.org/#dom-node-comparedocumentposition>
     fn CompareDocumentPosition(&self, other: &Node) -> u16 {
         // step 1.
         if self == other {
@@ -3099,7 +3099,7 @@ impl NodeMethods for Node {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-contains
+    /// <https://dom.spec.whatwg.org/#dom-node-contains>
     fn Contains(&self, maybe_other: Option<&Node>) -> bool {
         match maybe_other {
             None => false,
@@ -3107,7 +3107,7 @@ impl NodeMethods for Node {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-lookupprefix
+    /// <https://dom.spec.whatwg.org/#dom-node-lookupprefix>
     fn LookupPrefix(&self, namespace: Option<DOMString>) -> Option<DOMString> {
         let namespace = namespace_from_domstring(namespace);
 
@@ -3136,7 +3136,7 @@ impl NodeMethods for Node {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-lookupnamespaceuri
+    /// <https://dom.spec.whatwg.org/#dom-node-lookupnamespaceuri>
     fn LookupNamespaceURI(&self, prefix: Option<DOMString>) -> Option<DOMString> {
         // Step 1.
         let prefix = match prefix {
@@ -3148,7 +3148,7 @@ impl NodeMethods for Node {
         Node::namespace_to_string(Node::locate_namespace(self, prefix))
     }
 
-    // https://dom.spec.whatwg.org/#dom-node-isdefaultnamespace
+    /// <https://dom.spec.whatwg.org/#dom-node-isdefaultnamespace>
     fn IsDefaultNamespace(&self, namespace: Option<DOMString>) -> bool {
         // Step 1.
         let namespace = namespace_from_domstring(namespace);
@@ -3199,7 +3199,7 @@ impl VirtualMethods for Node {
     }
 
     // This handles the ranges mentioned in steps 2-3 when removing a node.
-    // https://dom.spec.whatwg.org/#concept-node-remove
+    /// <https://dom.spec.whatwg.org/#concept-node-remove>
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
         self.ranges.drain_to_parent(context, self);
