@@ -93,13 +93,11 @@ impl PerformanceEntryList {
     pub fn clear_entries_by_name_and_type(
         &mut self,
         name: Option<DOMString>,
-        entry_type: Option<DOMString>,
+        entry_type: DOMString,
     ) {
         self.entries.retain(|e| {
-            name.as_ref().map_or(true, |name_| *e.name() != *name_) &&
-                entry_type
-                    .as_ref()
-                    .map_or(true, |type_| *e.entry_type() != *type_)
+            *e.entry_type() != *entry_type ||
+                name.as_ref().map_or(false, |name_| *e.name() != *name_)
         });
     }
 
@@ -479,7 +477,7 @@ impl PerformanceMethods for Performance {
     fn ClearMarks(&self, mark_name: Option<DOMString>) {
         self.buffer
             .borrow_mut()
-            .clear_entries_by_name_and_type(mark_name, Some(DOMString::from("mark")));
+            .clear_entries_by_name_and_type(mark_name, DOMString::from("mark"));
     }
 
     // https://w3c.github.io/user-timing/#dom-performance-measure
@@ -526,13 +524,13 @@ impl PerformanceMethods for Performance {
     fn ClearMeasures(&self, measure_name: Option<DOMString>) {
         self.buffer
             .borrow_mut()
-            .clear_entries_by_name_and_type(measure_name, Some(DOMString::from("measure")));
+            .clear_entries_by_name_and_type(measure_name, DOMString::from("measure"));
     }
     // https://w3c.github.io/resource-timing/#dom-performance-clearresourcetimings
     fn ClearResourceTimings(&self) {
         self.buffer
             .borrow_mut()
-            .clear_entries_by_name_and_type(None, Some(DOMString::from("resource")));
+            .clear_entries_by_name_and_type(None, DOMString::from("resource"));
         self.resource_timing_buffer_current_size.set(0);
     }
 
