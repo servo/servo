@@ -199,12 +199,22 @@ next synced.
 Updating the upstream tests
 ===========================
 
-In order to update the tests from upstream use the same mach update
-commands. e.g. to update the web-platform-tests:
+In order to update the tests from upstream, use the same mach update
+commands. E.g. to update the web-platform-tests:
 
-    ./mach update-wpt --sync
+    ./mach update-wpt --sync --patch
+
+Then, to update the test results:
+
     ./mach test-wpt --log-raw=update.log
     ./mach update-wpt update.log
+
+You'll also need to do the same for the legacy layout engine:
+
+    ./mach test-wpt --legacy-layout --log-raw=legacy.log
+    ./mach update-wpt --legacy-layout legacy.log
+
+Finally, commit the results from `tests/wpt/meta/` and `tests/wpt/meta-legacy-layout/`.
 
 This should create two commits in your servo repository with the
 updated tests and updated metadata.
