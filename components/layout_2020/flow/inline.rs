@@ -2397,7 +2397,7 @@ impl<'a> ContentSizesComputation<'a> {
                         if run.glyph_store.is_whitespace() {
                             // If this run is a forced line break, we *must* break the line
                             // and start measuring from the inline origin once more.
-                            if text_run.glyph_run_is_preserved_newline(run) {
+                            if text_run.glyph_run_is_preserved_newline(segment, run) {
                                 self.forced_line_break();
                                 self.current_line = ContentSizes::zero();
                                 continue;
