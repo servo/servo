@@ -12,7 +12,7 @@
 </style>
 <div id="host"></div>
 <script>
-test(function() {
+promise_test(async () => {
   host.attachShadow({ mode: "open" }).innerHTML = `
     <style>
       @font-face {
@@ -26,6 +26,8 @@ test(function() {
     </style>
     <slot></slot>
   `;
+
+  await document.fonts.ready;
 
   //shrinkwrapped size for a default font will be a bit more than 80-90
   //if the font is applied, it will be a bit more than 160

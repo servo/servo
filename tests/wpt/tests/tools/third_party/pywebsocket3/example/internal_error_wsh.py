@@ -28,7 +28,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from __future__ import absolute_import
-from mod_pywebsocket import msgutil
+
+from pywebsocket3 import msgutil
 
 
 def web_socket_do_extra_handshake(request):

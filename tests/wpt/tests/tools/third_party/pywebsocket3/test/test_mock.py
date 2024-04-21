@@ -31,12 +31,13 @@
 """Tests for mock module."""
 
 from __future__ import absolute_import
-import six.moves.queue
+
 import threading
 import unittest
 
-import set_sys_path  # Update sys.path to locate mod_pywebsocket module.
+import six.moves.queue
 
+import set_sys_path  # Update sys.path to locate pywebsocket3 module.
 from test import mock
 
 

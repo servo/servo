@@ -6,7 +6,7 @@ import threading
 import traceback
 from queue import Empty
 
-from mod_pywebsocket import stream, msgutil
+from pywebsocket3 import stream, msgutil
 from wptserve import stash as stashmod
 
 logger = logging.getLogger()

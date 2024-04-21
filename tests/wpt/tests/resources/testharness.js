@@ -4329,10 +4329,11 @@
 
         const tbody = section.querySelector("tbody");
         for (const test of tests) {
-            const status_class_name = status_class(test.format_status());
+            const status = test.format_status();
+            const status_class_name = status_class(status);
             tbody.appendChild(render(
                 ["tr", {"class":"overall-" + status_class_name},
-                    ["td", {"class":status_class_name}, status_class_name],
+                    ["td", {"class":status_class_name}, status],
                     ["td", {}, test.name],
                     (assertions ? ["td", {}, get_assertion(test)] : ""),
                     ["td", {},

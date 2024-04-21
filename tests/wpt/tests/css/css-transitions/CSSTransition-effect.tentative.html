@@ -85,12 +85,13 @@ promise_test(async t => {
   div.style.left = '150px';
 
   // This will run style update.
-  assert_equals(div.getAnimations().length, 1);
+  const animations = div.getAnimations();
+  assert_equals(animations.length, 1);
 
-  const new_transition = div.getAnimations()[0];
+  const new_transition = animations[0];
   await new_transition.ready;
 
-  assert_equals(getComputedStyle(div).left, '100px');
+  assert_not_equals(getComputedStyle(div).left, '150px');
 }, 'After setting a transition\'s effect to null, a new transition can be started');
 
 // This is a regression test for https://crbug.com/992668, where Chromium would

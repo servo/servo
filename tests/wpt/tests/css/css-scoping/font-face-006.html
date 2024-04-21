@@ -16,7 +16,7 @@
 </style>
 <div id="host"></div>
 <script>
-promise_test(async function() {
+promise_test(async () => {
   host.attachShadow({ mode: "open" }).innerHTML = `
     <style>
       :host::before, :host::after {

@@ -92,13 +92,59 @@ from ... import any_string, recursive_compare
                 "namespaceURI": "http://www.w3.org/1999/xhtml",
                 "nodeType": 1,
             }
-    }])
+    }]),
+    ("accessibility", {"role": "banner"}, [{
+            "type": "node",
+            "sharedId": any_string,
+            "value": {
+                "attributes": {"data-class":"one"},
+                "childNodeCount": 1,
+                "localName": "p",
+                "namespaceURI": "http://www.w3.org/1999/xhtml",
+                "nodeType": 1,
+            }
+        },
+        {
+            "type": "node",
+            "sharedId": any_string,
+            "value": {
+                "attributes": {"data-class":"two"},
+                "childNodeCount": 1,
+                "localName": "p",
+                "namespaceURI": "http://www.w3.org/1999/xhtml",
+                "nodeType": 1,
+            }
+    }]),
+    ("accessibility", {"name": "bar"}, [{
+            "type": "node",
+            "sharedId": any_string,
+            "value": {
+                "attributes": {"data-class":"one"},
+                "childNodeCount": 1,
+                "localName": "p",
+                "namespaceURI": "http://www.w3.org/1999/xhtml",
+                "nodeType": 1,
+            }
+        }
+    ]),
+    ("accessibility", {"role": "banner", "name": "bar"}, [{
+            "type": "node",
+            "sharedId": any_string,
+            "value": {
+                "attributes": {"data-class":"one"},
+                "childNodeCount": 1,
+                "localName": "p",
+                "namespaceURI": "http://www.w3.org/1999/xhtml",
+                "nodeType": 1,
+            }
+        }
+    ])
 ])
 @pytest.mark.asyncio
 async def test_locate_with_context_nodes(bidi_session, inline, top_context, type, value, expected):
     url = inline("""<div id="parent">
-        <p data-class="one">foo</p>
-        <p data-class="two">foo</p>
+        <p data-class="one" role="banner" aria-label="bar">foo</p>
+        <p data-class="two" role="banner">foo</p>
         <a data-class="three">
             <span id="text">bar</span>
         </a>
@@ -125,14 +171,23 @@ async def test_locate_with_context_nodes(bidi_session, inline, top_context, type
 @pytest.mark.parametrize("type,value", [
     ("css", "p[data-class='one']"),
     ("xpath", ".//p[@data-class='one']"),
-    ("innerText", "foo")
+    ("innerText", "foo"),
+    ("accessibility", {"role": "banner"}),
+    ("accessibility", {"name": "bar"}),
+    ("accessibility", {"role": "banner", "name": "bar"}),
 ])
 @pytest.mark.asyncio
 async def test_locate_with_multiple_context_nodes(bidi_session, inline, top_context, type, value):
     url = inline("""
-                 <div id="parent-one"><p data-class="one">foo</p><p data-class="two">bar</p></div>
-                 <div id="parent-two"><p data-class="one">foo</p><p data-class="two">bar</p></div>
-                 """)
+        <div id="parent-one">
+            <p data-class="one" role="banner" aria-label="bar">foo</p>
+            <p data-class="two">bar</p>
+        </div>
+        <div id="parent-two">
+            <p data-class="one" role="banner" aria-label="bar">foo</p>
+            <p data-class="two">bar</p>
+        </div>
+    """)
     await bidi_session.browsing_context.navigate(
         context=top_context["context"], url=url, wait="complete"
     )

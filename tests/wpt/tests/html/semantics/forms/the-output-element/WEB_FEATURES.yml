@@ -1,0 +1,5 @@
+features:
+- name: constraint-validation
+  files:
+  - output-setcustomvalidity.html
+  - output-validity.html

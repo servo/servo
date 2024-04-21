@@ -1,0 +1,51 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+  <script>
+    let tests = [
+      {
+        "csp": "img-src http://{{host}}:{{ports[http][0]}}/",
+        "name": "Lowercase `http` should allow the image to load.",
+      },
+      {
+        "csp": "img-src HtTp://{{host}}:{{ports[http][0]}}/",
+        "name": "Mixed-case `http` should allow the image to load.",
+      },
+      {
+        "csp": "img-src HTTP://{{host}}:{{ports[http][0]}}/",
+        "name": "Uppercase `http` should allow the image to load.",
+      },
+    ];
+
+    tests.forEach(test => {
+      async_test(t => {
+        let url = "support/load_img_and_post_result_meta.sub.html?csp="
+            + encodeURIComponent(test.csp);
+        test_image_loads_as_expected(test, t, url);
+      }, test.name + " - meta tag");
+
+      async_test(t => {
+        let url = "support/load_img_and_post_result_header.html?csp="
+            + encodeURIComponent(test.csp);
+        test_image_loads_as_expected(test, t, url);
+      }, test.name + " - HTTP header");
+    });
+
+    function test_image_loads_as_expected(test, t, url) {
+      let i = document.createElement('iframe');
+      i.src = url;
+      window.addEventListener('message', t.step_func(function(e) {
+        if (e.source != i.contentWindow) return;
+        assert_equals(e.data, "img loaded");
+        t.done();
+      }));
+      document.body.appendChild(i);
+    }
+  </script>
+</body>
+</html>
+

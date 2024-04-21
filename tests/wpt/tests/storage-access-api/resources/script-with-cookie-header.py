@@ -13,7 +13,10 @@ def main(request, response):
     var httpCookies = "%s";
   </script>
 
+  <body>
   <script src="%s"></script>
+  </body>
+
   """ % (cookie_header, script)
 
   return (200, [], body)

@@ -3,16 +3,7 @@
 import pytest
 
 from tests.support.asserts import assert_error, assert_dialog_handled, assert_success
-
-
-def is_element_enabled(session, element_id):
-    return session.transport.send(
-        "GET",
-        "session/{session_id}/element/{element_id}/enabled".format(
-            session_id=session.session_id,
-            element_id=element_id
-        )
-    )
+from . import is_element_enabled
 
 
 @pytest.fixture

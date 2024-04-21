@@ -15,7 +15,7 @@ html,body {
 grid {
   display: inline-grid;
   gap: 10px 20px;
-  grid-template-columns:  auto min-content repeat(2,auto);
+  grid-template-columns: auto min-content repeat(2,auto);
   color: #444;
   border: 1px solid;
   padding: 2px;
@@ -27,6 +27,8 @@ item {
   padding: 20px;
   margin: 3px;
   border: 5px solid blue;
+  place-self: start;
+  grid-row: span 2;
 }
 </style>
 </head>
@@ -34,9 +36,8 @@ item {
 
 <grid>
   <item>1</item>
-  <item style="padding:0; place-self:start; min-width:0">2</item>
+  <item style="padding:0; grid-row: span 1">2</item>
   <item>3</item>
   <item>4</item>
-  <item style="order:1; width:0; margin-right:-23px; margin-top:-37px; align-self:start">5</item>
-  <item>6</item>
+  <item style="padding:0; grid-column: 2; grid-row: 2">5</item>
 </grid>

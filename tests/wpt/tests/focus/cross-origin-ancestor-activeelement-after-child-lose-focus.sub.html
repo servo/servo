@@ -20,36 +20,32 @@ function runTest() {
 
     const innerIFrame = outerIFrame.contentDocument.createElement("iframe");
 
-    window.onmessage = function() {
+    window.onmessage = function(event) {
+      if (event.data != "ready") {
+        return;
+      }
+
+      // We receive an message when the innerIFrame is ready and its input is focused.
+      // outerIframe is the ancestor of inner iframe, so the activeElement of
+      // it should be the inner iframe.
+      assert_equals(outerIFrame.contentDocument.activeElement, innerIFrame,
+        "The activeElement of the outer iframe should be the inner iframe");
+
+      // Now we focus the input in the top level
+      document.querySelector("input").focus();
+
       // Wait for a bit to let whatever the code that might change the focus to run
       window.requestAnimationFrame(function() {
         window.requestAnimationFrame(function() {
           window.requestAnimationFrame(function() {
-
-            // We receive an message when the innerIFrame is ready and its input is focused.
-            // outerIframe is the ancestor of inner iframe, so the activeElement of
-            // it should be the inner iframe.
-            assert_equals(outerIFrame.contentDocument.activeElement, innerIFrame,
-              "The activeElement of the outer iframe should be the inner iframe");
-
-            // Now we focus the input in the top level
-            document.querySelector("input").focus();
-
-            // Wait for a bit to let whatever the code that might change the focus to run
-            window.requestAnimationFrame(function() {
-              window.requestAnimationFrame(function() {
-                window.requestAnimationFrame(function() {
-                  // Since inner iframe lost its focus, the activeElement of outer iframe
-                  // should be cleared as well, hence <body> should be focused.
-                  assert_equals(outerIFrame.contentDocument.activeElement, outerIFrame.contentDocument.body,
-                    "The activeElement of the outer iframe should be reverted back to <body>");
-                  assert_equals(document.activeElement, document.querySelector("input"),
-                    "The activeElement of the top-level document should the input");
-                  done();
-                });
-              });
-            });
-          });
+            // Since inner iframe lost its focus, the activeElement of outer iframe
+            // should be cleared as well, hence <body> should be focused.
+            assert_equals(outerIFrame.contentDocument.activeElement, outerIFrame.contentDocument.body,
+              "The activeElement of the outer iframe should be reverted back to <body>");
+            assert_equals(document.activeElement, document.querySelector("input"),
+              "The activeElement of the top-level document should the input");
+            done();
+          })
         });
       });
     }

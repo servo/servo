@@ -4,88 +4,88 @@ pywebsocket3: A Standalone WebSocket Server for testing purposes
 .. contents::
    :local:
 
-:mod:`mod_pywebsocket`
+:mod:`pywebsocket3`
 ---------------------------------------------
 
-.. automodule:: mod_pywebsocket
+.. automodule:: pywebsocket3
    :members:
 
-:mod:`mod_pywebsocket.common`
+:mod:`pywebsocket3.common`
 ---------------------------------------------
 
-.. automodule:: mod_pywebsocket.common
+.. automodule:: pywebsocket3.common
    :members:
 
-:mod:`mod_pywebsocket.dispatch`
+:mod:`pywebsocket3.dispatch`
 ---------------------------------------------
 
-.. automodule:: mod_pywebsocket.dispatch
+.. automodule:: pywebsocket3.dispatch
    :members:
 
-:mod:`mod_pywebsocket.extensions`
+:mod:`pywebsocket3.extensions`
 ---------------------------------------------
 
-.. automodule:: mod_pywebsocket.extensions
+.. automodule:: pywebsocket3.extensions
    :members:
 
-:mod:`mod_pywebsocket.handshake`
+:mod:`pywebsocket3.handshake`
 ---------------------------------------------
 
-.. automodule:: mod_pywebsocket.handshake
-   :members:
-   :imported-members:
-
-:mod:`mod_pywebsocket.request_handler`
----------------------------------------------
-
-.. automodule:: mod_pywebsocket.request_handler
-   :members:
-
-:mod:`mod_pywebsocket.stream`
----------------------------------------------
-
-.. automodule:: mod_pywebsocket.stream
+.. automodule:: pywebsocket3.handshake
    :members:
    :imported-members:
 
-:mod:`mod_pywebsocket.http_header_util`
+:mod:`pywebsocket3.request_handler`
 ---------------------------------------------
 
-.. automodule:: mod_pywebsocket.http_header_util
+.. automodule:: pywebsocket3.request_handler
    :members:
 
-:mod:`mod_pywebsocket.msgutil`
+:mod:`pywebsocket3.stream`
 ---------------------------------------------
 
-.. automodule:: mod_pywebsocket.msgutil
+.. automodule:: pywebsocket3.stream
+   :members:
+   :imported-members:
+
+:mod:`pywebsocket3.http_header_util`
+---------------------------------------------
+
+.. automodule:: pywebsocket3.http_header_util
    :members:
 
-:mod:`mod_pywebsocket.util`
+:mod:`pywebsocket3.msgutil`
 ---------------------------------------------
 
-.. automodule:: mod_pywebsocket.util
+.. automodule:: pywebsocket3.msgutil
    :members:
 
-:mod:`mod_pywebsocket.memorizingfile`
+:mod:`pywebsocket3.util`
 ---------------------------------------------
 
-.. automodule:: mod_pywebsocket.memorizingfile
+.. automodule:: pywebsocket3.util
    :members:
 
-:mod:`mod_pywebsocket.websocket_server`
+:mod:`pywebsocket3.memorizingfile`
 ---------------------------------------------
 
-.. automodule:: mod_pywebsocket.websocket_server
+.. automodule:: pywebsocket3.memorizingfile
    :members:
 
-:mod:`mod_pywebsocket.server_util`
+:mod:`pywebsocket3.websocket_server`
 ---------------------------------------------
 
-.. automodule:: mod_pywebsocket.server_util
+.. automodule:: pywebsocket3.websocket_server
    :members:
 
-:mod:`mod_pywebsocket.standalone`
+:mod:`pywebsocket3.server_util`
 ---------------------------------------------
 
-.. automodule:: mod_pywebsocket.standalone
+.. automodule:: pywebsocket3.server_util
+   :members:
+
+:mod:`pywebsocket3.standalone`
+---------------------------------------------
+
+.. automodule:: pywebsocket3.standalone
    :members:

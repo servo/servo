@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <meta http-equiv="Content-Security-Policy"
+        content="require-trusted-types-for 'script'; trusted-types *">
+</head>
+<body>
+<iframe id="iframe" data-x="" srcdoc="content" onmouseover=""></iframe>
+<script>
+  // This is a regression test for https://g-issues.chromium.org/issues/333739948
+  // The test should hold true for any browser that supports Trusted Types.
+
+  let target = "data-x";
+  trustedTypes.createPolicy("default", {
+    createHTML: (s) => {
+      iframe.removeAttribute(target);
+      return s;
+    }
+  });
+
+  test(t => {
+    // Original bug report: Delete an attribute *before* the current one.
+    assert_equals(iframe.srcdoc, "content");
+    assert_equals(iframe.getAttribute("onmouseover"), "");
+    iframe.setAttribute("srcdoc", "alert(1)");
+    assert_equals(iframe.srcdoc, "alert(1)");
+    assert_equals(iframe.getAttribute("onmouseover"), "");
+  }, "Ensure the right attributes are modified.");
+
+  test(t => {
+    // Second case: Delete the exact attribute. It still gets set.
+    target = "srcdoc";
+    assert_equals(iframe.srcdoc, "alert(1)");
+    iframe.setAttribute("srcdoc", "new srcdoc value");
+    assert_equals(iframe.srcdoc, "new srcdoc value");
+  }, "Ensure the deleted attributes is modified.");
+
+</script>

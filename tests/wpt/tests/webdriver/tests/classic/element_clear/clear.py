@@ -8,6 +8,8 @@ from tests.support.asserts import (
     assert_in_events,
     assert_success,
 )
+from tests.support.dom import BUTTON_TYPES
+from . import element_clear
 
 
 @pytest.fixture
@@ -17,13 +19,6 @@ def tracked_events():
         "change",
         "focus",
     ]
-
-
-def element_clear(session, element):
-    return session.transport.send(
-        "POST", "/session/{session_id}/element/{element_id}/clear".format(
-            session_id=session.session_id,
-            element_id=element.id))
 
 
 @pytest.fixture(scope="session")
@@ -196,31 +191,6 @@ def test_input(session, inline, add_event_listeners, tracked_events, type, value
                           "month",
                           "week",
                           "file"])
-def test_input_disabled(session, inline, type):
-    session.url = inline("<input type=%s disabled>" % type)
-    element = session.find.css("input", all=False)
-
-    response = element_clear(session, element)
-    assert_error(response, "invalid element state")
-
-
-@pytest.mark.parametrize("type",
-                         ["number",
-                          "range",
-                          "email",
-                          "password",
-                          "search",
-                          "tel",
-                          "text",
-                          "url",
-                          "color",
-                          "date",
-                          "datetime",
-                          "datetime-local",
-                          "time",
-                          "month",
-                          "week",
-                          "file"])
 def test_input_readonly(session, inline, type):
     session.url = inline("<input type=%s readonly>" % type)
     element = session.find.css("input", all=False)
@@ -239,14 +209,6 @@ def test_textarea(session, inline, add_event_listeners, tracked_events):
     assert_success(response)
     assert element.property("value") == ""
     assert_in_events(session, ["focus", "change", "blur"])
-
-
-def test_textarea_disabled(session, inline):
-    session.url = inline("<textarea disabled></textarea>")
-    element = session.find.css("textarea", all=False)
-
-    response = element_clear(session, element)
-    assert_error(response, "invalid element state")
 
 
 def test_textarea_readonly(session, inline):
@@ -278,26 +240,12 @@ def test_input_file_multiple(session, text_file, inline):
     assert element.property("value") == ""
 
 
-def test_select(session, inline):
-    session.url = inline("""
-        <select>
-          <option>foo
-        </select>
-        """)
-    select = session.find.css("select", all=False)
-    option = session.find.css("option", all=False)
+@pytest.mark.parametrize("type", BUTTON_TYPES)
+def test_button(session, inline, type):
+    session.url = inline(f"""<button type="{type}">""")
+    element = session.find.css("button", all=False)
 
-    response = element_clear(session, select)
-    assert_error(response, "invalid element state")
-    response = element_clear(session, option)
-    assert_error(response, "invalid element state")
-
-
-def test_button(session, inline):
-    session.url = inline("<button></button>")
-    button = session.find.css("button", all=False)
-
-    response = element_clear(session, button)
+    response = element_clear(session, element)
     assert_error(response, "invalid element state")
 
 

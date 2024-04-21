@@ -4,7 +4,7 @@
 'foo' and password is 'bar'."""
 
 
-from mod_pywebsocket.handshake import AbortedByUserException
+from pywebsocket3.handshake import AbortedByUserException
 
 
 def web_socket_do_extra_handshake(request):

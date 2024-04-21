@@ -31,10 +31,11 @@
 """Tests for http_header_util module."""
 
 from __future__ import absolute_import
+
 import unittest
 import sys
 
-from mod_pywebsocket import http_header_util
+from pywebsocket3 import http_header_util
 
 
 class UnitTest(unittest.TestCase):

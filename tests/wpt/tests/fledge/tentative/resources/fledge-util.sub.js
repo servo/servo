@@ -151,18 +151,20 @@ async function waitForObservedRequests(uuid, expectedRequests, filter) {
       trackedRequests = trackedRequests.filter(filter);
     }
 
-    // If expected number of requests have been observed, compare with list of
-    // all expected requests and exit.
-    if (trackedRequests.length >= expectedRequests.length) {
-      assert_array_equals(trackedRequests, expectedRequests);
-      break;
-    }
-
     // If fewer than total number of expected requests have been observed,
     // compare what's been received so far, to have a greater chance to fail
     // rather than hang on error.
     for (const trackedRequest of trackedRequests) {
       assert_in_array(trackedRequest, expectedRequests);
+    }
+
+    // If expected number of requests have been observed, compare with list of
+    // all expected requests and exit. This check was previously before the for loop,
+    // but was swapped in order to avoid flakiness with failing tests and their
+    // respective *-expected.txt.
+    if (trackedRequests.length >= expectedRequests.length) {
+      assert_array_equals(trackedRequests, expectedRequests);
+      break;
     }
   }
 }
@@ -839,3 +841,21 @@ let additionalBidHelper = function() {
     fetchAdditionalBids: fetchAdditionalBids
   };
 }();
+
+
+// DeprecatedRenderURLReplacements helper function.
+// Returns an object containing sample strings both before and after the
+// replacements in 'replacements' have been applied by
+// deprecatedRenderURLReplacements. All substitution strings will appear
+// only once in the output strings.
+function createStringBeforeAndAfterReplacements(deprecatedRenderURLReplacements) {
+  let beforeReplacements = '';
+  let afterReplacements = '';
+  if(deprecatedRenderURLReplacements){
+    for (const [match, replacement] of Object.entries(deprecatedRenderURLReplacements)) {
+      beforeReplacements += match + "/";
+      afterReplacements += replacement + "/";
+    }
+  }
+  return { beforeReplacements, afterReplacements };
+}

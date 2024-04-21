@@ -115,13 +115,33 @@
 @font-palette-values --A {
     override-colors: 0 canvas;
 }
+
+/* 19 */
+@font-palette-values --A {
+    override-colors: 0 currentcolor;
+}
+
+/* 20 */
+@font-palette-values --A {
+    override-colors: 0 light-dark(white, black);
+}
+
+/* 21 */
+@font-palette-values --A {
+    override-colors: 0 color-mix(in lch, red, canvas);
+}
+
+/* 22 */
+@font-palette-values --A {
+    override-colors: 0 light-dark(white, currentcolor);
+}
 </style>
 </head>
 <body>
 <script>
 let rules = document.getElementById("style").sheet.cssRules;
 test(function() {
-    assert_equals(rules.length, 19);
+    assert_equals(rules.length, 23);
 });
 
 test(function() {
@@ -281,6 +301,34 @@ test(function() {
     let rule = rules[18];
     assert_equals(text.indexOf("override-colors"), -1);
     assert_equals(rule.basePalette, "");
+    assert_equals(rule.overrideColors, "");
+});
+
+test(function() {
+    let text = rules[19].cssText;
+    let rule = rules[19];
+    assert_equals(text.indexOf("override-colors"), -1);
+    assert_equals(rule.overrideColors, "");
+});
+
+test(function() {
+    let text = rules[20].cssText;
+    let rule = rules[20];
+    assert_equals(text.indexOf("override-colors"), -1);
+    assert_equals(rule.overrideColors, "");
+});
+
+test(function() {
+    let text = rules[21].cssText;
+    let rule = rules[21];
+    assert_equals(text.indexOf("override-colors"), -1);
+    assert_equals(rule.overrideColors, "");
+});
+
+test(function() {
+    let text = rules[22].cssText;
+    let rule = rules[22];
+    assert_equals(text.indexOf("override-colors"), -1);
     assert_equals(rule.overrideColors, "");
 });
 </script>

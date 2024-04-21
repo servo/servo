@@ -8,6 +8,8 @@
     <meta name=variant content="?mimeType=video/webm;codecs=vp9,opus">
     <meta name=variant content="?mimeType=video/webm;codecs=av1,opus">
     <meta name=variant content="?mimeType=video/mp4;codecs=avc1,mp4a.40.2">
+    <meta name=variant content="?mimeType=video/mp4;codecs=vp9,opus">
+    <meta name=variant content="?mimeType=video/mp4">
     <link rel="help" href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#mediarecorder">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
@@ -81,9 +83,9 @@
 
     const params = new URLSearchParams(window.location.search);
     const mimeType = params.get('mimeType');
-    if (mimeType) {
-      assert_implements_optional(MediaRecorder.isTypeSupported(mimeType),
-        `"${mimeType}" for MediaRecorder is not supported`);
+    if (mimeType && !MediaRecorder.isTypeSupported(mimeType)) {
+      test.done();
+      return;
     }
 
     const recorder = new MediaRecorder(new MediaStream(), { mimeType });

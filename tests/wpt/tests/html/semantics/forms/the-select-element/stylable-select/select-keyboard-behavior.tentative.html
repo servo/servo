@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<meta name=timeout content=long>
 <link rel=author href="mailto:jarhar@chromium.org">
 <link rel=help href="https://bugs.chromium.org/p/chromium/issues/detail?id=1422275">
 <link rel=help href="https://github.com/openui/open-ui/issues/433#issuecomment-1452461404">
@@ -68,6 +69,7 @@ for (const id of ['defaultbutton-defaultdatalist',
 
   async function closeListbox() {
     await test_driver.click(select);
+    await new Promise(requestAnimationFrame);
   }
 
   function addCloseCleanup(t) {
@@ -96,6 +98,7 @@ for (const id of ['defaultbutton-defaultdatalist',
     assert_false(select.matches(':open'),
       'The select should initially be closed.');
     await test_driver.send_keys(document.activeElement, Space);
+    await new Promise(requestAnimationFrame);
     assert_true(select.matches(':open'),
       'The select should be open after pressing space.');
   }, `${id}: When the listbox is closed, spacebar should open the listbox.`);
@@ -108,6 +111,7 @@ for (const id of ['defaultbutton-defaultdatalist',
       'The select should initially be closed.');
 
     await test_driver.send_keys(document.activeElement, ArrowLeft);
+    await new Promise(requestAnimationFrame);
     assert_true(select.matches(':open'),
       'Arrow left should open the listbox.');
     assert_equals(select.value, 'two',
@@ -115,6 +119,7 @@ for (const id of ['defaultbutton-defaultdatalist',
     await closeListbox();
 
     await test_driver.send_keys(document.activeElement, ArrowUp);
+    await new Promise(requestAnimationFrame);
     assert_true(select.matches(':open'),
       'Arrow up should open the listbox.');
     assert_equals(select.value, 'two',
@@ -122,6 +127,7 @@ for (const id of ['defaultbutton-defaultdatalist',
     await closeListbox();
 
     await test_driver.send_keys(document.activeElement, ArrowRight);
+    await new Promise(requestAnimationFrame);
     assert_true(select.matches(':open'),
       'Arrow right should open the listbox.');
     assert_equals(select.value, 'two',
@@ -129,6 +135,7 @@ for (const id of ['defaultbutton-defaultdatalist',
     await closeListbox();
 
     await test_driver.send_keys(document.activeElement, ArrowDown);
+    await new Promise(requestAnimationFrame);
     assert_true(select.matches(':open'),
       'Arrow down should open the listbox.');
     assert_equals(select.value, 'two',
@@ -147,6 +154,7 @@ for (const id of ['defaultbutton-defaultdatalist',
     } else {
       await test_driver.send_keys(select, Enter);
     }
+    await new Promise(requestAnimationFrame);
     assert_false(select.matches(':open'),
       'Enter should not open the listbox when outside a form.');
 
@@ -161,6 +169,7 @@ for (const id of ['defaultbutton-defaultdatalist',
     } else {
       await test_driver.send_keys(select, Enter);
     }
+    await new Promise(requestAnimationFrame);
     assert_true(formWasSubmitted,
       'Enter should submit the form when the listbox is closed.');
     assert_false(select.matches(':open'),
@@ -175,30 +184,35 @@ for (const id of ['defaultbutton-defaultdatalist',
 
     select.value = 'two';
     await test_driver.click(select);
+    await new Promise(requestAnimationFrame);
     assert_true(select.matches(':open'),
       'The select should open when clicked.');
     assert_equals(document.activeElement, optionTwo,
       'The selected option should receive initial focus.');
 
     await test_driver.send_keys(document.activeElement, ArrowDown);
+    await new Promise(requestAnimationFrame);
     assert_equals(document.activeElement, optionThree,
       'The next option should receive focus when the down arrow key is pressed.');
     assert_equals(select.value, 'two',
       'The selects value should not change when focusing another option.');
 
     await test_driver.send_keys(document.activeElement, ArrowUp);
+    await new Promise(requestAnimationFrame);
     assert_equals(document.activeElement, optionTwo,
       'The previous option should receive focus when the up arrow key is pressed.');
     assert_equals(select.value, 'two',
       'The selects value should not change when focusing another option.');
 
     await test_driver.send_keys(document.activeElement, ArrowUp);
+    await new Promise(requestAnimationFrame);
     assert_equals(document.activeElement, optionOne,
       'The first option should be selected.');
     assert_equals(select.value, 'two',
       'The selects value should not change when focusing another option.');
 
     await test_driver.send_keys(document.activeElement, Enter);
+    await new Promise(requestAnimationFrame);
     assert_false(select.matches(':open'),
       'The listbox should be closed after pressing enter.');
     assert_equals(select.value, 'one',

@@ -7,7 +7,7 @@ Wait for a Close frame from the client and then close the connection without
 sending a Close frame in return.
 """
 
-from mod_pywebsocket.handshake import AbortedByUserException
+from pywebsocket3.handshake import AbortedByUserException
 
 
 def web_socket_do_extra_handshake(request):

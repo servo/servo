@@ -81,6 +81,18 @@ makeTest({
 });
 
 makeTest({
+  name: 'AuctionConfig.deprecatedRenderURLReplacements with brackets.',
+  fieldName: 'deprecatedRenderURLReplacements',
+  fieldValue: {'${EXAMPLE_MACRO}': 'SSP'},
+});
+
+makeTest({
+  name: 'AuctionConfig.deprecatedRenderURLReplacements with percents.',
+  fieldName: 'deprecatedRenderURLReplacements',
+  fieldValue: {'%%EXAMPLE_MACRO%%': 'SSP'},
+});
+
+makeTest({
   name: 'AuctionConfig.seller is URL.',
   fieldName: 'seller',
   fieldValue: OTHER_ORIGIN1,

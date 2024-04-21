@@ -30,13 +30,13 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """Simple WebSocket client named echo_client just because of historical reason.
 
-mod_pywebsocket directory must be in PYTHONPATH.
+pywebsocket3 directory must be in PYTHONPATH.
 
 Example Usage:
 
 # server setup
- % cd $pywebsocket
- % PYTHONPATH=$cwd/src python ./mod_pywebsocket/standalone.py -p 8880 \
+ % cd $pywebsocket3
+ % PYTHONPATH=$cwd/src python ./pywebsocket3/standalone.py -p 8880 \
     -d $cwd/src/example
 
 # run client
@@ -47,27 +47,27 @@ Example Usage:
 
 from __future__ import absolute_import
 from __future__ import print_function
+
+import argparse
 import base64
 import codecs
-from hashlib import sha1
 import logging
-import argparse
 import os
-import random
 import re
-import six
 import socket
 import ssl
-import struct
 import sys
+from hashlib import sha1
 
-from mod_pywebsocket import common
-from mod_pywebsocket.extensions import PerMessageDeflateExtensionProcessor
-from mod_pywebsocket.extensions import _PerMessageDeflateFramer
-from mod_pywebsocket.extensions import _parse_window_bits
-from mod_pywebsocket.stream import Stream
-from mod_pywebsocket.stream import StreamOptions
-from mod_pywebsocket import util
+import six
+
+from pywebsocket3 import common, util
+from pywebsocket3.extensions import (
+    PerMessageDeflateExtensionProcessor,
+    _PerMessageDeflateFramer,
+    _parse_window_bits,
+)
+from pywebsocket3.stream import Stream, StreamOptions
 
 _TIMEOUT_SEC = 10
 _UNDEFINED_PORT = -1

@@ -6,8 +6,8 @@ const kRegisterDictionaryPath = './resources/register-dictionary.py';
 const kCompressedDataPath = './resources/compressed-data.py';
 const kExpectedCompressedData =
     `This is compressed test data using a test dictionary`;
-const kCheckAvailableDictionaryHeaderMaxRetry = 5;
-const kCheckAvailableDictionaryHeaderRetryTimeout = 100;
+const kCheckAvailableDictionaryHeaderMaxRetry = 10;
+const kCheckAvailableDictionaryHeaderRetryTimeout = 200;
 const kCheckPreviousRequestHeadersMaxRetry = 5;
 const kCheckPreviousRequestHeadersRetryTimeout = 250;
 

@@ -44,13 +44,25 @@ function createComponentAdRenderURL(uuid, id) {
 //
 // If "adMetadata" is true, metadata is added to each component ad. Only integer metadata
 // is used, relying on renderURL tests to cover other types of renderURL metadata.
+//
+// If "deprecatedRenderURLReplacements" is passed, the matches and replacements will be
+// used in the trackingURLs and the object will be passed into the auctionConfig, to
+// replace matching macros within the renderURLs.
 async function runComponentAdLoadingTest(test, uuid, numComponentAdsInInterestGroup,
-                                         componentAdsInBid, componentAdsToLoad,
-                                         adMetadata = false) {
+  componentAdsInBid, componentAdsToLoad,
+  adMetadata = false, deprecatedRenderURLReplacements = null) {
   let interestGroupAdComponents = [];
+  // These are used within the URLs for deprecatedRenderURLReplacement tests.
+  const renderURLReplacementsStrings = createStringBeforeAndAfterReplacements(deprecatedRenderURLReplacements);
+  const beforeReplacementsString= renderURLReplacementsStrings.beforeReplacements;
+  const afterReplacementsString = renderURLReplacementsStrings.afterReplacements;
+
   for (let i = 0; i < numComponentAdsInInterestGroup; ++i) {
-    const componentRenderURL = createComponentAdRenderURL(uuid, i);
-    let adComponent = {renderURL: componentRenderURL};
+    let componentRenderURL = createComponentAdRenderURL(uuid, i);
+    if (deprecatedRenderURLReplacements !== null) {
+      componentRenderURL = createTrackerURL(window.location.origin, uuid, 'track_get', beforeReplacementsString);
+    }
+    let adComponent = { renderURL: componentRenderURL };
     if (adMetadata)
       adComponent.metadata = i;
     interestGroupAdComponents.push(adComponent);
@@ -74,7 +86,7 @@ async function runComponentAdLoadingTest(test, uuid, numComponentAdsInInterestGr
                                  eventData: status,
                                  destination: ["buyer"]});`);
 
-  let bid = {bid:1, render: renderURL};
+  let bid = {bid:1, render:renderURL};
   if (componentAdsInBid) {
     bid.adComponents = [];
     for (let index of componentAdsInBid) {
@@ -89,8 +101,13 @@ async function runComponentAdLoadingTest(test, uuid, numComponentAdsInInterestGr
   // to "expectedTrackerURLs".
   if (componentAdsToLoad && bid.adComponents) {
     for (let index of componentAdsToLoad) {
+      let expectedURL = createComponentAdTrackerURL(uuid, componentAdsInBid[index]);
+      if (deprecatedRenderURLReplacements != null) {
+        expectedURL = createTrackerURL(window.location.origin, uuid, 'track_get',
+                                       afterReplacementsString);
+      }
       if (index < componentAdsInBid.length)
-        expectedTrackerURLs.push(createComponentAdTrackerURL(uuid, componentAdsInBid[index]));
+        expectedTrackerURLs.push(expectedURL);
     }
   }
 
@@ -127,11 +144,13 @@ async function runComponentAdLoadingTest(test, uuid, numComponentAdsInInterestGr
       test, uuid,
       {decisionLogicURL: createDecisionScriptURL(
         uuid,
-        { scoreAd:
+          { scoreAd:
               `if (JSON.stringify(browserSignals.adComponents) !==
                        '${JSON.stringify(bid.adComponents)}') {
                  throw "Unexpected adComponents: " + JSON.stringify(browserSignals.adComponents);
-               }`})});
+               }`}),
+        deprecatedRenderURLReplacements: deprecatedRenderURLReplacements
+      });
   }
 
   await waitForObservedRequests(uuid, expectedTrackerURLs);
@@ -447,3 +466,27 @@ subsetTest(promise_test, async test => {
 
 
 }, 'Reports not sent from component ad.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  await runComponentAdLoadingTest(test, uuid, /*numComponentAdsInInterestGroup=*/1,
+                                  /*componentAdsInBid=*/[0], /*componentAdsToLoad=*/[0], false, { '%%EXAMPLE-MACRO%%': 'SSP' });
+}, 'component ad with render url replacements with percents.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  await runComponentAdLoadingTest(test, uuid, /*numComponentAdsInInterestGroup=*/1,
+                                  /*componentAdsInBid=*/[0], /*componentAdsToLoad=*/[0], false, { '${EXAMPLE-MACRO}': 'SSP' });
+}, 'component ad with render url replacements with brackets.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  await runComponentAdLoadingTest(test, uuid, /*numComponentAdsInInterestGroup=*/1,
+                                  /*componentAdsInBid=*/[0], /*componentAdsToLoad=*/[0], false, { '${EXAMPLE-MACRO-1}': 'SSP-1', '%%EXAMPLE-MACRO-2%%': 'SSP-2' });
+}, 'component ad with render url replacements with multiple replacements.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  await runComponentAdLoadingTest(test, uuid, /*numComponentAdsInInterestGroup=*/3,
+                                  /*componentAdsInBid=*/[0,1,2], /*componentAdsToLoad=*/[0,1,2], false, { '${EXAMPLE-MACRO-1}': 'SSP-1', '%%EXAMPLE-MACRO-2%%': 'SSP-2' });
+}, 'component ad with render url replacements with multiple replacements, and multiple component ads.');

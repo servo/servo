@@ -5,6 +5,9 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style>
+  :root {
+    --top: top;
+  }
   #cb {
     position: relative;
     width: 200px;
@@ -158,6 +161,74 @@ test_ref('top:min(10px, anchor(top))', 'min()');
 test_ref('top:max(10px, anchor(top))', 'max()');
 test_ref('top:abs(anchor(top) - 100px)', 'abs()');
 test_ref('top:calc(sign(anchor(top) - 100px) * 20px)', 'sign()');
+
+// var():
+test_ref('top:anchor(var(--top))', 'anchor(var())');
+test_ref('top:anchor(var(--unknown, top))', 'anchor(unknown var()) (fallback)');
+test_ref('top:anchor(var(--unknown))', 'anchor(unknown var()) (no fallback)');
+
+// Reverting to an invalid anchor():
+test((t) => {
+  let target = createTarget(t, main);
+  target.setAttribute('id', 'target');
+
+  let css = document.createElement('style');
+  css.textContent = `
+    @layer base {
+      #target {
+        top: anchor(top); /* Invalid */
+        color: green;
+      }
+    }
+    #target {
+      top: revert-layer; /* Reverts to 'base'. */
+    }
+  `;
+
+  t.add_cleanup(() => { css.remove(); })
+  cb.append(css);
+
+  let cs = getComputedStyle(target);
+  let ref_cs = getComputedStyle(ref);
+  // The color check verifies that the rule is applied at all.
+  assert_equals(cs.color, 'rgb(0, 128, 0)');
+  assert_equals(cs.top, ref_cs.top);
+}, 'Revert to invalid anchor()');
+
+// Using <try-tactic> to flip to an invalid anchor():
+test((t) => {
+  let target = createTarget(t, main);
+  target.setAttribute('id', 'target');
+
+  let css = document.createElement('style');
+  css.textContent = `
+    @position-try --pt {
+      /* Undo force overflow, and also use this value to check that
+         the rule is applied at all. */
+      left: 10px;
+
+      /* Invalid. Becomes bottom:anchor(bottom) (also invalid)
+         after flip-block. */
+      top: anchor(top);
+    }
+
+    #target {
+      left: 9999px; /* Force overflow. */
+      position-try-options: --pt flip-block;
+    }
+  `;
+
+  t.add_cleanup(() => { css.remove(); })
+  cb.append(css);
+
+  let cs = getComputedStyle(target);
+  let ref_cs = getComputedStyle(ref);
+  assert_equals(cs.left, '10px', 'left');
+  // 'right' is not important in this test.
+
+  assert_equals(cs.top, ref_cs.top, 'top');
+  assert_equals(cs.bottom, ref_cs.bottom, 'bottom');
+}, 'Flip to invalid anchor()');
 
 </script>
 

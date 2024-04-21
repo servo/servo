@@ -602,18 +602,26 @@ promise_test(async () => {
   p29.showPopover();
   assert_true(p29.matches(':popover-open'),'showing');
   let actions = new test_driver.Actions();
-  await actions.pointerMove(0,0,{origin: b29})
-      .pointerDown({button: actions.ButtonType.LEFT})
-      .send();
-  await waitForRender();
-  assert_true(p29.matches(':popover-open'),'showing after pointerdown');
+  // Using the iframe's contentDocument as the origin would throw an error, so
+  // we are using iframe29 as the origin instead.
+  const iframe_box = iframe29.getBoundingClientRect();
 
-  actions = new test_driver.Actions();
-  await actions.pointerMove(0,0,{origin: iframe29.contentDocument.body})
+  await actions
+      .pointerMove(1,1,{origin: b29})
+      .pointerDown({button: actions.ButtonType.LEFT})
+      .pointerMove(iframe_box.width / 2, iframe_box.height / 2, {origin: iframe29})
       .pointerUp({button: actions.ButtonType.LEFT})
       .send();
-  await waitForRender();
-  assert_true(p29.matches(':popover-open'),'showing after pointerup');
+  assert_true(p29.matches(':popover-open'), 'popover should be open after pointerUp in iframe.');
+
+  actions = new test_driver.Actions();
+  await actions
+      .pointerMove(iframe_box.width / 2, iframe_box.height / 2, {origin: iframe29})
+      .pointerDown({button: actions.ButtonType.LEFT})
+      .pointerMove(1,1,{origin: b29})
+      .pointerUp({button: actions.ButtonType.LEFT})
+      .send();
+  assert_true(p29.matches(':popover-open'), 'popover should be open after pointerUp on main frame button.');
 },`Pointer down in one document and pointer up in another document shouldn't dismiss popover`);
 </script>
 
@@ -626,13 +634,10 @@ promise_test(async () => {
   p30.showPopover();
   assert_true(p30.matches(':popover-open'),'showing');
   let actions = new test_driver.Actions();
-  await actions.pointerMove(0,0,{origin: b30})
+  await actions
+      .pointerMove(2,2,{origin: b30})
       .pointerDown({button: actions.ButtonType.LEFT})
-      .send();
-  await waitForRender();
-  assert_true(p30.matches(':popover-open'),'showing after pointerdown');
-  actions = new test_driver.Actions();
-  await actions.pointerMove(0,0,{origin: b30b})
+      .pointerMove(2,2,{origin: b30b})
       .pointerUp({button: actions.ButtonType.LEFT})
       .send();
   await waitForRender();

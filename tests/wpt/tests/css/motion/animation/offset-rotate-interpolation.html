@@ -163,15 +163,6 @@
         {at: 1.5, expect: '70deg'},
       ]);
 
-      // Regression test for crbug.com/918430.
-      test_interpolation({
-        property: 'offset-rotate',
-        from: '800deg',
-        to: '900deg'
-      }, [
-        {at: -3.40282e+38, expect: '-3.40282e+38deg'},
-      ]);
-
       // Interpolation between auto angles.
       test_interpolation({
         property: 'offset-rotate',

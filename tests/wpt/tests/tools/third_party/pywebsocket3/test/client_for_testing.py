@@ -33,8 +33,8 @@
 This module contains helper methods for performing handshake, frame
 sending/receiving as a WebSocket client.
 
-This is code for testing mod_pywebsocket. Keep this code independent from
-mod_pywebsocket. Don't import e.g. Stream class for generating frame for
+This is code for testing pywebsocket3. Keep this code independent from
+pywebsocket3. Don't import e.g. Stream class for generating frame for
 testing. Using util.hexify, etc. that are not related to protocol processing
 is allowed.
 
@@ -43,22 +43,20 @@ This code is far from robust, e.g., we cut corners in handshake.
 """
 
 from __future__ import absolute_import
+
 import base64
 import errno
-import logging
 import os
-import random
 import re
 import socket
 import struct
 import time
 from hashlib import sha1
-from six import iterbytes
-from six import indexbytes
 
-from mod_pywebsocket import common
-from mod_pywebsocket import util
-from mod_pywebsocket.handshake import HandshakeException
+from six import indexbytes, iterbytes
+
+from pywebsocket3 import common, util
+from pywebsocket3.handshake import HandshakeException
 
 DEFAULT_PORT = 80
 DEFAULT_SECURE_PORT = 443
@@ -702,15 +700,15 @@ class Client(object):
         try:
             read_data = receive_bytes(self._socket, 1)
         except Exception as e:
-            if str(e).find(
-                    'Connection closed before receiving requested length '
-            ) == 0:
+            if str(e).find('Connection closed before receiving requested length ') == 0:
                 return
+
             try:
-                error_number, message = e
                 for error_name in ['ECONNRESET', 'WSAECONNRESET']:
-                    if (error_name in dir(errno)
-                            and error_number == getattr(errno, error_name)):
+                    if (
+                        error_name in dir(errno) and
+                        e.errno == getattr(errno, error_name)
+                    ):
                         return
             except:
                 raise e

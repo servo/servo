@@ -1,0 +1,13 @@
+Metadata-Version: 2.1
+Name: pywebsocket3
+Version: 4.0.2
+Summary: Standalone WebSocket Server for testing purposes.
+Home-page: https://github.com/GoogleChromeLabs/pywebsocket3
+Author: Yuzo Fujishima
+Author-email: yuzo@chromium.org
+License: See LICENSE
+Requires-Python: >=2.7
+License-File: LICENSE
+Requires-Dist: six
+
+pywebsocket3 is a standalone server for the WebSocket Protocol (RFC 6455). See pywebsocket3/__init__.py for more detail.
