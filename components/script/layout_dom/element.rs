@@ -414,15 +414,10 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
         self.element.get_selector_flags().contains(flags)
     }
 
-    fn relative_selector_search_direction(&self) -> Option<ElementSelectorFlags> {
-        let flags = self.element.get_selector_flags().intersection(
-            ElementSelectorFlags::RELATIVE_SELECTOR_SEARCH_DIRECTION_ANCESTOR_SIBLING,
-        );
-        if flags.is_empty() {
-            None
-        } else {
-            Some(flags)
-        }
+    fn relative_selector_search_direction(&self) -> ElementSelectorFlags {
+        self.element
+            .get_selector_flags()
+            .intersection(ElementSelectorFlags::RELATIVE_SELECTOR_SEARCH_DIRECTION_ANCESTOR_SIBLING)
     }
 }
 
