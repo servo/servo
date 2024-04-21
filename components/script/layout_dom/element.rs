@@ -419,6 +419,12 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
             .get_selector_flags()
             .intersection(ElementSelectorFlags::RELATIVE_SELECTOR_SEARCH_DIRECTION_ANCESTOR_SIBLING)
     }
+
+    fn each_custom_state<F>(&self, _callback: F)
+    where
+        F: FnMut(&AtomIdent),
+    {
+    }
 }
 
 impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
@@ -546,6 +552,7 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
             NonTSPseudoClass::Link | NonTSPseudoClass::AnyLink => self.is_link(),
             NonTSPseudoClass::Visited => false,
 
+            NonTSPseudoClass::CustomState(ref state) => self.has_custom_state(&state.0),
             NonTSPseudoClass::Lang(ref lang) => self.match_element_lang(None, lang),
 
             NonTSPseudoClass::ServoNonZeroBorder => !matches!(
@@ -645,6 +652,10 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
     fn add_element_unique_hashes(&self, filter: &mut BloomFilter) -> bool {
         each_relevant_element_hash(*self, |hash| filter.insert_hash(hash & BLOOM_HASH_MASK));
         true
+    }
+
+    fn has_custom_state(&self, _name: &AtomIdent) -> bool {
+        false
     }
 }
 
@@ -887,5 +898,9 @@ impl<'dom> ::selectors::Element for ServoThreadSafeLayoutElement<'dom> {
             filter.insert_hash(hash & BLOOM_HASH_MASK)
         });
         true
+    }
+
+    fn has_custom_state(&self, _name: &AtomIdent) -> bool {
+        false
     }
 }
