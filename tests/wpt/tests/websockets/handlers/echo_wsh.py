@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from mod_pywebsocket import common
+from pywebsocket3 import common
 
 _GOODBYE_MESSAGE = u'Goodbye'
 

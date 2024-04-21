@@ -16,7 +16,7 @@ cd wpt
 Running the tests requires `python` and `pip` as well as updating the
 system `hosts` file.
 
-WPT requires Python 3.7 or higher.
+WPT requires Python 3.8 or higher.
 
 The required setup is different depending on your operating system.
 

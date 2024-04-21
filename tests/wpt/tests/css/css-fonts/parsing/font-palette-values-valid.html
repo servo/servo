@@ -103,6 +103,11 @@
 @font-palette-values --P {
     font-family: foo, bar, baz;
 }
+
+/* 17 */
+@font-palette-values --Q {
+    override-colors: 0 color-mix(in lch, red, blue);
+}
 </style>
 </head>
 <body>
@@ -384,6 +389,14 @@ test(function() {
     assert_equals(rule.fontFamily, "foo, bar, baz");
     assert_equals(rule.basePalette, "");
     assert_equals(rule.overrideColors, "");
+});
+
+test(function() {
+    let rule = rules[17];
+    assert_equals(rule.name, "--Q");
+    assert_equals(rule.fontFamily, "");
+    assert_equals(rule.basePalette, "");
+    assert_equals(rule.overrideColors, "0 color-mix(in lch, red, blue)");
 });
 </script>
 </body>

@@ -96,21 +96,28 @@ promise_test(async () => {
   assert_equals(text, 'xxx');
 }, "getType(DOMString invalid type) converts DOMString to Blob");
 
-promise_test(async () => {
-  assert_true(ClipboardItem.supports('text/plain'));
-  assert_true(ClipboardItem.supports('text/html'));
-  assert_true(ClipboardItem.supports('image/png'));
-  assert_true(ClipboardItem.supports('image/svg+xml'));
-  assert_false(ClipboardItem.supports('web '));
-  assert_false(ClipboardItem.supports('web')); // without space.
-  assert_false(ClipboardItem.supports('web foo'));
-  assert_false(ClipboardItem.supports('foo/bar'));
-  assert_true(ClipboardItem.supports('web foo/bar'));
-  assert_true(ClipboardItem.supports('web text/html'));
-  assert_false(ClipboardItem.supports('weB text/html'));
-  assert_false(ClipboardItem.supports(' web text/html'));
-  assert_false(ClipboardItem.supports('not a/real type'));
-  assert_false(ClipboardItem.supports(''));
-  assert_false(ClipboardItem.supports(' '));
-}, "supports(DOMString) returns true for types that are supported, false otherwise");
+[
+  // mandatory data types
+  ['text/plain', true],
+  ['text/html',  true],
+  ['image/png',  true],
+  // optional data types
+  ['image/svg+xml', true],
+  ['web foo/bar',   true],
+  ['web text/html', true],
+  // invalid types
+  ['web ',            false],
+  ['web',             false],
+  ['web foo',         false],
+  ['foo/bar',         false],
+  ['weB text/html',   false],
+  [' web text/html',  false],
+  ['not a/real type', false],
+  ['',                false],
+  [' ',               false],
+].forEach(([type, result]) => {
+  promise_test(async () => {
+    assert_equals(ClipboardItem.supports(type), result);
+  }, `supports(${type}) returns ${result ? "true" : "false"}`);
+});
 </script>

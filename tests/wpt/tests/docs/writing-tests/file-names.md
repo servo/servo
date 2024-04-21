@@ -11,10 +11,10 @@ These are individually documented for each flag that supports it.
 
 ### Test Type
 
-These flags must be the last element in the filename before the
-extension e.g. `foo-manual.html` will indicate a manual test, but
-`foo-manual-other.html` will not. Unlike test features, test types
-are mutually exclusive.
+These flags are preceded by a `-` and followed by a `.`, and must be the
+last such element in the filename, e.g. `foo-manual.html` will indicate
+a manual test, but `foo-manual-other.html` will not. Unlike test features,
+test types are mutually exclusive.
 
 
 `-manual`
@@ -26,8 +26,8 @@ are mutually exclusive.
 
 ### Test Features
 
-These flags are preceded by a `.` in the filename, and must
-themselves precede any test type flag, but are otherwise unordered.
+These flags are preceded and followed by a `.` in the filename, and must themselves
+go after any test type flag, but are otherwise unordered.
 
 
 `.https`

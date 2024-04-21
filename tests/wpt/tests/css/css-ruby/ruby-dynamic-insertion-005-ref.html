@@ -11,3 +11,12 @@
 <p><rb>a</rb><rt>x</rt><rb>b</rb><rt>y</rt></p>
 <p><rbc><span>a</span><rb></rb>b</rbc><rt>x</rt><rt></rt><rt>y</rt></p>
 <p><rb>a</rb><rb></rb><rb>b</rb><rtc><span>x</span><rt></rt>y</rtc></p>
+
+<p>'a' and 'b c' should be paired with 'x' and 'y z' repectively:</p>
+<p><ruby>a <rt>x</rt><span style="display:block">b</span> c<rt>y z</ruby></p>
+
+<p>'a b' and 'c' should be paired with 'x y' and 'z' repectively:</p>
+<p><ruby>a <span style="display:block">b</span> <rt>x y</rt><span>c</span><rt>z</ruby></p>
+
+<p>'a b' and 'c d' should be paired with 'w x' and 'y z'  repectively:</p>
+<p><ruby>a <span style="display:block">b</span> <rt>w x</rt><span>c</span> <span style="display:block">d</span><rt>y z</ruby>

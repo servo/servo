@@ -1,0 +1,6 @@
+features:
+- name: constraint-validation
+  files:
+  - textarea-setcustomvalidity.html
+  - textarea-validity-clone.html
+  - textarea-validity-valueMissing-inside-datalist.html

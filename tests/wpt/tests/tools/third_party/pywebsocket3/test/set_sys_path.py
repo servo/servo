@@ -28,14 +28,15 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """Configuration for testing.
 
-Test files should import this module before mod_pywebsocket.
+Test files should import this module before pywebsocket3.
 """
 
 from __future__ import absolute_import
+
 import os
 import sys
 
-# Add the parent directory to sys.path to enable importing mod_pywebsocket.
+# Add the parent directory to sys.path to enable importing pywebsocket3.
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 # vi:sts=4 sw=4 et

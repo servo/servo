@@ -287,6 +287,13 @@ async function MaybeSetStorageAccess(origin, embedding_origin, value) {
   }
 }
 
+
+// Navigate the inner iframe using the given frame.
+function NavigateChild(frame, url) {
+  return PostMessageAndAwaitReply(
+    { command: "navigate_child", url }, frame.contentWindow);
+}
+
 // Starts a dedicated worker in the given frame.
 function StartDedicatedWorker(frame) {
   return PostMessageAndAwaitReply(

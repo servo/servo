@@ -41,3 +41,152 @@ multi_builder_test(async (t, builder, otherBuilder) => {
   assert_throws_js(
       TypeError, () => builder.instanceNormalization(input, options));
 }, '[instanceNormalization] throw if bias option is from another builder');
+
+const tests = [
+  {
+    name: '[instanceNormalization] Test with default options for 4-D input.',
+    input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
+    output: {dataType: 'float32', dimensions: [1, 2, 3, 4]}
+  },
+  {
+    name:
+        '[instanceNormalization] Test with scale, bias and default epsilon value.',
+    input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
+    options: {
+      scale: {dataType: 'float32', dimensions: [2]},
+      bias: {dataType: 'float32', dimensions: [2]},
+      epsilon: 1e-5,
+    },
+    output: {dataType: 'float32', dimensions: [1, 2, 3, 4]}
+  },
+  {
+    name: '[instanceNormalization] Test with a non-default epsilon value.',
+    input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
+    options: {
+      epsilon: 1e-4,
+    },
+    output: {dataType: 'float32', dimensions: [1, 2, 3, 4]}
+  },
+  {
+    name: '[instanceNormalization] Test with layout=nhwc.',
+    input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
+    options: {
+      layout: 'nhwc',
+      scale: {dataType: 'float32', dimensions: [4]},
+      bias: {dataType: 'float32', dimensions: [4]},
+    },
+    output: {dataType: 'float32', dimensions: [1, 2, 3, 4]}
+  },
+  {
+    name: '[instanceNormalization] Test when the input data type is float16.',
+    input: {dataType: 'float16', dimensions: [1, 2, 3, 4]},
+    output: {dataType: 'float16', dimensions: [1, 2, 3, 4]}
+  },
+  {
+    name: '[instanceNormalization] Throw if the input is not a 4-D tensor.',
+    input: {dataType: 'float32', dimensions: [1, 2, 5, 5, 2]},
+  },
+  {
+    name:
+        '[instanceNormalization] Throw if the input data type is not one of floating point types.',
+    input: {dataType: 'int32', dimensions: [1, 2, 5, 5]},
+  },
+  {
+    name:
+        '[instanceNormalization] Throw if the scale data type is not the same as the input data type.',
+    input: {dataType: 'float16', dimensions: [1, 2, 5, 5]},
+    options: {
+      scale: {dataType: 'float32', dimensions: [2]},
+    },
+  },
+  {
+    name:
+        '[instanceNormalization] Throw if the scale operand is not a 1-D tensor.',
+    input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
+    options: {
+      scale: {dataType: 'float32', dimensions: [2, 1]},
+    },
+  },
+  {
+    name:
+        '[instanceNormalization] Throw if the size of scale operand is not equal to the size of the feature dimension of the input with layout=nhwc.',
+    input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
+    options: {
+      layout: 'nhwc',
+      scale: {dataType: 'float32', dimensions: [2]},
+    },
+  },
+  {
+    name:
+        '[instanceNormalization] Throw if the size of scale operand is not equal to the size of the feature dimension of the input with layout=nchw.',
+    input: {dataType: 'float32', dimensions: [1, 5, 5, 2]},
+    options: {
+      layout: 'nchw',
+      scale: {dataType: 'float32', dimensions: [2]},
+    },
+  },
+  {
+    name:
+        '[instanceNormalization] Throw if the bias data type is not the same as the input data type.',
+    input: {dataType: 'float16', dimensions: [1, 2, 5, 5]},
+    options: {
+      bias: {dataType: 'float32', dimensions: [2]},
+    },
+  },
+  {
+    name:
+        '[instanceNormalization] Throw if the bias operand is not a 1-D tensor.',
+    input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
+    options: {
+      scale: {dataType: 'float32', dimensions: [2, 1]},
+    },
+  },
+  {
+    name:
+        '[instanceNormalization] Throw if the size of bias operand is not equal to the size of the feature dimension of the input with layout=nhwc.',
+    input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
+    options: {
+      layout: 'nhwc',
+      bias: {dataType: 'float32', dimensions: [2]},
+    },
+  },
+  {
+    name:
+        '[instanceNormalization] Throw if the size of bias operand is not equal to the size of the feature dimension of the input with layout=nchw.',
+    input: {dataType: 'float32', dimensions: [1, 5, 5, 2]},
+    options: {
+      layout: 'nchw',
+      bias: {dataType: 'float32', dimensions: [2]},
+    },
+  },
+];
+
+tests.forEach(
+    test => promise_test(async t => {
+      const input = builder.input(
+          'input',
+          {dataType: test.input.dataType, dimensions: test.input.dimensions});
+
+      if (test.options && test.options.bias) {
+        test.options.bias = builder.input('bias', {
+          dataType: test.options.bias.dataType,
+          dimensions: test.options.bias.dimensions
+        });
+      }
+      if (test.options && test.options.scale) {
+        test.options.scale = builder.input('scale', {
+          dataType: test.options.scale.dataType,
+          dimensions: test.options.scale.dimensions
+        });
+      }
+
+      if (test.output) {
+        const output = builder.instanceNormalization(input, test.options);
+        assert_equals(output.dataType(), test.output.dataType);
+        assert_array_equals(output.shape(), test.output.dimensions);
+      } else {
+        assert_throws_js(
+            TypeError,
+            () => builder.instanceNormalization(input, test.options));
+      }
+    }, test.name));

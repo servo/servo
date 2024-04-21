@@ -11,18 +11,21 @@
 "use strict";
 
 // Creates an AuctionConfig with a single component auction.
-function createComponentAuctionConfig(uuid) {
+function createComponentAuctionConfig(uuid, auctionConfigOverrides = {},
+                                      deprecatedRenderURLReplacements = {}) {
   let componentAuctionConfig = {
     seller: window.location.origin,
     decisionLogicURL: createDecisionScriptURL(uuid),
-    interestGroupBuyers: [window.location.origin]
+    interestGroupBuyers: [window.location.origin],
+    deprecatedRenderURLReplacements: deprecatedRenderURLReplacements
   };
 
   return {
     seller: window.location.origin,
     decisionLogicURL: createDecisionScriptURL(uuid),
     interestGroupBuyers: [],
-    componentAuctions: [componentAuctionConfig]
+    componentAuctions: [componentAuctionConfig],
+    ...auctionConfigOverrides
   };
 }
 
@@ -717,3 +720,118 @@ subsetTest(promise_test, async test => {
       uuid,
       [bidderReportURL1, seller1ReportURL, bidderReportURL2, seller2ReportURL]);
 }, `Component auction prevWinsMs and numBids updating in one component seller's auction, read in another's.`);
+
+
+const makeDeprecatedRenderURLReplacementTest = ({
+  name,
+  deprecatedRenderURLReplacements,
+}) => {
+  subsetTest(promise_test, async test => {
+    const uuid = generateUuid(test);
+
+    let bidderReportURL = createBidderReportURL(uuid);
+    let componentSellerReportURL = createSellerReportURL(uuid, /*id=*/"component");
+    let topLevelSellerReportURL = createSellerReportURL(uuid, /*id=*/"top");
+
+    // These are used within the URLs for deprecatedRenderURLReplacement tests.
+    const renderURLReplacementsStrings = createStringBeforeAndAfterReplacements(deprecatedRenderURLReplacements);
+    const beforeReplacementsString = renderURLReplacementsStrings.beforeReplacements;
+    const afterReplacementsString = renderURLReplacementsStrings.afterReplacements;
+    const renderURLBeforeReplacements = createTrackerURL(window.location.origin, uuid, 'track_get', beforeReplacementsString);
+    const renderURLAfterReplacements = createTrackerURL(window.location.origin, uuid, 'track_get', afterReplacementsString);
+
+    await joinInterestGroup(
+      test, uuid,
+      {
+        ads: [{ renderURL: renderURLBeforeReplacements }],
+        biddingLogicURL: createBiddingScriptURL(
+          {
+            allowComponentAuction: true,
+            bid: 5,
+            reportWin:
+              `if (browserSignals.bid !== 5)
+                 throw "Unexpected bid: " + browserSignals.bid;
+               sendReportTo("${bidderReportURL}");`
+          })
+      });
+
+    let auctionConfig = createComponentAuctionConfig(uuid, {}, deprecatedRenderURLReplacements);
+
+    auctionConfig.componentAuctions[0].decisionLogicURL =
+      createDecisionScriptURL(
+        uuid,
+        {
+          scoreAd:
+            `if (bid !== 5)
+                   throw "Unexpected component bid: " + bid`,
+          reportResult:
+            `if (browserSignals.bid !== 5)
+                   throw "Unexpected component bid: " + browserSignals.bid;
+                 if (browserSignals.modifiedBid !== undefined)
+                   throw "Unexpected component modifiedBid: " + browserSignals.modifiedBid;
+                 sendReportTo("${componentSellerReportURL}");`
+        });
+
+    auctionConfig.decisionLogicURL =
+      createDecisionScriptURL(
+        uuid,
+        {
+          scoreAd:
+            `if (bid !== 5)
+                   throw "Unexpected top-level bid: " + bid`,
+          reportResult:
+            `if (browserSignals.bid !== 5)
+                   throw "Unexpected top-level bid: " + browserSignals.bid;
+                 if (browserSignals.modifiedBid !== undefined)
+                   throw "Unexpected top-level modifiedBid: " + browserSignals.modifiedBid;
+                 sendReportTo("${topLevelSellerReportURL}");`
+        });
+
+    await runBasicFledgeAuctionAndNavigate(test, uuid, auctionConfig);
+    await waitForObservedRequests(
+      uuid,
+      [bidderReportURL, componentSellerReportURL, topLevelSellerReportURL, renderURLAfterReplacements]);
+  }, name);
+};
+
+makeDeprecatedRenderURLReplacementTest({
+  name: 'Replacements with brackets.',
+  deprecatedRenderURLReplacements: { '${EXAMPLE-MACRO}': 'SSP' }
+});
+
+makeDeprecatedRenderURLReplacementTest({
+  name: 'Replacements with percents.',
+  deprecatedRenderURLReplacements: { '%%EXAMPLE-MACRO%%': 'SSP' }
+});
+
+makeDeprecatedRenderURLReplacementTest({
+  name: 'Replacements with multiple replacements.',
+  deprecatedRenderURLReplacements: { '${EXAMPLE-MACRO1}': 'SSP1', '%%EXAMPLE-MACRO2%%': 'SSP2' }
+});
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  let deprecatedRenderURLReplacements = { '${EXAMPLE-MACRO1}': 'SSP1', '%%EXAMPLE-MACRO2%%': 'SSP2' };
+  const renderURLReplacementsStrings = createStringBeforeAndAfterReplacements(deprecatedRenderURLReplacements);
+  let beforeReplacementsString = renderURLReplacementsStrings.beforeReplacements;
+
+  await joinInterestGroup(
+    test, uuid,
+    {
+      ads: [{ renderURL: createTrackerURL(window.location.origin, uuid, 'track_get', beforeReplacementsString) }],
+      biddingLogicURL: createBiddingScriptURL({allowComponentAuction: true})
+    });
+  let auctionConfigOverride = {deprecatedRenderURLReplacements: deprecatedRenderURLReplacements }
+  let auctionConfig = createComponentAuctionConfig(uuid,/*auctionConfigOverride=*/auctionConfigOverride,
+  /*deprecatedRenderURLReplacements=*/deprecatedRenderURLReplacements);
+
+  auctionConfig.componentAuctions[0].decisionLogicURL = createDecisionScriptURL(uuid);
+
+    try {
+      await runBasicFledgeAuction(test, uuid, auctionConfig);
+    } catch (exception) {
+      assert_true(exception instanceof TypeError, "did not get expected error: " + exception);
+      return;
+    }
+    throw 'Exception unexpectedly not thrown.'
+}, "deprecatedRenderURLReplacements cause error if passed in top level auction and component auction.");

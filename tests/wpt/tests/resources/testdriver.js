@@ -1023,6 +1023,49 @@
          */
         get_virtual_sensor_information: function(sensor_type, context=null) {
             return window.test_driver_internal.get_virtual_sensor_information(sensor_type, context);
+        },
+
+        /**
+         * Overrides device posture set by hardware.
+         *
+         * Matches the `Set device posture
+         * <https://w3c.github.io/device-posture/#set-device-posture>`_
+         * WebDriver command.
+         *
+         * @param {String} posture - A `DevicePostureType
+         *                           <https://w3c.github.io/device-posture/#dom-deviceposturetype>`_
+         *                           either "continuous" or "folded".
+         * @param {WindowProxy} [context=null] - Browsing context in which to
+         *                                       run the call, or null for the
+         *                                       current browsing context.
+         *
+         * @returns {Promise} Fulfilled when device posture is set.
+         *                    Rejected in case the WebDriver command errors out
+         *                    (including if a device posture of the given type
+         *                    does not exist).
+         */
+        set_device_posture: function(posture, context=null) {
+            return window.test_driver_internal.set_device_posture(posture, context);
+        },
+
+        /**
+         * Removes device posture override and returns device posture control
+         * back to hardware.
+         *
+         * Matches the `Clear device posture
+         * <https://w3c.github.io/device-posture/#clear-device-posture>`_
+         * WebDriver command.
+         *
+         * @param {WindowProxy} [context=null] - Browsing context in which to
+         *                                       run the call, or null for the
+         *                                       current browsing context.
+         *
+         * @returns {Promise} Fulfilled after the device posture override has
+         *                    been removed. Rejected in case the WebDriver
+         *                    command errors out.
+         */
+        clear_device_posture: function(context=null) {
+            return window.test_driver_internal.clear_device_posture(context);
         }
     };
 
@@ -1203,6 +1246,14 @@
 
         async get_virtual_sensor_information(sensor_type, context=null) {
             throw new Error("get_virtual_sensor_information() is not implemented by testdriver-vendor.js");
+        },
+
+        async set_device_posture(posture, context=null) {
+            throw new Error("set_device_posture() is not implemented by testdriver-vendor.js");
+        },
+
+        async clear_device_posture(context=null) {
+            throw new Error("clear_device_posture() is not implemented by testdriver-vendor.js");
         }
     };
 })();

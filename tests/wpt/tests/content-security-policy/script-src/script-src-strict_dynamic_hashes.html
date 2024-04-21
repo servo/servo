@@ -6,7 +6,7 @@
     <script src='/resources/testharness.js' nonce='dummy'></script>
     <script src='/resources/testharnessreport.js' nonce='dummy'></script>
 
-    <!-- CSP served: script-src 'strict-dynamic' 'nonce-dummy' 'sha256-yU6Q7nD1TCBB9JvY06iIJ8ONLOPU4g8ml5JCDgXkv+M=' 'sha256-EEoi70frWHkGFhK51NVIJkXpq72aPxSCNZEow37ZmRA=' -->
+    <!-- CSP served: script-src 'strict-dynamic' 'nonce-dummy' 'sha256-yU6Q7nD1TCBB9JvY06iIJ8ONLOPU4g8ml5JCDgXkv+M=' 'sha256-EEoi70frWHkGFhK51NVIJkXpq72aPxSCNZEow37ZmRA=' 'sha256-wIc3KtqOuTFEu6t17sIBuOswgkV406VJvhSk79Gw6U0=' -->
 </head>
 
 <body>
@@ -46,6 +46,17 @@
             e.onerror = t.unreached_func('Error should not be triggered.');
             document.body.appendChild(e);
         }, 'Script injected via `appendChild` from a script matching SHA256 hash is allowed with `strict-dynamic`.');
+    </script>
+
+    <script nonce='dummy'>
+        var externalRan = false;
+    </script>
+    <script src='./externalScript.js'
+        integrity="sha256-wIc3KtqOuTFEu6t17sIBuOswgkV406VJvhSk79Gw6U0="></script>
+    <script nonce='dummy'>
+        test(function(t) {
+            assert_true(externalRan);
+        }, "External script in a script tag with matching SRI hash is allowed with `strict-dynamic`.");
     </script>
 </body>
 

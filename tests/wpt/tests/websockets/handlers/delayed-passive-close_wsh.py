@@ -1,5 +1,5 @@
 #!/usr/bin/python
-from mod_pywebsocket import common
+from pywebsocket3 import common
 import time
 
 def web_socket_do_extra_handshake(request):

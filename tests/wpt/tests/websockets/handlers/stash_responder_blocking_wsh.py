@@ -2,7 +2,7 @@
 import json
 import threading
 import wptserve.stash
-from mod_pywebsocket import msgutil
+from pywebsocket3 import msgutil
 
 address, authkey = wptserve.stash.load_env_config()
 path = "/stash_responder_blocking"

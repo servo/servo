@@ -3,16 +3,8 @@ import pytest
 from webdriver import WebElement
 
 from tests.support.asserts import assert_error, assert_success
-
-
-def is_element_enabled(session, element_id):
-    return session.transport.send(
-        "GET",
-        "session/{session_id}/element/{element_id}/enabled".format(
-            session_id=session.session_id,
-            element_id=element_id
-        )
-    )
+from tests.support.dom import BUTTON_TYPES, INPUT_TYPES
+from . import is_element_enabled
 
 
 def test_no_top_browsing_context(session, closed_window):
@@ -90,80 +82,171 @@ def test_stale_element_reference(session, stale_element, as_frame):
     assert_error(result, "stale element reference")
 
 
-@pytest.mark.parametrize("element", ["button", "input", "select", "textarea"])
-def test_form_control_disabled(session, inline, element):
-    session.url = inline("<{} disabled/>".format(element))
-    element = session.find.css(element, all=False)
+@pytest.mark.parametrize("status, expected", [
+    ("", True),
+    ("disabled", False),
+], ids=["enabled", "disabled"])
+@pytest.mark.parametrize("type", BUTTON_TYPES)
+def test_button(session, inline, status, expected, type):
+    session.url = inline(f"""<button type="{type}" {status}>""")
+    element = session.find.css("button", all=False)
+
+    response = is_element_enabled(session, element.id)
+    assert_success(response, expected)
+
+
+@pytest.mark.parametrize("status, expected", [
+    ("", True),
+    ("disabled", False),
+], ids=["enabled", "disabled"])
+@pytest.mark.parametrize("type", INPUT_TYPES)
+def test_input(session, inline, status, expected, type):
+    session.url = inline(f"""<input type="{type}" {status}>""")
+    element = session.find.css("input", all=False)
 
     result = is_element_enabled(session, element.id)
-    assert_success(result, False)
+    assert_success(result, expected)
 
 
-@pytest.mark.parametrize("element", ["button", "input", "select", "textarea"])
-def test_form_control_enabled(session, inline, element):
-    session.url = inline("<{}/>".format(element))
-    element = session.find.css(element, all=False)
+@pytest.mark.parametrize("status, expected", [
+    ("", True),
+    ("disabled", False),
+], ids=["enabled", "disabled"])
+def test_textarea(session, inline, status, expected):
+    session.url = inline(f"<textarea {status}></textarea>")
+    element = session.find.css("textarea", all=False)
+
+    response = is_element_enabled(session, element.id)
+    assert_success(response, expected)
+
+
+@pytest.mark.parametrize("status, expected", [
+    ("", True),
+    ("disabled", False),
+], ids=["enabled", "disabled"])
+def test_fieldset(session, inline, status, expected):
+    session.url = inline(f"<fieldset {status}><input>foo")
+    element = session.find.css("input", all=False)
+
+    response = is_element_enabled(session, element.id)
+    assert_success(response, expected)
+
+
+@pytest.mark.parametrize("status, expected", [
+    ("", True),
+    ("disabled", False),
+], ids=["enabled", "disabled"])
+def test_fieldset_descendant(session, inline, status, expected):
+    session.url = inline(f"<fieldset {status}><input>foo")
+    element = session.find.css("input", all=False)
+
+    response = is_element_enabled(session, element.id)
+    assert_success(response, expected)
+
+
+@pytest.mark.parametrize("status, expected", [
+    ("", True),
+    ("disabled", True),
+], ids=["enabled", "disabled"])
+def test_fieldset_descendant_first_legend(session, inline, status, expected):
+    session.url = inline(f"<fieldset {status}><legend><input>foo")
+    element = session.find.css("input", all=False)
+
+    response = is_element_enabled(session, element.id)
+    assert_success(response, expected)
+
+
+@pytest.mark.parametrize("status, expected", [
+    ("", True),
+    ("disabled", False),
+], ids=["enabled", "disabled"])
+def test_fieldset_descendant_not_first_legend(session, inline, status, expected):
+    session.url = inline(f"<fieldset {status}><legend></legend><legend><input>foo")
+    element = session.find.css("input", all=False)
+
+    response = is_element_enabled(session, element.id)
+    assert_success(response, expected)
+
+
+@pytest.mark.parametrize("status, expected", [
+    ("", True),
+    ("disabled", False),
+], ids=["enabled", "disabled"])
+def test_option(session, inline, status, expected):
+    session.url = inline(f"<select><option {status}>foo")
+    element = session.find.css("option", all=False)
+
+    response = is_element_enabled(session, element.id)
+    assert_success(response, expected)
+
+
+@pytest.mark.parametrize("status, expected", [
+    ("", True),
+    ("disabled", False),
+], ids=["enabled", "disabled"])
+def test_option_with_optgroup(session, inline, status, expected):
+    session.url = inline(f"<select><optgroup {status}><option>foo")
+    element = session.find.css("optgroup", all=False)
+
+    response = is_element_enabled(session, element.id)
+    assert_success(response, expected)
+
+    option = session.find.css("option", all=False)
+    response = is_element_enabled(session, option.id)
+    assert_success(response, expected)
+
+
+@pytest.mark.parametrize("status, expected", [
+    ("", True),
+    ("disabled", False),
+], ids=["enabled", "disabled"])
+def test_option_with_select(session, inline, status, expected):
+    session.url = inline(f"<select {status}><option>foo")
+
+    option = session.find.css("option", all=False)
+    response = is_element_enabled(session, option.id)
+    assert_success(response, expected)
+
+
+@pytest.mark.parametrize("status, expected", [
+    ("", True),
+    ("disabled", False),
+], ids=["enabled", "disabled"])
+def test_optgroup_with_select(session, inline, status, expected):
+    session.url = inline(f"<select {status}><optgroup>foo")
+
+    option = session.find.css("optgroup", all=False)
+    response = is_element_enabled(session, option.id)
+    assert_success(response, expected)
+
+
+@pytest.mark.parametrize("status, expected", [
+    ("", True),
+    ("disabled", False),
+], ids=["enabled", "disabled"])
+def test_select(session, inline, status, expected):
+    session.url = inline(f"<select {status}>")
+    element = session.find.css("select", all=False)
+
+    response = is_element_enabled(session, element.id)
+    assert_success(response, expected)
+
+
+@pytest.mark.parametrize("status, expected", [
+    ("", True),
+    ("disabled=\"disabled\"", False),
+], ids=["enabled", "disabled"])
+@pytest.mark.parametrize("tagname", ["button", "input", "select", "textarea"])
+def test_xhtml(session, inline, status, expected, tagname):
+    session.url = inline(
+        f"""<{tagname} {status}></{tagname}>""", doctype="xhtml")
+    element = session.find.css(tagname, all=False)
 
     result = is_element_enabled(session, element.id)
-    assert_success(result, True)
+    assert_success(result, expected)
 
 
-@pytest.mark.parametrize("element", ["button", "input", "select", "textarea"])
-def test_fieldset_disabled_descendant(session, inline, element):
-    session.url = inline("<fieldset disabled><{}/></fieldset>".format(element))
-    element = session.find.css(element, all=False)
-
-    result = is_element_enabled(session, element.id)
-    assert_success(result, False)
-
-
-@pytest.mark.parametrize("element", ["button", "input", "select", "textarea"])
-def test_fieldset_enabled_descendant(session, inline, element):
-    session.url = inline("<fieldset><{}/></fieldset>".format(element))
-    element = session.find.css(element, all=False)
-
-    result = is_element_enabled(session, element.id)
-    assert_success(result, True)
-
-
-@pytest.mark.parametrize("element", ["button", "input", "select", "textarea"])
-def test_fieldset_disabled_descendant_legend(session, inline, element):
-    session.url = inline("<fieldset disabled><legend><{}/></legend></fieldset>".format(element))
-    element = session.find.css(element, all=False)
-
-    result = is_element_enabled(session, element.id)
-    assert_success(result, True)
-
-
-@pytest.mark.parametrize("element", ["button", "input", "select", "textarea"])
-def test_fieldset_enabled_descendant_legend(session, inline, element):
-    session.url = inline("<fieldset><legend><{}/></legend></fieldset>".format(element))
-    element = session.find.css(element, all=False)
-
-    result = is_element_enabled(session, element.id)
-    assert_success(result, True)
-
-
-@pytest.mark.parametrize("element", ["button", "input", "select", "textarea"])
-def test_xhtml_form_control_disabled(session, inline, element):
-    session.url = inline("""<{} disabled="disabled"/>""".format(element),
-                         doctype="xhtml")
-    element = session.find.css(element, all=False)
-
-    result = is_element_enabled(session, element.id)
-    assert_success(result, False)
-
-
-@pytest.mark.parametrize("element", ["button", "input", "select", "textarea"])
-def test_xhtml_form_control_enabled(session, inline, element):
-    session.url = inline("""<{}/>""".format(element), doctype="xhtml")
-    element = session.find.css(element, all=False)
-
-    result = is_element_enabled(session, element.id)
-    assert_success(result, True)
-
-
-def test_xml_always_not_enabled(session, inline):
+def test_xml(session, inline):
     session.url = inline("""<note></note>""", doctype="xml")
     element = session.find.css("note", all=False)
 

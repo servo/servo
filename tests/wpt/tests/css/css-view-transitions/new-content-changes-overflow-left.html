@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<html class=reftest-wait>
+<title>View transitions: capture elements and then change overflow</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="author" href="mailto:mattwoodrow@apple.com">
+<link rel="match" href="new-content-changes-overflow-left-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+#target {
+  position: relative;
+  background: green;
+  left: 10px;
+  width: 100px;
+  height: 100px;
+  view-transition-name: target;
+}
+#target.toggle {
+  outline: 300px solid transparent;
+}
+
+html::view-transition-group(*) { animation-duration: 300s; }
+html::view-transition-new(*) { animation: unset; opacity: 1; }
+html::view-transition-old(*) { animation: unset; opacity: 0; }
+html::view-transition-group(root) { animation: unset; opacity: 0; }
+html::view-transition { background: pink; }
+</style>
+
+<div id=target></div>
+<script>
+
+async function runTest() {
+  document.startViewTransition().ready.then(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        target.classList.add("toggle");
+        requestAnimationFrame(takeScreenshot);
+      });
+    });
+  });
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+
+

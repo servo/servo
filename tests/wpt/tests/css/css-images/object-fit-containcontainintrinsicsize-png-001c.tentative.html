@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html class="reftest-wait">
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Test: 'object-fit: contain' and 'contain-intrinsic-size' on a canvas element, drawing a PNG image</title>
+    <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10116">
+    <link rel="match" href="object-fit-containsize-png-001-ref.tentative.html">
+    <style type="text/css">
+      canvas {
+        border: 1px dashed gray;
+        padding: 1px;
+        image-rendering: pixelated;
+        float: left;
+        object-position: top left;
+        contain: size;
+      }
+      br {
+        clear: both;
+      }
+      .big {
+        contain-intrinsic-width: 32px;
+        contain-intrinsic-height: 48px;
+      }
+      .small {
+        contain-intrinsic-width: 8px;
+        contain-intrinsic-height: 8px;
+      }
+
+      .cover { object-fit: cover }
+      .contain { object-fit: contain }
+      .fill { object-fit: fill }
+      .none { object-fit: none }
+      .scaledown { object-fit: scale-down }
+
+    </style>
+    <script>
+      function drawImageToCanvases(imageURI) {
+        var image = new Image();
+        image.onload = function() {
+          var canvasElems = document.getElementsByTagName("canvas");
+          for (var i = 0; i < canvasElems.length; i++) {
+            var ctx = canvasElems[i].getContext("2d");
+            ctx.drawImage(image, 0, 0);
+          }
+          document.documentElement.removeAttribute("class");
+        }
+        image.src = imageURI;
+      }
+    </script>
+  </head>
+  <body onload="drawImageToCanvases('support/colors-16x8.png')">
+    <!-- big: -->
+    <canvas width="16" height="8" class="big cover"></canvas>
+    <canvas width="16" height="8" class="big contain"></canvas>
+    <canvas width="16" height="8" class="big fill"></canvas>
+    <canvas width="16" height="8" class="big none"></canvas>
+    <canvas width="16" height="8" class="big scaledown"></canvas>
+    <br>
+    <!-- small: -->
+    <canvas width="16" height="8" class="small cover"></canvas>
+    <canvas width="16" height="8" class="small contain"></canvas>
+    <canvas width="16" height="8" class="small fill"></canvas>
+    <canvas width="16" height="8" class="small none"></canvas>
+    <canvas width="16" height="8" class="small scaledown"></canvas>
+    <br>
+  </body>
+</html>

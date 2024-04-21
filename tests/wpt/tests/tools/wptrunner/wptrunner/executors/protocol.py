@@ -802,3 +802,17 @@ class VirtualSensorProtocolPart(ProtocolPart):
     @abstractmethod
     def get_virtual_sensor_information(self, sensor_type):
         pass
+
+class DevicePostureProtocolPart(ProtocolPart):
+    """Protocol part for Device Posture"""
+    __metaclass__ = ABCMeta
+
+    name = "device_posture"
+
+    @abstractmethod
+    def set_device_posture(self, posture):
+        pass
+
+    @abstractmethod
+    def clear_device_posture(self):
+        pass

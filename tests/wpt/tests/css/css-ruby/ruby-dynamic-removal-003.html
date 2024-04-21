@@ -31,3 +31,9 @@
 <!--     pseudo ruby text -->
 <!-- letter-spacing is added here to avoid fuzzy on Windows. See bug 1111891 -->
 <p><rb>ab</rb><rtc style="letter-spacing: 1px">x<rt class="remove"></rt>y</rtc></p>
+
+<p>'a b c' should be paried with 'x y z':</p>
+<!-- merge -->
+<p><ruby>a <rt class="remove">w</rt><span>b</span> <span style="display:block">c</span><rt>x y z</ruby>
+<p><ruby>a <span style="display:block">b</span> <rt class="remove">w</rt><span>c</span><rt>x y z</ruby>
+<p><ruby><span style="display:block">a</span> <rt class="remove">w</rt><span>b</span> <span style="display:block">c</span><rt>x y z</ruby>

@@ -115,6 +115,10 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
     # The GenericSensorExtraClasses flag enables the browser-side
     # implementation of sensors such as Ambient Light Sensor.
     chrome_options["args"].append("--enable-features=GenericSensorExtraClasses")
+    # Do not show Chrome for Testing infobar. For other Chromium build this
+    # flag is no-op. Required to avoid flakiness in tests, as the infobar
+    # changes the viewport, which can happen during the test run.
+    chrome_options["args"].append("--disable-infobars")
 
     # Classify `http-private`, `http-public` and https variants in the
     # appropriate IP address spaces.

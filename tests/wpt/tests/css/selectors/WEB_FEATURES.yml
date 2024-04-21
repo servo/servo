@@ -5,3 +5,7 @@ features:
 - name: has
   files:
   - has-*
+- name: user-pseudos
+  files:
+  - user-invalid.html
+  - user-valid.html

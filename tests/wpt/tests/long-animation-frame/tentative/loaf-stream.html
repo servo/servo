@@ -34,6 +34,6 @@ test_promise_script(async t => {
     });
     response.body.pipeTo(writable);
     await readable.getReader().read();
-}, "resolve", "StreamPromise.resolve");
+}, "resolve", "Promise.resolve");
 </script>
 </body>

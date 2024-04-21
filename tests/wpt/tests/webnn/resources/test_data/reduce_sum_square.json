@@ -676,7 +676,8 @@
         }
       },
       "options": {
-        "axes": [1, 3]
+        "axes": [1, 3],
+        "keepDimensions": false
       },
       "expected": {
         "name": "output",
@@ -725,11 +726,12 @@
         }
       },
       "options": {
-        "axes": [1, 3]
+        "axes": [1, 3],
+        "keepDimensions": true
       },
       "expected": {
         "name": "output",
-        "shape": [1, 2, 2, 1],
+        "shape": [2, 1, 2, 1],
         "data": [
           12302.474609375,
           22772.77734375,

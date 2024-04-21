@@ -1,0 +1,29 @@
+<svg id="svg-root"
+  width="100%" height="100%" viewBox="0 0 400 300"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Paint: 'context-fill' and 'context-stroke' in 'use' with transform</title>
+    <html:link rel="author"
+          title="Stefan Zager"
+          href="mailto:szager@chromium.org"/>
+  </g>
+
+  <defs>
+    <linearGradient id="lg1" x2="125%">
+      <stop offset="0" stop-color="red"/>
+      <stop offset="1" stop-color="blue"/>
+    </linearGradient>
+
+    <linearGradient id="lg2" x1="-25%">
+      <stop offset="0" stop-color="red"/>
+      <stop offset="1" stop-color="blue"/>
+    </linearGradient>
+  </defs>
+
+  <g id="test-reference">
+    <rect x="50" y="90" width="240" height="120" fill="url(#lg1)"/>
+    <path d="M 110 30 l 240 120 l -240 120 Z" fill="url(#lg2)" />
+  </g>
+</svg>

@@ -3,44 +3,41 @@
      Any copyright is dedicated to the Public Domain.
      http://creativecommons.org/publicdomain/zero/1.0/
 -->
-<html><head>
+<html>
   <meta charset="utf-8">
-  <title>CSS Grid Test: Masonry layout max-content sizing</title>
+  <title>CSS Grid Test: Masonry layout column sizing - max-content</title>
   <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
-  <link rel="help" href="https://drafts.csswg.org/css-grid-2">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
   <link rel="match" href="masonry-intrinsic-sizing-004-ref.html">
   <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
   <style>
-html,body {
-  color:black; background-color:white; font:15px/1 Ahem; padding:0; margin:0;
-}
+
+@import "support/masonry-intrinsic-sizing-visual.css";
 
 grid {
   display: inline-grid;
   gap: 1px 2px;
-  grid-template-columns: repeat(4,auto);
   grid-template-rows: masonry;
   border: 1px solid;
   padding: 0 1px 0 2px;
   vertical-align: top;
   width: max-content;
 }
-.fr {
+.auto grid {
+  grid-template-columns: repeat(4,auto);
+}
+.fr grid {
   grid-template-columns: 1fr 2fr 1fr 1fr;
 }
-.mixed {
+.mixed grid {
   grid-template-columns: 1fr 2fr min-content max-content;
 }
-
-item {
-  background-color: #444;
-  color: blue;
-}
 </style>
-</head>
+
 <body>
 
-<grid>
+<section class="auto">
+<grid title="Wider 1st item 2ch">
   <item style="width:2ch">1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -48,7 +45,7 @@ item {
   <item>5 5</item>
 </grid>
 
-<grid>
+<grid title="Wrapped 5th item 2ch">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -56,7 +53,7 @@ item {
   <item style="width:2ch">5 5</item>
 </grid>
 
-<grid>
+<grid title="Wrapped 5th item 2ch in col 2">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -64,7 +61,7 @@ item {
   <item style="width:2ch; grid-column:2">5 5</item>
 </grid>
 
-<grid>
+<grid title="5th item 4ch in col 2-3">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -72,7 +69,7 @@ item {
   <item style="width:4ch; grid-column:2/span 2">5 5</item>
 </grid>
 
-<grid>
+<grid title="4th item in col 2-3, 5th item 5ch in col 1-3">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -81,7 +78,7 @@ item {
   <item style="width:5ch; grid-column:1/span 3">6</item>
 </grid>
 
-<grid>
+<grid title="5th item 3ch in col 2-3, 6th item 5ch in col 1-3">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -90,7 +87,7 @@ item {
   <item style="width:5ch; grid-column:1/span 3">6</item>
 </grid>
 
-<grid>
+<grid title="5th item span 4">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -98,7 +95,7 @@ item {
   <item style="grid-column:span 4">5 5</item>
 </grid>
 
-<grid>
+<grid title="5th item 6ch span 4">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -106,17 +103,19 @@ item {
   <item style="width:6ch; grid-column:span 4">5 5</item>
 </grid>
 
-<grid>
+<grid title="5th item 6ch span 3">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
   <item>4</item>
   <item style="width:6ch; grid-column:span 3">5 5</item>
 </grid>
+</section>
 
 <!-- ditto with 'fr' sizing -->
 
-<grid class="fr">
+<section class="fr">
+<grid title="Wider 1st item 2ch">
   <item style="width:2ch">1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -124,7 +123,7 @@ item {
   <item>5 5</item>
 </grid>
 
-<grid class="fr">
+<grid title="Wrapped 5th item 2ch">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -132,7 +131,7 @@ item {
   <item style="width:2ch">5 5</item>
 </grid>
 
-<grid class="fr">
+<grid title="Wrapped 5th item 2ch in col 2">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -140,7 +139,7 @@ item {
   <item style="width:2ch; grid-column:2">5 5</item>
 </grid>
 
-<grid class="fr">
+<grid title="5th item 4ch in col 2-3">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -148,7 +147,7 @@ item {
   <item style="width:4ch; grid-column:2/span 2">5 5</item>
 </grid>
 
-<grid class="fr">
+<grid title="4th item in col 2-3, 5th item 5ch in col 1-3">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -157,7 +156,7 @@ item {
   <item style="width:5ch; grid-column:1/span 3">6</item>
 </grid>
 
-<grid class="fr">
+<grid title="5th item 3ch in col 2-3, 6th item 5ch in col 1-3">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -166,7 +165,7 @@ item {
   <item style="width:5ch; grid-column:1/span 3">6</item>
 </grid>
 
-<grid class="fr">
+<grid title="5th item span 4">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -174,7 +173,7 @@ item {
   <item style="grid-column:span 4">5 5</item>
 </grid>
 
-<grid class="fr">
+<grid title="5th item 6ch span 4">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -182,17 +181,19 @@ item {
   <item style="width:6ch; grid-column:span 4">5 5</item>
 </grid>
 
-<grid class="fr">
+<grid title="5th item 6ch span 3">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
   <item>4</item>
   <item style="width:6ch; grid-column:span 3">5 5</item>
 </grid>
+</section>
 
 <!-- ditto with mixed sizing -->
 
-<grid class="mixed">
+<section class="mixed">
+<grid title="Wider 1st item 2ch">
   <item style="width:2ch">1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -200,7 +201,7 @@ item {
   <item>5 5</item>
 </grid>
 
-<grid class="mixed">
+<grid title="Wrapped 5th item 2ch">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -208,7 +209,7 @@ item {
   <item style="width:2ch">5 5</item>
 </grid>
 
-<grid class="mixed">
+<grid title="Wrapped 5th item 2ch in col 2">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -216,7 +217,7 @@ item {
   <item style="width:2ch; grid-column:2">5 5</item>
 </grid>
 
-<grid class="mixed">
+<grid title="5th item 4ch in col 2-3">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -224,7 +225,7 @@ item {
   <item style="width:4ch; grid-column:2/span 2">5 5</item>
 </grid>
 
-<grid class="mixed">
+<grid title="4th item in col 2-3, 5th item 5ch in col 1-3">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -233,7 +234,7 @@ item {
   <item style="width:5ch; grid-column:1/span 3">6</item>
 </grid>
 
-<grid class="mixed">
+<grid title="5th item 3ch in col 2-3, 6th item 5ch in col 1-3">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -242,7 +243,7 @@ item {
   <item style="width:5ch; grid-column:1/span 3">6</item>
 </grid>
 
-<grid class="mixed">
+<grid title="5th item span 4">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -250,7 +251,7 @@ item {
   <item style="grid-column:span 4">5 5</item>
 </grid>
 
-<grid class="mixed">
+<grid title="5th item 6ch span 4">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
@@ -258,13 +259,12 @@ item {
   <item style="width:6ch; grid-column:span 4">5 5</item>
 </grid>
 
-<grid class="mixed">
+<grid title="5th item 6ch span 3">
   <item>1</item>
   <item>2 2</item>
   <item>3 3</item>
   <item>4</item>
   <item style="width:6ch; grid-column:span 3">5 5</item>
 </grid>
+</section>
 
-</body>
-</html>

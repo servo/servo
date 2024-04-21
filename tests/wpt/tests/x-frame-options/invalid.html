@@ -40,6 +40,12 @@ xfo_simple_tests({
 });
 
 xfo_simple_tests({
+  headerValue: `DE NY`,
+  sameOriginAllowed: true,
+  crossOriginAllowed: true
+});
+
+xfo_simple_tests({
   headerValue: `"SAMEORIGIN"`,
   sameOriginAllowed: true,
   crossOriginAllowed: true

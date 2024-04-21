@@ -1,17 +1,27 @@
 'use strict';
 
-function navigateFocusForward() {
-  // TAB = '\ue004'
-  return test_driver.send_keys(document.body, "\ue004");
+function waitForRender() {
+  return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+}
+
+async function navigateFocusForward() {
+  await waitForRender();
+  const kTab = '\uE004';
+  await new test_driver.send_keys(document.documentElement,kTab);
+  await waitForRender();
 }
 
 async function navigateFocusBackward() {
-  return new test_driver.Actions()
-    .keyDown('\uE050')
-    .keyDown('\uE004')
-    .keyUp('\uE004')
-    .keyUp('\uE050')
+  await waitForRender();
+  const kShift = '\uE008';
+  const kTab = '\uE004';
+  await new test_driver.Actions()
+    .keyDown(kShift)
+    .keyDown(kTab)
+    .keyUp(kTab)
+    .keyUp(kShift)
     .send();
+  await waitForRender();
 }
 
 // If shadow root is open, can find element using element path

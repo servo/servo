@@ -206,6 +206,9 @@
     --inherit-no: bar;
     --unset-no: baz;
     --initial-no: baz;
+    --space-no: baz;
+    --explicit-initial: initial;
+    --space: ;
   }
   @container style(--initial: initial) {
     #initial { color: green; }
@@ -225,6 +228,18 @@
   @container not style(--inherit-no: inherit) {
     #inherit-no { color: green; }
   }
+  @container style(--explicit-initial: initial) {
+    #explicit-initial { color: green; }
+  }
+  @container not style(--explicit-initial) {
+    #explicit-initial-implicit { color: green; }
+  }
+  @container style(--space: ) {
+    #space { color: green; }
+  }
+  @container not style(--space-no: ) {
+    #space-no { color: green; }
+  }
   @container style(--unset: unset) {
     #unset { color: green; }
   }
@@ -238,6 +253,10 @@
     <div id="initial-implicit"></div>
     <div id="initial-no"></div>
     <div id="initial-no-implicit"></div>
+    <div id="explicit-initial"></div>
+    <div id="explicit-initial-implicit"></div>
+    <div id="space"></div>
+    <div id="space-no"></div>
     <div id="inherit"></div>
     <div id="inherit-no"></div>
     <div id="unset"></div>
@@ -260,6 +279,22 @@
   test(() => {
     assert_equals(getComputedStyle(document.querySelector("#initial-no-implicit")).color, green);
   }, "Style query matching value-less query against non-initial value");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#explicit-initial")).color, green);
+  }, "Style query 'initial' matching (with explicit 'initial' value)");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#explicit-initial-implicit")).color, green);
+  }, "Style query matching negated value-less query against initial value (with explicit 'initial' value)");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#space")).color, green);
+  }, "Style query 'space' matching");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector("#space-no")).color, green);
+  }, "Style query 'space' not matching");
 
   test(() => {
     assert_equals(getComputedStyle(document.querySelector("#inherit")).color, green);

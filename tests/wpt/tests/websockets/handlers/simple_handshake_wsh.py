@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-from mod_pywebsocket import common, stream
-from mod_pywebsocket.handshake import AbortedByUserException, hybi
+from pywebsocket3 import common, stream
+from pywebsocket3.handshake import AbortedByUserException, hybi
 
 
 def web_socket_do_extra_handshake(request):

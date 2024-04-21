@@ -12,7 +12,7 @@
 </style>
 <div id="host"><span id="in-document">1234567890</span></div>
 <script>
-test(function() {
+promise_test(async () => {
   host.attachShadow({ mode: "open" }).innerHTML = `
     <style>
       @font-face {
@@ -26,6 +26,8 @@ test(function() {
     <slot></slot>
     <span id="in-shadow">0123456789</span>
   `;
+
+  await document.fonts.ready;
 
   assert_not_equals(document.getElementById('in-document').offsetWidth, 160);
   assert_equals(host.shadowRoot.getElementById('in-shadow').offsetWidth, 160);

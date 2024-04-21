@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel="help" href="https://github.com/whatwg/html/pull/9144">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+test(() => {
+  const xmlDoc = document.implementation.createDocument(null, 'root', null);
+  assert_equals(xmlDoc.contentType, 'application/xml');
+  xmlDoc.documentElement.innerHTML = '<div id="target">target</div><div anchor="target">anchored</div>';
+  assert_equals(xmlDoc.documentElement.innerHTML,
+    '<div id="target">target</div><div anchor="target">anchored</div>');
+  const target = xmlDoc.documentElement.children[0];
+  const anchored = xmlDoc.documentElement.children[1];
+
+  assert_equals(xmlDoc.documentElement.children[1].anchorElement, null,
+    'Setting the anchor attribute in XML should not set the anchorElement IDL.');
+
+  anchored.anchorElement = target;
+  assert_equals(xmlDoc.documentElement.children[1].anchorElement, null,
+    'Setting element.anchorElement in an XML document should not set the anchorElement IDL.');
+});
+</script>

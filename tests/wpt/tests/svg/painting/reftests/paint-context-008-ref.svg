@@ -1,0 +1,22 @@
+<svg id="svg-root"
+  width="100%" height="100%" viewBox="0 0 400 300"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Paint: paint server transform for 'context-fill' based on nearest 'use' ancestor</title>
+    <html:link rel="author"
+          title="Stefan Zager"
+          href="mailto:szager@chromium.org"/>
+  </g>
+
+  <defs>
+    <pattern id="grid" x="0" y="0" width="0.125" height="0.25" stroke="blue" stroke-width="0.03125" patternContentUnits="objectBoundingBox">
+      <path fill="none" d="M 0.0625 0 l 0.0625 0.125 l -0.0625 0.125 l -0.0625 -0.125 Z"/>
+    </pattern>
+  </defs>
+
+  <g id="test-reference">
+    <rect x="69" y="113" width="256" height="128" fill="url(#grid)"/>
+  </g>
+</svg>

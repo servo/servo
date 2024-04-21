@@ -6,11 +6,17 @@ from ... import any_string, recursive_compare
 @pytest.mark.parametrize("type,value", [
     ("css", "div"),
     ("xpath", "//div"),
-    ("innerText", "foobarBARbaz")
+    ("innerText", "foobarBARbaz"),
+    ("accessibility", {"role": "banner"}),
+    ("accessibility", {"name": "foo"}),
+    ("accessibility", {"role": "banner", "name": "foo"}),
 ])
 @pytest.mark.asyncio
 async def test_find_by_locator(bidi_session, inline, top_context, type, value):
-    url = inline("""<div data-class="one">foobarBARbaz</div><div data-class="two">foobarBARbaz</div>""")
+    url = inline("""
+        <div data-class="one" role="banner" aria-label="foo">foobarBARbaz</div>
+        <div data-class="two" role="banner" aria-label="foo">foobarBARbaz</div>
+    """)
     await bidi_session.browsing_context.navigate(
         context=top_context["context"], url=url, wait="complete"
     )
@@ -162,6 +168,72 @@ async def test_find_by_inner_text(bidi_session, inline, top_context, locator, ex
     result = await bidi_session.browsing_context.locate_nodes(
         context=top_context["context"],
         locator=locator
+    )
+
+    recursive_compare(expected, result["nodes"])
+
+
+@pytest.mark.parametrize(
+    "html,locator_value,expected_node_local_name",
+    [
+        (
+            "<article data-class='one'>foo</article><div data-class='two'>bar</div>",
+            {"role": "article"},
+            "article",
+        ),
+        (
+            "<input role='searchbox' data-class='one' /><input data-class='two' type='text'/>",
+            {"role": "searchbox"},
+            "input",
+        ),
+        (
+            "<button data-class='one'>Ok</button><button data-class='two'>Cancel</button>",
+            {"name": "Ok"},
+            "button",
+        ),
+        (
+            "<button data-class='one' aria-labelledby='one two'></button><div id='one'>ok</div><div id='two'>go</div><button data-class='two'>Cancel</button>",
+            {"name": "ok go"},
+            "button",
+        ),
+        (
+            "<button data-class='one' aria-label='foo'>bar</button><button data-class='two' aria-label='bar'>foo</button>",
+            {"name": "foo"},
+            "button",
+        ),
+        (
+            "<div role='banner' aria-label='foo' data-class='one'></div><div role='banner'  data-class='two'></div><div aria-label='foo' data-class='three'></div>",
+            {"role": "banner", "name": "foo"},
+            "div",
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_locate_by_accessibility_attributes(
+    bidi_session,
+    inline,
+    top_context,
+    html,
+    locator_value,
+    expected_node_local_name,
+):
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"], url=inline(html), wait="complete"
+    )
+
+    expected = [
+        {
+            "type": "node",
+            "value": {
+                "attributes": {"data-class": "one"},
+                "localName": expected_node_local_name,
+            },
+        }
+    ]
+
+    result = await bidi_session.browsing_context.locate_nodes(
+        context=top_context["context"],
+        locator={"type": "accessibility", "value": locator_value},
     )
 
     recursive_compare(expected, result["nodes"])

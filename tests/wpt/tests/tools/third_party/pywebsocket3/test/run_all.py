@@ -31,7 +31,7 @@
 """Run all tests in the same directory.
 
 This suite is expected to be run under pywebsocket's src directory, i.e. the
-directory containing mod_pywebsocket, test, etc.
+directory containing pywebsocket3, test, etc.
 
 To change loggin level, please specify --log-level option.
     python test/run_test.py --log-level debug
@@ -42,13 +42,15 @@ example, run this for making the test runner verbose.
 """
 
 from __future__ import absolute_import
-import logging
+
 import argparse
+import logging
 import os
 import re
-import six
 import sys
 import unittest
+
+import six
 
 _TEST_MODULE_PATTERN = re.compile(r'^(test_.+)\.py$')
 

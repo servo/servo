@@ -4,3 +4,6 @@ features:
   - has-*
   - "*-in-has.*"
   - "*-in-has-*"
+- name: user-pseudos
+  files:
+  - user-valid-user-invalid.html

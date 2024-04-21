@@ -31,7 +31,7 @@ function connectAndGetRequestCookiesFrom(origin) {
 window.addEventListener("message", async (event) => {
   function reply(data) {
     event.source.postMessage(
-        {timestamp: event.data.timestamp, data}, event.origin);
+        {timestamp: event.data.timestamp, data}, "*");
   }
 
   switch (event.data["command"]) {
