@@ -1929,6 +1929,9 @@ impl HTMLMediaElement {
                         }
                     },
                     PlaybackState::Playing => {
+                        if self.ready_state.get() == ReadyState::HaveMetadata {
+                            self.change_ready_state(ReadyState::HaveEnoughData);
+                        }
                         media_session_playback_state = MediaSessionPlaybackState::Playing;
                     },
                     PlaybackState::Buffering => {
