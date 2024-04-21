@@ -10,6 +10,7 @@ use log::debug;
 use serde::{Deserialize, Serialize};
 use style::Atom;
 use ucd::{Codepoint, UnicodeBlock};
+use webrender_api::NativeFontHandle;
 
 use crate::font_template::{FontTemplate, FontTemplateDescriptor};
 use crate::platform::font::CoreTextFontTraitsMapping;
@@ -25,6 +26,13 @@ pub struct LocalFontIdentifier {
 }
 
 impl LocalFontIdentifier {
+    pub(crate) fn native_font_handle(&self) -> NativeFontHandle {
+        NativeFontHandle {
+            name: self.postscript_name.to_string(),
+            path: self.path.to_string(),
+        }
+    }
+
     pub(crate) fn index(&self) -> u32 {
         0
     }

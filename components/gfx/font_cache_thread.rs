@@ -457,11 +457,23 @@ impl FontCache {
         let webrender_api = &self.webrender_api;
         let webrender_fonts = &mut self.webrender_fonts;
         let identifier = template.borrow().identifier.clone();
-        let index = identifier.index();
-        *webrender_fonts.entry(identifier).or_insert_with(|| {
-            let bytes = template.data();
-            webrender_api.add_font(bytes, index)
-        })
+        *webrender_fonts
+            .entry(identifier.clone())
+            .or_insert_with(|| {
+                // CoreText cannot reliably create CoreTextFonts for system fonts stored
+                // as part of TTC files, so on CoreText platforms, create a system font in
+                // WebRender using the LocalFontIdentifier. This has the downside of
+                // causing the font to be loaded into memory again (bummer!), so only do
+                // this for those platforms.
+                #[cfg(target_os = "macos")]
+                if let FontIdentifier::Local(local_font_identifier) = identifier {
+                    return webrender_api
+                        .add_system_font(local_font_identifier.native_font_handle());
+                }
+
+                let bytes = template.data();
+                webrender_api.add_font(bytes, identifier.index())
+            })
     }
 
     fn find_font_template(

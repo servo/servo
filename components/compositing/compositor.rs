@@ -891,6 +891,18 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 let _ = key_sender.send(font_key);
             },
 
+            ForwardedToCompositorMsg::Font(FontToCompositorMsg::AddSystemFont(
+                key_sender,
+                native_handle,
+            )) => {
+                let font_key = self.webrender_api.generate_font_key();
+                let mut transaction = Transaction::new();
+                transaction.add_native_font(font_key, native_handle);
+                self.webrender_api
+                    .send_transaction(self.webrender_document, transaction);
+                let _ = key_sender.send(font_key);
+            },
+
             ForwardedToCompositorMsg::Canvas(CanvasToCompositorMsg::GenerateKey(sender)) => {
                 let _ = sender.send(self.webrender_api.generate_image_key());
             },

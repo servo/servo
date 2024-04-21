@@ -120,12 +120,8 @@ pub fn node_id_from_scroll_id(id: usize) -> Option<usize> {
     None
 }
 
-pub enum FontData {
-    Raw(Vec<u8>),
-    Native(NativeFontHandle),
-}
-
 pub trait WebrenderApi {
     fn add_font_instance(&self, font_key: FontKey, size: f32) -> FontInstanceKey;
     fn add_font(&self, data: Arc<Vec<u8>>, index: u32) -> FontKey;
+    fn add_system_font(&self, handle: NativeFontHandle) -> FontKey;
 }

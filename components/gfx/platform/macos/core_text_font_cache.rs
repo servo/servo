@@ -6,9 +6,14 @@ use std::collections::HashMap;
 use std::sync::{Arc, OnceLock};
 
 use app_units::Au;
+use core_foundation::base::TCFType;
+use core_foundation::string::CFString;
+use core_foundation::url::{kCFURLPOSIXPathStyle, CFURL};
 use core_graphics::data_provider::CGDataProvider;
+use core_graphics::display::CFDictionary;
 use core_graphics::font::CGFont;
 use core_text::font::CTFont;
+use core_text::font_descriptor::kCTFontURLAttribute;
 use parking_lot::RwLock;
 
 use crate::font_cache_thread::FontIdentifier;
@@ -49,7 +54,7 @@ impl CoreTextFontCache {
 
         let mut cache = cache.write();
         let identifier_cache = cache
-            .entry(font_identifier)
+            .entry(font_identifier.clone())
             .or_insert_with(Default::default);
 
         // It could be that between the time of the cache miss above and now, after the write lock
@@ -59,9 +64,37 @@ impl CoreTextFontCache {
             return Some(core_text_font.clone());
         }
 
-        let provider = CGDataProvider::from_buffer(data);
-        let cgfont = CGFont::from_data_provider(provider).ok()?;
-        let core_text_font = core_text::font::new_from_CGFont(&cgfont, clamped_pt_size);
+        let core_text_font = match font_identifier {
+            FontIdentifier::Local(local_font_identifier) => {
+                // Other platforms can instantiate a platform font by loading the data
+                // from a file and passing an index in the case the file is a TTC bundle.
+                // The only way to reliably load the correct font from a TTC bundle on
+                // macOS is to create the font using a descriptor with both the PostScript
+                // name and path.
+                let cf_name = CFString::new(&local_font_identifier.postscript_name);
+                let mut descriptor = core_text::font_descriptor::new_from_postscript_name(&cf_name);
+
+                let cf_path = CFString::new(&local_font_identifier.path);
+                let url_attribute = unsafe { CFString::wrap_under_get_rule(kCTFontURLAttribute) };
+                let attributes = CFDictionary::from_CFType_pairs(&[(
+                    url_attribute,
+                    CFURL::from_file_system_path(cf_path, kCFURLPOSIXPathStyle, false),
+                )]);
+                if let Ok(descriptor_with_path) =
+                    descriptor.create_copy_with_attributes(attributes.to_untyped())
+                {
+                    descriptor = descriptor_with_path;
+                }
+
+                core_text::font::new_from_descriptor(&descriptor, clamped_pt_size)
+            },
+            FontIdentifier::Web(_) => {
+                let provider = CGDataProvider::from_buffer(data);
+                let cgfont = CGFont::from_data_provider(provider).ok()?;
+                core_text::font::new_from_CGFont(&cgfont, clamped_pt_size)
+            },
+        };
+
         identifier_cache.insert(au_size, core_text_font.clone());
         Some(core_text_font)
     }

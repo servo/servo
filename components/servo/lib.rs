@@ -89,7 +89,9 @@ use surfman::{GLApi, GLVersion};
 #[cfg(target_os = "linux")]
 use surfman::{NativeConnection, NativeContext};
 use webrender::{RenderApiSender, ShaderPrecacheFlags};
-use webrender_api::{ColorF, DocumentId, FontInstanceKey, FontKey, FramePublishId, ImageKey};
+use webrender_api::{
+    ColorF, DocumentId, FontInstanceKey, FontKey, FramePublishId, ImageKey, NativeFontHandle,
+};
 use webrender_traits::{
     WebrenderExternalImageHandlers, WebrenderExternalImageRegistry, WebrenderImageHandlerType,
 };
@@ -1060,6 +1062,16 @@ impl gfx_traits::WebrenderApi for FontCacheWR {
                 FontToCompositorMsg::AddFont(sender, index, bytes_receiver),
             )));
         let _ = bytes_sender.send(&data);
+        receiver.recv().unwrap()
+    }
+
+    fn add_system_font(&self, handle: NativeFontHandle) -> FontKey {
+        let (sender, receiver) = unbounded();
+        let _ = self
+            .0
+            .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
+                FontToCompositorMsg::AddSystemFont(sender, handle),
+            )));
         receiver.recv().unwrap()
     }
 }
