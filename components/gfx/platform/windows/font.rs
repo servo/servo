@@ -21,6 +21,7 @@ use style::values::specified::font::FontStretchKeyword;
 use crate::font::{
     FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, PlatformFontMethods,
 };
+use crate::font_cache_thread::FontIdentifier;
 use crate::text::glyph::GlyphId;
 
 // 1em = 12pt = 16px, assuming 72 points per inch and 96 px per inch
