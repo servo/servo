@@ -10,7 +10,7 @@ use selectors::parser::{ParseRelative, SelectorList};
 use servo_arc::Arc;
 use style::selector_parser::SelectorParser;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::{Origin, StyleRule};
+use style::stylesheets::{CssRuleType, Origin, StyleRule};
 
 use crate::dom::bindings::codegen::Bindings::CSSStyleRuleBinding::CSSStyleRuleMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -58,9 +58,8 @@ impl CSSStyleRule {
 }
 
 impl SpecificCSSRule for CSSStyleRule {
-    fn ty(&self) -> u16 {
-        use crate::dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
-        CSSRuleConstants::STYLE_RULE
+    fn ty(&self) -> CssRuleType {
+        CssRuleType::Style
     }
 
     fn get_css(&self) -> DOMString {

@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylesheets::import_rule::ImportLayer;
-use style::stylesheets::ImportRule;
+use style::stylesheets::{CssRuleType, ImportRule};
 use style_traits::ToCss;
 
 use crate::dom::bindings::codegen::Bindings::CSSImportRuleBinding::CSSImportRuleMethods;
@@ -50,9 +50,8 @@ impl CSSImportRule {
 }
 
 impl SpecificCSSRule for CSSImportRule {
-    fn ty(&self) -> u16 {
-        use crate::dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
-        CSSRuleConstants::IMPORT_RULE
+    fn ty(&self) -> CssRuleType {
+        CssRuleType::Import
     }
 
     fn get_css(&self) -> DOMString {

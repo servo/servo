@@ -6,6 +6,7 @@ use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylesheets::keyframes_rule::Keyframe;
+use style::stylesheets::CssRuleType;
 
 use crate::dom::bindings::codegen::Bindings::CSSKeyframeRuleBinding::CSSKeyframeRuleMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -73,9 +74,8 @@ impl CSSKeyframeRuleMethods for CSSKeyframeRule {
 }
 
 impl SpecificCSSRule for CSSKeyframeRule {
-    fn ty(&self) -> u16 {
-        use crate::dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
-        CSSRuleConstants::KEYFRAME_RULE
+    fn ty(&self) -> CssRuleType {
+        CssRuleType::Keyframe
     }
 
     fn get_css(&self) -> DOMString {
