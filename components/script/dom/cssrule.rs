@@ -118,6 +118,7 @@ impl CSSRule {
             StyleCssRule::Property(_) => unimplemented!(),          // TODO
             StyleCssRule::Margin(_) => unimplemented!(),            // TODO
             StyleCssRule::Scope(_) => unimplemented!(),             // TODO
+            StyleCssRule::StartingStyle(_) => unimplemented!(),     // TODO
         }
     }
 
