@@ -162,10 +162,21 @@ remove `.ini` files that no longer contain any expectations.
 
 When a larger number of changes is required, this process can be automated.
 This first requires saving the raw, unformatted log from a test run, for
-example by running `./mach test-wpt --log-raw /tmp/servo.log`. Once the
-log is saved, run from the root directory:
+example by running:
+
+    ./mach test-wpt --log-raw /tmp/servo.log
+
+Once the log is saved, run from the root directory:
 
     ./mach update-wpt /tmp/servo.log
+
+The same process can be done for the legacy layout engine:
+
+    ./mach test-wpt --legacy-layout --log-raw /tmp/servo-legacy.log
+    ./mach update-wpt --legacy-layout /tmp/servo-legacy.log
+
+The updated expectations will be in `tests/wpt/meta/` and
+`tests/wpt/meta-legacy-layout/` respectively.
 
 Writing new tests
 =================
@@ -195,19 +206,6 @@ Editing tests
 web-platform-tests may be edited in-place and the changes committed to
 the servo tree. These changes will be upstreamed when the tests are
 next synced.
-
-Updating the upstream tests
-===========================
-
-In order to update the tests from upstream use the same mach update
-commands. e.g. to update the web-platform-tests:
-
-    ./mach update-wpt --sync
-    ./mach test-wpt --log-raw=update.log
-    ./mach update-wpt update.log
-
-This should create two commits in your servo repository with the
-updated tests and updated metadata.
 
 Servo-specific tests
 ====================
