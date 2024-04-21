@@ -129,7 +129,7 @@ impl CSSStyleSheetMethods for CSSStyleSheet {
             return Err(Error::Security);
         }
         self.rulelist()
-            .insert_rule(&rule, index, CssRuleTypes::default())
+            .insert_rule(&rule, index, CssRuleTypes::default(), None)
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssstylesheet-deleterule

@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, SharedRwLock};
-use style::stylesheets::{CssRuleTypes, CssRules as StyleCssRules};
+use style::stylesheets::{CssRuleType, CssRuleTypes, CssRules as StyleCssRules};
 
 use crate::dom::bindings::codegen::Bindings::CSSGroupingRuleBinding::CSSGroupingRuleMethods;
 use crate::dom::bindings::error::{ErrorResult, Fallible};
@@ -70,8 +70,16 @@ impl CSSGroupingRuleMethods for CSSGroupingRule {
         // TODO: this should accumulate the rule types of all ancestors.
         let rule_type = self.cssrule.as_specific().ty();
         let containing_rule_types = CssRuleTypes::from(rule_type);
-        self.rulelist()
-            .insert_rule(&rule, index, containing_rule_types)
+        let parse_relative_rule_type = match rule_type {
+            CssRuleType::Style | CssRuleType::Scope => Some(rule_type),
+            _ => None,
+        };
+        self.rulelist().insert_rule(
+            &rule,
+            index,
+            containing_rule_types,
+            parse_relative_rule_type,
+        )
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssgroupingrule-deleterule

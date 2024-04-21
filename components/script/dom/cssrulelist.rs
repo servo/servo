@@ -8,8 +8,8 @@ use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::Locked;
 use style::stylesheets::{
-    AllowImportRules, CssRuleTypes, CssRules, CssRulesHelpers, KeyframesRule, RulesMutateError,
-    StylesheetLoader as StyleStylesheetLoader,
+    AllowImportRules, CssRuleType, CssRuleTypes, CssRules, CssRulesHelpers, KeyframesRule,
+    RulesMutateError, StylesheetLoader as StyleStylesheetLoader,
 };
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -97,6 +97,7 @@ impl CSSRuleList {
         rule: &str,
         idx: u32,
         containing_rule_types: CssRuleTypes,
+        parse_relative_rule_type: Option<CssRuleType>,
     ) -> Fallible<u32> {
         let css_rules = if let RulesSource::Rules(ref rules) = self.rules {
             rules
@@ -122,6 +123,7 @@ impl CSSRuleList {
             &parent_stylesheet.contents,
             index,
             containing_rule_types,
+            parse_relative_rule_type,
             loader.as_ref().map(|l| l as &dyn StyleStylesheetLoader),
             AllowImportRules::Yes,
         )?;
