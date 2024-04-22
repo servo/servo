@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex};
 use std::{f32, fmt, mem, thread};
 
 use app_units::Au;
-use gfx_traits::{FontData, WebrenderApi};
+use gfx_traits::WebrenderApi;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use log::{debug, trace};
 use net_traits::request::{Destination, Referrer, RequestBuilder};
@@ -25,11 +25,12 @@ use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::{Stylesheet, StylesheetInDocument};
 use webrender_api::{FontInstanceKey, FontKey};
 
-use crate::font::{FontFamilyDescriptor, FontFamilyName, FontSearchScope};
+use crate::font::{FontFamilyDescriptor, FontFamilyName, FontSearchScope, PlatformFontMethods};
 use crate::font_context::FontSource;
 use crate::font_template::{
     FontTemplate, FontTemplateDescriptor, FontTemplateRef, FontTemplateRefMethods,
 };
+use crate::platform::font::PlatformFont;
 use crate::platform::font_list::{
     for_each_available_family, for_each_variation, system_default_family, LocalFontIdentifier,
     SANS_SERIF_FONT_FAMILY,
@@ -59,10 +60,19 @@ pub enum FontIdentifier {
     Web(ServoUrl),
 }
 
+impl FontIdentifier {
+    pub fn index(&self) -> u32 {
+        match *self {
+            Self::Local(ref local_font_identifier) => local_font_identifier.index(),
+            Self::Web(_) => 0,
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SerializedFontTemplate {
     identifier: FontIdentifier,
-    descriptor: Option<FontTemplateDescriptor>,
+    descriptor: FontTemplateDescriptor,
     bytes_receiver: ipc_channel::ipc::IpcBytesReceiver,
 }
 
@@ -73,7 +83,6 @@ impl SerializedFontTemplate {
             identifier: self.identifier.clone(),
             descriptor: self.descriptor,
             data: font_data.map(Arc::new),
-            is_valid: true,
         }
     }
 }
@@ -97,11 +106,10 @@ impl FontTemplates {
         // TODO(#190): Do a better job.
         let (mut best_template, mut best_distance) = (None, f32::MAX);
         for template in self.templates.iter() {
-            if let Some(distance) = template.descriptor_distance(desc) {
-                if distance < best_distance {
-                    best_template = Some(template);
-                    best_distance = distance
-                }
+            let distance = template.descriptor_distance(desc);
+            if distance < best_distance {
+                best_template = Some(template);
+                best_distance = distance
             }
         }
         if best_template.is_some() {
@@ -112,24 +120,22 @@ impl FontTemplates {
         // pick the first valid font in the family if we failed
         // to find an exact match for the descriptor.
         for template in &mut self.templates.iter() {
-            if template.is_valid() {
-                return Some(template.clone());
-            }
+            return Some(template.clone());
         }
 
         None
     }
 
-    pub fn add_template(&mut self, identifier: FontIdentifier, maybe_data: Option<Vec<u8>>) {
-        for template in &self.templates {
-            if *template.borrow().identifier() == identifier {
+    pub fn add_template(&mut self, new_template: FontTemplate) {
+        for existing_template in &self.templates {
+            let existing_template = existing_template.borrow();
+            if *existing_template.identifier() == new_template.identifier &&
+                existing_template.descriptor == new_template.descriptor
+            {
                 return;
             }
         }
-
-        if let Ok(template) = FontTemplate::new(identifier, maybe_data) {
-            self.templates.push(Rc::new(RefCell::new(template)));
-        }
+        self.templates.push(Rc::new(RefCell::new(new_template)));
     }
 }
 
@@ -245,7 +251,22 @@ impl FontCache {
                 },
                 Command::AddDownloadedWebFont(family_name, url, bytes, result) => {
                     let templates = &mut self.web_families.get_mut(&family_name).unwrap();
-                    templates.add_template(FontIdentifier::Web(url), Some(bytes));
+
+                    let data = Arc::new(bytes);
+                    let identifier = FontIdentifier::Web(url.clone());
+                    let Ok(handle) = PlatformFont::new_from_data(identifier, data.clone(), 0, None)
+                    else {
+                        drop(result.send(()));
+                        return;
+                    };
+
+                    let descriptor = FontTemplateDescriptor::new(
+                        handle.boldness(),
+                        handle.stretchiness(),
+                        handle.style(),
+                    );
+
+                    templates.add_template(FontTemplate::new_web_font(url, descriptor, data));
                     drop(result.send(()));
                 },
                 Command::Ping => (),
@@ -356,9 +377,9 @@ impl FontCache {
                 let font_face_name = LowercaseString::new(&font.name);
                 let templates = &mut self.web_families.get_mut(&family_name).unwrap();
                 let mut found = false;
-                for_each_variation(&font_face_name, |local_font_identifier| {
+                for_each_variation(&font_face_name, |font_template| {
                     found = true;
-                    templates.add_template(FontIdentifier::Local(local_font_identifier), None);
+                    templates.add_template(font_template);
                 });
                 if found {
                     sender.send(()).unwrap();
@@ -396,18 +417,18 @@ impl FontCache {
         // look up canonical name
         if self.local_families.contains_key(&family_name) {
             debug!("FontList: Found font family with name={}", &*family_name);
-            let s = self.local_families.get_mut(&family_name).unwrap();
+            let font_templates = self.local_families.get_mut(&family_name).unwrap();
 
-            if s.templates.is_empty() {
-                for_each_variation(&family_name, |local_font_identifier| {
-                    s.add_template(FontIdentifier::Local(local_font_identifier), None);
+            if font_templates.templates.is_empty() {
+                for_each_variation(&family_name, |font_template| {
+                    font_templates.add_template(font_template);
                 });
             }
 
             // TODO(Issue #192: handle generic font families, like 'serif' and 'sans-serif'.
             // if such family exists, try to match style to a font
 
-            s.find_font_for_style(template_descriptor)
+            font_templates.find_font_for_style(template_descriptor)
         } else {
             debug!(
                 "FontList: Couldn't find font family with name={}",
@@ -435,16 +456,23 @@ impl FontCache {
     fn get_font_key_for_template(&mut self, template: &FontTemplateRef) -> FontKey {
         let webrender_api = &self.webrender_api;
         let webrender_fonts = &mut self.webrender_fonts;
+        let identifier = template.borrow().identifier.clone();
         *webrender_fonts
-            .entry(template.borrow().identifier.clone())
+            .entry(identifier.clone())
             .or_insert_with(|| {
-                let template = template.borrow();
-                let font = match (template.data_if_in_memory(), template.native_font_handle()) {
-                    (Some(bytes), _) => FontData::Raw((*bytes).clone()),
-                    (None, Some(native_font)) => FontData::Native(native_font),
-                    (None, None) => unreachable!("Font should either be local or a web font."),
-                };
-                webrender_api.add_font(font)
+                // CoreText cannot reliably create CoreTextFonts for system fonts stored
+                // as part of TTC files, so on CoreText platforms, create a system font in
+                // WebRender using the LocalFontIdentifier. This has the downside of
+                // causing the font to be loaded into memory again (bummer!), so only do
+                // this for those platforms.
+                #[cfg(target_os = "macos")]
+                if let FontIdentifier::Local(local_font_identifier) = identifier {
+                    return webrender_api
+                        .add_system_font(local_font_identifier.native_font_handle());
+                }
+
+                let bytes = template.data();
+                webrender_api.add_font(bytes, identifier.index())
             })
     }
 

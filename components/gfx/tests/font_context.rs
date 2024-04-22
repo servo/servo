@@ -12,10 +12,12 @@ use std::rc::Rc;
 use app_units::Au;
 use gfx::font::{
     fallback_font_families, FontDescriptor, FontFamilyDescriptor, FontFamilyName, FontSearchScope,
+    PlatformFontMethods,
 };
 use gfx::font_cache_thread::{FontIdentifier, FontTemplateAndWebRenderFontKey, FontTemplates};
 use gfx::font_context::{FontContext, FontSource};
-use gfx::font_template::FontTemplateDescriptor;
+use gfx::font_template::{FontTemplate, FontTemplateDescriptor};
+use gfx::platform::font::PlatformFont;
 use servo_arc::Arc;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
@@ -57,11 +59,15 @@ impl TestFontSource {
     }
 
     fn identifier_for_font_name(name: &str) -> FontIdentifier {
+        FontIdentifier::Web(Self::url_for_font_name(name))
+    }
+
+    fn url_for_font_name(name: &str) -> ServoUrl {
         let mut path: PathBuf = [env!("CARGO_MANIFEST_DIR"), "tests", "support", "CSSTest"]
             .iter()
             .collect();
         path.push(format!("{}.ttf", name));
-        FontIdentifier::Web(ServoUrl::from_file_path(path).unwrap())
+        ServoUrl::from_file_path(path).unwrap()
     }
 
     fn add_face(family: &mut FontTemplates, name: &str) {
@@ -71,10 +77,22 @@ impl TestFontSource {
         path.push(format!("{}.ttf", name));
 
         let file = File::open(path).unwrap();
-        family.add_template(
+        let data: Vec<u8> = file.bytes().map(|b| b.unwrap()).collect();
+        let data = std::sync::Arc::new(data);
+        let handle = PlatformFont::new_from_data(
             Self::identifier_for_font_name(name),
-            Some(file.bytes().map(|b| b.unwrap()).collect()),
+            data.clone(),
+            0,
+            None,
         )
+        .unwrap();
+        let descriptor =
+            FontTemplateDescriptor::new(handle.boldness(), handle.stretchiness(), handle.style());
+        family.add_template(FontTemplate::new_web_font(
+            Self::url_for_font_name(name),
+            descriptor,
+            data,
+        ));
     }
 }
 

@@ -16,17 +16,17 @@ use core_foundation::string::UniChar;
 use core_graphics::font::CGGlyph;
 use core_text::font::CTFont;
 use core_text::font_descriptor::{
-    kCTFontDefaultOrientation, SymbolicTraitAccessors, TraitAccessors,
+    kCTFontDefaultOrientation, CTFontTraits, SymbolicTraitAccessors, TraitAccessors,
 };
 use log::debug;
 use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
 
-use super::font_template::CoreTextFontTemplateMethods;
+use super::core_text_font_cache::CoreTextFontCache;
 use crate::font::{
-    FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, PlatformFontMethods, GPOS, GSUB,
-    KERN,
+    map_platform_values_to_style_values, FontMetrics, FontTableMethods, FontTableTag,
+    FractionalPixel, PlatformFontMethods, GPOS, GSUB, KERN,
 };
-use crate::font_template::FontTemplateRef;
+use crate::font_cache_thread::FontIdentifier;
 use crate::text::glyph::GlyphId;
 
 const KERN_PAIR_LEN: usize = 6;
@@ -57,7 +57,7 @@ pub struct PlatformFont {
     ctfont: CTFont,
     /// A reference to this data used to create this [`PlatformFont`], ensuring the
     /// data stays alive of the lifetime of this struct.
-    _data: Option<Arc<Vec<u8>>>,
+    _data: Arc<Vec<u8>>,
     h_kern_subtable: Option<CachedKernTable>,
     can_do_fast_shaping: bool,
 }
@@ -158,20 +158,24 @@ impl fmt::Debug for CachedKernTable {
 }
 
 impl PlatformFontMethods for PlatformFont {
-    fn new_from_template(
-        font_template: FontTemplateRef,
+    fn new_from_data(
+        font_identifier: FontIdentifier,
+        data: Arc<Vec<u8>>,
+        _face_index: u32,
         pt_size: Option<Au>,
     ) -> Result<PlatformFont, &'static str> {
         let size = match pt_size {
             Some(s) => s.to_f64_px(),
             None => 0.0,
         };
-        let Some(core_text_font) = font_template.core_text_font(size) else {
+        let Some(core_text_font) =
+            CoreTextFontCache::core_text_font(font_identifier, data.clone(), size)
+        else {
             return Err("Could not generate CTFont for FontTemplateData");
         };
 
         let mut handle = PlatformFont {
-            _data: font_template.borrow().data_if_in_memory(),
+            _data: data,
             ctfont: core_text_font.clone_with_font_size(size),
             h_kern_subtable: None,
             can_do_fast_shaping: false,
@@ -193,29 +197,15 @@ impl PlatformFontMethods for PlatformFont {
     }
 
     fn style(&self) -> FontStyle {
-        if self.ctfont.symbolic_traits().is_italic() {
-            FontStyle::ITALIC
-        } else {
-            FontStyle::NORMAL
-        }
+        self.ctfont.all_traits().style()
     }
 
     fn boldness(&self) -> FontWeight {
-        let normalized = self.ctfont.all_traits().normalized_weight(); // [-1.0, 1.0]
-
-        // TODO(emilio): It may make sense to make this range [.01, 10.0], to
-        // align with css-fonts-4's range of [1, 1000].
-        let normalized = if normalized <= 0.0 {
-            4.0 + normalized * 3.0 // [1.0, 4.0]
-        } else {
-            4.0 + normalized * 5.0 // [4.0, 9.0]
-        }; // [1.0, 9.0], centered on 4.0
-        FontWeight::from_float(normalized as f32 * 100.)
+        self.ctfont.all_traits().weight()
     }
 
     fn stretchiness(&self) -> FontStretch {
-        let normalized = self.ctfont.all_traits().normalized_width(); // [-1.0, 1.0]
-        FontStretch::from_percentage(normalized as f32 + 1.0)
+        self.ctfont.all_traits().stretch()
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
@@ -313,5 +303,52 @@ impl PlatformFontMethods for PlatformFont {
     fn table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
         let result: Option<CFData> = self.ctfont.get_font_table(tag);
         result.map(FontTable::wrap)
+    }
+}
+
+pub(super) trait CoreTextFontTraitsMapping {
+    fn weight(&self) -> FontWeight;
+    fn style(&self) -> FontStyle;
+    fn stretch(&self) -> FontStretch;
+}
+
+impl CoreTextFontTraitsMapping for CTFontTraits {
+    fn weight(&self) -> FontWeight {
+        // From https://developer.apple.com/documentation/coretext/kctfontweighttrait?language=objc
+        // > The value returned is a CFNumberRef representing a float value between -1.0 and
+        // > 1.0 for normalized weight. The value of 0.0 corresponds to the regular or
+        // > medium font weight.
+        let mapping = [(-1., 0.), (0., 400.), (1., 1000.)];
+
+        let mapped_weight = map_platform_values_to_style_values(&mapping, self.normalized_weight());
+        FontWeight::from_float(mapped_weight as f32)
+    }
+
+    fn style(&self) -> FontStyle {
+        let slant = self.normalized_slant();
+        if slant == 0. && self.symbolic_traits().is_italic() {
+            return FontStyle::ITALIC;
+        }
+        if slant == 0. {
+            return FontStyle::NORMAL;
+        }
+
+        // From https://developer.apple.com/documentation/coretext/kctfontslanttrait?language=objc
+        // > The value returned is a CFNumberRef object representing a float value
+        // > between -1.0 and 1.0 for normalized slant angle. The value of 0.0
+        // > corresponds to 0 degrees clockwise rotation from the vertical and 1.0
+        // > corresponds to 30 degrees clockwise rotation.
+        let mapping = [(-1., -30.), (0., 0.), (1., 30.)];
+        let mapped_slant = map_platform_values_to_style_values(&mapping, slant);
+        FontStyle::oblique(mapped_slant as f32)
+    }
+
+    fn stretch(&self) -> FontStretch {
+        // From https://developer.apple.com/documentation/coretext/kctfontwidthtrait?language=objc
+        // > This value corresponds to the relative interglyph spacing for a given font.
+        // > The value returned is a CFNumberRef object representing a float between -1.0
+        // > and 1.0. The value of 0.0 corresponds to regular glyph spacing, and negative
+        // > values represent condensed glyph spacing.
+        FontStretch::from_percentage(self.normalized_width() as f32 + 1.0)
     }
 }

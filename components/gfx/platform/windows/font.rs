@@ -11,7 +11,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use app_units::Au;
-use dwrote::{Font, FontFace, FontFile, FontStretch, FontStyle};
+use dwrote::{FontFace, FontFile};
 use log::debug;
 use style::computed_values::font_stretch::T as StyleFontStretch;
 use style::computed_values::font_weight::T as StyleFontWeight;
@@ -22,7 +22,6 @@ use crate::font::{
     FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, PlatformFontMethods,
 };
 use crate::font_cache_thread::FontIdentifier;
-use crate::font_template::{FontTemplateRef, FontTemplateRefMethods};
 use crate::text::glyph::GlyphId;
 
 // 1em = 12pt = 16px, assuming 72 points per inch and 96 px per inch
@@ -57,11 +56,6 @@ impl FontTableMethods for FontTable {
     }
 }
 
-fn make_tag(tag_bytes: &[u8]) -> FontTableTag {
-    assert_eq!(tag_bytes.len(), 4);
-    unsafe { *(tag_bytes.as_ptr() as *const FontTableTag) }
-}
-
 // We need the font (DWriteFont) in order to be able to query things like
 // the family name, face name, weight, etc.  On Windows 10, the
 // DWriteFontFace3 interface provides this on the FontFace, but that's only
@@ -79,6 +73,16 @@ struct FontInfo {
     style: StyleFontStyle,
 }
 
+#[macro_export]
+/// Packs the components of a font tag name into 32 bytes, while respecting the
+/// necessary Rust 4-byte alignment for pointers. This is similar to
+/// [`crate::ot_tag`], but the bytes are reversed.
+macro_rules! font_tag {
+    ($t1:expr, $t2:expr, $t3:expr, $t4:expr) => {
+        (($t4 as u32) << 24) | (($t3 as u32) << 16) | (($t2 as u32) << 8) | ($t1 as u32)
+    };
+}
+
 impl FontInfo {
     fn new_from_face(face: &FontFace) -> Result<FontInfo, &'static str> {
         use std::cmp::{max, min};
@@ -89,8 +93,10 @@ impl FontInfo {
         use truetype::tables::WindowsMetrics;
         use truetype::value::Read;
 
-        let names_bytes = face.get_font_table(make_tag(b"name"));
-        let windows_metrics_bytes = face.get_font_table(make_tag(b"OS/2"));
+        let name_tag = font_tag!('n', 'a', 'm', 'e');
+        let os2_tag = font_tag!('O', 'S', '/', '2');
+        let names_bytes = face.get_font_table(name_tag);
+        let windows_metrics_bytes = face.get_font_table(os2_tag);
         if names_bytes.is_none() || windows_metrics_bytes.is_none() {
             return Err("No 'name' or 'OS/2' tables");
         }
@@ -166,36 +172,6 @@ impl FontInfo {
             style,
         })
     }
-
-    fn new_from_font(font: &Font) -> Result<FontInfo, &'static str> {
-        let style = match font.style() {
-            FontStyle::Normal => StyleFontStyle::NORMAL,
-            FontStyle::Oblique => StyleFontStyle::OBLIQUE,
-            FontStyle::Italic => StyleFontStyle::ITALIC,
-        };
-        let weight = StyleFontWeight::from_float(font.weight().to_u32() as f32);
-        let stretch = match font.stretch() {
-            FontStretch::Undefined => FontStretchKeyword::Normal,
-            FontStretch::UltraCondensed => FontStretchKeyword::UltraCondensed,
-            FontStretch::ExtraCondensed => FontStretchKeyword::ExtraCondensed,
-            FontStretch::Condensed => FontStretchKeyword::Condensed,
-            FontStretch::SemiCondensed => FontStretchKeyword::SemiCondensed,
-            FontStretch::Normal => FontStretchKeyword::Normal,
-            FontStretch::SemiExpanded => FontStretchKeyword::SemiExpanded,
-            FontStretch::Expanded => FontStretchKeyword::Expanded,
-            FontStretch::ExtraExpanded => FontStretchKeyword::ExtraExpanded,
-            FontStretch::UltraExpanded => FontStretchKeyword::UltraExpanded,
-        }
-        .compute();
-
-        Ok(FontInfo {
-            family_name: font.family_name(),
-            face_name: font.face_name(),
-            style,
-            weight,
-            stretch,
-        })
-    }
 }
 
 #[derive(Debug)]
@@ -203,7 +179,7 @@ pub struct PlatformFont {
     face: Nondebug<FontFace>,
     /// A reference to this data used to create this [`PlatformFont`], ensuring the
     /// data stays alive of the lifetime of this struct.
-    data: Option<Arc<Vec<u8>>>,
+    _data: Arc<Vec<u8>>,
     info: FontInfo,
     em_size: f32,
     du_to_px: f32,
@@ -226,32 +202,17 @@ impl<T> Deref for Nondebug<T> {
 }
 
 impl PlatformFontMethods for PlatformFont {
-    fn new_from_template(
-        font_template: FontTemplateRef,
+    fn new_from_data(
+        _font_identifier: FontIdentifier,
+        data: Arc<Vec<u8>>,
+        face_index: u32,
         pt_size: Option<Au>,
     ) -> Result<Self, &'static str> {
-        let direct_write_font = match font_template.borrow().identifier {
-            FontIdentifier::Local(ref local_identifier) => local_identifier.direct_write_font(),
-            FontIdentifier::Web(_) => None,
-        };
-
-        let (face, info, data) = match direct_write_font {
-            Some(font) => (
-                font.create_font_face(),
-                FontInfo::new_from_font(&font)?,
-                None,
-            ),
-            None => {
-                let bytes = font_template.data();
-                let font_file =
-                    FontFile::new_from_data(bytes).ok_or("Could not create FontFile")?;
-                let face = font_file
-                    .create_face(0, dwrote::DWRITE_FONT_SIMULATIONS_NONE)
-                    .map_err(|_| "Could not create FontFace")?;
-                let info = FontInfo::new_from_face(&face)?;
-                (face, info, font_template.borrow().data_if_in_memory())
-            },
-        };
+        let font_file = FontFile::new_from_data(data.clone()).ok_or("Could not create FontFile")?;
+        let face = font_file
+            .create_face(face_index, dwrote::DWRITE_FONT_SIMULATIONS_NONE)
+            .map_err(|_| "Could not create FontFace")?;
+        let info = FontInfo::new_from_face(&face)?;
 
         let pt_size = pt_size.unwrap_or(au_from_pt(12.));
         let du_per_em = face.metrics().metrics0().designUnitsPerEm as f32;
@@ -264,7 +225,7 @@ impl PlatformFontMethods for PlatformFont {
 
         Ok(PlatformFont {
             face: Nondebug(face),
-            data,
+            _data: data,
             info,
             em_size,
             du_to_px: design_units_to_pixels,
