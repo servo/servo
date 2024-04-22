@@ -44,8 +44,7 @@ use num_traits::ToPrimitive;
 use percent_encoding::percent_decode;
 use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
-use script_layout_interface::message::{Msg, PendingRestyle, ReflowGoal};
-use script_layout_interface::TrustedNodeAddress;
+use script_layout_interface::{PendingRestyle, ReflowGoal, TrustedNodeAddress};
 use script_traits::{
     AnimationState, DocumentActivity, MouseButton, MouseEventType, MsDuration, ScriptMsg,
     TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta,
@@ -841,7 +840,7 @@ impl Document {
         if old_mode != new_mode {
             let _ = self
                 .window
-                .with_layout(move |layout| layout.process(Msg::SetQuirksMode(new_mode)));
+                .with_layout(move |layout| layout.set_quirks_mode(new_mode));
         }
     }
 

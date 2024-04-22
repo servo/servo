@@ -48,11 +48,9 @@ use profile_traits::time::{
     self as profile_time, profile, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
 };
 use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
-use script_layout_interface::message::{
-    Msg, NodesFromPointQueryType, ReflowComplete, ReflowGoal, ScriptReflow,
-};
 use script_layout_interface::{
-    Layout, LayoutConfig, LayoutFactory, OffsetParentResponse, TrustedNodeAddress,
+    Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse,
+    ReflowComplete, ReflowGoal, ScriptReflow, TrustedNodeAddress,
 };
 use script_traits::{
     ConstellationControlMsg, DrawAPaintImageResult, IFrameSizeMsg, LayoutControlMsg,
@@ -227,10 +225,6 @@ impl Drop for ScriptReflowResult {
 }
 
 impl Layout for LayoutThread {
-    fn process(&mut self, msg: script_layout_interface::message::Msg) {
-        self.handle_request(Request::FromScript(msg));
-    }
-
     fn handle_constellation_msg(&mut self, msg: script_traits::LayoutControlMsg) {
         self.handle_request(Request::FromPipeline(msg));
     }
@@ -420,11 +414,57 @@ impl Layout for LayoutThread {
         );
         process_text_index_request(node, point_in_node)
     }
+
+    fn exit_now(&mut self) {}
+
+    fn collect_reports(&self, reports_chan: ReportsChan) {
+        let mut reports = vec![];
+        // Servo uses vanilla jemalloc, which doesn't have a
+        // malloc_enclosing_size_of function.
+        let mut ops = MallocSizeOfOps::new(servo_allocator::usable_size, None, None);
+
+        // FIXME(njn): Just measuring the display tree for now.
+        let formatted_url = &format!("url({})", self.url);
+        reports.push(Report {
+            path: path![formatted_url, "layout-thread", "display-list"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: 0,
+        });
+
+        reports.push(Report {
+            path: path![formatted_url, "layout-thread", "stylist"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: self.stylist.size_of(&mut ops),
+        });
+
+        reports_chan.send(reports);
+    }
+
+    fn set_quirks_mode(&mut self, quirks_mode: QuirksMode) {
+        self.stylist.set_quirks_mode(quirks_mode);
+    }
+
+    fn reflow(&mut self, script_reflow: ScriptReflow) {
+        let mut result = ScriptReflowResult::new(script_reflow);
+        profile(
+            profile_time::ProfilerCategory::LayoutPerform,
+            self.profiler_metadata(),
+            self.time_profiler_chan.clone(),
+            || self.handle_reflow(&mut result),
+        );
+    }
+
+    fn register_paint_worklet_modules(
+        &mut self,
+        _name: Atom,
+        _properties: Vec<Atom>,
+        _painter: Box<dyn Painter>,
+    ) {
+    }
 }
 
 enum Request {
     FromPipeline(LayoutControlMsg),
-    FromScript(Msg),
     FromFontCache,
 }
 
@@ -558,68 +598,17 @@ impl LayoutThread {
     fn handle_request(&mut self, request: Request) {
         match request {
             Request::FromPipeline(LayoutControlMsg::SetScrollStates(new_scroll_states)) => {
-                self.handle_request_helper(Msg::SetScrollStates(new_scroll_states))
+                self.set_scroll_states(new_scroll_states);
             },
-            Request::FromPipeline(LayoutControlMsg::ExitNow) => {
-                self.handle_request_helper(Msg::ExitNow);
-            },
+            Request::FromPipeline(LayoutControlMsg::ExitNow) => {},
             Request::FromPipeline(LayoutControlMsg::PaintMetric(epoch, paint_time)) => {
                 self.paint_time_metrics.maybe_set_metric(epoch, paint_time);
             },
-            Request::FromScript(msg) => self.handle_request_helper(msg),
             Request::FromFontCache => {
                 self.outstanding_web_fonts.fetch_sub(1, Ordering::SeqCst);
                 self.handle_web_font_loaded();
             },
         };
-    }
-
-    /// Receives and dispatches messages from other threads.
-    fn handle_request_helper(&mut self, request: Msg) {
-        match request {
-            Msg::SetQuirksMode(mode) => self.handle_set_quirks_mode(mode),
-            Msg::Reflow(data) => {
-                let mut data = ScriptReflowResult::new(data);
-                profile(
-                    profile_time::ProfilerCategory::LayoutPerform,
-                    self.profiler_metadata(),
-                    self.time_profiler_chan.clone(),
-                    || self.handle_reflow(&mut data),
-                );
-            },
-            Msg::SetScrollStates(new_scroll_states) => {
-                self.set_scroll_states(new_scroll_states);
-            },
-            Msg::CollectReports(reports_chan) => {
-                self.collect_reports(reports_chan);
-            },
-            Msg::RegisterPaint(_name, _properties, _painter) => {},
-            // Receiving the Exit message at this stage only happens when layout is undergoing a "force exit".
-            Msg::ExitNow => {},
-        }
-    }
-
-    fn collect_reports(&self, reports_chan: ReportsChan) {
-        let mut reports = vec![];
-        // Servo uses vanilla jemalloc, which doesn't have a
-        // malloc_enclosing_size_of function.
-        let mut ops = MallocSizeOfOps::new(servo_allocator::usable_size, None, None);
-
-        // FIXME(njn): Just measuring the display tree for now.
-        let formatted_url = &format!("url({})", self.url);
-        reports.push(Report {
-            path: path![formatted_url, "layout-thread", "display-list"],
-            kind: ReportKind::ExplicitJemallocHeapSize,
-            size: 0,
-        });
-
-        reports.push(Report {
-            path: path![formatted_url, "layout-thread", "stylist"],
-            kind: ReportKind::ExplicitJemallocHeapSize,
-            size: self.stylist.size_of(&mut ops),
-        });
-
-        reports_chan.send(reports);
     }
 
     fn load_all_web_fonts_from_stylesheet_with_guard(
@@ -655,11 +644,6 @@ impl LayoutThread {
         self.script_chan
             .send(ConstellationControlMsg::WebFontLoaded(self.id))
             .unwrap();
-    }
-
-    /// Sets quirks mode for the document, causing the quirks mode stylesheet to be used.
-    fn handle_set_quirks_mode(&mut self, quirks_mode: QuirksMode) {
-        self.stylist.set_quirks_mode(quirks_mode);
     }
 
     /// The high-level routine that performs layout.
