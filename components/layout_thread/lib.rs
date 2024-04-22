@@ -608,7 +608,7 @@ impl LayoutThread {
     }
 
     /// Receives and dispatches messages from the script and constellation threads
-    fn handle_request<'a, 'b>(&mut self, request: Request) {
+    fn handle_request(&mut self, request: Request) {
         match request {
             Request::FromPipeline(LayoutControlMsg::SetScrollStates(new_scroll_states)) => {
                 self.handle_request_helper(Msg::SetScrollStates(new_scroll_states))
@@ -754,7 +754,7 @@ impl LayoutThread {
     }
 
     /// Sets quirks mode for the document, causing the quirks mode stylesheet to be used.
-    fn handle_set_quirks_mode<'a, 'b>(&mut self, quirks_mode: QuirksMode) {
+    fn handle_set_quirks_mode(&mut self, quirks_mode: QuirksMode) {
         self.stylist.set_quirks_mode(quirks_mode);
     }
 
@@ -1339,7 +1339,7 @@ impl LayoutThread {
             profile_time::ProfilerCategory::LayoutGeneratedContent,
             self.profiler_metadata(),
             self.time_profiler_chan.clone(),
-            || sequential::resolve_generated_content(FlowRef::deref_mut(root_flow), &context),
+            || sequential::resolve_generated_content(FlowRef::deref_mut(root_flow), context),
         );
 
         // Guess float placement.
@@ -1375,7 +1375,7 @@ impl LayoutThread {
                         );
                     } else {
                         //Sequential mode
-                        LayoutThread::solve_constraints(FlowRef::deref_mut(root_flow), &context)
+                        LayoutThread::solve_constraints(FlowRef::deref_mut(root_flow), context)
                     }
                 },
             );
@@ -1396,7 +1396,7 @@ impl LayoutThread {
     fn perform_post_main_layout_passes(
         &self,
         data: &Reflow,
-        mut root_flow: &mut FlowRef,
+        root_flow: &mut FlowRef,
         reflow_goal: &ReflowGoal,
         document: Option<&ServoLayoutDocument>,
         layout_context: &mut LayoutContext,
@@ -1406,7 +1406,7 @@ impl LayoutThread {
             data,
             reflow_goal,
             document,
-            FlowRef::deref_mut(&mut root_flow),
+            FlowRef::deref_mut(root_flow),
             &mut *layout_context,
         );
 

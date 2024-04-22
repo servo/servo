@@ -201,7 +201,7 @@ impl WindowProxy {
             SetProxyReservedSlot(
                 js_proxy.get(),
                 0,
-                &PrivateValue((&*window_proxy).as_void_ptr()),
+                &PrivateValue((*window_proxy).as_void_ptr()),
             );
 
             // Notify the JS engine about the new window proxy binding.

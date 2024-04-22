@@ -86,7 +86,7 @@ const DEFAULT_SUBMIT_VALUE: &str = "Submit";
 const DEFAULT_RESET_VALUE: &str = "Reset";
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
 
-#[derive(Clone, Copy, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, Default, JSTraceable, PartialEq)]
 #[allow(dead_code)]
 #[derive(MallocSizeOf)]
 pub enum InputType {
@@ -108,6 +108,7 @@ pub enum InputType {
     Search,
     Submit,
     Tel,
+    #[default]
     Text,
     Time,
     Url,
@@ -221,12 +222,6 @@ impl<'a> From<&'a Atom> for InputType {
             atom!("week") => InputType::Week,
             _ => Self::default(),
         }
-    }
-}
-
-impl Default for InputType {
-    fn default() -> InputType {
-        InputType::Text
     }
 }
 

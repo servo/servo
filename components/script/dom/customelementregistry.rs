@@ -51,18 +51,13 @@ use crate::script_runtime::JSContext;
 use crate::script_thread::ScriptThread;
 
 /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
-#[derive(Clone, Copy, Eq, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Default, Eq, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum CustomElementState {
     Undefined,
     Failed,
+    #[default]
     Uncustomized,
     Custom,
-}
-
-impl Default for CustomElementState {
-    fn default() -> CustomElementState {
-        CustomElementState::Uncustomized
-    }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#customelementregistry>

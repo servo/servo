@@ -954,7 +954,7 @@ impl VirtualMethods for HTMLElement {
     }
 
     fn bind_to_tree(&self, context: &BindContext) {
-        if let Some(ref super_type) = self.super_type() {
+        if let Some(super_type) = self.super_type() {
             super_type.bind_to_tree(context);
         }
         let element = self.as_element();
@@ -975,7 +975,7 @@ impl VirtualMethods for HTMLElement {
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
-        if let Some(ref super_type) = self.super_type() {
+        if let Some(super_type) = self.super_type() {
             super_type.unbind_from_tree(context);
         }
 

@@ -143,7 +143,7 @@ impl ElementInternals {
         }
 
         if let SubmissionValue::FormData(datums) = &*self.submission_value.borrow() {
-            entry_list.extend(datums.iter().map(|d| d.clone()));
+            entry_list.extend(datums.iter().cloned());
             return;
         }
         let name = self
@@ -169,7 +169,7 @@ impl ElementInternals {
                 entry_list.push(FormDatum {
                     ty: DOMString::from("file"),
                     name,
-                    value: FormDatumValue::File(DomRoot::from_ref(&*file)),
+                    value: FormDatumValue::File(DomRoot::from_ref(file)),
                 });
             },
         }

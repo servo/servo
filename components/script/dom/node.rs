@@ -3455,7 +3455,7 @@ impl UniqueId {
             if (*ptr).is_none() {
                 *ptr = Some(Box::new(Uuid::new_v4()));
             }
-            (&*ptr).as_ref().unwrap()
+            (*ptr).as_ref().unwrap()
         }
     }
 }
