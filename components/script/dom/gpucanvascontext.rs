@@ -61,27 +61,24 @@ impl Clone for HTMLCanvasElementOrOffscreenCanvas {
 
 impl malloc_size_of::MallocSizeOf for GPUTextureDescriptor {
     fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
-        match self {
-            Self {
-                parent,
-                dimension,
-                format,
-                mipLevelCount,
-                sampleCount,
-                size,
-                usage,
-                viewFormats,
-            } => {
-                parent.size_of(ops) +
-                    dimension.size_of(ops) +
-                    format.size_of(ops) +
-                    mipLevelCount.size_of(ops) +
-                    sampleCount.size_of(ops) +
-                    size.size_of(ops) +
-                    usage.size_of(ops) +
-                    viewFormats.size_of(ops)
-            },
-        }
+        let Self {
+            parent,
+            dimension,
+            format,
+            mipLevelCount,
+            sampleCount,
+            size,
+            usage,
+            viewFormats,
+        } = self;
+        parent.size_of(ops) +
+            dimension.size_of(ops) +
+            format.size_of(ops) +
+            mipLevelCount.size_of(ops) +
+            sampleCount.size_of(ops) +
+            size.size_of(ops) +
+            usage.size_of(ops) +
+            viewFormats.size_of(ops)
     }
 }
 

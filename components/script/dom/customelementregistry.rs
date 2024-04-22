@@ -484,12 +484,11 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         if form_associated {
             let _ac = JSAutoRealm::new(*cx, proto_object.get());
             unsafe {
-                match self.add_form_associated_callbacks(proto_object.handle(), &mut callbacks) {
-                    Err(error) => {
-                        self.element_definition_is_running.set(false);
-                        return Err(error);
-                    },
-                    Ok(()) => {},
+                if let Err(error) =
+                    self.add_form_associated_callbacks(proto_object.handle(), &mut callbacks)
+                {
+                    self.element_definition_is_running.set(false);
+                    return Err(error);
                 }
             }
         }
@@ -673,6 +672,7 @@ pub struct CustomElementDefinition {
 }
 
 impl CustomElementDefinition {
+    #[allow(clippy::too_many_arguments)]
     fn new(
         name: LocalName,
         local_name: LocalName,

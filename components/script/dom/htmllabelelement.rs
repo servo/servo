@@ -156,11 +156,8 @@ impl VirtualMethods for HTMLLabelElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        match *attr.local_name() {
-            local_name!("form") => {
-                self.form_attribute_mutated(mutation);
-            },
-            _ => {},
+        if *attr.local_name() == local_name!("form") {
+            self.form_attribute_mutated(mutation);
         }
     }
 }
