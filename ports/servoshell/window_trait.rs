@@ -21,7 +21,6 @@ pub const LINE_HEIGHT: f32 = 38.0;
 pub trait WindowPortsMethods: WindowMethods {
     fn get_events(&self) -> Vec<EmbedderEvent>;
     fn id(&self) -> winit::window::WindowId;
-    fn has_events(&self) -> bool;
     fn hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
         self.device_pixel_ratio_override()
             .unwrap_or_else(|| match opts::get().output_file {

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#[allow(unused_imports)]
 pub mod base {
     pub use std::ptr;
     pub use std::rc::Rc;
@@ -41,6 +42,7 @@ pub mod base {
     pub use crate::script_runtime::JSContext as SafeJSContext;
 }
 
+#[allow(unused_imports)]
 pub mod module {
     pub use std::cmp;
     pub use std::ffi::CString;

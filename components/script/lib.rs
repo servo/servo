@@ -42,7 +42,6 @@ pub mod document_loader;
 mod dom;
 #[warn(deprecated)]
 mod canvas_state;
-mod euclidext;
 #[warn(deprecated)]
 pub mod fetch;
 #[warn(deprecated)]

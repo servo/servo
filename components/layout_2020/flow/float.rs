@@ -7,7 +7,7 @@
 //! See CSS 2.1 § 9.5.1: <https://www.w3.org/TR/CSS2/visuren.html#float-position>
 
 use std::collections::VecDeque;
-use std::fmt::{Debug, Formatter, Result as FmtResult};
+use std::fmt::Debug;
 use std::mem;
 use std::ops::Range;
 
@@ -24,7 +24,7 @@ use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, CollapsedMargin, FloatFragment};
+use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, CollapsedMargin};
 use crate::geom::{LogicalRect, LogicalVec2};
 use crate::positioned::PositioningContext;
 use crate::style_ext::{ComputedValuesExt, DisplayInside, PaddingBorderMargin};
@@ -864,12 +864,6 @@ impl FloatBandLink {
         }
 
         (*self).clone()
-    }
-}
-
-impl Debug for FloatFragment {
-    fn fmt(&self, formatter: &mut Formatter) -> FmtResult {
-        write!(formatter, "FloatFragment")
     }
 }
 

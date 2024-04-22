@@ -51,7 +51,7 @@ impl FlowRef {
     #[allow(unsafe_code)]
     #[allow(clippy::should_implement_trait)]
     pub fn deref_mut(this: &mut FlowRef) -> &mut dyn Flow {
-        let ptr: *const dyn Flow = &*this.0;
+        let ptr: *const dyn Flow = Arc::as_ptr(&this.0);
         unsafe { &mut *(ptr as *mut dyn Flow) }
     }
 }

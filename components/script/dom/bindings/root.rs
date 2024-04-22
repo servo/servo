@@ -31,8 +31,7 @@ use std::marker::PhantomData;
 use std::ops::Deref;
 use std::{mem, ptr};
 
-use js::jsapi::{Heap, JSObject, JSTracer};
-use js::rust::GCMethods;
+use js::jsapi::{JSObject, JSTracer};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use script_layout_interface::TrustedNodeAddress;
 use style::thread_state;
@@ -770,34 +769,5 @@ where
         // representation.
         let _ = mem::transmute::<Dom<T>, LayoutDom<T>>;
         &*(slice as *const [Dom<T>] as *const [LayoutDom<T>])
-    }
-}
-
-/// Helper trait for safer manipulations of `Option<Heap<T>>` values.
-pub trait OptionalHeapSetter {
-    type Value;
-    /// Update this optional heap value with a new value.
-    fn set(&mut self, v: Option<Self::Value>);
-}
-
-impl<T: GCMethods + Copy> OptionalHeapSetter for Option<Heap<T>>
-where
-    Heap<T>: Default,
-{
-    type Value = T;
-    fn set(&mut self, v: Option<T>) {
-        let v = match v {
-            None => {
-                *self = None;
-                return;
-            },
-            Some(v) => v,
-        };
-
-        if self.is_none() {
-            *self = Some(Heap::default());
-        }
-
-        self.as_ref().unwrap().set(v);
     }
 }

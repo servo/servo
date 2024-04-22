@@ -1376,7 +1376,6 @@ impl MicrotaskRunnable for ImageElementMicrotask {
 }
 
 pub trait LayoutHTMLImageElementHelpers {
-    fn image(self) -> Option<Arc<Image>>;
     fn image_url(self) -> Option<ServoUrl>;
     fn image_density(self) -> Option<f64>;
     fn image_data(self) -> (Option<Arc<Image>>, Option<ImageMetadata>);
@@ -1392,10 +1391,6 @@ impl<'dom> LayoutDom<'dom, HTMLImageElement> {
 }
 
 impl LayoutHTMLImageElementHelpers for LayoutDom<'_, HTMLImageElement> {
-    fn image(self) -> Option<Arc<Image>> {
-        self.current_request().image.clone()
-    }
-
     fn image_url(self) -> Option<ServoUrl> {
         self.current_request().parsed_url.clone()
     }

@@ -974,8 +974,6 @@ pub trait LayoutHTMLInputElementHelpers<'dom> {
     fn value_for_layout(self) -> Cow<'dom, str>;
     fn size_for_layout(self) -> u32;
     fn selection_for_layout(self) -> Option<Range<usize>>;
-    fn checked_state_for_layout(self) -> bool;
-    fn indeterminate_state_for_layout(self) -> bool;
 }
 
 #[allow(unsafe_code)]
@@ -1076,18 +1074,6 @@ impl<'dom> LayoutHTMLInputElementHelpers<'dom> for LayoutDom<'dom, HTMLInputElem
             },
             _ => None,
         }
-    }
-
-    fn checked_state_for_layout(self) -> bool {
-        self.upcast::<Element>()
-            .get_state_for_layout()
-            .contains(ElementState::CHECKED)
-    }
-
-    fn indeterminate_state_for_layout(self) -> bool {
-        self.upcast::<Element>()
-            .get_state_for_layout()
-            .contains(ElementState::INDETERMINATE)
     }
 }
 
