@@ -190,11 +190,7 @@ impl PlatformFontMethods for PlatformFont {
 
     fn descriptor(&self) -> FontTemplateDescriptor {
         let traits = self.ctfont.all_traits();
-        FontTemplateDescriptor {
-            weight: traits.weight(),
-            stretch: traits.stretch(),
-            style: traits.style(),
-        }
+        FontTemplateDescriptor::new(traits.weight(), traits.stretch(), traits.style())
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {

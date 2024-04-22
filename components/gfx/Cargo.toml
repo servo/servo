@@ -16,6 +16,7 @@ doctest = false
 [dependencies]
 app_units = { workspace = true }
 bitflags = { workspace = true }
+cssparser = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
 fontsan = { git = "https://github.com/servo/fontsan" }

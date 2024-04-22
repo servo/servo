@@ -74,11 +74,8 @@ where
                 };
 
                 let traits = family_descriptor.traits();
-                let descriptor = FontTemplateDescriptor {
-                    weight: traits.weight(),
-                    stretch: traits.stretch(),
-                    style: traits.style(),
-                };
+                let descriptor =
+                    FontTemplateDescriptor::new(traits.weight(), traits.stretch(), traits.style());
                 let identifier = LocalFontIdentifier {
                     postscript_name: Atom::from(family_descriptor.font_name()),
                     path: Atom::from(path),
