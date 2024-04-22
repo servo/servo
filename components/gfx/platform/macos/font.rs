@@ -10,7 +10,6 @@ use std::{fmt, ptr};
 /// Implementation of Quartz (CoreGraphics) fonts.
 use app_units::Au;
 use byteorder::{BigEndian, ByteOrder};
-use core_foundation::base::CFIndex;
 use core_foundation::data::CFData;
 use core_foundation::string::UniChar;
 use core_graphics::font::CGGlyph;
@@ -209,17 +208,26 @@ impl PlatformFontMethods for PlatformFont {
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
-        let characters: [UniChar; 1] = [codepoint as UniChar];
-        let mut glyphs: [CGGlyph; 1] = [0 as CGGlyph];
-        let count: CFIndex = 1;
+        // CTFontGetGlyphsForCharacters takes UniChar, which are UTF-16 encoded characters. We are taking
+        // a char here which is a 32bit Unicode character. This will encode into a maximum of two
+        // UTF-16 code units and produce a maximum of 1 glyph. We could safely pass 2 as the length
+        // of the buffer to CTFontGetGlyphsForCharacters, but passing the actual number of encoded
+        // code units ensures that the resulting glyph is always placed in the first slot in the output
+        // buffer.
+        let mut characters: [UniChar; 2] = [0, 0];
+        let encoded_characters = codepoint.encode_utf16(&mut characters);
+        let mut glyphs: [CGGlyph; 2] = [0, 0];
 
         let result = unsafe {
-            self.ctfont
-                .get_glyphs_for_characters(characters.as_ptr(), glyphs.as_mut_ptr(), count)
+            self.ctfont.get_glyphs_for_characters(
+                encoded_characters.as_ptr(),
+                glyphs.as_mut_ptr(),
+                encoded_characters.len() as isize,
+            )
         };
 
+        // If the call failed or the glyph is the zero glyph no glyph was found for this character.
         if !result || glyphs[0] == 0 {
-            // No glyph for this character
             return None;
         }
 
