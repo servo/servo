@@ -264,16 +264,8 @@ impl Event {
             }
         }
 
-        let timeline_window = match DomRoot::downcast::<Window>(target.global()) {
-            Some(window) => {
-                if window.need_emit_timeline_marker(TimelineMarkerType::DOMEvent) {
-                    Some(window)
-                } else {
-                    None
-                }
-            },
-            _ => None,
-        };
+        let timeline_window = DomRoot::downcast::<Window>(target.global())
+            .filter(|window| window.need_emit_timeline_marker(TimelineMarkerType::DOMEvent));
 
         // Step 5.13
         for object in event_path.iter().rev() {

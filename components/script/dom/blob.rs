@@ -197,18 +197,18 @@ pub fn blob_parts_to_bytes(
     let mut ret = vec![];
     for blobpart in &mut blobparts {
         match blobpart {
-            &mut ArrayBufferOrArrayBufferViewOrBlobOrString::String(ref s) => {
+            ArrayBufferOrArrayBufferViewOrBlobOrString::String(s) => {
                 ret.extend(s.as_bytes());
             },
-            &mut ArrayBufferOrArrayBufferViewOrBlobOrString::Blob(ref b) => {
+            ArrayBufferOrArrayBufferViewOrBlobOrString::Blob(b) => {
                 let bytes = b.get_bytes().unwrap_or(vec![]);
                 ret.extend(bytes);
             },
-            &mut ArrayBufferOrArrayBufferViewOrBlobOrString::ArrayBuffer(ref mut a) => unsafe {
+            ArrayBufferOrArrayBufferViewOrBlobOrString::ArrayBuffer(a) => unsafe {
                 let bytes = a.as_slice();
                 ret.extend(bytes);
             },
-            &mut ArrayBufferOrArrayBufferViewOrBlobOrString::ArrayBufferView(ref mut a) => unsafe {
+            ArrayBufferOrArrayBufferViewOrBlobOrString::ArrayBufferView(a) => unsafe {
                 let bytes = a.as_slice();
                 ret.extend(bytes);
             },

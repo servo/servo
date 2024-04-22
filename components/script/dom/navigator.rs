@@ -120,8 +120,8 @@ impl Navigator {
     fn shrink_gamepads_list(&self) {
         let mut gamepad_list = self.gamepads.borrow_mut();
         for i in (0..gamepad_list.len()).rev() {
-            if gamepad_list.get(i as usize).is_none() {
-                gamepad_list.remove(i as usize);
+            if gamepad_list.get(i).is_none() {
+                gamepad_list.remove(i);
             } else {
                 break;
             }

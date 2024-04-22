@@ -1569,10 +1569,9 @@ pub trait FormControl: DomObject {
                 if html_elem.is_form_associated_custom_element() {
                     ScriptThread::enqueue_callback_reaction(
                         elem,
-                        CallbackReaction::FormAssociated(match new_owner {
-                            None => None,
-                            Some(ref form) => Some(DomRoot::from_ref(&**form)),
-                        }),
+                        CallbackReaction::FormAssociated(
+                            new_owner.as_ref().map(|form| DomRoot::from_ref(&**form)),
+                        ),
                         None,
                     )
                 }

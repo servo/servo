@@ -837,7 +837,7 @@ impl XRSessionMethods for XRSession {
             .borrow()
             .granted_features()
             .iter()
-            .any(|f| &*f == "hit-test")
+            .any(|f| f == "hit-test")
         {
             p.reject_error(Error::NotSupported);
             return p;

@@ -89,10 +89,8 @@ impl AudioBufferSourceNode {
             loop_start: Cell::new(*options.loopStart),
             loop_end: Cell::new(*options.loopEnd),
         };
-        if let Some(ref buffer) = options.buffer {
-            if let Some(ref buffer) = buffer {
-                node.SetBuffer(Some(&**buffer))?
-            }
+        if let Some(Some(ref buffer)) = options.buffer {
+            node.SetBuffer(Some(buffer))?;
         }
         Ok(node)
     }
@@ -267,15 +265,10 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
 impl<'a> From<&'a AudioBufferSourceOptions> for AudioBufferSourceNodeOptions {
     fn from(options: &'a AudioBufferSourceOptions) -> Self {
         Self {
-            buffer: if let Some(ref buffer) = options.buffer {
-                if let Some(ref buffer) = buffer {
-                    (*buffer.get_channels()).clone()
-                } else {
-                    None
-                }
-            } else {
-                None
-            },
+            buffer: options
+                .buffer
+                .as_ref()
+                .and_then(|b| (*b.as_ref()?.get_channels()).clone()),
             detune: *options.detune,
             loop_enabled: options.loop_,
             loop_end: Some(*options.loopEnd),
