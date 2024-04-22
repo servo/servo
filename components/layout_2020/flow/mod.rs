@@ -71,6 +71,10 @@ impl BlockContainer {
 
 #[derive(Debug, Serialize)]
 pub(crate) enum BlockLevelBox {
+    Independent(IndependentFormattingContext),
+    OutOfFlowAbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
+    OutOfFlowFloatBox(FloatBox),
+    OutsideMarker(OutsideMarker),
     SameFormattingContextBlock {
         base_fragment_info: BaseFragmentInfo,
         #[serde(skip_serializing)]
@@ -78,9 +82,6 @@ pub(crate) enum BlockLevelBox {
         contents: BlockContainer,
         contains_floats: bool,
     },
-    OutOfFlowAbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
-    OutOfFlowFloatBox(FloatBox),
-    Independent(IndependentFormattingContext),
 }
 
 impl BlockLevelBox {
@@ -103,6 +104,7 @@ impl BlockLevelBox {
             BlockLevelBox::SameFormattingContextBlock { ref style, .. } => style,
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_) |
             BlockLevelBox::OutOfFlowFloatBox(_) => return true,
+            BlockLevelBox::OutsideMarker(_) => return false,
             BlockLevelBox::Independent(ref context) => {
                 // FIXME: If the element doesn't fit next to floats, it will get clearance.
                 // In that case this should be returning false.
@@ -205,6 +207,81 @@ struct FlowLayout {
 #[derive(Clone, Copy)]
 struct CollapsibleWithParentStartMargin(bool);
 
+/// The contentes of a BlockContainer created to render a list marker
+/// for a list that has `list-style-position: outside`.
+#[derive(Debug, Serialize)]
+pub(crate) struct OutsideMarker {
+    #[serde(skip_serializing)]
+    pub style: Arc<ComputedValues>,
+    pub block_container: BlockContainer,
+}
+
+impl OutsideMarker {
+    fn layout(
+        &self,
+        layout_context: &LayoutContext<'_>,
+        containing_block: &ContainingBlock<'_>,
+        positioning_context: &mut PositioningContext,
+        sequential_layout_state: Option<&mut SequentialLayoutState>,
+        collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
+    ) -> Fragment {
+        let content_sizes = self
+            .block_container
+            .inline_content_sizes(layout_context, containing_block.style.writing_mode);
+        let containing_block = ContainingBlock {
+            inline_size: content_sizes.max_content,
+            block_size: AuOrAuto::auto(),
+            style: &self.style,
+        };
+        let flow_layout = self.block_container.layout(
+            layout_context,
+            positioning_context,
+            &containing_block,
+            sequential_layout_state,
+            collapsible_with_parent_start_margin.unwrap_or(CollapsibleWithParentStartMargin(false)),
+        );
+        let max_inline_size = flow_layout.fragments.iter().fold(
+            Length::zero(),
+            |current_max, fragment| match fragment {
+                Fragment::Text(text) => current_max.max(text.rect.max_inline_position()),
+                Fragment::Image(image) => current_max.max(image.rect.max_inline_position()),
+                Fragment::Positioning(positioning) => {
+                    current_max.max(positioning.rect.max_inline_position())
+                },
+                Fragment::Box(_) |
+                Fragment::Float(_) |
+                Fragment::AbsoluteOrFixedPositioned(_) |
+                Fragment::IFrame(_) => {
+                    unreachable!("Found unexpected fragment type in outside list marker!");
+                },
+            },
+        );
+
+        let content_rect = LogicalRect {
+            start_corner: LogicalVec2 {
+                inline: -max_inline_size,
+                block: Zero::zero(),
+            },
+            size: LogicalVec2 {
+                inline: max_inline_size,
+                block: Zero::zero(),
+            },
+        };
+
+        Fragment::Box(BoxFragment::new(
+            BaseFragmentInfo::anonymous(),
+            self.style.clone(),
+            flow_layout.fragments,
+            content_rect,
+            LogicalSides::zero(),
+            LogicalSides::zero(),
+            LogicalSides::zero(),
+            None,
+            CollapsedBlockMargins::zero(),
+        ))
+    }
+}
+
 impl BlockFormattingContext {
     pub(super) fn layout(
         &self,
@@ -261,7 +338,8 @@ fn calculate_inline_content_size_for_block_level_boxes(
 ) -> ContentSizes {
     let get_box_info = |box_: &ArcRefCell<BlockLevelBox>| {
         match &mut *box_.borrow_mut() {
-            BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => None,
+            BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_) |
+            BlockLevelBox::OutsideMarker { .. } => None,
             BlockLevelBox::OutOfFlowFloatBox(ref mut float_box) => {
                 let size = float_box
                     .contents
@@ -603,6 +681,13 @@ impl BlockLevelBox {
                 positioning_context,
                 containing_block,
             )),
+            BlockLevelBox::OutsideMarker(outside_marker) => outside_marker.layout(
+                layout_context,
+                containing_block,
+                positioning_context,
+                sequential_layout_state,
+                collapsible_with_parent_start_margin,
+            ),
         }
     }
 }

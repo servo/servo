@@ -55,11 +55,14 @@ where
 fn marker_string(style: &style_structs::List) -> Option<&'static str> {
     match style.list_style_type {
         ListStyleType::None => None,
-        ListStyleType::Disc => Some("• "),
-        ListStyleType::Circle => Some("◦ "),
-        ListStyleType::Square => Some("▪ "),
-        ListStyleType::DisclosureOpen => Some("▾ "),
-        ListStyleType::DisclosureClosed => Some("‣ "),
+        // TODO: Using non-breaking space here is a bit of a hack to give a bit of margin to outside
+        // markers, but really we should be setting `white-space: pre` on them instead.
+        // See https://github.com/w3c/csswg-drafts/issues/4891.
+        ListStyleType::Disc => Some("•\u{00a0}"),
+        ListStyleType::Circle => Some("◦\u{00a0}"),
+        ListStyleType::Square => Some("▪\u{00a0}"),
+        ListStyleType::DisclosureOpen => Some("▾\u{00a0}"),
+        ListStyleType::DisclosureClosed => Some("‣\u{00a0}"),
         ListStyleType::Decimal |
         ListStyleType::LowerAlpha |
         ListStyleType::UpperAlpha |
