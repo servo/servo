@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::ToCssWithGuard;
-use style::stylesheets::LayerBlockRule;
+use style::stylesheets::{CssRuleType, LayerBlockRule};
 use style_traits::ToCss;
 
 use crate::dom::bindings::codegen::Bindings::CSSLayerBlockRuleBinding::CSSLayerBlockRuleMethods;
@@ -56,8 +56,8 @@ impl CSSLayerBlockRule {
 }
 
 impl SpecificCSSRule for CSSLayerBlockRule {
-    fn ty(&self) -> u16 {
-        0
+    fn ty(&self) -> CssRuleType {
+        CssRuleType::LayerBlock
     }
 
     fn get_css(&self) -> DOMString {

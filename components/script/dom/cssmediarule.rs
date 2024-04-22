@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::ToCssWithGuard;
-use style::stylesheets::MediaRule;
+use style::stylesheets::{CssRuleType, MediaRule};
 use style_traits::ToCss;
 
 use crate::dom::bindings::codegen::Bindings::CSSMediaRuleBinding::CSSMediaRuleMethods;
@@ -68,9 +68,8 @@ impl CSSMediaRule {
 }
 
 impl SpecificCSSRule for CSSMediaRule {
-    fn ty(&self) -> u16 {
-        use crate::dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
-        CSSRuleConstants::MEDIA_RULE
+    fn ty(&self) -> CssRuleType {
+        CssRuleType::Media
     }
 
     fn get_css(&self) -> DOMString {

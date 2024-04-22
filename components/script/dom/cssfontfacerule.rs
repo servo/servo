@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
-use style::stylesheets::FontFaceRule;
+use style::stylesheets::{CssRuleType, FontFaceRule};
 
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
@@ -50,9 +50,8 @@ impl CSSFontFaceRule {
 }
 
 impl SpecificCSSRule for CSSFontFaceRule {
-    fn ty(&self) -> u16 {
-        use crate::dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
-        CSSRuleConstants::FONT_FACE_RULE
+    fn ty(&self) -> CssRuleType {
+        CssRuleType::FontFace
     }
 
     fn get_css(&self) -> DOMString {

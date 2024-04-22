@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::ToCssWithGuard;
-use style::stylesheets::SupportsRule;
+use style::stylesheets::{CssRuleType, SupportsRule};
 use style_traits::ToCss;
 
 use crate::dom::bindings::reflector::reflect_dom_object;
@@ -58,9 +58,8 @@ impl CSSSupportsRule {
 }
 
 impl SpecificCSSRule for CSSSupportsRule {
-    fn ty(&self) -> u16 {
-        use crate::dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
-        CSSRuleConstants::SUPPORTS_RULE
+    fn ty(&self) -> CssRuleType {
+        CssRuleType::Supports
     }
 
     fn get_css(&self) -> DOMString {

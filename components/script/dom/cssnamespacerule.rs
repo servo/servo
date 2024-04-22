@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::ToCssWithGuard;
-use style::stylesheets::NamespaceRule;
+use style::stylesheets::{CssRuleType, NamespaceRule};
 
 use crate::dom::bindings::codegen::Bindings::CSSNamespaceRuleBinding::CSSNamespaceRuleMethods;
 use crate::dom::bindings::reflector::reflect_dom_object;
@@ -67,9 +67,8 @@ impl CSSNamespaceRuleMethods for CSSNamespaceRule {
 }
 
 impl SpecificCSSRule for CSSNamespaceRule {
-    fn ty(&self) -> u16 {
-        use crate::dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
-        CSSRuleConstants::NAMESPACE_RULE
+    fn ty(&self) -> CssRuleType {
+        CssRuleType::Namespace
     }
 
     fn get_css(&self) -> DOMString {

@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::jsval::JSVal;
 use servo_arc::Arc;
 use style::shared_lock::ToCssWithGuard;
-use style::stylesheets::LayerStatementRule;
+use style::stylesheets::{CssRuleType, LayerStatementRule};
 use style_traits::ToCss;
 
 use crate::dom::bindings::codegen::Bindings::CSSLayerStatementRuleBinding::CSSLayerStatementRuleMethods;
@@ -55,8 +55,8 @@ impl CSSLayerStatementRule {
 }
 
 impl SpecificCSSRule for CSSLayerStatementRule {
-    fn ty(&self) -> u16 {
-        0
+    fn ty(&self) -> CssRuleType {
+        CssRuleType::LayerStatement
     }
 
     fn get_css(&self) -> DOMString {
