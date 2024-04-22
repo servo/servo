@@ -49,11 +49,6 @@ pub(crate) enum Fragment {
 }
 
 #[derive(Serialize)]
-pub(crate) struct FloatFragment {
-    pub box_fragment: BoxFragment,
-}
-
-#[derive(Serialize)]
 pub(crate) struct CollapsedBlockMargins {
     pub collapsed_through: bool,
     pub start: CollapsedMargin,

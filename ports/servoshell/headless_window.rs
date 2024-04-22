@@ -69,14 +69,6 @@ impl WindowPortsMethods for Window {
         }
     }
 
-    fn has_events(&self) -> bool {
-        self.event_queue
-            .read()
-            .ok()
-            .map(|queue| !queue.is_empty())
-            .unwrap_or(false)
-    }
-
     fn id(&self) -> winit::window::WindowId {
         unsafe { winit::window::WindowId::dummy() }
     }

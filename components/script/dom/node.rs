@@ -1330,8 +1330,6 @@ pub trait LayoutNodeHelpers<'dom> {
     unsafe fn get_flag(self, flag: NodeFlags) -> bool;
     unsafe fn set_flag(self, flag: NodeFlags, value: bool);
 
-    fn children_count(self) -> u32;
-
     fn style_data(self) -> Option<&'dom StyleData>;
     fn layout_data(self) -> Option<&'dom GenericLayoutData>;
 
@@ -1472,11 +1470,6 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         }
 
         (this).flags.set(flags);
-    }
-
-    #[inline]
-    fn children_count(self) -> u32 {
-        self.unsafe_get().children_count.get()
     }
 
     // FIXME(nox): How we handle style and layout data needs to be completely

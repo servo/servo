@@ -137,8 +137,6 @@ impl PaddingBorderMargin {
 }
 
 pub(crate) trait ComputedValuesExt {
-    fn inline_size_is_length(&self) -> bool;
-    fn inline_box_offsets_are_both_non_auto(&self) -> bool;
     fn box_offsets(
         &self,
         containing_block: &ContainingBlock,
@@ -198,28 +196,6 @@ pub(crate) trait ComputedValuesExt {
 }
 
 impl ComputedValuesExt for ComputedValues {
-    fn inline_size_is_length(&self) -> bool {
-        let position = self.get_position();
-        // FIXME: this is the wrong writing mode but we plan to remove eager content size computation.
-        let size = if self.writing_mode.is_horizontal() {
-            &position.width
-        } else {
-            &position.height
-        };
-        matches!(size, Size::LengthPercentage(lp) if lp.0.to_length().is_some())
-    }
-
-    fn inline_box_offsets_are_both_non_auto(&self) -> bool {
-        let position = self.get_position();
-        // FIXME: this is the wrong writing mode but we plan to remove eager content size computation.
-        let (a, b) = if self.writing_mode.is_horizontal() {
-            (&position.left, &position.right)
-        } else {
-            (&position.top, &position.bottom)
-        };
-        !a.is_auto() && !b.is_auto()
-    }
-
     fn box_offsets(
         &self,
         containing_block: &ContainingBlock,

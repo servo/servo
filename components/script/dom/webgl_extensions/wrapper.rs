@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::any::Any;
 use std::ptr::NonNull;
 
 use js::jsapi::JSObject;
@@ -27,7 +26,6 @@ pub trait WebGLExtensionWrapper: JSTraceable + MallocSizeOf {
     fn is_enabled(&self) -> bool;
     fn enable(&self, ext: &WebGLExtensions);
     fn name(&self) -> &'static str;
-    fn as_any(&self) -> &dyn Any;
 }
 
 #[crown::unrooted_must_root_lint::must_root]
@@ -85,9 +83,5 @@ where
 
     fn name(&self) -> &'static str {
         T::name()
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
     }
 }

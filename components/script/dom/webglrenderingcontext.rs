@@ -4960,16 +4960,6 @@ impl WebGLMessageSender {
     }
 }
 
-pub trait Size2DExt {
-    fn to_u64(&self) -> Size2D<u64>;
-}
-
-impl Size2DExt for Size2D<u32> {
-    fn to_u64(&self) -> Size2D<u64> {
-        Size2D::new(self.width as u64, self.height as u64)
-    }
-}
-
 fn array_buffer_type_to_sized_type(type_: Type) -> Option<SizedDataType> {
     match type_ {
         Type::Uint8 | Type::Uint8Clamped => Some(SizedDataType::Uint8),

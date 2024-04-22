@@ -283,10 +283,6 @@ impl WindowPortsMethods for Window {
         std::mem::take(&mut *self.event_queue.borrow_mut())
     }
 
-    fn has_events(&self) -> bool {
-        !self.event_queue.borrow().is_empty()
-    }
-
     fn device_hidpi_factor(&self) -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
         Scale::new(self.winit_window.scale_factor() as f32)
     }
