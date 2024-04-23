@@ -86,11 +86,9 @@ impl TestFontSource {
             None,
         )
         .unwrap();
-        let descriptor =
-            FontTemplateDescriptor::new(handle.boldness(), handle.stretchiness(), handle.style());
         family.add_template(FontTemplate::new_web_font(
             Self::url_for_font_name(name),
-            descriptor,
+            handle.descriptor(),
             data,
         ));
     }

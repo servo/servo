@@ -31,6 +31,16 @@ pub struct FontTemplateDescriptor {
     pub style: FontStyle,
 }
 
+impl Default for FontTemplateDescriptor {
+    fn default() -> Self {
+        FontTemplateDescriptor {
+            weight: FontWeight::normal(),
+            stretch: FontStretch::NORMAL,
+            style: FontStyle::NORMAL,
+        }
+    }
+}
+
 /// FontTemplateDescriptor contains floats, which are not Eq because of NaN. However,
 /// we know they will never be NaN, so we can manually implement Eq.
 impl Eq for FontTemplateDescriptor {}

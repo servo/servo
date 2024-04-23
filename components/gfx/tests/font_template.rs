@@ -34,7 +34,7 @@ fn test_font_template_descriptor() {
         let file = File::open(path.clone()).unwrap();
         let data = file.bytes().map(|b| b.unwrap()).collect();
         let handle = PlatformFont::new_from_data(identifier, Arc::new(data), 0, None).unwrap();
-        FontTemplateDescriptor::new(handle.boldness(), handle.stretchiness(), handle.style())
+        handle.descriptor()
     }
 
     assert_eq!(
