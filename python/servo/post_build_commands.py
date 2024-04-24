@@ -11,7 +11,7 @@ import json
 import os
 import os.path as path
 import subprocess
-from shutil import copytree, rmtree, copy2
+from shutil import copy2
 from typing import List
 
 import mozdebug
@@ -28,7 +28,7 @@ import servo.platform
 from servo.command_base import (
     BuildType,
     CommandBase,
-    check_call, check_output,
+    check_call,
     is_linux,
 )
 
@@ -241,31 +241,10 @@ class PostBuildCommands(CommandBase):
     @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
     def doc(self, params: List[str], **kwargs):
         self.ensure_bootstrapped()
-        rustc_path = check_output(
-            [f"rustup{servo.platform.get().executable_suffix()}", "which", "rustc"],
-            cwd=self.context.topdir).decode("utf-8")
-        assert path.basename(path.dirname(rustc_path)) == "bin"
-        toolchain_path = path.dirname(path.dirname(rustc_path))
-        rust_docs = path.join(toolchain_path, "share", "doc", "rust", "html")
 
         docs = path.join(servo.util.get_target_dir(), "doc")
         if not path.exists(docs):
             os.makedirs(docs)
-
-        if read_file(path.join(docs, "version_info.html"), if_exists=True) != \
-                read_file(path.join(rust_docs, "version_info.html")):
-            print("Copying Rust documentation.")
-            # copytree doesn't like the destination already existing.
-            for name in os.listdir(rust_docs):
-                if not name.startswith('.'):
-                    full_name = path.join(rust_docs, name)
-                    destination = path.join(docs, name)
-                    if path.isdir(full_name):
-                        if path.exists(destination):
-                            rmtree(destination)
-                        copytree(full_name, destination)
-                    else:
-                        copy2(full_name, destination)
 
         # Documentation build errors shouldn't cause the entire build to fail. This
         # prevents issues with dependencies from breaking our documentation build,
