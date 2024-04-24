@@ -102,4 +102,3 @@ interface mixin ARIAMixin {
   [CEReactions]
            attribute DOMString? ariaValueText;
 };
-
