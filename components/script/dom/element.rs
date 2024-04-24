@@ -2931,6 +2931,14 @@ impl ElementMethods for Element {
         self.attach_shadow(IsUserAgentWidget::No)
     }
 
+    fn GetRole(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("role"))
+    }
+
+    fn SetRole(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("role"), value);
+    }
+
     fn GetAriaAtomic(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-atomic"))
     }
@@ -3273,14 +3281,6 @@ impl ElementMethods for Element {
 
     fn SetAriaValueText(&self, value: Option<DOMString>) {
         self.set_nullable_string_attribute(&local_name!("aria-valuetext"), value);
-    }
-
-    fn GetRole(&self) -> Option<DOMString> {
-        self.get_nullable_string_attribute(&local_name!("role"))
-    }
-
-    fn SetRole(&self, value: Option<DOMString>) {
-        self.set_nullable_string_attribute(&local_name!("role"), value);
     }
 }
 
