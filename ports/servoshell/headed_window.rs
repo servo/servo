@@ -387,9 +387,13 @@ impl WindowPortsMethods for Window {
             Cursor::AllScroll => CursorIcon::AllScroll,
             Cursor::ZoomIn => CursorIcon::ZoomIn,
             Cursor::ZoomOut => CursorIcon::ZoomOut,
-            _ => CursorIcon::Default,
+            Cursor::None => {
+                self.winit_window.set_cursor_visible(false);
+                return;
+            },
         };
         self.winit_window.set_cursor_icon(winit_cursor);
+        self.winit_window.set_cursor_visible(true);
     }
 
     fn is_animating(&self) -> bool {
