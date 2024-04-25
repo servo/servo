@@ -2560,6 +2560,12 @@ impl Window {
             pipelineid,
             script_chan: Arc::new(Mutex::new(control_chan)),
         };
+
+        let initial_viewport = f32_rect_to_au_rect(UntypedRect::new(
+            Point2D::zero(),
+            window_size.initial_viewport.to_untyped(),
+        ));
+
         let win = Box::new(Self {
             globalscope: GlobalScope::new_inherited(
                 pipelineid,
@@ -2602,7 +2608,7 @@ impl Window {
             page_clip_rect: Cell::new(MaxRect::max_rect()),
             resize_event: Default::default(),
             window_size: Cell::new(window_size),
-            current_viewport: Cell::new(Rect::zero()),
+            current_viewport: Cell::new(initial_viewport.to_untyped()),
             suppress_reflow: Cell::new(true),
             pending_reflow_count: Default::default(),
             current_state: Cell::new(WindowState::Alive),

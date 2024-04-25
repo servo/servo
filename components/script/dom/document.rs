@@ -980,21 +980,20 @@ impl Document {
         let point = target
             .as_ref()
             .map(|element| {
-                // FIXME(#8275, pcwalton): This is pretty bogus when multiple layers are involved.
-                // Really what needs to happen is that this needs to go through layout to ask which
-                // layer the element belongs to, and have it send the scroll message to the
-                // compositor.
+                // TODO: This strategy is completely wrong if the element we are scrolling to in
+                // inside other scrollable containers. Ideally this should use an implementation of
+                // `scrollIntoView` when that is available:
+                // See https://github.com/servo/servo/issues/24059.
                 let rect = element.upcast::<Node>().bounding_content_box_or_zero();
 
                 // In order to align with element edges, we snap to unscaled pixel boundaries, since
                 // the paint thread currently does the same for drawing elements. This is important
                 // for pages that require pixel perfect scroll positioning for proper display
-                // (like Acid2). Since we don't have the device pixel ratio here, this might not be
-                // accurate, but should work as long as the ratio is a whole number. Once #8275 is
-                // fixed this should actually take into account the real device pixel ratio.
+                // (like Acid2).
+                let device_pixel_ratio = self.window.device_pixel_ratio().get();
                 (
-                    rect.origin.x.to_nearest_px() as f32,
-                    rect.origin.y.to_nearest_px() as f32,
+                    rect.origin.x.to_nearest_pixel(device_pixel_ratio) as f32,
+                    rect.origin.y.to_nearest_pixel(device_pixel_ratio) as f32,
                 )
             })
             .or_else(|| {
@@ -1008,16 +1007,8 @@ impl Document {
             });
 
         if let Some((x, y)) = point {
-            // Step 3
-            let global_scope = self.window.upcast::<GlobalScope>();
-            self.window.update_viewport_for_scroll(x, y);
-            self.window.perform_a_scroll(
-                x,
-                y,
-                global_scope.pipeline_id().root_scroll_id(),
-                ScrollBehavior::Instant,
-                target.as_deref(),
-            );
+            self.window
+                .scroll(x as f64, y as f64, ScrollBehavior::Instant)
         }
     }
 
