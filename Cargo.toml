@@ -48,7 +48,7 @@ gstreamer-gl-wayland = { version = "0.22" }
 gstreamer-sys = "0.22"
 gstreamer-video = "0.22"
 headers = "0.3"
-html5ever = "0.26"
+html5ever = "0.27"
 http = "0.2"
 hyper = "0.14"
 hyper-rustls = { version = "0.24", default-features = false, features = ["acceptor", "http1", "http2", "logging", "tls12", "webpki-tokio"] }
@@ -130,7 +130,7 @@ wgpu-core = "0.18"
 wgpu-types = "0.18"
 winapi = "0.3"
 xi-unicode = "0.1.0"
-xml5ever = "0.17"
+xml5ever = "0.18"
 
 [profile.release]
 opt-level = 3
