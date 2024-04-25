@@ -3311,6 +3311,8 @@ impl SelectorsElement for DomRoot<Element> {
                 },
             },
 
+            NonTSPseudoClass::CustomState(ref state) => self.has_custom_state(&state.0),
+
             // FIXME(heycam): This is wrong, since extended_filtering accepts
             // a string containing commas (separating each language tag in
             // a list) but the pseudo-class instead should be parsing and
@@ -3431,6 +3433,10 @@ impl SelectorsElement for DomRoot<Element> {
         }
 
         true
+    }
+
+    fn has_custom_state(&self, _name: &AtomIdent) -> bool {
+        false
     }
 }
 
