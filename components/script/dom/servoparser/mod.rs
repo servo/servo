@@ -357,7 +357,7 @@ impl ServoParser {
         // and process, with nothing pushed to the parser script input.
         assert!(self.script_input.borrow().is_empty());
 
-        let mut input = BufferQueue::new();
+        let mut input = BufferQueue::default();
         for chunk in text {
             input.push_back(String::from(chunk).into());
         }
@@ -399,8 +399,8 @@ impl ServoParser {
         self.aborted.set(true);
 
         // Step 1.
-        *self.script_input.borrow_mut() = BufferQueue::new();
-        *self.network_input.borrow_mut() = BufferQueue::new();
+        *self.script_input.borrow_mut() = BufferQueue::default();
+        *self.network_input.borrow_mut() = BufferQueue::default();
 
         // Step 2.
         self.document
@@ -431,8 +431,8 @@ impl ServoParser {
             document: Dom::from_ref(document),
             bom_sniff: DomRefCell::new(Some(Vec::with_capacity(3))),
             network_decoder: DomRefCell::new(Some(NetworkDecoder::new(document.encoding()))),
-            network_input: DomRefCell::new(BufferQueue::new()),
-            script_input: DomRefCell::new(BufferQueue::new()),
+            network_input: DomRefCell::new(BufferQueue::default()),
+            script_input: DomRefCell::new(BufferQueue::default()),
             tokenizer: DomRefCell::new(tokenizer),
             last_chunk_received: Cell::new(last_chunk_state == LastChunkState::Received),
             suspended: Default::default(),
@@ -440,7 +440,7 @@ impl ServoParser {
             aborted: Default::default(),
             script_created_parser: kind == ParserKind::ScriptCreated,
             prefetch_tokenizer: DomRefCell::new(prefetch::Tokenizer::new(document)),
-            prefetch_input: DomRefCell::new(BufferQueue::new()),
+            prefetch_input: DomRefCell::new(BufferQueue::default()),
         }
     }
 

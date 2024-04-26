@@ -66,7 +66,6 @@ packages = [
 
     # Stylo uses phf 0.11, while script and other dependencies use 0.10.
     "phf",
-    "phf_codegen",
     "phf_generator",
     "phf_shared",
 

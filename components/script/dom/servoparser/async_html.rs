@@ -171,7 +171,7 @@ enum ToHtmlTokenizerMsg {
 }
 
 fn create_buffer_queue(mut buffers: VecDeque<SendTendril<UTF8>>) -> BufferQueue {
-    let mut buffer_queue = BufferQueue::new();
+    let mut buffer_queue = BufferQueue::default();
     while let Some(st) = buffers.pop_front() {
         buffer_queue.push_back(StrTendril::from(st));
     }
