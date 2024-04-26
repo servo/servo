@@ -72,8 +72,6 @@ impl Identities {
             vk_hub: IdentityHub::new(),
             #[cfg(target_os = "windows")]
             dx12_hub: IdentityHub::new(),
-            #[cfg(target_os = "windows")]
-            dx11_hub: IdentityHub::new(),
             #[cfg(any(target_os = "ios", target_os = "macos"))]
             metal_hub: IdentityHub::new(),
             dummy_hub: IdentityHub::new(),
@@ -86,8 +84,6 @@ impl Identities {
             Backend::Vulkan => &mut self.vk_hub,
             #[cfg(target_os = "windows")]
             Backend::Dx12 => &mut self.dx12_hub,
-            #[cfg(target_os = "windows")]
-            Backend::Dx11 => &mut self.dx11_hub,
             #[cfg(any(target_os = "ios", target_os = "macos"))]
             Backend::Metal => &mut self.metal_hub,
             _ => &mut self.dummy_hub,
@@ -100,8 +96,6 @@ impl Identities {
             (&mut self.vk_hub, Backend::Vulkan),
             #[cfg(target_os = "windows")]
             (&mut self.dx12_hub, Backend::Dx12),
-            #[cfg(target_os = "windows")]
-            (&mut self.dx11_hub, Backend::Dx11),
             #[cfg(any(target_os = "ios", target_os = "macos"))]
             (&mut self.metal_hub, Backend::Metal),
             (&mut self.dummy_hub, Backend::Empty),
