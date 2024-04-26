@@ -790,17 +790,17 @@ where
                         &PseudoElement::ServoLegacyText, // FIMXE: use `PseudoElement::Marker` when we add it
                         &info.style,
                     );
-                let info = info.new_replacing_style(marker_style.clone());
                 let contents = NonReplacedContents::OfPseudoElement(contents);
                 let block_container = BlockContainer::construct(
                     context,
-                    &info,
+                    &info.new_replacing_style(marker_style.clone()),
                     contents,
                     TextDecorationLine::empty(),
                     false, /* is_list_item */
                 );
                 ArcRefCell::new(BlockLevelBox::OutsideMarker(OutsideMarker {
-                    style: marker_style,
+                    marker_style,
+                    list_item_style: info.style.clone(),
                     block_container,
                 }))
             },

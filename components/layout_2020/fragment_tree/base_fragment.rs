@@ -91,6 +91,9 @@ bitflags! {
         /// Whether or not this Fragment was created to contain a replaced element or is
         /// a replaced element.
         const IS_REPLACED = 0b00000100;
+        /// Whether or not this Fragment was created to contain a list item marker
+        /// with a used value of `list-style-position: outside`.
+        const IS_OUTSIDE_LIST_ITEM_MARKER = 0b00001000;
     }
 }
 
