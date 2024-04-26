@@ -49,7 +49,7 @@ public class Servo {
 
     public void shutdown() {
         mShuttingDown = true;
-        FutureTask<Void> task = new FutureTask<Void>(new Callable<Void>() {
+        FutureTask<Void> task = new FutureTask<>(new Callable<Void>() {
             public Void call() throws Exception {
                 mJNI.requestShutdown();
                 // Wait until Servo gets back to us to finalize shutdown.

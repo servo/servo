@@ -27,6 +27,7 @@ import android.view.Choreographer;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
+import android.view.View;
 import android.widget.OverScroller;
 
 import java.util.ArrayList;
@@ -78,7 +79,7 @@ public class ServoView extends SurfaceView
         setFocusable(true);
         setFocusableInTouchMode(true);
         setClickable(true);
-        ArrayList view = new ArrayList();
+        ArrayList<View> view = new ArrayList<>();
         view.add(this);
         addTouchables(view);
         setWillNotCacheDrawing(false);

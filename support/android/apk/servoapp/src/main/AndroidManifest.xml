@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- BEGIN_INCLUDE(manifest) -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" android:installLocation="auto">
 
     <uses-feature android:glEsVersion="0x00030000" android:required="true" />
@@ -12,8 +11,8 @@
 
     <application android:label="Servo" android:icon="@mipmap/servo">
         <activity android:name=".MainActivity"
-                android:label="Servo"
-                android:configChanges="density|keyboardHidden|navigation|orientation|screenSize|uiMode">
+            android:configChanges="density|keyboardHidden|navigation|orientation|screenSize|uiMode"
+            android:exported="true">
             <meta-data android:name="android.app.lib_name" android:value="servo" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -45,4 +44,3 @@
     </application>
 
 </manifest>
-<!-- END_INCLUDE(manifest) -->
