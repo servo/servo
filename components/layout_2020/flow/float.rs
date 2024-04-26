@@ -950,12 +950,26 @@ impl FloatBox {
                             &containing_block_for_children,
                             containing_block,
                         );
+                        let (block_size, inline_size) =
+                            match independent_layout.content_inline_size_for_table {
+                                Some(inline_size) => (
+                                    independent_layout.content_block_size.into(),
+                                    inline_size.into(),
+                                ),
+                                None => (
+                                    box_size.block.auto_is(|| {
+                                        Length::from(independent_layout.content_block_size)
+                                            .clamp_between_extremums(
+                                                min_box_size.block,
+                                                max_box_size.block,
+                                            )
+                                    }),
+                                    inline_size,
+                                ),
+                            };
                         content_size = LogicalVec2 {
                             inline: inline_size,
-                            block: block_size.auto_is(|| {
-                                Length::from(independent_layout.content_block_size)
-                                    .clamp_between_extremums(min_box_size.block, max_box_size.block)
-                            }),
+                            block: block_size,
                         };
                         children = independent_layout.fragments;
                     },
