@@ -23,17 +23,20 @@ smallvec = { workspace = true, features = ["serde"] }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
-wgpu-core = { workspace = true, features = ["replay", "trace", "serial-pass", "wgsl"] }
+wgpu-core = { workspace = true, features = ["replay", "trace", "wgsl"] }
 wgpu-types = { workspace = true }
 
+# We want the wgpu-core Metal backend on macOS and iOS.
 [target.'cfg(any(target_os = "ios", target_os = "macos"))'.dependencies.wgpu-core]
 workspace = true
-features = ["replay", "trace", "serial-pass", "metal"]
+features = ["metal"]
 
-[target.'cfg(all(unix, not(target_os = "ios"), not(target_os = "macos")))'.dependencies.wgpu-core]
+# We want the wgpu-core Vulkan backend on Linux and Windows.
+[target.'cfg(any(windows, all(unix, not(any(target_os = "macos", target_os = "ios")))))'.dependencies.wgpu-core]
 workspace = true
-features = ["replay", "trace", "serial-pass", "vulkan"]
+features = ["vulkan"]
 
+# We want the wgpu-core Direct3D backends on Windows.
 [target.'cfg(windows)'.dependencies.wgpu-core]
 workspace = true
-features = ["replay", "trace", "serial-pass", "dx11", "dx12", "vulkan"]
+features = ["dx12", "vulkan"]

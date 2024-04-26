@@ -129,7 +129,7 @@ interface GPUDevice: EventTarget {
 
     [NewObject, Throws]
     GPUBuffer createBuffer(GPUBufferDescriptor descriptor);
-    [NewObject]
+    [NewObject, Throws]
     GPUTexture createTexture(GPUTextureDescriptor descriptor);
     [NewObject]
     GPUSampler createSampler(optional GPUSamplerDescriptor descriptor = {});

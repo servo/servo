@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::{WebGPUBindGroupLayout, WebGPUPipelineLayout};
+use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPUPipelineLayout, WebGPURequest};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUPipelineLayoutMethods;
@@ -15,6 +15,9 @@ use crate::dom::globalscope::GlobalScope;
 #[dom_struct]
 pub struct GPUPipelineLayout {
     reflector_: Reflector,
+    #[ignore_malloc_size_of = "defined in webgpu"]
+    #[no_trace]
+    channel: WebGPU,
     label: DomRefCell<USVString>,
     #[no_trace]
     pipeline_layout: WebGPUPipelineLayout,
@@ -24,12 +27,14 @@ pub struct GPUPipelineLayout {
 
 impl GPUPipelineLayout {
     fn new_inherited(
+        channel: WebGPU,
         pipeline_layout: WebGPUPipelineLayout,
         label: USVString,
         bgls: Vec<WebGPUBindGroupLayout>,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
+            channel,
             label: DomRefCell::new(label),
             pipeline_layout,
             bind_group_layouts: bgls,
@@ -38,12 +43,14 @@ impl GPUPipelineLayout {
 
     pub fn new(
         global: &GlobalScope,
+        channel: WebGPU,
         pipeline_layout: WebGPUPipelineLayout,
         label: USVString,
         bgls: Vec<WebGPUBindGroupLayout>,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUPipelineLayout::new_inherited(
+                channel,
                 pipeline_layout,
                 label,
                 bgls,
@@ -72,5 +79,19 @@ impl GPUPipelineLayoutMethods for GPUPipelineLayout {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
+    }
+}
+
+impl Drop for GPUPipelineLayout {
+    fn drop(&mut self) {
+        if let Err(e) = self.channel.0.send((
+            None,
+            WebGPURequest::DropPipelineLayout(self.pipeline_layout.0),
+        )) {
+            warn!(
+                "Failed to send DropPipelineLayout ({:?}) ({})",
+                self.pipeline_layout.0, e
+            );
+        }
     }
 }

@@ -74,10 +74,10 @@ impl Drop for GPUCommandBuffer {
     fn drop(&mut self) {
         if let Err(e) = self.channel.0.send((
             None,
-            WebGPURequest::FreeCommandBuffer(self.command_buffer.0),
+            WebGPURequest::DropCommandBuffer(self.command_buffer.0),
         )) {
             warn!(
-                "Failed to send FreeCommandBuffer({:?}) ({})",
+                "Failed to send DropCommandBuffer({:?}) ({})",
                 self.command_buffer.0, e
             );
         }

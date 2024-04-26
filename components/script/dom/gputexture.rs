@@ -109,7 +109,19 @@ impl GPUTexture {
 
 impl Drop for GPUTexture {
     fn drop(&mut self) {
-        self.Destroy()
+        if self.destroyed.get() {
+            return;
+        }
+        if let Err(e) = self
+            .channel
+            .0
+            .send((None, WebGPURequest::DropTexture(self.texture.0)))
+        {
+            warn!(
+                "Failed to send WebGPURequest::DropTexture({:?}) ({})",
+                self.texture.0, e
+            );
+        };
     }
 }
 
@@ -186,6 +198,7 @@ impl GPUTextureMethods for GPUTexture {
 
         GPUTextureView::new(
             &self.global(),
+            self.channel.clone(),
             texture_view,
             self,
             descriptor.parent.label.clone().unwrap_or_default(),
@@ -197,11 +210,13 @@ impl GPUTextureMethods for GPUTexture {
         if self.destroyed.get() {
             return;
         }
-        if let Err(e) = self
-            .channel
-            .0
-            .send((None, WebGPURequest::DestroyTexture(self.texture.0)))
-        {
+        if let Err(e) = self.channel.0.send((
+            None,
+            WebGPURequest::DestroyTexture {
+                device_id: self.device.id().0,
+                texture_id: self.texture.0,
+            },
+        )) {
             warn!(
                 "Failed to send WebGPURequest::DestroyTexture({:?}) ({})",
                 self.texture.0, e

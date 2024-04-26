@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::{WebGPUBindGroup, WebGPUDevice};
+use webgpu::{WebGPU, WebGPUBindGroup, WebGPUDevice, WebGPURequest};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUBindGroupMethods;
@@ -16,6 +16,9 @@ use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
 #[dom_struct]
 pub struct GPUBindGroup {
     reflector_: Reflector,
+    #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
+    channel: WebGPU,
     label: DomRefCell<USVString>,
     #[no_trace]
     bind_group: WebGPUBindGroup,
@@ -26,6 +29,7 @@ pub struct GPUBindGroup {
 
 impl GPUBindGroup {
     fn new_inherited(
+        channel: WebGPU,
         bind_group: WebGPUBindGroup,
         device: WebGPUDevice,
         layout: &GPUBindGroupLayout,
@@ -33,6 +37,7 @@ impl GPUBindGroup {
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
+            channel,
             label: DomRefCell::new(label),
             bind_group,
             device,
@@ -42,6 +47,7 @@ impl GPUBindGroup {
 
     pub fn new(
         global: &GlobalScope,
+        channel: WebGPU,
         bind_group: WebGPUBindGroup,
         device: WebGPUDevice,
         layout: &GPUBindGroupLayout,
@@ -49,7 +55,7 @@ impl GPUBindGroup {
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUBindGroup::new_inherited(
-                bind_group, device, layout, label,
+                channel, bind_group, device, layout, label,
             )),
             global,
         )
@@ -59,6 +65,21 @@ impl GPUBindGroup {
 impl GPUBindGroup {
     pub fn id(&self) -> &WebGPUBindGroup {
         &self.bind_group
+    }
+}
+
+impl Drop for GPUBindGroup {
+    fn drop(&mut self) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send((None, WebGPURequest::DropBindGroup(self.bind_group.0)))
+        {
+            warn!(
+                "Failed to send WebGPURequest::DropBindGroup({:?}) ({})",
+                self.bind_group.0, e
+            );
+        };
     }
 }
 

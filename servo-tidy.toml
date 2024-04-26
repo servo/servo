@@ -52,6 +52,7 @@ packages = [
     "foreign-types",
     "foreign-types-shared",
     "metal",
+    "raw-window-handle",
 
     # Duplicated by indexmap.
     "hashbrown",

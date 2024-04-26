@@ -5,7 +5,7 @@
 use std::string::String;
 
 use dom_struct::dom_struct;
-use webgpu::{WebGPUBindGroupLayout, WebGPURenderPipeline};
+use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPURenderPipeline, WebGPURequest};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPURenderPipelineMethods;
@@ -20,6 +20,9 @@ use crate::dom::gpudevice::GPUDevice;
 #[dom_struct]
 pub struct GPURenderPipeline {
     reflector_: Reflector,
+    #[ignore_malloc_size_of = "channels are hard"]
+    #[no_trace]
+    channel: WebGPU,
     label: DomRefCell<USVString>,
     #[no_trace]
     render_pipeline: WebGPURenderPipeline,
@@ -37,6 +40,7 @@ impl GPURenderPipeline {
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
+            channel: device.channel(),
             label: DomRefCell::new(label),
             render_pipeline,
             bind_group_layouts: bgls,
@@ -87,8 +91,23 @@ impl GPURenderPipelineMethods for GPURenderPipeline {
         }
         Ok(GPUBindGroupLayout::new(
             &self.global(),
+            self.channel.clone(),
             self.bind_group_layouts[index as usize],
             USVString::default(),
         ))
+    }
+}
+
+impl Drop for GPURenderPipeline {
+    fn drop(&mut self) {
+        if let Err(e) = self.channel.0.send((
+            None,
+            WebGPURequest::DropRenderPipeline(self.render_pipeline.0),
+        )) {
+            warn!(
+                "Failed to send WebGPURequest::DropRenderPipeline({:?}) ({})",
+                self.render_pipeline.0, e
+            );
+        };
     }
 }

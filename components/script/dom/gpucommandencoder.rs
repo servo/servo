@@ -393,7 +393,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             .expect("Failed to send Finish");
 
         *self.state.borrow_mut() = GPUCommandEncoderState::Closed;
-        let buffer = webgpu::WebGPUCommandBuffer(self.encoder.0);
+        let buffer = webgpu::WebGPUCommandBuffer(self.encoder.0.transmute());
         GPUCommandBuffer::new(
             &self.global(),
             self.channel.clone(),
