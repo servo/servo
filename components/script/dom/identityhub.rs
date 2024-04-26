@@ -201,9 +201,7 @@ impl Identities {
     }
 
     pub fn create_texture_id(&mut self, backend: Backend) -> TextureId {
-        let r = self.select(backend).textures.process(backend);
-        warn!("TEXTURE: {r:?}");
-        r
+        self.select(backend).textures.process(backend)
     }
 
     pub fn kill_texture_id(&mut self, id: TextureId) {
