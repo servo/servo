@@ -50,7 +50,7 @@ use wgpu::resource::{
 use wgt::InstanceDescriptor;
 
 pub type ErrorScopeId = NonZeroU64;
-const DEVICE_POLL_INTERVAL: u64 = 100;
+const DEVICE_POLL_INTERVAL: Duration = Duration::from_millis(50);
 pub const PRESENTATION_BUFFER_COUNT: usize = 10;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -392,11 +392,15 @@ impl WGPU {
 
     fn run(&mut self) {
         loop {
-            if self.last_poll.elapsed() >= Duration::from_millis(DEVICE_POLL_INTERVAL) {
+            let diff = DEVICE_POLL_INTERVAL.checked_sub(self.last_poll.elapsed());
+            if diff.is_none() {
                 let _ = self.global.poll_all_devices(false);
                 self.last_poll = Instant::now();
             }
-            if let Ok((scope_id, msg)) = self.receiver.try_recv() {
+            if let Ok((scope_id, msg)) = self
+                .receiver
+                .try_recv_timeout(diff.unwrap_or(DEVICE_POLL_INTERVAL))
+            {
                 match msg {
                     WebGPURequest::BufferMapAsync {
                         sender,
