@@ -13,6 +13,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.system.ErrnoException;
 import android.system.Os;
+import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
@@ -21,11 +22,9 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.util.Log;
 
-import org.mozilla.servo.MediaSession;
-import org.mozilla.servoview.ServoView;
 import org.mozilla.servoview.Servo;
+import org.mozilla.servoview.ServoView;
 
 import java.io.File;
 

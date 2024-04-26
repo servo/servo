@@ -872,6 +872,10 @@ fn get_options(
     prefs.insert("js.baseline_interpreter.enabled".to_string(), false.into());
     prefs.insert("js.baseline_jit.enabled".to_string(), false.into());
     prefs.insert("js.ion.enabled".to_string(), false.into());
+    
+    if let Some(url) = url {
+        prefs.insert("shell.homepage".to_string(), url.into());
+    }
 
     let opts = InitOptions {
         args: args.unwrap_or(vec![]),

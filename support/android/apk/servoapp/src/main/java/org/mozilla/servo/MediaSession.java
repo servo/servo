@@ -5,7 +5,6 @@
 
 package org.mozilla.servo;
 
-import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -124,7 +123,7 @@ public class MediaSession {
 
       mContext.registerReceiver(mMediaSessionActionReceiver, filter);
 
-      Notification.Builder builder = new Notification.Builder(mContext, this.MEDIA_CHANNEL_ID);
+      Notification.Builder builder = new Notification.Builder(mContext, MEDIA_CHANNEL_ID);
       builder
         .setSmallIcon(R.drawable.media_session_icon)
         .setContentTitle(mTitle)
