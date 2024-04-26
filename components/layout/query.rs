@@ -766,13 +766,9 @@ pub fn process_resolved_style_request<'dom>(
     );
     let style = styles.primary();
     let longhand_id = match *property {
-        PropertyId::NonCustom(id) => {
-            match id.unaliased().as_longhand() {
-                Some(id) => id,
-                // Firefox returns blank strings for the computed value of shorthands,
-                // so this should be web-compatible.
-                None => return String::new(),
-            }
+        PropertyId::NonCustom(id) => match id.longhand_or_shorthand() {
+            Ok(longhand_id) => longhand_id,
+            Err(shorthand_id) => return shorthand_to_css_string(shorthand_id, style),
         },
         PropertyId::Custom(ref name) => {
             return style.computed_value_to_string(PropertyDeclarationId::Custom(name));
@@ -815,13 +811,9 @@ fn process_resolved_style_request_internal<'dom>(
 
     let style = &*layout_el.resolved_style();
     let longhand_id = match *property {
-        PropertyId::NonCustom(id) => {
-            match id.unaliased().as_longhand() {
-                Some(id) => id,
-                // Firefox returns blank strings for the computed value of shorthands,
-                // so this should be web-compatible.
-                None => return String::new(),
-            }
+        PropertyId::NonCustom(id) => match id.longhand_or_shorthand() {
+            Ok(longhand_id) => longhand_id,
+            Err(shorthand_id) => return shorthand_to_css_string(shorthand_id, style),
         },
         PropertyId::Custom(ref name) => {
             return style.computed_value_to_string(PropertyDeclarationId::Custom(name));
@@ -931,6 +923,25 @@ fn process_resolved_style_request_internal<'dom>(
         },
         // FIXME: implement used value computation for line-height
         _ => style.computed_value_to_string(PropertyDeclarationId::Longhand(longhand_id)),
+    }
+}
+
+fn shorthand_to_css_string(
+    id: style::properties::ShorthandId,
+    style: &style::properties::ComputedValues,
+) -> String {
+    use style::values::resolved::Context;
+    let mut block = PropertyDeclarationBlock::new();
+    let mut dest = String::new();
+    for longhand in id.longhands() {
+        block.push(
+            style.computed_or_resolved_declaration(longhand, Some(&Context { style })),
+            Importance::Normal,
+        );
+    }
+    match block.shorthand_to_css(id, &mut dest) {
+        Ok(_) => dest.to_owned(),
+        Err(_) => String::new(),
     }
 }
 
