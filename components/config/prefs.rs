@@ -551,6 +551,9 @@ mod gen {
                     #[serde(rename = "network.http-cache.disabled")]
                     disabled: bool,
                 },
+                local_directory_listing: {
+                    enabled: bool,
+                },
                 mime: {
                     sniff: bool,
                 }

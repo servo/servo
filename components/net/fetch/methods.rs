@@ -50,6 +50,7 @@ use crate::http_loader::{
     determine_requests_referrer, http_fetch, set_default_accept, set_default_accept_language,
     HttpState,
 };
+use crate::local_directory_listing;
 use crate::subresource_integrity::is_response_integrity_valid;
 
 lazy_static! {
@@ -729,15 +730,11 @@ async fn scheme_fetch(
                 ));
             }
             if let Ok(file_path) = url.to_file_path() {
-                if let Ok(file) = File::open(file_path.clone()) {
-                    if let Ok(metadata) = file.metadata() {
-                        if metadata.is_dir() {
-                            return Response::network_error(NetworkError::Internal(
-                                "Opening a directory is not supported".into(),
-                            ));
-                        }
-                    }
+                if file_path.is_dir() {
+                    return local_directory_listing::fetch(request, url, file_path);
+                }
 
+                if let Ok(file) = File::open(file_path.clone()) {
                     // Get range bounds (if any) and try to seek to the requested offset.
                     // If seeking fails, bail out with a NetworkError.
                     let file_size = match file.metadata() {

@@ -30,6 +30,7 @@ bluetooth_traits = { path = "components/shared/bluetooth" }
 byteorder = "1.5"
 canvas_traits = { path = "components/shared/canvas" }
 cfg-if = "1.0.0"
+chrono = "0.4"
 compositing_traits = { path = "components/shared/compositing" }
 content-security-policy = { version = "0.5", features = ["serde"] }
 cookie = "0.12"

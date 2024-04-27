@@ -37,7 +37,7 @@ base64 = { workspace = true }
 bitflags = { workspace = true }
 bluetooth_traits = { workspace = true }
 canvas_traits = { workspace = true }
-chrono = "0.4"
+chrono = { workspace = true }
 content-security-policy = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
