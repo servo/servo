@@ -76,6 +76,7 @@ mod from_compositor {
                 Self::Reload(..) => target!("Reload"),
                 Self::LogEntry(..) => target!("LogEntry"),
                 Self::NewWebView(..) => target!("NewWebView"),
+                Self::WebViewOpened(..) => target!("WebViewOpened"),
                 Self::CloseWebView(..) => target!("CloseWebView"),
                 Self::SendError(..) => target!("SendError"),
                 Self::MoveResizeWebView(..) => target!("MoveResizeWebView"),

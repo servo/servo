@@ -1183,6 +1183,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 error!("{webview_id}: Creating webview that already exists");
                 return;
             }
+            let msg = ConstellationMsg::WebViewOpened(top_level_browsing_context_id);
+            if let Err(e) = self.constellation_chan.send(msg) {
+                warn!("Sending event to constellation failed ({:?}).", e);
+            }
         }
 
         self.send_root_pipeline_display_list();
