@@ -1708,6 +1708,29 @@ impl Element {
         self.set_attribute(local_name, AttrValue::String(value.into()));
     }
 
+    /// Used for string attribute reflections where absence of the attribute returns `null`,
+    /// e.g. `element.ariaLabel` returning `null` when the `aria-label` attribute is absent.
+    fn get_nullable_string_attribute(&self, local_name: &LocalName) -> Option<DOMString> {
+        if self.has_attribute(local_name) {
+            Some(self.get_string_attribute(local_name))
+        } else {
+            None
+        }
+    }
+
+    /// Used for string attribute reflections where setting `null`/`undefined` removes the
+    /// attribute, e.g. `element.ariaLabel = null` removing the `aria-label` attribute.
+    fn set_nullable_string_attribute(&self, local_name: &LocalName, value: Option<DOMString>) {
+        match value {
+            Some(val) => {
+                self.set_string_attribute(local_name, val);
+            },
+            None => {
+                self.remove_attribute(&ns!(), local_name);
+            },
+        }
+    }
+
     pub fn get_tokenlist_attribute(&self, local_name: &LocalName) -> Vec<Atom> {
         self.get_attribute(&ns!(), local_name)
             .map(|attr| attr.value().as_tokens().to_vec())
@@ -2906,6 +2929,358 @@ impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-element-attachshadow
     fn AttachShadow(&self) -> Fallible<DomRoot<ShadowRoot>> {
         self.attach_shadow(IsUserAgentWidget::No)
+    }
+
+    fn GetRole(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("role"))
+    }
+
+    fn SetRole(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("role"), value);
+    }
+
+    fn GetAriaAtomic(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-atomic"))
+    }
+
+    fn SetAriaAtomic(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-atomic"), value);
+    }
+
+    fn GetAriaAutoComplete(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-autocomplete"))
+    }
+
+    fn SetAriaAutoComplete(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-autocomplete"), value);
+    }
+
+    fn GetAriaBrailleLabel(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-braillelabel"))
+    }
+
+    fn SetAriaBrailleLabel(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-braillelabel"), value);
+    }
+
+    fn GetAriaBrailleRoleDescription(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-brailleroledescription"))
+    }
+
+    fn SetAriaBrailleRoleDescription(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-brailleroledescription"), value);
+    }
+
+    fn GetAriaBusy(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-busy"))
+    }
+
+    fn SetAriaBusy(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-busy"), value);
+    }
+
+    fn GetAriaChecked(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-checked"))
+    }
+
+    fn SetAriaChecked(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-checked"), value);
+    }
+
+    fn GetAriaColCount(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-colcount"))
+    }
+
+    fn SetAriaColCount(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-colcount"), value);
+    }
+
+    fn GetAriaColIndex(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-colindex"))
+    }
+
+    fn SetAriaColIndex(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-colindex"), value);
+    }
+
+    fn GetAriaColIndexText(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-colindextext"))
+    }
+
+    fn SetAriaColIndexText(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-colindextext"), value);
+    }
+
+    fn GetAriaColSpan(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-colspan"))
+    }
+
+    fn SetAriaColSpan(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-colspan"), value);
+    }
+
+    fn GetAriaCurrent(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-current"))
+    }
+
+    fn SetAriaCurrent(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-current"), value);
+    }
+
+    fn GetAriaDescription(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-description"))
+    }
+
+    fn SetAriaDescription(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-description"), value);
+    }
+
+    fn GetAriaDisabled(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-disabled"))
+    }
+
+    fn SetAriaDisabled(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-disabled"), value);
+    }
+
+    fn GetAriaExpanded(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-expanded"))
+    }
+
+    fn SetAriaExpanded(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-expanded"), value);
+    }
+
+    fn GetAriaHasPopup(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-haspopup"))
+    }
+
+    fn SetAriaHasPopup(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-haspopup"), value);
+    }
+
+    fn GetAriaHidden(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-hidden"))
+    }
+
+    fn SetAriaHidden(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-hidden"), value);
+    }
+
+    fn GetAriaInvalid(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-invalid"))
+    }
+
+    fn SetAriaInvalid(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-invalid"), value);
+    }
+
+    fn GetAriaKeyShortcuts(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-keyshortcuts"))
+    }
+
+    fn SetAriaKeyShortcuts(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-keyshortcuts"), value);
+    }
+
+    fn GetAriaLabel(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-label"))
+    }
+
+    fn SetAriaLabel(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-label"), value);
+    }
+
+    fn GetAriaLevel(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-level"))
+    }
+
+    fn SetAriaLevel(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-level"), value);
+    }
+
+    fn GetAriaLive(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-live"))
+    }
+
+    fn SetAriaLive(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-live"), value);
+    }
+
+    fn GetAriaModal(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-modal"))
+    }
+
+    fn SetAriaModal(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-modal"), value);
+    }
+
+    fn GetAriaMultiLine(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-multiline"))
+    }
+
+    fn SetAriaMultiLine(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-multiline"), value);
+    }
+
+    fn GetAriaMultiSelectable(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-multiselectable"))
+    }
+
+    fn SetAriaMultiSelectable(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-multiselectable"), value);
+    }
+
+    fn GetAriaOrientation(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-orientation"))
+    }
+
+    fn SetAriaOrientation(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-orientation"), value);
+    }
+
+    fn GetAriaPlaceholder(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-placeholder"))
+    }
+
+    fn SetAriaPlaceholder(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-placeholder"), value);
+    }
+
+    fn GetAriaPosInSet(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-posinset"))
+    }
+
+    fn SetAriaPosInSet(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-posinset"), value);
+    }
+
+    fn GetAriaPressed(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-pressed"))
+    }
+
+    fn SetAriaPressed(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-pressed"), value);
+    }
+
+    fn GetAriaReadOnly(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-readonly"))
+    }
+
+    fn SetAriaReadOnly(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-readonly"), value);
+    }
+
+    fn GetAriaRelevant(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-relevant"))
+    }
+
+    fn SetAriaRelevant(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-relevant"), value);
+    }
+
+    fn GetAriaRequired(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-required"))
+    }
+
+    fn SetAriaRequired(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-required"), value);
+    }
+
+    fn GetAriaRoleDescription(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-roledescription"))
+    }
+
+    fn SetAriaRoleDescription(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-roledescription"), value);
+    }
+
+    fn GetAriaRowCount(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-rowcount"))
+    }
+
+    fn SetAriaRowCount(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-rowcount"), value);
+    }
+
+    fn GetAriaRowIndex(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-rowindex"))
+    }
+
+    fn SetAriaRowIndex(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-rowindex"), value);
+    }
+
+    fn GetAriaRowIndexText(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-rowindextext"))
+    }
+
+    fn SetAriaRowIndexText(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-rowindextext"), value);
+    }
+
+    fn GetAriaRowSpan(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-rowspan"))
+    }
+
+    fn SetAriaRowSpan(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-rowspan"), value);
+    }
+
+    fn GetAriaSelected(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-selected"))
+    }
+
+    fn SetAriaSelected(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-selected"), value);
+    }
+
+    fn GetAriaSetSize(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-setsize"))
+    }
+
+    fn SetAriaSetSize(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-setsize"), value);
+    }
+
+    fn GetAriaSort(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-sort"))
+    }
+
+    fn SetAriaSort(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-sort"), value);
+    }
+
+    fn GetAriaValueMax(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-valuemax"))
+    }
+
+    fn SetAriaValueMax(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-valuemax"), value);
+    }
+
+    fn GetAriaValueMin(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-valuemin"))
+    }
+
+    fn SetAriaValueMin(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-valuemin"), value);
+    }
+
+    fn GetAriaValueNow(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-valuenow"))
+    }
+
+    fn SetAriaValueNow(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-valuenow"), value);
+    }
+
+    fn GetAriaValueText(&self) -> Option<DOMString> {
+        self.get_nullable_string_attribute(&local_name!("aria-valuetext"))
+    }
+
+    fn SetAriaValueText(&self, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(&local_name!("aria-valuetext"), value);
     }
 }
 
