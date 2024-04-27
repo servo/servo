@@ -1480,52 +1480,6 @@ where
                 }
                 self.handle_panic(top_level_browsing_context_id, error, None);
             },
-            FromCompositorMsg::MoveResizeWebView(top_level_browsing_context_id, rect) => {
-                dbg!(151);
-                if self.webviews.get(top_level_browsing_context_id).is_none() {
-                    return warn!(
-                        "{}: MoveResizeWebView on unknown top-level browsing context",
-                        top_level_browsing_context_id
-                    );
-                }
-                self.compositor_proxy.send(CompositorMsg::MoveResizeWebView(
-                    top_level_browsing_context_id,
-                    rect,
-                ));
-            },
-            FromCompositorMsg::ShowWebView(webview_id, hide_others) => {
-                dbg!(111);
-                if self.webviews.get(webview_id).is_none() {
-                    return warn!(
-                        "{}: ShowWebView on unknown top-level browsing context",
-                        webview_id
-                    );
-                }
-                self.compositor_proxy
-                    .send(CompositorMsg::ShowWebView(webview_id, hide_others));
-            },
-            FromCompositorMsg::HideWebView(webview_id) => {
-                dbg!(121);
-                if self.webviews.get(webview_id).is_none() {
-                    return warn!(
-                        "{}: HideWebView on unknown top-level browsing context",
-                        webview_id
-                    );
-                }
-                self.compositor_proxy
-                    .send(CompositorMsg::HideWebView(webview_id));
-            },
-            FromCompositorMsg::RaiseWebViewToTop(webview_id, hide_others) => {
-                dbg!(114);
-                if self.webviews.get(webview_id).is_none() {
-                    return warn!(
-                        "{}: RaiseWebViewToTop on unknown top-level browsing context",
-                        webview_id
-                    );
-                }
-                self.compositor_proxy
-                    .send(CompositorMsg::RaiseWebViewToTop(webview_id, hide_others));
-            },
             FromCompositorMsg::FocusWebView(top_level_browsing_context_id) => {
                 if self.webviews.get(top_level_browsing_context_id).is_none() {
                     return warn!("{top_level_browsing_context_id}: FocusWebView on unknown top-level browsing context");
