@@ -153,9 +153,9 @@ impl PlatformFontMethods for PlatformFont {
             WindowsMetrics::Version1(ref m) => {
                 (m.weight_class, m.width_class, m.selection_flags.0 & 1 == 1)
             },
-            WindowsMetrics::Version2(ref m) |
-            WindowsMetrics::Version3(ref m) |
-            WindowsMetrics::Version4(ref m) => {
+            WindowsMetrics::Version2(ref m)
+            | WindowsMetrics::Version3(ref m)
+            | WindowsMetrics::Version4(ref m) => {
                 (m.weight_class, m.width_class, m.selection_flags.0 & 1 == 1)
             },
             WindowsMetrics::Version5(ref m) => {
@@ -231,6 +231,15 @@ impl PlatformFontMethods for PlatformFont {
         // is pulled out here for clarity
         let leading = dm.ascent - dm.capHeight;
 
+        let zero_horizontal_advance = self
+            .glyph_index('0')
+            .and_then(|idx| self.glyph_h_advance(idx))
+            .map(Au::from_f64_px);
+        let ic_horizontal_advance = self
+            .glyph_index('\u{6C34}')
+            .and_then(|idx| self.glyph_h_advance(idx))
+            .map(Au::from_f64_px);
+
         let metrics = FontMetrics {
             underline_size: au_from_du(dm.underlineThickness as i32),
             underline_offset: au_from_du_s(dm.underlinePosition as i32),
@@ -244,6 +253,8 @@ impl PlatformFontMethods for PlatformFont {
             max_advance: au_from_pt(0.0),     // FIXME
             average_advance: au_from_pt(0.0), // FIXME
             line_gap: au_from_du_s((dm.ascent + dm.descent + dm.lineGap as u16) as i32),
+            zero_horizontal_advance,
+            ic_horizontal_advance,
         };
         debug!("Font metrics (@{} pt): {:?}", self.em_size * 12., metrics);
         metrics

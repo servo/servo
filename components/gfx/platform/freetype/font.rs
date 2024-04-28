@@ -260,10 +260,16 @@ impl PlatformFontMethods for PlatformFont {
             x_height = self.font_units_to_au(os2.sx_height as f64);
         }
 
-        let average_advance = self
+        let zero_horizontal_advance = self
             .glyph_index('0')
             .and_then(|idx| self.glyph_h_advance(idx))
-            .map_or(max_advance, |advance| self.font_units_to_au(advance));
+            .map(Au::from_f64_px);
+        let ic_horizontal_advance = self
+            .glyph_index('\u{6C34}')
+            .and_then(|idx| self.glyph_h_advance(idx))
+            .map(Au::from_f64_px);
+
+        let average_advance = zero_horizontal_advance.unwrap_or(max_advance);
 
         let metrics = FontMetrics {
             underline_size,
@@ -278,6 +284,8 @@ impl PlatformFontMethods for PlatformFont {
             max_advance,
             average_advance,
             line_gap: height,
+            zero_horizontal_advance,
+            ic_horizontal_advance,
         };
 
         debug!("Font metrics (@{}px): {:?}", em_size.to_f32_px(), metrics);

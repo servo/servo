@@ -157,12 +157,17 @@ class WebSocketServer(socketserver.ThreadingMixIn, BaseHTTPServer.HTTPServer):
                         client_cert_ = ssl.CERT_REQUIRED
                 else:
                     client_cert_ = ssl.CERT_NONE
-                socket_ = ssl.wrap_socket(
-                    socket_,
-                    keyfile=server_options.private_key,
-                    certfile=server_options.certificate,
-                    ca_certs=server_options.tls_client_ca,
-                    cert_reqs=client_cert_)
+
+                ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+                if server_options.certificate:
+                    ssl_context.load_cert_chain(
+                        certfile=server_options.certificate,
+                        keyfile=server_options.private_key)
+                if server_options.tls_client_ca:
+                    ssl_context.load_verify_locations(
+                        server_options.tls_client_ca)
+                ssl_context.verify_mode = client_cert_
+                socket_ = ssl_context.wrap_socket(socket_)
             self._sockets.append((socket_, addrinfo))
 
     def server_bind(self):

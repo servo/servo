@@ -1065,8 +1065,8 @@ impl LayoutThread {
             Au::from_f32_px(window_size_data.initial_viewport.height),
         );
 
-        if self.stylist.device().au_viewport_size() == au_viewport_size &&
-            self.stylist.device().device_pixel_ratio() == window_size_data.device_pixel_ratio
+        if self.stylist.device().au_viewport_size() == au_viewport_size
+            && self.stylist.device().device_pixel_ratio() == window_size_data.device_pixel_ratio
         {
             return false;
         }
@@ -1247,8 +1247,9 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
         _retrieve_math_scales: bool,
     ) -> FontMetrics {
         layout::context::with_thread_local_font_context(&self.0, move |font_context| {
-            let Some(servo_metrics) = font_context
-                .font_group_with_size(ServoArc::new(font.clone()), base_size.into())
+            let font_group =
+                font_context.font_group_with_size(ServoArc::new(font.clone()), base_size.into());
+            let Some(first_font_metrics) = font_group
                 .borrow_mut()
                 .first(font_context)
                 .map(|font| font.borrow().metrics.clone())
@@ -1258,16 +1259,39 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
 
             // Only use the x-height of this font if it is non-zero. Some fonts return
             // inaccurate metrics, which shouldn't be used.
-            let x_height = Some(servo_metrics.x_height)
+            let x_height = Some(first_font_metrics.x_height)
                 .filter(|x_height| !x_height.is_zero())
+                .map(CSSPixelLength::from);
+
+            let zero_advance_measure = first_font_metrics
+                .zero_horizontal_advance
+                .or_else(|| {
+                    font_group
+                        .borrow_mut()
+                        .find_by_codepoint(font_context, '0')?
+                        .borrow()
+                        .metrics
+                        .zero_horizontal_advance
+                })
+                .map(CSSPixelLength::from);
+            let ic_width = first_font_metrics
+                .ic_horizontal_advance
+                .or_else(|| {
+                    font_group
+                        .borrow_mut()
+                        .find_by_codepoint(font_context, '\u{6C34}')?
+                        .borrow()
+                        .metrics
+                        .ic_horizontal_advance
+                })
                 .map(CSSPixelLength::from);
 
             FontMetrics {
                 x_height,
-                zero_advance_measure: None,
+                zero_advance_measure,
                 cap_height: None,
-                ic_width: None,
-                ascent: servo_metrics.ascent.into(),
+                ic_width,
+                ascent: first_font_metrics.ascent.into(),
                 script_percent_scale_down: None,
                 script_script_percent_scale_down: None,
             }

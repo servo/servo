@@ -182,9 +182,9 @@ impl PlatformFontMethods for PlatformFont {
         };
         handle.h_kern_subtable = handle.find_h_kern_subtable();
         // TODO (#11310): Implement basic support for GPOS and GSUB.
-        handle.can_do_fast_shaping = handle.h_kern_subtable.is_some() &&
-            handle.table_for_tag(GPOS).is_none() &&
-            handle.table_for_tag(GSUB).is_none();
+        handle.can_do_fast_shaping = handle.h_kern_subtable.is_some()
+            && handle.table_for_tag(GPOS).is_none()
+            && handle.table_for_tag(GSUB).is_none();
         Ok(handle)
     }
 
@@ -258,11 +258,15 @@ impl PlatformFontMethods for PlatformFont {
         let line_gap = (ascent + descent + leading + 0.5).floor();
 
         let max_advance = Au::from_f64_px(self.ctfont.bounding_box().size.width);
-        let average_advance = self
+        let zero_horizontal_advance = self
             .glyph_index('0')
             .and_then(|idx| self.glyph_h_advance(idx))
-            .map(Au::from_f64_px)
-            .unwrap_or(max_advance);
+            .map(Au::from_f64_px);
+        let ic_horizontal_advance = self
+            .glyph_index('\u{6C34}')
+            .and_then(|idx| self.glyph_h_advance(idx))
+            .map(Au::from_f64_px);
+        let average_advance = zero_horizontal_advance.unwrap_or(max_advance);
 
         let metrics = FontMetrics {
             underline_size: Au::from_f64_au(underline_thickness),
@@ -285,6 +289,8 @@ impl PlatformFontMethods for PlatformFont {
             max_advance,
             average_advance,
             line_gap: Au::from_f64_px(line_gap),
+            zero_horizontal_advance,
+            ic_horizontal_advance,
         };
         debug!(
             "Font metrics (@{} pt): {:?}",
