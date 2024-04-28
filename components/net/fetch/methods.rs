@@ -43,6 +43,7 @@ use servo_url::ServoUrl;
 use tokio::sync::mpsc::{
     unbounded_channel, UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender,
 };
+use url::Url;
 
 use crate::data_loader::decode;
 use crate::fetch::cors_cache::CorsCache;
@@ -734,6 +735,23 @@ async fn scheme_fetch(
                 if let Ok(file) = File::open(file_path.clone()) {
                     if let Ok(metadata) = file.metadata() {
                         if metadata.is_dir() {
+                            // Skip past the "file://" prefix, otherwise from_directory_path
+                            // will return an error.
+                            let url_path = &url.as_str()[7..];
+                            let url = if !url_path.ends_with('/') {
+                                if let Ok(dir_url) = Url::from_directory_path(url_path) {
+                                    ServoUrl::from_url(dir_url)
+                                } else {
+                                    return Response::network_error(NetworkError::Internal(
+                                        format!(
+                                            "Unable to parse local directory path {}",
+                                            url_path
+                                        ),
+                                    ));
+                                }
+                            } else {
+                                url
+                            };
                             let mut response =
                                 Response::new(url, ResourceFetchTiming::new(request.timing_type()));
                             response.headers.typed_insert(ContentType::html());
