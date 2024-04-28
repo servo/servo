@@ -3,11 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
+use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::{self, BufReader, Seek, SeekFrom};
 use std::ops::Bound;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
+use std::time::SystemTime;
 use std::{mem, str};
 
 use base64::engine::general_purpose;
@@ -881,7 +883,7 @@ fn build_html_directory_listing(file_path: std::path::PathBuf) -> String {
 <html lang=\"en\">
 <head><title>Directory listing: ",
     );
-    page_html.push_str(&directory_label);
+    write_html_safe(&directory_label, &mut page_html);
     page_html.push_str(
         "</title>
     <style>
@@ -895,6 +897,12 @@ fn build_html_directory_listing(file_path: std::path::PathBuf) -> String {
             border-collapse: separate;
             border: 1px solid black;
             text-align: center;
+        }
+        table > caption {
+            caption-side: top;
+            text-align: left;
+            font-weight: bold;
+            font-size: larger;
         }
         th[scope=col] {
             background-color: #ddd;
@@ -920,46 +928,65 @@ fn build_html_directory_listing(file_path: std::path::PathBuf) -> String {
 <body>",
     );
     page_html.push_str("<h1>Index of ");
-    page_html.push_str(&directory_label);
+    write_html_safe(&directory_label, &mut page_html);
     page_html.push_str("</h1>");
     if let Ok(entries) = std::fs::read_dir(file_path) {
-        page_html.push_str(
-            "<table><thead><tr><th scope=\"col\">Type</th><th scope=\"col\">Name</th>
-<th scope=\"col\">Size</th></tr></thead><tbody>",
-        );
+        let mut directories = BTreeMap::new();
+        let mut files = BTreeMap::new();
         for entry in entries {
             if let Ok(entry) = entry {
                 if let Ok(meta) = entry.metadata() {
                     let os_name = entry.file_name();
-                    let entry_name = os_name.to_str();
+                    let entry_name = os_name.to_str().map(str::to_string);
                     if meta.is_dir() {
-                        write_directory_entry_row(
-                            DirectoryMemberType::Directory,
-                            entry_name,
-                            None,
-                            &mut page_html,
+                        directories.insert(
+                            os_name,
+                            DirectoryDescriptor {
+                                name: entry_name,
+                                last_modified: meta.modified(),
+                            },
                         );
-                    } else if meta.is_file() {
-                        let file_size = meta.len();
-                        write_directory_entry_row(
-                            DirectoryMemberType::File,
-                            entry_name,
-                            Some(file_size),
-                            &mut page_html,
-                        );
-                    } else if meta.is_symlink() {
-                        let file_size = meta.len();
-                        write_directory_entry_row(
-                            DirectoryMemberType::Symlink,
-                            entry_name,
-                            Some(file_size),
-                            &mut page_html,
+                    } else if meta.is_file() || meta.is_symlink() {
+                        files.insert(
+                            os_name,
+                            FileDescriptor {
+                                name: entry_name,
+                                is_symlink: meta.is_symlink(),
+                                size: meta.len(),
+                                last_modified: meta.modified(),
+                            },
                         );
                     }
                 }
             }
         }
-        page_html.push_str("</tbody></table>");
+        let directories_found = !&directories.is_empty();
+        let files_found = !&files.is_empty();
+        if directories_found {
+            page_html.push_str(
+                "<table class=\"sub-directories\">\
+<caption>Sub-directories</caption><thead><tr><th scope=\"col\">Directory name</th></tr>\
+</thead><tbody>",
+            );
+            for directory in directories {
+                write_directory_row(directory.1, &mut page_html);
+            }
+            page_html.push_str("</tbody></table>");
+        }
+        if files_found {
+            page_html.push_str(
+                "<table class=\"files\"><caption>Files</caption><thead><tr>\
+<th scope=\"col\">Type</th><th scope=\"col\">Filename</th>\
+<th scope=\"col\">Size</th></tr></thead><tbody>",
+            );
+            for file in files {
+                write_file_row(file.1, &mut page_html);
+            }
+            page_html.push_str("</tbody></table>");
+        }
+        if !directories_found && !files_found {
+            page_html.push_str("<p>Directory is empty.</p>");
+        }
         page_html.push_str("<footer><p>Local directory listing generated by Servo.</p></footer>");
     } else {
         page_html.push_str("<p>Unable to list directory contents.</p>");
@@ -968,58 +995,94 @@ fn build_html_directory_listing(file_path: std::path::PathBuf) -> String {
     page_html
 }
 
-// The content types which can be found within a local directory path.
-enum DirectoryMemberType {
-    Directory,
-    File,
-    Symlink,
+struct DirectoryDescriptor {
+    name: Option<String>,
+    last_modified: io::Result<SystemTime>,
 }
 
-// Returns HTML representing a single table row for the directory listing table.
-fn write_directory_entry_row(
-    entry_type: DirectoryMemberType,
-    name: Option<&str>,
-    size: Option<u64>,
-    page_html: &mut String,
-) {
+fn write_directory_row(descriptor: DirectoryDescriptor, page_html: &mut String) {
     page_html.push_str("<tr><td>");
-    let type_desc = match entry_type {
-        DirectoryMemberType::Directory => "<abbr title=\"directory\">D</abbr>",
-        DirectoryMemberType::File => "<abbr title=\"file\">F</abbr>",
-        DirectoryMemberType::Symlink => "<abbr title=\"symlink\">S</abbr>",
-    };
-    page_html.push_str(type_desc);
-    page_html.push_str("</td><td>");
-    if let Some(n) = name {
+    if let Some(n) = descriptor.name {
         page_html.push_str("<a href=\"");
-        write_html_safe(n, page_html);
+        write_html_safe(&n, page_html);
+        page_html.push('/');
         page_html.push_str("\">");
-        write_html_safe(n, page_html);
-        if matches!(entry_type, DirectoryMemberType::Directory) {
-            page_html.push('/');
-        }
+        write_html_safe(&n, page_html);
+        page_html.push('/');
         page_html.push_str("</a>");
     } else {
         page_html.push_str("&lt;invalid name&gt;");
     }
-    page_html.push_str("</td><td class=\"numeric\">");
-    if let Some(s) = size {
-        page_html.push_str(s.to_string().as_str());
-        page_html.push_str(" B");
-    } else {
-        page_html.push_str("-");
-    }
-    page_html.push_str("</td>");
-    page_html.push_str("</tr>");
+    page_html.push_str("</td></tr>");
 }
 
-fn write_html_safe(content: &str, page_html: &mut String) {
+struct FileDescriptor {
+    name: Option<String>,
+    is_symlink: bool,
+    size: u64,
+    last_modified: io::Result<SystemTime>,
+}
+
+fn write_file_row(descriptor: FileDescriptor, page_html: &mut String) {
+    page_html.push_str("<tr><td>");
+    if descriptor.is_symlink {
+        page_html.push_str("<abbr title=\"symlink\">S</abbr>");
+    } else {
+        page_html.push_str("<abbr title=\"file\">F</abbr>");
+    }
+    page_html.push_str("</td><td>");
+    if let Some(n) = descriptor.name {
+        page_html.push_str("<a href=\"");
+        write_html_safe(&n, page_html);
+        page_html.push_str("\">");
+        write_html_safe(&n, page_html);
+        page_html.push_str("</a>");
+    } else {
+        page_html.push_str("&lt;invalid name&gt;");
+    }
+    page_html.push_str("</td><td>");
+    write_html_safe(descriptor.size.to_string().as_str(), page_html);
+    page_html.push_str(" B");
+    page_html.push_str("</td></tr>");
+}
+
+// TODO: WORK OUT WHERE THIS FUNCTION SHOULD GO WITHIN THE SERVO PROJECT !!!
+// TODO: WORK OUT WHY THE EXAMPLE IN THIS DOCUMENT BLOCK IS NOT BEING EXECUTED !!!
+/**
+Writes the given content to the given mutable String, escaping sensitive HTML characters.
+
+Sensitive characters found within the given content will be replaced by HTML named character
+references. The apostrophe and double-quote characters are also replaced, so that the content
+can be safely written into an attribute within an HTML document.
+
+# Examples
+
+```
+let mut html_payload = String::new();
+html_payload.push_str("<html><body><code class=\"example-html\">");
+write_html_safe(
+    "<p class=\"demo\" id='1'>Alpha &amp; Omega</p>",
+    &mut html_payload,
+);
+html_payload.push_str("</code></body></html>");
+assert_eq!(
+    &html_payload,
+    "<html><body><code class=\"example-html\">\
+&lt;p class=&quot;demo&quot; id=&apos;1&apos;&gt;Alpha &amp;amp; Omega&lt;/p&gt;\
+</code></body></html>"
+);
+
+```
+*/
+pub fn write_html_safe(content: &str, page_html: &mut String) {
     for c in content.chars() {
         match c {
             '<' => page_html.push_str("&lt;"),
             '&' => page_html.push_str("&amp;"),
             '>' => page_html.push_str("&gt;"),
-            o => page_html.push(o),
+            '\'' => page_html.push_str("&apos;"),
+            '"' => page_html.push_str("&quot;"),
+            _ => page_html.push(c),
         }
     }
 }
