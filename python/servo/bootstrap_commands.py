@@ -40,12 +40,15 @@ class MachCommands(CommandBase):
     @CommandArgument('--force', '-f',
                      action='store_true',
                      help='Boostrap without confirmation')
-    def bootstrap(self, force=False):
+    @CommandArgument('--skip-platform',
+                     action='store_true',
+                     help='Skip platform bootstrapping.')
+    def bootstrap(self, force=False, skip_platform=False):
         # Note: This entry point isn't actually invoked by ./mach bootstrap.
         # ./mach bootstrap calls mach_bootstrap.bootstrap_command_only so that
         # it can install dependencies without needing mach's dependencies
         try:
-            servo.platform.get().bootstrap(force)
+            servo.platform.get().bootstrap(force, skip_platform)
         except NotImplementedError as exception:
             print(exception)
             return 1
