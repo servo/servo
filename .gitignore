@@ -8,10 +8,6 @@
 /android-toolchains
 /target
 /tests/wpt/reftests-report/report.html
-/ports/android/bin
-/ports/android/libs
-/ports/android/local.properties
-/ports/android/obj
 /python/_virtualenv*
 /python/_venv*
 /python/tidy/servo_tidy.egg-info

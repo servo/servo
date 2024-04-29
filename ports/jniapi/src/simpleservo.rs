@@ -52,6 +52,7 @@ pub use servo::embedder_traits::EventLoopWaker;
 
 pub struct InitOptions {
     pub args: Vec<String>,
+    pub url: Option<String>,
     pub coordinates: Coordinates,
     pub density: f32,
     pub xr_discovery: Option<webxr::Discovery>,
@@ -253,10 +254,11 @@ pub fn init(
     args.insert(0, "servo".to_string());
     opts::from_cmdline_args(Options::new(), &args);
 
+    let embedder_url = init_opts.url.as_ref().and_then(|s| ServoUrl::parse(s).ok());
     let pref_url = ServoUrl::parse(&pref!(shell.homepage)).ok();
     let blank_url = ServoUrl::parse("about:blank").ok();
 
-    let url = pref_url.or(blank_url).unwrap();
+    let url = embedder_url.or(pref_url).or(blank_url).unwrap();
 
     gl.clear_color(1.0, 1.0, 1.0, 1.0);
     gl.clear(gl::COLOR_BUFFER_BIT);

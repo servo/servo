@@ -25,8 +25,8 @@ ext.getJniLibsPath = { boolean debug, String arch ->
 
 ext.getRustTarget = { String arch ->
     switch (arch.toLowerCase()) {
-        case 'armv7' : return 'armv7-linux-androideabi'
-        case 'arm64' : return 'aarch64-linux-android'
+        case 'armv7': return 'armv7-linux-androideabi'
+        case 'arm64': return 'aarch64-linux-android'
         case 'x86': return 'i686-linux-android'
         case 'x64': return 'x86_64-linux-android'
         default: throw new GradleException("Invalid target architecture " + arch)
@@ -35,8 +35,8 @@ ext.getRustTarget = { String arch ->
 
 ext.getNDKAbi = { String arch ->
     switch (arch.toLowerCase()) {
-        case 'armv7' : return 'armeabi-v7a'
-        case 'arm64' : return 'arm64-v8a'
+        case 'armv7': return 'armeabi-v7a'
+        case 'arm64': return 'arm64-v8a'
         case 'x86': return 'x86'
         case 'x64': return 'x86_64'
         default: throw new GradleException("Invalid target architecture " + arch)
@@ -60,8 +60,8 @@ ext.getNdkDir = { ->
 
     def ndkDir = ndkRoot != null ? new File(ndkRoot) : null
     if (!ndkDir || !ndkDir.exists()) {
-        throw new GradleException("Please set a valid ANDROID_NDK_ROOT environment variable" +
-                "or ndk.dir path in local.properties file");
+        throw new GradleException("Please set a valid ANDROID_NDK_ROOT environment variable " +
+                "or ndk.dir path in local.properties file")
     }
     return ndkDir.absolutePath
 }

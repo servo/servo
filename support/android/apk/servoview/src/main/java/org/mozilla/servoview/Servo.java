@@ -6,16 +6,13 @@
 package org.mozilla.servoview;
 
 import android.app.Activity;
-import android.content.Context;
-import android.util.Log;
 import android.view.Surface;
+
+import org.mozilla.servoview.JNIServo.ServoCoordinates;
+import org.mozilla.servoview.JNIServo.ServoOptions;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
-
-import org.freedesktop.gstreamer.GStreamer;
-import org.mozilla.servoview.JNIServo.ServoCoordinates;
-import org.mozilla.servoview.JNIServo.ServoOptions;
 
 public class Servo {
     private static final String LOGTAG = "Servo";
@@ -38,9 +35,7 @@ public class Servo {
 
         mServoCallbacks = new Callbacks(client, gfxcb);
 
-        mRunCallback.inGLThread(() -> {
-            mJNI.init(activity, options, mServoCallbacks, surface);
-        });
+        mRunCallback.inGLThread(() -> mJNI.init(activity, options, mServoCallbacks, surface));
     }
 
     public void resetGfxCallbacks(GfxCallbacks gfxcb) {
@@ -49,7 +44,7 @@ public class Servo {
 
     public void shutdown() {
         mShuttingDown = true;
-        FutureTask<Void> task = new FutureTask<Void>(new Callable<Void>() {
+        FutureTask<Void> task = new FutureTask<>(new Callable<Void>() {
             public Void call() throws Exception {
                 mJNI.requestShutdown();
                 // Wait until Servo gets back to us to finalize shutdown.

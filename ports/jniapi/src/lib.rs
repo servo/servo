@@ -73,7 +73,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_init(
     callbacks_obj: JObject,
     surface: JObject,
 ) {
-    let (mut opts, log, log_str, _gst_debug_str) = match get_options(&env, opts, surface) {
+    let (opts, log, log_str, _gst_debug_str) = match get_options(&env, opts, surface) {
         Ok((opts, log, log_str, gst_debug_str)) => (opts, log, log_str, gst_debug_str),
         Err(err) => {
             throw(&env, &err);
@@ -875,6 +875,7 @@ fn get_options(
 
     let opts = InitOptions {
         args: args.unwrap_or(vec![]),
+        url,
         coordinates,
         density,
         xr_discovery: None,

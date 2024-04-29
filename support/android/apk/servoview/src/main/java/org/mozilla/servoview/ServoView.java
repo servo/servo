@@ -27,6 +27,7 @@ import android.view.Choreographer;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
+import android.view.View;
 import android.widget.OverScroller;
 
 import java.util.ArrayList;
@@ -78,7 +79,7 @@ public class ServoView extends SurfaceView
         setFocusable(true);
         setFocusableInTouchMode(true);
         setClickable(true);
-        ArrayList view = new ArrayList();
+        ArrayList<View> view = new ArrayList<>();
         view.add(this);
         addTouchables(view);
         setWillNotCacheDrawing(false);
@@ -89,7 +90,6 @@ public class ServoView extends SurfaceView
         mGLThread.start();
     }
 
-
     public void setClient(Client client) {
         mClient = client;
     }
@@ -98,7 +98,6 @@ public class ServoView extends SurfaceView
         mServoArgs = args;
         mServoLog = log;
     }
-
 
     // RunCallback
     public void inGLThread(Runnable r) {
@@ -212,16 +211,12 @@ public class ServoView extends SurfaceView
         mServo.stop();
     }
 
-    public void loadUri(String uri) {
-        if (mServo != null) {
-            mServo.loadUri(uri);
-        } else {
-            mInitialUri = uri;
-        }
-    }
-
     public void loadUri(Uri uri) {
-      loadUri(uri.toString());
+        if (mServo != null) {
+            mServo.loadUri(uri.toString());
+        } else {
+            mInitialUri = uri.toString();
+        }
     }
 
     public void scrollStart(int dx, int dy, int x, int y) {
@@ -373,6 +368,7 @@ public class ServoView extends SurfaceView
             Surface surface = holder.getSurface();
             ServoOptions options = new ServoOptions();
             options.args = mServoView.mServoArgs;
+            options.url = mServoView.mInitialUri;
             options.coordinates = coords;
             options.enableLogs = true;
             options.enableSubpixelTextAntialiasing = true;

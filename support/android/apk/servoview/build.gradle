@@ -8,7 +8,7 @@ import java.util.regex.Pattern
 
 android {
     compileSdk 33
-    buildToolsVersion "33.0.2"
+    buildToolsVersion = "33.0.2"
 
     namespace 'org.mozilla.servoview'
 
@@ -28,7 +28,7 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
-    flavorDimensions "default"
+    flavorDimensions = ["default"]
 
     productFlavors {
         basic {
@@ -115,8 +115,8 @@ android {
 
     // Ignore default 'debug' and 'release' build types
     variantFilter { variant ->
-        if(variant.buildType.name.equals('release') || variant.buildType.name.equals('debug')) {
-            variant.setIgnore(true);
+        if(variant.buildType.name == 'release' || variant.buildType.name == 'debug') {
+            variant.setIgnore(true)
         }
     }
 
@@ -140,7 +140,7 @@ android {
     tasks.all {
         compileTask ->
             // This matches the task `mergeBasicArmv7DebugJniLibFolders`.
-            Pattern pattern = Pattern.compile(/^merge[A-Z][\w\d]+([A-Z][\w\d]+)(Debug|Release)JniLibFolders/)
+            Pattern pattern = Pattern.compile(/^merge[A-Z]\w+([A-Z]\w+)(Debug|Release)JniLibFolders/)
             Matcher matcher = pattern.matcher(compileTask.name)
             if (!matcher.find()) {
                return
@@ -217,7 +217,7 @@ dependencies {
 
 // folderFilter can be used to improve search performance
 static String findDependencyPath(String basePath, String filename, String folderFilter) {
-    File path = new File(basePath);
+    File path = new File(basePath)
     if (!path.exists()) {
         return ''
     }
@@ -231,7 +231,7 @@ static String findDependencyPath(String basePath, String filename, String folder
     }
     def result = ''
     path.eachFileRecurse(FileType.FILES) {
-        if(it.name.equals(filename)) {
+        if(it.name == filename) {
             result = it.absolutePath
         }
     }
@@ -241,9 +241,9 @@ static String findDependencyPath(String basePath, String filename, String folder
 
 class ServoDependency {
     ServoDependency(String fileName, String folderFilter = null) {
-        this.fileName = fileName;
-        this.folderFilter = folderFilter;
+        this.fileName = fileName
+        this.folderFilter = folderFilter
     }
-    public String fileName;
-    public String folderFilter;
+    public String fileName
+    public String folderFilter
 }

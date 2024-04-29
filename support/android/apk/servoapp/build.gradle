@@ -7,7 +7,7 @@ import java.util.regex.Pattern
 
 android {
     compileSdk 33
-    buildToolsVersion "33.0.2"
+    buildToolsVersion = "33.0.2"
 
     namespace 'org.mozilla.servo'
 
@@ -27,7 +27,7 @@ android {
     }
 
     // Share all of that with servoview
-    flavorDimensions "default"
+    flavorDimensions = ["default"]
 
     productFlavors {
         basic {
@@ -113,8 +113,8 @@ android {
 
     // Ignore default 'debug' and 'release' build types
     variantFilter { variant ->
-        if(variant.buildType.name.equals('release') || variant.buildType.name.equals('debug')) {
-            variant.setIgnore(true);
+        if(variant.buildType.name == 'release' || variant.buildType.name == 'debug') {
+            variant.setIgnore(true)
         }
     }
 

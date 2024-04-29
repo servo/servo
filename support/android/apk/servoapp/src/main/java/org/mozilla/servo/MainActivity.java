@@ -13,6 +13,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.system.ErrnoException;
 import android.system.Os;
+import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
@@ -21,11 +22,9 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.util.Log;
 
-import org.mozilla.servo.MediaSession;
-import org.mozilla.servoview.ServoView;
 import org.mozilla.servoview.Servo;
+import org.mozilla.servoview.ServoView;
 
 import java.io.File;
 
@@ -65,15 +64,14 @@ public class MainActivity extends Activity implements Servo.Client {
         mServoView.setClient(this);
         mServoView.requestFocus();
 
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-          File sdcard = getExternalFilesDir("");
-          String host = sdcard.toPath().resolve("android_hosts").toString();
-          try {
+        File sdcard = getExternalFilesDir("");
+        String host = sdcard.toPath().resolve("android_hosts").toString();
+        try {
             Os.setenv("HOST_FILE", host, false);
-          } catch (ErrnoException e) {
+        } catch (ErrnoException e) {
             e.printStackTrace();
-          }
         }
+
 
         Intent intent = getIntent();
         String args = intent.getStringExtra("servoargs");
@@ -253,7 +251,6 @@ public class MainActivity extends Activity implements Servo.Client {
         if (state == MediaSession.PLAYBACK_STATE_PLAYING ||
                 state == MediaSession.PLAYBACK_STATE_PAUSED) {
             mMediaSession.showMediaSessionControls();
-            return;
         }
     }
 
@@ -265,6 +262,5 @@ public class MainActivity extends Activity implements Servo.Client {
         }
 
         mMediaSession.setPositionState(duration, position, playbackRate);
-        return;
     }
 }
