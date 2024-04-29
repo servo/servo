@@ -1016,6 +1016,50 @@ pub fn process_element_inner_text_query<'dom>(
     inner_text.into_iter().collect()
 }
 
+/// <https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute>
+pub fn process_element_outer_text_query<'dom>(
+    node: impl LayoutNode<'dom>,
+    indexable_text: &IndexableText,
+) -> String {
+    // Step 1.
+    let mut results = Vec::new();
+    // Step 2.
+    inner_text_collection_steps(node, indexable_text, &mut results);
+    let mut max_req_line_break_count = 0;
+    let mut inner_text = Vec::new();
+    for item in results {
+        match item {
+            InnerTextItem::Text(s) => {
+                if max_req_line_break_count > 0 {
+                    // Step 5.
+                    for _ in 0..max_req_line_break_count {
+                        inner_text.push("\u{000A}".to_owned());
+                    }
+                    max_req_line_break_count = 0;
+                }
+                // Step 3.
+                if !s.is_empty() {
+                    inner_text.push(s.to_owned());
+                }
+            },
+            InnerTextItem::RequiredLineBreakCount(count) => {
+                // Step 4.
+                if inner_text.is_empty() {
+                    // Remove required line break count at the start.
+                    continue;
+                }
+                // Store the count if it's the max of this run,
+                // but it may be ignored if no text item is found afterwards,
+                // which means that these are consecutive line breaks at the end.
+                if count > max_req_line_break_count {
+                    max_req_line_break_count = count;
+                }
+            },
+        }
+    }
+    inner_text.into_iter().collect()
+}
+
 // https://html.spec.whatwg.org/multipage/#inner-text-collection-steps
 #[allow(unsafe_code)]
 fn inner_text_collection_steps<'dom>(

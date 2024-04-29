@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Utilities for querying the layout, as needed by layout.
+use std::borrow::Cow;
 use std::sync::Arc;
 
 use app_units::Au;
@@ -12,10 +13,12 @@ use log::warn;
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
-use script_layout_interface::OffsetParentResponse;
+use script_layout_interface::{LayoutElementType, LayoutNodeType, OffsetParentResponse};
 use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
+use style::computed_values::display::T as Display;
 use style::computed_values::position::T as Position;
+use style::computed_values::visibility::T as Visibility;
 use style::context::{QuirksMode, SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use style::dom::{OpaqueNode, TElement};
 use style::properties::style_structs::Font;
@@ -538,8 +541,158 @@ fn is_eligible_parent(fragment: &BoxFragment) -> bool {
 }
 
 // https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute
-pub fn process_element_inner_text_query<'dom>(_node: impl LayoutNode<'dom>) -> String {
-    "".to_owned()
+pub fn process_element_inner_text_query<'dom>(node: impl LayoutNode<'dom>) -> String {
+    get_the_text_steps(node)
+}
+
+/// <https://html.spec.whatwg.org/multipage/#dom-outertext>
+pub fn process_element_outer_text_query<'dom>(node: impl LayoutNode<'dom>) -> String {
+    get_the_text_steps(node)
+}
+
+/// <https://html.spec.whatwg.org/multipage/#get-the-text-steps>
+fn get_the_text_steps<'dom>(node: impl LayoutNode<'dom>) -> String {
+    // Step 1: If element is not being rendered or if the user agent is a non-CSS user agent, then
+    // return element's descendant text content.
+    // TODO
+
+    // Step 2: Let results be a new empty list.
+    let mut result = Vec::new();
+
+    let rendered_text = rendered_text_collection_steps(node);
+
+    let mut max_req_line_break_count = 0;
+
+    for item in rendered_text {
+        match item {
+            InnerOrOuterTextItem::Text(s) => {
+                if max_req_line_break_count > 0 {
+                    // Step 5.
+                    for _ in 0..max_req_line_break_count {
+                        result.push("\u{000A}".to_owned());
+                    }
+                    max_req_line_break_count = 0;
+                }
+                // Step 3.
+                if !s.is_empty() {
+                    result.push(s.to_owned());
+                }
+            },
+            InnerOrOuterTextItem::RequiredLineBreakCount(count) => {
+                // Step 4.
+                if result.is_empty() {
+                    // Remove required line break count at the start.
+                    continue;
+                }
+                // Store the count if it's the max of this run, but it may be ignored if no text
+                // item is found afterwards, which means that these are consecutive line breaks at
+                // the end.
+                if count > max_req_line_break_count {
+                    max_req_line_break_count = count;
+                }
+            },
+        }
+    }
+
+    result.into_iter().collect()
+}
+
+enum InnerOrOuterTextItem {
+    Text(String),
+    RequiredLineBreakCount(u32),
+}
+
+/// <https://html.spec.whatwg.org/multipage/#rendered-text-collection-steps>
+fn rendered_text_collection_steps<'dom>(node: impl LayoutNode<'dom>) -> Vec<InnerOrOuterTextItem> {
+    // Step 2: Let results be a new empty list.
+    let mut results = Vec::new();
+
+    // Step 3: For each child node node of element run:
+    // <https://html.spec.whatwg.org/multipage/#rendered-text-collection-steps>
+    for child in node.traverse_preorder() {
+        let node = match child.type_id() {
+            LayoutNodeType::Text => child.parent_node().unwrap(),
+            _ => child,
+        };
+
+        let element_data = match node.style_data() {
+            Some(data) => &data.element_data,
+            None => continue,
+        };
+
+        let style = match element_data.borrow().styles.get_primary() {
+            None => continue,
+            Some(style) => style.clone(),
+        };
+
+        // Step 2: If node's computed value of 'visibility' is not 'visible', then return items.
+        if style.get_inherited_box().visibility != Visibility::Visible {
+            continue;
+        }
+
+        // Step 3: If node is not being rendered, then return items. For the purpose of this step,
+        // the following elements must act as described if the computed value of the 'display'
+        // property is not 'none':
+        let display = style.get_box().display;
+
+        if !child.is_connected() || display == Display::None {
+            if child.type_id() == LayoutNodeType::Element(LayoutElementType::HTMLInputElement) {
+                // TODO Select, Optgroup, Option
+            } else {
+                continue;
+            }
+        }
+
+        match child.type_id() {
+            LayoutNodeType::Text => {
+                // Step 4: If node is a Text node, then for each CSS text box produced by node, in
+                // content order, compute the text of the box after application of the CSS
+                // 'white-space' processing rules and 'text-transform' rules, set items to the list
+                // of the resulting strings, and return items. The CSS 'white-space' processing
+                // rules are slightly modified: collapsible spaces at the end of lines are always
+                // collapsed, but they are only removed if the line is the last line of the block,
+                // or it ends with a br element. Soft hyphens should be preserved.
+                let text_content: Cow<'dom, str> = child.to_threadsafe().node_text_content();
+
+                results.push(InnerOrOuterTextItem::Text(text_content.trim().into()));
+            },
+            LayoutNodeType::Element(LayoutElementType::HTMLBRElement) => {
+                // Step 5: If node is a br element, then append a string containing a single U+000A
+                // LF code point to items.
+                results.push(InnerOrOuterTextItem::Text(String::from("\u{000A}")));
+            },
+            LayoutNodeType::Element(LayoutElementType::HTMLParagraphElement) => {
+                // Step 8: If node is a p element, then append 2 (a required line break count) at
+                // the beginning and end of items.
+                results.insert(0, InnerOrOuterTextItem::RequiredLineBreakCount(2));
+                results.push(InnerOrOuterTextItem::RequiredLineBreakCount(2));
+            },
+            _ => {},
+        }
+
+        match display {
+            Display::TableCell => {
+                // Step 6.
+                results.push(InnerOrOuterTextItem::Text(String::from(
+                    "\u{0009}", /* tab */
+                )));
+            },
+            Display::TableRow => {
+                // Step 7.
+                results.push(InnerOrOuterTextItem::Text(String::from(
+                    "\u{000A}", /* line feed */
+                )));
+            },
+            Display::Block | Display::Flex | Display::TableCaption | Display::Table => {
+                // Step 9.
+                results.insert(0, InnerOrOuterTextItem::RequiredLineBreakCount(1));
+                results.push(InnerOrOuterTextItem::RequiredLineBreakCount(1));
+            },
+            _ => {},
+        }
+    }
+
+    results.into_iter().collect()
 }
 
 pub fn process_text_index_request(_node: OpaqueNode, _point: Point2D<Au>) -> Option<usize> {
