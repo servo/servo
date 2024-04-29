@@ -38,9 +38,9 @@ use layout::flow_ref::FlowRef;
 use layout::incremental::{RelayoutMode, SpecialRestyleDamage};
 use layout::query::{
     process_client_rect_query, process_content_box_request, process_content_boxes_request,
-    process_element_inner_text_query, process_offset_parent_query,
-    process_resolved_font_style_request, process_resolved_style_request,
-    process_scrolling_area_request,
+    process_element_inner_text_query, process_element_outer_text_query,
+    process_offset_parent_query, process_resolved_font_style_request,
+    process_resolved_style_request, process_scrolling_area_request,
 };
 use layout::traversal::{
     construct_flows_at_ancestors, ComputeStackingRelativePositions, PreorderFlowTraversal,
@@ -331,6 +331,14 @@ impl Layout for LayoutThread {
     ) -> String {
         let node = unsafe { ServoLayoutNode::new(&node) };
         process_element_inner_text_query(node, &self.indexable_text.borrow())
+    }
+
+    fn query_element_outer_text(
+        &self,
+        node: script_layout_interface::TrustedNodeAddress,
+    ) -> String {
+        let node = unsafe { ServoLayoutNode::new(&node) };
+        process_element_outer_text_query(node, &self.indexable_text.borrow())
     }
 
     fn query_inner_window_dimension(

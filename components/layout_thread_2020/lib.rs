@@ -31,7 +31,8 @@ use layout::context::LayoutContext;
 use layout::display_list::{DisplayList, WebRenderImageInfo};
 use layout::query::{
     process_content_box_request, process_content_boxes_request, process_element_inner_text_query,
-    process_node_geometry_request, process_node_scroll_area_request, process_offset_parent_query,
+    process_element_outer_text_query, process_node_geometry_request,
+    process_node_scroll_area_request, process_offset_parent_query,
     process_resolved_font_style_query, process_resolved_style_request, process_text_index_request,
 };
 use layout::traversal::RecalcStyle;
@@ -305,6 +306,14 @@ impl Layout for LayoutThread {
     ) -> String {
         let node = unsafe { ServoLayoutNode::new(&node) };
         process_element_inner_text_query(node)
+    }
+
+    fn query_element_outer_text(
+        &self,
+        node: script_layout_interface::TrustedNodeAddress,
+    ) -> String {
+        let node = unsafe { ServoLayoutNode::new(&node) };
+        process_element_outer_text_query(node)
     }
 
     fn query_inner_window_dimension(
