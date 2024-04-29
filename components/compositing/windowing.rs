@@ -249,7 +249,10 @@ impl EmbedderCoordinates {
     /// This should be used when drawing directly to the framebuffer with OpenGL commands.
     pub fn flip_rect(&self, rect: &DeviceIntRect) -> DeviceIntRect {
         let mut result = *rect;
-        result.min.y = self.framebuffer.height - result.min.y - result.size().height;
+        let min_y = self.framebuffer.height - result.max.y;
+        let max_y = self.framebuffer.height - result.min.y;
+        result.min.y = min_y;
+        result.max.y = max_y;
         result
     }
 
