@@ -33,7 +33,6 @@ ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 log = { workspace = true }
 media = { path = "../media" }
-metrics = { path = "../metrics" }
 net = { path = "../net" }
 net_traits = { workspace = true }
 parking_lot = { workspace = true }
