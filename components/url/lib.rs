@@ -23,6 +23,9 @@ pub use url::Host;
 use url::{Position, Url};
 
 pub use crate::origin::{ImmutableOrigin, MutableOrigin, OpaqueOrigin};
+
+const DATA_URL_DISPLAY_LENGTH: usize = 40;
+
 #[derive(Debug)]
 pub enum UrlError {
     SetUsername,
@@ -266,14 +269,23 @@ impl fmt::Display for ServoUrl {
 
 impl fmt::Debug for ServoUrl {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        if self.0.as_str().len() > 40 {
-            let mut hasher = DefaultHasher::new();
-            hasher.write(self.0.as_str().as_bytes());
-            let truncated: String = self.0.as_str().chars().take(40).collect();
-            let result = format!("{}... ({:x})", truncated, hasher.finish());
-            return result.fmt(formatter);
+        let url_string = self.0.as_str();
+        if self.scheme() != "data" || url_string.len() <= DATA_URL_DISPLAY_LENGTH {
+            return url_string.fmt(formatter);
         }
-        self.0.fmt(formatter)
+
+        let mut hasher = DefaultHasher::new();
+        hasher.write(self.0.as_str().as_bytes());
+
+        format!(
+            "{}... ({:x})",
+            url_string
+                .chars()
+                .take(DATA_URL_DISPLAY_LENGTH)
+                .collect::<String>(),
+            hasher.finish()
+        )
+        .fmt(formatter)
     }
 }
 
