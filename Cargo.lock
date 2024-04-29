@@ -2100,9 +2100,9 @@ dependencies = [
 
 [[package]]
 name = "glib"
-version = "0.19.4"
+version = "0.19.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae1407b2ce171e654720be10d57d4054d3ff2f10a13d5b37e6819b41439832f7"
+checksum = "be682de2914107f591efdbe2debf05d9ad70726310ee2b6a3802a697649fcc55"
 dependencies = [
  "bitflags 2.5.0",
  "futures-channel",
@@ -3386,7 +3386,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.5",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
