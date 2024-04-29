@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
 use std::mem;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use canvas_traits::canvas::*;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
@@ -359,21 +358,6 @@ pub enum Filter {
     Nearest,
 }
 
-pub(crate) type CanvasFontContext = FontContext<FontCacheThread>;
-
-thread_local!(static FONT_CONTEXT: RefCell<Option<CanvasFontContext>> = RefCell::new(None));
-
-pub(crate) fn with_thread_local_font_context<F, R>(canvas_data: &CanvasData, f: F) -> R
-where
-    F: FnOnce(&mut CanvasFontContext) -> R,
-{
-    FONT_CONTEXT.with(|font_context| {
-        f(font_context.borrow_mut().get_or_insert_with(|| {
-            FontContext::new(canvas_data.font_cache_thread.lock().unwrap().clone())
-        }))
-    })
-}
-
 pub struct CanvasData<'a> {
     backend: Box<dyn Backend>,
     drawtarget: Box<dyn GenericDrawTarget>,
@@ -386,7 +370,7 @@ pub struct CanvasData<'a> {
     old_image_key: Option<ImageKey>,
     /// An old webrender image key that can be deleted when the current epoch ends.
     very_old_image_key: Option<ImageKey>,
-    font_cache_thread: Mutex<FontCacheThread>,
+    font_context: Arc<FontContext<FontCacheThread>>,
 }
 
 fn create_backend() -> Box<dyn Backend> {
@@ -398,7 +382,7 @@ impl<'a> CanvasData<'a> {
         size: Size2D<u64>,
         webrender_api: Box<dyn WebrenderApi>,
         antialias: AntialiasMode,
-        font_cache_thread: FontCacheThread,
+        font_context: Arc<FontContext<FontCacheThread>>,
     ) -> CanvasData<'a> {
         let backend = create_backend();
         let draw_target = backend.create_drawtarget(size);
@@ -412,7 +396,7 @@ impl<'a> CanvasData<'a> {
             image_key: None,
             old_image_key: None,
             very_old_image_key: None,
-            font_cache_thread: Mutex::new(font_cache_thread),
+            font_context,
         }
     }
 
@@ -494,17 +478,14 @@ impl<'a> CanvasData<'a> {
         let font = font_style.map_or_else(
             || load_system_font_from_style(None),
             |style| {
-                with_thread_local_font_context(self, |font_context| {
-                    let font_group = font_context.font_group(ServoArc::new(style.clone()));
-                    let font = font_group
-                        .borrow_mut()
-                        .first(font_context)
-                        .expect("couldn't find font");
-                    let font = font.borrow_mut();
-                    Font::from_bytes(font.template.data(), 0)
-                        .ok()
-                        .or_else(|| load_system_font_from_style(Some(style)))
-                })
+                let font_group = self.font_context.font_group(ServoArc::new(style.clone()));
+                let font = font_group
+                    .write()
+                    .first(&self.font_context)
+                    .expect("couldn't find font");
+                Font::from_bytes(font.template.data(), 0)
+                    .ok()
+                    .or_else(|| load_system_font_from_style(Some(style)))
             },
         );
         let font = match font {

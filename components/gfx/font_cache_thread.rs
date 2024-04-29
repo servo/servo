@@ -3,14 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::ToOwned;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ops::{Deref, RangeInclusive};
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::{f32, fmt, mem, thread};
 
 use app_units::Au;
+use atomic_refcell::AtomicRefCell;
 use gfx_traits::WebrenderApi;
 use ipc_channel::ipc::{self, IpcBytesSender, IpcReceiver, IpcSender};
 use log::{debug, trace};
@@ -125,7 +124,8 @@ impl FontTemplates {
                 return;
             }
         }
-        self.templates.push(Rc::new(RefCell::new(new_template)));
+        self.templates
+            .push(Arc::new(AtomicRefCell::new(new_template)));
     }
 }
 
@@ -730,7 +730,7 @@ impl FontSource for FontCacheThread {
             .into_iter()
             .map(|serialized_font_template| {
                 let font_data = serialized_font_template.bytes_receiver.recv().ok();
-                Rc::new(RefCell::new(FontTemplate {
+                Arc::new(AtomicRefCell::new(FontTemplate {
                     identifier: serialized_font_template.identifier,
                     descriptor: serialized_font_template.descriptor.clone(),
                     data: font_data.map(Arc::new),

@@ -1638,10 +1638,9 @@ impl InlineFormattingContext {
 
         // It's unfortunate that it isn't possible to get this during IFC text processing, but in
         // that situation the style of the containing block is unknown.
-        let default_font_metrics = layout_context.with_font_context(|font_context| {
-            get_font_for_first_font_for_style(style, font_context)
-                .map(|font| font.borrow().metrics.clone())
-        });
+        let default_font_metrics =
+            get_font_for_first_font_for_style(style, &layout_context.font_context)
+                .map(|font| font.metrics.clone());
 
         let style_text = containing_block.style.get_inherited_text();
         let mut ifc = InlineFormattingContextState {
@@ -1768,34 +1767,30 @@ impl InlineFormattingContext {
         // For the purposes of `text-transform: capitalize` the start of the IFC is a word boundary.
         let mut on_word_boundary = true;
 
-        layout_context.with_font_context(|font_context| {
-            let mut linebreaker = None;
-            self.foreach(|iter_item| match iter_item {
-                InlineFormattingContextIterItem::Item(InlineLevelBox::TextRun(
-                    ref mut text_run,
-                )) => {
-                    text_run.break_and_shape(
-                        font_context,
-                        &mut linebreaker,
-                        &mut ifc_fonts,
-                        &mut last_inline_box_ended_with_white_space,
-                        &mut on_word_boundary,
-                    );
-                },
-                InlineFormattingContextIterItem::Item(InlineLevelBox::InlineBox(inline_box)) => {
-                    if let Some(font) =
-                        get_font_for_first_font_for_style(&inline_box.style, font_context)
-                    {
-                        inline_box.default_font_index =
-                            Some(add_or_get_font(&font, &mut ifc_fonts));
-                    }
-                },
-                InlineFormattingContextIterItem::Item(InlineLevelBox::Atomic(_)) => {
-                    last_inline_box_ended_with_white_space = false;
-                    on_word_boundary = true;
-                },
-                _ => {},
-            });
+        let mut linebreaker = None;
+        self.foreach(|iter_item| match iter_item {
+            InlineFormattingContextIterItem::Item(InlineLevelBox::TextRun(ref mut text_run)) => {
+                text_run.break_and_shape(
+                    &layout_context.font_context,
+                    &mut linebreaker,
+                    &mut ifc_fonts,
+                    &mut last_inline_box_ended_with_white_space,
+                    &mut on_word_boundary,
+                );
+            },
+            InlineFormattingContextIterItem::Item(InlineLevelBox::InlineBox(inline_box)) => {
+                if let Some(font) = get_font_for_first_font_for_style(
+                    &inline_box.style,
+                    &layout_context.font_context,
+                ) {
+                    inline_box.default_font_index = Some(add_or_get_font(&font, &mut ifc_fonts));
+                }
+            },
+            InlineFormattingContextIterItem::Item(InlineLevelBox::Atomic(_)) => {
+                last_inline_box_ended_with_white_space = false;
+                on_word_boundary = true;
+            },
+            _ => {},
         });
 
         self.font_metrics = ifc_fonts;

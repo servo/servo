@@ -82,6 +82,13 @@ pub struct PlatformFont {
     scaled_du_to_px: f32,
 }
 
+// Based on information from the Skia codebase, it seems that DirectWrite APIs from
+// Windows 10 and beyond are thread safe.  If problems arise from this, we can protect the
+// platform font with a Mutex.
+// See https://source.chromium.org/chromium/chromium/src/+/main:third_party/skia/src/ports/SkScalerContext_win_dw.cpp;l=56;bpv=0;bpt=1.
+unsafe impl Sync for PlatformFont {}
+unsafe impl Send for PlatformFont {}
+
 struct Nondebug<T>(T);
 
 impl<T> fmt::Debug for Nondebug<T> {

@@ -42,7 +42,7 @@ use style::values::generics::counters::ContentItem;
 use style::LocalName;
 
 use crate::block::BlockFlow;
-use crate::context::{with_thread_local_font_context, LayoutContext};
+use crate::context::LayoutContext;
 use crate::data::{InnerLayoutData, LayoutDataFlags};
 use crate::display_list::items::OpaqueNode;
 use crate::flex::FlexFlow;
@@ -517,11 +517,10 @@ where
         // We must scan for runs before computing minimum ascent and descent because scanning
         // for runs might collapse so much whitespace away that only hypothetical fragments
         // remain. In that case the inline flow will compute its ascent and descent to be zero.
-        let scanned_fragments =
-            with_thread_local_font_context(self.layout_context, |font_context| {
-                TextRunScanner::new()
-                    .scan_for_runs(font_context, mem::take(&mut fragments.fragments))
-            });
+        let scanned_fragments = TextRunScanner::new().scan_for_runs(
+            &self.layout_context.font_context,
+            mem::take(&mut fragments.fragments),
+        );
         let mut inline_flow_ref = FlowRef::new(Arc::new(InlineFlow::from_fragments(
             scanned_fragments,
             node.style(self.style_context()).writing_mode,
@@ -550,11 +549,10 @@ where
         {
             // FIXME(#6503): Use Arc::get_mut().unwrap() here.
             let inline_flow = FlowRef::deref_mut(&mut inline_flow_ref).as_mut_inline();
-            inline_flow.minimum_line_metrics =
-                with_thread_local_font_context(self.layout_context, |font_context| {
-                    inline_flow
-                        .minimum_line_metrics(font_context, &node.style(self.style_context()))
-                });
+            inline_flow.minimum_line_metrics = inline_flow.minimum_line_metrics(
+                &self.layout_context.font_context,
+                &node.style(self.style_context()),
+            );
         }
 
         inline_flow_ref.finish();
@@ -1545,11 +1543,10 @@ where
                         )),
                         self.layout_context,
                     ));
-                    let marker_fragments =
-                        with_thread_local_font_context(self.layout_context, |font_context| {
-                            TextRunScanner::new()
-                                .scan_for_runs(font_context, unscanned_marker_fragments)
-                        });
+                    let marker_fragments = TextRunScanner::new().scan_for_runs(
+                        &self.layout_context.font_context,
+                        unscanned_marker_fragments,
+                    );
                     marker_fragments.fragments
                 },
                 ListStyleTypeContent::GeneratedContent(info) => vec![Fragment::new(

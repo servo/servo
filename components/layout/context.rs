@@ -4,7 +4,6 @@
 
 //! Data needed by layout.
 
-use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::sync::{Arc, Mutex};
@@ -13,7 +12,6 @@ use std::thread;
 use fnv::FnvHasher;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageOrMetadataAvailable, UsePlaceholder,
@@ -28,32 +26,6 @@ use style::context::{RegisteredSpeculativePainter, SharedStyleContext};
 use crate::display_list::items::{OpaqueNode, WebRenderImageInfo};
 
 pub type LayoutFontContext = FontContext<FontCacheThread>;
-
-thread_local!(static FONT_CONTEXT_KEY: RefCell<Option<LayoutFontContext>> = RefCell::new(None));
-
-pub fn with_thread_local_font_context<F, R>(layout_context: &LayoutContext, f: F) -> R
-where
-    F: FnOnce(&mut LayoutFontContext) -> R,
-{
-    FONT_CONTEXT_KEY.with(|k| {
-        let mut font_context = k.borrow_mut();
-        if font_context.is_none() {
-            let font_cache_thread = layout_context.font_cache_thread.lock().unwrap().clone();
-            *font_context = Some(FontContext::new(font_cache_thread));
-        }
-        f(&mut RefMut::map(font_context, |x| x.as_mut().unwrap()))
-    })
-}
-
-pub fn malloc_size_of_persistent_local_context(ops: &mut MallocSizeOfOps) -> usize {
-    FONT_CONTEXT_KEY.with(|r| {
-        if let Some(ref context) = *r.borrow() {
-            context.size_of(ops)
-        } else {
-            0
-        }
-    })
-}
 
 type WebrenderImageCache =
     HashMap<(ServoUrl, UsePlaceholder), WebRenderImageInfo, BuildHasherDefault<FnvHasher>>;
@@ -72,8 +44,8 @@ pub struct LayoutContext<'a> {
     /// Reference to the script thread image cache.
     pub image_cache: Arc<dyn ImageCache>,
 
-    /// Interface to the font cache thread.
-    pub font_cache_thread: Mutex<FontCacheThread>,
+    /// A FontContext to be used during layout.
+    pub font_context: Arc<FontContext<FontCacheThread>>,
 
     /// A cache of WebRender image info.
     pub webrender_image_cache: Arc<RwLock<WebrenderImageCache>>,

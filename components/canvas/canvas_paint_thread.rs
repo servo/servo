@@ -4,6 +4,7 @@
 
 use std::borrow::ToOwned;
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::thread;
 
 use canvas_traits::canvas::*;
@@ -11,6 +12,7 @@ use canvas_traits::ConstellationCanvasMsg;
 use crossbeam_channel::{select, unbounded, Sender};
 use euclid::default::Size2D;
 use gfx::font_cache_thread::FontCacheThread;
+use gfx::font_context::FontContext;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::warn;
@@ -40,7 +42,7 @@ pub struct CanvasPaintThread<'a> {
     canvases: HashMap<CanvasId, CanvasData<'a>>,
     next_canvas_id: CanvasId,
     webrender_api: Box<dyn WebrenderApi>,
-    font_cache_thread: FontCacheThread,
+    font_context: Arc<FontContext<FontCacheThread>>,
 }
 
 impl<'a> CanvasPaintThread<'a> {
@@ -52,7 +54,7 @@ impl<'a> CanvasPaintThread<'a> {
             canvases: HashMap::new(),
             next_canvas_id: CanvasId(0),
             webrender_api,
-            font_cache_thread,
+            font_context: Arc::new(FontContext::new(font_cache_thread)),
         }
     }
 
@@ -129,8 +131,6 @@ impl<'a> CanvasPaintThread<'a> {
             AntialiasMode::None
         };
 
-        let font_cache_thread = self.font_cache_thread.clone();
-
         let canvas_id = self.next_canvas_id;
         self.next_canvas_id.0 += 1;
 
@@ -138,7 +138,7 @@ impl<'a> CanvasPaintThread<'a> {
             size,
             self.webrender_api.clone(),
             antialias,
-            font_cache_thread,
+            self.font_context.clone(),
         );
         self.canvases.insert(canvas_id, canvas_data);
 

@@ -115,6 +115,7 @@ to_shmem = { git = "https://github.com/servo/stylo", branch = "2024-04-16" }
 tokio = "1"
 tokio-rustls = "0.24"
 tungstenite = "0.20"
+uluru = "3.0"
 unicode-bidi = "0.3.15"
 unicode-script = "0.5"
 unicode-segmentation = "1.1.0"

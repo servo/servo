@@ -70,7 +70,7 @@ impl TextRunScanner {
 
     pub fn scan_for_runs(
         &mut self,
-        font_context: &mut LayoutFontContext,
+        font_context: &LayoutFontContext,
         mut fragments: LinkedList<Fragment>,
     ) -> InlineFragments {
         debug!(
@@ -150,7 +150,7 @@ impl TextRunScanner {
     /// be adjusted.
     fn flush_clump_to_list(
         &mut self,
-        font_context: &mut LayoutFontContext,
+        font_context: &LayoutFontContext,
         out_fragments: &mut Vec<Fragment>,
         paragraph_bytes_processed: &mut usize,
         bidi_levels: Option<&[bidi::Level]>,
@@ -203,10 +203,9 @@ impl TextRunScanner {
                     .map(|l| l.into())
                     .unwrap_or_else(|| {
                         let space_width = font_group
-                            .borrow_mut()
+                            .write()
                             .find_by_codepoint(font_context, ' ')
                             .and_then(|font| {
-                                let font = font.borrow();
                                 font.glyph_index(' ')
                                     .map(|glyph_id| font.glyph_h_advance(glyph_id))
                             })
@@ -248,7 +247,7 @@ impl TextRunScanner {
                 for (byte_index, character) in text.char_indices() {
                     if !character.is_control() {
                         let font = font_group
-                            .borrow_mut()
+                            .write()
                             .find_by_codepoint(font_context, character);
 
                         let bidi_level = match bidi_levels {
@@ -367,7 +366,7 @@ impl TextRunScanner {
                 // If no font is found (including fallbacks), there's no way we can render.
                 let font = match run_info
                     .font
-                    .or_else(|| font_group.borrow_mut().first(font_context))
+                    .or_else(|| font_group.write().first(font_context))
                 {
                     Some(font) => font,
                     None => {
@@ -377,7 +376,7 @@ impl TextRunScanner {
                 };
 
                 let (run, break_at_zero) = TextRun::new(
-                    &mut font.borrow_mut(),
+                    font,
                     run_info.text,
                     &options,
                     run_info.bidi_level,
@@ -535,14 +534,12 @@ fn bounding_box_for_run_metrics(
 /// Panics if no font can be found for the given font style.
 #[inline]
 pub fn font_metrics_for_style(
-    font_context: &mut LayoutFontContext,
+    font_context: &LayoutFontContext,
     style: crate::ServoArc<FontStyleStruct>,
 ) -> FontMetrics {
     let font_group = font_context.font_group(style);
-    let font = font_group.borrow_mut().first(font_context);
-    let font = font.as_ref().unwrap().borrow();
-
-    font.metrics.clone()
+    let font = font_group.write().first(font_context);
+    font.as_ref().unwrap().metrics.clone()
 }
 
 /// Returns the line block-size needed by the given computed style and font size.
@@ -664,10 +661,8 @@ impl RunInfo {
 
     fn has_font(&self, font: &Option<FontRef>) -> bool {
         fn identifier_and_pt_size(font: &Option<FontRef>) -> Option<(FontIdentifier, Au)> {
-            font.as_ref().map(|font| {
-                let font = font.borrow();
-                (font.identifier().clone(), font.descriptor.pt_size)
-            })
+            font.as_ref()
+                .map(|font| (font.identifier().clone(), font.descriptor.pt_size))
         }
 
         identifier_and_pt_size(&self.font) == identifier_and_pt_size(font)

@@ -3,11 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::ToOwned;
-use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::Instant;
 use std::{iter, str};
 
@@ -15,6 +13,7 @@ use app_units::Au;
 use bitflags::bitflags;
 use euclid::default::{Point2D, Rect, Size2D};
 use log::debug;
+use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use servo_atoms::{atom, Atom};
 use smallvec::SmallVec;
@@ -185,15 +184,21 @@ impl<'a> From<&'a FontStyleStruct> for FontDescriptor {
     }
 }
 
+#[derive(Debug, Default)]
+struct CachedShapeData {
+    glyph_advances: HashMap<GlyphId, FractionalPixel>,
+    glyph_indices: HashMap<char, Option<GlyphId>>,
+    shaped_text: HashMap<ShapeCacheEntry, Arc<GlyphStore>>,
+}
+
 #[derive(Debug)]
 pub struct Font {
     pub handle: PlatformFont,
     pub template: FontTemplateRef,
     pub metrics: FontMetrics,
     pub descriptor: FontDescriptor,
-    shaper: Option<Shaper>,
-    shape_cache: RefCell<HashMap<ShapeCacheEntry, Arc<GlyphStore>>>,
-    glyph_advance_cache: RefCell<HashMap<u32, FractionalPixel>>,
+    shaper: OnceLock<Shaper>,
+    cached_shape_data: RwLock<CachedShapeData>,
     pub font_key: FontInstanceKey,
 
     /// If this is a synthesized small caps font, then this font reference is for
@@ -214,11 +219,10 @@ impl Font {
         Ok(Font {
             handle,
             template,
-            shaper: None,
+            shaper: OnceLock::new(),
             descriptor,
             metrics,
-            shape_cache: RefCell::new(HashMap::new()),
-            glyph_advance_cache: RefCell::new(HashMap::new()),
+            cached_shape_data: Default::default(),
             font_key: FontInstanceKey::default(),
             synthesized_small_caps,
         })
@@ -272,52 +276,49 @@ struct ShapeCacheEntry {
 }
 
 impl Font {
-    pub fn shape_text(&mut self, text: &str, options: &ShapingOptions) -> Arc<GlyphStore> {
+    pub fn shape_text(&self, text: &str, options: &ShapingOptions) -> Arc<GlyphStore> {
         let this = self as *const Font;
-        let mut shaper = self.shaper.take();
-
         let lookup_key = ShapeCacheEntry {
             text: text.to_owned(),
             options: *options,
         };
-        let result = self
-            .shape_cache
-            .borrow_mut()
-            .entry(lookup_key)
-            .or_insert_with(|| {
-                let start_time = Instant::now();
-                let mut glyphs = GlyphStore::new(
-                    text.len(),
-                    options
-                        .flags
-                        .contains(ShapingFlags::IS_WHITESPACE_SHAPING_FLAG),
-                    options.flags.contains(ShapingFlags::RTL_FLAG),
-                );
+        {
+            let cache = self.cached_shape_data.read();
+            if let Some(shaped_text) = cache.shaped_text.get(&lookup_key) {
+                return shaped_text.clone();
+            }
+        }
 
-                if self.can_do_fast_shaping(text, options) {
-                    debug!("shape_text: Using ASCII fast path.");
-                    self.shape_text_fast(text, options, &mut glyphs);
-                } else {
-                    debug!("shape_text: Using Harfbuzz.");
-                    if shaper.is_none() {
-                        shaper = Some(Shaper::new(this));
-                    }
-                    shaper
-                        .as_ref()
-                        .unwrap()
-                        .shape_text(text, options, &mut glyphs);
-                }
+        let start_time = Instant::now();
+        let mut glyphs = GlyphStore::new(
+            text.len(),
+            options
+                .flags
+                .contains(ShapingFlags::IS_WHITESPACE_SHAPING_FLAG),
+            options.flags.contains(ShapingFlags::RTL_FLAG),
+        );
 
-                let end_time = Instant::now();
-                TEXT_SHAPING_PERFORMANCE_COUNTER.fetch_add(
-                    (end_time.duration_since(start_time).as_nanos()) as usize,
-                    Ordering::Relaxed,
-                );
-                Arc::new(glyphs)
-            })
-            .clone();
-        self.shaper = shaper;
-        result
+        if self.can_do_fast_shaping(text, options) {
+            debug!("shape_text: Using ASCII fast path.");
+            self.shape_text_fast(text, options, &mut glyphs);
+        } else {
+            debug!("shape_text: Using Harfbuzz.");
+            self.shaper
+                .get_or_init(|| Shaper::new(this))
+                .shape_text(text, options, &mut glyphs);
+        }
+
+        let shaped_text = Arc::new(glyphs);
+        let mut cache = self.cached_shape_data.write();
+        cache.shaped_text.insert(lookup_key, shaped_text.clone());
+
+        let end_time = Instant::now();
+        TEXT_SHAPING_PERFORMANCE_COUNTER.fetch_add(
+            (end_time.duration_since(start_time).as_nanos()) as usize,
+            Ordering::Relaxed,
+        );
+
+        shaped_text
     }
 
     fn can_do_fast_shaping(&self, text: &str, options: &ShapingOptions) -> bool {
@@ -377,11 +378,21 @@ impl Font {
 
     #[inline]
     pub fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
+        {
+            let cache = self.cached_shape_data.read();
+            if let Some(glyph) = cache.glyph_indices.get(&codepoint) {
+                return *glyph;
+            }
+        }
         let codepoint = match self.descriptor.variant {
             font_variant_caps::T::SmallCaps => codepoint.to_ascii_uppercase(),
             font_variant_caps::T::Normal => codepoint,
         };
-        self.handle.glyph_index(codepoint)
+        let glyph_index = self.handle.glyph_index(codepoint);
+
+        let mut cache = self.cached_shape_data.write();
+        cache.glyph_indices.insert(codepoint, glyph_index);
+        glyph_index
     }
 
     pub fn has_glyph_for(&self, codepoint: char) -> bool {
@@ -392,21 +403,27 @@ impl Font {
         self.handle.glyph_h_kerning(first_glyph, second_glyph)
     }
 
-    pub fn glyph_h_advance(&self, glyph: GlyphId) -> FractionalPixel {
-        *self
-            .glyph_advance_cache
-            .borrow_mut()
-            .entry(glyph)
-            .or_insert_with(|| {
-                match self.handle.glyph_h_advance(glyph) {
-                    Some(adv) => adv,
-                    None => LAST_RESORT_GLYPH_ADVANCE as FractionalPixel, // FIXME: Need fallback strategy
-                }
-            })
+    pub fn glyph_h_advance(&self, glyph_id: GlyphId) -> FractionalPixel {
+        {
+            let cache = self.cached_shape_data.read();
+            if let Some(width) = cache.glyph_advances.get(&glyph_id) {
+                return *width;
+            }
+        }
+
+        // TODO: Need a fallback strategy.
+        let new_width = match self.handle.glyph_h_advance(glyph_id) {
+            Some(adv) => adv,
+            None => LAST_RESORT_GLYPH_ADVANCE as FractionalPixel,
+        };
+
+        let mut cache = self.cached_shape_data.write();
+        cache.glyph_advances.insert(glyph_id, new_width);
+        new_width
     }
 }
 
-pub type FontRef = Rc<RefCell<Font>>;
+pub type FontRef = Arc<Font>;
 
 /// A `FontGroup` is a prioritised list of fonts for a given set of font styles. It is used by
 /// `TextRun` to decide which font to render a character with. If none of the fonts listed in the
@@ -442,14 +459,13 @@ impl FontGroup {
     /// found, returns None.
     pub fn find_by_codepoint<S: FontSource>(
         &mut self,
-        font_context: &mut FontContext<S>,
+        font_context: &FontContext<S>,
         codepoint: char,
     ) -> Option<FontRef> {
         let should_look_for_small_caps = self.descriptor.variant == font_variant_caps::T::SmallCaps &&
             codepoint.is_ascii_lowercase();
         let font_or_synthesized_small_caps = |font: FontRef| {
             if should_look_for_small_caps {
-                let font = font.borrow();
                 if font.synthesized_small_caps.is_some() {
                     return font.synthesized_small_caps.clone();
                 }
@@ -457,7 +473,7 @@ impl FontGroup {
             Some(font)
         };
 
-        let glyph_in_font = |font: &FontRef| font.borrow().has_glyph_for(codepoint);
+        let glyph_in_font = |font: &FontRef| font.has_glyph_for(codepoint);
         let char_in_template =
             |template: FontTemplateRef| template.char_in_unicode_range(codepoint);
 
@@ -466,7 +482,7 @@ impl FontGroup {
         }
 
         if let Some(ref last_matching_fallback) = self.last_matching_fallback {
-            if char_in_template(last_matching_fallback.borrow().template.clone()) &&
+            if char_in_template(last_matching_fallback.template.clone()) &&
                 glyph_in_font(last_matching_fallback)
             {
                 return font_or_synthesized_small_caps(last_matching_fallback.clone());
@@ -487,7 +503,7 @@ impl FontGroup {
     }
 
     /// Find the first available font in the group, or the first available fallback font.
-    pub fn first<S: FontSource>(&mut self, font_context: &mut FontContext<S>) -> Option<FontRef> {
+    pub fn first<S: FontSource>(&mut self, font_context: &FontContext<S>) -> Option<FontRef> {
         // From https://drafts.csswg.org/css-fonts/#first-available-font:
         // > The first available font, used for example in the definition of font-relative lengths
         // > such as ex or in the definition of the line-height property, is defined to be the first
@@ -506,7 +522,7 @@ impl FontGroup {
     /// a suitable font.
     fn find<S, TemplatePredicate, FontPredicate>(
         &mut self,
-        font_context: &mut FontContext<S>,
+        font_context: &FontContext<S>,
         template_predicate: TemplatePredicate,
         font_predicate: FontPredicate,
     ) -> Option<FontRef>
@@ -535,7 +551,7 @@ impl FontGroup {
     /// used to refine the list of family names which will be tried.
     fn find_fallback<S, TemplatePredicate, FontPredicate>(
         &mut self,
-        font_context: &mut FontContext<S>,
+        font_context: &FontContext<S>,
         codepoint: Option<char>,
         template_predicate: TemplatePredicate,
         font_predicate: FontPredicate,
@@ -602,7 +618,7 @@ impl FontGroupFamily {
     fn find<S, TemplatePredicate, FontPredicate>(
         &mut self,
         font_descriptor: &FontDescriptor,
-        font_context: &mut FontContext<S>,
+        font_context: &FontContext<S>,
         template_predicate: &TemplatePredicate,
         font_predicate: &FontPredicate,
     ) -> Option<FontRef>
@@ -633,7 +649,7 @@ impl FontGroupFamily {
     fn members<'a, S: FontSource>(
         &'a mut self,
         font_descriptor: &FontDescriptor,
-        font_context: &mut FontContext<S>,
+        font_context: &FontContext<S>,
     ) -> impl Iterator<Item = &mut FontGroupFamilyMember> + 'a {
         let family_descriptor = &self.family_descriptor;
         let members = self.members.get_or_insert_with(|| {

@@ -16,7 +16,7 @@ use unicode_bidi as bidi;
 use webrender_api::FontInstanceKey;
 use xi_unicode::LineBreakLeafIter;
 
-use crate::font::{Font, FontMetrics, RunMetrics, ShapingFlags, ShapingOptions};
+use crate::font::{FontMetrics, FontRef, RunMetrics, ShapingFlags, ShapingOptions};
 use crate::text::glyph::{ByteIndex, GlyphStore};
 
 thread_local! {
@@ -180,13 +180,14 @@ impl<'a> Iterator for CharacterSliceIterator<'a> {
 impl<'a> TextRun {
     /// Constructs a new text run. Also returns if there is a line break at the beginning
     pub fn new(
-        font: &mut Font,
+        font: FontRef,
         text: String,
         options: &ShapingOptions,
         bidi_level: bidi::Level,
         breaker: &mut Option<LineBreakLeafIter>,
     ) -> (TextRun, bool) {
-        let (glyphs, break_at_zero) = TextRun::break_and_shape(font, &text, options, breaker);
+        let (glyphs, break_at_zero) =
+            TextRun::break_and_shape(font.clone(), &text, options, breaker);
         (
             TextRun {
                 text: Arc::new(text),
@@ -202,7 +203,7 @@ impl<'a> TextRun {
     }
 
     pub fn break_and_shape(
-        font: &mut Font,
+        font: FontRef,
         text: &str,
         options: &ShapingOptions,
         breaker: &mut Option<LineBreakLeafIter>,

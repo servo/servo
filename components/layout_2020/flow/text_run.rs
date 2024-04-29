@@ -111,7 +111,7 @@ impl TextRunSegment {
     /// compatible with this segment or false otherwise.
     fn update_if_compatible(
         &mut self,
-        font: &FontRef,
+        new_font: &FontRef,
         script: Script,
         fonts: &[FontKeyAndMetrics],
     ) -> bool {
@@ -120,7 +120,6 @@ impl TextRunSegment {
         }
 
         let current_font_key_and_metrics = &fonts[self.font_index];
-        let new_font = font.borrow();
         if new_font.font_key != current_font_key_and_metrics.key ||
             new_font.descriptor.pt_size != current_font_key_and_metrics.pt_size
         {
@@ -208,7 +207,7 @@ impl TextRun {
 
     pub(super) fn break_and_shape(
         &mut self,
-        font_context: &mut FontContext<FontCacheThread>,
+        font_context: &FontContext<FontCacheThread>,
         linebreaker: &mut Option<LineBreakLeafIter>,
         font_cache: &mut Vec<FontKeyAndMetrics>,
         last_inline_box_ended_with_collapsible_white_space: &mut bool,
@@ -244,7 +243,6 @@ impl TextRun {
         let segments = segment_results
             .into_iter()
             .map(|(mut segment, font)| {
-                let mut font = font.borrow_mut();
                 let word_spacing = style_word_spacing.unwrap_or_else(|| {
                     let space_width = font
                         .glyph_index(' ')
@@ -260,7 +258,7 @@ impl TextRun {
                 };
                 (segment.runs, segment.break_at_start) =
                     gfx::text::text_run::TextRun::break_and_shape(
-                        &mut font,
+                        font,
                         &self.text
                             [segment.range.begin().0 as usize..segment.range.end().0 as usize],
                         &shaping_options,
@@ -280,7 +278,7 @@ impl TextRun {
     /// [`super::InlineFormattingContext`].
     fn segment_text(
         &mut self,
-        font_context: &mut FontContext<FontCacheThread>,
+        font_context: &FontContext<FontCacheThread>,
         font_cache: &mut Vec<FontKeyAndMetrics>,
         last_inline_box_ended_with_collapsible_white_space: &mut bool,
         on_word_boundary: &mut bool,
@@ -341,7 +339,7 @@ impl TextRun {
                 }
 
                 let font = match font_group
-                    .borrow_mut()
+                    .write()
                     .find_by_codepoint(font_context, character)
                 {
                     Some(font) => font,
@@ -383,7 +381,7 @@ impl TextRun {
         // Either we have a current segment or we only had control character and whitespace. In both
         // of those cases, just use the first font.
         if current.is_none() {
-            current = font_group.borrow_mut().first(font_context).map(|font| {
+            current = font_group.write().first(font_context).map(|font| {
                 let font_index = add_or_get_font(&font, font_cache);
                 (
                     TextRunSegment::new(font_index, Script::Common, ByteIndex(0)),
@@ -489,7 +487,6 @@ fn char_does_not_change_font(character: char) -> bool {
 }
 
 pub(super) fn add_or_get_font(font: &FontRef, ifc_fonts: &mut Vec<FontKeyAndMetrics>) -> usize {
-    let font = font.borrow();
     for (index, ifc_font_info) in ifc_fonts.iter().enumerate() {
         if ifc_font_info.key == font.font_key && ifc_font_info.pt_size == font.descriptor.pt_size {
             return index;
@@ -505,11 +502,11 @@ pub(super) fn add_or_get_font(font: &FontRef, ifc_fonts: &mut Vec<FontKeyAndMetr
 
 pub(super) fn get_font_for_first_font_for_style(
     style: &ComputedValues,
-    font_context: &mut FontContext<FontCacheThread>,
+    font_context: &FontContext<FontCacheThread>,
 ) -> Option<FontRef> {
     let font = font_context
         .font_group(style.clone_font())
-        .borrow_mut()
+        .write()
         .first(font_context);
     if font.is_none() {
         warn!("Could not find font for style: {:?}", style.clone_font());

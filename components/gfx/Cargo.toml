@@ -15,6 +15,7 @@ doctest = false
 
 [dependencies]
 app_units = { workspace = true }
+atomic_refcell = { workspace = true }
 bitflags = { workspace = true }
 cssparser = { workspace = true }
 euclid = { workspace = true }

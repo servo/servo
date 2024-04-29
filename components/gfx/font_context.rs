@@ -2,17 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::default::Default;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
-use std::rc::Rc;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
 use app_units::Au;
 use fnv::FnvHasher;
 use log::debug;
-use servo_arc::Arc;
+use parking_lot::{Mutex, RwLock};
+use servo_arc::Arc as ServoArc;
 use style::computed_values::font_variant_caps::T as FontVariantCaps;
 use style::properties::style_structs::Font as FontStyleStruct;
 use webrender_api::{FontInstanceFlags, FontInstanceKey};
@@ -24,10 +23,6 @@ use crate::font_template::{FontTemplateRef, FontTemplateRefMethods};
 use crate::platform::core_text_font_cache::CoreTextFontCache;
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
-
-/// An epoch for the font context cache. The cache is flushed if the current epoch does not match
-/// this one.
-static FONT_CACHE_EPOCH: AtomicUsize = AtomicUsize::new(0);
 
 pub trait FontSource {
     fn get_font_instance(
@@ -49,48 +44,48 @@ pub trait FontSource {
 /// required.
 #[derive(Debug)]
 pub struct FontContext<S: FontSource> {
-    font_source: S,
+    font_source: Mutex<S>,
 
     // TODO: The font context holds a strong ref to the cached fonts
     // so they will never be released. Find out a good time to drop them.
     // See bug https://github.com/servo/servo/issues/3300
-    font_cache: HashMap<FontCacheKey, Option<FontRef>>,
-    font_template_cache: HashMap<FontTemplateCacheKey, Vec<FontTemplateRef>>,
-
+    font_cache: RwLock<HashMap<FontCacheKey, Option<FontRef>>>,
+    font_template_cache: RwLock<HashMap<FontTemplateCacheKey, Vec<FontTemplateRef>>>,
     font_group_cache:
-        HashMap<FontGroupCacheKey, Rc<RefCell<FontGroup>>, BuildHasherDefault<FnvHasher>>,
-
-    epoch: usize,
+        RwLock<HashMap<FontGroupCacheKey, Arc<RwLock<FontGroup>>, BuildHasherDefault<FnvHasher>>>,
 }
 
 impl<S: FontSource> FontContext<S> {
     pub fn new(font_source: S) -> FontContext<S> {
         #[allow(clippy::default_constructed_unit_structs)]
         FontContext {
-            font_source,
-            font_cache: HashMap::new(),
-            font_template_cache: HashMap::new(),
-            font_group_cache: HashMap::with_hasher(Default::default()),
-            epoch: 0,
+            font_source: Mutex::new(font_source),
+            font_cache: RwLock::default(),
+            font_template_cache: RwLock::default(),
+            font_group_cache: RwLock::default(),
         }
     }
 
-    fn expire_font_caches_if_necessary(&mut self) {
-        let current_epoch = FONT_CACHE_EPOCH.load(Ordering::SeqCst);
-        if current_epoch == self.epoch {
-            return;
-        }
+    /// Invalidate all caches that this [`FontContext`] holds and any in-process platform-specific
+    /// caches.
+    ///
+    /// # Safety
+    ///
+    /// This should never be called when more than one thread is using the [`FontContext`] or it
+    /// may leave the context in an inconsistent state.
+    pub fn invalidate_caches(&self) {
+        #[cfg(target_os = "macos")]
+        CoreTextFontCache::clear_core_text_font_cache();
 
-        self.font_cache.clear();
-        self.font_template_cache.clear();
-        self.font_group_cache.clear();
-        self.epoch = current_epoch
+        self.font_cache.write().clear();
+        self.font_template_cache.write().clear();
+        self.font_group_cache.write().clear();
     }
 
     /// Returns a `FontGroup` representing fonts which can be used for layout, given the `style`.
     /// Font groups are cached, so subsequent calls with the same `style` will return a reference
     /// to an existing `FontGroup`.
-    pub fn font_group(&mut self, style: Arc<FontStyleStruct>) -> Rc<RefCell<FontGroup>> {
+    pub fn font_group(&self, style: ServoArc<FontStyleStruct>) -> Arc<RwLock<FontGroup>> {
         let font_size = style.font_size.computed_size().into();
         self.font_group_with_size(style, font_size)
     }
@@ -98,27 +93,27 @@ impl<S: FontSource> FontContext<S> {
     /// Like [`Self::font_group`], but overriding the size found in the [`FontStyleStruct`] with the given size
     /// in pixels.
     pub fn font_group_with_size(
-        &mut self,
-        style: Arc<FontStyleStruct>,
+        &self,
+        style: ServoArc<FontStyleStruct>,
         size: Au,
-    ) -> Rc<RefCell<FontGroup>> {
-        self.expire_font_caches_if_necessary();
-
+    ) -> Arc<RwLock<FontGroup>> {
         let cache_key = FontGroupCacheKey { size, style };
 
-        if let Some(font_group) = self.font_group_cache.get(&cache_key) {
+        if let Some(font_group) = self.font_group_cache.read().get(&cache_key) {
             return font_group.clone();
         }
 
-        let font_group = Rc::new(RefCell::new(FontGroup::new(&cache_key.style)));
-        self.font_group_cache.insert(cache_key, font_group.clone());
+        let font_group = Arc::new(RwLock::new(FontGroup::new(&cache_key.style)));
+        self.font_group_cache
+            .write()
+            .insert(cache_key, font_group.clone());
         font_group
     }
 
     /// Returns a font matching the parameters. Fonts are cached, so repeated calls will return a
     /// reference to the same underlying `Font`.
     pub fn font(
-        &mut self,
+        &self,
         font_template: FontTemplateRef,
         font_descriptor: &FontDescriptor,
     ) -> Option<FontRef> {
@@ -130,7 +125,7 @@ impl<S: FontSource> FontContext<S> {
     }
 
     fn get_font_maybe_synthesizing_small_caps(
-        &mut self,
+        &self,
         font_template: FontTemplateRef,
         font_descriptor: &FontDescriptor,
         synthesize_small_caps: bool,
@@ -157,27 +152,28 @@ impl<S: FontSource> FontContext<S> {
             font_descriptor: font_descriptor.clone(),
         };
 
-        self.font_cache.get(&cache_key).cloned().unwrap_or_else(|| {
-            debug!(
-                "FontContext::font cache miss for font_template={:?} font_descriptor={:?}",
-                font_template, font_descriptor
-            );
+        if let Some(font) = self.font_cache.read().get(&cache_key).cloned() {
+            return font;
+        }
 
-            let font = self
-                .create_font(
-                    font_template,
-                    font_descriptor.to_owned(),
-                    synthesized_small_caps_font,
-                )
-                .ok();
-            self.font_cache.insert(cache_key, font.clone());
+        debug!(
+            "FontContext::font cache miss for font_template={:?} font_descriptor={:?}",
+            font_template, font_descriptor
+        );
 
-            font
-        })
+        let font = self
+            .create_font(
+                font_template,
+                font_descriptor.to_owned(),
+                synthesized_small_caps_font,
+            )
+            .ok();
+        self.font_cache.write().insert(cache_key, font.clone());
+        font
     }
 
     pub fn matching_templates(
-        &mut self,
+        &self,
         descriptor_to_match: &FontDescriptor,
         family_descriptor: &FontFamilyDescriptor,
     ) -> Vec<FontTemplateRef> {
@@ -186,27 +182,31 @@ impl<S: FontSource> FontContext<S> {
             family_descriptor: family_descriptor.clone(),
         };
 
-        self.font_template_cache.get(&cache_key).cloned().unwrap_or_else(|| {
-            debug!(
-                "FontContext::font_template cache miss for template_descriptor={:?} family_descriptor={:?}",
-                descriptor_to_match,
-                family_descriptor
-            );
+        if let Some(templates) = self.font_template_cache.read().get(&cache_key).cloned() {
+            return templates;
+        }
 
-            let template_info = self.font_source.find_matching_font_templates(
-                descriptor_to_match,
-                family_descriptor.clone(),
-            );
+        debug!(
+            "FontContext::font_template cache miss for template_descriptor={:?} family_descriptor={:?}",
+            descriptor_to_match,
+            family_descriptor
+        );
 
-            self.font_template_cache.insert(cache_key, template_info.clone());
-            template_info
-        })
+        let templates = self
+            .font_source
+            .lock()
+            .find_matching_font_templates(descriptor_to_match, family_descriptor.clone());
+
+        self.font_template_cache
+            .write()
+            .insert(cache_key, templates.clone());
+        templates
     }
 
     /// Create a `Font` for use in layout calculations, from a `FontTemplateData` returned by the
     /// cache thread and a `FontDescriptor` which contains the styling parameters.
     fn create_font(
-        &mut self,
+        &self,
         font_template: FontTemplateRef,
         font_descriptor: FontDescriptor,
         synthesized_small_caps: Option<FontRef>,
@@ -216,13 +216,13 @@ impl<S: FontSource> FontContext<S> {
             font_descriptor.clone(),
             synthesized_small_caps,
         )?;
-        font.font_key = self.font_source.get_font_instance(
+        font.font_key = self.font_source.lock().get_font_instance(
             font_template.identifier(),
             font_descriptor.pt_size,
             font.webrender_font_instance_flags(),
         );
 
-        Ok(Rc::new(RefCell::new(font)))
+        Ok(Arc::new(font))
     }
 }
 
@@ -240,7 +240,7 @@ struct FontTemplateCacheKey {
 
 #[derive(Debug)]
 struct FontGroupCacheKey {
-    style: Arc<FontStyleStruct>,
+    style: ServoArc<FontStyleStruct>,
     size: Au,
 }
 
@@ -259,12 +259,4 @@ impl Hash for FontGroupCacheKey {
     {
         self.style.hash.hash(hasher)
     }
-}
-
-#[inline]
-pub fn invalidate_font_caches() {
-    FONT_CACHE_EPOCH.fetch_add(1, Ordering::SeqCst);
-
-    #[cfg(target_os = "macos")]
-    CoreTextFontCache::clear_core_text_font_cache();
 }
