@@ -743,8 +743,10 @@ impl Document {
                 .parent()
                 .and_then(|parent| parent.document())
                 .map(|document| document.base_url());
-            if document_url.as_str() == "about:srcdoc" && container_base_url.is_some() {
-                return container_base_url.unwrap();
+            if document_url.as_str() == "about:srcdoc" {
+                if let Some(base_url) = container_base_url {
+                    return base_url;
+                }
             }
             // Step 2: If document's URL is about:blank, and document's browsing
             // context's creator base URL is non-null, then return that creator base URL.

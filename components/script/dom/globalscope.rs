@@ -1286,8 +1286,8 @@ impl GlobalScope {
                     // If the port is not enabled yet, or if is awaiting the completion of it's transfer,
                     // the task will be buffered and dispatched upon enablement or completion of the transfer.
                     if let Some(port_impl) = managed_port.port_impl.as_mut() {
-                        port_impl.handle_incoming(task).and_then(|to_dispatch| {
-                            Some((DomRoot::from_ref(&*managed_port.dom_port), to_dispatch))
+                        port_impl.handle_incoming(task).map(|to_dispatch| {
+                            (DomRoot::from_ref(&*managed_port.dom_port), to_dispatch)
                         })
                     } else {
                         panic!("managed-port has no port-impl.");
