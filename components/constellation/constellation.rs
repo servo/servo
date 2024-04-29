@@ -1459,6 +1459,15 @@ where
             FromCompositorMsg::NewWebView(url, top_level_browsing_context_id) => {
                 self.handle_new_top_level_browsing_context(url, top_level_browsing_context_id);
             },
+            // A top level browsing context is created and opened in both constellation and
+            // compositor.
+            FromCompositorMsg::WebViewOpened(top_level_browsing_context_id) => {
+                let msg = (
+                    Some(top_level_browsing_context_id),
+                    EmbedderMsg::WebViewOpened(top_level_browsing_context_id),
+                );
+                self.embedder_proxy.send(msg);
+            },
             // Close a top level browsing context.
             FromCompositorMsg::CloseWebView(top_level_browsing_context_id) => {
                 self.handle_close_top_level_browsing_context(top_level_browsing_context_id);
@@ -1470,48 +1479,6 @@ where
                     warn!("constellation got a SendError message without top level id");
                 }
                 self.handle_panic(top_level_browsing_context_id, error, None);
-            },
-            FromCompositorMsg::MoveResizeWebView(top_level_browsing_context_id, rect) => {
-                if self.webviews.get(top_level_browsing_context_id).is_none() {
-                    return warn!(
-                        "{}: MoveResizeWebView on unknown top-level browsing context",
-                        top_level_browsing_context_id
-                    );
-                }
-                self.compositor_proxy.send(CompositorMsg::MoveResizeWebView(
-                    top_level_browsing_context_id,
-                    rect,
-                ));
-            },
-            FromCompositorMsg::ShowWebView(webview_id, hide_others) => {
-                if self.webviews.get(webview_id).is_none() {
-                    return warn!(
-                        "{}: ShowWebView on unknown top-level browsing context",
-                        webview_id
-                    );
-                }
-                self.compositor_proxy
-                    .send(CompositorMsg::ShowWebView(webview_id, hide_others));
-            },
-            FromCompositorMsg::HideWebView(webview_id) => {
-                if self.webviews.get(webview_id).is_none() {
-                    return warn!(
-                        "{}: HideWebView on unknown top-level browsing context",
-                        webview_id
-                    );
-                }
-                self.compositor_proxy
-                    .send(CompositorMsg::HideWebView(webview_id));
-            },
-            FromCompositorMsg::RaiseWebViewToTop(webview_id, hide_others) => {
-                if self.webviews.get(webview_id).is_none() {
-                    return warn!(
-                        "{}: RaiseWebViewToTop on unknown top-level browsing context",
-                        webview_id
-                    );
-                }
-                self.compositor_proxy
-                    .send(CompositorMsg::RaiseWebViewToTop(webview_id, hide_others));
             },
             FromCompositorMsg::FocusWebView(top_level_browsing_context_id) => {
                 if self.webviews.get(top_level_browsing_context_id).is_none() {
@@ -2975,11 +2942,6 @@ where
     ) {
         let window_size = self.window_size.initial_viewport;
         let pipeline_id = PipelineId::new();
-        let msg = (
-            Some(top_level_browsing_context_id),
-            EmbedderMsg::WebViewOpened(top_level_browsing_context_id),
-        );
-        self.embedder_proxy.send(msg);
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         let load_data = LoadData::new(
             LoadOrigin::Constellation,

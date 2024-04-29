@@ -369,6 +369,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 },
             )
             .expect("Infallible with a new WebViewManager");
+        let msg = ConstellationMsg::WebViewOpened(top_level_browsing_context_id);
+        if let Err(e) = state.constellation_chan.send(msg) {
+            warn!("Sending event to constellation failed ({:?}).", e);
+        }
         webviews
             .show(top_level_browsing_context_id)
             .expect("Infallible due to add");
@@ -1182,6 +1186,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             ) {
                 error!("{webview_id}: Creating webview that already exists");
                 return;
+            }
+            let msg = ConstellationMsg::WebViewOpened(top_level_browsing_context_id);
+            if let Err(e) = self.constellation_chan.send(msg) {
+                warn!("Sending event to constellation failed ({:?}).", e);
             }
         }
 
