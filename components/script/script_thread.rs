@@ -96,6 +96,7 @@ use style::thread_state::{self, ThreadState};
 use time::precise_time_ns;
 use url::Position;
 use webgpu::identity::WebGPUMsg;
+use webgpu::Transmute;
 use webrender_api::units::LayoutPixel;
 use webrender_api::DocumentId;
 

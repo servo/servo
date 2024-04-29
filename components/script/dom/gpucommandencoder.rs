@@ -8,7 +8,7 @@ use std::collections::HashSet;
 
 use dom_struct::dom_struct;
 use webgpu::wgpu::command as wgpu_com;
-use webgpu::{self, wgt, WebGPU, WebGPURequest};
+use webgpu::{self, wgt, Transmute, WebGPU, WebGPURequest};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
