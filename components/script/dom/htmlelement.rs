@@ -591,6 +591,17 @@ impl HTMLElementMethods for HTMLElement {
         internals.set_attached();
         Ok(internals)
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-fe-autofocus
+    fn Autofocus(&self) -> bool {
+        self.element.has_attribute(&local_name!("autofocus"))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-fe-autofocus
+    fn SetAutofocus(&self, autofocus: bool) {
+        self.element
+            .set_bool_attribute(&local_name!("autofocus"), autofocus);
+    }
 }
 
 fn append_text_node_to_fragment(document: &Document, fragment: &DocumentFragment, text: String) {

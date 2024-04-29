@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{namespace_url, ns, LocalName, Prefix};
+use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
 use style_traits::dom::ElementState;
 
@@ -75,5 +75,16 @@ impl SVGElementMethods for SVGElement {
                 CSSModificationAccess::ReadWrite,
             )
         })
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-fe-autofocus
+    fn Autofocus(&self) -> bool {
+        self.element.has_attribute(&local_name!("autofocus"))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-fe-autofocus
+    fn SetAutofocus(&self, autofocus: bool) {
+        self.element
+            .set_bool_attribute(&local_name!("autofocus"), autofocus);
     }
 }
