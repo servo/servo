@@ -485,11 +485,7 @@ where
             },
             None => StyleFontStyle::NORMAL,
         };
-        let descriptor = FontTemplateDescriptor {
-            weight,
-            stretch,
-            style,
-        };
+        let descriptor = FontTemplateDescriptor::new(weight, stretch, style);
         callback(FontTemplate::new_local(local_font_identifier, descriptor));
     };
 

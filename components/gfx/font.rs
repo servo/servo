@@ -21,6 +21,7 @@ use smallvec::SmallVec;
 use style::computed_values::font_variant_caps;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::{GenericFontFamily, SingleFontFamily};
+use style::values::computed::{FontStretch, FontStyle, FontWeight};
 use unicode_script::Script;
 use webrender_api::FontInstanceKey;
 
@@ -58,7 +59,7 @@ pub trait PlatformFontMethods: Sized {
         pt_size: Option<Au>,
     ) -> Result<PlatformFont, &'static str> {
         let data = template.data();
-        let face_index = template.borrow().identifier().index();
+        let face_index = template.identifier().index();
         let font_identifier = template.borrow().identifier.clone();
         Self::new_from_data(font_identifier, data, face_index, pt_size)
     }
@@ -150,17 +151,23 @@ impl FontMetrics {
 /// template at a particular size, with a particular font-variant-caps applied, etc. This contrasts
 /// with `FontTemplateDescriptor` in that the latter represents only the parameters inherent in the
 /// font data (weight, stretch, etc.).
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
 pub struct FontDescriptor {
-    pub template_descriptor: FontTemplateDescriptor,
+    pub weight: FontWeight,
+    pub stretch: FontStretch,
+    pub style: FontStyle,
     pub variant: font_variant_caps::T,
     pub pt_size: Au,
 }
 
+impl Eq for FontDescriptor {}
+
 impl<'a> From<&'a FontStyleStruct> for FontDescriptor {
     fn from(style: &'a FontStyleStruct) -> Self {
         FontDescriptor {
-            template_descriptor: FontTemplateDescriptor::from(style),
+            weight: style.font_weight,
+            stretch: style.font_stretch,
+            style: style.font_style,
             variant: style.font_variant_caps,
             pt_size: Au::from_f32_px(style.font_size.computed_size().px()),
         }
@@ -209,7 +216,7 @@ impl Font {
 
     /// A unique identifier for the font, allowing comparison.
     pub fn identifier(&self) -> FontIdentifier {
-        self.template.borrow().identifier.clone()
+        self.template.identifier()
     }
 }
 
@@ -405,7 +412,7 @@ impl FontGroup {
             .font_family
             .families
             .iter()
-            .map(|family| FontGroupFamily::new(descriptor.clone(), family))
+            .map(|family| FontGroupFamily::new(family))
             .collect();
 
         FontGroup {
@@ -436,19 +443,28 @@ impl FontGroup {
             Some(font)
         };
 
-        let has_glyph = |font: &FontRef| font.borrow().has_glyph_for(codepoint);
+        let glyph_in_font = |font: &FontRef| font.borrow().has_glyph_for(codepoint);
+        let char_in_template =
+            |template: FontTemplateRef| template.char_in_unicode_range(codepoint);
 
-        if let Some(font) = self.find(font_context, has_glyph) {
+        if let Some(font) = self.find(font_context, char_in_template, glyph_in_font) {
             return font_or_synthesized_small_caps(font);
         }
 
         if let Some(ref last_matching_fallback) = self.last_matching_fallback {
-            if has_glyph(last_matching_fallback) {
+            if char_in_template(last_matching_fallback.borrow().template.clone()) &&
+                glyph_in_font(last_matching_fallback)
+            {
                 return font_or_synthesized_small_caps(last_matching_fallback.clone());
             }
         }
 
-        if let Some(font) = self.find_fallback(font_context, Some(codepoint), has_glyph) {
+        if let Some(font) = self.find_fallback(
+            font_context,
+            Some(codepoint),
+            char_in_template,
+            glyph_in_font,
+        ) {
             self.last_matching_fallback = Some(font.clone());
             return font_or_synthesized_small_caps(font);
         }
@@ -458,80 +474,167 @@ impl FontGroup {
 
     /// Find the first available font in the group, or the first available fallback font.
     pub fn first<S: FontSource>(&mut self, font_context: &mut FontContext<S>) -> Option<FontRef> {
-        self.find(font_context, |_| true)
-            .or_else(|| self.find_fallback(font_context, None, |_| true))
+        // From https://drafts.csswg.org/css-fonts/#first-available-font:
+        // > The first available font, used for example in the definition of font-relative lengths
+        // > such as ex or in the definition of the line-height property, is defined to be the first
+        // > font for which the character U+0020 (space) is not excluded by a unicode-range, given the
+        // > font families in the font-family list (or a user agent’s default font if none are
+        // > available).
+        // > Note: it does not matter whether that font actually has a glyph for the space character.
+        let space_in_template = |template: FontTemplateRef| template.char_in_unicode_range(' ');
+        let font_predicate = |_: &FontRef| true;
+        self.find(font_context, space_in_template, font_predicate)
+            .or_else(|| self.find_fallback(font_context, None, space_in_template, font_predicate))
     }
 
-    /// Find a font which returns true for `predicate`. This method mutates because we may need to
-    /// load new font data in the process of finding a suitable font.
-    fn find<S, P>(&mut self, font_context: &mut FontContext<S>, predicate: P) -> Option<FontRef>
-    where
-        S: FontSource,
-        P: FnMut(&FontRef) -> bool,
-    {
-        self.families
-            .iter_mut()
-            .filter_map(|family| family.font(font_context))
-            .find(predicate)
-    }
-
-    /// Attempts to find a suitable fallback font which matches the `predicate`. The default
-    /// family (i.e. "serif") will be tried first, followed by platform-specific family names.
-    /// If a `codepoint` is provided, then its Unicode block may be used to refine the list of
-    /// family names which will be tried.
-    fn find_fallback<S, P>(
+    /// Attempts to find a font which matches the given `template_predicate` and `font_predicate`.
+    /// This method mutates because we may need to load new font data in the process of finding
+    /// a suitable font.
+    fn find<S, TemplatePredicate, FontPredicate>(
         &mut self,
         font_context: &mut FontContext<S>,
-        codepoint: Option<char>,
-        predicate: P,
+        template_predicate: TemplatePredicate,
+        font_predicate: FontPredicate,
     ) -> Option<FontRef>
     where
         S: FontSource,
-        P: FnMut(&FontRef) -> bool,
+        TemplatePredicate: Fn(FontTemplateRef) -> bool,
+        FontPredicate: Fn(&FontRef) -> bool,
     {
-        iter::once(FontFamilyDescriptor::default())
+        let font_descriptor = self.descriptor.clone();
+        self.families
+            .iter_mut()
+            .filter_map(|font_group_family| {
+                font_group_family.find(
+                    &font_descriptor,
+                    font_context,
+                    &template_predicate,
+                    &font_predicate,
+                )
+            })
+            .next()
+    }
+
+    /// Attempts to find a suitable fallback font which matches the given `template_predicate` and
+    /// `font_predicate`. The default family (i.e. "serif") will be tried first, followed by
+    /// platform-specific family names. If a `codepoint` is provided, then its Unicode block may be
+    /// used to refine the list of family names which will be tried.
+    fn find_fallback<S, TemplatePredicate, FontPredicate>(
+        &mut self,
+        font_context: &mut FontContext<S>,
+        codepoint: Option<char>,
+        template_predicate: TemplatePredicate,
+        font_predicate: FontPredicate,
+    ) -> Option<FontRef>
+    where
+        S: FontSource,
+        TemplatePredicate: Fn(FontTemplateRef) -> bool,
+        FontPredicate: Fn(&FontRef) -> bool,
+    {
+        iter::once(FontFamilyDescriptor::serif())
             .chain(fallback_font_families(codepoint).into_iter().map(|family| {
                 FontFamilyDescriptor::new(FontFamilyName::from(family), FontSearchScope::Local)
             }))
-            .filter_map(|family| font_context.font(&self.descriptor, &family))
-            .find(predicate)
+            .into_iter()
+            .filter_map(|family_descriptor| {
+                FontGroupFamily {
+                    family_descriptor,
+                    members: None,
+                }
+                .find(
+                    &self.descriptor,
+                    font_context,
+                    &template_predicate,
+                    &font_predicate,
+                )
+            })
+            .next()
     }
+}
+
+/// A [`FontGroupFamily`] can have multiple members if it is a "composite face", meaning
+/// that it is defined by multiple `@font-face` declarations which vary only by their
+/// `unicode-range` descriptors. In this case, font selection will select a single member
+/// that contains the necessary unicode character. Unicode ranges are specified by the
+/// [`FontGroupFamilyMember::template`] member.
+#[derive(Debug)]
+struct FontGroupFamilyMember {
+    template: FontTemplateRef,
+    font: Option<FontRef>,
+    loaded: bool,
 }
 
 /// A `FontGroupFamily` is a single font family in a `FontGroup`. It corresponds to one of the
 /// families listed in the `font-family` CSS property. The corresponding font data is lazy-loaded,
-/// only if actually needed.
+/// only if actually needed. A single `FontGroupFamily` can have multiple fonts, in the case that
+/// individual fonts only cover part of the Unicode range.
 #[derive(Debug)]
 struct FontGroupFamily {
-    font_descriptor: FontDescriptor,
     family_descriptor: FontFamilyDescriptor,
-    loaded: bool,
-    font: Option<FontRef>,
+    members: Option<Vec<FontGroupFamilyMember>>,
 }
 
 impl FontGroupFamily {
-    fn new(font_descriptor: FontDescriptor, family: &SingleFontFamily) -> FontGroupFamily {
+    fn new(family: &SingleFontFamily) -> FontGroupFamily {
         let family_descriptor =
             FontFamilyDescriptor::new(FontFamilyName::from(family), FontSearchScope::Any);
 
         FontGroupFamily {
-            font_descriptor,
             family_descriptor,
-            loaded: false,
-            font: None,
+            members: None,
         }
     }
 
-    /// Returns the font within this family which matches the style. We'll fetch the data from the
-    /// `FontContext` the first time this method is called, and return a cached reference on
-    /// subsequent calls.
-    fn font<S: FontSource>(&mut self, font_context: &mut FontContext<S>) -> Option<FontRef> {
-        if !self.loaded {
-            self.font = font_context.font(&self.font_descriptor, &self.family_descriptor);
-            self.loaded = true;
-        }
+    fn find<S, TemplatePredicate, FontPredicate>(
+        &mut self,
+        font_descriptor: &FontDescriptor,
+        font_context: &mut FontContext<S>,
+        template_predicate: &TemplatePredicate,
+        font_predicate: &FontPredicate,
+    ) -> Option<FontRef>
+    where
+        S: FontSource,
+        TemplatePredicate: Fn(FontTemplateRef) -> bool,
+        FontPredicate: Fn(&FontRef) -> bool,
+    {
+        self.members(font_descriptor, font_context)
+            .filter_map(|member| {
+                if !template_predicate(member.template.clone()) {
+                    return None;
+                }
 
-        self.font.clone()
+                if !member.loaded {
+                    member.font = font_context.font(member.template.clone(), font_descriptor);
+                    member.loaded = true;
+                }
+                if matches!(&member.font, Some(font) if font_predicate(font)) {
+                    return member.font.clone();
+                }
+
+                None
+            })
+            .next()
+    }
+
+    fn members<'a, S: FontSource>(
+        &'a mut self,
+        font_descriptor: &FontDescriptor,
+        font_context: &mut FontContext<S>,
+    ) -> impl Iterator<Item = &mut FontGroupFamilyMember> + 'a {
+        let family_descriptor = &self.family_descriptor;
+        let members = self.members.get_or_insert_with(|| {
+            font_context
+                .matching_templates(font_descriptor, family_descriptor)
+                .into_iter()
+                .map(|template| FontGroupFamilyMember {
+                    template,
+                    loaded: false,
+                    font: None,
+                })
+                .collect()
+        });
+
+        members.iter_mut()
     }
 }
 
@@ -636,7 +739,7 @@ impl FontFamilyDescriptor {
         FontFamilyDescriptor { name, scope }
     }
 
-    fn default() -> FontFamilyDescriptor {
+    fn serif() -> FontFamilyDescriptor {
         FontFamilyDescriptor {
             name: FontFamilyName::Generic(atom!("serif")),
             scope: FontSearchScope::Local,

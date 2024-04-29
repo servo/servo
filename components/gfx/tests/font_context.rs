@@ -12,12 +12,10 @@ use std::rc::Rc;
 use app_units::Au;
 use gfx::font::{
     fallback_font_families, FontDescriptor, FontFamilyDescriptor, FontFamilyName, FontSearchScope,
-    PlatformFontMethods,
 };
-use gfx::font_cache_thread::{FontIdentifier, FontTemplateAndWebRenderFontKey, FontTemplates};
+use gfx::font_cache_thread::{CSSFontFaceDescriptors, FontIdentifier, FontTemplates};
 use gfx::font_context::{FontContext, FontSource};
-use gfx::font_template::{FontTemplate, FontTemplateDescriptor};
-use gfx::platform::font::PlatformFont;
+use gfx::font_template::{FontTemplate, FontTemplateRef};
 use servo_arc::Arc;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
@@ -29,7 +27,7 @@ use style::values::computed::font::{
 };
 use style::values::computed::{FontLanguageOverride, XLang};
 use style::values::generics::font::LineHeight;
-use webrender_api::{FontInstanceKey, FontKey, IdNamespace};
+use webrender_api::{FontInstanceKey, IdNamespace};
 
 struct TestFontSource {
     families: HashMap<String, FontTemplates>,
@@ -78,40 +76,36 @@ impl TestFontSource {
 
         let file = File::open(path).unwrap();
         let data: Vec<u8> = file.bytes().map(|b| b.unwrap()).collect();
-        let data = std::sync::Arc::new(data);
-        let handle = PlatformFont::new_from_data(
-            Self::identifier_for_font_name(name),
-            data.clone(),
-            0,
-            None,
-        )
-        .unwrap();
-        family.add_template(FontTemplate::new_web_font(
-            Self::url_for_font_name(name),
-            handle.descriptor(),
-            data,
-        ));
+        family.add_template(
+            FontTemplate::new_web_font(
+                Self::url_for_font_name(name),
+                std::sync::Arc::new(data),
+                CSSFontFaceDescriptors::new(name),
+            )
+            .unwrap(),
+        );
     }
 }
 
 impl FontSource for TestFontSource {
-    fn get_font_instance(&mut self, _key: FontKey, _size: Au) -> FontInstanceKey {
+    fn get_font_instance(
+        &mut self,
+        _font_identifier: FontIdentifier,
+        _size: Au,
+    ) -> FontInstanceKey {
         FontInstanceKey(IdNamespace(0), 0)
     }
 
-    fn font_template(
+    fn find_matching_font_templates(
         &mut self,
-        template_descriptor: FontTemplateDescriptor,
+        descriptor_to_match: &FontDescriptor,
         family_descriptor: FontFamilyDescriptor,
-    ) -> Option<FontTemplateAndWebRenderFontKey> {
+    ) -> Vec<FontTemplateRef> {
         self.find_font_count.set(self.find_font_count.get() + 1);
         self.families
             .get_mut(family_descriptor.name())
-            .and_then(|family| family.find_font_for_style(&template_descriptor))
-            .map(|template| FontTemplateAndWebRenderFontKey {
-                font_template: template,
-                font_key: FontKey(IdNamespace(0), 0),
-            })
+            .map(|family| family.find_for_descriptor(descriptor_to_match))
+            .unwrap_or_default()
     }
 }
 
@@ -191,7 +185,7 @@ fn test_font_group_find_by_codepoint() {
         .find_by_codepoint(&mut context, 'a')
         .unwrap();
     assert_eq!(
-        font.borrow().template.borrow().identifier,
+        font.borrow().identifier(),
         TestFontSource::identifier_for_font_name("csstest-ascii")
     );
     assert_eq!(
@@ -205,7 +199,7 @@ fn test_font_group_find_by_codepoint() {
         .find_by_codepoint(&mut context, 'a')
         .unwrap();
     assert_eq!(
-        font.borrow().template.borrow().identifier,
+        font.borrow().identifier(),
         TestFontSource::identifier_for_font_name("csstest-ascii")
     );
     assert_eq!(
@@ -219,7 +213,7 @@ fn test_font_group_find_by_codepoint() {
         .find_by_codepoint(&mut context, 'á')
         .unwrap();
     assert_eq!(
-        font.borrow().template.borrow().identifier,
+        font.borrow().identifier(),
         TestFontSource::identifier_for_font_name("csstest-basic-regular")
     );
     assert_eq!(count.get(), 2, "both fonts should now have been loaded");
@@ -240,7 +234,7 @@ fn test_font_fallback() {
         .find_by_codepoint(&mut context, 'a')
         .unwrap();
     assert_eq!(
-        font.borrow().template.borrow().identifier,
+        font.borrow().identifier(),
         TestFontSource::identifier_for_font_name("csstest-ascii"),
         "a family in the group should be used if there is a matching glyph"
     );
@@ -250,7 +244,7 @@ fn test_font_fallback() {
         .find_by_codepoint(&mut context, 'á')
         .unwrap();
     assert_eq!(
-        font.borrow().template.borrow().identifier,
+        font.borrow().identifier(),
         TestFontSource::identifier_for_font_name("csstest-basic-regular"),
         "a fallback font should be used if there is no matching glyph in the group"
     );
@@ -263,11 +257,9 @@ fn test_font_template_is_cached() {
     let mut context = FontContext::new(source);
 
     let mut font_descriptor = FontDescriptor {
-        template_descriptor: FontTemplateDescriptor {
-            weight: FontWeight::normal(),
-            stretch: FontStretch::hundred(),
-            style: FontStyle::normal(),
-        },
+        weight: FontWeight::normal(),
+        stretch: FontStretch::hundred(),
+        style: FontStyle::normal(),
         variant: FontVariantCaps::Normal,
         pt_size: Au(10),
     };
@@ -275,10 +267,16 @@ fn test_font_template_is_cached() {
     let family_descriptor =
         FontFamilyDescriptor::new(FontFamilyName::from("CSSTest Basic"), FontSearchScope::Any);
 
-    let font1 = context.font(&font_descriptor, &family_descriptor).unwrap();
+    let font_template = context.matching_templates(&font_descriptor, &family_descriptor)[0].clone();
+
+    let font1 = context
+        .font(font_template.clone(), &font_descriptor)
+        .unwrap();
 
     font_descriptor.pt_size = Au(20);
-    let font2 = context.font(&font_descriptor, &family_descriptor).unwrap();
+    let font2 = context
+        .font(font_template.clone(), &font_descriptor)
+        .unwrap();
 
     assert_ne!(
         font1.borrow().descriptor.pt_size,

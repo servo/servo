@@ -1957,6 +1957,7 @@ dependencies = [
  "core-foundation",
  "core-graphics 0.22.3",
  "core-text 19.2.0",
+ "cssparser",
  "dwrote",
  "euclid",
  "fnv",

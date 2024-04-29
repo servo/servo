@@ -39,37 +39,33 @@ fn test_font_template_descriptor() {
 
     assert_eq!(
         descriptor("DejaVuSans"),
-        FontTemplateDescriptor {
-            weight: FontWeight::NORMAL,
-            stretch: FontStretch::hundred(),
-            style: FontStyle::NORMAL,
-        }
+        FontTemplateDescriptor::new(
+            FontWeight::NORMAL,
+            FontStretch::hundred(),
+            FontStyle::NORMAL,
+        )
     );
 
     assert_eq!(
         descriptor("DejaVuSans-Bold"),
-        FontTemplateDescriptor {
-            weight: FontWeight::BOLD,
-            stretch: FontStretch::hundred(),
-            style: FontStyle::NORMAL,
-        }
+        FontTemplateDescriptor::new(FontWeight::BOLD, FontStretch::hundred(), FontStyle::NORMAL,)
     );
 
     assert_eq!(
         descriptor("DejaVuSans-Oblique"),
-        FontTemplateDescriptor {
-            weight: FontWeight::NORMAL,
-            stretch: FontStretch::hundred(),
-            style: FontStyle::ITALIC,
-        }
+        FontTemplateDescriptor::new(
+            FontWeight::NORMAL,
+            FontStretch::hundred(),
+            FontStyle::ITALIC,
+        )
     );
 
     assert_eq!(
         descriptor("DejaVuSansCondensed-BoldOblique"),
-        FontTemplateDescriptor {
-            weight: FontWeight::BOLD,
-            stretch: FontStretch::from_percentage(0.875),
-            style: FontStyle::ITALIC,
-        }
+        FontTemplateDescriptor::new(
+            FontWeight::BOLD,
+            FontStretch::from_percentage(0.875),
+            FontStyle::ITALIC,
+        )
     );
 }

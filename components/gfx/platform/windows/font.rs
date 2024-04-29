@@ -186,11 +186,7 @@ impl PlatformFontMethods for PlatformFont {
             StyleFontStyle::NORMAL
         };
 
-        FontTemplateDescriptor {
-            weight,
-            stretch,
-            style,
-        }
+        FontTemplateDescriptor::new(weight, stretch, style)
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {

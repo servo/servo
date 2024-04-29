@@ -148,11 +148,7 @@ where
                 path: Atom::from(c_str_to_string(path as *const c_char)),
                 variation_index: index as i32,
             };
-            let descriptor = FontTemplateDescriptor {
-                weight,
-                stretch,
-                style,
-            };
+            let descriptor = FontTemplateDescriptor::new(weight, stretch, style);
 
             callback(FontTemplate::new_local(local_font_identifier, descriptor))
         }
