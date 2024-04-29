@@ -972,11 +972,24 @@ enum InnerTextItem {
     RequiredLineBreakCount(u32),
 }
 
-// https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute
+/// <https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute>
 pub fn process_element_inner_text_query<'dom>(
     node: impl LayoutNode<'dom>,
     indexable_text: &IndexableText,
 ) -> String {
+    get_the_text_steps(node, indexable_text)
+}
+
+/// <https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute>
+pub fn process_element_outer_text_query<'dom>(
+    node: impl LayoutNode<'dom>,
+    indexable_text: &IndexableText,
+) -> String {
+    get_the_text_steps(node, indexable_text)
+}
+
+/// <https://html.spec.whatwg.org/multipage/#get-the-text-steps>
+fn get_the_text_steps<'dom>(node: impl LayoutNode<'dom>, indexable_text: &IndexableText) -> String {
     // Step 1.
     let mut results = Vec::new();
     // Step 2.

@@ -3492,11 +3492,23 @@ impl From<ElementTypeId> for LayoutElementType {
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement) => {
                 LayoutElementType::HTMLInputElement
             },
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptGroupElement) => {
+                LayoutElementType::HTMLOptGroupElement
+            },
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement) => {
+                LayoutElementType::HTMLOptionElement
+            },
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement) => {
                 LayoutElementType::HTMLObjectElement
             },
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLParagraphElement) => {
                 LayoutElementType::HTMLParagraphElement
+            },
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLPreElement) => {
+                LayoutElementType::HTMLPreElement
+            },
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement) => {
+                LayoutElementType::HTMLSelectElement
             },
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCellElement) => {
                 LayoutElementType::HTMLTableCellElement

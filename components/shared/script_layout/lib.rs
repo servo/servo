@@ -103,7 +103,11 @@ pub enum LayoutElementType {
     HTMLInputElement,
     HTMLMediaElement,
     HTMLObjectElement,
+    HTMLOptGroupElement,
+    HTMLOptionElement,
     HTMLParagraphElement,
+    HTMLPreElement,
+    HTMLSelectElement,
     HTMLTableCellElement,
     HTMLTableColElement,
     HTMLTableElement,
@@ -235,6 +239,7 @@ pub trait Layout {
     fn query_content_boxes(&self, node: OpaqueNode) -> Vec<Rect<Au>>;
     fn query_client_rect(&self, node: OpaqueNode) -> Rect<i32>;
     fn query_element_inner_text(&self, node: TrustedNodeAddress) -> String;
+    fn query_element_outer_text(&self, node: TrustedNodeAddress) -> String;
     fn query_inner_window_dimension(
         &self,
         context: BrowsingContextId,
@@ -301,6 +306,7 @@ pub enum QueryMsg {
     ResolvedStyleQuery,
     StyleQuery,
     ElementInnerTextQuery,
+    ElementOuterTextQuery,
     ResolvedFontStyleQuery,
     InnerWindowDimensionsQuery,
 }
@@ -325,6 +331,7 @@ impl ReflowGoal {
             ReflowGoal::Full | ReflowGoal::TickAnimations | ReflowGoal::UpdateScrollNode(_) => true,
             ReflowGoal::LayoutQuery(ref querymsg, _) => match *querymsg {
                 QueryMsg::ElementInnerTextQuery |
+                QueryMsg::ElementOuterTextQuery |
                 QueryMsg::InnerWindowDimensionsQuery |
                 QueryMsg::NodesFromPointQuery |
                 QueryMsg::ResolvedStyleQuery |
@@ -349,6 +356,7 @@ impl ReflowGoal {
                 QueryMsg::NodesFromPointQuery |
                 QueryMsg::TextIndexQuery |
                 QueryMsg::ElementInnerTextQuery => true,
+                QueryMsg::ElementOuterTextQuery => true,
                 QueryMsg::ContentBox |
                 QueryMsg::ContentBoxes |
                 QueryMsg::ClientRectQuery |
