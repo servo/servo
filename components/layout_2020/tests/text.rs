@@ -4,52 +4,60 @@
 
 mod text {
     use layout_2020::flow::text_run::WhitespaceCollapse;
-    use style::computed_values::white_space::T as WhiteSpace;
+    use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 
     #[test]
     fn test_collapse_whitespace() {
-        let collapse = |input: &str, white_space, trim_beginning_white_space| {
-            WhitespaceCollapse::new(input.chars(), white_space, trim_beginning_white_space)
-                .collect::<String>()
+        let collapse = |input: &str, white_space_collapse, trim_beginning_white_space| {
+            WhitespaceCollapse::new(
+                input.chars(),
+                white_space_collapse,
+                trim_beginning_white_space,
+            )
+            .collect::<String>()
         };
 
-        let output = collapse("H ", WhiteSpace::Normal, false);
+        let output = collapse("H ", WhiteSpaceCollapse::Collapse, false);
         assert_eq!(output, "H ");
 
-        let output = collapse(" W", WhiteSpace::Normal, true);
+        let output = collapse(" W", WhiteSpaceCollapse::Collapse, true);
         assert_eq!(output, "W");
 
-        let output = collapse(" W", WhiteSpace::Normal, false);
+        let output = collapse(" W", WhiteSpaceCollapse::Collapse, false);
         assert_eq!(output, " W");
 
-        let output = collapse(" H  W", WhiteSpace::Normal, false);
+        let output = collapse(" H  W", WhiteSpaceCollapse::Collapse, false);
         assert_eq!(output, " H W");
 
-        let output = collapse("\n   H  \n \t  W", WhiteSpace::Normal, false);
+        let output = collapse("\n   H  \n \t  W", WhiteSpaceCollapse::Collapse, false);
         assert_eq!(output, " H W");
 
-        let output = collapse("\n   H  \n \t  W   \n", WhiteSpace::Pre, false);
+        let output = collapse("\n   H  \n \t  W   \n", WhiteSpaceCollapse::Preserve, false);
         assert_eq!(output, "\n   H  \n \t  W   \n");
 
-        let output = collapse("\n   H  \n \t  W   \n ", WhiteSpace::PreLine, false);
+        let output = collapse(
+            "\n   H  \n \t  W   \n ",
+            WhiteSpaceCollapse::PreserveBreaks,
+            false,
+        );
         assert_eq!(output, "\nH\nW\n");
 
-        let output = collapse("Hello \n World", WhiteSpace::PreLine, true);
+        let output = collapse("Hello \n World", WhiteSpaceCollapse::PreserveBreaks, true);
         assert_eq!(output, "Hello\nWorld");
 
-        let output = collapse(" \n World", WhiteSpace::PreLine, true);
+        let output = collapse(" \n World", WhiteSpaceCollapse::PreserveBreaks, true);
         assert_eq!(output, "\nWorld");
 
-        let output = collapse(" ", WhiteSpace::Normal, true);
+        let output = collapse(" ", WhiteSpaceCollapse::Collapse, true);
         assert_eq!(output, "");
 
-        let output = collapse(" ", WhiteSpace::Normal, false);
+        let output = collapse(" ", WhiteSpaceCollapse::Collapse, false);
         assert_eq!(output, " ");
 
-        let output = collapse("\n        ", WhiteSpace::Normal, true);
+        let output = collapse("\n        ", WhiteSpaceCollapse::Collapse, true);
         assert_eq!(output, "");
 
-        let output = collapse("\n        ", WhiteSpace::Normal, false);
+        let output = collapse("\n        ", WhiteSpaceCollapse::Collapse, false);
         assert_eq!(output, " ");
     }
 }

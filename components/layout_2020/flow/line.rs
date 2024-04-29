@@ -9,6 +9,7 @@ use atomic_refcell::AtomicRef;
 use gfx::font::FontMetrics;
 use gfx::text::glyph::GlyphStore;
 use servo_arc::Arc;
+use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
 use style::values::generics::box_::{GenericVerticalAlign, VerticalAlignKeyword};
@@ -151,11 +152,8 @@ pub(super) struct TextRunLineItem {
 
 impl TextRunLineItem {
     fn trim_whitespace_at_end(&mut self, whitespace_trimmed: &mut Length) -> bool {
-        if self
-            .parent_style
-            .get_inherited_text()
-            .white_space
-            .preserve_spaces()
+        if self.parent_style.get_inherited_text().white_space_collapse ==
+            WhiteSpaceCollapse::Preserve
         {
             return false;
         }
@@ -179,11 +177,8 @@ impl TextRunLineItem {
     }
 
     fn trim_whitespace_at_start(&mut self, whitespace_trimmed: &mut Length) -> bool {
-        if self
-            .parent_style
-            .get_inherited_text()
-            .white_space
-            .preserve_spaces()
+        if self.parent_style.get_inherited_text().white_space_collapse ==
+            WhiteSpaceCollapse::Preserve
         {
             return false;
         }

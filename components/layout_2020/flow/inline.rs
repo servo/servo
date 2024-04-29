@@ -77,10 +77,12 @@ use gfx::font::FontMetrics;
 use gfx::text::glyph::GlyphStore;
 use serde::Serialize;
 use servo_arc::Arc;
+use style::computed_values::text_wrap_mode::T as TextWrapMode;
 use style::computed_values::vertical_align::T as VerticalAlign;
-use style::computed_values::white_space::T as WhiteSpace;
+use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::context::QuirksMode;
 use style::logical_geometry::WritingMode;
+use style::properties::style_structs::InheritedText;
 use style::properties::ComputedValues;
 use style::values::computed::{Clear, Length};
 use style::values::generics::box_::VerticalAlignKeyword;
@@ -659,11 +661,17 @@ pub(super) struct InlineFormattingContextState<'a, 'b> {
     /// Whether or not this InlineFormattingContext has processed any in flow content at all.
     had_inflow_content: bool,
 
-    /// The currently white-space setting of this line. This is stored on the
+    /// The currently white-space-collapse setting of this line. This is stored on the
     /// [`InlineFormattingContextState`] because when a soft wrap opportunity is defined
-    /// by the boundary between two characters, the white-space property of their nearest
+    /// by the boundary between two characters, the white-space-collapse property of their
+    /// nearest common ancestor is used.
+    white_space_collapse: WhiteSpaceCollapse,
+
+    /// The currently text-wrap-mode setting of this line. This is stored on the
+    /// [`InlineFormattingContextState`] because when a soft wrap opportunity is defined
+    /// by the boundary between two characters, the text-wrap-mode property of their nearest
     /// common ancestor is used.
-    white_space: WhiteSpace,
+    text_wrap_mode: TextWrapMode,
 
     /// The offset of the first and last baselines in the inline formatting context that we
     /// are laying out. This is used to propagate baselines to the ancestors of
@@ -697,7 +705,9 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             Some(inline_box_state) => &inline_box_state.base.style,
             None => self.containing_block.style,
         };
-        self.white_space = style.get_inherited_text().white_space;
+        let style_text = style.get_inherited_text();
+        self.white_space_collapse = style_text.white_space_collapse;
+        self.text_wrap_mode = style_text.text_wrap_mode;
     }
 
     fn processing_br_element(&self) -> bool {
@@ -1286,7 +1296,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
     ) {
         let inline_advance = Length::from(glyph_store.total_advance());
         let flags = if glyph_store.is_whitespace() {
-            SegmentContentFlags::from(text_run.parent_style.get_inherited_text().white_space)
+            SegmentContentFlags::from(text_run.parent_style.get_inherited_text())
         } else {
             SegmentContentFlags::empty()
         };
@@ -1394,7 +1404,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         if self.current_line_segment.line_items.is_empty() {
             return;
         }
-        if !self.white_space.allow_wrap() {
+        if self.text_wrap_mode == TextWrapMode::Nowrap {
             return;
         }
 
@@ -1498,13 +1508,13 @@ impl SegmentContentFlags {
     }
 }
 
-impl From<WhiteSpace> for SegmentContentFlags {
-    fn from(white_space: WhiteSpace) -> Self {
+impl From<&InheritedText> for SegmentContentFlags {
+    fn from(style_text: &InheritedText) -> Self {
         let mut flags = Self::empty();
-        if !white_space.preserve_spaces() {
+        if style_text.white_space_collapse != WhiteSpaceCollapse::Preserve {
             flags.insert(Self::COLLAPSIBLE_WHITESPACE);
         }
-        if white_space.allow_wrap() {
+        if style_text.text_wrap_mode == TextWrapMode::Wrap {
             flags.insert(Self::WRAPPABLE_WHITESPACE);
         }
         flags
@@ -1633,6 +1643,7 @@ impl InlineFormattingContext {
                 .map(|font| font.borrow().metrics.clone())
         });
 
+        let style_text = containing_block.style.get_inherited_text();
         let mut ifc = InlineFormattingContextState {
             positioning_context,
             containing_block,
@@ -1658,7 +1669,8 @@ impl InlineFormattingContext {
             have_deferred_soft_wrap_opportunity: false,
             prevent_soft_wrap_opportunity_before_next_atomic: false,
             had_inflow_content: false,
-            white_space: containing_block.style.get_inherited_text().white_space,
+            white_space_collapse: style_text.white_space_collapse,
+            text_wrap_mode: style_text.text_wrap_mode,
             baselines: Baselines::default(),
         };
 
@@ -2143,7 +2155,7 @@ impl IndependentFormattingContext {
             &mut ifc.prevent_soft_wrap_opportunity_before_next_atomic,
             false,
         );
-        if ifc.white_space.allow_wrap() && !soft_wrap_opportunity_prevented {
+        if ifc.text_wrap_mode == TextWrapMode::Wrap && !soft_wrap_opportunity_prevented {
             ifc.process_soft_wrap_opportunity();
         }
 
@@ -2403,10 +2415,9 @@ impl<'a> ContentSizesComputation<'a> {
                                 continue;
                             }
 
-                            let white_space =
-                                text_run.parent_style.get_inherited_text().white_space;
-                            if !white_space.preserve_spaces() {
-                                // TODO: need to handle !white_space.allow_wrap().
+                            let style_text = text_run.parent_style.get_inherited_text();
+                            if style_text.white_space_collapse != WhiteSpaceCollapse::Preserve {
+                                // TODO: need to handle TextWrapMode::Nowrap.
                                 self.line_break_opportunity();
                                 // Discard any leading whitespace in the line. This will always be trimmed.
                                 if self.had_content_yet {
@@ -2416,7 +2427,7 @@ impl<'a> ContentSizesComputation<'a> {
                                 }
                                 continue;
                             }
-                            if white_space.allow_wrap() {
+                            if style_text.text_wrap_mode == TextWrapMode::Wrap {
                                 self.commit_pending_whitespace();
                                 self.line_break_opportunity();
                                 self.current_line.max_content += advance;

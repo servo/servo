@@ -22,7 +22,8 @@ use style::computed_values::overflow_x::T as StyleOverflow;
 use style::computed_values::position::T as Position;
 use style::computed_values::text_align::T as TextAlign;
 use style::computed_values::text_justify::T as TextJustify;
-use style::computed_values::white_space::T as WhiteSpace;
+use style::computed_values::text_wrap_mode::T as TextWrapMode;
+use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
@@ -622,7 +623,7 @@ impl LineBreaker {
             if fragment.suppress_line_break_before() || !fragment.is_on_glyph_run_boundary() {
                 false
             } else {
-                fragment.white_space().allow_wrap()
+                fragment.text_wrap_mode() == TextWrapMode::Wrap
             }
         };
 
@@ -663,7 +664,7 @@ impl LineBreaker {
 
         // If we must flush the line after finishing this fragment due to `white-space: pre`,
         // detect that.
-        let line_flush_mode = if fragment.white_space().preserve_newlines() {
+        let line_flush_mode = if fragment.white_space_collapse() != WhiteSpaceCollapse::Collapse {
             if fragment.requires_line_break_afterward_if_wrapping_on_newlines() {
                 LineFlushMode::Flush
             } else {
@@ -687,7 +688,7 @@ impl LineBreaker {
 
         // If the wrapping mode prevents us from splitting, then back up and split at the last
         // known good split point.
-        if !fragment.white_space().allow_wrap() {
+        if fragment.text_wrap_mode() == TextWrapMode::Nowrap {
             debug!(
                 "LineBreaker: fragment can't split; falling back to last known good split point"
             );
@@ -1494,10 +1495,16 @@ impl Flow for InlineFlow {
         let mut intrinsic_sizes_for_nonbroken_run = IntrinsicISizesContribution::new();
         for fragment in &mut self.fragments.fragments {
             let intrinsic_sizes_for_fragment = fragment.compute_intrinsic_inline_sizes().finish();
-            match fragment.style.get_inherited_text().white_space {
-                WhiteSpace::Nowrap => intrinsic_sizes_for_nonbroken_run
-                    .union_nonbreaking_inline(&intrinsic_sizes_for_fragment),
-                WhiteSpace::Pre => {
+            let style_text = fragment.style.get_inherited_text();
+            match (style_text.white_space_collapse, style_text.text_wrap_mode) {
+                (WhiteSpaceCollapse::Collapse, TextWrapMode::Nowrap) => {
+                    intrinsic_sizes_for_nonbroken_run
+                        .union_nonbreaking_inline(&intrinsic_sizes_for_fragment)
+                },
+                (
+                    WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::PreserveBreaks,
+                    TextWrapMode::Nowrap,
+                ) => {
                     intrinsic_sizes_for_nonbroken_run
                         .union_nonbreaking_inline(&intrinsic_sizes_for_fragment);
 
@@ -1512,7 +1519,10 @@ impl Flow for InlineFlow {
                         intrinsic_sizes_for_inline_run = IntrinsicISizesContribution::new();
                     }
                 },
-                WhiteSpace::PreWrap | WhiteSpace::PreLine => {
+                (
+                    WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::PreserveBreaks,
+                    TextWrapMode::Wrap,
+                ) => {
                     // Flush the intrinsic sizes we were gathering up for the nonbroken run, if
                     // necessary.
                     intrinsic_sizes_for_inline_run
@@ -1532,7 +1542,7 @@ impl Flow for InlineFlow {
                         intrinsic_sizes_for_inline_run = IntrinsicISizesContribution::new();
                     }
                 },
-                WhiteSpace::Normal => {
+                (WhiteSpaceCollapse::Collapse, TextWrapMode::Wrap) => {
                     // Flush the intrinsic sizes we were gathering up for the nonbroken run, if
                     // necessary.
                     intrinsic_sizes_for_inline_run

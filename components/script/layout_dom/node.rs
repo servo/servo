@@ -23,6 +23,7 @@ use script_layout_interface::{
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style;
+use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::context::SharedStyleContext;
 use style::dom::{NodeInfo, TElement, TNode, TShadowRoot};
 use style::properties::ComputedValues;
@@ -337,11 +338,10 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
             //
             // If you implement other values for this property, you will almost certainly
             // want to update this check.
-            !self
-                .style(context)
+            self.style(context)
                 .get_inherited_text()
-                .white_space
-                .preserve_newlines()
+                .white_space_collapse ==
+                WhiteSpaceCollapse::Collapse
         }
     }
 
