@@ -189,12 +189,12 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
 
     /// Take a message from the front of the queue, without waiting if empty.
     pub fn recv(&self) -> Result<T, ()> {
-        self.take_tasks(T::wake_up_msg());
         self.msg_queue.borrow_mut().pop_front().ok_or(())
     }
 
-    /// Same as recv.
+    /// Retry to take tasks, and then recv.
     pub fn try_recv(&self) -> Result<T, ()> {
+        self.take_tasks(T::wake_up_msg());
         self.recv()
     }
 
