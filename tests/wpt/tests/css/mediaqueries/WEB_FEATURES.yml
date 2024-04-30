@@ -1,0 +1,5 @@
+features:
+- name: prefers-color-scheme
+  files:
+  - prefers-color-scheme.html
+  - prefers-color-scheme-*

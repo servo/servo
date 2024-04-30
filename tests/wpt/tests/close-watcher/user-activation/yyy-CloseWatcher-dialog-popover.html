@@ -35,12 +35,12 @@ promise_test(async t => {
   await waitForPotentialCloseEvent();
   assert_false(popover.matches(':popover-open'), 'Second close request: The popover should be closed.');
   assert_false(dialog.hasAttribute('open'), 'Second close request: The dialog should be closed.');
-  assert_array_equals(events, ['dialog cancel', 'dialog close']);
+  assert_array_equals(events, ['dialog cancel[cancelable=true]', 'dialog close']);
 
   await sendCloseRequest();
   await waitForPotentialCloseEvent();
   assert_false(popover.matches(':popover-open'), 'Third close request: The popover should be closed.');
   assert_false(dialog.hasAttribute('open'), 'Third close request: The dialog should be closed.');
-  assert_array_equals(events, ['dialog cancel', 'dialog close', 'CloseWatcher cancel', 'CloseWatcher close']);
+  assert_array_equals(events, ['dialog cancel[cancelable=true]', 'dialog close', 'CloseWatcher cancel[cancelable=true]', 'CloseWatcher close']);
 }, 'Create a CloseWatcher with user activation; create a dialog with user activation; create a popover with user activation');
 </script>

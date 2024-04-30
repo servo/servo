@@ -76,7 +76,7 @@ promise_test(async t => {
       const original = result.value;
       let newMetadata = original.getMetadata();
       newMetadata.rtpTimestamp = newMetadata.rtpTimestamp + 1;
-      let newFrame = new RTCEncodedAudioFrame(original, newMetadata);
+      let newFrame = new RTCEncodedAudioFrame(original, {metadata: newMetadata});
       assert_not_equals(original.getMetadata().rtpTimestamp, newFrame.getMetadata().rtpTimestamp);
       assert_equals(newMetadata.rtpTimestamp, newFrame.getMetadata().rtpTimestamp);
       assert_equals(original.getMetadata().absCaptureTime, newFrame.getMetadata().absCaptureTime);
@@ -117,7 +117,7 @@ promise_test(async t => {
       const original = result.value;
       let newMetadata = original.getMetadata();
       newMetadata.synchronizationSource = newMetadata.synchronizationSource + 1;
-  assert_throws_dom("InvalidModificationError", () => new RTCEncodedAudioFrame(original, newMetadata));
+  assert_throws_dom("InvalidModificationError", () => new RTCEncodedAudioFrame(original, {metadata: newMetadata}));
       resolve();
     }
   });

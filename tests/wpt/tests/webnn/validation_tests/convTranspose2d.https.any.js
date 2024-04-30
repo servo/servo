@@ -196,6 +196,12 @@ const tests = [
     filter: {dataType: 'float32', dimensions: [1, 1, 2, 2]},
   },
   {
+    name:
+        '[convTranspose2d] Throw if the input data type is not floating point.',
+    input: {dataType: 'int32', dimensions: [1, 1, 5, 5]},
+    filter: {dataType: 'int32', dimensions: [1, 1, 2, 2]},
+  },
+  {
     name: '[convTranspose2d] Throw if the filter is not a 4-D tensor.',
     input: {dataType: 'float32', dimensions: [1, 1, 5, 5]},
     filter: {dataType: 'float32', dimensions: [2, 2]},

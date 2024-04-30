@@ -7,6 +7,8 @@ def main(request, response):
     return request_error
   if request.cookies.get(b"same_site_strict") == b"1":
     return (546, [], "Should not send SameSite=Strict cookies")
+  if request.cookies.get(b"same_site_lax") == b"1":
+    return (547, [], "Should not send SameSite=Lax cookies")
 
   response.headers.set(b"Content-Type", b"application/json")
   response.headers.set(b"Access-Control-Allow-Origin", request.headers.get(b"Origin"))

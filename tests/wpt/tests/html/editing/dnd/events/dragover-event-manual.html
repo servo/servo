@@ -6,7 +6,6 @@
         <link rel="author" title="Microsoft" href="http://www.microsoft.com/"/>
         <link rel="help" href="http://dev.w3.org/html5/spec/dnd.html#drag-and-drop-processing-model"/>
         <meta name="assert" content="Fire dragover event during the drag and drop processing"/>
-        <script src="../resources/dragdrop_support.js" type="text/javascript"></script>
         <script type="text/javascript">
             var EVENT, TARGET;
 
@@ -14,11 +13,11 @@
             {
                 if ((TARGET == evt.target) && (EVENT == evt.type))
                 {
-                    LogTestResult("PASS");
+                  document.getElementById("test_result").firstChild.data = "PASS";
                 }
                 else
                 {
-                    LogTestResult("FAIL");
+                  document.getElementById("test_result").firstChild.data = "FAIL";
                 }
             }
 
@@ -27,7 +26,7 @@
             window.onload = function()
             {
                 TARGET = document.getElementById("target");
-                AddEventListenersForElement(EVENT, DragoverEvent, false, TARGET);
+                TARGET.addEventListener(EVENT, DragoverEvent, false);
             }
         </script>
     </head>

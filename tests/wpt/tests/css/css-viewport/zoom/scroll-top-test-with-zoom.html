@@ -23,9 +23,7 @@
   }, "Initial scrollTop with no zoom");
 
   document.body.style.zoom = 1.2;
-  test(function() {
-    assert_approx_equals(container.scrollTop, 77, 0.99, "scrollTop should remain consistent within 1 px after zooming in");
-  }, "scrollTop after increasing zoom level");
+  document.body.offsetTop;
 
   document.body.style.zoom = 1;
   test(function() {

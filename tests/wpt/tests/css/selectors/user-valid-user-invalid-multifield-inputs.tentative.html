@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/selectors/#user-pseudos">
+<link rel="help" href="https://html.spec.whatwg.org/#selector-user-invalid">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<!-- This test asserts specifics of keyboard behavior in multifield inputs,
+  like type=date and type=time, in ways that are not specified. -->
+
+<form>
+  <input id=date type=date required>
+  <input id=time type=time required>
+  <input id=datetime-local type=datetime-local required>
+</form>
+
+<script>
+const tabKey = '\uE004';
+const backspace = '\uE003';
+
+promise_test(async () => {
+  const date = document.getElementById('date');
+  assert_false(date.matches(':user-valid'),
+    'Date input should not match :user-valid at the start of the test.');
+  assert_false(date.matches(':user-invalid'),
+    'Date input should not match :user-invalid at the start of the test.');
+  assert_equals(date.value, '',
+    'Date input should not have a value at the start of the test.');
+
+  date.focus();
+  await test_driver.send_keys(date, `1${tabKey}`);
+  assert_equals(date.value, '',
+    'Date input value should not be set after partially inputting the date.');
+  assert_false(date.matches(':user-valid'),
+    'Date input should not match :user-valid after partially inputting the date.');
+  assert_false(date.matches(':user-invalid'),
+    'Date input should not match :user-invalid after partially inputting the date.');
+
+  await test_driver.send_keys(date, `1${tabKey}1234${tabKey}`);
+  assert_equals(date.value, '1234-01-01',
+    'Date input value should match the testdriver input.');
+  assert_true(date.matches(':user-valid'),
+    'Date input should match :user-valid after typing in a complete value.');
+  assert_false(date.matches(':user-invalid'),
+    'Date input should not match :user-invalid after typing in a complete value.');
+
+  date.blur();
+  date.focus();
+  await test_driver.send_keys(date, backspace);
+  assert_equals(date.value, '',
+    'Date input value should be cleared when deleting one of the sub-values.');
+  assert_false(date.matches(':user-valid'),
+    'Date input should not match :user-valid after typing in an invalid value.');
+  assert_true(date.matches(':user-invalid'),
+    'Date input should match :user-invalid after typing in an invalid value.');
+}, '<input type=date> keyboard behavior for :user-valid/:user-invalid.');
+
+promise_test(async () => {
+  const time = document.getElementById('time');
+  assert_false(time.matches(':user-valid'),
+    'Time input should not match :user-valid at the start of the test.');
+  assert_false(time.matches(':user-invalid'),
+    'Time input should not match :user-invalid at the start of the test.');
+  assert_equals(time.value, '',
+    'Time input should not have a value at the start of the test.');
+
+  time.focus();
+  await test_driver.send_keys(time, `1${tabKey}`);
+  assert_equals(time.value, '',
+    'Time input value should not be set after partially inputting the time.');
+  assert_false(time.matches(':user-valid'),
+    'Time input should not match :user-valid after partially inputting the time.');
+  assert_false(time.matches(':user-invalid'),
+    'Time input should not match :user-invalid after partially inputting the time.');
+
+  await test_driver.send_keys(time, `2${tabKey}a${tabKey}`);
+  assert_equals(time.value, '01:02',
+    'Time input value should match the testdriver input.');
+  assert_true(time.matches(':user-valid'),
+    'Time input should match :user-valid after typing in a complete value.');
+  assert_false(time.matches(':user-invalid'),
+    'Time input should not match :user-invalid after typing in a complete value.');
+
+  time.blur();
+  time.focus();
+  await test_driver.send_keys(time, backspace);
+  assert_equals(time.value, '',
+    'Time input value should be cleared when deleting one of the sub-values.');
+  assert_false(time.matches(':user-valid'),
+    'Time input should not match :user-valid after typing in an invalid value.');
+  assert_true(time.matches(':user-invalid'),
+    'Time input should match :user-invalid after typing in an invalid value.');
+}, '<input type=time> keyboard behavior for :user-valid/:user-invalid.');
+
+promise_test(async () => {
+  const dateTimeLocal = document.getElementById('datetime-local');
+  assert_false(dateTimeLocal.matches(':user-valid'),
+    'Datetime input should not match :user-valid at the start of the test.');
+  assert_false(dateTimeLocal.matches(':user-invalid'),
+    'Datetime input should not match :user-invalid at the start of the test.');
+  assert_equals(dateTimeLocal.value, '',
+    'Datetime input should not have a value at the start of the test.');
+
+  dateTimeLocal.focus();
+  await test_driver.send_keys(dateTimeLocal, `1${tabKey}`);
+  assert_equals(dateTimeLocal.value, '',
+    'Datetime input value should not be set after partially inputting the dateTimeLocal.');
+  assert_false(dateTimeLocal.matches(':user-valid'),
+    'Datetime input should not match :user-valid after partially inputting the dateTimeLocal.');
+  assert_false(dateTimeLocal.matches(':user-invalid'),
+    'Datetime input should not match :user-invalid after partially inputting the dateTimeLocal.');
+
+  await test_driver.send_keys(dateTimeLocal, `1${tabKey}1234${tabKey}1${tabKey}2${tabKey}a${tabKey}`);
+  assert_equals(dateTimeLocal.value, '1234-01-01T01:02',
+    'Datetime input value should match the testdriver input.');
+  assert_true(dateTimeLocal.matches(':user-valid'),
+    'Datetime input should match :user-valid after typing in a complete value.');
+  assert_false(dateTimeLocal.matches(':user-invalid'),
+    'Datetime input should not match :user-invalid after typing in a complete value.');
+
+  dateTimeLocal.blur();
+  dateTimeLocal.focus();
+  await test_driver.send_keys(dateTimeLocal, backspace);
+  assert_equals(dateTimeLocal.value, '',
+    'Datetime input value should be cleared when deleting one of the sub-values.');
+  assert_false(dateTimeLocal.matches(':user-valid'),
+    'Datetime input should not match :user-valid after typing in an invalid value.');
+  assert_true(dateTimeLocal.matches(':user-invalid'),
+    'Datetime input should match :user-invalid after typing in an invalid value.');
+}, '<input type=datetime-local> keyboard behavior for :user-valid/:user-invalid.');
+</script>

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/336164421">
+<style>
+  #inner {
+    position: absolute;
+    left: anchor(left);
+  }
+  #inner::before {
+    display: none;
+    content: "";
+  }
+</style>
+<div id="inner"></div>

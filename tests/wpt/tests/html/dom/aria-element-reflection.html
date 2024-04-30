@@ -611,7 +611,7 @@
   </script>
 
   <div id="sameScopeContainer">
-    <div id="labeledby" aria-labeledby="headingLabel1 headingLabel2">Misspelling</div>
+    <div id="labelledby" aria-labelledby="headingLabel1 headingLabel2">Misspelling</div>
     <div id="headingLabel1">Wonderful</div>
     <div id="headingLabel2">Fantastic</div>
 
@@ -626,7 +626,7 @@
       const headingLabel2 = document.getElementById("headingLabel2")
       shadowRoot.appendChild(headingElement);
 
-      assert_array_equals(labeledby.ariaLabelledByElements, [headingLabel1, headingLabel2], "aria-labeled by is supported by IDL getter.");
+      assert_array_equals(labelledby.ariaLabelledByElements, [headingLabel1, headingLabel2], "aria-labelledby is supported by IDL getter.");
 
       // Explicitly set elements are in a lighter shadow DOM, so that's ok.
       headingElement.ariaLabelledByElements = [headingLabel1, headingLabel2];

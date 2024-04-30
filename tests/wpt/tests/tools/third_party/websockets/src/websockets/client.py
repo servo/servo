@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Generator, List, Optional, Sequence
+import warnings
+from typing import Any, Generator, List, Optional, Sequence
 
-from .connection import CLIENT, CONNECTING, OPEN, Connection, State
 from .datastructures import Headers, MultipleValuesError
 from .exceptions import (
     InvalidHandshake,
@@ -23,8 +23,8 @@ from .headers import (
     parse_subprotocol,
     parse_upgrade,
 )
-from .http import USER_AGENT
 from .http11 import Request, Response
+from .protocol import CLIENT, CONNECTING, OPEN, Protocol, State
 from .typing import (
     ConnectionOption,
     ExtensionHeader,
@@ -38,13 +38,15 @@ from .utils import accept_key, generate_key
 
 
 # See #940 for why lazy_import isn't used here for backwards compatibility.
-from .legacy.client import *  # isort:skip  # noqa
+# See #1400 for why listing compatibility imports in __all__ helps PyCharm.
+from .legacy.client import *  # isort:skip  # noqa: I001
+from .legacy.client import __all__ as legacy__all__
 
 
-__all__ = ["ClientConnection"]
+__all__ = ["ClientProtocol"] + legacy__all__
 
 
-class ClientConnection(Connection):
+class ClientProtocol(Protocol):
     """
     Sans-I/O implementation of a WebSocket client connection.
 
@@ -60,16 +62,17 @@ class ClientConnection(Connection):
             preference.
         state: initial state of the WebSocket connection.
         max_size: maximum size of incoming messages in bytes;
-            :obj:`None` to disable the limit.
+            :obj:`None` disables the limit.
         logger: logger for this connection;
             defaults to ``logging.getLogger("websockets.client")``;
-            see the :doc:`logging guide <../topics/logging>` for details.
+            see the :doc:`logging guide <../../topics/logging>` for details.
 
     """
 
     def __init__(
         self,
         wsuri: WebSocketURI,
+        *,
         origin: Optional[Origin] = None,
         extensions: Optional[Sequence[ClientExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
@@ -89,7 +92,7 @@ class ClientConnection(Connection):
         self.available_subprotocols = subprotocols
         self.key = generate_key()
 
-    def connect(self) -> Request:  # noqa: F811
+    def connect(self) -> Request:
         """
         Create a handshake request to open a connection.
 
@@ -130,8 +133,6 @@ class ClientConnection(Connection):
         if self.available_subprotocols is not None:
             protocol_header = build_subprotocol(self.available_subprotocols)
             headers["Sec-WebSocket-Protocol"] = protocol_header
-
-        headers["User-Agent"] = USER_AGENT
 
         return Request(self.wsuri.resource_name, headers)
 
@@ -223,7 +224,6 @@ class ClientConnection(Connection):
         extensions = headers.get_all("Sec-WebSocket-Extensions")
 
         if extensions:
-
             if self.available_extensions is None:
                 raise InvalidHandshake("no extensions supported")
 
@@ -232,9 +232,7 @@ class ClientConnection(Connection):
             )
 
             for name, response_params in parsed_extensions:
-
                 for extension_factory in self.available_extensions:
-
                     # Skip non-matching extensions based on their name.
                     if extension_factory.name != name:
                         continue
@@ -281,7 +279,6 @@ class ClientConnection(Connection):
         subprotocols = headers.get_all("Sec-WebSocket-Protocol")
 
         if subprotocols:
-
             if self.available_subprotocols is None:
                 raise InvalidHandshake("no subprotocols supported")
 
@@ -317,11 +314,17 @@ class ClientConnection(Connection):
 
     def parse(self) -> Generator[None, None, None]:
         if self.state is CONNECTING:
-            response = yield from Response.parse(
-                self.reader.read_line,
-                self.reader.read_exact,
-                self.reader.read_to_eof,
-            )
+            try:
+                response = yield from Response.parse(
+                    self.reader.read_line,
+                    self.reader.read_exact,
+                    self.reader.read_to_eof,
+                )
+            except Exception as exc:
+                self.handshake_exc = exc
+                self.parser = self.discard()
+                next(self.parser)  # start coroutine
+                yield
 
             if self.debug:
                 code, phrase = response.status_code, response.reason_phrase
@@ -335,13 +338,23 @@ class ClientConnection(Connection):
                 self.process_response(response)
             except InvalidHandshake as exc:
                 response._exception = exc
+                self.events.append(response)
                 self.handshake_exc = exc
                 self.parser = self.discard()
                 next(self.parser)  # start coroutine
-            else:
-                assert self.state is CONNECTING
-                self.state = OPEN
-            finally:
-                self.events.append(response)
+                yield
+
+            assert self.state is CONNECTING
+            self.state = OPEN
+            self.events.append(response)
 
         yield from super().parse()
+
+
+class ClientConnection(ClientProtocol):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        warnings.warn(
+            "ClientConnection was renamed to ClientProtocol",
+            DeprecationWarning,
+        )
+        super().__init__(*args, **kwargs)

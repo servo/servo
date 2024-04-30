@@ -1,3 +1,0 @@
-websockets
-websockets/extensions
-websockets/legacy

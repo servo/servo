@@ -103,3 +103,15 @@ test(() => {
       ['source teardown', 'source abort event', 'filter observable complete']);
 }, "filter(): Upon source completion, source Observable teardown sequence " +
    "happens after downstream filter complete() is called");
+
+test(() => {
+  const source = new Observable(subscriber => {
+    subscriber.next('value1');
+    subscriber.next('value2');
+    subscriber.next('value3');
+  });
+
+  const indices = [];
+  source.filter((value, index) => indices.push(index)).subscribe();
+  assert_array_equals(indices, [0, 1, 2]);
+}, "filter(): Index is passed correctly to predicate");

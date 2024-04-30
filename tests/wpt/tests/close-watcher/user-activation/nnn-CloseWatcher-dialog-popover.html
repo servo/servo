@@ -30,6 +30,6 @@ promise_test(async t => {
 
   assert_false(popover.matches(':popover-open'), 'The popover should be closed.');
   assert_false(dialog.hasAttribute('open'), 'The dialog should be closed.');
-  assert_array_equals(events, ['CloseWatcher close', 'dialog close']);
+  assert_array_equals(events, ['dialog cancel[cancelable=false]', 'CloseWatcher cancel[cancelable=false]', 'CloseWatcher close', 'dialog close']);
 }, 'Create a CloseWatcher without user activation; create a dialog without user activation; create a popover without user activation');
 </script>

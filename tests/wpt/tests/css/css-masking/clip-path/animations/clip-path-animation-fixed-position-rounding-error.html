@@ -2,11 +2,10 @@
 <html class="reftest-wait">
 <link rel="help" href="https://drafts.csswg.org/css-shapes-1/#basic-shape-interpolation">
 <link rel="match" href="clip-path-animation-fixed-position-rounding-error-ref.html">
+<meta name="fuzzy" content="maxDifference=0-64;totalPixels=0-400">
 <!--
   Test that clip paths on elements with position: fixed draw correctly,
   even in scenarios that involve partial pixels
-
-  Currently uses fuzzy diff because of crbug.com/1249071
 -->
 <style>
   .container {

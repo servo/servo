@@ -1,18 +1,17 @@
 <!DOCTYPE html>
-<html class=reftest-wait>
+<html class=test-wait>
 <title>View transitions: crash test</title>
 <link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
 <link rel="author" href="mailto:vmpstr@chromium.org">
-<script src="/common/reftest-wait.js"></script>
 <html>
 <head>
 <script>
 function eventhandler1() {
-  var var00106 = htmlvar00011.contentDocument;
-  var var00228 = var00106.startViewTransition();
+  var iframeDoc = iframe.contentDocument;
+  var viewTransition = iframeDoc.startViewTransition();
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      requestAnimationFrame(takeScreenshot);
+      requestAnimationFrame(() => document.documentElement.classList.remove("test-wait"));
     })
   });
 }
@@ -20,8 +19,7 @@ function eventhandler1() {
 </script>
 </head>
 <body>
-<iframe id="htmlvar00011" onunload="eventhandler3()" border="0" srcdoc="A#:^;&lt;gV&lt;&gt;8" style=":{,J" referrerpolicy="unsafe-url" background="!xp&gt;" nohref="nohref" nonce="nonce" inputEncoding="s" offsetX="0.3538512271910753">:+j&amp;;&amp;-^&gt;.7xf\jZ1,xb</iframe>
-<style id="htmlvar00014" nonce="nonce" media="screen and (min-width:0px)" onerror="eventhandler1()" onload="eventhandler1()" dir="N5!" updateRangeEnd="0" abbr="4IvGMN[Wxd" symbols="=d##y#)DA4V8ya}KO.cv" frameBorder="^b*]&amp;:|#lB:" search="N">ynFXo*</style>
+<iframe id="iframe" onunload="eventhandler3()" border="0" srcdoc="A#:^;&lt;gV&lt;&gt;8" style=":{,J" referrerpolicy="unsafe-url" background="!xp&gt;" nohref="nohref" nonce="nonce" inputEncoding="s" offsetX="0.3538512271910753">:+j&amp;;&amp;-^&gt;.7xf\jZ1,xb</iframe>
+<style nonce="nonce" media="screen and (min-width:0px)" onerror="eventhandler1()" onload="eventhandler1()" dir="N5!" updateRangeEnd="0" abbr="4IvGMN[Wxd" symbols="=d##y#)DA4V8ya}KO.cv" frameBorder="^b*]&amp;:|#lB:" search="N">ynFXo*</style>
 </body>
 </html>
-

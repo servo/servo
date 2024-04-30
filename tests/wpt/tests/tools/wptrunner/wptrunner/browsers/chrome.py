@@ -138,8 +138,14 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data,
         chrome_options["args"].append(
             "--ip-address-space-overrides=" + address_space_overrides_arg)
 
+    # Always disable antialiasing on the Ahem font.
+    blink_features = ['DisableAhemAntialias']
+
     if kwargs["enable_mojojs"]:
-        chrome_options["args"].append("--enable-blink-features=MojoJS,MojoJSTest")
+        blink_features.append('MojoJS')
+        blink_features.append('MojoJSTest')
+
+    chrome_options["args"].append("--enable-blink-features=" + ','.join(blink_features))
 
     if kwargs["enable_swiftshader"]:
         # https://chromium.googlesource.com/chromium/src/+/HEAD/docs/gpu/swiftshader.md

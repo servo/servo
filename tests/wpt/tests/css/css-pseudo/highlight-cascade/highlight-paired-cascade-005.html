@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: paired cascade: UA default highlight colors are not used when highlight pseudo has declared color value of unset</title>
+<link rel="author" name="Delan Azabani" href="mailto:dazabani@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#highlight-cascade">
+<link rel="match" href="highlight-paired-cascade-005-ref.html">
+<meta name="assert" value="This test verifies that setting color to unset on ::selection suppresses any UA non-initial used value for background-color. The unset value is defined as both “treated as [inherit or initial depending on whether the property is inherited]” and “effectively erases all declared values occurring earlier in the cascade [(inclusive)]”, which are normally equivalent, but under paired cascade, the former wins.">
+<script src="support/selections.js"></script>
+<link rel="stylesheet" href="../support/highlights.css">
+<style>
+    main {
+        font-size: 7em;
+        margin: 0.5em;
+    }
+    main::selection {
+        /*
+            Used background-color should be initial (transparent).
+            https://www.w3.org/TR/CSS21/colors.html#propdef-background-color
+        */
+        color: unset;
+    }
+</style>
+<p>Test passes if the text below does not appear to be highlighted.
+<main class="highlight_reftest">quick</main>
+<script>selectNodeContents(document.querySelector("main"));</script>

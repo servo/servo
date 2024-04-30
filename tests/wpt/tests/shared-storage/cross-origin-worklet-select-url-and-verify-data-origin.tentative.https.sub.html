@@ -1,0 +1,46 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async () => {
+  const crossOrigin = 'https://{{domains[www]}}:{{ports[https][0]}}';
+  const script_url = crossOrigin +
+                     `/shared-storage/resources/simple-module.js`;
+
+  const worklet = await sharedStorage.createWorklet(
+    script_url,
+    { credentials: "omit" });
+
+  const ancestor_key = token();
+  let url0 = generateURL("/shared-storage/resources/frame0.html",
+                         [ancestor_key]);
+
+  let select_url_result = await worklet.selectURL(
+    "test-url-selection-operation",
+    [{ url: url0 }], {
+      data: {
+        'mockResult': 0,
+        'setKey': 'key0',
+        'setValue': 'value0'
+      },
+      resolveToConfig: true,
+      keepAlive: true
+    });
+
+  assert_true(validateSelectURLResult(select_url_result, true));
+  attachFencedFrame(select_url_result, 'opaque-ads');
+  const result0 = await nextValueFromServer(ancestor_key);
+  assert_equals(result0, "frame0_loaded");
+
+  await verifyKeyValueForOrigin('key0', 'value0', crossOrigin);
+}, 'For a cross-origin worklet, test selectURL() and verify its data origin');
+
+</script>
+</body>

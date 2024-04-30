@@ -6,6 +6,10 @@ var globalVar = 0;
 
 class TestURLSelectionOperation {
   async run(urls, data) {
+    if (data && data.hasOwnProperty('setKey') && data.hasOwnProperty('setValue')) {
+      await sharedStorage.set(data['setKey'], data['setValue']);
+    }
+
     if (data && data.hasOwnProperty('mockResult')) {
       return data['mockResult'];
     }

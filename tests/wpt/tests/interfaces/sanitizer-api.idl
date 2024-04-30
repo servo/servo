@@ -3,19 +3,15 @@
 // (https://github.com/w3c/webref)
 // Source: HTML Sanitizer API (https://wicg.github.io/sanitizer-api/)
 
-partial interface Element {
-  [CEReactions] undefined setHTMLUnsafe__TO_BE_MERGED(DOMString html, optional SanitizerConfig config = {});
-  [CEReactions] undefined setHTML(DOMString html, optional SanitizerConfig config = {});
+dictionary SetHTMLOptions {
+  (Sanitizer or SanitizerConfig) sanitizer = {};
 };
 
-partial interface ShadowRoot {
-  [CEReactions] undefined setHTMLUnsafe__TO_BE_MERGED(DOMString html, optional SanitizerConfig config = {});
-  [CEReactions] undefined setHTML(DOMString html, optional SanitizerConfig config = {});
-};
-
-partial interface Document {
-  static Document parseHTMLUnsafe__TO_BE_MERGED(DOMString html, optional SanitizerConfig config = {});
-  static Document parseHTML(DOMString html, optional SanitizerConfig config = {});
+[Exposed=(Window,Worker)]
+interface Sanitizer {
+  constructor(optional SanitizerConfig config = {});
+  SanitizerConfig get();
+  SanitizerConfig getUnsafe();
 };
 
 dictionary SanitizerElementNamespace {

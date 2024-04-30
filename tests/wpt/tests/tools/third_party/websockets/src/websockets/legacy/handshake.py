@@ -21,7 +21,7 @@ def build_request(headers: Headers) -> str:
     Update request headers passed in argument.
 
     Args:
-        headers: handshake request headers.
+        headers: Handshake request headers.
 
     Returns:
         str: ``key`` that must be passed to :func:`check_response`.
@@ -45,14 +45,14 @@ def check_request(headers: Headers) -> str:
     the responsibility of the caller.
 
     Args:
-        headers: handshake request headers.
+        headers: Handshake request headers.
 
     Returns:
         str: ``key`` that must be passed to :func:`build_response`.
 
     Raises:
-        InvalidHandshake: if the handshake request is invalid;
-            then the server must return 400 Bad Request error.
+        InvalidHandshake: If the handshake request is invalid.
+            Then, the server must return a 400 Bad Request error.
 
     """
     connection: List[ConnectionOption] = sum(
@@ -110,8 +110,8 @@ def build_response(headers: Headers, key: str) -> None:
     Update response headers passed in argument.
 
     Args:
-        headers: handshake response headers.
-        key: returned by :func:`check_request`.
+        headers: Handshake response headers.
+        key: Returned by :func:`check_request`.
 
     """
     headers["Upgrade"] = "websocket"
@@ -128,11 +128,11 @@ def check_response(headers: Headers, key: str) -> None:
     the caller.
 
     Args:
-        headers: handshake response headers.
-        key: returned by :func:`build_request`.
+        headers: Handshake response headers.
+        key: Returned by :func:`build_request`.
 
     Raises:
-        InvalidHandshake: if the handshake response is invalid.
+        InvalidHandshake: If the handshake response is invalid.
 
     """
     connection: List[ConnectionOption] = sum(

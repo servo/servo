@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="help" href="https://drafts.csswg.org/css-values-5/#container-progress-func">
 <link rel="author" title="sakhapov@chromium.org">
 <script src="/resources/testharness.js"></script>
@@ -15,6 +16,8 @@
 <style>
 :root {
   font-size: 10px;
+  width: 100vw;
+  height: 100vh;
 }
 #out-of-scope-container {
   container: my-container-3 / size;
@@ -42,8 +45,9 @@
 </style>
 <script>
 
-let width = window.innerWidth;
-let height = window.innerHeight;
+// innerWidth and innerHeight have lossy precision, see
+// https://github.com/w3c/csswg-drafts/issues/5260.
+let { width, height } = document.documentElement.getBoundingClientRect();
 
 let extraWidth = 5051;
 let extraHeight = 1337;
@@ -68,10 +72,10 @@ test_math_used('calc(container-progress(width of my-container from 0px to 50px) 
 test_math_used('calc(container-progress(height of my-container from 10px to sign(50px - 500em) * 10px))', (outerHeight - 10) / (-10 - 10), {type:'number'});
 
 // Fallback
-test_math_used('container-progress(width of non-existing-container from 0px to 1px)', width, {type:'number'});
-test_math_used('container-progress(height of non-existing-container from 0px to 1px)', height, {type:'number'});
-test_math_used('container-progress(width of out-of-scope-container from 0px to 1px)', width, {type:'number'});
-test_math_used('container-progress(height of out-of-scope-container from 0px to 1px)', height, {type:'number'});
+test_math_used('container-progress(width of non-existing-container from 0px to 1px)', width, {type:'number', msg: 'container-progress() width fallback for non-existing container name'});
+test_math_used('container-progress(height of non-existing-container from 0px to 1px)', height, {type:'number', msg: 'container-progress() height fallback for non-existing container names'});
+test_math_used('container-progress(width of out-of-scope-container from 0px to 1px)', width, {type:'number', msg: 'container-progress() width fallback for out of scope container'});
+test_math_used('container-progress(height of out-of-scope-container from 0px to 1px)', height, {type:'number', msg: 'container-progress() height fallback for out of scope container'});
 
 // Type checking
 test_math_used('calc(container-progress(width from 0px to 1px) * 1px)', innerWidth + 'px');

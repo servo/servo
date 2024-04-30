@@ -5,6 +5,9 @@ features:
 - name: has
   files:
   - has-*
+- name: read-write-pseudos
+  files:
+  - selector-read-write-*
 - name: user-pseudos
   files:
   - user-invalid.html

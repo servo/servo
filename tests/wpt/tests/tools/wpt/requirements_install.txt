@@ -1,2 +1,2 @@
 mozinstall==2.1.0
-packaging==23.1
+packaging==24.0

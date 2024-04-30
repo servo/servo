@@ -1020,8 +1020,8 @@ for (let childList of ["ul", "ol"]) {
           {
             startContainer: gEditor.querySelector(`${list} > ${childList} > li`).firstChild,
             startOffset: 0,
-            endContainer: gEditor.querySelector(`${list} > li`).firstChild,
-            endOffset: gEditor.querySelector(`${list} > li`).firstChild.length,
+            endContainer: gEditor.querySelector(`${childList} + li`).firstChild,
+            endOffset: gEditor.querySelector(`${childList} + li`).firstChild.length,
           },
         ];
       },

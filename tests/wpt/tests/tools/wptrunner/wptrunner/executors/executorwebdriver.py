@@ -539,7 +539,9 @@ class WebDriverRun(TimedRunner):
             self.result = True, self.func(self.protocol, self.url, self.timeout)
         except (error.TimeoutException, error.ScriptTimeoutException):
             self.result = False, ("EXTERNAL-TIMEOUT", None)
-        except (socket.timeout, error.UnknownErrorException):
+        except socket.timeout:
+            # Checking if the browser is alive below is likely to hang, so mark
+            # this case as a CRASH unconditionally.
             self.result = False, ("CRASH", None)
         except Exception as e:
             if (isinstance(e, error.WebDriverException) and
@@ -548,11 +550,12 @@ class WebDriverRun(TimedRunner):
                 # workaround for https://bugs.chromium.org/p/chromedriver/issues/detail?id=2001
                 self.result = False, ("EXTERNAL-TIMEOUT", None)
             else:
+                status = "INTERNAL-ERROR" if self.protocol.is_alive() else "CRASH"
                 message = str(getattr(e, "message", ""))
                 if message:
                     message += "\n"
                 message += traceback.format_exc()
-                self.result = False, ("INTERNAL-ERROR", message)
+                self.result = False, (status, message)
         finally:
             self.result_flag.set()
 

@@ -13,8 +13,16 @@
 <style>
   #id1 {
     font-size: 10px;
+    width: auto;
+    height: auto;
+
     min-height: 1px;
     max-height: 100px;
+
+    padding-top: 12px;
+    padding-left: 60px;
+    padding-bottom: 1000px;
+    padding-right: 1000px;
 
     /* These values are extreme enough that they should be out of bounds for any implementation */
     min-width: 10px;
@@ -22,8 +30,16 @@
   }
   #id2 {
     font-size: 10px;
+    width: auto;
+    height: auto;
+
     min-height: 11px;
     max-height: 29px;
+
+    padding-top: 5px;
+    padding-left: 45px;
+    padding-bottom: 6px;
+    padding-right: 46px;
   }
 </style>
 
@@ -40,12 +56,20 @@
     assert_true(max_height === "calc(30px)" || max_height === "30px", "max-height");
     assert_not_equals(getComputedStyle(el_outside_bounds).minWidth, "10px", "min-width");
     assert_not_equals(getComputedStyle(el_outside_bounds).maxWidth, "1000px", "max-width");
+    assert_equals(getComputedStyle(el_outside_bounds).paddingLeft, "50px", "padding-left");
+    assert_equals(getComputedStyle(el_outside_bounds).paddingRight, "50px", "padding-right");
+    assert_equals(getComputedStyle(el_outside_bounds).paddingTop, "10px", "padding-top");
+    assert_equals(getComputedStyle(el_outside_bounds).paddingBottom, "10px", "padding-bottom");
   }, "Properties with out-of-bounds values should be corrected");
 
   test(function(){
     let el_inside_bounds = document.getElementById("id2");
     assert_equals(getComputedStyle(el_inside_bounds).minHeight, "calc(11px)", "min-height");
     assert_equals(getComputedStyle(el_inside_bounds).maxHeight, "calc(29px)", "max-height");
+    assert_equals(getComputedStyle(el_inside_bounds).paddingLeft, "45px", "padding-left");
+    assert_equals(getComputedStyle(el_inside_bounds).paddingRight, "45px", "padding-right");
+    assert_equals(getComputedStyle(el_inside_bounds).paddingTop, "5px", "padding-top");
+    assert_equals(getComputedStyle(el_inside_bounds).paddingBottom, "5px", "padding-bottom");
   }, "Properties with values in bounds should not be modified");
 </script>
 </body>

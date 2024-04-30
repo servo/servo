@@ -108,7 +108,7 @@ class H3CapsuleDecoder:
             if self._final:
                 raise e
             if not self._buffer:
-                return 0
+                return
             size = self._buffer.capacity - self._buffer.tell()
             if size >= UINT_VAR_MAX_SIZE:
                 raise e

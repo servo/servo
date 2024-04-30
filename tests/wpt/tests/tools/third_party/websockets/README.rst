@@ -2,7 +2,7 @@
    :width: 480px
    :alt: websockets
 
-|licence| |version| |pyversions| |wheel| |tests| |docs|
+|licence| |version| |pyversions| |tests| |docs| |openssf|
 
 .. |licence| image:: https://img.shields.io/pypi/l/websockets.svg
     :target: https://pypi.python.org/pypi/websockets
@@ -13,14 +13,14 @@
 .. |pyversions| image:: https://img.shields.io/pypi/pyversions/websockets.svg
     :target: https://pypi.python.org/pypi/websockets
 
-.. |wheel| image:: https://img.shields.io/pypi/wheel/websockets.svg
-    :target: https://pypi.python.org/pypi/websockets
-
-.. |tests| image:: https://img.shields.io/github/checks-status/aaugustin/websockets/main
-   :target: https://github.com/aaugustin/websockets/actions/workflows/tests.yml
+.. |tests| image:: https://img.shields.io/github/checks-status/python-websockets/websockets/main?label=tests
+   :target: https://github.com/python-websockets/websockets/actions/workflows/tests.yml
 
 .. |docs| image:: https://img.shields.io/readthedocs/websockets.svg
    :target: https://websockets.readthedocs.io/
+
+.. |openssf| image:: https://bestpractices.coreinfrastructure.org/projects/6475/badge
+   :target: https://bestpractices.coreinfrastructure.org/projects/6475
 
 What is ``websockets``?
 -----------------------
@@ -30,37 +30,24 @@ with a focus on correctness, simplicity, robustness, and performance.
 
 .. _WebSocket: https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API
 
-Built on top of ``asyncio``, Python's standard asynchronous I/O framework, it
-provides an elegant coroutine-based API.
+Built on top of ``asyncio``, Python's standard asynchronous I/O framework, the
+default implementation provides an elegant coroutine-based API.
+
+An implementation on top of ``threading`` and a Sans-I/O implementation are also
+available.
 
 `Documentation is available on Read the Docs. <https://websockets.readthedocs.io/>`_
 
-Here's how a client sends and receives messages:
-
 .. copy-pasted because GitHub doesn't support the include directive
 
-.. code:: python
-
-    #!/usr/bin/env python
-
-    import asyncio
-    from websockets import connect
-
-    async def hello(uri):
-        async with connect(uri) as websocket:
-            await websocket.send("Hello world!")
-            await websocket.recv()
-
-    asyncio.run(hello("ws://localhost:8765"))
-
-And here's an echo server:
+Here's an echo server with the ``asyncio`` API:
 
 .. code:: python
 
     #!/usr/bin/env python
 
     import asyncio
-    from websockets import serve
+    from websockets.server import serve
 
     async def echo(websocket):
         async for message in websocket:
@@ -72,6 +59,23 @@ And here's an echo server:
 
     asyncio.run(main())
 
+Here's how a client sends and receives messages with the ``threading`` API:
+
+.. code:: python
+
+    #!/usr/bin/env python
+
+    from websockets.sync.client import connect
+
+    def hello():
+        with connect("ws://localhost:8765") as websocket:
+            websocket.send("Hello world!")
+            message = websocket.recv()
+            print(f"Received: {message}")
+
+    hello()
+
+
 Does that look good?
 
 `Get started with the tutorial! <https://websockets.readthedocs.io/en/stable/intro/index.html>`_
@@ -79,7 +83,7 @@ Does that look good?
 .. raw:: html
 
     <hr>
-    <img align="left" height="150" width="150" src="https://raw.githubusercontent.com/aaugustin/websockets/main/logo/tidelift.png">
+    <img align="left" height="150" width="150" src="https://raw.githubusercontent.com/python-websockets/websockets/main/logo/tidelift.png">
     <h3 align="center"><i>websockets for enterprise</i></h3>
     <p align="center"><i>Available as part of the Tidelift Subscription</i></p>
     <p align="center"><i>The maintainers of websockets and thousands of other packages are working with Tidelift to deliver commercial support and maintenance for the open source dependencies you use to build your applications. Save time, reduce risk, and improve code health, while paying the maintainers of the exact dependencies you use. <a href="https://tidelift.com/subscription/pkg/pypi-websockets?utm_source=pypi-websockets&utm_medium=referral&utm_campaign=readme">Learn more.</a></i></p>
@@ -91,9 +95,8 @@ Why should I use ``websockets``?
 
 The development of ``websockets`` is shaped by four principles:
 
-1. **Correctness**: ``websockets`` is heavily tested for compliance
-   with :rfc:`6455`. Continuous integration fails under 100% branch
-   coverage.
+1. **Correctness**: ``websockets`` is heavily tested for compliance with
+   :rfc:`6455`. Continuous integration fails under 100% branch coverage.
 
 2. **Simplicity**: all you need to understand is ``msg = await ws.recv()`` and
    ``await ws.send(msg)``. ``websockets`` takes care of managing connections
@@ -123,7 +126,7 @@ Why shouldn't I use ``websockets``?
 * If you're looking for a mixed HTTP / WebSocket library: ``websockets`` aims
   at being an excellent implementation of :rfc:`6455`: The WebSocket Protocol
   and :rfc:`7692`: Compression Extensions for WebSocket. Its support for HTTP
-  is minimal — just enough for a HTTP health check.
+  is minimal — just enough for an HTTP health check.
 
   If you want to do both in the same server, look at HTTP frameworks that
   build on top of ``websockets`` to support WebSocket connections, like
@@ -143,13 +146,13 @@ contact`_. Tidelift will coordinate the fix and disclosure.
 
 For anything else, please open an issue_ or send a `pull request`_.
 
-.. _issue: https://github.com/aaugustin/websockets/issues/new
-.. _pull request: https://github.com/aaugustin/websockets/compare/
+.. _issue: https://github.com/python-websockets/websockets/issues/new
+.. _pull request: https://github.com/python-websockets/websockets/compare/
 
 Participants must uphold the `Contributor Covenant code of conduct`_.
 
-.. _Contributor Covenant code of conduct: https://github.com/aaugustin/websockets/blob/main/CODE_OF_CONDUCT.md
+.. _Contributor Covenant code of conduct: https://github.com/python-websockets/websockets/blob/main/CODE_OF_CONDUCT.md
 
 ``websockets`` is released under the `BSD license`_.
 
-.. _BSD license: https://github.com/aaugustin/websockets/blob/main/LICENSE
+.. _BSD license: https://github.com/python-websockets/websockets/blob/main/LICENSE

@@ -14,6 +14,6 @@ promise_test(async t => {
 
   await sendEscKey();
 
-  assert_array_equals(events, ["close"]);
-}, "Esc key does not count as user activation, so if it is the sole user interaction, that fires close but not cancel");
+  assert_array_equals(events, ["cancel[cancelable=false]", "close"]);
+}, "Esc key does not count as user activation, so if it is the sole user interaction, cancel is cancelable=false");
 </script>

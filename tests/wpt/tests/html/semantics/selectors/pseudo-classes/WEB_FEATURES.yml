@@ -5,3 +5,7 @@ features:
 - name: default
   files:
   - default.html
+- name: read-write-pseudos
+  files:
+  - readwrite-readonly-type-change.html
+  - readwrite-readonly.html

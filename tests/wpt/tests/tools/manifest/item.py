@@ -279,7 +279,7 @@ class PrintRefTest(RefTest):
 
     @property
     def page_ranges(self) -> PageRanges:
-        return self._extras.get("page_ranges", {})
+        return cast(PageRanges, self._extras.get("page_ranges", {}))
 
     def to_json(self):  # type: ignore
         rv = super().to_json()

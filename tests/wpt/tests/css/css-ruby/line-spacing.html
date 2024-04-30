@@ -149,5 +149,16 @@ test(() => {
   assert_greater_than_equal(thirdLine.top - rubyLine.top,
                             rubyLine.top - firstLine.top + RUBY_EMPHASIS_SIZE);
 }, 'Don\'t Consume half-leading of the next line with text-emphasis');
+
+// crbug.com/336592423
+test(() => {
+  const {container, ruby, rt} = renderRuby(
+      '<div style="line-height:1;">' +
+      '<span style="display:inline-block; width:1em; height:4em; vertical-align:top"></span><br>' +
+      '<ruby>base<rt>annotation</rt></ruby></div>');
+  const firstLine = container.querySelector('span').getBoundingClientRect();
+  const rtBox = rt.getBoundingClientRect();
+  assert_greater_than_equal(rtBox.top, firstLine.bottom);
+}, 'An atomic-inline should not overlap with an annotation in the next line');
 </script>
 </body>

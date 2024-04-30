@@ -14,9 +14,9 @@ callback PressureUpdateCallback = undefined (
 
 [Exposed=(DedicatedWorker,SharedWorker,Window), SecureContext]
 interface PressureObserver {
-  constructor(PressureUpdateCallback callback, optional PressureObserverOptions options = {});
+  constructor(PressureUpdateCallback callback);
 
-  Promise<undefined> observe(PressureSource source);
+  Promise<undefined> observe(PressureSource source, optional PressureObserverOptions options = {});
   undefined unobserve(PressureSource source);
   undefined disconnect();
   sequence<PressureRecord> takeRecords();
