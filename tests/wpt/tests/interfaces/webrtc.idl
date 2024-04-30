@@ -368,6 +368,7 @@ interface RTCRtpReceiver {
   sequence<RTCRtpContributingSource> getContributingSources();
   sequence<RTCRtpSynchronizationSource> getSynchronizationSources();
   Promise<RTCStatsReport> getStats();
+  attribute DOMHighResTimeStamp? jitterBufferTarget;
 };
 
 dictionary RTCRtpContributingSource {
@@ -387,7 +388,7 @@ interface RTCRtpTransceiver {
   attribute RTCRtpTransceiverDirection direction;
   readonly attribute RTCRtpTransceiverDirection? currentDirection;
   undefined stop();
-  undefined setCodecPreferences(sequence<RTCRtpCodecCapability> codecs);
+  undefined setCodecPreferences(sequence<RTCRtpCodec> codecs);
 };
 
 [Exposed=Window]
@@ -434,8 +435,8 @@ dictionary RTCIceParameters {
 };
 
 dictionary RTCIceCandidatePair {
-  RTCIceCandidate local;
-  RTCIceCandidate remote;
+  required RTCIceCandidate local;
+  required RTCIceCandidate remote;
 };
 
 enum RTCIceGathererState {

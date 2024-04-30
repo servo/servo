@@ -148,11 +148,13 @@ def get_environ(chaos_mode_flags, env_extras=None):
 class ProfileCreator(FirefoxProfileCreator):
     def __init__(self, logger, prefs_root, config, test_type, extra_prefs,
                  disable_fission, debug_test, browser_channel, binary,
-                 package_name, certutil_binary, ca_certificate_path):
+                 package_name, certutil_binary, ca_certificate_path,
+                 allow_list_paths=None):
 
         super().__init__(logger, prefs_root, config, test_type, extra_prefs,
                          disable_fission, debug_test, browser_channel, None,
-                         package_name, certutil_binary, ca_certificate_path)
+                         package_name, certutil_binary, ca_certificate_path,
+                         allow_list_paths)
 
     def _set_required_prefs(self, profile):
         profile.set_preferences({

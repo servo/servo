@@ -1,0 +1,13 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Device Attributes API (https://wicg.github.io/WebApiDevice/device_attributes/)
+
+partial interface NavigatorManagedData {
+  // Device Attributes API.
+  Promise<DOMString> getAnnotatedAssetId();
+  Promise<DOMString> getAnnotatedLocation();
+  Promise<DOMString> getDirectoryId();
+  Promise<DOMString> getHostname();
+  Promise<DOMString> getSerialNumber();
+};

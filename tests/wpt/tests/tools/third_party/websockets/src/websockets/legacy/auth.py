@@ -67,7 +67,7 @@ class BasicAuthWebSocketServerProtocol(WebSocketServerProtocol):
 
         Returns:
             bool: :obj:`True` if the handshake should continue;
-            :obj:`False` if it should fail with a HTTP 401 error.
+            :obj:`False` if it should fail with an HTTP 401 error.
 
         """
         if self._check_credentials is not None:
@@ -81,7 +81,7 @@ class BasicAuthWebSocketServerProtocol(WebSocketServerProtocol):
         request_headers: Headers,
     ) -> Optional[HTTPResponse]:
         """
-        Check HTTP Basic Auth and return a HTTP 401 response if needed.
+        Check HTTP Basic Auth and return an HTTP 401 response if needed.
 
         """
         try:
@@ -118,8 +118,8 @@ def basic_auth_protocol_factory(
     realm: Optional[str] = None,
     credentials: Optional[Union[Credentials, Iterable[Credentials]]] = None,
     check_credentials: Optional[Callable[[str, str], Awaitable[bool]]] = None,
-    create_protocol: Optional[Callable[[Any], BasicAuthWebSocketServerProtocol]] = None,
-) -> Callable[[Any], BasicAuthWebSocketServerProtocol]:
+    create_protocol: Optional[Callable[..., BasicAuthWebSocketServerProtocol]] = None,
+) -> Callable[..., BasicAuthWebSocketServerProtocol]:
     """
     Protocol factory that enforces HTTP Basic Auth.
 
@@ -135,20 +135,20 @@ def basic_auth_protocol_factory(
         )
 
     Args:
-        realm: indicates the scope of protection. It should contain only ASCII
-            characters because the encoding of non-ASCII characters is
-            undefined. Refer to section 2.2 of :rfc:`7235` for details.
-        credentials: defines hard coded authorized credentials. It can be a
+        realm: Scope of protection. It should contain only ASCII characters
+            because the encoding of non-ASCII characters is undefined.
+            Refer to section 2.2 of :rfc:`7235` for details.
+        credentials: Hard coded authorized credentials. It can be a
             ``(username, password)`` pair or a list of such pairs.
-        check_credentials: defines a coroutine that verifies credentials.
-            This coroutine receives ``username`` and ``password`` arguments
+        check_credentials: Coroutine that verifies credentials.
+            It receives ``username`` and ``password`` arguments
             and returns a :class:`bool`. One of ``credentials`` or
             ``check_credentials`` must be provided but not both.
-        create_protocol: factory that creates the protocol. By default, this
+        create_protocol: Factory that creates the protocol. By default, this
             is :class:`BasicAuthWebSocketServerProtocol`. It can be replaced
             by a subclass.
     Raises:
-        TypeError: if the ``credentials`` or ``check_credentials`` argument is
+        TypeError: If the ``credentials`` or ``check_credentials`` argument is
             wrong.
 
     """
@@ -175,11 +175,7 @@ def basic_auth_protocol_factory(
             return hmac.compare_digest(expected_password, password)
 
     if create_protocol is None:
-        # Not sure why mypy cannot figure this out.
-        create_protocol = cast(
-            Callable[[Any], BasicAuthWebSocketServerProtocol],
-            BasicAuthWebSocketServerProtocol,
-        )
+        create_protocol = BasicAuthWebSocketServerProtocol
 
     return functools.partial(
         create_protocol,

@@ -20,6 +20,6 @@ fedcm_test(async t => {
   const cred = await fedcm_get_and_select_first_account(t, options);
   assert_equals(cred.token, "token");
   assert_equals(cred.isAutoSelected, false);
-}, "FedCM requests should be considered cross-origin and therefore not send SameSite=Strict cookies.");
+}, "FedCM requests should be considered cross-origin and therefore not send SameSite=Strict or Lax cookies.");
 
 </script>

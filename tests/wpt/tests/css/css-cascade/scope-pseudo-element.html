@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<title>@scope - pseudo-elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scoped-styles">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#link">
+<link rel="match" href="scope-pseudo-element-ref.html">
+
+<!-- Cosmetic -->
+<style>
+  body > div {
+    display: inline-block;
+    width: 100px;
+    height: 100px;
+    border: 1px solid black;
+    vertical-align:top;
+  }
+</style>
+
+<!-- ::before -->
+<style>
+  @scope (#before_test > main) {
+    :scope {
+      background-color: skyblue;
+    }
+    :scope::before {
+      content: "B";
+      width: 20px;
+      height: 20px;
+      display: inline-block;
+      background-color: tomato;
+    }
+  }
+</style>
+<div id=before_test>
+  <main>
+    Foo
+  </main>
+</div>
+
+<!-- ::after -->
+<style>
+  @scope (#after_test > main) {
+    :scope {
+      background-color: skyblue;
+    }
+    :scope::after {
+      content: "A";
+      width: 20px;
+      height: 20px;
+      display: inline-block;
+      background-color: tomato;
+    }
+  }
+</style>
+<div id=after_test>
+  <main>
+    Foo
+  </main>
+</div>
+
+<!-- ::marker -->
+<style>
+  @scope (#marker_test li) {
+    :scope {
+      background-color: skyblue;
+    }
+    :scope::marker {
+      content: "M";
+    }
+  }
+</style>
+<div id=marker_test>
+  <ul>
+    <li>One</li>
+    <li>Two</li>
+  </ul>
+</div>

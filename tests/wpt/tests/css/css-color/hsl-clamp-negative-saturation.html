@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CSS Test: hsl() clamp negative saturation values</title>
+		<link rel="author" title="L. David Baron" href="https://dbaron.org/" />
+		<link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
+		<link rel="help" href="https://www.w3.org/TR/css-color-4/#the-hsl-notation" />
+		<link rel="match" href="hsl-clamp-negative-saturation-ref.html" />
+		<meta name="assert" content="Test clamping of negative saturation values in hsl() functions." />
+		<style type="text/css">
+
+		table { border-spacing: 0 2px; padding: 0; border: none; }
+		td { border: none; padding: 0; height: 1.2em; }
+
+		</style>
+	</head>
+	<body>
+
+	<p>Every row in this table should have both columns the same color:</p>
+
+	<table>
+		<tr>
+			<th style="background:white; color: black">Column 1</th>
+			<th style="background:black; color: white">Column 2</th>
+		</tr>
+		<tr>
+			<td style="background: hsl(0, -50%, 40%)">&nbsp;</td>
+			<td style="background: rgb(102, 102, 102)">&nbsp;</td>
+		</tr>
+		<tr>
+			<td style="background: hsl(30, -50%, 60%)">&nbsp;</td>
+			<td style="background: rgb(153, 153, 153)">&nbsp;</td>
+		</tr>
+	</table>
+
+	</body>
+</html>

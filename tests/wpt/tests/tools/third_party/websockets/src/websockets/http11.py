@@ -8,14 +8,12 @@ from typing import Callable, Generator, Optional
 from . import datastructures, exceptions
 
 
-# Maximum total size of headers is around 256 * 4 KiB = 1 MiB
-MAX_HEADERS = 256
+# Maximum total size of headers is around 128 * 8 KiB = 1 MiB.
+MAX_HEADERS = 128
 
-# We can use the same limit for the request line and header lines:
-# "GET <4096 bytes> HTTP/1.1\r\n" = 4111 bytes
-# "Set-Cookie: <4097 bytes>\r\n" = 4111 bytes
-# (RFC requires 4096 bytes; for some reason Firefox supports 4097 bytes.)
-MAX_LINE = 4111
+# Limit request line and header lines. 8KiB is the most common default
+# configuration of popular HTTP servers.
+MAX_LINE = 8192
 
 # Support for HTTP response bodies is intended to read an error message
 # returned by a server. It isn't designed to perform large file transfers.
@@ -70,7 +68,7 @@ class Request:
     def exception(self) -> Optional[Exception]:  # pragma: no cover
         warnings.warn(
             "Request.exception is deprecated; "
-            "use ServerConnection.handshake_exc instead",
+            "use ServerProtocol.handshake_exc instead",
             DeprecationWarning,
         )
         return self._exception
@@ -174,7 +172,7 @@ class Response:
     def exception(self) -> Optional[Exception]:  # pragma: no cover
         warnings.warn(
             "Response.exception is deprecated; "
-            "use ClientConnection.handshake_exc instead",
+            "use ClientProtocol.handshake_exc instead",
             DeprecationWarning,
         )
         return self._exception

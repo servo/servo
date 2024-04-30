@@ -12,37 +12,38 @@
 import {request_options_with_mediation_required,
         request_options_with_context,
         fedcm_get_title_promise,
-        fedcm_test} from './support/fedcm-helper.sub.js';
+        fedcm_test,
+        fedcm_select_account_promise} from './support/fedcm-helper.sub.js';
 
 fedcm_test(async t => {
-  let p = navigator.credentials.get(request_options_with_mediation_required());
+  const p = navigator.credentials.get(request_options_with_mediation_required());
   const result = await fedcm_get_title_promise(t);
   assert_true(result.title.toLowerCase().includes('sign in'));
-  window.test_driver.select_fedcm_account(0);
+  fedcm_select_account_promise(t, 0);
   return p;
 }, "FedCM call defaults to 'signin' context.");
 
 fedcm_test(async t => {
-  let p = navigator.credentials.get(request_options_with_context("manifest.py", "signup"));
+  const p = navigator.credentials.get(request_options_with_context("manifest.py", "signup"));
   const result = await fedcm_get_title_promise(t);
   assert_true(result.title.toLowerCase().includes('sign up'));
-  window.test_driver.select_fedcm_account(0);
+  fedcm_select_account_promise(t, 0);
   return p;
 }, "FedCM with 'signup' context.");
 
 fedcm_test(async t => {
-  let p = navigator.credentials.get(request_options_with_context("manifest.py", "use"));
+  const p = navigator.credentials.get(request_options_with_context("manifest.py", "use"));
   const result = await fedcm_get_title_promise(t);
   assert_true(result.title.toLowerCase().includes('use'));
-  window.test_driver.select_fedcm_account(0);
+  fedcm_select_account_promise(t, 0);
   return p;
 }, "FedCM with 'use' context.");
 
 fedcm_test(async t => {
-  let p = navigator.credentials.get(request_options_with_context("manifest.py", "continue"));
+  const p = navigator.credentials.get(request_options_with_context("manifest.py", "continue"));
   const result = await fedcm_get_title_promise(t);
   assert_true(result.title.toLowerCase().includes('continue'));
-  window.test_driver.select_fedcm_account(0);
+  fedcm_select_account_promise(t, 0);
   return p;
 }, "FedCM with 'continue' context.");
 </script>

@@ -44,7 +44,8 @@ enum GamepadHapticsResult {
 };
 
 enum GamepadHapticEffectType {
-  "dual-rumble"
+  "dual-rumble",
+  "trigger-rumble"
 };
 
 dictionary GamepadEffectParameters {
@@ -52,6 +53,8 @@ dictionary GamepadEffectParameters {
     unsigned long long startDelay = 0;
     double strongMagnitude = 0.0;
     double weakMagnitude = 0.0;
+    double leftTrigger = 0.0;
+    double rightTrigger = 0.0;
 };
 
 [Exposed=Window]

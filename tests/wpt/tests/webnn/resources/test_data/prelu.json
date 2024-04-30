@@ -1,6 +1,34 @@
 {
   "tests": [
     {
+      "name": "prelu float32 0D scalar",
+      "inputs": {
+        "x": {
+          "shape": [],
+          "data": [
+            -4.794857500523286
+          ],
+          "type": "float32"
+        },
+        "slope": {
+          "shape": [],
+          "data": [
+            1.1202747481570352
+          ],
+          "type": "float32",
+          "constant": true
+        }
+      },
+      "expected": {
+        "name": "output",
+        "shape": [],
+        "data": [
+          -5.371557712554932
+        ],
+        "type": "float32"
+      }
+    },
+    {
       "name": "prelu float32 1D constant tensors",
       "inputs": {
         "x": {

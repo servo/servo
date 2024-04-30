@@ -7,10 +7,6 @@
 <script src="/common/top-layer.js"></script>
 <script src="../resources/helpers.js"></script>
 
-<!--
-  See note in sibling -dialog.html file.
--->
-
 <body>
 <script>
 const type = "CloseWatcher";
@@ -25,6 +21,6 @@ promise_test(async t => {
 
   await sendCloseRequest();
   await waitForPotentialCloseEvent();
-  assert_array_equals(events, ["watcher2 cancel", "watcher2 close", "watcher1 cancel", "watcher1 close"]);
+  assert_array_equals(events, ["watcher2 cancel[cancelable=true]", "watcher2 close", "watcher1 cancel[cancelable=true]", "watcher1 close"]);
 }, "Create two CloseWatchers without user activation; send user activation");
 </script>

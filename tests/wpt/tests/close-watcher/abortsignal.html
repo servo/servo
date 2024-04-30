@@ -49,7 +49,7 @@ test(() => {
   watcher.requestClose();
   controller.abort();
 
-  assert_equals(oncancel_call_count_, 0);
+  assert_equals(oncancel_call_count_, 1);
   assert_equals(onclose_call_count_, 1);
 }, "requestClose() then abortController.abort() fires only one close event");
 
@@ -92,7 +92,7 @@ promise_test(async t => {
   await sendCloseRequest();
   controller.abort();
 
-  assert_equals(oncancel_call_count_, 0);
+  assert_equals(oncancel_call_count_, 1);
   assert_equals(onclose_call_count_, 1);
 }, "Esc key then abortController.abort() fires only one close event");
 

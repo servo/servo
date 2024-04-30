@@ -13,7 +13,7 @@ from .typing import Data
 
 try:
     from .speedups import apply_mask
-except ImportError:  # pragma: no cover
+except ImportError:
     from .utils import apply_mask
 
 
@@ -52,45 +52,70 @@ DATA_OPCODES = OP_CONT, OP_TEXT, OP_BINARY
 CTRL_OPCODES = OP_CLOSE, OP_PING, OP_PONG
 
 
-# See https://www.iana.org/assignments/websocket/websocket.xhtml
-CLOSE_CODES = {
-    1000: "OK",
-    1001: "going away",
-    1002: "protocol error",
-    1003: "unsupported type",
+class CloseCode(enum.IntEnum):
+    """Close code values for WebSocket close frames."""
+
+    NORMAL_CLOSURE = 1000
+    GOING_AWAY = 1001
+    PROTOCOL_ERROR = 1002
+    UNSUPPORTED_DATA = 1003
     # 1004 is reserved
-    1005: "no status code [internal]",
-    1006: "connection closed abnormally [internal]",
-    1007: "invalid data",
-    1008: "policy violation",
-    1009: "message too big",
-    1010: "extension required",
-    1011: "unexpected error",
-    1012: "service restart",
-    1013: "try again later",
-    1014: "bad gateway",
-    1015: "TLS failure [internal]",
+    NO_STATUS_RCVD = 1005
+    ABNORMAL_CLOSURE = 1006
+    INVALID_DATA = 1007
+    POLICY_VIOLATION = 1008
+    MESSAGE_TOO_BIG = 1009
+    MANDATORY_EXTENSION = 1010
+    INTERNAL_ERROR = 1011
+    SERVICE_RESTART = 1012
+    TRY_AGAIN_LATER = 1013
+    BAD_GATEWAY = 1014
+    TLS_HANDSHAKE = 1015
+
+
+# See https://www.iana.org/assignments/websocket/websocket.xhtml
+CLOSE_CODE_EXPLANATIONS: dict[int, str] = {
+    CloseCode.NORMAL_CLOSURE: "OK",
+    CloseCode.GOING_AWAY: "going away",
+    CloseCode.PROTOCOL_ERROR: "protocol error",
+    CloseCode.UNSUPPORTED_DATA: "unsupported data",
+    CloseCode.NO_STATUS_RCVD: "no status received [internal]",
+    CloseCode.ABNORMAL_CLOSURE: "abnormal closure [internal]",
+    CloseCode.INVALID_DATA: "invalid frame payload data",
+    CloseCode.POLICY_VIOLATION: "policy violation",
+    CloseCode.MESSAGE_TOO_BIG: "message too big",
+    CloseCode.MANDATORY_EXTENSION: "mandatory extension",
+    CloseCode.INTERNAL_ERROR: "internal error",
+    CloseCode.SERVICE_RESTART: "service restart",
+    CloseCode.TRY_AGAIN_LATER: "try again later",
+    CloseCode.BAD_GATEWAY: "bad gateway",
+    CloseCode.TLS_HANDSHAKE: "TLS handshake failure [internal]",
 }
 
 
 # Close code that are allowed in a close frame.
 # Using a set optimizes `code in EXTERNAL_CLOSE_CODES`.
 EXTERNAL_CLOSE_CODES = {
-    1000,
-    1001,
-    1002,
-    1003,
-    1007,
-    1008,
-    1009,
-    1010,
-    1011,
-    1012,
-    1013,
-    1014,
+    CloseCode.NORMAL_CLOSURE,
+    CloseCode.GOING_AWAY,
+    CloseCode.PROTOCOL_ERROR,
+    CloseCode.UNSUPPORTED_DATA,
+    CloseCode.INVALID_DATA,
+    CloseCode.POLICY_VIOLATION,
+    CloseCode.MESSAGE_TOO_BIG,
+    CloseCode.MANDATORY_EXTENSION,
+    CloseCode.INTERNAL_ERROR,
+    CloseCode.SERVICE_RESTART,
+    CloseCode.TRY_AGAIN_LATER,
+    CloseCode.BAD_GATEWAY,
 }
 
-OK_CLOSE_CODES = {1000, 1001}
+
+OK_CLOSE_CODES = {
+    CloseCode.NORMAL_CLOSURE,
+    CloseCode.GOING_AWAY,
+    CloseCode.NO_STATUS_RCVD,
+}
 
 
 BytesLike = bytes, bytearray, memoryview
@@ -123,7 +148,7 @@ class Frame:
 
     def __str__(self) -> str:
         """
-        Return a human-readable represention of a frame.
+        Return a human-readable representation of a frame.
 
         """
         coding = None
@@ -191,6 +216,8 @@ class Frame:
             extensions: list of extensions, applied in reverse order.
 
         Raises:
+            EOFError: if the connection is closed without a full WebSocket frame.
+            UnicodeDecodeError: if the frame contains invalid UTF-8.
             PayloadTooBig: if the frame's payload size exceeds ``max_size``.
             ProtocolError: if the frame contains incorrect values.
 
@@ -383,7 +410,7 @@ class Close:
 
     def __str__(self) -> str:
         """
-        Return a human-readable represention of a close code and reason.
+        Return a human-readable representation of a close code and reason.
 
         """
         if 3000 <= self.code < 4000:
@@ -391,7 +418,7 @@ class Close:
         elif 4000 <= self.code < 5000:
             explanation = "private use"
         else:
-            explanation = CLOSE_CODES.get(self.code, "unknown")
+            explanation = CLOSE_CODE_EXPLANATIONS.get(self.code, "unknown")
         result = f"{self.code} ({explanation})"
 
         if self.reason:
@@ -419,7 +446,7 @@ class Close:
             close.check()
             return close
         elif len(data) == 0:
-            return cls(1005, "")
+            return cls(CloseCode.NO_STATUS_RCVD, "")
         else:
             raise exceptions.ProtocolError("close frame too short")
 

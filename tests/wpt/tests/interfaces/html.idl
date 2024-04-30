@@ -1245,6 +1245,7 @@ interface HTMLTemplateElement : HTMLElement {
   [CEReactions] attribute DOMString shadowRootMode;
   [CEReactions] attribute boolean shadowRootDelegatesFocus;
   [CEReactions] attribute boolean shadowRootClonable;
+  [CEReactions] attribute boolean shadowRootSerializable;
 };
 
 [Exposed=Window]
@@ -1579,7 +1580,6 @@ interface OffscreenCanvas : EventTarget {
 
 [Exposed=(Window,Worker)]
 interface OffscreenCanvasRenderingContext2D {
-  undefined commit();
   readonly attribute OffscreenCanvas canvas;
 };
 
@@ -2292,6 +2292,27 @@ interface mixin WindowOrWorkerGlobalScope {
 Window includes WindowOrWorkerGlobalScope;
 WorkerGlobalScope includes WindowOrWorkerGlobalScope;
 
+partial interface Element {
+  [CEReactions] undefined setHTMLUnsafe(HTMLString html);
+  DOMString getHTML(optional GetHTMLOptions options = {});
+
+  [CEReactions] attribute [LegacyNullToEmptyString] HTMLString innerHTML;
+  [CEReactions] attribute [LegacyNullToEmptyString] HTMLString outerHTML;
+  [CEReactions] undefined insertAdjacentHTML(DOMString position, HTMLString string);
+};
+
+partial interface ShadowRoot {
+  [CEReactions] undefined setHTMLUnsafe(HTMLString html);
+  DOMString getHTML(optional GetHTMLOptions options = {});
+
+  [CEReactions] attribute [LegacyNullToEmptyString] HTMLString innerHTML;
+};
+
+dictionary GetHTMLOptions {
+  boolean serializableShadowRoots = false;
+  sequence<ShadowRoot> shadowRoots = [];
+};
+
 [Exposed=Window]
 interface DOMParser {
   constructor();
@@ -2305,14 +2326,6 @@ enum DOMParserSupportedType {
   "application/xml",
   "application/xhtml+xml",
   "image/svg+xml"
-};
-
-partial interface Element {
-  [CEReactions] undefined setHTMLUnsafe(HTMLString html);
-};
-
-partial interface ShadowRoot {
-  [CEReactions] undefined setHTMLUnsafe(HTMLString html);
 };
 
 [Exposed=Window]

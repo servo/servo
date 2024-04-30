@@ -24,10 +24,10 @@ promise_test(async t => {
 
   await sendCloseRequest();
   await waitForPotentialCloseEvent();
-  assert_array_equals(events, ["watcher4 close", "watcher3 close"]);
+  assert_array_equals(events, ["watcher4 cancel[cancelable=false]", "watcher4 close", "watcher3 cancel[cancelable=false]", "watcher3 close"]);
 
   await sendCloseRequest();
   await waitForPotentialCloseEvent();
-  assert_array_equals(events, ["watcher4 close", "watcher3 close", "watcher1 close"]);
+  assert_array_equals(events, ["watcher4 cancel[cancelable=false]", "watcher4 close", "watcher3 cancel[cancelable=false]", "watcher3 close", "watcher1 cancel[cancelable=false]", "watcher1 close"]);
 }, "Create a close watcher without user activation; create a close watcher with user activation; create two close watchers without user activation; remove the second close watcher");
 </script>

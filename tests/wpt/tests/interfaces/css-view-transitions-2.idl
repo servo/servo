@@ -10,14 +10,9 @@ partial interface CSSRule {
 enum ViewTransitionNavigation { "auto", "none" };
 
 [Exposed=Window]
-interface CSSViewTransitionTypeSet {
-  readonly setlike<CSSOMString>;
-};
-
-[Exposed=Window]
 interface CSSViewTransitionRule : CSSRule {
   readonly attribute ViewTransitionNavigation navigation;
-  readonly attribute CSSViewTransitionTypeSet types;
+  [SameObject] readonly attribute FrozenArray<CSSOMString> types;
 };
 
 [Exposed=Window]

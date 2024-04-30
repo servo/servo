@@ -1,0 +1,69 @@
+/* page layout */
+
+body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+    height: 100vh;
+}
+div.title, iframe {
+    width: 100vw;
+    height: 20vh;
+    border: none;
+}
+div.title {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+h1, p {
+    margin: 0;
+    width: 24em;
+}
+
+/* text style */
+
+h1, input, p {
+    font-family: monospace;
+    font-size: 3em;
+}
+input {
+    color: #333;
+    border: 3px solid #999;
+    padding: 1em;
+}
+input:focus {
+    border-color: #333;
+    outline: none;
+}
+input::placeholder {
+    color: #999;
+    opacity: 1;
+}
+
+/* test results */
+
+body.test {
+    background-color: #666;
+    color: #fff;
+}
+body.ok {
+    background-color: #090;
+    color: #fff;
+}
+body.ko {
+    background-color: #900;
+    color: #fff;
+}
+body > p {
+    display: none;
+}
+body > p.title,
+body.test > p.test,
+body.ok > p.ok,
+body.ko > p.ko {
+    display: block;
+}

@@ -10,8 +10,8 @@ from ..exceptions import SecurityError
 
 __all__ = ["read_request", "read_response"]
 
-MAX_HEADERS = 256
-MAX_LINE = 4110
+MAX_HEADERS = 128
+MAX_LINE = 8192
 
 
 def d(value: bytes) -> str:
@@ -56,12 +56,12 @@ async def read_request(stream: asyncio.StreamReader) -> Tuple[str, Headers]:
     body, it may be read from ``stream`` after this coroutine returns.
 
     Args:
-        stream: input to read the request from
+        stream: Input to read the request from.
 
     Raises:
-        EOFError: if the connection is closed without a full HTTP request
-        SecurityError: if the request exceeds a security limit
-        ValueError: if the request isn't well formatted
+        EOFError: If the connection is closed without a full HTTP request.
+        SecurityError: If the request exceeds a security limit.
+        ValueError: If the request isn't well formatted.
 
     """
     # https://www.rfc-editor.org/rfc/rfc7230.html#section-3.1.1
@@ -103,12 +103,12 @@ async def read_response(stream: asyncio.StreamReader) -> Tuple[int, str, Headers
     body, it may be read from ``stream`` after this coroutine returns.
 
     Args:
-        stream: input to read the response from
+        stream: Input to read the response from.
 
     Raises:
-        EOFError: if the connection is closed without a full HTTP response
-        SecurityError: if the response exceeds a security limit
-        ValueError: if the response isn't well formatted
+        EOFError: If the connection is closed without a full HTTP response.
+        SecurityError: If the response exceeds a security limit.
+        ValueError: If the response isn't well formatted.
 
     """
     # https://www.rfc-editor.org/rfc/rfc7230.html#section-3.1.2
@@ -192,7 +192,7 @@ async def read_line(stream: asyncio.StreamReader) -> bytes:
     """
     # Security: this is bounded by the StreamReader's limit (default = 32 KiB).
     line = await stream.readline()
-    # Security: this guarantees header values are small (hard-coded = 4 KiB)
+    # Security: this guarantees header values are small (hard-coded = 8 KiB)
     if len(line) > MAX_LINE:
         raise SecurityError("line too long")
     # Not mandatory but safe - https://www.rfc-editor.org/rfc/rfc7230.html#section-3.5

@@ -313,7 +313,7 @@ class TestExecutor:
             result = self.do_test(test)
         except Exception as e:
             exception_string = traceback.format_exc()
-            message = f"Exception in TextExecutor.run:\n{exception_string}"
+            message = f"Exception in TestExecutor.run:\n{exception_string}"
             self.logger.warning(message)
             result = self.result_from_exception(test, e, exception_string)
 

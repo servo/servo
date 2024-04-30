@@ -22,10 +22,10 @@ promise_test(async t => {
   await sendCloseRequest();
   await waitForPotentialCloseEvent();
 
-  assert_array_equals(events, ["cancel"]);
+  assert_array_equals(events, ["cancel[cancelable=true]"]);
 
   await sendCloseRequest();
   await waitForPotentialCloseEvent();
-  assert_array_equals(events, ["cancel", "close"]);
+  assert_array_equals(events, ["cancel[cancelable=true]", "cancel[cancelable=false]", "close"]);
 }, "Create a close watcher without user activation that preventDefault()s cancel; send user activation");
 </script>
