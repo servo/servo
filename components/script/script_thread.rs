@@ -19,7 +19,7 @@
 
 use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
-use std::collections::{hash_map, HashMap, HashSet, VecDeque};
+use std::collections::{hash_map, HashMap, HashSet};
 use std::default::Default;
 use std::option::Option;
 use std::rc::Rc;
@@ -27,7 +27,7 @@ use std::result::Result;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
-use std::{mem, ptr, thread};
+use std::{ptr, thread};
 
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
@@ -76,13 +76,12 @@ use script_layout_interface::{
 };
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::{
-    AnimationTickType, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext,
-    DocumentActivity, EventResult, HistoryEntryReplacement, InitialScriptState, JsEvalResult,
-    LayoutControlMsg, LayoutMsg, LoadData, LoadOrigin, MediaSessionActionType, MouseButton,
-    MouseEventType, NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptMsg,
-    ScriptToConstellationChan, StructuredSerializedData, TimerSchedulerMsg, TouchEventType,
-    TouchId, UntrustedNodeAddress, UpdatePipelineIdReason, WebrenderIpcSender, WheelDelta,
-    WindowSizeData, WindowSizeType,
+    CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext, DocumentActivity,
+    EventResult, HistoryEntryReplacement, InitialScriptState, JsEvalResult, LayoutControlMsg,
+    LayoutMsg, LoadData, LoadOrigin, MediaSessionActionType, MouseButton, MouseEventType,
+    NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptMsg, ScriptToConstellationChan,
+    StructuredSerializedData, TimerSchedulerMsg, TouchEventType, TouchId, UntrustedNodeAddress,
+    UpdatePipelineIdReason, WebrenderIpcSender, WheelDelta, WindowSizeData, WindowSizeType,
 };
 use servo_atoms::Atom;
 use servo_config::opts;
@@ -431,124 +430,24 @@ impl OpaqueSender<CommonScriptMsg> for Sender<MainThreadScriptMsg> {
 #[derive(JSTraceable)]
 #[crown::unrooted_must_root_lint::must_root]
 pub struct Documents {
-    map: HashMapTracedValues<PipelineId, DocumentInfo>,
-}
-
-#[derive(JSTraceable)]
-#[crown::unrooted_must_root_lint::must_root]
-struct DocumentInfo {
-    /// The document associated with this pipeline.
-    document: Dom<Document>,
-    /// The index of the last mouse move event in the pending compositor events queue.
-    mouse_move_event_index: DomRefCell<Option<usize>>,
-    /// Pending animation ticks, to be handled at the next rendering opportunity.
-    #[no_trace]
-    pending_animation_ticks: DomRefCell<AnimationTickType>,
-    /// Pending composition events, to be handled at the next rendering opportunity.
-    #[no_trace]
-    pending_compositor_events: DomRefCell<VecDeque<CompositorEvent>>,
-}
-
-impl DocumentInfo {
-    fn new(doc: &Document) -> DocumentInfo {
-        DocumentInfo {
-            document: Dom::from_ref(doc),
-            mouse_move_event_index: Default::default(),
-            pending_animation_ticks: Default::default(),
-            pending_compositor_events: Default::default(),
-        }
-    }
-
-    fn document(&self) -> DomRoot<Document> {
-        DomRoot::from_ref(&*self.document)
-    }
+    map: HashMapTracedValues<PipelineId, Dom<Document>>,
 }
 
 impl Documents {
-    pub fn note_pending_animation_tick(
-        &self,
-        pipeline_id: PipelineId,
-        tick_type: AnimationTickType,
-    ) {
-        if let Some(doc_info) = self.map.get(&pipeline_id) {
-            let mut pending_animation_ticks = doc_info.pending_animation_ticks.borrow_mut();
-            pending_animation_ticks.extend(tick_type);
-        } else {
-            warn!(
-                "Trying to note pending animation tick for closed pipeline {}.",
-                pipeline_id
-            )
-        }
-    }
-
-    pub fn find_document_with_pending_animation_ticks(
-        &self,
-        pipeline_id: PipelineId,
-    ) -> Option<(DomRoot<Document>, AnimationTickType)> {
-        self.map.get(&pipeline_id).map(|doc_info| {
-            let doc = doc_info.document();
-            let animation_tick = mem::take(&mut *doc_info.pending_animation_ticks.borrow_mut());
-            (doc, animation_tick)
-        })
-    }
-
-    pub fn note_pending_compositor_event(&self, pipeline_id: PipelineId, event: CompositorEvent) {
-        if let Some(doc_info) = self.map.get(&pipeline_id) {
-            match event {
-                CompositorEvent::MouseMoveEvent { .. } => {
-                    let mut index = doc_info.mouse_move_event_index.borrow_mut();
-                    if let Some(index) = *index {
-                        // Replace the pending mouse move event.
-                        let mut pending_events = doc_info.pending_compositor_events.borrow_mut();
-                        let mouse_move_event =
-                            pending_events.get_mut(index).expect("index is valid");
-                        *mouse_move_event = event;
-                    } else {
-                        doc_info
-                            .pending_compositor_events
-                            .borrow_mut()
-                            .push_back(event);
-                        *index = Some(doc_info.pending_compositor_events.borrow().len() - 1);
-                    }
-                },
-                _ => {
-                    doc_info
-                        .pending_compositor_events
-                        .borrow_mut()
-                        .push_back(event);
-                },
-            }
-        } else {
-            warn!(
-                "Trying to note pending compositor event for closed pipeline {}.",
-                pipeline_id
-            )
-        }
-    }
-
-    pub fn find_document_with_pending_compositor_events(
-        &self,
-        pipeline_id: PipelineId,
-    ) -> Option<(DomRoot<Document>, VecDeque<CompositorEvent>)> {
-        self.map.get(&pipeline_id).map(|doc_info| {
-            // Reset the mouse event index.
-            *doc_info.mouse_move_event_index.borrow_mut() = None;
-            let doc = doc_info.document();
-            let pending_compositor_events =
-                mem::take(&mut *doc_info.pending_compositor_events.borrow_mut());
-            (doc, pending_compositor_events)
-        })
-    }
     pub fn insert(&mut self, pipeline_id: PipelineId, doc: &Document) {
-        self.map.insert(pipeline_id, DocumentInfo::new(doc));
+        self.map.insert(pipeline_id, Dom::from_ref(doc));
     }
 
     pub fn remove(&mut self, pipeline_id: PipelineId) -> Option<DomRoot<Document>> {
-        self.map.remove(&pipeline_id).map(|ref doc| doc.document())
+        self.map
+            .remove(&pipeline_id)
+            .map(|ref doc| DomRoot::from_ref(&**doc))
     }
 
     pub fn find_document(&self, pipeline_id: PipelineId) -> Option<DomRoot<Document>> {
-        self.map.get(&pipeline_id).map(|doc| doc.document())
+        self.map
+            .get(&pipeline_id)
+            .map(|doc| DomRoot::from_ref(&**doc))
     }
 
     pub fn find_window(&self, pipeline_id: PipelineId) -> Option<DomRoot<Window>> {
@@ -588,14 +487,16 @@ impl Default for Documents {
 
 #[allow(crown::unrooted_must_root)]
 pub struct DocumentsIter<'a> {
-    iter: hash_map::Iter<'a, PipelineId, DocumentInfo>,
+    iter: hash_map::Iter<'a, PipelineId, Dom<Document>>,
 }
 
 impl<'a> Iterator for DocumentsIter<'a> {
     type Item = (PipelineId, DomRoot<Document>);
 
     fn next(&mut self) -> Option<(PipelineId, DomRoot<Document>)> {
-        self.iter.next().map(|(id, doc)| (*id, doc.document()))
+        self.iter
+            .next()
+            .map(|(id, doc)| (*id, DomRoot::from_ref(&**doc)))
     }
 }
 
@@ -1589,15 +1490,11 @@ impl ScriptThread {
 
     /// Process compositor events as part of a "update the rendering task".
     fn process_pending_compositor_events(&self, pipeline_id: PipelineId) {
-        let (document, pending_for_pipeline) = match self
-            .documents
-            .borrow()
-            .find_document_with_pending_compositor_events(pipeline_id)
-        {
+        let document = match self.documents.borrow().find_document(pipeline_id) {
             Some(document) => document,
             None => {
                 return warn!(
-                    "Trying to process pending compositor events for closed pipeline {}.",
+                    "Processing pending compositor events for closed pipeline {}.",
                     pipeline_id
                 )
             },
@@ -1612,7 +1509,7 @@ impl ScriptThread {
         let window = document.window();
         ScriptThread::set_user_interacting(true);
         let _realm = enter_realm(document.window());
-        for event in pending_for_pipeline.into_iter() {
+        for event in document.get_pending_compositor_events().into_iter() {
             match event {
                 CompositorEvent::ResizeEvent(new_size, size_type) => {
                     window.add_resize_event(new_size, size_type);
@@ -1954,10 +1851,15 @@ impl ScriptThread {
                     pipeline_id,
                     tick_type,
                 )) => {
-                    self.rendering_opportunity(pipeline_id);
-                    self.documents
-                        .borrow_mut()
-                        .note_pending_animation_tick(pipeline_id, tick_type);
+                    if let Some(doc) = self.documents.borrow().find_document(pipeline_id) {
+                        self.rendering_opportunity(pipeline_id);
+                        doc.note_pending_animation_tick(tick_type);
+                    } else {
+                        warn!(
+                            "Trying to note pending animation tick for closed pipeline {}.",
+                            pipeline_id
+                        )
+                    }
                 },
                 FromConstellation(ConstellationControlMsg::SendEvent(id, event)) => {
                     self.handle_event(id, event)
@@ -3376,20 +3278,11 @@ impl ScriptThread {
 
     /// Handles when layout finishes all animation in one tick
     fn handle_tick_all_animations(&self, id: PipelineId) {
-        let (document, tick_type) = match self
-            .documents
-            .borrow()
-            .find_document_with_pending_animation_ticks(id)
-        {
+        let document = match self.documents.borrow().find_document(id) {
             Some(document) => document,
             None => return warn!("Message sent to closed pipeline {}.", id),
         };
-        if tick_type.contains(AnimationTickType::REQUEST_ANIMATION_FRAME) {
-            document.run_the_animation_frame_callbacks();
-        }
-        if tick_type.contains(AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS) {
-            document.maybe_mark_animating_nodes_as_dirty();
-        }
+        document.tick_all_animations();
     }
 
     /// Handles a Web font being loaded. Does nothing if the page no longer exists.
@@ -3862,14 +3755,15 @@ impl ScriptThread {
         window.reflow(ReflowGoal::Full, reason);
     }
 
-    /// This is the main entry point for receiving and dispatching DOM events.
-    ///
-    /// TODO: Actually perform DOM event dispatch.
+    /// Queue compositor events for later dispatching as part of a
+    /// `update_the_rendering` task.
     fn handle_event(&self, pipeline_id: PipelineId, event: CompositorEvent) {
+        let document = match self.documents.borrow().find_document(pipeline_id) {
+            Some(document) => document,
+            None => return warn!("Compositor event sent to closed pipeline {}.", pipeline_id),
+        };
         self.rendering_opportunity(pipeline_id);
-        self.documents
-            .borrow_mut()
-            .note_pending_compositor_event(pipeline_id, event);
+        document.note_pending_compositor_event(event);
     }
 
     #[allow(clippy::too_many_arguments)]
