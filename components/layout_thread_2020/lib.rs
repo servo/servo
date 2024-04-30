@@ -1244,7 +1244,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .or_else(|| {
                 font_group
                     .write()
-                    .find_by_codepoint(font_context, '0')?
+                    .find_by_codepoint(font_context, '0', None)?
                     .metrics
                     .zero_horizontal_advance
             })
@@ -1255,7 +1255,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .or_else(|| {
                 font_group
                     .write()
-                    .find_by_codepoint(font_context, '\u{6C34}')?
+                    .find_by_codepoint(font_context, '\u{6C34}', None)?
                     .metrics
                     .ic_horizontal_advance
             })
