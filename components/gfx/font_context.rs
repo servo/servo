@@ -15,7 +15,7 @@ use log::debug;
 use servo_arc::Arc;
 use style::computed_values::font_variant_caps::T as FontVariantCaps;
 use style::properties::style_structs::Font as FontStyleStruct;
-use webrender_api::FontInstanceKey;
+use webrender_api::{FontInstanceFlags, FontInstanceKey};
 
 use crate::font::{Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontRef};
 use crate::font_cache_thread::FontIdentifier;
@@ -30,7 +30,12 @@ static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
 static FONT_CACHE_EPOCH: AtomicUsize = AtomicUsize::new(0);
 
 pub trait FontSource {
-    fn get_font_instance(&mut self, font_identifier: FontIdentifier, size: Au) -> FontInstanceKey;
+    fn get_font_instance(
+        &mut self,
+        font_identifier: FontIdentifier,
+        size: Au,
+        flags: FontInstanceFlags,
+    ) -> FontInstanceKey;
     fn find_matching_font_templates(
         &mut self,
         descriptor_to_match: &FontDescriptor,
@@ -206,16 +211,18 @@ impl<S: FontSource> FontContext<S> {
         font_descriptor: FontDescriptor,
         synthesized_small_caps: Option<FontRef>,
     ) -> Result<FontRef, &'static str> {
-        let font_instance_key = self
-            .font_source
-            .get_font_instance(font_template.identifier(), font_descriptor.pt_size);
-
-        Ok(Rc::new(RefCell::new(Font::new(
-            font_template,
-            font_descriptor,
-            font_instance_key,
+        let mut font = Font::new(
+            font_template.clone(),
+            font_descriptor.clone(),
             synthesized_small_caps,
-        )?)))
+        )?;
+        font.font_key = self.font_source.get_font_instance(
+            font_template.identifier(),
+            font_descriptor.pt_size,
+            font.webrender_font_instance_flags(),
+        );
+
+        Ok(Rc::new(RefCell::new(font)))
     }
 }
 

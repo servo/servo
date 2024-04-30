@@ -40,6 +40,7 @@ style = { workspace = true }
 ucd = "0.1.1"
 unicode-bidi = { workspace = true, features = ["with_serde"] }
 unicode-script = { workspace = true }
+unicode-properties = { workspace = true, features = ["emoji"] }
 webrender_api = { workspace = true }
 xi-unicode = { workspace = true }
 

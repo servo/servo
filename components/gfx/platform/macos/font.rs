@@ -19,11 +19,12 @@ use core_text::font_descriptor::{
 };
 use log::debug;
 use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
+use webrender_api::FontInstanceFlags;
 
 use super::core_text_font_cache::CoreTextFontCache;
 use crate::font::{
     map_platform_values_to_style_values, FontMetrics, FontTableMethods, FontTableTag,
-    FractionalPixel, PlatformFontMethods, GPOS, GSUB, KERN,
+    FractionalPixel, PlatformFontMethods, CBDT, COLR, GPOS, GSUB, KERN, SBIX,
 };
 use crate::font_cache_thread::FontIdentifier;
 use crate::font_template::FontTemplateDescriptor;
@@ -181,7 +182,6 @@ impl PlatformFontMethods for PlatformFont {
             can_do_fast_shaping: false,
         };
         handle.h_kern_subtable = handle.find_h_kern_subtable();
-        // TODO (#11310): Implement basic support for GPOS and GSUB.
         handle.can_do_fast_shaping = handle.h_kern_subtable.is_some() &&
             handle.table_for_tag(GPOS).is_none() &&
             handle.table_for_tag(GSUB).is_none();
@@ -297,6 +297,18 @@ impl PlatformFontMethods for PlatformFont {
     fn table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
         let result: Option<CFData> = self.ctfont.get_font_table(tag);
         result.map(FontTable::wrap)
+    }
+
+    /// Get the necessary [`FontInstanceFlags`]` for this font.
+    fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
+        // TODO: Should this also validate these tables?
+        if self.table_for_tag(COLR).is_some() ||
+            self.table_for_tag(CBDT).is_some() ||
+            self.table_for_tag(SBIX).is_some()
+        {
+            return FontInstanceFlags::EMBEDDED_BITMAPS;
+        }
+        FontInstanceFlags::empty()
     }
 }
 

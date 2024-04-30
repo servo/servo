@@ -47,9 +47,9 @@ use webrender_api::units::{
 };
 use webrender_api::{
     self, BuiltDisplayList, DirtyRect, DisplayListPayload, DocumentId, Epoch as WebRenderEpoch,
-    ExternalScrollId, HitTestFlags, PipelineId as WebRenderPipelineId, PropertyBinding,
-    ReferenceFrameKind, RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo,
-    SpatialId, SpatialTreeItemKey, TransformStyle,
+    ExternalScrollId, FontInstanceOptions, HitTestFlags, PipelineId as WebRenderPipelineId,
+    PropertyBinding, ReferenceFrameKind, RenderReasons, SampledScrollOffset, ScrollLocation,
+    SpaceAndClipInfo, SpatialId, SpatialTreeItemKey, TransformStyle,
 };
 
 use crate::gl::RenderTargetInfo;
@@ -871,11 +871,23 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             ForwardedToCompositorMsg::Font(FontToCompositorMsg::AddFontInstance(
                 font_key,
                 size,
+                flags,
                 sender,
             )) => {
                 let key = self.webrender_api.generate_font_instance_key();
                 let mut txn = Transaction::new();
-                txn.add_font_instance(key, font_key, size, None, None, Vec::new());
+
+                let mut font_instance_options = FontInstanceOptions::default();
+                font_instance_options.flags = flags;
+
+                txn.add_font_instance(
+                    key,
+                    font_key,
+                    size,
+                    Some(font_instance_options),
+                    None,
+                    Vec::new(),
+                );
                 self.webrender_api
                     .send_transaction(self.webrender_document, txn);
                 let _ = sender.send(key);
@@ -951,7 +963,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 let _ = sender.send(());
             },
             CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
-                FontToCompositorMsg::AddFontInstance(_, _, sender),
+                FontToCompositorMsg::AddFontInstance(_, _, _, sender),
             )) => {
                 let _ = sender.send(self.webrender_api.generate_font_instance_key());
             },

@@ -14,6 +14,7 @@ use gfx::font_cache_thread::FontIdentifier;
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{self, CompressionMode};
+use gfx::text::FallbackFontSelectionOptions;
 use log::{debug, warn};
 use range::Range;
 use style::computed_values::text_rendering::T as TextRendering;
@@ -204,7 +205,10 @@ impl TextRunScanner {
                     .unwrap_or_else(|| {
                         let space_width = font_group
                             .borrow_mut()
-                            .find_by_codepoint(font_context, ' ')
+                            .find_by_codepoint(
+                                font_context,
+                                FallbackFontSelectionOptions::default(),
+                            )
                             .and_then(|font| {
                                 let font = font.borrow();
                                 font.glyph_index(' ')
@@ -247,9 +251,10 @@ impl TextRunScanner {
                 let (mut start_position, mut end_position) = (0, 0);
                 for (byte_index, character) in text.char_indices() {
                     if !character.is_control() {
+                        let fallback_options = FallbackFontSelectionOptions::new(character, None);
                         let font = font_group
                             .borrow_mut()
-                            .find_by_codepoint(font_context, character);
+                            .find_by_codepoint(font_context, fallback_options);
 
                         let bidi_level = match bidi_levels {
                             Some(levels) => levels[*paragraph_bytes_processed],

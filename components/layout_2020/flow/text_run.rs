@@ -10,6 +10,7 @@ use gfx::font::{FontRef, ShapingFlags, ShapingOptions};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
 use gfx::text::text_run::GlyphRun;
+use gfx::text::FallbackFontSelectionOptions;
 use gfx_traits::ByteIndex;
 use log::warn;
 use range::Range;
@@ -318,10 +319,11 @@ impl TextRun {
             } else {
                 Box::new(collapsed)
             };
+        let char_iterator = TwoCharsAtATimeIterator::new(char_iterator);
 
         let mut next_byte_index = 0;
         let text = char_iterator
-            .map(|character| {
+            .map(|(character, next_character)| {
                 let current_byte_index = next_byte_index;
                 next_byte_index += character.len_utf8();
 
@@ -340,9 +342,10 @@ impl TextRun {
                     return character;
                 }
 
+                let fallback_options = FallbackFontSelectionOptions::new(character, next_character);
                 let font = match font_group
                     .borrow_mut()
-                    .find_by_codepoint(font_context, character)
+                    .find_by_codepoint(font_context, fallback_options)
                 {
                     Some(font) => font,
                     None => return character,
@@ -793,4 +796,41 @@ fn capitalize_string(string: &str, allow_word_at_start: bool) -> String {
     }
 
     output_string
+}
+
+pub struct TwoCharsAtATimeIterator<InputIterator> {
+    /// The input character iterator.
+    iterator: InputIterator,
+    /// The first character to produce in the next run of the iterator.
+    next_character: Option<char>,
+}
+
+impl<InputIterator> TwoCharsAtATimeIterator<InputIterator> {
+    fn new(iterator: InputIterator) -> Self {
+        Self {
+            iterator,
+            next_character: None,
+        }
+    }
+}
+
+impl<InputIterator> Iterator for TwoCharsAtATimeIterator<InputIterator>
+where
+    InputIterator: Iterator<Item = char>,
+{
+    type Item = (char, Option<char>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // If the iterator isn't initialized do that now.
+        if self.next_character.is_none() {
+            self.next_character = self.iterator.next();
+        }
+
+        let Some(character) = self.next_character else {
+            return None;
+        };
+
+        self.next_character = self.iterator.next();
+        return Some((character, self.next_character.clone()));
+    }
 }

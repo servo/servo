@@ -23,7 +23,7 @@ use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::{GenericFontFamily, SingleFontFamily};
 use style::values::computed::{FontStretch, FontStyle, FontWeight};
 use unicode_script::Script;
-use webrender_api::FontInstanceKey;
+use webrender_api::{FontInstanceFlags, FontInstanceKey};
 
 use crate::font_cache_thread::FontIdentifier;
 use crate::font_context::{FontContext, FontSource};
@@ -32,7 +32,7 @@ use crate::platform::font::{FontTable, PlatformFont};
 pub use crate::platform::font_list::fallback_font_families;
 use crate::text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use crate::text::shaping::ShaperMethods;
-use crate::text::Shaper;
+use crate::text::{FallbackFontSelectionOptions, Shaper};
 
 #[macro_export]
 macro_rules! ot_tag {
@@ -44,6 +44,10 @@ macro_rules! ot_tag {
 pub const GPOS: u32 = ot_tag!('G', 'P', 'O', 'S');
 pub const GSUB: u32 = ot_tag!('G', 'S', 'U', 'B');
 pub const KERN: u32 = ot_tag!('k', 'e', 'r', 'n');
+pub const SBIX: u32 = ot_tag!('s', 'b', 'i', 'x');
+pub const CBDT: u32 = ot_tag!('C', 'B', 'D', 'T');
+pub const COLR: u32 = ot_tag!('C', 'O', 'L', 'R');
+
 pub const LAST_RESORT_GLYPH_ADVANCE: FractionalPixel = 10.0;
 
 static TEXT_SHAPING_PERFORMANCE_COUNTER: AtomicUsize = AtomicUsize::new(0);
@@ -83,6 +87,9 @@ pub trait PlatformFontMethods: Sized {
     fn can_do_fast_shaping(&self) -> bool;
     fn metrics(&self) -> FontMetrics;
     fn table_for_tag(&self, _: FontTableTag) -> Option<FontTable>;
+
+    /// Get the necessary [`FontInstanceFlags`]` for this font.
+    fn webrender_font_instance_flags(&self) -> FontInstanceFlags;
 }
 
 // Used to abstract over the shaper's choice of fixed int representation.
@@ -195,7 +202,6 @@ impl Font {
     pub fn new(
         template: FontTemplateRef,
         descriptor: FontDescriptor,
-        font_key: FontInstanceKey,
         synthesized_small_caps: Option<FontRef>,
     ) -> Result<Font, &'static str> {
         let handle = PlatformFont::new_from_template(template.clone(), Some(descriptor.pt_size))?;
@@ -209,7 +215,7 @@ impl Font {
             metrics,
             shape_cache: RefCell::new(HashMap::new()),
             glyph_advance_cache: RefCell::new(HashMap::new()),
-            font_key,
+            font_key: FontInstanceKey::default(),
             synthesized_small_caps,
         })
     }
@@ -217,6 +223,10 @@ impl Font {
     /// A unique identifier for the font, allowing comparison.
     pub fn identifier(&self) -> FontIdentifier {
         self.template.identifier()
+    }
+
+    pub fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
+        self.handle.webrender_font_instance_flags()
     }
 }
 
@@ -429,10 +439,10 @@ impl FontGroup {
     pub fn find_by_codepoint<S: FontSource>(
         &mut self,
         font_context: &mut FontContext<S>,
-        codepoint: char,
+        options: FallbackFontSelectionOptions,
     ) -> Option<FontRef> {
         let should_look_for_small_caps = self.descriptor.variant == font_variant_caps::T::SmallCaps &&
-            codepoint.is_ascii_lowercase();
+            options.character.is_ascii_lowercase();
         let font_or_synthesized_small_caps = |font: FontRef| {
             if should_look_for_small_caps {
                 let font = font.borrow();
@@ -443,9 +453,9 @@ impl FontGroup {
             Some(font)
         };
 
-        let glyph_in_font = |font: &FontRef| font.borrow().has_glyph_for(codepoint);
+        let glyph_in_font = |font: &FontRef| font.borrow().has_glyph_for(options.character);
         let char_in_template =
-            |template: FontTemplateRef| template.char_in_unicode_range(codepoint);
+            |template: FontTemplateRef| template.char_in_unicode_range(options.character);
 
         if let Some(font) = self.find(font_context, char_in_template, glyph_in_font) {
             return font_or_synthesized_small_caps(font);
@@ -459,12 +469,9 @@ impl FontGroup {
             }
         }
 
-        if let Some(font) = self.find_fallback(
-            font_context,
-            Some(codepoint),
-            char_in_template,
-            glyph_in_font,
-        ) {
+        if let Some(font) =
+            self.find_fallback(font_context, options, char_in_template, glyph_in_font)
+        {
             self.last_matching_fallback = Some(font.clone());
             return font_or_synthesized_small_caps(font);
         }
@@ -484,7 +491,14 @@ impl FontGroup {
         let space_in_template = |template: FontTemplateRef| template.char_in_unicode_range(' ');
         let font_predicate = |_: &FontRef| true;
         self.find(font_context, space_in_template, font_predicate)
-            .or_else(|| self.find_fallback(font_context, None, space_in_template, font_predicate))
+            .or_else(|| {
+                self.find_fallback(
+                    font_context,
+                    FallbackFontSelectionOptions::default(),
+                    space_in_template,
+                    font_predicate,
+                )
+            })
     }
 
     /// Attempts to find a font which matches the given `template_predicate` and `font_predicate`.
@@ -522,7 +536,7 @@ impl FontGroup {
     fn find_fallback<S, TemplatePredicate, FontPredicate>(
         &mut self,
         font_context: &mut FontContext<S>,
-        codepoint: Option<char>,
+        options: FallbackFontSelectionOptions,
         template_predicate: TemplatePredicate,
         font_predicate: FontPredicate,
     ) -> Option<FontRef>
@@ -532,7 +546,7 @@ impl FontGroup {
         FontPredicate: Fn(&FontRef) -> bool,
     {
         iter::once(FontFamilyDescriptor::serif())
-            .chain(fallback_font_families(codepoint).into_iter().map(|family| {
+            .chain(fallback_font_families(options).into_iter().map(|family| {
                 FontFamilyDescriptor::new(FontFamilyName::from(family), FontSearchScope::Local)
             }))
             .into_iter()

@@ -16,6 +16,7 @@ use webrender_api::NativeFontHandle;
 use crate::font_template::{FontTemplate, FontTemplateDescriptor};
 use crate::platform::font::CoreTextFontTraitsMapping;
 use crate::text::util::unicode_plane;
+use crate::text::FallbackFontSelectionOptions;
 
 /// An identifier for a local font on a MacOS system. These values comes from the CoreText
 /// CTFontCollection. Note that `path` here is required. We do not load fonts that do not
@@ -93,16 +94,14 @@ pub fn system_default_family(_generic_name: &str) -> Option<String> {
 /// Get the list of fallback fonts given an optional codepoint. This is
 /// based on `gfxPlatformMac::GetCommonFallbackFonts()` in Gecko from
 /// <https://searchfox.org/mozilla-central/source/gfx/thebes/gfxPlatformMac.cpp>.
-pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {
-    let mut families = vec!["Lucida Grande"];
-    let Some(codepoint) = codepoint else {
-        families.push("Geneva");
-        families.push("Arial Unicode MS");
-        return families;
-    };
+pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
+    let mut families = Vec::new();
+    if options.prefer_emoji_presentation {
+        families.push("Apple Color Emoji");
+    }
 
-    let script = Script::from(codepoint);
-    if let Some(block) = codepoint.block() {
+    let script = Script::from(options.character);
+    if let Some(block) = options.character.block() {
         match block {
             // In most cases, COMMON and INHERITED characters will be merged into
             // their context, but if they occur without any specific script context
@@ -125,7 +124,7 @@ pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {
             _ if matches!(script, Script::Bopomofo | Script::Han) => {
                 // TODO: Need to differentiate between traditional and simplified Han here!
                 families.push("Songti SC");
-                if codepoint as u32 > 0x10000 {
+                if options.character as u32 > 0x10000 {
                     // macOS installations with MS Office may have these -ExtB fonts
                     families.push("SimSun-ExtB");
                 }
@@ -305,17 +304,19 @@ pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {
     }
 
     // https://en.wikipedia.org/wiki/Plane_(Unicode)#Supplementary_Multilingual_Plane
-    let unicode_plane = unicode_plane(codepoint);
+    let unicode_plane = unicode_plane(options.character);
     if let 1 = unicode_plane {
-        let b = (codepoint as u32) >> 8;
-        if b >= 0x1f0 && b < 0x1f7 {
-            families.push("Apple Color Emoji");
+        let b = (options.character as u32) >> 8;
+        if b == 0x27 {
+            families.push("Zapf Dingbats");
         }
+        families.push("Geneva");
         families.push("Apple Symbols");
         families.push("STIXGeneral");
+        families.push("Hiragino Sans");
+        families.push("Hiragino Kaku Gothic ProN");
     }
 
-    families.push("Geneva");
     families.push("Arial Unicode MS");
     families
 }

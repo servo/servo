@@ -32,6 +32,7 @@ use super::c_str_to_string;
 use crate::font::map_platform_values_to_style_values;
 use crate::font_template::{FontTemplate, FontTemplateDescriptor};
 use crate::text::util::is_cjk;
+use crate::text::FallbackFontSelectionOptions;
 
 /// An identifier for a local font on systems using Freetype.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
@@ -195,26 +196,31 @@ pub fn system_default_family(generic_name: &str) -> Option<String> {
 pub static SANS_SERIF_FONT_FAMILY: &str = "DejaVu Sans";
 
 // Based on gfxPlatformGtk::GetCommonFallbackFonts() in Gecko
-pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {
-    let mut families = vec!["DejaVu Serif", "FreeSerif", "DejaVu Sans", "FreeSans"];
+pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
+    let mut families = Vec::new();
+    if options.prefer_emoji_presentation {
+        families.push("Noto Color Emoji");
+    }
+    families.push("DejaVu Serif");
+    families.push("FreeSerif");
+    families.push("DejaVu Sans");
+    families.push("FreeSans");
 
-    if let Some(codepoint) = codepoint {
-        if is_cjk(codepoint) {
-            families.push("TakaoPGothic");
-            families.push("Droid Sans Fallback");
-            families.push("WenQuanYi Micro Hei");
-            families.push("NanumGothic");
-            families.push("Noto Sans CJK HK");
-            families.push("Noto Sans CJK JP");
-            families.push("Noto Sans CJK KR");
-            families.push("Noto Sans CJK SC");
-            families.push("Noto Sans CJK TC");
-            families.push("Noto Sans HK");
-            families.push("Noto Sans JP");
-            families.push("Noto Sans KR");
-            families.push("Noto Sans SC");
-            families.push("Noto Sans TC");
-        }
+    if is_cjk(options.character) {
+        families.push("TakaoPGothic");
+        families.push("Droid Sans Fallback");
+        families.push("WenQuanYi Micro Hei");
+        families.push("NanumGothic");
+        families.push("Noto Sans CJK HK");
+        families.push("Noto Sans CJK JP");
+        families.push("Noto Sans CJK KR");
+        families.push("Noto Sans CJK SC");
+        families.push("Noto Sans CJK TC");
+        families.push("Noto Sans HK");
+        families.push("Noto Sans JP");
+        families.push("Noto Sans KR");
+        families.push("Noto Sans SC");
+        families.push("Noto Sans TC");
     }
 
     families
