@@ -71,6 +71,7 @@ pub enum Resource {
     MediaControlsCSS,
     MediaControlsJS,
     CrashHTML,
+    DirectoryListingCSS,
 }
 
 impl Resource {
@@ -90,6 +91,7 @@ impl Resource {
             Resource::MediaControlsCSS => "media-controls.css",
             Resource::MediaControlsJS => "media-controls.js",
             Resource::CrashHTML => "crash.html",
+            Resource::DirectoryListingCSS => "directory-listing.css",
         }
     }
 }
@@ -146,6 +148,9 @@ fn resources_for_tests() -> Box<dyn ResourceReaderMethods + Sync + Send> {
                     &include_bytes!("../../../resources/media-controls.js")[..]
                 },
                 Resource::CrashHTML => &include_bytes!("../../../resources/crash.html")[..],
+                Resource::DirectoryListingCSS => {
+                    &include_bytes!("../../../resources/directory-listing.css")[..]
+                },
             }
             .to_owned()
         }

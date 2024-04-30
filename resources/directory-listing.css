@@ -1,0 +1,102 @@
+html, body {
+	height: 100%;
+	margin: 0;
+}
+body {
+	background-color: #888;
+	width: 100%;
+	padding: 0;
+	display: flex;
+	flex-flow: column;
+}
+header {
+	background-color: white;
+	margin: 0;
+	padding: 0.2em 0.5em;
+	flex: 0 1 auto;
+}
+header > h1 {
+	text-decoration: none;
+	margin: 0;
+}
+header > h1 > span.path {
+	display: block;
+	font-family: monospace;
+}
+h1 {
+	text-align: center;
+	text-decoration: underline;
+}
+div.listing {
+	display: block;
+	margin: 1em auto;
+	padding: 0.5em;
+	max-width: 28em;
+	background-color: white;
+	font-family: monospace;
+	flex: 1 1 auto;
+}
+div.file {
+	display: block;
+}
+div.row + div.row {
+	margin-top: 1em;
+}
+div.size {
+	display: none;
+}
+div.name {
+	display: block;
+	font-weight: bold;
+	font-size: normal;
+}
+div.size, div.modified {
+	display: inline;
+	font-size: smaller;
+}
+div.size {
+	margin-left: 1em;
+}
+div.modified {
+	margin-left: 1em;
+}
+div.parent > div.name:before {
+	content: "⇧ ";
+}
+div.parent > div.size, div.parent > div.modified {
+	display: none;
+}
+div.directory > div.name:before {
+	content: "📁 ";
+}
+div.directory > div.size {
+	visibility: hidden;
+}
+div.directory > div.size:before {
+	content: "Directory";
+	visibility: visible;
+}
+div.file > div.name:before {
+	content: "📄 ";
+}
+div.symlink > div.name:before {
+	content: "🔗 ";
+}
+div.size::before {
+	content: "Size: ";
+	font-weight: bold;
+}
+div.modified::before {
+	content: "Modified: ";
+	font-weight: bold;
+}
+footer {
+	background-color: white;
+	flex: 0 1 1ex;
+	text-align: right;
+	padding: 0.2em 0.5em;
+	margin: 0;
+}
+footer p {
+	margin: 0;
+}
