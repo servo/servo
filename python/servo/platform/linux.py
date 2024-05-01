@@ -164,6 +164,11 @@ class Linux(Base):
             command = ['apt-get', 'install', "-m"]
             pkgs = APT_PKGS
 
+            # Skip 'clang' if 'clang' binary already exists.
+            result = subprocess.run(['which', 'clang'], capture_output=True)
+            if result and result.returncode == 0:
+                pkgs.remove('clang')
+
             # Try to filter out unknown packages from the list. This is important for Debian
             # as it does not ship all of the packages we want.
             installable = subprocess.check_output(['apt-cache', '--generate', 'pkgnames'])
