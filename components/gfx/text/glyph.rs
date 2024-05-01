@@ -10,6 +10,7 @@ use app_units::Au;
 use euclid::default::Point2D;
 pub use gfx_traits::ByteIndex;
 use log::debug;
+use malloc_size_of_derive::MallocSizeOf;
 use range::{self, EachIndex, Range, RangeIndex};
 use serde::{Deserialize, Serialize};
 
@@ -21,7 +22,7 @@ use serde::{Deserialize, Serialize};
 /// In the uncommon case (multiple glyphs per unicode character, large glyph index/advance, or
 /// glyph offsets), we pack the glyph count into GlyphEntry, and store the other glyph information
 /// in DetailedGlyphStore.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub struct GlyphEntry {
     value: u32,
 }
@@ -145,7 +146,7 @@ impl GlyphEntry {
 
 // Stores data for a detailed glyph, in the case that several glyphs
 // correspond to one character, or the glyph's data couldn't be packed.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
 struct DetailedGlyph {
     id: GlyphId,
     // glyph's advance, in the text's direction (LTR or RTL)
@@ -164,7 +165,7 @@ impl DetailedGlyph {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 struct DetailedGlyphRecord {
     // source string offset/GlyphEntry offset in the TextRun
     entry_offset: ByteIndex,
@@ -188,7 +189,7 @@ impl PartialOrd for DetailedGlyphRecord {
 // until a lookup is actually performed; this matches the expected
 // usage pattern of setting/appending all the detailed glyphs, and
 // then querying without setting.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 struct DetailedGlyphStore {
     // TODO(pcwalton): Allocation of this buffer is expensive. Consider a small-vector
     // optimization.
@@ -416,7 +417,7 @@ impl<'a> GlyphInfo<'a> {
 /// |               +---+---+                     |
 /// +---------------------------------------------+
 /// ~~~
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct GlyphStore {
     // TODO(pcwalton): Allocation of this buffer is expensive. Consider a small-vector
     // optimization.

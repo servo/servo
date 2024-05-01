@@ -530,6 +530,12 @@ impl Layout for LayoutThread {
             kind: ReportKind::ExplicitJemallocHeapSize,
             size: self.stylist.size_of(&mut ops),
         });
+
+        reports.push(Report {
+            path: path![formatted_url, "layout-thread", "font-context"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: self.font_context.size_of(&mut ops),
+        });
     }
 
     fn reflow(&mut self, script_reflow: script_layout_interface::ScriptReflow) {

@@ -13,6 +13,7 @@ use atomic_refcell::AtomicRefCell;
 use gfx_traits::WebrenderApi;
 use ipc_channel::ipc::{self, IpcBytesSender, IpcReceiver, IpcSender};
 use log::{debug, trace};
+use malloc_size_of_derive::MallocSizeOf;
 use net_traits::request::{Destination, Referrer, RequestBuilder};
 use net_traits::{fetch_async, CoreResourceThread, FetchResponseMsg};
 use serde::{Deserialize, Serialize};
@@ -46,7 +47,7 @@ pub struct FontTemplates {
     templates: Vec<FontTemplateRef>,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum FontIdentifier {
     Local(LocalFontIdentifier),
     Web(ServoUrl),

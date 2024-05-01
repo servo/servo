@@ -10,6 +10,8 @@ use std::sync::Arc;
 use app_units::Au;
 use fnv::FnvHasher;
 use log::debug;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::{Mutex, RwLock};
 use servo_arc::Arc as ServoArc;
 use style::computed_values::font_variant_caps::T as FontVariantCaps;
@@ -53,6 +55,39 @@ pub struct FontContext<S: FontSource> {
     font_template_cache: RwLock<HashMap<FontTemplateCacheKey, Vec<FontTemplateRef>>>,
     font_group_cache:
         RwLock<HashMap<FontGroupCacheKey, Arc<RwLock<FontGroup>>, BuildHasherDefault<FnvHasher>>>,
+}
+
+impl<S: FontSource> MallocSizeOf for FontContext<S> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let font_cache_size = self
+            .font_cache
+            .read()
+            .iter()
+            .map(|(key, font)| {
+                key.size_of(ops) + font.as_ref().map_or(0, |font| (*font).size_of(ops))
+            })
+            .sum::<usize>();
+        let font_template_cache_size = self
+            .font_template_cache
+            .read()
+            .iter()
+            .map(|(key, templates)| {
+                let templates_size = templates
+                    .iter()
+                    .map(|template| template.borrow().size_of(ops))
+                    .sum::<usize>();
+                key.size_of(ops) + templates_size
+            })
+            .sum::<usize>();
+        let font_group_cache_size = self
+            .font_group_cache
+            .read()
+            .iter()
+            .map(|(key, font_group)| key.size_of(ops) + (*font_group.read()).size_of(ops))
+            .sum::<usize>();
+
+        font_cache_size + font_template_cache_size + font_group_cache_size
+    }
 }
 
 impl<S: FontSource> FontContext<S> {
@@ -226,20 +261,21 @@ impl<S: FontSource> FontContext<S> {
     }
 }
 
-#[derive(Debug, Eq, Hash, PartialEq)]
+#[derive(Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 struct FontCacheKey {
     font_identifier: FontIdentifier,
     font_descriptor: FontDescriptor,
 }
 
-#[derive(Debug, Eq, Hash, PartialEq)]
+#[derive(Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 struct FontTemplateCacheKey {
     font_descriptor: FontDescriptor,
     family_descriptor: FontFamilyDescriptor,
 }
 
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 struct FontGroupCacheKey {
+    #[ignore_malloc_size_of = "This is also stored as part of styling."]
     style: ServoArc<FontStyleStruct>,
     size: Au,
 }

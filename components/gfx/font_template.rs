@@ -7,6 +7,7 @@ use std::ops::RangeInclusive;
 use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use style::computed_values::font_stretch::T as FontStretch;
@@ -27,11 +28,12 @@ pub type FontTemplateRef = Arc<AtomicRefCell<FontTemplate>>;
 /// to be expanded or refactored when we support more of the font styling parameters.
 ///
 /// NB: If you change this, you will need to update `style::properties::compute_font_hash()`.
-#[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct FontTemplateDescriptor {
     pub weight: (FontWeight, FontWeight),
     pub stretch: (FontStretch, FontStretch),
     pub style: (FontStyle, FontStyle),
+    #[ignore_malloc_size_of = "MallocSizeOf does not yet support RangeInclusive"]
     pub unicode_range: Option<Vec<RangeInclusive<u32>>>,
 }
 
@@ -132,6 +134,14 @@ pub struct FontTemplate {
     ///
     /// TODO: There is no mechanism for web fonts to unset their data!
     pub data: Option<Arc<Vec<u8>>>,
+}
+
+impl malloc_size_of::MallocSizeOf for FontTemplate {
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        self.identifier.size_of(ops) +
+            self.descriptor.size_of(ops) +
+            self.data.as_ref().map_or(0, |data| (*data).size_of(ops))
+    }
 }
 
 impl Debug for FontTemplate {

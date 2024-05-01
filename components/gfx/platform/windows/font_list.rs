@@ -6,6 +6,7 @@ use std::hash::Hash;
 use std::sync::Arc;
 
 use dwrote::{Font, FontCollection, FontDescriptor, FontStretch, FontStyle};
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use style::values::computed::{FontStyle as StyleFontStyle, FontWeight as StyleFontWeight};
 use style::values::specified::font::FontStretchKeyword;
@@ -31,9 +32,10 @@ where
 }
 
 /// An identifier for a local font on a Windows system.
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub struct LocalFontIdentifier {
     /// The FontDescriptor of this font.
+    #[ignore_malloc_size_of = "dwrote does not support MallocSizeOf"]
     pub font_descriptor: Arc<FontDescriptor>,
 }
 

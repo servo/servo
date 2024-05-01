@@ -1971,6 +1971,7 @@ dependencies = [
  "libc",
  "log",
  "malloc_size_of",
+ "malloc_size_of_derive",
  "net_traits",
  "parking_lot",
  "range",
