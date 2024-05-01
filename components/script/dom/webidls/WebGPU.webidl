@@ -1048,6 +1048,7 @@ interface GPUCanvasContext {
 
     // Calling configure() a second time invalidates the previous one,
     // and all of the textures it's produced.
+    [Throws]
     undefined configure(GPUCanvasConfiguration descriptor);
     undefined unconfigure();
 

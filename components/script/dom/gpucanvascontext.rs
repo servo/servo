@@ -208,14 +208,19 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-configure>
-    fn Configure(&self, descriptor: &GPUCanvasConfiguration) {
+    fn Configure(&self, descriptor: &GPUCanvasConfiguration) -> Fallible<()> {
         // Step 1 is let
         // Step 2
         // TODO: device features
         let format = match descriptor.format {
             GPUTextureFormat::Rgba8unorm | GPUTextureFormat::Rgba8unorm_srgb => ImageFormat::RGBA8,
             GPUTextureFormat::Bgra8unorm | GPUTextureFormat::Bgra8unorm_srgb => ImageFormat::BGRA8,
-            _ => panic!("SwapChain format({:?}) not supported", descriptor.format), // TODO: Better handling
+            _ => {
+                return Err(Error::Type(format!(
+                    "SwapChain format({:?}) not supported",
+                    descriptor.format
+                )))
+            },
         };
 
         // Step 3
@@ -287,6 +292,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
             .set(Some(&descriptor.device.CreateTexture(&text_desc).unwrap()));
 
         self.webrender_image.set(Some(receiver.recv().unwrap()));
+        Ok(())
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-unconfigure>
