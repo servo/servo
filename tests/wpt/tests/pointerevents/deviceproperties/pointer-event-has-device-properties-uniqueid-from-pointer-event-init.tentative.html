@@ -7,12 +7,11 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id="console"></div>
 
-<!-- This test verifies that if the kPointerEventDeviceId flag is enabled,
-     pointerEvent.deviceProperties.uniqueId can be set via PointerEventInit. If not, it is
-     undefined. -->
+<!-- This test verifies that pointerEvent.deviceProperties.uniqueId
+     can be set via PointerEventInit. -->
 <script>
     const UNIQUE_ID = 1001;
-    const INVALID_UNIQUE_ID = -1;
+    const INVALID_UNIQUE_ID = 0;
 
     function CheckDeviceId(event, uniqueId) {
         assert_equals(event.deviceProperties.uniqueId, uniqueId, "uniqueId is populated");

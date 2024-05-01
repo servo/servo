@@ -101,3 +101,22 @@ function createDottedFrame(width, height, dots, ts) {
   putBlackDots(ctx, width, height, dots);
   return new VideoFrame(cnv, { timestamp: ts, duration });
 }
+
+function createVideoEncoder(t, callbacks) {
+  return new VideoEncoder({
+    output(chunk, metadata) {
+      if (callbacks && callbacks.output) {
+        t.step(() => callbacks.output(chunk, metadata));
+      } else {
+        t.unreached_func('unexpected output()');
+      }
+    },
+    error(e) {
+      if (callbacks && callbacks.error) {
+        t.step(() => callbacks.error(e));
+      } else {
+        t.unreached_func('unexpected error()');
+      }
+    }
+  });
+}

@@ -78,10 +78,15 @@ dictionary RTCEncodedVideoFrameMetadata {
     DOMString mimeType;
 };
 
+dictionary RTCEncodedVideoFrameOptions {
+    RTCEncodedVideoFrameMetadata metadata;
+};
+
 // New interfaces to define encoded video and audio frames. Will eventually
 // re-use or extend the equivalent defined in WebCodecs.
 [Exposed=(Window,DedicatedWorker), Serializable]
 interface RTCEncodedVideoFrame {
+    constructor(RTCEncodedVideoFrame originalFrame, optional RTCEncodedVideoFrameOptions options = {});
     readonly attribute RTCEncodedVideoFrameType type;
     attribute ArrayBuffer data;
     RTCEncodedVideoFrameMetadata getMetadata();
@@ -96,8 +101,13 @@ dictionary RTCEncodedAudioFrameMetadata {
     DOMString mimeType;
 };
 
+dictionary RTCEncodedAudioFrameOptions {
+    RTCEncodedAudioFrameMetadata metadata;
+};
+
 [Exposed=(Window,DedicatedWorker), Serializable]
 interface RTCEncodedAudioFrame {
+    constructor(RTCEncodedAudioFrame originalFrame, optional RTCEncodedAudioFrameOptions options = {});
     attribute ArrayBuffer data;
     RTCEncodedAudioFrameMetadata getMetadata();
 };

@@ -26,9 +26,14 @@ window.createRecordingCloseWatcher = (t, events, name, type, parentWatcher) => {
     t.add_cleanup(() => watcher.destroy());
   }
 
-  const prefix = name === undefined ? "" : name + " ";
-  watcher.addEventListener('cancel', () => events.push(prefix + "cancel"));
-  watcher.addEventListener('close', () => events.push(prefix + "close"));
+  const prefix = name === undefined ? '' : name + ' ';
+  watcher.addEventListener('cancel', e => {
+    const cancelable = e.cancelable ? '[cancelable=true]' : '[cancelable=false]';
+    events.push(prefix + 'cancel' + cancelable);
+  });
+  watcher.addEventListener('close', () => {
+    events.push(prefix + 'close');
+  });
 
   return watcher;
 };

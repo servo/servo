@@ -396,11 +396,16 @@ def run_tests(config, product, test_paths, **kwargs):
 
         product.check_args(**kwargs)
 
+        kwargs["allow_list_paths"] = []
         if kwargs["install_fonts"]:
+            # Add test font to allow list for sandbox to ensure that the content
+            # processes will have read access.
+            ahem_path = os.path.join(test_paths["/"].tests_path, "fonts/Ahem.ttf")
+            kwargs["allow_list_paths"].append(ahem_path)
             env_extras.append(FontInstaller(
                 logger,
                 font_dir=kwargs["font_dir"],
-                ahem=os.path.join(test_paths["/"].tests_path, "fonts/Ahem.ttf")
+                ahem=ahem_path
             ))
 
         recording.set(["startup", "load_tests"])

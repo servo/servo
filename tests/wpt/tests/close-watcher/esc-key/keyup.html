@@ -16,6 +16,6 @@ promise_test(async t => {
 
   await sendEscKey();
 
-  assert_array_equals(events, ["close"]);
+  assert_array_equals(events, ["cancel[cancelable=false]", "close"]);
 }, "A keyup listener can NOT prevent the Esc keypress from being interpreted as a close request");
 </script>

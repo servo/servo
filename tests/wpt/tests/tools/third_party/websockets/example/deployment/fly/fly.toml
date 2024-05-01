@@ -1,0 +1,16 @@
+app = "websockets-echo"
+kill_signal = "SIGTERM"
+
+[build]
+  builder = "paketobuildpacks/builder:base"
+
+[[services]]
+  internal_port = 8080
+  protocol = "tcp"
+
+  [[services.http_checks]]
+    path = "/healthz"
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443

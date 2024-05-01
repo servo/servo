@@ -43,8 +43,6 @@ cases:
         origins: [httpCrossSite]
         description: Not sent to non-trustworthy cross-site destination
     template_axes:
-      # Unused
-      appcache-manifest.sub.https.html: []
       # The `audioWorklet` interface is only available in secure contexts
       # https://webaudio.github.io/web-audio-api/#BaseAudioContext
       audioworklet.https.sub.html: []
@@ -91,6 +89,63 @@ cases:
       svg-image.sub.html: [{}]
       window-history.sub.html: [{}]
       worker-dedicated-importscripts.sub.html: [{}]
+      # `new Worker()` only makes same-origin requests, therefore we split it
+      # out into the next block.
+      worker-dedicated-constructor.sub.html: []
+
+  - all_subtests:
+      expected: NULL
+      filename_flags: []
+    common_axis:
+      - headerName: sec-fetch-site
+        origins: [httpOrigin]
+        description: Not sent to non-trustworthy same-origin destination
+      - headerName: sec-fetch-mode
+        origins: [httpOrigin]
+        description: Not sent to non-trustworthy same-origin destination
+      - headerName: sec-fetch-dest
+        origins: [httpOrigin]
+        description: Not sent to non-trustworthy same-origin destination
+      - headerName: sec-fetch-user
+        origins: [httpOrigin]
+        description: Not sent to non-trustworthy same-origin destination
+    template_axes:
+      # All the templates in this block are unused with the exception of
+      # `worker-dedicated-constructor`
+      appcache-manifest.sub.https.html: []
+      audioworklet.https.sub.html: []
+      fetch-via-serviceworker.https.sub.html: []
+      serviceworker.https.sub.html: []
+      css-images.sub.html: []
+      css-font-face.sub.html: []
+      element-a.sub.html: []
+      element-area.sub.html: []
+      element-audio.sub.html: []
+      element-embed.sub.html: []
+      element-frame.sub.html: []
+      element-iframe.sub.html: []
+      element-img.sub.html: []
+      element-img-environment-change.sub.html: []
+      element-input-image.sub.html: []
+      element-link-icon.sub.html: []
+      element-link-prefetch.optional.sub.html: []
+      element-meta-refresh.optional.sub.html: []
+      element-picture.sub.html: []
+      element-script.sub.html: []
+      element-video.sub.html: []
+      element-video-poster.sub.html: []
+      fetch.sub.html: []
+      form-submission.sub.html: []
+      header-link.sub.html: []
+      header-refresh.optional.sub.html: []
+      window-location.sub.html: []
+      script-module-import-dynamic.sub.html: []
+      script-module-import-static.sub.html: []
+      svg-image.sub.html: []
+      window-history.sub.html: []
+      worker-dedicated-importscripts.sub.html: []
+      # `new Worker()` only makes same-origin requests, so we populate its
+      # generated tests here.
       worker-dedicated-constructor.sub.html: [{}]
 
   # Sec-Fetch-Site - direct requests
@@ -117,7 +172,6 @@ cases:
       #   https://html.spec.whatwg.org/#fetch-a-single-module-script
       worker-dedicated-constructor.sub.html: []
 
-      appcache-manifest.sub.https.html: [{}]
       audioworklet.https.sub.html: [{}]
       css-images.sub.html:
         - filename_flags: [tentative]
@@ -196,7 +250,6 @@ cases:
       #   https://html.spec.whatwg.org/#fetch-a-single-module-script
       worker-dedicated-constructor.sub.html: []
 
-      appcache-manifest.sub.https.html: [{}]
       css-images.sub.html:
         - filename_flags: [tentative]
       css-font-face.sub.html:
@@ -289,7 +342,6 @@ cases:
       #   https://html.spec.whatwg.org/#fetch-a-single-module-script
       worker-dedicated-constructor.sub.html: []
 
-      appcache-manifest.sub.https.html: [{}]
       audioworklet.https.sub.html: [{}]
       css-images.sub.html:
         - filename_flags: [tentative]
@@ -377,7 +429,6 @@ cases:
       worker-dedicated-constructor.sub.html: []
       worker-dedicated-importscripts.sub.html: []
       # Avoid duplicate subtest for 'sec-fetch-site - HTTPS downgrade-upgrade'
-      appcache-manifest.sub.https.html: []
       css-images.sub.html:
         - filename_flags: [tentative]
       element-a.sub.html: [{}]
@@ -409,8 +460,6 @@ cases:
         filename_flags: [https]
         origins: []
     template_axes:
-      appcache-manifest.sub.https.html:
-        - expected: no-cors
       audioworklet.https.sub.html:
         # https://html.spec.whatwg.org/multipage/webappapis.html#fetch-a-single-module-script
         - expected: cors
@@ -586,8 +635,6 @@ cases:
         filename_flags: [https]
         origins: []
     template_axes:
-      appcache-manifest.sub.https.html:
-        - expected: empty
       audioworklet.https.sub.html:
         # https://github.com/WebAudio/web-audio-api/issues/2203
         - expected: audioworklet
@@ -709,8 +756,6 @@ cases:
         filename_flags: [https]
         origins: []
     template_axes:
-      appcache-manifest.sub.https.html:
-        - expected: NULL
       audioworklet.https.sub.html:
         - expected: NULL
       css-images.sub.html:

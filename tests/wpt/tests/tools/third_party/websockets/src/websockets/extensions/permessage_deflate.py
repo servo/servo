@@ -211,7 +211,6 @@ def _extract_parameters(
     client_max_window_bits: Optional[Union[int, bool]] = None
 
     for name, value in params:
-
         if name == "server_no_context_takeover":
             if server_no_context_takeover:
                 raise exceptions.DuplicateParameter(name)

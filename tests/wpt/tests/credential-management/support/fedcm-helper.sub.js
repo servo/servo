@@ -1,6 +1,7 @@
 export const manifest_origin = "https://{{host}}:{{ports[https][0]}}";
 export const alt_manifest_origin = 'https://{{hosts[alt][]}}:{{ports[https][0]}}';
 export const same_site_manifest_origin = 'https://{{hosts[][www1]}}:{{ports[https][0]}}';
+export const default_manifest_path = '/credential-management/support/fedcm/manifest.py';
 
 export function open_and_wait_for_popup(origin, path) {
   return new Promise(resolve => {
@@ -100,6 +101,25 @@ credential-management/support/fedcm/${manifest_filename}`;
   };
 }
 
+export function request_options_with_two_idps(mediation = 'required') {
+  const first_config = `${manifest_origin}${default_manifest_path}`;
+  const second_config = `${alt_manifest_origin}${default_manifest_path}`;
+  return {
+    identity: {
+      providers: [{
+        configURL: first_config,
+        clientId: '123',
+        nonce: 'N1'
+      },
+      {
+        configURL: second_config,
+        clientId: '456',
+        nonce: 'N2'
+      }],
+    },
+    mediation: mediation
+  };
+}
 
 // Test wrapper which does FedCM-specific setup.
 export function fedcm_test(test_func, test_name) {

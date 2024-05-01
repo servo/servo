@@ -17,11 +17,11 @@ dictionary DigitalCredentialRequestOptions {
 
 dictionary IdentityRequestProvider {
   required DOMString protocol;
-  required DOMString request;
+  required object request;
 };
 
 [Exposed=Window, SecureContext]
 interface DigitalCredential : Credential {
   readonly attribute DOMString protocol;
-  readonly attribute DOMString data;
+  [SameObject] readonly attribute Uint8Array data;
 };

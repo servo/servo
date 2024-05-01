@@ -17,10 +17,10 @@ promise_test(async t => {
   await test_driver.bless("give user activation so that cancel will fire", () => {
     watcher.requestClose();
   });
-  assert_array_equals(events, ["cancel"]);
+  assert_array_equals(events, ["cancel[cancelable=true]"]);
 
   watcher.requestClose();
-  assert_array_equals(events, ["cancel"], "since it was inactive, no more events fired");
+  assert_array_equals(events, ["cancel[cancelable=true]"], "since it was inactive, no more events fired");
 }, "destroy() inside oncancel");
 
 test(t => {
@@ -30,10 +30,10 @@ test(t => {
   watcher.onclose = () => { watcher.destroy(); }
 
   watcher.requestClose();
-  assert_array_equals(events, ["close"]);
+  assert_array_equals(events, ["cancel[cancelable=false]", "close"]);
 
   watcher.requestClose();
-  assert_array_equals(events, ["close"], "since it was inactive, no more events fired");
+  assert_array_equals(events, ["cancel[cancelable=false]", "close"], "since it was inactive, no more events fired");
 }, "destroy() inside onclose");
 
 promise_test(async t => {
@@ -45,10 +45,10 @@ promise_test(async t => {
   await test_driver.bless("give user activation so that cancel will fire", () => {
     watcher.requestClose();
   });
-  assert_array_equals(events, ["cancel", "close"]);
+  assert_array_equals(events, ["cancel[cancelable=true]", "close"]);
 
   watcher.requestClose();
-  assert_array_equals(events, ["cancel", "close"], "since it was inactive, no more events fired");
+  assert_array_equals(events, ["cancel[cancelable=true]", "close"], "since it was inactive, no more events fired");
 }, "close() inside oncancel");
 
 test(t => {
@@ -58,10 +58,10 @@ test(t => {
   watcher.onclose = () => { watcher.close(); }
 
   watcher.requestClose();
-  assert_array_equals(events, ["close"]);
+  assert_array_equals(events, ["cancel[cancelable=false]", "close"]);
 
   watcher.requestClose();
-  assert_array_equals(events, ["close"], "since it was inactive, no more events fired");
+  assert_array_equals(events, ["cancel[cancelable=false]", "close"], "since it was inactive, no more events fired");
 }, "close() inside onclose");
 
 promise_test(async t => {
@@ -73,10 +73,10 @@ promise_test(async t => {
   await test_driver.bless("give user activation so that cancel will fire", () => {
     watcher.requestClose();
   });
-  assert_array_equals(events, ["cancel", "close"]);
+  assert_array_equals(events, ["cancel[cancelable=true]", "close"]);
 
   watcher.requestClose();
-  assert_array_equals(events, ["cancel", "close"], "since it was inactive, no more events fired");
+  assert_array_equals(events, ["cancel[cancelable=true]", "close"], "since it was inactive, no more events fired");
 }, "requestClose() inside oncancel");
 
 test(t => {
@@ -86,9 +86,9 @@ test(t => {
   watcher.onclose = () => { watcher.requestClose(); }
 
   watcher.requestClose();
-  assert_array_equals(events, ["close"]);
+  assert_array_equals(events, ["cancel[cancelable=false]", "close"]);
 
   watcher.requestClose();
-  assert_array_equals(events, ["close"], "since it was inactive, no more events fired");
+  assert_array_equals(events, ["cancel[cancelable=false]", "close"], "since it was inactive, no more events fired");
 }, "requestClose() inside onclose");
 </script>

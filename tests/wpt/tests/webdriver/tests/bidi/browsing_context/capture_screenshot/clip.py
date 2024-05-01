@@ -373,3 +373,42 @@ async def test_clip_element_outside_of_window_viewport(
 
         comparison = await compare_png_bidi(reference_data, data)
         assert comparison.equal()
+
+
+@pytest.mark.parametrize("dpr", [0.5, 2])
+async def test_clip_with_different_dpr(bidi_session, new_tab, inline, compare_png_bidi, dpr):
+    div_size = {"width": 100, "height": 100}
+
+    reference_page = inline(f"""<div style='background-color: black; width: {div_size["width"]*dpr}px; height: {div_size["height"]*dpr}px;'></div>""")
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=reference_page, wait="complete"
+    )
+    element = await bidi_session.script.evaluate(
+        await_promise=False,
+        expression="document.querySelector('div')",
+        target=ContextTarget(new_tab["context"]),
+    )
+    reference_data = await bidi_session.browsing_context.capture_screenshot(
+        context=new_tab["context"], clip=ElementOptions(element=element)
+    )
+
+    page = inline(f"""<div style='background-color: black; width: {div_size["width"]}px; height: {div_size["height"]}px;'></div>""")
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=page, wait="complete"
+    )
+
+    await bidi_session.browsing_context.set_viewport(
+        context=new_tab["context"],
+        device_pixel_ratio=dpr)
+
+    element = await bidi_session.script.evaluate(
+        await_promise=False,
+        expression="document.querySelector('div')",
+        target=ContextTarget(new_tab["context"]),
+    )
+    data = await bidi_session.browsing_context.capture_screenshot(
+        context=new_tab["context"], clip=ElementOptions(element=element)
+    )
+
+    comparison = await compare_png_bidi(data, reference_data)
+    assert comparison.equal()

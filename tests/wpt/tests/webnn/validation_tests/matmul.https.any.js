@@ -68,10 +68,17 @@ const tests = [
     output: {dataType: 'float32', dimensions: [2, 3, 5]}
   },
   {
+    name: '[matmul] Throw if the input data type is not floating point',
+    inputs: {
+      a: {dataType: 'uint32', dimensions: [2, 3, 4]},
+      b: {dataType: 'uint32', dimensions: [2, 4, 5]}
+    }
+  },
+  {
     name: '[matmul] Throw if data type of two inputs don\'t match',
     inputs: {
       a: {dataType: 'float32', dimensions: [2, 3, 4]},
-      b: {dataType: 'int32', dimensions: [2, 4, 5]}
+      b: {dataType: 'float16', dimensions: [2, 4, 5]}
     }
   },
   {

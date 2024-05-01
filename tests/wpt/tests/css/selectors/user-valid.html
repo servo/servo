@@ -29,6 +29,7 @@
   <input placeholder="Optional field" id="optional-input"><br>
   <textarea placeholder="Optional field" id="optional-textarea"></textarea><br>
   <input type="checkbox" id="optional-checkbox"><br>
+  <input type="date" id="optional-date"><br>
   <input required placeholder="Required field"> <!-- Prevent the form from navigating with this invalid input -->
   <input type="submit" id="submit-button">
   <input type="reset" id="reset-button">
@@ -77,12 +78,14 @@ promise_test(async () => {
   const optionalInput = document.querySelector("#optional-input");
   const optionalTextarea = document.querySelector("#optional-textarea");
   const optionalCheckbox = document.querySelector("#optional-checkbox");
+  const optionalDate = document.querySelector("#optional-date");
   const submitButton = document.querySelector("#submit-button");
   const resetButton = document.querySelector("#reset-button");
 
   assert_true(optionalInput.validity.valid);
   assert_true(optionalTextarea.validity.valid);
   assert_true(optionalCheckbox.validity.valid);
+  assert_true(optionalDate.validity.valid);
   // The selector can't match because no interaction has happened.
   assert_false(optionalInput.matches(":user-valid"), "Initially does not match :user-valid");
   assert_false(optionalInput.matches(":user-invalid"), "Initially does not match :user-invalid");
@@ -92,6 +95,9 @@ promise_test(async () => {
 
   assert_false(optionalCheckbox.matches(":user-valid"), "Initially does not match :user-valid");
   assert_false(optionalCheckbox.matches(":user-invalid"), "Initially does not match :user-invalid");
+
+  assert_false(optionalDate.matches(":user-valid"), "Initially does not match :user-valid");
+  assert_false(optionalDate.matches(":user-invalid"), "Initially does not match :user-invalid");
 
   submitButton.click();
 
@@ -104,6 +110,9 @@ promise_test(async () => {
   assert_true(optionalCheckbox.matches(":user-valid"), "Submitted the form, checkbox is validated");
   assert_false(optionalCheckbox.matches(":user-invalid"), "Submitted the form, checkbox is validated");
 
+  assert_true(optionalDate.matches(":user-valid"), "Submitted the form, date is validated");
+  assert_false(optionalDate.matches(":user-invalid"), "Submitted the form, date is validated");
+
   resetButton.click();
 
   assert_false(optionalInput.matches(":user-valid"), "Reset the form, user-interacted flag is reset");
@@ -114,6 +123,9 @@ promise_test(async () => {
 
   assert_false(optionalCheckbox.matches(":user-valid"), "Reset the form, user-interacted flag is reset");
   assert_false(optionalCheckbox.matches(":user-invalid"), "Reset the form, user-interacted flag is reset");
+
+  assert_false(optionalDate.matches(":user-valid"), "Reset the form, user-interacted flag is reset");
+  assert_false(optionalDate.matches(":user-invalid"), "Reset the form, user-interacted flag is reset");
 
   // Test programmatic form submission with constraint validation.
   form.requestSubmit();
@@ -126,6 +138,9 @@ promise_test(async () => {
 
   assert_true(optionalCheckbox.matches(":user-valid"), "Called form.requestSubmit(), checkbox is validated");
   assert_false(optionalCheckbox.matches(":user-invalid"), "Called form.requestSubmit(), checkbox is validated");
+
+  assert_true(optionalDate.matches(":user-valid"), "Called form.requestSubmit(), date is validated");
+  assert_false(optionalDate.matches(":user-invalid"), "Called form.requestSubmit(), date is validated");
 }, ":user-valid selector properly interacts with submit & reset buttons");
 
 promise_test(async () => {
@@ -151,4 +166,33 @@ promise_test(async () => {
   assert_true(checkbox.matches(':user-valid'),
     'Checkbox should match :user-valid after clicking once.');
 }, 'Checkboxes should match :user-valid after the user clicks on it.');
+
+promise_test(async () => {
+  const date = document.getElementById('optional-date');
+
+  const resetButton = document.getElementById('reset-button');
+  resetButton.click();
+  assert_false(date.matches(':user-valid'),
+    'Date input should not match :user-valid at the start of the test.');
+  assert_equals(date.value, '',
+    'Date input should not have a value at the start of the test.');
+
+  date.value = '2024-04-15';
+  assert_false(date.matches(':user-valid'),
+    'Date input should not match :user-valid after programatically changing value.');
+  date.value = '';
+  assert_false(date.matches(':user-valid'),
+    'Date input should not match :user-valid after programatically changing value.');
+
+  const tabKey = '\uE004';
+  date.focus();
+  // Press tab twice at the end to make sure that focus has left the input.
+  await test_driver.send_keys(date, `1${tabKey}1${tabKey}1234${tabKey}${tabKey}`);
+  assert_not_equals(document.activeElement, date,
+    'Pressing tab twice after typing in the date should have blurred the input.');
+  assert_equals(date.value, '1234-01-01',
+    'Date input value should match the testdriver input.');
+  assert_true(date.matches(':user-valid'),
+    'Date input should match :user-valid after typing in a value.');
+}, 'Date inputs should match :user-valid after the user types a value into it.');
 </script>

@@ -135,6 +135,32 @@ async def test_load_page_twice(
     )
 
 
+@pytest.mark.asyncio
+async def test_request_bodysize(
+    wait_for_event, wait_for_future_safe, url, fetch, setup_network_test
+):
+    html_url = url(PAGE_EMPTY_HTML)
+
+    network_events = await setup_network_test(events=[RESPONSE_STARTED_EVENT])
+    events = network_events[RESPONSE_STARTED_EVENT]
+
+    on_before_request_sent = wait_for_event(RESPONSE_STARTED_EVENT)
+    await fetch(html_url, method="POST", post_data="{'a': 1}")
+    await wait_for_future_safe(on_before_request_sent)
+
+    assert len(events) == 1
+    expected_request = {
+        "method": "POST",
+        "url": html_url,
+    }
+    assert_response_event(
+        events[0],
+        expected_request=expected_request,
+        redirect_count=0,
+    )
+    assert events[0]["request"]["bodySize"] > 0
+
+
 @pytest.mark.parametrize(
     "status, status_text",
     HTTP_STATUS_AND_STATUS_TEXT,

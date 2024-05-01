@@ -1,0 +1,88 @@
+name: Build wheels
+
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+
+jobs:
+  sdist:
+    name: Build source distribution and architecture-independent wheel
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+    - name: Install Python 3.x
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.x
+    - name: Build sdist
+      run: python setup.py sdist
+    - name: Save sdist
+      uses: actions/upload-artifact@v3
+      with:
+        path: dist/*.tar.gz
+    - name: Install wheel
+      run: pip install wheel
+    - name: Build wheel
+      env:
+        BUILD_EXTENSION: no
+      run: python setup.py bdist_wheel
+    - name: Save wheel
+      uses: actions/upload-artifact@v3
+      with:
+        path: dist/*.whl
+
+  wheels:
+    name: Build architecture-specific wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macOS-latest
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+    - name: Install Python 3.x
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.x
+    - name: Set up QEMU
+      if: runner.os == 'Linux'
+      uses: docker/setup-qemu-action@v3
+      with:
+        platforms: all
+    - name: Build wheels
+      uses: pypa/cibuildwheel@v2.16.2
+      env:
+        BUILD_EXTENSION: yes
+    - name: Save wheels
+      uses: actions/upload-artifact@v3
+      with:
+        path: wheelhouse/*.whl
+
+  release:
+    name: Release
+    needs:
+      - sdist
+      - wheels
+    runs-on: ubuntu-latest
+    # Don't release when running the workflow manually from GitHub's UI.
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: artifact
+          path: dist
+      - name: Upload to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+      - name: Create GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create ${{ github.ref_name }} --notes "See https://websockets.readthedocs.io/en/stable/project/changelog.html for details."

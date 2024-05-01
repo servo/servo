@@ -556,6 +556,75 @@ promise_test(async t => {
   const callbacks = {};
   const decoder = createVideoDecoder(t, callbacks);
 
+  decoder.configure(CONFIG);
+  decoder.decode(CHUNKS[0]);
+  const flushDone = decoder.flush();
+
+  let flushDoneInCallback;
+  let outputs = 0;
+  await new Promise(resolve => {
+    callbacks.output = frame => {
+      decoder.reset();
+      frame.close();
+
+      callbacks.output = frame => {
+        outputs++;
+        frame.close();
+      };
+      callbacks.error = e => {
+        t.unreached_func('unexpected error()');
+      };
+      decoder.configure(CONFIG);
+      decoder.decode(CHUNKS[0]);
+      flushDoneInCallback = decoder.flush();
+
+      resolve();
+    };
+  });
+
+  // First flush should have been synchronously rejected.
+  await promise_rejects_dom(t, 'AbortError', flushDone);
+  // Wait for the second flush and check the output count.
+  await flushDoneInCallback;
+  assert_equals(outputs, 1, 'outputs');
+}, 'Test new flush after reset in a flush callback');
+
+promise_test(async t => {
+  await checkImplements();
+  const callbacks = {};
+  const decoder = createVideoDecoder(t, callbacks);
+
+  decoder.configure(CONFIG);
+  decoder.decode(CHUNKS[0]);
+  const flushDone = decoder.flush();
+  let flushDoneInCallback;
+
+  await new Promise(resolve => {
+    callbacks.output = frame => {
+      decoder.reset();
+      frame.close();
+
+      callbacks.output = frame => { frame.close(); };
+      decoder.configure(CONFIG);
+      decoder.decode(CHUNKS[0]);
+      decoder.decode(createCorruptChunk(1));
+      flushDoneInCallback = decoder.flush();
+
+      resolve();
+    };
+  });
+
+  // First flush should have been synchronously rejected.
+  await promise_rejects_dom(t, 'AbortError', flushDone);
+  // Wait for the second flush and check the error in the rejected promise.
+  await promise_rejects_dom(t, 'EncodingError', flushDoneInCallback);
+}, 'Test decoding a corrupt frame after reset in a flush callback');
+
+promise_test(async t => {
+  await checkImplements();
+  const callbacks = {};
+  const decoder = createVideoDecoder(t, callbacks);
+
   decoder.configure({...CONFIG, optimizeForLatency: true});
   decoder.decode(CHUNKS[0]);
 

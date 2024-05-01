@@ -80,29 +80,29 @@ promise_test(async t => {
 promise_test(async t => {
   const senderReader = await setupLoopbackWithCodecAndGetReader(t, 'VP8');
   const result = await senderReader.read();
-  const metadata = result.value.getMetadata();
-  metadata.rtpTimestamp = 100;
-  const newFrame = new RTCEncodedVideoFrame(result.value, metadata);
+  const frame_metadata = result.value.getMetadata();
+  frame_metadata.rtpTimestamp = 100;
+  const newFrame = new RTCEncodedVideoFrame(result.value, {metadata: frame_metadata});
   const newMetadata = newFrame.getMetadata();
 
   // Encoding-related metadata.
-  assert_equals(newMetadata.frameId, metadata.frameId, 'frameId');
-  assert_array_equals(newMetadata.dependencies, metadata.dependencies,
+  assert_equals(newMetadata.frameId, frame_metadata.frameId, 'frameId');
+  assert_array_equals(newMetadata.dependencies, frame_metadata.dependencies,
                       'dependencies');
-  assert_equals(newMetadata.width, metadata.width, 'width');
-  assert_equals(newMetadata.height, metadata.height, 'height');
-  assert_equals(newMetadata.spatialIndex, metadata.spatialIndex,
+  assert_equals(newMetadata.width, frame_metadata.width, 'width');
+  assert_equals(newMetadata.height, frame_metadata.height, 'height');
+  assert_equals(newMetadata.spatialIndex, frame_metadata.spatialIndex,
                 'spatialIndex');
-  assert_equals(newMetadata.temporalIndex, metadata.temporalIndex,
+  assert_equals(newMetadata.temporalIndex, frame_metadata.temporalIndex,
                 'temporalIndex');
 
   // RTP-related metadata.
   assert_equals(newMetadata.synchronizationSource,
-                metadata.synchronizationSource, 'synchronizationSource');
+  frame_metadata.synchronizationSource, 'synchronizationSource');
   assert_array_equals(newMetadata.contributingSources,
-                      metadata.contributingSources, 'contributingSources');
-  assert_equals(newMetadata.payloadType, metadata.payloadType, 'payloadType');
-  assert_equals(newMetadata.rtpTimestamp, metadata.rtpTimestamp, 'rtpTimestamp');
+  frame_metadata.contributingSources, 'contributingSources');
+  assert_equals(newMetadata.payloadType, frame_metadata.payloadType, 'payloadType');
+  assert_equals(newMetadata.rtpTimestamp, frame_metadata.rtpTimestamp, 'rtpTimestamp');
   assert_not_equals(newMetadata.rtpTimestamp, result.value.getMetadata().rtpTimestamp, 'rtpTimestamp');
 }, "[VP8] constructor with metadata carries over codec-specific properties");
 

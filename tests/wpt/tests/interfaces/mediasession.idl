@@ -56,12 +56,27 @@ interface MediaMetadata {
   attribute DOMString artist;
   attribute DOMString album;
   attribute FrozenArray<MediaImage> artwork;
+  [SameObject] readonly attribute FrozenArray<ChapterInformation> chapterInfo;
 };
 
 dictionary MediaMetadataInit {
   DOMString title = "";
   DOMString artist = "";
   DOMString album = "";
+  sequence<MediaImage> artwork = [];
+  sequence<ChapterInformationInit> chapterInfo = [];
+};
+
+[Exposed=Window]
+interface ChapterInformation {
+  readonly attribute DOMString title;
+  readonly attribute double startTime;
+  [SameObject] readonly attribute FrozenArray<MediaImage> artwork;
+};
+
+dictionary ChapterInformationInit {
+  DOMString title = "";
+  double startTime = 0;
   sequence<MediaImage> artwork = [];
 };
 

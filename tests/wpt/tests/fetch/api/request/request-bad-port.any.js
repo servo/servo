@@ -89,6 +89,6 @@ var BLOCKED_PORTS_LIST = [
 
 BLOCKED_PORTS_LIST.map(function(a){
     promise_test(function(t){
-        return promise_rejects_js(t, TypeError, fetch("http://example.com:" + a))
+        return promise_rejects_js(t, TypeError, fetch(`${location.origin}:${a}`))
     }, 'Request on bad port ' + a + ' should throw TypeError.');
 });

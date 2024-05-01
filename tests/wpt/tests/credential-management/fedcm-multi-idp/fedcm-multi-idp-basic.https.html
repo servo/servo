@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API multi IDP basic success tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+
+<script type="module">
+import {fedcm_test,
+        fedcm_get_and_select_first_account,
+        request_options_with_two_idps,
+        manifest_origin,
+        default_manifest_path,
+        fedcm_select_account_promise,
+        alt_manifest_origin} from '../support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  const cred = await fedcm_get_and_select_first_account(t, request_options_with_two_idps());
+  assert_equals(cred.token, "token");
+  assert_equals(cred.configURL, manifest_origin + default_manifest_path);
+}, "Multi IDP FedCM call succeeds when picking the first account.");
+
+fedcm_test(async t => {
+  const promise = navigator.credentials.get(request_options_with_two_idps());
+  // Each IDP has one account, so select the second one.
+  fedcm_select_account_promise(t, 1);
+  const cred = await promise;
+  assert_equals(cred.token, "token");
+  assert_equals(cred.configURL, alt_manifest_origin + default_manifest_path);
+}, "Multi IDP FedCM call succeeds when picking account from the second IDP.");
+</script>

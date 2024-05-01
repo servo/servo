@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: paired cascade: UA default highlight colors are used when highlight pseudo has declared color value of revert</title>
+<link rel="author" name="Delan Azabani" href="mailto:dazabani@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#highlight-cascade">
+<link rel="match" href="highlight-paired-cascade-006-ref.html">
+<meta name="assert" value="This test verifies that setting color to revert on ::selection does not suppress any UA non-initial used value for background-color. Because the revert value rolls back the cascade, it destroys its own existence as a cascaded value, and this is also true under paired cascade.">
+<script src="support/selections.js"></script>
+<link rel="stylesheet" href="../support/highlights.css">
+<style>
+    main {
+        font-size: 7em;
+        margin: 0.5em;
+    }
+    main::selection {
+        /*
+            Used background-color should be UA default, not initial.
+        */
+        color: revert;
+    }
+</style>
+<p>Test passes if the text below appears to be highlighted.
+<main class="highlight_reftest">quick</main>
+<script>selectNodeContents(document.querySelector("main"));</script>

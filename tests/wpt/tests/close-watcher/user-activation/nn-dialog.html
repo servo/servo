@@ -1,0 +1,24 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/common/top-layer.js"></script>
+<script src="../resources/helpers.js"></script>
+
+<body>
+<script>
+const type = "dialog";
+
+promise_test(async t => {
+  const events = [];
+
+  createRecordingCloseWatcher(t, events, "watcher1", type);
+  createRecordingCloseWatcher(t, events, "watcher2", type);
+
+  await sendCloseRequest();
+  await waitForPotentialCloseEvent();
+  assert_array_equals(events, ["watcher2 cancel[cancelable=false]", "watcher1 cancel[cancelable=false]", "watcher2 close", "watcher1 close"]);
+}, "Create two close watchers without user activation");
+</script>

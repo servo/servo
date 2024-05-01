@@ -17,11 +17,11 @@ dictionary FaceDetectorOptions {
 
 dictionary DetectedFace {
   required DOMRectReadOnly boundingBox;
-  required FrozenArray<Landmark>? landmarks;
+  required sequence<Landmark>? landmarks;
 };
 
 dictionary Landmark {
-  required FrozenArray<Point2D> locations;
+  required sequence<Point2D> locations;
   LandmarkType type;
 };
 
@@ -48,7 +48,7 @@ dictionary DetectedBarcode {
   required DOMRectReadOnly boundingBox;
   required DOMString rawValue;
   required BarcodeFormat format;
-  required FrozenArray<Point2D> cornerPoints;
+  required sequence<Point2D> cornerPoints;
 };
 
 enum BarcodeFormat {

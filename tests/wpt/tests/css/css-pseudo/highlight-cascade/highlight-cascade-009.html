@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: highlight cascade: inheritance of custom properties</title>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#highlight-cascade">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6641">
+<meta name="assert" content="This test verifies that custom properties used in highlight pseudos are taken from the originating element.">
+<script src="../support/selections.js"></script>
+<link rel="stylesheet" href="../support/highlights.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  :root {
+    --background-color: green;
+    --decoration-color: green;
+  }
+  ::selection {
+    --decoration-color: purple;
+  }
+  div::selection {
+    --background-color: blue;
+    background-color: var(--background-color, red);
+  }
+</style>
+<body>
+  <div>Some text</div>
+</body>
+<script>
+    selectNodeContents(document.querySelector("body"));
+
+    const body_selection = getComputedStyle(document.querySelector("body"), "::selection");
+    const div_selection = getComputedStyle(document.querySelector("div"), "::selection");
+    test(() => void assert_equals(body_selection.getPropertyValue("--background-color"), "green"),
+        "body ::selection uses the originating custom property");
+    test(() => void assert_equals(body_selection.getPropertyValue("--decoration-color"), "green"),
+        "body ::selection does not use its own custom property");
+    test(() => void assert_equals(div_selection.getPropertyValue("--decoration-color"), "green"),
+        "div::selection uses the originating element custom property");
+    test(() => void assert_equals(div_selection.getPropertyValue("--background-color"), "green"),
+        "div::selection does not use its own custom property");
+</script>

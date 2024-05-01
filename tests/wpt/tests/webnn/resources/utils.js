@@ -901,6 +901,40 @@ const testWebNNOperation = (operationName, buildFunc, deviceType = 'cpu') => {
   });
 };
 
+/**
+ * WebNN parallel compute operation test.
+ * @param {String} deviceType - The execution device type for this test.
+ */
+const testParallelCompute = (deviceType = 'cpu') => {
+  let ml_context;
+  let ml_graph;
+
+  promise_setup(async () => {
+    ml_context = await navigator.ml.createContext({deviceType});
+    // Construct a simple graph: A = B * 2.
+    const builder = new MLGraphBuilder(ml_context);
+    const operandType = {dataType: 'float32', dimensions: [1]};
+    const input_operand = builder.input('input', operandType);
+    const const_operand = builder.constant(operandType, Float32Array.from([2]));
+    const output_operand = builder.mul(input_operand, const_operand);
+    ml_graph = await builder.build({'output': output_operand});
+  });
+
+  promise_test(async () => {
+    const test_inputs = [1, 2, 3, 4];
+
+    const actual_outputs = await Promise.all(test_inputs.map(async (input) => {
+      let inputs = {'input': Float32Array.from([input])};
+      let outputs = {'output': new Float32Array(1)};
+      ({inputs, outputs} = await ml_context.compute(ml_graph, inputs, outputs));
+      return outputs.output[0];
+    }));
+
+    const expected_outputs = [2, 4, 6, 8];
+    assert_array_equals(actual_outputs, expected_outputs);
+  });
+};
+
 // ref: http://stackoverflow.com/questions/32633585/how-do-you-convert-to-half-floats-in-javascript
 const toHalf = (value) => {
   let floatView = new Float32Array(1);

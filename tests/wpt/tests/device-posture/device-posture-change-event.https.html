@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+'use strict';
+
+promise_test(async (t) => {
+  t.add_cleanup(async () => {
+    await test_driver.clear_device_posture();
+  });
+  const watcher = new EventWatcher(t, navigator.devicePosture, ['change']);
+  const postures = ['folded', 'continuous', 'folded'];
+  for (const posture of postures) {
+    await Promise.all([
+      watcher.wait_for('change'),
+      test_driver.set_device_posture(posture)
+    ]);
+    assert_equals(posture, navigator.devicePosture.type);
+  }
+}, 'Tests the Device Posture API change event handler.');
+</script>
