@@ -20,6 +20,7 @@ use style::computed_values::font_weight::T as StyleFontWeight;
 use style::values::computed::font::FontStyle as StyleFontStyle;
 use truetype::tables::WindowsMetrics;
 use truetype::value::Read;
+use webrender_api::FontInstanceFlags;
 
 use crate::font::{
     FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, PlatformFontMethods,
@@ -253,5 +254,9 @@ impl PlatformFontMethods for PlatformFont {
         self.face
             .get_font_table(tag)
             .map(|bytes| FontTable { data: bytes })
+    }
+
+    fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
+        FontInstanceFlags::empty()
     }
 }

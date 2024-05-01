@@ -14,7 +14,9 @@ use std::sync::Arc;
 use malloc_size_of_derive::MallocSizeOf;
 use range::{int_range_index, RangeIndex};
 use serde::{Deserialize, Serialize};
-use webrender_api::{Epoch as WebRenderEpoch, FontInstanceKey, FontKey, NativeFontHandle};
+use webrender_api::{
+    Epoch as WebRenderEpoch, FontInstanceFlags, FontInstanceKey, FontKey, NativeFontHandle,
+};
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
@@ -121,7 +123,12 @@ pub fn node_id_from_scroll_id(id: usize) -> Option<usize> {
 }
 
 pub trait WebrenderApi {
-    fn add_font_instance(&self, font_key: FontKey, size: f32) -> FontInstanceKey;
+    fn add_font_instance(
+        &self,
+        font_key: FontKey,
+        size: f32,
+        flags: FontInstanceFlags,
+    ) -> FontInstanceKey;
     fn add_font(&self, data: Arc<Vec<u8>>, index: u32) -> FontKey;
     fn add_system_font(&self, handle: NativeFontHandle) -> FontKey;
 }

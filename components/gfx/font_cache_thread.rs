@@ -29,7 +29,7 @@ use style::stylesheets::{Stylesheet, StylesheetInDocument};
 use style::values::computed::font::{FixedPoint, FontStyleFixedPoint};
 use style::values::computed::{FontStretch, FontWeight};
 use style::values::specified::FontStretch as SpecifiedFontStretch;
-use webrender_api::{FontInstanceKey, FontKey};
+use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
 
 use crate::font::{FontDescriptor, FontFamilyDescriptor, FontFamilyName, FontSearchScope};
 use crate::font_context::FontSource;
@@ -137,7 +137,12 @@ pub enum Command {
         FontFamilyDescriptor,
         IpcSender<Vec<SerializedFontTemplate>>,
     ),
-    GetFontInstance(FontIdentifier, Au, IpcSender<FontInstanceKey>),
+    GetFontInstance(
+        FontIdentifier,
+        Au,
+        FontInstanceFlags,
+        IpcSender<FontInstanceKey>,
+    ),
     AddWebFont(CSSFontFaceDescriptors, Vec<Source>, IpcSender<()>),
     AddDownloadedWebFont(CSSFontFaceDescriptors, ServoUrl, Vec<u8>, IpcSender<()>),
     Exit(IpcSender<()>),
@@ -229,8 +234,8 @@ impl FontCache {
                         let _ = bytes_sender.send(&data);
                     }
                 },
-                Command::GetFontInstance(identifier, pt_size, result) => {
-                    let _ = result.send(self.get_font_instance(identifier, pt_size));
+                Command::GetFontInstance(identifier, pt_size, flags, result) => {
+                    let _ = result.send(self.get_font_instance(identifier, pt_size, flags));
                 },
                 Command::AddWebFont(css_font_face_descriptors, sources, result) => {
                     self.handle_add_web_font(css_font_face_descriptors, sources, result);
@@ -436,7 +441,12 @@ impl FontCache {
         self.find_templates_in_local_family(descriptor_to_match, &family_descriptor.name)
     }
 
-    fn get_font_instance(&mut self, identifier: FontIdentifier, pt_size: Au) -> FontInstanceKey {
+    fn get_font_instance(
+        &mut self,
+        identifier: FontIdentifier,
+        pt_size: Au,
+        flags: FontInstanceFlags,
+    ) -> FontInstanceKey {
         let webrender_api = &self.webrender_api;
         let webrender_fonts = &mut self.webrender_fonts;
         let font_data = self
@@ -465,7 +475,9 @@ impl FontCache {
         *self
             .font_instances
             .entry((font_key, pt_size))
-            .or_insert_with(|| webrender_api.add_font_instance(font_key, pt_size.to_f32_px()))
+            .or_insert_with(|| {
+                webrender_api.add_font_instance(font_key, pt_size.to_f32_px(), flags)
+            })
     }
 }
 
@@ -661,10 +673,20 @@ impl FontCacheThread {
 }
 
 impl FontSource for FontCacheThread {
-    fn get_font_instance(&mut self, identifier: FontIdentifier, size: Au) -> FontInstanceKey {
+    fn get_font_instance(
+        &mut self,
+        identifier: FontIdentifier,
+        size: Au,
+        flags: FontInstanceFlags,
+    ) -> FontInstanceKey {
         let (response_chan, response_port) = ipc::channel().expect("failed to create IPC channel");
         self.chan
-            .send(Command::GetFontInstance(identifier, size, response_chan))
+            .send(Command::GetFontInstance(
+                identifier,
+                size,
+                flags,
+                response_chan,
+            ))
             .expect("failed to send message to font cache thread");
 
         let instance_key = response_port.recv();

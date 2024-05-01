@@ -23,7 +23,7 @@ use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::{GenericFontFamily, SingleFontFamily};
 use style::values::computed::{FontStretch, FontStyle, FontWeight};
 use unicode_script::Script;
-use webrender_api::FontInstanceKey;
+use webrender_api::{FontInstanceFlags, FontInstanceKey};
 
 use crate::font_cache_thread::FontIdentifier;
 use crate::font_context::{FontContext, FontSource};
@@ -44,6 +44,10 @@ macro_rules! ot_tag {
 pub const GPOS: u32 = ot_tag!('G', 'P', 'O', 'S');
 pub const GSUB: u32 = ot_tag!('G', 'S', 'U', 'B');
 pub const KERN: u32 = ot_tag!('k', 'e', 'r', 'n');
+pub const SBIX: u32 = ot_tag!('s', 'b', 'i', 'x');
+pub const CBDT: u32 = ot_tag!('C', 'B', 'D', 'T');
+pub const COLR: u32 = ot_tag!('C', 'O', 'L', 'R');
+
 pub const LAST_RESORT_GLYPH_ADVANCE: FractionalPixel = 10.0;
 
 static TEXT_SHAPING_PERFORMANCE_COUNTER: AtomicUsize = AtomicUsize::new(0);
@@ -83,6 +87,9 @@ pub trait PlatformFontMethods: Sized {
     fn can_do_fast_shaping(&self) -> bool;
     fn metrics(&self) -> FontMetrics;
     fn table_for_tag(&self, _: FontTableTag) -> Option<FontTable>;
+
+    /// Get the necessary [`FontInstanceFlags`]` for this font.
+    fn webrender_font_instance_flags(&self) -> FontInstanceFlags;
 }
 
 // Used to abstract over the shaper's choice of fixed int representation.
@@ -195,7 +202,6 @@ impl Font {
     pub fn new(
         template: FontTemplateRef,
         descriptor: FontDescriptor,
-        font_key: FontInstanceKey,
         synthesized_small_caps: Option<FontRef>,
     ) -> Result<Font, &'static str> {
         let handle = PlatformFont::new_from_template(template.clone(), Some(descriptor.pt_size))?;
@@ -209,7 +215,7 @@ impl Font {
             metrics,
             shape_cache: RefCell::new(HashMap::new()),
             glyph_advance_cache: RefCell::new(HashMap::new()),
-            font_key,
+            font_key: FontInstanceKey::default(),
             synthesized_small_caps,
         })
     }
@@ -217,6 +223,10 @@ impl Font {
     /// A unique identifier for the font, allowing comparison.
     pub fn identifier(&self) -> FontIdentifier {
         self.template.identifier()
+    }
+
+    pub fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
+        self.handle.webrender_font_instance_flags()
     }
 }
 

@@ -25,7 +25,9 @@ use script_traits::{
 };
 use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize, DeviceRect};
-use webrender_api::{self, FontInstanceKey, FontKey, ImageKey, NativeFontHandle};
+use webrender_api::{
+    self, FontInstanceFlags, FontInstanceKey, FontKey, ImageKey, NativeFontHandle,
+};
 
 /// Sends messages to the compositor.
 pub struct CompositorProxy {
@@ -139,7 +141,7 @@ pub struct CompositionPipeline {
 }
 
 pub enum FontToCompositorMsg {
-    AddFontInstance(FontKey, f32, Sender<FontInstanceKey>),
+    AddFontInstance(FontKey, f32, FontInstanceFlags, Sender<FontInstanceKey>),
     AddFont(Sender<FontKey>, u32, ipc_channel::ipc::IpcBytesReceiver),
     AddSystemFont(Sender<FontKey>, NativeFontHandle),
 }

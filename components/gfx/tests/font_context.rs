@@ -27,7 +27,7 @@ use style::values::computed::font::{
 };
 use style::values::computed::{FontLanguageOverride, XLang};
 use style::values::generics::font::LineHeight;
-use webrender_api::{FontInstanceKey, IdNamespace};
+use webrender_api::{FontInstanceFlags, FontInstanceKey, IdNamespace};
 
 struct TestFontSource {
     families: HashMap<String, FontTemplates>,
@@ -92,6 +92,7 @@ impl FontSource for TestFontSource {
         &mut self,
         _font_identifier: FontIdentifier,
         _size: Au,
+        _flags: FontInstanceFlags,
     ) -> FontInstanceKey {
         FontInstanceKey(IdNamespace(0), 0)
     }
