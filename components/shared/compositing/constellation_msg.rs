@@ -18,7 +18,6 @@ use script_traits::{
     WebDriverCommandMsg, WindowSizeData, WindowSizeType,
 };
 use servo_url::ServoUrl;
-use webrender_api::units::DeviceRect;
 
 /// Messages to the constellation.
 pub enum ConstellationMsg {

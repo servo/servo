@@ -382,15 +382,5 @@ impl AsyncWGPUListener for GPUBuffer {
             None => unreachable!("Failed to get a response for BufferMapAsync"),
         }
         *self.map_promise.borrow_mut() = None;
-        if let Err(e) = self
-            .channel
-            .0
-            .send((None, WebGPURequest::BufferMapComplete(self.buffer.0)))
-        {
-            warn!(
-                "Failed to send BufferMapComplete({:?}) ({})",
-                self.buffer.0, e
-            );
-        }
     }
 }
