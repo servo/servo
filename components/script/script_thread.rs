@@ -2556,6 +2556,13 @@ impl ScriptThread {
 
         let mut reports = vec![];
         reports.extend(unsafe { get_reports(*self.get_cx(), path_seg) });
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            let layouts = script_thread.layouts.borrow();
+            for layout in layouts.values() {
+                layout.collect_reports(&mut reports);
+            }
+        });
         reports_chan.send(reports);
     }
 
