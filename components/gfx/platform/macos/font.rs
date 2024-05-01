@@ -182,9 +182,9 @@ impl PlatformFontMethods for PlatformFont {
         };
         handle.h_kern_subtable = handle.find_h_kern_subtable();
         // TODO (#11310): Implement basic support for GPOS and GSUB.
-        handle.can_do_fast_shaping = handle.h_kern_subtable.is_some()
-            && handle.table_for_tag(GPOS).is_none()
-            && handle.table_for_tag(GSUB).is_none();
+        handle.can_do_fast_shaping = handle.h_kern_subtable.is_some() &&
+            handle.table_for_tag(GPOS).is_none() &&
+            handle.table_for_tag(GSUB).is_none();
         Ok(handle)
     }
 

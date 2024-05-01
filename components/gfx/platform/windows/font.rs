@@ -153,9 +153,9 @@ impl PlatformFontMethods for PlatformFont {
             WindowsMetrics::Version1(ref m) => {
                 (m.weight_class, m.width_class, m.selection_flags.0 & 1 == 1)
             },
-            WindowsMetrics::Version2(ref m)
-            | WindowsMetrics::Version3(ref m)
-            | WindowsMetrics::Version4(ref m) => {
+            WindowsMetrics::Version2(ref m) |
+            WindowsMetrics::Version3(ref m) |
+            WindowsMetrics::Version4(ref m) => {
                 (m.weight_class, m.width_class, m.selection_flags.0 & 1 == 1)
             },
             WindowsMetrics::Version5(ref m) => {

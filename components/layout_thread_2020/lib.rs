@@ -1065,8 +1065,8 @@ impl LayoutThread {
             Au::from_f32_px(window_size_data.initial_viewport.height),
         );
 
-        if self.stylist.device().au_viewport_size() == au_viewport_size
-            && self.stylist.device().device_pixel_ratio() == window_size_data.device_pixel_ratio
+        if self.stylist.device().au_viewport_size() == au_viewport_size &&
+            self.stylist.device().device_pixel_ratio() == window_size_data.device_pixel_ratio
         {
             return false;
         }
