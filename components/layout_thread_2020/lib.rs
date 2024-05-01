@@ -42,7 +42,7 @@ use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
 use parking_lot::{ReentrantMutex, RwLock};
-use profile_traits::mem::{Report, ReportKind, ReportsChan};
+use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use profile_traits::time::{
     self as profile_time, profile, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
@@ -417,8 +417,7 @@ impl Layout for LayoutThread {
 
     fn exit_now(&mut self) {}
 
-    fn collect_reports(&self, reports_chan: ReportsChan) {
-        let mut reports = vec![];
+    fn collect_reports(&self, reports: &mut Vec<Report>) {
         // Servo uses vanilla jemalloc, which doesn't have a
         // malloc_enclosing_size_of function.
         let mut ops = MallocSizeOfOps::new(servo_allocator::usable_size, None, None);
@@ -436,8 +435,6 @@ impl Layout for LayoutThread {
             kind: ReportKind::ExplicitJemallocHeapSize,
             size: self.stylist.size_of(&mut ops),
         });
-
-        reports_chan.send(reports);
     }
 
     fn set_quirks_mode(&mut self, quirks_mode: QuirksMode) {

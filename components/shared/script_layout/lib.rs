@@ -29,7 +29,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use metrics::PaintTimeMetrics;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image_cache::{ImageCache, PendingImageId};
-use profile_traits::mem::ReportsChan;
+use profile_traits::mem::Report;
 use profile_traits::time;
 use script_traits::{
     ConstellationControlMsg, InitialScriptState, LayoutControlMsg, LayoutMsg, LoadData, Painter,
@@ -208,7 +208,7 @@ pub trait Layout {
 
     /// Requests that layout measure its memory usage. The resulting reports are sent back
     /// via the supplied channel.
-    fn collect_reports(&self, reports_chan: ReportsChan);
+    fn collect_reports(&self, reports: &mut Vec<Report>);
 
     /// Sets quirks mode for the document, causing the quirks mode stylesheet to be used.
     fn set_quirks_mode(&mut self, quirks_mode: QuirksMode);
