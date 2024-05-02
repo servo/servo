@@ -201,15 +201,15 @@ impl WorkerEventLoopMethods for ServiceWorkerGlobalScope {
         None
     }
 
-    fn from_control_msg(&self, msg: ServiceWorkerControlMsg) -> MixedMessage {
+    fn from_control_msg(msg: ServiceWorkerControlMsg) -> MixedMessage {
         MixedMessage::Control(msg)
     }
 
-    fn from_worker_msg(&self, msg: ServiceWorkerScriptMsg) -> MixedMessage {
+    fn from_worker_msg(msg: ServiceWorkerScriptMsg) -> MixedMessage {
         MixedMessage::ServiceWorker(msg)
     }
 
-    fn from_devtools_msg(&self, msg: DevtoolScriptControlMsg) -> MixedMessage {
+    fn from_devtools_msg(msg: DevtoolScriptControlMsg) -> MixedMessage {
         MixedMessage::Devtools(msg)
     }
 
