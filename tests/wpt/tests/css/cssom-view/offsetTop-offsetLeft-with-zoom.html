@@ -24,7 +24,6 @@
     margin: 1px;
     top:10x;
     left: 10x;
-
   }
   .one {
     position: relative;
@@ -36,7 +35,7 @@
     top: 20px;
     left: 20px;
     zoom: 2;
-    }
+  }
 
   .three {
     position: absolute;
@@ -54,18 +53,18 @@
   <div id="unzoomed_two" class="square two"></div>
   <div id="unzoomed_three" class="square three"></div>
 </div>
-<div style="zoom:3" class=outer_div>
+<div style="zoom:3" class="outer_div">
   <div id="zoomed_one" class="square one"></div>
   <div id="zoomed_two" class="square two"></div>
   <div id="zoomed_three" class="square three"></div>
 </div>
 
-<div class ="outer_div" style="margin: 30px;" id="outer_div">
+<div class="outer_div" style="margin: 30px;" id="outer_div">
     <div id="zoomed_middle" style="margin: 10px; zoom:2">
         <div class="square" id="unzoomed_inner"></div>
     </div>
 </div>
-<div class = outer_div style="margin: 30px;">
+<div class="outer_div" style="margin: 30px;">
     <div id="unzoomed_middle">
         <div class="square" id="zoomed_inner" style="zoom:2; width: 100px; height: 100px; border: 1px solid black;"></div>
     </div>
@@ -90,12 +89,12 @@ test(() => {
   assert_equals(unzoomed_inner.offsetLeft, 11, 'unzoomed_inner.offsetLeft');
   assert_equals(zoomed_inner.offsetTop, 0, 'zoomed_inner.offsetTop');
   assert_equals(zoomed_inner.offsetLeft, 1, 'zoomed_inner.offsetLeft');
+}, 'Verifies that offsetTop and offsetLeft find the right OffsetParent and return values excluding the target zoom');
 
-  // check that offset is equal between elements when one of them has css zoom
+test(() => {
   assert_equals(unzoomed_one.offsetWidth, zoomed_one.offsetWidth, "offsetWidth");
   assert_equals(unzoomed_one.offsetHeight, zoomed_one.offsetHeight, "offsetHeight");
   assert_equals(zoomed_inner.offsetWidth, outer_div.offsetWidth, "offsetWidth for nested element");
   assert_equals(zoomed_inner.offsetHeight, outer_div.offsetHeight, "offsetHeight for nested element");
-
-}, 'Verifies that offsetTop and offsetLeft find the right OffsetParent and return values excluding the target zoom');
+}, 'check that offset is equal between elements when one of them has css zoom');
 </script>

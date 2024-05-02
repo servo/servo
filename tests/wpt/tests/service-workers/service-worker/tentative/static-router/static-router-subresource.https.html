@@ -27,10 +27,12 @@ const ROUTER_RULE_KEY_URL_PATTERN_CONSTRUCTED_MATCH_ALL_CACHE =
 const ROUTER_RULE_KEY_URLPATTERN_CACHE_WITH_NAME =
   'condition-urlpattern-string-source-cache-with-name';
 const ROUTER_RULE_KEY_OR = 'condition-or-source-network'
+const ROUTER_RULE_KEY_NOT = 'condition-urlpattern-not-source-network';
 const SCOPE = 'resources/';
 const HTML_FILE = 'resources/simple.html';
 const TXT_FILE = 'resources/direct.txt';
 const CSV_FILE = 'resources/simple.csv';
+const NOT_FILE = 'resources/not.txt';
 // Warning: please prepare the corresponding `*.text.headers` files, otherwise
 // iframeTest() fails to load the following files due to MIME mismatches.
 const OR_TEST_FILES = [
@@ -183,6 +185,18 @@ iframeTest(HTML_FILE, ROUTER_RULE_KEY_URLPATTERN_CACHE_WITH_NAME, async (t, iwin
   const response_with_param = await iwin.fetch(`${CACHED_FILE}?nonce=${rnd}`);
   assert_equals(response_with_param.status, 404);
 }, 'Subresource load matched with the cache source, with specifying the cache name');
+
+iframeTest(TXT_FILE, ROUTER_RULE_KEY_NOT, async (t, iwin) => {
+  const rnd = randomString();
+  const response = await iwin.fetch(`${NOT_FILE}?nonce=${rnd}`);
+  assert_equals(await response.text(), rnd);
+}, 'Subresource load should not match with the not condition');
+
+iframeTest(TXT_FILE, ROUTER_RULE_KEY_NOT, async (t, iwin) => {
+  const rnd = randomString();
+  const response = await iwin.fetch('?nonce=' + rnd);
+  assert_equals(await response.text(), "Network\n");
+}, 'Subresource load should match with a file other than not');
 
 </script>
 </body>

@@ -1,5 +1,7 @@
 // META: title=test WebNN API elu operation
 // META: global=window,dedicatedworker
+// META: variant=?cpu
+// META: variant=?gpu
 // META: script=../resources/utils.js
 // META: timeout=long
 
@@ -7,4 +9,4 @@
 
 // https://webmachinelearning.github.io/webnn/#api-mlgraphbuilder-elu
 
-testWebNNOperation('elu', buildOperationWithSingleInput);
+runWebNNConformanceTests('elu', buildOperationWithSingleInput);

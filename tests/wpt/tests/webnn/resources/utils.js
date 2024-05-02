@@ -13,6 +13,15 @@ const TypedArrayDict = {
   int64: BigInt64Array,
 };
 
+const kContextOptionsForVariant = {
+  cpu: {
+    deviceType: 'cpu',
+  },
+  gpu: {
+    deviceType: 'gpu',
+  }
+};
+
 // The maximum index to validate for the output's expected value.
 const kMaximumIndexToValidate = 1000;
 
@@ -867,17 +876,15 @@ const run = async (operationName, context, builder, resources, buildFunc) => {
   checkResults(operationName, namedOutputOperands, result.outputs, resources);
 };
 
+const variant = location.search.substring(1);
+const contextOptions = kContextOptionsForVariant[variant];
+
 /**
  * Run WebNN operation tests.
  * @param {(String[]|String)} operationName - An operation name array or an operation name
  * @param {Function} buildFunc - A build function for an operation
- * @param {String} deviceType - The execution device type for this test
  */
-const testWebNNOperation = (operationName, buildFunc, deviceType = 'cpu') => {
-  test(() => assert_not_equals(navigator.ml, undefined, "ml property is defined on navigator"));
-  if (navigator.ml === undefined) {
-    return;
-  }
+const testWebNNOperation = (operationName, buildFunc) => {
   let operationNameArray;
   if (typeof operationName === 'string') {
     operationNameArray = [operationName];
@@ -890,7 +897,14 @@ const testWebNNOperation = (operationName, buildFunc, deviceType = 'cpu') => {
   operationNameArray.forEach((subOperationName) => {
     const tests = loadTests(subOperationName);
     promise_setup(async () => {
-      context = await navigator.ml.createContext({deviceType});
+      let supported = false;
+      try {
+        context = await navigator.ml.createContext(contextOptions);
+        supported = true;
+      } catch (e) {
+      }
+      assert_implements(
+          supported, `Unable to create context for ${variant} variant`);
       builder = new MLGraphBuilder(context);
     });
     for (const subTest of tests) {
@@ -903,14 +917,20 @@ const testWebNNOperation = (operationName, buildFunc, deviceType = 'cpu') => {
 
 /**
  * WebNN parallel compute operation test.
- * @param {String} deviceType - The execution device type for this test.
  */
-const testParallelCompute = (deviceType = 'cpu') => {
+const testParallelCompute = () => {
   let ml_context;
   let ml_graph;
 
   promise_setup(async () => {
-    ml_context = await navigator.ml.createContext({deviceType});
+    let supported = false;
+    try {
+      ml_context = await navigator.ml.createContext(contextOptions);
+      supported = true;
+    } catch (e) {
+    }
+    assert_implements(
+        supported, `Unable to create context for ${variant} variant`);
     // Construct a simple graph: A = B * 2.
     const builder = new MLGraphBuilder(ml_context);
     const operandType = {dataType: 'float32', dimensions: [1]};
@@ -933,6 +953,25 @@ const testParallelCompute = (deviceType = 'cpu') => {
     const expected_outputs = [2, 4, 6, 8];
     assert_array_equals(actual_outputs, expected_outputs);
   });
+};
+
+/**
+ * Run WebNN conformance tests by specified operation.
+ * @param {(String[]|String)} operationName - An operation name array or an
+ *     operation name
+ * @param {Function} buildFunc - A build function for an operation
+ */
+const runWebNNConformanceTests = (operationName, buildFunc) => {
+  // Link to https://github.com/web-platform-tests/wpt/pull/44883
+  // Check navigator.ml is defined before trying to run WebNN tests
+  if (navigator.ml) {
+    testWebNNOperation(operationName, buildFunc);
+  } else {
+    // Show indication to users why the test failed
+    test(
+        () => assert_not_equals(
+            navigator.ml, undefined, 'ml property is defined on navigator'));
+  }
 };
 
 // ref: http://stackoverflow.com/questions/32633585/how-do-you-convert-to-half-floats-in-javascript
@@ -1004,13 +1043,19 @@ const createBuffer = (context, bufferSize) => {
 /**
  * WebNN destroy buffer twice test.
  * @param {String} testName - The name of the test operation.
- * @param {String} deviceType - The execution device type for this test.
  */
-const testDestroyWebNNBuffer = (testName, deviceType = 'cpu') => {
+const testDestroyWebNNBuffer = (testName) => {
   let context;
   let buffer;
   promise_setup(async () => {
-    context = await navigator.ml.createContext({deviceType});
+    let supported = false;
+    try {
+      context = await navigator.ml.createContext(contextOptions);
+      supported = true;
+    } catch (e) {
+    }
+    assert_implements(
+        supported, `Unable to create context for ${variant} variant`);
     buffer = createBuffer(context, 4);
   });
   promise_test(async () => {
@@ -1027,12 +1072,19 @@ const testDestroyWebNNBuffer = (testName, deviceType = 'cpu') => {
  * WebNN create buffer test.
  * @param {String} testName - The name of the test operation.
  * @param {Number} bufferSize - Size of the buffer to create, in bytes.
- * @param {String} deviceType - The execution device type for this test.
  */
-const testCreateWebNNBuffer = (testName, bufferSize, deviceType = 'cpu') => {
+const testCreateWebNNBuffer = (testName, bufferSize) => {
   let context;
+
   promise_setup(async () => {
-      context = await navigator.ml.createContext({deviceType});
+    let supported = false;
+    try {
+      context = await navigator.ml.createContext(contextOptions);
+      supported = true;
+    } catch (e) {
+    }
+    assert_implements(
+        supported, `Unable to create context for ${variant} variant`);
   });
   promise_test(async () => {
     createBuffer(context, bufferSize);
@@ -1055,12 +1107,18 @@ const assert_buffer_data_equals = async (ml_context, ml_buffer, expected) => {
 /**
  * WebNN write buffer operation test.
  * @param {String} testName - The name of the test operation.
- * @param {String} deviceType - The execution device type for this test.
  */
-const testWriteWebNNBuffer = (testName, deviceType = 'cpu') => {
+const testWriteWebNNBuffer = (testName) => {
   let ml_context;
   promise_setup(async () => {
-    ml_context = await navigator.ml.createContext({deviceType});
+    let supported = false;
+    try {
+      ml_context = await navigator.ml.createContext(contextOptions);
+      supported = true;
+    } catch (e) {
+    }
+    assert_implements(
+        supported, `Unable to create context for ${variant} variant`);
   });
 
   promise_test(async () => {
@@ -1151,7 +1209,7 @@ const testWriteWebNNBuffer = (testName, deviceType = 'cpu') => {
       return;
     }
 
-    let another_ml_context = await navigator.ml.createContext({deviceType});
+    let another_ml_context = await navigator.ml.createContext(contextOptions);
     let another_ml_buffer = createBuffer(another_ml_context, ml_buffer.size);
 
     let input_data = new Uint8Array(ml_buffer.size).fill(0xAA);
@@ -1165,12 +1223,18 @@ const testWriteWebNNBuffer = (testName, deviceType = 'cpu') => {
 /**
  * WebNN read buffer operation test.
  * @param {String} testName - The name of the test operation.
- * @param {String} deviceType - The execution device type for this test.
  */
-const testReadWebNNBuffer = (testName, deviceType = 'cpu') => {
+const testReadWebNNBuffer = (testName) => {
   let ml_context;
   promise_setup(async () => {
-    ml_context = await navigator.ml.createContext({deviceType});
+    let supported = false;
+    try {
+      ml_context = await navigator.ml.createContext(contextOptions);
+      supported = true;
+    } catch (e) {
+    }
+    assert_implements(
+        supported, `Unable to create context for ${variant} variant`);
   });
 
   promise_test(async t => {
@@ -1311,7 +1375,7 @@ const testReadWebNNBuffer = (testName, deviceType = 'cpu') => {
       return;
     }
 
-    let another_ml_context = await navigator.ml.createContext({deviceType});
+    let another_ml_context = await navigator.ml.createContext(contextOptions);
     let another_ml_buffer = createBuffer(another_ml_context, ml_buffer.size);
 
     await promise_rejects_js(
