@@ -877,8 +877,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 let key = self.webrender_api.generate_font_instance_key();
                 let mut transaction = Transaction::new();
 
-                let mut font_instance_options = FontInstanceOptions::default();
-                font_instance_options.flags = flags;
+                let font_instance_options = FontInstanceOptions {
+                    flags,
+                    ..Default::default()
+                };
                 transaction.add_font_instance(
                     key,
                     font_key,

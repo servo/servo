@@ -78,7 +78,6 @@ impl Tokenizer {
         Tokenizer { inner }
     }
 
-    #[must_use]
     pub fn feed(&mut self, input: &mut BufferQueue) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
         match self.inner.feed(input) {
             TokenizerResult::Done => TokenizerResult::Done,

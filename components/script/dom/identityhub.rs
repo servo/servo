@@ -218,3 +218,9 @@ impl Identities {
         self.select(id.backend()).render_bundles.free(id);
     }
 }
+
+impl Default for Identities {
+    fn default() -> Self {
+        Self::new()
+    }
+}

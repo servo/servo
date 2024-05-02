@@ -108,7 +108,7 @@ impl FontTemplates {
         // If a request is made for a font family that exists,
         // pick the first valid font in the family if we failed
         // to find an exact match for the descriptor.
-        for template in &mut self.templates.iter() {
+        if let Some(template) = self.templates.first() {
             return vec![template.clone()];
         }
 
@@ -231,7 +231,7 @@ impl FontCache {
                             .font_data
                             .entry(identifier)
                             .or_insert_with(|| font_template.data());
-                        let _ = bytes_sender.send(&data);
+                        let _ = bytes_sender.send(data);
                     }
                 },
                 Command::GetFontInstance(identifier, pt_size, flags, result) => {
@@ -557,10 +557,7 @@ impl From<&FontFaceRuleData> for CSSFontFaceDescriptors {
                 ),
             }
         }
-        let style = rule_data
-            .style
-            .as_ref()
-            .map(|style| style_to_computed(style));
+        let style = rule_data.style.as_ref().map(style_to_computed);
         let unicode_range = rule_data
             .unicode_range
             .as_ref()

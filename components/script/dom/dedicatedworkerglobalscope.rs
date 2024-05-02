@@ -219,15 +219,15 @@ impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
         Some(ar)
     }
 
-    fn from_control_msg(&self, msg: DedicatedWorkerControlMsg) -> MixedMessage {
+    fn from_control_msg(msg: DedicatedWorkerControlMsg) -> MixedMessage {
         MixedMessage::Control(msg)
     }
 
-    fn from_worker_msg(&self, msg: DedicatedWorkerScriptMsg) -> MixedMessage {
+    fn from_worker_msg(msg: DedicatedWorkerScriptMsg) -> MixedMessage {
         MixedMessage::Worker(msg)
     }
 
-    fn from_devtools_msg(&self, msg: DevtoolScriptControlMsg) -> MixedMessage {
+    fn from_devtools_msg(msg: DevtoolScriptControlMsg) -> MixedMessage {
         MixedMessage::Devtools(msg)
     }
 

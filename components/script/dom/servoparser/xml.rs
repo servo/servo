@@ -41,7 +41,6 @@ impl Tokenizer {
         Tokenizer { inner: tok }
     }
 
-    #[must_use]
     pub fn feed(&mut self, input: &mut BufferQueue) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
         self.inner.run(input);
         match self.inner.sink.sink.script.take() {

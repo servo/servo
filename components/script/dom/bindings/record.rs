@@ -195,3 +195,9 @@ where
         rval.set(ObjectValue(js_object.handle().get()));
     }
 }
+
+impl<K: RecordKey, V> Default for Record<K, V> {
+    fn default() -> Self {
+        Self::new()
+    }
+}

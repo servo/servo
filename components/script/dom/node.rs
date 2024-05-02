@@ -1325,7 +1325,7 @@ pub trait LayoutNodeHelpers<'dom> {
     fn owner_doc_for_layout(self) -> LayoutDom<'dom, Document>;
     fn containing_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>>;
 
-    fn is_element_for_layout(self) -> bool;
+    fn is_element_for_layout(&self) -> bool;
     unsafe fn get_flag(self, flag: NodeFlags) -> bool;
     unsafe fn set_flag(self, flag: NodeFlags, value: bool);
 
@@ -1387,8 +1387,8 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     }
 
     #[inline]
-    fn is_element_for_layout(self) -> bool {
-        self.is::<Element>()
+    fn is_element_for_layout(&self) -> bool {
+        (*self).is::<Element>()
     }
 
     #[inline]

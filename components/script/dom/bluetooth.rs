@@ -98,6 +98,12 @@ impl BluetoothExtraPermissionData {
     }
 }
 
+impl Default for BluetoothExtraPermissionData {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 struct BluetoothContext<T: AsyncBluetoothListener + DomObject> {
     promise: Option<TrustedPromise>,
     receiver: Trusted<T>,

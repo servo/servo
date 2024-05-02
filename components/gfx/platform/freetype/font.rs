@@ -338,7 +338,7 @@ impl PlatformFontMethods for PlatformFont {
     }
 }
 
-impl<'a> PlatformFont {
+impl PlatformFont {
     fn set_char_size(face: FT_Face, pt_size: Au) -> Result<(), &'static str> {
         let char_size = pt_size.to_f64_px() * 64.0 + 0.5;
 

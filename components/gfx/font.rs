@@ -443,7 +443,7 @@ impl FontGroup {
             .font_family
             .families
             .iter()
-            .map(|family| FontGroupFamily::new(family))
+            .map(FontGroupFamily::new)
             .collect();
 
         FontGroup {
@@ -465,10 +465,8 @@ impl FontGroup {
         let should_look_for_small_caps = self.descriptor.variant == font_variant_caps::T::SmallCaps &&
             codepoint.is_ascii_lowercase();
         let font_or_synthesized_small_caps = |font: FontRef| {
-            if should_look_for_small_caps {
-                if font.synthesized_small_caps.is_some() {
-                    return font.synthesized_small_caps.clone();
-                }
+            if should_look_for_small_caps && font.synthesized_small_caps.is_some() {
+                return font.synthesized_small_caps.clone();
             }
             Some(font)
         };
@@ -565,7 +563,6 @@ impl FontGroup {
             .chain(fallback_font_families(codepoint).into_iter().map(|family| {
                 FontFamilyDescriptor::new(FontFamilyName::from(family), FontSearchScope::Local)
             }))
-            .into_iter()
             .filter_map(|family_descriptor| {
                 FontGroupFamily {
                     family_descriptor,
@@ -646,11 +643,11 @@ impl FontGroupFamily {
             .next()
     }
 
-    fn members<'a, S: FontSource>(
-        &'a mut self,
+    fn members<S: FontSource>(
+        &mut self,
         font_descriptor: &FontDescriptor,
         font_context: &FontContext<S>,
-    ) -> impl Iterator<Item = &mut FontGroupFamilyMember> + 'a {
+    ) -> impl Iterator<Item = &mut FontGroupFamilyMember> {
         let family_descriptor = &self.family_descriptor;
         let members = self.members.get_or_insert_with(|| {
             font_context

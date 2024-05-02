@@ -698,7 +698,6 @@ enum Tokenizer {
 }
 
 impl Tokenizer {
-    #[must_use]
     fn feed(&mut self, input: &mut BufferQueue) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
         match *self {
             Tokenizer::Html(ref mut tokenizer) => tokenizer.feed(input),

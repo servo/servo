@@ -81,8 +81,7 @@ impl OfflineAudioContext {
         if channel_count > MAX_CHANNEL_COUNT ||
             channel_count == 0 ||
             length == 0 ||
-            sample_rate < MIN_SAMPLE_RATE ||
-            sample_rate > MAX_SAMPLE_RATE
+            !(MIN_SAMPLE_RATE..=MAX_SAMPLE_RATE).contains(&sample_rate)
         {
             return Err(Error::NotSupported);
         }
