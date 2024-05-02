@@ -9,7 +9,12 @@ static ALLOC: Allocator = Allocator;
 
 pub use crate::platform::*;
 
-#[cfg(not(any(windows, target_os = "android", feature = "use-system-allocator")))]
+#[cfg(not(any(
+    windows,
+    target_os = "android",
+    feature = "use-system-allocator",
+    target_env = "ohos"
+)))]
 mod platform {
     use std::os::raw::c_void;
 
@@ -32,7 +37,11 @@ mod platform {
 
 #[cfg(all(
     not(windows),
-    any(target_os = "android", feature = "use-system-allocator")
+    any(
+        target_os = "android",
+        feature = "use-system-allocator",
+        target_env = "ohos"
+    )
 ))]
 mod platform {
     pub use std::alloc::System as Allocator;

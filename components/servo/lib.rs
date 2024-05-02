@@ -42,7 +42,8 @@ use compositing_traits::{
     not(target_os = "ios"),
     not(target_os = "android"),
     not(target_arch = "arm"),
-    not(target_arch = "aarch64")
+    not(target_arch = "aarch64"),
+    not(target_env = "ohos"),
 ))]
 use constellation::content_process_sandbox_profile;
 use constellation::{
@@ -58,7 +59,8 @@ use euclid::Scale;
     not(target_os = "ios"),
     not(target_os = "android"),
     not(target_arch = "arm"),
-    not(target_arch = "aarch64")
+    not(target_arch = "aarch64"),
+    not(target_env = "ohos"),
 ))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
@@ -81,12 +83,12 @@ use script_traits::{ScriptToConstellationChan, WindowSizeData};
 use servo_config::{opts, pref, prefs};
 use servo_media::player::context::GlContext;
 use servo_media::ServoMedia;
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", not(target_env = "ohos")))]
 use surfman::platform::generic::multi::connection::NativeConnection as LinuxNativeConnection;
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", not(target_env = "ohos")))]
 use surfman::platform::generic::multi::context::NativeContext as LinuxNativeContext;
 use surfman::{GLApi, GLVersion};
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", not(target_env = "ohos")))]
 use surfman::{NativeConnection, NativeContext};
 use webrender::{RenderApiSender, ShaderPrecacheFlags};
 use webrender_api::{
@@ -252,6 +254,9 @@ where
             },
             Some(ref ua) if ua == "desktop" => {
                 default_user_agent_string_for(UserAgent::Desktop).into()
+            },
+            Some(ref ua) if ua == "ohos" => {
+                default_user_agent_string_for(UserAgent::OpenHarmony).into()
             },
             Some(ua) => ua.into(),
             None => embedder
@@ -492,7 +497,7 @@ where
         }
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(all(target_os = "linux", not(target_env = "ohos")))]
     fn get_native_media_display_and_gl_context(
         rendering_context: &RenderingContext,
     ) -> Option<(NativeDisplay, GlContext)> {
@@ -529,7 +534,10 @@ where
         Some((native_display, gl_context))
     }
 
-    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+    #[cfg(not(any(
+        target_os = "windows",
+        all(target_os = "linux", not(target_env = "ohos"))
+    )))]
     fn get_native_media_display_and_gl_context(
         _rendering_context: &RenderingContext,
     ) -> Option<(NativeDisplay, GlContext)> {
@@ -1196,7 +1204,8 @@ pub fn run_content_process(token: String) {
     not(target_os = "ios"),
     not(target_os = "android"),
     not(target_arch = "arm"),
-    not(target_arch = "aarch64")
+    not(target_arch = "aarch64"),
+    not(target_env = "ohos"),
 ))]
 fn create_sandbox() {
     ChildSandbox::new(content_process_sandbox_profile())
@@ -1209,7 +1218,8 @@ fn create_sandbox() {
     target_os = "ios",
     target_os = "android",
     target_arch = "arm",
-    target_arch = "aarch64"
+    target_arch = "aarch64",
+    target_env = "ohos",
 ))]
 fn create_sandbox() {
     panic!("Sandboxing is not supported on Windows, iOS, ARM targets and android.");
@@ -1218,15 +1228,20 @@ fn create_sandbox() {
 enum UserAgent {
     Desktop,
     Android,
+    OpenHarmony,
     #[allow(non_camel_case_types)]
     iOS,
 }
 
 fn default_user_agent_string_for(agent: UserAgent) -> &'static str {
-    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    #[cfg(all(target_os = "linux", target_arch = "x86_64", not(target_env = "ohos")))]
     const DESKTOP_UA_STRING: &'static str =
         "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Servo/1.0 Firefox/111.0";
-    #[cfg(all(target_os = "linux", not(target_arch = "x86_64")))]
+    #[cfg(all(
+        target_os = "linux",
+        not(target_arch = "x86_64"),
+        not(target_env = "ohos")
+    ))]
     const DESKTOP_UA_STRING: &'static str =
         "Mozilla/5.0 (X11; Linux i686; rv:109.0) Servo/1.0 Firefox/111.0";
 
@@ -1241,12 +1256,13 @@ fn default_user_agent_string_for(agent: UserAgent) -> &'static str {
     const DESKTOP_UA_STRING: &'static str =
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Servo/1.0 Firefox/111.0";
 
-    #[cfg(target_os = "android")]
+    #[cfg(any(target_os = "android", target_env = "ohos"))]
     const DESKTOP_UA_STRING: &'static str = "";
 
     match agent {
         UserAgent::Desktop => DESKTOP_UA_STRING,
         UserAgent::Android => "Mozilla/5.0 (Android; Mobile; rv:109.0) Servo/1.0 Firefox/111.0",
+        UserAgent::OpenHarmony => "Mozilla/5.0 (OpenHarmony; Mobile; rv:109.0) Servo/1.0 Firefox/111.0",
         UserAgent::iOS => {
             "Mozilla/5.0 (iPhone; CPU iPhone OS 16_4 like Mac OS X; rv:109.0) Servo/1.0 Firefox/111.0"
         },
@@ -1256,8 +1272,11 @@ fn default_user_agent_string_for(agent: UserAgent) -> &'static str {
 #[cfg(target_os = "android")]
 const DEFAULT_USER_AGENT: UserAgent = UserAgent::Android;
 
+#[cfg(target_env = "ohos")]
+const DEFAULT_USER_AGENT: UserAgent = UserAgent::OpenHarmony;
+
 #[cfg(target_os = "ios")]
 const DEFAULT_USER_AGENT: UserAgent = UserAgent::iOS;
 
-#[cfg(not(any(target_os = "android", target_os = "ios")))]
+#[cfg(not(any(target_os = "android", target_os = "ios", target_env = "ohos")))]
 const DEFAULT_USER_AGENT: UserAgent = UserAgent::Desktop;

@@ -25,4 +25,5 @@ regex = { workspace = true }
 
 [target.'cfg(not(any(target_os = "windows", target_os = "android")))'.dependencies]
 libc = { workspace = true }
+[target.'cfg(not(any(target_os = "windows", target_os = "android", target_env = "ohos")))'.dependencies]
 jemalloc-sys = { workspace = true }

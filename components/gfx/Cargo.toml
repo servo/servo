@@ -22,7 +22,7 @@ euclid = { workspace = true }
 fnv = { workspace = true }
 fontsan = { git = "https://github.com/servo/fontsan" }
 gfx_traits = { workspace = true }
-harfbuzz-sys = "0.6"
+harfbuzz-sys = "0.6.1"
 ipc-channel = { workspace = true }
 lazy_static = { workspace = true }
 libc = { workspace = true }
@@ -55,11 +55,15 @@ harfbuzz-sys = { version = "0.6", features = ["bundled"] }
 freetype = "0.7"
 servo_allocator = { path = "../allocator" }
 
-[target.'cfg(target_os = "linux")'.dependencies]
+[target.'cfg(all(target_os = "linux", not(target_env = "ohos")))'.dependencies]
 fontconfig_sys = { package = "yeslogic-fontconfig-sys", version = "5" }
 
 [target.'cfg(target_os = "android")'.dependencies]
 xml-rs = "0.8"
+
+[target.'cfg(target_env = "ohos")'.dependencies]
+harfbuzz-sys = { version = "0.6.1", features = ["bundled"] }
+
 
 [target.'cfg(target_os = "windows")'.dependencies]
 harfbuzz-sys = { version = "0.6", features = ["bundled"] }
