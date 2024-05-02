@@ -37,7 +37,6 @@ packages = [
     "toml",
 
     # Duplicated by winit.
-    "jni",
     "windows-sys",
     "windows-targets",
     "windows_aarch64_gnullvm",
