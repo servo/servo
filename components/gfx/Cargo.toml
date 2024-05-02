@@ -51,6 +51,7 @@ core-graphics = "0.23"
 core-text = "20.1"
 
 [target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
+harfbuzz-sys = { version = "0.6", features = ["bundled"] }
 freetype = "0.7"
 servo_allocator = { path = "../allocator" }
 
