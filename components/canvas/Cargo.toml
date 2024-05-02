@@ -29,6 +29,7 @@ half = "2"
 ipc-channel = { workspace = true }
 log = { workspace = true }
 lyon_geom = "1.0.4"
+net_traits = { workspace = true }
 num-traits = { workspace = true }
 pathfinder_geometry = "0.5"
 pixels = { path = "../pixels" }

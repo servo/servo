@@ -3558,6 +3558,7 @@ impl ScriptThread {
             script_chan: self.control_chan.clone(),
             image_cache: self.image_cache.clone(),
             font_cache_thread: self.font_cache_thread.clone(),
+            resource_threads: self.resource_threads.clone(),
             time_profiler_chan: self.time_profiler_chan.clone(),
             webrender_api_sender: self.webrender_api_sender.clone(),
             paint_time_metrics,

@@ -81,7 +81,7 @@ where
             let local_font_identifier = LocalFontIdentifier {
                 font_descriptor: Arc::new(font.to_descriptor()),
             };
-            callback(FontTemplate::new_local(
+            callback(FontTemplate::new_for_local_font(
                 local_font_identifier,
                 template_descriptor,
             ))

@@ -81,7 +81,7 @@ where
                     postscript_name: Atom::from(family_descriptor.font_name()),
                     path: Atom::from(path),
                 };
-                callback(FontTemplate::new_local(identifier, descriptor));
+                callback(FontTemplate::new_for_local_font(identifier, descriptor));
             }
         }
     }

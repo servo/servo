@@ -29,6 +29,7 @@ use libc::c_void;
 use malloc_size_of_derive::MallocSizeOf;
 use metrics::PaintTimeMetrics;
 use net_traits::image_cache::{ImageCache, PendingImageId};
+use net_traits::ResourceThreads;
 use profile_traits::mem::Report;
 use profile_traits::time;
 use script_traits::{
@@ -164,6 +165,7 @@ pub struct LayoutConfig {
     pub constellation_chan: IpcSender<LayoutMsg>,
     pub script_chan: IpcSender<ConstellationControlMsg>,
     pub image_cache: Arc<dyn ImageCache>,
+    pub resource_threads: ResourceThreads,
     pub font_cache_thread: FontCacheThread,
     pub time_profiler_chan: time::ProfilerChan,
     pub webrender_api_sender: WebRenderScriptApi,

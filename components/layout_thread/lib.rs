@@ -26,7 +26,7 @@ use fnv::FnvHashMap;
 use fxhash::{FxHashMap, FxHashSet};
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
-use gfx::font_context::FontContext;
+use gfx::font_context::{FontContext, FontContextWebFontMethods};
 use histogram::Histogram;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -54,6 +54,7 @@ use log::{debug, error, trace, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
+use net_traits::ResourceThreads;
 use parking_lot::RwLock;
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
@@ -133,13 +134,10 @@ pub struct LayoutThread {
     /// Reference to the script thread image cache.
     image_cache: Arc<dyn ImageCache>,
 
-    /// Public interface to the font cache thread.
-    font_cache_thread: FontCacheThread,
-
-    /// A FontContext to be used during layout.
+    /// A FontContext tFontCacheThreadImplg layout.
     font_context: Arc<FontContext<FontCacheThread>>,
 
-    /// Is this the first reflow in this LayoutThread?
+    /// Is this the first reflow iFontCacheThreadImplread?
     first_reflow: Cell<bool>,
 
     /// Flag to indicate whether to use parallel operations
@@ -207,6 +205,7 @@ impl LayoutFactory for LayoutFactoryImpl {
             config.constellation_chan,
             config.script_chan,
             config.image_cache,
+            config.resource_threads,
             config.font_cache_thread,
             config.time_profiler_chan,
             config.webrender_api_sender,
@@ -566,6 +565,7 @@ impl LayoutThread {
         constellation_chan: IpcSender<ConstellationMsg>,
         script_chan: IpcSender<ConstellationControlMsg>,
         image_cache: Arc<dyn ImageCache>,
+        resource_threads: ResourceThreads,
         font_cache_thread: FontCacheThread,
         time_profiler_chan: profile_time::ProfilerChan,
         webrender_api: WebRenderScriptApi,
@@ -575,7 +575,7 @@ impl LayoutThread {
         // Let webrender know about this pipeline by sending an empty display list.
         webrender_api.send_initial_transaction(id.into());
 
-        let font_context = Arc::new(FontContext::new(font_cache_thread.clone()));
+        let font_context = Arc::new(FontContext::new(font_cache_thread, resource_threads));
         let device = Device::new(
             MediaType::screen(),
             QuirksMode::NoQuirks,
@@ -604,7 +604,6 @@ impl LayoutThread {
             time_profiler_chan,
             registered_painters: RegisteredPaintersImpl(Default::default()),
             image_cache,
-            font_cache_thread,
             font_context,
             first_reflow: Cell::new(true),
             font_cache_sender: ipc_font_cache_sender,
@@ -711,14 +710,13 @@ impl LayoutThread {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts.
         if stylesheet.is_effective_for_device(self.stylist.device(), guard) {
-            let newly_loading_font_count =
-                self.font_cache_thread.add_all_web_fonts_from_stylesheet(
-                    stylesheet,
-                    guard,
-                    self.stylist.device(),
-                    &self.font_cache_sender,
-                    self.debug.load_webfonts_synchronously,
-                );
+            let newly_loading_font_count = self.font_context.add_all_web_fonts_from_stylesheet(
+                stylesheet,
+                guard,
+                self.stylist.device(),
+                &self.font_cache_sender,
+                self.debug.load_webfonts_synchronously,
+            );
 
             if !self.debug.load_webfonts_synchronously {
                 self.outstanding_web_fonts

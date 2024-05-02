@@ -100,7 +100,7 @@ impl FontTemplateDescriptor {
 
     fn override_values_with_css_font_template_descriptors(
         &mut self,
-        css_font_template_descriptors: CSSFontFaceDescriptors,
+        css_font_template_descriptors: &CSSFontFaceDescriptors,
     ) {
         if let Some(weight) = css_font_template_descriptors.weight {
             self.weight = weight;
@@ -117,8 +117,8 @@ impl FontTemplateDescriptor {
         if let Some(stretch) = css_font_template_descriptors.stretch {
             self.stretch = stretch;
         }
-        if let Some(unicode_range) = css_font_template_descriptors.unicode_range {
-            self.unicode_range = Some(unicode_range);
+        if let Some(ref unicode_range) = css_font_template_descriptors.unicode_range {
+            self.unicode_range = Some(unicode_range.clone());
         }
     }
 }
@@ -126,6 +126,7 @@ impl FontTemplateDescriptor {
 /// This describes all the information needed to create
 /// font instance handles. It contains a unique
 /// FontTemplateData structure that is platform specific.
+#[derive(Clone)]
 pub struct FontTemplate {
     pub identifier: FontIdentifier,
     pub descriptor: FontTemplateDescriptor,
@@ -154,7 +155,8 @@ impl Debug for FontTemplate {
 /// is common, regardless of the number of instances of
 /// this font handle per thread.
 impl FontTemplate {
-    pub fn new_local(
+    /// Create a new [`FontTemplate`] for a system font installed locally.
+    pub fn new_for_local_font(
         identifier: LocalFontIdentifier,
         descriptor: FontTemplateDescriptor,
     ) -> FontTemplate {
@@ -165,10 +167,11 @@ impl FontTemplate {
         }
     }
 
-    pub fn new_web_font(
+    /// Create a new [`FontTemplate`] for a `@font-family` with a `url(...)` `src` font.
+    pub fn new_for_remote_web_font(
         url: ServoUrl,
         data: Arc<Vec<u8>>,
-        css_font_template_descriptors: CSSFontFaceDescriptors,
+        css_font_template_descriptors: &CSSFontFaceDescriptors,
     ) -> Result<FontTemplate, &'static str> {
         let identifier = FontIdentifier::Web(url.clone());
         let Ok(handle) = PlatformFont::new_from_data(identifier, data.clone(), 0, None) else {
@@ -183,6 +186,20 @@ impl FontTemplate {
             descriptor,
             data: Some(data),
         })
+    }
+
+    /// Create a new [`FontTemplate`] for a `@font-family` with a `local(...)` `src`. This takes in
+    /// the template of the local font and creates a new one that reflects the properties specified
+    /// by `@font-family` in the stylesheet.
+    pub fn new_for_local_web_font(
+        local_template: FontTemplateRef,
+        css_font_template_descriptors: &CSSFontFaceDescriptors,
+    ) -> Result<FontTemplate, &'static str> {
+        let mut alias_template = local_template.borrow().clone();
+        alias_template
+            .descriptor
+            .override_values_with_css_font_template_descriptors(css_font_template_descriptors);
+        Ok(alias_template)
     }
 
     pub fn identifier(&self) -> &FontIdentifier {
@@ -233,6 +250,10 @@ impl FontTemplateRefMethods for FontTemplateRef {
     }
 
     fn data(&self) -> Arc<Vec<u8>> {
+        if let Some(data) = self.borrow().data.clone() {
+            return data;
+        }
+
         let mut template = self.borrow_mut();
         let identifier = template.identifier.clone();
         template

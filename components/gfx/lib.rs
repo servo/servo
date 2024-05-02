@@ -7,6 +7,7 @@
 pub mod font;
 pub mod font_cache_thread;
 pub mod font_context;
+pub mod font_store;
 pub mod font_template;
 #[allow(unsafe_code)]
 pub mod platform;

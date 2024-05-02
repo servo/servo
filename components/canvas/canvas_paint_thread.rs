@@ -16,6 +16,7 @@ use gfx::font_context::FontContext;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::warn;
+use net_traits::ResourceThreads;
 use webrender_api::ImageKey;
 use webrender_traits::ImageUpdate;
 
@@ -44,12 +45,13 @@ impl<'a> CanvasPaintThread<'a> {
     fn new(
         webrender_api: Box<dyn WebrenderApi>,
         font_cache_thread: FontCacheThread,
+        resource_threads: ResourceThreads,
     ) -> CanvasPaintThread<'a> {
         CanvasPaintThread {
             canvases: HashMap::new(),
             next_canvas_id: CanvasId(0),
             webrender_api,
-            font_context: Arc::new(FontContext::new(font_cache_thread)),
+            font_context: Arc::new(FontContext::new(font_cache_thread, resource_threads)),
         }
     }
 
@@ -58,6 +60,7 @@ impl<'a> CanvasPaintThread<'a> {
     pub fn start(
         webrender_api: Box<dyn WebrenderApi + Send>,
         font_cache_thread: FontCacheThread,
+        resource_threads: ResourceThreads,
     ) -> (Sender<ConstellationCanvasMsg>, IpcSender<CanvasMsg>) {
         let (ipc_sender, ipc_receiver) = ipc::channel::<CanvasMsg>().unwrap();
         let msg_receiver = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(ipc_receiver);
@@ -65,7 +68,8 @@ impl<'a> CanvasPaintThread<'a> {
         thread::Builder::new()
             .name("Canvas".to_owned())
             .spawn(move || {
-                let mut canvas_paint_thread = CanvasPaintThread::new(webrender_api, font_cache_thread);
+                let mut canvas_paint_thread = CanvasPaintThread::new(
+                    webrender_api, font_cache_thread, resource_threads);
                 loop {
                     select! {
                         recv(msg_receiver) -> msg => {
