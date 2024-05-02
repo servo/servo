@@ -1952,6 +1952,7 @@ name = "gfx"
 version = "0.0.1"
 dependencies = [
  "app_units",
+ "atomic_refcell",
  "bitflags 2.5.0",
  "byteorder",
  "core-foundation",

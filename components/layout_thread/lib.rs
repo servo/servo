@@ -22,16 +22,15 @@ use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as 
 use euclid::{Point2D, Rect, Scale, Size2D};
 use fnv::FnvHashMap;
 use fxhash::{FxHashMap, FxHashSet};
+use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
-use gfx::{font, font_context};
+use gfx::font_context::FontContext;
 use gfx_traits::{node_id_from_scroll_id, Epoch};
 use histogram::Histogram;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::construct::ConstructionResult;
-use layout::context::{
-    malloc_size_of_persistent_local_context, LayoutContext, RegisteredPainter, RegisteredPainters,
-};
+use layout::context::{LayoutContext, RegisteredPainter, RegisteredPainters};
 use layout::display_list::items::{DisplayList, ScrollOffsetMap, WebRenderImageInfo};
 use layout::display_list::{IndexableText, ToLayout};
 use layout::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils, MutableOwnedFlowUtils};
@@ -135,6 +134,9 @@ pub struct LayoutThread {
 
     /// Public interface to the font cache thread.
     font_cache_thread: FontCacheThread,
+
+    /// A FontContext to be used during layout.
+    font_context: Arc<FontContext<FontCacheThread>>,
 
     /// Is this the first reflow in this LayoutThread?
     first_reflow: Cell<bool>,
@@ -513,7 +515,7 @@ impl Layout for LayoutThread {
         // malloc_enclosing_size_of function.
         let mut ops = MallocSizeOfOps::new(servo_allocator::usable_size, None, None);
 
-        // FIXME(njn): Just measuring the display tree for now.
+        // TODO: Measure more than just display list, stylist, and font context.
         let display_list = self.display_list.borrow();
         let display_list_ref = display_list.as_ref();
         let formatted_url = &format!("url({})", self.url);
@@ -527,13 +529,6 @@ impl Layout for LayoutThread {
             path: path![formatted_url, "layout-thread", "stylist"],
             kind: ReportKind::ExplicitJemallocHeapSize,
             size: self.stylist.size_of(&mut ops),
-        });
-
-        // The LayoutThread has data in Persistent TLS...
-        reports.push(Report {
-            path: path![formatted_url, "layout-thread", "local-context"],
-            kind: ReportKind::ExplicitJemallocHeapSize,
-            size: malloc_size_of_persistent_local_context(&mut ops),
         });
     }
 
@@ -573,6 +568,7 @@ impl LayoutThread {
         // Let webrender know about this pipeline by sending an empty display list.
         webrender_api.send_initial_transaction(id.into());
 
+        let font_context = Arc::new(FontContext::new(font_cache_thread.clone()));
         let device = Device::new(
             MediaType::screen(),
             QuirksMode::NoQuirks,
@@ -602,6 +598,7 @@ impl LayoutThread {
             registered_painters: RegisteredPaintersImpl(Default::default()),
             image_cache,
             font_cache_thread,
+            font_context,
             first_reflow: Cell::new(true),
             font_cache_sender: ipc_font_cache_sender,
             parallel_flag: true,
@@ -675,7 +672,7 @@ impl LayoutThread {
                 traversal_flags,
             ),
             image_cache: self.image_cache.clone(),
-            font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
+            font_context: self.font_context.clone(),
             webrender_image_cache: self.webrender_image_cache.clone(),
             pending_images: Mutex::new(vec![]),
             registered_painters: &self.registered_painters,
@@ -726,7 +723,7 @@ impl LayoutThread {
     }
 
     fn handle_web_font_loaded(&self) {
-        font_context::invalidate_font_caches();
+        self.font_context.invalidate_caches();
         self.script_chan
             .send(ConstellationControlMsg::WebFontLoaded(self.id))
             .unwrap();

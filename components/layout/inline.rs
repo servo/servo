@@ -1239,7 +1239,7 @@ impl InlineFlow {
     /// `style` is the style of the block.
     pub fn minimum_line_metrics(
         &self,
-        font_context: &mut LayoutFontContext,
+        font_context: &LayoutFontContext,
         style: &ComputedValues,
     ) -> LineMetrics {
         InlineFlow::minimum_line_metrics_for_fragments(
@@ -1255,7 +1255,7 @@ impl InlineFlow {
     /// `style` is the style of the block that these fragments belong to.
     pub fn minimum_line_metrics_for_fragments(
         fragments: &[Fragment],
-        font_context: &mut LayoutFontContext,
+        font_context: &LayoutFontContext,
         style: &ComputedValues,
     ) -> LineMetrics {
         // As a special case, if this flow contains only hypothetical fragments, then the entire

@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
 use std::fmt::{Debug, Error, Formatter};
 use std::ops::RangeInclusive;
-use std::rc::Rc;
 use std::sync::Arc;
 
+use atomic_refcell::AtomicRefCell;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use style::computed_values::font_stretch::T as FontStretch;
@@ -22,7 +21,7 @@ use crate::platform::font::PlatformFont;
 use crate::platform::font_list::LocalFontIdentifier;
 
 /// A reference to a [`FontTemplate`] with shared ownership and mutability.
-pub type FontTemplateRef = Rc<RefCell<FontTemplate>>;
+pub type FontTemplateRef = Arc<AtomicRefCell<FontTemplate>>;
 
 /// Describes how to select a font from a given family. This is very basic at the moment and needs
 /// to be expanded or refactored when we support more of the font styling parameters.

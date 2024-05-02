@@ -57,7 +57,7 @@ use style::values::generics::transform;
 use webrender_api::units::LayoutTransform;
 use webrender_api::{self, ImageKey};
 
-use crate::context::{with_thread_local_font_context, LayoutContext};
+use crate::context::LayoutContext;
 use crate::display_list::items::{ClipScrollNodeIndex, OpaqueNode, BLUR_INFLATION_FACTOR};
 use crate::display_list::ToLayout;
 use crate::floats::ClearType;
@@ -852,9 +852,8 @@ impl Fragment {
             ))),
         );
         unscanned_ellipsis_fragments.push_back(ellipsis_fragment);
-        let ellipsis_fragments = with_thread_local_font_context(layout_context, |font_context| {
-            TextRunScanner::new().scan_for_runs(font_context, unscanned_ellipsis_fragments)
-        });
+        let ellipsis_fragments = TextRunScanner::new()
+            .scan_for_runs(&layout_context.font_context, unscanned_ellipsis_fragments);
         debug_assert_eq!(ellipsis_fragments.len(), 1);
         ellipsis_fragment = ellipsis_fragments.fragments.into_iter().next().unwrap();
         ellipsis_fragment.flags |= FragmentFlags::IS_ELLIPSIS;
@@ -2346,9 +2345,10 @@ impl Fragment {
                 return InlineMetrics::new(Au(0), Au(0), Au(0));
             }
             // See CSS 2.1 § 10.8.1.
-            let font_metrics = with_thread_local_font_context(layout_context, |font_context| {
-                text::font_metrics_for_style(font_context, self_.style.clone_font())
-            });
+            let font_metrics = text::font_metrics_for_style(
+                &layout_context.font_context,
+                self_.style.clone_font(),
+            );
             let line_height = text::line_height_from_style(&self_.style, &font_metrics);
             InlineMetrics::from_font_metrics(&info.run.font_metrics, line_height)
         }
@@ -2426,10 +2426,10 @@ impl Fragment {
                 VerticalAlign::Keyword(kw) => match kw {
                     VerticalAlignKeyword::Baseline => {},
                     VerticalAlignKeyword::Middle => {
-                        let font_metrics =
-                            with_thread_local_font_context(layout_context, |font_context| {
-                                text::font_metrics_for_style(font_context, self.style.clone_font())
-                            });
+                        let font_metrics = text::font_metrics_for_style(
+                            &layout_context.font_context,
+                            self.style.clone_font(),
+                        );
                         offset += (content_inline_metrics.ascent -
                             content_inline_metrics.space_below_baseline -
                             font_metrics.x_height)

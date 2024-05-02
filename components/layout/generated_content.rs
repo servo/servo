@@ -20,7 +20,7 @@ use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::generics::counters::ContentItem;
 use style::values::specified::list::{QuotePair, Quotes};
 
-use crate::context::{with_thread_local_font_context, LayoutContext};
+use crate::context::LayoutContext;
 use crate::display_list::items::OpaqueNode;
 use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
 use crate::fragment::{
@@ -493,9 +493,7 @@ fn render_text(
     ));
     // FIXME(pcwalton): This should properly handle multiple marker fragments. This could happen
     // due to text run splitting.
-    let fragments = with_thread_local_font_context(layout_context, |font_context| {
-        TextRunScanner::new().scan_for_runs(font_context, fragments)
-    });
+    let fragments = TextRunScanner::new().scan_for_runs(&layout_context.font_context, fragments);
     if fragments.is_empty() {
         None
     } else {

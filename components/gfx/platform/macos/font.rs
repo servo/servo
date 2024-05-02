@@ -63,6 +63,17 @@ pub struct PlatformFont {
     can_do_fast_shaping: bool,
 }
 
+// From https://developer.apple.com/documentation/coretext:
+// > All individual functions in Core Text are thread-safe. Font objects (CTFont,
+// > CTFontDescriptor, and associated objects) can be used simultaneously by multiple
+// > operations, work queues, or threads. However, the layout objects (CTTypesetter,
+// > CTFramesetter, CTRun, CTLine, CTFrame, and associated objects) should be used in a
+// > single operation, work queue, or thread.
+//
+// The other element is a read-only CachedKernTable which is stored in a CFData.
+unsafe impl Sync for PlatformFont {}
+unsafe impl Send for PlatformFont {}
+
 impl PlatformFont {
     /// Cache all the data needed for basic horizontal kerning. This is used only as a fallback or
     /// fast path (when the GPOS table is missing or unnecessary) so it needn't handle every case.

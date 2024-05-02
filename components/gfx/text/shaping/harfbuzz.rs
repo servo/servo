@@ -130,6 +130,12 @@ pub struct Shaper {
     font: *const Font,
 }
 
+// The HarfBuzz API is thread safe as well as our `Font`, so we can make the data
+// structures here as thread-safe as well. This doesn't seem to be documented,
+// but was expressed as one of the original goals of the HarfBuzz API.
+unsafe impl Sync for Shaper {}
+unsafe impl Send for Shaper {}
+
 impl Drop for Shaper {
     fn drop(&mut self) {
         unsafe {

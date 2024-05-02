@@ -150,22 +150,26 @@ fn font_family(names: Vec<&str>) -> FontFamily {
 #[test]
 fn test_font_group_is_cached_by_style() {
     let source = TestFontSource::new();
-    let mut context = FontContext::new(source);
+    let context = FontContext::new(source);
 
     let style1 = style();
 
     let mut style2 = style();
     style2.set_font_style(FontStyle::ITALIC);
 
-    assert_eq!(
-        context.font_group(Arc::new(style1.clone())).as_ptr(),
-        context.font_group(Arc::new(style1.clone())).as_ptr(),
+    assert!(
+        std::ptr::eq(
+            &*context.font_group(Arc::new(style1.clone())).read(),
+            &*context.font_group(Arc::new(style1.clone())).read()
+        ),
         "the same font group should be returned for two styles with the same hash"
     );
 
-    assert_ne!(
-        context.font_group(Arc::new(style1.clone())).as_ptr(),
-        context.font_group(Arc::new(style2.clone())).as_ptr(),
+    assert!(
+        !std::ptr::eq(
+            &*context.font_group(Arc::new(style1.clone())).read(),
+            &*context.font_group(Arc::new(style2.clone())).read()
+        ),
         "different font groups should be returned for two styles with different hashes"
     )
 }
@@ -181,12 +185,9 @@ fn test_font_group_find_by_codepoint() {
 
     let group = context.font_group(Arc::new(style));
 
-    let font = group
-        .borrow_mut()
-        .find_by_codepoint(&mut context, 'a')
-        .unwrap();
+    let font = group.write().find_by_codepoint(&mut context, 'a').unwrap();
     assert_eq!(
-        font.borrow().identifier(),
+        font.identifier(),
         TestFontSource::identifier_for_font_name("csstest-ascii")
     );
     assert_eq!(
@@ -195,12 +196,9 @@ fn test_font_group_find_by_codepoint() {
         "only the first font in the list should have been loaded"
     );
 
-    let font = group
-        .borrow_mut()
-        .find_by_codepoint(&mut context, 'a')
-        .unwrap();
+    let font = group.write().find_by_codepoint(&mut context, 'a').unwrap();
     assert_eq!(
-        font.borrow().identifier(),
+        font.identifier(),
         TestFontSource::identifier_for_font_name("csstest-ascii")
     );
     assert_eq!(
@@ -209,12 +207,9 @@ fn test_font_group_find_by_codepoint() {
         "we shouldn't load the same font a second time"
     );
 
-    let font = group
-        .borrow_mut()
-        .find_by_codepoint(&mut context, 'á')
-        .unwrap();
+    let font = group.write().find_by_codepoint(&mut context, 'á').unwrap();
     assert_eq!(
-        font.borrow().identifier(),
+        font.identifier(),
         TestFontSource::identifier_for_font_name("csstest-basic-regular")
     );
     assert_eq!(count.get(), 2, "both fonts should now have been loaded");
@@ -230,22 +225,16 @@ fn test_font_fallback() {
 
     let group = context.font_group(Arc::new(style));
 
-    let font = group
-        .borrow_mut()
-        .find_by_codepoint(&mut context, 'a')
-        .unwrap();
+    let font = group.write().find_by_codepoint(&mut context, 'a').unwrap();
     assert_eq!(
-        font.borrow().identifier(),
+        font.identifier(),
         TestFontSource::identifier_for_font_name("csstest-ascii"),
         "a family in the group should be used if there is a matching glyph"
     );
 
-    let font = group
-        .borrow_mut()
-        .find_by_codepoint(&mut context, 'á')
-        .unwrap();
+    let font = group.write().find_by_codepoint(&mut context, 'á').unwrap();
     assert_eq!(
-        font.borrow().identifier(),
+        font.identifier(),
         TestFontSource::identifier_for_font_name("csstest-basic-regular"),
         "a fallback font should be used if there is no matching glyph in the group"
     );
@@ -255,7 +244,7 @@ fn test_font_fallback() {
 fn test_font_template_is_cached() {
     let source = TestFontSource::new();
     let count = source.find_font_count.clone();
-    let mut context = FontContext::new(source);
+    let context = FontContext::new(source);
 
     let mut font_descriptor = FontDescriptor {
         weight: FontWeight::normal(),
@@ -280,8 +269,7 @@ fn test_font_template_is_cached() {
         .unwrap();
 
     assert_ne!(
-        font1.borrow().descriptor.pt_size,
-        font2.borrow().descriptor.pt_size,
+        font1.descriptor.pt_size, font2.descriptor.pt_size,
         "the same font should not have been returned"
     );
 
