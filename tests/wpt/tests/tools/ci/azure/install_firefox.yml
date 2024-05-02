@@ -1,9 +1,8 @@
 steps:
-# This is equivalent to `Homebrew/homebrew-cask-versions/firefox-nightly`,
-# but the raw URL is used to bypass caching.
+# The raw firefox@nightly.rb cask URL is used to bypass caching.
 - script: |
     set -eux -o pipefail
-    curl https://raw.githubusercontent.com/Homebrew/homebrew-cask-versions/master/Casks/firefox-nightly.rb > firefox-nightly.rb
-    HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask firefox-nightly.rb
+    curl https://raw.githubusercontent.com/Homebrew/homebrew-cask/HEAD/Casks/f/firefox@nightly.rb > firefox@nightly.rb
+    HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask firefox@nightly.rb
   displayName: 'Install Firefox Nightly'
   condition: and(succeeded(), eq(variables['Agent.OS'], 'Darwin'))

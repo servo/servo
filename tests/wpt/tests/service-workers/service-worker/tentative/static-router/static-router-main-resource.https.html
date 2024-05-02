@@ -11,6 +11,7 @@
 <body>
 <script>
 const ROUTER_RULE_KEY = 'condition-urlpattern-constructed-source-network';
+const ROUTER_RULE_NOT_KEY = 'condition-urlpattern-not-source-network';
 const ROUTER_RULE_KEY_IGNORE_CASE =
   'condition-urlpattern-constructed-ignore-case-source-network';
 const ROUTER_RULE_KEY_RESPECT_CASE =
@@ -23,6 +24,7 @@ const ROUTER_RULE_KEY_URLPATTERN_CACHE_WITH_NAME =
 const REGISTERED_ROUTE = 'resources/direct.txt';
 const CACHED_ROUTE = 'resources/cache.txt';
 const NON_REGISTERED_ROUTE = 'resources/simple.html';
+const NOT_ROUTE = 'resources/not.txt';
 const host_info = get_host_info();
 const path = new URL(".", window.location).pathname;
 
@@ -72,5 +74,20 @@ iframeTest(CACHED_ROUTE, ROUTER_RULE_KEY_URLPATTERN_CACHE_WITH_NAME, async (t, i
   assert_equals(requests.length, 0);
   assert_equals(iwin.document.body.innerText, "From cache");
 }, 'Main resource load matched with the cache source, with specifying the cache name');
+
+iframeTest(NOT_ROUTE, ROUTER_RULE_NOT_KEY, async (t, iwin, worker) => {
+  const {requests} = await get_info_from_worker(worker);
+  assert_equals(requests.length, 1);
+  assert_equals(
+    requests[0].url,
+    `${host_info['HTTPS_ORIGIN']}${path}${NOT_ROUTE}`);
+  assert_equals(requests[0].mode, 'navigate');
+}, 'Main resource load should not match the condition with not');
+
+iframeTest(REGISTERED_ROUTE, ROUTER_RULE_NOT_KEY, async (t, iwin, worker) => {
+  const {requests} = await get_info_from_worker(worker);
+  assert_equals(requests.length, 0);
+  assert_equals(iwin.document.body.innerText, "Network\n");
+}, 'Main resource load should match the condition without not');
 </script>
 </body>

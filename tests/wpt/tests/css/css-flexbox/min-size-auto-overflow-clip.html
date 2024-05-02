@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#min-size-auto">
+<link rel="match" href="min-size-auto-overflow-clip-ref.html">
+<title>overflow: visible and clip behave the same for min-size purposes</title>
+<style>
+  .flex {
+    display: flex;
+    width: 100px;
+    border: 1px solid;
+  }
+</style>
+<div class="flex">
+  <div style="overflow: clip">
+    <div style="background: green; width: 150px; height: 50px;"></div>
+  </div>
+</div>

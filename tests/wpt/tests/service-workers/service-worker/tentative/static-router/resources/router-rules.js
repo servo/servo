@@ -1,8 +1,13 @@
 const TEST_CACHE_NAME = 'v1';
+const MAX_CONDITION_DEPTH = 10;
 
 const routerRules = {
   'condition-urlpattern-constructed-source-network': [{
     condition: {urlPattern: new URLPattern({pathname: '/**/direct.txt'})},
+    source: 'network'
+  }],
+  'condition-urlpattern-not-source-network': [{
+    condition: {not: {urlPattern: new URLPattern({pathname: '/**/not.txt'})}},
     source: 'network'
   }],
   'condition-urlpattern-constructed-match-all-source-cache': [
@@ -43,14 +48,19 @@ const routerRules = {
       [{condition: {requestMethod: 'PUT'}, source: 'network'}],
   'condition-request-method-delete-network':
       [{condition: {requestMethod: 'DELETE'}, source: 'network'}],
+  'condition-lack-of-condition': [{
+    source: 'network'
+  }],
+  'condition-lack-of-source': [{
+    condition: {requestMode: 'no-cors'},
+  }],
   'condition-invalid-request-method': [{
     condition: {requestMethod: String.fromCodePoint(0x3042)},
     source: 'network'
   }],
   'condition-invalid-or-condition-depth': (() => {
-    const max = 10;
     const addOrCondition = (obj, depth) => {
-      if (depth > max) {
+      if (depth > MAX_CONDITION_DEPTH) {
         return obj;
       }
       return {
@@ -59,6 +69,17 @@ const routerRules = {
       };
     };
     return {condition: addOrCondition({}, 0), source: 'network'};
+  })(),
+  'condition-invalid-not-condition-depth': (() => {
+    const generateNotCondition = (depth) => {
+      if (depth > MAX_CONDITION_DEPTH) {
+        return {
+          urlPattern: '/**/example.txt',
+        };
+      }
+      return {not: generateNotCondition(depth + 1)};
+    };
+    return {condition: generateNotCondition(0), source: 'network'};
   })(),
   'condition-invalid-router-size': [...Array(512)].map((val, i) => {
     return {

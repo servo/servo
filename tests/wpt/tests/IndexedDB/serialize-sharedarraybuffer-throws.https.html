@@ -13,7 +13,7 @@
     let open_rq = createdb(t);
     open_rq.onupgradeneeded = function(e) {
         let db = e.target.result;
-        let objStore = db.createObjectStore("test", { keyPath:"pKey" });
+        let objStore = db.createObjectStore("test");
 
         let sab = new SharedArrayBuffer(256);
 

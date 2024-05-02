@@ -1,5 +1,7 @@
 // META: title=test WebNN API element-wise logical operations
 // META: global=window,dedicatedworker
+// META: variant=?cpu
+// META: variant=?gpu
 // META: script=../resources/utils.js
 // META: timeout=long
 
@@ -7,14 +9,17 @@
 
 // https://webmachinelearning.github.io/webnn/#api-mlgraphbuilder-logical
 
-testWebNNOperation(
-  [
-    'equal',
-    'greater',
-    'greaterOrEqual',
-    'lesser',
-    'lesserOrEqual',
-  ],
-  buildOperationWithTwoInputs
-);
-testWebNNOperation('logicalNot', buildOperationWithSingleInput);
+if (navigator.ml) {
+  testWebNNOperation(
+      [
+        'equal',
+        'greater',
+        'greaterOrEqual',
+        'lesser',
+        'lesserOrEqual',
+      ],
+      buildOperationWithTwoInputs);
+  testWebNNOperation('logicalNot', buildOperationWithSingleInput);
+} else {
+  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
+}

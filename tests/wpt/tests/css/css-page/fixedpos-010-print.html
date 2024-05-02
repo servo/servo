@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#valdef-position-fixed">
+<link rel="match" href="fixedpos-010-print-ref.html">
+<style>
+  @page {
+    size: 400px;
+    margin: 0;
+  }
+  @page large {
+    size: 500px 400px;
+  }
+  body {
+    margin: 0;
+  }
+</style>
+<div style="position:fixed; right:-100px; bottom:0; width:100px; height:100px; background:blue;"></div>
+This page should <em>not</em> have a blue box.
+<div style="page:large; width:400px;">
+  This page should have a blue box in the bottom right corner.
+  <div style="break-before:page;">
+    This page should have a blue box in the bottom right corner.
+  </div>
+</div>
+This page should <em>not</em> have a blue box.

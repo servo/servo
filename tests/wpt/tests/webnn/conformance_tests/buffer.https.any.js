@@ -1,5 +1,7 @@
 // META: title=test WebNN API buffer operations
 // META: global=window,dedicatedworker
+// META: variant=?cpu
+// META: variant=?gpu
 // META: script=../resources/utils.js
 // META: timeout=long
 
@@ -7,10 +9,11 @@
 
 // https://webmachinelearning.github.io/webnn/#api-mlbuffer
 
-testCreateWebNNBuffer("create", 4);
-
-testDestroyWebNNBuffer('destroyTwice');
-
-testReadWebNNBuffer('read');
-
-testWriteWebNNBuffer('write');
+if (navigator.ml) {
+  testCreateWebNNBuffer('create', 4);
+  testDestroyWebNNBuffer('destroyTwice');
+  testReadWebNNBuffer('read');
+  testWriteWebNNBuffer('write');
+} else {
+  test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
+}

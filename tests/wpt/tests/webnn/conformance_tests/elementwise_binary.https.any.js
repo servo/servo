@@ -1,5 +1,7 @@
 // META: title=test WebNN API element-wise binary operations
 // META: global=window,dedicatedworker
+// META: variant=?cpu
+// META: variant=?gpu
 // META: script=../resources/utils.js
 // META: timeout=long
 
@@ -7,4 +9,6 @@
 
 // https://webmachinelearning.github.io/webnn/#api-mlgraphbuilder-binary
 
-testWebNNOperation(['add', 'sub', 'mul', 'div', 'max', 'min', 'pow'], buildOperationWithTwoInputs);
+runWebNNConformanceTests(
+    ['add', 'sub', 'mul', 'div', 'max', 'min', 'pow'],
+    buildOperationWithTwoInputs);
