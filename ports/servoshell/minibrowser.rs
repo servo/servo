@@ -23,6 +23,7 @@ use servo::rendering_context::RenderingContext;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
 use servo::style_traits::DevicePixel;
+use winit::event::{ElementState, MouseButton, WindowEvent};
 
 use crate::egui_glue::EguiGlow;
 use crate::events_loop::EventsLoop;
@@ -97,22 +98,40 @@ impl Minibrowser {
         event: &winit::event::WindowEvent,
     ) -> EventResponse {
         let mut result = self.context.on_window_event(window, event);
+
         result.consumed &= match event {
-            winit::event::WindowEvent::CursorMoved { position, .. } => {
+            WindowEvent::CursorMoved { position, .. } => {
                 let scale = Scale::<_, DeviceIndependentPixel, _>::new(
                     self.context.egui_ctx.pixels_per_point(),
                 );
+
                 self.last_mouse_position =
                     Some(winit_position_to_euclid_point(*position).to_f32() / scale);
+
                 self.last_mouse_position
                     .map_or(false, |p| self.is_in_browser_rect(p))
             },
-            winit::event::WindowEvent::MouseWheel { .. } |
-            winit::event::WindowEvent::MouseInput { .. } => self
+            WindowEvent::MouseWheel { .. } => self
                 .last_mouse_position
                 .map_or(false, |p| self.is_in_browser_rect(p)),
+            WindowEvent::MouseInput { state, button, .. } => match (*state, *button) {
+                (ElementState::Pressed, MouseButton::Other(8)) => {
+                    self.event_queue.borrow_mut().push(MinibrowserEvent::Back);
+                    true
+                },
+                (ElementState::Pressed, MouseButton::Other(9)) => {
+                    self.event_queue
+                        .borrow_mut()
+                        .push(MinibrowserEvent::Forward);
+                    true
+                },
+                _ => self
+                    .last_mouse_position
+                    .map_or(false, |p| self.is_in_browser_rect(p)),
+            },
             _ => true,
         };
+
         result
     }
 
