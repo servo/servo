@@ -465,10 +465,8 @@ impl FontGroup {
         let should_look_for_small_caps = self.descriptor.variant == font_variant_caps::T::SmallCaps &&
             codepoint.is_ascii_lowercase();
         let font_or_synthesized_small_caps = |font: FontRef| {
-            if should_look_for_small_caps {
-                if font.synthesized_small_caps.is_some() {
-                    return font.synthesized_small_caps.clone();
-                }
+            if should_look_for_small_caps && font.synthesized_small_caps.is_some() {
+                return font.synthesized_small_caps.clone();
             }
             Some(font)
         };
