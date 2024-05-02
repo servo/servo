@@ -131,6 +131,8 @@ pub struct FontMetrics {
     pub max_advance: Au,
     pub average_advance: Au,
     pub line_gap: Au,
+    pub zero_horizontal_advance: Option<Au>,
+    pub ic_horizontal_advance: Option<Au>,
 }
 
 impl FontMetrics {
@@ -150,6 +152,8 @@ impl FontMetrics {
             max_advance: Au(0),
             average_advance: Au(0),
             line_gap: Au(0),
+            zero_horizontal_advance: None,
+            ic_horizontal_advance: None,
         }
     }
 }
