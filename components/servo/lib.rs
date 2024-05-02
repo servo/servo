@@ -90,7 +90,8 @@ use surfman::{GLApi, GLVersion};
 use surfman::{NativeConnection, NativeContext};
 use webrender::{RenderApiSender, ShaderPrecacheFlags};
 use webrender_api::{
-    ColorF, DocumentId, FontInstanceKey, FontKey, FramePublishId, ImageKey, NativeFontHandle,
+    ColorF, DocumentId, FontInstanceFlags, FontInstanceKey, FontKey, FramePublishId, ImageKey,
+    NativeFontHandle,
 };
 use webrender_traits::{
     WebrenderExternalImageHandlers, WebrenderExternalImageRegistry, WebrenderImageHandlerType,
@@ -1043,12 +1044,17 @@ fn create_constellation(
 struct FontCacheWR(CompositorProxy);
 
 impl gfx_traits::WebrenderApi for FontCacheWR {
-    fn add_font_instance(&self, font_key: FontKey, size: f32) -> FontInstanceKey {
+    fn add_font_instance(
+        &self,
+        font_key: FontKey,
+        size: f32,
+        flags: FontInstanceFlags,
+    ) -> FontInstanceKey {
         let (sender, receiver) = unbounded();
         let _ = self
             .0
             .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
-                FontToCompositorMsg::AddFontInstance(font_key, size, sender),
+                FontToCompositorMsg::AddFontInstance(font_key, size, flags, sender),
             )));
         receiver.recv().unwrap()
     }

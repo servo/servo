@@ -20,6 +20,7 @@ use log::debug;
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_weight::T as FontWeight;
 use style::values::computed::font::FontStyle;
+use webrender_api::FontInstanceFlags;
 
 use super::library_handle::FreeTypeLibraryHandle;
 use crate::font::{
@@ -312,6 +313,10 @@ impl PlatformFontMethods for PlatformFont {
             }
             Some(FontTable { buffer: buf })
         }
+    }
+
+    fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
+        FontInstanceFlags::empty()
     }
 }
 
