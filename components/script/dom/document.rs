@@ -994,8 +994,8 @@ impl Document {
                 // (like Acid2).
                 let device_pixel_ratio = self.window.device_pixel_ratio().get();
                 (
-                    rect.origin.x.to_nearest_pixel(device_pixel_ratio) as f32,
-                    rect.origin.y.to_nearest_pixel(device_pixel_ratio) as f32,
+                    rect.origin.x.to_nearest_pixel(device_pixel_ratio),
+                    rect.origin.y.to_nearest_pixel(device_pixel_ratio),
                 )
             })
             .or_else(|| {
