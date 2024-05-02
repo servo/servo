@@ -238,7 +238,7 @@ impl ElementInternalsMethods for ElementInternals {
         if bits.is_empty() {
             self.set_validation_message(DOMString::new());
         } else {
-            self.set_validation_message(message.unwrap_or_else(DOMString::new));
+            self.set_validation_message(message.unwrap_or_default());
         }
 
         // Step 6: If element's customError validity flag is true, then set element's custom validity error
