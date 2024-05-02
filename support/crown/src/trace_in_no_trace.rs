@@ -86,7 +86,7 @@ fn get_must_not_have_traceable(sym: &Symbols, attrs: &[Attribute]) -> Option<usi
                     TokenKind::Literal(lit) => lit.symbol.as_str().parse().unwrap(),
                     _ => panic!("must_not_have_traceable expected integer literal here"),
                 },
-                TokenTree::Delimited(_, _, _) => {
+                TokenTree::Delimited(..) => {
                     todo!("must_not_have_traceable does not support multiple notraceable positions")
                 },
             },
@@ -134,7 +134,9 @@ fn incorrect_no_trace<'tcx, I: Into<MultiSpan> + Copy>(
                         cx.lint(
                             EMPTY_TRACE_IN_NO_TRACE,
                             EMPTY_TRACE_IN_NO_TRACE_MSG,
-                            |lint| lint.set_span(span),
+                            |lint| {
+                                lint.span(span);
+                            },
                         )
                     } else if is_jstraceable(cx, inner) {
                         cx.lint(
@@ -143,7 +145,9 @@ fn incorrect_no_trace<'tcx, I: Into<MultiSpan> + Copy>(
                                 "must_not_have_traceable marked wrapper must not have \
 jsmanaged inside on {pos}-th position. Consider removing the wrapper."
                             ),
-                            |lint| lint.set_span(span),
+                            |lint| {
+                                lint.span(span);
+                            },
                         )
                     }
                     false
