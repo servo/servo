@@ -65,7 +65,7 @@ mod from_winit {
         };
     }
 
-    impl LogTarget for winit::event::Event<'_, WakerEvent> {
+    impl LogTarget for winit::event::Event<WakerEvent> {
         fn log_target(&self) -> &'static str {
             use winit::event::StartCause;
             match self {
@@ -80,15 +80,14 @@ mod from_winit {
                 Self::UserEvent(WakerEvent) => target!("UserEvent(WakerEvent)"),
                 Self::Suspended => target!("Suspended"),
                 Self::Resumed => target!("Resumed"),
-                Self::MainEventsCleared => target!("MainEventsCleared"),
-                Self::RedrawRequested(..) => target!("RedrawRequested"),
-                Self::RedrawEventsCleared => target!("RedrawEventsCleared"),
-                Self::LoopDestroyed => target!("LoopDestroyed"),
+                Self::AboutToWait => target!("AboutToWait"),
+                Self::LoopExiting => target!("LoopExiting"),
+                Self::MemoryWarning => target!("MemoryWarning"),
             }
         }
     }
 
-    impl LogTarget for winit::event::WindowEvent<'_> {
+    impl LogTarget for winit::event::WindowEvent {
         fn log_target(&self) -> &'static str {
             macro_rules! target_variant {
                 ($name:literal) => {
@@ -96,6 +95,7 @@ mod from_winit {
                 };
             }
             match self {
+                Self::ActivationTokenDone { .. } => target!("ActivationTokenDone"),
                 Self::Resized(..) => target_variant!("Resized"),
                 Self::Moved(..) => target_variant!("Moved"),
                 Self::CloseRequested => target_variant!("CloseRequested"),
@@ -103,7 +103,6 @@ mod from_winit {
                 Self::DroppedFile(..) => target_variant!("DroppedFile"),
                 Self::HoveredFile(..) => target_variant!("HoveredFile"),
                 Self::HoveredFileCancelled => target_variant!("HoveredFileCancelled"),
-                Self::ReceivedCharacter(..) => target_variant!("ReceivedCharacter"),
                 Self::Focused(..) => target_variant!("Focused"),
                 Self::KeyboardInput { .. } => target_variant!("KeyboardInput"),
                 Self::ModifiersChanged(..) => target_variant!("ModifiersChanged"),
@@ -122,6 +121,7 @@ mod from_winit {
                 Self::ScaleFactorChanged { .. } => target_variant!("ScaleFactorChanged"),
                 Self::ThemeChanged(..) => target_variant!("ThemeChanged"),
                 Self::Occluded(..) => target_variant!("Occluded"),
+                Self::RedrawRequested => target!("RedrawRequested"),
             }
         }
     }

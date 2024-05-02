@@ -22,7 +22,7 @@ canvas_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
 cssparser = { workspace = true }
 euclid = { workspace = true }
-font-kit = "0.11"
+font-kit = { version = "0.13" }
 fnv = { workspace = true }
 gfx = { path = "../gfx" }
 half = "2"
@@ -32,7 +32,7 @@ lyon_geom = "1.0.4"
 num-traits = { workspace = true }
 pathfinder_geometry = "0.5"
 pixels = { path = "../pixels" }
-raqote = "0.8.2"
+raqote = "0.8.4"
 servo_arc = { workspace = true }
 sparkle = { workspace = true }
 style = { workspace = true }

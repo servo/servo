@@ -4,7 +4,8 @@
 
 use keyboard_types::{Code, Key, KeyState, KeyboardEvent, Location, Modifiers};
 use log::info;
-use winit::event::{ElementState, KeyboardInput, ModifiersState, VirtualKeyCode};
+use winit::event::{ElementState, KeyEvent};
+use winit::keyboard::{Key as LogicalKey, KeyCode, ModifiersState, NamedKey, PhysicalKey};
 
 // Some shortcuts use Cmd on Mac and Control on other systems.
 #[cfg(target_os = "macos")]
@@ -18,249 +19,249 @@ pub const CMD_OR_ALT: Modifiers = Modifiers::META;
 #[cfg(not(target_os = "macos"))]
 pub const CMD_OR_ALT: Modifiers = Modifiers::ALT;
 
-fn get_servo_key_from_winit_key(key: Option<VirtualKeyCode>) -> Key {
-    use winit::event::VirtualKeyCode::*;
+fn get_servo_key_from_winit_key(key: &LogicalKey) -> Key {
     // TODO: figure out how to map NavigateForward, NavigateBackward
     // TODO: map the remaining keys if possible
-    let key = if let Some(key) = key {
-        key
-    } else {
-        return Key::Unidentified;
-    };
     match key {
         // printable: Key1 to Key0
         // printable: A to Z
-        Escape => Key::Escape,
-        F1 => Key::F1,
-        F2 => Key::F2,
-        F3 => Key::F3,
-        F4 => Key::F4,
-        F5 => Key::F5,
-        F6 => Key::F6,
-        F7 => Key::F7,
-        F8 => Key::F8,
-        F9 => Key::F9,
-        F10 => Key::F10,
-        F11 => Key::F11,
-        F12 => Key::F12,
+        LogicalKey::Named(NamedKey::Escape) => Key::Escape,
+        LogicalKey::Named(NamedKey::F1) => Key::F1,
+        LogicalKey::Named(NamedKey::F2) => Key::F2,
+        LogicalKey::Named(NamedKey::F3) => Key::F3,
+        LogicalKey::Named(NamedKey::F4) => Key::F4,
+        LogicalKey::Named(NamedKey::F5) => Key::F5,
+        LogicalKey::Named(NamedKey::F6) => Key::F6,
+        LogicalKey::Named(NamedKey::F7) => Key::F7,
+        LogicalKey::Named(NamedKey::F8) => Key::F8,
+        LogicalKey::Named(NamedKey::F9) => Key::F9,
+        LogicalKey::Named(NamedKey::F10) => Key::F10,
+        LogicalKey::Named(NamedKey::F11) => Key::F11,
+        LogicalKey::Named(NamedKey::F12) => Key::F12,
         // F13 to F15 are not mapped
-        Snapshot => Key::PrintScreen,
+        LogicalKey::Named(NamedKey::PrintScreen) => Key::PrintScreen,
         // Scroll not mapped
-        Pause => Key::Pause,
-        Insert => Key::Insert,
-        Home => Key::Home,
-        Delete => Key::Delete,
-        End => Key::End,
-        PageDown => Key::PageDown,
-        PageUp => Key::PageUp,
-        Left => Key::ArrowLeft,
-        Up => Key::ArrowUp,
-        Right => Key::ArrowRight,
-        Down => Key::ArrowDown,
-        Back => Key::Backspace,
-        Return => Key::Enter,
+        LogicalKey::Named(NamedKey::Pause) => Key::Pause,
+        LogicalKey::Named(NamedKey::Insert) => Key::Insert,
+        LogicalKey::Named(NamedKey::Home) => Key::Home,
+        LogicalKey::Named(NamedKey::Delete) => Key::Delete,
+        LogicalKey::Named(NamedKey::End) => Key::End,
+        LogicalKey::Named(NamedKey::PageDown) => Key::PageDown,
+        LogicalKey::Named(NamedKey::PageUp) => Key::PageUp,
+        LogicalKey::Named(NamedKey::ArrowLeft) => Key::ArrowLeft,
+        LogicalKey::Named(NamedKey::ArrowUp) => Key::ArrowUp,
+        LogicalKey::Named(NamedKey::ArrowRight) => Key::ArrowRight,
+        LogicalKey::Named(NamedKey::ArrowDown) => Key::ArrowDown,
+        LogicalKey::Named(NamedKey::Backspace) => Key::Backspace,
+        LogicalKey::Named(NamedKey::Enter) => Key::Enter,
         // printable: Space
-        Compose => Key::Compose,
+        LogicalKey::Named(NamedKey::Compose) => Key::Compose,
         // Caret not mapped
-        Numlock => Key::NumLock,
+        LogicalKey::Named(NamedKey::NumLock) => Key::NumLock,
         // printable: Numpad0 to Numpad9
         // AbntC1 and AbntC2 not mapped
         // printable: Add, Apostrophe,
         // Apps, At, Ax not mapped
         // printable: Backslash,
-        Calculator => Key::LaunchApplication2,
-        Capital => Key::CapsLock,
+        LogicalKey::Named(NamedKey::LaunchApplication2) => Key::LaunchApplication2,
+        LogicalKey::Named(NamedKey::CapsLock) => Key::CapsLock,
         // printable: Colon, Comma,
-        Convert => Key::Convert,
+        LogicalKey::Named(NamedKey::Convert) => Key::Convert,
         // not mapped: Decimal,
         // printable: Divide, Equals, Grave,
-        Kana => Key::KanaMode,
-        Kanji => Key::KanjiMode,
-        LAlt => Key::Alt,
+        LogicalKey::Named(NamedKey::KanaMode) => Key::KanaMode,
+        LogicalKey::Named(NamedKey::KanjiMode) => Key::KanjiMode,
+        LogicalKey::Named(NamedKey::Alt) => Key::Alt,
         // printable: LBracket,
-        LControl => Key::Control,
-        LShift => Key::Shift,
-        LWin => Key::Meta,
-        Mail => Key::LaunchMail,
+        LogicalKey::Named(NamedKey::Control) => Key::Control,
+        LogicalKey::Named(NamedKey::Shift) => Key::Shift,
+        LogicalKey::Named(NamedKey::Meta) => Key::Meta,
+        LogicalKey::Named(NamedKey::LaunchMail) => Key::LaunchMail,
         // not mapped: MediaSelect,
-        MediaStop => Key::MediaStop,
+        LogicalKey::Named(NamedKey::MediaStop) => Key::MediaStop,
         // printable: Minus, Multiply,
-        Mute => Key::AudioVolumeMute,
-        MyComputer => Key::LaunchApplication1,
+        LogicalKey::Named(NamedKey::AudioVolumeMute) => Key::AudioVolumeMute,
+        LogicalKey::Named(NamedKey::LaunchApplication1) => Key::LaunchApplication1,
         // not mapped: NavigateForward, NavigateBackward
-        NextTrack => Key::MediaTrackNext,
-        NoConvert => Key::NonConvert,
+        LogicalKey::Named(NamedKey::MediaTrackNext) => Key::MediaTrackNext,
+        LogicalKey::Named(NamedKey::NonConvert) => Key::NonConvert,
         // printable: NumpadComma, NumpadEnter, NumpadEquals,
         // not mapped: OEM102,
         // printable: Period,
-        PlayPause => Key::MediaPlayPause,
-        Power => Key::Power,
-        PrevTrack => Key::MediaTrackPrevious,
-        RAlt => Key::Alt,
+        LogicalKey::Named(NamedKey::MediaPlayPause) => Key::MediaPlayPause,
+        LogicalKey::Named(NamedKey::Power) => Key::Power,
+        LogicalKey::Named(NamedKey::MediaTrackPrevious) => Key::MediaTrackPrevious,
         // printable RBracket
-        RControl => Key::Control,
-        RShift => Key::Shift,
-        RWin => Key::Meta,
         // printable Semicolon, Slash
-        Sleep => Key::Standby,
+        LogicalKey::Named(NamedKey::Standby) => Key::Standby,
         // not mapped: Stop,
         // printable Subtract,
         // not mapped: Sysrq,
-        Tab => Key::Tab,
+        LogicalKey::Named(NamedKey::Tab) => Key::Tab,
         // printable: Underline,
         // not mapped: Unlabeled,
-        VolumeDown => Key::AudioVolumeDown,
-        VolumeUp => Key::AudioVolumeUp,
-        Wake => Key::WakeUp,
-        WebBack => Key::BrowserBack,
-        WebFavorites => Key::BrowserFavorites,
-        WebForward => Key::BrowserForward,
-        WebHome => Key::BrowserHome,
-        WebRefresh => Key::BrowserRefresh,
-        WebSearch => Key::BrowserSearch,
-        WebStop => Key::BrowserStop,
+        LogicalKey::Named(NamedKey::AudioVolumeDown) => Key::AudioVolumeDown,
+        LogicalKey::Named(NamedKey::AudioVolumeUp) => Key::AudioVolumeUp,
+        LogicalKey::Named(NamedKey::WakeUp) => Key::WakeUp,
+        LogicalKey::Named(NamedKey::BrowserBack) => Key::BrowserBack,
+        LogicalKey::Named(NamedKey::BrowserFavorites) => Key::BrowserFavorites,
+        LogicalKey::Named(NamedKey::BrowserForward) => Key::BrowserForward,
+        LogicalKey::Named(NamedKey::BrowserHome) => Key::BrowserHome,
+        LogicalKey::Named(NamedKey::BrowserRefresh) => Key::BrowserRefresh,
+        LogicalKey::Named(NamedKey::BrowserSearch) => Key::BrowserSearch,
+        LogicalKey::Named(NamedKey::BrowserStop) => Key::BrowserStop,
         // printable Yen,
-        Copy => Key::Copy,
-        Paste => Key::Paste,
-        Cut => Key::Cut,
+        LogicalKey::Named(NamedKey::Copy) => Key::Copy,
+        LogicalKey::Named(NamedKey::Paste) => Key::Paste,
+        LogicalKey::Named(NamedKey::Cut) => Key::Cut,
         _ => Key::Unidentified,
     }
 }
 
-fn get_servo_location_from_winit_key(key: Option<VirtualKeyCode>) -> Location {
-    use winit::event::VirtualKeyCode::*;
-    // TODO: add more numpad keys
-    let key = if let Some(key) = key {
-        key
+fn get_servo_location_from_physical_key(physical_key: PhysicalKey) -> Location {
+    let key_code = if let PhysicalKey::Code(key_code) = physical_key {
+        key_code
     } else {
         return Location::Standard;
     };
-    match key {
-        LShift | LControl | LAlt | LWin => Location::Left,
-        RShift | RControl | RAlt | RWin => Location::Right,
-        Numpad0 | Numpad1 | Numpad2 | Numpad3 | Numpad4 | Numpad5 | Numpad6 | Numpad7 |
-        Numpad8 | Numpad9 => Location::Numpad,
-        NumpadComma | NumpadEnter | NumpadEquals => Location::Numpad,
+
+    // TODO: add more numpad keys
+    match key_code {
+        KeyCode::ShiftLeft | KeyCode::ControlLeft | KeyCode::AltLeft | KeyCode::SuperLeft => {
+            Location::Left
+        },
+        KeyCode::ShiftRight | KeyCode::ControlRight | KeyCode::AltRight | KeyCode::SuperRight => {
+            Location::Right
+        },
+        KeyCode::Numpad0 |
+        KeyCode::Numpad1 |
+        KeyCode::Numpad2 |
+        KeyCode::Numpad3 |
+        KeyCode::Numpad4 |
+        KeyCode::Numpad5 |
+        KeyCode::Numpad6 |
+        KeyCode::Numpad7 |
+        KeyCode::Numpad8 |
+        KeyCode::Numpad9 => Location::Numpad,
+        KeyCode::NumpadComma | KeyCode::NumpadEnter | KeyCode::NumpadEqual => Location::Numpad,
         _ => Location::Standard,
     }
 }
 
-#[cfg(target_os = "linux")]
-fn get_servo_code_from_scancode(scancode: u32) -> Code {
+fn get_servo_code_from_physical_key(physical_key: PhysicalKey) -> Code {
+    let key_code = if let PhysicalKey::Code(key_code) = physical_key {
+        key_code
+    } else {
+        return Code::Unidentified;
+    };
+
     // TODO: Map more codes
-    use keyboard_types::Code::*;
-    match scancode {
-        1 => Escape,
-        2 => Digit1,
-        3 => Digit2,
-        4 => Digit3,
-        5 => Digit4,
-        6 => Digit5,
-        7 => Digit6,
-        8 => Digit7,
-        9 => Digit8,
-        10 => Digit9,
-        11 => Digit0,
+    match key_code {
+        KeyCode::Escape => Code::Escape,
+        KeyCode::Digit1 => Code::Digit1,
+        KeyCode::Digit2 => Code::Digit2,
+        KeyCode::Digit3 => Code::Digit3,
+        KeyCode::Digit4 => Code::Digit4,
+        KeyCode::Digit5 => Code::Digit5,
+        KeyCode::Digit6 => Code::Digit6,
+        KeyCode::Digit7 => Code::Digit7,
+        KeyCode::Digit8 => Code::Digit8,
+        KeyCode::Digit9 => Code::Digit9,
+        KeyCode::Digit0 => Code::Digit0,
 
-        14 => Backspace,
-        15 => Tab,
-        16 => KeyQ,
-        17 => KeyW,
-        18 => KeyE,
-        19 => KeyR,
-        20 => KeyT,
-        21 => KeyY,
-        22 => KeyU,
-        23 => KeyI,
-        24 => KeyO,
-        25 => KeyP,
-        26 => BracketLeft,
-        27 => BracketRight,
-        28 => Enter,
+        KeyCode::Backspace => Code::Backspace,
+        KeyCode::Tab => Code::Tab,
+        KeyCode::KeyQ => Code::KeyQ,
+        KeyCode::KeyW => Code::KeyW,
+        KeyCode::KeyE => Code::KeyE,
+        KeyCode::KeyR => Code::KeyR,
+        KeyCode::KeyT => Code::KeyT,
+        KeyCode::KeyY => Code::KeyY,
+        KeyCode::KeyU => Code::KeyU,
+        KeyCode::KeyI => Code::KeyI,
+        KeyCode::KeyO => Code::KeyO,
+        KeyCode::KeyP => Code::KeyP,
+        KeyCode::BracketLeft => Code::BracketLeft,
+        KeyCode::BracketRight => Code::BracketRight,
+        KeyCode::Enter => Code::Enter,
 
-        30 => KeyA,
-        31 => KeyS,
-        32 => KeyD,
-        33 => KeyF,
-        34 => KeyG,
-        35 => KeyH,
-        36 => KeyJ,
-        37 => KeyK,
-        38 => KeyL,
-        39 => Semicolon,
-        40 => Quote,
+        KeyCode::KeyA => Code::KeyA,
+        KeyCode::KeyS => Code::KeyS,
+        KeyCode::KeyD => Code::KeyD,
+        KeyCode::KeyF => Code::KeyF,
+        KeyCode::KeyG => Code::KeyG,
+        KeyCode::KeyH => Code::KeyH,
+        KeyCode::KeyJ => Code::KeyJ,
+        KeyCode::KeyK => Code::KeyK,
+        KeyCode::KeyL => Code::KeyL,
+        KeyCode::Semicolon => Code::Semicolon,
+        KeyCode::Quote => Code::Quote,
 
-        42 => ShiftLeft,
-        43 => Backslash,
-        44 => KeyZ,
-        45 => KeyX,
-        46 => KeyC,
-        47 => KeyV,
-        48 => KeyB,
-        49 => KeyN,
-        50 => KeyM,
-        51 => Comma,
-        52 => Period,
-        53 => Slash,
-        54 => ShiftRight,
+        KeyCode::ShiftLeft => Code::ShiftLeft,
+        KeyCode::Backslash => Code::Backslash,
+        KeyCode::KeyZ => Code::KeyZ,
+        KeyCode::KeyX => Code::KeyX,
+        KeyCode::KeyC => Code::KeyC,
+        KeyCode::KeyV => Code::KeyV,
+        KeyCode::KeyB => Code::KeyB,
+        KeyCode::KeyN => Code::KeyN,
+        KeyCode::KeyM => Code::KeyM,
+        KeyCode::Comma => Code::Comma,
+        KeyCode::Period => Code::Period,
+        KeyCode::Slash => Code::Slash,
+        KeyCode::ShiftRight => Code::ShiftRight,
 
-        57 => Space,
+        KeyCode::Space => Code::Space,
 
-        59 => F1,
-        60 => F2,
-        61 => F3,
-        62 => F4,
-        63 => F5,
-        64 => F6,
-        65 => F7,
-        66 => F8,
-        67 => F9,
-        68 => F10,
+        KeyCode::F1 => Code::F1,
+        KeyCode::F2 => Code::F2,
+        KeyCode::F3 => Code::F3,
+        KeyCode::F4 => Code::F4,
+        KeyCode::F5 => Code::F5,
+        KeyCode::F6 => Code::F6,
+        KeyCode::F7 => Code::F7,
+        KeyCode::F8 => Code::F8,
+        KeyCode::F9 => Code::F9,
+        KeyCode::F10 => Code::F10,
 
-        87 => F11,
-        88 => F12,
+        KeyCode::F11 => Code::F11,
+        KeyCode::F12 => Code::F12,
 
-        103 => ArrowUp,
-        104 => PageUp,
-        105 => ArrowLeft,
-        106 => ArrowRight,
+        KeyCode::ArrowUp => Code::ArrowUp,
+        KeyCode::PageUp => Code::PageUp,
+        KeyCode::ArrowLeft => Code::ArrowLeft,
+        KeyCode::ArrowRight => Code::ArrowRight,
 
-        102 => Home,
-        107 => End,
-        108 => ArrowDown,
-        109 => PageDown,
-        110 => Insert,
-        111 => Delete,
+        KeyCode::Home => Code::Home,
+        KeyCode::End => Code::End,
+        KeyCode::ArrowDown => Code::ArrowDown,
+        KeyCode::PageDown => Code::PageDown,
+        KeyCode::Insert => Code::Insert,
+        KeyCode::Delete => Code::Delete,
 
-        _ => Unidentified,
+        _ => Code::Unidentified,
     }
-}
-
-#[cfg(not(target_os = "linux"))]
-fn get_servo_code_from_scancode(_scancode: u32) -> Code {
-    // TODO: Implement for Windows and Mac OS
-    Code::Unidentified
 }
 
 fn get_modifiers(mods: ModifiersState) -> Modifiers {
     let mut modifiers = Modifiers::empty();
-    modifiers.set(Modifiers::CONTROL, mods.ctrl());
-    modifiers.set(Modifiers::SHIFT, mods.shift());
-    modifiers.set(Modifiers::ALT, mods.alt());
-    modifiers.set(Modifiers::META, mods.logo());
+    modifiers.set(Modifiers::CONTROL, mods.control_key());
+    modifiers.set(Modifiers::SHIFT, mods.shift_key());
+    modifiers.set(Modifiers::ALT, mods.alt_key());
+    modifiers.set(Modifiers::META, mods.super_key());
     modifiers
 }
 
-pub fn keyboard_event_from_winit(input: KeyboardInput, state: ModifiersState) -> KeyboardEvent {
+pub fn keyboard_event_from_winit(input: &KeyEvent, state: ModifiersState) -> KeyboardEvent {
     info!("winit keyboard input: {:?}", input);
     KeyboardEvent {
         state: match input.state {
             ElementState::Pressed => KeyState::Down,
             ElementState::Released => KeyState::Up,
         },
-        key: get_servo_key_from_winit_key(input.virtual_keycode),
-        code: get_servo_code_from_scancode(input.scancode),
-        location: get_servo_location_from_winit_key(input.virtual_keycode),
+        key: get_servo_key_from_winit_key(&input.logical_key),
+        code: get_servo_code_from_physical_key(input.physical_key),
+        location: get_servo_location_from_physical_key(input.physical_key),
         modifiers: get_modifiers(state),
         repeat: false,
         is_composing: false,

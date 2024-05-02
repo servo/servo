@@ -34,10 +34,10 @@ packages = [
 
     # New versions of these dependencies is pulled in by GStreamer / GLib.
     "itertools",
-    "proc-macro-crate",
     "toml",
 
     # Duplicated by winit.
+    "jni",
     "windows-sys",
     "windows-targets",
     "windows_aarch64_gnullvm",
@@ -52,7 +52,6 @@ packages = [
     "foreign-types",
     "foreign-types-shared",
     "metal",
-    "raw-window-handle",
 
     # Duplicated by indexmap.
     "hashbrown",
@@ -68,10 +67,6 @@ packages = [
     "phf",
     "phf_generator",
     "phf_shared",
-
-    # These can be removed once winit, font-kit, etc are upgraded
-    "core-graphics",
-    "core-text",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
