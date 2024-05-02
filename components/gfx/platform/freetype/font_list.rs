@@ -268,9 +268,9 @@ fn font_weight_from_fontconfig_pattern(pattern: *mut FcPattern) -> Option<FontWe
 
     let mapping = [
         (0., 0.),
-        (FC_WEIGHT_REGULAR as f64, 400 as f64),
-        (FC_WEIGHT_BOLD as f64, 700 as f64),
-        (FC_WEIGHT_EXTRABLACK as f64, 1000 as f64),
+        (FC_WEIGHT_REGULAR as f64, 400_f64),
+        (FC_WEIGHT_BOLD as f64, 700_f64),
+        (FC_WEIGHT_EXTRABLACK as f64, 1000_f64),
     ];
 
     let mapped_weight = map_platform_values_to_style_values(&mapping, weight as f64);
