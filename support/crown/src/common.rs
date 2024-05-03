@@ -256,10 +256,7 @@ pub fn get_trait_def_id(cx: &LateContext<'_>, path: &[&str]) -> Option<DefId> {
         })
 }
 
-/*
-These are special variants made from above functions
-*/
-
+// These are special variants made from the above functions.
 /// Resolves a def path like `std::vec::Vec`, but searches only local crate
 ///
 /// Also returns multiple results when there are multiple paths under the same name e.g. `std::vec`
