@@ -4,7 +4,7 @@
 
 use std::fs::File;
 use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
@@ -14,7 +14,6 @@ use style::values::computed::{
 };
 use style::Atom;
 use ucd::{Codepoint, UnicodeBlock};
-use webrender_api::NativeFontHandle;
 
 use super::xml::{Attribute, Node};
 use crate::font_template::{FontTemplate, FontTemplateDescriptor};
