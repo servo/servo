@@ -216,6 +216,18 @@ pub struct WebGLRenderingContext {
 }
 
 impl WebGLRenderingContext {
+    #[cfg(target_env = "ohos")]
+    pub fn new_inherited(
+        window: &Window,
+        canvas: &HTMLCanvasElement,
+        webgl_version: WebGLVersion,
+        size: Size2D<u32>,
+        attrs: GLContextAttributes,
+    ) -> Result<WebGLRenderingContext, String> {
+        return Err("WebGL not working yet on ohos".into());
+    }
+
+    #[cfg(not(target_env = "ohos"))]
     pub fn new_inherited(
         window: &Window,
         canvas: &HTMLCanvasElement,
