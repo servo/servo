@@ -13,6 +13,7 @@ use app_units::Au;
 use bitflags::bitflags;
 use euclid::default::{Point2D, Rect, Size2D};
 use log::debug;
+use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use servo_atoms::{atom, Atom};
@@ -116,7 +117,7 @@ pub trait FontTableMethods {
     fn buffer(&self) -> &[u8];
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub struct FontMetrics {
     pub underline_size: Au,
     pub underline_offset: Au,
@@ -161,7 +162,7 @@ impl FontMetrics {
 /// template at a particular size, with a particular font-variant-caps applied, etc. This contrasts
 /// with `FontTemplateDescriptor` in that the latter represents only the parameters inherent in the
 /// font data (weight, stretch, etc.).
-#[derive(Clone, Debug, Deserialize, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct FontDescriptor {
     pub weight: FontWeight,
     pub stretch: FontStretch,
@@ -191,6 +192,19 @@ struct CachedShapeData {
     shaped_text: HashMap<ShapeCacheEntry, Arc<GlyphStore>>,
 }
 
+impl malloc_size_of::MallocSizeOf for CachedShapeData {
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        // Estimate the size of the shaped text cache. This will be smaller, because
+        // HashMap has some overhead, but we are mainly interested in the actual data.
+        let shaped_text_size = self
+            .shaped_text
+            .iter()
+            .map(|(key, value)| key.size_of(ops) + (*value).size_of(ops))
+            .sum::<usize>();
+        self.glyph_advances.size_of(ops) + self.glyph_indices.size_of(ops) + shaped_text_size
+    }
+}
+
 #[derive(Debug)]
 pub struct Font {
     pub handle: PlatformFont,
@@ -205,6 +219,17 @@ pub struct Font {
     /// the version of the font used to replace lowercase ASCII letters. It's up
     /// to the consumer of this font to properly use this reference.
     pub synthesized_small_caps: Option<FontRef>,
+}
+
+impl malloc_size_of::MallocSizeOf for Font {
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        // TODO: Collect memory usage for platform fonts and for shapers.
+        // This skips the template, because they are already stored in the template cache.
+        self.metrics.size_of(ops) +
+            self.descriptor.size_of(ops) +
+            self.cached_shape_data.read().size_of(ops) +
+            self.font_key.size_of(ops)
+    }
 }
 
 impl Font {
@@ -428,10 +453,11 @@ pub type FontRef = Arc<Font>;
 /// A `FontGroup` is a prioritised list of fonts for a given set of font styles. It is used by
 /// `TextRun` to decide which font to render a character with. If none of the fonts listed in the
 /// styles are suitable, a fallback font may be used.
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 pub struct FontGroup {
     descriptor: FontDescriptor,
     families: SmallVec<[FontGroupFamily; 8]>,
+    #[ignore_malloc_size_of = "This measured in the FontContext font cache."]
     last_matching_fallback: Option<FontRef>,
 }
 
@@ -584,9 +610,11 @@ impl FontGroup {
 /// `unicode-range` descriptors. In this case, font selection will select a single member
 /// that contains the necessary unicode character. Unicode ranges are specified by the
 /// [`FontGroupFamilyMember::template`] member.
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 struct FontGroupFamilyMember {
+    #[ignore_malloc_size_of = "This measured in the FontContext template cache."]
     template: FontTemplateRef,
+    #[ignore_malloc_size_of = "This measured in the FontContext font cache."]
     font: Option<FontRef>,
     loaded: bool,
 }
@@ -595,7 +623,7 @@ struct FontGroupFamilyMember {
 /// families listed in the `font-family` CSS property. The corresponding font data is lazy-loaded,
 /// only if actually needed. A single `FontGroupFamily` can have multiple fonts, in the case that
 /// individual fonts only cover part of the Unicode range.
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 struct FontGroupFamily {
     family_descriptor: FontFamilyDescriptor,
     members: Option<Vec<FontGroupFamilyMember>>,
@@ -700,7 +728,7 @@ pub fn get_and_reset_text_shaping_performance_counter() -> usize {
 }
 
 /// The scope within which we will look for a font.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum FontSearchScope {
     /// All fonts will be searched, including those specified via `@font-face` rules.
     Any,
@@ -710,7 +738,7 @@ pub enum FontSearchScope {
 }
 
 /// A font family name used in font selection.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub enum FontFamilyName {
     /// A specific name such as `"Arial"`
     Specific(Atom),
@@ -755,7 +783,7 @@ impl<'a> From<&'a str> for FontFamilyName {
 }
 
 /// The font family parameters for font selection.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct FontFamilyDescriptor {
     pub name: FontFamilyName,
     pub scope: FontSearchScope,

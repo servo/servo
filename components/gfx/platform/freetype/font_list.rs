@@ -24,6 +24,7 @@ use fontconfig_sys::{
 };
 use libc::{c_char, c_int};
 use log::debug;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use style::values::computed::{FontStretch, FontStyle, FontWeight};
 use style::Atom;
@@ -34,7 +35,7 @@ use crate::font_template::{FontTemplate, FontTemplateDescriptor};
 use crate::text::util::is_cjk;
 
 /// An identifier for a local font on systems using Freetype.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct LocalFontIdentifier {
     /// The path to the font.
     pub path: Atom,

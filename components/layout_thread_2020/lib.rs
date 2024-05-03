@@ -425,7 +425,7 @@ impl Layout for LayoutThread {
         // malloc_enclosing_size_of function.
         let mut ops = MallocSizeOfOps::new(servo_allocator::usable_size, None, None);
 
-        // FIXME(njn): Just measuring the display tree for now.
+        // TODO: Measure more than just display list, stylist, and font context.
         let formatted_url = &format!("url({})", self.url);
         reports.push(Report {
             path: path![formatted_url, "layout-thread", "display-list"],
@@ -437,6 +437,12 @@ impl Layout for LayoutThread {
             path: path![formatted_url, "layout-thread", "stylist"],
             kind: ReportKind::ExplicitJemallocHeapSize,
             size: self.stylist.size_of(&mut ops),
+        });
+
+        reports.push(Report {
+            path: path![formatted_url, "layout-thread", "font-context"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: self.font_context.size_of(&mut ops),
         });
     }
 
