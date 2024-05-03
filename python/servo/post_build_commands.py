@@ -252,6 +252,7 @@ class PostBuildCommands(CommandBase):
         params.insert(0, "--keep-going")
 
         env = self.build_env()
+        env["RUSTC"] = "rustc"
         returncode = self.run_cargo_build_like_command("doc", params, env=env, **kwargs)
         if returncode:
             return returncode
