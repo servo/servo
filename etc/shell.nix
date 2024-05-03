@@ -10,7 +10,7 @@ with import (builtins.fetchTarball {
   overlays = [
     (import (builtins.fetchTarball {
       # Bumped the channel in rust-toolchain.toml? Bump this commit too!
-      url = "https://github.com/oxalica/rust-overlay/archive/a0df72e106322b67e9c6e591fe870380bd0da0d5.tar.gz";
+      url = "https://github.com/oxalica/rust-overlay/archive/7f0e3ef7b7fbed78e12e5100851175d28af4b7c6.tar.gz";
     }))
   ];
   config = {
