@@ -37,6 +37,9 @@ import servo.visual_studio
 from servo.command_base import BuildType, CommandBase, call, check_call
 from servo.gstreamer import windows_dlls, windows_plugins, macos_plugins
 
+SUPPORTED_ASAN_TARGETS = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu",
+                          "x86_64-apple-darwin", "x86_64-unknown-linux-gnu"]
+
 
 @CommandProvider
 class MachCommands(CommandBase):
@@ -57,7 +60,7 @@ class MachCommands(CommandBase):
                      help="Command-line arguments to be passed through to Cargo")
     @CommandBase.common_command_arguments(build_configuration=True, build_type=True)
     def build(self, build_type: BuildType, jobs=None, params=None, no_package=False,
-              verbose=False, very_verbose=False, **kwargs):
+              verbose=False, very_verbose=False, with_asan=False, **kwargs):
         opts = params or []
 
         if build_type.is_release():
@@ -78,10 +81,37 @@ class MachCommands(CommandBase):
         self.ensure_bootstrapped()
         self.ensure_clobbered()
 
-        build_start = time()
-
         host = servo.platform.host_triple()
         target_triple = self.cross_compile_target or servo.platform.host_triple()
+
+        if with_asan:
+            if target_triple not in SUPPORTED_ASAN_TARGETS:
+                print("AddressSanitizer is currently not supported on this platform\n",
+                      "See https://doc.rust-lang.org/beta/unstable-book/compiler-flags/sanitizer.html")
+                sys.exit(1)
+
+            # do not use crown (clashes with different rust version)
+            env["RUSTC"] = "rustc"
+
+            # Enable usage of unstable rust flags
+            env["RUSTC_BOOTSTRAP"] = "1"
+
+            # Enable asan
+            env["RUSTFLAGS"] = env.get("RUSTFLAGS", "") + " -Zsanitizer=address"
+            opts += ["-Zbuild-std"]
+            kwargs["target_override"] = target_triple
+            # TODO: Investigate sanitizers in C/C++ code:
+            # env.setdefault("CFLAGS", "")
+            # env.setdefault("CXXFLAGS", "")
+            # env["CFLAGS"] += " -fsanitize=address"
+            # env["CXXFLAGS"] += " -fsanitize=address"
+
+            # asan replaces system allocator with asan allocator
+            # we need to make sure that we do not replace it with jemalloc
+            self.features.append("servo_allocator/use-system-allocator")
+
+        build_start = time()
+
         if host != target_triple and 'windows' in target_triple:
             if os.environ.get('VisualStudioVersion') or os.environ.get('VCINSTALLDIR'):
                 print("Can't cross-compile for Windows inside of a Visual Studio shell.\n"
@@ -106,6 +136,7 @@ class MachCommands(CommandBase):
                 build_type,
                 target=self.cross_compile_target,
                 android=self.is_android_build,
+                asan=with_asan
             )
 
             if self.is_android_build and not no_package:
@@ -283,7 +314,7 @@ def change_link_name(binary, old, new):
 
 
 def is_system_library(lib):
-    return lib.startswith("/System/Library") or lib.startswith("/usr/lib")
+    return lib.startswith("/System/Library") or lib.startswith("/usr/lib") or ".asan." in lib
 
 
 def is_relocatable_library(lib):
