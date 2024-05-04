@@ -128,7 +128,8 @@ fn non_local_item_children_by_name(tcx: TyCtxt<'_>, def_id: DefId, name: Symbol)
     }
 }
 
-// from clippy: https://github.com/rust-lang/rust-clippy/blob/546408be416f0355a39601c1457b37727bc74395/clippy_utils/src/lib.rs#L574
+// This is adapted from clippy:
+// https://github.com/rust-lang/rust-clippy/blob/546408be416f0355a39601c1457b37727bc74395/clippy_utils/src/lib.rs#L574.
 fn local_item_children_by_name(tcx: TyCtxt<'_>, local_id: LocalDefId, name: Symbol) -> Vec<Res> {
     let hir = tcx.hir();
 
