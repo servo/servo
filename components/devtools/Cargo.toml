@@ -10,6 +10,9 @@ publish = false
 name = "devtools"
 path = "lib.rs"
 
+[build-dependencies]
+chrono = "0.4"
+
 [dependencies]
 chrono = "0.4"
 crossbeam-channel = { workspace = true }

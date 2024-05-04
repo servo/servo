@@ -21,9 +21,12 @@ struct GetDescriptionReply {
 struct SystemInfo {
     apptype: String,
     version: String,
+    appbuildid: String,
     platformversion: String,
     brandName: String,
 }
+
+include!(concat!(env!("OUT_DIR"), "/build_id.rs"));
 
 pub struct DeviceActor {
     pub name: String,
@@ -48,6 +51,7 @@ impl Actor for DeviceActor {
                     value: SystemInfo {
                         apptype: "servo".to_string(),
                         version: "1.0".to_string(),
+                        appbuildid: BUILD_ID.to_string(),
                         platformversion: "111.0".to_string(),
                         brandName: "Servo".to_string(),
                     },
