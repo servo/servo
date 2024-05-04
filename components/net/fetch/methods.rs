@@ -42,6 +42,7 @@ use rustls::Certificate;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
+use time_03::OffsetDateTime;
 use tokio::sync::mpsc::{
     unbounded_channel, UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender,
 };
@@ -214,8 +215,8 @@ pub async fn main_fetch(
     }
 
     // Step 2.
-    if request.local_urls_only &&
-        !matches!(
+    if request.local_urls_only
+        && !matches!(
             request.current_url().scheme(),
             "about" | "blob" | "data" | "filesystem"
         )
@@ -300,9 +301,9 @@ pub async fn main_fetch(
                 false
             };
 
-            if (same_origin && !cors_flag) ||
-                current_url.scheme() == "data" ||
-                current_url.scheme() == "chrome"
+            if (same_origin && !cors_flag)
+                || current_url.scheme() == "data"
+                || current_url.scheme() == "chrome"
             {
                 // Substep 1.
                 request.response_tainting = ResponseTainting::Basic;
@@ -319,10 +320,10 @@ pub async fn main_fetch(
                 scheme_fetch(request, cache, target, done_chan, context).await
             } else if !matches!(current_url.scheme(), "http" | "https") {
                 Response::network_error(NetworkError::Internal("Non-http scheme".into()))
-            } else if request.use_cors_preflight ||
-                (request.unsafe_request &&
-                    (!is_cors_safelisted_method(&request.method) ||
-                        request.headers.iter().any(|(name, value)| {
+            } else if request.use_cors_preflight
+                || (request.unsafe_request
+                    && (!is_cors_safelisted_method(&request.method)
+                        || request.headers.iter().any(|(name, value)| {
                             !is_cors_safelisted_request_header(&name, &value)
                         })))
             {
@@ -368,8 +369,8 @@ pub async fn main_fetch(
             match header_names {
                 // Subsubstep 2.
                 Some(ref list)
-                    if request.credentials_mode != CredentialsMode::Include &&
-                        list.iter().any(|header| header == "*") =>
+                    if request.credentials_mode != CredentialsMode::Include
+                        && list.iter().any(|header| header == "*") =>
                 {
                     response.cors_exposed_header_name_list = response
                         .headers
@@ -400,10 +401,10 @@ pub async fn main_fetch(
     let internal_error = {
         // Tests for steps 17 and 18, before step 15 for borrowing concerns.
         let response_is_network_error = response.is_network_error();
-        let should_replace_with_nosniff_error = !response_is_network_error &&
-            should_be_blocked_due_to_nosniff(request.destination, &response.headers);
-        let should_replace_with_mime_type_error = !response_is_network_error &&
-            should_be_blocked_due_to_mime_type(request.destination, &response.headers);
+        let should_replace_with_nosniff_error = !response_is_network_error
+            && should_be_blocked_due_to_nosniff(request.destination, &response.headers);
+        let should_replace_with_mime_type_error = !response_is_network_error
+            && should_be_blocked_due_to_mime_type(request.destination, &response.headers);
 
         // Step 15.
         let mut network_error_response = response
@@ -443,9 +444,9 @@ pub async fn main_fetch(
         // We check `internal_response` since we did not mutate `response`
         // in the previous step.
         let not_network_error = !response_is_network_error && !internal_response.is_network_error();
-        if not_network_error &&
-            (is_null_body_status(&internal_response.status) ||
-                matches!(request.method, Method::HEAD | Method::CONNECT))
+        if not_network_error
+            && (is_null_body_status(&internal_response.status)
+                || matches!(request.method, Method::HEAD | Method::CONNECT))
         {
             // when Fetch is used only asynchronously, we will need to make sure
             // that nothing tries to write to the body at this point
@@ -472,8 +473,8 @@ pub async fn main_fetch(
 
         // Step 19.2.
         let integrity_metadata = &request.integrity_metadata;
-        if response.termination_reason.is_none() &&
-            !is_response_integrity_valid(integrity_metadata, &response)
+        if response.termination_reason.is_none()
+            && !is_response_integrity_valid(integrity_metadata, &response)
         {
             Response::network_error(NetworkError::Internal(
                 "Subresource integrity validation failed".into(),
@@ -737,18 +738,16 @@ async fn scheme_fetch(
                 if let Ok(file) = File::open(file_path.clone()) {
                     if let Ok(metadata) = file.metadata() {
                         if metadata.is_dir() {
-                            // Skip past the "file://" prefix, otherwise from_directory_path
-                            // will return an error.
-                            let url_path = &url.as_str()[7..];
-                            let url = if !url_path.ends_with('/') {
-                                if let Ok(dir_url) = Url::from_directory_path(url_path) {
+                            let url = if !url.path().ends_with('/') {
+                                // Re-read the path as a directory, so that Servo adds the
+                                // forward-slash to the end of the URL (at least internally,
+                                // though the URL bar does not reflect this) and loads the
+                                // linked directories and files correctly when clicked.
+                                if let Ok(dir_url) = Url::from_directory_path(url.path()) {
                                     ServoUrl::from_url(dir_url)
                                 } else {
                                     return Response::network_error(NetworkError::Internal(
-                                        format!(
-                                            "Unable to parse local directory path {}",
-                                            url_path
-                                        ),
+                                        format!("Unable to parse local directory path {}", url),
                                     ));
                                 }
                             } else {
@@ -900,93 +899,88 @@ fn build_html_directory_listing(file_path: std::path::PathBuf) -> String {
         .to_str()
         .unwrap_or("&lt;invalid directory path&gt;");
     page_html.push_str(
-        "<!DOCTYPE html>
-<html lang=\"en\">
+        "<!DOCTYPE html>\
+<html lang=\"en\">\
 <head><title>Directory listing: ",
     );
     write_html_safe(&directory_label, &mut page_html);
     page_html.push_str("</title><style>");
     page_html.push_str(read_string(Resource::DirectoryListingCSS).as_str());
-    page_html.push_str("</style></head><body>");
-    page_html.push_str("<header><h1>Index of <span class=\"path\">");
+    page_html.push_str(
+        "</style></head><body>\
+<header><h1>Index of <span class=\"path\">",
+    );
     write_html_safe(&directory_label, &mut page_html);
     page_html.push_str("</span></h1></header>");
+    page_html.push_str("<div class=\"directory_info\">");
     if let Ok(entries) = std::fs::read_dir(file_path) {
-        let mut items = BTreeMap::new();
-        for entry in entries {
-            if let Ok(entry) = entry {
-                if let Ok(meta) = entry.metadata() {
-                    let os_name = entry.file_name();
-                    let entry_name = os_name.to_str().map(str::to_string);
-                    if meta.is_dir() {
-                        items.insert(
-                            os_name,
-                            DirectoryItemDescriptor {
-                                item_type: DirectoryItemType::SubDirectory,
-                                name: entry_name,
-                                size: None,
-                                last_modified: Some(meta.modified()),
-                            },
-                        );
-                    } else if meta.is_file() || meta.is_symlink() {
-                        items.insert(
-                            os_name,
-                            DirectoryItemDescriptor {
-                                item_type: match meta.is_symlink() {
-                                    true => DirectoryItemType::Symlink,
-                                    false => DirectoryItemType::File,
-                                },
-                                name: entry_name,
-                                size: Some(meta.len()),
-                                last_modified: Some(meta.modified()),
-                            },
-                        );
-                    }
-                }
-            }
-        }
+        let items = gather_directory_items(entries);
         let items_found = !&items.is_empty();
+        if show_parent_link {
+            write_parent_link(&mut page_html);
+        }
         if items_found {
-            //             page_html.push_str(
-            //                 "<table><thead><tr>\
-            // <th scope=\"col\" class=\"name\">Filename</th>\
-            // <th scope=\"col\" class=\"size\">Size</th>\
-            // <th scope=\"col\" class=\"modified\">Last modified</th>\
-            // </thead><tbody>",
-            //             );
             page_html.push_str("<div class=\"listing\">");
-            if show_parent_link {
-                items.insert(
-                    OsString::new(),
-                    DirectoryItemDescriptor {
-                        item_type: DirectoryItemType::ParentDirectory,
-                        name: None,
-                        size: None,
-                        last_modified: None,
-                    },
-                );
-            }
             for item in items {
                 write_directory_listing_row(item.1, &mut page_html);
             }
-            // page_html.push_str("</tbody></table>");
             page_html.push_str("</div>");
         } else {
-            page_html.push_str("<p>This directory is empty.</p>");
-            if show_parent_link {
-                page_html.push_str("<p><a href=\"../\">Up to parent directory.</a></p>");
-            }
+            page_html.push_str(
+                "<div class=\"empty_notice\">\
+<p>This directory is empty.</p></div>",
+            );
         }
-        page_html.push_str("<footer><p>Local directory listing generated by Servo.</p></footer>");
     } else {
         page_html.push_str("<p>Unable to list directory contents.</p>");
     }
-    page_html.push_str("</body></html>");
+    page_html.push_str(
+        "</div><footer><p>Local directory listing generated by Servo.</p>\
+</footer></body></html>",
+    );
     page_html
 }
 
+fn gather_directory_items(
+    entries: std::fs::ReadDir,
+) -> BTreeMap<OsString, DirectoryItemDescriptor> {
+    let mut items = BTreeMap::new();
+    for entry in entries {
+        if let Ok(entry) = entry {
+            if let Ok(meta) = entry.metadata() {
+                let os_name = entry.file_name();
+                let entry_name = os_name.to_str().map(str::to_string);
+                if meta.is_dir() {
+                    items.insert(
+                        os_name,
+                        DirectoryItemDescriptor {
+                            item_type: DirectoryItemType::SubDirectory,
+                            name: entry_name,
+                            size: None,
+                            last_modified: Some(meta.modified()),
+                        },
+                    );
+                } else if meta.is_file() || meta.is_symlink() {
+                    items.insert(
+                        os_name,
+                        DirectoryItemDescriptor {
+                            item_type: match meta.is_symlink() {
+                                true => DirectoryItemType::Symlink,
+                                false => DirectoryItemType::File,
+                            },
+                            name: entry_name,
+                            size: Some(meta.len()),
+                            last_modified: Some(meta.modified()),
+                        },
+                    );
+                }
+            }
+        }
+    }
+    items
+}
+
 enum DirectoryItemType {
-    ParentDirectory,
     SubDirectory,
     File,
     Symlink,
@@ -1002,14 +996,12 @@ struct DirectoryItemDescriptor {
 fn write_directory_listing_row(descriptor: DirectoryItemDescriptor, page_html: &mut String) {
     page_html.push_str("<div class=\"row ");
     page_html.push_str(match descriptor.item_type {
-        DirectoryItemType::ParentDirectory => "parent",
         DirectoryItemType::SubDirectory => "directory",
         DirectoryItemType::File => "file",
         DirectoryItemType::Symlink => "symlink",
     });
     page_html.push_str("\">");
     match descriptor.item_type {
-        DirectoryItemType::ParentDirectory => write_parent_link(page_html),
         DirectoryItemType::SubDirectory => write_directory_data(descriptor, page_html),
         _ => write_file_data(descriptor, page_html),
     }
@@ -1017,11 +1009,9 @@ fn write_directory_listing_row(descriptor: DirectoryItemDescriptor, page_html: &
 }
 
 fn write_parent_link(page_html: &mut String) {
-    page_html.push_str("<div class=\"name\">");
+    page_html.push_str("<div class=\"parent_link\">");
     page_html.push_str("<a href=\"../\">Up to parent directory</a>");
     page_html.push_str("</div>");
-    page_html.push_str("<div class=\"size\">-</div>");
-    page_html.push_str("<div class=\"modified\">-</div>");
 }
 
 fn write_directory_data(descriptor: DirectoryItemDescriptor, page_html: &mut String) {
@@ -1098,8 +1088,68 @@ fn write_file_size(size: u64, page_html: &mut String) {
 }
 
 fn write_system_time(sys_time: SystemTime, page_html: &mut String) {
-    // TODO: WORK OUT HOW TO FORMAT A SystemTime INTO A READABLE DATETIME STAMP !!!
-    page_html.push_str("????-??-?? ??:??");
+    let last_mod: OffsetDateTime = sys_time.into();
+    page_html.push_str("<time datetime=\"");
+    write_datetime_iso_format(last_mod, page_html);
+    page_html.push_str("\">");
+    write_datetime_for_display(last_mod, page_html);
+    page_html.push_str("</time>");
+}
+
+fn write_datetime_iso_format(last_mod: OffsetDateTime, page_html: &mut String) {
+    page_html.push_str(format!("{:0>4}", last_mod.year()).as_str());
+    page_html.push('-');
+    let month_number: u8 = last_mod.month().into();
+    page_html.push_str(format!("{:0>2}", month_number.to_string()).as_str());
+    page_html.push('-');
+    page_html.push_str(format!("{:0>2}", last_mod.day()).as_str());
+    page_html.push('T');
+    page_html.push_str(format!("{:0>2}", last_mod.hour()).as_str());
+    page_html.push(':');
+    page_html.push_str(format!("{:0>2}", last_mod.minute()).as_str());
+    page_html.push(':');
+    page_html.push_str(format!("{:0>2}", last_mod.second()).as_str());
+    page_html.push('.');
+    page_html.push_str(format!("{:0>3}", last_mod.millisecond()).as_str());
+}
+
+fn write_datetime_for_display(last_mod: OffsetDateTime, page_html: &mut String) {
+    let now = OffsetDateTime::now_local().unwrap_or(OffsetDateTime::now_utc());
+    page_html.push_str("<span class=\"date");
+    if now.date().eq(&last_mod.date()) {
+        page_html.push_str(" current");
+    }
+    page_html.push_str("\">");
+    page_html.push_str(last_mod.day().to_string().as_str());
+    page_html.push_str("<span class=\"day_ordinal_suffix\">");
+    page_html.push_str(day_of_month_ordinal_suffix(last_mod.day()));
+    page_html.push_str("</span> <span class=\"month\">");
+    page_html.push_str(last_mod.month().to_string().as_str());
+    page_html.push_str("</span> <span class=\"year");
+    if last_mod.year() == now.year() {
+        page_html.push_str(" current");
+    }
+    page_html.push_str("\">");
+    page_html.push_str(last_mod.year().to_string().as_str());
+    page_html.push_str("</span></span> ");
+
+    page_html.push_str("<span class=\"time\">");
+    page_html.push_str(format!("<span class=\"hour\">{:0>2}</span>", last_mod.hour()).as_str());
+    page_html.push(':');
+    page_html.push_str(format!("<span class=\"minute\">{:0>2}</span>", last_mod.minute()).as_str());
+    page_html.push(':');
+    page_html.push_str(format!("<span class=\"second\">{:0>2}</span>", last_mod.second()).as_str());
+    page_html.push_str("</span>");
+}
+
+// Do not call this function with numbers outside the interval [1, 31].
+fn day_of_month_ordinal_suffix(number: u8) -> &'static str {
+    match number {
+        1 | 21 | 31 => "st",
+        2 | 22 => "nd",
+        3 | 23 => "rd",
+        _ => "th",
+    }
 }
 
 // TODO: WORK OUT WHERE THIS FUNCTION SHOULD GO WITHIN THE SERVO PROJECT !!!
@@ -1143,10 +1193,10 @@ pub fn write_html_safe(content: &str, page_html: &mut String) {
 fn is_null_body_status(status: &Option<(StatusCode, String)>) -> bool {
     matches!(
         status,
-        Some((StatusCode::SWITCHING_PROTOCOLS, ..)) |
-            Some((StatusCode::NO_CONTENT, ..)) |
-            Some((StatusCode::RESET_CONTENT, ..)) |
-            Some((StatusCode::NOT_MODIFIED, ..))
+        Some((StatusCode::SWITCHING_PROTOCOLS, ..))
+            | Some((StatusCode::NO_CONTENT, ..))
+            | Some((StatusCode::RESET_CONTENT, ..))
+            | Some((StatusCode::NOT_MODIFIED, ..))
     )
 }
 
@@ -1221,8 +1271,8 @@ fn should_be_blocked_due_to_mime_type(
     };
 
     // Step 2-3
-    destination.is_script_like() &&
-        match mime_type.type_() {
+    destination.is_script_like()
+        && match mime_type.type_() {
             mime::AUDIO | mime::VIDEO | mime::IMAGE => true,
             mime::TEXT if mime_type.subtype() == mime::CSV => true,
             // Step 4

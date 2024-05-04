@@ -4013,6 +4013,7 @@ dependencies = [
  "servo_url",
  "sha2",
  "time 0.1.45",
+ "time 0.3.36",
  "tokio",
  "tokio-rustls",
  "tokio-stream",

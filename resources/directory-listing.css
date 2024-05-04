@@ -3,14 +3,15 @@ html, body {
 	margin: 0;
 }
 body {
-	background-color: #888;
+	background-color: #121619;
 	width: 100%;
 	padding: 0;
 	display: flex;
 	flex-flow: column;
 }
 header {
-	background-color: white;
+	background-color: #363636;
+	color: #52eb7d;
 	margin: 0;
 	padding: 0.2em 0.5em;
 	flex: 0 1 auto;
@@ -27,23 +28,59 @@ h1 {
 	text-align: center;
 	text-decoration: underline;
 }
-div.listing {
-	display: block;
+div.directory_info {
 	margin: 1em auto;
-	padding: 0.5em;
-	max-width: 28em;
-	background-color: white;
-	font-family: monospace;
+	padding: 0;
+	text-align: center;
+	font-size: medium;
 	flex: 1 1 auto;
 }
-div.file {
-	display: block;
+div.parent_link {
+	max-width: 40em;
+	background-color: #1dd5eb;
+	color: black;
+	font-family: monospace;
+	margin: 0.2em auto;
+	padding: 0.3em;
+	border-radius: 0.3em;
 }
-div.row + div.row {
-	margin-top: 1em;
+div.parent_link a, div.parent_link a:visited {
+	color: black;
+	font-weight: bold;
 }
-div.size {
-	display: none;
+div.empty_notice {
+	max-width: 40em;
+	background-color: white;
+	color: black;
+	font-family: monospace;
+	margin: 0.2em auto;
+	padding: 0.3em;
+	border-radius: 0.3em;
+}
+div.listing {
+	max-width: 40em;
+	background-color: white;
+	font-family: monospace;
+	margin: 0.2em auto;
+	padding: 0.1em;
+}
+div.row {
+	margin: 0.2em;
+	padding: 0.3em;
+	border-radius: 0.3em;
+	color: black;
+}
+div.row {
+	background-color: #abf428;
+}
+div.row a, div.row a:visited {
+	color: black;
+}
+div.row.directory {
+	background-color: #52eb7d;
+}
+div.row.symlink {
+	background-color: #fff310;
 }
 div.name {
 	display: block;
@@ -52,7 +89,7 @@ div.name {
 }
 div.size, div.modified {
 	display: inline;
-	font-size: smaller;
+	font-size: small;
 }
 div.size {
 	margin-left: 1em;
@@ -60,11 +97,8 @@ div.size {
 div.modified {
 	margin-left: 1em;
 }
-div.parent > div.name:before {
+div.parent_link:before {
 	content: "⇧ ";
-}
-div.parent > div.size, div.parent > div.modified {
-	display: none;
 }
 div.directory > div.name:before {
 	content: "📁 ";
@@ -90,8 +124,22 @@ div.modified::before {
 	content: "Modified: ";
 	font-weight: bold;
 }
+div.modified time span.date.current {
+	visibility: hidden;
+	font-size: 1px;
+}
+div.modified time span.date.current::after {
+	visibility: visible;
+	font-size: small;
+	content: "today";
+	border: 1px green;
+}
+div.modified time span.year.current {
+	display: none;
+}
 footer {
-	background-color: white;
+	background-color: #363636;
+	color: white;
 	flex: 0 1 1ex;
 	text-align: right;
 	padding: 0.2em 0.5em;
