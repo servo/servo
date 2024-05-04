@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
 use std::net::TcpStream;
 
 use serde::Serialize;
@@ -36,7 +37,18 @@ impl Actor for PreferenceActor {
         stream: &mut TcpStream,
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
-        let key = msg.get("value").unwrap().as_str().unwrap();
+        let mut key = msg.get("value").unwrap().as_str().unwrap();
+
+        // Mapping to translate a Firefox preference name onto the corresponding Servo preference name
+        let pref_name_mapping: HashMap<&str, &str> =
+            [("dom.serviceWorkers.enabled", "dom.serviceworker.enabled")]
+                .iter()
+                .copied()
+                .collect();
+        if pref_name_mapping.contains_key(key) {
+            key = pref_name_mapping.get(key).unwrap();
+        }
+
         let pref_value = pref_map().get(key);
         Ok(handle_preference_value(
             pref_value,
