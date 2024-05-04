@@ -70,7 +70,8 @@ macro_rules! symbols {
 Stuff copied from clippy:
 */
 
-// https://github.com/rust-lang/rust-clippy/blob/546408be416f0355a39601c1457b37727bc74395/clippy_utils/src/lib.rs#L517
+// This is adapted from
+// https://github.com/rust-lang/rust-clippy/blob/546408be416f0355a39601c1457b37727bc74395/clippy_utils/src/lib.rs#L517.
 fn find_primitive_impls<'tcx>(tcx: TyCtxt<'tcx>, name: &str) -> impl Iterator<Item = DefId> + 'tcx {
     let ty = match name {
         "bool" => SimplifiedType::Bool,
