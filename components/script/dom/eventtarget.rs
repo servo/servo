@@ -23,6 +23,7 @@ use servo_atoms::Atom;
 use servo_url::ServoUrl;
 
 use super::bindings::trace::HashMapTracedValues;
+use crate::dom::abortsignal::AbortAlgorithm;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
 use crate::dom::bindings::callback::{CallbackContainer, CallbackFunction, ExceptionHandling};
 use crate::dom::bindings::cell::DomRefCell;
@@ -704,7 +705,7 @@ impl EventTarget {
             None => return,
         };
         let mut handlers = self.handlers.borrow_mut();
-        let entry = match handlers.entry(Atom::from(ty)) {
+        let entry = match handlers.entry(Atom::from(ty.clone())) {
             Occupied(entry) => entry.into_mut(),
             Vacant(entry) => entry.insert(EventListeners(vec![])),
         };
@@ -716,12 +717,20 @@ impl EventTarget {
         };
         let new_entry = EventListenerEntry {
             phase,
-            listener: EventListenerType::Additive(listener),
+            listener: EventListenerType::Additive(Rc::clone(&listener)),
             once: options.once,
         };
         if !entry.contains(&new_entry) {
             entry.push(new_entry);
         }
+        if let Some(signal) = options.signal {
+            signal.add_abort_algorithm(AbortAlgorithm::RemoveEventListener(
+                DomRoot::from_ref(&self),
+                ty,
+                listener,
+                options.parent,
+            ));
+        };
     }
 
     // https://dom.spec.whatwg.org/#dom-eventtarget-removeeventlistener
@@ -801,6 +810,7 @@ impl From<AddEventListenerOptionsOrBoolean> for AddEventListenerOptions {
             AddEventListenerOptionsOrBoolean::Boolean(capture) => Self {
                 parent: EventListenerOptions { capture },
                 once: false,
+                signal: None,
             },
         }
     }
