@@ -47,8 +47,8 @@ impl Actor for DeviceActor {
                     from: self.name(),
                     value: SystemInfo {
                         apptype: "servo".to_string(),
-                        version: "71.0".to_string(),
-                        platformversion: "71.0".to_string(),
+                        version: "1.0".to_string(),
+                        platformversion: "111.0".to_string(),
                         brandName: "Servo".to_string(),
                     },
                 };
