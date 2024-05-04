@@ -32,11 +32,12 @@ impl Actor for PreferenceActor {
         &self,
         _registry: &ActorRegistry,
         msg_type: &str,
-        _msg: &Map<String, Value>,
+        msg: &Map<String, Value>,
         stream: &mut TcpStream,
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
-        let pref_value = pref_map().get(msg_type);
+        let key = msg.get("value").unwrap().as_str().unwrap();
+        let pref_value = pref_map().get(key);
         Ok(handle_preference_value(
             pref_value,
             self.name(),
