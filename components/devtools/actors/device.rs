@@ -52,7 +52,7 @@ impl Actor for DeviceActor {
                         apptype: "servo".to_string(),
                         version: "1.0".to_string(),
                         appbuildid: BUILD_ID.to_string(),
-                        platformversion: "125.0".to_string(),
+                        platformversion: "124.0".to_string(),
                         brandName: "Servo".to_string(),
                     },
                 };
