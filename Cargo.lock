@@ -3039,9 +3039,8 @@ dependencies = [
 
 [[package]]
 name = "ipc-channel"
-version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ab3a34c91b7e84a72643bd75d1bac3afd241f78f9859fe0b5e5b2a6a75732c2"
+version = "0.18.1"
+source = "git+https://github.com/sagudev/ipc-channel?branch=empty-slice-simple#affa99e14ae30ff4788246e4e8b90530a6854445"
 dependencies = [
  "bincode",
  "crossbeam-channel",
