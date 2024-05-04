@@ -20,7 +20,9 @@ struct GetDescriptionReply {
 #[derive(Serialize)]
 struct SystemInfo {
     apptype: String,
+    version: String,
     platformversion: String,
+    brandName: String,
 }
 
 pub struct DeviceActor {
@@ -45,7 +47,9 @@ impl Actor for DeviceActor {
                     from: self.name(),
                     value: SystemInfo {
                         apptype: "servo".to_string(),
+                        version: "71.0".to_string(),
                         platformversion: "71.0".to_string(),
+                        brandName: "Servo".to_string(),
                     },
                 };
                 let _ = stream.write_json_packet(&msg);
