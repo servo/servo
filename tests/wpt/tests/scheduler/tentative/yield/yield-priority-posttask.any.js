@@ -103,6 +103,15 @@ promise_test(async t => {
 }, 'yield() with postTask tasks (inherit signal)');
 
 promise_test(async t => {
+  for (const config of signalConfigs) {
+    const {tasks, ids} =
+        postTestTasks(config.options, {});
+    await Promise.all(tasks);
+    assert_equals(ids.join(), config.expected);
+  }
+}, 'yield() with postTask tasks (inherit signal by default)');
+
+promise_test(async t => {
   const expected = 'y0,ub1,ub2,uv1,uv2,y1,y2,y3,bg1,bg2';
   const {tasks, ids} = postTestTasks(
       {priority: 'user-blocking'}, {priority: 'background'});
@@ -171,10 +180,10 @@ promise_test(async t => {
     subtasks.push(scheduler.postTask(() => { ids.push('ub1'); }, {priority: 'user-blocking'}));
     subtasks.push(scheduler.postTask(() => { ids.push('uv1'); }));
 
-    // Ignore inherited signal (user-visible continuations).
-    await scheduler.yield();
+    // Ignore inherited signal.
+    await scheduler.yield({priority: 'user-visible'});
     ids.push('y1');
-    await scheduler.yield();
+    await scheduler.yield({priority: 'user-visible'});
     ids.push('y2');
 
     subtasks.push(scheduler.postTask(() => { ids.push('ub2'); }, {priority: 'user-blocking'}));

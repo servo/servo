@@ -17,31 +17,6 @@ const host = get_host_info();
 const basePath = window.location.pathname.replace(/\/[^\/]*$/, '/');
 const remoteBaseURL = host.HTTPS_REMOTE_ORIGIN + basePath;
 
-// Builds valid digital identity request for navigator.credentials.get() API.
-function buildValidNavigatorCredentialsRequest() {
-  return {
-      identity: {
-        providers: [{
-          holder: {
-            selector: {
-              format: ['mdoc'],
-              doctype: 'org.iso.18013.5.1.mDL',
-              fields: [
-                'org.iso.18013.5.1.family_name',
-                'org.iso.18013.5.1.portrait',
-              ]
-            },
-            params: {
-              nonce: '1234',
-              readerPublicKey: 'test_reader_public_key',
-              extraParamAsNeededByDigitalCredentials: true,
-            },
-          },
-        }],
-      },
-  };
-}
-
 async function createIframeAndWaitForMessage(test, iframeUrl) {
     const messageWatcher = new EventWatcher(test, window, "message");
     var iframe = document.createElement("iframe");
@@ -53,39 +28,6 @@ async function createIframeAndWaitForMessage(test, iframeUrl) {
 
 // Requires browser to have mode where OS-presented digital-identity-prompt is
 // bypassed in favour of returning "fake_test_token" directly.
-promise_test(async t => {
-  const {token} = await navigator.credentials.get(buildValidNavigatorCredentialsRequest());
-  assert_equals("fake_test_token", token);
-}, "navigator.credentials.get() API works in toplevel frame.");
-
-promise_test(async t => {
-  let request = buildValidNavigatorCredentialsRequest();
-  request.identity.providers = undefined;
-
-  await promise_rejects_js(t, TypeError, navigator.credentials.get(request));
-}, "navigator.credentials.get() API fails if IdentityCredentialRequestOptions::providers is not specified.");
-
-promise_test(async t => {
-  let request = buildValidNavigatorCredentialsRequest();
-  request.identity.providers = [];
-
-  await promise_rejects_js(t, TypeError, navigator.credentials.get(request));
-}, "navigator.credentials.get() API fails if there are no providers.");
-
-promise_test(async t => {
-  let request = buildValidNavigatorCredentialsRequest();
-  let providerCopy = structuredClone(request.identity.providers[0]);
-  request.identity.providers.push(providerCopy);
-  await promise_rejects_js(t, TypeError, navigator.credentials.get(request));
-}, "navigator.credentials.get() API fails if there is more than one provider.");
-
-promise_test(async t => {
-  let request = buildValidNavigatorCredentialsRequest();
-  request.identity.providers[0].holder = undefined;
-
-  await promise_rejects_js(t, TypeError, navigator.credentials.get(request));
-}, "navigator.credentials.get() API fails if IdentityProviderConfig::holder is not specified.");
-
 promise_test(async t => {
   let request = buildValidNavigatorIdentityRequest();
   let credential = await navigator.identity.get(request);

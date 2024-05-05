@@ -1,6 +1,6 @@
 marionette_driver==3.4.0
 mozcrash==2.2.0
-mozdevice==4.1.1
+mozdevice==4.1.2
 mozinstall==2.1.0
 mozleak==0.2
 mozprofile==3.0.0

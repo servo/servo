@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Test vertical writing mode with specified page size and logical margins.</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-page-3/#at-page-rule">
+<link rel="help" href="https://www.w3.org/TR/css-page-3/#typedef-page-size-page-size">
+<link rel="match" href="page-size-012-print-ref.html">
+<style>
+  @page {
+    size: 600px 400px;
+    margin: 0;
+    margin-inline-start: 50px;
+  }
+  @page :first {
+    margin-inline-start: 0;
+    margin-block-start: 50px;
+  }
+  html {
+    writing-mode: vertical-rl;
+  }
+  body { margin: 0; }
+</style>
+<div style="background:yellow;">
+  50px to the left of page box right edge.<br>
+  Page widths larger than heights.<br>
+</div>
+<div style="break-before:page; background:yellow;">
+  50px below the page box top edge.<br>
+</div>

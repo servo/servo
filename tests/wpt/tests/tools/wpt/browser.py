@@ -1452,7 +1452,7 @@ class ChromeAndroidBase(Browser):
         if browser_binary is None:
             browser_binary = self.find_binary(channel)
         chrome = Chrome(self.logger)
-        return chrome.install_webdriver_by_version(self.version(browser_binary), dest)
+        return chrome.install_webdriver_by_version(self.version(browser_binary), dest, channel)
 
     def version(self, binary=None, webdriver_binary=None):
         if not binary:
@@ -1642,10 +1642,10 @@ class Opera(Browser):
             return m.group(0)
 
 
-class EdgeChromium(Browser):
+class Edge(Browser):
     """Microsoft Edge Chromium Browser class."""
 
-    product = "edgechromium"
+    product = "edge"
     requirements = "requirements_chromium.txt"
     platform = {
         "Linux": "linux",

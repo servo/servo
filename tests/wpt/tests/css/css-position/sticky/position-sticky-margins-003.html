@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Position Test: Test position:sticky element with auto margin in block container</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-position/#staticpos-rect">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1488080">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="This test verifies that a position:sticky element aligning with 'auto' margin still honors the sticky positioning.">
+
+<style>
+#container{
+  width: 100px;
+  height: 100px;
+  overflow: hidden;
+  background: red;
+}
+.block {
+  width: 500px;
+}
+.child {
+  width: 100px;
+  height: 100px;
+  background: green;
+  position: sticky;
+  margin-left: auto;
+  right: 0;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="container">
+  <div class="block">
+    <div class="child">
+  </div>
+</div>

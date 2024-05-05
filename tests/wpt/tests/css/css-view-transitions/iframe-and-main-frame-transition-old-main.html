@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: iframe and main frame transition at the same time</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="iframe-and-main-frame-transition-old-main-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+iframe {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 50vw;
+  height: 50vh;
+}
+
+/* The main frame is showing the old screenshot */
+::view-transition-group(root) {
+  animation-duration: 300s;
+}
+::view-transition-new(root) {
+  animation: unset;
+  opacity: 0;
+}
+::view-transition-old(root) {
+  animation: unset;
+  opacity: 1;
+}
+</style>
+
+<iframe srcdoc="
+<style>
+  body {
+    background: orange;
+  }
+</style>
+<body></body>"></iframe>
+<script>
+  onload = runTest;
+
+  async function startTransition(document, oldColor, newColor) {
+    document.documentElement.style.background = oldColor;
+    await document.startViewTransition(() => {
+      document.documentElement.style.background = newColor;
+    }).ready;
+  }
+
+  async function runTest() {
+    await startTransition(document, "green", "lightgreen");
+
+    // Start an iframe transition while the main frame transition is showing the
+    // old screenshot. This change shouldn't show up visually because the old
+    // screenshot on the main frame still has the iframe's old content.
+    const iframeDocument = document.querySelector("iframe").contentDocument;
+    await startTransition(iframeDocument, "blue", "lightblue");
+
+    takeScreenshot();
+  }
+</script>
+

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test that in a column flex container, the break-after values on flex items are honored</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1890238">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+
+<style>
+.multicol {
+  columns: 2;
+  column-fill: auto;
+  column-gap: 0;
+  width: 100px;
+  height: 300px;
+}
+.flexbox {
+  display: flex;
+  flex-direction: column;
+}
+.item {
+  background: green;
+  height: 50px;
+}
+</style>
+
+<p>Test passes if there is a filled green square.</p>
+
+<div class="multicol">
+  <div class="flexbox">
+    <div class="flexbox" style="break-after: always; break-after: column">
+      <div class="item"></div>
+      <div class="item"></div>
+    </div>
+    <div class="flexbox">
+      <div class="item"></div>
+      <div class="item"></div>
+    </div>
+  </div>
+</div>

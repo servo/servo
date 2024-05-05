@@ -65,26 +65,20 @@ class MockPressureService {
     if (this.pressureServiceReadingTimerId_ != null)
       this.stopPlatformCollector();
 
-    // The following code for calculating the timestamp was taken from
-    // https://source.chromium.org/chromium/chromium/src/+/main:third_party/
-    // blink/web_tests/http/tests/resources/
-    // geolocation-mock.js;l=131;drc=37a9b6c03b9bda9fcd62fc0e5e8016c278abd31f
-
-    // The new Date().getTime() returns the number of milliseconds since the
-    // UNIX epoch (1970-01-01 00::00:00 UTC), while |internalValue| of the
-    // device.mojom.PressureUpdate represents the value of microseconds since
-    // the Windows FILETIME epoch (1601-01-01 00:00:00 UTC). So add the delta
-    // when sets the |internalValue|. See more info in //base/time/time.h.
-    const windowsEpoch = Date.UTC(1601, 0, 1, 0, 0, 0, 0);
-    const unixEpoch = Date.UTC(1970, 0, 1, 0, 0, 0, 0);
-    // |epochDeltaInMs| equals to base::Time::kTimeTToMicrosecondsOffset.
-    const epochDeltaInMs = unixEpoch - windowsEpoch;
-
     this.pressureServiceReadingTimerId_ = self.setInterval(() => {
       if (this.pressureUpdate_ === null || this.observers_.length === 0)
         return;
+
+      // Because we cannot retrieve directly the timeOrigin internal in
+      // TimeTicks from Chromium, we need to create a timestamp that
+      // would help to test basic functionality.
+      // by multiplying performance.timeOrigin by 10 we make sure that the
+      // origin is higher than the internal time origin in TimeTicks.
+      // performance.now() allows us to have an increase matching the TimeTicks
+      // that would be read from the platform collector.
       this.pressureUpdate_.timestamp = {
-        internalValue: BigInt((new Date().getTime() + epochDeltaInMs) * 1000)
+        internalValue:
+            Math.round((performance.timeOrigin * 10) + performance.now()) * 1000
       };
       for (let observer of this.observers_)
         observer.onPressureUpdated(this.pressureUpdate_);

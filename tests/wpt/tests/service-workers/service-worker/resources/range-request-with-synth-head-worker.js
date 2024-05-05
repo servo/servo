@@ -24,7 +24,7 @@ self.addEventListener('fetch', e => {
         headers: {
           "Accept-Ranges": "bytes",
           "Content-Type": "video/webm",
-          "Content-Range": "bytes 0-1/44447",
+          "Content-Range": "bytes 0-1/*",
           "Content-Length": "2",
         },
       };

@@ -303,33 +303,6 @@
   },'An invoking element that was not used to invoke the popover is not part of the ancestor chain');
 </script>
 
-<div popover id=p6>Inside popover 6
-  <div style="height:2000px;background:lightgreen"></div>
-  Bottom of popover6
-</div>
-<button popovertarget=p6>Popover 6</button>
-<style>
-  #p6 {
-    width: 300px;
-    height: 300px;
-    overflow-y: scroll;
-  }
-</style>
-<script>
-  const popover6 = document.querySelector('#p6');
-  promise_test(async () => {
-    popover6.showPopover();
-    assert_equals(popover6.scrollTop,0,'popover6 should start non-scrolled');
-    await new test_driver.Actions()
-       .scroll(0, 0, 0, 50, {origin: popover6})
-       .send();
-    await waitForRender();
-    assert_true(popover6.matches(':popover-open'),'popover6 should stay open');
-    assert_equals(popover6.scrollTop,50,'popover6 should be scrolled');
-    popover6.hidePopover();
-  },'Scrolling within a popover should not close the popover');
-</script>
-
 <my-element id="myElement">
   <template shadowrootmode="open">
     <button id=b7 popovertarget=p7 popovertargetaction=show tabindex="0">Popover7</button>
