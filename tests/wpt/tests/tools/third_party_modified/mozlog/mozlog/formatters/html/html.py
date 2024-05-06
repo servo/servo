@@ -6,7 +6,7 @@ import base64
 import json
 import os
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .. import base
 
@@ -242,7 +242,7 @@ class HTMLFormatter(base.BaseFormatter):
         )
 
     def generate_html(self):
-        generated = datetime.utcnow()
+        generated = datetime.now(timezone.utc)
         with open(os.path.join(base_path, "main.js")) as main_f:
             doc = html.html(
                 self.head,

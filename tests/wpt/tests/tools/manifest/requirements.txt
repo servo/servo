@@ -1,1 +1,1 @@
-zstandard==0.21.0
+zstandard==0.22.0

@@ -7,6 +7,8 @@
     <meta name=variant content="?mimeType=video/webm;codecs=vp9,opus">
     <meta name=variant content="?mimeType=video/webm;codecs=av1,opus">
     <meta name=variant content="?mimeType=video/mp4;codecs=avc1,mp4a.40.2">
+    <meta name=variant content="?mimeType=video/mp4;codecs=vp9,opus">
+    <meta name=variant content="?mimeType=video/mp4">
     <link rel="help" href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#mediarecorder">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
@@ -38,18 +40,21 @@
       return true;
     }
 
-    function doneWithUnsupportedType(mimeType) {
-      if (mimeType) {
-        assert_implements_optional(MediaRecorder.isTypeSupported(mimeType),
-          `"${mimeType}" for MediaRecorder is not supported`);
+    function isMimetypeSupported(mimeType, t) {
+      if (mimeType && !MediaRecorder.isTypeSupported(mimeType)) {
+        t.done();
+        return false;
       }
+      return true;
     }
 
     const params = new URLSearchParams(window.location.search);
     const mimeType = params.get('mimeType');
     const tag = `mimeType "${mimeType}"`;
     promise_test(async t => {
-        doneWithUnsupportedType(mimeType);
+        if (!isMimetypeSupported(mimeType, t)) {
+          return;
+        }
 
         const {stream: video} = createVideoStream(t);
         const recorder = new MediaRecorder(video, {mimeType});
@@ -73,7 +78,9 @@
     }, "MediaRecorder will stop recording and fire a stop event when all tracks are ended");
 
     promise_test(async t => {
-        doneWithUnsupportedType(mimeType);
+        if (!isMimetypeSupported(mimeType, t)) {
+          return;
+        }
 
         const {stream: video} = createVideoStream(t);
         const recorder = new MediaRecorder(video, {mimeType});
@@ -96,7 +103,9 @@
     }, "MediaRecorder will stop recording and fire a stop event when stop() is called");
 
     promise_test(async t => {
-        doneWithUnsupportedType(mimeType);
+        if (!isMimetypeSupported(mimeType, t)) {
+          return;
+        }
 
         const recorder = new MediaRecorder(createVideoStream(t).stream, {mimeType});
         recorder.stop();
@@ -107,7 +116,9 @@
     }, "MediaRecorder will not fire an exception when stopped after creation");
 
     promise_test(async t => {
-        doneWithUnsupportedType(mimeType);
+        if (!isMimetypeSupported(mimeType, t)) {
+          return;
+        }
 
         const recorder = new MediaRecorder(createVideoStream(t).stream, {mimeType});
         recorder.start();
@@ -121,7 +132,9 @@
     }, "MediaRecorder will not fire an exception when stopped after having just been stopped");
 
     promise_test(async t => {
-        doneWithUnsupportedType(mimeType);
+        if (!isMimetypeSupported(mimeType, t)) {
+          return;
+        }
 
         const {stream} = createVideoStream(t);
         const recorder = new MediaRecorder(stream, {mimeType});
@@ -136,7 +149,9 @@
     }, "MediaRecorder will not fire an exception when stopped after having just been spontaneously stopped");
 
     promise_test(async t => {
-        doneWithUnsupportedType(mimeType);
+        if (!isMimetypeSupported(mimeType, t)) {
+          return;
+        }
 
         const {stream} = createAudioVideoStream(t);
         const recorder = new MediaRecorder(stream, {mimeType});
@@ -155,7 +170,9 @@
     }, "MediaRecorder will fire start event even if stopped synchronously");
 
     promise_test(async t => {
-        doneWithUnsupportedType(mimeType);
+        if (!isMimetypeSupported(mimeType, t)) {
+          return;
+        }
 
         const {stream} = createAudioVideoStream(t);
         const recorder = new MediaRecorder(stream, {mimeType});
@@ -178,7 +195,9 @@
     }, "MediaRecorder will fire start event even if a track is removed synchronously");
 
     promise_test(async t => {
-        doneWithUnsupportedType(mimeType);
+        if (!isMimetypeSupported(mimeType, t)) {
+          return;
+        }
 
         const {stream} = createFlowingAudioVideoStream(t);
         const recorder = new MediaRecorder(stream, {mimeType});

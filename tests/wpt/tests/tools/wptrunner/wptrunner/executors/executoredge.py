@@ -20,42 +20,42 @@ here = os.path.dirname(__file__)
 
 _SanitizerMixin = make_sanitizer_mixin(WebDriverCrashtestExecutor)
 
-class EdgeChromiumDriverTestharnessProtocolPart(ChromeDriverTestharnessProtocolPart):
+class EdgeDriverTestharnessProtocolPart(ChromeDriverTestharnessProtocolPart):
     def setup(self):
         super().setup()
         self.cdp_company_prefix = "ms"
 
 
-class EdgeChromiumDriverPrintProtocolPart(ChromeDriverPrintProtocolPart):
+class EdgeDriverPrintProtocolPart(ChromeDriverPrintProtocolPart):
     def setup(self):
         super().setup()
         self.cdp_company_prefix = "ms"
 
 
-class EdgeChromiumDriverProtocol(WebDriverProtocol):
+class EdgeDriverProtocol(WebDriverProtocol):
     implements = [
-        EdgeChromiumDriverPrintProtocolPart,
-        EdgeChromiumDriverTestharnessProtocolPart,
+        EdgeDriverPrintProtocolPart,
+        EdgeDriverTestharnessProtocolPart,
         *(part for part in WebDriverProtocol.implements
-          if part.name != EdgeChromiumDriverTestharnessProtocolPart.name)
+          if part.name != EdgeDriverTestharnessProtocolPart.name)
     ]
     reuse_window = False
 
 
-class EdgeChromiumDriverRefTestExecutor(WebDriverRefTestExecutor, _SanitizerMixin):  # type: ignore
-    protocol_cls = EdgeChromiumDriverProtocol
+class EdgeDriverRefTestExecutor(WebDriverRefTestExecutor, _SanitizerMixin):  # type: ignore
+    protocol_cls = EdgeDriverProtocol
 
 
-class EdgeChromiumDriverTestharnessExecutor(WebDriverTestharnessExecutor, _SanitizerMixin):  # type: ignore
-    protocol_cls = EdgeChromiumDriverProtocol
+class EdgeDriverTestharnessExecutor(WebDriverTestharnessExecutor, _SanitizerMixin):  # type: ignore
+    protocol_cls = EdgeDriverProtocol
 
     def __init__(self, *args, reuse_window=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.protocol.reuse_window = reuse_window
 
 
-class EdgeChromiumDriverPrintRefTestExecutor(EdgeChromiumDriverRefTestExecutor):
-    protocol_cls = EdgeChromiumDriverProtocol
+class EdgeDriverPrintRefTestExecutor(EdgeDriverRefTestExecutor):
+    protocol_cls = EdgeDriverProtocol
 
     def setup(self, runner):
         super().setup(runner)

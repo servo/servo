@@ -12,8 +12,10 @@
 // META: variant=?31-35
 // META: variant=?36-40
 // META: variant=?40-45
-// META: variant=?45-50
-// META: variant=?50-last
+// META: variant=?46-50
+// META: variant=?51-55
+// META: variant=?56-60
+// META: variant=?61-last
 
 "use strict;"
 
@@ -500,6 +502,60 @@ makeTest({
   auctionConfigOverrides: {allSlotsRequestedSizes:
                             [{width: '100', height: '100'},
                              {width: '200furlongs', height: '200'}]}
+});
+
+makeTest({
+  name: 'sellerRealTimeReportingConfig has default local reporting type',
+  expect:  EXPECT_WINNER,
+  auctionConfigOverrides: {sellerRealTimeReportingConfig:
+                            {type: 'default-local-reporting'}}
+});
+
+makeTest({
+  name: 'sellerRealTimeReportingConfig has no type',
+  expect: EXPECT_EXCEPTION(TypeError),
+  auctionConfigOverrides: {sellerRealTimeReportingConfig:
+                            {notType: 'default-local-reporting'}}
+});
+
+makeTest({
+  name: 'sellerRealTimeReportingConfig has unknown type',
+  expect:  EXPECT_WINNER,
+  auctionConfigOverrides: {sellerRealTimeReportingConfig: {type: 'unknown type'}}
+});
+
+makeTest({
+  name: 'perBuyerRealTimeReportingConfig',
+  expect: EXPECT_WINNER,
+  auctionConfigOverrides: {perBuyerRealTimeReportingConfig:
+                            {"https://example.com": {type: 'default-local-reporting'}}}
+});
+
+makeTest({
+  name: 'perBuyerRealTimeReportingConfig has no entry',
+  expect: EXPECT_WINNER,
+  auctionConfigOverrides: {perBuyerRealTimeReportingConfig: {}}
+});
+
+makeTest({
+  name: 'perBuyerRealTimeReportingConfig has invalid buyer',
+  expect: EXPECT_EXCEPTION(TypeError),
+  auctionConfigOverrides: {perBuyerRealTimeReportingConfig:
+                            {"http://example.com": {type: 'default-local-reporting'}}}
+});
+
+makeTest({
+  name: 'perBuyerRealTimeReportingConfig has no type',
+  expect: EXPECT_EXCEPTION(TypeError),
+  auctionConfigOverrides: {perBuyerRealTimeReportingConfig:
+                            {"https://example.com": {notType: 'default-local-reporting'}}}
+});
+
+makeTest({
+  name: 'perBuyerRealTimeReportingConfig has unknown type',
+  expect: EXPECT_WINNER,
+  auctionConfigOverrides: {perBuyerRealTimeReportingConfig:
+                            {"https://example.com": {type: 'unknown type'}}}
 });
 
 subsetTest(promise_test, async test => {

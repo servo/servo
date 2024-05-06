@@ -11,7 +11,8 @@
   overflow: auto;
   border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 0.25em;
-  padding: 0.25em 0;
+  padding-block: 0.25em;
+  padding-inline: 0;
   background-color: Field;
   margin: 0;
   inset: auto;
@@ -31,4 +32,47 @@
   min-height: 1.2em;
   padding: 0px 2px 1px;
   white-space: nowrap;
+}
+
+.stylable-select-button {
+  color: FieldText;
+  background-color: Field;
+  appearance: none;
+  padding: 0.25em;
+  border: 1px solid ButtonBorder;
+  cursor: default;
+  text-align: inherit;
+  display: inline-flex;
+  flex-grow: 1;
+  flex-shrink: 1;
+  align-items: center;
+  overflow-x: hidden;
+  overflow-y: hidden;
+}
+
+.stylable-select-button-icon {
+  background-image: url(data:image/svg+xml,%3Csvg%20width%3D%2220%22%20height%3D%2214%22%20viewBox%3D%220%200%2020%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M4%206%20L10%2012%20L%2016%206%22%20stroke%3D%22WindowText%22%20stroke-width%3D%223%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E);
+  background-origin: content-box;
+  background-repeat: no-repeat;
+  background-size: contain;
+  opacity: 1;
+  outline: none;
+  margin-inline-start: 0.25em;
+  padding-block: 2px;
+  padding-inline: 3px;
+  block-size: 1.0em;
+  inline-size: 1.2em;
+  min-inline-size: 1.2em;
+  max-inline-size: 1.2em;
+  display: block;
+}
+
+.stylable-select-selectedoption {
+  color: inherit;
+  min-inline-size: 0px;
+  max-block-size: 100%;
+  flex-grow: 1;
+  flex-shrink: 1;
+  overflow: hidden;
+  display: inline;
 }

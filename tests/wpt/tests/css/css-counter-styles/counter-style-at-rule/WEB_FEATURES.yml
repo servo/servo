@@ -1,0 +1,3 @@
+features:
+- name: counter-style
+  files: "**"

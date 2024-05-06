@@ -31,7 +31,7 @@
     const cases = [
       [ "abc", "TrustedHTML", "Element innerHTML",
           _ => div.innerHTML = "abc" ],
-      [ "2+2", "TrustedScript", "Node textContent",
+      [ "2+2", "TrustedScript", "HTMLScriptElement textContent",
           _ => script.textContent = "2+2" ],
       [ "about:blank", "TrustedScriptURL", "HTMLScriptElement src",
           _ => script.src = "about:blank" ],

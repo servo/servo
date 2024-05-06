@@ -23,7 +23,7 @@ EXCLUDES = [
 ]
 
 # Rules are just regex on the path, with a leading ! indicating a regex that must not
-# match for the job. Paths should be kept in sync with update-built-tests.sh.
+# match for the job. Paths should be kept in sync with scripts in update_built.py.
 job_path_map = {
     "affected_tests": [".*/.*", "!resources/(?!idlharness.js)"] + EXCLUDES,
     "stability": [".*/.*", "!resources/.*"] + EXCLUDES,
@@ -32,10 +32,11 @@ job_path_map = {
     "resources_unittest": ["resources/", "tools/"],
     "tools_unittest": ["tools/"],
     "wptrunner_unittest": ["tools/"],
-    "update_built": ["update-built-tests\\.sh",
-                     "conformance-checkers/",
+    "update_built": ["conformance-checkers/",
+                     "css/css-images/",
                      "css/css-ui/",
                      "css/css-writing-modes/",
+                     "fetch/metadata/",
                      "html/",
                      "infrastructure/",
                      "mimesniff/"],

@@ -2328,6 +2328,10 @@ enum DOMParserSupportedType {
   "image/svg+xml"
 };
 
+partial interface Range {
+  [CEReactions, NewObject] DocumentFragment createContextualFragment(HTMLString string);
+};
+
 [Exposed=Window]
 interface Navigator {
   // objects implementing this interface also implement the interfaces given below

@@ -153,7 +153,7 @@ When used for expectation data, metadata files have the following format:
 
    :implementation-status:
      One of the values ``implementing``,
-     ``not-implementing`` or ``default``. This is used in conjunction
+     ``not-implementing`` or ``backlog``. This is used in conjunction
      with the ``--skip-implementation-status`` command line argument to
      ``wptrunner`` to ignore certain features where running the test is
      low value.

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: The backdrop root concept</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropRoot">
+<link rel=stylesheet  href="resources/backdrop-filter-backdrop-root.css">
+<link rel="match"  href="backdrop-filter-backdrop-root-filter-ref.html">
+<meta name="fuzzy" content="maxDifference=0-5;totalPixels=0-500">
+
+<!-- A Backdrop Root is formed, anywhere in the document, by:
+     - An element with a filter property other than "none".
+     - An element with a will-change value specifying any property that would create a Backdrop Root on non-initial value. -->
+<div class=container>
+  <div class=testcase>
+    <div style="filter: invert(0.1);"><div></div></div>
+  </div>
+  <div class=testcase>
+    <div style="will-change:filter;"><div></div></div>
+  </div>
+</div>

@@ -37,14 +37,14 @@ def test_multi_line_link(session, inline, url):
     assert session.url == url(link)
 
 
-def test_link_unload_event(session, url, server_config, inline):
+def test_navigation_retains_input_state(session, url, server_config, inline):
     link = "/webdriver/tests/classic/element_click/support/input.html"
     session.url = inline(f"""
-        <body onunload="checkUnload()">
+        <body onpagehide="checkPageHide()">
             <a href="{link}">click here</a>
             <input type="checkbox">
             <script>
-                function checkUnload() {{
+                function checkPageHide() {{
                     document.getElementsByTagName("input")[0].checked = true;
                 }}
             </script>
