@@ -1097,7 +1097,7 @@ dependencies = [
 [[package]]
 name = "cssparser"
 version = "0.33.0"
-source = "git+https://github.com/servo/rust-cssparser/?rev=aaa966d9d6ae70c4b8a62bb5e3a14c068bb7dff0#aaa966d9d6ae70c4b8a62bb5e3a14c068bb7dff0"
+source = "git+https://github.com/servo/rust-cssparser?rev=aaa966d9d6ae70c4b8a62bb5e3a14c068bb7dff0#aaa966d9d6ae70c4b8a62bb5e3a14c068bb7dff0"
 dependencies = [
  "cssparser-macros",
  "dtoa-short",
@@ -1110,7 +1110,7 @@ dependencies = [
 [[package]]
 name = "cssparser-macros"
 version = "0.6.1"
-source = "git+https://github.com/servo/rust-cssparser/?rev=aaa966d9d6ae70c4b8a62bb5e3a14c068bb7dff0#aaa966d9d6ae70c4b8a62bb5e3a14c068bb7dff0"
+source = "git+https://github.com/servo/rust-cssparser?rev=aaa966d9d6ae70c4b8a62bb5e3a14c068bb7dff0#aaa966d9d6ae70c4b8a62bb5e3a14c068bb7dff0"
 dependencies = [
  "quote",
  "syn 2.0.60",
@@ -4125,9 +4125,9 @@ dependencies = [
 
 [[package]]
 name = "num-traits"
-version = "0.2.18"
+version = "0.2.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da0df0e5185db44f69b44f26786fe401b6c293d1907744beaa7fa62b2e5a517a"
+checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
 dependencies = [
  "autocfg",
  "libm",
