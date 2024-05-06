@@ -43,8 +43,8 @@ cases:
         origins: [httpCrossSite]
         description: Not sent to non-trustworthy cross-site destination
     template_axes:
-      # The `audioWorklet` interface is only available in secure contexts
-      # https://webaudio.github.io/web-audio-api/#BaseAudioContext
+      # The `AudioWorklet` interface is only available in secure contexts
+      # https://webaudio.github.io/web-audio-api/#AudioWorklet
       audioworklet.https.sub.html: []
       # Service workers are only available in secure context
       fetch-via-serviceworker.https.sub.html: []
@@ -112,7 +112,6 @@ cases:
     template_axes:
       # All the templates in this block are unused with the exception of
       # `worker-dedicated-constructor`
-      appcache-manifest.sub.https.html: []
       audioworklet.https.sub.html: []
       fetch-via-serviceworker.https.sub.html: []
       serviceworker.https.sub.html: []
@@ -230,8 +229,8 @@ cases:
         expected: cross-site
     template_axes:
       # Unused
-      # The `audioWorklet` interface is only available in secure contexts
-      # https://webaudio.github.io/web-audio-api/#BaseAudioContext
+      # The `AudioWorklet` interface is only available in secure contexts
+      # https://webaudio.github.io/web-audio-api/#AudioWorklet
       audioworklet.https.sub.html: []
       # Service workers are only available in secure context
       fetch-via-serviceworker.https.sub.html: []

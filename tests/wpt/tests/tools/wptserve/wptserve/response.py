@@ -4,7 +4,7 @@ import json
 import uuid
 import traceback
 from collections import OrderedDict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
 
 from hpack.struct import HeaderTuple
@@ -135,7 +135,7 @@ class Response:
                                                     "oct", "nov", "dec"])}
 
         if isinstance(expires, timedelta):
-            expires = datetime.utcnow() + expires
+            expires = datetime.now(timezone.utc) + expires
 
         if expires is not None:
             expires_str = expires.strftime("%d %%s %Y %H:%M:%S GMT")

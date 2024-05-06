@@ -78,7 +78,7 @@ def create_cookie(
 
 def generate_expiry_date(day_diff=1):
     return (
-        (datetime.utcnow() + timedelta(days=day_diff))
+        (datetime.now(timezone.utc) + timedelta(days=day_diff))
         .replace(microsecond=0)
         .replace(tzinfo=timezone.utc)
     )

@@ -42,6 +42,7 @@ dictionary PositionOptions {
 interface GeolocationPosition {
   readonly attribute GeolocationCoordinates coords;
   readonly attribute EpochTimeStamp timestamp;
+  [Default] object toJSON();
 };
 
 [Exposed=Window, SecureContext]
@@ -53,6 +54,7 @@ interface GeolocationCoordinates {
   readonly attribute double? altitudeAccuracy;
   readonly attribute double? heading;
   readonly attribute double? speed;
+  [Default] object toJSON();
 };
 
 [Exposed=Window]

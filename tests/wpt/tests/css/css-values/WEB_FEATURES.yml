@@ -5,6 +5,10 @@ features:
 - name: cap
   files:
   - cap-*
+- name: exp-functions
+  files:
+  - exp-log-*
+  - hypot-pow-sqrt-*
 - name: ic
   files:
   - ic-*

@@ -47,7 +47,7 @@
     assert_equals(rules[0].selectorText, 'div');
     let div = rules[0];
     let x = div.style.getPropertyValue('--x');
-    assert_equals(x, 'hover { }\n    .b { }');
+    assert_equals(x.trim(), 'hover { }\n    .b { }');
     let childRules = div.cssRules;
     assert_equals(childRules.length, 1);
     assert_equals(childRules[0].selectorText, '& .a');

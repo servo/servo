@@ -37,6 +37,7 @@ dictionary WebGLContextAttributes {
 
 [Exposed=(Window,Worker)]
 interface WebGLObject {
+    attribute USVString label;
 };
 
 [Exposed=(Window,Worker)]

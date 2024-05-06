@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: iframe and main frame transition at the same time</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="iframe-and-main-frame-transition-new-main-new-iframe-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+iframe {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 50vw;
+  height: 50vh;
+}
+
+/* Keep showing the live state for the main frame so we can assert the state of
+   screenshots in the iframe */
+::view-transition-group(root) {
+  animation-duration: 300s;
+}
+::view-transition-old(root) {
+  animation: unset;
+  opacity: 0;
+}
+::view-transition-new(root) {
+  animation: unset;
+  opacity: 1;
+}
+</style>
+
+<iframe srcdoc="
+<style>
+  /* The iframe is showing new live DOM */
+  ::view-transition-group(root) {
+    animation-duration: 300s;
+  }
+  ::view-transition-new(root) {
+    animation: unset;
+    opacity: 1;
+  }
+  ::view-transition-old(root) {
+    animation: unset;
+    opacity: 0;
+  }
+</style>
+<body></body>
+"></iframe>
+<script>
+  onload = runTest;
+
+  async function startTransition(document, oldColor, newColor) {
+    document.documentElement.style.background = oldColor;
+    await document.startViewTransition(() => {
+      document.documentElement.style.background = newColor;
+    }).ready;
+  }
+
+  async function runTest() {
+    await startTransition(document, "green", "lightgreen");
+
+    const iframeDocument = document.querySelector("iframe").contentDocument;
+    await startTransition(iframeDocument, "blue", "lightblue");
+
+    takeScreenshot();
+  }
+</script>
+

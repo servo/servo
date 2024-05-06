@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: iframe and main frame transition at the same time with name on iframe</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="iframe-and-main-frame-transition-with-name-on-iframe-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+iframe {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 50vw;
+  height: 50vh;
+  view-transition-name: inner;
+}
+
+.old {
+  border: 1px solid black;
+}
+
+.new {
+  border: 1px solid orange;
+}
+
+/* The main frame is showing the old screenshot for the root */
+::view-transition-group(root) {
+  animation-duration: 300s;
+}
+::view-transition-new(root) {
+  animation: unset;
+  opacity: 0;
+}
+::view-transition-old(root) {
+  animation: unset;
+  opacity: 1;
+}
+
+/* The iframe is showing the live screenshot */
+::view-transition-new(inner) {
+  animation: unset;
+  opacity: 1;
+}
+::view-transition-old(inner) {
+  animation: unset;
+  opacity: 0;
+}
+
+</style>
+
+<iframe id="inner" srcdoc="
+<style>
+  /* The iframe document itself is showing an old screenshot */
+  ::view-transition-group(root) {
+    animation-duration: 300s;
+  }
+  ::view-transition-new(root) {
+    animation: unset;
+    opacity: 0;
+  }
+  ::view-transition-old(root) {
+    animation: unset;
+    opacity: 1;
+  }
+</style>
+<body></body>"></iframe>
+<script>
+  onload = runTest;
+
+  async function startTransition(document, oldColor, newColor, nestedFrame) {
+    document.documentElement.style.background = oldColor;
+    if (nestedFrame != null)
+      nestedFrame.classList.add("old");
+
+    await document.startViewTransition(() => {
+      document.documentElement.style.background = newColor;
+      if (nestedFrame != null) {
+        nestedFrame.classList.remove("old");
+        nestedFrame.classList.add("new");
+      }
+    }).ready;
+  }
+
+  async function runTest() {
+    await startTransition(document, "green", "lightgreen", document.getElementById("inner"));
+
+    const iframeDocument = document.querySelector("iframe").contentDocument;
+    await startTransition(iframeDocument, "blue", "lightblue", null);
+
+    takeScreenshot();
+  }
+</script>
+

@@ -1,6 +1,6 @@
 import pytest
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from webdriver.transport import Response
 
@@ -154,7 +154,7 @@ def test_add_cookie_for_ip(session, server_config):
 
 def test_add_non_session_cookie(session, url):
     a_day_from_now = int(
-        (datetime.utcnow() + timedelta(days=1) - datetime.utcfromtimestamp(0)).total_seconds())
+        (datetime.now(timezone.utc) + timedelta(days=1) - datetime.fromtimestamp(0, timezone.utc)).total_seconds())
 
     new_cookie = {
         "name": "hello",

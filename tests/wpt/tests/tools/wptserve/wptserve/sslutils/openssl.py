@@ -6,7 +6,7 @@ import random
 import shutil
 import subprocess
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # Amount of time beyond the present to consider certificates "expired." This
 # allows certificates to be proactively re-generated in the "buffer" period
@@ -316,7 +316,7 @@ class OpenSSLEnvironment:
             # Because `strptime` does not account for time zone offsets, it is
             # always in terms of UTC, so the current time should be calculated
             # accordingly.
-            if end_date < datetime.utcnow() + time_buffer:
+            if end_date < datetime.now(timezone.utc) + time_buffer:
                 return False
 
         #TODO: check the key actually signed the cert.
