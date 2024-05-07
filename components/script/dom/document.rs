@@ -3231,8 +3231,7 @@ impl Document {
     /// Note a pending animation tick,
     /// to be processed at the next `update_the_rendering` task.
     pub fn note_pending_animation_tick(&self, tick_type: AnimationTickType) {
-        let mut pending_animation_ticks = self.pending_animation_ticks.borrow_mut();
-        pending_animation_ticks.extend(tick_type);
+        self.pending_animation_ticks.borrow_mut().extend(tick_type);
     }
 
     /// As part of a `update_the_rendering` task, tick all pending animations.
@@ -3249,27 +3248,27 @@ impl Document {
     /// Note a pending compositor event,
     /// to be processed at the next `update_the_rendering` task.
     pub fn note_pending_compositor_event(&self, event: CompositorEvent) {
-        match event {
-            CompositorEvent::MouseMoveEvent { .. } => {
-                let mut index = self.mouse_move_event_index.borrow_mut();
-                if let Some(index) = *index {
-                    // Replace the pending mouse move event.
-                    let mut pending_events = self.pending_compositor_events.borrow_mut();
-                    let mouse_move_event = pending_events.get_mut(index).expect("index is valid");
-                    *mouse_move_event = event;
-                } else {
-                    self.pending_compositor_events.borrow_mut().push_back(event);
-                    *index = Some(self.pending_compositor_events.borrow().len() - 1);
-                }
-            },
-            _ => {
-                self.pending_compositor_events.borrow_mut().push_back(event);
-            },
+        let mut pending_compositor_events = self.pending_compositor_events.borrow_mut();
+        if matches!(event, CompositorEvent::MouseMoveEvent { .. }) {
+            // First try to replace any existing mouse move event.
+            if let Some(mouse_move_event) = self
+                .mouse_move_event_index
+                .borrow()
+                .and_then(|index| pending_compositor_events.get_mut(index))
+            {
+                *mouse_move_event = event;
+                return;
+            }
+
+            *self.mouse_move_event_index.borrow_mut() =
+                Some(self.pending_compositor_events.borrow().len());
         }
+
+        self.pending_compositor_events.borrow_mut().push_back(event);
     }
 
-    /// Get pending compositor events, for processig within an `update_the_rendering` task.
-    pub fn get_pending_compositor_events(&self) -> VecDeque<CompositorEvent> {
+    /// Get pending compositor events, for processing within an `update_the_rendering` task.
+    pub fn take_pending_compositor_events(&self) -> VecDeque<CompositorEvent> {
         // Reset the mouse event index.
         *self.mouse_move_event_index.borrow_mut() = None;
         mem::take(&mut *self.pending_compositor_events.borrow_mut())

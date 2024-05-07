@@ -220,9 +220,9 @@ pub struct Window {
     #[no_trace]
     devtools_marker_sender: DomRefCell<Option<IpcSender<Option<TimelineMarker>>>>,
 
-    /// Pending resize event, if any.
+    /// Pending resize events, if any.
     #[no_trace]
-    resize_event: DomRefCell<VecDeque<(WindowSizeData, WindowSizeType)>>,
+    resize_events: DomRefCell<VecDeque<(WindowSizeData, WindowSizeType)>>,
 
     /// Parent id associated with this page, if any.
     #[no_trace]
@@ -2329,13 +2329,13 @@ impl Window {
     }
 
     pub fn add_resize_event(&self, event: WindowSizeData, event_type: WindowSizeType) {
-        self.resize_event
+        self.resize_events
             .borrow_mut()
             .push_back((event, event_type));
     }
 
     pub fn steal_resize_events(&self) -> VecDeque<(WindowSizeData, WindowSizeType)> {
-        mem::take(&mut self.resize_event.borrow_mut())
+        mem::take(&mut self.resize_events.borrow_mut())
     }
 
     pub fn set_page_clip_rect_with_new_viewport(&self, viewport: UntypedRect<f32>) -> bool {
@@ -2605,7 +2605,7 @@ impl Window {
             bluetooth_thread,
             bluetooth_extra_permission_data: BluetoothExtraPermissionData::new(),
             page_clip_rect: Cell::new(MaxRect::max_rect()),
-            resize_event: Default::default(),
+            resize_events: Default::default(),
             window_size: Cell::new(window_size),
             current_viewport: Cell::new(initial_viewport.to_untyped()),
             suppress_reflow: Cell::new(true),

@@ -1490,26 +1490,19 @@ impl ScriptThread {
 
     /// Process compositor events as part of a "update the rendering task".
     fn process_pending_compositor_events(&self, pipeline_id: PipelineId) {
-        let document = match self.documents.borrow().find_document(pipeline_id) {
-            Some(document) => document,
-            None => {
-                return warn!(
-                    "Processing pending compositor events for closed pipeline {}.",
-                    pipeline_id
-                )
-            },
+        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+            warn!("Processing pending compositor events for closed pipeline {pipeline_id}.");
+            return;
         };
         // Do not handle events if the BC has been, or is being, discarded
         if document.window().Closed() {
-            return warn!(
-                "Compositor event sent to a pipeline with a closed window {}.",
-                pipeline_id
-            );
+            warn!("Compositor event sent to a pipeline with a closed window {pipeline_id}.");
+            return;
         }
         let window = document.window();
         ScriptThread::set_user_interacting(true);
         let _realm = enter_realm(document.window());
-        for event in document.get_pending_compositor_events().into_iter() {
+        for event in document.take_pending_compositor_events().into_iter() {
             match event {
                 CompositorEvent::ResizeEvent(new_size, size_type) => {
                     window.add_resize_event(new_size, size_type);
@@ -1646,28 +1639,34 @@ impl ScriptThread {
 
     /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>
     fn update_the_rendering(&self) {
-        // reset batching.
         *self.has_queued_update_the_rendering_task.borrow_mut() = false;
 
         if self.can_continue_running_inner() {
-            // TODO: Filter non-renderable documents.
-            // TODO: Unnecessary rendering.
+            // TODO: The specification says to filter out non-renderable documents,
+            // as well as those for which a rendering update would be unnecessary,
+            // but this isn't happening here.
             let pipeline_and_docs: Vec<(PipelineId, DomRoot<Document>)> = self
                 .documents
                 .borrow()
                 .iter()
                 .map(|(id, document)| (id, DomRoot::from_ref(&*document)))
                 .collect();
+            // Note: the spec reads: "for doc in docs" at each step
+            // whereas this runs all steps per doc in docs.
             for (pipeline_id, document) in pipeline_and_docs {
-                // TODO: ordering by parent and shadow root(#32004).
-                // TODO: reveal the document(#31581).
+                // TODO(#32004): The rendering should be updated according parent and shadow root order
+                // in the specification, but this isn't happening yet.
 
-                // Focusing steps, plus other composition events.
-                // TODO: break-up to match spec more closely?
-                // See: flush autofocus candidates.
+                // TODO(#31581): The steps in the "Revealing the document" section need to be implemente
+                // `process_pending_compositor_events` handles the focusing steps as well as other events
+                // from the compositor.
+
+                // TODO: Should this be broken and to match the specification more closely? For instance see
+                // https://html.spec.whatwg.org/#flush-autofocus-candidates.
                 self.process_pending_compositor_events(pipeline_id);
 
-                // TODO: scroll steps(#31665)
+                // TODO(#31665): Implement the "run the scroll steps" from
+                // https://drafts.csswg.org/cssom-view/#document-run-the-scroll-steps.
 
                 let mut pending_resize_events = document.window().steal_resize_events();
                 while let Some((size, size_type)) = pending_resize_events.pop_front() {
@@ -1687,24 +1686,27 @@ impl ScriptThread {
                 // Update animations and send events.
                 self.update_animations_and_send_events();
 
-                // TODO: fullscreen steps(#31866).
+                // TODO(#31866): Implement "run the fullscreen steps" from
+                // https://fullscreen.spec.whatwg.org/#run-the-fullscreen-steps.
 
-                // TODO: context lost steps(#31868).
+                // TODO(#31868): Implement the "context lost steps" from
+                // https://html.spec.whatwg.org/multipage/webappapis.html#context-lost-steps.
 
                 // Run the animation frame callbacks.
                 self.handle_tick_all_animations(pipeline_id);
 
-                // TODO: resize observer steps(#31006).
+                // TODO(#31006): Implement the resize observer steps.
 
-                // TODO: if the focused area of doc is not a focusable area,
-                // then run the focusing steps for doc's viewport.
-                // (#31870)
+                // TODO(#31870): Implement step 17: if the focused area of doc is not a focusable area,
+                // then run the focusing steps for document's viewport.
 
-                // TODO: perform pending transition operations(https://drafts.csswg.org/css-view-transitions/).
+                // TODO: Perform pending transition operations from
+                // https://drafts.csswg.org/css-view-transitions/#perform-pending-transition-operations.
 
-                // TODO: run the update intersection observations steps(#31021).
+                // TODO(#31021: Run the update intersection observations steps from
+                // https://w3c.github.io/IntersectionObserver/#run-the-update-intersection-observations-steps
 
-                // TODO: mark paint timing(https://w3c.github.io/paint-timing).
+                // TODO: Mark paint timing from https://w3c.github.io/paint-timing.
 
                 // TODO: Update the rendering: consolidate all reflow calls into one here?(#31871)
 
@@ -1720,39 +1722,35 @@ impl ScriptThread {
         // Note: the pipeline should be a navigable with a rendering opportunity,
         // and we should use this opportunity to queue one task for each navigable with
         // an opportunity in this script-thread.
-        let document = match self.documents.borrow().find_document(pipeline_id) {
-            Some(document) => document,
-            None => {
-                return warn!(
-                    "Trying to update the rendering for closed pipeline {}.",
-                    pipeline_id
-                )
-            },
+        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+            warn!("Trying to update the rendering for closed pipeline {pipeline_id}.");
+            return;
         };
         let window = document.window();
         let task_manager = window.task_manager();
         let rendering_task_source = task_manager.rendering_task_source();
         let canceller = task_manager.task_canceller(TaskSourceName::Rendering);
 
-        // Batch rendering ops.
-        if !*self.has_queued_update_the_rendering_task.borrow() {
-            *self.has_queued_update_the_rendering_task.borrow_mut() = true;
-            // Queues a task to update the rendering.
-            // <https://html.spec.whatwg.org/multipage/#event-loop-processing-model:queue-a-global-task>
-            let _ = rendering_task_source.queue_with_canceller(
-                task!(update_the_rendering: move || {
-                    // Note: spec says to queue a task using the navigable's active window,
-                    // but then updates the rendering for all docs in the same event-loop.
-                    SCRIPT_THREAD_ROOT.with(|root| {
-                        if let Some(script_thread) = root.get() {
-                            let script_thread = unsafe {&*script_thread};
-                            script_thread.update_the_rendering();
-                        }
-                    })
-                }),
-                &canceller,
-            );
+        if *self.has_queued_update_the_rendering_task.borrow() {
+            return;
         }
+        *self.has_queued_update_the_rendering_task.borrow_mut() = true;
+
+        // Queues a task to update the rendering.
+        // <https://html.spec.whatwg.org/multipage/#event-loop-processing-model:queue-a-global-task>
+        let _ = rendering_task_source.queue_with_canceller(
+            task!(update_the_rendering: move || {
+                // Note: spec says to queue a task using the navigable's active window,
+                // but then updates the rendering for all docs in the same event-loop.
+                SCRIPT_THREAD_ROOT.with(|root| {
+                    if let Some(script_thread) = root.get() {
+                        let script_thread = unsafe {&*script_thread};
+                        script_thread.update_the_rendering();
+                    }
+                })
+            }),
+            &canceller,
+        );
     }
 
     /// Handle incoming control messages.
@@ -3758,9 +3756,9 @@ impl ScriptThread {
     /// Queue compositor events for later dispatching as part of a
     /// `update_the_rendering` task.
     fn handle_event(&self, pipeline_id: PipelineId, event: CompositorEvent) {
-        let document = match self.documents.borrow().find_document(pipeline_id) {
-            Some(document) => document,
-            None => return warn!("Compositor event sent to closed pipeline {}.", pipeline_id),
+        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+            warn!("Compositor event sent to closed pipeline {pipeline_id}.");
+            return;
         };
         self.rendering_opportunity(pipeline_id);
         document.note_pending_compositor_event(event);
@@ -3777,9 +3775,9 @@ impl ScriptThread {
         point_in_node: Option<Point2D<f32>>,
         pressed_mouse_buttons: u16,
     ) {
-        let document = match self.documents.borrow().find_document(pipeline_id) {
-            Some(document) => document,
-            None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+            warn!("Message sent to closed pipeline {pipeline_id}.");
+            return;
         };
         unsafe {
             document.handle_mouse_event(
@@ -3818,9 +3816,9 @@ impl ScriptThread {
         point: Point2D<f32>,
         node_address: Option<UntrustedNodeAddress>,
     ) {
-        let document = match self.documents.borrow().find_document(pipeline_id) {
-            Some(document) => document,
-            None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+            warn!("Message sent to closed pipeline {pipeline_id}.");
+            return;
         };
         unsafe { document.handle_wheel_event(wheel_delta, point, node_address) };
     }
