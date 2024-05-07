@@ -1690,8 +1690,7 @@ impl ScriptThread {
             // TODO(#31665): Implement the "run the scroll steps" from
             // https://drafts.csswg.org/cssom-view/#document-run-the-scroll-steps.
 
-            let mut pending_resize_events = document.window().steal_resize_events();
-            while let Some((size, size_type)) = pending_resize_events.pop_front() {
+            for (size, size_type) in document.window().steal_resize_events().into_iter() {
                 // Resize steps.
                 self.run_the_resize_steps(pipeline_id, size, size_type);
 

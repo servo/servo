@@ -450,7 +450,7 @@ pub struct Document {
     /// Pending composition events, to be handled at the next rendering opportunity.
     #[no_trace]
     #[ignore_malloc_size_of = "CompositorEvent contains data from outside crates"]
-    pending_compositor_events: DomRefCell<VecDeque<CompositorEvent>>,
+    pending_compositor_events: DomRefCell<Vec<CompositorEvent>>,
     /// The index of the last mouse move event in the pending compositor events queue.
     mouse_move_event_index: DomRefCell<Option<usize>>,
     /// Pending animation ticks, to be handled at the next rendering opportunity.
@@ -3264,11 +3264,11 @@ impl Document {
                 Some(self.pending_compositor_events.borrow().len());
         }
 
-        self.pending_compositor_events.borrow_mut().push_back(event);
+        self.pending_compositor_events.borrow_mut().push(event);
     }
 
     /// Get pending compositor events, for processing within an `update_the_rendering` task.
-    pub fn take_pending_compositor_events(&self) -> VecDeque<CompositorEvent> {
+    pub fn take_pending_compositor_events(&self) -> Vec<CompositorEvent> {
         // Reset the mouse event index.
         *self.mouse_move_event_index.borrow_mut() = None;
         mem::take(&mut *self.pending_compositor_events.borrow_mut())

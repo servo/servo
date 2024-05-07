@@ -5,7 +5,7 @@
 use std::borrow::{Cow, ToOwned};
 use std::cell::Cell;
 use std::collections::hash_map::Entry;
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::io::{stderr, stdout, Write};
 use std::ptr::NonNull;
@@ -222,7 +222,7 @@ pub struct Window {
 
     /// Pending resize events, if any.
     #[no_trace]
-    resize_events: DomRefCell<VecDeque<(WindowSizeData, WindowSizeType)>>,
+    resize_events: DomRefCell<Vec<(WindowSizeData, WindowSizeType)>>,
 
     /// Parent id associated with this page, if any.
     #[no_trace]
@@ -2329,12 +2329,10 @@ impl Window {
     }
 
     pub fn add_resize_event(&self, event: WindowSizeData, event_type: WindowSizeType) {
-        self.resize_events
-            .borrow_mut()
-            .push_back((event, event_type));
+        self.resize_events.borrow_mut().push((event, event_type));
     }
 
-    pub fn steal_resize_events(&self) -> VecDeque<(WindowSizeData, WindowSizeType)> {
+    pub fn steal_resize_events(&self) -> Vec<(WindowSizeData, WindowSizeType)> {
         mem::take(&mut self.resize_events.borrow_mut())
     }
 
