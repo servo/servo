@@ -1890,7 +1890,7 @@ impl ScriptThread {
             // and check for more resize events. If there are no events pending, we'll move
             // on and execute the sequential non-resize events we've seen.
             match self.control_port.try_recv() {
-                Err(_) => match self.task_queue.try_recv() {
+                Err(_) => match self.task_queue.take_tasks_and_recv() {
                     Err(_) => match self.devtools_port.try_recv() {
                         Err(_) => match self.image_cache_port.try_recv() {
                             Err(_) => match &*self.webgpu_port.borrow() {

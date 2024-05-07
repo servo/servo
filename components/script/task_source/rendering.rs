@@ -16,7 +16,7 @@ pub struct RenderingTaskSource(pub Box<dyn ScriptChan + Send>, #[no_trace] pub P
 
 impl Clone for RenderingTaskSource {
     fn clone(&self) -> RenderingTaskSource {
-        RenderingTaskSource(self.0.clone(), self.1.clone())
+        RenderingTaskSource(self.0.clone(), self.1)
     }
 }
 
