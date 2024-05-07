@@ -1660,77 +1660,79 @@ impl ScriptThread {
     fn update_the_rendering(&self) {
         *self.has_queued_update_the_rendering_task.borrow_mut() = false;
 
-        if self.can_continue_running_inner() {
-            // TODO: The specification says to filter out non-renderable documents,
-            // as well as those for which a rendering update would be unnecessary,
-            // but this isn't happening here.
-            let pipeline_and_docs: Vec<(PipelineId, DomRoot<Document>)> = self
-                .documents
-                .borrow()
-                .iter()
-                .map(|(id, document)| (id, DomRoot::from_ref(&*document)))
-                .collect();
-            // Note: the spec reads: "for doc in docs" at each step
-            // whereas this runs all steps per doc in docs.
-            for (pipeline_id, document) in pipeline_and_docs {
-                // TODO(#32004): The rendering should be updated according parent and shadow root order
-                // in the specification, but this isn't happening yet.
+        if !self.can_continue_running_inner() {
+            return;
+        }
 
-                // TODO(#31581): The steps in the "Revealing the document" section need to be implemente
-                // `process_pending_compositor_events` handles the focusing steps as well as other events
-                // from the compositor.
+        // TODO: The specification says to filter out non-renderable documents,
+        // as well as those for which a rendering update would be unnecessary,
+        // but this isn't happening here.
+        let pipeline_and_docs: Vec<(PipelineId, DomRoot<Document>)> = self
+            .documents
+            .borrow()
+            .iter()
+            .map(|(id, document)| (id, DomRoot::from_ref(&*document)))
+            .collect();
+        // Note: the spec reads: "for doc in docs" at each step
+        // whereas this runs all steps per doc in docs.
+        for (pipeline_id, document) in pipeline_and_docs {
+            // TODO(#32004): The rendering should be updated according parent and shadow root order
+            // in the specification, but this isn't happening yet.
 
-                // TODO: Should this be broken and to match the specification more closely? For instance see
-                // https://html.spec.whatwg.org/#flush-autofocus-candidates.
-                self.process_pending_compositor_events(pipeline_id);
+            // TODO(#31581): The steps in the "Revealing the document" section need to be implemente
+            // `process_pending_compositor_events` handles the focusing steps as well as other events
+            // from the compositor.
 
-                // TODO(#31665): Implement the "run the scroll steps" from
-                // https://drafts.csswg.org/cssom-view/#document-run-the-scroll-steps.
+            // TODO: Should this be broken and to match the specification more closely? For instance see
+            // https://html.spec.whatwg.org/#flush-autofocus-candidates.
+            self.process_pending_compositor_events(pipeline_id);
 
-                let mut pending_resize_events = document.window().steal_resize_events();
-                while let Some((size, size_type)) = pending_resize_events.pop_front() {
-                    // Resize steps.
-                    self.run_the_resize_steps(pipeline_id, size, size_type);
+            // TODO(#31665): Implement the "run the scroll steps" from
+            // https://drafts.csswg.org/cssom-view/#document-run-the-scroll-steps.
 
-                    // Evaluate media queries and report changes.
-                    document
-                        .window()
-                        .evaluate_media_queries_and_report_changes();
+            let mut pending_resize_events = document.window().steal_resize_events();
+            while let Some((size, size_type)) = pending_resize_events.pop_front() {
+                // Resize steps.
+                self.run_the_resize_steps(pipeline_id, size, size_type);
 
-                    // https://html.spec.whatwg.org/multipage/#img-environment-changes
-                    // As per the spec, this can be run at any time.
-                    document.react_to_environment_changes()
-                }
+                // Evaluate media queries and report changes.
+                document
+                    .window()
+                    .evaluate_media_queries_and_report_changes();
 
-                // Update animations and send events.
-                self.update_animations_and_send_events();
-
-                // TODO(#31866): Implement "run the fullscreen steps" from
-                // https://fullscreen.spec.whatwg.org/#run-the-fullscreen-steps.
-
-                // TODO(#31868): Implement the "context lost steps" from
-                // https://html.spec.whatwg.org/multipage/webappapis.html#context-lost-steps.
-
-                // Run the animation frame callbacks.
-                self.handle_tick_all_animations(pipeline_id);
-
-                // TODO(#31006): Implement the resize observer steps.
-
-                // TODO(#31870): Implement step 17: if the focused area of doc is not a focusable area,
-                // then run the focusing steps for document's viewport.
-
-                // TODO: Perform pending transition operations from
-                // https://drafts.csswg.org/css-view-transitions/#perform-pending-transition-operations.
-
-                // TODO(#31021: Run the update intersection observations steps from
-                // https://w3c.github.io/IntersectionObserver/#run-the-update-intersection-observations-steps
-
-                // TODO: Mark paint timing from https://w3c.github.io/paint-timing.
-
-                // TODO: Update the rendering: consolidate all reflow calls into one here?(#31871)
-
-                // TODO: process top layer removals(https://drafts.csswg.org/css-position-4/#process-top-layer-removals)
+                // https://html.spec.whatwg.org/multipage/#img-environment-changes
+                // As per the spec, this can be run at any time.
+                document.react_to_environment_changes()
             }
+
+            // Update animations and send events.
+            self.update_animations_and_send_events();
+
+            // TODO(#31866): Implement "run the fullscreen steps" from
+            // https://fullscreen.spec.whatwg.org/#run-the-fullscreen-steps.
+
+            // TODO(#31868): Implement the "context lost steps" from
+            // https://html.spec.whatwg.org/multipage/webappapis.html#context-lost-steps.
+
+            // Run the animation frame callbacks.
+            self.handle_tick_all_animations(pipeline_id);
+
+            // TODO(#31006): Implement the resize observer steps.
+
+            // TODO(#31870): Implement step 17: if the focused area of doc is not a focusable area,
+            // then run the focusing steps for document's viewport.
+
+            // TODO: Perform pending transition operations from
+            // https://drafts.csswg.org/css-view-transitions/#perform-pending-transition-operations.
+
+            // TODO(#31021: Run the update intersection observations steps from
+            // https://w3c.github.io/IntersectionObserver/#run-the-update-intersection-observations-steps
+
+            // TODO: Mark paint timing from https://w3c.github.io/paint-timing.
+
+            // TODO: Update the rendering: consolidate all reflow calls into one here?(#31871)
+
+            // TODO: process top layer removals(https://drafts.csswg.org/css-position-4/#process-top-layer-removals)
         }
     }
 
