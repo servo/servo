@@ -1684,7 +1684,7 @@ impl ScriptThread {
             // from the compositor.
 
             // TODO: Should this be broken and to match the specification more closely? For instance see
-            // https://html.spec.whatwg.org/#flush-autofocus-candidates.
+            // https://html.spec.whatwg.org/multipage/#flush-autofocus-candidates.
             self.process_pending_compositor_events(pipeline_id);
 
             // TODO(#31665): Implement the "run the scroll steps" from
@@ -1708,10 +1708,10 @@ impl ScriptThread {
             self.update_animations_and_send_events();
 
             // TODO(#31866): Implement "run the fullscreen steps" from
-            // https://fullscreen.spec.whatwg.org/#run-the-fullscreen-steps.
+            // https://fullscreen.spec.whatwg.org/multipage/#run-the-fullscreen-steps.
 
             // TODO(#31868): Implement the "context lost steps" from
-            // https://html.spec.whatwg.org/multipage/webappapis.html#context-lost-steps.
+            // https://html.spec.whatwg.org/multipage/#context-lost-steps.
 
             // Run the animation frame callbacks.
             document.tick_all_animations();
