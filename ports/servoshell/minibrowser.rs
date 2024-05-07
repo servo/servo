@@ -23,6 +23,7 @@ use servo::rendering_context::RenderingContext;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
 use servo::style_traits::DevicePixel;
+use winit::event::{ElementState, MouseButton};
 
 use crate::egui_glue::EguiGlow;
 use crate::events_loop::EventsLoop;
@@ -106,6 +107,24 @@ impl Minibrowser {
                     Some(winit_position_to_euclid_point(*position).to_f32() / scale);
                 self.last_mouse_position
                     .map_or(false, |p| self.is_in_browser_rect(p))
+            },
+            winit::event::WindowEvent::MouseInput {
+                state: ElementState::Pressed,
+                button: MouseButton::Forward,
+                ..
+            } => {
+                self.event_queue
+                    .borrow_mut()
+                    .push(MinibrowserEvent::Forward);
+                true
+            },
+            winit::event::WindowEvent::MouseInput {
+                state: ElementState::Pressed,
+                button: MouseButton::Back,
+                ..
+            } => {
+                self.event_queue.borrow_mut().push(MinibrowserEvent::Back);
+                true
             },
             winit::event::WindowEvent::MouseWheel { .. } |
             winit::event::WindowEvent::MouseInput { .. } => self
