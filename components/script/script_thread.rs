@@ -1715,7 +1715,7 @@ impl ScriptThread {
             // https://html.spec.whatwg.org/multipage/webappapis.html#context-lost-steps.
 
             // Run the animation frame callbacks.
-            self.handle_tick_all_animations(pipeline_id);
+            document.tick_all_animations();
 
             // TODO(#31006): Implement the resize observer steps.
 
@@ -3297,15 +3297,6 @@ impl ScriptThread {
             };
             document.maybe_mark_animating_nodes_as_dirty();
         });
-    }
-
-    /// Handles when layout finishes all animation in one tick
-    fn handle_tick_all_animations(&self, id: PipelineId) {
-        let document = match self.documents.borrow().find_document(id) {
-            Some(document) => document,
-            None => return warn!("Message sent to closed pipeline {}.", id),
-        };
-        document.tick_all_animations();
     }
 
     /// Handles a Web font being loaded. Does nothing if the page no longer exists.
