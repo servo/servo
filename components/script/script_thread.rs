@@ -514,7 +514,7 @@ unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
 #[allow(crown::unrooted_must_root)]
 pub struct ScriptThread {
     /// <https://html.spec.whatwg.org/multipage/#last-render-opportunity-time>
-    last_render_opportunity_time: DomRefCell<u64>,
+    last_render_opportunity_time: DomRefCell<Option<Instant>>,
     /// Used to batch rendering opportunities
     has_queued_update_the_rendering_task: DomRefCell<bool>,
     /// The documents for pipelines managed by this thread
@@ -1738,7 +1738,7 @@ impl ScriptThread {
 
     /// <https://html.spec.whatwg.org/multipage/#event-loop-processing-model:rendering-opportunity>
     fn rendering_opportunity(&self, pipeline_id: PipelineId) {
-        *self.last_render_opportunity_time.borrow_mut() = time::precise_time_ns();
+        *self.last_render_opportunity_time.borrow_mut() = Some(Instant::now());
 
         // Note: the pipeline should be a navigable with a rendering opportunity,
         // and we should use this opportunity to queue one task for each navigable with
