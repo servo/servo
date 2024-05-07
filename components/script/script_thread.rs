@@ -1855,7 +1855,7 @@ impl ScriptThread {
                     )
                 },
                 FromConstellation(ConstellationControlMsg::Resize(id, size, size_type)) => {
-                    self.handle_resize_msg(id, size, size_type);
+                    self.handle_resize_message(id, size, size_type);
                 },
                 FromConstellation(ConstellationControlMsg::Viewport(id, rect)) => self
                     .profile_event(ScriptThreadEventCategory::SetViewport, Some(id), || {
@@ -1982,7 +1982,7 @@ impl ScriptThread {
             }
 
             // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 6
-            // TODO: only run after running a task(#32003).
+            // TODO(#32003): A microtask checkpoint is only supposed to be performed after running a task.
             self.perform_a_microtask_checkpoint();
         }
 
@@ -2743,10 +2743,14 @@ impl ScriptThread {
         }
     }
 
-    /// Batch windo resize operations into a single "update the rendering" task,
-    /// or, if a load is in progress,
-    /// set the window size directly.
-    fn handle_resize_msg(&self, id: PipelineId, size: WindowSizeData, size_type: WindowSizeType) {
+    /// Batch window resize operations into a single "update the rendering" task,
+    /// or, if a load is in progress, set the window size directly.
+    fn handle_resize_message(
+        &self,
+        id: PipelineId,
+        size: WindowSizeData,
+        size_type: WindowSizeType,
+    ) {
         let window = self.documents.borrow().find_window(id);
         if let Some(ref window) = window {
             self.rendering_opportunity(id);
@@ -3173,7 +3177,7 @@ impl ScriptThread {
         RemoteEventTaskSource(self.remote_event_task_sender.clone(), pipeline_id)
     }
 
-    pub fn rendering_task_source(&self, pipeline_id: PipelineId) -> RenderingTaskSource {
+    fn rendering_task_source(&self, pipeline_id: PipelineId) -> RenderingTaskSource {
         RenderingTaskSource(self.rendering_task_sender.clone(), pipeline_id)
     }
 
@@ -3287,9 +3291,9 @@ impl ScriptThread {
     pub fn handle_tick_all_animations_for_testing(id: PipelineId) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            let document = match script_thread.documents.borrow().find_document(id) {
-                Some(document) => document,
-                None => return warn!("Animation tick for tests for closed pipeline {}.", id),
+            let Some(document) = script_thread.documents.borrow().find_document(id) else {
+                warn!("Animation tick for tests for closed pipeline {id}.");
+                return;
             };
             document.maybe_mark_animating_nodes_as_dirty();
         });
