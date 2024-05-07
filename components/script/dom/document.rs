@@ -1228,7 +1228,7 @@ impl Document {
     }
 
     #[allow(unsafe_code)]
-    pub unsafe fn handle_mouse_event(
+    pub unsafe fn handle_mouse_button_event(
         &self,
         button: MouseButton,
         client_point: Point2D<f32>,

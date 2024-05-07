@@ -1488,6 +1488,74 @@ impl ScriptThread {
         });
     }
 
+    /// Process a compositor mouse move event.
+    fn process_mouse_move_event(
+        &self,
+        document: &Document,
+        window: &Window,
+        point: Point2D<f32>,
+        node_address: Option<UntrustedNodeAddress>,
+        pressed_mouse_buttons: u16,
+    ) {
+        // Get the previous target temporarily
+        let prev_mouse_over_target = self.topmost_mouse_over_target.get();
+
+        unsafe {
+            document.handle_mouse_move_event(
+                point,
+                &self.topmost_mouse_over_target,
+                node_address,
+                pressed_mouse_buttons,
+            )
+        }
+
+        // Short-circuit if nothing changed
+        if self.topmost_mouse_over_target.get() == prev_mouse_over_target {
+            return;
+        }
+
+        let mut state_already_changed = false;
+
+        // Notify Constellation about the topmost anchor mouse over target.
+        if let Some(target) = self.topmost_mouse_over_target.get() {
+            if let Some(anchor) = target
+                .upcast::<Node>()
+                .inclusive_ancestors(ShadowIncluding::No)
+                .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
+                .next()
+            {
+                let status = anchor
+                    .upcast::<Element>()
+                    .get_attribute(&ns!(), &local_name!("href"))
+                    .and_then(|href| {
+                        let value = href.value();
+                        let url = document.url();
+                        url.join(&value).map(|url| url.to_string()).ok()
+                    });
+                let event = EmbedderMsg::Status(status);
+                window.send_to_embedder(event);
+
+                state_already_changed = true;
+            }
+        }
+
+        // We might have to reset the anchor state
+        if !state_already_changed {
+            if let Some(target) = prev_mouse_over_target {
+                if target
+                    .upcast::<Node>()
+                    .inclusive_ancestors(ShadowIncluding::No)
+                    .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
+                    .next()
+                    .is_some()
+                {
+                    let event = EmbedderMsg::Status(None);
+                    window.send_to_embedder(event);
+                }
+            }
+        }
+    }
+
     /// Process compositor events as part of a "update the rendering task".
     fn process_pending_compositor_events(&self, pipeline_id: PipelineId) {
         let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
@@ -1499,8 +1567,9 @@ impl ScriptThread {
             warn!("Compositor event sent to a pipeline with a closed window {pipeline_id}.");
             return;
         }
-        let window = document.window();
         ScriptThread::set_user_interacting(true);
+
+        let window = document.window();
         let _realm = enter_realm(document.window());
         for event in document.take_pending_compositor_events().into_iter() {
             match event {
@@ -1516,7 +1585,7 @@ impl ScriptThread {
                     point_in_node,
                     pressed_mouse_buttons,
                 ) => {
-                    self.handle_mouse_event(
+                    self.handle_mouse_button_event(
                         pipeline_id,
                         event_type,
                         button,
@@ -1528,63 +1597,13 @@ impl ScriptThread {
                 },
 
                 CompositorEvent::MouseMoveEvent(point, node_address, pressed_mouse_buttons) => {
-                    // Get the previous target temporarily
-                    let prev_mouse_over_target = self.topmost_mouse_over_target.get();
-
-                    unsafe {
-                        document.handle_mouse_move_event(
-                            point,
-                            &self.topmost_mouse_over_target,
-                            node_address,
-                            pressed_mouse_buttons,
-                        )
-                    }
-
-                    // Short-circuit if nothing changed
-                    if self.topmost_mouse_over_target.get() == prev_mouse_over_target {
-                        return;
-                    }
-
-                    let mut state_already_changed = false;
-
-                    // Notify Constellation about the topmost anchor mouse over target.
-                    if let Some(target) = self.topmost_mouse_over_target.get() {
-                        if let Some(anchor) = target
-                            .upcast::<Node>()
-                            .inclusive_ancestors(ShadowIncluding::No)
-                            .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
-                            .next()
-                        {
-                            let status = anchor
-                                .upcast::<Element>()
-                                .get_attribute(&ns!(), &local_name!("href"))
-                                .and_then(|href| {
-                                    let value = href.value();
-                                    let url = document.url();
-                                    url.join(&value).map(|url| url.to_string()).ok()
-                                });
-                            let event = EmbedderMsg::Status(status);
-                            window.send_to_embedder(event);
-
-                            state_already_changed = true;
-                        }
-                    }
-
-                    // We might have to reset the anchor state
-                    if !state_already_changed {
-                        if let Some(target) = prev_mouse_over_target {
-                            if target
-                                .upcast::<Node>()
-                                .inclusive_ancestors(ShadowIncluding::No)
-                                .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
-                                .next()
-                                .is_some()
-                            {
-                                let event = EmbedderMsg::Status(None);
-                                window.send_to_embedder(event);
-                            }
-                        }
-                    }
+                    self.process_mouse_move_event(
+                        &document,
+                        &window,
+                        point,
+                        node_address,
+                        pressed_mouse_buttons,
+                    );
                 },
 
                 CompositorEvent::TouchEvent(event_type, identifier, point, node_address) => {
@@ -3765,7 +3784,7 @@ impl ScriptThread {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn handle_mouse_event(
+    fn handle_mouse_button_event(
         &self,
         pipeline_id: PipelineId,
         mouse_event_type: MouseEventType,
@@ -3780,7 +3799,7 @@ impl ScriptThread {
             return;
         };
         unsafe {
-            document.handle_mouse_event(
+            document.handle_mouse_button_event(
                 button,
                 point,
                 mouse_event_type,
