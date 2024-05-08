@@ -17,11 +17,23 @@ struct GetDescriptionReply {
     value: SystemInfo,
 }
 
+// This is only a minimal subset of the properties exposed/expected by Firefox
+// (see https://searchfox.org/mozilla-central/source/devtools/shared/system.js#45)
 #[derive(Serialize)]
 struct SystemInfo {
     apptype: String,
-    platformVersion: String,
+    // Display version
+    version: String,
+    // Build ID (timestamp with format YYYYMMDDhhmmss), used for compatibility checks
+    // (see https://searchfox.org/mozilla-central/source/devtools/client/shared/remote-debugging/version-checker.js#82)
+    appbuildid: String,
+    // Firefox major.minor version number, use for compatibility checks
+    platformversion: String,
+    // Display name
+    brandName: String,
 }
+
+include!(concat!(env!("OUT_DIR"), "/build_id.rs"));
 
 pub struct DeviceActor {
     pub name: String,
@@ -45,7 +57,10 @@ impl Actor for DeviceActor {
                     from: self.name(),
                     value: SystemInfo {
                         apptype: "servo".to_string(),
-                        platformVersion: "71.0".to_string(),
+                        version: env!("CARGO_PKG_VERSION").to_string(),
+                        appbuildid: BUILD_ID.to_string(),
+                        platformversion: "124.0".to_string(),
+                        brandName: "Servo".to_string(),
                     },
                 };
                 let _ = stream.write_json_packet(&msg);
