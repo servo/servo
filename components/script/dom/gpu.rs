@@ -10,7 +10,7 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::Heap;
 use script_traits::ScriptMsg;
 use webgpu::wgt::PowerPreference;
-use webgpu::{wgpu, WebGPUResponse, WebGPUResponseResult};
+use webgpu::{wgc, WebGPUResponse, WebGPUResponseResult};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::GPUTextureFormat;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -117,7 +117,7 @@ impl GPUMethods for GPU {
         if script_to_constellation_chan
             .send(ScriptMsg::RequestAdapter(
                 sender,
-                wgpu::instance::RequestAdapterOptions {
+                wgc::instance::RequestAdapterOptions {
                     power_preference,
                     compatible_surface: None,
                     force_fallback_adapter: options.forceFallbackAdapter,

@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use ipc_channel::ipc;
 use script_layout_interface::HTMLCanvasDataSource;
-use webgpu::wgpu::id;
+use webgpu::wgc::id;
 use webgpu::{wgt, WebGPU, WebGPURequest, WebGPUTexture, PRESENTATION_BUFFER_COUNT};
 use webrender_api::{
     units, ExternalImageData, ExternalImageId, ExternalImageType, ImageData, ImageDescriptor,

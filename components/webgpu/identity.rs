@@ -5,7 +5,7 @@
 use msg::constellation_msg::PipelineId;
 use serde::{Deserialize, Serialize};
 
-use crate::wgpu::id::{
+use crate::wgc::id::{
     AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, ComputePipelineId,
     DeviceId, PipelineLayoutId, QuerySetId, RenderBundleId, RenderPipelineId, SamplerId,
     ShaderModuleId, StagingBufferId, SurfaceId, TextureId, TextureViewId,

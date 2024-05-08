@@ -7,7 +7,7 @@ use std::cell::Cell;
 use std::collections::HashSet;
 
 use dom_struct::dom_struct;
-use webgpu::wgpu::command as wgpu_com;
+use webgpu::wgc::command as wgpu_com;
 use webgpu::{self, wgt, WebGPU, WebGPURequest};
 
 use crate::dom::bindings::cell::DomRefCell;

@@ -4,7 +4,7 @@
 
 use std::borrow::Cow;
 
-use webgpu::wgpu::command as wgpu_com;
+use webgpu::wgc::command as wgpu_com;
 use webgpu::wgt;
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{

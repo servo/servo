@@ -14,8 +14,8 @@ use std::sync::{Arc, Mutex};
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use webgpu::identity::WebGPUOpResult;
-use webgpu::wgpu::id::{BindGroupLayoutId, PipelineLayoutId};
-use webgpu::wgpu::{
+use webgpu::wgc::id::{BindGroupLayoutId, PipelineLayoutId};
+use webgpu::wgc::{
     binding_model as wgpu_bind, command as wgpu_com, pipeline as wgpu_pipe, resource as wgpu_res,
 };
 use webgpu::{self, wgt, ErrorScopeId, WebGPU, WebGPURequest};

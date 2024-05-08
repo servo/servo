@@ -24,7 +24,7 @@ use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use smallvec::SmallVec;
 use style_traits::CSSPixel;
-use webgpu::{wgpu, WebGPU, WebGPUResponseResult};
+use webgpu::{wgc, WebGPU, WebGPUResponseResult};
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 
 use crate::{
@@ -258,8 +258,8 @@ pub enum ScriptMsg {
     /// Create a WebGPU Adapter instance
     RequestAdapter(
         IpcSender<Option<WebGPUResponseResult>>,
-        wgpu::instance::RequestAdapterOptions,
-        SmallVec<[wgpu::id::AdapterId; 4]>,
+        wgc::instance::RequestAdapterOptions,
+        SmallVec<[wgc::id::AdapterId; 4]>,
     ),
     /// Get WebGPU channel
     GetWebGPUChan(IpcSender<Option<WebGPU>>),

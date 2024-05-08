@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use log::{error, warn};
-use wgpu::device::queue::SubmittedWorkDoneClosure;
-use wgpu::gfx_select;
-pub use {wgpu_core as wgpu, wgpu_types as wgt};
+use wgc::device::queue::SubmittedWorkDoneClosure;
+use wgc::gfx_select;
+pub use {wgpu_core as wgc, wgpu_types as wgt};
 
 pub mod identity;
 
@@ -32,18 +32,18 @@ use webrender_traits::{
     WebrenderExternalImageApi, WebrenderExternalImageRegistry, WebrenderImageHandlerType,
     WebrenderImageSource,
 };
-use wgpu::binding_model::{
+use wgc::binding_model::{
     BindGroupDescriptor, BindGroupLayoutDescriptor, PipelineLayoutDescriptor,
 };
-use wgpu::command::{
+use wgc::command::{
     ComputePass, ImageCopyBuffer, ImageCopyTexture, RenderBundleDescriptor, RenderBundleEncoder,
     RenderPass,
 };
-use wgpu::device::{DeviceDescriptor, HostMap, ImplicitPipelineIds};
-use wgpu::id;
-use wgpu::instance::RequestAdapterOptions;
-use wgpu::pipeline::{ComputePipelineDescriptor, RenderPipelineDescriptor, ShaderModuleDescriptor};
-use wgpu::resource::{
+use wgc::device::{DeviceDescriptor, HostMap, ImplicitPipelineIds};
+use wgc::id;
+use wgc::instance::RequestAdapterOptions;
+use wgc::pipeline::{ComputePipelineDescriptor, RenderPipelineDescriptor, ShaderModuleDescriptor};
+use wgc::resource::{
     BufferDescriptor, BufferMapCallback, BufferMapOperation, SamplerDescriptor, TextureDescriptor,
     TextureViewDescriptor,
 };
@@ -89,7 +89,7 @@ pub enum WebGPURequest {
         device_id: id::DeviceId,
         is_error: bool,
         // TODO(zakorgy): Serialize CommandBufferDescriptor in wgpu-core
-        // wgpu::command::CommandBufferDescriptor,
+        // wgc::command::CommandBufferDescriptor,
     },
     CopyBufferToBuffer {
         command_encoder_id: id::CommandEncoderId,
@@ -135,7 +135,7 @@ pub enum WebGPURequest {
     CreateCommandEncoder {
         device_id: id::DeviceId,
         // TODO(zakorgy): Serialize CommandEncoderDescriptor in wgpu-core
-        // wgpu::command::CommandEncoderDescriptor,
+        // wgc::command::CommandEncoderDescriptor,
         command_encoder_id: id::CommandEncoderId,
         label: Option<Cow<'static, str>>,
     },
@@ -344,7 +344,7 @@ struct WGPU {
     receiver: IpcReceiver<(Option<ErrorScopeId>, WebGPURequest)>,
     sender: IpcSender<(Option<ErrorScopeId>, WebGPURequest)>,
     script_sender: IpcSender<WebGPUMsg>,
-    global: Arc<wgpu::global::Global>,
+    global: Arc<wgc::global::Global>,
     adapters: Vec<WebGPUAdapter>,
     devices: HashMap<WebGPUDevice, PipelineId>,
     // Track invalid adapters https://gpuweb.github.io/gpuweb/#invalid
@@ -372,7 +372,7 @@ impl WGPU {
             receiver,
             sender,
             script_sender,
-            global: Arc::new(wgpu::global::Global::new(
+            global: Arc::new(wgc::global::Global::new(
                 "wgpu-core",
                 InstanceDescriptor {
                     backends: wgt::Backends::PRIMARY,
@@ -892,7 +892,7 @@ impl WGPU {
                     } => {
                         let adapter_id = match self
                             .global
-                            .request_adapter(&options, wgpu::instance::AdapterInputs::IdSet(&ids))
+                            .request_adapter(&options, wgc::instance::AdapterInputs::IdSet(&ids))
                         {
                             Ok(id) => id,
                             Err(w) => {
