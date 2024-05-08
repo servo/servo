@@ -6,9 +6,8 @@ use std::cell::Cell;
 use std::string::String;
 
 use dom_struct::dom_struct;
-use webgpu::identity::WebGPUOpResult;
-use webgpu::wgpu::resource;
-use webgpu::{wgt, WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
+use webgpu::wgc::resource;
+use webgpu::{wgt, WebGPU, WebGPUOpResult, WebGPURequest, WebGPUTexture, WebGPUTextureView};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{

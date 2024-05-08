@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::wgpu::command::{bundle_ffi as wgpu_bundle, RenderBundleEncoder};
+use webgpu::wgc::command::{bundle_ffi as wgpu_bundle, RenderBundleEncoder};
 use webgpu::{wgt, WebGPU, WebGPURenderBundle, WebGPURequest};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::GPUIndexFormat;

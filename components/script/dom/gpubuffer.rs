@@ -11,9 +11,10 @@ use std::sync::{Arc, Mutex};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
 use js::typedarray::{ArrayBuffer, ArrayBufferU8};
-use webgpu::identity::WebGPUOpResult;
-use webgpu::wgpu::device::HostMap;
-use webgpu::{WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
+use webgpu::wgc::device::HostMap;
+use webgpu::{
+    WebGPU, WebGPUBuffer, WebGPUOpResult, WebGPURequest, WebGPUResponse, WebGPUResponseResult,
+};
 
 use super::bindings::buffer_source::{create_new_external_array_buffer, HeapBufferSource};
 use crate::dom::bindings::cell::DomRefCell;

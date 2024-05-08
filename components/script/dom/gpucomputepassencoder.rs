@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::wgpu::command::{compute_commands as wgpu_comp, ComputePass};
+use webgpu::wgc::command::{compute_commands as wgpu_comp, ComputePass};
 use webgpu::{WebGPU, WebGPURequest};
 
 use super::bindings::error::Fallible;
