@@ -846,7 +846,7 @@ impl WGPU {
                     WebGPURequest::DropCommandBuffer(id) => {
                         self.error_command_encoders
                             .borrow_mut()
-                            .remove(&id.transmute());
+                            .remove(&id.into_command_encoder_id());
                         let global = &self.global;
                         gfx_select!(id => global.command_buffer_drop(id));
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeCommandBuffer(id)) {
@@ -1011,7 +1011,7 @@ impl WGPU {
                         let cmd_id = command_buffers.iter().find(|id| {
                             self.error_command_encoders
                                 .borrow()
-                                .contains_key(&id.transmute())
+                                .contains_key(&id.into_command_encoder_id())
                         });
                         let result = if cmd_id.is_some() {
                             Err(String::from("Invalid command buffer submitted"))
@@ -1115,7 +1115,7 @@ impl WGPU {
                         ));
                         let _ = gfx_select!(queue_id => global.queue_submit(
                             queue_id,
-                            &[encoder_id.transmute()]
+                            &[encoder_id.into_command_buffer_id()]
                         ));
 
                         let glob = Arc::clone(&self.global);
@@ -1482,17 +1482,5 @@ impl Transmute<id::markers::Device> for id::Id<id::markers::Queue> {
     fn transmute(self) -> id::Id<id::markers::Device> {
         // SAFETY: This is safe because queue_id = device_id in wgpu
         unsafe { id::Id::from_raw(self.into_raw()) }
-    }
-}
-
-impl Transmute<id::markers::CommandBuffer> for id::Id<id::markers::CommandEncoder> {
-    fn transmute(self) -> id::Id<id::markers::CommandBuffer> {
-        self.into_command_buffer_id()
-    }
-}
-
-impl Transmute<id::markers::CommandEncoder> for id::Id<id::markers::CommandBuffer> {
-    fn transmute(self) -> id::Id<id::markers::CommandEncoder> {
-        self.into_command_encoder_id()
     }
 }

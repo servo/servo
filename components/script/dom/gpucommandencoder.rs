@@ -8,7 +8,7 @@ use std::collections::HashSet;
 
 use dom_struct::dom_struct;
 use webgpu::wgpu::command as wgpu_com;
-use webgpu::{self, wgt, Transmute, WebGPU, WebGPURequest};
+use webgpu::{self, wgt, WebGPU, WebGPURequest};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -393,7 +393,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             .expect("Failed to send Finish");
 
         *self.state.borrow_mut() = GPUCommandEncoderState::Closed;
-        let buffer = webgpu::WebGPUCommandBuffer(self.encoder.0.transmute());
+        let buffer = webgpu::WebGPUCommandBuffer(self.encoder.0.into_command_buffer_id());
         GPUCommandBuffer::new(
             &self.global(),
             self.channel.clone(),
