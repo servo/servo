@@ -6,8 +6,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
-use webgpu::identity::WebGPUOpResult;
-use webgpu::{wgt, WebGPU, WebGPUQueue, WebGPURequest, WebGPUResponse};
+use webgpu::{wgt, WebGPU, WebGPUOpResult, WebGPUQueue, WebGPURequest, WebGPUResponse};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::{GPUImageCopyTexture, GPUImageDataLayout};
 use super::gpu::{response_async, AsyncWGPUListener};

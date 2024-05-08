@@ -56,8 +56,7 @@ use script_traits::{
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use uuid::Uuid;
-use webgpu::identity::WebGPUOpResult;
-use webgpu::{ErrorScopeId, WebGPUDevice};
+use webgpu::{ErrorScopeId, WebGPUDevice, WebGPUOpResult};
 
 use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::cell::{DomRefCell, RefMut};
