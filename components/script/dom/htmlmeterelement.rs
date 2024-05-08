@@ -68,10 +68,6 @@ impl HTMLMeterElementMethods for HTMLMeterElement {
                 .get_string_attribute(&local_name!("value"))
                 .parse_floating_point_number()
                 .map_or(0.0, |candidate_actual_value| {
-                    if candidate_actual_value < min || min > max {
-                        return min;
-                    }
-
                     candidate_actual_value.clamp(min, max)
                 }),
         )
@@ -126,10 +122,6 @@ impl HTMLMeterElementMethods for HTMLMeterElement {
                 .get_string_attribute(&local_name!("low"))
                 .parse_floating_point_number()
                 .map_or(min, |candidate_low_boundary| {
-                    if candidate_low_boundary < min || min > max {
-                        return min;
-                    }
-
                     candidate_low_boundary.clamp(min, max)
                 }),
         )
@@ -144,7 +136,6 @@ impl HTMLMeterElementMethods for HTMLMeterElement {
     /// <https://html.spec.whatwg.org/multipage/#concept-meter-high>
     fn High(&self) -> Finite<f64> {
         let max: f64 = *self.Max();
-        let min: f64 = *self.Min();
         let low: f64 = *self.Low();
 
         Finite::wrap(
@@ -152,11 +143,11 @@ impl HTMLMeterElementMethods for HTMLMeterElement {
                 .get_string_attribute(&local_name!("high"))
                 .parse_floating_point_number()
                 .map_or(max, |candidate_high_boundary| {
-                    if candidate_high_boundary < low || min > max {
+                    if candidate_high_boundary < low {
                         return low;
                     }
 
-                    candidate_high_boundary.clamp(min, max)
+                    candidate_high_boundary.clamp(*self.Min(), max)
                 }),
         )
     }
@@ -177,11 +168,7 @@ impl HTMLMeterElementMethods for HTMLMeterElement {
                 .get_string_attribute(&local_name!("optimum"))
                 .parse_floating_point_number()
                 .map_or(max.add(min).div(2.0), |candidate_optimum_point| {
-                    if min <= max {
-                        return candidate_optimum_point.clamp(min, max);
-                    }
-
-                    candidate_optimum_point
+                    candidate_optimum_point.clamp(min, max)
                 }),
         )
     }
