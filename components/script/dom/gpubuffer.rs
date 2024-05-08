@@ -268,7 +268,8 @@ impl GPUBufferMethods for GPUBuffer {
                 buffer_id: self.buffer.0,
                 device_id: self.device.id().0,
                 host_map,
-                map_range: map_range.clone(),
+                offset,
+                size: Some(range_size),
             },
         )) {
             warn!(

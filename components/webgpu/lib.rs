@@ -81,7 +81,8 @@ pub enum WebGPURequest {
         buffer_id: id::BufferId,
         device_id: id::DeviceId,
         host_map: HostMap,
-        map_range: std::ops::Range<u64>,
+        offset: u64,
+        size: Option<u64>,
     },
     CommandEncoderFinish {
         command_encoder_id: id::CommandEncoderId,
@@ -407,7 +408,8 @@ impl WGPU {
                         buffer_id,
                         device_id,
                         host_map,
-                        map_range,
+                        offset,
+                        size,
                     } => {
                         let glob = Arc::clone(&self.global);
                         let resp_sender = sender.clone();
@@ -447,7 +449,12 @@ impl WGPU {
                             callback: Some(callback),
                         };
                         let global = &self.global;
-                        let result = gfx_select!(buffer_id => global.buffer_map_async(buffer_id, map_range, operation));
+                        let result = gfx_select!(buffer_id => global.buffer_map_async(
+                            buffer_id,
+                            offset,
+                            size,
+                            operation
+                        ));
                         if let Err(ref e) = result {
                             if let Err(w) = sender.send(Some(Err(format!("{:?}", e)))) {
                                 warn!("Failed to send BufferMapAsync Response ({:?})", w);
@@ -839,7 +846,7 @@ impl WGPU {
                     WebGPURequest::DropCommandBuffer(id) => {
                         self.error_command_encoders
                             .borrow_mut()
-                            .remove(&id.transmute());
+                            .remove(&id.into_command_encoder_id());
                         let global = &self.global;
                         gfx_select!(id => global.command_buffer_drop(id));
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeCommandBuffer(id)) {
@@ -1004,7 +1011,7 @@ impl WGPU {
                         let cmd_id = command_buffers.iter().find(|id| {
                             self.error_command_encoders
                                 .borrow()
-                                .contains_key(&id.transmute())
+                                .contains_key(&id.into_command_encoder_id())
                         });
                         let result = if cmd_id.is_some() {
                             Err(String::from("Invalid command buffer submitted"))
@@ -1108,7 +1115,7 @@ impl WGPU {
                         ));
                         let _ = gfx_select!(queue_id => global.queue_submit(
                             queue_id,
-                            &[encoder_id.transmute()]
+                            &[encoder_id.into_command_buffer_id()]
                         ));
 
                         let glob = Arc::clone(&self.global);
@@ -1161,7 +1168,8 @@ impl WGPU {
                             host: HostMap::Read,
                             callback: Some(callback),
                         };
-                        let _ = gfx_select!(buffer_id => global.buffer_map_async(buffer_id, 0..buffer_size, map_op));
+                        let _ = gfx_select!(buffer_id
+                            => global.buffer_map_async(buffer_id, 0, Some(buffer_size), map_op));
                     },
                     WebGPURequest::UnmapBuffer {
                         buffer_id,
@@ -1457,4 +1465,22 @@ pub struct PresentationData {
     image_key: ImageKey,
     image_desc: ImageDescriptor,
     image_data: ImageData,
+}
+
+pub trait Transmute<U: id::Marker> {
+    fn transmute(self) -> id::Id<U>;
+}
+
+impl Transmute<id::markers::Queue> for id::Id<id::markers::Device> {
+    fn transmute(self) -> id::Id<id::markers::Queue> {
+        // if this is removed next one should be removed too.
+        self.into_queue_id()
+    }
+}
+
+impl Transmute<id::markers::Device> for id::Id<id::markers::Queue> {
+    fn transmute(self) -> id::Id<id::markers::Device> {
+        // SAFETY: This is safe because queue_id = device_id in wgpu
+        unsafe { id::Id::from_raw(self.into_raw()) }
+    }
 }

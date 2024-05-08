@@ -2125,7 +2125,7 @@ impl ScriptThread {
             WebGPUMsg::FreeCommandBuffer(id) => self
                 .gpu_id_hub
                 .lock()
-                .kill_command_buffer_id(id.transmute()),
+                .kill_command_buffer_id(id.into_command_encoder_id()),
             WebGPUMsg::FreeSampler(id) => self.gpu_id_hub.lock().kill_sampler_id(id),
             WebGPUMsg::FreeShaderModule(id) => self.gpu_id_hub.lock().kill_shader_module_id(id),
             WebGPUMsg::FreeRenderBundle(id) => self.gpu_id_hub.lock().kill_render_bundle_id(id),

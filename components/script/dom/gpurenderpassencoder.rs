@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::wgpu::command::{render_ffi as wgpu_render, RenderPass};
+use webgpu::wgpu::command::{render_commands as wgpu_render, RenderPass};
 use webgpu::{wgt, WebGPU, WebGPURequest};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::GPUIndexFormat;
@@ -86,15 +86,12 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
     #[allow(unsafe_code)]
     fn SetBindGroup(&self, index: u32, bind_group: &GPUBindGroup, dynamic_offsets: Vec<u32>) {
         if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
-            unsafe {
-                wgpu_render::wgpu_render_pass_set_bind_group(
-                    render_pass,
-                    index,
-                    bind_group.id().0,
-                    dynamic_offsets.as_ptr(),
-                    dynamic_offsets.len(),
-                )
-            };
+            wgpu_render::wgpu_render_pass_set_bind_group(
+                render_pass,
+                index,
+                bind_group.id().0,
+                &dynamic_offsets,
+            )
         }
     }
 
@@ -286,13 +283,7 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
     fn ExecuteBundles(&self, bundles: Vec<DomRoot<GPURenderBundle>>) {
         let bundle_ids = bundles.iter().map(|b| b.id().0).collect::<Vec<_>>();
         if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
-            unsafe {
-                wgpu_render::wgpu_render_pass_execute_bundles(
-                    render_pass,
-                    bundle_ids.as_ptr(),
-                    bundle_ids.len(),
-                )
-            };
+            wgpu_render::wgpu_render_pass_execute_bundles(render_pass, &bundle_ids)
         }
     }
 }
