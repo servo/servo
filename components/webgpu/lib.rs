@@ -8,6 +8,7 @@ use wgpu_thread::WGPU;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
 
 pub mod identity;
+mod poll_thread;
 mod wgpu_thread;
 
 use std::borrow::Cow;
@@ -86,7 +87,7 @@ impl WebGPU {
                 .run();
             })
         {
-            warn!("Failed to spwan WGPU thread ({})", e);
+            warn!("Failed to spawn WGPU thread ({})", e);
             return None;
         }
         Some((WebGPU(sender), script_recv))

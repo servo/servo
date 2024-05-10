@@ -8,7 +8,6 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::slice;
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
 
 use arrayvec::ArrayVec;
 use euclid::default::Size2D;
@@ -27,12 +26,12 @@ use wgc::{gfx_select, id};
 use wgt::InstanceDescriptor;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
 
+use crate::poll_thread::Poller;
 use crate::{
     ErrorScopeId, PresentationData, Transmute, WebGPU, WebGPUAdapter, WebGPUDevice, WebGPUMsg,
     WebGPUOpResult, WebGPUQueue, WebGPURequest, WebGPUResponse,
 };
 
-const DEVICE_POLL_INTERVAL: Duration = Duration::from_millis(50);
 pub const PRESENTATION_BUFFER_COUNT: usize = 10;
 
 #[allow(clippy::upper_case_acronyms)] // Name of the library
@@ -51,7 +50,7 @@ pub(crate) struct WGPU {
     webrender_document: DocumentId,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     wgpu_image_map: Arc<Mutex<HashMap<u64, PresentationData>>>,
-    last_poll: Instant,
+    poller: Poller,
 }
 
 impl WGPU {
@@ -64,17 +63,19 @@ impl WGPU {
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
         wgpu_image_map: Arc<Mutex<HashMap<u64, PresentationData>>>,
     ) -> Self {
+        let global = Arc::new(wgc::global::Global::new(
+            "wgpu-core",
+            InstanceDescriptor {
+                backends: wgt::Backends::PRIMARY,
+                ..Default::default()
+            },
+        ));
         WGPU {
+            poller: Poller::new(Arc::clone(&global)),
             receiver,
             sender,
             script_sender,
-            global: Arc::new(wgc::global::Global::new(
-                "wgpu-core",
-                InstanceDescriptor {
-                    backends: wgt::Backends::PRIMARY,
-                    ..Default::default()
-                },
-            )),
+            global,
             adapters: Vec::new(),
             devices: HashMap::new(),
             _invalid_adapters: Vec::new(),
@@ -83,21 +84,12 @@ impl WGPU {
             webrender_document,
             external_images,
             wgpu_image_map,
-            last_poll: Instant::now(),
         }
     }
 
     pub(crate) fn run(&mut self) {
         loop {
-            let diff = DEVICE_POLL_INTERVAL.checked_sub(self.last_poll.elapsed());
-            if diff.is_none() {
-                let _ = self.global.poll_all_devices(false);
-                self.last_poll = Instant::now();
-            }
-            if let Ok((scope_id, msg)) = self
-                .receiver
-                .try_recv_timeout(diff.unwrap_or(DEVICE_POLL_INTERVAL))
-            {
+            if let Ok((scope_id, msg)) = self.receiver.recv() {
                 match msg {
                     WebGPURequest::BufferMapAsync {
                         sender,
@@ -109,7 +101,9 @@ impl WGPU {
                     } => {
                         let glob = Arc::clone(&self.global);
                         let resp_sender = sender.clone();
+                        let token = self.poller.token();
                         let callback = BufferMapCallback::from_rust(Box::from(move |result| {
+                            drop(token);
                             match result {
                                 Ok(()) => {
                                     let global = &glob;
@@ -151,6 +145,7 @@ impl WGPU {
                             size,
                             operation
                         ));
+                        self.poller.wake();
                         if let Err(ref e) = result {
                             if let Err(w) = sender.send(Some(Err(format!("{:?}", e)))) {
                                 warn!("Failed to send BufferMapAsync Response ({:?})", w);
@@ -818,7 +813,9 @@ impl WGPU {
                         let wgpu_image_map = Arc::clone(&self.wgpu_image_map);
                         let webrender_api = Arc::clone(&self.webrender_api);
                         let webrender_document = self.webrender_document;
+                        let token = self.poller.token();
                         let callback = BufferMapCallback::from_rust(Box::from(move |result| {
+                            drop(token);
                             match result {
                                 Ok(()) => {
                                     let global = &glob;
@@ -866,6 +863,7 @@ impl WGPU {
                         };
                         let _ = gfx_select!(buffer_id
                             => global.buffer_map_async(buffer_id, 0, Some(buffer_size), map_op));
+                        self.poller.wake();
                     },
                     WebGPURequest::UnmapBuffer {
                         buffer_id,
@@ -928,14 +926,16 @@ impl WGPU {
                     },
                     WebGPURequest::QueueOnSubmittedWorkDone { sender, queue_id } => {
                         let global = &self.global;
-
+                        let token = self.poller.token();
                         let callback = SubmittedWorkDoneClosure::from_rust(Box::from(move || {
+                            drop(token);
                             if let Err(e) = sender.send(Some(Ok(WebGPUResponse::SubmittedWorkDone)))
                             {
                                 warn!("Could not send SubmittedWorkDone Response ({})", e);
                             }
                         }));
                         let result = gfx_select!(queue_id => global.queue_on_submitted_work_done(queue_id, callback));
+                        self.poller.wake();
                         self.send_result(queue_id.transmute(), scope_id, result);
                     },
                     WebGPURequest::DropTexture(id) => {
