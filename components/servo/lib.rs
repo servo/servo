@@ -1059,8 +1059,7 @@ impl gfx_traits::WebrenderApi for FontCacheWR {
         flags: FontInstanceFlags,
     ) -> FontInstanceKey {
         let (sender, receiver) = unbounded();
-        let _ = self
-            .0
+        self.0
             .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
                 FontToCompositorMsg::AddFontInstance(font_key, size, flags, sender),
             )));
@@ -1070,8 +1069,7 @@ impl gfx_traits::WebrenderApi for FontCacheWR {
         let (sender, receiver) = unbounded();
         let (bytes_sender, bytes_receiver) =
             ipc::bytes_channel().expect("failed to create IPC channel");
-        let _ = self
-            .0
+        self.0
             .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
                 FontToCompositorMsg::AddFont(sender, index, bytes_receiver),
             )));
@@ -1081,8 +1079,7 @@ impl gfx_traits::WebrenderApi for FontCacheWR {
 
     fn add_system_font(&self, handle: NativeFontHandle) -> FontKey {
         let (sender, receiver) = unbounded();
-        let _ = self
-            .0
+        self.0
             .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
                 FontToCompositorMsg::AddSystemFont(sender, handle),
             )));
@@ -1096,16 +1093,14 @@ struct CanvasWebrenderApi(CompositorProxy);
 impl canvas_paint_thread::WebrenderApi for CanvasWebrenderApi {
     fn generate_key(&self) -> Option<ImageKey> {
         let (sender, receiver) = unbounded();
-        let _ = self
-            .0
+        self.0
             .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Canvas(
                 CanvasToCompositorMsg::GenerateKey(sender),
             )));
         receiver.recv().ok()
     }
     fn update_images(&self, updates: Vec<canvas_paint_thread::ImageUpdate>) {
-        let _ = self
-            .0
+        self.0
             .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Canvas(
                 CanvasToCompositorMsg::UpdateImages(updates),
             )));
@@ -1235,29 +1230,29 @@ enum UserAgent {
 
 fn default_user_agent_string_for(agent: UserAgent) -> &'static str {
     #[cfg(all(target_os = "linux", target_arch = "x86_64", not(target_env = "ohos")))]
-    const DESKTOP_UA_STRING: &'static str =
+    const DESKTOP_UA_STRING: &str =
         "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Servo/1.0 Firefox/111.0";
     #[cfg(all(
         target_os = "linux",
         not(target_arch = "x86_64"),
         not(target_env = "ohos")
     ))]
-    const DESKTOP_UA_STRING: &'static str =
+    const DESKTOP_UA_STRING: &str =
         "Mozilla/5.0 (X11; Linux i686; rv:109.0) Servo/1.0 Firefox/111.0";
 
     #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
-    const DESKTOP_UA_STRING: &'static str =
+    const DESKTOP_UA_STRING: &str =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Servo/1.0 Firefox/111.0";
     #[cfg(all(target_os = "windows", not(target_arch = "x86_64")))]
-    const DESKTOP_UA_STRING: &'static str =
+    const DESKTOP_UA_STRING: &str =
         "Mozilla/5.0 (Windows NT 10.0; rv:109.0) Servo/1.0 Firefox/111.0";
 
     #[cfg(target_os = "macos")]
-    const DESKTOP_UA_STRING: &'static str =
+    const DESKTOP_UA_STRING: &str =
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Servo/1.0 Firefox/111.0";
 
     #[cfg(any(target_os = "android", target_env = "ohos"))]
-    const DESKTOP_UA_STRING: &'static str = "";
+    const DESKTOP_UA_STRING: &str = "";
 
     match agent {
         UserAgent::Desktop => DESKTOP_UA_STRING,
