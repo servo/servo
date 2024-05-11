@@ -119,7 +119,7 @@ where
     }
 
     pub fn focused_webview_id(&self) -> Option<WebViewId> {
-        self.focused_webview_id.clone()
+        self.focused_webview_id
     }
 
     pub fn current_url_string(&self) -> Option<&str> {
