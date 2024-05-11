@@ -42,6 +42,14 @@ pub(crate) struct Poller {
     handle: Option<JoinHandle<()>>,
 }
 
+#[inline]
+fn poll_all_devices(global: &Arc<Global>, more_work: &mut bool, force_wait: bool) {
+    match global.poll_all_devices(force_wait) {
+        Ok(all_queue_empty) => *more_work = !all_queue_empty,
+        Err(e) => warn!("Poller thread got `{e}` on poll_all_devices."),
+    }
+}
+
 impl Poller {
     pub(crate) fn new(global: Arc<Global>) -> Self {
         let work_count = Arc::new(AtomicUsize::new(0));
@@ -57,13 +65,15 @@ impl Poller {
                     .spawn(move || {
                         while !done.load(Ordering::Acquire) {
                             let mut more_work = false;
+                            // Do non-blocking poll unconditionally
+                            // so every `ẁake` (even spurious) will do at least one poll.
+                            // this is mostly useful for stuff that is deferred
+                            // to maintain calls in wgpu (device resource destruction)
+                            poll_all_devices(&global, &mut more_work, false);
                             while more_work || work.load(Ordering::Acquire) != 0 {
-                                match global.poll_all_devices(true) {
-                                    Ok(all_queue_empty) => more_work = !all_queue_empty,
-                                    Err(e) => warn!("Poller thread got `{e}` on poll_all_devices."),
-                                }
+                                poll_all_devices(&global, &mut more_work, true);
                             }
-                            std::thread::park();
+                            std::thread::park(); //TODO: should we use timeout here
                         }
                     })
                     .unwrap(),
