@@ -893,7 +893,7 @@ impl HTMLFormElement {
     // https://html.spec.whatwg.org/multipage/#submit-body
     fn submit_entity_body(
         &self,
-        form_data: &mut Vec<FormDatum>,
+        form_data: &mut [FormDatum],
         mut load_data: LoadData,
         enctype: FormEncType,
         encoding: &'static Encoding,
