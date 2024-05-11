@@ -236,7 +236,7 @@ impl Layout for LayoutThread {
         self.handle_request(Request::FromFontCache);
     }
 
-    fn device<'a>(&'a self) -> &'a Device {
+    fn device(&self) -> &Device {
         self.stylist.device()
     }
 
@@ -739,7 +739,7 @@ impl LayoutThread {
             }
 
             // Stash the data on the element for processing by the style system.
-            style_data.hint.insert(restyle.hint.into());
+            style_data.hint.insert(restyle.hint);
             style_data.damage = restyle.damage;
             debug!("Noting restyle for {:?}: {:?}", el, style_data);
         }
@@ -1150,7 +1150,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
         )?,
     ];
 
-    for &(ref contents, ref url) in &opts::get().user_stylesheets {
+    for (contents, url) in &opts::get().user_stylesheets {
         user_or_user_agent_stylesheets.push(DocumentStyleSheet(ServoArc::new(
             Stylesheet::from_bytes(
                 contents,

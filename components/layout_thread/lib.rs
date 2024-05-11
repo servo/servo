@@ -260,7 +260,7 @@ impl Layout for LayoutThread {
         self.handle_request(Request::FromFontCache);
     }
 
-    fn device<'a>(&'a self) -> &'a Device {
+    fn device(&self) -> &Device {
         self.stylist.device()
     }
 
@@ -497,10 +497,10 @@ impl Layout for LayoutThread {
         let properties = properties
             .drain(..)
             .filter_map(|name| {
-                let id = PropertyId::parse_enabled_for_all_content(&*name).ok()?;
+                let id = PropertyId::parse_enabled_for_all_content(&name).ok()?;
                 Some((name.clone(), id))
             })
-            .filter(|&(_, ref id)| !id.is_shorthand())
+            .filter(|(_, id)| !id.is_shorthand())
             .collect();
         let registered_painter = RegisteredPainterImpl {
             name: name.clone(),
@@ -873,40 +873,39 @@ impl LayoutThread {
                 let traversal = ComputeStackingRelativePositions { layout_context };
                 traversal.traverse(layout_root);
 
-                if layout_root
+                if (layout_root
                     .base()
                     .restyle_damage
                     .contains(ServoRestyleDamage::REPAINT) ||
-                    self.display_list.borrow().is_none()
+                    self.display_list.borrow().is_none()) &&
+                    reflow_goal.needs_display_list()
                 {
-                    if reflow_goal.needs_display_list() {
-                        let background_color = get_root_flow_background_color(layout_root);
-                        let mut build_state = sequential::build_display_list_for_subtree(
-                            layout_root,
-                            layout_context,
-                            background_color,
-                            data.page_clip_rect.size,
-                        );
+                    let background_color = get_root_flow_background_color(layout_root);
+                    let mut build_state = sequential::build_display_list_for_subtree(
+                        layout_root,
+                        layout_context,
+                        background_color,
+                        data.page_clip_rect.size,
+                    );
 
-                        debug!("Done building display list.");
+                    debug!("Done building display list.");
 
-                        let root_size = {
-                            let root_flow = layout_root.base();
-                            root_flow.overflow.scroll.size
-                        };
+                    let root_size = {
+                        let root_flow = layout_root.base();
+                        root_flow.overflow.scroll.size
+                    };
 
-                        let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size).to_layout();
-                        build_state.root_stacking_context.bounds = origin;
-                        build_state.root_stacking_context.overflow = origin;
+                    let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size).to_layout();
+                    build_state.root_stacking_context.bounds = origin;
+                    build_state.root_stacking_context.overflow = origin;
 
-                        // We will not use build_state.iframe_sizes again, so it's safe to move it.
-                        let iframe_sizes = std::mem::take(&mut build_state.iframe_sizes);
-                        self.update_iframe_sizes(iframe_sizes);
+                    // We will not use build_state.iframe_sizes again, so it's safe to move it.
+                    let iframe_sizes = std::mem::take(&mut build_state.iframe_sizes);
+                    self.update_iframe_sizes(iframe_sizes);
 
-                        *self.indexable_text.borrow_mut() =
-                            std::mem::take(&mut build_state.indexable_text);
-                        *self.display_list.borrow_mut() = Some(build_state.to_display_list());
-                    }
+                    *self.indexable_text.borrow_mut() =
+                        std::mem::take(&mut build_state.indexable_text);
+                    *self.display_list.borrow_mut() = Some(build_state.to_display_list());
                 }
 
                 if !reflow_goal.needs_display() {
@@ -1286,7 +1285,7 @@ impl LayoutThread {
         thread_pool: Option<&rayon::ThreadPool>,
     ) {
         Self::cancel_animations_for_nodes_not_in_flow_tree(
-            &mut *(context.style_context.animations.sets.write()),
+            &mut (context.style_context.animations.sets.write()),
             FlowRef::deref_mut(root_flow),
         );
 
@@ -1559,7 +1558,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
         )?,
     ];
 
-    for &(ref contents, ref url) in &opts::get().user_stylesheets {
+    for (contents, url) in &opts::get().user_stylesheets {
         user_or_user_agent_stylesheets.push(DocumentStyleSheet(ServoArc::new(
             Stylesheet::from_bytes(
                 contents,
