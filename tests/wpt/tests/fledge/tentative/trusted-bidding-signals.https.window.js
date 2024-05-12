@@ -329,6 +329,34 @@ subsetTest(promise_test, async test => {
 }, 'Trusted bidding signals receives hostname field.');
 
 /////////////////////////////////////////////////////////////////////////////
+// Cross-origin trusted bidding signals tests
+/////////////////////////////////////////////////////////////////////////////
+
+subsetTest(promise_test, async test => {
+  await runTrustedBiddingSignalsTest(
+      test,
+      `trustedBiddingSignals === null &&
+       !('dataVersion' in browserSignals) &&
+       crossOriginTrustedBiddingSignals['${OTHER_ORIGIN1}']['num-value'] === 1 &&
+       browserSignals.crossOriginDataVersion === 4`,
+      { name: 'data-version',
+        trustedBiddingSignalsKeys: ['num-value', 'cors'],
+        trustedBiddingSignalsURL: CROSS_ORIGIN_TRUSTED_BIDDING_SIGNALS_URL });
+}, 'Basic cross-origin trusted bidding signals');
+
+subsetTest(promise_test, async test => {
+  await runTrustedBiddingSignalsTest(
+      test,
+      `trustedBiddingSignals === null &&
+       !('dataVersion' in browserSignals) &&
+       crossOriginTrustedBiddingSignals === null &&
+       !('crossOriginDataVersion' in browserSignals)`,
+      { name: 'data-version',
+        trustedBiddingSignalsKeys: ['num-value'],
+        trustedBiddingSignalsURL: CROSS_ORIGIN_TRUSTED_BIDDING_SIGNALS_URL });
+}, 'Cross-origin trusted bidding signals w/o CORS authorization');
+
+/////////////////////////////////////////////////////////////////////////////
 // Data-Version tests
 /////////////////////////////////////////////////////////////////////////////
 

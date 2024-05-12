@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>View transitions: pagereveal event provides viewTransition</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<meta name="timeout" content="long">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/page-visibility/resources/window_state_context.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  const params = new URLSearchParams(location.search);
+  const is_initial_page = !params.has('new');
+
+  // This test navigates to itself with a changed query parameter. The test
+  // checks are performed on the navigated-to document.
+  if (is_initial_page) {
+    onload = () => {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        location.replace(location.href + '?new');
+      }));
+    };
+  } else {
+    promise_test(async t => {
+      const render_blocker = document.createElement("script");
+      render_blocker.blocking = "render";
+      render_blocker.src = "/loading/resources/dummy.js?pipe=trickle(d10)";
+      render_blocker.type = "module";
+      document.head.append(render_blocker);
+      const ev_promise = new Promise(
+        resolve => addEventListener('pagereveal', e => resolve(e)));
+      const wsc = window_state_context(t);
+      await wsc.minimize();
+      render_blocker.remove();
+      await wsc.restore();
+
+      const ev = await ev_promise;
+
+      assert_equals(ev.viewTransition, null,
+        "Transition should have been skipped when document was minimized");
+    }, "Inbound cross-document view-transition should be skipped if document is hidden");
+  }
+</script>
+<style>
+  @view-transition {
+    navigation: auto;
+  }
+</style>

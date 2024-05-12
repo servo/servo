@@ -39,6 +39,13 @@ def main(request, response):
             continue
         return fail(response, "Unexpected query parameter: " + param)
 
+    # If trusted signal keys are passed in, and one of them is "cors",
+    # add appropriate Access-Control-* headers to normal requests, and handle
+    # CORS preflights.
+    if keys and "cors" in keys and fledge_http_server_util.handle_cors_headers_and_preflight(
+            request, response):
+        return
+
     # "interestGroupNames" and "hostname" are mandatory.
     if not hostname:
         return fail(response, "hostname missing")

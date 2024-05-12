@@ -279,6 +279,11 @@ class TestdriverVendorPath(Rule):
     description = "testdriver-vendor.js script seen with incorrect path"
 
 
+class TestdriverInUnsupportedType(Rule):
+    name = "TESTDRIVER-IN-UNSUPPORTED-TYPE"
+    description = "testdriver.js included in a %s test, which doesn't support testdriver.js"
+
+
 class OpenNoMode(Rule):
     name = "OPEN-NO-MODE"
     description = "File opened without providing an explicit mode (note: binary files must be read with 'b' in the mode flags)"
@@ -322,6 +327,11 @@ class BrokenMetadata(Rule):
 class TestharnessInOtherType(Rule):
     name = "TESTHARNESS-IN-OTHER-TYPE"
     description = "testharness.js included in a %s test"
+
+
+class ReferenceInOtherType(Rule):
+    name = "REFERENCE-IN-OTHER-TYPE"
+    description = "Reference link included in a %s test"
 
 
 class DuplicateBasenamePath(Rule):

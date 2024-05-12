@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: basic cross-document navigation with nested element (new page)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="root-element-transition-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script>
+onload = takeScreenshot;
+</script>
+<style>
+@view-transition { navigation: auto; }
+
+html {
+  background: orange;
+}
+.hidden {
+  width: 10px;
+  height: 10px;
+  view-transition-name: hidden;
+  background: green;
+  contain: layout;
+}
+.target {
+  width: 100px;
+  height: 100px;
+  background: lightgreen;
+  contain: layout;
+  view-transition-name: target;
+  overflow: visible;
+}
+.inner {
+  width: 100px;
+  height: 100px;
+  position: relative;
+  top: 50px;
+  left: 50px;
+  border: 5px solid blue;
+}
+html::view-transition-group(hidden) { animation-duration: 300s; }
+html::view-transition-image-pair(hidden) { animation: unset; opacity: 0; }
+html::view-transition-new(*), html::view-transition-old(*) {
+  opacity: 1;
+  animation: unset;
+}
+html::view-transition-old(root) {
+  width: 50vw;
+  height: 100vh;
+  position: fixed;
+  left: 0px;
+  top: 0px;
+}
+html::view-transition-new(root) {
+  width: 50vw;
+  height: 100vh;
+  position: fixed;
+  left: 50vw;
+  top: 0px;
+}
+html::view-transition-old(target) {
+  top: 0px;
+  left: 0px;
+}
+html::view-transition-new(target) {
+  top: 200px;
+  left: 0px;
+}
+</style>
+<div class="target">
+  This is new element
+  <div class="inner"></div>
+</div>
+<div class="hidden"></div>
+</html>

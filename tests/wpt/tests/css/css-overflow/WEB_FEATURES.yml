@@ -1,0 +1,30 @@
+features:
+- name: overflow-shorthand
+  files:
+  # This is all overflow-* except overflow-auto-scrollbar-gutter-intrinsic-* and
+  # overflow-scroll-*. TODO: convert to an exclusion patterns, or rename tests
+  # to make overflow-* only match the below.
+  - overflow-abpos-transform.html
+  - overflow-body-propagation-*
+  - overflow-canvas.html
+  - overflow-clip-*
+  - overflow-codependent-scrollbars.html
+  - overflow-ellipsis-dynamic-001.html
+  - overflow-empty-child-box.html
+  - overflow-hidden-resize-with-stacking-context-child.html
+  - overflow-img-*
+  - overflow-img.html
+  - overflow-inline-block-with-opacity.html
+  - overflow-inline-transform-relative.html
+  - overflow-negative-margin-dynamic.html
+  - overflow-negative-margin.html
+  - overflow-no-frameset-propagation.html
+  - overflow-no-interpolation.html
+  - overflow-overlay.html
+  - overflow-padding.html
+  - overflow-recalc-001.html
+  - overflow-replaced-element-001.html
+  - overflow-shorthand-001.html
+  - overflow-video.html
+  - rounded-overflow-*
+  - select-size-overflow-001.html

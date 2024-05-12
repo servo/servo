@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>View Transitions: @view-transition not applied from shadow tree.</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const is_new_page = params.has('new');
+
+if (!is_new_page) {
+  onload = () => {
+    const host = document.querySelector("#host");
+    const shadow = host.attachShadow({ mode: "open" });
+    const style = document.createElement("style");
+    style.textContent = `@view-transition {
+      navigation: auto;
+    }`;
+    shadow.appendChild(style);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        location.replace(location.href + '?new');
+    }));
+  };
+} else {
+  // Can't use the opt-in from shadow DOM on the new page since the opt-in must
+  // be effective by the time the <body> element is parsed and only elements in
+  // <body> can be a shadow root.
+  const style = document.createElement("style");
+  style.textContent = `@view-transition {
+    navigation: auto;
+  }`;
+  document.head.appendChild(style);
+  promise_test(() => {
+    return new Promise((resolve) => {
+        addEventListener('pagereveal', resolve);
+    }).then(event => {
+        assert_equals(event.viewTransition, null,
+            "ViewTransition must not be triggered.");
+    });
+  });
+}
+</script>
+<div id="host"></div>

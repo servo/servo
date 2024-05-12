@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>View Transitions: @view-transition opt-in programmatically.</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style id="vt-style">
+@view-transition {
+    navigation: none;
+}
+</style>
+<script>
+function optIn() {
+  document.querySelector("#vt-style").innerHTML = `@view-transition { navigation: auto }`;
+}
+const params = new URLSearchParams(location.search);
+const is_new_page = params.has('new');
+
+if (!is_new_page) {
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+      optIn();
+      location.replace(location.href + '?new');
+  }));
+} else {
+  promise_test(() => {
+    optIn();
+    return new Promise((resolve) => {
+        addEventListener('pagereveal', resolve);
+    }).then(event => {
+        assert_not_equals(event.viewTransition, null,
+            "ViewTransition must be triggered.");
+    });
+  });
+}
+</script>

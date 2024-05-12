@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>
+  View transitions: Test pagereveal.finished and skipTransition
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<link rel="match" href="pagereveal-finished-promise-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const is_new_page = params.has('new');
+
+if (is_new_page) {
+  document.documentElement.classList.add('newPage');
+
+  addEventListener('pagereveal', e => {
+    e.viewTransition.finished.then(() => {
+      // Animations are finished so the screenshot should contain live DOM.
+      takeScreenshot();
+    });
+    e.viewTransition.skipTransition();
+  });
+} else {
+  onload = () => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      location.replace(window.location.href + '?new');
+    }));
+  };
+}
+</script>
+<style>
+@view-transition {
+  navigation: auto;
+}
+#target {
+  width: 100px;
+  height: 100px;
+  background-color: limegreen;
+  position: absolute;
+  left: 20px;
+  top: 100px;
+  view-transition-name: target;
+}
+.newPage #target {
+  left: 300px;
+}
+
+/* Long duration to ensure skipTransition aborts the transition */
+::view-transition-group(target) {
+  animation-duration: 300s;
+}
+
+/* Ensure view-transition snapshots are easily distinguished from live DOM */
+:root {
+  view-transition-name: unset;
+}
+::view-transition {
+  background-color: thistle;
+}
+</style>
+<div id="target"></div>
+</html>

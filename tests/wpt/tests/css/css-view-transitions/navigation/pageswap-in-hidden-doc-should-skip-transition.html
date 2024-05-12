@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>Tests pageswap dispatch on hidden Documents</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+  const expectedUrl = location.href + '?new';
+
+  const params = new URLSearchParams(location.search);
+  // The page the popup navigates to.
+  const is_new_page = params.has('new');
+  // The initial page in the popup.
+  const is_popup_page = params.has('popup');
+  // The test page itself.
+  const is_test_page = !is_popup_page && !is_new_page;
+
+  if (is_test_page) {
+    const expectedUrl = location.href + "?new";
+    const expectedEvents = ["pageswap", expectedUrl, "push", "from", "pagehide"];
+
+    promise_test(async t => {
+      let popup;
+      onload = async () => {
+        window.events = [];
+        popup = window.open('?popup');
+      };
+
+     const result = await new Promise(resolve => {
+        window.popup_done = resolve;
+      });
+      assert_equals(result, null);
+    }, "Outbound cross-document view transition is not allowed when document is hidden");
+  } else if (is_popup_page) {
+    onload = async () => {
+      await test_driver.minimize_window();
+      assert_equals(document.visibilityState, "hidden");
+      assert_equals(document.hidden, true);
+
+      location.href = location.href.split('?')[0] + '?new';
+    };
+
+    onpageswap = (e) => {
+      window.opener.popup_done(e.viewTransition);
+    };
+  }
+</script>

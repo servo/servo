@@ -7,7 +7,7 @@ function waitForRender() {
 async function navigateFocusForward() {
   await waitForRender();
   const kTab = '\uE004';
-  await new test_driver.send_keys(document.documentElement,kTab);
+  await new test_driver.send_keys(document.body, kTab);
   await waitForRender();
 }
 
@@ -183,7 +183,7 @@ async function runFocusTestCases() {
   for (let testCase of testCases) {
     promise_test(async () => {
       const expected = testCase.dataset.expect.split(',');
-      await assert_focus_navigation_forward(expected);
+      await assert_focus_navigation_bidirectional(expected);
     }, testCase.dataset.description);
   }
 }

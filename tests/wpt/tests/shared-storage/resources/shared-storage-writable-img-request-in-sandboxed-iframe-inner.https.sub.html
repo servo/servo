@@ -1,0 +1,37 @@
+<!doctype html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/shared-storage/resources/util.js></script>
+  <script>
+
+async function init() {
+  // Create image that sets (expectedKey, expectedValue) to shared storage
+  // via response header.
+  let {expectedKey, expectedValue} = parseExpectedKeyAndValueData();
+  const imgSrc =
+    `/shared-storage/resources/shared-storage-writable-pixel.png`
+    + `?key=${expectedKey}&value=${expectedValue}`;
+  let image = document.createElement('img');
+  image.src = imgSrc;
+  image.sharedStorageWritable = true;
+
+  let parentOrOpener = window.opener || window.parent;
+  const promise = new Promise((resolve, reject) => {
+    image.addEventListener('load', () => {
+      parentOrOpener.postMessage({sharedStorageImageLoadStatus: "success"}, "*");
+      resolve();
+    });
+    image.addEventListener('error', () => {
+      parentOrOpener.postMessage({sharedStorageImageLoadStatus: error}, "*");
+      reject(error);
+    });
+  });
+
+  // Navigate and wait for image load.
+  document.body.appendChild(image);
+  await promise;
+}
+
+init();
+  </script>
+</body>

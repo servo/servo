@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: setup transition from pagereveal</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<link rel="match" href="pagereveal-setup-transition-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const is_new_page = params.has('new');
+if (is_new_page) {
+  document.documentElement.classList.add('newPage');
+
+  addEventListener('pagereveal', e => {
+    // Setup the view-transition-name from the event. Ensure this is not
+    // too late to be discovered to create a shared element animation.
+    document.getElementById('target').classList.add('transition');
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  });
+} else {
+  onload = () => {
+    document.getElementById('target').classList.add('transition');
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      location.replace(location.href + '?new');
+    }));
+  };
+}
+</script>
+<style>
+@view-transition {
+  navigation: auto;
+}
+#target {
+  width: 100px;
+  height: 100px;
+  background-color: limegreen;
+  position: absolute;
+  left: 20px;
+  top: 100px;
+}
+#target.transition {
+  view-transition-name: target;
+}
+.newPage #target {
+  left: 300px;
+}
+/* Hold the transition in the ending location indefinitely. If the transition
+ * name was correctly captured in the new page, this will cause the green box
+ * to locate at the new position (left: 300px) */
+::view-transition-group(target) {
+  animation-duration: 300s;
+  animation-timing-function: steps(1, jump-start);
+}
+/* Ensure view-transition snapshots are easily distinguished from live DOM */
+:root {
+  view-transition-name: unset;
+}
+::view-transition {
+  background-color: thistle;
+}
+</style>
+<div id="target"></div>
+</html>

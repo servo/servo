@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<title>View transitions: pageswap navigationactivation for traverse navigations</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/common.js"></script>
+<style></style>
+<script>
+const channel = new BroadcastChannel("testchannel");
+
+const params = new URLSearchParams(location.search);
+const is_initial_page_first_navigation = params.has('popup') && navigation.entries().length == 1;
+const is_new_page = params.has('new');
+const is_test_page = !params.has('popup') && !params.has('new');
+
+function enableViewTransition() {
+  document.styleSheets[0].insertRule(`
+      @view-transition {
+        navigation: auto;
+      }
+    `);
+}
+
+if (is_new_page)
+  enableViewTransition();
+
+// The test page which opens a popup for the navigation sequence.
+if (is_test_page) {
+  const expectedUrl = location.href.split('?')[0] + "?popup";
+  const expectedEvents = ["pageswap", "transition", expectedUrl, "traverse","from", "pagehide"];
+
+  promise_test(async t => {
+    let popup;
+    onload = () => {
+      window.events = [];
+      popup = window.open("?popup");
+    };
+
+    await new Promise(resolve => {
+      channel.addEventListener(
+        "message", t.step_func(async (e) => {
+          if (e.data === "nav") {
+            assert_array_equals(window.events, expectedEvents, 'incorrect event order');
+            popup.close();
+            resolve();
+          }
+      }));
+    });
+  }, `pageswap on traverse navigation from script`);
+} else if (is_initial_page_first_navigation) {
+  // The popup page which the user navigates back to.
+  onload = async () => {
+    await disableBFCache();
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      location.href = location.href.split('?')[0] + '?new';
+    }));
+  };
+
+  onpageshow = (e) => {
+    assert_false(e.persisted, 'the test should run without BFCache');
+  }
+} else if (is_new_page) {
+  onload = () => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      navigation.back();
+    }));
+  };
+
+  onpageswap = (e) => {
+    window.opener.events.push("pageswap");
+    if (e.viewTransition != null)
+      window.opener.events.push("transition");
+    window.opener.events.push(e.activation.entry.url);
+    window.opener.events.push(e.activation.navigationType);
+    if (e.activation.from == navigation.currentEntry)
+      window.opener.events.push("from");
+  };
+
+  onpagehide = () => {
+    window.opener.events.push("pagehide");
+    channel.postMessage("nav");
+  };
+}
+</script>

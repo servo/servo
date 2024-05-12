@@ -103,21 +103,9 @@ jobs:
   - template: tools/ci/azure/install_fonts.yml
   - template: tools/ci/azure/install_certs.yml
   - template: tools/ci/azure/color_profile.yml
-  - template: tools/ci/azure/install_chrome.yml
-  - template: tools/ci/azure/install_firefox.yml
   - template: tools/ci/azure/install_safari.yml
   - template: tools/ci/azure/update_hosts.yml
   - template: tools/ci/azure/update_manifest.yml
-  - script: |
-      set -eux -o pipefail
-      ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-mach - --log-mach-level info --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_macos_chrome.json --channel dev chrome infrastructure/
-    condition: succeededOrFailed()
-    displayName: 'Run tests (Chrome Dev)'
-  - script: |
-      set -eux -o pipefail
-      ./wpt run --yes --no-manifest-update --manifest MANIFEST.json --metadata infrastructure/metadata/ --log-mach - --log-mach-level info --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report_macos_firefox.json --channel nightly firefox infrastructure/
-    condition: succeededOrFailed()
-    displayName: 'Run tests (Firefox Nightly)'
   - script: |
       set -eux -o pipefail
       export SYSTEM_VERSION_COMPAT=0

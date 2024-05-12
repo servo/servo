@@ -25,20 +25,17 @@
    *        with its type member initialized to the string "offer" and its sdp member
    *        initialized to sdpString.
    */
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection()
-
     t.add_cleanup(() => pc.close());
 
-    return pc.createOffer()
-    .then(offer => {
-      assert_equals(typeof offer, 'object',
-        'Expect offer to be plain object dictionary RTCSessionDescriptionInit');
+    const offer = await pc.createOffer()
+    assert_equals(typeof offer, 'object',
+      'Expect offer to be plain object (dictionary RTCSessionDescriptionInit)');
 
-      assert_false(offer instanceof RTCSessionDescription,
-        'Expect offer to not be instance of RTCSessionDescription')
-    });
-  }, 'createOffer() with no argument from newly created RTCPeerConnection should succeed');
+    assert_false(offer instanceof RTCSessionDescription,
+      'Expect offer to not be instance of RTCSessionDescription')
+  }, 'createOffer() returns RTCSessionDescriptionInit');
 
   promise_test(t => {
     const pc = new RTCPeerConnection();

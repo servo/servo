@@ -7,4 +7,4 @@
 validateInputFromAnotherBuilder('relu');
 
 validateUnaryOperation(
-    'relu', allWebNNOperandDataTypes, /*alsoBuildActivation=*/ true);
+    'relu', [...floatingPointTypes, 'int32', 'int8'], /*alsoBuildActivation=*/ true);

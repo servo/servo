@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>View transitions: long delay in pageswap aborts the transition</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@view-transition {
+  navigation: auto;
+}
+</style>
+<script>
+const params = new URLSearchParams(location.search);
+const is_initial_page = !params.has('new');
+
+// This test navigates to itself with a changed query parameter. The test
+// checks are performed on the navigated-to document.
+if (is_initial_page) {
+  onload = () => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      location.replace(location.href + '?new');
+    }));
+  };
+  onpageswap = (e) => {
+    assert_not_equals(e.viewTransition, null);
+
+    // Busy loop for 4.5 seconds in order to "synchronously block"
+    var start = Date.now();
+    var end = start + 4500;
+    while (end - Date.now() > 0);
+  };
+} else {
+  promise_test(async () => {
+    const ev = await new Promise(
+        resolve => addEventListener('pagereveal', e => resolve(e)));
+
+    assert_equals(ev.viewTransition, null,
+        'viewTransition must have been skipped.');
+  });
+}
+</script>

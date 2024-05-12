@@ -791,7 +791,6 @@
   for (const colorSpace of ["xyz-d50", "xyz-d65"]) {
     fuzzy_test_computed_color(`color(from rgb(from color(${colorSpace} 0.99 0.88 0.77) r g b) ${colorSpace} x y z)`, `color(${colorSpace} 0.99 0.88 0.77)`, 0.0001);
     fuzzy_test_computed_color(`color(from hsl(from color(${colorSpace} 0.99 0.88 0.77) h s l) ${colorSpace} x y z)`, `color(${colorSpace} 0.99 0.88 0.77)`, 0.0001);
-    fuzzy_test_computed_color(`color(from hwb(from color(${colorSpace} 0.99 0.88 0.77) h w b) ${colorSpace} x y z)`, `color(${colorSpace} 0.99 0.88 0.77)`, 0.0001);
     fuzzy_test_computed_color(`color(from lab(from color(${colorSpace} 0.99 0.88 0.77) l a b) ${colorSpace} x y z)`, `color(${colorSpace} 0.99 0.88 0.77)`, 0.0001);
     fuzzy_test_computed_color(`color(from lch(from color(${colorSpace} 0.99 0.88 0.77) l c h) ${colorSpace} x y z)`, `color(${colorSpace} 0.99 0.88 0.77)`, 0.0001);
     fuzzy_test_computed_color(`color(from oklab(from color(${colorSpace} 0.99 0.88 0.77) l a b) ${colorSpace} x y z)`, `color(${colorSpace} 0.99 0.88 0.77)`, 0.0001);

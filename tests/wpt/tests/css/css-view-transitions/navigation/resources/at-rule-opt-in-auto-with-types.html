@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View Transitions: @view-transition opt in for auto with types (new page)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/common/reftest-wait.js"></script>
+<script>
+onload = takeScreenshot;
+</script>
+<style>
+@view-transition {
+  navigation: auto;
+  types: new-type;
+}
+html {
+  background: grey;
+}
+html:active-view-transition-type(new-type)::view-transition-group(root) { animation-duration: 300s; }
+/* Hold the old image for the entire duration. */
+html:active-view-transition-type(new-type)::view-transition-old(root) {
+  animation: none;
+  opacity: 1;
+  animation-duration: 3s;
+  width: 50vw;
+  height: 100vh;
+  position: fixed;
+  left: 0px;
+  top: 0px;
+}
+html:active-view-transition-type(new-type)::view-transition-new(root) {
+  animation: none;
+  opacity: 0;
+  animation-duration: 3s;
+  width: 50vw;
+  height: 100vh;
+  position: fixed;
+  left: 50vw;
+  top: 0px;
+}
+</style>
+</html>

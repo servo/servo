@@ -58,7 +58,8 @@ def main(request, response):
       body += f"""
           function generateBid(interestGroup, auctionSignals, perBuyerSignals,
                               trustedBiddingSignals, browserSignals,
-                              directFromSellerSignals) {{
+                              directFromSellerSignals,
+                              crossOriginTrustedBiddingSignals) {{
             {{{{GET[generateBid]}}}};
             return {{
               bid: {bid},

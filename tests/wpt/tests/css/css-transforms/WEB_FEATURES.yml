@@ -1,4 +1,7 @@
 features:
+- name: individual-transforms
+  files:
+  - transform-and-individual-transform-properties-computed-style.html
 - name: transforms3d
   files:
   - "*3d*"

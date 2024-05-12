@@ -1,5 +1,6 @@
 """Utility functions shared across multiple endpoints."""
-
+from collections import namedtuple
+from urllib.parse import unquote_plus, urlparse
 
 def headers_to_ascii(headers):
   """Converts a header map with binary values to one with ASCII values.
@@ -65,3 +66,81 @@ def handle_cors_headers_and_preflight(request, response):
 
   response.status = (204, b"No Content")
   return True
+
+def decode_trusted_scoring_signals_params(request):
+  """Decodes query parameters to trusted query params handler.
+
+  Args:
+    request: the wptserve Request that was passed to main
+
+  If successful, returns a named tuple TrustedScoringSignalsParams decoding the
+  various expected query fields, as a hostname,  plus a field urlLists which is a list of
+  {type: <render URL type>, urls: <render URL list>} pairs, where <render URL type> is
+  one of the two render URL dictionary keys used in the response ("renderURLs" or
+  "adComponentRenderURLs"). May be of length 1 or 2, depending on whether there
+  are any component URLs.
+
+  On failure, throws a ValueError with a message.
+  """
+  TrustedScoringSignalsParams = namedtuple(
+      'TrustedScoringSignalsParams', ['hostname', 'urlLists'])
+
+  hostname = None
+  renderUrls = None
+  adComponentRenderURLs = None
+  urlLists = []
+
+  # Manually parse query params. Can't use request.GET because it unescapes as well as splitting,
+  # and commas mean very different things from escaped commas.
+  for param in request.url_parts.query.split("&"):
+      pair = param.split("=", 1)
+      if len(pair) != 2:
+          raise ValueError("Bad query parameter: " + param)
+      # Browsers should escape query params consistently.
+      if "%20" in pair[1]:
+          raise ValueError("Query parameter should escape using '+': " + param)
+
+      # Hostname can't be empty. The empty string can be a key or interest group name, though.
+      if pair[0] == "hostname" and hostname == None and len(pair[1]) > 0:
+          hostname = pair[1]
+          continue
+      if pair[0] == "renderUrls" and renderUrls == None:
+          renderUrls = list(map(unquote_plus, pair[1].split(",")))
+          urlLists.append({"type":"renderURLs", "urls":renderUrls})
+          continue
+      if pair[0] == "adComponentRenderUrls" and adComponentRenderURLs == None:
+          adComponentRenderURLs = list(map(unquote_plus, pair[1].split(",")))
+          urlLists.append({"type":"adComponentRenderURLs", "urls":adComponentRenderURLs})
+          continue
+      raise ValueError("Unexpected query parameter: " + param)
+
+  # "hostname" and "renderUrls" are mandatory.
+  if not hostname:
+      raise ValueError("hostname missing")
+  if not renderUrls:
+      raise ValueError("renderUrls missing")
+
+  return TrustedScoringSignalsParams(hostname, urlLists)
+
+def decode_render_url_signals_params(renderUrl):
+  """Decodes signalsParams field encoded inside a renderURL.
+
+  Args: renderUrl to extract signalsParams from.
+
+  Returns an array of fields in signal params string.
+  """
+  signalsParams = None
+  for param in urlparse(renderUrl).query.split("&"):
+    pair = param.split("=", 1)
+    if len(pair) != 2:
+        continue
+    if pair[0] == "signalsParams":
+        if signalsParams != None:
+            raise ValueError("renderUrl has multiple signalsParams: " + renderUrl)
+        signalsParams = pair[1]
+
+  if signalsParams is None:
+    return []
+
+  signalsParams = unquote_plus(signalsParams)
+  return signalsParams.split(",")

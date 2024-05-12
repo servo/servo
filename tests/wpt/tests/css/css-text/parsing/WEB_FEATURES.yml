@@ -2,3 +2,6 @@ features:
 - name: text-spacing-trim
   files:
   - text-spacing-trim-*
+- name: text-wrap-pretty
+  files:
+  - text-wrap-pretty.html

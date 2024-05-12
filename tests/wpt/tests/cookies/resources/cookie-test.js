@@ -76,7 +76,6 @@ function httpCookieTest(cookie, expectedValue, name, defaultPath = true,
       } catch {
         if (allowFetchFailure) {
           skipAssertions = true;
-          resolve();
         } else {
           reject('Failed to fetch /cookies/resources/cookie.py');
         }

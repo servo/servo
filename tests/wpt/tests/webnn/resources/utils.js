@@ -880,8 +880,19 @@ const variant = location.search.substring(1);
 const contextOptions = kContextOptionsForVariant[variant];
 
 /**
+ * Checks if MLBuffer is implemented or not.
+ * @param {MLContext} ml_context - A ML context to test for MLBuffer support.
+ * @returns {Boolean} True if MLBuffer is supported; otherwise, False.
+ */
+const isMLBufferSupported =
+    (ml_context) => {
+      return (createBuffer(ml_context, 4) !== undefined);
+    }
+
+/**
  * Run WebNN operation tests.
- * @param {(String[]|String)} operationName - An operation name array or an operation name
+ * @param {(String[]|String)} operationName - An operation name array or an
+ *     operation name
  * @param {Function} buildFunc - A build function for an operation
  */
 const testWebNNOperation = (operationName, buildFunc) => {
@@ -1383,4 +1394,429 @@ const testReadWebNNBuffer = (testName) => {
     await promise_rejects_js(
         t, TypeError, another_ml_context.readBuffer(ml_buffer));
   }, `${testName} / context_mismatch`);
+};
+
+/**
+ * WebNN dispatch buffer operation test.
+ * @param {String} testName - The name of the test operation.
+ */
+const testDispatchWebNNBuffer = (testName) => {
+  let ml_context;
+  let ml_graph;
+  const shape = [3, 5];
+  let inputs = {};
+  let outputs = {};
+  promise_setup(async () => {
+    let supported = false;
+    try {
+      ml_context = await navigator.ml.createContext(contextOptions);
+      supported = true;
+    } catch (e) {
+    }
+    assert_implements(
+        supported, `Unable to create context for ${variant} variant`);
+    // Construct a simple graph: A = B + C, with two outputs.
+    const builder = new MLGraphBuilder(ml_context);
+    const operandType = {dataType: 'float32', dimensions: shape};
+    const lhs_operand = builder.input('lhs', operandType);
+    const rhs_operand = builder.input('rhs', operandType);
+    const output_1_operand = builder.add(lhs_operand, rhs_operand);
+    const output_2_operand = builder.add(lhs_operand, rhs_operand);
+    ml_graph = await builder.build(
+        {'output1': output_1_operand, 'output2': output_2_operand});
+    const ml_buffer_size =
+        TypedArrayDict['float32'].BYTES_PER_ELEMENT * sizeOfShape(shape);
+    // MLBuffer was unsupported for the deviceType.
+    if (!isMLBufferSupported(ml_context)) {
+      return;
+    }
+    inputs = {
+      'lhs': ml_context.createBuffer({size: ml_buffer_size}),
+      'rhs': ml_context.createBuffer({size: ml_buffer_size}),
+    };
+    outputs = {
+      'output1': ml_context.createBuffer({size: ml_buffer_size}),
+      'output2': ml_context.createBuffer({size: ml_buffer_size}),
+    };
+  });
+
+  promise_test(async () => {
+    // MLBuffer was unsupported for the deviceType.
+    if (!isMLBufferSupported(ml_context)) {
+      return;
+    }
+
+    let another_ml_context = await navigator.ml.createContext(contextOptions);
+
+    // Control case, same context.
+    ml_context.dispatch(ml_graph, inputs, outputs);
+
+    // Test the wrong context being used for inputs.
+    assert_throws_js(
+        TypeError,
+        () => ml_context.dispatch(
+            ml_graph, {
+              'lhs':
+                  another_ml_context.createBuffer({size: inputs['lhs'].size()}),
+              'rhs': inputs['rhs'],
+            },
+            outputs));
+
+    // Test the wrong context being used for outputs.
+    assert_throws_js(TypeError, () => ml_context.dispatch(ml_graph, inputs, {
+      'output1':
+          another_ml_context.createBuffer({size: outputs['output1'].size()}),
+      'output2': outputs['output2'],
+    }));
+  }, `${testName} / context_mismatch`);
+
+  promise_test(async () => {
+    // MLBuffer was unsupported for the deviceType.
+    if (!isMLBufferSupported(ml_context)) {
+      return;
+    }
+
+    // Control case, valid size.
+    ml_context.dispatch(ml_graph, inputs, outputs);
+
+    // Input is too large.
+    assert_throws_js(
+        TypeError,
+        () => ml_context.dispatch(
+            ml_graph, {
+              'lhs': ml_context.createBuffer({size: inputs['lhs'].size() + 1}),
+              'rhs': inputs['rhs'],
+            },
+            outputs));
+
+    assert_throws_js(
+        TypeError,
+        () => ml_context.dispatch(
+            ml_graph, {
+              'lhs': inputs['lhs'],
+              'rhs': ml_context.createBuffer({size: inputs['rhs'].size() + 1}),
+            },
+            outputs));
+
+    // Output is too large.
+    assert_throws_js(TypeError, () => ml_context.dispatch(ml_graph, inputs, {
+      'output1': ml_context.createBuffer({size: outputs['output1'].size() + 1}),
+      'output2': outputs['output2'],
+    }));
+
+    assert_throws_js(TypeError, () => ml_context.dispatch(ml_graph, inputs, {
+      'output1': outputs['output1'],
+      'output2': ml_context.createBuffer({size: outputs['output2'].size() + 1}),
+    }));
+  }, `${testName} / invalid_size`);
+
+  promise_test(async () => {
+    // MLBuffer was unsupported for the deviceType.
+    if (!isMLBufferSupported(ml_context)) {
+      return;
+    }
+
+    // Control case, valid names.
+    ml_context.dispatch(ml_graph, inputs, outputs);
+
+    // No names is invalid.
+    assert_throws_js(TypeError, () => ml_context.dispatch(ml_graph, {}, {}));
+
+    // Input name is invalid.
+    assert_throws_js(
+        TypeError,
+        () => ml_context.dispatch(
+            ml_graph, {
+              'a_different_input_name': inputs['lhs'],
+              'rhs': inputs['rhs'],
+            },
+            outputs));
+
+    assert_throws_js(
+        TypeError,
+        () => ml_context.dispatch(
+            ml_graph, {
+              'lhs': inputs['lhs'],
+              'a_different_input_name': inputs['rhs'],
+            },
+            outputs));
+
+    // Output name is invalid.
+    assert_throws_js(TypeError, () => ml_context.dispatch(ml_graph, inputs, {
+      'a_different_output_name': outputs['output1'],
+      'output2': outputs['output2'],
+    }));
+
+    assert_throws_js(TypeError, () => ml_context.dispatch(ml_graph, inputs, {
+      'output1': outputs['output1'],
+      'a_different_output_name': outputs['output2'],
+    }));
+
+    // Too few named inputs is invalid.
+    assert_throws_js(
+        TypeError,
+        () => ml_context.dispatch(
+            ml_graph, {
+              'lhs': inputs['lhs'],
+            },
+            outputs));
+
+    // Too many named inputs is invalid.
+    assert_throws_js(
+        TypeError,
+        () => ml_context.dispatch(
+            ml_graph, {
+              'lhs': inputs['lhs'],
+              'rhs': inputs['rhs'],
+              'a_different_input_name':
+                  ml_context.createBuffer({size: inputs['rhs'].size()}),
+            },
+            outputs));
+
+    // Too few named outputs is invalid.
+    assert_throws_js(TypeError, () => ml_context.dispatch(ml_graph, inputs, {
+      'output1': outputs['output1']
+    }));
+
+    // Too many named outputs is invalid.
+    assert_throws_js(TypeError, () => ml_context.dispatch(ml_graph, inputs, {
+      'output1': outputs['output1'],
+      'output2': outputs['output2'],
+      'a_different_output_name':
+          ml_context.createBuffer({size: outputs['output2'].size()}),
+    }));
+  }, `${testName} / invalid_name`);
+
+  promise_test(async () => {
+    // MLBuffer was unsupported for the deviceType.
+    if (!isMLBufferSupported(ml_context)) {
+      return;
+    }
+
+    // Control case, valid buffers.
+    ml_context.dispatch(ml_graph, inputs, outputs);
+
+    // Same buffer used as outputs more than once is invalid.
+    assert_throws_js(TypeError, () => ml_context.dispatch(ml_graph, inputs, {
+      'output1': outputs['output1'],
+      'output2': outputs['output1'],
+    }));
+
+    // Same buffer used as input and output is invalid.
+    assert_throws_js(TypeError, () => ml_context.dispatch(ml_graph, inputs, {
+      'output1': inputs['lhs'],
+      'output2': outputs['output2'],
+    }));
+
+    assert_throws_js(
+        TypeError,
+        () => ml_context.dispatch(
+            ml_graph, {
+              'lhs': outputs['output1'],
+              'rhs': inputs['rhs'],
+            },
+            outputs));
+
+    // Buffer that does not exist is invalid.
+    assert_throws_js(
+        TypeError,
+        () => ml_context.dispatch(
+            ml_graph, {
+              'lhs': undefined,
+              'rhs': inputs['rhs'],
+            },
+            outputs));
+
+    assert_throws_js(TypeError, () => ml_context.dispatch(ml_graph, inputs, {
+      'output1': undefined,
+      'output2': outputs['output2'],
+    }));
+  }, `${testName} / invalid_buffer`);
+
+  promise_test(async () => {
+    // MLBuffer was unsupported for the deviceType.
+    if (!isMLBufferSupported(ml_context)) {
+      return;
+    }
+
+    const dispatch_inputs = {
+      'lhs': ml_context.createBuffer({size: inputs['lhs'].size}),
+      'rhs': ml_context.createBuffer({size: inputs['rhs'].size}),
+    };
+
+    const dispatch_1_outputs = {
+      'output1': ml_context.createBuffer({size: outputs['output1'].size}),
+      'output2': ml_context.createBuffer({size: outputs['output2'].size}),
+    };
+
+    const dispatch_2_outputs = {
+      'output1': ml_context.createBuffer({size: outputs['output1'].size}),
+      'output2': ml_context.createBuffer({size: outputs['output2'].size}),
+    };
+
+    // Initialize inputs
+    const input_data =
+        new TypedArrayDict['float32'](sizeOfShape(shape)).fill(1.0);
+    ml_context.writeBuffer(dispatch_inputs['lhs'], input_data);
+    ml_context.writeBuffer(dispatch_inputs['rhs'], input_data);
+
+    // Output_1 = LHS + RHS = 1 + 1 = 2
+    ml_context.dispatch(ml_graph, dispatch_inputs, dispatch_1_outputs);
+
+    // Output_2 = LHS + RHS = 1 + 1 = 2
+    ml_context.dispatch(ml_graph, dispatch_inputs, dispatch_2_outputs);
+
+    await assert_buffer_data_equals(
+        ml_context, dispatch_1_outputs['output1'],
+        new Float32Array(sizeOfShape(shape)).fill(2.0));
+
+    await assert_buffer_data_equals(
+        ml_context, dispatch_1_outputs['output2'],
+        new Float32Array(sizeOfShape(shape)).fill(2.0));
+
+    await assert_buffer_data_equals(
+        ml_context, dispatch_2_outputs['output1'],
+        new Float32Array(sizeOfShape(shape)).fill(2.0));
+
+    await assert_buffer_data_equals(
+        ml_context, dispatch_2_outputs['output2'],
+        new Float32Array(sizeOfShape(shape)).fill(2.0));
+  }, `${testName} / same_inputs`);
+
+  promise_test(async () => {
+    // MLBuffer was unsupported for the deviceType.
+    if (!isMLBufferSupported(ml_context)) {
+      return;
+    }
+
+    const dispatch_1_inputs = {
+      'lhs': ml_context.createBuffer({size: inputs['lhs'].size}),
+      'rhs': ml_context.createBuffer({size: inputs['rhs'].size}),
+    };
+
+    const dispatch_2_inputs = {
+      'lhs': ml_context.createBuffer({size: inputs['lhs'].size}),
+      'rhs': ml_context.createBuffer({size: inputs['rhs'].size}),
+    };
+
+    const dispatch_outputs = {
+      'output1': ml_context.createBuffer({size: outputs['output1'].size}),
+      'output2': ml_context.createBuffer({size: outputs['output2'].size}),
+    };
+
+    // Initialize inputs
+    const input_1_data =
+        new TypedArrayDict['float32'](sizeOfShape(shape)).fill(1.0);
+    ml_context.writeBuffer(dispatch_1_inputs['lhs'], input_1_data);
+    ml_context.writeBuffer(dispatch_1_inputs['rhs'], input_1_data);
+
+    const input_2_data =
+        new TypedArrayDict['float32'](sizeOfShape(shape)).fill(2.0);
+    ml_context.writeBuffer(dispatch_2_inputs['lhs'], input_2_data);
+    ml_context.writeBuffer(dispatch_2_inputs['rhs'], input_2_data);
+
+    // Output = LHS_1 + RHS_1 = 1 + 1 = 2
+    ml_context.dispatch(ml_graph, dispatch_1_inputs, dispatch_outputs);
+
+    // Output = LHS_2 + RHS_2 = 2 + 2 = 4
+    ml_context.dispatch(ml_graph, dispatch_2_inputs, dispatch_outputs);
+
+    await assert_buffer_data_equals(
+        ml_context, dispatch_outputs['output1'],
+        new Float32Array(sizeOfShape(shape)).fill(4.0));
+
+    await assert_buffer_data_equals(
+        ml_context, dispatch_outputs['output2'],
+        new Float32Array(sizeOfShape(shape)).fill(4.0));
+  }, `${testName} / same_outputs`);
+
+  promise_test(async () => {
+    // MLBuffer was unsupported for the deviceType.
+    if (!isMLBufferSupported(ml_context)) {
+      return;
+    }
+
+    const dispatch_inputs = {
+      'lhs': ml_context.createBuffer({size: inputs['lhs'].size}),
+      'rhs': ml_context.createBuffer({size: inputs['rhs'].size}),
+    };
+
+    const dispatch_outputs = {
+      'output1': ml_context.createBuffer({size: outputs['output1'].size}),
+      'output2': ml_context.createBuffer({size: outputs['output2'].size}),
+    };
+
+    // Initialize inputs
+    const input_data =
+        new TypedArrayDict['float32'](sizeOfShape(shape)).fill(1.0);
+    ml_context.writeBuffer(dispatch_inputs['lhs'], input_data);
+    ml_context.writeBuffer(dispatch_inputs['rhs'], input_data);
+
+    // Output = LHS + RHS = 1 + 1 = 2
+    ml_context.dispatch(ml_graph, dispatch_inputs, dispatch_outputs);
+    ml_context.dispatch(ml_graph, dispatch_inputs, dispatch_outputs);
+
+    await assert_buffer_data_equals(
+        ml_context, dispatch_outputs['output1'],
+        new Float32Array(sizeOfShape(shape)).fill(2.0));
+
+    await assert_buffer_data_equals(
+        ml_context, dispatch_outputs['output2'],
+        new Float32Array(sizeOfShape(shape)).fill(2.0));
+  }, `${testName} / same_inputs_and_outputs`);
+
+  promise_test(async () => {
+    // MLBuffer was unsupported for the deviceType.
+    if (!isMLBufferSupported(ml_context)) {
+      return;
+    }
+
+    const dispatch_inputs = {
+      'lhs': ml_context.createBuffer({size: inputs['lhs'].size}),
+      'rhs': ml_context.createBuffer({size: inputs['rhs'].size}),
+    };
+
+    const dispatch_1_outputs = {
+      'output1': ml_context.createBuffer({size: outputs['output1'].size}),
+      'output2': ml_context.createBuffer({size: outputs['output2'].size}),
+    };
+
+    const dispatch_2_outputs = {
+      'output1': ml_context.createBuffer({size: outputs['output1'].size}),
+      'output2': ml_context.createBuffer({size: outputs['output2'].size}),
+    };
+
+    // Initialize inputs
+    const input_data =
+        new TypedArrayDict['float32'](sizeOfShape(shape)).fill(1.0);
+    ml_context.writeBuffer(dispatch_inputs['lhs'], input_data);
+    ml_context.writeBuffer(dispatch_inputs['rhs'], input_data);
+
+    // Output_1 = LHS + RHS = 1 + 1 = 2
+    ml_context.dispatch(ml_graph, dispatch_inputs, dispatch_1_outputs);
+
+    // Output_2 = Output_1_LHS + Output_1_RHS = 2 + 2 = 4
+    ml_context.dispatch(
+        ml_graph, {
+          'lhs': dispatch_1_outputs['output1'],
+          'rhs': dispatch_1_outputs['output2'],
+        },
+        dispatch_2_outputs);
+
+    // Output_1 = Output_2_LHS + Output_2_RHS = 4 + 4 = 8
+    ml_context.dispatch(
+        ml_graph, {
+          'lhs': dispatch_2_outputs['output1'],
+          'rhs': dispatch_2_outputs['output2'],
+        },
+        dispatch_1_outputs);
+
+    await assert_buffer_data_equals(
+        ml_context, dispatch_1_outputs['output1'],
+        new Float32Array(sizeOfShape(shape)).fill(8));
+
+    await assert_buffer_data_equals(
+        ml_context, dispatch_1_outputs['output2'],
+        new Float32Array(sizeOfShape(shape)).fill(8));
+  }, `${testName} / outputs_as_inputs`);
 };

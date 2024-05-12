@@ -16,6 +16,9 @@ features:
   files:
   - lab-*
   - lch-*
+- name: light-dark
+  files:
+  - light-dark-*
 - name: oklab
   files:
   - oklab-*

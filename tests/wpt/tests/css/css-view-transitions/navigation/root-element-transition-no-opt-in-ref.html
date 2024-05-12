@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>View transitions: basic cross-document navigation (ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<style>
+html {
+  background: grey;
+}
+.hidden {
+  width: 10px;
+  height: 10px;
+  view-transition-name: hidden;
+  background: green;
+  contain: layout;
+}
+</style>
+<div class="hidden"></div>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>
+  View transition promise reactions in incoming page should resolve before
+  the rendering continues (rAF, style/layout etc)
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const params = new URLSearchParams(location.search.substr(1));
+const is_starting_page = !params.has('new');
+
+if (is_starting_page) {
+  requestAnimationFrame(() => requestAnimationFrame( () => {
+    location.replace(location.href + '?new');
+  }));
+} else {
+  promise_test(async () => {
+    const sequence = [];
+    requestAnimationFrame(() => {
+      sequence.push("rAF");
+      Promise.resolve().then(() => {
+        sequence.push("rAF-microtask");
+      })
+    });
+    const transition = await new Promise(resolve => addEventListener('pagereveal', event => {
+      sequence.push("pagereveal");
+      assert_true("viewTransition" in event, "PageRevealEvent should have a viewTransition");
+      assert_not_equals(event.viewTransition, null, "PageRevealEvent should have a non-null viewTransition");
+
+      event.viewTransition.ready.then(() => {
+        sequence.push("ready");
+      });
+      event.viewTransition.updateCallbackDone.then(() => {
+        sequence.push("updateCallbackDone");
+      });
+
+      resolve(event.viewTransition);
+    }));
+
+    await transition.finished;
+    sequence.push("finished");
+    assert_array_equals(sequence, ["pagereveal", "updateCallbackDone", "ready", "rAF", "rAF-microtask", "finished"]);
+  });
+}
+</script>
+<style>
+  @view-transition {
+    navigation: auto;
+  }
+</style>

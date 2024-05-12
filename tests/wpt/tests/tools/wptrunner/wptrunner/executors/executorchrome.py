@@ -22,7 +22,7 @@ from .executorwebdriver import (
     WebDriverTestharnessExecutor,
     WebDriverTestharnessProtocolPart,
 )
-from .protocol import PrintProtocolPart
+from .protocol import PrintProtocolPart, ProtocolPart
 
 here = os.path.dirname(__file__)
 
@@ -80,8 +80,6 @@ class ChromeDriverTestharnessProtocolPart(WebDriverTestharnessProtocolPart):
         # exposed to the base WebDriver testharness executor.
         self.test_window = None
         self.reuse_window = self.parent.reuse_window
-        # Company prefix to apply to vendor-specific WebDriver extension commands.
-        self.cdp_company_prefix = "goog"
 
     def close_test_window(self):
         if self.test_window:
@@ -106,13 +104,7 @@ class ChromeDriverTestharnessProtocolPart(WebDriverTestharnessProtocolPart):
                 self.webdriver.window_handle = self.test_window
                 # Reset navigation history with Chrome DevTools Protocol:
                 # https://chromedevtools.github.io/devtools-protocol/tot/Page/#method-resetNavigationHistory
-                body = {
-                    "cmd": "Page.resetNavigationHistory",
-                    "params": {},
-                }
-                self.webdriver.send_session_command("POST",
-                                                    self.cdp_company_prefix + "/cdp/execute",
-                                                    body=body)
+                self.parent.cdp.execute_cdp_command("Page.resetNavigationHistory")
                 self.webdriver.url = "about:blank"
                 return
             except error.NoSuchWindowException:
@@ -139,8 +131,6 @@ class ChromeDriverPrintProtocolPart(PrintProtocolPart):
     def setup(self):
         self.webdriver = self.parent.webdriver
         self.runner_handle = None
-        # Company prefix to apply to vendor-specific WebDriver extension commands.
-        self.cdp_company_prefix = "goog"
 
     def load_runner(self):
         url = urljoin(self.parent.executor.server_url("http"), "/print_pdf_runner.html")
@@ -158,23 +148,18 @@ class ChromeDriverPrintProtocolPart(PrintProtocolPart):
 
     def render_as_pdf(self, width, height):
         margin = 0.5
-        body = {
-            "cmd": "Page.printToPDF",
-            "params": {
-                # Chrome accepts dimensions in inches; we are using cm
-                "paperWidth": width / 2.54,
-                "paperHeight": height / 2.54,
-                "marginLeft": margin,
-                "marginRight": margin,
-                "marginTop": margin,
-                "marginBottom": margin,
-                "shrinkToFit": False,
-                "printBackground": True,
-            }
+        params = {
+            # Chrome accepts dimensions in inches; we are using cm
+            "paperWidth": width / 2.54,
+            "paperHeight": height / 2.54,
+            "marginLeft": margin,
+            "marginRight": margin,
+            "marginTop": margin,
+            "marginBottom": margin,
+            "shrinkToFit": False,
+            "printBackground": True,
         }
-        return self.webdriver.send_session_command("POST",
-                                                   self.cdp_company_prefix + "/cdp/execute",
-                                                   body=body)["data"]
+        return self.parent.cdp.execute_cdp_command("Page.printToPDF", params)["data"]
 
     def pdf_to_png(self, pdf_base64, ranges):
         handle = self.webdriver.window_handle
@@ -191,19 +176,33 @@ render('%s').then(result => callback(result))""" % pdf_base64)
 
 
 class ChromeDriverFedCMProtocolPart(WebDriverFedCMProtocolPart):
-    def setup(self):
-        self.webdriver = self.parent.webdriver
-        # Company prefix to apply to vendor-specific WebDriver extension commands.
-        self.fedcm_company_prefix = "goog"
-
-
     def confirm_idp_login(self):
         return self.webdriver.send_session_command("POST",
-                                                   self.fedcm_company_prefix + "/fedcm/confirmidplogin")
+                                                   f"{self.parent.vendor_prefix}/fedcm/confirmidplogin")
+
+
+class ChromeDriverDevToolsProtocolPart(ProtocolPart):
+    """A low-level API for sending Chrome DevTools Protocol [0] commands directly to the browser.
+
+    Prefer using standard APIs where possible.
+
+    [0]: https://chromedevtools.github.io/devtools-protocol/
+    """
+    name = "cdp"
+
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    def execute_cdp_command(self, command, params=None):
+        body = {"cmd": command, "params": params or {}}
+        return self.webdriver.send_session_command("POST",
+                                                   f"{self.parent.vendor_prefix}/cdp/execute",
+                                                   body=body)
 
 
 class ChromeDriverProtocol(WebDriverProtocol):
     implements = [
+        ChromeDriverDevToolsProtocolPart,
         ChromeDriverFedCMProtocolPart,
         ChromeDriverPrintProtocolPart,
         ChromeDriverTestharnessProtocolPart,
@@ -212,6 +211,8 @@ class ChromeDriverProtocol(WebDriverProtocol):
             part.name != ChromeDriverFedCMProtocolPart.name)
     ]
     reuse_window = False
+    # Prefix to apply to vendor-specific WebDriver extension commands.
+    vendor_prefix = "goog"
 
 
 class ChromeDriverRefTestExecutor(WebDriverRefTestExecutor, _SanitizerMixin):  # type: ignore
@@ -224,6 +225,24 @@ class ChromeDriverTestharnessExecutor(WebDriverTestharnessExecutor, _SanitizerMi
     def __init__(self, *args, reuse_window=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.protocol.reuse_window = reuse_window
+
+    def setup(self, runner):
+        super().setup(runner)
+        # Chromium requires the `background-sync` permission for reporting APIs
+        # to work. Not all embedders (notably, `chrome --headless=old`) grant
+        # `background-sync` by default, so this CDP call ensures the permission
+        # is granted for all origins, in line with the background sync spec's
+        # recommendation [0].
+        #
+        # WebDriver's "Set Permission" command can only act on the test's
+        # origin, which may be too limited.
+        #
+        # [0]: https://wicg.github.io/background-sync/spec/#permission
+        params = {
+            "permission": {"name": "background-sync"},
+            "setting": "granted",
+        }
+        self.protocol.cdp.execute_cdp_command("Browser.setPermission", params)
 
 
 class ChromeDriverPrintRefTestExecutor(ChromeDriverRefTestExecutor):

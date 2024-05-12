@@ -4,15 +4,13 @@ import os
 
 from .executorwebdriver import (
     WebDriverCrashtestExecutor,
-    WebDriverProtocol,
     WebDriverRefTestExecutor,
     WebDriverRun,
     WebDriverTestharnessExecutor,
 )
 
 from .executorchrome import (
-    ChromeDriverPrintProtocolPart,
-    ChromeDriverTestharnessProtocolPart,
+    ChromeDriverProtocol,
     make_sanitizer_mixin,
 )
 
@@ -20,26 +18,9 @@ here = os.path.dirname(__file__)
 
 _SanitizerMixin = make_sanitizer_mixin(WebDriverCrashtestExecutor)
 
-class EdgeDriverTestharnessProtocolPart(ChromeDriverTestharnessProtocolPart):
-    def setup(self):
-        super().setup()
-        self.cdp_company_prefix = "ms"
 
-
-class EdgeDriverPrintProtocolPart(ChromeDriverPrintProtocolPart):
-    def setup(self):
-        super().setup()
-        self.cdp_company_prefix = "ms"
-
-
-class EdgeDriverProtocol(WebDriverProtocol):
-    implements = [
-        EdgeDriverPrintProtocolPart,
-        EdgeDriverTestharnessProtocolPart,
-        *(part for part in WebDriverProtocol.implements
-          if part.name != EdgeDriverTestharnessProtocolPart.name)
-    ]
-    reuse_window = False
+class EdgeDriverProtocol(ChromeDriverProtocol):
+    vendor_prefix = "ms"
 
 
 class EdgeDriverRefTestExecutor(WebDriverRefTestExecutor, _SanitizerMixin):  # type: ignore

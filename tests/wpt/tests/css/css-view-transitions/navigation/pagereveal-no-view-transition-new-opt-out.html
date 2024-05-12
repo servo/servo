@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>
+  View transitions: null event.viewTransition when new page removes opt-in
+  before pagereveal
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style id="vt-style">
+  @view-transition {
+    navigation: auto;
+  }
+</style>
+<script>
+const params = new URLSearchParams(location.search.substr(1));
+const is_starting_page = !params.has('new');
+
+if (is_starting_page) {
+  requestAnimationFrame(() => requestAnimationFrame( () => {
+    location.replace(location.href + '?new');
+  }));
+} else {
+  // Remove the opt-in from the destination page.
+  document.querySelector("#vt-style").remove();
+  promise_test(async () => {
+    const pagereveal = await new Promise(resolve => {
+      addEventListener('pagereveal', e => resolve(e));
+    });
+    assert_true('viewTransition' in pagereveal,
+        '`pagereveal` must have a `viewTransition` property.');
+    assert_equals(pagereveal.viewTransition, null,
+        '`viewTransition` must be null when there is no opt-in.');
+  });
+}
+</script>

@@ -4,6 +4,7 @@ from webdriver.bidi.undefined import UNDEFINED
 
 pytestmark = pytest.mark.asyncio
 
+
 @pytest.mark.parametrize("descriptor", [False, "SOME_STRING", 42, {}, [], {"name": 23}, None, UNDEFINED])
 async def test_params_descriptor_invalid_type(bidi_session, descriptor):
     with pytest.raises(error.InvalidArgumentException):
@@ -54,8 +55,8 @@ async def test_params_origin_invalid_type(bidi_session, origin):
       )
 
 
-@pytest.mark.parametrize("user_context", [False, 42, {}, [], None])
-async def test_params_origin_invalid_type(bidi_session, user_context):
+@pytest.mark.parametrize("user_context", [False, 42, {}, []])
+async def test_params_user_context_invalid_type(bidi_session, user_context):
     with pytest.raises(error.InvalidArgumentException):
       await bidi_session.permissions.set_permission(
          descriptor={"name": "geolocation"},

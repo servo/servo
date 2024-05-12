@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>
+  View transitions: Test pagereveal.updateCallbackDone promise is immediately resolved.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@view-transition {
+  navigation: auto;
+}
+</style>
+<script>
+const params = new URLSearchParams(location.search);
+const is_initial_page = !params.has('new');
+
+// Ensures microtasks in the current event loop are flushed before control flow
+// resumes.
+function flushMicrotasks() {
+  return new Promise(resolve => resolve());
+}
+
+// This test navigates to itself with a changed query parameter. The test
+// checks are performed on the navigated-to document.
+if (is_initial_page) {
+  onload = () => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      location.replace(location.href + '?new');
+    }));
+  };
+} else {
+  promise_test(async () => {
+    const ev = await new Promise(
+        resolve => addEventListener('pagereveal', e => resolve(e)));
+
+    let updateCallbackDoneResolved = false;
+    ev.viewTransition.updateCallbackDone.then(
+          () => {updateCallbackDoneResolved = true;});
+    await flushMicrotasks();
+    assert_true(updateCallbackDoneResolved,
+        "updateCallbackDone must be resolved immediately.");
+  });
+}
+</script>

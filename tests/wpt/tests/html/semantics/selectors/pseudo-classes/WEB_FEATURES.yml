@@ -5,6 +5,10 @@ features:
 - name: default
   files:
   - default.html
+- name: indeterminate
+  files:
+  - checked-indeterminate.window.js
+  - indeterminate*
 - name: read-write-pseudos
   files:
   - readwrite-readonly-type-change.html

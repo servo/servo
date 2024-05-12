@@ -1,0 +1,4 @@
+features:
+- name: webrtc-sctp
+  files:
+  - RTCSctpTransport-*

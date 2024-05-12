@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>View transitions: basic cross-document navigation to a prerender (ref)</title>
+<style>
+html,body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background-color: limegreen;
+}
+div {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+}
+div.outgoing {
+  background-color: cornflowerblue;
+  transform: translateY(-55vh);
+}
+div.incoming {
+  background-color: hotpink;
+  transform: translateY(55vh);
+}
+</style>
+<div class="incoming"></div>
+<div class="outgoing"></div>

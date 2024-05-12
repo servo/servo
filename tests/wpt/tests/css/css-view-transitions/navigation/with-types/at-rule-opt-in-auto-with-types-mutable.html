@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View Transitions: @view-transition opt in with types, can mutate types in JS</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="../at-rule-opt-in-auto-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  @view-transition {
+    navigation: auto;
+    types: check;
+  }
+
+  html:active-view-transition-type(old-type) {
+    background: blue;
+  }
+</style>
+<script>
+  function runTest() {
+    const url = "../resources/at-rule-opt-in-auto-with-types.html";
+    window.location.replace(new URL(url, window.location));
+  }
+  onpageswap = e => {
+    if (!e.viewTransition.types.has("check"))
+      e.viewTransition.skipTransition();
+    e.viewTransition.types.add("old-type");
+    e.viewTransition.types.delete("check");
+  };
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+
+</html>
