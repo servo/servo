@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transitions: basic cross-document navigation (new page)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="root-element-transition-no-opt-in-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+@view-transition { navigation: auto; }
+
+html {
+  background: grey;
+}
+.hidden {
+  width: 10px;
+  height: 10px;
+  view-transition-name: hidden;
+  background: green;
+  contain: layout;
+}
+html::view-transition-group(hidden) { animation-duration: 300s; }
+html::view-transition-image-pair(hidden) { animation: unset; opacity: 0; }
+html::view-transition-new(*), html::view-transition-old(*) {
+  opacity: 1;
+  animation: unset;
+}
+html::view-transition-old(root) {
+  width: 50vw;
+  height: 100vh;
+  position: fixed;
+  left: 0px;
+  top: 0px;
+}
+html::view-transition-new(root) {
+  width: 50vw;
+  height: 100vh;
+  position: fixed;
+  left: 50vw;
+  top: 0px;
+  opacity: 1;
+}
+</style>
+<body>
+<div class="hidden"></div>
+</body>
+<script>
+requestAnimationFrame(() => {
+  takeScreenshot();
+});
+</script>
+</html>

@@ -616,7 +616,6 @@ MISSING DEPENDENCY: resources/chromium/fake-serial.js
 MISSING DEPENDENCY: resources/chromium/fake-hid.js
 MISSING DEPENDENCY: resources/chromium/mock-battery-monitor.js
 MISSING DEPENDENCY: resources/chromium/mock-barcodedetection.js
-MISSING DEPENDENCY: resources/chromium/mock-direct-sockets.js
 MISSING DEPENDENCY: resources/chromium/mock-facedetection.js
 MISSING DEPENDENCY: resources/chromium/mock-idle-detection.js
 MISSING DEPENDENCY: resources/chromium/mock-imagecapture.js
@@ -700,6 +699,17 @@ TESTHARNESS-IN-OTHER-TYPE: svg/svg-in-svg/svg-in-svg-circular-filter-reference-c
 # Adding the testharnessreport.js script causes the test to never complete.
 MISSING-TESTHARNESSREPORT: accessibility/crashtests/computed-node-checked.html
 
+# Existing manual tests with references
+REFERENCE-IN-OTHER-TYPE: css/CSS2/backgrounds/background-root-012a.xht
+REFERENCE-IN-OTHER-TYPE: css/CSS2/backgrounds/background-root-013a.xht
+REFERENCE-IN-OTHER-TYPE: css/CSS2/backgrounds/background-root-014a.xht
+REFERENCE-IN-OTHER-TYPE: css/CSS2/cascade/html-precedence-004.xht
+REFERENCE-IN-OTHER-TYPE: css/css-flexbox/css-flexbox-height-animation-stretch.html
+REFERENCE-IN-OTHER-TYPE: css/css-transforms/css-transform-scale-001-manual.html
+
+# Needs control of page size
+REFERENCE-IN-OTHER-TYPE: css/css-multicol/moz-multicol3-column-balancing-break-inside-avoid-1.html
+
 PRINT STATEMENT: webdriver/tests/bidi/browsing_context/print/*
 PRINT STATEMENT: webdriver/tests/classic/print/*
 PRINT STATEMENT: webdriver/tests/support/fixtures_bidi.py
@@ -749,6 +759,72 @@ HTML INVALID SYNTAX: html/syntax/parsing/unclosed-svg-script.html
 HTML INVALID SYNTAX: mathml/crashtests/mozilla/411603-1.html
 HTML INVALID SYNTAX: quirks/percentage-height-calculation.html
 HTML INVALID SYNTAX: trusted-types/TrustedTypePolicyFactory-getAttributeType-namespace.html
+
+# Tests which include testdriver.js but aren't testharness.js tests
+TESTDRIVER-IN-UNSUPPORTED-TYPE: css/css-grid/grid-model/grid-layout-stale-001.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: css/css-grid/grid-model/grid-layout-stale-002.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: css/css-scroll-anchoring/fullscreen-crash.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: css/css-shadow-parts/interaction-with-nested-pseudo-class.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: css/css-text-decor/invalidation/text-decoration-thickness.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: css/css-view-transitions/hit-test-unpainted-element.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: css/css-view-transitions/hit-test-unrelated-element.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: css/selectors/remove-hovered-element.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemBaseHandle-IndexedDB-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemBaseHandle-getUniqueId-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemBaseHandle-isSameEntry-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemBaseHandle-postMessage-BroadcastChannel-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemBaseHandle-postMessage-Error-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemBaseHandle-postMessage-MessagePort-frames-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemBaseHandle-postMessage-MessagePort-windows-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemBaseHandle-postMessage-MessagePort-workers-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemBaseHandle-postMessage-frames-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemBaseHandle-postMessage-windows-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemBaseHandle-postMessage-workers-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemBaseHandle-remove-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemDirectoryHandle-getDirectoryHandle-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemDirectoryHandle-getFileHandle-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemDirectoryHandle-iteration-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemDirectoryHandle-move-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemDirectoryHandle-partitioned-manual.https.tentative.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemDirectoryHandle-removeEntry-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemDirectoryHandle-resolve-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemFileHandle-create-sync-access-handle-manual.https.tentative.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemFileHandle-getFile-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemFileHandle-move-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemFileHandle-partitioned-manual.https.tentative.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemWritableFileStream-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemWritableFileStream-piped-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/local_FileSystemWritableFileStream-write-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/showDirectoryPicker-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/showOpenFilePicker-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: file-system-access/showSaveFilePicker-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: fullscreen/crashtests/chrome-1312699.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: fullscreen/crashtests/content-visibility-crash.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: fullscreen/rendering/backdrop-iframe.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: fullscreen/rendering/backdrop-inherit.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: fullscreen/rendering/backdrop-object.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: fullscreen/rendering/fullscreen-root-fills-page.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: html/rendering/non-replaced-elements/the-fieldset-and-legend-elements/crashtests/fieldset-middleclick.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: html/semantics/forms/the-select-element/stylable-select/native-popup-with-datalist-ref.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: html/semantics/forms/the-select-element/stylable-select/native-popup-with-datalist.tentative.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: html/semantics/forms/the-select-element/stylable-select/select-appearance-custom-button-no-datalist.tentative.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: html/semantics/forms/the-select-element/stylable-select/select-appearance-no-button-custom-datalist.tentative.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: html/semantics/forms/the-select-element/stylable-select/select-appearance-no-button-no-datalist.tentative.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: html/semantics/forms/the-select-element/stylable-select/select-appearance-writing-mode-vertical-lr.tentative.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: html/semantics/forms/the-select-element/stylable-select/select-appearance-writing-mode-vertical-rl.tentative.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: html/semantics/forms/the-selectlist-element/selectlist-option-arbitrary-content-displayed.tentative.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: html/semantics/popovers/popover-dialog-crash.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: html/semantics/popovers/popover-hint-crash.tentative.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: html/semantics/popovers/popover-manual-crash.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: infrastructure/testdriver/click_child_crossorigin.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: infrastructure/testdriver/click_child_testdriver.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: mediacapture-streams/MediaStreamTrack-end-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: payment-handler/change-payment-method-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: payment-handler/change-shipping-address-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: payment-handler/change-shipping-option-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: payment-handler/payment-request-event-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: payment-handler/supports-shipping-contact-delegation-manual.https.html
+TESTDRIVER-IN-UNSUPPORTED-TYPE: shadow-dom/crashtests/move-to-new-tree-1343016.html
 
 # Pre compressed data using Shared Brotli and Shared Zstandard.
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: fetch/compression-dictionary/resources/compressed.br-d.data

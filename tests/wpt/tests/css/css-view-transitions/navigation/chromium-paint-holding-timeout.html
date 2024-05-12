@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View Transitions: paint holding timeout cancels transition</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<link rel="match" href="chromium-paint-holding-timeout-ref.html">
+<link rel="assert" content="Ensures paint holding timeout cancels transition. Note that this is a Chromium only test">
+<script src="/common/reftest-wait.js"></script>
+<style>
+@view-transition {
+  navigation: auto;
+}
+.left {
+  view-transition-name: target;
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+</style>
+
+<div class=left></div>
+<script>
+function runTest() {
+  const url = "resources/chromium-paint-holding-timeout.html";
+  window.location.replace(new URL(url, window.location));
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+</html>

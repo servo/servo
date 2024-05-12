@@ -6,6 +6,8 @@ from typing import Any, Callable, Coroutine, List, Optional, Mapping
 
 import websockets
 
+from websockets.exceptions import ConnectionClosed
+
 logger = logging.getLogger("webdriver.bidi")
 
 
@@ -70,10 +72,13 @@ class Transport:
 
     async def read_messages(self) -> None:
         assert self.connection is not None
-        async for msg in self.connection:
-            if not isinstance(msg, str):
-                raise ValueError("Got a binary message")
-            await self.handle(msg)
+        try:
+            async for msg in self.connection:
+                if not isinstance(msg, str):
+                    raise ValueError("Got a binary message")
+                await self.handle(msg)
+        except ConnectionClosed:
+            logger.debug("connection closed while reading messages")
 
     async def wait_closed(self) -> None:
         if self.connection and not self.connection.closed:

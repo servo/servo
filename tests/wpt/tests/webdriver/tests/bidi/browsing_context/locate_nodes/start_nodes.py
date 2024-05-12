@@ -232,3 +232,47 @@ async def test_locate_with_multiple_context_nodes(bidi_session, inline, top_cont
     ]
 
     recursive_compare(expected, result["nodes"])
+
+
+@pytest.mark.parametrize("type,value", [
+    ("css", "p[data-class='one']"),
+    ("xpath", ".//p[@data-class='one']"),
+    ("innerText", "foo"),
+    ("accessibility", {"role": "banner", "name": "bar"}),
+])
+@pytest.mark.asyncio
+async def test_locate_with_document_context_node(bidi_session, inline, top_context, type, value):
+    url = inline("""
+        <p data-class="one" role="banner" aria-label="bar">foo</p>
+    """)
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"], url=url, wait="complete"
+    )
+
+    context_node = await bidi_session.script.evaluate(
+        expression="document",
+        target=ContextTarget(top_context["context"]),
+        await_promise=True,
+    )
+
+    result = await bidi_session.browsing_context.locate_nodes(
+        context=top_context["context"],
+        locator={ "type": type, "value": value },
+        start_nodes=[context_node]
+    )
+
+    expected = [
+        {
+            "type": "node",
+            "sharedId": any_string,
+            "value": {
+                "attributes": {"data-class":"one"},
+                "childNodeCount": 1,
+                "localName": "p",
+                "namespaceURI": "http://www.w3.org/1999/xhtml",
+                "nodeType": 1,
+            }
+        }
+    ]
+
+    recursive_compare(expected, result["nodes"])

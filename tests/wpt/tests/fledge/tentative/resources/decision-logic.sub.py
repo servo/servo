@@ -35,11 +35,18 @@ def main(request, response):
     if error == b"no-body":
         return b''
 
+    permitCrossOriginTrustedSignals = request.GET.get(
+        b"permit-cross-origin-trusted-signals", None)
+    if permitCrossOriginTrustedSignals != None:
+        response.headers.set(b"Ad-Auction-Allow-Trusted-Scoring-Signals-From",
+                             permitCrossOriginTrustedSignals)
+
     body = (Path(__file__).parent.resolve() / 'worklet-helpers.js').read_text().encode("ASCII")
     if error != b"no-scoreAd":
         body += b"""
             function scoreAd(adMetadata, bid, auctionConfig, trustedScoringSignals,
-                             browserSignals, directFromSellerSignals) {
+                             browserSignals, directFromSellerSignals,
+                             crossOriginTrustedScoringSignals) {
               // Don't bid on interest group with the wrong uuid. This is to prevent
               // left over interest groups from other tests from affecting auction
               // results.

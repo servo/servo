@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#at-page-rule">
+<link rel="match" href="page-margin-007-print-ref.html">
+<style>
+  @page {
+    size: 400px 200px;
+    margin: 0;
+  }
+  @page :first {
+    margin-left: 50px;
+  }
+  @page :left {
+    margin: 50px;
+  }
+  body {
+    margin: 0;
+  }
+  .container {
+    width: 300px;
+    background: gray;
+  }
+  .container > div {
+    box-sizing: border-box;
+    border: solid;
+    width: 250px;
+  }
+  .left {
+    height: 100px;
+    background: hotpink;
+  }
+  .left::before {
+    content: "Margins on every side.";
+  }
+  .right {
+    height: 200px;
+    background: cyan;
+  }
+  .right::before {
+    content: "No page margins.";
+  }
+  .first {
+    height: 200px;
+    background: yellow;
+  }
+</style>
+
+<div class="container">
+  <div class="first">
+    Every page should have a colored box as tall as the page area (gray area).<br>
+    This particular page should have a left-margin.<br>
+    There should be 7 pages.
+  </div>
+  <div class="left"></div>
+  <div class="right"></div>
+  <div class="left"></div>
+</div>
+<div class="container" style="position:absolute;">
+  <div class="right"></div>
+  <div class="left"></div>
+  <div class="right"></div>
+</div>

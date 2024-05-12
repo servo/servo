@@ -42,7 +42,7 @@ test_valid_value_combinations("content", `counters(counter-name, ".", counter-st
 test_valid_value_combinations("content", `counters(counter-name, ".", dECiMaL)`, `counters(counter-name, ".")`);
 test_valid_value_combinations("content", `counters(counter-name, ".", DECIMAL)`, `counters(counter-name, ".")`);
 
-test_valid_value_combinations("content", `url("https://www.example.com/picture.svg")`);
+test_valid_value_combinations("content", `url("picture.svg")`);
 
 test_valid_value_combinations("content", `"hello"`);
 
@@ -52,7 +52,7 @@ test_valid_value_combinations("content", `counter(counter-name) "potato"`);
 test_valid_value_combinations("content", `counters(counter-name, ".") "potato"`);
 test_valid_value_combinations("content", `"(" counters(counter-name, ".", counter-style) ")"`);
 test_valid_value_combinations("content", `open-quote "hello" "world" close-quote`);
-test_valid_value_combinations("content", `url("https://www.example.com/picture.svg") "hello"`);
+test_valid_value_combinations("content", `url("picture.svg") "hello"`);
 </script>
 </body>
 </html>

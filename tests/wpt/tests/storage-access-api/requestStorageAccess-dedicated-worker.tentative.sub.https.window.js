@@ -40,10 +40,10 @@
     assert_true(cookieStringHasCookie("cookie", "unpartitioned",
           await MessageWorker(frame, {command: "load"})),
         "Worker's load was credentialed.");
-    assert_true(cookieStringHasCookie("cookie", "unpartitioned",
+    assert_false(cookieStringHasCookie("cookie", "unpartitioned",
           await MessageWorker(frame, {command: "fetch", url: altRootEchoCookies})),
-        "Worker's fetch is credentialed.");
-  }, "Workers inherit storage access");
+        "Worker's fetch is uncredentialed.");
+  }, "Workers don't inherit storage access");
 
   promise_test(async (t) => {
     await MaybeSetStorageAccess("*", "*", "blocked");

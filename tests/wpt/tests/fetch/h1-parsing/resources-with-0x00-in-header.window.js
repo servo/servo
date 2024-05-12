@@ -1,3 +1,5 @@
+// META: script=/common/get-host-info.sub.js
+
 async_test(t => {
   const script = document.createElement("script");
   t.add_cleanup(() => script.remove());
@@ -29,3 +31,7 @@ async_test(t => {
   img.onload = t.unreached_func();
   document.body.append(img);
 }, "Expect network error for image with 0x00 in a header");
+
+promise_test(async t => {
+  return promise_rejects_js(t, TypeError, fetch(get_host_info().HTTP_REMOTE_ORIGIN + "/fetch/h1-parsing/resources/blue-with-0x00-in-a-header.asis", {mode:"no-cors"}));
+}, "Expect network error for fetch with 0x00 in a header");

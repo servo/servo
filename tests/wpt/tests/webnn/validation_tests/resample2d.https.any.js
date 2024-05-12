@@ -25,6 +25,13 @@ const tests = [
   },
   {
     name:
+        '[resample2d] Test building resample2d with input\'s dataType = float16',
+    input: {dataType: 'float16', dimensions: [1, 1, 5, 5]},
+    options: {scales: [0.5, 0.5]},
+    output: {dataType: 'float16', dimensions: [1, 1, 2, 2]},
+  },
+  {
+    name:
         '[resample2d] Test building resample2d with scales=[0.5, 0.5] and explicit axes=[2, 3]',
     input: {dataType: 'float32', dimensions: [1, 1, 5, 5]},
     options: {scales: [0.5, 0.5], axes: [2, 3]},
@@ -52,6 +59,11 @@ const tests = [
     output: {dataType: 'float32', dimensions: [1, 1, 3, 6]},
   },
   {
+    name:
+        '[resample2d] Throw if the dataType of input is not float32 or float16',
+    input: {dataType: 'int32', dimensions: [2, 4]},
+  },
+  {
     name: '[resample2d] Throw if the rank of input is not 4',
     input: {dataType: 'float32', dimensions: [2, 4]},
   },
@@ -73,6 +85,11 @@ const tests = [
   {
     name: '[resample2d] Throw if the length of sizes is not 2',
     input: {dataType: 'float32', dimensions: [1, 1, 2, 4]},
+    options: {sizes: [1, 1, 4, 6]},
+  },
+  {
+    name: '[resample2d] Throw if input data type is not floating type',
+    input: {dataType: 'int32', dimensions: [1, 1, 2, 4]},
     options: {sizes: [1, 1, 4, 6]},
   },
   {

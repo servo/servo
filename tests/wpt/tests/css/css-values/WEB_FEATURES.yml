@@ -19,3 +19,7 @@ features:
   files:
   - round-function.html
   - round-mod-rem-*
+- name: trig-functions
+  files:
+  - acos-asin-atan-atan2-*
+  - sin-cos-tan-*

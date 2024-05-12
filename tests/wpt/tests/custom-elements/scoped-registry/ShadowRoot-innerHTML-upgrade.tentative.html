@@ -9,6 +9,9 @@
 <div id="testdiv"></div>
 
 <script>
+class GloballyScopedElement extends HTMLElement {};
+customElements.define('globally-scoped', GloballyScopedElement);
+
 class TestAutonomous extends HTMLElement {};
 class TestCustomizedBuiltIn extends HTMLParagraphElement {};
 
@@ -113,4 +116,13 @@ test(t => {
   assert_false(shadow3.firstChild instanceof TestCustomizedBuiltIn, 'tree scope with different registry');
   assert_false(testdiv.firstChild instanceof TestCustomizedBuiltIn, 'main document');
 }, 'Upgrade into customized built-in element when definition is added');
+
+test(t => {
+  const registry = new CustomElementRegistry;
+
+  const shadow = attachShadowForTest(t, registry);
+  shadow.innerHTML = '<globally-scoped></globally-scoped>';
+  assert_false(shadow.firstChild instanceof GloballyScopedElement, 'is not GloballyScoped');
+
+}, 'Upgrade into autonomous custom element should not inherit from global registry for missing values');
 </script>

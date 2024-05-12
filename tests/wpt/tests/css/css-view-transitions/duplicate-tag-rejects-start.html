@@ -33,18 +33,18 @@ promise_test(async t => {
     let updateCallbackDoneResolved = false;
     transition.updateCallbackDone.then(() => { updateCallbackDoneResolved = true; }, reject);
 
-    // Then finished resolves since updateCallbackDone was already resolved.
-    let finishResolved = false;
-    transition.updateCallbackDone.then(() => {
-      assert_true(updateCallbackDoneResolved, "updateCallbackDone not resolved before finish");
-      finishResolved = true;
-    }, reject);
-
-    // Finally ready rejects.
+    // Ready rejects.
+    let readyRejected = false;
     transition.ready.then(reject, () => {
-      assert_true(finishResolved, "finish not resolved before ready");
-      resolve();
+      readyRejected = true;
+      assert_true(updateCallbackDoneResolved, "updateCallbackDone should resolve before ready was rejected");
     });
+
+    // Then finished resolves since updateCallbackDone was already resolved.
+    transition.finished.then(() => {
+      assert_true(readyRejected, "finished should resolve after ready was rejected");
+      resolve();
+    }, reject);
   });
 }, "Two different elements with the same name in the new DOM should skip the transition");
 </script>

@@ -1,0 +1,10 @@
+features:
+- name: masks
+  # To match the scope of the feature in web-features, this should only include
+  # tests for https://drafts.fxtf.org/css-masking-1/#positioned-masks.
+  files:
+  - mask-composite-*
+  - mask-computed.html
+  - mask-invalid.html
+  - mask-position-*
+  - mask-repeat-*

@@ -90,7 +90,67 @@ function script_integrity_test(frame, url, integrity, expected_integrity) {
       destination: 'script',
       message: `Script load (url:${actual_url})`
     };
-  frame.contentWindow.load_script_with_integrity(actual_url, integrity);
+  frame.contentWindow.load_script_with_integrity(actual_url, integrity, /*type=*/null);
+  return add_promise_to_test(actual_url);
+}
+
+function module_script_integrity_test(frame, url, integrity, expected_integrity) {
+  const actual_url = url + "_module";
+  expected_results[actual_url] = {
+      url: actual_url,
+      mode: 'cors',
+      credentials: 'same-origin',
+      redirect: 'follow',
+      integrity: expected_integrity,
+      destination: 'script',
+      message: `Module Script load (url:${actual_url})`
+    };
+  frame.contentWindow.load_script_with_integrity(actual_url, integrity, "module");
+  return add_promise_to_test(actual_url);
+}
+
+function modulepreload_integrity_test(frame, url, integrity, expected_integrity) {
+  const actual_url = url + "_modulepreload";
+  expected_results[actual_url] = {
+      url: actual_url,
+      mode: 'cors',
+      credentials: 'same-origin',
+      redirect: 'follow',
+      integrity: expected_integrity,
+      destination: 'script',
+      message: `Module Script load (url:${actual_url})`
+    };
+  frame.contentWindow.load_modulepreload_with_integrity(actual_url, integrity);
+  return add_promise_to_test(actual_url);
+}
+
+function import_module_integrity_test(frame, url, expected_integrity) {
+  const actual_url = url + "_moduleimport";
+  expected_results[actual_url] = {
+      url: actual_url,
+      mode: 'cors',
+      credentials: 'same-origin',
+      redirect: 'follow',
+      integrity: expected_integrity,
+      destination: 'script',
+      message: `Module Script load (url:${actual_url})`
+    };
+  frame.contentWindow.import_modulescript(actual_url);
+  return add_promise_to_test(actual_url);
+}
+
+function import_dynamic_module_integrity_test(frame, url, expected_integrity) {
+  const actual_url = url + "_moduleimportdynamic";
+  expected_results[actual_url] = {
+      url: actual_url,
+      mode: 'cors',
+      credentials: 'same-origin',
+      redirect: 'follow',
+      integrity: expected_integrity,
+      destination: 'script',
+      message: `Module Script load (url:${actual_url})`
+    };
+  frame.contentWindow.import_dynamic_modulescript(actual_url);
   return add_promise_to_test(actual_url);
 }
 
@@ -253,6 +313,19 @@ promise_test(async t => {
                               'sha256-foo sha384-abc ');
   await script_integrity_test(f, LOCAL_URL, 'sha256-foo sha256-abc',
                               'sha256-foo sha256-abc');
+  await module_script_integrity_test(f, LOCAL_URL,
+                                     null,
+                                     'sha384-foobar');
+
+  await modulepreload_integrity_test(f, LOCAL_URL,
+                                     null,
+                                     'sha384-foobar');
+
+  await import_module_integrity_test(f, LOCAL_URL,
+                                     'sha384-foobar');
+
+  await import_dynamic_module_integrity_test(f, LOCAL_URL,
+                                     'sha384-foobar');
 
   await css_integrity_test(f, LOCAL_URL, '     ', '     ');
   await css_integrity_test(

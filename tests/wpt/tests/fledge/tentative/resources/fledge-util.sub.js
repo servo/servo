@@ -26,6 +26,12 @@ const OTHER_ORIGIN5 = 'https://{{hosts[][www]}}:{{ports[https][1]}}';
 const OTHER_ORIGIN6 = 'https://{{hosts[alt][www]}}:{{ports[https][0]}}';
 const OTHER_ORIGIN7 = 'https://{{hosts[alt][www]}}:{{ports[https][1]}}';
 
+// Trusted signals hosted on OTHER_ORIGIN1
+const CROSS_ORIGIN_TRUSTED_BIDDING_SIGNALS_URL = OTHER_ORIGIN1 + BASE_PATH +
+    'resources/trusted-bidding-signals.py';
+const CROSS_ORIGIN_TRUSTED_SCORING_SIGNALS_URL = OTHER_ORIGIN1 + BASE_PATH +
+    'resources/trusted-scoring-signals.py';
+
 // Creates a URL that will be sent to the URL request tracker script.
 // `uuid` is used to identify the stash shard to use.
 // `dispatch` affects what the tracker script does.
@@ -232,6 +238,10 @@ function createDecisionScriptURL(uuid, params = {}) {
     url.searchParams.append('reportResult', params.reportResult);
   if (params.error != null)
     url.searchParams.append('error', params.error);
+  if (params.permitCrossOriginTrustedSignals != null) {
+    url.searchParams.append('permit-cross-origin-trusted-signals',
+                            params.permitCrossOriginTrustedSignals);
+  }
   return url.toString();
 }
 
@@ -858,4 +868,20 @@ function createStringBeforeAndAfterReplacements(deprecatedRenderURLReplacements)
     }
   }
   return { beforeReplacements, afterReplacements };
+}
+
+// Delete all cookies. Separate function so that can be replaced with
+// something else for testing outside of a WPT environment.
+async function deleteAllCookies() {
+  await test_driver.delete_all_cookies();
+}
+
+// Deletes all cookies (to avoid pre-existing cookies causing inconsistent
+// output on failure) and sets a cookie with name "cookie" and a value of
+// "cookie". Adds a cleanup task to delete all cookies again when the test
+// is done.
+async function setCookie(test) {
+  await deleteAllCookies();
+  document.cookie = 'cookie=cookie; path=/'
+  test.add_cleanup(deleteAllCookies);
 }

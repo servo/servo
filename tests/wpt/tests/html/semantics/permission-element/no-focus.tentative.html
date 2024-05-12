@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<!-- The permission element should not be focusable by script.
+-->
+<permission tabindex="0" id="valid_permission_element" type="geolocation">
+
+<span tabindex="0" id="focusable_span">This is some text</span>
+
+<!-- style needed to allow the invalid element to have a width -->
+<permission style="width: auto; padding-left: 10px" tabindex="0" id="invalid_permission_element" type="invalid">
+
+<script>
+  promise_test(async() => {
+    valid_permission_element.focus();
+    assert_equals(document.activeElement, document.body,
+      "Permission element should not be focused. Instead the parent element gets focus.");
+
+    actions = new test_driver.Actions()
+       .pointerMove(1, 1, {origin: valid_permission_element})
+       .pointerDown()
+       .addTick();
+    await actions.send();
+
+    assert_equals(document.activeElement, valid_permission_element,
+      "Users can still focus the element");
+
+    focusable_span.focus();
+    assert_equals(document.activeElement, focusable_span,
+      "Other element should be focused");
+
+    invalid_permission_element.focus();
+    assert_equals(document.activeElement, focusable_span,
+      "Invalid permission element should not be focused");
+
+    actions = new test_driver.Actions()
+       .pointerMove(1, 1, {origin: invalid_permission_element})
+       .pointerDown()
+       .addTick();
+    await actions.send();
+
+    assert_equals(document.activeElement, document.body,
+      "Invalid permission element should not be focusable even by user.\
+      Instead the parent elements gets focus.");
+}, "Permission element is not focusable by script");
+</script>
+</body>

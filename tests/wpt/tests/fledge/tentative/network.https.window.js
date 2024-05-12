@@ -6,7 +6,8 @@
 // META: timeout=long
 // META: variant=?1-5
 // META: variant=?6-10
-// META: variant=?11-last
+// META: variant=?11-15
+// META: variant=?16-last
 
 "use strict";
 
@@ -35,22 +36,6 @@ function createRedirectURL(location) {
   let url = new URL(`${BASE_URL}resources/redirect.py`);
   url.searchParams.append('location', location);
   return url.toString();
-}
-
-// Delete all cookies. Separate function so that can be replaced with
-// something else for testing outside of a WPT environment.
-async function deleteAllCookies() {
-  await test_driver.delete_all_cookies();
-}
-
-// Deletes all cookies (to avoid pre-existing cookies causing inconsistent
-// output on failure) and sets a cookie with name "cookie" and a value of
-// "cookie". Adds a cleanup task to delete all cookies again when the test
-// is done.
-async function setCookie(test) {
-  await deleteAllCookies();
-  document.cookie = 'cookie=cookie; path=/'
-  test.add_cleanup(deleteAllCookies);
 }
 
 // Assert that "headers" has a single header with "name", whose value is "value".
@@ -213,7 +198,7 @@ subsetTest(promise_test, async test => {
                    }
                    checkHeader("accept", "application/json");
                    checkHeader("sec-fetch-dest", "empty");
-                   checkHeader("sec-fetch-mode", "no-cors");
+                   checkHeader("sec-fetch-mode", "cors");
                    checkHeader("sec-fetch-site", "same-origin");
                    if (headers.cookie !== undefined)
                      throw "Unexpected cookie: " + JSON.stringify(headers.cookie);
@@ -223,6 +208,40 @@ subsetTest(promise_test, async test => {
         }
       });
 }, 'trustedBiddingSignalsURL request headers.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  let cookieFrame = await createFrame(test, OTHER_ORIGIN1);
+  await runInFrame(test, cookieFrame, `await setCookie(test_instance)`);
+
+  await joinGroupAndRunBasicFledgeTestExpectingWinner(
+      test,
+      { uuid: uuid,
+        interestGroupOverrides: {
+          trustedBiddingSignalsURL: CROSS_ORIGIN_TRUSTED_BIDDING_SIGNALS_URL,
+          trustedBiddingSignalsKeys: ['headers', 'cors'],
+          biddingLogicURL: createBiddingScriptURL({
+              generateBid:
+                  `let headers = crossOriginTrustedBiddingSignals[
+                       '${OTHER_ORIGIN1}'].headers;
+                   function checkHeader(name, value) {
+                     jsonActualValue = JSON.stringify(headers[name]);
+                     if (jsonActualValue !== JSON.stringify([value]))
+                       throw "Unexpected " + name + ": " + jsonActualValue;
+                   }
+                   checkHeader("accept", "application/json");
+                   checkHeader("sec-fetch-dest", "empty");
+                   checkHeader("sec-fetch-mode", "cors");
+                   checkHeader("sec-fetch-site", "cross-site");
+                   checkHeader("origin", "${window.location.origin}");
+                   if (headers.cookie !== undefined)
+                     throw "Unexpected cookie: " + JSON.stringify(headers.cookie);
+                   if (headers.referer !== undefined)
+                     throw "Unexpected referer: " + JSON.stringify(headers.referer);`,
+          })
+        }
+      });
+}, 'cross-origin trustedBiddingSignalsURL request headers.');
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);
@@ -282,7 +301,7 @@ subsetTest(promise_test, async test => {
                    }
                    checkHeader("accept", "application/json");
                    checkHeader("sec-fetch-dest", "empty");
-                   checkHeader("sec-fetch-mode", "no-cors");
+                   checkHeader("sec-fetch-mode", "cors");
                    checkHeader("sec-fetch-site", "same-origin");
                    if (headers.cookie !== undefined)
                      throw "Unexpected cookie: " + JSON.stringify(headers.cookie);
@@ -292,6 +311,46 @@ subsetTest(promise_test, async test => {
         }
       });
 }, 'trustedScoringSignalsURL request headers.');
+
+subsetTest(promise_test, async test => {
+  const uuid = generateUuid(test);
+  let cookieFrame = await createFrame(test, OTHER_ORIGIN1);
+  await runInFrame(test, cookieFrame, `await setCookie(test_instance)`);
+
+  let renderURL = createRenderURL(uuid, /*script=*/null, /*signalsParam=*/'headers,cors');
+
+  await joinGroupAndRunBasicFledgeTestExpectingWinner(
+      test,
+      { uuid: uuid,
+        interestGroupOverrides: {
+          ads: [{ renderURL: renderURL }]
+        },
+        auctionConfigOverrides: {
+          trustedScoringSignalsURL: CROSS_ORIGIN_TRUSTED_SCORING_SIGNALS_URL,
+          decisionLogicURL: createDecisionScriptURL(uuid,
+            {
+              permitCrossOriginTrustedSignals: `"${OTHER_ORIGIN1}"`,
+              scoreAd:
+                  `let headers = crossOriginTrustedScoringSignals[
+                      '${OTHER_ORIGIN1}'].renderURL["${renderURL}"];
+                   function checkHeader(name, value) {
+                     jsonActualValue = JSON.stringify(headers[name]);
+                     if (jsonActualValue !== JSON.stringify([value]))
+                       throw "Unexpected " + name + ": " + jsonActualValue;
+                   }
+                   checkHeader("accept", "application/json");
+                   checkHeader("sec-fetch-dest", "empty");
+                   checkHeader("sec-fetch-mode", "cors");
+                   checkHeader("sec-fetch-site", "cross-site");
+                   checkHeader("origin", "${window.location.origin}");
+                   if (headers.cookie !== undefined)
+                     throw "Unexpected cookie: " + JSON.stringify(headers.cookie);
+                   if (headers.referer !== undefined)
+                     throw "Unexpected referer: " + JSON.stringify(headers.referer);`,
+            })
+        }
+      });
+}, 'cross-origin trustedScoringSignalsURL request headers.');
 
 subsetTest(promise_test, async test => {
   const uuid = generateUuid(test);

@@ -1,5 +1,4 @@
 import json
-from urllib.parse import unquote_plus, urlparse
 
 from fledge.tentative.resources import fledge_http_server_util
 
@@ -11,44 +10,10 @@ from fledge.tentative.resources import fledge_http_server_util
 # each affect either the value associated with the renderUrl, or the
 # response as a whole.
 def main(request, response):
-    hostname = None
-    renderUrls = None
-    adComponentRenderURLs = None
-    # List of {type: <render URL type>, urls: <render URL list>} pairs, where <render URL type> is
-    # one of the two render URL dictionary keys used in the response ("renderURLs" or
-    # "adComponentRenderURLs"). May be of length 1 or 2, depending on whether there
-    # are any component URLs.
-    urlLists = []
-
-    # Manually parse query params. Can't use request.GET because it unescapes as well as splitting,
-    # and commas mean very different things from escaped commas.
-    for param in request.url_parts.query.split("&"):
-        pair = param.split("=", 1)
-        if len(pair) != 2:
-            return fail(response, "Bad query parameter: " + param)
-        # Browsers should escape query params consistently.
-        if "%20" in pair[1]:
-            return fail(response, "Query parameter should escape using '+': " + param)
-
-        # Hostname can't be empty. The empty string can be a key or interest group name, though.
-        if pair[0] == "hostname" and hostname == None and len(pair[1]) > 0:
-            hostname = pair[1]
-            continue
-        if pair[0] == "renderUrls" and renderUrls == None:
-            renderUrls = list(map(unquote_plus, pair[1].split(",")))
-            urlLists.append({"type":"renderURLs", "urls":renderUrls})
-            continue
-        if pair[0] == "adComponentRenderUrls" and adComponentRenderURLs == None:
-            adComponentRenderURLs = list(map(unquote_plus, pair[1].split(",")))
-            urlLists.append({"type":"adComponentRenderURLs", "urls":adComponentRenderURLs})
-            continue
-        return fail(response, "Unexpected query parameter: " + param)
-
-    # "hostname" and "renderUrls" are mandatory.
-    if not hostname:
-        return fail(response, "hostname missing")
-    if not renderUrls:
-        return fail(response, "renderUrls missing")
+    try:
+        params = fledge_http_server_util.decode_trusted_scoring_signals_params(request)
+    except ValueError as ve:
+        return fail(response, str(ve))
 
     response.status = (200, b"OK")
 
@@ -62,72 +27,75 @@ def main(request, response):
     contentType = "application/json"
     adAuctionAllowed = "true"
     dataVersion = None
-    for urlList in urlLists:
+    cors = False
+    for urlList in params.urlLists:
         for renderUrl in urlList["urls"]:
             value = "default value"
             addValue = True
 
-            signalsParams = None
-            for param in urlparse(renderUrl).query.split("&"):
-                pair = param.split("=", 1)
-                if len(pair) != 2:
-                    continue
-                if pair[0] == "signalsParams":
-                    if signalsParams != None:
-                        return fail(response, "renderUrl has multiple signalsParams: " + renderUrl)
-                    signalsParams = pair[1]
-            if signalsParams != None:
-                signalsParams = unquote_plus(signalsParams)
-                for signalsParam in signalsParams.split(","):
-                    if signalsParam == "close-connection":
-                        # Close connection without writing anything, to simulate a
-                        # network error. The write call is needed to avoid writing the
-                        # default headers.
-                        response.writer.write("")
-                        response.close_connection = True
-                        return
-                    elif signalsParam.startswith("replace-body:"):
-                        # Replace entire response body. Continue to run through other
-                        # renderUrls, to allow them to modify request headers.
-                        body = signalsParam.split(':', 1)[1]
-                    elif signalsParam.startswith("data-version:"):
-                        dataVersion = signalsParam.split(':', 1)[1]
-                    elif signalsParam == "http-error":
-                        response.status = (404, b"Not found")
-                    elif signalsParam == "no-content-type":
-                        contentType = None
-                    elif signalsParam == "wrong-content-type":
-                        contentType = 'text/plain'
-                    elif signalsParam == "bad-ad-auction-allowed":
-                        adAuctionAllowed = "sometimes"
-                    elif signalsParam == "ad-auction-not-allowed":
-                        adAuctionAllowed = "false"
-                    elif signalsParam == "no-ad-auction-allow":
-                        adAuctionAllowed = None
-                    elif signalsParam == "wrong-url":
-                        renderUrl = "https://wrong-url.test/"
-                    elif signalsParam == "no-value":
-                        addValue = False
-                    elif signalsParam == "null-value":
-                        value = None
-                    elif signalsParam == "num-value":
-                        value = 1
-                    elif signalsParam == "string-value":
-                        value = "1"
-                    elif signalsParam == "array-value":
-                        value = [1, "foo", None]
-                    elif signalsParam == "object-value":
-                        value = {"a":"b", "c":["d"]}
-                    elif signalsParam == "hostname":
-                        value = request.GET.first(b"hostname", b"not-found").decode("ASCII")
-                    elif signalsParam == "headers":
-                        value = fledge_http_server_util.headers_to_ascii(request.headers)
-                    elif signalsParam == "url":
-                        value = request.url
+            try:
+                signalsParams = fledge_http_server_util.decode_render_url_signals_params(renderUrl)
+            except ValueError as ve:
+                return fail(response, str(ve))
+
+            for signalsParam in signalsParams:
+                if signalsParam == "close-connection":
+                    # Close connection without writing anything, to simulate a
+                    # network error. The write call is needed to avoid writing the
+                    # default headers.
+                    response.writer.write("")
+                    response.close_connection = True
+                    return
+                elif signalsParam.startswith("replace-body:"):
+                    # Replace entire response body. Continue to run through other
+                    # renderUrls, to allow them to modify request headers.
+                    body = signalsParam.split(':', 1)[1]
+                elif signalsParam.startswith("data-version:"):
+                    dataVersion = signalsParam.split(':', 1)[1]
+                elif signalsParam == "http-error":
+                    response.status = (404, b"Not found")
+                elif signalsParam == "no-content-type":
+                    contentType = None
+                elif signalsParam == "wrong-content-type":
+                    contentType = 'text/plain'
+                elif signalsParam == "bad-ad-auction-allowed":
+                    adAuctionAllowed = "sometimes"
+                elif signalsParam == "ad-auction-not-allowed":
+                    adAuctionAllowed = "false"
+                elif signalsParam == "no-ad-auction-allow":
+                    adAuctionAllowed = None
+                elif signalsParam == "wrong-url":
+                    renderUrl = "https://wrong-url.test/"
+                elif signalsParam == "no-value":
+                    addValue = False
+                elif signalsParam == "null-value":
+                    value = None
+                elif signalsParam == "num-value":
+                    value = 1
+                elif signalsParam == "string-value":
+                    value = "1"
+                elif signalsParam == "array-value":
+                    value = [1, "foo", None]
+                elif signalsParam == "object-value":
+                    value = {"a":"b", "c":["d"]}
+                elif signalsParam == "hostname":
+                    value = params.hostname
+                elif signalsParam == "headers":
+                    value = fledge_http_server_util.headers_to_ascii(request.headers)
+                elif signalsParam == "url":
+                    value = request.url
+                elif signalsParam == "cors":
+                    cors = True
             if addValue:
                 if urlList["type"] not in responseBody:
                     responseBody[urlList["type"]] = {}
                 responseBody[urlList["type"]][renderUrl] = value
+
+    # If the signalsParam embedded inside a render URL calls for CORS, add
+    # appropriate response headers, and fully handle preflights.
+    if cors and fledge_http_server_util.handle_cors_headers_and_preflight(
+            request, response):
+        return
 
     if contentType:
         response.headers.set("Content-Type", contentType)

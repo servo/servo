@@ -14,6 +14,7 @@ if (navigator.ml) {
   testDestroyWebNNBuffer('destroyTwice');
   testReadWebNNBuffer('read');
   testWriteWebNNBuffer('write');
+  testDispatchWebNNBuffer('dispatch');
 } else {
   test(() => assert_implements(navigator.ml, 'missing navigator.ml'));
 }

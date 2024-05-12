@@ -35,17 +35,17 @@ let test_cases = [
   },
   {
     fragment: '#:~:text=%',
-    expect: 'noscroll',
+    expect: 'singlepercent',
     description: 'Percent char without hex digits is invalid.'
   },
   {
     fragment: '#:~:text=%%',
-    expect: 'noscroll',
+    expect: 'doublepercent',
     description: 'Percent char followed by percent char is invalid.'
   },
   {
     fragment: '#:~:text=%F',
-    expect: 'noscroll',
+    expect: 'percentf',
     description: 'Single digit percent-encoding is invalid.'
   },
   {
@@ -65,21 +65,23 @@ let test_cases = [
   },
 ];
 
-for (const test_case of test_cases) {
-  promise_test(t => new Promise(resolve => {
-    // Clear the fragment and reset the scroll offset to prepare for the next
-    // test case.
-    location = `${location.pathname}#`;
-    scrollTo(0, 0);
+function runTests()  {
+  for (const test_case of test_cases) {
+    promise_test(t => new Promise(resolve => {
+      // Clear the fragment and reset the scroll offset to prepare for the next
+      // test case.
+      location = `${location.pathname}#`;
+      scrollTo(0, 0);
 
-    location = `${location.pathname}${test_case.fragment}`;
-    requestAnimationFrame( () => requestAnimationFrame(resolve) );
-  }).then(() => {
-    assert_equals(determineResult(), test_case.expect);
-  }), `Test navigation with fragment: ${test_case.description}.`);
+      location = `${location.pathname}${test_case.fragment}`;
+      requestAnimationFrame( () => requestAnimationFrame(resolve) );
+    }).then(() => {
+      assert_equals(determineResult(), test_case.expect);
+    }), `Test navigation with fragment: ${test_case.description}.`);
+  }
 }
 </script>
-
+<body onload="runTests()">
 <p class="target" id="singlepercent">
   %
 </p>
@@ -100,3 +102,4 @@ for (const test_case of test_cases) {
   Hello world
 </p>
 
+</body>

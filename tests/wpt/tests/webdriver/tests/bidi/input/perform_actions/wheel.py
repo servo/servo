@@ -4,6 +4,7 @@ from webdriver.bidi.error import NoSuchFrameException
 from webdriver.bidi.modules.input import Actions, get_element_origin
 from webdriver.bidi.modules.script import ContextTarget
 
+from tests.support.keys import Keys
 from .. import get_events, get_object_from_context
 from . import get_shadow_root_from_test_page
 
@@ -159,3 +160,28 @@ async def test_scroll_shadow_tree(
     assert events[0]["deltaX"] >= 5
     assert events[0]["deltaY"] >= 10
     assert events[0]["target"] == "scrollableShadowTreeContent"
+
+
+async def test_scroll_with_key_pressed(
+    bidi_session, setup_wheel_test, top_context, get_element
+):
+    scrollable = await get_element("#scrollable")
+
+    actions = Actions()
+    actions.add_key().key_down(Keys.R_SHIFT)
+    actions.add_wheel().scroll(
+        x=0,
+        y=0,
+        delta_x=5,
+        delta_y=10,
+        origin=get_element_origin(scrollable),
+    )
+    actions.add_key().key_up(Keys.R_SHIFT)
+
+    await bidi_session.input.perform_actions(
+        actions=actions, context=top_context["context"]
+    )
+    events = await get_events(bidi_session, top_context["context"])
+    assert len(events) == 1
+    assert events[0]["type"] == "wheel"
+    assert events[0]["shiftKey"] == True

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>View transitions: types from rule are reflected in pagereveal and pageswap</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @view-transition {
+    navigation: auto;
+    types: check;
+  }
+</style>
+<script>
+  const params = new URLSearchParams(location.search);
+  const is_initial_page = !params.has('new');
+
+  // This test navigates to itself with a changed query parameter. The test
+  // checks are performed on the navigated-to document.
+  if (is_initial_page) {
+    onload = () => {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        location.replace(location.href + '?new');
+      }));
+    };
+    onpageswap = (e) => {
+      assert_not_equals(e.viewTransition, null);
+      if (!e.viewTransition.types.has("check"))
+        e.viewTransition.skipTransition();
+    };
+  } else {
+    promise_test(async () => {
+      const ev = await new Promise(
+        resolve => addEventListener('pagereveal', e => resolve(e)));
+
+      assert_array_equals([...ev.viewTransition.types], ["check"]);
+    });
+  }
+</script>

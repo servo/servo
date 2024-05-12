@@ -16,14 +16,14 @@ kElementwiseUnaryOperators.forEach((operatorName) => {
 const kElementwiseUnaryOperations = [
   {
     name: 'abs',
-    supportedDataTypes: [...floatingPointTypes, ...signedIntegerTypes]
+    supportedDataTypes: [...floatingPointTypes, 'int32', 'int8']
   },
   {name: 'ceil', supportedDataTypes: floatingPointTypes},
   {name: 'exp', supportedDataTypes: floatingPointTypes},
   {name: 'floor', supportedDataTypes: floatingPointTypes},
   {name: 'log', supportedDataTypes: floatingPointTypes}, {
     name: 'neg',
-    supportedDataTypes: [...floatingPointTypes, ...signedIntegerTypes]
+    supportedDataTypes: [...floatingPointTypes, 'int32', 'int8']
   },
   {name: 'sin', supportedDataTypes: floatingPointTypes},
   {name: 'tan', supportedDataTypes: floatingPointTypes},

@@ -1,0 +1,97 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/private-aggregation/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+promise_test(async () => {
+  await addModuleOnce("/private-aggregation/resources/private-aggregation-helper-module.js");
+
+  const privateAggregationConfig = {};
+
+  await sharedStorage.run("contribute-to-histogram",
+                          {privateAggregationConfig, keepAlive: true});
+}, 'no filtering ID max bytes');
+
+promise_test(async () => {
+  await addModuleOnce("/private-aggregation/resources/private-aggregation-helper-module.js");
+
+  const privateAggregationConfig = {
+    filteringIdMaxBytes: 1,
+  };
+
+  await sharedStorage.run("contribute-to-histogram",
+                          {privateAggregationConfig, keepAlive: true});
+}, 'explicit default filtering ID max bytes');
+
+promise_test(async () => {
+  await addModuleOnce("/private-aggregation/resources/private-aggregation-helper-module.js");
+
+  const privateAggregationConfig = {
+    filteringIdMaxBytes: 8,
+  };
+
+  await sharedStorage.run("contribute-to-histogram",
+                          {privateAggregationConfig, keepAlive: true});
+}, 'max filtering ID max bytes');
+
+promise_test(async (test) => {
+  await addModuleOnce("/private-aggregation/resources/private-aggregation-helper-module.js");
+
+  const privateAggregationConfig = {
+    filteringIdMaxBytes: 9,
+  };
+
+  return promise_rejects_dom(
+      test, "DataError",
+      sharedStorage.run("contribute-to-histogram",
+                        {privateAggregationConfig, keepAlive: true}));
+}, 'too big filtering ID max bytes');
+
+promise_test(async (test) => {
+  await addModuleOnce("/private-aggregation/resources/private-aggregation-helper-module.js");
+
+  const privateAggregationConfig = {
+    filteringIdMaxBytes: 0,
+  };
+
+  return promise_rejects_dom(
+      test, "DataError",
+      sharedStorage.run("contribute-to-histogram",
+                        {privateAggregationConfig, keepAlive: true}));
+}, 'zero filtering ID max bytes');
+
+promise_test(async (test) => {
+  await addModuleOnce("/private-aggregation/resources/private-aggregation-helper-module.js");
+
+  const privateAggregationConfig = {
+    filteringIdMaxBytes: -1,
+  };
+
+  return promise_rejects_js(
+      test, TypeError,
+      sharedStorage.run("contribute-to-histogram",
+                        {privateAggregationConfig, keepAlive: true}));
+}, 'negative filtering ID max bytes');
+
+promise_test(async (test) => {
+  await addModuleOnce("/private-aggregation/resources/private-aggregation-helper-module.js");
+
+  const privateAggregationConfig = {
+    filteringIdMaxBytes: 3n,
+  };
+
+  return promise_rejects_js(
+      test, TypeError,
+      sharedStorage.run("contribute-to-histogram",
+                        {privateAggregationConfig, keepAlive: true}));
+}, 'wrong type filtering ID byte size');
+
+</script>
+</body>

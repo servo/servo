@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<title>
+View transitions: mismatched snapshot containing block size skips transition.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="resources/common.js"></script>
+<style>
+@view-transition {
+  navigation: auto;
+}
+::view-transition-group(root) {
+  animation-duration: 3s;
+}
+</style>
+<script>
+const params = new URLSearchParams(location.search);
+const is_harness_page = !params.has('popup');
+const is_old_page = params.has('popup') && params.get('popup') == 'old';
+const is_new_page = params.has('popup') && params.get('popup') == 'new';
+
+const uuid = token();
+
+const popup_old_size = 300;
+const popup_new_size = 200;
+
+// This test opens a popup to its own URL but using a param to execute different
+// script between the initial "harness" and popup. It then navigates the popup
+// to a new page to start a view transition. Popup script is below.
+
+if (is_harness_page) {
+  // ========= Test Harness Script =============
+
+  const popup_old_url = `${location.href.split('?')[0]}?popup=old`;
+  const popup_new_url = `${location.href.split('?')[0]}?popup=new`;
+
+  async function popupEventPromise(event_name) {
+    return new Promise(resolve => {
+      addEventListener('message', e => {
+        if (e.data === event_name)
+          resolve();
+      }, {once: true});
+    });
+  }
+
+  promise_test(async t => {
+    assertViewTransitionOnNavigationImplemented();
+
+    addEventListener('message', e => {
+        if (e.data.startsWith('FAIL:')) {
+          const message = e.data.substring(5);
+          t.step(() => assert_unreached(`Failure in test code: ${message}`));
+        }
+    });
+
+    let popup = null;
+
+    const load_event_in_popup = popupEventPromise('load');
+    await test_driver.bless('Open a popup in a new window', () => {
+        const features = `width=${popup_old_size},height=${popup_old_size}`;
+        popup = window.open(popup_old_url, 'popup', features);
+    });
+    await load_event_in_popup;
+
+    // Pagehide is fired after capturing the outgoing state.
+    popup.onpagehide = () => popup.resizeTo(popup_new_size, popup_new_size);
+
+    // Navigate the popup to the new page and wait for pagereveal.
+    const pagereveal_in_popup = popupEventPromise('pagereveal');
+    popup.location = popup_new_url;
+    await pagereveal_in_popup;
+
+    // Ensure the transition is skipped and `ready` rejected.
+    let did_finish = false;
+    popup.viewTransition.finished.then(() => { did_finish = true; });
+
+    await promise_rejects_dom(t, "InvalidStateError", popup.DOMException,
+        popup.viewTransition.ready, 'Resize must reject `ready`.');
+    assert_true(did_finish, "Transition must be skipped by window resize.");
+  });
+
+} else {
+
+  // ========= Popup Script =============
+
+  if (is_old_page) {
+    addEventListener('load', () => window.opener.postMessage('load'));
+  } else  if (is_new_page) {
+    function errorHandler(e) {
+      window.opener.postMessage(`FAIL: ${e}`);
+    }
+    // Hold rendering until the asynchronous resize from `resizeTo` above has
+    // been received.
+    const rendering_blocked_promise = blockRendering();
+    rendering_blocked_promise.catch(errorHandler);
+
+    let rendering_unblocked_promise = null;
+
+    const interval_id = setInterval(() => {
+      // Since rendering is blocked - the resize event isn't fired. The
+      // innerWidth is also not updated (at least in Chrome) so use the
+      // outerWidth to wait on the size change. allow a bit of slop in case of
+      // window decorations.
+      if (window.outerWidth < popup_new_size + 15) {
+        rendering_unblocked_promise = unblockRendering();
+        rendering_unblocked_promise.catch(errorHandler);
+        clearInterval(interval_id);
+      }
+    }, 100);
+
+    addEventListener('pagereveal', e => {
+      // This simply ensures the test only runs if render blocking was
+      // successful since a fetch failure looks the same as never blocking
+      // rendering.
+      Promise.all([rendering_blocked_promise, rendering_unblocked_promise]).then(() => {
+        window.viewTransition = e.viewTransition;
+        window.opener.postMessage('pagereveal');
+      }, () => {});
+    });
+  }
+}
+</script>

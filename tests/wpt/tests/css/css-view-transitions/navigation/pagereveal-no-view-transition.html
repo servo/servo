@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>
+  View transitions: in navigation without transition, pagereveal event has
+  null viewTransition
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async () => {
+  const pagereveal = await new Promise(resolve => {
+    addEventListener('pagereveal', e => resolve(e));
+  });
+  assert_true('viewTransition' in pagereveal,
+      '`pagereveal` must have a `viewTransition` property.');
+  assert_equals(pagereveal.viewTransition, null,
+      '`viewTransition` must be null when there is no transition.');
+});
+</script>

@@ -1,5 +1,15 @@
 <script src="test-helpers.sub.js?pipe=sub"></script>
 <body>
+<script type="importmap">
+{
+  "integrity": {
+    "./sample?test_module": "sha384-foobar",
+    "./sample?test_modulepreload": "sha384-foobar",
+    "./sample?test_moduleimport": "sha384-foobar",
+    "./sample?test_moduleimportdynamic": "sha384-foobar"
+  }
+}
+</script>
 <script>
 
 function load_image(url, cross_origin) {
@@ -50,11 +60,40 @@ function load_css_image_set(url, type) {
   }
 }
 
-function load_script_with_integrity(url, integrity) {
+function load_script_with_integrity(url, integrity, type) {
   const script = document.createElement('script');
+  if (type) {
+    script.type = type;
+  }
   script.src = url;
-  script.integrity = integrity;
+  if (integrity) {
+    script.integrity = integrity;
+  }
   document.body.appendChild(script);
+}
+
+function import_modulescript(url) {
+  const script = document.createElement('script');
+  script.type = "module";
+  script.innerHTML = `import "${url}";`;
+  document.body.appendChild(script);
+}
+
+function import_dynamic_modulescript(url) {
+  const script = document.createElement('script');
+  script.type = "module";
+  script.innerHTML = `import("${url}");`;
+  document.body.appendChild(script);
+}
+
+function load_modulepreload_with_integrity(url, integrity) {
+  const link = document.createElement('link');
+  link.href = url;
+  if (integrity) {
+    link.integrity = integrity;
+  }
+  link.rel = "modulepreload";
+  document.body.appendChild(link);
 }
 
 function load_css_with_integrity(url, integrity) {

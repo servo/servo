@@ -243,6 +243,8 @@ function test_unsupported_pixel_formats() {
       const data = new Uint32Array(16);
       const options = {format: pixelFormat};
       const frame = new VideoFrame(data, init);
+      assert_throws_dom(
+        'NotSupportedError', () => frame.allocationSize(options));
       await promise_rejects_dom(
           t, 'NotSupportedError', frame.copyTo(data, options))
       frame.close();

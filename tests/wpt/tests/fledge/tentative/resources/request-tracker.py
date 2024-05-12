@@ -36,6 +36,29 @@ def main(request, response):
     dispatch = request.GET.first(b"dispatch", None)
     uuid = request.GET.first(b"uuid", None)
 
+    # If we're used as a trusted scoring signals handler, our params are
+    # smuggled in via renderURLs. We won't have dispatch and uuid provided
+    # directly then.
+    if dispatch is None and uuid is None:
+        try:
+            signals_params = fledge_http_server_util.decode_trusted_scoring_signals_params(request)
+            for urlList in signals_params.urlLists:
+                for renderUrl in urlList["urls"]:
+                    try:
+                        signalsParams = fledge_http_server_util.decode_render_url_signals_params(renderUrl)
+                    except ValueError as ve:
+                        return simple_response(request, response, 500,
+                                               b"InternalError", str(ve))
+                for signalsParam in signalsParams:
+                    if signalsParam.startswith("dispatch:"):
+                        dispatch = signalsParam.split(':', 1)[1].encode("utf-8")
+                    elif signalsParam.startswith("uuid:"):
+                        uuid = signalsParam.split(':', 1)[1].encode("utf-8")
+        except ValueError:
+            # It doesn't look like a trusted scoring signals request, so
+            # never mind.
+            pass
+
     if not uuid or not dispatch:
         return simple_response(request, response, 404, b"Not found",
                                b"Invalid query parameters")

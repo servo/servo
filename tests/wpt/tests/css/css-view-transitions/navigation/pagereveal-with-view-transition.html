@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>View transitions: pagereveal event provides viewTransition</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@view-transition {
+  navigation: auto;
+}
+</style>
+<script>
+const params = new URLSearchParams(location.search);
+const is_initial_page = !params.has('new');
+
+// This test navigates to itself with a changed query parameter. The test
+// checks are performed on the navigated-to document.
+if (is_initial_page) {
+  onload = () => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      location.replace(location.href + '?new');
+    }));
+  };
+} else {
+  promise_test(async () => {
+    const ev = await new Promise(
+        resolve => addEventListener('pagereveal', e => resolve(e)));
+
+    assert_not_equals(ev.viewTransition, null,
+        'Navigation with transition must have a viewTransition.');
+
+    assert_true('skipTransition' in ev.viewTransition,
+        'skipTransition in viewTransition');
+    assert_true('finished' in ev.viewTransition, 'finished in viewTransition');
+    assert_true('ready' in ev.viewTransition, 'ready in viewTransition');
+    assert_true('updateCallbackDone' in ev.viewTransition,
+        'updateCallbackDone in viewTransition');
+  });
+}
+</script>

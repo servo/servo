@@ -6,7 +6,19 @@ features:
   - palette-values-rule-*
 - name: font-synthesis
   files:
-  - font-synthesis-*
+  - font-synthesis-0*.html
+- name: font-synthesis-position
+  files:
+  - font-synthesis-position*
+- name: font-synthesis-small-caps
+  files:
+  - font-synthesis-small-caps*
+- name: font-synthesis-style
+  files:
+  - font-synthesis-style*
+- name: font-synthesis-weight
+  files:
+  - font-synthesis-weight*
 - name: font-variant-alternates
   files:
   - alternates-order.html

@@ -63,6 +63,10 @@
           "deltaZ": event.deltaZ,
           "deltaMode": event.deltaMode,
           "target": event.target.id,
+          "altKey": event.altKey,
+          "ctrlKey": event.ctrlKey,
+          "metaKey": event.metaKey,
+          "shiftKey": event.shiftKey,
         });
 
         addMessage(
@@ -75,7 +79,11 @@
           "deltaY: " + event.deltaY + ", " +
           "deltaZ: " + event.deltaZ + ", " +
           "deltaMode: " + event.deltaMode + ", " +
-          "target id: " + event.target.id
+          "target id: " + event.target.id + ", " +
+          "altKey: " + event.altKey + ", " +
+          "ctrlKey: " + event.ctrlKey + ", " +
+          "metaKey: " + event.metaKey + ", " +
+          "shiftKey: " + event.shiftKey
         );
       }
 
@@ -121,7 +129,11 @@
               "deltaY": event.deltaY,
               "deltaZ": event.deltaZ,
               "deltaMode": event.deltaMode,
-              "target": event.target
+              "target": event.target,
+              "altKey": event.altKey,
+              "ctrlKey": event.ctrlKey,
+              "metaKey": event.metaKey,
+              "shiftKey": event.shiftKey,
             });
           });
         </script>

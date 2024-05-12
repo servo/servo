@@ -1,0 +1,4 @@
+features:
+- name: target-text
+  files:
+  - target-text-*

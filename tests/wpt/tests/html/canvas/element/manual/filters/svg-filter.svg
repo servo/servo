@@ -1,0 +1,10 @@
+<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+  <filter id="filter-lh">
+    <feFlood result="floodFill" x="1lh" y="0" width="100" height="100" flood-color="green" />
+    <feBlend in="SourceGraphic" in2="floodFill" mode="color-dodge" />
+  </filter>
+  <filter id="filter-rlh">
+    <feFlood result="floodFill" x="1rlh" y="0" width="100" height="100" flood-color="green" />
+    <feBlend in="SourceGraphic" in2="floodFill" mode="color-dodge" />
+  </filter>
+</svg>

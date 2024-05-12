@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View Transitions: @view-transition removing opt-in doesn't skip active transition</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<link rel="match" href="opt-in-removed-during-transition-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  @view-transition {
+    navigation: auto;
+  }
+  :root {
+    view-transition-name: none;
+  }
+  ::view-transition {
+    background-color: pink;
+  }
+  ::view-transition-new(target) {
+    animation: none;
+    opacity: 0;
+  }
+  ::view-transition-old(target) {
+    animation: none;
+    opacity: 1;
+  }
+  ::view-transition-group(target) {
+    animation-play-state: paused;
+  }
+  #target {
+    background-color: limegreen;
+    width: 100px;
+    height: 100px;
+    view-transition-name: target;
+  }
+  #target.transitioned {
+    background-color: red;
+  }
+</style>
+<script>
+const params = new URLSearchParams(location.search.substr(1));
+const is_starting_page = !params.has('new');
+
+if (is_starting_page) {
+  requestAnimationFrame(() => requestAnimationFrame( () => {
+    location.replace(location.href + '?new');
+  }));
+} else {
+  addEventListener('pagereveal', async e => {
+    document.getElementById('target').classList.add('transitioned');
+    await e.viewTransition.ready;
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
+    // Remove the opt-in after the view transition has started.
+    document.styleSheets[0].cssRules[0].navigation = 'none';
+
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  });
+}
+</script>
+<div id="target"></div>
+</html>

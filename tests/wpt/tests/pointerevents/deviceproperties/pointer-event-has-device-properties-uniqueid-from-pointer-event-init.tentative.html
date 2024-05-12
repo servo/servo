@@ -87,6 +87,6 @@
             height: 100,
             isPrimary: true,
         });
-        CheckDeviceId(downEventEmptyProps, INVALID_UNIQUE_ID);
+        assert_equals(downEventEmptyProps.deviceProperties, null);
     }, 'No deviceProperties in PointerEventInit');
 </script>

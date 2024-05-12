@@ -242,9 +242,12 @@ makeTest({
   }
 });
 
+// Cross-origin trustedScoringSignalsURL is fine, but it needs extra
+// headers to actually make it work. The auction here doesn't actually
+// care if the signals don't load.
 makeTest({
   name: 'trustedScoringSignalsURL is cross-origin with seller',
-  expect: EXPECT_EXCEPTION(TypeError),
+  expect: EXPECT_WINNER,
   auctionConfigOverrides: { trustedScoringSignalsURL: "https://example.com" },
 });
 

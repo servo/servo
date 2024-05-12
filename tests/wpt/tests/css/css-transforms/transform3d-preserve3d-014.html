@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test (Transforms): Preserve-3D With display:contents intermediate</title>
+    <link rel="author" title="Matt Woodrow" href="mailto:mattwoodrow@apple.com">
+    <link rel="help" href="http://www.w3.org/TR/css-transforms-2/#transform-style-property">
+    <meta name="assert" content="This tests that when preserve-3d is specified,
+    a 90-degree rotation on the parent plus a 90-degree rotation on the child
+    cancel out, adding to a 180-degree rotation (which has no visible effect on
+    a lime square). This still happens despite an intermediary div with display:contents.
+    scale(2) is added to ensure that the test doesn't pass if the transforms are just ignored.">
+    <link rel="match" href="transform-lime-square-ref.html">
+  </head>
+  <body style="padding:25px">
+    <div style="transform: rotatex(90deg); transform-style: preserve-3d">
+      <div style="display: contents">
+        <div style="transform: rotatex(90deg) scale(2); width: 50px; height: 50px; background: lime"></div>
+      </div>
+    </div>
+  </body>
+</html>

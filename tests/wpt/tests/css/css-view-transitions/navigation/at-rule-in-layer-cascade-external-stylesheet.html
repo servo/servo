@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>View Transitions: @view-transition cascaldes correclty with layers in separate external stylesheets.</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="author" href="mailto:bokan@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @layer inertA, inertB, active;
+</style>
+<style>
+  @import "resources/opt-out-style.css" layer(inertA);
+</style>
+<style>
+  @import "resources/opt-in-style.css" layer(active);
+</style>
+<style>
+  @import "resources/opt-out-style.css" layer(inertB);
+</style>
+<script>
+const params = new URLSearchParams(location.search);
+const is_new_page = params.has('new');
+
+if (!is_new_page) {
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+      location.replace(location.href + '?new');
+  }));
+} else {
+  promise_test(() => {
+    return new Promise((resolve) => {
+        addEventListener('pagereveal', resolve);
+    }).then(event => {
+        assert_not_equals(event.viewTransition, null,
+            "ViewTransition must be triggered.");
+    });
+  });
+}
+</script>

@@ -18,14 +18,14 @@ promise_test(async t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
 
-  const offer = await generateVideoReceiveOnlyOffer(pc);
+  const offer = await pc.createOffer();
   await pc.setRemoteDescription(offer);
   const answer = await pc.createAnswer();
   assert_equals(typeof answer, 'object',
-    'Expect answer to be plain object dictionary RTCSessionDescriptionInit');
+    'Expect answer to be plain object (dictionary RTCSessionDescriptionInit)');
   assert_false(answer instanceof RTCSessionDescription,
     'Expect answer to not be instance of RTCSessionDescription');
-}, 'createAnswer() after setting remote description should succeed');
+}, 'createAnswer() returns RTCSessionDescriptionInit');
 
 promise_test(async t => {
   const pc = new RTCPeerConnection();

@@ -11,7 +11,6 @@ kPoolingOperators.forEach((operatorName) => {
       operatorName, {dataType: 'float32', dimensions: [2, 2, 2, 2]});
 });
 
-
 const tests = [
   {
     name: 'Test pool2d with default options.',
@@ -20,11 +19,11 @@ const tests = [
   },
   {
     name: 'Test pool2d with windowDimensions',
-    input: {dataType: 'float32', dimensions: [1, 3, 4, 4]},
+    input: {dataType: 'float16', dimensions: [1, 3, 4, 4]},
     options: {
       windowDimensions: [3, 3],
     },
-    output: {dataType: 'float32', dimensions: [1, 3, 2, 2]}
+    output: {dataType: 'float16', dimensions: [1, 3, 2, 2]}
   },
   {
     name: 'Test pool2d with padding.',
@@ -37,12 +36,12 @@ const tests = [
   },
   {
     name: 'Test pool2d with strides.',
-    input: {dataType: 'float32', dimensions: [1, 3, 5, 5]},
+    input: {dataType: 'float16', dimensions: [1, 3, 5, 5]},
     options: {
       windowDimensions: [2, 2],
       strides: [2, 2],
     },
-    output: {dataType: 'float32', dimensions: [1, 3, 2, 2]}
+    output: {dataType: 'float16', dimensions: [1, 3, 2, 2]}
   },
   {
     name: 'Test pool2d with strides and padding.',
@@ -77,14 +76,14 @@ const tests = [
   },
   {
     name: 'Test pool2d with strides, padding and roundingType="ceil".',
-    input: {dataType: 'float32', dimensions: [1, 3, 7, 7]},
+    input: {dataType: 'float16', dimensions: [1, 3, 7, 7]},
     options: {
       windowDimensions: [4, 4],
       padding: [1, 1, 1, 1],
       strides: [2, 2],
       roundingType: 'ceil',
     },
-    output: {dataType: 'float32', dimensions: [1, 3, 4, 4]}
+    output: {dataType: 'float16', dimensions: [1, 3, 4, 4]}
   },
   {
     name: 'Test pool2d with explicit outputSizes ignored roundingType',
@@ -131,12 +130,12 @@ const tests = [
   },
   {
     name: 'Test pool2d with layout="nhwc".',
-    input: {dataType: 'float32', dimensions: [1, 5, 5, 2]},
+    input: {dataType: 'float16', dimensions: [1, 5, 5, 2]},
     options: {
       windowDimensions: [3, 3],
       layout: 'nhwc',
     },
-    output: {dataType: 'float32', dimensions: [1, 3, 3, 2]}
+    output: {dataType: 'float16', dimensions: [1, 3, 3, 2]}
   },
   {
     name: 'Throw if the input is not a 4-D tensor.',
@@ -273,3 +272,24 @@ tests.forEach(
         }
       });
     }, test.name));
+
+['int32', 'uint32', 'int8', 'uint8'].forEach(
+    dataType => promise_test(async t => {
+      const input = builder.input(
+          'input', {dataType: dataType, dimensions: [1, 3, 4, 4]});
+      const output = builder.maxPool2d(input);
+      assert_equals(output.dataType(), dataType);
+      assert_array_equals(output.shape(), [1, 3, 1, 1]);
+    }, `[maxPool2d] Test maxPool2d with data type ${dataType}`));
+
+promise_test(async t => {
+  const input =
+      builder.input('input', {dataType: 'int64', dimensions: [1, 2, 3, 3]});
+  assert_throws_js(TypeError, () => builder.averagePool2d(input));
+}, '[averagePool2d] Throw if the input data type is not floating point');
+
+promise_test(async t => {
+  const input =
+      builder.input('input', {dataType: 'uint8', dimensions: [1, 2, 4, 4]});
+  assert_throws_js(TypeError, () => builder.l2Pool2d(input));
+}, '[l2Pool2d] Throw if the input data type is not floating point');

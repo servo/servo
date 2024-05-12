@@ -10,7 +10,6 @@
           href="mailto:szager@chromium.org"/>
     <html:link rel="help"
           href="https://www.w3.org/TR/SVG2/painting.html#SpecifyingPaint"/>
-    <html:link rel="match"  href="paint-context-005-ref.svg" />
   </g>
 
   <html:script src="/resources/testharness.js"/>

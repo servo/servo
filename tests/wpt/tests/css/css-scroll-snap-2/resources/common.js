@@ -9,7 +9,8 @@ function checkSnapEventSupport(event_type) {
 }
 
 function assertSnapEvent(evt, expected_ids) {
-  assert_equals(evt.bubbles, false, "snap events don't bubble");
+  assert_equals(evt.bubbles, evt.target == document,
+    "snap events don't bubble except when fired at the document");
   assert_false(evt.cancelable, "snap events are not cancelable.");
   assert_equals(evt.snapTargetBlock, expected_ids.block,
     "snap event supplied expected target in block axis");
