@@ -15,7 +15,7 @@ use dom_struct::dom_struct;
 use euclid::{Scale, Size2D};
 use js::jsapi::{
     HandleValueArray, Heap, IsCallable, IsConstructor, JSAutoRealm, JSObject,
-    JS_ClearPendingException, JS_IsExceptionPending, NewArrayObject,
+    JS_ClearPendingException, JS_IsExceptionPending, NewArrayObject, Value,
 };
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{Call, Construct1};
@@ -288,7 +288,7 @@ impl PaintWorkletGlobalScope {
                 }
                 // Step 5.4
                 entry
-                    .insert(Box::new(Heap::default()))
+                    .insert(Box::<Heap<Value>>::default())
                     .set(paint_instance.get());
             },
         };

@@ -102,7 +102,7 @@ impl RadioNodeListMethods for RadioNodeList {
             // Step 1
             if let Some(input) = node.downcast::<HTMLInputElement>() {
                 match input.input_type() {
-                    InputType::Radio if value == DOMString::from("on") => {
+                    InputType::Radio if value == *"on" => {
                         // Step 2
                         let val = input.Value();
                         if val.is_empty() || val == value {
