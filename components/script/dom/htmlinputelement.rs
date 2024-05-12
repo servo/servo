@@ -2189,7 +2189,13 @@ impl HTMLInputElement {
                     datetime.format("%Y-%m-%dT%H:%M:%S%.3f").to_string(),
                 ))
             },
-            InputType::Number | InputType::Range => Ok(DOMString::from(value.to_string())),
+            InputType::Number | InputType::Range => {
+                let mut value = DOMString::from(value.to_string());
+
+                value.set_best_representation_of_the_floating_point_number();
+
+                Ok(value)
+            },
             // this won't be called from other input types
             _ => unreachable!(),
         }

@@ -16,6 +16,7 @@ use chrono::{Datelike, TimeZone};
 use cssparser::CowRcStr;
 use html5ever::{LocalName, Namespace};
 use lazy_static::lazy_static;
+use num_traits::Zero;
 use regex::Regex;
 use servo_atoms::Atom;
 
@@ -456,10 +457,20 @@ impl DOMString {
         None
     }
 
+    /// Applies the same processing as `parse_floating_point_number` with some additional handling
+    /// according to ECMA's string conversion steps.
+    ///
+    /// Used for specific elements when handling floating point values, namely the `number` and
+    /// `range` inputs, as well as `meter` and `progress` elements.
+    ///
     /// <https://html.spec.whatwg.org/multipage/#best-representation-of-the-number-as-a-floating-point-number>
+    /// <https://tc39.es/ecma262/#sec-numeric-types-number-tostring>
     pub fn set_best_representation_of_the_floating_point_number(&mut self) {
         if let Some(val) = self.parse_floating_point_number() {
-            self.0 = val.to_string();
+            // [tc39] Step 2: If x is either +0 or -0, return "0".
+            let parsed_value = if val.is_zero() { 0.0_f64 } else { val };
+
+            self.0 = parsed_value.to_string()
         }
     }
 
