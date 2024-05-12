@@ -2941,6 +2941,18 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             // => "If the media data cannot be fetched at all..."
             elem.queue_dedicated_media_source_failure_steps();
         }
+
+        if let Err(e) = elem
+            .player
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .lock()
+            .unwrap()
+            .end_of_stream()
+        {
+            warn!("Could not signal EOS to player {:?}", e);
+        };
     }
 
     fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
