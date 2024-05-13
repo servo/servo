@@ -4,6 +4,7 @@
 
 use std::env;
 use std::fs::File;
+use std::io::Write;
 use std::path::PathBuf;
 
 use gl_generator::{Api, Fallbacks, Profile, Registry};
@@ -34,6 +35,16 @@ fn main() {
             .unwrap();
         println!("cargo:rustc-link-lib=EGL");
     }
+
+    // FIXME: We need this workaround since jemalloc-sys still links
+    // to libgcc instead of libunwind, but Android NDK 23c and above
+    // don't have libgcc. We can't disable jemalloc for Android as
+    // in 64-bit aarch builds, the system allocator uses tagged
+    // pointers by default which causes the assertions in SM & mozjs
+    // to fail. See https://github.com/servo/servo/issues/32175.
+    let mut libgcc = File::create(dest.join("libgcc.a")).unwrap();
+    libgcc.write_all(b"INPUT(-lunwind)").unwrap();
+    println!("cargo:rustc-link-search=native={}", dest.display());
 
     let mut default_prefs = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     default_prefs.push("../../resources/prefs.json");
