@@ -1317,8 +1317,11 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 &container_state.style,
                 self.inline_box_state_stack.last().map(|c| &c.base),
             );
-            let mut block_size =
-                container_state.get_block_size_contribution(vertical_align, &font_metrics);
+            let mut block_size = container_state.get_block_size_contribution(
+                vertical_align,
+                &font_metrics,
+                &container_state.font_metrics,
+            );
             block_size.adjust_for_baseline_offset(container_state.baseline_offset);
             block_size
         } else if quirks_mode && !flags.is_collapsible_whitespace() {
@@ -1814,6 +1817,7 @@ impl InlineContainerState {
             effective_vertical_align(&style, parent_container),
             &style,
             &font_metrics,
+            &font_metrics,
             line_height,
         );
         if let Some(parent_container) = parent_container {
@@ -1848,6 +1852,7 @@ impl InlineContainerState {
         vertical_align: VerticalAlign,
         style: &ComputedValues,
         font_metrics: &FontMetrics,
+        font_metrics_of_first_font: &FontMetrics,
         line_height: Length,
     ) -> LineBlockSizes {
         if !is_baseline_relative(vertical_align) {
@@ -1896,6 +1901,8 @@ impl InlineContainerState {
         // considering with other zero line height boxes that converge on other block axis
         // locations when using the above formula.
         if style.get_font().line_height != LineHeight::Normal {
+            ascent = font_metrics_of_first_font.ascent;
+            descent = font_metrics_of_first_font.descent;
             let half_leading =
                 (Au::from_f32_px(line_height.px()) - (ascent + descent)).scale_by(0.5);
             ascent += half_leading;
@@ -1913,11 +1920,13 @@ impl InlineContainerState {
         &self,
         vertical_align: VerticalAlign,
         font_metrics: &FontMetrics,
+        font_metrics_of_first_font: &FontMetrics,
     ) -> LineBlockSizes {
         Self::get_block_sizes_with_style(
             vertical_align,
             &self.style,
             font_metrics,
+            font_metrics_of_first_font,
             line_height(&self.style, font_metrics),
         )
     }
@@ -1927,8 +1936,11 @@ impl InlineContainerState {
         child_vertical_align: VerticalAlign,
         child_block_size: &LineBlockSizes,
     ) -> Au {
-        let block_size =
-            self.get_block_size_contribution(child_vertical_align.clone(), &self.font_metrics);
+        let block_size = self.get_block_size_contribution(
+            child_vertical_align.clone(),
+            &self.font_metrics,
+            &self.font_metrics,
+        );
         self.baseline_offset +
             match child_vertical_align {
                 // `top` and `bottom are not actually relative to the baseline, but this value is unused
