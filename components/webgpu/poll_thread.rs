@@ -76,7 +76,7 @@ impl Poller {
                             std::thread::park(); //TODO: should we use timeout here
                         }
                     })
-                    .unwrap(),
+                    .expect("Spawning thread should not fail"),
             ),
         }
     }
@@ -97,7 +97,7 @@ impl Poller {
     pub(crate) fn wake(&self) {
         self.handle
             .as_ref()
-            .expect("Pollers thread does not exist!")
+            .expect("Poller thread does not exist!")
             .thread()
             .unpark();
     }
@@ -113,7 +113,7 @@ impl Drop for Poller {
     }
 }
 
-/// RAII indicating that there is some work enqueued (closure to bi fired),
+/// RAII indicating that there is some work enqueued (closure to be fired),
 /// while this token is held.
 pub(crate) struct WorkToken {
     work_count: Arc<AtomicUsize>,
