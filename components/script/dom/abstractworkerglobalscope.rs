@@ -132,7 +132,7 @@ pub fn run_worker_event_loop<T, WorkerMsg, Event>(
     while !scope.is_closing() {
         // Batch all events that are ready.
         // The task queue will throttle non-priority tasks if necessary.
-        match task_queue.try_recv() {
+        match task_queue.take_tasks_and_recv() {
             Err(_) => match devtools_port.map(|port| port.try_recv()) {
                 None => {},
                 Some(Err(_)) => break,

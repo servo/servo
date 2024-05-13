@@ -12,7 +12,7 @@ use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
-use std::{cmp, env};
+use std::{cmp, env, mem};
 
 use app_units::Au;
 use backtrace::Backtrace;
@@ -220,9 +220,9 @@ pub struct Window {
     #[no_trace]
     devtools_marker_sender: DomRefCell<Option<IpcSender<Option<TimelineMarker>>>>,
 
-    /// Pending resize event, if any.
+    /// Pending resize events, if any.
     #[no_trace]
-    resize_event: Cell<Option<(WindowSizeData, WindowSizeType)>>,
+    resize_events: DomRefCell<Vec<(WindowSizeData, WindowSizeType)>>,
 
     /// Parent id associated with this page, if any.
     #[no_trace]
@@ -2328,14 +2328,12 @@ impl Window {
             .set(self.pending_reflow_count.get() + 1);
     }
 
-    pub fn set_resize_event(&self, event: WindowSizeData, event_type: WindowSizeType) {
-        self.resize_event.set(Some((event, event_type)));
+    pub fn add_resize_event(&self, event: WindowSizeData, event_type: WindowSizeType) {
+        self.resize_events.borrow_mut().push((event, event_type));
     }
 
-    pub fn steal_resize_event(&self) -> Option<(WindowSizeData, WindowSizeType)> {
-        let event = self.resize_event.get();
-        self.resize_event.set(None);
-        event
+    pub fn steal_resize_events(&self) -> Vec<(WindowSizeData, WindowSizeType)> {
+        mem::take(&mut self.resize_events.borrow_mut())
     }
 
     pub fn set_page_clip_rect_with_new_viewport(&self, viewport: UntypedRect<f32>) -> bool {
@@ -2459,7 +2457,6 @@ impl Window {
             );
             event.upcast::<Event>().fire(mql.upcast::<EventTarget>());
         }
-        self.Document().react_to_environment_changes();
     }
 
     /// Set whether to use less resources by running timers at a heavily limited rate.
@@ -2606,7 +2603,7 @@ impl Window {
             bluetooth_thread,
             bluetooth_extra_permission_data: BluetoothExtraPermissionData::new(),
             page_clip_rect: Cell::new(MaxRect::max_rect()),
-            resize_event: Default::default(),
+            resize_events: Default::default(),
             window_size: Cell::new(window_size),
             current_viewport: Cell::new(initial_viewport.to_untyped()),
             suppress_reflow: Cell::new(true),

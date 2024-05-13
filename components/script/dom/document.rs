@@ -46,8 +46,9 @@ use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use script_layout_interface::{PendingRestyle, ReflowGoal, TrustedNodeAddress};
 use script_traits::{
-    AnimationState, DocumentActivity, MouseButton, MouseEventType, MsDuration, ScriptMsg,
-    TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta,
+    AnimationState, AnimationTickType, CompositorEvent, DocumentActivity, MouseButton,
+    MouseEventType, MsDuration, ScriptMsg, TouchEventType, TouchId, UntrustedNodeAddress,
+    WheelDelta,
 };
 use servo_arc::Arc;
 use servo_atoms::Atom;
@@ -446,6 +447,16 @@ pub struct Document {
     dirty_root: MutNullableDom<Element>,
     /// <https://html.spec.whatwg.org/multipage/#will-declaratively-refresh>
     declarative_refresh: DomRefCell<Option<DeclarativeRefresh>>,
+    /// Pending composition events, to be handled at the next rendering opportunity.
+    #[no_trace]
+    #[ignore_malloc_size_of = "CompositorEvent contains data from outside crates"]
+    pending_compositor_events: DomRefCell<Vec<CompositorEvent>>,
+    /// The index of the last mouse move event in the pending compositor events queue.
+    mouse_move_event_index: DomRefCell<Option<usize>>,
+    /// Pending animation ticks, to be handled at the next rendering opportunity.
+    #[no_trace]
+    #[ignore_malloc_size_of = "AnimationTickType contains data from an outside crate"]
+    pending_animation_ticks: DomRefCell<AnimationTickType>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -1217,7 +1228,7 @@ impl Document {
     }
 
     #[allow(unsafe_code)]
-    pub unsafe fn handle_mouse_event(
+    pub unsafe fn handle_mouse_button_event(
         &self,
         button: MouseButton,
         client_point: Point2D<f32>,
@@ -3211,7 +3222,54 @@ impl Document {
             animations: DomRefCell::new(Animations::new()),
             dirty_root: Default::default(),
             declarative_refresh: Default::default(),
+            pending_animation_ticks: Default::default(),
+            pending_compositor_events: Default::default(),
+            mouse_move_event_index: Default::default(),
         }
+    }
+
+    /// Note a pending animation tick, to be processed at the next `update_the_rendering` task.
+    pub fn note_pending_animation_tick(&self, tick_type: AnimationTickType) {
+        self.pending_animation_ticks.borrow_mut().extend(tick_type);
+    }
+
+    /// As part of a `update_the_rendering` task, tick all pending animations.
+    pub fn tick_all_animations(&self) {
+        let tick_type = mem::take(&mut *self.pending_animation_ticks.borrow_mut());
+        if tick_type.contains(AnimationTickType::REQUEST_ANIMATION_FRAME) {
+            self.run_the_animation_frame_callbacks();
+        }
+        if tick_type.contains(AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS) {
+            self.maybe_mark_animating_nodes_as_dirty();
+        }
+    }
+
+    /// Note a pending compositor event, to be processed at the next `update_the_rendering` task.
+    pub fn note_pending_compositor_event(&self, event: CompositorEvent) {
+        let mut pending_compositor_events = self.pending_compositor_events.borrow_mut();
+        if matches!(event, CompositorEvent::MouseMoveEvent { .. }) {
+            // First try to replace any existing mouse move event.
+            if let Some(mouse_move_event) = self
+                .mouse_move_event_index
+                .borrow()
+                .and_then(|index| pending_compositor_events.get_mut(index))
+            {
+                *mouse_move_event = event;
+                return;
+            }
+
+            *self.mouse_move_event_index.borrow_mut() =
+                Some(self.pending_compositor_events.borrow().len());
+        }
+
+        self.pending_compositor_events.borrow_mut().push(event);
+    }
+
+    /// Get pending compositor events, for processing within an `update_the_rendering` task.
+    pub fn take_pending_compositor_events(&self) -> Vec<CompositorEvent> {
+        // Reset the mouse event index.
+        *self.mouse_move_event_index.borrow_mut() = None;
+        mem::take(&mut *self.pending_compositor_events.borrow_mut())
     }
 
     pub fn set_csp_list(&self, csp_list: Option<CspList>) {

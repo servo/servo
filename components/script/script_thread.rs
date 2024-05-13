@@ -75,18 +75,13 @@ use script_layout_interface::{
     Layout, LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory,
 };
 use script_traits::webdriver_msg::WebDriverScriptCommand;
-use script_traits::CompositorEvent::{
-    CompositionEvent, GamepadEvent, IMEDismissedEvent, KeyboardEvent, MouseButtonEvent,
-    MouseMoveEvent, ResizeEvent, TouchEvent, WheelEvent,
-};
 use script_traits::{
-    AnimationTickType, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext,
-    DocumentActivity, EventResult, HistoryEntryReplacement, InitialScriptState, JsEvalResult,
-    LayoutControlMsg, LayoutMsg, LoadData, LoadOrigin, MediaSessionActionType, MouseButton,
-    MouseEventType, NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptMsg,
-    ScriptToConstellationChan, StructuredSerializedData, TimerSchedulerMsg, TouchEventType,
-    TouchId, UntrustedNodeAddress, UpdatePipelineIdReason, WebrenderIpcSender, WheelDelta,
-    WindowSizeData, WindowSizeType,
+    CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext, DocumentActivity,
+    EventResult, HistoryEntryReplacement, InitialScriptState, JsEvalResult, LayoutControlMsg,
+    LayoutMsg, LoadData, LoadOrigin, MediaSessionActionType, MouseButton, MouseEventType,
+    NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptMsg, ScriptToConstellationChan,
+    StructuredSerializedData, TimerSchedulerMsg, TouchEventType, TouchId, UntrustedNodeAddress,
+    UpdatePipelineIdReason, WebrenderIpcSender, WheelDelta, WindowSizeData, WindowSizeType,
 };
 use servo_atoms::Atom;
 use servo_config::opts;
@@ -160,6 +155,7 @@ use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
 use crate::task_source::port_message::PortMessageQueue;
 use crate::task_source::remote_event::RemoteEventTaskSource;
+use crate::task_source::rendering::RenderingTaskSource;
 use crate::task_source::timer::TimerTaskSource;
 use crate::task_source::user_interaction::UserInteractionTaskSource;
 use crate::task_source::websocket::WebsocketTaskSource;
@@ -517,6 +513,10 @@ unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
 // ScriptThread instances are rooted on creation, so this is okay
 #[allow(crown::unrooted_must_root)]
 pub struct ScriptThread {
+    /// <https://html.spec.whatwg.org/multipage/#last-render-opportunity-time>
+    last_render_opportunity_time: DomRefCell<Option<Instant>>,
+    /// Used to batch rendering opportunities
+    has_queued_update_the_rendering_task: DomRefCell<bool>,
     /// The documents for pipelines managed by this thread
     documents: DomRefCell<Documents>,
     /// The window proxies known by this thread
@@ -574,6 +574,8 @@ pub struct ScriptThread {
     timer_task_sender: Box<dyn ScriptChan>,
 
     remote_event_task_sender: Box<dyn ScriptChan>,
+
+    rendering_task_sender: Box<dyn ScriptChan>,
 
     /// A channel to hand out to threads that need to respond to a message from the script thread.
     #[no_trace]
@@ -1345,6 +1347,8 @@ impl ScriptThread {
 
         ScriptThread {
             documents: DomRefCell::new(Documents::default()),
+            last_render_opportunity_time: Default::default(),
+            has_queued_update_the_rendering_task: Default::default(),
             window_proxies: DomRefCell::new(HashMapTracedValues::new()),
             incomplete_loads: DomRefCell::new(vec![]),
             incomplete_parser_contexts: IncompleteParserContexts(RefCell::new(vec![])),
@@ -1372,6 +1376,7 @@ impl ScriptThread {
             performance_timeline_task_sender: boxed_script_sender.clone(),
             timer_task_sender: boxed_script_sender.clone(),
             remote_event_task_sender: boxed_script_sender.clone(),
+            rendering_task_sender: boxed_script_sender.clone(),
 
             history_traversal_task_sender: chan.clone(),
 
@@ -1471,28 +1476,311 @@ impl ScriptThread {
         debug!("Stopped script thread.");
     }
 
-    /// Handle incoming control messages.
+    /// <https://drafts.csswg.org/cssom-view/#document-run-the-resize-steps>
+    fn run_the_resize_steps(
+        &self,
+        id: PipelineId,
+        size: WindowSizeData,
+        size_type: WindowSizeType,
+    ) {
+        self.profile_event(ScriptThreadEventCategory::Resize, Some(id), || {
+            self.handle_resize_event(id, size, size_type);
+        });
+    }
+
+    /// Process a compositor mouse move event.
+    fn process_mouse_move_event(
+        &self,
+        document: &Document,
+        window: &Window,
+        point: Point2D<f32>,
+        node_address: Option<UntrustedNodeAddress>,
+        pressed_mouse_buttons: u16,
+    ) {
+        // Get the previous target temporarily
+        let prev_mouse_over_target = self.topmost_mouse_over_target.get();
+
+        unsafe {
+            document.handle_mouse_move_event(
+                point,
+                &self.topmost_mouse_over_target,
+                node_address,
+                pressed_mouse_buttons,
+            )
+        }
+
+        // Short-circuit if nothing changed
+        if self.topmost_mouse_over_target.get() == prev_mouse_over_target {
+            return;
+        }
+
+        let mut state_already_changed = false;
+
+        // Notify Constellation about the topmost anchor mouse over target.
+        if let Some(target) = self.topmost_mouse_over_target.get() {
+            if let Some(anchor) = target
+                .upcast::<Node>()
+                .inclusive_ancestors(ShadowIncluding::No)
+                .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
+                .next()
+            {
+                let status = anchor
+                    .upcast::<Element>()
+                    .get_attribute(&ns!(), &local_name!("href"))
+                    .and_then(|href| {
+                        let value = href.value();
+                        let url = document.url();
+                        url.join(&value).map(|url| url.to_string()).ok()
+                    });
+                let event = EmbedderMsg::Status(status);
+                window.send_to_embedder(event);
+
+                state_already_changed = true;
+            }
+        }
+
+        // We might have to reset the anchor state
+        if !state_already_changed {
+            if let Some(target) = prev_mouse_over_target {
+                if target
+                    .upcast::<Node>()
+                    .inclusive_ancestors(ShadowIncluding::No)
+                    .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
+                    .next()
+                    .is_some()
+                {
+                    let event = EmbedderMsg::Status(None);
+                    window.send_to_embedder(event);
+                }
+            }
+        }
+    }
+
+    /// Process compositor events as part of a "update the rendering task".
+    fn process_pending_compositor_events(&self, pipeline_id: PipelineId) {
+        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+            warn!("Processing pending compositor events for closed pipeline {pipeline_id}.");
+            return;
+        };
+        // Do not handle events if the BC has been, or is being, discarded
+        if document.window().Closed() {
+            warn!("Compositor event sent to a pipeline with a closed window {pipeline_id}.");
+            return;
+        }
+        ScriptThread::set_user_interacting(true);
+
+        let window = document.window();
+        let _realm = enter_realm(document.window());
+        for event in document.take_pending_compositor_events().into_iter() {
+            match event {
+                CompositorEvent::ResizeEvent(new_size, size_type) => {
+                    window.add_resize_event(new_size, size_type);
+                },
+
+                CompositorEvent::MouseButtonEvent(
+                    event_type,
+                    button,
+                    point,
+                    node_address,
+                    point_in_node,
+                    pressed_mouse_buttons,
+                ) => {
+                    self.handle_mouse_button_event(
+                        pipeline_id,
+                        event_type,
+                        button,
+                        point,
+                        node_address,
+                        point_in_node,
+                        pressed_mouse_buttons,
+                    );
+                },
+
+                CompositorEvent::MouseMoveEvent(point, node_address, pressed_mouse_buttons) => {
+                    self.process_mouse_move_event(
+                        &document,
+                        &window,
+                        point,
+                        node_address,
+                        pressed_mouse_buttons,
+                    );
+                },
+
+                CompositorEvent::TouchEvent(event_type, identifier, point, node_address) => {
+                    let touch_result = self.handle_touch_event(
+                        pipeline_id,
+                        event_type,
+                        identifier,
+                        point,
+                        node_address,
+                    );
+                    match (event_type, touch_result) {
+                        (TouchEventType::Down, TouchEventResult::Processed(handled)) => {
+                            let result = if handled {
+                                // TODO: Wait to see if preventDefault is called on the first touchmove event.
+                                EventResult::DefaultAllowed
+                            } else {
+                                EventResult::DefaultPrevented
+                            };
+                            let message = ScriptMsg::TouchEventProcessed(result);
+                            self.script_sender.send((pipeline_id, message)).unwrap();
+                        },
+                        _ => {
+                            // TODO: Calling preventDefault on a touchup event should prevent clicks.
+                        },
+                    }
+                },
+
+                CompositorEvent::WheelEvent(delta, point, node_address) => {
+                    self.handle_wheel_event(pipeline_id, delta, point, node_address);
+                },
+
+                CompositorEvent::KeyboardEvent(key_event) => {
+                    document.dispatch_key_event(key_event);
+                },
+
+                CompositorEvent::IMEDismissedEvent => {
+                    document.ime_dismissed();
+                },
+
+                CompositorEvent::CompositionEvent(composition_event) => {
+                    document.dispatch_composition_event(composition_event);
+                },
+
+                CompositorEvent::GamepadEvent(gamepad_event) => {
+                    let global = window.upcast::<GlobalScope>();
+                    global.handle_gamepad_event(gamepad_event);
+                },
+            }
+        }
+        ScriptThread::set_user_interacting(false);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>
+    fn update_the_rendering(&self) {
+        *self.has_queued_update_the_rendering_task.borrow_mut() = false;
+
+        if !self.can_continue_running_inner() {
+            return;
+        }
+
+        // TODO: The specification says to filter out non-renderable documents,
+        // as well as those for which a rendering update would be unnecessary,
+        // but this isn't happening here.
+        let pipeline_and_docs: Vec<(PipelineId, DomRoot<Document>)> = self
+            .documents
+            .borrow()
+            .iter()
+            .map(|(id, document)| (id, DomRoot::from_ref(&*document)))
+            .collect();
+        // Note: the spec reads: "for doc in docs" at each step
+        // whereas this runs all steps per doc in docs.
+        for (pipeline_id, document) in pipeline_and_docs {
+            // TODO(#32004): The rendering should be updated according parent and shadow root order
+            // in the specification, but this isn't happening yet.
+
+            // TODO(#31581): The steps in the "Revealing the document" section need to be implemente
+            // `process_pending_compositor_events` handles the focusing steps as well as other events
+            // from the compositor.
+
+            // TODO: Should this be broken and to match the specification more closely? For instance see
+            // https://html.spec.whatwg.org/multipage/#flush-autofocus-candidates.
+            self.process_pending_compositor_events(pipeline_id);
+
+            // TODO(#31665): Implement the "run the scroll steps" from
+            // https://drafts.csswg.org/cssom-view/#document-run-the-scroll-steps.
+
+            for (size, size_type) in document.window().steal_resize_events().into_iter() {
+                // Resize steps.
+                self.run_the_resize_steps(pipeline_id, size, size_type);
+
+                // Evaluate media queries and report changes.
+                document
+                    .window()
+                    .evaluate_media_queries_and_report_changes();
+
+                // https://html.spec.whatwg.org/multipage/#img-environment-changes
+                // As per the spec, this can be run at any time.
+                document.react_to_environment_changes()
+            }
+
+            // Update animations and send events.
+            self.update_animations_and_send_events();
+
+            // TODO(#31866): Implement "run the fullscreen steps" from
+            // https://fullscreen.spec.whatwg.org/multipage/#run-the-fullscreen-steps.
+
+            // TODO(#31868): Implement the "context lost steps" from
+            // https://html.spec.whatwg.org/multipage/#context-lost-steps.
+
+            // Run the animation frame callbacks.
+            document.tick_all_animations();
+
+            // TODO(#31006): Implement the resize observer steps.
+
+            // TODO(#31870): Implement step 17: if the focused area of doc is not a focusable area,
+            // then run the focusing steps for document's viewport.
+
+            // TODO: Perform pending transition operations from
+            // https://drafts.csswg.org/css-view-transitions/#perform-pending-transition-operations.
+
+            // TODO(#31021): Run the update intersection observations steps from
+            // https://w3c.github.io/IntersectionObserver/#run-the-update-intersection-observations-steps
+
+            // TODO: Mark paint timing from https://w3c.github.io/paint-timing.
+
+            // TODO(#31871): Update the rendering: consolidate all reflow calls into one here?
+
+            // TODO: Process top layer removals according to
+            // https://drafts.csswg.org/css-position-4/#process-top-layer-removals.
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#event-loop-processing-model:rendering-opportunity>
+    fn rendering_opportunity(&self, pipeline_id: PipelineId) {
+        *self.last_render_opportunity_time.borrow_mut() = Some(Instant::now());
+
+        // Note: the pipeline should be a navigable with a rendering opportunity,
+        // and we should use this opportunity to queue one task for each navigable with
+        // an opportunity in this script-thread.
+        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+            warn!("Trying to update the rendering for closed pipeline {pipeline_id}.");
+            return;
+        };
+        let window = document.window();
+        let task_manager = window.task_manager();
+        let rendering_task_source = task_manager.rendering_task_source();
+        let canceller = task_manager.task_canceller(TaskSourceName::Rendering);
+
+        if *self.has_queued_update_the_rendering_task.borrow() {
+            return;
+        }
+        *self.has_queued_update_the_rendering_task.borrow_mut() = true;
+
+        // Queues a task to update the rendering.
+        // <https://html.spec.whatwg.org/multipage/#event-loop-processing-model:queue-a-global-task>
+        let _ = rendering_task_source.queue_with_canceller(
+            task!(update_the_rendering: move || {
+                // Note: spec says to queue a task using the navigable's active window,
+                // but then updates the rendering for all docs in the same event-loop.
+                SCRIPT_THREAD_ROOT.with(|root| {
+                    if let Some(script_thread) = root.get() {
+                        let script_thread = unsafe {&*script_thread};
+                        script_thread.update_the_rendering();
+                    }
+                })
+            }),
+            &canceller,
+        );
+    }
+
+    /// Handle incoming messages from other tasks and the task queue.
     fn handle_msgs(&self) -> bool {
         use self::MixedMessage::{
             FromConstellation, FromDevtools, FromImageCache, FromScript, FromWebGPUServer,
         };
 
-        // Handle pending resize events.
-        // Gather them first to avoid a double mut borrow on self.
-        let mut resizes = vec![];
-
-        for (id, document) in self.documents.borrow().iter() {
-            // Only process a resize if layout is idle.
-            if let Some((size, size_type)) = document.window().steal_resize_event() {
-                resizes.push((id, size, size_type));
-            }
-        }
-
-        for (id, size, size_type) in resizes {
-            self.handle_event(id, ResizeEvent(size, size_type));
-        }
-
-        // Store new resizes, and gather all other events.
+        // Proritize rendering tasks and others, and gather all other events as `sequential`.
         let mut sequential = vec![];
 
         // Notify the background-hang-monitor we are waiting for an event.
@@ -1518,9 +1806,6 @@ impl ScriptThread {
         };
         debug!("Got event.");
 
-        // Squash any pending resize, reflow, animation tick, and mouse-move events in the queue.
-        let mut mouse_move_event_index = None;
-        let mut animation_ticks = HashSet::new();
         loop {
             let pipeline_id = self.message_to_pipeline(&event);
             let _realm = pipeline_id.map(|id| {
@@ -1570,10 +1855,7 @@ impl ScriptThread {
                     )
                 },
                 FromConstellation(ConstellationControlMsg::Resize(id, size, size_type)) => {
-                    // step 7.7
-                    self.profile_event(ScriptThreadEventCategory::Resize, Some(id), || {
-                        self.handle_resize(id, size, size_type);
-                    })
+                    self.handle_resize_message(id, size, size_type);
                 },
                 FromConstellation(ConstellationControlMsg::Viewport(id, rect)) => self
                     .profile_event(ScriptThreadEventCategory::SetViewport, Some(id), || {
@@ -1584,20 +1866,33 @@ impl ScriptThread {
                         self.handle_set_scroll_state(id, &scroll_state);
                     })
                 },
-                FromConstellation(ConstellationControlMsg::TickAllAnimations(pipeline_id, _)) => {
-                    if !animation_ticks.contains(&pipeline_id) {
-                        animation_ticks.insert(pipeline_id);
-                        sequential.push(event);
+                FromConstellation(ConstellationControlMsg::TickAllAnimations(
+                    pipeline_id,
+                    tick_type,
+                )) => {
+                    if let Some(doc) = self.documents.borrow().find_document(pipeline_id) {
+                        self.rendering_opportunity(pipeline_id);
+                        doc.note_pending_animation_tick(tick_type);
+                    } else {
+                        warn!(
+                            "Trying to note pending animation tick for closed pipeline {}.",
+                            pipeline_id
+                        )
                     }
                 },
-                FromConstellation(ConstellationControlMsg::SendEvent(_, MouseMoveEvent(..))) => {
-                    match mouse_move_event_index {
-                        None => {
-                            mouse_move_event_index = Some(sequential.len());
-                            sequential.push(event);
-                        },
-                        Some(index) => sequential[index] = event,
-                    }
+                FromConstellation(ConstellationControlMsg::SendEvent(id, event)) => {
+                    self.handle_event(id, event)
+                },
+                FromScript(MainThreadScriptMsg::Common(CommonScriptMsg::Task(
+                    _,
+                    task,
+                    _pipeline_id,
+                    TaskSourceName::Rendering,
+                ))) => {
+                    // Run the "update the rendering" task.
+                    task.run_box();
+                    // Always perform a microtrask checkpoint after running a task.
+                    self.perform_a_microtask_checkpoint();
                 },
                 FromScript(MainThreadScriptMsg::Inactive) => {
                     // An event came-in from a document that is not fully-active, it has been stored by the task-queue.
@@ -1616,7 +1911,7 @@ impl ScriptThread {
             // and check for more resize events. If there are no events pending, we'll move
             // on and execute the sequential non-resize events we've seen.
             match self.control_port.try_recv() {
-                Err(_) => match self.task_queue.try_recv() {
+                Err(_) => match self.task_queue.take_tasks_and_recv() {
                     Err(_) => match self.devtools_port.try_recv() {
                         Err(_) => match self.image_cache_port.try_recv() {
                             Err(_) => match &*self.webgpu_port.borrow() {
@@ -1636,14 +1931,10 @@ impl ScriptThread {
             }
         }
 
-        // Step 11.10 from https://html.spec.whatwg.org/multipage/#event-loops.
-        self.update_animations_and_send_events();
-
         // Process the gathered events.
         debug!("Processing events.");
         for msg in sequential {
             debug!("Processing event {:?}.", msg);
-
             let category = self.categorize_msg(&msg);
             let pipeline_id = self.message_to_pipeline(&msg);
 
@@ -1691,6 +1982,7 @@ impl ScriptThread {
             }
 
             // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 6
+            // TODO(#32003): A microtask checkpoint is only supposed to be performed after running a task.
             self.perform_a_microtask_checkpoint();
         }
 
@@ -1982,7 +2274,6 @@ impl ScriptThread {
             ConstellationControlMsg::UnloadDocument(pipeline_id) => {
                 self.handle_unload_document(pipeline_id)
             },
-            ConstellationControlMsg::SendEvent(id, event) => self.handle_event(id, event),
             ConstellationControlMsg::ResizeInactive(id, new_size) => {
                 self.handle_resize_inactive_msg(id, new_size)
             },
@@ -2044,9 +2335,6 @@ impl ScriptThread {
             ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) => {
                 self.handle_webdriver_msg(pipeline_id, msg)
             },
-            ConstellationControlMsg::TickAllAnimations(pipeline_id, tick_type) => {
-                self.handle_tick_all_animations(pipeline_id, tick_type)
-            },
             ConstellationControlMsg::WebFontLoaded(pipeline_id) => {
                 self.handle_web_font_loaded(pipeline_id)
             },
@@ -2089,6 +2377,8 @@ impl ScriptThread {
             msg @ ConstellationControlMsg::SetScrollState(..) |
             msg @ ConstellationControlMsg::Resize(..) |
             msg @ ConstellationControlMsg::ExitFullScreen(..) |
+            msg @ ConstellationControlMsg::SendEvent(..) |
+            msg @ ConstellationControlMsg::TickAllAnimations(..) |
             msg @ ConstellationControlMsg::ExitScriptThread => {
                 panic!("should have handled {:?} already", msg)
             },
@@ -2453,10 +2743,18 @@ impl ScriptThread {
         }
     }
 
-    fn handle_resize(&self, id: PipelineId, size: WindowSizeData, size_type: WindowSizeType) {
+    /// Batch window resize operations into a single "update the rendering" task,
+    /// or, if a load is in progress, set the window size directly.
+    fn handle_resize_message(
+        &self,
+        id: PipelineId,
+        size: WindowSizeData,
+        size_type: WindowSizeType,
+    ) {
         let window = self.documents.borrow().find_window(id);
         if let Some(ref window) = window {
-            window.set_resize_event(size, size_type);
+            self.rendering_opportunity(id);
+            window.add_resize_event(size, size_type);
             return;
         }
         let mut loads = self.incomplete_loads.borrow_mut();
@@ -2879,6 +3177,10 @@ impl ScriptThread {
         RemoteEventTaskSource(self.remote_event_task_sender.clone(), pipeline_id)
     }
 
+    fn rendering_task_source(&self, pipeline_id: PipelineId) -> RenderingTaskSource {
+        RenderingTaskSource(self.rendering_task_sender.clone(), pipeline_id)
+    }
+
     pub fn timer_task_source(&self, pipeline_id: PipelineId) -> TimerTaskSource {
         TimerTaskSource(self.timer_task_sender.clone(), pipeline_id)
     }
@@ -2989,23 +3291,12 @@ impl ScriptThread {
     pub fn handle_tick_all_animations_for_testing(id: PipelineId) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread
-                .handle_tick_all_animations(id, AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS);
-        });
-    }
-
-    /// Handles when layout finishes all animation in one tick
-    fn handle_tick_all_animations(&self, id: PipelineId, tick_type: AnimationTickType) {
-        let document = match self.documents.borrow().find_document(id) {
-            Some(document) => document,
-            None => return warn!("Message sent to closed pipeline {}.", id),
-        };
-        if tick_type.contains(AnimationTickType::REQUEST_ANIMATION_FRAME) {
-            document.run_the_animation_frame_callbacks();
-        }
-        if tick_type.contains(AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS) {
+            let Some(document) = script_thread.documents.borrow().find_document(id) else {
+                warn!("Animation tick for tests for closed pipeline {id}.");
+                return;
+            };
             document.maybe_mark_animating_nodes_as_dirty();
-        }
+        });
     }
 
     /// Handles a Web font being loaded. Does nothing if the page no longer exists.
@@ -3242,6 +3533,7 @@ impl ScriptThread {
             self.port_message_queue(incomplete.pipeline_id),
             self.user_interaction_task_source(incomplete.pipeline_id),
             self.remote_event_task_source(incomplete.pipeline_id),
+            self.rendering_task_source(incomplete.pipeline_id),
             self.timer_task_source(incomplete.pipeline_id),
             self.websocket_task_source(incomplete.pipeline_id),
         );
@@ -3477,190 +3769,19 @@ impl ScriptThread {
         window.reflow(ReflowGoal::Full, reason);
     }
 
-    /// This is the main entry point for receiving and dispatching DOM events.
-    ///
-    /// TODO: Actually perform DOM event dispatch.
+    /// Queue compositor events for later dispatching as part of a
+    /// `update_the_rendering` task.
     fn handle_event(&self, pipeline_id: PipelineId, event: CompositorEvent) {
-        // Do not handle events if the pipeline exited.
-        let window = match self.documents.borrow().find_window(pipeline_id) {
-            Some(win) => win,
-            None => {
-                return warn!(
-                    "Compositor event sent to a pipeline that already exited {}.",
-                    pipeline_id
-                )
-            },
+        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+            warn!("Compositor event sent to closed pipeline {pipeline_id}.");
+            return;
         };
-        // Do not handle events if the BC has been, or is being, discarded
-        if window.Closed() {
-            return warn!(
-                "Compositor event sent to a pipeline with a closed window {}.",
-                pipeline_id
-            );
-        }
-
-        let _realm = enter_realm(&*window);
-
-        // Assuming all CompositionEvent are generated by user interactions.
-        ScriptThread::set_user_interacting(true);
-        match event {
-            ResizeEvent(new_size, size_type) => {
-                self.handle_resize_event(pipeline_id, new_size, size_type);
-            },
-
-            MouseButtonEvent(
-                event_type,
-                button,
-                point,
-                node_address,
-                point_in_node,
-                pressed_mouse_buttons,
-            ) => {
-                self.handle_mouse_event(
-                    pipeline_id,
-                    event_type,
-                    button,
-                    point,
-                    node_address,
-                    point_in_node,
-                    pressed_mouse_buttons,
-                );
-            },
-
-            MouseMoveEvent(point, node_address, pressed_mouse_buttons) => {
-                let document = match self.documents.borrow().find_document(pipeline_id) {
-                    Some(document) => document,
-                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
-                };
-                let window = document.window();
-
-                // Get the previous target temporarily
-                let prev_mouse_over_target = self.topmost_mouse_over_target.get();
-
-                unsafe {
-                    document.handle_mouse_move_event(
-                        point,
-                        &self.topmost_mouse_over_target,
-                        node_address,
-                        pressed_mouse_buttons,
-                    )
-                }
-
-                // Short-circuit if nothing changed
-                if self.topmost_mouse_over_target.get() == prev_mouse_over_target {
-                    return;
-                }
-
-                let mut state_already_changed = false;
-
-                // Notify Constellation about the topmost anchor mouse over target.
-                if let Some(target) = self.topmost_mouse_over_target.get() {
-                    if let Some(anchor) = target
-                        .upcast::<Node>()
-                        .inclusive_ancestors(ShadowIncluding::No)
-                        .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
-                        .next()
-                    {
-                        let status = anchor
-                            .upcast::<Element>()
-                            .get_attribute(&ns!(), &local_name!("href"))
-                            .and_then(|href| {
-                                let value = href.value();
-                                let url = document.url();
-                                url.join(&value).map(|url| url.to_string()).ok()
-                            });
-                        let event = EmbedderMsg::Status(status);
-                        window.send_to_embedder(event);
-
-                        state_already_changed = true;
-                    }
-                }
-
-                // We might have to reset the anchor state
-                if !state_already_changed {
-                    if let Some(target) = prev_mouse_over_target {
-                        if target
-                            .upcast::<Node>()
-                            .inclusive_ancestors(ShadowIncluding::No)
-                            .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
-                            .next()
-                            .is_some()
-                        {
-                            let event = EmbedderMsg::Status(None);
-                            window.send_to_embedder(event);
-                        }
-                    }
-                }
-            },
-
-            TouchEvent(event_type, identifier, point, node_address) => {
-                let touch_result = self.handle_touch_event(
-                    pipeline_id,
-                    event_type,
-                    identifier,
-                    point,
-                    node_address,
-                );
-                match (event_type, touch_result) {
-                    (TouchEventType::Down, TouchEventResult::Processed(handled)) => {
-                        let result = if handled {
-                            // TODO: Wait to see if preventDefault is called on the first touchmove event.
-                            EventResult::DefaultAllowed
-                        } else {
-                            EventResult::DefaultPrevented
-                        };
-                        let message = ScriptMsg::TouchEventProcessed(result);
-                        self.script_sender.send((pipeline_id, message)).unwrap();
-                    },
-                    _ => {
-                        // TODO: Calling preventDefault on a touchup event should prevent clicks.
-                    },
-                }
-            },
-
-            WheelEvent(delta, point, node_address) => {
-                self.handle_wheel_event(pipeline_id, delta, point, node_address);
-            },
-
-            KeyboardEvent(key_event) => {
-                let document = match self.documents.borrow().find_document(pipeline_id) {
-                    Some(document) => document,
-                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
-                };
-                document.dispatch_key_event(key_event);
-            },
-
-            IMEDismissedEvent => {
-                let document = match self.documents.borrow().find_document(pipeline_id) {
-                    Some(document) => document,
-                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
-                };
-                document.ime_dismissed();
-            },
-
-            CompositionEvent(composition_event) => {
-                let document = match self.documents.borrow().find_document(pipeline_id) {
-                    Some(document) => document,
-                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
-                };
-                document.dispatch_composition_event(composition_event);
-            },
-
-            GamepadEvent(gamepad_event) => {
-                let window = match self.documents.borrow().find_window(pipeline_id) {
-                    Some(window) => window,
-                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
-                };
-                let global = window.upcast::<GlobalScope>();
-                global.handle_gamepad_event(gamepad_event);
-            },
-        }
-
-        ScriptThread::set_user_interacting(false);
+        self.rendering_opportunity(pipeline_id);
+        document.note_pending_compositor_event(event);
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn handle_mouse_event(
+    fn handle_mouse_button_event(
         &self,
         pipeline_id: PipelineId,
         mouse_event_type: MouseEventType,
@@ -3670,12 +3791,12 @@ impl ScriptThread {
         point_in_node: Option<Point2D<f32>>,
         pressed_mouse_buttons: u16,
     ) {
-        let document = match self.documents.borrow().find_document(pipeline_id) {
-            Some(document) => document,
-            None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+            warn!("Message sent to closed pipeline {pipeline_id}.");
+            return;
         };
         unsafe {
-            document.handle_mouse_event(
+            document.handle_mouse_button_event(
                 button,
                 point,
                 mouse_event_type,
@@ -3711,9 +3832,9 @@ impl ScriptThread {
         point: Point2D<f32>,
         node_address: Option<UntrustedNodeAddress>,
     ) {
-        let document = match self.documents.borrow().find_document(pipeline_id) {
-            Some(document) => document,
-            None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+            warn!("Message sent to closed pipeline {pipeline_id}.");
+            return;
         };
         unsafe { document.handle_wheel_event(wheel_delta, point, node_address) };
     }
@@ -3814,11 +3935,6 @@ impl ScriptThread {
             );
             uievent.upcast::<Event>().fire(window.upcast());
         }
-
-        // https://html.spec.whatwg.org/multipage/#event-loop-processing-model
-        // Step 7.7 - evaluate media queries and report changes
-        // Since we have resized, we need to re-evaluate MQLs
-        window.evaluate_media_queries_and_report_changes();
     }
 
     /// Instructs the constellation to fetch the document that will be loaded. Stores the InProgressLoad
