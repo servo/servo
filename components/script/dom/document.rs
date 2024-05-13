@@ -3258,11 +3258,10 @@ impl Document {
                 return;
             }
 
-            *self.mouse_move_event_index.borrow_mut() =
-                Some(self.pending_compositor_events.borrow().len());
+            *self.mouse_move_event_index.borrow_mut() = Some(pending_compositor_events.len());
         }
 
-        self.pending_compositor_events.borrow_mut().push(event);
+        pending_compositor_events.push(event);
     }
 
     /// Get pending compositor events, for processing within an `update_the_rendering` task.
