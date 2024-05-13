@@ -3258,8 +3258,7 @@ impl Document {
                 return;
             }
 
-            *self.mouse_move_event_index.borrow_mut() =
-                Some(pending_compositor_events.len());
+            *self.mouse_move_event_index.borrow_mut() = Some(pending_compositor_events.len());
         }
 
         pending_compositor_events.push(event);
