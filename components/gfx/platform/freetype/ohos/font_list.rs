@@ -4,16 +4,16 @@
 
 use std::fs::File;
 use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use base::text::{is_cjk, UnicodeBlock, UnicodeBlockMethod};
 use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use style::values::computed::{
     FontStretch as StyleFontStretch, FontStyle as StyleFontStyle, FontWeight as StyleFontWeight,
 };
 use style::Atom;
-use webrender_api::NativeFontHandle;
 
 use crate::font_template::{FontTemplate, FontTemplateDescriptor};
 use crate::text::FallbackFontSelectionOptions;
@@ -23,7 +23,7 @@ lazy_static::lazy_static! {
 }
 
 /// An identifier for a local font on OpenHarmony systems.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct LocalFontIdentifier {
     /// The path to the font.
     pub path: Atom,
@@ -153,11 +153,7 @@ where
             },
             None => StyleFontStyle::NORMAL,
         };
-        let descriptor = FontTemplateDescriptor {
-            weight,
-            stretch,
-            style,
-        };
+        let descriptor = FontTemplateDescriptor::new(weight, stretch, style);
         callback(FontTemplate::new_for_local_font(
             local_font_identifier,
             descriptor,
