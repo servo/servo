@@ -3228,8 +3228,7 @@ impl Document {
         }
     }
 
-    /// Note a pending animation tick,
-    /// to be processed at the next `update_the_rendering` task.
+    /// Note a pending animation tick, to be processed at the next `update_the_rendering` task.
     pub fn note_pending_animation_tick(&self, tick_type: AnimationTickType) {
         self.pending_animation_ticks.borrow_mut().extend(tick_type);
     }
@@ -3245,8 +3244,7 @@ impl Document {
         }
     }
 
-    /// Note a pending compositor event,
-    /// to be processed at the next `update_the_rendering` task.
+    /// Note a pending compositor event, to be processed at the next `update_the_rendering` task.
     pub fn note_pending_compositor_event(&self, event: CompositorEvent) {
         let mut pending_compositor_events = self.pending_compositor_events.borrow_mut();
         if matches!(event, CompositorEvent::MouseMoveEvent { .. }) {

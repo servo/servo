@@ -1724,14 +1724,15 @@ impl ScriptThread {
             // TODO: Perform pending transition operations from
             // https://drafts.csswg.org/css-view-transitions/#perform-pending-transition-operations.
 
-            // TODO(#31021: Run the update intersection observations steps from
+            // TODO(#31021): Run the update intersection observations steps from
             // https://w3c.github.io/IntersectionObserver/#run-the-update-intersection-observations-steps
 
             // TODO: Mark paint timing from https://w3c.github.io/paint-timing.
 
-            // TODO: Update the rendering: consolidate all reflow calls into one here?(#31871)
+            // TODO(#31871): Update the rendering: consolidate all reflow calls into one here?
 
-            // TODO: process top layer removals(https://drafts.csswg.org/css-position-4/#process-top-layer-removals)
+            // TODO: Process top layer removals according to
+            // https://drafts.csswg.org/css-position-4/#process-top-layer-removals.
         }
     }
 
@@ -1773,7 +1774,7 @@ impl ScriptThread {
         );
     }
 
-    /// Handle incoming control messages.
+    /// Handle incoming messages from other tasks and the task queue.
     fn handle_msgs(&self) -> bool {
         use self::MixedMessage::{
             FromConstellation, FromDevtools, FromImageCache, FromScript, FromWebGPUServer,
