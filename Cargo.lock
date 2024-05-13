@@ -2017,6 +2017,7 @@ dependencies = [
  "truetype",
  "ucd",
  "unicode-bidi",
+ "unicode-properties",
  "unicode-script",
  "webrender_api",
  "xi-unicode",
@@ -6632,6 +6633,12 @@ checksum = "a56d1686db2308d901306f92a263857ef59ea39678a5458e7cb17f01415101f5"
 dependencies = [
  "tinyvec",
 ]
+
+[[package]]
+name = "unicode-properties"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e4259d9d4425d9f0661581b804cb85fe66a4c631cadd8f490d1c13a35d5d9291"
 
 [[package]]
 name = "unicode-script"
