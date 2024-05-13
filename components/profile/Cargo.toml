@@ -23,7 +23,7 @@ task_info = { path = "../../support/rust-task_info" }
 [target.'cfg(target_os = "linux")'.dependencies]
 regex = { workspace = true }
 
-[target.'cfg(not(any(target_os = "windows", target_os = "android")))'.dependencies]
+[target.'cfg(not(target_os = "windows"))'.dependencies]
 libc = { workspace = true }
-[target.'cfg(not(any(target_os = "windows", target_os = "android", target_env = "ohos")))'.dependencies]
+[target.'cfg(not(any(target_os = "windows", target_env = "ohos")))'.dependencies]
 jemalloc-sys = { workspace = true }
