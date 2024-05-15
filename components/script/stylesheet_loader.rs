@@ -5,12 +5,12 @@
 use std::sync::atomic::AtomicBool;
 use std::sync::Mutex;
 
+use base::id::PipelineId;
 use cssparser::SourceLocation;
 use encoding_rs::UTF_8;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use mime::{self, Mime};
-use msg::constellation_msg::PipelineId;
 use net_traits::request::{CorsSettings, Destination, Referrer, RequestBuilder};
 use net_traits::{
     FetchMetadata, FetchResponseListener, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy,

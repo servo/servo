@@ -10,10 +10,10 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::net::TcpStream;
 
+use base::id::{BrowsingContextId, PipelineId};
 use devtools_traits::DevtoolScriptControlMsg::{self, WantsLiveNotifications};
 use devtools_traits::{DevtoolsPageInfo, NavigationState};
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use serde::Serialize;
 use serde_json::{Map, Value};
 

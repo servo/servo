@@ -5,8 +5,8 @@
 use std::fmt;
 use std::result::Result;
 
+use base::id::PipelineId;
 use crossbeam_channel::Sender;
-use msg::constellation_msg::PipelineId;
 use servo_atoms::Atom;
 
 use crate::dom::bindings::inheritance::Castable;

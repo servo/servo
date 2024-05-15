@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use gfx_traits::Epoch;
+use base::id::TEST_PIPELINE_ID;
+use base::Epoch;
 use ipc_channel::ipc;
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
-use msg::constellation_msg::TEST_PIPELINE_ID;
 use profile_traits::time::{ProfilerChan, TimerMetadata};
 use servo_url::ServoUrl;
 

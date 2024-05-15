@@ -4,11 +4,9 @@
 
 use std::collections::{HashMap, HashSet};
 
+use base::id::{BrowsingContextGroupId, BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use euclid::Size2D;
 use log::warn;
-use msg::constellation_msg::{
-    BrowsingContextGroupId, BrowsingContextId, PipelineId, TopLevelBrowsingContextId,
-};
 use style_traits::CSSPixel;
 
 use crate::pipeline::Pipeline;

@@ -7,8 +7,8 @@
 use std::borrow::Cow;
 
 use arrayvec::ArrayVec;
+use base::id::PipelineId;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
-use msg::constellation_msg::PipelineId;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use webrender_api::{ExternalImageId, ImageData, ImageDescriptor, ImageKey};

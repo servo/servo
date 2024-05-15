@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::id::PipelineId;
 use crossbeam_channel::Sender;
-use msg::constellation_msg::PipelineId;
 
 use crate::script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use crate::script_thread::MainThreadScriptMsg;

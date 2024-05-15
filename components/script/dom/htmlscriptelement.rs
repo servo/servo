@@ -12,6 +12,7 @@ use std::ptr;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
+use base::id::PipelineId;
 use content_security_policy as csp;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
@@ -24,7 +25,6 @@ use js::rust::{
     transform_str_to_source_text, CompileOptionsWrapper, FinishOffThreadStencil, HandleObject,
     Stencil,
 };
-use msg::constellation_msg::PipelineId;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, ParserMetadata, RequestBuilder,
 };

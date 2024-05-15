@@ -11,6 +11,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
 
+use base::id::TEST_PIPELINE_ID;
 use cookie_rs::Cookie as CookiePair;
 use crossbeam_channel::{unbounded, Receiver};
 use devtools_traits::{
@@ -29,7 +30,6 @@ use http::{Method, StatusCode};
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use msg::constellation_msg::TEST_PIPELINE_ID;
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net::http_loader::determine_requests_referrer;

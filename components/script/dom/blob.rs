@@ -7,11 +7,11 @@ use std::num::NonZeroU32;
 use std::ptr::NonNull;
 use std::rc::Rc;
 
+use base::id::{BlobId, BlobIndex, PipelineNamespaceId};
 use dom_struct::dom_struct;
 use encoding_rs::UTF_8;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
-use msg::constellation_msg::{BlobId, BlobIndex, PipelineNamespaceId};
 use net_traits::filemanager_thread::RelativePos;
 use script_traits::serializable::BlobImpl;
 use uuid::Uuid;

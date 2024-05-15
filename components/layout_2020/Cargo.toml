@@ -15,6 +15,7 @@ doctest = false
 [dependencies]
 app_units = { workspace = true }
 atomic_refcell = { workspace = true }
+base = { workspace = true }
 canvas_traits = { workspace = true }
 bitflags = { workspace = true }
 cssparser = { workspace = true }
@@ -27,7 +28,6 @@ gfx_traits = { workspace = true }
 html5ever = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
-msg = { workspace = true }
 net_traits = { workspace = true }
 parking_lot = { workspace = true }
 range = { path = "../range" }

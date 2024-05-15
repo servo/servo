@@ -11,6 +11,7 @@ name = "compositing_traits"
 path = "lib.rs"
 
 [dependencies]
+base = { workspace = true }
 canvas = { path = "../../canvas" }
 crossbeam-channel = { workspace = true }
 embedder_traits = { workspace = true }
@@ -19,7 +20,6 @@ gfx_traits = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 log = { workspace = true }
-msg = { workspace = true }
 net_traits = { workspace = true }
 script_traits = { workspace = true }
 servo_url = { path = "../../url" }

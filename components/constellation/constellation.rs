@@ -94,6 +94,15 @@ use std::sync::{Arc, Mutex};
 use std::{process, thread};
 
 use background_hang_monitor::HangMonitorRegister;
+use background_hang_monitor_api::{
+    BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
+};
+use base::id::{
+    BroadcastChannelRouterId, BrowsingContextGroupId, BrowsingContextId, HistoryStateId,
+    MessagePortId, MessagePortRouterId, PipelineId, PipelineNamespace, PipelineNamespaceId,
+    PipelineNamespaceRequest, TopLevelBrowsingContextId, WebViewId,
+};
+use base::Epoch;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use canvas_traits::webgl::WebGLThreads;
@@ -113,7 +122,6 @@ use embedder_traits::{
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
 use gfx::font_cache_thread::FontCacheThread;
-use gfx_traits::Epoch;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use ipc_channel::Error as IpcError;
@@ -121,12 +129,6 @@ use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use keyboard_types::KeyboardEvent;
 use log::{debug, error, info, trace, warn};
 use media::{GLPlayerThreads, WindowGLContext};
-use msg::constellation_msg::{
-    BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, BroadcastChannelRouterId,
-    BrowsingContextGroupId, BrowsingContextId, HangMonitorAlert, HistoryStateId, MessagePortId,
-    MessagePortRouterId, PipelineId, PipelineNamespace, PipelineNamespaceId,
-    PipelineNamespaceRequest, TopLevelBrowsingContextId, TraversalDirection, WebViewId,
-};
 use net_traits::pub_domains::reg_host;
 use net_traits::request::{Referrer, RequestBuilder};
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
@@ -142,8 +144,8 @@ use script_traits::{
     LoadData, LoadOrigin, LogEntry, MediaSessionActionType, MessagePortMsg, MouseEventType,
     PortMessageTask, SWManagerMsg, SWManagerSenders, ScriptMsg as FromScriptMsg,
     ScriptToConstellationChan, ServiceWorkerManagerFactory, ServiceWorkerMsg,
-    StructuredSerializedData, TimerSchedulerMsg, UpdatePipelineIdReason, WebDriverCommandMsg,
-    WindowSizeData, WindowSizeType,
+    StructuredSerializedData, TimerSchedulerMsg, TraversalDirection, UpdatePipelineIdReason,
+    WebDriverCommandMsg, WindowSizeData, WindowSizeType,
 };
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};

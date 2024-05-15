@@ -7,8 +7,8 @@
 use std::{cmp, fmt};
 
 use app_units::Au;
+use base::print_tree::PrintTree;
 use euclid::default::Point2D;
-use gfx_traits::print_tree::PrintTree;
 use log::{debug, trace};
 use serde::Serialize;
 use style::computed_values::{border_collapse, border_spacing, table_layout};

@@ -13,6 +13,7 @@ use std::sync::Arc as StdArc;
 use std::{cmp, iter};
 
 use app_units::Au;
+use base::id::{BrowsingContextId, PipelineId};
 use bitflags::bitflags;
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
@@ -22,7 +23,6 @@ use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
 use script_layout_interface::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType, QueryMsg,

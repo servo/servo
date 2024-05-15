@@ -11,10 +11,10 @@ path = "lib.rs"
 doctest = false
 
 [dependencies]
+base = { workspace = true }
 gfx_traits = { workspace = true }
 ipc-channel = { workspace = true }
 metrics = { path = "../../../components/metrics" }
-msg = { workspace = true }
 profile_traits = { workspace = true }
 servo_url = { path = "../../../components/url" }
 time = { workspace = true }

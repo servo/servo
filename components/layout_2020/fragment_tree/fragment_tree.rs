@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use base::print_tree::PrintTree;
 use euclid::default::{Point2D, Rect, Size2D};
 use fxhash::FxHashSet;
-use gfx_traits::print_tree::PrintTree;
 use script_traits::compositor::ScrollSensitivity;
 use serde::Serialize;
 use style::animation::AnimationSetKey;

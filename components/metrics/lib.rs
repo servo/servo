@@ -7,11 +7,11 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use gfx_traits::Epoch;
+use base::id::PipelineId;
+use base::Epoch;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
-use msg::constellation_msg::PipelineId;
 use profile_traits::time::{send_profile_data, ProfilerCategory, ProfilerChan, TimerMetadata};
 use script_traits::{ConstellationControlMsg, LayoutMsg, ProgressiveWebMetricType};
 use servo_config::opts;

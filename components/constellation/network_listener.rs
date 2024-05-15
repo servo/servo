@@ -6,12 +6,12 @@
 //! Any redirects that are encountered are followed. Whenever a non-redirect
 //! response is received, it is forwarded to the appropriate script thread.
 
+use base::id::PipelineId;
 use crossbeam_channel::Sender;
 use http::HeaderMap;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use log::warn;
-use msg::constellation_msg::PipelineId;
 use net::http_loader::{set_default_accept, set_default_accept_language};
 use net_traits::request::{Destination, Referrer, RequestBuilder};
 use net_traits::response::ResponseInit;

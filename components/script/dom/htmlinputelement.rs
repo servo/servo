@@ -11,7 +11,7 @@ use std::{f64, ptr};
 use chrono::naive::{NaiveDate, NaiveDateTime};
 use chrono::{DateTime, Datelike, Weekday};
 use dom_struct::dom_struct;
-use embedder_traits::FilterPattern;
+use embedder_traits::{FilterPattern, InputMethodType};
 use encoding_rs::Encoding;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::jsapi::{
@@ -21,7 +21,6 @@ use js::jsapi::{
 use js::jsval::UndefinedValue;
 use js::rust::jsapi_wrapped::{ExecuteRegExpNoStatics, ObjectIsRegExp};
 use js::rust::{HandleObject, MutableHandleObject};
-use msg::constellation_msg::InputMethodType;
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::{CoreResourceMsg, IpcSend};

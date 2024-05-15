@@ -6,10 +6,10 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::net::TcpStream;
 
+use base::id::TEST_PIPELINE_ID;
 use devtools_traits::DevtoolScriptControlMsg::WantsLiveNotifications;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::TEST_PIPELINE_ID;
 use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_url::ServoUrl;

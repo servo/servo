@@ -10,10 +10,10 @@ use std::slice;
 use std::sync::{Arc, Mutex};
 
 use arrayvec::ArrayVec;
+use base::id::PipelineId;
 use euclid::default::Size2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender, IpcSharedMemory};
 use log::{error, warn};
-use msg::constellation_msg::PipelineId;
 use webrender::{RenderApi, RenderApiSender, Transaction};
 use webrender_api::{DirtyRect, DocumentId};
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};

@@ -7,9 +7,9 @@
 //           This might be achieved by sharing types between WR and Servo display lists, or
 //           completely converting layout to directly generate WebRender display lists, for example.
 
-use gfx_traits::WebRenderEpochToU16;
+use base::id::PipelineId;
+use base::WebRenderEpochToU16;
 use log::trace;
-use msg::constellation_msg::PipelineId;
 use script_traits::compositor::{
     CompositorDisplayListInfo, ScrollSensitivity, ScrollTreeNodeId, ScrollableNodeInfo,
 };

@@ -6,10 +6,10 @@
 
 use std::cell::Cell;
 
+use base::id::PipelineId;
 use cssparser::ToCss;
 use fxhash::{FxHashMap, FxHashSet};
 use libc::c_void;
-use msg::constellation_msg::PipelineId;
 use script_traits::{AnimationState as AnimationsPresentState, ScriptMsg, UntrustedNodeAddress};
 use serde::{Deserialize, Serialize};
 use style::animation::{

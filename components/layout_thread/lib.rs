@@ -17,6 +17,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 use app_units::Au;
+use base::id::{BrowsingContextId, PipelineId};
+use base::Epoch;
 use embedder_traits::resources::{self, Resource};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Rect, Scale, Size2D};
@@ -25,7 +27,6 @@ use fxhash::{FxHashMap, FxHashSet};
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
-use gfx_traits::{node_id_from_scroll_id, Epoch};
 use histogram::Histogram;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -52,7 +53,6 @@ use lazy_static::lazy_static;
 use log::{debug, error, trace, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
-use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
 use parking_lot::RwLock;
 use profile_traits::mem::{Report, ReportKind};
@@ -63,8 +63,8 @@ use profile_traits::time::{
 use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_layout_interface::{
-    Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse, Reflow,
-    ReflowComplete, ReflowGoal, ScriptReflow, TrustedNodeAddress,
+    node_id_from_scroll_id, Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType,
+    OffsetParentResponse, Reflow, ReflowComplete, ReflowGoal, ScriptReflow, TrustedNodeAddress,
 };
 use script_traits::{
     ConstellationControlMsg, DrawAPaintImageResult, IFrameSizeMsg, LayoutControlMsg,

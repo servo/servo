@@ -4,9 +4,9 @@
 
 use std::cell::Cell;
 
+use base::id::ServiceWorkerRegistrationId;
 use devtools_traits::WorkerId;
 use dom_struct::dom_struct;
-use msg::constellation_msg::ServiceWorkerRegistrationId;
 use script_traits::{ScopeThings, WorkerScriptLoadOrigin};
 use servo_url::ServoUrl;
 use uuid::Uuid;

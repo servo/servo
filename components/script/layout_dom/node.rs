@@ -8,9 +8,9 @@ use std::borrow::Cow;
 use std::fmt;
 use std::sync::Arc as StdArc;
 
+use base::id::{BrowsingContextId, PipelineId};
 use gfx_traits::ByteIndex;
 use html5ever::{local_name, namespace_url, ns};
-use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
 use range::Range;
 use script_layout_interface::wrapper_traits::{

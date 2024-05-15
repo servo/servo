@@ -16,6 +16,7 @@ use std::net::{SocketAddr, SocketAddrV4};
 use std::time::Duration;
 use std::{fmt, mem, thread};
 
+use base::id::{BrowsingContextId, TopLevelBrowsingContextId};
 use base64::Engine;
 use capabilities::ServoCapabilities;
 use compositing_traits::ConstellationMsg;
@@ -27,14 +28,13 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use keyboard_types::webdriver::send_keys;
 use log::{debug, info};
-use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, TraversalDirection};
 use net_traits::request::Referrer;
 use pixels::PixelFormat;
 use script_traits::webdriver_msg::{
     LoadStatus, WebDriverCookieError, WebDriverFrameId, WebDriverJSError, WebDriverJSResult,
     WebDriverJSValue, WebDriverScriptCommand,
 };
-use script_traits::{LoadData, LoadOrigin, WebDriverCommandMsg};
+use script_traits::{LoadData, LoadOrigin, TraversalDirection, WebDriverCommandMsg};
 use serde::de::{Deserializer, MapAccess, Visitor};
 use serde::ser::Serializer;
 use serde::{Deserialize, Serialize};

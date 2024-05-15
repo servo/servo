@@ -11,8 +11,8 @@
 use std::cell::RefCell;
 use std::path::PathBuf;
 
+use base::id::BlobId;
 use malloc_size_of_derive::MallocSizeOf;
-use msg::constellation_msg::BlobId;
 use net_traits::filemanager_thread::RelativePos;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

@@ -43,6 +43,7 @@ ucd = "0.1.1"
 unicode-bidi = { workspace = true, features = ["with_serde"] }
 unicode-script = { workspace = true }
 webrender_api = { workspace = true }
+webrender_traits = { workspace = true }
 xi-unicode = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]

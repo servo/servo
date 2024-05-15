@@ -4,13 +4,13 @@
 
 use std::sync::{Arc, Mutex};
 
+use base::id::PipelineId;
 use content_security_policy::{self as csp, CspList};
 use http::header::{HeaderName, AUTHORIZATION};
 use http::{HeaderMap, Method};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
-use msg::constellation_msg::PipelineId;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 

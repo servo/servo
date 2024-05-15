@@ -15,7 +15,9 @@ app_units = "0.7"
 arrayvec = "0.7"
 async-tungstenite = { version = "0.23", features = ["tokio-rustls-webpki-roots"] }
 atomic_refcell = "0.1.13"
+background_hang_monitor_api = { path = "components/shared/background_hang_monitor" }
 backtrace = "0.3"
+base = { path = "components/shared/base" }
 base64 = "0.21.7"
 bitflags = "2.5"
 bluetooth_traits = { path = "components/shared/bluetooth" }
@@ -68,7 +70,6 @@ malloc_size_of_derive = "0.1"
 mime = "0.3.13"
 mime_guess = "2.0.3"
 mozangle = "0.5.1"
-msg = { path = "components/shared/msg" }
 net_traits = { path = "components/shared/net" }
 num-traits = "0.2"
 num_cpus = "1.1.0"

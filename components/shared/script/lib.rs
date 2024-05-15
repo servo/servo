@@ -20,6 +20,12 @@ use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use std::sync::Arc;
 
+use background_hang_monitor_api::BackgroundHangMonitorRegister;
+use base::id::{
+    BlobId, BrowsingContextId, HistoryStateId, MessagePortId, PipelineId, PipelineNamespaceId,
+    TopLevelBrowsingContextId,
+};
+use base::Epoch;
 use bitflags::bitflags;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
@@ -29,7 +35,6 @@ use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, Worke
 use embedder_traits::{CompositorEventVariant, Cursor};
 use euclid::default::Point2D;
 use euclid::{Length, Rect, Scale, Size2D, UnknownUnit, Vector2D};
-use gfx_traits::Epoch;
 use http::{HeaderMap, Method};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::Error as IpcError;
@@ -40,10 +45,6 @@ use log::warn;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use media::WindowGLContext;
-use msg::constellation_msg::{
-    BackgroundHangMonitorRegister, BlobId, BrowsingContextId, HistoryStateId, MessagePortId,
-    PipelineId, PipelineNamespaceId, TopLevelBrowsingContextId,
-};
 use net_traits::image::base::Image;
 use net_traits::image_cache::ImageCache;
 use net_traits::request::{Referrer, RequestBody};
@@ -66,7 +67,7 @@ use crate::compositor::CompositorDisplayListInfo;
 pub use crate::script_msg::{
     DOMMessage, EventResult, HistoryEntryReplacement, IFrameSizeMsg, Job, JobError, JobResult,
     JobResultValue, JobType, LayoutMsg, LogEntry, SWManagerMsg, SWManagerSenders, ScopeThings,
-    ScriptMsg, ServiceWorkerMsg,
+    ScriptMsg, ServiceWorkerMsg, TraversalDirection,
 };
 use crate::serializable::{BlobData, BlobImpl};
 use crate::transferable::MessagePortImpl;

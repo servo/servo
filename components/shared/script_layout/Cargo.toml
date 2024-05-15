@@ -11,6 +11,7 @@ name = "script_layout_interface"
 path = "lib.rs"
 
 [dependencies]
+base = { workspace = true }
 app_units = { workspace = true }
 atomic_refcell = { workspace = true }
 canvas_traits = { workspace = true }
@@ -24,12 +25,12 @@ libc = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 metrics = { path = "../../metrics" }
-msg = { workspace = true }
 net_traits = { workspace = true }
 profile_traits = { workspace = true }
 range = { path = "../../range" }
 script_traits = { workspace = true }
 selectors = { workspace = true }
+serde = { workspace = true }
 servo_arc = { workspace = true }
 servo_atoms = { workspace = true }
 servo_url = { path = "../../url" }

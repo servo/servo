@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use gfx_traits::print_tree::PrintTree;
+use base::print_tree::PrintTree;
 use serde::Serialize;
 use servo_arc::Arc as ServoArc;
 use style::computed_values::overflow_x::T as ComputedOverflow;

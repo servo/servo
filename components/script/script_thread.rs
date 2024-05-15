@@ -29,6 +29,13 @@ use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use std::{ptr, thread};
 
+use background_hang_monitor_api::{
+    BackgroundHangMonitor, BackgroundHangMonitorExitSignal, HangAnnotation, MonitoredComponentId,
+    MonitoredComponentType, ScriptHangAnnotation,
+};
+use base::id::{
+    BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, TopLevelBrowsingContextId,
+};
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use chrono::{DateTime, Local};
@@ -55,11 +62,6 @@ use js::rust::ParentRuntime;
 use media::WindowGLContext;
 use metrics::{PaintTimeMetrics, MAX_TASK_NS};
 use mime::{self, Mime};
-use msg::constellation_msg::{
-    BackgroundHangMonitor, BackgroundHangMonitorExitSignal, BrowsingContextId, HangAnnotation,
-    HistoryStateId, MonitoredComponentId, MonitoredComponentType, PipelineId, PipelineNamespace,
-    ScriptHangAnnotation, TopLevelBrowsingContextId,
-};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
 use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestBuilder};
 use net_traits::storage_thread::StorageType;
