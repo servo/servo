@@ -81,7 +81,7 @@ impl AbsolutelyPositionedBox {
         ) -> AbsoluteBoxOffsets {
             match (start.non_auto(), end.non_auto()) {
                 (None, None) => AbsoluteBoxOffsets::StaticStart {
-                    start: initial_static_start,
+                    start: initial_static_start.into(),
                 },
                 (Some(start), Some(end)) => AbsoluteBoxOffsets::Both {
                     start: start.clone(),
@@ -196,10 +196,10 @@ impl PositioningContext {
         let update_fragment_if_needed = |hoisted_fragment: &mut HoistedAbsolutelyPositionedBox| {
             let mut fragment = hoisted_fragment.fragment.borrow_mut();
             if let AbsoluteBoxOffsets::StaticStart { start } = &mut fragment.box_offsets.inline {
-                *start += start_offset.inline;
+                *start += start_offset.inline.into();
             }
             if let AbsoluteBoxOffsets::StaticStart { start } = &mut fragment.box_offsets.block {
-                *start += start_offset.block;
+                *start += start_offset.block.into();
             }
         };
 
@@ -773,7 +773,7 @@ impl<'a> AbsoluteAxisSolver<'a> {
     fn solve_for_size(&self, computed_size: AuOrAuto) -> AxisResult {
         match self.box_offsets {
             AbsoluteBoxOffsets::StaticStart { start } => AxisResult {
-                anchor: Anchor::Start((*start).into()),
+                anchor: Anchor::Start(*start),
                 size: computed_size,
                 margin_start: self.computed_margin_start.auto_is(Au::zero),
                 margin_end: self.computed_margin_end.auto_is(Au::zero),

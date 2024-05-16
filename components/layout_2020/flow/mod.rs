@@ -1762,9 +1762,8 @@ impl PlacementState {
             },
             Fragment::AbsoluteOrFixedPositioned(fragment) => {
                 let offset = LogicalVec2 {
-                    block: (self.current_margin.solve() + self.current_block_direction_position)
-                        .into(),
-                    inline: Length::new(0.),
+                    block: (self.current_margin.solve() + self.current_block_direction_position),
+                    inline: Au::zero(),
                 };
                 fragment.borrow_mut().adjust_offsets(offset);
             },
