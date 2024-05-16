@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceNavigationTimingBinding::{
-    NavigationType, PerformanceNavigationTimingMethods,
+    NavigationTimingType, PerformanceNavigationTimingMethods,
 };
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
@@ -25,7 +25,7 @@ pub struct PerformanceNavigationTiming {
     navigation_start: u64,
     navigation_start_precise: u64,
     document: Dom<Document>,
-    nav_type: NavigationType,
+    nav_type: NavigationTimingType,
 }
 
 impl PerformanceNavigationTiming {
@@ -44,7 +44,7 @@ impl PerformanceNavigationTiming {
             navigation_start: nav_start,
             navigation_start_precise: nav_start_precise,
             document: Dom::from_ref(document),
-            nav_type: NavigationType::Navigate,
+            nav_type: NavigationTimingType::Navigate,
         }
     }
 
@@ -108,7 +108,7 @@ impl PerformanceNavigationTimingMethods for PerformanceNavigationTiming {
     }
 
     // https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-type
-    fn Type(&self) -> NavigationType {
+    fn Type(&self) -> NavigationTimingType {
         self.nav_type
     }
 

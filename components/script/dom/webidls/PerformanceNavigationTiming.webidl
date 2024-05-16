@@ -6,7 +6,7 @@
  * https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming
  */
 
-enum NavigationType {
+enum NavigationTimingType {
     "navigate",
     "reload",
     "back_forward",
@@ -15,18 +15,18 @@ enum NavigationType {
 
 [Exposed=Window]
 interface PerformanceNavigationTiming : PerformanceResourceTiming {
-    readonly attribute DOMHighResTimeStamp unloadEventStart;
-    readonly attribute DOMHighResTimeStamp unloadEventEnd;
-    readonly attribute DOMHighResTimeStamp domInteractive;
-    readonly attribute DOMHighResTimeStamp domContentLoadedEventStart;
-    readonly attribute DOMHighResTimeStamp domContentLoadedEventEnd;
-    readonly attribute DOMHighResTimeStamp domComplete;
-    readonly attribute DOMHighResTimeStamp loadEventStart;
-    readonly attribute DOMHighResTimeStamp loadEventEnd;
-    readonly attribute NavigationType      type;
-    readonly attribute unsigned short      redirectCount;
+    readonly attribute DOMHighResTimeStamp  unloadEventStart;
+    readonly attribute DOMHighResTimeStamp  unloadEventEnd;
+    readonly attribute DOMHighResTimeStamp  domInteractive;
+    readonly attribute DOMHighResTimeStamp  domContentLoadedEventStart;
+    readonly attribute DOMHighResTimeStamp  domContentLoadedEventEnd;
+    readonly attribute DOMHighResTimeStamp  domComplete;
+    readonly attribute DOMHighResTimeStamp  loadEventStart;
+    readonly attribute DOMHighResTimeStamp  loadEventEnd;
+    readonly attribute NavigationTimingType type;
+    readonly attribute unsigned short       redirectCount;
     [Default] object toJSON();
     /* Servo-only attribute for measuring when the top-level document (not iframes) is complete. */
     [Pref="dom.testperf.enabled"]
-    readonly attribute DOMHighResTimeStamp topLevelDomComplete;
+    readonly attribute DOMHighResTimeStamp  topLevelDomComplete;
 };
