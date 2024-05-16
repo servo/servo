@@ -429,7 +429,7 @@ impl FontList {
 
     fn text_content(nodes: &[Node]) -> Option<String> {
         nodes.get(0).and_then(|child| match child {
-            Node::Text(contents) => Some(contents.clone()),
+            Node::Text(contents) => Some(contents.trim().into()),
             Node::Element { .. } => None,
         })
     }
