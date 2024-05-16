@@ -43,6 +43,7 @@ env:
   # so we need to override this behaviour until we update clang-sys
   # https://github.com/KyleMayes/clang-sys/issues/150
   LIBCLANG_PATH: C:\\Program Files\\LLVM\\bin
+  RUSTUP_WINDOWS_PATH_ADD_BIN: 1
 
 jobs:
   build:
@@ -71,7 +72,7 @@ jobs:
           echo "C:\\Program Files (x86)\\WiX Toolset v3.11\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.10"
       - name: Bootstrap
         run: |
           python -m pip install --upgrade pip
