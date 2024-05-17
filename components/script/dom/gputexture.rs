@@ -114,7 +114,7 @@ impl Drop for GPUTexture {
         if let Err(e) = self
             .channel
             .0
-            .send((None, WebGPURequest::DropTexture(self.texture.0)))
+            .send(WebGPURequest::DropTexture(self.texture.0))
         {
             warn!(
                 "Failed to send WebGPURequest::DropTexture({:?}) ({})",
@@ -182,15 +182,12 @@ impl GPUTextureMethods for GPUTexture {
 
         self.channel
             .0
-            .send((
-                scope_id,
-                WebGPURequest::CreateTextureView {
-                    texture_id: self.texture.0,
-                    texture_view_id,
-                    device_id: self.device.id().0,
-                    descriptor: desc,
-                },
-            ))
+            .send(WebGPURequest::CreateTextureView {
+                texture_id: self.texture.0,
+                texture_view_id,
+                device_id: self.device.id().0,
+                descriptor: desc,
+            })
             .expect("Failed to create WebGPU texture view");
 
         let texture_view = WebGPUTextureView(texture_view_id);
@@ -209,13 +206,10 @@ impl GPUTextureMethods for GPUTexture {
         if self.destroyed.get() {
             return;
         }
-        if let Err(e) = self.channel.0.send((
-            None,
-            WebGPURequest::DestroyTexture {
-                device_id: self.device.id().0,
-                texture_id: self.texture.0,
-            },
-        )) {
+        if let Err(e) = self.channel.0.send(WebGPURequest::DestroyTexture {
+            device_id: self.device.id().0,
+            texture_id: self.texture.0,
+        }) {
             warn!(
                 "Failed to send WebGPURequest::DestroyTexture({:?}) ({})",
                 self.texture.0, e

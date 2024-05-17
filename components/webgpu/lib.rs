@@ -38,7 +38,7 @@ pub type ErrorScopeId = NonZeroU64;
 pub use wgpu_thread::PRESENTATION_BUFFER_COUNT;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct WebGPU(pub IpcSender<(Option<ErrorScopeId>, WebGPURequest)>);
+pub struct WebGPU(pub IpcSender<WebGPURequest>);
 
 impl WebGPU {
     pub fn new(
@@ -96,7 +96,7 @@ impl WebGPU {
 
     pub fn exit(&self, sender: IpcSender<()>) -> Result<(), &'static str> {
         self.0
-            .send((None, WebGPURequest::Exit(sender)))
+            .send(WebGPURequest::Exit(sender))
             .map_err(|_| "Failed to send Exit message")
     }
 }

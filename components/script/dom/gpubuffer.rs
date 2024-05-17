@@ -137,7 +137,7 @@ impl Drop for GPUBuffer {
         if let Err(e) = self
             .channel
             .0
-            .send((None, WebGPURequest::DropBuffer(self.buffer.0)))
+            .send(WebGPURequest::DropBuffer(self.buffer.0))
         {
             warn!(
                 "Failed to send WebGPURequest::DropBuffer({:?}) ({})",
@@ -166,17 +166,14 @@ impl GPUBufferMethods for GPUBuffer {
                     return Err(Error::Operation);
                 };
                 let m_range = m_info.mapping_range.clone();
-                if let Err(e) = self.channel.0.send((
-                    self.device.use_current_scope(),
-                    WebGPURequest::UnmapBuffer {
-                        buffer_id: self.id().0,
-                        device_id: self.device.id().0,
-                        array_buffer: IpcSharedMemory::from_bytes(&m_info.mapping.lock().unwrap()),
-                        is_map_read: m_info.map_mode == Some(GPUMapModeConstants::READ),
-                        offset: m_range.start,
-                        size: m_range.end - m_range.start,
-                    },
-                )) {
+                if let Err(e) = self.channel.0.send(WebGPURequest::UnmapBuffer {
+                    buffer_id: self.id().0,
+                    device_id: self.device.id().0,
+                    array_buffer: IpcSharedMemory::from_bytes(&m_info.mapping.lock().unwrap()),
+                    is_map_read: m_info.map_mode == Some(GPUMapModeConstants::READ),
+                    offset: m_range.start,
+                    size: m_range.end - m_range.start,
+                }) {
                     warn!("Failed to send Buffer unmap ({:?}) ({})", self.buffer.0, e);
                 }
                 // Step 3.3
@@ -209,7 +206,7 @@ impl GPUBufferMethods for GPUBuffer {
         if let Err(e) = self
             .channel
             .0
-            .send((None, WebGPURequest::DestroyBuffer(self.buffer.0)))
+            .send(WebGPURequest::DestroyBuffer(self.buffer.0))
         {
             warn!(
                 "Failed to send WebGPURequest::DestroyBuffer({:?}) ({})",
@@ -262,17 +259,14 @@ impl GPUBufferMethods for GPUBuffer {
         let map_range = offset..offset + range_size;
 
         let sender = response_async(&promise, self);
-        if let Err(e) = self.channel.0.send((
-            scope_id,
-            WebGPURequest::BufferMapAsync {
-                sender,
-                buffer_id: self.buffer.0,
-                device_id: self.device.id().0,
-                host_map,
-                offset,
-                size: Some(range_size),
-            },
-        )) {
+        if let Err(e) = self.channel.0.send(WebGPURequest::BufferMapAsync {
+            sender,
+            buffer_id: self.buffer.0,
+            device_id: self.device.id().0,
+            host_map,
+            offset,
+            size: Some(range_size),
+        }) {
             warn!(
                 "Failed to send BufferMapAsync ({:?}) ({})",
                 self.buffer.0, e

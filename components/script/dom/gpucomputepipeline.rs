@@ -103,10 +103,11 @@ impl GPUComputePipelineMethods for GPUComputePipeline {
 
 impl Drop for GPUComputePipeline {
     fn drop(&mut self) {
-        if let Err(e) = self.channel.0.send((
-            None,
-            WebGPURequest::DropComputePipeline(self.compute_pipeline.0),
-        )) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DropComputePipeline(self.compute_pipeline.0))
+        {
             warn!(
                 "Failed to send WebGPURequest::DropComputePipeline({:?}) ({})",
                 self.compute_pipeline.0, e

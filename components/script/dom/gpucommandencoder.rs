@@ -270,17 +270,14 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             .insert(DomRoot::from_ref(destination));
         self.channel
             .0
-            .send((
-                None,
-                WebGPURequest::CopyBufferToBuffer {
-                    command_encoder_id: self.encoder.0,
-                    source_id: source.id().0,
-                    source_offset,
-                    destination_id: destination.id().0,
-                    destination_offset,
-                    size,
-                },
-            ))
+            .send(WebGPURequest::CopyBufferToBuffer {
+                command_encoder_id: self.encoder.0,
+                source_id: source.id().0,
+                source_offset,
+                destination_id: destination.id().0,
+                destination_offset,
+                size,
+            })
             .expect("Failed to send CopyBufferToBuffer");
     }
 
@@ -302,17 +299,12 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
 
         self.channel
             .0
-            .send((
-                None,
-                WebGPURequest::CopyBufferToTexture {
-                    command_encoder_id: self.encoder.0,
-                    source: convert_ic_buffer(source),
-                    destination: convert_ic_texture(destination),
-                    copy_size: convert_texture_size_to_wgt(&convert_texture_size_to_dict(
-                        &copy_size,
-                    )),
-                },
-            ))
+            .send(WebGPURequest::CopyBufferToTexture {
+                command_encoder_id: self.encoder.0,
+                source: convert_ic_buffer(source),
+                destination: convert_ic_texture(destination),
+                copy_size: convert_texture_size_to_wgt(&convert_texture_size_to_dict(&copy_size)),
+            })
             .expect("Failed to send CopyBufferToTexture");
     }
 
@@ -334,17 +326,12 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
 
         self.channel
             .0
-            .send((
-                None,
-                WebGPURequest::CopyTextureToBuffer {
-                    command_encoder_id: self.encoder.0,
-                    source: convert_ic_texture(source),
-                    destination: convert_ic_buffer(destination),
-                    copy_size: convert_texture_size_to_wgt(&convert_texture_size_to_dict(
-                        &copy_size,
-                    )),
-                },
-            ))
+            .send(WebGPURequest::CopyTextureToBuffer {
+                command_encoder_id: self.encoder.0,
+                source: convert_ic_texture(source),
+                destination: convert_ic_buffer(destination),
+                copy_size: convert_texture_size_to_wgt(&convert_texture_size_to_dict(&copy_size)),
+            })
             .expect("Failed to send CopyTextureToBuffer");
     }
 
@@ -362,17 +349,12 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
 
         self.channel
             .0
-            .send((
-                None,
-                WebGPURequest::CopyTextureToTexture {
-                    command_encoder_id: self.encoder.0,
-                    source: convert_ic_texture(source),
-                    destination: convert_ic_texture(destination),
-                    copy_size: convert_texture_size_to_wgt(&convert_texture_size_to_dict(
-                        &copy_size,
-                    )),
-                },
-            ))
+            .send(WebGPURequest::CopyTextureToTexture {
+                command_encoder_id: self.encoder.0,
+                source: convert_ic_texture(source),
+                destination: convert_ic_texture(destination),
+                copy_size: convert_texture_size_to_wgt(&convert_texture_size_to_dict(&copy_size)),
+            })
             .expect("Failed to send CopyTextureToTexture");
     }
 
@@ -380,16 +362,13 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
     fn Finish(&self, descriptor: &GPUCommandBufferDescriptor) -> DomRoot<GPUCommandBuffer> {
         self.channel
             .0
-            .send((
-                self.device.use_current_scope(),
-                WebGPURequest::CommandEncoderFinish {
-                    command_encoder_id: self.encoder.0,
-                    device_id: self.device.id().0,
-                    is_error: !self.valid.get(),
-                    // TODO(zakorgy): We should use `_descriptor` here after it's not empty
-                    // and the underlying wgpu-core struct is serializable
-                },
-            ))
+            .send(WebGPURequest::CommandEncoderFinish {
+                command_encoder_id: self.encoder.0,
+                device_id: self.device.id().0,
+                is_error: !self.valid.get(),
+                // TODO(zakorgy): We should use `_descriptor` here after it's not empty
+                // and the underlying wgpu-core struct is serializable
+            })
             .expect("Failed to send Finish");
 
         *self.state.borrow_mut() = GPUCommandEncoderState::Closed;

@@ -91,7 +91,7 @@ impl Drop for GPUAdapter {
         if let Err(e) = self
             .channel
             .0
-            .send((None, WebGPURequest::DropAdapter(self.adapter.0)))
+            .send(WebGPURequest::DropAdapter(self.adapter.0))
         {
             warn!(
                 "Failed to send WebGPURequest::DropAdapter({:?}) ({})",
@@ -217,16 +217,13 @@ impl GPUAdapterMethods for GPUAdapter {
         if self
             .channel
             .0
-            .send((
-                None,
-                WebGPURequest::RequestDevice {
-                    sender,
-                    adapter_id: self.adapter,
-                    descriptor: desc,
-                    device_id: id,
-                    pipeline_id,
-                },
-            ))
+            .send(WebGPURequest::RequestDevice {
+                sender,
+                adapter_id: self.adapter,
+                descriptor: desc,
+                device_id: id,
+                pipeline_id,
+            })
             .is_err()
         {
             promise.reject_error(Error::Operation);

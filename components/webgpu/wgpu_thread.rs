@@ -37,8 +37,8 @@ pub const PRESENTATION_BUFFER_COUNT: usize = 10;
 
 #[allow(clippy::upper_case_acronyms)] // Name of the library
 pub(crate) struct WGPU {
-    receiver: IpcReceiver<(Option<ErrorScopeId>, WebGPURequest)>,
-    sender: IpcSender<(Option<ErrorScopeId>, WebGPURequest)>,
+    receiver: IpcReceiver<WebGPURequest>,
+    sender: IpcSender<WebGPURequest>,
     script_sender: IpcSender<WebGPUMsg>,
     global: Arc<wgc::global::Global>,
     adapters: Vec<WebGPUAdapter>,
@@ -56,8 +56,8 @@ pub(crate) struct WGPU {
 
 impl WGPU {
     pub(crate) fn new(
-        receiver: IpcReceiver<(Option<ErrorScopeId>, WebGPURequest)>,
-        sender: IpcSender<(Option<ErrorScopeId>, WebGPURequest)>,
+        receiver: IpcReceiver<WebGPURequest>,
+        sender: IpcSender<WebGPURequest>,
         script_sender: IpcSender<WebGPUMsg>,
         webrender_api_sender: RenderApiSender,
         webrender_document: DocumentId,
@@ -90,7 +90,7 @@ impl WGPU {
 
     pub(crate) fn run(&mut self) {
         loop {
-            if let Ok((scope_id, msg)) = self.receiver.recv() {
+            if let Ok(msg) = self.receiver.recv() {
                 match msg {
                     WebGPURequest::BufferMapAsync {
                         sender,
@@ -152,7 +152,7 @@ impl WGPU {
                                 warn!("Failed to send BufferMapAsync Response ({:?})", w);
                             }
                         }
-                        self.send_result(device_id, scope_id, result);
+                        self.send_result(device_id, result.err());
                     },
                     WebGPURequest::CommandEncoderFinish {
                         command_encoder_id,
@@ -178,7 +178,7 @@ impl WGPU {
                             .map_err(|e| format!("{:?}", e))
                         };
                         self.encoder_record_error(command_encoder_id, &result);
-                        self.send_result(device_id, scope_id, result);
+                        self.send_result(device_id, result.err());
                     },
                     WebGPURequest::CopyBufferToBuffer {
                         command_encoder_id,
@@ -252,7 +252,7 @@ impl WGPU {
                         let global = &self.global;
                         let result = tuple_to_result(gfx_select!(bind_group_id =>
                             global.device_create_bind_group(device_id, &descriptor, Some(bind_group_id))));
-                        self.send_result(device_id, scope_id, result);
+                        self.send_result(device_id, result.err());
                     },
                     WebGPURequest::CreateBindGroupLayout {
                         device_id,
@@ -264,7 +264,7 @@ impl WGPU {
                             let result = tuple_to_result(gfx_select!(bind_group_layout_id =>
                                 global.device_create_bind_group_layout(device_id, &desc, Some(bind_group_layout_id))));
 
-                            self.send_result(device_id, scope_id, result);
+                            self.send_result(device_id, result.err());
                         }
                     },
                     WebGPURequest::CreateBuffer {
@@ -277,7 +277,7 @@ impl WGPU {
                             let result = tuple_to_result(gfx_select!(buffer_id =>
                                 global.device_create_buffer(device_id, &desc, Some(buffer_id))));
 
-                            self.send_result(device_id, scope_id, result);
+                            self.send_result(device_id, result.err());
                         }
                     },
                     WebGPURequest::CreateCommandEncoder {
@@ -290,7 +290,7 @@ impl WGPU {
                         let result = tuple_to_result(gfx_select!(command_encoder_id =>
                             global.device_create_command_encoder(device_id, &desc, Some(command_encoder_id))));
 
-                        self.send_result(device_id, scope_id, result);
+                        self.send_result(device_id, result.err());
                     },
                     WebGPURequest::CreateComputePipeline {
                         device_id,
@@ -319,7 +319,7 @@ impl WGPU {
                                 implicit
                             )),
                         );
-                        self.send_result(device_id, scope_id, result);
+                        self.send_result(device_id, result.err());
                     },
                     WebGPURequest::CreateContext(sender) => {
                         let id = self
@@ -339,7 +339,7 @@ impl WGPU {
                         let global = &self.global;
                         let result = tuple_to_result(gfx_select!(pipeline_layout_id =>
                             global.device_create_pipeline_layout(device_id, &descriptor, Some(pipeline_layout_id))));
-                        self.send_result(device_id, scope_id, result);
+                        self.send_result(device_id, result.err());
                     },
                     WebGPURequest::CreateRenderPipeline {
                         device_id,
@@ -368,7 +368,7 @@ impl WGPU {
                                 Some(render_pipeline_id),
                                 implicit)
                             ));
-                            self.send_result(device_id, scope_id, result);
+                            self.send_result(device_id, result.err());
                         }
                     },
                     WebGPURequest::CreateSampler {
@@ -384,7 +384,7 @@ impl WGPU {
                                 Some(sampler_id)
                             )),
                         );
-                        self.send_result(device_id, scope_id, result);
+                        self.send_result(device_id, result.err());
                     },
                     WebGPURequest::CreateShaderModule {
                         device_id,
@@ -402,7 +402,7 @@ impl WGPU {
                         };
                         let result = tuple_to_result(gfx_select!(program_id =>
                             global.device_create_shader_module(device_id, &desc, source, Some(program_id))));
-                        self.send_result(device_id, scope_id, result);
+                        self.send_result(device_id, result.err());
                     },
                     WebGPURequest::CreateSwapChain {
                         device_id,
@@ -462,7 +462,7 @@ impl WGPU {
                                     Some(texture_id)
                                 )),
                             );
-                            self.send_result(device_id, scope_id, result);
+                            self.send_result(device_id, result.err());
                         }
                     },
                     WebGPURequest::CreateTextureView {
@@ -481,7 +481,7 @@ impl WGPU {
                                 )),
                             );
 
-                            self.send_result(device_id, scope_id, result);
+                            self.send_result(device_id, result.err());
                         }
                     },
                     WebGPURequest::DestroyBuffer(buffer) => {
@@ -527,7 +527,7 @@ impl WGPU {
                     } => {
                         let global = &self.global;
                         let result = gfx_select!(texture_id => global.texture_destroy(texture_id));
-                        self.send_result(device_id, scope_id, result);
+                        self.send_result(device_id, result.err());
                     },
                     WebGPURequest::Exit(sender) => {
                         if let Err(e) = sender.send(()) {
@@ -575,7 +575,7 @@ impl WGPU {
                             )),
                         );
 
-                        self.send_result(device_id, scope_id, result);
+                        self.send_result(device_id, result.err());
                     },
                     WebGPURequest::RequestAdapter {
                         sender,
@@ -712,7 +712,7 @@ impl WGPU {
                             gfx_select!(queue_id => global.queue_submit(queue_id, &command_buffers))
                                 .map_err(|e| format!("{:?}", e))
                         };
-                        self.send_result(queue_id.transmute(), scope_id, result);
+                        self.send_result(queue_id.transmute(), result.err());
                     },
                     WebGPURequest::SwapChainPresent {
                         external_id,
@@ -890,7 +890,7 @@ impl WGPU {
                             .copy_from_slice(&array_buffer);
                         }
                         let result = gfx_select!(buffer_id => global.buffer_unmap(buffer_id));
-                        self.send_result(device_id, scope_id, result);
+                        self.send_result(device_id, result.err());
                     },
                     WebGPURequest::WriteBuffer {
                         queue_id,
@@ -906,7 +906,7 @@ impl WGPU {
                             buffer_offset as wgt::BufferAddress,
                             &data
                         ));
-                        self.send_result(queue_id.transmute(), scope_id, result);
+                        self.send_result(queue_id.transmute(), result.err());
                     },
                     WebGPURequest::WriteTexture {
                         queue_id,
@@ -924,7 +924,7 @@ impl WGPU {
                             &data_layout,
                             &size
                         ));
-                        self.send_result(queue_id.transmute(), scope_id, result);
+                        self.send_result(queue_id.transmute(), result.err());
                     },
                     WebGPURequest::QueueOnSubmittedWorkDone { sender, queue_id } => {
                         let global = &self.global;
@@ -938,7 +938,7 @@ impl WGPU {
                         }));
                         let result = gfx_select!(queue_id => global.queue_on_submitted_work_done(queue_id, callback));
                         self.poller.wake();
-                        self.send_result(queue_id.transmute(), scope_id, result);
+                        self.send_result(queue_id.transmute(), result.err());
                     },
                     WebGPURequest::DropTexture(id) => {
                         let global = &self.global;
@@ -1045,11 +1045,13 @@ impl WGPU {
                         // <https://www.w3.org/TR/webgpu/#dom-gpudevice-poperrorscope>
                         if let Some(device_scope) = self.devices.get_mut(&device_id) {
                             if let Some(error_scope) = device_scope.error_scope_stack.pop() {
-                                if let Err(e) = sender.send(Some(Ok(
-                                    WebGPUResponse::PoppedErrorScope(Ok(error_scope.errors.clone())),
-                                ))) {
+                                if let Err(e) =
+                                    sender.send(Some(Ok(WebGPUResponse::PoppedErrorScope(Ok(
+                                        error_scope.errors.clone(),
+                                    )))))
+                                {
                                     warn!(
-                                        "Unable to send {:?} to poperrorscope",
+                                        "Unable to send {:?} to poperrorscope: {e:?}",
                                         error_scope.errors
                                     );
                                 }
@@ -1057,7 +1059,7 @@ impl WGPU {
                                 if let Err(e) = sender.send(Some(Ok(
                                     WebGPUResponse::PoppedErrorScope(Err(PopError::Empty)),
                                 ))) {
-                                    warn!("Unable to send PopError::Empty");
+                                    warn!("Unable to send PopError::Empty: {e:?}");
                                 }
                             }
                         } else {
@@ -1065,7 +1067,7 @@ impl WGPU {
                             if let Err(e) = sender.send(Some(Ok(WebGPUResponse::PoppedErrorScope(
                                 Err(PopError::Lost),
                             )))) {
-                                warn!("Unable to send PopError::Lost");
+                                warn!("Unable to send PopError::Lost due {e:?}");
                             }
                         }
                     },
@@ -1077,29 +1079,17 @@ impl WGPU {
         }
     }
 
-    fn send_result<U, T: std::fmt::Debug>(
-        &self,
-        device_id: id::DeviceId,
-        scope_id: Option<ErrorScopeId>,
-        result: Result<U, T>,
-    ) {
-        let pipeline_id = self.devices.get(&device_id).unwrap().pipeline_id;
-        if let Err(w) = self.script_sender.send(WebGPUMsg::WebGPUOpResult {
-            device: WebGPUDevice(device_id),
-            scope_id,
-            pipeline_id,
-            result: if let Err(e) = result {
-                let err = format!("{:?}", e);
-                if err.contains("OutOfMemory") {
-                    WebGPUOpResult::OutOfMemoryError
-                } else {
-                    WebGPUOpResult::ValidationError(err)
-                }
+    fn send_result<T: std::fmt::Debug>(&mut self, device_id: id::DeviceId, error: Option<T>) {
+        if let Some(error) = error {
+            let err = format!("{:?}", error);
+            let error = if err.contains("Validation") {
+                Error::Validation(err)
+            } else if err.contains("OutOfMemory") {
+                Error::OutOfMemory(err)
             } else {
-                WebGPUOpResult::Success
-            },
-        }) {
-            warn!("Failed to send WebGPUOpResult ({})", w);
+                Error::Internal(err)
+            };
+            self.dispatch_error(device_id, error);
         }
     }
 
