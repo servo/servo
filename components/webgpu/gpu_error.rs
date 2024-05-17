@@ -2,35 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::vec::Vec;
+//! Error scopes and GPUError types
 
-use msg::constellation_msg::PipelineId;
 use serde::{Deserialize, Serialize};
-
-use crate::wgc::id::DeviceId;
-
-#[derive(Eq, Hash, PartialEq)]
-pub(crate) struct DeviceScope {
-    pub device_id: DeviceId,
-    pub pipeline_id: PipelineId,
-    /// <https://www.w3.org/TR/webgpu/#dom-gpudevice-errorscopestack-slot>
-    pub error_scope_stack: Vec<ErrorScope>,
-    // TODO:
-    // Queue for this device (to remove transmutes)
-    // queue_id: QueueId,
-    // Poller for this device
-    // poller: Poller,
-}
-
-impl DeviceScope {
-    pub fn new(device_id: DeviceId, pipeline_id: PipelineId) -> Self {
-        Self {
-            device_id,
-            pipeline_id,
-            error_scope_stack: Vec::new(),
-        }
-    }
-}
 
 /// <https://www.w3.org/TR/webgpu/#gpu-error-scope>
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]

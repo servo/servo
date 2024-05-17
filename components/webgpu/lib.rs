@@ -16,8 +16,8 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use arrayvec::ArrayVec;
-pub use device_scope::{Error, ErrorFilter, PopError};
 use euclid::default::Size2D;
+pub use gpu_error::{Error, ErrorFilter, PopError};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
@@ -27,8 +27,8 @@ use webrender_traits::{
 };
 use wgc::id;
 
-mod device_scope;
 mod dom_messages;
+mod gpu_error;
 mod script_messages;
 pub use dom_messages::*;
 pub use identity::*;

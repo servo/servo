@@ -7,7 +7,7 @@
 use msg::constellation_msg::PipelineId;
 use serde::{Deserialize, Serialize};
 
-use crate::device_scope::Error;
+use crate::gpu_error::Error;
 use crate::identity::WebGPUDevice;
 use crate::wgc::id::{
     AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, ComputePipelineId,

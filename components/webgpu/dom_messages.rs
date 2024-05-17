@@ -28,9 +28,8 @@ use wgc::resource::{
 };
 pub use {wgpu_core as wgc, wgpu_types as wgt};
 
-use crate::device_scope::{Error, ErrorFilter, PopError};
 use crate::identity::*;
-use crate::{WebGPU, PRESENTATION_BUFFER_COUNT};
+use crate::{Error, ErrorFilter, PopError, WebGPU, PRESENTATION_BUFFER_COUNT};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[allow(clippy::large_enum_variant)]
