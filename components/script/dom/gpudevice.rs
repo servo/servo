@@ -1017,8 +1017,8 @@ impl AsyncWGPUListener for GPUDevice {
     fn handle_response(&self, response: Option<WebGPUResponseResult>, promise: &Rc<Promise>) {
         match response {
             Some(Ok(WebGPUResponse::PoppedErrorScope(result))) => match result {
-                Ok(None) | Err(PopError::Lost) => promise.resolve_native(&()),
-                Err(PopError::Empty) => promise.reject_native(&()),
+                Ok(None) | Err(PopError::Lost) => promise.resolve_native(&None::<Option<GPUError>>),
+                Err(PopError::Empty) => promise.reject_error(Error::Operation),
                 Ok(Some(error)) => {
                     let error = GPUError::from_error(&self.global(), error);
                     promise.resolve_native(&error);
