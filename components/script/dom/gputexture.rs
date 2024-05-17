@@ -7,7 +7,7 @@ use std::string::String;
 
 use dom_struct::dom_struct;
 use webgpu::wgc::resource;
-use webgpu::{wgt, WebGPU, WebGPUOpResult, WebGPURequest, WebGPUTexture, WebGPUTextureView};
+use webgpu::{wgt, WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -143,8 +143,6 @@ impl GPUTextureMethods for GPUTexture {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gputexture-createview>
     fn CreateView(&self, descriptor: &GPUTextureViewDescriptor) -> DomRoot<GPUTextureView> {
-        let scope_id = self.device.use_current_scope();
-
         let desc = if !matches!(descriptor.mipLevelCount, Some(0)) &&
             !matches!(descriptor.arrayLayerCount, Some(0))
         {
@@ -165,12 +163,10 @@ impl GPUTextureMethods for GPUTexture {
                 },
             })
         } else {
-            self.device.handle_server_msg(
-                scope_id,
-                WebGPUOpResult::ValidationError(String::from(
+            self.device
+                .dispatch_error(webgpu::Error::Validation(String::from(
                     "arrayLayerCount and mipLevelCount cannot be 0",
-                )),
-            );
+                )));
             None
         };
 

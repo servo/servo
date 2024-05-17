@@ -13,10 +13,10 @@ mod wgpu_thread;
 
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::num::NonZeroU64;
 use std::sync::{Arc, Mutex};
 
 use arrayvec::ArrayVec;
+pub use device_scope::{Error, ErrorFilter, PopError};
 use euclid::default::Size2D;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use serde::{Deserialize, Serialize};
@@ -33,8 +33,6 @@ mod script_messages;
 pub use dom_messages::*;
 pub use identity::*;
 pub use script_messages::*;
-
-pub type ErrorScopeId = NonZeroU64;
 pub use wgpu_thread::PRESENTATION_BUFFER_COUNT;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

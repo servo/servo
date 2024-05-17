@@ -14,14 +14,6 @@ use crate::wgc::id::{
     DeviceId, PipelineLayoutId, QuerySetId, RenderBundleId, RenderPipelineId, SamplerId,
     ShaderModuleId, StagingBufferId, SurfaceId, TextureId, TextureViewId,
 };
-use crate::ErrorScopeId;
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum WebGPUOpResult {
-    ValidationError(String),
-    OutOfMemoryError,
-    Success,
-}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebGPUMsg {
@@ -42,12 +34,6 @@ pub enum WebGPUMsg {
     FreeRenderBundle(RenderBundleId),
     FreeStagingBuffer(StagingBufferId),
     FreeQuerySet(QuerySetId),
-    WebGPUOpResult {
-        device: WebGPUDevice,
-        scope_id: Option<ErrorScopeId>,
-        pipeline_id: PipelineId,
-        result: WebGPUOpResult,
-    },
     CleanDevice {
         device: WebGPUDevice,
         pipeline_id: PipelineId,

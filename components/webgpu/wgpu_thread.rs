@@ -29,8 +29,8 @@ pub use {wgpu_core as wgc, wgpu_types as wgt};
 use crate::device_scope::{DeviceScope, Error, ErrorScope, PopError};
 use crate::poll_thread::Poller;
 use crate::{
-    ErrorScopeId, PresentationData, Transmute, WebGPU, WebGPUAdapter, WebGPUDevice, WebGPUMsg,
-    WebGPUOpResult, WebGPUQueue, WebGPURequest, WebGPUResponse,
+    PresentationData, Transmute, WebGPU, WebGPUAdapter, WebGPUDevice, WebGPUMsg, WebGPUQueue,
+    WebGPURequest, WebGPUResponse,
 };
 
 pub const PRESENTATION_BUFFER_COUNT: usize = 10;
@@ -1041,6 +1041,9 @@ impl WGPU {
                             .expect("Using invalid device");
                         device_scope.error_scope_stack.push(ErrorScope::new(filter));
                     },
+                    WebGPURequest::DispatchError { device_id, error } => {
+                        self.dispatch_error(device_id, error);
+                    },
                     WebGPURequest::PopErrorScope { device_id, sender } => {
                         // <https://www.w3.org/TR/webgpu/#dom-gpudevice-poperrorscope>
                         if let Some(device_scope) = self.devices.get_mut(&device_id) {
@@ -1104,11 +1107,15 @@ impl WGPU {
             {
                 error_scope.errors.get_or_insert(error);
             } else {
-                if let Err(e) = self.script_sender.send(WebGPUMsg::UncapturedError {
-                    device: WebGPUDevice(device_id),
-                    pipeline_id: device_scope.pipeline_id,
-                    error: error.clone(),
-                }) {
+                if self
+                    .script_sender
+                    .send(WebGPUMsg::UncapturedError {
+                        device: WebGPUDevice(device_id),
+                        pipeline_id: device_scope.pipeline_id,
+                        error: error.clone(),
+                    })
+                    .is_err()
+                {
                     warn!("Failed to send WebGPUMsg::UncapturedError: {error:?}");
                 }
             }

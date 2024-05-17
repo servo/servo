@@ -12,9 +12,7 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
 use js::typedarray::{ArrayBuffer, ArrayBufferU8};
 use webgpu::wgc::device::HostMap;
-use webgpu::{
-    WebGPU, WebGPUBuffer, WebGPUOpResult, WebGPURequest, WebGPUResponse, WebGPUResponseResult,
-};
+use webgpu::{WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
 
 use super::bindings::buffer_source::{create_new_external_array_buffer, HeapBufferSource};
 use crate::dom::bindings::cell::DomRefCell;
@@ -234,12 +232,11 @@ impl GPUBufferMethods for GPUBuffer {
         } else {
             self.size - offset
         };
-        let scope_id = self.device.use_current_scope();
         if self.state.get() != GPUBufferState::Unmapped {
-            self.device.handle_server_msg(
-                scope_id,
-                WebGPUOpResult::ValidationError(String::from("Buffer is not Unmapped")),
-            );
+            self.device
+                .dispatch_error(webgpu::Error::Validation(String::from(
+                    "Buffer is not Unmapped",
+                )));
             promise.reject_error(Error::Abort);
             return promise;
         }
@@ -247,10 +244,10 @@ impl GPUBufferMethods for GPUBuffer {
             GPUMapModeConstants::READ => HostMap::Read,
             GPUMapModeConstants::WRITE => HostMap::Write,
             _ => {
-                self.device.handle_server_msg(
-                    scope_id,
-                    WebGPUOpResult::ValidationError(String::from("Invalid MapModeFlags")),
-                );
+                self.device
+                    .dispatch_error(webgpu::Error::Validation(String::from(
+                        "Invalid MapModeFlags",
+                    )));
                 promise.reject_error(Error::Abort);
                 return promise;
             },

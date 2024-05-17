@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
-use webgpu::{wgt, WebGPU, WebGPUOpResult, WebGPUQueue, WebGPURequest, WebGPUResponse};
+use webgpu::{wgt, WebGPU, WebGPUQueue, WebGPURequest, WebGPUResponse};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::{GPUImageCopyTexture, GPUImageDataLayout};
 use super::gpu::{response_async, AsyncWGPUListener};
@@ -81,14 +81,14 @@ impl GPUQueueMethods for GPUQueue {
                 .iter()
                 .all(|b| matches!(b.state(), GPUBufferState::Unmapped))
         });
-        let scope_id = self.device.borrow().as_ref().unwrap().use_current_scope();
         if !valid {
-            self.device.borrow().as_ref().unwrap().handle_server_msg(
-                scope_id,
-                WebGPUOpResult::ValidationError(String::from(
+            self.device
+                .borrow()
+                .as_ref()
+                .unwrap()
+                .dispatch_error(webgpu::Error::Validation(String::from(
                     "Referenced GPUBuffer(s) are not Unmapped",
-                )),
-            );
+                )));
             return;
         }
         let command_buffers = command_buffers.iter().map(|cb| cb.id().0).collect();

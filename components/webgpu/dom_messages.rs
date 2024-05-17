@@ -257,6 +257,10 @@ pub enum WebGPURequest {
         device_id: id::DeviceId,
         filter: ErrorFilter,
     },
+    DispatchError {
+        device_id: id::DeviceId,
+        error: Error,
+    },
     PopErrorScope {
         device_id: id::DeviceId,
         sender: IpcSender<Option<WebGPUResponseResult>>,

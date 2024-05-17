@@ -56,7 +56,7 @@ use script_traits::{
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use uuid::Uuid;
-use webgpu::{ErrorScopeId, WebGPUDevice, WebGPUOpResult};
+use webgpu::WebGPUDevice;
 
 use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::cell::{DomRefCell, RefMut};
@@ -3097,17 +3097,12 @@ impl GlobalScope {
         let _ = self.gpu_devices.borrow_mut().remove(&device);
     }
 
-    pub fn handle_wgpu_msg(
-        &self,
-        device: WebGPUDevice,
-        scope: Option<ErrorScopeId>,
-        result: WebGPUOpResult,
-    ) {
+    pub fn handle_uncaptured_gpu_error(&self, device: WebGPUDevice, error: webgpu::Error) {
         self.gpu_devices
             .borrow()
             .get(&device)
             .expect("GPUDevice not found")
-            .handle_server_msg(scope, result);
+            .fire_uncaptured_error(error);
     }
 
     pub fn handle_gamepad_event(&self, gamepad_event: GamepadEvent) {
