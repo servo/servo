@@ -28,6 +28,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use style::values::computed::{FontStretch, FontStyle, FontWeight};
 use style::Atom;
+use unicode_properties::UnicodeEmoji;
 
 use super::c_str_to_string;
 use crate::font::map_platform_values_to_style_values;
@@ -197,7 +198,12 @@ pub static SANS_SERIF_FONT_FAMILY: &str = "DejaVu Sans";
 
 // Based on gfxPlatformGtk::GetCommonFallbackFonts() in Gecko
 pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {
-    let mut families = vec!["DejaVu Serif", "FreeSerif", "DejaVu Sans", "FreeSans"];
+    let mut families = Vec::new();
+
+    if codepoint.map_or(false, |codepoint| codepoint.is_emoji_char()) {
+        families.push("Noto Color Emoji");
+    }
+    families.extend(["DejaVu Serif", "FreeSerif", "DejaVu Sans", "FreeSans"]);
 
     if let Some(codepoint) = codepoint {
         if is_cjk(codepoint) {

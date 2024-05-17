@@ -41,6 +41,7 @@ surfman = { workspace = true }
 style = { workspace = true }
 ucd = "0.1.1"
 unicode-bidi = { workspace = true, features = ["with_serde"] }
+unicode-properties = { workspace = true }
 unicode-script = { workspace = true }
 webrender_api = { workspace = true }
 xi-unicode = { workspace = true }
