@@ -11,7 +11,7 @@ use app_units::Au;
 use freetype::freetype::{
     FT_Done_Face, FT_F26Dot6, FT_Face, FT_Fixed, FT_Get_Char_Index, FT_Get_Kerning,
     FT_Get_Sfnt_Table, FT_GlyphSlot, FT_Int32, FT_Kerning_Mode, FT_Load_Glyph, FT_Load_Sfnt_Table,
-    FT_Long, FT_MulFix, FT_New_Memory_Face, FT_Select_Size, FT_Set_Char_Size, FT_Sfnt_Tag,
+    FT_Long, FT_MulFix, FT_New_Memory_Face, FT_Pos, FT_Select_Size, FT_Set_Char_Size, FT_Sfnt_Tag,
     FT_Short, FT_SizeRec, FT_Size_Metrics, FT_UInt, FT_ULong, FT_UShort, FT_Vector,
     FT_FACE_FLAG_COLOR, FT_FACE_FLAG_FIXED_SIZES, FT_FACE_FLAG_SCALABLE, FT_LOAD_COLOR,
     FT_LOAD_DEFAULT, FT_STYLE_FLAG_ITALIC,
@@ -444,11 +444,11 @@ impl FreeTypeFaceHelpers for FT_Face {
             return Ok(requested_size);
         }
 
-        let requested_size = (requested_size.to_f64_px() * 64.0) as i64;
+        let requested_size = (requested_size.to_f64_px() * 64.0) as FT_Pos;
         let get_size_at_index = |index| unsafe {
             (
-                (*(*self).available_sizes.offset(index as isize)).x_ppem as i64,
-                (*(*self).available_sizes.offset(index as isize)).y_ppem as i64,
+                (*(*self).available_sizes.offset(index as isize)).x_ppem,
+                (*(*self).available_sizes.offset(index as isize)).y_ppem,
             )
         };
 
@@ -470,7 +470,7 @@ impl FreeTypeFaceHelpers for FT_Face {
         }
 
         if succeeded(unsafe { FT_Select_Size(self, best_index) }) {
-            return Ok(Au::from_f64_px(best_size.1 as f64 / 64.0));
+            Ok(Au::from_f64_px(best_size.1 as f64 / 64.0))
         } else {
             Err("FT_Select_Size failed")
         }
