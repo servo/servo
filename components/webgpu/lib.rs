@@ -27,6 +27,7 @@ use webrender_traits::{
 };
 use wgc::id;
 
+mod device_scope;
 mod dom_messages;
 mod script_messages;
 pub use dom_messages::*;

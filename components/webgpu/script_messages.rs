@@ -7,6 +7,7 @@
 use msg::constellation_msg::PipelineId;
 use serde::{Deserialize, Serialize};
 
+use crate::device_scope::Error;
 use crate::identity::WebGPUDevice;
 use crate::wgc::id::{
     AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, ComputePipelineId,
@@ -50,6 +51,11 @@ pub enum WebGPUMsg {
     CleanDevice {
         device: WebGPUDevice,
         pipeline_id: PipelineId,
+    },
+    UncapturedError {
+        device: WebGPUDevice,
+        pipeline_id: PipelineId,
+        error: Error,
     },
     Exit,
 }

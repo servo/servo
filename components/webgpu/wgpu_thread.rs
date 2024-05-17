@@ -13,19 +13,20 @@ use arrayvec::ArrayVec;
 use euclid::default::Size2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender, IpcSharedMemory};
 use log::{error, warn};
-use msg::constellation_msg::PipelineId;
 use webrender::{RenderApi, RenderApiSender, Transaction};
 use webrender_api::{DirtyRect, DocumentId};
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
 use wgc::command::{ImageCopyBuffer, ImageCopyTexture};
 use wgc::device::queue::SubmittedWorkDoneClosure;
 use wgc::device::{DeviceDescriptor, HostMap, ImplicitPipelineIds};
+use wgc::id::DeviceId;
 use wgc::pipeline::ShaderModuleDescriptor;
 use wgc::resource::{BufferMapCallback, BufferMapOperation};
 use wgc::{gfx_select, id};
 use wgt::InstanceDescriptor;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
 
+use crate::device_scope::{DeviceScope, Error, ErrorScope, PopError};
 use crate::poll_thread::Poller;
 use crate::{
     ErrorScopeId, PresentationData, Transmute, WebGPU, WebGPUAdapter, WebGPUDevice, WebGPUMsg,
@@ -41,7 +42,7 @@ pub(crate) struct WGPU {
     script_sender: IpcSender<WebGPUMsg>,
     global: Arc<wgc::global::Global>,
     adapters: Vec<WebGPUAdapter>,
-    devices: HashMap<WebGPUDevice, PipelineId>,
+    devices: HashMap<DeviceId, DeviceScope>,
     // Track invalid adapters https://gpuweb.github.io/gpuweb/#invalid
     _invalid_adapters: Vec<WebGPUAdapter>,
     //TODO: Remove this (https://github.com/gfx-rs/wgpu/issues/867)
@@ -546,7 +547,7 @@ impl WGPU {
                     },
                     WebGPURequest::DropDevice(device_id) => {
                         let device = WebGPUDevice(device_id);
-                        let pipeline_id = self.devices.remove(&device).unwrap();
+                        let pipeline_id = self.devices.remove(&device_id).unwrap().pipeline_id;
                         if let Err(e) = self.script_sender.send(WebGPUMsg::CleanDevice {
                             device,
                             pipeline_id,
@@ -652,7 +653,8 @@ impl WGPU {
                         };
                         let device = WebGPUDevice(device_id);
                         let queue = WebGPUQueue(queue_id);
-                        self.devices.insert(device, pipeline_id);
+                        self.devices
+                            .insert(device_id, DeviceScope::new(device_id, pipeline_id));
                         if let Err(e) = sender.send(Some(Ok(WebGPUResponse::RequestDevice {
                             device_id: device,
                             queue_id: queue,
@@ -1031,6 +1033,42 @@ impl WGPU {
                             warn!("Unable to send FreeQuerySet({:?}) ({:?})", id, e);
                         };
                     },
+                    WebGPURequest::PushErrorScope { device_id, filter } => {
+                        // <https://www.w3.org/TR/webgpu/#dom-gpudevice-pusherrorscope>
+                        let device_scope = self
+                            .devices
+                            .get_mut(&device_id)
+                            .expect("Using invalid device");
+                        device_scope.error_scope_stack.push(ErrorScope::new(filter));
+                    },
+                    WebGPURequest::PopErrorScope { device_id, sender } => {
+                        // <https://www.w3.org/TR/webgpu/#dom-gpudevice-poperrorscope>
+                        if let Some(device_scope) = self.devices.get_mut(&device_id) {
+                            if let Some(error_scope) = device_scope.error_scope_stack.pop() {
+                                if let Err(e) = sender.send(Some(Ok(
+                                    WebGPUResponse::PoppedErrorScope(Ok(error_scope.errors.clone())),
+                                ))) {
+                                    warn!(
+                                        "Unable to send {:?} to poperrorscope",
+                                        error_scope.errors
+                                    );
+                                }
+                            } else {
+                                if let Err(e) = sender.send(Some(Ok(
+                                    WebGPUResponse::PoppedErrorScope(Err(PopError::Empty)),
+                                ))) {
+                                    warn!("Unable to send PopError::Empty");
+                                }
+                            }
+                        } else {
+                            // device lost
+                            if let Err(e) = sender.send(Some(Ok(WebGPUResponse::PoppedErrorScope(
+                                Err(PopError::Lost),
+                            )))) {
+                                warn!("Unable to send PopError::Lost");
+                            }
+                        }
+                    },
                 }
             }
         }
@@ -1045,7 +1083,7 @@ impl WGPU {
         scope_id: Option<ErrorScopeId>,
         result: Result<U, T>,
     ) {
-        let &pipeline_id = self.devices.get(&WebGPUDevice(device_id)).unwrap();
+        let pipeline_id = self.devices.get(&device_id).unwrap().pipeline_id;
         if let Err(w) = self.script_sender.send(WebGPUMsg::WebGPUOpResult {
             device: WebGPUDevice(device_id),
             scope_id,
@@ -1063,6 +1101,28 @@ impl WGPU {
         }) {
             warn!("Failed to send WebGPUOpResult ({})", w);
         }
+    }
+
+    /// <https://www.w3.org/TR/webgpu/#abstract-opdef-dispatch-error>
+    fn dispatch_error(&mut self, device_id: id::DeviceId, error: Error) {
+        if let Some(device_scope) = self.devices.get_mut(&device_id) {
+            if let Some(error_scope) = device_scope
+                .error_scope_stack
+                .iter_mut()
+                .rev()
+                .find(|error_scope| error_scope.filter == error.filter())
+            {
+                error_scope.errors.get_or_insert(error);
+            } else {
+                if let Err(e) = self.script_sender.send(WebGPUMsg::UncapturedError {
+                    device: WebGPUDevice(device_id),
+                    pipeline_id: device_scope.pipeline_id,
+                    error: error.clone(),
+                }) {
+                    warn!("Failed to send WebGPUMsg::UncapturedError: {error:?}");
+                }
+            }
+        } // else device is lost
     }
 
     fn encoder_record_error<U, T: std::fmt::Debug>(

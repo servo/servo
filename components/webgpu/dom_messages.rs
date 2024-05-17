@@ -28,6 +28,7 @@ use wgc::resource::{
 };
 pub use {wgpu_core as wgc, wgpu_types as wgt};
 
+use crate::device_scope::{Error, ErrorFilter, PopError};
 use crate::identity::*;
 use crate::{WebGPU, PRESENTATION_BUFFER_COUNT};
 
@@ -48,6 +49,7 @@ pub enum WebGPUResponse {
     },
     BufferMapAsync(IpcSharedMemory),
     SubmittedWorkDone,
+    PoppedErrorScope(Result<Option<Error>, PopError>),
 }
 
 pub type WebGPUResponseResult = Result<WebGPUResponse, String>;
@@ -250,5 +252,13 @@ pub enum WebGPURequest {
     QueueOnSubmittedWorkDone {
         sender: IpcSender<Option<WebGPUResponseResult>>,
         queue_id: id::QueueId,
+    },
+    PushErrorScope {
+        device_id: id::DeviceId,
+        filter: ErrorFilter,
+    },
+    PopErrorScope {
+        device_id: id::DeviceId,
+        sender: IpcSender<Option<WebGPUResponseResult>>,
     },
 }
