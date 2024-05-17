@@ -10,7 +10,6 @@ use std::{f32, fmt, mem, thread};
 
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
-use gfx_traits::WebrenderApi;
 use ipc_channel::ipc::{self, IpcBytesSender, IpcReceiver, IpcSender};
 use log::{debug, trace};
 use malloc_size_of_derive::MallocSizeOf;
@@ -30,6 +29,7 @@ use style::values::computed::font::{FixedPoint, FontStyleFixedPoint};
 use style::values::computed::{FontStretch, FontWeight};
 use style::values::specified::FontStretch as SpecifiedFontStretch;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
+use webrender_traits::WebRenderFontApi;
 
 use crate::font::{FontDescriptor, FontFamilyDescriptor, FontFamilyName, FontSearchScope};
 use crate::font_context::FontSource;
@@ -160,7 +160,7 @@ struct FontCache {
     local_families: HashMap<LowercaseString, FontTemplates>,
     web_families: HashMap<LowercaseString, FontTemplates>,
     core_resource_thread: CoreResourceThread,
-    webrender_api: Box<dyn WebrenderApi>,
+    webrender_api: Box<dyn WebRenderFontApi>,
     webrender_fonts: HashMap<FontIdentifier, FontKey>,
     font_instances: HashMap<(FontKey, Au), FontInstanceKey>,
 }
@@ -577,7 +577,7 @@ impl From<&FontFaceRuleData> for CSSFontFaceDescriptors {
 impl FontCacheThread {
     pub fn new(
         core_resource_thread: CoreResourceThread,
-        webrender_api: Box<dyn WebrenderApi + Send>,
+        webrender_api: Box<dyn WebRenderFontApi + Send>,
     ) -> FontCacheThread {
         let (chan, port) = ipc::channel().unwrap();
 

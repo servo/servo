@@ -11,12 +11,12 @@ name = "devtools_traits"
 path = "lib.rs"
 
 [dependencies]
+base = { workspace = true }
 bitflags = { workspace = true }
 http = { workspace = true }
 ipc-channel = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
-msg = { workspace = true }
 serde = { workspace = true }
 servo_url = { path = "../../url" }
 time = { workspace = true }

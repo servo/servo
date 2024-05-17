@@ -5,6 +5,7 @@
 use std::cell::Cell;
 use std::ptr;
 
+use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use html5ever::local_name;
@@ -27,7 +28,6 @@ use js::jsval::{JSVal, NullValue, PrivateValue, UndefinedValue};
 use js::rust::wrappers::{JS_TransplantObject, NewWindowProxy, SetWindowProxy};
 use js::rust::{get_object_class, Handle, MutableHandle};
 use js::JSCLASS_IS_GLOBAL;
-use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use net_traits::request::Referrer;
 use script_traits::{
     AuxiliaryBrowsingContextLoadInfo, HistoryEntryReplacement, LoadData, LoadOrigin, NewLayoutInfo,

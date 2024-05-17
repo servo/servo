@@ -34,6 +34,7 @@ xr-profile = ["canvas/xr-profile", "canvas_traits/xr-profile", "script/xr-profil
 
 [dependencies]
 background_hang_monitor = { path = "../background_hang_monitor" }
+base = { workspace = true }
 bluetooth = { path = "../bluetooth" }
 bluetooth_traits = { workspace = true }
 canvas = { path = "../canvas", default-features = false }
@@ -58,7 +59,6 @@ layout_thread_2020 = { path = "../layout_thread_2020" }
 log = { workspace = true }
 media = { path = "../media" }
 mozangle = { workspace = true }
-msg = { workspace = true }
 net = { path = "../net" }
 net_traits = { workspace = true }
 profile = { path = "../profile" }

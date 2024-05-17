@@ -11,6 +11,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, Weak};
 use std::time::{Duration, SystemTime};
 
+use base::id::TEST_PIPELINE_ID;
 use crossbeam_channel::{unbounded, Sender};
 use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
 use headers::{
@@ -22,7 +23,6 @@ use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use http::{Method, StatusCode};
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
 use mime::{self, Mime};
-use msg::constellation_msg::TEST_PIPELINE_ID;
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;

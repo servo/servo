@@ -6,11 +6,11 @@ pub mod resources;
 
 use std::fmt::{Debug, Error, Formatter};
 
+use base::id::{PipelineId, TopLevelBrowsingContextId, WebViewId};
 use crossbeam_channel::{Receiver, Sender};
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
 use log::warn;
-use msg::constellation_msg::{InputMethodType, PipelineId, TopLevelBrowsingContextId, WebViewId};
 use num_derive::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
@@ -367,4 +367,24 @@ pub enum PermissionPrompt {
 pub enum PermissionRequest {
     Granted,
     Denied,
+}
+
+/// Used to specify the kind of input method editor appropriate to edit a field.
+/// This is a subset of htmlinputelement::InputType because some variants of InputType
+/// don't make sense in this context.
+#[derive(Debug, Deserialize, Serialize)]
+pub enum InputMethodType {
+    Color,
+    Date,
+    DatetimeLocal,
+    Email,
+    Month,
+    Number,
+    Password,
+    Search,
+    Tel,
+    Text,
+    Time,
+    Url,
+    Week,
 }

@@ -6,6 +6,7 @@ use std::cmp;
 use std::collections::HashMap;
 use std::ffi::CString;
 
+use base::id::{BrowsingContextId, PipelineId};
 use cookie::Cookie;
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
@@ -14,7 +15,6 @@ use js::jsapi::{HandleValueArray, JSAutoRealm, JSContext, JSType, JS_IsException
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_CallFunctionName, JS_GetProperty, JS_HasOwnProperty, JS_TypeOfValue};
 use js::rust::{HandleObject, HandleValue};
-use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::CookieSource::{NonHTTP, HTTP};
 use net_traits::CoreResourceMsg::{DeleteCookies, GetCookiesDataForUrl, SetCookieForUrl};
 use net_traits::IpcSend;

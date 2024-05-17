@@ -15,6 +15,7 @@ doctest = false
 [dependencies]
 app_units = { workspace = true }
 atomic_refcell = { workspace = true }
+base = { workspace = true }
 bitflags = { workspace = true }
 canvas_traits = { workspace = true }
 embedder_traits = { workspace = true }
@@ -27,7 +28,7 @@ ipc-channel = { workspace = true }
 lazy_static = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
-msg = { workspace = true }
+malloc_size_of_derive = { workspace = true }
 net_traits = { workspace = true }
 parking_lot = { workspace = true }
 profile_traits = { workspace = true }

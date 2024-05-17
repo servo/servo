@@ -11,6 +11,7 @@ use std::collections::HashMap;
 use std::net::TcpStream;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use base::id::TEST_PIPELINE_ID;
 use devtools_traits::EvaluateJSReply::{
     ActorValue, BooleanValue, NullValue, NumberValue, StringValue, VoidValue,
 };
@@ -20,7 +21,6 @@ use devtools_traits::{
 };
 use ipc_channel::ipc::{self, IpcSender};
 use log::debug;
-use msg::constellation_msg::TEST_PIPELINE_ID;
 use serde::Serialize;
 use serde_json::{self, Map, Number, Value};
 use uuid::Uuid;

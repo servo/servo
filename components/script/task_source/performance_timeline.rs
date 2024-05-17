@@ -9,7 +9,7 @@
 use std::fmt;
 use std::result::Result;
 
-use msg::constellation_msg::PipelineId;
+use base::id::PipelineId;
 
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::globalscope::GlobalScope;

@@ -293,17 +293,33 @@ checksum = "0c4b4d0bd25bd0b74681c0ad21497610ce1b7c91b1022cd21c80c6fbdd9476b0"
 name = "background_hang_monitor"
 version = "0.0.1"
 dependencies = [
+ "background_hang_monitor_api",
  "backtrace",
+ "base",
  "crossbeam-channel",
  "ipc-channel",
  "lazy_static",
  "libc",
  "log",
  "mach2",
- "msg",
  "nix 0.27.1",
  "serde_json",
  "unwind-sys",
+]
+
+[[package]]
+name = "background_hang_monitor_api"
+version = "0.0.1"
+dependencies = [
+ "base",
+ "ipc-channel",
+ "lazy_static",
+ "malloc_size_of",
+ "malloc_size_of_derive",
+ "parking_lot",
+ "serde",
+ "size_of_test",
+ "webrender_api",
 ]
 
 [[package]]
@@ -319,6 +335,20 @@ dependencies = [
  "miniz_oxide",
  "object",
  "rustc-demangle",
+]
+
+[[package]]
+name = "base"
+version = "0.0.1"
+dependencies = [
+ "ipc-channel",
+ "lazy_static",
+ "malloc_size_of",
+ "malloc_size_of_derive",
+ "parking_lot",
+ "serde",
+ "size_of_test",
+ "webrender_api",
 ]
 
 [[package]]
@@ -821,6 +851,7 @@ dependencies = [
 name = "compositing"
 version = "0.0.1"
 dependencies = [
+ "base",
  "canvas",
  "compositing_traits",
  "crossbeam-channel",
@@ -835,7 +866,6 @@ dependencies = [
  "keyboard-types",
  "libc",
  "log",
- "msg",
  "net_traits",
  "pixels",
  "profile_traits",
@@ -856,6 +886,7 @@ dependencies = [
 name = "compositing_traits"
 version = "0.0.1"
 dependencies = [
+ "base",
  "canvas",
  "crossbeam-channel",
  "embedder_traits",
@@ -864,7 +895,6 @@ dependencies = [
  "ipc-channel",
  "keyboard-types",
  "log",
- "msg",
  "net_traits",
  "script_traits",
  "servo_url",
@@ -886,7 +916,9 @@ name = "constellation"
 version = "0.0.1"
 dependencies = [
  "background_hang_monitor",
+ "background_hang_monitor_api",
  "backtrace",
+ "base",
  "bluetooth_traits",
  "canvas_traits",
  "compositing_traits",
@@ -903,7 +935,6 @@ dependencies = [
  "log",
  "media",
  "metrics",
- "msg",
  "net",
  "net_traits",
  "parking_lot",
@@ -1252,6 +1283,7 @@ dependencies = [
 name = "devtools"
 version = "0.0.1"
 dependencies = [
+ "base",
  "chrono",
  "crossbeam-channel",
  "devtools_traits",
@@ -1260,7 +1292,6 @@ dependencies = [
  "http",
  "ipc-channel",
  "log",
- "msg",
  "serde",
  "serde_json",
  "servo_config",
@@ -1273,12 +1304,12 @@ dependencies = [
 name = "devtools_traits"
 version = "0.0.1"
 dependencies = [
+ "base",
  "bitflags 2.5.0",
  "http",
  "ipc-channel",
  "malloc_size_of",
  "malloc_size_of_derive",
- "msg",
  "serde",
  "servo_url",
  "time 0.1.45",
@@ -1481,13 +1512,13 @@ dependencies = [
 name = "embedder_traits"
 version = "0.0.1"
 dependencies = [
+ "base",
  "cfg-if",
  "crossbeam-channel",
  "ipc-channel",
  "keyboard-types",
  "lazy_static",
  "log",
- "msg",
  "num-derive",
  "num-traits",
  "serde",
@@ -2020,6 +2051,7 @@ dependencies = [
  "unicode-properties",
  "unicode-script",
  "webrender_api",
+ "webrender_traits",
  "xi-unicode",
  "xml-rs",
  "yeslogic-fontconfig-sys",
@@ -3191,6 +3223,7 @@ version = "0.0.1"
 dependencies = [
  "app_units",
  "atomic_refcell",
+ "base",
  "bitflags 2.5.0",
  "canvas_traits",
  "embedder_traits",
@@ -3203,7 +3236,7 @@ dependencies = [
  "lazy_static",
  "log",
  "malloc_size_of",
- "msg",
+ "malloc_size_of_derive",
  "net_traits",
  "parking_lot",
  "profile_traits",
@@ -3234,6 +3267,7 @@ version = "0.0.1"
 dependencies = [
  "app_units",
  "atomic_refcell",
+ "base",
  "bitflags 2.5.0",
  "canvas_traits",
  "cssparser",
@@ -3248,7 +3282,6 @@ dependencies = [
  "ipc-channel",
  "lazy_static",
  "log",
- "msg",
  "net_traits",
  "parking_lot",
  "quickcheck",
@@ -3276,6 +3309,7 @@ name = "layout_thread_2013"
 version = "0.0.1"
 dependencies = [
  "app_units",
+ "base",
  "crossbeam-channel",
  "embedder_traits",
  "euclid",
@@ -3290,7 +3324,6 @@ dependencies = [
  "log",
  "malloc_size_of",
  "metrics",
- "msg",
  "net_traits",
  "parking_lot",
  "profile_traits",
@@ -3316,6 +3349,7 @@ name = "layout_thread_2020"
 version = "0.0.1"
 dependencies = [
  "app_units",
+ "base",
  "crossbeam-channel",
  "embedder_traits",
  "euclid",
@@ -3329,7 +3363,6 @@ dependencies = [
  "log",
  "malloc_size_of",
  "metrics",
- "msg",
  "net_traits",
  "parking_lot",
  "profile_traits",
@@ -3461,6 +3494,7 @@ name = "libservo"
 version = "0.0.1"
 dependencies = [
  "background_hang_monitor",
+ "base",
  "bluetooth",
  "bluetooth_traits",
  "canvas",
@@ -3486,7 +3520,6 @@ dependencies = [
  "log",
  "media",
  "mozangle",
- "msg",
  "net",
  "net_traits",
  "profile",
@@ -3747,12 +3780,12 @@ dependencies = [
 name = "metrics"
 version = "0.0.1"
 dependencies = [
+ "base",
  "gfx_traits",
  "ipc-channel",
  "log",
  "malloc_size_of",
  "malloc_size_of_derive",
- "msg",
  "profile_traits",
  "script_traits",
  "servo_config",
@@ -3763,10 +3796,10 @@ dependencies = [
 name = "metrics_tests"
 version = "0.0.1"
 dependencies = [
+ "base",
  "gfx_traits",
  "ipc-channel",
  "metrics",
- "msg",
  "profile_traits",
  "servo_url",
  "time 0.1.45",
@@ -3880,20 +3913,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "msg"
-version = "0.0.1"
-dependencies = [
- "ipc-channel",
- "lazy_static",
- "malloc_size_of",
- "malloc_size_of_derive",
- "parking_lot",
- "serde",
- "size_of_test",
- "webrender_api",
-]
-
-[[package]]
 name = "muldiv"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3956,6 +3975,7 @@ version = "0.0.1"
 dependencies = [
  "async-recursion",
  "async-tungstenite",
+ "base",
  "base64",
  "brotli",
  "bytes",
@@ -3982,7 +4002,6 @@ dependencies = [
  "malloc_size_of_derive",
  "mime",
  "mime_guess",
- "msg",
  "net_traits",
  "percent-encoding",
  "pixels",
@@ -4013,6 +4032,7 @@ dependencies = [
 name = "net_traits"
 version = "0.0.1"
 dependencies = [
+ "base",
  "content-security-policy",
  "cookie 0.12.0",
  "embedder_traits",
@@ -4027,7 +4047,6 @@ dependencies = [
  "malloc_size_of",
  "malloc_size_of_derive",
  "mime",
- "msg",
  "num-traits",
  "percent-encoding",
  "pixels",
@@ -5015,7 +5034,9 @@ dependencies = [
  "app_units",
  "arrayvec",
  "atomic_refcell",
+ "background_hang_monitor_api",
  "backtrace",
+ "base",
  "base64",
  "bitflags 2.5.0",
  "bluetooth_traits",
@@ -5059,7 +5080,6 @@ dependencies = [
  "mime_guess",
  "mozangle",
  "mozjs",
- "msg",
  "net_traits",
  "num-traits",
  "num_cpus",
@@ -5113,6 +5133,7 @@ version = "0.0.1"
 dependencies = [
  "app_units",
  "atomic_refcell",
+ "base",
  "canvas_traits",
  "crossbeam-channel",
  "euclid",
@@ -5124,12 +5145,12 @@ dependencies = [
  "malloc_size_of",
  "malloc_size_of_derive",
  "metrics",
- "msg",
  "net_traits",
  "profile_traits",
  "range",
  "script_traits",
  "selectors",
+ "serde",
  "servo_arc",
  "servo_atoms",
  "servo_url",
@@ -5152,6 +5173,8 @@ dependencies = [
 name = "script_traits"
 version = "0.0.1"
 dependencies = [
+ "background_hang_monitor_api",
+ "base",
  "bitflags 2.5.0",
  "bluetooth_traits",
  "canvas_traits",
@@ -5170,7 +5193,6 @@ dependencies = [
  "malloc_size_of",
  "malloc_size_of_derive",
  "media",
- "msg",
  "net_traits",
  "pixels",
  "profile_traits",
@@ -7048,6 +7070,7 @@ dependencies = [
 name = "webdriver_server"
 version = "0.0.1"
 dependencies = [
+ "base",
  "base64",
  "compositing_traits",
  "cookie 0.12.0",
@@ -7058,7 +7081,6 @@ dependencies = [
  "ipc-channel",
  "keyboard-types",
  "log",
- "msg",
  "net_traits",
  "pixels",
  "script_traits",
@@ -7076,11 +7098,11 @@ name = "webgpu"
 version = "0.0.1"
 dependencies = [
  "arrayvec",
+ "base",
  "euclid",
  "ipc-channel",
  "log",
  "malloc_size_of",
- "msg",
  "serde",
  "servo_config",
  "smallvec",

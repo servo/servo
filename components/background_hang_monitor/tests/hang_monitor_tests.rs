@@ -10,12 +10,12 @@ use std::thread;
 use std::time::Duration;
 
 use background_hang_monitor::HangMonitorRegister;
-use ipc_channel::ipc;
-use msg::constellation_msg::{
+use background_hang_monitor_api::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorExitSignal, HangAlert, HangAnnotation,
     HangMonitorAlert, MonitoredComponentId, MonitoredComponentType, ScriptHangAnnotation,
-    TEST_PIPELINE_ID,
 };
+use base::id::TEST_PIPELINE_ID;
+use ipc_channel::ipc;
 
 lazy_static::lazy_static! {
     static ref SERIAL: Mutex<()> = Mutex::new(());

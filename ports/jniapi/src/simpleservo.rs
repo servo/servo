@@ -12,6 +12,7 @@ use std::rc::Rc;
 use getopts::Options;
 use ipc_channel::ipc::IpcSender;
 use log::{debug, info, warn};
+use servo::base::id::WebViewId;
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, EmbedderMethods, MouseWindowEvent,
     WindowMethods,
@@ -21,18 +22,17 @@ use servo::config::prefs::pref_map;
 pub use servo::config::prefs::{add_user_prefs, PrefValue};
 use servo::embedder_traits::resources::{self, Resource, ResourceReaderMethods};
 pub use servo::embedder_traits::{
-    ContextMenuResult, MediaSessionPlaybackState, PermissionPrompt, PermissionRequest, PromptResult,
+    ContextMenuResult, InputMethodType, MediaSessionPlaybackState, PermissionPrompt,
+    PermissionRequest, PromptResult,
 };
 use servo::embedder_traits::{
     EmbedderMsg, EmbedderProxy, MediaSessionEvent, PromptDefinition, PromptOrigin,
 };
 use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
-pub use servo::msg::constellation_msg::InputMethodType;
-use servo::msg::constellation_msg::{TraversalDirection, WebViewId};
 use servo::rendering_context::RenderingContext;
 pub use servo::script_traits::{MediaSessionActionType, MouseButton};
-use servo::script_traits::{TouchEventType, TouchId};
+use servo::script_traits::{TouchEventType, TouchId, TraversalDirection};
 use servo::servo_config::{opts, pref};
 use servo::servo_url::ServoUrl;
 pub use servo::webrender_api::units::DeviceIntRect;

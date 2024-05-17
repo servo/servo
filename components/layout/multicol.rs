@@ -9,8 +9,8 @@ use std::fmt;
 use std::sync::Arc;
 
 use app_units::Au;
+use base::print_tree::PrintTree;
 use euclid::default::{Point2D, Vector2D};
-use gfx_traits::print_tree::PrintTree;
 use log::{debug, trace};
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;

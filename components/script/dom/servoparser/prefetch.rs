@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::id::PipelineId;
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tokenizer::states::RawKind;
 use html5ever::tokenizer::{
@@ -9,7 +10,6 @@ use html5ever::tokenizer::{
 };
 use html5ever::{local_name, Attribute, LocalName};
 use js::jsapi::JSTracer;
-use msg::constellation_msg::PipelineId;
 use net_traits::request::{CorsSettings, CredentialsMode, ParserMetadata, Referrer};
 use net_traits::{CoreResourceMsg, FetchChannels, IpcSend, ReferrerPolicy, ResourceThreads};
 use servo_url::{ImmutableOrigin, ServoUrl};

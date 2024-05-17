@@ -8,15 +8,15 @@ mod constellation_msg;
 
 use std::fmt::{Debug, Error, Formatter};
 
+use base::id::{PipelineId, TopLevelBrowsingContextId};
+use base::Epoch;
 use canvas::canvas_paint_thread::ImageUpdate;
 pub use constellation_msg::ConstellationMsg;
 use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::EventLoopWaker;
 use euclid::Rect;
-use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
-use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
 use net_traits::image::base::Image;
 use net_traits::NetToCompositorMsg;
 use script_traits::{

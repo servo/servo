@@ -9,6 +9,7 @@ use std::sync::{Arc, Mutex};
 use std::{char, i32, mem};
 
 use app_units::{Au, AU_PER_PX};
+use base::id::PipelineId;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::Point2D;
@@ -19,7 +20,6 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoRealm;
 use js::rust::HandleObject;
 use mime::{self, Mime};
-use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{
     CorsStatus, ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponse,

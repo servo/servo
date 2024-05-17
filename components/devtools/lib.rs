@@ -20,6 +20,7 @@ use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use base::id::{BrowsingContextId, PipelineId};
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, ConsoleMessage, DevtoolScriptControlMsg, DevtoolsControlMsg,
@@ -29,7 +30,6 @@ use devtools_traits::{
 use embedder_traits::{EmbedderMsg, EmbedderProxy, PromptDefinition, PromptOrigin, PromptResult};
 use ipc_channel::ipc::{self, IpcSender};
 use log::{debug, warn};
-use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use serde::Serialize;
 use servo_rand::RngCore;
 

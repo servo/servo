@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::id::TEST_PIPELINE_ID;
 use http::header::{HeaderValue, EXPIRES};
 use http::StatusCode;
-use msg::constellation_msg::TEST_PIPELINE_ID;
 use net::http_cache::HttpCache;
 use net_traits::request::{Origin, Referrer, Request};
 use net_traits::response::{HttpsState, Response, ResponseBody};

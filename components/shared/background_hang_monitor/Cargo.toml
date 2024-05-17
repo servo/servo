@@ -1,5 +1,5 @@
 [package]
-name = "metrics"
+name = "background_hang_monitor_api"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
@@ -7,17 +7,18 @@ edition = "2018"
 publish = false
 
 [lib]
-name = "metrics"
+name = "background_hang_monitor_api"
 path = "lib.rs"
+test = false
+doctest = false
 
 [dependencies]
 base = { workspace = true }
-gfx_traits = { workspace = true }
 ipc-channel = { workspace = true }
-log = { workspace = true }
+lazy_static = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
-profile_traits = { workspace = true }
-script_traits = { workspace = true }
-servo_config = { path = "../config" }
-servo_url = { path = "../url" }
+parking_lot = { workspace = true }
+serde = { workspace = true }
+size_of_test = { workspace = true }
+webrender_api = { workspace = true }

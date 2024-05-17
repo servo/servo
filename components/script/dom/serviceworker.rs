@@ -4,10 +4,10 @@
 
 use std::cell::Cell;
 
+use base::id::ServiceWorkerId;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
-use msg::constellation_msg::ServiceWorkerId;
 use script_traits::{DOMMessage, ScriptMsg};
 use servo_url::ServoUrl;
 

@@ -153,7 +153,6 @@ class MachCommands(CommandBase):
             "hyper_serde",
             "layout_2013",
             "layout_2020",
-            "msg",
             "net",
             "net_traits",
             "selectors",

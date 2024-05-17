@@ -6,8 +6,8 @@ use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
+use base::id::{BrowsingContextId, PipelineId};
 use html5ever::{local_name, namespace_url, ns};
-use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::Image as NetImage;
 use script_layout_interface::wrapper_traits::{
     LayoutDataTrait, LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,

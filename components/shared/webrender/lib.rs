@@ -9,7 +9,10 @@ use std::sync::{Arc, Mutex};
 
 use euclid::default::Size2D;
 use webrender_api::units::TexelRect;
-use webrender_api::{ExternalImage, ExternalImageHandler, ExternalImageId, ExternalImageSource};
+use webrender_api::{
+    ExternalImage, ExternalImageHandler, ExternalImageId, ExternalImageSource, FontInstanceFlags,
+    FontInstanceKey, FontKey, NativeFontHandle,
+};
 
 /// This trait is used as a bridge between the different GL clients
 /// in Servo that handles WebRender ExternalImages and the WebRender
@@ -163,4 +166,15 @@ impl ExternalImageHandler for WebrenderExternalImageHandlers {
             },
         };
     }
+}
+
+pub trait WebRenderFontApi {
+    fn add_font_instance(
+        &self,
+        font_key: FontKey,
+        size: f32,
+        flags: FontInstanceFlags,
+    ) -> FontInstanceKey;
+    fn add_font(&self, data: Arc<Vec<u8>>, index: u32) -> FontKey;
+    fn add_system_font(&self, handle: NativeFontHandle) -> FontKey;
 }

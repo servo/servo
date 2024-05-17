@@ -5,9 +5,9 @@
 use std::cell::RefCell;
 use std::mem;
 
+use base::print_tree::PrintTree;
 use euclid::default::Rect;
 use euclid::SideOffsets2D;
-use gfx_traits::print_tree::PrintTree;
 use log::warn;
 use script_traits::compositor::{ScrollSensitivity, ScrollTreeNodeId, ScrollableNodeInfo};
 use servo_arc::Arc as ServoArc;

@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use msg::constellation_msg::{PipelineId, WebViewId};
+use base::id::{PipelineId, WebViewId};
 use webrender_api::units::DeviceRect;
 
 #[derive(Debug, Default)]
@@ -113,7 +113,7 @@ impl<WebView> WebViewManager<WebView> {
 mod test {
     use std::num::NonZeroU32;
 
-    use msg::constellation_msg::{
+    use base::id::{
         BrowsingContextId, BrowsingContextIndex, PipelineNamespace, PipelineNamespaceId,
         TopLevelBrowsingContextId,
     };

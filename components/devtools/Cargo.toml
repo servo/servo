@@ -14,6 +14,7 @@ path = "lib.rs"
 chrono = "0.4"
 
 [dependencies]
+base = { workspace = true }
 chrono = "0.4"
 crossbeam-channel = { workspace = true }
 devtools_traits = { workspace = true }
@@ -22,7 +23,6 @@ headers = { workspace = true }
 http = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
-msg = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 servo_config = { path = "../config" }

@@ -30,9 +30,9 @@ use std::fmt;
 use std::sync::Arc;
 
 use app_units::{Au, MAX_AU};
+use base::print_tree::PrintTree;
 use bitflags::bitflags;
 use euclid::default::{Point2D, Rect, SideOffsets2D, Size2D};
-use gfx_traits::print_tree::PrintTree;
 use log::{debug, trace};
 use serde::{Serialize, Serializer};
 use servo_geometry::MaxRect;

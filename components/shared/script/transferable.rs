@@ -9,8 +9,8 @@
 
 use std::collections::VecDeque;
 
+use base::id::MessagePortId;
 use malloc_size_of_derive::MallocSizeOf;
-use msg::constellation_msg::MessagePortId;
 use serde::{Deserialize, Serialize};
 
 use crate::PortMessageTask;

@@ -16,6 +16,7 @@ doctest = false
 [dependencies]
 async-recursion = "0.3.2"
 async-tungstenite = { workspace = true }
+base = { workspace = true }
 base64 = { workspace = true }
 brotli = "3"
 bytes = "1"
@@ -42,7 +43,6 @@ malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 mime = { workspace = true }
 mime_guess = { workspace = true }
-msg = { workspace = true }
 net_traits = { workspace = true }
 percent-encoding = { workspace = true }
 pixels = { path = "../pixels" }
