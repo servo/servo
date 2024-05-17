@@ -3347,6 +3347,7 @@ dependencies = [
  "time 0.1.45",
  "url",
  "webrender_api",
+ "webrender_traits",
 ]
 
 [[package]]
@@ -3383,6 +3384,7 @@ dependencies = [
  "style_traits",
  "url",
  "webrender_api",
+ "webrender_traits",
 ]
 
 [[package]]
@@ -5170,6 +5172,7 @@ dependencies = [
  "style",
  "style_traits",
  "webrender_api",
+ "webrender_traits",
 ]
 
 [[package]]

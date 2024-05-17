@@ -55,7 +55,7 @@ use script_layout_interface::{
 use script_traits::{
     ConstellationControlMsg, DrawAPaintImageResult, IFrameSizeMsg, LayoutControlMsg,
     LayoutMsg as ConstellationMsg, PaintWorkletError, Painter, ScrollState, UntrustedNodeAddress,
-    WebrenderIpcSender, WindowSizeData, WindowSizeType,
+    WindowSizeData, WindowSizeType,
 };
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
@@ -89,6 +89,7 @@ use style_traits::{CSSPixel, DevicePixel, SpeculativePainter};
 use url::Url;
 use webrender_api::units::LayoutPixel;
 use webrender_api::{units, ExternalScrollId, HitTestFlags};
+use webrender_traits::WebRenderScriptApi;
 
 /// Information needed by layout.
 pub struct LayoutThread {
@@ -158,7 +159,7 @@ pub struct LayoutThread {
     registered_painters: RegisteredPaintersImpl,
 
     /// Webrender interface.
-    webrender_api: WebrenderIpcSender,
+    webrender_api: WebRenderScriptApi,
 
     /// Paint time metrics.
     paint_time_metrics: PaintTimeMetrics,
@@ -484,7 +485,7 @@ impl LayoutThread {
         image_cache: Arc<dyn ImageCache>,
         font_cache_thread: FontCacheThread,
         time_profiler_chan: profile_time::ProfilerChan,
-        webrender_api_sender: WebrenderIpcSender,
+        webrender_api_sender: WebRenderScriptApi,
         paint_time_metrics: PaintTimeMetrics,
         window_size: WindowSizeData,
     ) -> LayoutThread {

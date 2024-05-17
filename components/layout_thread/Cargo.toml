@@ -45,3 +45,4 @@ style_traits = { workspace = true }
 time = { workspace = true }
 url = { workspace = true }
 webrender_api = { workspace = true }
+webrender_traits = { workspace = true }

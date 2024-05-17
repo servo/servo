@@ -34,7 +34,7 @@ use embedder_traits::CompositorEventVariant;
 use euclid::default::Point2D;
 use euclid::{Length, Rect, Scale, Size2D, UnknownUnit, Vector2D};
 use http::{HeaderMap, Method};
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use ipc_channel::Error as IpcError;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use keyboard_types::{CompositionEvent, KeyboardEvent};
@@ -54,16 +54,9 @@ use servo_atoms::Atom;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style_traits::{CSSPixel, SpeculativePainter};
 use webgpu::WebGPUMsg;
-use webrender_api::units::{DeviceIntSize, DevicePixel, DevicePoint, LayoutPixel, LayoutPoint};
-use webrender_api::{
-    BuiltDisplayList, DocumentId, ExternalScrollId, HitTestFlags, ImageData, ImageKey,
-    PipelineId as WebRenderPipelineId,
-};
-use webrender_traits::display_list::CompositorDisplayListInfo;
-use webrender_traits::{
-    CompositorHitTestResult, ImageUpdate, ScriptToCompositorMsg, SerializedImageData,
-    SerializedImageUpdate, UntrustedNodeAddress as WebRenderUntrustedNodeAddress,
-};
+use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel};
+use webrender_api::{DocumentId, ExternalScrollId, ImageKey};
+use webrender_traits::{UntrustedNodeAddress as WebRenderUntrustedNodeAddress, WebRenderScriptApi};
 
 pub use crate::script_msg::{
     DOMMessage, EventResult, HistoryEntryReplacement, IFrameSizeMsg, Job, JobError, JobResult,
@@ -698,7 +691,7 @@ pub struct InitialScriptState {
     /// The Webrender document ID associated with this thread.
     pub webrender_document: DocumentId,
     /// FIXME(victor): The Webrender API sender in this constellation's pipeline
-    pub webrender_api_sender: WebrenderIpcSender,
+    pub webrender_api_sender: WebRenderScriptApi,
     /// Application window's GL Context for Media player
     pub player_context: WindowGLContext,
 }
@@ -1097,142 +1090,6 @@ impl From<i32> for MediaSessionActionType {
             9 => MediaSessionActionType::SeekTo,
             _ => panic!("Unknown MediaSessionActionType"),
         }
-    }
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-/// A mechanism to communicate with the parent process' WebRender instance.
-pub struct WebrenderIpcSender(IpcSender<ScriptToCompositorMsg>);
-
-impl WebrenderIpcSender {
-    /// Create a new WebrenderIpcSender object that wraps the provided channel sender.
-    pub fn new(sender: IpcSender<ScriptToCompositorMsg>) -> Self {
-        Self(sender)
-    }
-
-    /// Inform WebRender of the existence of this pipeline.
-    pub fn send_initial_transaction(&self, pipeline: WebRenderPipelineId) {
-        if let Err(e) = self
-            .0
-            .send(ScriptToCompositorMsg::SendInitialTransaction(pipeline))
-        {
-            warn!("Error sending initial transaction: {}", e);
-        }
-    }
-
-    /// Perform a scroll operation.
-    pub fn send_scroll_node(
-        &self,
-        pipeline_id: WebRenderPipelineId,
-        point: LayoutPoint,
-        scroll_id: ExternalScrollId,
-    ) {
-        if let Err(e) = self.0.send(ScriptToCompositorMsg::SendScrollNode(
-            pipeline_id,
-            point,
-            scroll_id,
-        )) {
-            warn!("Error sending scroll node: {}", e);
-        }
-    }
-
-    /// Inform WebRender of a new display list for the given pipeline.
-    pub fn send_display_list(
-        &self,
-        display_list_info: CompositorDisplayListInfo,
-        list: BuiltDisplayList,
-    ) {
-        let (display_list_data, display_list_descriptor) = list.into_data();
-        let (display_list_sender, display_list_receiver) = ipc::bytes_channel().unwrap();
-        if let Err(e) = self.0.send(ScriptToCompositorMsg::SendDisplayList {
-            display_list_info,
-            display_list_descriptor,
-            display_list_receiver,
-        }) {
-            warn!("Error sending display list: {}", e);
-        }
-
-        if let Err(error) = display_list_sender.send(&display_list_data.items_data) {
-            warn!("Error sending display list items: {}", error);
-        }
-        if let Err(error) = display_list_sender.send(&display_list_data.cache_data) {
-            warn!("Error sending display list cache data: {}", error);
-        }
-        if let Err(error) = display_list_sender.send(&display_list_data.spatial_tree) {
-            warn!("Error sending display spatial tree: {}", error);
-        }
-    }
-
-    /// Perform a hit test operation. Blocks until the operation is complete and
-    /// and a result is available.
-    pub fn hit_test(
-        &self,
-        pipeline: Option<WebRenderPipelineId>,
-        point: DevicePoint,
-        flags: HitTestFlags,
-    ) -> Vec<CompositorHitTestResult> {
-        let (sender, receiver) = ipc::channel().unwrap();
-        self.0
-            .send(ScriptToCompositorMsg::HitTest(
-                pipeline, point, flags, sender,
-            ))
-            .expect("error sending hit test");
-        receiver.recv().expect("error receiving hit test result")
-    }
-
-    /// Create a new image key. Blocks until the key is available.
-    pub fn generate_image_key(&self) -> Option<ImageKey> {
-        let (sender, receiver) = ipc::channel().unwrap();
-        self.0
-            .send(ScriptToCompositorMsg::GenerateImageKey(sender))
-            .ok()?;
-        receiver.recv().ok()
-    }
-
-    /// Perform a resource update operation.
-    pub fn update_images(&self, updates: Vec<ImageUpdate>) {
-        let mut senders = Vec::new();
-        // Convert `ImageUpdate` to `SerializedImageUpdate` because `ImageData` may contain large
-        // byes. With this conversion, we send `IpcBytesReceiver` instead and use it to send the
-        // actual bytes.
-        let updates = updates
-            .into_iter()
-            .map(|update| match update {
-                ImageUpdate::AddImage(k, d, data) => {
-                    let data = match data {
-                        ImageData::Raw(r) => {
-                            let (sender, receiver) = ipc::bytes_channel().unwrap();
-                            senders.push((sender, r));
-                            SerializedImageData::Raw(receiver)
-                        },
-                        ImageData::External(e) => SerializedImageData::External(e),
-                    };
-                    SerializedImageUpdate::AddImage(k, d, data)
-                },
-                ImageUpdate::DeleteImage(k) => SerializedImageUpdate::DeleteImage(k),
-                ImageUpdate::UpdateImage(k, d, data) => {
-                    let data = match data {
-                        ImageData::Raw(r) => {
-                            let (sender, receiver) = ipc::bytes_channel().unwrap();
-                            senders.push((sender, r));
-                            SerializedImageData::Raw(receiver)
-                        },
-                        ImageData::External(e) => SerializedImageData::External(e),
-                    };
-                    SerializedImageUpdate::UpdateImage(k, d, data)
-                },
-            })
-            .collect();
-
-        if let Err(e) = self.0.send(ScriptToCompositorMsg::UpdateImages(updates)) {
-            warn!("error sending image updates: {}", e);
-        }
-
-        senders.into_iter().for_each(|(tx, data)| {
-            if let Err(e) = tx.send(&data) {
-                warn!("error sending image data: {}", e);
-            }
-        });
     }
 }
 
