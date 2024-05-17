@@ -4,7 +4,7 @@
 
 use std::fmt;
 
-use msg::constellation_msg::PipelineId;
+use base::id::PipelineId;
 
 use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use crate::task::{TaskCanceller, TaskOnce};

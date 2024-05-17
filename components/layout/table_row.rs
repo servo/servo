@@ -9,8 +9,8 @@ use std::fmt;
 use std::iter::{Enumerate, Peekable};
 
 use app_units::Au;
+use base::print_tree::PrintTree;
 use euclid::default::Point2D;
-use gfx_traits::print_tree::PrintTree;
 use log::{debug, warn};
 use serde::{Serialize, Serializer};
 use style::computed_values::border_collapse::T as BorderCollapse;

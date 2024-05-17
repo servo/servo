@@ -8,8 +8,8 @@ use std::cell::Cell;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::default::Default;
 
+use base::id::PipelineId;
 use crossbeam_channel::{self, Receiver, Sender};
-use msg::constellation_msg::PipelineId;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::worker::TrustedWorkerAddress;

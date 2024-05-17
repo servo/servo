@@ -6,16 +6,14 @@ use std::collections::HashMap;
 use std::fmt;
 use std::time::Duration;
 
+use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId, WebViewId};
+use base::Epoch;
 use embedder_traits::Cursor;
-use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;
 use keyboard_types::KeyboardEvent;
-use msg::constellation_msg::{
-    BrowsingContextId, PipelineId, TopLevelBrowsingContextId, TraversalDirection, WebViewId,
-};
 use script_traits::{
     AnimationTickType, CompositorEvent, GamepadEvent, LogEntry, MediaSessionActionType,
-    WebDriverCommandMsg, WindowSizeData, WindowSizeType,
+    TraversalDirection, WebDriverCommandMsg, WindowSizeData, WindowSizeType,
 };
 use servo_url::ServoUrl;
 

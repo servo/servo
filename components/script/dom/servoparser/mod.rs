@@ -6,6 +6,7 @@ use std::borrow::Cow;
 use std::cell::Cell;
 use std::mem;
 
+use base::id::PipelineId;
 use base64::engine::general_purpose;
 use base64::Engine as _;
 use content_security_policy::{self as csp, CspList};
@@ -20,7 +21,6 @@ use html5ever::tree_builder::{ElementFlags, NextParserState, NodeOrText, QuirksM
 use html5ever::{local_name, namespace_url, ns, Attribute, ExpandedName, LocalName, QualName};
 use hyper_serde::Serde;
 use mime::{self, Mime};
-use msg::constellation_msg::PipelineId;
 use net_traits::{
     FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
     ResourceTimingType,

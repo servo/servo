@@ -11,16 +11,15 @@ use std::sync::{Arc, Mutex};
 use std::{f32, fmt};
 
 use app_units::Au;
+use base::id::{BrowsingContextId, PipelineId};
 use bitflags::bitflags;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use euclid::default::{Point2D, Rect, Size2D, Vector2D};
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
-use gfx_traits::StackingContextId;
 use html5ever::{local_name, namespace_url, ns};
 use ipc_channel::ipc::IpcSender;
 use log::debug;
-use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use range::*;
@@ -59,7 +58,7 @@ use webrender_api::{self, ImageKey};
 
 use crate::context::LayoutContext;
 use crate::display_list::items::{ClipScrollNodeIndex, OpaqueNode, BLUR_INFLATION_FACTOR};
-use crate::display_list::ToLayout;
+use crate::display_list::{StackingContextId, ToLayout};
 use crate::floats::ClearType;
 use crate::flow::{GetBaseFlow, ImmutableFlowUtils};
 use crate::flow_ref::FlowRef;

@@ -15,14 +15,15 @@ use euclid::{Point2D, Vector2D};
 use gilrs::{EventType, Gilrs};
 use keyboard_types::{Key, KeyboardEvent, Modifiers, ShortcutMatcher};
 use log::{debug, error, info, trace, warn};
+use servo::base::id::TopLevelBrowsingContextId as WebViewId;
 use servo::compositing::windowing::{EmbedderEvent, WebRenderDebugOption};
 use servo::embedder_traits::{
     CompositorEventVariant, ContextMenuResult, EmbedderMsg, FilterPattern, PermissionPrompt,
     PermissionRequest, PromptDefinition, PromptOrigin, PromptResult,
 };
-use servo::msg::constellation_msg::{TopLevelBrowsingContextId as WebViewId, TraversalDirection};
 use servo::script_traits::{
     GamepadEvent, GamepadIndex, GamepadInputBounds, GamepadUpdateType, TouchEventType,
+    TraversalDirection,
 };
 use servo::servo_config::opts;
 use servo::servo_url::ServoUrl;

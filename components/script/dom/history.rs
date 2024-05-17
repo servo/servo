@@ -5,15 +5,15 @@
 use std::cell::Cell;
 use std::cmp::Ordering;
 
+use base::id::HistoryStateId;
 use dom_struct::dom_struct;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use js::rust::HandleValue;
-use msg::constellation_msg::{HistoryStateId, TraversalDirection};
 use net_traits::{CoreResourceMsg, IpcSend};
 use profile_traits::ipc;
 use profile_traits::ipc::channel;
-use script_traits::{ScriptMsg, StructuredSerializedData};
+use script_traits::{ScriptMsg, StructuredSerializedData, TraversalDirection};
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::HistoryBinding::HistoryMethods;

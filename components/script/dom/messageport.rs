@@ -8,10 +8,10 @@ use std::convert::TryInto;
 use std::num::NonZeroU32;
 use std::rc::Rc;
 
+use base::id::{MessagePortId, MessagePortIndex, PipelineNamespaceId};
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject, MutableHandleObject};
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
-use msg::constellation_msg::{MessagePortId, MessagePortIndex, PipelineNamespaceId};
 use script_traits::PortMessageTask;
 
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;

@@ -12,22 +12,22 @@ pub mod wrapper_traits;
 
 use std::any::Any;
 use std::borrow::Cow;
-use std::sync::atomic::AtomicIsize;
+use std::sync::atomic::{AtomicIsize, AtomicU64, Ordering};
 use std::sync::Arc;
 
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
+use base::id::{BrowsingContextId, PipelineId};
+use base::Epoch;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use crossbeam_channel::Sender;
 use euclid::default::{Point2D, Rect};
 use euclid::Size2D;
 use gfx::font_cache_thread::FontCacheThread;
-use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
 use malloc_size_of_derive::MallocSizeOf;
 use metrics::PaintTimeMetrics;
-use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use profile_traits::mem::Report;
 use profile_traits::time;
@@ -35,6 +35,7 @@ use script_traits::{
     ConstellationControlMsg, InitialScriptState, LayoutControlMsg, LayoutMsg, LoadData, Painter,
     ScrollState, UntrustedNodeAddress, WebrenderIpcSender, WindowSizeData,
 };
+use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::animation::DocumentAnimationSet;
@@ -412,4 +413,51 @@ pub struct PendingRestyle {
 
     /// Any explicit restyles damage that have been accumulated for this element.
     pub damage: RestyleDamage,
+}
+
+/// The type of fragment that a scroll root is created for.
+///
+/// This can only ever grow to maximum 4 entries. That's because we cram the value of this enum
+/// into the lower 2 bits of the `ScrollRootId`, which otherwise contains a 32-bit-aligned
+/// heap address.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub enum FragmentType {
+    /// A StackingContext for the fragment body itself.
+    FragmentBody,
+    /// A StackingContext created to contain ::before pseudo-element content.
+    BeforePseudoContent,
+    /// A StackingContext created to contain ::after pseudo-element content.
+    AfterPseudoContent,
+}
+
+/// The next ID that will be used for a special scroll root id.
+///
+/// A special scroll root is a scroll root that is created for generated content.
+static NEXT_SPECIAL_SCROLL_ROOT_ID: AtomicU64 = AtomicU64::new(0);
+
+/// If none of the bits outside this mask are set, the scroll root is a special scroll root.
+/// Note that we assume that the top 16 bits of the address space are unused on the platform.
+const SPECIAL_SCROLL_ROOT_ID_MASK: u64 = 0xffff;
+
+/// Returns a new scroll root ID for a scroll root.
+fn next_special_id() -> u64 {
+    // We shift this left by 2 to make room for the fragment type ID.
+    ((NEXT_SPECIAL_SCROLL_ROOT_ID.fetch_add(1, Ordering::SeqCst) + 1) << 2) &
+        SPECIAL_SCROLL_ROOT_ID_MASK
+}
+
+pub fn combine_id_with_fragment_type(id: usize, fragment_type: FragmentType) -> u64 {
+    debug_assert_eq!(id & (fragment_type as usize), 0);
+    if fragment_type == FragmentType::FragmentBody {
+        id as u64
+    } else {
+        next_special_id() | (fragment_type as u64)
+    }
+}
+
+pub fn node_id_from_scroll_id(id: usize) -> Option<usize> {
+    if (id as u64 & !SPECIAL_SCROLL_ROOT_ID_MASK) != 0 {
+        return Some(id & !3);
+    }
+    None
 }

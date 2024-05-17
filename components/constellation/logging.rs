@@ -7,10 +7,10 @@ use std::sync::Arc;
 use std::thread;
 
 use backtrace::Backtrace;
+use base::id::TopLevelBrowsingContextId;
 use compositing_traits::ConstellationMsg as FromCompositorMsg;
 use crossbeam_channel::Sender;
 use log::{Level, LevelFilter, Log, Metadata, Record};
-use msg::constellation_msg::TopLevelBrowsingContextId;
 use parking_lot::ReentrantMutex;
 use script_traits::{LogEntry, ScriptMsg as FromScriptMsg, ScriptToConstellationChan};
 

@@ -5,7 +5,7 @@
 use std::fmt;
 use std::result::Result;
 
-use msg::constellation_msg::PipelineId;
+use base::id::PipelineId;
 use servo_atoms::Atom;
 
 use crate::dom::bindings::inheritance::Castable;

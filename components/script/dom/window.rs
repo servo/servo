@@ -16,6 +16,7 @@ use std::{cmp, env, mem};
 
 use app_units::Au;
 use backtrace::Backtrace;
+use base::id::{BrowsingContextId, PipelineId};
 use base64::Engine;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
@@ -26,7 +27,6 @@ use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, PromptDefinition, PromptOrigin, PromptResult};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
-use gfx_traits::combine_id_with_fragment_type;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::conversions::ToJSValConvertible;
@@ -38,7 +38,6 @@ use js::rust::{
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
-use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image_cache::{
     ImageCache, ImageResponder, ImageResponse, PendingImageId, PendingImageResponse,
 };
@@ -50,7 +49,8 @@ use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::{
-    Layout, PendingImageState, QueryMsg, Reflow, ReflowGoal, ScriptReflow, TrustedNodeAddress,
+    combine_id_with_fragment_type, FragmentType, Layout, PendingImageState, QueryMsg, Reflow,
+    ReflowGoal, ScriptReflow, TrustedNodeAddress,
 };
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{
@@ -2110,10 +2110,7 @@ impl Window {
             .borrow_mut()
             .insert(node.to_opaque(), Vector2D::new(x_ as f32, y_ as f32));
         let scroll_id = ExternalScrollId(
-            combine_id_with_fragment_type(
-                node.to_opaque().id(),
-                gfx_traits::FragmentType::FragmentBody,
-            ),
+            combine_id_with_fragment_type(node.to_opaque().id(), FragmentType::FragmentBody),
             self.pipeline_id().into(),
         );
 

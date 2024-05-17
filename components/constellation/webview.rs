@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use msg::constellation_msg::TopLevelBrowsingContextId;
+use base::id::TopLevelBrowsingContextId;
 
 #[derive(Debug)]
 pub struct WebViewManager<WebView> {
@@ -99,7 +99,7 @@ impl<WebView> WebViewManager<WebView> {
 mod test {
     use std::num::NonZeroU32;
 
-    use msg::constellation_msg::{
+    use base::id::{
         BrowsingContextId, BrowsingContextIndex, PipelineNamespace, PipelineNamespaceId,
         TopLevelBrowsingContextId, WebViewId,
     };

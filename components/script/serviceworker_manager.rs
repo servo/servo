@@ -12,10 +12,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread::{self, JoinHandle};
 
+use base::id::{PipelineNamespace, ServiceWorkerId, ServiceWorkerRegistrationId};
 use crossbeam_channel::{select, unbounded, Receiver, RecvError, Sender};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
-use msg::constellation_msg::{PipelineNamespace, ServiceWorkerId, ServiceWorkerRegistrationId};
 use net_traits::{CoreResourceMsg, CustomResponseMediator};
 use script_traits::{
     DOMMessage, Job, JobError, JobResult, JobResultValue, JobType, SWManagerMsg, SWManagerSenders,

@@ -4,7 +4,7 @@
 
 //! IPC massages that are send to script thread (global scope).
 
-use msg::constellation_msg::PipelineId;
+use base::id::PipelineId;
 use serde::{Deserialize, Serialize};
 
 use crate::identity::WebGPUDevice;

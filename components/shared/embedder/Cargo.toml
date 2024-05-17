@@ -11,13 +11,13 @@ name = "embedder_traits"
 path = "lib.rs"
 
 [dependencies]
+base = { workspace = true }
 cfg-if = { workspace = true }
 crossbeam-channel = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 lazy_static = { workspace = true }
 log = { workspace = true }
-msg = { workspace = true }
 num-derive = "0.4"
 num-traits = { workspace = true }
 serde = { workspace = true }

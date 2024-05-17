@@ -13,12 +13,13 @@ test = false
 doctest = false
 
 [dependencies]
+background_hang_monitor_api = { workspace = true }
 backtrace = { workspace = true }
+base = { workspace = true }
 crossbeam-channel = { workspace = true }
 ipc-channel = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
-msg = { workspace = true }
 serde_json = { workspace = true }
 
 [dev-dependencies]

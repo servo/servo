@@ -8,15 +8,15 @@ use std::sync::{Arc, Weak};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use crossbeam_channel::{after, never, select, unbounded, Receiver, Sender};
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use ipc_channel::router::ROUTER;
-use log::warn;
-use msg::constellation_msg::{
+use background_hang_monitor_api::{
     BackgroundHangMonitor, BackgroundHangMonitorClone, BackgroundHangMonitorControlMsg,
     BackgroundHangMonitorExitSignal, BackgroundHangMonitorRegister, HangAlert, HangAnnotation,
     HangMonitorAlert, MonitoredComponentId,
 };
+use crossbeam_channel::{after, never, select, unbounded, Receiver, Sender};
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::router::ROUTER;
+use log::warn;
 
 use crate::sampler::{NativeStack, Sampler};
 

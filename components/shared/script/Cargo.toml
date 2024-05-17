@@ -11,6 +11,8 @@ name = "script_traits"
 path = "lib.rs"
 
 [dependencies]
+background_hang_monitor_api = { workspace = true }
+base = { workspace = true }
 bitflags = { workspace = true }
 bluetooth_traits = { workspace = true }
 canvas_traits = { workspace = true }
@@ -29,7 +31,6 @@ log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 media = { path = "../../media" }
-msg = { workspace = true }
 net_traits = { workspace = true }
 pixels = { path = "../../pixels" }
 profile_traits = { workspace = true }

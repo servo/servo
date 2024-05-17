@@ -14,11 +14,11 @@
 use std::net::TcpStream;
 use std::time::{Duration, SystemTime};
 
+use base::id::{BrowsingContextId, PipelineId};
 use bitflags::bitflags;
 use http::{HeaderMap, Method};
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
-use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use uuid::Uuid;

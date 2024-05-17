@@ -15,8 +15,10 @@ default = []
 multiview = []
 
 [dependencies]
+background_hang_monitor_api = { workspace = true }
 background_hang_monitor = { path = "../background_hang_monitor" }
 backtrace = { workspace = true }
+base = { workspace = true }
 bluetooth_traits = { workspace = true }
 canvas_traits = { workspace = true }
 compositing_traits = { workspace = true }
@@ -32,7 +34,6 @@ keyboard-types = { workspace = true }
 log = { workspace = true }
 media = { path = "../media" }
 metrics = { path = "../metrics" }
-msg = { workspace = true }
 net = { path = "../net" }
 net_traits = { workspace = true }
 parking_lot = { workspace = true }

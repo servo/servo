@@ -5,13 +5,13 @@
 use std::borrow::Cow;
 use std::sync::Arc;
 
+use base::id::PipelineId;
 use crossbeam_channel::Sender;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::ImageCache;
 use net_traits::ResourceThreads;
 use parking_lot::Mutex;

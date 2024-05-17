@@ -15,6 +15,7 @@ use std::{fmt, mem};
 use cssparser::match_ignore_ascii_case;
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
+use embedder_traits::InputMethodType;
 use euclid::default::{Rect, Size2D};
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::serialize::{SerializeOpts, TraversalScope};
@@ -25,7 +26,6 @@ use html5ever::{
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleObject;
-use msg::constellation_msg::InputMethodType;
 use net_traits::request::CorsSettings;
 use net_traits::ReferrerPolicy;
 use script_layout_interface::ReflowGoal;

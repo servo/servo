@@ -13,6 +13,7 @@ use std::rc::Rc;
 use std::slice::from_ref;
 use std::time::{Duration, Instant};
 
+use base::id::BrowsingContextId;
 use canvas_traits::webgl::{self, WebGLContextId, WebGLMsg};
 use content_security_policy::{self as csp, CspList};
 use cookie::Cookie;
@@ -33,7 +34,6 @@ use metrics::{
     ProgressiveWebMetric,
 };
 use mime::{self, Mime};
-use msg::constellation_msg::BrowsingContextId;
 use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::RequestBuilder;
 use net_traits::response::HttpsState;

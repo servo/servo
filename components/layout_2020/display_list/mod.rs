@@ -5,12 +5,12 @@
 use std::cell::{OnceCell, RefCell};
 use std::sync::Arc;
 
+use base::id::BrowsingContextId;
+use base::WebRenderEpochToU16;
 use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D};
 use fnv::FnvHashMap;
 use gfx::text::glyph::GlyphStore;
-use gfx_traits::WebRenderEpochToU16;
-use msg::constellation_msg::BrowsingContextId;
 use net_traits::image_cache::UsePlaceholder;
 use script_traits::compositor::{CompositorDisplayListInfo, ScrollSensitivity, ScrollTreeNodeId};
 use servo_geometry::MaxRect;

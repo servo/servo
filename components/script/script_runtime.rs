@@ -18,6 +18,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use std::{fmt, os, ptr, thread};
 
+use base::id::PipelineId;
 use js::glue::{
     CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchableRun, JobQueueTraps,
     RUST_js_GetErrorMessage, SetBuildId, StreamConsumerConsumeChunk,
@@ -45,7 +46,6 @@ use js::rust::{
 };
 use lazy_static::lazy_static;
 use malloc_size_of::MallocSizeOfOps;
-use msg::constellation_msg::PipelineId;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use profile_traits::path;
 use servo_config::{opts, pref};

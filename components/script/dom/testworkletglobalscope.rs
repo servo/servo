@@ -4,10 +4,10 @@
 
 use std::collections::HashMap;
 
+use base::id::PipelineId;
 use crossbeam_channel::Sender;
 use dom_struct::dom_struct;
 use js::rust::Runtime;
-use msg::constellation_msg::PipelineId;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::cell::DomRefCell;

@@ -25,6 +25,8 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::vec::Drain;
 
+pub use base::id::TopLevelBrowsingContextId;
+use base::id::{PipelineNamespace, PipelineNamespaceId};
 use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
 use canvas::canvas_paint_thread::{self, CanvasPaintThread};
@@ -70,8 +72,6 @@ pub use gleam::gl;
 use ipc_channel::ipc::{self, IpcSender};
 use log::{error, trace, warn, Log, Metadata, Record};
 use media::{GLPlayerThreads, GlApi, NativeDisplay, WindowGLContext};
-pub use msg::constellation_msg::TopLevelBrowsingContextId;
-use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId};
 use net::resource_thread::new_resource_threads;
 use net_traits::IpcSend;
 use profile::{mem as profile_mem, time as profile_time};
@@ -96,12 +96,13 @@ use webrender_api::{
     NativeFontHandle,
 };
 use webrender_traits::{
-    WebrenderExternalImageHandlers, WebrenderExternalImageRegistry, WebrenderImageHandlerType,
+    WebRenderFontApi, WebrenderExternalImageHandlers, WebrenderExternalImageRegistry,
+    WebrenderImageHandlerType,
 };
 pub use {
-    background_hang_monitor, bluetooth, bluetooth_traits, canvas, canvas_traits, compositing,
+    background_hang_monitor, base, bluetooth, bluetooth_traits, canvas, canvas_traits, compositing,
     constellation, devtools, devtools_traits, embedder_traits, euclid, gfx, ipc_channel,
-    keyboard_types, layout_thread_2013, layout_thread_2020, media, msg, net, net_traits, profile,
+    keyboard_types, layout_thread_2013, layout_thread_2020, media, net, net_traits, profile,
     profile_traits, script, script_layout_interface, script_traits, servo_config as config,
     servo_config, servo_geometry, servo_url as url, servo_url, style, style_traits, webgpu,
     webrender_api, webrender_traits,
@@ -1051,7 +1052,7 @@ fn create_constellation(
 
 struct FontCacheWR(CompositorProxy);
 
-impl gfx_traits::WebrenderApi for FontCacheWR {
+impl WebRenderFontApi for FontCacheWR {
     fn add_font_instance(
         &self,
         font_key: FontKey,

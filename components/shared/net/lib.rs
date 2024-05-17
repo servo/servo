@@ -6,6 +6,7 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use base::id::HistoryStateId;
 use cookie::Cookie;
 use headers::{ContentType, HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use http::{Error as HttpError, HeaderMap, StatusCode};
@@ -19,7 +20,6 @@ use log::warn;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
-use msg::constellation_msg::HistoryStateId;
 use num_traits::Zero;
 use rustls::Certificate;
 use serde::{Deserialize, Serialize};

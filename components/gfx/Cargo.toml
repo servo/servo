@@ -44,6 +44,7 @@ unicode-bidi = { workspace = true, features = ["with_serde"] }
 unicode-properties = { workspace = true }
 unicode-script = { workspace = true }
 webrender_api = { workspace = true }
+webrender_traits = { workspace = true }
 xi-unicode = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]

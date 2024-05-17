@@ -5,6 +5,7 @@
 use std::rc::Rc;
 use std::str;
 
+use base::id::PipelineId;
 use devtools_traits::{
     AutoMargins, ComputedNodeLayout, EvaluateJSReply, Modification, NodeInfo, TimelineMarker,
     TimelineMarkerType,
@@ -12,7 +13,6 @@ use devtools_traits::{
 use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
 use js::rust::ToString;
-use msg::constellation_msg::PipelineId;
 use uuid::Uuid;
 
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;

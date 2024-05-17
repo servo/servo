@@ -252,7 +252,7 @@ checksum = "16e62a023e7c117e27523144c5d2459f4397fcc3cab0085af8e2224f643a0193"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -293,17 +293,33 @@ checksum = "0c4b4d0bd25bd0b74681c0ad21497610ce1b7c91b1022cd21c80c6fbdd9476b0"
 name = "background_hang_monitor"
 version = "0.0.1"
 dependencies = [
+ "background_hang_monitor_api",
  "backtrace",
+ "base",
  "crossbeam-channel",
  "ipc-channel",
  "lazy_static",
  "libc",
  "log",
  "mach2",
- "msg",
  "nix 0.27.1",
  "serde_json",
  "unwind-sys",
+]
+
+[[package]]
+name = "background_hang_monitor_api"
+version = "0.0.1"
+dependencies = [
+ "base",
+ "ipc-channel",
+ "lazy_static",
+ "malloc_size_of",
+ "malloc_size_of_derive",
+ "parking_lot",
+ "serde",
+ "size_of_test",
+ "webrender_api",
 ]
 
 [[package]]
@@ -319,6 +335,20 @@ dependencies = [
  "miniz_oxide",
  "object",
  "rustc-demangle",
+]
+
+[[package]]
+name = "base"
+version = "0.0.1"
+dependencies = [
+ "ipc-channel",
+ "lazy_static",
+ "malloc_size_of",
+ "malloc_size_of_derive",
+ "parking_lot",
+ "serde",
+ "size_of_test",
+ "webrender_api",
 ]
 
 [[package]]
@@ -355,7 +385,7 @@ dependencies = [
  "regex",
  "rustc-hash",
  "shlex",
- "syn 2.0.63",
+ "syn 2.0.64",
  "which",
 ]
 
@@ -551,7 +581,7 @@ checksum = "4da9a32f3fed317401fa3c862968128267c3106685286e15d5aaa3d7389c2f60"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -821,6 +851,7 @@ dependencies = [
 name = "compositing"
 version = "0.0.1"
 dependencies = [
+ "base",
  "canvas",
  "compositing_traits",
  "crossbeam-channel",
@@ -835,7 +866,6 @@ dependencies = [
  "keyboard-types",
  "libc",
  "log",
- "msg",
  "net_traits",
  "pixels",
  "profile_traits",
@@ -856,6 +886,7 @@ dependencies = [
 name = "compositing_traits"
 version = "0.0.1"
 dependencies = [
+ "base",
  "canvas",
  "crossbeam-channel",
  "embedder_traits",
@@ -864,7 +895,6 @@ dependencies = [
  "ipc-channel",
  "keyboard-types",
  "log",
- "msg",
  "net_traits",
  "script_traits",
  "servo_url",
@@ -886,7 +916,9 @@ name = "constellation"
 version = "0.0.1"
 dependencies = [
  "background_hang_monitor",
+ "background_hang_monitor_api",
  "backtrace",
+ "base",
  "bluetooth_traits",
  "canvas_traits",
  "compositing_traits",
@@ -903,7 +935,6 @@ dependencies = [
  "log",
  "media",
  "metrics",
- "msg",
  "net",
  "net_traits",
  "parking_lot",
@@ -1113,7 +1144,7 @@ version = "0.6.1"
 source = "git+https://github.com/servo/rust-cssparser?rev=aaa966d9d6ae70c4b8a62bb5e3a14c068bb7dff0#aaa966d9d6ae70c4b8a62bb5e3a14c068bb7dff0"
 dependencies = [
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -1162,7 +1193,7 @@ dependencies = [
  "ident_case",
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -1173,7 +1204,7 @@ checksum = "733cabb43482b1a1b53eee8583c2b9e8684d592215ea83efd305dd31bc2f0178"
 dependencies = [
  "darling_core",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -1205,7 +1236,7 @@ dependencies = [
 name = "deny_public_fields"
 version = "0.0.1"
 dependencies = [
- "syn 2.0.63",
+ "syn 2.0.64",
  "synstructure 0.13.1",
 ]
 
@@ -1233,7 +1264,7 @@ dependencies = [
  "darling",
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
  "synstructure 0.13.1",
 ]
 
@@ -1252,6 +1283,7 @@ dependencies = [
 name = "devtools"
 version = "0.0.1"
 dependencies = [
+ "base",
  "chrono",
  "crossbeam-channel",
  "devtools_traits",
@@ -1260,7 +1292,6 @@ dependencies = [
  "http",
  "ipc-channel",
  "log",
- "msg",
  "serde",
  "serde_json",
  "servo_config",
@@ -1273,12 +1304,12 @@ dependencies = [
 name = "devtools_traits"
 version = "0.0.1"
 dependencies = [
+ "base",
  "bitflags 2.5.0",
  "http",
  "ipc-channel",
  "malloc_size_of",
  "malloc_size_of_derive",
- "msg",
  "serde",
  "servo_url",
  "time 0.1.45",
@@ -1336,7 +1367,7 @@ checksum = "487585f4d0c6655fe74905e2504d8ad6908e4db67f744eb140876906c2f3175d"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -1362,7 +1393,7 @@ name = "dom_struct"
 version = "0.0.1"
 dependencies = [
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -1371,7 +1402,7 @@ version = "0.0.1"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -1481,13 +1512,13 @@ dependencies = [
 name = "embedder_traits"
 version = "0.0.1"
 dependencies = [
+ "base",
  "cfg-if",
  "crossbeam-channel",
  "ipc-channel",
  "keyboard-types",
  "lazy_static",
  "log",
- "msg",
  "num-derive",
  "num-traits",
  "serde",
@@ -1768,7 +1799,7 @@ checksum = "1a5c6c585bc94aaf2c7b51dd4c2ba22680844aba4c687be581871a6f518c5742"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -1885,7 +1916,7 @@ checksum = "87750cf4b7a4c0625b1529e4c543c2182106e4dedc60a2a6455e00d212c489ac"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -2020,6 +2051,7 @@ dependencies = [
  "unicode-properties",
  "unicode-script",
  "webrender_api",
+ "webrender_traits",
  "xi-unicode",
  "xml-rs",
  "yeslogic-fontconfig-sys",
@@ -2164,7 +2196,7 @@ dependencies = [
  "proc-macro-crate",
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -2703,7 +2735,7 @@ dependencies = [
  "markup5ever",
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -2884,7 +2916,7 @@ checksum = "d2abdd3a62551e8337af119c5899e600ca0c88ec8f23a46c60ba216c803dcf1a"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -3154,7 +3186,7 @@ name = "jstraceable_derive"
 version = "0.0.1"
 dependencies = [
  "proc-macro2",
- "syn 2.0.63",
+ "syn 2.0.64",
  "synstructure 0.13.1",
 ]
 
@@ -3191,6 +3223,7 @@ version = "0.0.1"
 dependencies = [
  "app_units",
  "atomic_refcell",
+ "base",
  "bitflags 2.5.0",
  "canvas_traits",
  "embedder_traits",
@@ -3203,7 +3236,7 @@ dependencies = [
  "lazy_static",
  "log",
  "malloc_size_of",
- "msg",
+ "malloc_size_of_derive",
  "net_traits",
  "parking_lot",
  "profile_traits",
@@ -3234,6 +3267,7 @@ version = "0.0.1"
 dependencies = [
  "app_units",
  "atomic_refcell",
+ "base",
  "bitflags 2.5.0",
  "canvas_traits",
  "cssparser",
@@ -3248,7 +3282,6 @@ dependencies = [
  "ipc-channel",
  "lazy_static",
  "log",
- "msg",
  "net_traits",
  "parking_lot",
  "quickcheck",
@@ -3276,6 +3309,7 @@ name = "layout_thread_2013"
 version = "0.0.1"
 dependencies = [
  "app_units",
+ "base",
  "crossbeam-channel",
  "embedder_traits",
  "euclid",
@@ -3290,7 +3324,6 @@ dependencies = [
  "log",
  "malloc_size_of",
  "metrics",
- "msg",
  "net_traits",
  "parking_lot",
  "profile_traits",
@@ -3316,6 +3349,7 @@ name = "layout_thread_2020"
 version = "0.0.1"
 dependencies = [
  "app_units",
+ "base",
  "crossbeam-channel",
  "embedder_traits",
  "euclid",
@@ -3329,7 +3363,6 @@ dependencies = [
  "log",
  "malloc_size_of",
  "metrics",
- "msg",
  "net_traits",
  "parking_lot",
  "profile_traits",
@@ -3461,6 +3494,7 @@ name = "libservo"
 version = "0.0.1"
 dependencies = [
  "background_hang_monitor",
+ "base",
  "bluetooth",
  "bluetooth_traits",
  "canvas",
@@ -3486,7 +3520,6 @@ dependencies = [
  "log",
  "media",
  "mozangle",
- "msg",
  "net",
  "net_traits",
  "profile",
@@ -3537,9 +3570,9 @@ dependencies = [
 
 [[package]]
 name = "linux-raw-sys"
-version = "0.4.13"
+version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01cda141df6706de531b6c46c3a33ecca755538219bd484262fa09410c13539c"
+checksum = "78b3ae25bc7c8c38cec158d1f2757ee79e9b3740fbc7ccf0e59e4b08d793fa89"
 
 [[package]]
 name = "litemap"
@@ -3747,12 +3780,12 @@ dependencies = [
 name = "metrics"
 version = "0.0.1"
 dependencies = [
+ "base",
  "gfx_traits",
  "ipc-channel",
  "log",
  "malloc_size_of",
  "malloc_size_of_derive",
- "msg",
  "profile_traits",
  "script_traits",
  "servo_config",
@@ -3763,10 +3796,10 @@ dependencies = [
 name = "metrics_tests"
 version = "0.0.1"
 dependencies = [
+ "base",
  "gfx_traits",
  "ipc-channel",
  "metrics",
- "msg",
  "profile_traits",
  "servo_url",
  "time 0.1.45",
@@ -3880,20 +3913,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "msg"
-version = "0.0.1"
-dependencies = [
- "ipc-channel",
- "lazy_static",
- "malloc_size_of",
- "malloc_size_of_derive",
- "parking_lot",
- "serde",
- "size_of_test",
- "webrender_api",
-]
-
-[[package]]
 name = "muldiv"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3956,6 +3975,7 @@ version = "0.0.1"
 dependencies = [
  "async-recursion",
  "async-tungstenite",
+ "base",
  "base64",
  "brotli",
  "bytes",
@@ -3982,7 +4002,6 @@ dependencies = [
  "malloc_size_of_derive",
  "mime",
  "mime_guess",
- "msg",
  "net_traits",
  "percent-encoding",
  "pixels",
@@ -4013,6 +4032,7 @@ dependencies = [
 name = "net_traits"
 version = "0.0.1"
 dependencies = [
+ "base",
  "content-security-policy",
  "cookie 0.12.0",
  "embedder_traits",
@@ -4027,7 +4047,6 @@ dependencies = [
  "malloc_size_of",
  "malloc_size_of_derive",
  "mime",
- "msg",
  "num-traits",
  "percent-encoding",
  "pixels",
@@ -4116,7 +4135,7 @@ checksum = "ed3955f1a9c7c0c15e092f9c887db08b1fc683305fdf6eb6684f22555355e202"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -4176,7 +4195,7 @@ dependencies = [
  "proc-macro-crate",
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -4370,7 +4389,7 @@ source = "git+https://github.com/servo/webrender?branch=0.64#9d354adf8955b1390dd
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
  "synstructure 0.13.1",
  "unicode-xid",
 ]
@@ -4450,7 +4469,7 @@ dependencies = [
  "phf_shared 0.11.2",
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -4488,7 +4507,7 @@ checksum = "2f38a4412a78282e09a2cf38d195ea5420d15ba0602cb375210efbc877243965"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -4583,7 +4602,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5f12335488a2f3b0a83b14edad48dca9879ce89b2edd10e80237e4e852dd645e"
 dependencies = [
  "proc-macro2",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -5015,7 +5034,9 @@ dependencies = [
  "app_units",
  "arrayvec",
  "atomic_refcell",
+ "background_hang_monitor_api",
  "backtrace",
+ "base",
  "base64",
  "bitflags 2.5.0",
  "bluetooth_traits",
@@ -5059,7 +5080,6 @@ dependencies = [
  "mime_guess",
  "mozangle",
  "mozjs",
- "msg",
  "net_traits",
  "num-traits",
  "num_cpus",
@@ -5113,6 +5133,7 @@ version = "0.0.1"
 dependencies = [
  "app_units",
  "atomic_refcell",
+ "base",
  "canvas_traits",
  "crossbeam-channel",
  "euclid",
@@ -5124,12 +5145,12 @@ dependencies = [
  "malloc_size_of",
  "malloc_size_of_derive",
  "metrics",
- "msg",
  "net_traits",
  "profile_traits",
  "range",
  "script_traits",
  "selectors",
+ "serde",
  "servo_arc",
  "servo_atoms",
  "servo_url",
@@ -5152,6 +5173,8 @@ dependencies = [
 name = "script_traits"
 version = "0.0.1"
 dependencies = [
+ "background_hang_monitor_api",
+ "base",
  "bitflags 2.5.0",
  "bluetooth_traits",
  "canvas_traits",
@@ -5170,7 +5193,6 @@ dependencies = [
  "malloc_size_of",
  "malloc_size_of_derive",
  "media",
- "msg",
  "net_traits",
  "pixels",
  "profile_traits",
@@ -5263,7 +5285,7 @@ checksum = "6048858004bcff69094cd972ed40a32500f153bd3be9f716b2eed2e8217c4838"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -5544,7 +5566,7 @@ dependencies = [
  "itertools 0.12.1",
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -5960,7 +5982,7 @@ dependencies = [
  "derive_common",
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
  "synstructure 0.13.1",
 ]
 
@@ -6067,9 +6089,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.63"
+version = "2.0.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf5be731623ca1a1fb7d8be6f261a3be6d3e2337b8a1f97be944d020c8fcb704"
+checksum = "7ad3dee41f36859875573074334c200d1add8e4a87bb37113ebd31d926b7b11f"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6096,7 +6118,7 @@ checksum = "c8af7666ab7b6390ab78131fb5b0fce11d6b7a6951602017c35fa82800708971"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -6222,7 +6244,7 @@ checksum = "e2470041c06ec3ac1ab38d0356a6119054dedaea53e12fbefc0de730a1c08524"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -6367,7 +6389,7 @@ dependencies = [
  "derive_common",
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
  "synstructure 0.13.1",
 ]
 
@@ -6396,7 +6418,7 @@ checksum = "5b8a1e28f2deaa14e508979454cb3a223b10b938b45af148bc0986de36f1923b"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -6836,7 +6858,7 @@ dependencies = [
  "once_cell",
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
  "wasm-bindgen-shared",
 ]
 
@@ -6870,7 +6892,7 @@ checksum = "e94f17b526d0a461a191c78ea52bbce64071ed5c04c9ffe424dcb38f74171bb7"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
  "wasm-bindgen-backend",
  "wasm-bindgen-shared",
 ]
@@ -7048,6 +7070,7 @@ dependencies = [
 name = "webdriver_server"
 version = "0.0.1"
 dependencies = [
+ "base",
  "base64",
  "compositing_traits",
  "cookie 0.12.0",
@@ -7058,7 +7081,6 @@ dependencies = [
  "ipc-channel",
  "keyboard-types",
  "log",
- "msg",
  "net_traits",
  "pixels",
  "script_traits",
@@ -7076,11 +7098,11 @@ name = "webgpu"
 version = "0.0.1"
 dependencies = [
  "arrayvec",
+ "base",
  "euclid",
  "ipc-channel",
  "log",
  "malloc_size_of",
- "msg",
  "serde",
  "servo_config",
  "smallvec",
@@ -7794,7 +7816,7 @@ checksum = "9e6936f0cce458098a201c245a11bef556c6a0181129c7034d10d76d1ec3a2b8"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
  "synstructure 0.13.1",
 ]
 
@@ -7815,7 +7837,7 @@ checksum = "15e934569e47891f7d9411f1a451d947a60e000ab3bd24fbb970f000387d1b3b"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]
@@ -7835,7 +7857,7 @@ checksum = "e6a647510471d372f2e6c2e6b7219e44d8c574d24fdc11c610a61455782f18c3"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
  "synstructure 0.13.1",
 ]
 
@@ -7858,7 +7880,7 @@ checksum = "7b4e5997cbf58990550ef1f0e5124a05e47e1ebd33a84af25739be6031a62c20"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.63",
+ "syn 2.0.64",
 ]
 
 [[package]]

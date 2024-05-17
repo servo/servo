@@ -18,11 +18,11 @@ use std::sync::atomic::{AtomicIsize, Ordering};
 use std::sync::Arc;
 use std::thread;
 
+use base::id::PipelineId;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use dom_struct::dom_struct;
 use js::jsapi::{GCReason, JSGCParamKey, JSTracer, JS_GetGCParameter, JS_GC};
 use malloc_size_of::malloc_size_of_is_0;
-use msg::constellation_msg::PipelineId;
 use net_traits::request::{Destination, RequestBuilder, RequestMode};
 use net_traits::IpcSend;
 use servo_url::{ImmutableOrigin, ServoUrl};

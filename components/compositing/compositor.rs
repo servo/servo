@@ -11,6 +11,8 @@ use std::iter::once;
 use std::rc::Rc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+use base::id::{PipelineId, TopLevelBrowsingContextId, WebViewId};
+use base::{Epoch, WebRenderEpochToU16};
 use canvas::canvas_paint_thread::ImageUpdate;
 use compositing_traits::{
     CanvasToCompositorMsg, CompositionPipeline, CompositorMsg, CompositorReceiver,
@@ -21,12 +23,10 @@ use embedder_traits::Cursor;
 use euclid::{Point2D, Rect, Scale, Transform3D, Vector2D};
 use fnv::{FnvHashMap, FnvHashSet};
 use gfx::rendering_context::RenderingContext;
-use gfx_traits::{Epoch, WebRenderEpochToU16};
 use image::{DynamicImage, ImageFormat};
 use ipc_channel::ipc;
 use libc::c_void;
 use log::{debug, error, info, trace, warn};
-use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId, WebViewId};
 use net_traits::image::base::Image;
 use net_traits::image_cache::CorsStatus;
 use pixels::PixelFormat;
