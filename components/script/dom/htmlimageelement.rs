@@ -20,10 +20,9 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoRealm;
 use js::rust::HandleObject;
 use mime::{self, Mime};
-use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{
-    CorsStatus, ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponse,
-    PendingImageId, PendingImageResponse, UsePlaceholder,
+    ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, PendingImageId,
+    PendingImageResponse, UsePlaceholder,
 };
 use net_traits::request::{CorsSettings, Destination, Initiator, Referrer, RequestBuilder};
 use net_traits::{
@@ -31,6 +30,7 @@ use net_traits::{
     ResourceFetchTiming, ResourceTimingType,
 };
 use num_traits::ToPrimitive;
+use pixels::{CorsStatus, Image, ImageMetadata};
 use servo_url::origin::{ImmutableOrigin, MutableOrigin};
 use servo_url::ServoUrl;
 use style::attr::{

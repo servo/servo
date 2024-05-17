@@ -162,6 +162,7 @@ class MachCommands(CommandBase):
             "constellation",
             "style_config",
             "compositing",
+            "pixels",
         ]
         if not packages:
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set(['.DS_Store'])

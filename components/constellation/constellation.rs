@@ -396,7 +396,7 @@ pub struct Constellation<STF, SWF> {
 
     /// A channel for content process image caches to send messages
     /// that will be relayed to the WebRender thread.
-    webrender_image_api_sender: net_traits::WebrenderIpcSender,
+    webrender_image_api_sender: webrender_traits::WebrenderIpcSender,
 
     /// A map of message-port Id to info.
     message_ports: HashMap<MessagePortId, MessagePortInfo>,
@@ -788,7 +788,7 @@ where
                     webrender_api_ipc_sender: script_traits::WebrenderIpcSender::new(
                         webrender_ipc_sender,
                     ),
-                    webrender_image_api_sender: net_traits::WebrenderIpcSender::new(
+                    webrender_image_api_sender: webrender_traits::WebrenderIpcSender::new(
                         webrender_image_ipc_sender,
                     ),
                     webrender_wgpu,

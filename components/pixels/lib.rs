@@ -3,10 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
+use std::fmt;
 
 use euclid::default::{Point2D, Rect, Size2D};
+use image::ImageFormat;
+use ipc_channel::ipc::IpcSharedMemory;
+use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use webrender_api::ImageKey;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum PixelFormat {
@@ -97,4 +102,149 @@ pub fn clip(
     Rect::new(origin, size)
         .intersection(&Rect::from_size(surface))
         .filter(|rect| !rect.is_empty())
+}
+
+/// Whether this response passed any CORS checks, and is thus safe to read from
+/// in cross-origin environments.
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum CorsStatus {
+    /// The response is either same-origin or cross-origin but passed CORS checks.
+    Safe,
+    /// The response is cross-origin and did not pass CORS checks. It is unsafe
+    /// to expose pixel data to the requesting environment.
+    Unsafe,
+}
+
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+pub struct Image {
+    pub width: u32,
+    pub height: u32,
+    pub format: PixelFormat,
+    #[ignore_malloc_size_of = "Defined in ipc-channel"]
+    pub bytes: IpcSharedMemory,
+    #[ignore_malloc_size_of = "Defined in webrender_api"]
+    pub id: Option<ImageKey>,
+    pub cors_status: CorsStatus,
+}
+
+impl fmt::Debug for Image {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Image {{ width: {}, height: {}, format: {:?}, ..., id: {:?} }}",
+            self.width, self.height, self.format, self.id
+        )
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+pub struct ImageMetadata {
+    pub width: u32,
+    pub height: u32,
+}
+
+// FIXME: Images must not be copied every frame. Instead we should atomically
+// reference count them.
+
+pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Image> {
+    if buffer.is_empty() {
+        return None;
+    }
+
+    let image_fmt_result = detect_image_format(buffer);
+    match image_fmt_result {
+        Err(msg) => {
+            debug!("{}", msg);
+            None
+        },
+        Ok(_) => match image::load_from_memory(buffer) {
+            Ok(image) => {
+                let mut rgba = image.into_rgba8();
+                rgba8_byte_swap_colors_inplace(&mut rgba);
+                Some(Image {
+                    width: rgba.width(),
+                    height: rgba.height(),
+                    format: PixelFormat::BGRA8,
+                    bytes: IpcSharedMemory::from_bytes(&rgba),
+                    id: None,
+                    cors_status,
+                })
+            },
+            Err(e) => {
+                debug!("Image decoding error: {:?}", e);
+                None
+            },
+        },
+    }
+}
+
+// https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img
+pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {
+    if is_gif(buffer) {
+        Ok(ImageFormat::Gif)
+    } else if is_jpeg(buffer) {
+        Ok(ImageFormat::Jpeg)
+    } else if is_png(buffer) {
+        Ok(ImageFormat::Png)
+    } else if is_webp(buffer) {
+        Ok(ImageFormat::WebP)
+    } else if is_bmp(buffer) {
+        Ok(ImageFormat::Bmp)
+    } else if is_ico(buffer) {
+        Ok(ImageFormat::Ico)
+    } else {
+        Err("Image Format Not Supported")
+    }
+}
+
+fn is_gif(buffer: &[u8]) -> bool {
+    buffer.starts_with(b"GIF87a") || buffer.starts_with(b"GIF89a")
+}
+
+fn is_jpeg(buffer: &[u8]) -> bool {
+    buffer.starts_with(&[0xff, 0xd8, 0xff])
+}
+
+fn is_png(buffer: &[u8]) -> bool {
+    buffer.starts_with(&[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
+}
+
+fn is_bmp(buffer: &[u8]) -> bool {
+    buffer.starts_with(&[0x42, 0x4D])
+}
+
+fn is_ico(buffer: &[u8]) -> bool {
+    buffer.starts_with(&[0x00, 0x00, 0x01, 0x00])
+}
+
+fn is_webp(buffer: &[u8]) -> bool {
+    buffer.starts_with(b"RIFF") && buffer.len() >= 14 && &buffer[8..14] == b"WEBPVP"
+}
+
+#[cfg(test)]
+mod test {
+    use super::detect_image_format;
+
+    #[test]
+    fn test_supported_images() {
+        let gif1 = [b'G', b'I', b'F', b'8', b'7', b'a'];
+        let gif2 = [b'G', b'I', b'F', b'8', b'9', b'a'];
+        let jpeg = [0xff, 0xd8, 0xff];
+        let png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+        let webp = [
+            b'R', b'I', b'F', b'F', 0x01, 0x02, 0x03, 0x04, b'W', b'E', b'B', b'P', b'V', b'P',
+        ];
+        let bmp = [0x42, 0x4D];
+        let ico = [0x00, 0x00, 0x01, 0x00];
+        let junk_format = [0x01, 0x02, 0x03, 0x04, 0x05];
+
+        assert!(detect_image_format(&gif1).is_ok());
+        assert!(detect_image_format(&gif2).is_ok());
+        assert!(detect_image_format(&jpeg).is_ok());
+        assert!(detect_image_format(&png).is_ok());
+        assert!(detect_image_format(&webp).is_ok());
+        assert!(detect_image_format(&bmp).is_ok());
+        assert!(detect_image_format(&ico).is_ok());
+        assert!(detect_image_format(&junk_format).is_err());
+    }
 }

@@ -20,8 +20,8 @@ use gfx::text::text_run::{TextRun, TextRunSlice};
 use html5ever::{local_name, namespace_url, ns};
 use ipc_channel::ipc::IpcSender;
 use log::debug;
-use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
+use pixels::{Image, ImageMetadata};
 use range::*;
 use script_layout_interface::wrapper_traits::{
     PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode,

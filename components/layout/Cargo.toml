@@ -30,6 +30,7 @@ log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 net_traits = { workspace = true }
+pixels = { path = "../pixels" }
 parking_lot = { workspace = true }
 profile_traits = { workspace = true }
 range = { path = "../range" }
@@ -50,4 +51,5 @@ style_traits = { workspace = true }
 unicode-bidi = { workspace = true, features = ["with_serde"] }
 unicode-script = { workspace = true }
 webrender_api = { workspace = true }
+webrender_traits = { workspace = true }
 xi-unicode = { workspace = true }

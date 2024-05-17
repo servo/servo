@@ -185,7 +185,7 @@ pub struct InitialPipelineState {
     pub prev_throttled: bool,
 
     /// Webrender api.
-    pub webrender_image_api_sender: net_traits::WebrenderIpcSender,
+    pub webrender_image_api_sender: webrender_traits::WebrenderIpcSender,
 
     /// Webrender api.
     pub webrender_api_sender: script_traits::WebrenderIpcSender,
@@ -503,7 +503,7 @@ pub struct UnprivilegedPipelineContent {
     prefs: HashMap<String, PrefValue>,
     pipeline_namespace_id: PipelineNamespaceId,
     webrender_api_sender: script_traits::WebrenderIpcSender,
-    webrender_image_api_sender: net_traits::WebrenderIpcSender,
+    webrender_image_api_sender: webrender_traits::WebrenderIpcSender,
     webrender_document: DocumentId,
     webgl_chan: Option<WebGLPipeline>,
     webxr_registry: webxr_api::Registry,

@@ -6,12 +6,12 @@ use app_units::Au;
 use base::print_tree::PrintTree;
 use euclid::default::{Point2D, Rect, Size2D};
 use fxhash::FxHashSet;
-use script_traits::compositor::ScrollSensitivity;
 use serde::Serialize;
 use style::animation::AnimationSetKey;
 use style::dom::OpaqueNode;
 use style::values::computed::Length;
 use webrender_api::units;
+use webrender_traits::display_list::ScrollSensitivity;
 
 use super::{ContainingBlockManager, Fragment, Tag};
 use crate::cell::ArcRefCell;

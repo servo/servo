@@ -7,13 +7,13 @@ use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
 use script_layout_interface::{LayoutElementType, LayoutNodeType};
-use script_traits::compositor::ScrollSensitivity;
 use serde::Serialize;
 use servo_arc::Arc;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, Overflow};
 use style_traits::CSSPixel;
+use webrender_traits::display_list::ScrollSensitivity;
 
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;

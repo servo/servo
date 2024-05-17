@@ -328,7 +328,7 @@ impl Layout for LayoutThread {
             .webrender_api
             .hit_test(Some(self.id.into()), client_point, flags);
 
-        results.iter().map(|result| result.node).collect()
+        results.iter().map(|result| result.node.into()).collect()
     }
 
     fn query_offset_parent(&self, node: OpaqueNode) -> OffsetParentResponse {

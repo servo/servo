@@ -20,14 +20,14 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoRealm;
 use media::{glplayer_channel, GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
-use net_traits::image::base::Image;
 use net_traits::request::Destination;
 use net_traits::{
     CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, Metadata, NetworkError,
     ResourceFetchTiming, ResourceTimingType,
 };
+use pixels::Image;
 use script_layout_interface::HTMLMediaData;
-use script_traits::{ImageUpdate, WebrenderIpcSender};
+use script_traits::WebrenderIpcSender;
 use servo_config::pref;
 use servo_media::player::audio::AudioRenderer;
 use servo_media::player::video::{VideoFrame, VideoFrameRenderer};
@@ -38,6 +38,7 @@ use webrender_api::{
     ExternalImageData, ExternalImageId, ExternalImageType, ImageBufferKind, ImageData,
     ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey,
 };
+use webrender_traits::ImageUpdate;
 
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::attr::Attr;

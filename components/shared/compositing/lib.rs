@@ -10,23 +10,20 @@ use std::fmt::{Debug, Error, Formatter};
 
 use base::id::{PipelineId, TopLevelBrowsingContextId};
 use base::Epoch;
-use canvas::canvas_paint_thread::ImageUpdate;
 pub use constellation_msg::ConstellationMsg;
 use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::EventLoopWaker;
 use euclid::Rect;
 use ipc_channel::ipc::IpcSender;
 use log::warn;
-use net_traits::image::base::Image;
-use net_traits::NetToCompositorMsg;
+use pixels::Image;
 use script_traits::{
     AnimationState, ConstellationControlMsg, EventResult, MouseButton, MouseEventType,
-    ScriptToCompositorMsg,
 };
 use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize, DeviceRect};
-use webrender_api::{
-    self, FontInstanceFlags, FontInstanceKey, FontKey, ImageKey, NativeFontHandle,
+use webrender_traits::{
+    CanvasToCompositorMsg, FontToCompositorMsg, NetToCompositorMsg, ScriptToCompositorMsg,
 };
 
 /// Sends messages to the compositor.
@@ -138,17 +135,6 @@ pub struct CompositionPipeline {
     pub id: PipelineId,
     pub top_level_browsing_context_id: TopLevelBrowsingContextId,
     pub script_chan: IpcSender<ConstellationControlMsg>,
-}
-
-pub enum FontToCompositorMsg {
-    AddFontInstance(FontKey, f32, FontInstanceFlags, Sender<FontInstanceKey>),
-    AddFont(Sender<FontKey>, u32, ipc_channel::ipc::IpcBytesReceiver),
-    AddSystemFont(Sender<FontKey>, NativeFontHandle),
-}
-
-pub enum CanvasToCompositorMsg {
-    GenerateKey(Sender<ImageKey>),
-    UpdateImages(Vec<ImageUpdate>),
 }
 
 /// Messages forwarded by the Constellation to the Compositor.

@@ -7,7 +7,7 @@ use std::default::Default;
 use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
-use net_traits::image::base::Image;
+use pixels::Image;
 use servo_arc::Arc;
 
 use crate::dom::attr::Attr;

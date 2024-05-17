@@ -23,7 +23,7 @@ use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
-use net_traits::image::base::{Image, ImageMetadata};
+use pixels::{Image, ImageMetadata};
 use script_layout_interface::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType, QueryMsg,
     SVGSVGData, StyleData, TrustedNodeAddress,

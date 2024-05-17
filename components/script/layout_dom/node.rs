@@ -11,7 +11,7 @@ use std::sync::Arc as StdArc;
 use base::id::{BrowsingContextId, PipelineId};
 use gfx_traits::ByteIndex;
 use html5ever::{local_name, namespace_url, ns};
-use net_traits::image::base::{Image, ImageMetadata};
+use pixels::{Image, ImageMetadata};
 use range::Range;
 use script_layout_interface::wrapper_traits::{
     LayoutDataTrait, LayoutNode, PseudoElementType, ThreadSafeLayoutNode,

@@ -65,6 +65,7 @@ tungstenite = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true }
 webrender_api = { workspace = true }
+webrender_traits = { workspace = true }
 webpki-roots = { workspace = true }
 
 [dev-dependencies]

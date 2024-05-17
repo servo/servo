@@ -12,7 +12,7 @@ use atomic_refcell::AtomicRef;
 use base::id::{BrowsingContextId, PipelineId};
 use gfx_traits::ByteIndex;
 use html5ever::{local_name, namespace_url, ns, LocalName, Namespace};
-use net_traits::image::base::{Image, ImageMetadata};
+use pixels::{Image, ImageMetadata};
 use range::Range;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
