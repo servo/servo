@@ -447,8 +447,8 @@ impl FreeTypeFaceHelpers for FT_Face {
         let requested_size = (requested_size.to_f64_px() * 64.0) as i64;
         let get_size_at_index = |index| unsafe {
             (
-                (*(*self).available_sizes.offset(index as isize)).x_ppem as i64,
-                (*(*self).available_sizes.offset(index as isize)).y_ppem as i64,
+                (*(*self).available_sizes.offset(index as isize)).x_ppem,
+                (*(*self).available_sizes.offset(index as isize)).y_ppem,
             )
         };
 
@@ -470,7 +470,7 @@ impl FreeTypeFaceHelpers for FT_Face {
         }
 
         if succeeded(unsafe { FT_Select_Size(self, best_index) }) {
-            return Ok(Au::from_f64_px(best_size.1 as f64 / 64.0));
+            Ok(Au::from_f64_px(best_size.1 as f64 / 64.0))
         } else {
             Err("FT_Select_Size failed")
         }
