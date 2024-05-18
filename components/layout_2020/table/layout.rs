@@ -77,6 +77,13 @@ struct ColumnLayout {
     has_originating_cells: bool,
 }
 
+/// The calculated collapsed borders.
+#[derive(Clone, Debug, Default)]
+struct CollapsedBorders {
+    block: Vec<Au>,
+    inline: Vec<Au>,
+}
+
 /// A helper struct that performs the layout of the box tree version
 /// of a table into the fragment tree version. This implements
 /// <https://drafts.csswg.org/css-tables/#table-layout-algorithm>
@@ -95,6 +102,8 @@ pub(crate) struct TableLayout<'a> {
     row_baselines: Vec<Au>,
     cells_laid_out: Vec<Vec<Option<CellLayout>>>,
     basis_for_cell_padding_percentage: Au,
+    /// Information about collapsed borders.
+    collapsed_borders: Option<CollapsedBorders>,
 }
 
 #[derive(Clone, Debug)]
@@ -132,6 +141,7 @@ impl<'a> TableLayout<'a> {
             row_baselines: Vec::new(),
             cells_laid_out: Vec::new(),
             basis_for_cell_padding_percentage: Au::zero(),
+            collapsed_borders: None,
         }
     }
 
@@ -156,7 +166,14 @@ impl<'a> TableLayout<'a> {
                     .style
                     .padding(writing_mode)
                     .percentages_relative_to(Length::zero());
-                let border = cell.style.border_width(writing_mode);
+
+                let border = self
+                    .get_collapsed_borders_for_cell(
+                        cell,
+                        TableSlotCoordinates::new(column_index, row_index),
+                    )
+                    .unwrap_or_else(|| cell.style.border_width(writing_mode));
+
                 let padding_border_sums = LogicalVec2 {
                     inline: (padding.inline_sum() + border.inline_sum()).into(),
                     block: (padding.block_sum() + border.block_sum()).into(),
@@ -605,6 +622,7 @@ impl<'a> TableLayout<'a> {
         writing_mode: WritingMode,
     ) -> ContentSizes {
         self.compute_track_constrainedness_and_has_originating_cells(writing_mode);
+        self.compute_border_collapse(writing_mode);
         self.compute_cell_measures(layout_context, writing_mode);
         self.compute_column_measures(writing_mode);
 
@@ -622,7 +640,9 @@ impl<'a> TableLayout<'a> {
             });
 
         // TODO: GRIDMAX should never be smaller than GRIDMIN!
-        grid_min_max.max_content = grid_min_max.max_content.max(grid_min_max.min_content);
+        grid_min_max
+            .max_content
+            .max_assign(grid_min_max.min_content);
 
         let inline_border_spacing = self.table.total_border_spacing().inline;
         grid_min_max.min_content += inline_border_spacing;
@@ -1012,9 +1032,16 @@ impl<'a> TableLayout<'a> {
                     total_width += self.distributed_column_widths[width_index];
                 }
 
-                let border = cell
-                    .style
-                    .border_width(containing_block_for_table.style.writing_mode);
+                let border = self
+                    .get_collapsed_borders_for_cell(
+                        cell,
+                        TableSlotCoordinates::new(column_index, row_index),
+                    )
+                    .unwrap_or_else(|| {
+                        cell.style
+                            .border_width(containing_block_for_table.style.writing_mode)
+                    });
+
                 let padding = cell
                     .style
                     .padding(containing_block_for_table.style.writing_mode)
@@ -1085,7 +1112,7 @@ impl<'a> TableLayout<'a> {
 
                     let outer_block_size = layout.outer_block_size();
                     if cell.rowspan == 1 {
-                        max_row_height = max_row_height.max(outer_block_size);
+                        max_row_height.max_assign(outer_block_size);
                     }
 
                     if cell.effective_vertical_align() == VerticalAlignKeyword::Baseline {
@@ -1093,13 +1120,13 @@ impl<'a> TableLayout<'a> {
                         let border_padding_start =
                             layout.border.block_start + layout.padding.block_start;
                         let border_padding_end = layout.border.block_end + layout.padding.block_end;
-                        max_ascent = max_ascent.max(ascent + border_padding_start.into());
+                        max_ascent.max_assign(ascent + border_padding_start.into());
 
                         // Only take into account the descent of this cell if doesn't span
                         // rows. The descent portion of the cell in cells that do span rows
                         // may extend into other rows.
                         if cell.rowspan == 1 {
-                            max_descent = max_descent.max(
+                            max_descent.max_assign(
                                 layout.layout.content_block_size - ascent +
                                     border_padding_end.into(),
                             );
@@ -1130,7 +1157,7 @@ impl<'a> TableLayout<'a> {
             let row_measure = self
                 .table
                 .get_row_measure_for_row_at_index(writing_mode, row_index);
-            row_sizes[row_index] = row_sizes[row_index].max(row_measure.content_sizes.min_content);
+            row_sizes[row_index].max_assign(row_measure.content_sizes.min_content);
 
             let mut percentage = match self.table.rows.get(row_index) {
                 Some(row) => {
@@ -1153,8 +1180,7 @@ impl<'a> TableLayout<'a> {
                     TableSlot::Cell(_) => {
                         // If this is an originating cell, that isn't spanning, then we make sure the row is
                         // at least big enough to hold the cell.
-                        row_sizes[row_index] =
-                            row_sizes[row_index].max(cell_measure.content_sizes.max_content);
+                        row_sizes[row_index].max_assign(cell_measure.content_sizes.max_content);
                         continue;
                     },
                     _ => continue,
@@ -1660,6 +1686,72 @@ impl<'a> TableLayout<'a> {
                 column.style.clone(),
             )));
         }
+    }
+
+    fn compute_border_collapse(&mut self, writing_mode: WritingMode) {
+        if self.table.style.get_inherited_table().border_collapse != BorderCollapse::Collapse {
+            self.collapsed_borders = None;
+            return;
+        }
+
+        let mut collapsed_borders = CollapsedBorders {
+            block: vec![Au::zero(); self.table.size.height + 1],
+            inline: vec![Au::zero(); self.table.size.width + 1],
+        };
+
+        for row_index in 0..self.table.size.height {
+            for column_index in 0..self.table.size.width {
+                let cell = match self.table.slots[row_index][column_index] {
+                    TableSlot::Cell(ref cell) => cell,
+                    _ => continue,
+                };
+
+                let border = cell.style.border_width(writing_mode);
+                collapsed_borders.block[row_index].max_assign(border.block_start.into());
+                collapsed_borders.block[row_index + cell.rowspan]
+                    .max_assign(border.block_end.into());
+                collapsed_borders.inline[column_index].max_assign(border.inline_start.into());
+                collapsed_borders.inline[column_index + cell.colspan]
+                    .max_assign(border.inline_end.into());
+            }
+        }
+
+        self.collapsed_borders = Some(collapsed_borders);
+    }
+
+    fn get_collapsed_borders_for_cell(
+        &self,
+        cell: &TableSlotCell,
+        coordinates: TableSlotCoordinates,
+    ) -> Option<LogicalSides<Length>> {
+        let Some(ref collapsed_borders) = self.collapsed_borders else {
+            return None;
+        };
+
+        let end_x = coordinates.x + cell.colspan;
+        let end_y = coordinates.y + cell.rowspan;
+        let mut result: LogicalSides<Length> = LogicalSides {
+            inline_start: collapsed_borders.inline[coordinates.x],
+            inline_end: collapsed_borders.inline[end_x],
+            block_start: collapsed_borders.block[coordinates.y],
+            block_end: collapsed_borders.block[end_y],
+        }
+        .into();
+
+        if coordinates.x != 0 {
+            result.inline_start = result.inline_start / 2.0;
+        }
+        if coordinates.y != 0 {
+            result.block_start = result.block_start / 2.0;
+        }
+        if end_x != self.table.size.width {
+            result.inline_end = result.inline_end / 2.0;
+        }
+        if end_y != self.table.size.height {
+            result.block_end = result.block_end / 2.0;
+        }
+
+        Some(result)
     }
 }
 
