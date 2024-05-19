@@ -14,7 +14,6 @@ async def test_payload_types(bidi_session):
     recursive_compare(
         [
             {
-                "context": any_string,
                 "origin": any_string,
                 "realm": any_string,
                 "type": any_string,

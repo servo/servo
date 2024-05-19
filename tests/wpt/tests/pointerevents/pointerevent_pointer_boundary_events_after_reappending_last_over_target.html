@@ -1,0 +1,221 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Even temporary removal of "pointerover" target should be considered as removed</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-actions.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script>
+"use strict";
+
+/**
+ * https://w3c.github.io/pointerevents/#dfn-fire-a-pointer-event
+ * > If the previous target at any point will no longer be connected, update the
+ * > previous target to the nearest still connected parent following the event
+ * > path corresponding to dispatching events to the previous target
+ */
+
+function stringifyEvents(eventArray) {
+  if (!eventArray.length) {
+    return "[]";
+  }
+  let result = "";
+  eventArray.forEach(event => {
+    if (result != "") {
+      result += ", ";
+    }
+    result += `${event.type}@${
+      event.target?.nodeType == Node.ELEMENT_NODE
+        ? `${event.target.localName}${
+            event.target.id ? `#${event.target.id}` : ""
+          }`
+        : event.target?.localName
+    }`;
+  });
+  return result;
+}
+
+addEventListener("load", () => {
+  function promiseTick() {
+    return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  }
+
+  function append3NestedDivElementsToBody() {
+    const div1 = document.createElement("div");
+    div1.setAttribute("id", "grandparent");
+    div1.setAttribute("style", "width: 32px; height: 32px; margin: 32px");
+    const div2 = document.createElement("div");
+    div2.setAttribute("id", "parent");
+    div2.setAttribute("style", "width: 32px; height: 32px");
+    const div3 = document.createElement("div");
+    div3.setAttribute("id", "child");
+    div3.setAttribute("style", "width: 32px; height: 32px");
+    div1.appendChild(div2);
+    div2.appendChild(div3);
+    document.body.appendChild(div1);
+    return { div1, div2, div3 };
+  }
+
+  promise_test(async () => {
+    const {div1, div2, div3} = append3NestedDivElementsToBody();
+    const bodyRect = document.body.getBoundingClientRect();
+    const div3Rect = div3.getBoundingClientRect();
+    let events = [];
+    for (const type of ["pointerenter", "pointerleave", "pointerover", "pointerout", "pointermove"]) {
+      for (const node of [document.body, div1, div2, div3]) {
+        node.addEventListener(type, event => {
+          if (event.target == node) {
+            events.push({type: event.type, target: event.target});
+          }
+        }, {capture: true});
+      }
+    }
+    div3.addEventListener("pointerover", event => {
+      div2.appendChild(div3);
+      events = [];
+      events.push({type: event.type, target: event.target});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .pointerMove(div3Rect.x + 10, div3Rect.y + 10, {})
+      .pointerMove(div3Rect.x + 11, div3Rect.y + 11, {})
+      .send();
+    const expectedEvents = [
+      { type: "pointerover", target: div3 },
+      { type: "pointerenter", target: document.body },
+      { type: "pointerenter", target: div1 },
+      { type: "pointerenter", target: div2 },
+      { type: "pointerenter", target: div3 },
+      { type: "pointermove", target: div3 },
+      // Now, the first pointer move input is handled, then, the next pointer
+      // move should cause "over" and "enter" on the child again because the
+      // target is changed to its parent at the node removal.
+      { type: "pointerover", target: div3 },
+      { type: "pointerenter", target: div3 },
+      { type: "pointermove", target: div3 },
+    ];
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents(expectedEvents),
+    );
+    div1.remove();
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .send();
+  },
+  "After re-appending the last over element at pointerover, " +
+  "pointer boundary events should be fired on the original target again");
+
+  promise_test(async () => {
+    const {div1, div2, div3} = append3NestedDivElementsToBody();
+    const bodyRect = document.body.getBoundingClientRect();
+    const div3Rect = div3.getBoundingClientRect();
+    let events = [];
+    for (const type of ["pointerenter", "pointerleave", "pointerover", "pointerout", "pointermove"]) {
+      for (const node of [document.body, div1, div2, div3]) {
+        node.addEventListener(type, event => {
+          if (event.target == node) {
+            events.push({type: event.type, target: event.target});
+          }
+        }, {capture: true});
+      }
+    }
+    div3.addEventListener("pointerover", event => {
+      div3.addEventListener("pointerenter", () => {
+        div2.appendChild(div3);
+      }, {once: true});
+      events = [];
+      events.push({type: event.type, target: event.target});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .pointerMove(div3Rect.x + 10, div3Rect.y + 10, {})
+      .pointerMove(div3Rect.x + 11, div3Rect.y + 11, {})
+      .send();
+    const expectedEvents = [
+      { type: "pointerover", target: div3 },
+      { type: "pointerenter", target: document.body },
+      { type: "pointerenter", target: div1 },
+      { type: "pointerenter", target: div2 },
+      { type: "pointerenter", target: div3 },
+      { type: "pointermove", target: div3 },
+      // Now, the first pointer move input is handled, then, the next pointer
+      // move should cause "over" and "enter" on the child again because the
+      // target is changed to its parent at the node removal.
+      { type: "pointerover", target: div3 },
+      { type: "pointerenter", target: div3 },
+      { type: "pointermove", target: div3 },
+    ];
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents(expectedEvents),
+    );
+    div1.remove();
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .send();
+  },
+  "After re-appending the last over element at pointerenter, " +
+  "pointer boundary events should be fired on the original target again");
+
+  promise_test(async () => {
+    const {div1, div2, div3} = append3NestedDivElementsToBody();
+    const bodyRect = document.body.getBoundingClientRect();
+    const div3Rect = div3.getBoundingClientRect();
+    let events = [];
+    for (const type of ["pointerenter", "pointerleave", "pointerover", "pointerout", "pointermove"]) {
+      for (const node of [document.body, div1, div2, div3]) {
+        node.addEventListener(type, event => {
+          if (event.target == node) {
+            events.push({type: event.type, target: event.target});
+          }
+        }, {capture: true});
+      }
+    }
+    div3.addEventListener("pointerover", event => {
+      events = [];
+      events.push({type: event.type, target: event.target});
+    }, {once: true});
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .pointerMove(div3Rect.x + 10, div3Rect.y + 10, {})
+      .send();
+    await promiseTick();
+    div2.appendChild(div3);
+    await new test_driver.Actions()
+      .pointerMove(div3Rect.x + 11, div3Rect.y + 11, {})
+      .send();
+    const expectedEvents = [
+      { type: "pointerover", target: div3 },
+      { type: "pointerenter", target: document.body },
+      { type: "pointerenter", target: div1 },
+      { type: "pointerenter", target: div2 },
+      { type: "pointerenter", target: div3 },
+      { type: "pointermove", target: div3 },
+      // Now, the first pointer move input is handled, then, the next pointer
+      // move should cause "over" and "enter" on the child again because the
+      // target is changed to its parent at the node removal.
+      { type: "pointerover", target: div3 },
+      { type: "pointerenter", target: div3 },
+      { type: "pointermove", target: div3 },
+    ];
+    assert_equals(
+      stringifyEvents(events),
+      stringifyEvents(expectedEvents),
+    );
+    div1.remove();
+    await new test_driver.Actions()
+      .pointerMove(1, 1, {})
+      .send();
+  },
+  "After re-appending the last over element after pointerover, " +
+  "pointer boundary events should be fired on the original target again");
+}, {once: true});
+</script>
+</head>
+<body style="padding-top: 32px"></body>
+</html>

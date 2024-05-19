@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/utils.js"></script>
+<title>Test that fenced frame notifyEvent() prevents top-level navigation</title>
+
+<body>
+  <script>
+  promise_test(async (t) => {
+    const fencedframe = await attachFencedFrameContext(
+                {generator_api: 'fledge'});
+    t.add_cleanup(async () => document.body.removeChild(fencedframe.element));
+
+    let notify_result = new Promise((resolve) => {
+      fencedframe.element.addEventListener('fencedtreeclick', () => {
+        resolve('notified');
+      });
+    });
+
+    await fencedframe.execute(() => {
+      document.addEventListener('click', (e) => {
+        window.fence.notifyEvent(e);
+      });
+    });
+
+    let actions = new test_driver.Actions();
+    await actions.pointerMove(10, 10, {origin: fencedframe.element})
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+    await notify_result;
+
+    // Once `notifyEvent` has resolved, user activation has been consumed in the
+    // fenced frame, so navigating `_unfencedTop` should fail.
+    let opened_key = token();
+    await fencedframe.execute((opened) => {
+      let opened_url = generateURL('embeddee.html', [opened]);
+      // TODO(averge): Replace this with a pop-up navigation once we require
+      // user activation for pop-up navigations.
+      window.open(opened_url, '_unfencedTop');
+    }, [opened_key]);
+
+    let result = await Promise.race([
+      nextValueFromServer(opened_key),
+      new Promise((resolve) => {
+        t.step_timeout(() => resolve('timeout'), 2000);
+      })
+    ]);
+
+    assert_equals(result, 'timeout');
+  }, "Test that calling notifyEvent() prevents top-level navigation on click.");
+  </script>
+</body>

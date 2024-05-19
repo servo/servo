@@ -12,6 +12,8 @@
 <script>
 (async () => {
   await test_driver.click(document.querySelector('select'));
+  document.activeElement.blur();
+  await new Promise(requestAnimationFrame);
   document.documentElement.classList.remove('reftest-wait');
 })();
 </script>

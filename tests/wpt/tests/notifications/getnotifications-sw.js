@@ -1,4 +1,5 @@
 importScripts("/resources/testharness.js");
+importScripts("resources/helpers.js");
 
 async function cleanup() {
   for (const n of await registration.getNotifications()) {
@@ -29,14 +30,9 @@ async function postAll(data) {
   }
 }
 
-async function untilActivate() {
-  if (registration.active) {
-    return;
-  }
-  return new Promise(resolve => {
-    addEventListener("activate", resolve, { once: true });
-  });
-}
+promise_setup(async () => {
+  await untilActivate();
+});
 
 promise_test(async t => {
   await new Promise((resolve, reject) => {
@@ -45,7 +41,7 @@ promise_test(async t => {
         resolve();
       }
     });
-    untilActivate().then(() => postAll("notification-create")).catch(reject);
+    postAll("notification-create").catch(reject);
   });
   await test_notification(t, "Created from window");
 }, "Get notification created from window");

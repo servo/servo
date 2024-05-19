@@ -15,8 +15,8 @@
 
 <script>
 // position-anchor: <anchor-element>
-// <anchor-element> = implicit | <dashed-ident>
-test_valid_value('position-anchor', 'implicit');
+// <anchor-element> = auto | <dashed-ident>
+test_valid_value('position-anchor', 'auto');
 test_valid_value('position-anchor', '--foo');
 test_invalid_value('position-anchor', 'none');
 test_invalid_value('position-anchor', 'foo-bar');
@@ -26,17 +26,17 @@ test_invalid_value('position-anchor', '100px');
 test_invalid_value('position-anchor', '100%');
 
 // Computed value: as specified
-test_computed_value('position-anchor', 'implicit');
+test_computed_value('position-anchor', 'auto');
 test_computed_value('position-anchor', '--foo');
 
-// Initial: implicit
+// Initial: auto
 // Inherited: no
-assert_not_inherited('position-anchor', 'implicit', '--foo');
+assert_not_inherited('position-anchor', 'auto', '--foo');
 
 // Animation type: discrete
 test_no_interpolation({
   property: 'position-anchor',
   from: '--foo',
-  to: 'implicit',
+  to: 'auto',
 });
 </script>

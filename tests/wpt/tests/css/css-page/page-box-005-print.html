@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#page-properties">
+<link rel="match" href="page-box-005-print-ref.html">
+<style>
+  @page {
+    size: 400px;
+    margin: 50px;
+    color: hotpink;
+    border: 10px dotted;
+    padding: 20px;
+    background: yellow;
+  }
+  @page :first {
+    color: orange;
+    background: white;
+  }
+  @page :right {
+    /* The first page in a horizontal writing mode LTR document is a right
+       page. :first has higher specificity than :right, so these declarations
+       are only for the third page. */
+    color: black;
+    background: cyan;
+  }
+  body {
+    margin: 0;
+  }
+</style>
+White background (including page margins). Orange dotted border. Black text.
+<div style="break-before:page;">
+  Yellow background (including page margins). Hotpink dotted border. Black text.
+</div>
+<div style="break-before:page;">
+  Cyan background (including page margins). Black dotted border. Black text.
+</div>

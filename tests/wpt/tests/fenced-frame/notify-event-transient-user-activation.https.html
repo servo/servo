@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -15,39 +16,77 @@
     promise_test(async (t) => {
       const fencedframe = await attachFencedFrameContext(
                   {generator_api: 'fledge'});
-      let notified = false;
-      fencedframe.element.addEventListener('fencedtreeclick', () => notified = true);
+      t.add_cleanup(async () => document.body.removeChild(fencedframe.element));
+
+      let notified_promise = new Promise((resolve) => {
+        fencedframe.element.addEventListener('fencedtreeclick', () => {
+          resolve();
+        });
+      });
 
       await fencedframe.execute(() => {
-        window.retained_activation = false;
-        document.addEventListener('click', async (e) => {
-          // Opening a new window consumes transient activation here, but that
-          // is *not explicitly stated in the spec.* However, we can't rely
-          // on other APIs to consume activation for us, since most of them are
-          // gated by permissions policies that fenced frames will not inherit.
-          // This call will just open a blank page, which is sufficient for
-          // this test.
-          window.open();
-          await new Promise((resolve) => t.step_timeout(
-            () => resolve(), 1000));
-          if (navigator.userActivation.isActive) {
-            window.retained_activation = true;
-          }
+        document.addEventListener('click', (e) => {
+          assert_true(navigator.userActivation.isActive);
           window.fence.notifyEvent(e);
         });
       });
 
-      await multiClick(10, 10, fencedframe.element);
+      let actions = new test_driver.Actions();
+      await actions.pointerMove(10, 10, {origin: fencedframe.element})
+        .pointerDown()
+        .pointerUp()
+        .send();
 
-      // Wait 3s to let any event handling code settle.
-      await new Promise((resolve) => t.step_timeout(
-          () => resolve(), 3000));
+      await notified_promise;
 
       await fencedframe.execute(() => {
-        assert_false(window.retained_activation);
+        assert_false(navigator.userActivation.isActive);
+      });
+    }, 'Test that notifyEvent consumes user activation.');
+
+    promise_test(async (t) => {
+      const fencedframe = await attachFencedFrameContext(
+                  {generator_api: 'fledge'});
+      t.add_cleanup(async () => document.body.removeChild(fencedframe.element));
+
+      let notified_promise = new Promise((resolve) => {
+        fencedframe.element.addEventListener('fencedtreeclick', () => {
+          resolve('notified');
+        });
       });
 
-      assert_false(notified);
-    }, "Test that fenced frame notifyEvent() requires transient activation");
+      let opened_key = token();
+      await fencedframe.execute((opened) => {
+        document.addEventListener('click', (e) => {
+          // We can't use `attachWindowContext` here because it requres the
+          // event handler to be async, which means the state of the `e` may
+          // change while we're observing it. We'll look up the key written by
+          // embeddee.html later to determine the window opened.
+          let opened_url = generateURL('embeddee.html', [opened]);
+          window.open(opened_url, '_blank');
+          window.fence.notifyEvent(e);
+        });
+      }, [opened_key]);
+
+      let actions = new test_driver.Actions();
+      await actions.pointerMove(10, 10, {origin: fencedframe.element})
+        .pointerDown()
+        .pointerUp()
+        .send();
+
+      // Confirm that the popup actually opened after clicking the fenced frame.
+      let opened_value = await nextValueFromServer(opened_key);
+      assert_equals(opened_value, 'PASS');
+      // Confirmed that the call to notifyEvent never actually fired, because
+      // opening the popup consumed user activation.
+      let result = await Promise.race([
+        notified_promise,
+        new Promise((resolve) => {
+          t.step_timeout(() => resolve('timeout'), 2000);
+        })
+      ]);
+      assert_equals(result, 'timeout');
+    }, "Test that popup navigation on click prevents notifyEvent() from " +
+       "firing.");
   </script>
 </body>

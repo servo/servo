@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>CSS Overflow: scroll-markers computed values</title>
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/pull/10243">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/computed-testcommon.js"></script>
+</head>
+
+<body>
+  <style>
+    #target { scroll-markers: before; }
+  </style>
+  <div id="target"></div>
+  <script>
+    test_computed_value('scroll-markers', 'initial', 'none');
+    test_computed_value('scroll-markers', 'inherit', 'none');
+    test_computed_value('scroll-markers', 'unset', 'none');
+    test_computed_value('scroll-markers', 'revert', 'none');
+
+    test_computed_value('scroll-markers', 'none');
+    test_computed_value('scroll-markers', 'before');
+    test_computed_value('scroll-markers', 'after');
+
+    test(() => {
+      let style = getComputedStyle(document.getElementById('target'));
+      assert_not_equals(Array.from(style).indexOf('scroll-markers'), -1);
+    }, 'The scroll-markers property shows up in CSSStyleDeclaration enumeration');
+
+    test(() => {
+      let style = document.getElementById('target').style;
+      assert_not_equals(style.cssText.indexOf('scroll-markers'), -1);
+    }, 'The scroll-markers property shows up in CSSStyleDeclaration.cssText');
+
+  </script>
+</body>
+
+</html>

@@ -1,6 +1,45 @@
 {
   "tests": [
     {
+      "name": "reduceSumSquare float32 0D constant tensor default options",
+      "inputs": {
+        "input": {
+          "shape": [],
+          "data": [
+            52.5615348815918
+          ],
+          "type": "float32",
+          "constant": true
+        }
+      },
+      "expected": {
+        "name": "output",
+        "data": 2762.71484375,
+        "type": "float32"
+      }
+    },
+    {
+      "name": "reduceSumSquare float32 0D constant tensor empty axes",
+      "inputs": {
+        "input": {
+          "shape": [],
+          "data": [
+            52.5615348815918
+          ],
+          "type": "float32",
+          "constant": true
+        }
+      },
+      "options": {
+        "axes": []
+      },
+      "expected": {
+        "name": "output",
+        "data": 2762.71484375,
+        "type": "float32"
+      }
+    },
+    {
       "name": "reduceSumSquare float32 1D constant tensor all positive default options", // default options: {axes: null, keepDimensions: false}
       "inputs": {
         "input": {

@@ -1,6 +1,45 @@
 {
   "tests": [
     {
+      "name": "reduceLogSumExp float32 0D constant tensor default options", // default options: {axes: null, keepDimensions: false}
+      "inputs": {
+        "input": {
+          "shape": [],
+          "data": [
+            0.7974132895469666
+          ],
+          "type": "float32",
+          "constant": true
+        }
+      },
+      "expected": {
+        "name": "output",
+        "data": 0.7974132895469666,
+        "type": "float32"
+      }
+    },
+    {
+      "name": "reduceLogSumExp float32 0D constant tensor empty axes",
+      "inputs": {
+        "input": {
+          "shape": [],
+          "data": [
+            0.7974132895469666
+          ],
+          "type": "float32",
+          "constant": true
+        }
+      },
+      "options": {
+        "axes": []
+      },
+      "expected": {
+        "name": "output",
+        "data": 0.7974132895469666,
+        "type": "float32"
+      }
+    },
+    {
       "name": "reduceLogSumExp float32 1D constant tensor all positive default options", // default options: {axes: null, keepDimensions: false}
       "inputs": {
         "input": {

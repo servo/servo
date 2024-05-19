@@ -33,9 +33,9 @@ async_test(t => {
 async_test(t => {
   var iframe = document.createElement('iframe');
   iframe.src = "/document-policy/echo-policy.py?id=2";
-  iframe.policy = "font-display-late-swap=?0";
+  iframe.policy = "force-load-at-top";
   callbacks["2"] = t.step_func_done(result => {
-    assert_equals(result, "font-display-late-swap=?0");
+    assert_equals(result, "force-load-at-top");
   });
   document.body.appendChild(iframe);
 }, "Child frame can have a required policy independent of the parent document.");
@@ -43,9 +43,9 @@ async_test(t => {
 async_test(t => {
   var iframe = document.createElement('iframe');
   iframe.src = "/document-policy/echo-policy.py?id=3";
-  iframe.policy = "lossless-images-max-bpp=4";
+  iframe.policy = "sync-xhr";
   callbacks["3"] = t.step_func_done(result => {
-    assert_equals(result, "lossless-images-max-bpp=4.0");
+    assert_equals(result, "sync-xhr");
   });
   document.body.appendChild(iframe);
 }, "Child frame can have a required policy which is less strict than the parent document's policy.");
