@@ -39,6 +39,7 @@ pub mod blob_url_store;
 pub mod filemanager_thread;
 pub mod http_status;
 pub mod image_cache;
+pub mod policy_container;
 pub mod pub_domains;
 pub mod quality;
 pub mod request;
@@ -104,7 +105,7 @@ pub struct CustomResponseMediator {
 
 /// [Policies](https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states)
 /// for providing a referrer header for a request
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
 pub enum ReferrerPolicy {
     /// "no-referrer"
     NoReferrer,
@@ -121,6 +122,7 @@ pub enum ReferrerPolicy {
     /// "strict-origin"
     StrictOrigin,
     /// "strict-origin-when-cross-origin"
+    #[default]
     StrictOriginWhenCrossOrigin,
 }
 

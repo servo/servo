@@ -20,6 +20,7 @@ use log::warn;
 use mime::{self, Mime};
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::http_status::HttpStatus;
+use net_traits::policy_container::RequestPolicyContainer;
 use net_traits::request::{
     is_cors_safelisted_method, is_cors_safelisted_request_header, BodyChunkRequest,
     BodyChunkResponse, CredentialsMode, Destination, Origin, RedirectMode, Referrer, Request,
@@ -156,26 +157,33 @@ pub async fn fetch_with_cors_cache(
 
 /// <https://www.w3.org/TR/CSP/#should-block-request>
 pub fn should_request_be_blocked_by_csp(request: &Request) -> csp::CheckResult {
-    let origin = match &request.origin {
-        Origin::Client => return csp::CheckResult::Allowed,
-        Origin::Origin(origin) => origin,
-    };
-    let csp_request = csp::Request {
-        url: request.url().into_url(),
-        origin: origin.clone().into_url_origin(),
-        redirect_count: request.redirect_count,
-        destination: request.destination,
-        initiator: csp::Initiator::None,
-        nonce: String::new(),
-        integrity_metadata: request.integrity_metadata.clone(),
-        parser_metadata: csp::ParserMetadata::None,
-    };
-    // TODO: Instead of ignoring violations, report them.
-    request
-        .csp_list
-        .as_ref()
-        .map(|c| c.should_request_be_blocked(&csp_request).0)
-        .unwrap_or(csp::CheckResult::Allowed)
+    match &request.policy_container {
+        RequestPolicyContainer::Client => csp::CheckResult::Allowed,
+        RequestPolicyContainer::PolicyContainer(container) => {
+            let origin = match &request.origin {
+                Origin::Client => return csp::CheckResult::Allowed,
+                Origin::Origin(origin) => origin,
+            };
+
+            let csp_request = csp::Request {
+                url: request.url().into_url(),
+                origin: origin.clone().into_url_origin(),
+                redirect_count: request.redirect_count,
+                destination: request.destination,
+                initiator: csp::Initiator::None,
+                nonce: String::new(),
+                integrity_metadata: request.integrity_metadata.clone(),
+                parser_metadata: csp::ParserMetadata::None,
+            };
+
+            // TODO: Instead of ignoring violations, report them.
+            container
+                .csp_list
+                .as_ref()
+                .map(|c| c.should_request_be_blocked(&csp_request).0)
+                .unwrap_or(csp::CheckResult::Allowed)
+        },
+    }
 }
 
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
@@ -236,16 +244,17 @@ pub async fn main_fetch(
     // TODO: handle blocking as mixed content.
     // TODO: handle blocking by content security policy.
 
-    // Step 6
-    // TODO: handle request's client's referrer policy.
+    // Step 8: If request’s referrer policy is the empty string, then set request’s referrer policy
+    // to request’s policy container’s referrer policy.
+    request.referrer_policy = request.referrer_policy.or(match &request.policy_container {
+        RequestPolicyContainer::Client => Some(ReferrerPolicy::default()),
+        RequestPolicyContainer::PolicyContainer(policy_container) => {
+            Some(policy_container.referrer_policy)
+        },
+    });
 
-    // Step 7.
-    request.referrer_policy = request
-        .referrer_policy
-        .or(Some(ReferrerPolicy::NoReferrerWhenDowngrade));
-
-    // Step 8.
     assert!(request.referrer_policy.is_some());
+
     let referrer_url = match mem::replace(&mut request.referrer, Referrer::NoReferrer) {
         Referrer::NoReferrer => None,
         Referrer::ReferrerUrl(referrer_source) | Referrer::Client(referrer_source) => {

@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 use base::id::PipelineId;
-use content_security_policy::{self as csp, CspList};
+use content_security_policy::{self as csp};
 use http::header::{HeaderName, AUTHORIZATION};
 use http::{HeaderMap, Method};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -15,6 +15,7 @@ use mime::Mime;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
 
+use crate::policy_container::{PolicyContainer, RequestPolicyContainer};
 use crate::response::HttpsState;
 use crate::{ReferrerPolicy, ResourceTimingType};
 
@@ -261,17 +262,13 @@ pub struct RequestBuilder {
     pub credentials_mode: CredentialsMode,
     pub use_url_credentials: bool,
     pub origin: ImmutableOrigin,
+    pub policy_container: RequestPolicyContainer,
     // XXXManishearth these should be part of the client object
     pub referrer: Referrer,
     pub referrer_policy: Option<ReferrerPolicy>,
     pub pipeline_id: Option<PipelineId>,
     pub redirect_mode: RedirectMode,
     pub integrity_metadata: String,
-    // This is nominally a part of the client's global object.
-    // It is copied here to avoid having to reach across the thread
-    // boundary every time a redirect occurs.
-    #[ignore_malloc_size_of = "Defined in rust-content-security-policy"]
-    pub csp_list: Option<CspList>,
     // to keep track of redirects
     pub url_list: Vec<ServoUrl>,
     pub parser_metadata: ParserMetadata,
@@ -300,6 +297,7 @@ impl RequestBuilder {
             credentials_mode: CredentialsMode::CredentialsSameOrigin,
             use_url_credentials: false,
             origin: ImmutableOrigin::new_opaque(),
+            policy_container: RequestPolicyContainer::default(),
             referrer,
             referrer_policy: None,
             pipeline_id: None,
@@ -308,7 +306,6 @@ impl RequestBuilder {
             url_list: vec![],
             parser_metadata: ParserMetadata::Default,
             initiator: Initiator::None,
-            csp_list: None,
             https_state: HttpsState::None,
             response_tainting: ResponseTainting::Basic,
             crash: None,
@@ -410,13 +407,13 @@ impl RequestBuilder {
         self
     }
 
-    pub fn csp_list(mut self, csp_list: Option<CspList>) -> RequestBuilder {
-        self.csp_list = csp_list;
+    pub fn crash(mut self, crash: Option<String>) -> Self {
+        self.crash = crash;
         self
     }
 
-    pub fn crash(mut self, crash: Option<String>) -> Self {
-        self.crash = crash;
+    pub fn policy_container(mut self, policy_container: PolicyContainer) -> RequestBuilder {
+        self.policy_container = RequestPolicyContainer::PolicyContainer(policy_container);
         self
     }
 
@@ -452,9 +449,9 @@ impl RequestBuilder {
         request.url_list = url_list;
         request.integrity_metadata = self.integrity_metadata;
         request.parser_metadata = self.parser_metadata;
-        request.csp_list = self.csp_list;
         request.response_tainting = self.response_tainting;
         request.crash = self.crash;
+        request.policy_container = self.policy_container;
         request
     }
 }
@@ -525,11 +522,8 @@ pub struct Request {
     pub response_tainting: ResponseTainting,
     /// <https://fetch.spec.whatwg.org/#concept-request-parser-metadata>
     pub parser_metadata: ParserMetadata,
-    // This is nominally a part of the client's global object.
-    // It is copied here to avoid having to reach across the thread
-    // boundary every time a redirect occurs.
-    #[ignore_malloc_size_of = "Defined in rust-content-security-policy"]
-    pub csp_list: Option<CspList>,
+    /// <https://fetch.spec.whatwg.org/#concept-request-policy-container>
+    pub policy_container: RequestPolicyContainer,
     pub https_state: HttpsState,
     /// Servo internal: if crash details are present, trigger a crash error page with these details.
     pub crash: Option<String>,
@@ -573,7 +567,7 @@ impl Request {
             parser_metadata: ParserMetadata::Default,
             redirect_count: 0,
             response_tainting: ResponseTainting::Basic,
-            csp_list: None,
+            policy_container: RequestPolicyContainer::Client,
             https_state,
             crash: None,
         }
