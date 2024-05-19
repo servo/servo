@@ -994,31 +994,15 @@
     @assert ctx.measureText("").width === 0;
   variants: *load-font-variant-definition
 
-- name: 2d.text.measure.advances
-  desc: Testing width advances
+- name: 2d.text.measure.advances-not-defined
+  desc: Testing that TextMetrics.advances is not defined
   test_type: promise
   fonts:
   - CanvasTest
   code: |
     {{ load_font }}
     ctx.font = '50px CanvasTest';
-    ctx.direction = 'ltr';
-    ctx.align = 'left'
-    // Some platforms may return '-0'.
-    @assert Math.abs(ctx.measureText('Hello').advances[0]) === 0;
-    // Different platforms may render text slightly different.
-    @assert ctx.measureText('Hello').advances[1] >= 36;
-    @assert ctx.measureText('Hello').advances[2] >= 58;
-    @assert ctx.measureText('Hello').advances[3] >= 70;
-    @assert ctx.measureText('Hello').advances[4] >= 80;
-
-    var tm = ctx.measureText('Hello');
-    @assert ctx.measureText('Hello').advances[0] === tm.advances[0];
-    @assert ctx.measureText('Hello').advances[1] === tm.advances[1];
-    @assert ctx.measureText('Hello').advances[2] === tm.advances[2];
-    @assert ctx.measureText('Hello').advances[3] === tm.advances[3];
-    @assert ctx.measureText('Hello').advances[4] === tm.advances[4];
-  variants: *load-font-variant-definition
+    @assert !("advances" in ctx.measureText('Hello'));
 
 - name: 2d.text.measure.actualBoundingBox
   desc: Testing actualBoundingBox
@@ -1197,6 +1181,168 @@
     @assert ctx.measureText('ABCD').ideographicBaseline === 6.25;
     @assert ctx.measureText('ABCD').hangingBaseline === 25;
   variants: *load-font-variant-definition
+
+- name: 2d.text.measure.selection-rects.tentative
+  desc: Check that TextMetrics::getSelectionRects() matches its DOM equivalent.
+  canvas_types: ['HtmlCanvas', 'OffscreenCanvas']
+  code: |
+    function placeAndSelectTextInDOM(text, from, to) {
+      const el = document.createElement("div");
+      el.innerHTML = text;
+      el.style.font = '50px sans-serif';
+      document.body.appendChild(el);
+
+      let range = document.createRange();
+
+      range.setStart(el.childNodes[0], 0);
+      range.setEnd(el.childNodes[0], text.length);
+      const parent = range.getClientRects()[0];
+
+      range.setStart(el.childNodes[0], from);
+      range.setEnd(el.childNodes[0], to+1);
+
+      let sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+
+      let sel_rects = sel.getRangeAt(0).getClientRects();
+
+      document.body.removeChild(el);
+
+      for(let i = 0 ; i < sel_rects.length ; ++i) {
+        sel_rects[i].x -= parent.x;
+        sel_rects[i].y -= parent.y;
+      }
+
+      return sel_rects;
+    }
+
+    function checkRectListsMatch(list_a, list_b) {
+      @assert list_a.length === list_b.length;
+      for(let i = 0 ; i < list_a.length ; ++i) {
+        assert_approx_equals(list_a[i].x, list_b[i].x, 1.0);
+        assert_approx_equals(list_a[i].width, list_b[i].width, 1.0);
+        assert_approx_equals(list_a[i].height, list_b[i].height, 1.0);
+        // Y-position not tested here as getting the baseline for text in the
+        // DOM is not straightforward.
+      }
+    }
+
+    ctx.font = '50px sans-serif';
+
+    const kTexts = [
+      'UNAVAILABLE',
+      '🏁🎶🏁',
+      '）（あ）（'
+    ]
+
+    for (const text of kTexts) {
+      const tm = ctx.measureText(text);
+      // First character.
+      checkRectListsMatch(
+        tm.getSelectionRects(0, 0),
+        placeAndSelectTextInDOM(text, 0, 0)
+      );
+      // Last character.
+      checkRectListsMatch(
+        tm.getSelectionRects(text.length - 1, text.length - 1),
+        placeAndSelectTextInDOM(text, text.length - 1, text.length - 1)
+      );
+      // Whole string.
+      checkRectListsMatch(
+        tm.getSelectionRects(0, text.length - 1),
+        placeAndSelectTextInDOM(text, 0, text.length - 1)
+      );
+      // Intermediate string.
+      checkRectListsMatch(
+        tm.getSelectionRects(1, text.length - 2),
+        placeAndSelectTextInDOM(text, 1, text.length - 2)
+      );
+      // Invalid start > end string. Creates 0 width rectangle.
+      checkRectListsMatch(
+        tm.getSelectionRects(2, 1),
+        placeAndSelectTextInDOM(text, 2, 1)
+      );
+    }
+
+- name: 2d.text.measure.selection-rects-baselines.tentative
+  desc: >-
+    Check that TextMetrics::getSelectionRects() works correctly with
+    textBaseline.
+  code: |
+    ctx.font = '50px sans-serif';
+
+    const kBaselines = [
+      "top",
+      "hanging",
+      "middle",
+      "alphabetic",
+      "ideographic",
+      "bottom",
+    ];
+
+    const kTexts = [
+      'UNAVAILABLE',
+      '🏁🎶🏁',
+      '）（あ）（'
+    ]
+
+    for (const text of kTexts) {
+      for (const baseline of kBaselines) {
+        const tm = ctx.measureText(text);
+        // First character.
+        for (const r of tm.getSelectionRects(0, 0)) {
+          assert_approx_equals(r.top, -tm.fontBoundingBoxAscent, 1.0);
+          assert_approx_equals(r.bottom, tm.fontBoundingBoxDescent, 1.0);
+        }
+        // Last character.
+        for (const r of tm.getSelectionRects(text.length - 1, text.length - 1)) {
+          assert_approx_equals(r.top, -tm.fontBoundingBoxAscent, 1.0);
+          assert_approx_equals(r.bottom, tm.fontBoundingBoxDescent, 1.0);
+        }
+        // Whole string.
+        for (const r of tm.getSelectionRects(0, text.length - 1)) {
+          assert_approx_equals(r.top, -tm.fontBoundingBoxAscent, 1.0);
+          assert_approx_equals(r.bottom, tm.fontBoundingBoxDescent, 1.0);
+        }
+        // Intermediate string.
+        for (const r of tm.getSelectionRects(1, text.length - 1)) {
+          assert_approx_equals(r.top, -tm.fontBoundingBoxAscent, 1.0);
+          assert_approx_equals(r.bottom, tm.fontBoundingBoxDescent, 1.0);
+        }
+        // Invalid start > end string. Creates 0 width rectangle.
+        for (const r of tm.getSelectionRects(2, 1)) {
+          assert_approx_equals(r.top, -tm.fontBoundingBoxAscent, 1.0);
+          assert_approx_equals(r.bottom, tm.fontBoundingBoxDescent, 1.0);
+        }
+      }
+    }
+
+- name: 2d.text.measure.selection-rects-exceptions.tentative
+  desc: >-
+    Check that TextMetrics::getSelectionRects() throws when using invalid
+    indexes.
+  code: |
+    const kTexts = [
+      'UNAVAILABLE',
+      '🏁🎶🏁',
+      '）（あ）（'
+    ]
+
+    for (const text of kTexts) {
+      const tm = ctx.measureText(text);
+      // Handled by the IDL binding.
+      assert_throws_js(TypeError, () => tm.getSelectionRects(-1, 0) );
+      assert_throws_js(TypeError, () => tm.getSelectionRects(0, -1) );
+      assert_throws_js(TypeError, () => tm.getSelectionRects(-1, -1) );
+      // Thrown in TextMetrics.
+      assert_throws_dom("IndexSizeError",
+                        () => tm.getSelectionRects(text.length, 0) );
+      assert_throws_dom("IndexSizeError",
+                        () => tm.getSelectionRects(0, text.length) );
+      assert_throws_dom("IndexSizeError",
+                        () => tm.getSelectionRects(text.length, text.length) );
+    }
 
 - name: 2d.text.drawing.style.absolute.spacing
   desc: Testing letter spacing and word spacing with absolute length

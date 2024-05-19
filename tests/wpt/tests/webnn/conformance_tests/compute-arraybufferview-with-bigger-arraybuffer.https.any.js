@@ -1,5 +1,6 @@
 // META: title=test WebNN MLContext.compute() for ArrayBufferView created from bigger ArrayBuffer
 // META: global=window,dedicatedworker
+// META: variant=?cpu
 // META: variant=?gpu
 // META: script=../resources/utils.js
 

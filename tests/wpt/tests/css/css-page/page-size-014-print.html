@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>The containing block of the page should be resized in overconstrained sizing situations</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#page-model">
+<link rel="match" href="page-size-014-print-ref.html">
+<style>
+  @page {
+    size: 500px;
+    margin: 10%;
+    width: 40%;
+    height: 60%;
+  }
+  body {
+    margin: 0;
+  }
+</style>
+<div style="width:200px; height:300px; background:yellow;">
+  This page should have a yellow background. Page margins should be 50px on each
+  side.
+</div>
+Second page. Nothing else here.

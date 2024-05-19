@@ -74,15 +74,30 @@ var simple_tests = [
     enctype: "application/x-www-form-urlencoded",
     submitelement: "<button id=inputsubmit type=\"submit\" name=foo value=bara>Submit</button>",
     submitaction: function(doc) { doc.getElementById("inputsubmit").click(); }
-  }
-,
+  },
   {
     name: "form submission from submit button should contain submit button value",
     input: "<input type=submit name=notclicked value=nope/>",
     enctype: "application/x-www-form-urlencoded",
     submitelement: "<input id=inputsubmit type=\"submit\" name=foo value=bara >",
     submitaction: function(doc) { doc.getElementById("inputsubmit").click(); }
-  }
+  },
+  {
+    name: "form submission from image input should contain entries for its clicked coordinate",
+    input: "<input type=submit name=notclicked value=nope/>",
+    enctype: "application/x-www-form-urlencoded",
+    submitelement: "<input id=inputsubmit type=image name=foo>",
+    submitaction: function(doc) { doc.getElementById("inputsubmit").click(); },
+    expected_body: "foo.x=0&foo.y=0"
+  },
+  {
+    name: "form submission from image input should only contain entries for the submitter's clicked coordinate when multiple image inputs are present",
+    input: "<input type=image name=bar>",
+    enctype: "application/x-www-form-urlencoded",
+    submitelement: "<input id=inputsubmit type=image name=foo>",
+    submitaction: function(doc) { doc.getElementById("inputsubmit").click(); },
+    expected_body: "foo.x=0&foo.y=0"
+  },
 ];
 simple_tests.forEach(function(test_obj) {
   test_obj.test = async_test(test_obj.name);
@@ -92,11 +107,13 @@ function run_simple_test() {
     return;
   }
   var test_obj = simple_tests.pop();
+  var enctype = test_obj.enctype || "application/x-www-form-urlencoded";
+  var query = test_obj.expected_body ? "expected_body=" + encodeURIComponent(test_obj.expected_body) : "query=1";
   var t = test_obj.test;
   var testframe = document.getElementById("testframe");
   var testdocument = testframe.contentWindow.document;
   testdocument.body.innerHTML =
-    "<form id=testform method=post action=\"/html/semantics/forms/form-submission-0/resources/form-submission.py?query=1\" enctype=\"" + test_obj.enctype + "\">" +
+    "<form id=testform method=post action=\"/html/semantics/forms/form-submission-0/resources/form-submission.py?" + query + "\" enctype=\"" + enctype + "\">" +
     test_obj.input +
     test_obj.submitelement +
     "</form>";

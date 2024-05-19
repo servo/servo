@@ -33,9 +33,9 @@ async_test(t => {
 async_test(t => {
   var iframe = document.createElement('iframe');
   iframe.src = "/document-policy/echo-policy.py?id=2";
-  iframe.policy = "font-display-late-swap=?0";
+  iframe.policy = "force-load-at-top=?0";
   callbacks["2"] = t.step_func_done(result => {
-    assert_equals(result, "font-display-late-swap=?0");
+    assert_equals(result, "force-load-at-top=?0");
   });
   document.body.appendChild(iframe);
 }, "Child frame can have an explicit required policy.");

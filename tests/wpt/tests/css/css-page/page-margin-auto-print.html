@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#page-properties">
+<link rel="match" href="page-margin-auto-print-ref.html">
+<style>
+  @page {
+    size: 20em 7em;
+    width: 12em;
+    height: 3em;
+    margin: auto;
+  }
+  @page aaa { }
+  @page bbb {
+    margin-top: 0;
+  }
+  @page ccc {
+    margin-bottom: 0;
+  }
+  @page ddd {
+    margin-top: 0;
+    margin-left: 0;
+  }
+  @page eee {
+    margin-top: 0;
+    margin-right: 0;
+  }
+  @page fff {
+    margin-bottom: 0;
+    margin-right: 0;
+  }
+  body {
+    margin: 0;
+    background: yellow;
+  }
+</style>
+<div style="page:aaa;">
+  center / middle
+</div>
+<div style="page:bbb;">
+  center / top
+</div>
+<div style="page:ccc;">
+  center / bottom
+</div>
+<div style="page:ddd;">
+  top / left
+</div>
+<div style="page:eee;">
+  top / right
+</div>
+<div style="page:fff;">
+  bottom / right
+</div>

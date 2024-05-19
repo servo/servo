@@ -135,13 +135,18 @@
 @font-palette-values --A {
     override-colors: 0 light-dark(white, currentcolor);
 }
+
+/* 23 */
+@font-palette-values --A {
+    override-colors: 0 color-mix(in lch, red, color-mix(in lch, currentcolor, black));
+}
 </style>
 </head>
 <body>
 <script>
 let rules = document.getElementById("style").sheet.cssRules;
 test(function() {
-    assert_equals(rules.length, 23);
+    assert_equals(rules.length, 24);
 });
 
 test(function() {
@@ -328,6 +333,13 @@ test(function() {
 test(function() {
     let text = rules[22].cssText;
     let rule = rules[22];
+    assert_equals(text.indexOf("override-colors"), -1);
+    assert_equals(rule.overrideColors, "");
+});
+
+test(function() {
+    let text = rules[23].cssText;
+    let rule = rules[23];
     assert_equals(text.indexOf("override-colors"), -1);
     assert_equals(rule.overrideColors, "");
 });

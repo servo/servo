@@ -54,6 +54,28 @@ test(function(t) {
 }, "aria-autocomplete attribute reflects.");
 </script>
 
+<div id="braillelabel" aria-braillelabel="x"></div>
+<script>
+test(function(t) {
+    var element = document.getElementById("braillelabel");
+    assert_equals(element.ariaBrailleLabel, "x");
+    element.ariaBrailleLabel = "y";
+    assert_equals(element.getAttribute("aria-braillelabel"), "y");
+    testNullable(element, "ariaBrailleLabel", "aria-braillelabel");
+}, "aria-braillelabel attribute reflects.");
+</script>
+
+<div id="brailleroledescription" aria-brailleroledescription="x"></div>
+<script>
+test(function(t) {
+    var element = document.getElementById("brailleroledescription");
+    assert_equals(element.ariaBrailleRoleDescription, "x");
+    element.ariaBrailleRoleDescription = "y";
+    assert_equals(element.getAttribute("aria-brailleroledescription"), "y");
+    testNullable(element, "ariaBrailleRoleDescription", "aria-brailleroledescription");
+}, "aria-brailleroledescription attribute reflects.");
+</script>
+
 <div id="busy" aria-busy="true"></div>
 <script>
 test(function(t) {
@@ -98,6 +120,17 @@ test(function(t) {
 }, "aria-colindex attribute reflects.");
 </script>
 
+<div id="colindextext" aria-colindextext="x"></div>
+<script>
+test(function(t) {
+    var element = document.getElementById("colindextext");
+    assert_equals(element.ariaColIndexText, "x");
+    element.ariaColIndexText = "y";
+    assert_equals(element.getAttribute("aria-colindextext"), "y");
+    testNullable(element, "ariaColIndexText", "aria-colindextext");
+}, "aria-colindextext attribute reflects.");
+</script>
+
 <div id="colspan" aria-colspan="2"></div>
 <script>
 test(function(t) {
@@ -120,8 +153,6 @@ test(function(t) {
 }, "aria-current attribute reflects.");
 </script>
 
-<div id="disabled" aria-disabled="true"></div>
-
 <div id="description" aria-description="cold as ice"></div>
 <script>
 test(function(t) {
@@ -133,6 +164,7 @@ test(function(t) {
 }, "aria-description attribute reflects.");
 </script>
 
+<div id="disabled" aria-disabled="true"></div>
 <script>
 test(function(t) {
     var element = document.getElementById("disabled");
@@ -298,7 +330,6 @@ test(function(t) {
 </script>
 
 <button id="pressed" aria-pressed="true"></button>
-
 <script>
 test(function(t) {
     var element = document.getElementById("pressed");
@@ -373,6 +404,17 @@ test(function(t) {
     assert_equals(element.getAttribute("aria-rowindex"), "2");
     testNullable(element, "ariaRowIndex", "aria-rowindex");
 }, "aria-rowindex attribute reflects.");
+</script>
+
+<div id="rowindextext" aria-rowindextext="x"></div>
+<script>
+    test(function(t) {
+        var element = document.getElementById("rowindextext");
+        assert_equals(element.ariaRowIndexText, "x");
+        element.ariaRowIndexText = "y";
+        assert_equals(element.getAttribute("aria-rowindextext"), "y");
+        testNullable(element, "ariaRowIndexText", "aria-rowindextext");
+    }, "aria-rowindextext attribute reflects.");
 </script>
 
 <div id="rowspan" aria-rowspan="2"></div>
@@ -463,25 +505,4 @@ test(function(t) {
 }, "aria-valuetext attribute reflects.");
 </script>
 
-<div id="braillelabel" aria-braillelabel="x"></div>
-<script>
-test(function(t) {
-    var element = document.getElementById("braillelabel");
-    assert_equals(element.ariaBrailleLabel, "x");
-    element.ariaBrailleLabel = "y";
-    assert_equals(element.getAttribute("aria-braillelabel"), "y");
-    testNullable(element, "ariaBrailleLabel", "aria-braillelabel");
-}, "aria-braillelabel attribute reflects.");
-</script>
-
-<div id="brailleroledescription" aria-brailleroledescription="x"></div>
-<script>
-test(function(t) {
-    var element = document.getElementById("brailleroledescription");
-    assert_equals(element.ariaBrailleRoleDescription, "x");
-    element.ariaBrailleRoleDescription = "y";
-    assert_equals(element.getAttribute("aria-brailleroledescription"), "y");
-    testNullable(element, "ariaBrailleRoleDescription", "aria-brailleroledescription");
-}, "aria-brailleroledescription attribute reflects.");
-</script>
 </html>

@@ -1,6 +1,45 @@
 {
   "tests": [
     {
+      "name": "reduceProduct float32 0D constant tensor default options",
+      "inputs": {
+        "input": {
+          "shape": [],
+          "data": [
+            -68.75911712646484
+          ],
+          "type": "float32",
+          "constant": true
+        }
+      },
+      "expected": {
+        "name": "output",
+        "data": -68.75911712646484,
+        "type": "float32"
+      }
+    },
+    {
+      "name": "reduceProduct float32 0D constant tensor empty axes",
+      "inputs": {
+        "input": {
+          "shape": [],
+          "data": [
+            -68.75911712646484
+          ],
+          "type": "float32",
+          "constant": true
+        }
+      },
+      "options": {
+        "axes": []
+      },
+      "expected": {
+        "name": "output",
+        "data": -68.75911712646484,
+        "type": "float32"
+      }
+    },
+    {
       "name": "reduceProduct float32 1D constant tensor default options",
       "inputs": {
         "input": {

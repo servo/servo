@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<form>
+  <input id="email" required>
+</form>
+<script>
+test(function() {
+  const input = document.getElementById("email");
+  input.setCustomValidity("First line\rSecond line\r\nThird line\nFourth line");
+  assert_equals(input.validationMessage, "First line\nSecond line\nThird line\nFourth line");
+}, "setCustomValidity should normalize newlines from the given error message");
+</script>
+</html>

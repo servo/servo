@@ -1,8 +1,7 @@
 var fakeCustomData = (function() {
   var buffer = new ArrayBuffer(2);
   new DataView(buffer).setInt16(0, 42, true);
-  var canvas = document.createElement("canvas");
-  canvas.width = canvas.height = 100;
+  var canvas = new OffscreenCanvas(100, 100);
   var context = canvas.getContext("2d");
 
   var map = new Map();

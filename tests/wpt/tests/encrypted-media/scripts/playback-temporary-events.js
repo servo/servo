@@ -15,6 +15,7 @@ function runTest(config,qualifier) {
             _mediaKeys,
             _mediaKeySession,
             _mediaSource,
+            _resolvedClosePromises = 0,
             _timeupdateEvent = false,
             _events = [ ];
 
@@ -75,19 +76,27 @@ function runTest(config,qualifier) {
             }).catch(onFailure);
         }
 
-        function onClosed(event) {
-            _events.push('closed-attribute-resolved');
+        function onAllClosed() {
             setTimeout(test.step_func(function() {
                 checkEventSequence( _events,
                                     ['generaterequest',
                                         ['license-request', 'license-request-response', 'update-resolved'], // potentially repeating
                                         'allkeysusable',
                                         'playing',
-                                        'closed-attribute-resolved',
-                                        'close-promise-resolved',
+                                        'closed-promise-0',
+                                        'closed-promise-1',
                                         'emptykeyslist']);
                 test.done();
             } ), 0);
+        }
+
+        function onClosed() {
+            // The two closed Promises are equivalent in every way.  The order between them does not matter.
+            // But both should be resolved at the right time relative to the other events.
+            // We generate numbered events for them (e.g. 'closed-promise-0') so they can both be placed in
+            // the overall timeline, but we don't care which is which.
+            _events.push('closed-promise-' + _resolvedClosePromises);
+            _resolvedClosePromises++;
         }
 
         function onTimeupdate(event) {
@@ -95,9 +104,14 @@ function runTest(config,qualifier) {
                 _timeupdateEvent = true;
                 _video.pause();
 
-                _mediaKeySession.closed.then(test.step_func(onClosed));
-                _mediaKeySession.close().then(function() {
-                    _events.push('close-promise-resolved');
+                var closedAttributePromise = _mediaKeySession.closed;
+                var closeMethodPromise = _mediaKeySession.close();
+
+                closedAttributePromise.then(onClosed);
+                closeMethodPromise.then(onClosed);
+
+                Promise.all([ closedAttributePromise, closeMethodPromise ]).then(function() {
+                    test.step_func(onAllClosed);
                 }).catch(onFailure);
             }
         }

@@ -291,12 +291,18 @@ class TestEnvironment:
                     failed.append((scheme, port))
 
         if not failed and self.test_server_port:
+            # The webtransport-h3 server test blocks (i.e., doesn't fail quickly
+            # with "Connection refused" like the sockets do), so testing these
+            # first improves the likelihood the non-webtransport-h3 servers are
+            # ready by the time they're checked.
+            for port, server in self.servers.get("webtransport-h3", []):
+                if not webtranport_h3_server_is_running(host, port, timeout=5):
+                    pending.append((host, port))
+
             for scheme, servers in self.servers.items():
+                if scheme == "webtransport-h3":
+                    continue
                 for port, server in servers:
-                    if scheme == "webtransport-h3":
-                        if not webtranport_h3_server_is_running(host, port, timeout=5.0):
-                            pending.append((host, port))
-                        continue
                     s = socket.socket()
                     s.settimeout(0.1)
                     try:

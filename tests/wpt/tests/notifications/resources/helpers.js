@@ -33,3 +33,13 @@ async function trySettingPermission(perm) {
     throw new Error(`Should have the permission ${perm} to continue`);
   }
 }
+
+// Use this in service workers where activation is required e.g. when testing showNotification()
+async function untilActivate() {
+  if (registration.active) {
+    return;
+  }
+  return new Promise(resolve => {
+    addEventListener("activate", resolve, { once: true });
+  });
+}

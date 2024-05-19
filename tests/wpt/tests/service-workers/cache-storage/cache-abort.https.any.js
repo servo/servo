@@ -73,7 +73,7 @@ for (const method in methodsToTest) {
                           `${method} should reject`);
 
     // infinite-slow-response.py doesn't know when to stop.
-    return fetch(`../../../fetch/api/resources/stash-put.py?key=${abortKey}`);
+    return fetch(`../../../fetch/api/resources/stash-put.py?key=${abortKey}&value=close`);
   }, `${method}() followed by abort after headers received should reject ` +
      `with AbortError`);
 }

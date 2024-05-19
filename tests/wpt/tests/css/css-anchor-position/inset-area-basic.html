@@ -112,6 +112,6 @@
   test_inset_area("span-bottom span-all", {left:0, top:150, width:400, height:250});
 
   // No implicit anchor means the inset-area should not apply.
-  anchored.style.positionAnchor = "implicit";
+  anchored.style.positionAnchor = "auto";
   test_inset_area("span-all top", {left:0, top:0, width:0, height:0});
 </script>

@@ -27,6 +27,14 @@ function checkBodyArrayBuffer(request, expectedBody) {
   });
 }
 
+function checkBodyBytes(request, expectedBody) {
+  return request.bytes().then(function(bodyAsUint8Array) {
+    assert_true(bodyAsUint8Array instanceof Uint8Array);
+    validateBufferFromString(bodyAsUint8Array.buffer, expectedBody, "Retrieve and verify request's body");
+    assert_true(request.bodyUsed, "body as bytes: bodyUsed turned true");
+  });
+}
+
 function checkBodyJSON(request, expectedBody) {
   return request.json().then(function(bodyAsJSON) {
     var strBody = JSON.stringify(bodyAsJSON)
@@ -58,6 +66,11 @@ function checkRequestBody(body, expected, bodyType) {
     assert_false(request.bodyUsed, "bodyUsed is false at init");
     return checkBodyArrayBuffer(request, expected);
   }, "Consume " + bodyType  + " request's body as arrayBuffer");
+  promise_test(function(test) {
+    var request = new Request("", {"method": "POST", "body": body });
+    assert_false(request.bodyUsed, "bodyUsed is false at init");
+    return checkBodyBytes(request, expected);
+  }, "Consume " + bodyType  + " request's body as bytes");
   promise_test(function(test) {
     var request = new Request("", {"method": "POST", "body": body });
     assert_false(request.bodyUsed, "bodyUsed is false at init");
@@ -113,6 +126,7 @@ checkBlobResponseBody(blob, textData, "blob", checkBodyBlob);
 checkBlobResponseBody(blob, textData, "text", checkBodyText);
 checkBlobResponseBody(blob, textData, "json", checkBodyJSON);
 checkBlobResponseBody(blob, textData, "arrayBuffer", checkBodyArrayBuffer);
+checkBlobResponseBody(blob, textData, "bytes", checkBodyBytes);
 checkBlobResponseBody(new Blob([""]), "", "blob (empty blob as input)", checkBodyBlob);
 
 var goodJSONValues = ["null", "1", "true", "\"string\""];

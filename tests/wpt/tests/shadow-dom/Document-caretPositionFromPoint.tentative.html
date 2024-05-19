@@ -31,6 +31,34 @@ test(() => {
 }, "document.caretPositionFromPoint() should return a CaretPosition at the specified location");
 
 test(() => {
+    container.setHTMLUnsafe(`<input value='text inside input' />`);
+    const rect = container.firstChild.getBoundingClientRect();
+    // Get x and y coordinate at left-most location inside input element.
+    const x = rect.left + 1;
+    const y = rect.top + rect.height / 2;
+    const caretPosition = document.caretPositionFromPoint(x, y);
+    assert_true(caretPosition instanceof CaretPosition);
+    assert_true(caretPosition.offsetNode instanceof Node);
+    assert_equals(typeof(caretPosition.offset), "number");
+    assert_equals(caretPosition.offsetNode, container.firstChild);
+    assert_equals(caretPosition.offset, 0);
+}, "document.caretPositionFromPoint() should return a CaretPosition at the specified location pointing to an input element which is the offsetNode.");
+
+test(() => {
+    container.setHTMLUnsafe(`<textarea rows="2" cols="4">12345678901234567890</textarea>`);
+    const rect = container.firstChild.getBoundingClientRect();
+    // Get x and y coordinate at "1234|5678..."
+    const x = rect.left + 1;
+    const y = rect.top + rect.height * 0.75;
+    const caretPosition = document.caretPositionFromPoint(x, y);
+    assert_true(caretPosition instanceof CaretPosition);
+    assert_true(caretPosition.offsetNode instanceof Node);
+    assert_equals(typeof(caretPosition.offset), "number");
+    assert_equals(caretPosition.offsetNode, container.firstChild);
+    assert_equals(caretPosition.offset, 4);
+}, "document.caretPositionFromPoint() should return a CaretPosition at the specified location pointing to a textarea element which is the offsetNode.");
+
+test(() => {
     container.setHTMLUnsafe(`a<div id="host"></div>b`);
     const shadowRoot = host.attachShadow({mode: 'closed'});
     shadowRoot.setHTMLUnsafe(`<span>hello, world</span>`);
@@ -71,6 +99,48 @@ test(() => {
     assert_equals(caretPosition.offsetNode, spanElement.firstChild);
     assert_equals(caretPosition.offset, characterIndex);
 }, 'document.caretPositionFromPoint() should return a CaretPosition at the specified location when the non-intersecting shadow tree is specified as an argument');
+
+test(() => {
+    container.setHTMLUnsafe(`
+        a<div id="host">
+            <template shadowrootmode=open>
+                <input value='text inside input' />
+            </template>
+        </div>efg`);
+    const shadowRoot = host.shadowRoot;
+    const shadowRootInputElement = shadowRoot.querySelector("input");
+    const rect = shadowRootInputElement.getBoundingClientRect();
+    // Get x and y coordinate at left-most location inside input element.
+    const x = rect.left + 1;
+    const y = rect.top + rect.height / 2;
+    const caretPosition = document.caretPositionFromPoint(x, y, shadowRoot);
+    assert_true(caretPosition instanceof CaretPosition);
+    assert_true(caretPosition.offsetNode instanceof Node);
+    assert_equals(typeof(caretPosition.offset), "number");
+    assert_equals(caretPosition.offsetNode, shadowRootInputElement);
+    assert_equals(caretPosition.offset, 0);
+}, "document.caretPositionFromPoint() should return a CaretPosition at the specified location pointing to an input element when the shadow tree is specified as an argument.");
+
+test(() => {
+    container.setHTMLUnsafe(`
+        a<div id="host">
+            <template shadowrootmode=open>
+                <input value='text inside input' />
+            </template>
+        </div>efg`);
+    const shadowRoot = host.shadowRoot;
+    const shadowRootInputElement = shadowRoot.querySelector("input");
+    const rect = shadowRootInputElement.getBoundingClientRect();
+    // Get x and y coordinate at left-most location inside input element.
+    const x = rect.left + 1;
+    const y = rect.top + rect.height / 2;
+    const caretPosition = document.caretPositionFromPoint(x, y);
+    assert_true(caretPosition instanceof CaretPosition);
+    assert_true(caretPosition.offsetNode instanceof Node);
+    assert_equals(typeof(caretPosition.offset), "number");
+    assert_equals(caretPosition.offsetNode, container);
+    assert_equals(caretPosition.offset, 1);
+}, "document.caretPositionFromPoint() should return a CaretPosition at the specified location pointing to the input element's shadow host\'s parent when the shadow tree is not specified as an argument.");
 
 test(() => {
     container.setHTMLUnsafe(`

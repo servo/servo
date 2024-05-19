@@ -8,7 +8,7 @@ const tests = [
   {
     name: '[gather] Test gather with default options and 0-D indices',
     input: {dataType: 'int32', dimensions: [3]},
-    indices: {dataType: 'uint64', dimensions: []},
+    indices: {dataType: 'int64', dimensions: []},
     output: {dataType: 'int32', dimensions: []}
   },
   {
@@ -24,13 +24,15 @@ const tests = [
     indices: {dataType: 'int64', dimensions: [1]}
   },
   {
-    name: '[gather] TypeError is expected if the axis is greater than the rank of input',
+    name:
+        '[gather] TypeError is expected if the axis is greater than the rank of input',
     input: {dataType: 'float16', dimensions: [1, 2, 3]},
     indices: {dataType: 'int32', dimensions: [5, 6]},
     axis: 4
   },
   {
-    name: '[gather] TypeError is expected if the data type of indices is invalid',
+    name:
+        '[gather] TypeError is expected if the data type of indices is invalid',
     input: {dataType: 'float16', dimensions: [1, 2, 3, 4]},
     indices: {dataType: 'float32', dimensions: [5, 6]}
   }

@@ -2213,7 +2213,7 @@
     @assert pixel 1,39 == 255,0,0,255;
     @assert pixel 1,28 == 0,255,0,255;
 
-- name: 2d.path.roundrect.1.radius.dompoint.single argument
+- name: 2d.path.roundrect.1.radius.dompoint.single.argument
   desc: Verify that when one radius is given to roundRect() as a non-array argument, specified as a DOMPoint, it applies to all corners.
   code: |
     ctx.fillStyle = '#f00';

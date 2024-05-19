@@ -32,7 +32,12 @@
   </script>
   <img src='/reporting/resources/fail.png' onload='t.unreached_func("The image should not have loaded");'
     onerror='t.done();'>
-  <script>document.write("This should be written into the document");</script>
+  <script>
+    // Attempt a synchronous XHR - this should succeed but cause a report to be sent.
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", document.location.href, false);
+    xhr.send();
+  </script>
   <script>
     const base_url = `${location.protocol}//${location.host}`;
     const endpoint = `${base_url}/reporting/resources/report.py`;

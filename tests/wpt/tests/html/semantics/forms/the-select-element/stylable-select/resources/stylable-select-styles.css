@@ -29,9 +29,13 @@
  * They will either have to be specced or also added to the main test file.
  * TODO(crbug.com/1511354): Spec these UA styles. */
 .stylable-select-option {
-  min-height: 1.2em;
-  padding: 0px 2px 1px;
+  padding-inline: 2px;
+  padding-block-start: 0;
+  padding-block-end: 1px;
   white-space: nowrap;
+  min-inline-size: 24px;
+  min-block-size: max(24px, 1.2em);
+  align-content: center;
 }
 
 .stylable-select-button {
@@ -51,10 +55,6 @@
 }
 
 .stylable-select-button-icon {
-  background-image: url(data:image/svg+xml,%3Csvg%20width%3D%2220%22%20height%3D%2214%22%20viewBox%3D%220%200%2020%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M4%206%20L10%2012%20L%2016%206%22%20stroke%3D%22WindowText%22%20stroke-width%3D%223%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E);
-  background-origin: content-box;
-  background-repeat: no-repeat;
-  background-size: contain;
   opacity: 1;
   outline: none;
   margin-inline-start: 0.25em;
@@ -65,6 +65,11 @@
   min-inline-size: 1.2em;
   max-inline-size: 1.2em;
   display: block;
+
+  color: light-dark(black, white);
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linejoin: round;
 }
 
 .stylable-select-selectedoption {

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#page-properties">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/8508">
+<link rel="match" href="page-margin-auto-negative-print-ref.tentative.html">
+<style>
+  @page {
+    size: 300px;
+    width: 340px;
+    height: 340px;
+    margin: auto;
+  }
+  body {
+    margin: 0;
+    background: yellow;
+  }
+  .fullpager {
+    width: 300px;
+    height: 300px;
+    border: 20px solid red;
+    background: green;
+  }
+</style>
+<div class="fullpager">
+  Green background, no red / yellow.
+</div>

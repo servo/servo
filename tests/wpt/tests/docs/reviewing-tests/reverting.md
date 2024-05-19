@@ -3,7 +3,7 @@
 Testing is imperfect and from time to time changes are merged into master which
 break things for users of web-platform-tests. Such breakage can include:
 
-  * Failures in Travis or Taskcluster runs for this repository, either on the
+  * Failures in CI runs for this repository, either on the
     master branch or on pull requests following the breaking change.
 
   * Breakage in browser engine repositories which import and run

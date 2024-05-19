@@ -42,12 +42,12 @@
           async_test((t) => {
             const iframe = document.createElement('iframe');
             document.body.appendChild(iframe);
-            iframe_pre_nav_callback(iframe);
-            iframe.src = url;
-            iframe_post_nav_callback(iframe);
             iframe.onload = t.step_func(() => {
+              iframe_post_nav_callback(iframe);
               postMessageToFrame(iframe, t.step_func_done(result_handler));
             });
+            iframe_pre_nav_callback(iframe);
+            iframe.src = url;
           }, test_name);
         }
 
