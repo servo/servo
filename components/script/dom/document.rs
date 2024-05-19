@@ -36,6 +36,7 @@ use metrics::{
 use mime::{self, Mime};
 use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::RequestBuilder;
+use net_traits::policy_container::PolicyContainer;
 use net_traits::response::HttpsState;
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
@@ -366,6 +367,9 @@ pub struct Document {
     referrer: Option<String>,
     /// <https://html.spec.whatwg.org/multipage/#target-element>
     target_element: MutNullableDom<Element>,
+    /// <https://html.spec.whatwg.org/multipage/dom.html#concept-document-policy-container>
+    #[no_trace]
+    policy_container: PolicyContainer,
     /// <https://w3c.github.io/uievents/#event-type-dblclick>
     #[ignore_malloc_size_of = "Defined in std"]
     #[no_trace]
@@ -3247,6 +3251,7 @@ impl Document {
             referrer,
             referrer_policy: Cell::new(referrer_policy),
             target_element: MutNullableDom::new(None),
+            policy_container: PolicyContainer::default(),
             last_click_info: DomRefCell::new(None),
             ignore_destructive_writes_counter: Default::default(),
             ignore_opens_during_unload_counter: Default::default(),
