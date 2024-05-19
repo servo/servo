@@ -17,6 +17,7 @@ use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::rust::{HandleValue, MutableHandleValue, ParentRuntime};
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CredentialsMode, Destination, ParserMetadata, RequestBuilder as NetRequestInit,
 };
@@ -109,6 +110,9 @@ pub struct WorkerGlobalScope {
     runtime: DomRefCell<Option<Runtime>>,
     location: MutNullableDom<WorkerLocation>,
     navigator: MutNullableDom<WorkerNavigator>,
+    #[no_trace]
+    /// <https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface:policy-container>
+    policy_container: DomRefCell<PolicyContainer>,
 
     #[ignore_malloc_size_of = "Defined in ipc-channel"]
     #[no_trace]
@@ -171,6 +175,7 @@ impl WorkerGlobalScope {
             runtime: DomRefCell::new(Some(runtime)),
             location: Default::default(),
             navigator: Default::default(),
+            policy_container: Default::default(),
             devtools_receiver,
             _devtools_sender: init.from_devtools_sender,
             navigation_start: CrossProcessInstant::now(),
@@ -229,6 +234,10 @@ impl WorkerGlobalScope {
 
     pub fn pipeline_id(&self) -> PipelineId {
         self.globalscope.pipeline_id()
+    }
+
+    pub fn policy_container(&self) -> Ref<PolicyContainer> {
+        self.policy_container.borrow()
     }
 }
 

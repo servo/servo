@@ -11,6 +11,7 @@ use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CorsSettings, Destination, Initiator, Referrer, RequestBuilder, RequestId,
 };
@@ -76,6 +77,7 @@ struct LinkProcessingOptions {
     link_type: String,
     cross_origin: Option<CorsSettings>,
     referrer_policy: Option<ReferrerPolicy>,
+    policy_container: PolicyContainer,
     source_set: Option<()>,
     base_url: ServoUrl,
     // Some fields that we don't need yet are missing
@@ -322,6 +324,7 @@ impl HTMLLinkElement {
             link_type: String::new(),
             cross_origin: cors_setting_for_element(element),
             referrer_policy: referrer_policy_for_element(element),
+            policy_container: document.policy_container().to_owned(),
             source_set: None, // FIXME
             base_url: document.borrow().base_url(),
         };
@@ -642,7 +645,7 @@ impl LinkProcessingOptions {
 
         // Step 5. Let request be the result of creating a potential-CORS request given
         //         url, options's destination, and options's crossorigin.
-        // FIXME: Step 6. Set request's policy container to options's policy container.
+        // Step 6. Set request's policy container to options's policy container.
         // Step 7. Set request's integrity metadata to options's integrity.
         // FIXME: Step 8. Set request's cryptographic nonce metadata to options's cryptographic nonce metadata.
         // Step 9. Set request's referrer policy to options's referrer policy.
@@ -657,6 +660,7 @@ impl LinkProcessingOptions {
             Referrer::NoReferrer,
         )
         .integrity_metadata(self.integrity)
+        .policy_container(self.policy_container)
         .referrer_policy(self.referrer_policy);
 
         // Step 12. Return request.

@@ -45,6 +45,7 @@ use net_traits::filemanager_thread::{
     FileManagerResult, FileManagerThreadMsg, ReadFileProgress, RelativePos,
 };
 use net_traits::image_cache::ImageCache;
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{Referrer, RequestBuilder};
 use net_traits::response::HttpsState;
 use net_traits::{
@@ -2373,6 +2374,17 @@ impl GlobalScope {
         unreachable!();
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-policy-container>
+    pub fn policy_container(&self) -> PolicyContainer {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.Document().policy_container().to_owned();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.policy_container().to_owned();
+        }
+        unreachable!();
+    }
+
     /// Get the [base url](https://html.spec.whatwg.org/multipage/#api-base-url)
     /// for this global scope.
     pub fn api_base_url(&self) -> ServoUrl {
@@ -3116,8 +3128,8 @@ impl GlobalScope {
 
     /// <https://www.w3.org/TR/CSP/#get-csp-of-object>
     pub fn get_csp_list(&self) -> Option<CspList> {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.Document().get_csp_list().map(|c| c.clone());
+        if self.downcast::<Window>().is_some() {
+            return self.policy_container().csp_list;
         }
         // TODO: Worker and Worklet global scopes.
         None
