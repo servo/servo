@@ -274,9 +274,9 @@ const getReductionPrecisionTolerance = (resources, operationName) => {
   } else {
     sizes = inputShape;
   }
-  const reducedElementCount = sizes.reduce(
-                                  (accumulator, currentValue) => accumulator * currentValue
-  );
+  const reducedElementCount = sizes.length ?
+      sizes.reduce((accumulator, currentValue) => accumulator * currentValue) :
+      1;
   let tolerance;
   switch (operationName) {
     case 'reduceL1':

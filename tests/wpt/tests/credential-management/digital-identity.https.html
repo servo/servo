@@ -9,7 +9,7 @@
 
 <body>
 <script type="module">
-import { buildValidNavigatorIdentityRequest } from './support/digital-identity-helper.js';
+import { buildValidNavigatorIdentityRequest, requestIdentityWithActivation } from './support/digital-identity-helper.js';
 
 // This regex removes the filename from the path so that we just get
 // the directory.
@@ -28,9 +28,15 @@ async function createIframeAndWaitForMessage(test, iframeUrl) {
 
 // Requires browser to have mode where OS-presented digital-identity-prompt is
 // bypassed in favour of returning "fake_test_token" directly.
+promise_test(async t=>{
+  assert_false(navigator.userActivation.isActive);
+  let request = buildValidNavigatorIdentityRequest();
+  await promise_rejects_dom(t, "NetworkError", navigator.identity.get(request));
+}, "navigator.identity.get() fails if the page doesn't have user activation");
+
 promise_test(async t => {
   let request = buildValidNavigatorIdentityRequest();
-  let credential = await navigator.identity.get(request);
+  let credential = await requestIdentityWithActivation(test_driver, request);
   assert_equals("urn:openid.net:oid4vp", credential.protocol);
   assert_equals("fake_test_token", credential.data);
 }, "navigator.identity.get() API works in toplevel frame.");
@@ -38,28 +44,27 @@ promise_test(async t => {
 promise_test(async t => {
   let request = buildValidNavigatorIdentityRequest();
   request.digital.providers = undefined;
-
-  await promise_rejects_js(t, TypeError, navigator.identity.get(request));
+  await promise_rejects_js(t, TypeError, requestIdentityWithActivation(test_driver, request));
 }, "navigator.identity.get() API fails if DigitalCredentialRequestOptions::providers is not specified.");
 
 promise_test(async t => {
   let request = buildValidNavigatorIdentityRequest();
   request.digital.providers = [];
-  await promise_rejects_js(t, TypeError, navigator.identity.get(request));
+  await promise_rejects_js(t, TypeError, requestIdentityWithActivation(test_driver, request));
 }, "navigator.identity.get() API fails if there are no providers.");
 
 promise_test(async t => {
   let request = buildValidNavigatorIdentityRequest();
   let providerCopy = structuredClone(request.digital.providers[0]);
   request.digital.providers.push(providerCopy);
-  await promise_rejects_js(t, TypeError, navigator.identity.get(request));
+  await promise_rejects_js(t, TypeError, requestIdentityWithActivation(test_driver, request));
 }, "navigator.identity.get() API fails if there is more than one provider.");
 
 promise_test(async t=> {
   let abortController = new AbortController();
   let request = buildValidNavigatorIdentityRequest();
   request.signal = abortController.signal;
-  let requestPromise = navigator.identity.get(request);
+  let requestPromise = requestIdentityWithActivation(test_driver, request);
   abortController.abort();
   await promise_rejects_dom(t, "AbortError", requestPromise);
 }, "navigator.identity.get() promise is rejected when the page aborts the request.");

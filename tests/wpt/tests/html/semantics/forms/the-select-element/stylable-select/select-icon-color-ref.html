@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel=stylesheet href="resources/stylable-select-styles.css">
+<script src="resources/stylable-select-utils.js"></script>
+
+<style>
+.stylable-select-button-icon svg {
+  stroke: red !important;
+}
+</style>
+
+<div class=stylable-select-container>
+  <button class=stylable-select-button popovertarget=popover id=button>
+    <span class=stylable-select-selectedoption>option</span>
+    <div class=stylable-select-button-icon></div>
+  </button>
+</div>
+
+<script>
+populateFallbackButtonIcon();
+</script>

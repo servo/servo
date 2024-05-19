@@ -158,15 +158,29 @@
 
   setup();
 
+  const hoverable = pointer_type != "touch";
+
   // Tests for dispatched pointer events.
-  addPromiseTestForNewChild("pointerdown", "pointer", [
-    "pointerover@parent", "pointerenter@parent",
-    "pointerdown@parent", "(child-attached)",
-    "pointerout@parent", "pointerover@child", "pointerenter@child",
-    "pointerup@child",
-    "pointerdown@child", "pointerup@child",
-    "pointerout@child", "pointerleave@child", "pointerleave@parent"
-  ]);
+  addPromiseTestForNewChild(
+    "pointerdown",
+    "pointer",
+    hoverable
+      ? ["pointerover@parent", "pointerenter@parent",
+        "pointerdown@parent", "(child-attached)",
+        "pointerout@parent", "pointerover@child", "pointerenter@child",
+        "pointerup@child",
+        "pointerdown@child", "pointerup@child",
+        "pointerout@child", "pointerleave@child", "pointerleave@parent"]
+      : ["pointerover@parent", "pointerenter@parent",
+        "pointerdown@parent", "(child-attached)",
+        // pointerup should imply a pointermove over the attached child.
+        "pointerout@parent", "pointerover@child", "pointerenter@child",
+        // pointerup should cause pointerout/pointerleave if the input source is not hoverable.
+        "pointerup@child", "pointerout@child", "pointerleave@child", "pointerleave@parent",
+        // then, pointerdown should imply a pointermove again.
+        "pointerover@child", "pointerenter@child", "pointerenter@parent", "pointerdown@child",
+        "pointerup@child", "pointerout@child", "pointerleave@child", "pointerleave@parent"]
+  );
   addPromiseTestForNewChild("pointerup", "pointer", [
     "pointerover@parent", "pointerenter@parent",
     "pointerdown@parent", "pointerup@parent", "(child-attached)",

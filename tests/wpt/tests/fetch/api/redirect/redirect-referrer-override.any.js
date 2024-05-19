@@ -3,7 +3,7 @@
 // META: script=../resources/utils.js
 // META: script=/common/get-host-info.sub.js
 
-function getExpectation(expectations, init, initScenario, redirectPolicy, redirectScenario) {
+function getExpectation(expectations, initPolicy, initScenario, redirectPolicy, redirectScenario) {
   let policies = [
     expectations[initPolicy][initScenario],
     expectations[redirectPolicy][redirectScenario]

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/utils.js"></script>
+<title>Test activation behavior with window.open() in fenced frames</title>
+
+<body>
+  <script>
+    promise_test(async (t) => {
+      const fencedframe = await attachFencedFrameContext(
+                  {generator_api: 'fledge'});
+      t.add_cleanup(async () => document.body.removeChild(fencedframe.element));
+
+      let opened_key = token();
+      await fencedframe.execute((opened) => {
+        assert_false(navigator.userActivation.isActive);
+        let opened_url = generateURL('embeddee.html', [opened]);
+        window.open(opened_url, '_unfencedTop');
+      }, [opened_key]);
+
+      let result = await Promise.race([
+        nextValueFromServer(opened_key),
+        new Promise((resolve) => {
+          t.step_timeout(() => resolve('timeout'), 2000);
+        })
+      ]);
+
+      assert_equals(result, 'timeout');
+    }, 'Test that _unfencedTop navigation fails without transient user ' +
+       'activation.');
+
+    // TODO(averge): Once fenced frames require user activation for popup
+    // navigations, add a test here to match that behavior.
+  </script>
+</body>

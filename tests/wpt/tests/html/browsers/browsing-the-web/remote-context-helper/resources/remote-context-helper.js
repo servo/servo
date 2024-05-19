@@ -294,7 +294,8 @@
           el.setAttribute(attribute, attributes[attribute]);
         }
         el.src = url;
-        document.body.appendChild(el);
+        const parent = elementName == "frame" ? findOrCreateFrameset() : document.body;
+        parent.appendChild(el);
       }, [url, elementName, attributes]);
     };
   }
@@ -381,7 +382,7 @@
     }
 
     /**
-     * Adds an iframe with `src` attribute to the current document.
+     * Adds an `iframe` with `src` attribute to the current document.
      * @param {RemoteContextConfig} [extraConfig]
      * @param {[string, string][]} [attributes] A list of pairs of strings
      *     of attribute name and value these will be set on the iframe element
@@ -395,6 +396,21 @@
       });
     }
 
+    /**
+     * Adds a `frame` with `src` attribute to the current document's first
+     * `frameset` element.
+     * @param {RemoteContextConfig} [extraConfig]
+     * @param {[string, string][]} [attributes] A list of pairs of strings
+     *     of attribute name and value these will be set on the iframe element
+     *     when added to the document.
+     * @returns {Promise<RemoteContextWrapper>} The remote context.
+     */
+    addFrame(extraConfig, attributes = {}) {
+      return this.helper.createContext({
+        executorCreator: elementExecutorCreator(this, 'frame', attributes),
+        extraConfig,
+      });
+    }
     /**
      * Adds an iframe with `srcdoc` attribute to the current document
      * @param {RemoteContextConfig} [extraConfig]

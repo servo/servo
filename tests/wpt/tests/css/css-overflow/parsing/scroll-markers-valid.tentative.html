@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>CSS Overflow: parsing scroll-markers with valid values</title>
+  <link rel="help" href="https://github.com/w3c/csswg-drafts/pull/10243">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/parsing-testcommon.js"></script>
+</head>
+
+<body>
+  <div id="target"></div>
+  <script>
+    test_valid_value('scroll-markers', 'initial');
+    test_valid_value('scroll-markers', 'inherit');
+    test_valid_value('scroll-markers', 'unset');
+    test_valid_value('scroll-markers', 'revert');
+
+    test_valid_value("scroll-markers", "none");
+    test_valid_value("scroll-markers", "before");
+    test_valid_value("scroll-markers", "after");
+  </script>
+</body>
+
+</html>

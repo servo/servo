@@ -1,9 +1,9 @@
 features:
 - name: overflow-shorthand
   files:
-  # This is all overflow-* except overflow-auto-scrollbar-gutter-intrinsic-* and
-  # overflow-scroll-*. TODO: convert to an exclusion patterns, or rename tests
-  # to make overflow-* only match the below.
+  # This is all overflow-* except overflow-auto-scrollbar-gutter-intrinsic-*,
+  # overflow-scroll-*, and overflow-no-interpolation.html which depends on
+  # transition-behavior. TODO: convert to exclusion patterns when possible.
   - overflow-abpos-transform.html
   - overflow-body-propagation-*
   - overflow-canvas.html
@@ -19,7 +19,6 @@ features:
   - overflow-negative-margin-dynamic.html
   - overflow-negative-margin.html
   - overflow-no-frameset-propagation.html
-  - overflow-no-interpolation.html
   - overflow-overlay.html
   - overflow-padding.html
   - overflow-recalc-001.html

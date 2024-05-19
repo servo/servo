@@ -17,3 +17,10 @@ export function buildValidNavigatorIdentityRequest() {
       },
   };
 }
+
+// Requests digital identity with user activation.
+export function requestIdentityWithActivation(test_driver, request) {
+  return test_driver.bless("request identity with activation", async function() {
+    return await navigator.identity.get(request);
+  });
+}

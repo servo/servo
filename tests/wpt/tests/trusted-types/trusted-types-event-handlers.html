@@ -46,10 +46,15 @@ for(name in div.__proto__) {
           _ => element.setAttribute(name, "2+2"));
     }, `Event handler div.${name} should be blocked.`);
   } else {
-    test(t => {
-      element.setAttribute(name, "2+2");
-    }, `Non-event handler div.${name} should not be blocked.`);
+    // Rather than going through all the non-event handler, we randomly choose
+    // a few examples to test.
+    if (name == "align" ||  name == "title" ||   name == "inert" || name == "draggable") {
+        test(t => {
+        element.setAttribute(name, "2+2");
+      }, `Non-event handler div.${name} should not be blocked.`);
+    }
   }
 }
+
 </script>
 </body>

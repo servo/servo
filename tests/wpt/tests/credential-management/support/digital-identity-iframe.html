@@ -2,7 +2,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script type="module">
-import { buildValidNavigatorIdentityRequest } from './digital-identity-helper.js';
+import { buildValidNavigatorIdentityRequest, requestIdentityWithActivation } from './digital-identity-helper.js';
 
 // Loading digital-identity-iframe.html in the test will make a digital credential call on load, and
 // trigger a postMessage upon completion.
@@ -16,7 +16,7 @@ import { buildValidNavigatorIdentityRequest } from './digital-identity-helper.js
 window.onload = async () => {
   try {
     let request = buildValidNavigatorIdentityRequest();
-    let credential = await navigator.identity.get(request);
+    let credential = await requestIdentityWithActivation(test_driver, request);
 
     window.top.postMessage({result: "Pass", data: credential.data}, '*');
   } catch (error) {

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-ruby/#break-within">
+<link rel="match" href="basic-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+body {
+  font: 50px/1 Ahem;
+}
+span {
+  text-wrap: nowrap;
+}
+p {
+  word-break: break-all;
+  inline-size: 305px;
+}
+</style>
+<p>zzz<ruby><span>mmm</span><span>mm</span><rt><span>mmmmmm</span><span>mmmm</span></ruby>zzz
+</p>

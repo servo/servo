@@ -54,7 +54,7 @@ requestHeaders("Fetch with POST with Blob body", url, "POST", new Blob(["Test"])
 requestHeaders("Fetch with POST with ArrayBuffer body", url, "POST", new ArrayBuffer(4), location.origin, "4");
 requestHeaders("Fetch with POST with Uint8Array body", url, "POST", new Uint8Array(4), location.origin, "4");
 requestHeaders("Fetch with POST with Int8Array body", url, "POST", new Int8Array(4), location.origin, "4");
-requestHeaders("Fetch with POST with Float16Array body", url, "POST", new Float16Array(1), location.origin, "2");
+requestHeaders("Fetch with POST with Float16Array body", url, "POST", () => new Float16Array(1), location.origin, "2");
 requestHeaders("Fetch with POST with Float32Array body", url, "POST", new Float32Array(1), location.origin, "4");
 requestHeaders("Fetch with POST with Float64Array body", url, "POST", new Float64Array(1), location.origin, "8");
 requestHeaders("Fetch with POST with DataView body", url, "POST", new DataView(new ArrayBuffer(8), 0, 4), location.origin, "4");

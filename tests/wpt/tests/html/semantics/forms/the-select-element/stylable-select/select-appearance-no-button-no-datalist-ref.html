@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <link rel=stylesheet href="resources/stylable-select-styles.css">
+<script src="resources/stylable-select-utils.js"></script>
 
 <div id=container class=stylable-select-container>
   <button class=stylable-select-button popovertarget=popover id=button>
@@ -13,5 +14,6 @@
 </div>
 
 <script>
+populateFallbackButtonIcon();
 document.getElementById('popover').showPopover();
 </script>

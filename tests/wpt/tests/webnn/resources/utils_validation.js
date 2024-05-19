@@ -219,13 +219,15 @@ function validateTwoInputsBroadcastable(operationName) {
           const unbroadcastableDimensionsArray = generateUnbroadcastableDimensionsArray(dimensions);
           for (let unbroadcastableDimensions of unbroadcastableDimensionsArray) {
             const inputB = builder.input(`inputB${++inputBIndex}`, {dataType, dimensions: unbroadcastableDimensions});
-            assert_throws_dom('DataError', () => builder[operationName](inputA, inputB));
-            assert_throws_dom('DataError', () => builder[operationName](inputB, inputA));
+            assert_throws_js(
+                TypeError, () => builder[operationName](inputA, inputB));
+            assert_throws_js(
+                TypeError, () => builder[operationName](inputB, inputA));
           }
         }
       }
     }
-  }, `[${operationName}] DataError is expected if two inputs aren't broadcastable`);
+  }, `[${operationName}] TypeError is expected if two inputs aren't broadcastable`);
 }
 
 function validateTwoInputsOfSameDataType(operationName) {
@@ -248,12 +250,13 @@ function validateTwoInputsOfSameDataType(operationName) {
           for (let dataTypeB of allWebNNOperandDataTypes) {
             if (dataType !== dataTypeB) {
               const inputB = builder.input(`inputB${++inputBIndex}`, {dataType: dataTypeB, dimensions});
-              assert_throws_dom('DataError', () => builder[subOperationName](inputA, inputB));
+              assert_throws_js(
+                  TypeError, () => builder[subOperationName](inputA, inputB));
             }
           }
         }
       }
-    }, `[${subOperationName}] DataError is expected if two inputs aren't of same data type`);
+    }, `[${subOperationName}] TypeError is expected if two inputs aren't of same data type`);
   }
 }
 

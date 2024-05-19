@@ -53,7 +53,7 @@ window.onload = async function() {
     });
   } catch (e) {
     enabled = false;
-    name = e.name + '#' + e.message;
+    name = e.name;
   }
   parent.postMessage({ type: 'availability-result', enabled, name }, '*');
 }

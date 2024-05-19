@@ -108,6 +108,11 @@
 @font-palette-values --Q {
     override-colors: 0 color-mix(in lch, red, blue);
 }
+
+/* 18 */
+@font-palette-values --R {
+    override-colors: 0 color-mix(in lch, color-mix(in lch, red, blue), color-mix(in lch, green, white));
+}
 </style>
 </head>
 <body>
@@ -397,6 +402,14 @@ test(function() {
     assert_equals(rule.fontFamily, "");
     assert_equals(rule.basePalette, "");
     assert_equals(rule.overrideColors, "0 color-mix(in lch, red, blue)");
+});
+
+test(function() {
+    let rule = rules[18];
+    assert_equals(rule.name, "--R");
+    assert_equals(rule.fontFamily, "");
+    assert_equals(rule.basePalette, "");
+    assert_equals(rule.overrideColors, "0 color-mix(in lch, color-mix(in lch, red, blue), color-mix(in lch, green, white))");
 });
 </script>
 </body>

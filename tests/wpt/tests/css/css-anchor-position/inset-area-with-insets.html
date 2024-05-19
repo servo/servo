@@ -73,7 +73,7 @@
                   {left:100, top:165, width:225, height:60});
 
   // No implicit anchor means the inset-area should not apply, but the insets still should.
-  anchored.style.positionAnchor = "implicit";
+  anchored.style.positionAnchor = "auto";
   test_inset_area("bottom right", {left:"50px", right:"100px", top:"30px" , bottom:"10px"},
                   {left:50, top:30, width:250, height:360});
 </script>

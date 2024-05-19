@@ -34,29 +34,29 @@ async_test(t => {
 
 // Frame tree should be:
 // Top:
-//  <iframe policy="lossless-images-max-bpp=1.1">
+//  <iframe policy="sync-xhr=?0">
 //    <iframe>
 async_test(t => {
   var iframe = document.createElement('iframe');
   iframe.src = "/document-policy/echo-policy-nested.html?id=2";
-  iframe.policy = "lossless-images-max-bpp=1.1";
+  iframe.policy = "sync-xhr=?0";
   callbacks["2"] = t.step_func_done(result => {
-    assert_equals(result, "lossless-images-max-bpp=1.1");
+    assert_equals(result, "sync-xhr=?0");
   });
   document.body.appendChild(iframe);
 }, "test nested required document policy when set by nested frame");
 
 // Frame tree should be:
 // Top:
-//  <iframe policy="lossless-images-max-bpp=1.1">
+//  <iframe policy="sync-xhr=?0">
 //    <iframe>
 //      <iframe>
 async_test(t => {
   var iframe = document.createElement('iframe');
   iframe.src = "/document-policy/echo-policy-nested.html?id=3&level=1";
-  iframe.policy = "lossless-images-max-bpp=1.1";
+  iframe.policy = "sync-xhr=?0";
   callbacks["3"] = t.step_func_done(result => {
-    assert_equals(result, "lossless-images-max-bpp=1.1");
+    assert_equals(result, "sync-xhr=?0");
   });
   document.body.appendChild(iframe);
 }, "test nested required document policy when set by intermediate nested frame");

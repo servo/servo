@@ -292,13 +292,13 @@
 
     const opus = findFirstCodec('audio/opus');
     const nonOpus = codecsNotMatching(opus.mimeType);
-    pc2.ontrack = e => {
-      e.transceiver.setCodecPreferences(nonOpus);
-    };
 
     const transceiver = pc1.addTransceiver('audio');
     exchangeIceCandidates(pc1, pc2);
-    await exchangeOfferAnswer(pc1, pc2);
+    const negotiated = exchangeOfferAnswer(pc1, pc2);
+    const trackEvent = await new Promise(r => pc2.ontrack = r);
+    trackEvent.transceiver.setCodecPreferences(nonOpus);
+    await negotiated;
 
     const sender = transceiver.sender;
     let param = sender.getParameters();
@@ -316,13 +316,13 @@
 
     const vp8 = findFirstCodec('video/VP8');
     const nonVP8 = codecsNotMatching(vp8.mimeType);
-    pc2.ontrack = e => {
-      e.transceiver.setCodecPreferences(nonVP8);
-    };
 
     const transceiver = pc1.addTransceiver('video');
     exchangeIceCandidates(pc1, pc2);
-    await exchangeOfferAnswer(pc1, pc2);
+    const negotiated = exchangeOfferAnswer(pc1, pc2);
+    const trackEvent = await new Promise(r => pc2.ontrack = r);
+    trackEvent.transceiver.setCodecPreferences(nonVP8);
+    await negotiated;
 
     const sender = transceiver.sender;
     let param = sender.getParameters();
@@ -340,14 +340,14 @@
 
     const opus = findFirstCodec('audio/opus');
     const nonOpus = codecsNotMatching(opus.mimeType);
-    pc2.ontrack = e => {
-      e.transceiver.setCodecPreferences(nonOpus);
-    };
 
     const transceiver = pc1.addTransceiver('audio');
 
     exchangeIceCandidates(pc1, pc2);
-    await exchangeOfferAnswer(pc1, pc2);
+    const negotiated = exchangeOfferAnswer(pc1, pc2);
+    const trackEvent = await new Promise(r => pc2.ontrack = r);
+    trackEvent.transceiver.setCodecPreferences(nonOpus);
+    await negotiated;
 
     const sender = transceiver.sender;
     let param = sender.getParameters();
@@ -365,13 +365,13 @@
 
     const vp8 = findFirstCodec('video/VP8');
     const nonVP8 = codecsNotMatching(vp8.mimeType);
-    pc2.ontrack = e => {
-      e.transceiver.setCodecPreferences(nonVP8);
-    };
 
     const transceiver = pc1.addTransceiver('video');
     exchangeIceCandidates(pc1, pc2);
-    await exchangeOfferAnswer(pc1, pc2);
+    const negotiated = exchangeOfferAnswer(pc1, pc2);
+    const trackEvent = await new Promise(r => pc2.ontrack = r);
+    trackEvent.transceiver.setCodecPreferences(nonVP8);
+    await negotiated;
 
     const sender = transceiver.sender;
     let param = sender.getParameters();
@@ -452,15 +452,16 @@
 
     const opus = findFirstCodec('audio/opus');
     const nonOpus = codecsNotMatching(opus.mimeType);
-    pc2.ontrack = e => {
-      e.transceiver.setCodecPreferences(nonOpus.concat([opus]));
-    };
 
     const transceiver = pc1.addTransceiver(stream.getTracks()[0]);
     const sender = transceiver.sender;
 
     exchangeIceCandidates(pc1, pc2);
-    await exchangeOfferAnswer(pc1, pc2);
+    const negotiated = exchangeOfferAnswer(pc1, pc2);
+    const trackEvent = await new Promise(r => pc2.ontrack = r);
+    trackEvent.transceiver.setCodecPreferences(nonOpus.concat([opus]));
+    await negotiated;
+
 
     let codecs = await codecsForSender(sender);
     assert_not_equals(codecs[0], opus.mimeType);
@@ -490,15 +491,15 @@
 
     const vp8 = findFirstCodec('video/VP8');
     const nonVP8 = codecsNotMatching(vp8.mimeType);
-    pc2.ontrack = e => {
-      e.transceiver.setCodecPreferences(nonVP8.concat([vp8]));
-    };
 
     const transceiver = pc1.addTransceiver(stream.getTracks()[0]);
     const sender = transceiver.sender;
 
     exchangeIceCandidates(pc1, pc2);
-    await exchangeOfferAnswer(pc1, pc2);
+    const negotiated = exchangeOfferAnswer(pc1, pc2);
+    const trackEvent = await new Promise(r => pc2.ontrack = r);
+    trackEvent.transceiver.setCodecPreferences(nonVP8.concat([vp8]));
+    await negotiated;
 
     let codecs = await codecsForSender(sender);
     assert_not_equals(codecs[0], vp8.mimeType);
@@ -528,16 +529,17 @@
 
     const vp8 = findFirstCodec('video/VP8');
     const h264 = findFirstCodec('video/H264');
-    pc2.ontrack = e => {
-      e.transceiver.setCodecPreferences([h264, vp8]);
-    };
+
     const transceiver = pc1.addTransceiver(stream.getTracks()[0], {
       sendEncodings: [{rid: '0'}, {rid: '1'}, {rid: '2'}],
     });
     const sender = transceiver.sender;
 
     exchangeIceCandidates(pc1, pc2);
-    await doOfferToSendSimulcastAndAnswer(pc1, pc2, ['0', '1', '2']);
+    const negotiated =  doOfferToSendSimulcastAndAnswer(pc1, pc2, ['0', '1', '2']);
+    const trackEvent = await new Promise(r => pc2.ontrack = r);
+    trackEvent.transceiver.setCodecPreferences([h264, vp8]);
+    await negotiated;
 
     await waitForAllLayers(t, sender);
 
@@ -573,9 +575,6 @@
 
     const vp8 = findFirstCodec('video/VP8');
     const h264 = findFirstCodec('video/H264');
-    pc2.ontrack = e => {
-      e.transceiver.setCodecPreferences([h264, vp8]);
-    };
 
     const transceiver = pc1.addTransceiver(stream.getTracks()[0], {
       sendEncodings: [{rid: '0'}, {rid: '1'}, {rid: '2'}],
@@ -583,7 +582,11 @@
     const sender = transceiver.sender;
 
     exchangeIceCandidates(pc1, pc2);
-    await doOfferToSendSimulcastAndAnswer(pc1, pc2, ['0', '1', '2']);
+    const negotiated =  doOfferToSendSimulcastAndAnswer(pc1, pc2, ['0', '1', '2']);
+    const trackEvent = await new Promise(r => pc2.ontrack = r);
+    trackEvent.transceiver.setCodecPreferences([h264, vp8]);
+    await negotiated;
+
 
     await waitForAllLayers(t, sender);
 
