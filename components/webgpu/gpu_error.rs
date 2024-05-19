@@ -4,7 +4,11 @@
 
 //! Error scopes and GPUError types
 
+use std::fmt;
+
 use serde::{Deserialize, Serialize};
+
+use crate::wgc;
 
 /// <https://www.w3.org/TR/webgpu/#gpu-error-scope>
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -39,6 +43,18 @@ pub enum Error {
     Internal(String),
 }
 
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        None
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.message())
+    }
+}
+
 impl Error {
     pub fn filter(&self) -> ErrorFilter {
         match self {
@@ -54,6 +70,27 @@ impl Error {
             Error::OutOfMemory(m) => m,
             Error::Internal(m) => m,
         }
+    }
+
+    // TODO: labels
+    // based on https://github.com/gfx-rs/wgpu/blob/trunk/wgpu/src/backend/wgpu_core.rs#L289
+    pub fn from_error<E: std::error::Error + 'static>(error: E) -> Self {
+        let mut source_opt: Option<&(dyn std::error::Error + 'static)> = Some(&error);
+        while let Some(source) = source_opt {
+            if let Some(wgc::device::DeviceError::OutOfMemory) =
+                source.downcast_ref::<wgc::device::DeviceError>()
+            {
+                return Self::OutOfMemory(error.to_string());
+            }
+            source_opt = source.source();
+        }
+        // TODO: This hack is needed because there are
+        // multiple OutOfMemory error variant in wgpu-core
+        // and even upstream does not handle them correctly
+        if format!("{error:?}").contains("OutOfMemory") {
+            return Self::OutOfMemory(error.to_string());
+        }
+        Self::Validation(error.to_string())
     }
 }
 
