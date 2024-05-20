@@ -55,7 +55,7 @@ core-text = "20.1"
 
 [target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
 harfbuzz-sys = { version = "0.6", features = ["bundled"] }
-freetype = "0.7"
+freetype-sys = { workspace = true }
 servo_allocator = { path = "../allocator" }
 
 [target.'cfg(all(target_os = "linux", not(target_env = "ohos")))'.dependencies]

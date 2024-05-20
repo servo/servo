@@ -8,16 +8,14 @@ use std::sync::Arc;
 use std::{mem, ptr};
 
 use app_units::Au;
-use freetype::freetype::{
-    FT_Done_Face, FT_F26Dot6, FT_Face, FT_Fixed, FT_Get_Char_Index, FT_Get_Kerning,
-    FT_Get_Sfnt_Table, FT_GlyphSlot, FT_Int32, FT_Kerning_Mode, FT_Load_Glyph, FT_Load_Sfnt_Table,
-    FT_Long, FT_MulFix, FT_New_Memory_Face, FT_Pos, FT_Select_Size, FT_Set_Char_Size, FT_Sfnt_Tag,
-    FT_Short, FT_SizeRec, FT_Size_Metrics, FT_UInt, FT_ULong, FT_UShort, FT_Vector,
-    FT_FACE_FLAG_COLOR, FT_FACE_FLAG_FIXED_SIZES, FT_FACE_FLAG_SCALABLE, FT_LOAD_COLOR,
-    FT_LOAD_DEFAULT, FT_STYLE_FLAG_ITALIC,
+use freetype_sys::{
+    ft_sfnt_head, ft_sfnt_os2, FT_Byte, FT_Done_Face, FT_Error, FT_F26Dot6, FT_Face, FT_Fixed,
+    FT_Get_Char_Index, FT_Get_Kerning, FT_Get_Sfnt_Table, FT_GlyphSlot, FT_Int32, FT_Load_Glyph,
+    FT_Long, FT_MulFix, FT_New_Memory_Face, FT_Pos, FT_Select_Size, FT_Set_Char_Size, FT_Short,
+    FT_SizeRec, FT_Size_Metrics, FT_UInt, FT_ULong, FT_UShort, FT_Vector, FT_FACE_FLAG_COLOR,
+    FT_FACE_FLAG_FIXED_SIZES, FT_FACE_FLAG_SCALABLE, FT_KERNING_DEFAULT, FT_LOAD_COLOR,
+    FT_LOAD_DEFAULT, FT_STYLE_FLAG_ITALIC, TT_OS2,
 };
-use freetype::succeeded;
-use freetype::tt_os2::TT_OS2;
 use log::debug;
 use parking_lot::ReentrantMutex;
 use style::computed_values::font_stretch::T as FontStretch;
@@ -95,7 +93,7 @@ impl Drop for PlatformFont {
             // should be protected by a mutex.
             // See https://freetype.org/freetype2/docs/reference/ft2-library_setup.html.
             let _guard = FreeTypeLibraryHandle::get().lock();
-            if !succeeded(FT_Done_Face(*face)) {
+            if FT_Done_Face(*face) != 0 {
                 panic!("FT_Done_Face failed");
             }
         }
@@ -117,7 +115,7 @@ fn create_face(data: Arc<Vec<u8>>, face_index: u32) -> Result<FT_Face, &'static 
             &mut face,
         );
 
-        if !succeeded(result) || face.is_null() {
+        if 0 != result || face.is_null() {
             return Err("Could not create FreeType face");
         }
 
@@ -211,7 +209,7 @@ impl PlatformFontMethods for PlatformFont {
                 *face,
                 first_glyph,
                 second_glyph,
-                FT_Kerning_Mode::FT_KERNING_DEFAULT as FT_UInt,
+                FT_KERNING_DEFAULT,
                 &mut delta,
             );
         }
@@ -228,7 +226,7 @@ impl PlatformFontMethods for PlatformFont {
 
         let load_flags = face.glyph_load_flags();
         let result = unsafe { FT_Load_Glyph(*face, glyph as FT_UInt, load_flags) };
-        if !succeeded(result) {
+        if 0 != result {
             debug!("Unable to load glyph {}. reason: {:?}", glyph, result);
             return None;
         }
@@ -243,7 +241,7 @@ impl PlatformFontMethods for PlatformFont {
 
     fn metrics(&self) -> FontMetrics {
         let face_ptr = *self.face.lock();
-        let face = unsafe { *face_ptr };
+        let face = unsafe { &*face_ptr };
 
         // face.size is a *c_void in the bindings, presumably to avoid recursive structural types
         let freetype_size: &FT_SizeRec = unsafe { mem::transmute(&(*face.size)) };
@@ -281,8 +279,7 @@ impl PlatformFontMethods for PlatformFont {
             // scalable outlines". If it's an sfnt, we can get units_per_EM from the 'head' table
             // instead; otherwise, we don't have a unitsPerEm value so we can't compute y_scale and
             // x_scale.
-            let head =
-                unsafe { FT_Get_Sfnt_Table(face_ptr, FT_Sfnt_Tag::FT_SFNT_HEAD) as *mut TtHeader };
+            let head = unsafe { FT_Get_Sfnt_Table(face_ptr, ft_sfnt_head) as *mut TtHeader };
             if !head.is_null() && unsafe { (*head).table_version != 0xffff } {
                 // Bug 1267909 - Even if the font is not explicitly scalable, if the face has color
                 // bitmaps, it should be treated as scalable and scaled to the desired size. Metrics
@@ -381,18 +378,12 @@ impl PlatformFontMethods for PlatformFont {
         unsafe {
             // Get the length
             let mut len = 0;
-            if !succeeded(FT_Load_Sfnt_Table(*face, tag, 0, ptr::null_mut(), &mut len)) {
+            if 0 != FT_Load_Sfnt_Table(*face, tag, 0, ptr::null_mut(), &mut len) {
                 return None;
             }
             // Get the bytes
             let mut buf = vec![0u8; len as usize];
-            if !succeeded(FT_Load_Sfnt_Table(
-                *face,
-                tag,
-                0,
-                buf.as_mut_ptr(),
-                &mut len,
-            )) {
+            if 0 != FT_Load_Sfnt_Table(*face, tag, 0, buf.as_mut_ptr(), &mut len) {
                 return None;
             }
             Some(FontTable { buffer: buf })
@@ -438,7 +429,7 @@ impl FreeTypeFaceHelpers for FT_Face {
         if self.scalable() {
             let size_in_fixed_point = (requested_size.to_f64_px() * 64.0 + 0.5) as FT_F26Dot6;
             let result = unsafe { FT_Set_Char_Size(self, size_in_fixed_point, 0, 72, 72) };
-            if !succeeded(result) {
+            if 0 != result {
                 return Err("FT_Set_Char_Size failed");
             }
             return Ok(requested_size);
@@ -469,7 +460,7 @@ impl FreeTypeFaceHelpers for FT_Face {
             }
         }
 
-        if succeeded(unsafe { FT_Select_Size(self, best_index) }) {
+        if 0 == unsafe { FT_Select_Size(self, best_index) } {
             Ok(Au::from_f64_px(best_size.1 as f64 / 64.0))
         } else {
             Err("FT_Select_Size failed")
@@ -483,7 +474,7 @@ impl FreeTypeFaceHelpers for FT_Face {
         // Linux distros use by default, and is a better
         // default than no hinting.
         // TODO(gw): Make this configurable.
-        load_flags |= FT_LOAD_TARGET_LIGHT;
+        load_flags |= FT_LOAD_TARGET_LIGHT as i32;
 
         let face_flags = unsafe { (*self).face_flags };
         if (face_flags & (FT_FACE_FLAG_FIXED_SIZES as FT_Long)) != 0 {
@@ -497,20 +488,12 @@ impl FreeTypeFaceHelpers for FT_Face {
     }
 
     fn has_table(self, tag: FontTableTag) -> bool {
-        unsafe {
-            succeeded(FT_Load_Sfnt_Table(
-                self,
-                tag as FT_ULong,
-                0,
-                ptr::null_mut(),
-                &mut 0,
-            ))
-        }
+        unsafe { 0 == FT_Load_Sfnt_Table(self, tag as FT_ULong, 0, ptr::null_mut(), &mut 0) }
     }
 
     fn os2_table(self) -> Option<OS2Table> {
         unsafe {
-            let os2 = FT_Get_Sfnt_Table(self, FT_Sfnt_Tag::FT_SFNT_OS2) as *mut TT_OS2;
+            let os2 = FT_Get_Sfnt_Table(self, ft_sfnt_os2) as *mut TT_OS2;
             let valid = !os2.is_null() && (*os2).version != 0xffff;
 
             if !valid {
@@ -554,4 +537,14 @@ struct TtHeader {
     font_direction: FT_Short,
     index_to_loc_format: FT_Short,
     glyph_data_format: FT_Short,
+}
+
+extern "C" {
+    fn FT_Load_Sfnt_Table(
+        face: FT_Face,
+        tag: FT_ULong,
+        offset: FT_Long,
+        buffer: *mut FT_Byte,
+        length: *mut FT_ULong,
+    ) -> FT_Error;
 }

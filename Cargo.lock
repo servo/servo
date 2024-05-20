@@ -2026,7 +2026,7 @@ dependencies = [
  "euclid",
  "fnv",
  "fontsan",
- "freetype",
+ "freetype-sys",
  "gfx_traits",
  "harfbuzz-sys",
  "ipc-channel",

@@ -7,10 +7,9 @@ use std::ptr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::OnceLock;
 
-use freetype::freetype::{
-    FT_Add_Default_Modules, FT_Done_Library, FT_Library, FT_Memory, FT_MemoryRec_, FT_New_Library,
+use freetype_sys::{
+    FT_Add_Default_Modules, FT_Done_Library, FT_Library, FT_Memory, FT_MemoryRec, FT_New_Library,
 };
-use freetype::succeeded;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use parking_lot::Mutex;
 use servo_allocator::libc_compat::{free, malloc, realloc};
@@ -93,16 +92,16 @@ impl FreeTypeLibraryHandle {
     /// See <https://freetype.org/freetype2/docs/reference/ft2-library_setup.html>.
     pub(crate) fn get() -> &'static Mutex<FreeTypeLibraryHandle> {
         FREETYPE_LIBRARY_HANDLE.get_or_init(|| {
-            let freetype_memory = Box::into_raw(Box::new(FT_MemoryRec_ {
+            let freetype_memory = Box::into_raw(Box::new(FT_MemoryRec {
                 user: ptr::null_mut(),
-                alloc: Some(ft_alloc),
-                free: Some(ft_free),
-                realloc: Some(ft_realloc),
+                alloc: ft_alloc,
+                free: ft_free,
+                realloc: ft_realloc,
             }));
             unsafe {
                 let mut freetype_library: FT_Library = ptr::null_mut();
                 let result = FT_New_Library(freetype_memory, &mut freetype_library);
-                if !succeeded(result) {
+                if 0 != result {
                     panic!("Unable to initialize FreeType library");
                 }
                 FT_Add_Default_Modules(freetype_library);
