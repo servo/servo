@@ -77,6 +77,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
                             i as u32,
                             LayerId::root(),
                             ContainerConditionId::none(),
+                            /* in_starting_style = */ false,
                         )
                     })
                     .collect()
