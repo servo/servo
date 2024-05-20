@@ -2124,7 +2124,6 @@ impl ScriptThread {
                 MediaSessionAction(..) => None,
                 SetWebGPUPort(..) => None,
                 ForLayoutFromConstellation(_, id) => Some(id),
-                ForLayoutFromFontCache(id) => Some(id),
             },
             MixedMessage::FromDevtools(_) => None,
             MixedMessage::FromScript(ref inner_msg) => match *inner_msg {
@@ -2358,28 +2357,21 @@ impl ScriptThread {
                 panic!("should have handled {:?} already", msg)
             },
             ConstellationControlMsg::ForLayoutFromConstellation(msg, pipeline_id) => {
-                self.handle_layout_message(msg, pipeline_id)
-            },
-            ConstellationControlMsg::ForLayoutFromFontCache(pipeline_id) => {
-                self.handle_font_cache(pipeline_id)
+                self.handle_layout_message_from_constellation(msg, pipeline_id)
             },
         }
     }
 
-    fn handle_layout_message(&self, msg: LayoutControlMsg, pipeline_id: PipelineId) {
+    fn handle_layout_message_from_constellation(
+        &self,
+        msg: LayoutControlMsg,
+        pipeline_id: PipelineId,
+    ) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
             warn!("Received layout message pipeline {pipeline_id} closed: {msg:?}.");
             return;
         };
-        window.layout_mut().handle_constellation_msg(msg);
-    }
-
-    fn handle_font_cache(&self, pipeline_id: PipelineId) {
-        let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
-            warn!("Received font cache message pipeline {pipeline_id} closed.");
-            return;
-        };
-        window.layout_mut().handle_font_cache_msg();
+        window.layout_mut().handle_constellation_message(msg);
     }
 
     fn handle_msg_from_webgpu_server(&self, msg: WebGPUMsg) {

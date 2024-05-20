@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use base::id::PipelineId;
 use fnv::FnvHashMap;
@@ -11,7 +11,7 @@ use gfx::font_context::FontContext;
 use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageOrMetadataAvailable, UsePlaceholder,
 };
-use parking_lot::RwLock;
+use parking_lot::{Mutex, RwLock};
 use script_layout_interface::{PendingImage, PendingImageState};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::context::SharedStyleContext;
@@ -43,7 +43,7 @@ pub struct LayoutContext<'a> {
 impl<'a> Drop for LayoutContext<'a> {
     fn drop(&mut self) {
         if !std::thread::panicking() {
-            assert!(self.pending_images.lock().unwrap().is_empty());
+            assert!(self.pending_images.lock().is_empty());
         }
     }
 }
@@ -79,7 +79,7 @@ impl<'a> LayoutContext<'a> {
                     id,
                     origin: self.origin.clone(),
                 };
-                self.pending_images.lock().unwrap().push(image);
+                self.pending_images.lock().push(image);
                 None
             },
             // Not yet requested - request image or metadata from the cache
@@ -90,7 +90,7 @@ impl<'a> LayoutContext<'a> {
                     id,
                     origin: self.origin.clone(),
                 };
-                self.pending_images.lock().unwrap().push(image);
+                self.pending_images.lock().push(image);
                 None
             },
             // Image failed to load, so just return nothing

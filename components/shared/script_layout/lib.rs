@@ -179,10 +179,7 @@ pub trait LayoutFactory: Send + Sync {
 
 pub trait Layout {
     /// Handle a single message from the Constellation.
-    fn handle_constellation_msg(&mut self, msg: LayoutControlMsg);
-
-    /// Handle a a single mesasge from the FontCacheThread.
-    fn handle_font_cache_msg(&mut self);
+    fn handle_constellation_message(&mut self, msg: LayoutControlMsg);
 
     /// Get a reference to this Layout's Stylo `Device` used to handle media queries and
     /// resolve font metrics.

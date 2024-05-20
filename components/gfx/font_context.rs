@@ -5,11 +5,13 @@
 use std::collections::HashMap;
 use std::default::Default;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use app_units::Au;
+use crossbeam_channel::unbounded;
 use fnv::FnvHasher;
-use ipc_channel::ipc::{self, IpcSender};
+use gfx_traits::WebFontLoadFinishedCallback;
 use log::{debug, trace};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
@@ -49,6 +51,7 @@ pub struct FontContext<S: FontSource> {
     cache: CachingFontSource<S>,
     web_fonts: CrossThreadFontStore,
     webrender_font_store: CrossThreadWebRenderFontStore,
+    web_fonts_still_loading: AtomicUsize,
 }
 
 impl<S: FontSource> MallocSizeOf for FontContext<S> {
@@ -66,15 +69,25 @@ impl<S: FontSource> FontContext<S> {
             cache: CachingFontSource::new(font_source),
             web_fonts: Arc::new(RwLock::default()),
             webrender_font_store: Arc::new(RwLock::default()),
+            web_fonts_still_loading: Default::default(),
         }
     }
 
-    /// Invalidate all caches that this [`FontContext`] holds and any in-process platform-specific
-    /// caches.
-    pub fn invalidate_caches(&self) {
-        #[cfg(target_os = "macos")]
-        CoreTextFontCache::clear_core_text_font_cache();
-        self.cache.invalidate()
+    pub fn web_fonts_still_loading(&self) -> usize {
+        self.web_fonts_still_loading.load(Ordering::SeqCst)
+    }
+
+    /// Handle the situation where a web font finishes loading, specifying if the load suceeded or failed.
+    fn handle_web_font_load_finished(
+        &self,
+        finished_callback: &WebFontLoadFinishedCallback,
+        succeeded: bool,
+    ) {
+        self.web_fonts_still_loading.fetch_sub(1, Ordering::SeqCst);
+        if succeeded {
+            self.cache.invalidate_after_web_font_load();
+        }
+        finished_callback(succeeded);
     }
 
     /// Returns a `FontGroup` representing fonts which can be used for layout, given the `style`.
@@ -218,7 +231,7 @@ impl<S: FontSource> FontContext<S> {
 pub struct WebFontDownloadState {
     css_font_face_descriptors: Arc<CSSFontFaceDescriptors>,
     remaining_sources: Vec<Source>,
-    result_sender: IpcSender<()>,
+    finished_callback: WebFontLoadFinishedCallback,
     core_resource_thread: CoreResourceThread,
     local_fonts: Arc<HashMap<Atom, Option<FontTemplateRef>>>,
 }
@@ -229,7 +242,7 @@ pub trait FontContextWebFontMethods {
         stylesheet: &Stylesheet,
         guard: &SharedRwLockReadGuard,
         device: &Device,
-        font_cache_sender: &IpcSender<()>,
+        finished_callback: WebFontLoadFinishedCallback,
         synchronous: bool,
     ) -> usize;
     fn process_next_web_font_source(&self, web_font_download_state: WebFontDownloadState);
@@ -241,14 +254,20 @@ impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontConte
         stylesheet: &Stylesheet,
         guard: &SharedRwLockReadGuard,
         device: &Device,
-        font_cache_sender: &IpcSender<()>,
+        finished_callback: WebFontLoadFinishedCallback,
         synchronous: bool,
     ) -> usize {
-        let (result_sender, receiver) = if synchronous {
-            let (sender, receiver) = ipc::channel().unwrap();
-            (Some(sender), Some(receiver))
+        let (finished_callback, synchronous_receiver) = if synchronous {
+            let (sender, receiver) = unbounded();
+            let finished_callback = move |_succeeded: bool| {
+                let _ = sender.send(());
+            };
+            (
+                Arc::new(finished_callback) as WebFontLoadFinishedCallback,
+                Some(receiver),
+            )
         } else {
-            (None, None)
+            (finished_callback, None)
         };
 
         let mut number_loading = 0;
@@ -293,20 +312,21 @@ impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontConte
                 }
             }
 
-            let result_sender = result_sender.as_ref().unwrap_or(font_cache_sender).clone();
             self.process_next_web_font_source(WebFontDownloadState {
                 css_font_face_descriptors: Arc::new(rule.into()),
                 remaining_sources: sources,
-                result_sender,
+                finished_callback: finished_callback.clone(),
                 core_resource_thread: self.resource_threads.lock().clone(),
                 local_fonts: Arc::new(local_fonts),
             });
 
-            // Either increment the count of loading web fonts, or wait for a synchronous load.
-            if let Some(ref receiver) = receiver {
-                receiver.recv().unwrap();
-            }
             number_loading += 1;
+            self.web_fonts_still_loading.fetch_add(1, Ordering::SeqCst);
+
+            // If the load is synchronous wait for it to be signalled.
+            if let Some(ref synchronous_receiver) = synchronous_receiver {
+                synchronous_receiver.recv().unwrap();
+            }
         });
 
         number_loading
@@ -314,7 +334,7 @@ impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontConte
 
     fn process_next_web_font_source(&self, mut state: WebFontDownloadState) {
         let Some(source) = state.remaining_sources.pop() else {
-            state.result_sender.send(()).unwrap();
+            self.handle_web_font_load_finished(&state.finished_callback, false);
             return;
         };
 
@@ -344,7 +364,7 @@ impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontConte
                         .entry(web_font_family_name.clone())
                         .or_default()
                         .add_template(new_template);
-                    drop(state.result_sender.send(()));
+                    self.handle_web_font_load_finished(&state.finished_callback, true);
                 } else {
                     this.process_next_web_font_source(state);
                 }
@@ -452,8 +472,8 @@ impl<FCT: FontSource + Send + 'static> RemoteWebFontDownloader<FCT> {
             .or_default()
             .add_template(new_template);
 
-        // Signal the Document that we have finished trying to load this web font.
-        drop(state.result_sender.send(()));
+        self.font_context
+            .handle_web_font_load_finished(&state.finished_callback, true);
         true
     }
 
@@ -519,9 +539,7 @@ impl<FCT: FontSource> CachingFontSource<FCT> {
         }
     }
 
-    fn invalidate(&self) {
-        self.fonts.write().clear();
-        self.templates.write().clear();
+    fn invalidate_after_web_font_load(&self) {
         self.resolved_font_groups.write().clear();
     }
 
