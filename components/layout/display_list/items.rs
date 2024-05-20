@@ -20,8 +20,7 @@ use base::id::PipelineId;
 use base::print_tree::PrintTree;
 use embedder_traits::Cursor;
 use euclid::{SideOffsets2D, Vector2D};
-use net_traits::image::base::Image;
-use script_traits::compositor::{ScrollSensitivity, ScrollTreeNodeId};
+use pixels::Image;
 use serde::Serialize;
 use servo_geometry::MaxRect;
 use style::computed_values::_servo_top_layer::T as InTopLayer;
@@ -33,6 +32,7 @@ use webrender_api::{
     FilterOp, GlyphInstance, GradientStop, ImageKey, MixBlendMode, PrimitiveFlags, Shadow,
     SpatialId, StickyOffsetBounds, TransformStyle,
 };
+use webrender_traits::display_list::{ScrollSensitivity, ScrollTreeNodeId};
 
 use super::StackingContextId;
 

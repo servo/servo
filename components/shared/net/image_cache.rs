@@ -7,12 +7,13 @@ use std::sync::Arc;
 use ipc_channel::ipc::IpcSender;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
+use pixels::{Image, ImageMetadata};
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
+use webrender_traits::WebRenderNetApi;
 
-use crate::image::base::{Image, ImageMetadata};
 use crate::request::CorsSettings;
-use crate::{FetchResponseMsg, WebrenderIpcSender};
+use crate::FetchResponseMsg;
 
 // ======================================================================
 // Aux structs and enums.
@@ -98,7 +99,7 @@ pub enum ImageCacheResult {
 }
 
 pub trait ImageCache: Sync + Send {
-    fn new(webrender_api: WebrenderIpcSender) -> Self
+    fn new(webrender_api: WebRenderNetApi) -> Self
     where
         Self: Sized;
 
@@ -139,15 +140,4 @@ pub trait ImageCache: Sync + Send {
 
     /// Inform the image cache about a response for a pending request.
     fn notify_pending_response(&self, id: PendingImageId, action: FetchResponseMsg);
-}
-
-/// Whether this response passed any CORS checks, and is thus safe to read from
-/// in cross-origin environments.
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
-pub enum CorsStatus {
-    /// The response is either same-origin or cross-origin but passed CORS checks.
-    Safe,
-    /// The response is cross-origin and did not pass CORS checks. It is unsafe
-    /// to expose pixel data to the requesting environment.
-    Unsafe,
 }

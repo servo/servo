@@ -9,7 +9,6 @@ use base::print_tree::PrintTree;
 use euclid::default::Rect;
 use euclid::SideOffsets2D;
 use log::warn;
-use script_traits::compositor::{ScrollSensitivity, ScrollTreeNodeId, ScrollableNodeInfo};
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::DebugOptions;
 use style::computed_values::float::T as ComputedFloat;
@@ -24,6 +23,7 @@ use style::values::specified::box_::DisplayOutside;
 use style::Zero;
 use webrender_api as wr;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutTransform, LayoutVector2D};
+use webrender_traits::display_list::{ScrollSensitivity, ScrollTreeNodeId, ScrollableNodeInfo};
 use wr::units::{LayoutPixel, LayoutSize};
 use wr::{ClipChainId, SpatialTreeItemKey, StickyOffsetBounds};
 

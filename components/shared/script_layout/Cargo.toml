@@ -26,6 +26,7 @@ malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 metrics = { path = "../../metrics" }
 net_traits = { workspace = true }
+pixels = { path = "../../pixels" }
 profile_traits = { workspace = true }
 range = { path = "../../range" }
 script_traits = { workspace = true }
@@ -37,3 +38,4 @@ servo_url = { path = "../../url" }
 style = { workspace = true }
 style_traits = { workspace = true }
 webrender_api = { workspace = true }
+webrender_traits = { workspace = true }

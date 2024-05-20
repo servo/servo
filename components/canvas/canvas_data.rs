@@ -26,8 +26,9 @@ use style::values::computed::font;
 use style_traits::values::ToCss;
 use webrender_api::units::{DeviceIntSize, RectExt as RectExt_};
 use webrender_api::{ImageData, ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey};
+use webrender_traits::ImageUpdate;
 
-use crate::canvas_paint_thread::{AntialiasMode, ImageUpdate, WebrenderApi};
+use crate::canvas_paint_thread::{AntialiasMode, WebrenderApi};
 use crate::raqote_backend::Repetition;
 
 /// The canvas data stores a state machine for the current status of
@@ -1082,13 +1083,13 @@ impl<'a> CanvasData<'a> {
         match self.image_key {
             Some(image_key) => {
                 debug!("Updating image {:?}.", image_key);
-                updates.push(ImageUpdate::Update(image_key, descriptor, data));
+                updates.push(ImageUpdate::UpdateImage(image_key, descriptor, data));
             },
             None => {
                 let Some(key) = self.webrender_api.generate_key() else {
                     return;
                 };
-                updates.push(ImageUpdate::Add(key, descriptor, data));
+                updates.push(ImageUpdate::AddImage(key, descriptor, data));
                 self.image_key = Some(key);
                 debug!("New image {:?}.", self.image_key);
             },
@@ -1097,7 +1098,7 @@ impl<'a> CanvasData<'a> {
         if let Some(image_key) =
             mem::replace(&mut self.very_old_image_key, self.old_image_key.take())
         {
-            updates.push(ImageUpdate::Delete(image_key));
+            updates.push(ImageUpdate::DeleteImage(image_key));
         }
 
         self.webrender_api.update_images(updates);
@@ -1215,10 +1216,10 @@ impl<'a> Drop for CanvasData<'a> {
     fn drop(&mut self) {
         let mut updates = vec![];
         if let Some(image_key) = self.old_image_key.take() {
-            updates.push(ImageUpdate::Delete(image_key));
+            updates.push(ImageUpdate::DeleteImage(image_key));
         }
         if let Some(image_key) = self.very_old_image_key.take() {
-            updates.push(ImageUpdate::Delete(image_key));
+            updates.push(ImageUpdate::DeleteImage(image_key));
         }
 
         self.webrender_api.update_images(updates);

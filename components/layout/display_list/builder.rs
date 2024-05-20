@@ -27,7 +27,6 @@ use log::{debug, warn};
 use net_traits::image_cache::UsePlaceholder;
 use range::Range;
 use script_layout_interface::{combine_id_with_fragment_type, FragmentType};
-use script_traits::compositor::ScrollSensitivity;
 use servo_config::opts;
 use servo_geometry::{self, MaxRect};
 use style::color::AbsoluteColor;
@@ -52,6 +51,7 @@ use webrender_api::{
     ExternalScrollId, FilterOp, GlyphInstance, ImageRendering, LineStyle, NinePatchBorder,
     NinePatchBorderSource, NormalBorder, PropertyBinding, StickyOffsetBounds,
 };
+use webrender_traits::display_list::ScrollSensitivity;
 
 use super::StackingContextId;
 use crate::block::BlockFlow;

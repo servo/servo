@@ -33,7 +33,7 @@ use profile_traits::mem::Report;
 use profile_traits::time;
 use script_traits::{
     ConstellationControlMsg, InitialScriptState, LayoutControlMsg, LayoutMsg, LoadData, Painter,
-    ScrollState, UntrustedNodeAddress, WebrenderIpcSender, WindowSizeData,
+    ScrollState, UntrustedNodeAddress, WindowSizeData,
 };
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
@@ -51,6 +51,7 @@ use style::stylesheets::Stylesheet;
 use style::Atom;
 use style_traits::CSSPixel;
 use webrender_api::ImageKey;
+use webrender_traits::WebRenderScriptApi;
 
 pub type GenericLayoutData = dyn Any + Send + Sync;
 
@@ -165,7 +166,7 @@ pub struct LayoutConfig {
     pub image_cache: Arc<dyn ImageCache>,
     pub font_cache_thread: FontCacheThread,
     pub time_profiler_chan: time::ProfilerChan,
-    pub webrender_api_sender: WebrenderIpcSender,
+    pub webrender_api_sender: WebRenderScriptApi,
     pub paint_time_metrics: PaintTimeMetrics,
     pub window_size: WindowSizeData,
 }

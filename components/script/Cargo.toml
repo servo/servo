@@ -116,6 +116,7 @@ uuid = { workspace = true, features = ["serde"] }
 webdriver = { workspace = true }
 webgpu = { path = "../webgpu" }
 webrender_api = { workspace = true }
+webrender_traits = { workspace = true }
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
 xml5ever = { workspace = true }
 

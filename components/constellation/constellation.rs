@@ -155,7 +155,7 @@ use style_traits::CSSPixel;
 use webgpu::{self, WebGPU, WebGPURequest};
 use webrender::{RenderApi, RenderApiSender};
 use webrender_api::DocumentId;
-use webrender_traits::WebrenderExternalImageRegistry;
+use webrender_traits::{WebRenderNetApi, WebRenderScriptApi, WebrenderExternalImageRegistry};
 
 use crate::browsingcontext::{
     AllBrowsingContextsIterator, BrowsingContext, FullyActiveBrowsingContextsIterator,
@@ -392,11 +392,11 @@ pub struct Constellation<STF, SWF> {
 
     /// A channel for content processes to send messages that will
     /// be relayed to the WebRender thread.
-    webrender_api_ipc_sender: script_traits::WebrenderIpcSender,
+    webrender_api_ipc_sender: WebRenderScriptApi,
 
     /// A channel for content process image caches to send messages
     /// that will be relayed to the WebRender thread.
-    webrender_image_api_sender: net_traits::WebrenderIpcSender,
+    webrender_image_api_sender: WebRenderNetApi,
 
     /// A map of message-port Id to info.
     message_ports: HashMap<MessagePortId, MessagePortInfo>,
@@ -785,12 +785,8 @@ where
                     scheduler_receiver,
                     document_states: HashMap::new(),
                     webrender_document: state.webrender_document,
-                    webrender_api_ipc_sender: script_traits::WebrenderIpcSender::new(
-                        webrender_ipc_sender,
-                    ),
-                    webrender_image_api_sender: net_traits::WebrenderIpcSender::new(
-                        webrender_image_ipc_sender,
-                    ),
+                    webrender_api_ipc_sender: WebRenderScriptApi::new(webrender_ipc_sender),
+                    webrender_image_api_sender: WebRenderNetApi::new(webrender_image_ipc_sender),
                     webrender_wgpu,
                     shutting_down: false,
                     handled_warnings: VecDeque::new(),

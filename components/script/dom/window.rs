@@ -56,7 +56,7 @@ use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{
     ConstellationControlMsg, DocumentState, HistoryEntryReplacement, LoadData, ScriptMsg,
     ScriptToConstellationChan, ScrollState, StructuredSerializedData, TimerEventId,
-    TimerSchedulerMsg, WebrenderIpcSender, WindowSizeData, WindowSizeType,
+    TimerSchedulerMsg, WindowSizeData, WindowSizeType,
 };
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
@@ -76,6 +76,7 @@ use style_traits::{CSSPixel, DevicePixel, ParsingMode};
 use url::Position;
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId};
+use webrender_traits::WebRenderScriptApi;
 
 use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
@@ -318,7 +319,7 @@ pub struct Window {
     /// Webrender API Sender
     #[ignore_malloc_size_of = "Wraps an IpcSender"]
     #[no_trace]
-    webrender_api_sender: WebrenderIpcSender,
+    webrender_api_sender: WebRenderScriptApi,
 
     /// Indicate whether a SetDocumentStatus message has been sent after a reflow is complete.
     /// It is used to avoid sending idle message more than once, which is unneccessary.
@@ -521,7 +522,7 @@ impl Window {
         self.add_pending_reflow();
     }
 
-    pub fn get_webrender_api_sender(&self) -> WebrenderIpcSender {
+    pub fn get_webrender_api_sender(&self) -> WebRenderScriptApi {
         self.webrender_api_sender.clone()
     }
 
@@ -2537,7 +2538,7 @@ impl Window {
         webxr_registry: webxr_api::Registry,
         microtask_queue: Rc<MicrotaskQueue>,
         webrender_document: DocumentId,
-        webrender_api_sender: WebrenderIpcSender,
+        webrender_api_sender: WebRenderScriptApi,
         relayout_event: bool,
         prepare_for_screenshot: bool,
         unminify_js: bool,

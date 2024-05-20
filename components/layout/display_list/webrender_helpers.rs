@@ -10,14 +10,14 @@
 use base::id::PipelineId;
 use base::WebRenderEpochToU16;
 use log::trace;
-use script_traits::compositor::{
-    CompositorDisplayListInfo, ScrollSensitivity, ScrollTreeNodeId, ScrollableNodeInfo,
-};
 use webrender_api::units::{LayoutPoint, LayoutSize, LayoutVector2D};
 use webrender_api::{
     self, ClipChainId, ClipId, CommonItemProperties, DisplayItem as WrDisplayItem,
     DisplayListBuilder, Epoch, HasScrollLinkedEffect, PrimitiveFlags, PropertyBinding, RasterSpace,
     ReferenceFrameKind, SpaceAndClipInfo, SpatialId, SpatialTreeItemKey,
+};
+use webrender_traits::display_list::{
+    CompositorDisplayListInfo, ScrollSensitivity, ScrollTreeNodeId, ScrollableNodeInfo,
 };
 
 use crate::display_list::items::{

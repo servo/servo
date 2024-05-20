@@ -83,7 +83,7 @@ use script_traits::{
     LayoutMsg, LoadData, LoadOrigin, MediaSessionActionType, MouseButton, MouseEventType,
     NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptMsg, ScriptToConstellationChan,
     StructuredSerializedData, TimerSchedulerMsg, TouchEventType, TouchId, UntrustedNodeAddress,
-    UpdatePipelineIdReason, WebrenderIpcSender, WheelDelta, WindowSizeData, WindowSizeType,
+    UpdatePipelineIdReason, WheelDelta, WindowSizeData, WindowSizeType,
 };
 use servo_atoms::Atom;
 use servo_config::opts;
@@ -95,6 +95,7 @@ use url::Position;
 use webgpu::WebGPUMsg;
 use webrender_api::units::LayoutPixel;
 use webrender_api::DocumentId;
+use webrender_traits::WebRenderScriptApi;
 
 use crate::document_loader::DocumentLoader;
 use crate::dom::bindings::cell::DomRefCell;
@@ -674,7 +675,7 @@ pub struct ScriptThread {
 
     /// Webrender API sender.
     #[no_trace]
-    webrender_api_sender: WebrenderIpcSender,
+    webrender_api_sender: WebRenderScriptApi,
 
     /// Periodically print out on which events script threads spend their processing time.
     profile_script_events: bool,

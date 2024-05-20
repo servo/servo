@@ -12,7 +12,6 @@ use euclid::{Point2D, SideOffsets2D, Size2D};
 use fnv::FnvHashMap;
 use gfx::text::glyph::GlyphStore;
 use net_traits::image_cache::UsePlaceholder;
-use script_traits::compositor::{CompositorDisplayListInfo, ScrollSensitivity, ScrollTreeNodeId};
 use servo_geometry::MaxRect;
 use style::color::{AbsoluteColor, ColorSpace};
 use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
@@ -24,6 +23,9 @@ use style::values::specified::text::TextDecorationLine;
 use style::values::specified::ui::CursorKind;
 use style_traits::CSSPixel;
 use webrender_api::{self as wr, units, BoxShadowClipMode, ClipChainId};
+use webrender_traits::display_list::{
+    CompositorDisplayListInfo, ScrollSensitivity, ScrollTreeNodeId,
+};
 use wr::units::LayoutVector2D;
 
 use crate::context::LayoutContext;

@@ -16,19 +16,14 @@ use gfx::font_context::FontContext;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use log::warn;
-use webrender_api::{ImageData, ImageDescriptor, ImageKey};
+use webrender_api::ImageKey;
+use webrender_traits::ImageUpdate;
 
 use crate::canvas_data::*;
 
 pub enum AntialiasMode {
     Default,
     None,
-}
-
-pub enum ImageUpdate {
-    Add(ImageKey, ImageDescriptor, ImageData),
-    Update(ImageKey, ImageDescriptor, ImageData),
-    Delete(ImageKey),
 }
 
 pub trait WebrenderApi {

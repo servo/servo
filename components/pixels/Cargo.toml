@@ -12,6 +12,10 @@ path = "lib.rs"
 
 [dependencies]
 euclid = { workspace = true }
+ipc-channel = { workspace = true }
+image = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
+log = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
+webrender_api = { workspace = true }

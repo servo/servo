@@ -30,6 +30,7 @@ ipc-channel = { workspace = true }
 log = { workspace = true }
 net_traits = { workspace = true }
 parking_lot = { workspace = true }
+pixels = { path = "../pixels" }
 range = { path = "../range" }
 rayon = { workspace = true }
 script_layout_interface = { workspace = true }
@@ -47,6 +48,7 @@ unicode-segmentation = { workspace = true }
 url = { workspace = true }
 data-url = { workspace = true }
 webrender_api = { workspace = true }
+webrender_traits = { workspace = true }
 xi-unicode = { workspace = true }
 
 [dev-dependencies]

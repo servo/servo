@@ -20,14 +20,13 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoRealm;
 use media::{glplayer_channel, GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
-use net_traits::image::base::Image;
 use net_traits::request::Destination;
 use net_traits::{
     CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, Metadata, NetworkError,
     ResourceFetchTiming, ResourceTimingType,
 };
+use pixels::Image;
 use script_layout_interface::HTMLMediaData;
-use script_traits::{ImageUpdate, WebrenderIpcSender};
 use servo_config::pref;
 use servo_media::player::audio::AudioRenderer;
 use servo_media::player::video::{VideoFrame, VideoFrameRenderer};
@@ -38,6 +37,7 @@ use webrender_api::{
     ExternalImageData, ExternalImageId, ExternalImageType, ImageBufferKind, ImageData,
     ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey,
 };
+use webrender_traits::{ImageUpdate, WebRenderScriptApi};
 
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::attr::Attr;
@@ -154,7 +154,7 @@ impl FrameHolder {
 
 pub struct MediaFrameRenderer {
     player_id: Option<u64>,
-    api: WebrenderIpcSender,
+    api: WebRenderScriptApi,
     current_frame: Option<(ImageKey, i32, i32)>,
     old_frame: Option<ImageKey>,
     very_old_frame: Option<ImageKey>,
@@ -163,7 +163,7 @@ pub struct MediaFrameRenderer {
 }
 
 impl MediaFrameRenderer {
-    fn new(render_api_sender: WebrenderIpcSender) -> Self {
+    fn new(render_api_sender: WebRenderScriptApi) -> Self {
         Self {
             player_id: None,
             api: render_api_sender,

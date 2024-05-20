@@ -39,3 +39,4 @@ servo_url = { path = "../../url" }
 url = { workspace = true }
 uuid = { workspace = true }
 webrender_api = { workspace = true }
+webrender_traits = { workspace = true }
