@@ -263,3 +263,65 @@ impl EmbedderCoordinates {
         self.flip_rect(&self.get_viewport())
     }
 }
+
+#[cfg(test)]
+mod test {
+    use euclid::{Point2D, Scale, Size2D};
+    use webrender_api::units::DeviceIntRect;
+
+    use super::EmbedderCoordinates;
+
+    #[test]
+    fn test() {
+        let pos = Point2D::new(0, 0);
+        let viewport = Size2D::new(800, 600);
+        let screen = Size2D::new(1080, 720);
+        let coordinates = EmbedderCoordinates {
+            hidpi_factor: Scale::new(1.),
+            screen,
+            screen_avail: screen,
+            window: (viewport, pos),
+            framebuffer: viewport,
+            viewport: DeviceIntRect::from_origin_and_size(pos, viewport),
+        };
+
+        // Check if viewport conversion is correct.
+        let viewport = DeviceIntRect::new(Point2D::new(0, 0), Point2D::new(800, 600));
+        assert_eq!(coordinates.get_viewport(), viewport);
+        assert_eq!(coordinates.get_flipped_viewport(), viewport);
+
+        // Check rects with different y positions inside the viewport.
+        let rect1 = DeviceIntRect::new(Point2D::new(0, 0), Point2D::new(800, 400));
+        let rect2 = DeviceIntRect::new(Point2D::new(0, 100), Point2D::new(800, 600));
+        let rect3 = DeviceIntRect::new(Point2D::new(0, 200), Point2D::new(800, 500));
+        assert_eq!(
+            coordinates.flip_rect(&rect1),
+            DeviceIntRect::new(Point2D::new(0, 200), Point2D::new(800, 600))
+        );
+        assert_eq!(
+            coordinates.flip_rect(&rect2),
+            DeviceIntRect::new(Point2D::new(0, 0), Point2D::new(800, 500))
+        );
+        assert_eq!(
+            coordinates.flip_rect(&rect3),
+            DeviceIntRect::new(Point2D::new(0, 100), Point2D::new(800, 400))
+        );
+
+        // Check rects with different x positions.
+        let rect1 = DeviceIntRect::new(Point2D::new(0, 0), Point2D::new(700, 400));
+        let rect2 = DeviceIntRect::new(Point2D::new(100, 100), Point2D::new(800, 600));
+        let rect3 = DeviceIntRect::new(Point2D::new(300, 200), Point2D::new(600, 500));
+        assert_eq!(
+            coordinates.flip_rect(&rect1),
+            DeviceIntRect::new(Point2D::new(0, 200), Point2D::new(700, 600))
+        );
+        assert_eq!(
+            coordinates.flip_rect(&rect2),
+            DeviceIntRect::new(Point2D::new(100, 0), Point2D::new(800, 500))
+        );
+        assert_eq!(
+            coordinates.flip_rect(&rect3),
+            DeviceIntRect::new(Point2D::new(300, 100), Point2D::new(600, 400))
+        );
+    }
+}
