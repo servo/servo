@@ -25,8 +25,8 @@ use style::values::computed::{FontStretch, FontStyle, FontWeight};
 use unicode_script::Script;
 use webrender_api::{FontInstanceFlags, FontInstanceKey};
 
-use crate::font_cache_thread::FontIdentifier;
-use crate::font_context::{FontContext, FontSource};
+use crate::font_cache_thread::{FontIdentifier, FontSource};
+use crate::font_context::FontContext;
 use crate::font_template::{FontTemplateDescriptor, FontTemplateRef, FontTemplateRefMethods};
 use crate::platform::font::{FontTable, PlatformFont};
 pub use crate::platform::font_list::fallback_font_families;

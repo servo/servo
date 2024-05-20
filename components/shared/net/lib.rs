@@ -341,7 +341,7 @@ where
 // See also: https://github.com/servo/servo/blob/735480/components/script/script_thread.rs#L313
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ResourceThreads {
-    core_thread: CoreResourceThread,
+    pub core_thread: CoreResourceThread,
     storage_thread: IpcSender<StorageThreadMsg>,
 }
 

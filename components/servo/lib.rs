@@ -72,7 +72,6 @@ use ipc_channel::ipc::{self, IpcSender};
 use log::{error, trace, warn, Log, Metadata, Record};
 use media::{GLPlayerThreads, GlApi, NativeDisplay, WindowGLContext};
 use net::resource_thread::new_resource_threads;
-use net_traits::IpcSend;
 use profile::{mem as profile_mem, time as profile_time};
 use profile_traits::{mem, time};
 use script::serviceworker_manager::ServiceWorkerManager;
@@ -996,14 +995,14 @@ fn create_constellation(
         opts.ignore_certificate_errors,
     );
 
-    let font_cache_thread = FontCacheThread::new(
-        public_resource_threads.sender(),
-        Box::new(FontCacheWR(compositor_proxy.clone())),
-    );
+    let font_cache_thread = FontCacheThread::new(Box::new(WebRenderFontApiCompositorProxy(
+        compositor_proxy.clone(),
+    )));
 
     let (canvas_create_sender, canvas_ipc_sender) = CanvasPaintThread::start(
         Box::new(CanvasWebrenderApi(compositor_proxy.clone())),
         font_cache_thread.clone(),
+        public_resource_threads.clone(),
     );
 
     let initial_state = InitialConstellationState {
@@ -1049,9 +1048,9 @@ fn create_constellation(
     )
 }
 
-struct FontCacheWR(CompositorProxy);
+struct WebRenderFontApiCompositorProxy(CompositorProxy);
 
-impl WebRenderFontApi for FontCacheWR {
+impl WebRenderFontApi for WebRenderFontApiCompositorProxy {
     fn add_font_instance(
         &self,
         font_key: FontKey,
@@ -1065,6 +1064,7 @@ impl WebRenderFontApi for FontCacheWR {
             )));
         receiver.recv().unwrap()
     }
+
     fn add_font(&self, data: Arc<Vec<u8>>, index: u32) -> FontKey {
         let (sender, receiver) = unbounded();
         let (bytes_sender, bytes_receiver) =
@@ -1084,6 +1084,35 @@ impl WebRenderFontApi for FontCacheWR {
                 FontToCompositorMsg::AddSystemFont(sender, handle),
             )));
         receiver.recv().unwrap()
+    }
+
+    fn forward_add_font_message(
+        &self,
+        bytes_receiver: ipc::IpcBytesReceiver,
+        font_index: u32,
+        result_sender: IpcSender<FontKey>,
+    ) {
+        let (sender, receiver) = unbounded();
+        self.0
+            .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
+                FontToCompositorMsg::AddFont(sender, font_index, bytes_receiver),
+            )));
+        let _ = result_sender.send(receiver.recv().unwrap());
+    }
+
+    fn forward_add_font_instance_message(
+        &self,
+        font_key: FontKey,
+        size: f32,
+        flags: FontInstanceFlags,
+        result_sender: IpcSender<FontInstanceKey>,
+    ) {
+        let (sender, receiver) = unbounded();
+        self.0
+            .send(CompositorMsg::Forwarded(ForwardedToCompositorMsg::Font(
+                FontToCompositorMsg::AddFontInstance(font_key, size, flags, sender),
+            )));
+        let _ = result_sender.send(receiver.recv().unwrap());
     }
 }
 

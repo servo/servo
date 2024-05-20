@@ -152,7 +152,10 @@ where
             };
             let descriptor = FontTemplateDescriptor::new(weight, stretch, style);
 
-            callback(FontTemplate::new_local(local_font_identifier, descriptor))
+            callback(FontTemplate::new_for_local_font(
+                local_font_identifier,
+                descriptor,
+            ))
         }
 
         FcFontSetDestroy(matches);

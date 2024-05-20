@@ -188,6 +188,23 @@ pub trait WebRenderFontApi {
         flags: FontInstanceFlags,
     ) -> FontInstanceKey;
     fn add_font(&self, data: Arc<Vec<u8>>, index: u32) -> FontKey;
+    /// Forward an already prepared `AddFont` message, sending it on to the compositor. This is used
+    /// to get WebRender [`FontKey`]s for web fonts in the per-layout `FontContext`.
+    fn forward_add_font_message(
+        &self,
+        bytes_receiver: IpcBytesReceiver,
+        font_index: u32,
+        result_sender: IpcSender<FontKey>,
+    );
+    /// Forward an already prepared `AddFontInstance` message, sending it on to the compositor. This
+    /// is used to get WebRender [`FontInstanceKey`]s for web fonts in the per-layout `FontContext`.
+    fn forward_add_font_instance_message(
+        &self,
+        font_key: FontKey,
+        size: f32,
+        flags: FontInstanceFlags,
+        result_receiver: IpcSender<FontInstanceKey>,
+    );
     fn add_system_font(&self, handle: NativeFontHandle) -> FontKey;
 }
 

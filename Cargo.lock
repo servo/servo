@@ -639,6 +639,7 @@ dependencies = [
  "ipc-channel",
  "log",
  "lyon_geom",
+ "net_traits",
  "num-traits",
  "pathfinder_geometry",
  "pixels",
@@ -2051,6 +2052,7 @@ dependencies = [
  "unicode-bidi",
  "unicode-properties",
  "unicode-script",
+ "url",
  "webrender_api",
  "webrender_traits",
  "xi-unicode",
@@ -2062,6 +2064,7 @@ dependencies = [
 name = "gfx_traits"
 version = "0.0.1"
 dependencies = [
+ "ipc-channel",
  "malloc_size_of",
  "malloc_size_of_derive",
  "range",

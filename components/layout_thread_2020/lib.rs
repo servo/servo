@@ -10,6 +10,7 @@
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::ops::{Deref, DerefMut};
 use std::process;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -24,7 +25,7 @@ use euclid::{Point2D, Scale, Size2D, Vector2D};
 use fnv::FnvHashMap;
 use fxhash::FxHashMap;
 use gfx::font_cache_thread::FontCacheThread;
-use gfx::font_context::FontContext;
+use gfx::font_context::{FontContext, FontContextWebFontMethods};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::context::LayoutContext;
@@ -41,6 +42,7 @@ use log::{debug, error, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory};
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
+use net_traits::ResourceThreads;
 use parking_lot::RwLock;
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
@@ -120,10 +122,6 @@ pub struct LayoutThread {
     /// Reference to the script thread image cache.
     image_cache: Arc<dyn ImageCache>,
 
-    /// Public interface to the font cache thread. This needs to be behind a [`ReentrantMutex`],
-    /// because some font cache operations can trigger others.
-    font_cache_thread: FontCacheThread,
-
     /// A FontContext to be used during layout.
     font_context: Arc<FontContext<FontCacheThread>>,
 
@@ -183,6 +181,7 @@ impl LayoutFactory for LayoutFactoryImpl {
             config.constellation_chan,
             config.script_chan,
             config.image_cache,
+            config.resource_threads,
             config.font_cache_thread,
             config.time_profiler_chan,
             config.webrender_api_sender,
@@ -483,6 +482,7 @@ impl LayoutThread {
         constellation_chan: IpcSender<ConstellationMsg>,
         script_chan: IpcSender<ConstellationControlMsg>,
         image_cache: Arc<dyn ImageCache>,
+        resource_threads: ResourceThreads,
         font_cache_thread: FontCacheThread,
         time_profiler_chan: profile_time::ProfilerChan,
         webrender_api_sender: WebRenderScriptApi,
@@ -494,7 +494,7 @@ impl LayoutThread {
 
         // The device pixel ratio is incorrect (it does not have the hidpi value),
         // but it will be set correctly when the initial reflow takes place.
-        let font_context = Arc::new(FontContext::new(font_cache_thread.clone()));
+        let font_context = Arc::new(FontContext::new(font_cache_thread, resource_threads));
         let device = Device::new(
             MediaType::screen(),
             QuirksMode::NoQuirks,
@@ -523,7 +523,6 @@ impl LayoutThread {
             time_profiler_chan,
             registered_painters: RegisteredPaintersImpl(Default::default()),
             image_cache,
-            font_cache_thread,
             font_context,
             first_reflow: Cell::new(true),
             font_cache_sender: ipc_font_cache_sender,
@@ -627,14 +626,13 @@ impl LayoutThread {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts.
         if stylesheet.is_effective_for_device(self.stylist.device(), guard) {
-            let newly_loading_font_count =
-                self.font_cache_thread.add_all_web_fonts_from_stylesheet(
-                    stylesheet,
-                    guard,
-                    self.stylist.device(),
-                    &self.font_cache_sender,
-                    self.debug.load_webfonts_synchronously,
-                );
+            let newly_loading_font_count = self.font_context.add_all_web_fonts_from_stylesheet(
+                stylesheet,
+                guard,
+                self.stylist.device(),
+                &self.font_cache_sender,
+                self.debug.load_webfonts_synchronously,
+            );
 
             if !self.debug.load_webfonts_synchronously {
                 self.outstanding_web_fonts
@@ -1243,7 +1241,6 @@ impl RegisteredSpeculativePainters for RegisteredPaintersImpl {
     }
 }
 
-#[derive(Debug)]
 struct LayoutFontMetricsProvider(Arc<FontContext<FontCacheThread>>);
 
 impl FontMetricsProvider for LayoutFontMetricsProvider {
@@ -1305,5 +1302,11 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             script_percent_scale_down: None,
             script_script_percent_scale_down: None,
         }
+    }
+}
+
+impl Debug for LayoutFontMetricsProvider {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("LayoutFontMetricsProvider").finish()
     }
 }

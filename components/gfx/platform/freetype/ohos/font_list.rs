@@ -158,7 +158,10 @@ where
             stretch,
             style,
         };
-        callback(FontTemplate::new_local(local_font_identifier, descriptor));
+        callback(FontTemplate::new_for_local_font(
+            local_font_identifier,
+            descriptor,
+        ));
     };
 
     if let Some(family) = FONT_LIST.find_family(family_name) {
