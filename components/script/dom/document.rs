@@ -58,7 +58,6 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::attr::AttrValue;
 use style::context::QuirksMode;
 use style::invalidation::element::restyle_hints::RestyleHint;
-use style::media_queries::Device;
 use style::selector_parser::Snapshot;
 use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::str::{split_html_space_chars, str_join};
@@ -851,9 +850,7 @@ impl Document {
         let old_mode = self.quirks_mode.replace(new_mode);
 
         if old_mode != new_mode {
-            let _ = self
-                .window
-                .with_layout(move |layout| layout.set_quirks_mode(new_mode));
+            self.window.layout_mut().set_quirks_mode(new_mode);
         }
     }
 
@@ -3526,16 +3523,6 @@ impl Document {
         have_changed
     }
 
-    /// Runs the given closure using the Stylo `Device` suitable for media query evaluation.
-    ///
-    /// TODO: This can just become a getter when each Layout is more strongly associated with
-    /// its given Document and Window.
-    pub fn with_device<T>(&self, call: impl FnOnce(&Device) -> T) -> T {
-        self.window
-            .with_layout(move |layout| call(layout.device()))
-            .unwrap()
-    }
-
     pub fn salvageable(&self) -> bool {
         self.salvageable.get()
     }
@@ -3899,12 +3886,10 @@ impl Document {
 
         let cloned_stylesheet = sheet.clone();
         let insertion_point2 = insertion_point.clone();
-        let _ = self.window.with_layout(move |layout| {
-            layout.add_stylesheet(
-                cloned_stylesheet,
-                insertion_point2.as_ref().map(|s| s.sheet.clone()),
-            );
-        });
+        self.window.layout_mut().add_stylesheet(
+            cloned_stylesheet,
+            insertion_point2.as_ref().map(|s| s.sheet.clone()),
+        );
 
         DocumentOrShadowRoot::add_stylesheet(
             owner,
@@ -3917,18 +3902,18 @@ impl Document {
 
     /// Given a stylesheet, load all web fonts from it in Layout.
     pub fn load_web_fonts_from_stylesheet(&self, stylesheet: Arc<Stylesheet>) {
-        let _ = self.window.with_layout(move |layout| {
-            layout.load_web_fonts_from_stylesheet(stylesheet);
-        });
+        self.window
+            .layout()
+            .load_web_fonts_from_stylesheet(stylesheet);
     }
 
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
     #[allow(crown::unrooted_must_root)] // Owner needs to be rooted already necessarily.
     pub fn remove_stylesheet(&self, owner: &Element, stylesheet: &Arc<Stylesheet>) {
         let cloned_stylesheet = stylesheet.clone();
-        let _ = self
-            .window
-            .with_layout(|layout| layout.remove_stylesheet(cloned_stylesheet));
+        self.window
+            .layout_mut()
+            .remove_stylesheet(cloned_stylesheet);
 
         DocumentOrShadowRoot::remove_stylesheet(
             owner,

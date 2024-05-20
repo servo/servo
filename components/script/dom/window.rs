@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::{Cow, ToOwned};
-use std::cell::Cell;
+use std::cell::{Cell, RefCell, RefMut};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
@@ -192,6 +192,9 @@ pub struct Window {
     #[ignore_malloc_size_of = "trait objects are hard"]
     script_chan: MainThreadScriptChan,
     task_manager: TaskManager,
+    #[no_trace]
+    #[ignore_malloc_size_of = "TODO: Add MallocSizeOf support to layout"]
+    layout: RefCell<Box<dyn Layout>>,
     navigator: MutNullableDom<Navigator>,
     #[ignore_malloc_size_of = "Arc"]
     #[no_trace]
@@ -362,6 +365,14 @@ pub struct Window {
 impl Window {
     pub fn task_manager(&self) -> &TaskManager {
         &self.task_manager
+    }
+
+    pub fn layout(&self) -> Ref<Box<dyn Layout>> {
+        self.layout.borrow()
+    }
+
+    pub fn layout_mut(&self) -> RefMut<Box<dyn Layout>> {
+        self.layout.borrow_mut()
     }
 
     pub fn get_exists_mut_observer(&self) -> bool {
@@ -1876,7 +1887,7 @@ impl Window {
             animations: document.animations().sets.clone(),
         };
 
-        let _ = self.with_layout(move |layout| layout.reflow(reflow));
+        self.layout.borrow_mut().reflow(reflow);
 
         let complete = match join_port.try_recv() {
             Err(TryRecvError::Empty) => {
@@ -1987,10 +1998,7 @@ impl Window {
                 elem.has_class(&atom!("reftest-wait"), CaseSensitivity::CaseSensitive)
             });
 
-            let pending_web_fonts = self
-                .with_layout(move |layout| layout.waiting_for_web_fonts_to_load())
-                .unwrap();
-
+            let pending_web_fonts = self.layout.borrow().waiting_for_web_fonts_to_load();
             let has_sent_idle_message = self.has_sent_idle_message.get();
             let is_ready_state_complete = document.ReadyState() == DocumentReadyState::Complete;
             let pending_images = !self.pending_layout_images.borrow().is_empty();
@@ -2021,10 +2029,7 @@ impl Window {
             return;
         }
 
-        let epoch = self
-            .with_layout(move |layout| layout.current_epoch())
-            .unwrap();
-
+        let epoch = self.layout.borrow().current_epoch();
         debug!(
             "{:?}: Updating constellation epoch: {epoch:?}",
             self.pipeline_id()
@@ -2048,39 +2053,34 @@ impl Window {
         }
 
         let document = self.Document();
-        self.with_layout(|layout| {
-            layout.query_resolved_font_style(
-                node.to_trusted_node_address(),
-                &value,
-                document.animations().sets.clone(),
-                document.current_animation_timeline_value(),
-            )
-        })
-        .unwrap()
+        let animations = document.animations().sets.clone();
+        self.layout.borrow().query_resolved_font_style(
+            node.to_trusted_node_address(),
+            &value,
+            animations,
+            document.current_animation_timeline_value(),
+        )
     }
 
     pub fn content_box_query(&self, node: &Node) -> Option<UntypedRect<Au>> {
         if !self.layout_reflow(QueryMsg::ContentBox) {
             return None;
         }
-        self.with_layout(|layout| layout.query_content_box(node.to_opaque()))
-            .unwrap_or(None)
+        self.layout.borrow().query_content_box(node.to_opaque())
     }
 
     pub fn content_boxes_query(&self, node: &Node) -> Vec<UntypedRect<Au>> {
         if !self.layout_reflow(QueryMsg::ContentBoxes) {
             return vec![];
         }
-        self.with_layout(|layout| layout.query_content_boxes(node.to_opaque()))
-            .unwrap_or_default()
+        self.layout.borrow().query_content_boxes(node.to_opaque())
     }
 
     pub fn client_rect_query(&self, node: &Node) -> UntypedRect<i32> {
         if !self.layout_reflow(QueryMsg::ClientRectQuery) {
             return Rect::zero();
         }
-        self.with_layout(|layout| layout.query_client_rect(node.to_opaque()))
-            .unwrap_or_default()
+        self.layout.borrow().query_client_rect(node.to_opaque())
     }
 
     /// Find the scroll area of the given node, if it is not None. If the node
@@ -2090,8 +2090,7 @@ impl Window {
         if !self.layout_reflow(QueryMsg::ScrollingAreaQuery) {
             return Rect::zero();
         }
-        self.with_layout(|layout| layout.query_scrolling_area(opaque))
-            .unwrap_or_default()
+        self.layout.borrow().query_scrolling_area(opaque)
     }
 
     pub fn scroll_offset_query(&self, node: &Node) -> Vector2D<f32, LayoutPixel> {
@@ -2135,18 +2134,14 @@ impl Window {
         }
 
         let document = self.Document();
-        DOMString::from(
-            self.with_layout(|layout| {
-                layout.query_resolved_style(
-                    element,
-                    pseudo,
-                    property,
-                    document.animations().sets.clone(),
-                    document.current_animation_timeline_value(),
-                )
-            })
-            .unwrap(),
-        )
+        let animations = document.animations().sets.clone();
+        DOMString::from(self.layout.borrow().query_resolved_style(
+            element,
+            pseudo,
+            property,
+            animations,
+            document.current_animation_timeline_value(),
+        ))
     }
 
     pub fn inner_window_dimensions_query(
@@ -2156,8 +2151,9 @@ impl Window {
         if !self.layout_reflow(QueryMsg::InnerWindowDimensionsQuery) {
             return None;
         }
-        self.with_layout(|layout| layout.query_inner_window_dimension(browsing_context))
-            .unwrap()
+        self.layout
+            .borrow()
+            .query_inner_window_dimension(browsing_context)
     }
 
     #[allow(unsafe_code)]
@@ -2166,9 +2162,7 @@ impl Window {
             return (None, Rect::zero());
         }
 
-        let response = self
-            .with_layout(|layout| layout.query_offset_parent(node.to_opaque()))
-            .unwrap();
+        let response = self.layout.borrow().query_offset_parent(node.to_opaque());
         let element = response.node_address.and_then(|parent_node_address| {
             let node = unsafe { from_untrusted_node_address(parent_node_address) };
             DomRoot::downcast(node)
@@ -2184,8 +2178,9 @@ impl Window {
         if !self.layout_reflow(QueryMsg::TextIndexQuery) {
             return None;
         }
-        self.with_layout(|layout| layout.query_text_indext(node.to_opaque(), point_in_node))
-            .unwrap()
+        self.layout
+            .borrow()
+            .query_text_indext(node.to_opaque(), point_in_node)
     }
 
     #[allow(unsafe_code)]
@@ -2306,10 +2301,6 @@ impl Window {
 
     pub fn get_url(&self) -> ServoUrl {
         self.Document().url()
-    }
-
-    pub fn with_layout<T>(&self, call: impl FnOnce(&mut dyn Layout) -> T) -> Result<T, ()> {
-        ScriptThread::with_layout(self.pipeline_id(), call)
     }
 
     pub fn windowproxy_handler(&self) -> WindowProxyHandler {
@@ -2516,6 +2507,7 @@ impl Window {
         runtime: Rc<Runtime>,
         script_chan: MainThreadScriptChan,
         task_manager: TaskManager,
+        layout: Box<dyn Layout>,
         image_cache_chan: Sender<ImageCacheMsg>,
         image_cache: Arc<dyn ImageCache>,
         resource_threads: ResourceThreads,
@@ -2579,6 +2571,7 @@ impl Window {
             ),
             script_chan,
             task_manager,
+            layout: RefCell::new(layout),
             image_cache_chan,
             image_cache,
             navigator: Default::default(),
