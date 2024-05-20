@@ -73,9 +73,7 @@ use parking_lot::Mutex;
 use percent_encoding::percent_decode;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
-use script_layout_interface::{
-    Layout, LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory,
-};
+use script_layout_interface::{LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::{
     CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext, DocumentActivity,
@@ -731,10 +729,6 @@ pub struct ScriptThread {
     // Secure context
     inherited_secure_context: Option<bool>,
 
-    /// The layouts that we control.
-    #[no_trace]
-    layouts: RefCell<HashMap<PipelineId, Box<dyn Layout>>>,
-
     /// A factory for making new layouts. This allows layout to depend on script.
     #[no_trace]
     layout_factory: Arc<dyn LayoutFactory>,
@@ -864,22 +858,6 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
-    pub fn with_layout<T>(
-        pipeline_id: PipelineId,
-        call: impl FnOnce(&mut dyn Layout) -> T,
-    ) -> Result<T, ()> {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
-            let mut layouts = script_thread.layouts.borrow_mut();
-            if let Some(ref mut layout) = layouts.get_mut(&pipeline_id) {
-                Ok(call(&mut ***layout))
-            } else {
-                warn!("No layout found for {}", pipeline_id);
-                Err(())
-            }
-        })
-    }
-
     pub fn runtime_handle() -> ParentRuntime {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
@@ -1204,19 +1182,14 @@ impl ScriptThread {
         properties: Vec<Atom>,
         painter: Box<dyn Painter>,
     ) {
-        let window = self.documents.borrow().find_window(pipeline_id);
-        let window = match window {
-            Some(window) => window,
-            None => {
-                return warn!(
-                    "Paint worklet registered after pipeline {} closed.",
-                    pipeline_id
-                );
-            },
+        let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
+            warn!("Paint worklet registered after pipeline {pipeline_id} closed.");
+            return;
         };
 
-        let _ = window
-            .with_layout(|layout| layout.register_paint_worklet_modules(name, properties, painter));
+        window
+            .layout_mut()
+            .register_paint_worklet_modules(name, properties, painter);
     }
 
     pub fn push_new_element_queue() {
@@ -1441,7 +1414,6 @@ impl ScriptThread {
             gpu_id_hub: Arc::new(Mutex::new(Identities::new())),
             webgpu_port: RefCell::new(None),
             inherited_secure_context: state.inherited_secure_context,
-            layouts: Default::default(),
             layout_factory,
         }
     }
@@ -2395,11 +2367,19 @@ impl ScriptThread {
     }
 
     fn handle_layout_message(&self, msg: LayoutControlMsg, pipeline_id: PipelineId) {
-        let _ = Self::with_layout(pipeline_id, |layout| layout.handle_constellation_msg(msg));
+        let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
+            warn!("Received layout message pipeline {pipeline_id} closed: {msg:?}.");
+            return;
+        };
+        window.layout_mut().handle_constellation_msg(msg);
     }
 
     fn handle_font_cache(&self, pipeline_id: PipelineId) {
-        let _ = Self::with_layout(pipeline_id, |layout| layout.handle_font_cache_msg());
+        let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
+            warn!("Received font cache message pipeline {pipeline_id} closed.");
+            return;
+        };
+        window.layout_mut().handle_font_cache_msg();
     }
 
     fn handle_msg_from_webgpu_server(&self, msg: WebGPUMsg) {
@@ -2857,13 +2837,11 @@ impl ScriptThread {
 
         let mut reports = vec![];
         reports.extend(unsafe { get_reports(*self.get_cx(), path_seg) });
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
-            let layouts = script_thread.layouts.borrow();
-            for layout in layouts.values() {
-                layout.collect_reports(&mut reports);
-            }
-        });
+
+        for (_, document) in documents.iter() {
+            document.window().layout().collect_reports(&mut reports);
+        }
+
         reports_chan.send(reports);
     }
 
@@ -3223,7 +3201,7 @@ impl ScriptThread {
             }
 
             debug!("{id}: Shutting down layout");
-            let _ = document.window().with_layout(|layout| layout.exit_now());
+            document.window().layout_mut().exit_now();
 
             debug!("{id}: Sending PipelineExited message to constellation");
             self.script_sender
@@ -3563,16 +3541,13 @@ impl ScriptThread {
             paint_time_metrics,
             window_size: incomplete.window_size,
         };
-        self.layouts.borrow_mut().insert(
-            incomplete.pipeline_id,
-            self.layout_factory.create(layout_config),
-        );
 
         // Create the window and document objects.
         let window = Window::new(
             self.js_runtime.clone(),
             MainThreadScriptChan(sender.clone()),
             task_manager,
+            self.layout_factory.create(layout_config),
             self.image_cache_channel.clone(),
             self.image_cache.clone(),
             self.resource_threads.clone(),

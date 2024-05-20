@@ -73,8 +73,8 @@ impl MediaQueryList {
 
     pub fn evaluate(&self) -> bool {
         let quirks_mode = self.document.quirks_mode();
-        self.document
-            .with_device(move |device| self.media_query_list.evaluate(device, quirks_mode))
+        self.media_query_list
+            .evaluate(self.document.window().layout().device(), quirks_mode)
     }
 }
 

@@ -91,8 +91,8 @@ impl DocumentOrShadowRoot {
         };
 
         self.window
-            .with_layout(|layout| layout.query_nodes_from_point(*client_point, query_type))
-            .unwrap_or_default()
+            .layout()
+            .query_nodes_from_point(*client_point, query_type)
     }
 
     #[allow(unsafe_code)]
