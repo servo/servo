@@ -290,7 +290,7 @@ mod test {
         assert_eq!(coordinates.get_viewport(), viewport);
         assert_eq!(coordinates.get_flipped_viewport(), viewport);
 
-        // Cehck rects with different y positions inside the viewport.
+        // Check rects with different y positions inside the viewport.
         let rect1 = DeviceIntRect::new(Point2D::new(0, 0), Point2D::new(800, 400));
         let rect2 = DeviceIntRect::new(Point2D::new(0, 100), Point2D::new(800, 600));
         let rect3 = DeviceIntRect::new(Point2D::new(0, 200), Point2D::new(800, 500));
@@ -307,7 +307,7 @@ mod test {
             DeviceIntRect::new(Point2D::new(0, 100), Point2D::new(800, 400))
         );
 
-        // Check rects with different x positions
+        // Check rects with different x positions.
         let rect1 = DeviceIntRect::new(Point2D::new(0, 0), Point2D::new(700, 400));
         let rect2 = DeviceIntRect::new(Point2D::new(100, 100), Point2D::new(800, 600));
         let rect3 = DeviceIntRect::new(Point2D::new(300, 200), Point2D::new(600, 500));
