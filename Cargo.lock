@@ -631,7 +631,7 @@ dependencies = [
  "byteorder",
  "canvas_traits",
  "crossbeam-channel",
- "cssparser 0.33.0",
+ "cssparser",
  "euclid",
  "fnv",
  "font-kit",
@@ -1131,24 +1131,11 @@ dependencies = [
 
 [[package]]
 name = "cssparser"
-version = "0.33.0"
-source = "git+https://github.com/servo/rust-cssparser?rev=aaa966d9d6ae70c4b8a62bb5e3a14c068bb7dff0#aaa966d9d6ae70c4b8a62bb5e3a14c068bb7dff0"
-dependencies = [
- "cssparser-macros 0.6.1 (git+https://github.com/servo/rust-cssparser?rev=aaa966d9d6ae70c4b8a62bb5e3a14c068bb7dff0)",
- "dtoa-short",
- "itoa",
- "phf 0.11.2",
- "serde",
- "smallvec",
-]
-
-[[package]]
-name = "cssparser"
 version = "0.34.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7c66d1cd8ed61bf80b38432613a7a2f09401ab8d0501110655f8b341484a3e3"
 dependencies = [
- "cssparser-macros 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser-macros",
  "dtoa-short",
  "itoa",
  "phf 0.11.2",
@@ -1161,15 +1148,6 @@ name = "cssparser-macros"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13b588ba4ac1a99f7f2964d24b3d896ddc6bf847ee3855dbd4366f058cfcd331"
-dependencies = [
- "quote",
- "syn 2.0.66",
-]
-
-[[package]]
-name = "cssparser-macros"
-version = "0.6.1"
-source = "git+https://github.com/servo/rust-cssparser?rev=aaa966d9d6ae70c4b8a62bb5e3a14c068bb7dff0#aaa966d9d6ae70c4b8a62bb5e3a14c068bb7dff0"
 dependencies = [
  "quote",
  "syn 2.0.66",
@@ -1197,7 +1175,7 @@ version = "0.20.0"
 source = "git+https://github.com/gfx-rs/wgpu?rev=d0a5e48aa7e84683114c3870051cc414ae92ac03#d0a5e48aa7e84683114c3870051cc414ae92ac03"
 dependencies = [
  "bitflags 2.5.0",
- "libloading 0.7.4",
+ "libloading 0.8.3",
  "winapi",
 ]
 
@@ -1404,7 +1382,7 @@ version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330c60081dcc4c72131f8eb70510f1ac07223e5d4163db481a04a0befcffa412"
 dependencies = [
- "libloading 0.7.4",
+ "libloading 0.8.3",
 ]
 
 [[package]]
@@ -2049,7 +2027,7 @@ dependencies = [
  "core-graphics",
  "core-text",
  "crossbeam-channel",
- "cssparser 0.33.0",
+ "cssparser",
  "dwrote",
  "euclid",
  "fnv",
@@ -3273,7 +3251,7 @@ dependencies = [
  "base",
  "bitflags 2.5.0",
  "canvas_traits",
- "cssparser 0.33.0",
+ "cssparser",
  "data-url",
  "embedder_traits",
  "euclid",
@@ -3476,7 +3454,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.5",
 ]
 
 [[package]]
@@ -3653,7 +3631,7 @@ dependencies = [
  "app_units",
  "content-security-policy",
  "crossbeam-channel",
- "cssparser 0.34.0",
+ "cssparser",
  "euclid",
  "http",
  "indexmap",
@@ -5049,7 +5027,7 @@ dependencies = [
  "content-security-policy",
  "cookie 0.12.0",
  "crossbeam-channel",
- "cssparser 0.33.0",
+ "cssparser",
  "data-url",
  "deny_public_fields",
  "devtools_traits",
@@ -5246,7 +5224,7 @@ version = "0.24.0"
 source = "git+https://github.com/servo/stylo?branch=2024-05-15#5e112c7bc6bf6dc78d2b5eeb0251b5ddb3e6585f"
 dependencies = [
  "bitflags 2.5.0",
- "cssparser 0.34.0",
+ "cssparser",
  "derive_more",
  "fxhash",
  "log",
@@ -5924,7 +5902,7 @@ dependencies = [
  "atomic_refcell",
  "bitflags 2.5.0",
  "byteorder",
- "cssparser 0.34.0",
+ "cssparser",
  "derive_more",
  "encoding_rs",
  "euclid",
@@ -5998,7 +5976,7 @@ name = "style_tests"
 version = "0.0.1"
 dependencies = [
  "app_units",
- "cssparser 0.33.0",
+ "cssparser",
  "euclid",
  "html5ever",
  "rayon",
@@ -6018,7 +5996,7 @@ source = "git+https://github.com/servo/stylo?branch=2024-05-15#5e112c7bc6bf6dc78
 dependencies = [
  "app_units",
  "bitflags 2.5.0",
- "cssparser 0.34.0",
+ "cssparser",
  "euclid",
  "lazy_static",
  "malloc_size_of",
@@ -6380,7 +6358,7 @@ name = "to_shmem"
 version = "0.0.1"
 source = "git+https://github.com/servo/stylo?branch=2024-05-15#5e112c7bc6bf6dc78d2b5eeb0251b5ddb3e6585f"
 dependencies = [
- "cssparser 0.34.0",
+ "cssparser",
  "servo_arc",
  "smallbitvec",
  "smallvec",
@@ -7287,7 +7265,7 @@ dependencies = [
  "js-sys",
  "khronos-egl",
  "libc",
- "libloading 0.7.4",
+ "libloading 0.8.3",
  "log",
  "metal 0.28.0",
  "naga",
