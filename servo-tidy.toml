@@ -52,12 +52,6 @@ packages = [
     "foreign-types-shared",
     "metal",
 
-    # Duplicated by indexmap.
-    "hashbrown",
-
-    # Duplicated by style, cbindgen, clap, and GStreamer.
-    "indexmap",
-
     # quickcheck (required by layout_2020 for tests) is
     # stuck on 0.8.4 with no new releases.
     "env_logger",
