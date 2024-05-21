@@ -8,9 +8,10 @@ use app_units::{Au, MAX_AU};
 use log::warn;
 use servo_arc::Arc;
 use style::computed_values::border_collapse::T as BorderCollapse;
+use style::computed_values::box_sizing::T as BoxSizing;
+use style::computed_values::empty_cells::T as EmptyCells;
+use style::computed_values::visibility::T as Visibility;
 use style::logical_geometry::WritingMode;
-use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
-use style::properties::longhands::empty_cells::computed_value::T as EmptyCells;
 use style::properties::ComputedValues;
 use style::values::computed::{
     CSSPixelLength, Length, LengthPercentage as ComputedLengthPercentage, Percentage,
@@ -1480,6 +1481,27 @@ impl<'a> TableLayout<'a> {
 
         let mut row_group_fragment_layout = None;
         for row_index in 0..self.table.size.height {
+            // From <https://drafts.csswg.org/css-align-3/#baseline-export>
+            // > If any cells in the row participate in first baseline/last baseline alignment along
+            // > the inline axis, the first/last baseline set of the row is generated from their
+            // > shared alignment baseline and the row’s first available font, after alignment has
+            // > been performed. Otherwise, the first/last baseline set of the row is synthesized from
+            // > the lowest and highest content edges of the cells in the row. [CSS2]
+            //
+            // If any cell below has baseline alignment, these values will be overwritten,
+            // but they are initialized to the content edge of the first row.
+            if row_index == 0 {
+                let row_end = table_and_track_dimensions
+                    .get_row_rect(0)
+                    .max_block_position();
+                baselines.first = Some(row_end);
+                baselines.last = Some(row_end);
+            }
+
+            if self.is_row_collapsed(row_index) {
+                continue;
+            }
+
             let table_row = &self.table.rows[row_index];
             let mut row_fragment_layout =
                 RowFragmentLayout::new(table_row, row_index, &table_and_track_dimensions);
@@ -1507,26 +1529,13 @@ impl<'a> TableLayout<'a> {
                 }
             }
 
-            // From <https://drafts.csswg.org/css-align-3/#baseline-export>
-            // > If any cells in the row participate in first baseline/last baseline alignment along
-            // > the inline axis, the first/last baseline set of the row is generated from their
-            // > shared alignment baseline and the row’s first available font, after alignment has
-            // > been performed. Otherwise, the first/last baseline set of the row is synthesized from
-            // > the lowest and highest content edges of the cells in the row. [CSS2]
-            //
-            // If any cell below has baseline alignment, these values will be overwritten,
-            // but they are initialized to the content edge of the first row.
-            if row_index == 0 {
-                let row_end = table_and_track_dimensions
-                    .get_row_rect(0)
-                    .max_block_position();
-                baselines.first = Some(row_end);
-                baselines.last = Some(row_end);
-            }
-
             let column_indices = 0..self.table.size.width;
             row_fragment_layout.fragments.reserve(self.table.size.width);
             for column_index in column_indices {
+                if self.is_column_collapsed(column_index) {
+                    continue;
+                }
+
                 // The PositioningContext for cells is, in order or preference, the PositioningContext of the row,
                 // the PositioningContext of the row group, or the PositioningContext of the table.
                 let row_group_positioning_context = row_group_fragment_layout
@@ -1578,6 +1587,34 @@ impl<'a> TableLayout<'a> {
             ),
             baselines,
         }
+    }
+
+    fn is_row_collapsed(&self, row_index: usize) -> bool {
+        let Some(row) = &self.table.rows.get(row_index) else {
+            return false;
+        };
+        if row.style.get_inherited_box().visibility == Visibility::Collapse {
+            return true;
+        }
+        let row_group = match row.group_index {
+            Some(group_index) => &self.table.row_groups[group_index],
+            None => return false,
+        };
+        row_group.style.get_inherited_box().visibility == Visibility::Collapse
+    }
+
+    fn is_column_collapsed(&self, column_index: usize) -> bool {
+        let Some(col) = &self.table.columns.get(column_index) else {
+            return false;
+        };
+        if col.style.get_inherited_box().visibility == Visibility::Collapse {
+            return true;
+        }
+        let col_group = match col.group_index {
+            Some(group_index) => &self.table.column_groups[group_index],
+            None => return false,
+        };
+        col_group.style.get_inherited_box().visibility == Visibility::Collapse
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1913,6 +1950,10 @@ impl TableAndTrackDimensions {
             border_spacing.inline
         };
         for column_index in 0..table_layout.table.size.width {
+            if table_layout.is_column_collapsed(column_index) {
+                column_dimensions.push((column_offset, column_offset));
+                continue;
+            }
             let column_size = table_layout.distributed_column_widths[column_index];
             column_dimensions.push((column_offset, column_offset + column_size));
             column_offset += column_size + border_spacing.inline;
@@ -1925,6 +1966,10 @@ impl TableAndTrackDimensions {
             border_spacing.block
         };
         for row_index in 0..table_layout.table.size.height {
+            if table_layout.is_row_collapsed(row_index) {
+                row_dimensions.push((row_offset, row_offset));
+                continue;
+            }
             let row_size = table_layout.row_sizes[row_index];
             row_dimensions.push((row_offset, row_offset + row_size));
             row_offset += row_size + border_spacing.block;
