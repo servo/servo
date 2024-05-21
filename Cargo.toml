@@ -37,6 +37,7 @@ encoding_rs = "0.8"
 env_logger = "0.10"
 euclid = "0.22"
 fnv = "1.0"
+freetype-sys = "0.20"
 fxhash = "0.2"
 getopts = "0.2.11"
 gfx_traits = { path = "components/shared/gfx" }
