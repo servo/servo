@@ -50,7 +50,7 @@ pub struct Minibrowser {
 
     load_status: LoadStatus,
 
-    hovered_link: Option<String>,
+    status_text: Option<String>,
 }
 
 pub enum MinibrowserEvent {
@@ -88,7 +88,7 @@ impl Minibrowser {
             location: RefCell::new(initial_url.to_string()),
             location_dirty: false.into(),
             load_status: LoadStatus::LoadComplete,
-            hovered_link: None,
+            status_text: None,
         }
     }
 
@@ -239,20 +239,16 @@ impl Minibrowser {
             };
             let mut embedder_events = vec![];
 
-            if self.hovered_link.is_some() {
-                TopBottomPanel::bottom("innner_hover_links")
-                    .max_height(0.0)
-                    .show(ctx, |ui| {
-                        let position = Some(pos2(0.0, ui.cursor().max.y));
-                        egui::containers::popup::show_tooltip_at(
-                            ctx,
-                            "tooltip_for_hovered_link".into(),
-                            position,
-                            |ui| {
-                                ui.label(self.hovered_link.clone().unwrap().to_string());
-                            },
-                        )
-                    });
+            if let Some(status_text) = &self.status_text {
+                let position = Some(pos2(0.0, ctx.available_rect().max.y));
+                egui::containers::popup::show_tooltip_at(
+                    ctx,
+                    "tooltip_for_status_text".into(),
+                    position,
+                    |ui| {
+                        ui.label(status_text.clone());
+                    },
+                );
             }
 
             CentralPanel::default()
@@ -409,12 +405,12 @@ impl Minibrowser {
         need_update
     }
 
-    pub fn update_hovered_link(
+    pub fn update_status_text(
         &mut self,
         browser: &mut WebViewManager<dyn WindowPortsMethods>,
     ) -> bool {
-        let need_update = browser.hovered_link() != self.hovered_link;
-        self.hovered_link = browser.hovered_link();
+        let need_update = browser.status_text() != self.status_text;
+        self.status_text = browser.status_text();
         need_update
     }
 
@@ -430,6 +426,6 @@ impl Minibrowser {
         //       does not short-circuit.
         self.update_location_in_toolbar(browser) |
             self.update_spinner_in_toolbar(browser) |
-            self.update_hovered_link(browser)
+            self.update_status_text(browser)
     }
 }
