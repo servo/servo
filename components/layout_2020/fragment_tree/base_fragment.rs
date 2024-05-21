@@ -94,6 +94,9 @@ bitflags! {
         /// Whether or not this Fragment was created to contain a list item marker
         /// with a used value of `list-style-position: outside`.
         const IS_OUTSIDE_LIST_ITEM_MARKER = 0b00001000;
+        /// Avoid painting the fragment, this is used for empty table cells when 'empty-cells' is 'hide'.
+        /// This flag doesn't avoid hit-testing.
+        const DO_NOT_PAINT = 0b00010000;
     }
 }
 

@@ -30,7 +30,7 @@ use crate::context::LayoutContext;
 use crate::display_list::conversions::ToWebRender;
 use crate::display_list::stacking_context::StackingContextSection;
 use crate::fragment_tree::{
-    BackgroundMode, BoxFragment, Fragment, FragmentTree, Tag, TextFragment,
+    BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentTree, Tag, TextFragment,
 };
 use crate::geom::{LogicalRect, PhysicalPoint, PhysicalRect};
 use crate::replaced::IntrinsicSizes;
@@ -629,6 +629,14 @@ impl<'a> BuilderForBoxFragment<'a> {
             self.build_outline(builder);
         } else {
             self.build_hit_test(builder);
+            if self
+                .fragment
+                .base
+                .flags
+                .contains(FragmentFlags::DO_NOT_PAINT)
+            {
+                return;
+            }
             self.build_background(builder);
             self.build_box_shadow(builder);
             self.build_border(builder);
