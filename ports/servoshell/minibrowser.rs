@@ -8,8 +8,8 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use egui::{
-    CentralPanel, Color32, Frame, Key, Modifiers, PaintCallback, Pos2, Spinner, TopBottomPanel,
-    Vec2,
+    pos2, CentralPanel, Color32, Frame, Key, Modifiers, PaintCallback, Pos2, Spinner,
+    TopBottomPanel, Vec2,
 };
 use egui_glow::CallbackFn;
 use egui_winit::EventResponse;
@@ -49,6 +49,8 @@ pub struct Minibrowser {
     location_dirty: Cell<bool>,
 
     load_status: LoadStatus,
+
+    status_text: Option<String>,
 }
 
 pub enum MinibrowserEvent {
@@ -86,6 +88,7 @@ impl Minibrowser {
             location: RefCell::new(initial_url.to_string()),
             location_dirty: false.into(),
             load_status: LoadStatus::LoadComplete,
+            status_text: None,
         }
     }
 
@@ -235,6 +238,19 @@ impl Minibrowser {
                 return;
             };
             let mut embedder_events = vec![];
+
+            if let Some(status_text) = &self.status_text {
+                let position = Some(pos2(0.0, ctx.available_rect().max.y));
+                egui::containers::popup::show_tooltip_at(
+                    ctx,
+                    "tooltip_for_status_text".into(),
+                    position,
+                    |ui| {
+                        ui.label(status_text.clone());
+                    },
+                );
+            }
+
             CentralPanel::default()
                 .frame(Frame::none())
                 .show(ctx, |ui| {
@@ -389,6 +405,15 @@ impl Minibrowser {
         need_update
     }
 
+    pub fn update_status_text(
+        &mut self,
+        browser: &mut WebViewManager<dyn WindowPortsMethods>,
+    ) -> bool {
+        let need_update = browser.status_text() != self.status_text;
+        self.status_text = browser.status_text();
+        need_update
+    }
+
     /// Updates all fields taken from the given [WebViewManager], such as the location field.
     /// Returns true iff the egui needs an update.
     pub fn update_webview_data(
@@ -399,6 +424,8 @@ impl Minibrowser {
         //       because logical OR would short-circuit if any of the functions return true.
         //       We want to ensure that all functions are called. The "bitwise OR" operator
         //       does not short-circuit.
-        self.update_location_in_toolbar(browser) | self.update_spinner_in_toolbar(browser)
+        self.update_location_in_toolbar(browser) |
+            self.update_spinner_in_toolbar(browser) |
+            self.update_status_text(browser)
     }
 }
