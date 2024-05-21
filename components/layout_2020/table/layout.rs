@@ -10,6 +10,7 @@ use servo_arc::Arc;
 use style::computed_values::border_collapse::T as BorderCollapse;
 use style::logical_geometry::WritingMode;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
+use style::properties::longhands::empty_cells::computed_value::T as EmptyCells;
 use style::properties::ComputedValues;
 use style::values::computed::{
     CSSPixelLength, Length, LengthPercentage as ComputedLengthPercentage, Percentage,
@@ -59,6 +60,15 @@ impl CellLayout {
     /// Note this logic differs from 'empty-cells', which counts abspos contents as empty.
     fn is_empty(&self) -> bool {
         self.layout.fragments.is_empty()
+    }
+
+    /// Whether the cell is considered empty for the purpose of the 'empty-cells' property.
+    fn is_empty_for_empty_cells(&self) -> bool {
+        !self
+            .layout
+            .fragments
+            .iter()
+            .any(|fragment| !matches!(fragment, Fragment::AbsoluteOrFixedPositioned(_)))
     }
 }
 
@@ -1616,6 +1626,7 @@ impl<'a> TableLayout<'a> {
             row_relative_cell_rect,
             row_baseline,
             positioning_context,
+            &self.table.style,
         );
         let column = self.table.columns.get(column_index);
         let column_group = column
@@ -2142,6 +2153,7 @@ impl TableSlotCell {
         cell_rect: LogicalRect<Au>,
         cell_baseline: Au,
         positioning_context: &mut PositioningContext,
+        table_style: &ComputedValues,
     ) -> BoxFragment {
         // This must be scoped to this function because it conflicts with euclid's Zero.
         use style::Zero as StyleZero;
@@ -2161,6 +2173,14 @@ impl TableSlotCell {
                     Length::from(layout.ascent())
             },
         };
+
+        let mut base_fragment_info = self.base_fragment_info;
+        if self.style.get_inherited_table().empty_cells == EmptyCells::Hide &&
+            table_style.get_inherited_table().border_collapse != BorderCollapse::Collapse &&
+            layout.is_empty_for_empty_cells()
+        {
+            base_fragment_info.flags.insert(FragmentFlags::DO_NOT_PAINT);
+        }
 
         // Create an `AnonymousFragment` to move the cell contents to the cell baseline.
         let mut vertical_align_fragment_rect = cell_content_rect.clone();
@@ -2190,7 +2210,7 @@ impl TableSlotCell {
         positioning_context.append(layout.positioning_context);
 
         BoxFragment::new(
-            self.base_fragment_info,
+            base_fragment_info,
             self.style.clone(),
             vec![Fragment::Positioning(vertical_align_fragment)],
             cell_content_rect,
