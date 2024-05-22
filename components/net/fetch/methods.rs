@@ -187,7 +187,7 @@ pub async fn main_fetch(
     done_chan: &mut DoneChannel,
     context: &FetchContext,
 ) -> Response {
-    // Step 1.
+    // Step 2: Let response be null.
     let mut response = None;
 
     // Servo internal: return a crash error when a crash error page is needed
@@ -197,22 +197,48 @@ pub async fn main_fetch(
         )));
     }
 
-    // Step 2.
-    if request.local_urls_only &&
-        !matches!(
-            request.current_url().scheme(),
-            "about" | "blob" | "data" | "filesystem"
-        )
-    {
+    // Step 3: If request’s local-URLs-only flag is set and request’s current URL is not local, then
+    // set response to a network error.
+    if request.local_urls_only && !request.current_url().is_local_scheme() {
         response = Some(Response::network_error(NetworkError::Internal(
             "Non-local scheme".into(),
         )));
     }
 
-    // Step 2.2.
+    // Step 4: Run report Content Security Policy violations for request.
     // TODO: Report violations.
 
     // Step 2.4.
+
+    // Step 3.
+    // TODO: handle request abort.
+
+    // Step 5: Upgrade request to a potentially trustworthy URL, if appropriate.
+    // let hsts_list = context
+    //     .state
+    //     .hsts_list
+    //     .read()
+    //     .unwrap();
+
+    // We perform the HSTS `is_preloadable_host` check here to prevent re-initialising elsewhere
+    // if hsts_list.is_preloadable_host(&request.current_url(), &request.headers) {
+    //     request.upgrade_to_potentially_trustworthy_url();
+    // }
+
+    // Step 7: Upgrade a mixed content request to a potentially trustworthy URL, if appropriate.
+    request.upgrade_mixed_content_request_to_potentially_trustworthy_url();
+
+    // Step 7: If should request be blocked due to a bad port, should fetching request be blocked as
+    // mixed content, or should request be blocked by Content Security Policy returns blocked,
+    // then set response to a network error.
+    if should_be_blocked_due_to_bad_port(&request.current_url()) {
+        response = Some(Response::network_error(NetworkError::Internal(
+            "Request attempted on bad port".into(),
+        )));
+    }
+
+    // TODO: handle blocking as mixed content.
+
     if should_request_be_blocked_by_csp(request) == csp::CheckResult::Blocked {
         warn!("Request blocked by CSP");
         response = Some(Response::network_error(NetworkError::Internal(
@@ -220,31 +246,20 @@ pub async fn main_fetch(
         )))
     }
 
-    // Step 3.
-    // TODO: handle request abort.
+    // Step 8: If request’s referrer policy is the empty string, then set request’s referrer policy
+    // to request’s policy container’s referrer policy.
 
-    // Step 4.
-    // TODO: handle upgrade to a potentially secure URL.
+    // TODO: handle request's client's referrer policy once policy-container is implemented.
 
-    // Step 5.
-    if should_be_blocked_due_to_bad_port(&request.current_url()) {
-        response = Some(Response::network_error(NetworkError::Internal(
-            "Request attempted on bad port".into(),
-        )));
-    }
-    // TODO: handle blocking as mixed content.
-    // TODO: handle blocking by content security policy.
-
-    // Step 6
-    // TODO: handle request's client's referrer policy.
-
-    // Step 7.
     request.referrer_policy = request
         .referrer_policy
         .or(Some(ReferrerPolicy::NoReferrerWhenDowngrade));
 
-    // Step 8.
+    // Step 9: If request’s referrer is not "no-referrer", then set request’s referrer to the result
+    // of invoking 'determine request’s referrer'.
+    // https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer
     assert!(request.referrer_policy.is_some());
+
     let referrer_url = match mem::replace(&mut request.referrer, Referrer::NoReferrer) {
         Referrer::NoReferrer => None,
         Referrer::ReferrerUrl(referrer_source) | Referrer::Client(referrer_source) => {
@@ -256,12 +271,11 @@ pub async fn main_fetch(
             )
         },
     };
+
     request.referrer = referrer_url.map_or(Referrer::NoReferrer, Referrer::ReferrerUrl);
 
-    // Step 9.
-    // TODO: handle FTP URLs.
-
-    // Step 10.
+    // Step 10: Set request’s current URL’s scheme to "https" if all of the following conditions are
+    // true
     context
         .state
         .hsts_list
@@ -272,8 +286,8 @@ pub async fn main_fetch(
     // Step 11.
     // Not applicable: see fetch_async.
 
-    // Step 12.
-
+    // Step 12: If response is null, then set response to the result of running the steps
+    // corresponding to the first matching statement:
     let mut response = match response {
         Some(res) => res,
         None => {
@@ -411,7 +425,8 @@ pub async fn main_fetch(
             response.actual_response_mut()
         };
 
-        // Step 16.
+        // Step 16: If internalResponse’s URL list is empty, then set it to a clone of request’s URL
+        // list.
         if internal_response.url_list.is_empty() {
             internal_response.url_list.clone_from(&request.url_list)
         }

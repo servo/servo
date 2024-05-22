@@ -34,7 +34,6 @@ use crate::storage_thread::StorageThreadMsg;
 pub mod blob_url_store;
 pub mod filemanager_thread;
 pub mod image_cache;
-pub mod policy_container;
 pub mod pub_domains;
 pub mod quality;
 pub mod request;

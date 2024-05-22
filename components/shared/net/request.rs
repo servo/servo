@@ -2,18 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::BorrowMut;
 use std::sync::{Arc, Mutex};
 
 use base::id::PipelineId;
 use content_security_policy::{self as csp, CspList};
-use http::header::{HeaderName, AUTHORIZATION};
+use http::header::{HeaderName, HeaderValue, AUTHORIZATION, UPGRADE_INSECURE_REQUESTS};
 use http::{HeaderMap, Method};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use serde::{Deserialize, Serialize};
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_url::{Host, ImmutableOrigin, ServoUrl};
 
+use crate::pub_domains::reg_host;
 use crate::response::HttpsState;
 use crate::{ReferrerPolicy, ResourceTimingType};
 
@@ -595,6 +597,98 @@ impl Request {
         } else {
             ResourceTimingType::Resource
         }
+    }
+
+    /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-request>
+    pub fn upgrade_to_potentially_trustworthy_url(&mut self) {
+        // TODO do this in HSTS
+
+        if self.current_url().is_secure_scheme() {
+            return;
+        }
+
+        // Step 1: If request is a navigation request, append a header named
+        // Upgrade-Insecure-Requests with a value of 1 to request’s header list if any of the
+        // following criteria are met:
+        if self.is_navigation_request() {
+            // 1.1: request’s URL is not a potentially trustworthy URL
+            if !self.current_url().is_potentially_trustworthy() {
+                self.headers
+                    .borrow_mut()
+                    .append(UPGRADE_INSECURE_REQUESTS, HeaderValue::from_static("1"));
+            }
+        }
+
+        // Step 2: If request is a navigation request, then:
+
+        // Step 3: Let tuple be a tuple of request’s URL's host and port.
+
+        // Step 4: If tuple is contained in client's upgrade insecure navigations set, then skip the
+        // remaining substeps, and continue upgrading request.
+
+        // Step 5: If request’s URL's scheme is "http", set request’s URL's scheme to "https",
+        // and return.
+    }
+
+    /// <https://w3c.github.io/webappsec-mixed-content/#upgrade-algorithm>
+    pub fn upgrade_mixed_content_request_to_potentially_trustworthy_url(&mut self) {
+        // Step 1: If one or more of the following conditions is met, return without modifying
+        // request:
+
+        let url = self.current_url();
+
+        // 1.1: request’s URL is a potentially trustworthy URL.
+        if url.is_potentially_trustworthy() {
+            log::warn!("Not Upgrading: URL is not potentially trustworthy");
+
+            return;
+        }
+
+        // 1.2: request’s URL’s host is an IP address.
+        if let Some(host) = reg_host(&url) {
+            match host {
+                Host::Ipv4(_) | Host::Ipv6(_) => {
+                    log::warn!("Not Upgrading: URL is an IP address");
+
+                    return;
+                },
+                _ => {},
+            }
+        }
+
+        // 1.3: § 4.3 Does settings prohibit mixed security contexts? returns
+        // "Does Not Restrict Mixed Security Contents" when applied to request’s client
+        // TODO: We currently don't have request.client
+
+        // 1.4: request’s destination is not "image", "audio", or "video".
+        // 1.5: request’s destination is "image" and request’s initiator is "imageset".
+        match self.destination {
+            Destination::Image => {
+                if self.initiator == Initiator::ImageSet {
+                    log::warn!("Not Upgrading: Img with incorrect destination");
+
+                    return;
+                }
+            },
+            Destination::Audio | Destination::Video => {},
+            _ => {
+                log::warn!("Not Upgrading: Invalid destination");
+
+                return;
+            },
+        }
+
+        // Step 2: If request’s URL’s scheme is http, set request’s URL’s scheme to https, and
+        // return.
+        let upgraded_scheme = match url.scheme() {
+            "ws" => "wss",
+            _ => "https",
+        };
+
+        self.current_url()
+            .as_mut_url()
+            .set_scheme(upgraded_scheme)
+            .unwrap();
     }
 }
 
