@@ -2022,6 +2022,7 @@ dependencies = [
  "core-foundation",
  "core-graphics",
  "core-text",
+ "crossbeam-channel",
  "cssparser",
  "dwrote",
  "euclid",

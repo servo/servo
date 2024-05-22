@@ -4,6 +4,8 @@
 
 #![deny(unsafe_code)]
 
+use std::sync::Arc;
+
 use malloc_size_of_derive::MallocSizeOf;
 use range::{int_range_index, RangeIndex};
 use serde::{Deserialize, Serialize};
@@ -14,3 +16,5 @@ int_range_index! {
     /// the middle of a glyph.
     struct ByteIndex(isize)
 }
+
+pub type WebFontLoadFinishedCallback = Arc<dyn Fn(bool) + Send + Sync + 'static>;

@@ -113,8 +113,6 @@ impl UntrustedNodeAddress {
 /// Messages sent to layout from the constellation and/or compositor.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum LayoutControlMsg {
-    /// Requests that this layout clean up before exit.
-    ExitNow,
     /// Tells layout about the new scrolling offsets of each scrollable stacking context.
     SetScrollStates(Vec<ScrollState>),
     /// Send the paint time for a specific epoch to layout.
@@ -395,8 +393,6 @@ pub enum ConstellationControlMsg {
     SetWebGPUPort(IpcReceiver<WebGPUMsg>),
     /// A mesage for a layout from the constellation.
     ForLayoutFromConstellation(LayoutControlMsg, PipelineId),
-    /// A message for a layout from the font cache.
-    ForLayoutFromFontCache(PipelineId),
 }
 
 impl fmt::Debug for ConstellationControlMsg {
@@ -436,7 +432,6 @@ impl fmt::Debug for ConstellationControlMsg {
             MediaSessionAction(..) => "MediaSessionAction",
             SetWebGPUPort(..) => "SetWebGPUPort",
             ForLayoutFromConstellation(..) => "ForLayoutFromConstellation",
-            ForLayoutFromFontCache(..) => "ForLayoutFromFontCache",
         };
         write!(formatter, "ConstellationControlMsg::{}", variant)
     }
