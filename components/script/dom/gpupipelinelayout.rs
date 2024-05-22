@@ -84,10 +84,11 @@ impl GPUPipelineLayoutMethods for GPUPipelineLayout {
 
 impl Drop for GPUPipelineLayout {
     fn drop(&mut self) {
-        if let Err(e) = self.channel.0.send((
-            None,
-            WebGPURequest::DropPipelineLayout(self.pipeline_layout.0),
-        )) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DropPipelineLayout(self.pipeline_layout.0))
+        {
             warn!(
                 "Failed to send DropPipelineLayout ({:?}) ({})",
                 self.pipeline_layout.0, e

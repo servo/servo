@@ -340,6 +340,8 @@ pub mod gpucomputepipeline;
 pub mod gpuconvert;
 pub mod gpudevice;
 pub mod gpudevicelostinfo;
+pub mod gpuerror;
+pub mod gpuinternalerror;
 pub mod gpumapmode;
 pub mod gpuoutofmemoryerror;
 pub mod gpupipelinelayout;

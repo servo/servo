@@ -73,7 +73,7 @@ impl Drop for GPUBindGroup {
         if let Err(e) = self
             .channel
             .0
-            .send((None, WebGPURequest::DropBindGroup(self.bind_group.0)))
+            .send(WebGPURequest::DropBindGroup(self.bind_group.0))
         {
             warn!(
                 "Failed to send WebGPURequest::DropBindGroup({:?}) ({})",

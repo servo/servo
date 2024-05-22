@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
-use webgpu::{wgt, WebGPU, WebGPUOpResult, WebGPUQueue, WebGPURequest, WebGPUResponse};
+use webgpu::{wgt, WebGPU, WebGPUQueue, WebGPURequest, WebGPUResponse};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::{GPUImageCopyTexture, GPUImageDataLayout};
 use super::gpu::{response_async, AsyncWGPUListener};
@@ -81,26 +81,23 @@ impl GPUQueueMethods for GPUQueue {
                 .iter()
                 .all(|b| matches!(b.state(), GPUBufferState::Unmapped))
         });
-        let scope_id = self.device.borrow().as_ref().unwrap().use_current_scope();
         if !valid {
-            self.device.borrow().as_ref().unwrap().handle_server_msg(
-                scope_id,
-                WebGPUOpResult::ValidationError(String::from(
+            self.device
+                .borrow()
+                .as_ref()
+                .unwrap()
+                .dispatch_error(webgpu::Error::Validation(String::from(
                     "Referenced GPUBuffer(s) are not Unmapped",
-                )),
-            );
+                )));
             return;
         }
         let command_buffers = command_buffers.iter().map(|cb| cb.id().0).collect();
         self.channel
             .0
-            .send((
-                scope_id,
-                WebGPURequest::Submit {
-                    queue_id: self.queue.0,
-                    command_buffers,
-                },
-            ))
+            .send(WebGPURequest::Submit {
+                queue_id: self.queue.0,
+                command_buffers,
+            })
             .unwrap();
     }
 
@@ -135,15 +132,12 @@ impl GPUQueueMethods for GPUQueue {
         let final_data = IpcSharedMemory::from_bytes(
             &bytes[data_offset as usize..(data_offset + content_size) as usize],
         );
-        if let Err(e) = self.channel.0.send((
-            self.device.borrow().as_ref().unwrap().use_current_scope(),
-            WebGPURequest::WriteBuffer {
-                queue_id: self.queue.0,
-                buffer_id: buffer.id().0,
-                buffer_offset,
-                data: final_data,
-            },
-        )) {
+        if let Err(e) = self.channel.0.send(WebGPURequest::WriteBuffer {
+            queue_id: self.queue.0,
+            buffer_id: buffer.id().0,
+            buffer_offset,
+            data: final_data,
+        }) {
             warn!("Failed to send WriteBuffer({:?}) ({})", buffer.id(), e);
             return Err(Error::Operation);
         }
@@ -174,16 +168,13 @@ impl GPUQueueMethods for GPUQueue {
         let write_size = convert_texture_size_to_wgt(&convert_texture_size_to_dict(&size));
         let final_data = IpcSharedMemory::from_bytes(&bytes);
 
-        if let Err(e) = self.channel.0.send((
-            self.device.borrow().as_ref().unwrap().use_current_scope(),
-            WebGPURequest::WriteTexture {
-                queue_id: self.queue.0,
-                texture_cv,
-                data_layout: texture_layout,
-                size: write_size,
-                data: final_data,
-            },
-        )) {
+        if let Err(e) = self.channel.0.send(WebGPURequest::WriteTexture {
+            queue_id: self.queue.0,
+            texture_cv,
+            data_layout: texture_layout,
+            size: write_size,
+            data: final_data,
+        }) {
             warn!(
                 "Failed to send WriteTexture({:?}) ({})",
                 destination.texture.id().0,
@@ -200,13 +191,14 @@ impl GPUQueueMethods for GPUQueue {
         let global = self.global();
         let promise = Promise::new(&global);
         let sender = response_async(&promise, self);
-        if let Err(e) = self.channel.0.send((
-            self.device.borrow().as_ref().unwrap().use_current_scope(),
-            WebGPURequest::QueueOnSubmittedWorkDone {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::QueueOnSubmittedWorkDone {
                 sender,
                 queue_id: self.queue.0,
-            },
-        )) {
+            })
+        {
             warn!("QueueOnSubmittedWorkDone failed with {e}")
         }
         promise

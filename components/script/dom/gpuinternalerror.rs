@@ -12,11 +12,11 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 
 #[dom_struct]
-pub struct GPUOutOfMemoryError {
+pub struct GPUInternalError {
     gpu_error: GPUError,
 }
 
-impl GPUOutOfMemoryError {
+impl GPUInternalError {
     fn new_inherited(message: DOMString) -> Self {
         Self {
             gpu_error: GPUError::new_inherited(message),
@@ -31,7 +31,7 @@ impl GPUOutOfMemoryError {
         reflect_dom_object_with_proto(Box::new(Self::new_inherited(message)), global, proto)
     }
 
-    /// <https://gpuweb.github.io/gpuweb/#dom-GPUOutOfMemoryError-GPUOutOfMemoryError>
+    /// <https://gpuweb.github.io/gpuweb/#dom-GPUInternalError-GPUInternalError>
     #[allow(non_snake_case)]
     pub fn Constructor(
         global: &GlobalScope,

@@ -2079,7 +2079,7 @@ where
                         options,
                         ids,
                     };
-                    if webgpu_chan.0.send((None, adapter_request)).is_err() {
+                    if webgpu_chan.0.send(adapter_request).is_err() {
                         warn!("Failed to send request adapter message on WebGPU channel");
                     }
                 },
