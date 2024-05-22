@@ -484,6 +484,7 @@ impl FontSource for FontCacheThread {
                     identifier: serialized_font_template.identifier,
                     descriptor: serialized_font_template.descriptor.clone(),
                     data: font_data.map(Arc::new),
+                    stylesheet: None,
                 }))
             })
             .collect()
