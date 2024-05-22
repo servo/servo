@@ -11,6 +11,14 @@ use euclid::default::{Rect, Size2D};
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSharedMemory};
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::PixelFormat;
+/// Helper function that creates a WebGL channel (WebGLSender, WebGLReceiver) to be used in WebGLCommands.
+pub use process::channel as webgl_channel;
+/// Receiver type used in WebGLCommands.
+pub use process::channel::Receiver as WebGLReceiver;
+/// Result type for send()/recv() calls in in WebGLCommands.
+pub use process::channel::SendResult as WebGLSendResult;
+/// Sender type used in WebGLCommands.
+pub use process::channel::Sender as WebGLSender;
 use serde::{Deserialize, Serialize};
 use sparkle::gl;
 use webrender_api::ImageKey;
@@ -19,18 +27,26 @@ use webxr_api::{
     LayerInit as WebXRLayerInit, SubImages as WebXRSubImages,
 };
 
-/// Helper function that creates a WebGL channel (WebGLSender, WebGLReceiver) to be used in WebGLCommands.
-pub use crate::webgl_channel::webgl_channel;
 /// Entry point channel type used for sending WebGLMsg messages to the WebGL renderer.
-pub use crate::webgl_channel::WebGLChan;
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct WebGLChan(pub WebGLSender<WebGLMsg>);
+
+impl WebGLChan {
+    #[inline]
+    pub fn send(&self, msg: WebGLMsg) -> WebGLSendResult {
+        self.0.send(msg)
+    }
+}
+
 /// Entry point type used in a Script Pipeline to get the WebGLChan to be used in that thread.
-pub use crate::webgl_channel::WebGLPipeline;
-/// Receiver type used in WebGLCommands.
-pub use crate::webgl_channel::WebGLReceiver;
-/// Result type for send()/recv() calls in in WebGLCommands.
-pub use crate::webgl_channel::WebGLSendResult;
-/// Sender type used in WebGLCommands.
-pub use crate::webgl_channel::WebGLSender;
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct WebGLPipeline(pub WebGLChan);
+
+impl WebGLPipeline {
+    pub fn channel(&self) -> WebGLChan {
+        self.0.clone()
+    }
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WebGLCommandBacktrace {

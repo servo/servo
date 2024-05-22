@@ -76,6 +76,7 @@ num-traits = "0.2"
 num_cpus = "1.1.0"
 parking_lot = "0.12"
 percent-encoding = "2.3"
+process = { path = "components/shared/process" }
 proc-macro2 = "1"
 profile_traits = { path = "components/shared/profile" }
 quote = "1"

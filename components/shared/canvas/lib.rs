@@ -14,7 +14,6 @@ use crate::canvas::CanvasId;
 pub mod canvas;
 #[macro_use]
 pub mod webgl;
-mod webgl_channel;
 
 pub enum ConstellationCanvasMsg {
     Create {

@@ -25,6 +25,7 @@ pixels = { path = "../../pixels" }
 serde = { workspace = true }
 serde_bytes = { workspace = true }
 servo_config = { path = "../../config" }
+process = { workspace = true }
 sparkle = { workspace = true }
 style = { workspace = true }
 time = { workspace = true, optional = true }
