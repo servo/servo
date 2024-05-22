@@ -13,8 +13,7 @@ use crate::wgc;
 /// <https://www.w3.org/TR/webgpu/#gpu-error-scope>
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub(crate) struct ErrorScope {
-    // we only store first error
-    pub errors: Option<Error>,
+    pub errors: Vec<Error>,
     pub filter: ErrorFilter,
 }
 
@@ -22,7 +21,7 @@ impl ErrorScope {
     pub fn new(filter: ErrorFilter) -> Self {
         Self {
             filter,
-            errors: None,
+            errors: Vec::new(),
         }
     }
 }

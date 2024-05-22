@@ -1074,7 +1074,8 @@ impl WGPU {
                             if let Some(error_scope) = device_scope.error_scope_stack.pop() {
                                 if let Err(e) =
                                     sender.send(Some(Ok(WebGPUResponse::PoppedErrorScope(Ok(
-                                        error_scope.errors.clone(),
+                                        // TODO: Do actual selection instead of selecting first error
+                                        error_scope.errors.first().cloned(),
                                     )))))
                                 {
                                     warn!(
@@ -1130,7 +1131,7 @@ impl WGPU {
                 .rev()
                 .find(|error_scope| error_scope.filter == error.filter())
             {
-                error_scope.errors.get_or_insert(error);
+                error_scope.errors.push(error);
             } else {
                 if self
                     .script_sender
