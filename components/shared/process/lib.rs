@@ -12,5 +12,5 @@
 // TODO move net/async_runtime.rs to here
 // pub mod async_runtime;
 
-pub mod channel;
-pub use channel::channel;
+pub mod generic_channel;
+pub use generic_channel::channel;

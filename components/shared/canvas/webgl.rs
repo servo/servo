@@ -14,11 +14,11 @@ use pixels::PixelFormat;
 /// Helper function that creates a WebGL channel (WebGLSender, WebGLReceiver) to be used in WebGLCommands.
 pub use process::channel as webgl_channel;
 /// Receiver type used in WebGLCommands.
-pub use process::channel::Receiver as WebGLReceiver;
-/// Result type for send()/recv() calls in in WebGLCommands.
-pub use process::channel::SendResult as WebGLSendResult;
+pub use process::generic_channel::GenericReceiver as WebGLReceiver;
 /// Sender type used in WebGLCommands.
-pub use process::channel::Sender as WebGLSender;
+pub use process::generic_channel::GenericSender as WebGLSender;
+/// Result type for send()/recv() calls in in WebGLCommands.
+pub use process::generic_channel::SendResult as WebGLSendResult;
 use serde::{Deserialize, Serialize};
 use sparkle::gl;
 use webrender_api::ImageKey;
