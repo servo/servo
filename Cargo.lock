@@ -375,7 +375,7 @@ dependencies = [
  "bitflags 2.5.0",
  "cexpr",
  "clang-sys",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "lazy_static",
  "lazycell",
  "log",
@@ -2346,9 +2346,9 @@ dependencies = [
 
 [[package]]
 name = "gstreamer-audio"
-version = "0.22.4"
+version = "0.22.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73a5de9ced05f9650168a74c7a4afeddbf3e63af595a7d56a700765be3b4869c"
+checksum = "703e65074d4f5dce207e855d8f36697ec93f953e5412780dcffc70cb5483337e"
 dependencies = [
  "cfg-if",
  "glib",
