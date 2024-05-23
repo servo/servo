@@ -217,15 +217,9 @@ impl GPUDevice {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#lose-the-device>
-    pub fn lose(&self, reason: GPUDeviceLostReason) {
+    pub fn lose(&self, reason: GPUDeviceLostReason, msg: String) {
         let ref lost_promise = *self.lost_promise.borrow();
         let global = &self.global();
-        let msg = match reason {
-            GPUDeviceLostReason::Unknown => "Unknown reason for your device loss.",
-            GPUDeviceLostReason::Destroyed => {
-                "Device self-destruction sequence activated successfully!"
-            },
-        };
         let lost = GPUDeviceLostInfo::new(global, msg.into(), reason);
         lost_promise.resolve_native(&*lost);
     }
@@ -1007,8 +1001,6 @@ impl GPUDeviceMethods for GPUDevice {
     fn Destroy(&self) {
         if self.valid.get() {
             self.valid.set(false);
-
-            self.lose(GPUDeviceLostReason::Destroyed);
 
             if let Err(e) = self
                 .channel

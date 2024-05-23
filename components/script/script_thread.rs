@@ -2424,12 +2424,14 @@ impl ScriptThread {
             WebGPUMsg::FreeTexture(id) => self.gpu_id_hub.lock().kill_texture_id(id),
             WebGPUMsg::FreeTextureView(id) => self.gpu_id_hub.lock().kill_texture_view_id(id),
             WebGPUMsg::Exit => *self.webgpu_port.borrow_mut() = None,
-            WebGPUMsg::CleanDevice {
+            WebGPUMsg::DeviceLost {
                 pipeline_id,
                 device,
+                reason,
+                msg,
             } => {
                 let global = self.documents.borrow().find_global(pipeline_id).unwrap();
-                global.remove_gpu_device(device);
+                global.gpu_device_lost(device, reason.wgt(), msg);
             },
             WebGPUMsg::UncapturedError {
                 device,
