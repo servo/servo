@@ -2471,9 +2471,9 @@ dependencies = [
 
 [[package]]
 name = "gstreamer-gl-x11-sys"
-version = "0.22.0"
+version = "0.22.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54b59f2782f5e71e3ef5fd534598938966a4dc3911f2540807f7d13b586e4ed1"
+checksum = "e32e55003727d84746d15f2bd409a1e0f3d22313ac2595eb184b1fd2f6afaf0c"
 dependencies = [
  "glib-sys",
  "gstreamer-gl-sys",
