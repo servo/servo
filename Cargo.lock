@@ -2496,9 +2496,9 @@ dependencies = [
 
 [[package]]
 name = "gstreamer-player-sys"
-version = "0.22.0"
+version = "0.22.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0ff7af3d3c4692a36ce1c4695b2a3a6563d8e5724feded38def679bd755202f"
+checksum = "31707b98f1a80f5b35a23eccf5ee4a55c40f488bca72804f52526c9ccd08762c"
 dependencies = [
  "glib-sys",
  "gobject-sys",
