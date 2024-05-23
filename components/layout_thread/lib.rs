@@ -273,7 +273,10 @@ impl Layout for LayoutThread {
 
     fn load_web_fonts_from_stylesheet(&self, stylesheet: ServoArc<Stylesheet>) {
         let guard = stylesheet.shared_lock.read();
-        self.load_all_web_fonts_from_stylesheet_with_guard(&stylesheet, &guard);
+        self.load_all_web_fonts_from_stylesheet_with_guard(
+            &DocumentStyleSheet(stylesheet.clone()),
+            &guard,
+        );
     }
 
     fn add_stylesheet(
@@ -282,24 +285,25 @@ impl Layout for LayoutThread {
         before_stylesheet: Option<ServoArc<Stylesheet>>,
     ) {
         let guard = stylesheet.shared_lock.read();
+        let stylesheet = DocumentStyleSheet(stylesheet.clone());
         self.load_all_web_fonts_from_stylesheet_with_guard(&stylesheet, &guard);
 
         match before_stylesheet {
             Some(insertion_point) => self.stylist.insert_stylesheet_before(
-                DocumentStyleSheet(stylesheet.clone()),
+                stylesheet,
                 DocumentStyleSheet(insertion_point),
                 &guard,
             ),
-            None => self
-                .stylist
-                .append_stylesheet(DocumentStyleSheet(stylesheet.clone()), &guard),
+            None => self.stylist.append_stylesheet(stylesheet, &guard),
         }
     }
 
     fn remove_stylesheet(&mut self, stylesheet: ServoArc<Stylesheet>) {
         let guard = stylesheet.shared_lock.read();
-        self.stylist
-            .remove_stylesheet(DocumentStyleSheet(stylesheet.clone()), &guard);
+        let stylesheet = DocumentStyleSheet(stylesheet.clone());
+        self.stylist.remove_stylesheet(stylesheet.clone(), &guard);
+        self.font_context
+            .remove_all_web_fonts_from_stylesheet(&stylesheet);
     }
 
     fn query_content_box(&self, node: OpaqueNode) -> Option<UntypedRect<Au>> {
@@ -668,7 +672,7 @@ impl LayoutThread {
 
     fn load_all_web_fonts_from_stylesheet_with_guard(
         &self,
-        stylesheet: &Stylesheet,
+        stylesheet: &DocumentStyleSheet,
         guard: &SharedRwLockReadGuard,
     ) {
         if !stylesheet.is_effective_for_device(self.stylist.device(), guard) {
@@ -982,10 +986,7 @@ impl LayoutThread {
             for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
                 self.stylist
                     .append_stylesheet(stylesheet.clone(), &ua_or_user_guard);
-                self.load_all_web_fonts_from_stylesheet_with_guard(
-                    &stylesheet.0,
-                    &ua_or_user_guard,
-                );
+                self.load_all_web_fonts_from_stylesheet_with_guard(&stylesheet, &ua_or_user_guard);
             }
 
             if self.stylist.quirks_mode() != QuirksMode::NoQuirks {
@@ -994,7 +995,7 @@ impl LayoutThread {
                     &ua_or_user_guard,
                 );
                 self.load_all_web_fonts_from_stylesheet_with_guard(
-                    &ua_stylesheets.quirks_mode_stylesheet.0,
+                    &ua_stylesheets.quirks_mode_stylesheet,
                     &ua_or_user_guard,
                 );
             }

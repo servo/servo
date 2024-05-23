@@ -24,6 +24,7 @@ use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::properties::style_structs::Font as FontStyleStruct;
+use style::stylesheets::Stylesheet;
 use style::values::computed::font::{
     FamilyName, FontFamily, FontFamilyList, FontFamilyNameSyntax, FontSize, FontStretch, FontStyle,
     FontWeight, SingleFontFamily,
@@ -85,6 +86,7 @@ impl MockFontCacheThread {
                 Self::url_for_font_name(name),
                 std::sync::Arc::new(data),
                 &CSSFontFaceDescriptors::new(name),
+                None,
             )
             .unwrap(),
         );

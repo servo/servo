@@ -8,21 +8,95 @@ use std::sync::Arc;
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use parking_lot::RwLock;
+use style::stylesheets::DocumentStyleSheet;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
 
 use crate::font::FontDescriptor;
 use crate::font_cache_thread::{FontIdentifier, FontSource, LowercaseString};
+use crate::font_context::WebFontDownloadState;
 use crate::font_template::{FontTemplate, FontTemplateRef, FontTemplateRefMethods};
 
 #[derive(Default)]
 pub struct FontStore {
     pub(crate) families: HashMap<LowercaseString, FontTemplates>,
+    web_fonts_loading: Vec<(DocumentStyleSheet, usize)>,
 }
 pub(crate) type CrossThreadFontStore = Arc<RwLock<FontStore>>;
 
 impl FontStore {
     pub(crate) fn clear(&mut self) {
         self.families.clear();
+    }
+
+    pub(crate) fn font_load_cancelled_for_stylesheet(
+        &self,
+        stylesheet: &DocumentStyleSheet,
+    ) -> bool {
+        !self
+            .web_fonts_loading
+            .iter()
+            .any(|(loading_stylesheet, _)| loading_stylesheet == stylesheet)
+    }
+
+    pub(crate) fn handle_stylesheet_removed(&mut self, stylesheet: &DocumentStyleSheet) {
+        self.web_fonts_loading
+            .retain(|(loading_stylesheet, _)| loading_stylesheet != stylesheet);
+    }
+
+    pub(crate) fn handle_web_font_load_started_for_stylesheet(
+        &mut self,
+        stylesheet: &DocumentStyleSheet,
+    ) {
+        if let Some((_, count)) = self
+            .web_fonts_loading
+            .iter_mut()
+            .find(|(loading_stylesheet, _)| loading_stylesheet == stylesheet)
+        {
+            *count += 1;
+        } else {
+            self.web_fonts_loading.push((stylesheet.clone(), 1))
+        }
+    }
+
+    fn remove_one_web_font_loading_for_stylesheet(&mut self, stylesheet: &DocumentStyleSheet) {
+        if let Some((_, count)) = self
+            .web_fonts_loading
+            .iter_mut()
+            .find(|(loading_stylesheet, _)| loading_stylesheet == stylesheet)
+        {
+            *count -= 1;
+        }
+        self.web_fonts_loading.retain(|(_, count)| *count != 0);
+    }
+
+    pub(crate) fn handle_web_font_failed_to_load(&mut self, state: &WebFontDownloadState) {
+        self.remove_one_web_font_loading_for_stylesheet(&state.stylesheet);
+    }
+
+    /// Handle a web font load finishing, adding the new font to the [`FontStore`]. If the web font
+    /// load was canceled (for instance, if the stylesheet was removed), then do nothing and return
+    /// false.
+    pub(crate) fn handle_web_font_loaded(
+        &mut self,
+        state: &WebFontDownloadState,
+        new_template: FontTemplate,
+    ) -> bool {
+        // Abort processing this web font if the originating stylesheet was removed.
+        if self.font_load_cancelled_for_stylesheet(&state.stylesheet) {
+            return false;
+        }
+
+        let family_name = state.css_font_face_descriptors.family_name.clone();
+        self.families
+            .entry(family_name)
+            .or_default()
+            .add_template(new_template);
+        self.remove_one_web_font_loading_for_stylesheet(&state.stylesheet);
+        true
+    }
+
+    pub(crate) fn number_of_fonts_still_loading(&self) -> usize {
+        self.web_fonts_loading.iter().map(|(_, count)| count).sum()
     }
 }
 
@@ -126,5 +200,15 @@ impl FontTemplates {
         }
         self.templates
             .push(Arc::new(AtomicRefCell::new(new_template)));
+    }
+
+    pub(crate) fn remove_templates_for_stylesheet(
+        &mut self,
+        stylesheet: &DocumentStyleSheet,
+    ) -> bool {
+        let length_before = self.templates.len();
+        self.templates
+            .retain(|template| template.borrow().stylesheet.as_ref() != Some(stylesheet));
+        length_before != self.templates.len()
     }
 }

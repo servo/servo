@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_style::T as FontStyle;
+use style::stylesheets::DocumentStyleSheet;
 use style::values::computed::font::FontWeight;
 
 use crate::font::{FontDescriptor, PlatformFontMethods};
@@ -132,9 +133,11 @@ pub struct FontTemplate {
     pub descriptor: FontTemplateDescriptor,
     /// The data to use for this [`FontTemplate`]. For web fonts, this is always filled, but
     /// for local fonts, this is loaded only lazily in layout.
-    ///
-    /// TODO: There is no mechanism for web fonts to unset their data!
     pub data: Option<Arc<Vec<u8>>>,
+    /// If this font is a web font, this is a reference to the stylesheet that
+    /// created it. This will be used to remove this font from caches, when the
+    /// stylesheet is removed.
+    pub stylesheet: Option<DocumentStyleSheet>,
 }
 
 impl malloc_size_of::MallocSizeOf for FontTemplate {
@@ -164,6 +167,7 @@ impl FontTemplate {
             identifier: FontIdentifier::Local(identifier),
             descriptor,
             data: None,
+            stylesheet: None,
         }
     }
 
@@ -172,6 +176,7 @@ impl FontTemplate {
         url: ServoUrl,
         data: Arc<Vec<u8>>,
         css_font_template_descriptors: &CSSFontFaceDescriptors,
+        stylesheet: Option<DocumentStyleSheet>,
     ) -> Result<FontTemplate, &'static str> {
         let identifier = FontIdentifier::Web(url.clone());
         let Ok(handle) = PlatformFont::new_from_data(identifier, data.clone(), 0, None) else {
@@ -185,6 +190,7 @@ impl FontTemplate {
             identifier: FontIdentifier::Web(url),
             descriptor,
             data: Some(data),
+            stylesheet,
         })
     }
 
@@ -194,11 +200,13 @@ impl FontTemplate {
     pub fn new_for_local_web_font(
         local_template: FontTemplateRef,
         css_font_template_descriptors: &CSSFontFaceDescriptors,
+        stylesheet: DocumentStyleSheet,
     ) -> Result<FontTemplate, &'static str> {
         let mut alias_template = local_template.borrow().clone();
         alias_template
             .descriptor
             .override_values_with_css_font_template_descriptors(css_font_template_descriptors);
+        alias_template.stylesheet = Some(stylesheet);
         Ok(alias_template)
     }
 
