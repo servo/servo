@@ -1075,14 +1075,13 @@ enum GPUDeviceLostReason {
     "destroyed",
 };
 
-[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
+[Exposed=(Window, Worker), Pref="dom.webgpu.enabled"]
 interface GPUDeviceLostInfo {
     readonly attribute GPUDeviceLostReason reason;
     readonly attribute DOMString message;
 };
 
 partial interface GPUDevice {
-    [Throws]
     readonly attribute Promise<GPUDeviceLostInfo> lost;
 };
 
