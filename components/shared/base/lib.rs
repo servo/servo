@@ -11,6 +11,7 @@
 
 use serde::{Deserialize, Serialize};
 
+pub mod generic_channel;
 pub mod id;
 pub mod print_tree;
 use webrender_api::Epoch as WebRenderEpoch;

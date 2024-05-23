@@ -7,18 +7,16 @@ use std::fmt;
 use std::num::{NonZeroU32, NonZeroU64};
 use std::ops::Deref;
 
+/// Receiver type used in WebGLCommands.
+pub use base::generic_channel::GenericReceiver as WebGLReceiver;
+/// Sender type used in WebGLCommands.
+pub use base::generic_channel::GenericSender as WebGLSender;
+/// Result type for send()/recv() calls in in WebGLCommands.
+pub use base::generic_channel::SendResult as WebGLSendResult;
 use euclid::default::{Rect, Size2D};
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSharedMemory};
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::PixelFormat;
-/// Helper function that creates a WebGL channel (WebGLSender, WebGLReceiver) to be used in WebGLCommands.
-pub use process::channel as webgl_channel;
-/// Receiver type used in WebGLCommands.
-pub use process::generic_channel::GenericReceiver as WebGLReceiver;
-/// Sender type used in WebGLCommands.
-pub use process::generic_channel::GenericSender as WebGLSender;
-/// Result type for send()/recv() calls in in WebGLCommands.
-pub use process::generic_channel::SendResult as WebGLSendResult;
 use serde::{Deserialize, Serialize};
 use sparkle::gl;
 use webrender_api::ImageKey;
@@ -26,6 +24,14 @@ use webxr_api::{
     ContextId as WebXRContextId, Error as WebXRError, LayerId as WebXRLayerId,
     LayerInit as WebXRLayerInit, SubImages as WebXRSubImages,
 };
+
+/// Helper function that creates a WebGL channel (WebGLSender, WebGLReceiver) to be used in WebGLCommands.
+pub fn webgl_channel<T>() -> Option<(WebGLSender<T>, WebGLReceiver<T>)>
+where
+    T: for<'de> Deserialize<'de> + Serialize,
+{
+    base::generic_channel::channel(servo_config::opts::multiprocess())
+}
 
 /// Entry point channel type used for sending WebGLMsg messages to the WebGL renderer.
 #[derive(Clone, Debug, Deserialize, Serialize)]
