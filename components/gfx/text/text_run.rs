@@ -13,6 +13,7 @@ use range::Range;
 use serde::{Deserialize, Serialize};
 use style::str::char_is_whitespace;
 use unicode_bidi as bidi;
+use unicode_properties::UnicodeEmoji;
 use webrender_api::FontInstanceKey;
 use xi_unicode::LineBreakLeafIter;
 
@@ -233,6 +234,7 @@ impl<'a> TextRun {
             });
         };
 
+        let mut in_zwj_emoji_sequence = false;
         while !finished {
             let (idx, _is_hard_break) = breaker.next(text);
             if idx == text.len() {
@@ -246,10 +248,43 @@ impl<'a> TextRun {
             slice.end = idx;
             let word = &text[slice.clone()];
 
+            let mut rev_char_indices = word.char_indices().rev().peekable();
+            let last_character = rev_char_indices.peek();
+
+            if !finished {
+                // This is a workaround for a bug in xi-unicode. It inserts a linebreak opportunity
+                // between two emojis and ZWJ character. This signals a possible emoji cluster and so it
+                // should all be shaped together. If this is detected, merge this segment with the
+                // previous one.
+                //
+                // TODO: Either fix the bug in xi-unicode or switch to something like icu4x, but that
+                // does not support iterative addition of text to the linebreaker. We'd have to break
+                // the entire inline formatting context at once.
+                let ends_with_emoji = matches!(
+                    last_character,
+                    Some((_, character)) if character.is_emoji_char_or_emoji_component()
+                );
+                let next_character = &text[slice.end..text.len()].char_indices().next();
+                if ends_with_emoji && matches!(next_character, Some((_, '\u{200d}'))) {
+                    in_zwj_emoji_sequence = true;
+                    continue;
+                }
+                if in_zwj_emoji_sequence {
+                    in_zwj_emoji_sequence = false;
+                    continue;
+                }
+                // This is another bug in xi-unicode. It inserts a line break opportunity between emojis and
+                // emoji components that follow them. For instance, between an emoji and a skin tone modifier.
+                if ends_with_emoji &&
+                    matches!(next_character, Some((_, character)) if character.is_emoji_component())
+                {
+                    continue;
+                }
+            }
+
             // Split off any trailing whitespace into a separate glyph run.
             let mut whitespace = slice.end..slice.end;
-            let mut rev_char_indices = word.char_indices().rev().peekable();
-            let ends_with_newline = rev_char_indices.peek().map_or(false, |&(_, c)| c == '\n');
+            let ends_with_newline = matches!(last_character, Some((_, '\n')));
             if let Some((i, _)) = rev_char_indices
                 .take_while(|&(_, c)| char_is_whitespace(c))
                 .last()
