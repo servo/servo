@@ -10,7 +10,6 @@
 
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use std::process;
 use std::sync::{Arc, Mutex};
@@ -63,13 +62,12 @@ use profile_traits::time::{
 use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_layout_interface::{
-    node_id_from_scroll_id, Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType,
-    OffsetParentResponse, Reflow, ReflowComplete, ReflowGoal, ScriptReflow, TrustedNodeAddress,
+    Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse, Reflow,
+    ReflowComplete, ReflowGoal, ScriptReflow, TrustedNodeAddress,
 };
 use script_traits::{
-    ConstellationControlMsg, DrawAPaintImageResult, IFrameSizeMsg, LayoutControlMsg,
-    LayoutMsg as ConstellationMsg, PaintWorkletError, Painter, ScrollState, UntrustedNodeAddress,
-    WindowSizeData, WindowSizeType,
+    ConstellationControlMsg, DrawAPaintImageResult, IFrameSizeMsg, LayoutMsg as ConstellationMsg,
+    PaintWorkletError, Painter, ScrollState, UntrustedNodeAddress, WindowSizeData, WindowSizeType,
 };
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
@@ -245,20 +243,6 @@ impl Drop for ScriptReflowResult {
 }
 
 impl Layout for LayoutThread {
-    fn handle_constellation_message(
-        &mut self,
-        constellation_message: script_traits::LayoutControlMsg,
-    ) {
-        match constellation_message {
-            LayoutControlMsg::SetScrollStates(new_scroll_states) => {
-                self.set_scroll_states(new_scroll_states);
-            },
-            LayoutControlMsg::PaintMetric(epoch, paint_time) => {
-                self.paint_time_metrics.maybe_set_metric(epoch, paint_time);
-            },
-        }
-    }
-
     fn device(&self) -> &Device {
         self.stylist.device()
     }
@@ -549,6 +533,17 @@ impl Layout for LayoutThread {
             self.time_profiler_chan.clone(),
             || self.handle_reflow(&mut result),
         );
+    }
+
+    fn set_scroll_states(&mut self, scroll_states: &[ScrollState]) {
+        *self.scroll_offsets.borrow_mut() = scroll_states
+            .iter()
+            .map(|scroll_state| (scroll_state.scroll_id, scroll_state.scroll_offset))
+            .collect();
+    }
+
+    fn set_epoch_paint_time(&mut self, epoch: Epoch, paint_time: u64) {
+        self.paint_time_metrics.maybe_set_metric(epoch, paint_time);
     }
 }
 impl LayoutThread {
@@ -1179,28 +1174,6 @@ impl LayoutThread {
             units::LayoutPoint::from_untyped(point),
             state.scroll_id,
         );
-    }
-
-    fn set_scroll_states(&mut self, new_scroll_states: Vec<ScrollState>) {
-        let mut script_scroll_states = vec![];
-        let mut layout_scroll_states = HashMap::new();
-        for new_state in &new_scroll_states {
-            let offset = new_state.scroll_offset;
-            layout_scroll_states.insert(new_state.scroll_id, offset);
-
-            if new_state.scroll_id.is_root() {
-                script_scroll_states.push((UntrustedNodeAddress::from_id(0), offset))
-            } else if let Some(node_id) = node_id_from_scroll_id(new_state.scroll_id.0 as usize) {
-                script_scroll_states.push((UntrustedNodeAddress::from_id(node_id), offset))
-            }
-        }
-        let _ = self
-            .script_chan
-            .send(ConstellationControlMsg::SetScrollState(
-                self.id,
-                script_scroll_states,
-            ));
-        *self.scroll_offsets.borrow_mut() = layout_scroll_states
     }
 
     /// Cancel animations for any nodes which have been removed from flow tree.
