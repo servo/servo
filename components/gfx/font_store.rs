@@ -168,6 +168,20 @@ impl SimpleFamily {
             .filter_map(|template| (*template).clone())
             .next()
     }
+
+    fn remove_templates_for_stylesheet(&mut self, stylesheet: &DocumentStyleSheet) {
+        let remove_if_template_matches = |template: &mut Option<FontTemplateRef>| {
+            if template.as_ref().map_or(false, |template| {
+                template.borrow().stylesheet.as_ref() == Some(stylesheet)
+            }) {
+                *template = None;
+            }
+        };
+        remove_if_template_matches(&mut self.regular);
+        remove_if_template_matches(&mut self.bold);
+        remove_if_template_matches(&mut self.italic);
+        remove_if_template_matches(&mut self.bold_italic);
+    }
 }
 /// A list of font templates that make up a given font family.
 #[derive(Clone, Debug)]
@@ -307,6 +321,11 @@ impl FontTemplates {
         let length_before = self.templates.len();
         self.templates
             .retain(|template| template.borrow().stylesheet.as_ref() != Some(stylesheet));
+
+        if let Some(simple_family) = self.simple_family.as_mut() {
+            simple_family.remove_templates_for_stylesheet(stylesheet);
+        }
+
         length_before != self.templates.len()
     }
 }
