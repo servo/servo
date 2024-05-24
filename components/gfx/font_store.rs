@@ -7,14 +7,16 @@ use std::sync::Arc;
 
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
+use log::warn;
 use parking_lot::RwLock;
 use style::stylesheets::DocumentStyleSheet;
+use style::values::computed::{FontStyle, FontWeight};
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
 
 use crate::font::FontDescriptor;
 use crate::font_cache_thread::{FontIdentifier, FontSource, LowercaseString};
 use crate::font_context::WebFontDownloadState;
-use crate::font_template::{FontTemplate, FontTemplateRef, FontTemplateRefMethods};
+use crate::font_template::{FontTemplate, FontTemplateRef, FontTemplateRefMethods, IsOblique};
 
 #[derive(Default)]
 pub struct FontStore {
@@ -132,10 +134,69 @@ impl WebRenderFontStore {
     }
 }
 
-/// A list of font templates that make up a given font family.
+/// A struct that represents the available templates in a "simple family." A simple family
+/// is one that contains <= 4 available faces: regular, bold, italic, and bold italic. Having
+/// this simple family abstraction makes font matching much faster for families that don't
+/// have a complex set of fonts.
+///
+/// This optimization is taken from:
+/// https://searchfox.org/mozilla-central/source/gfx/thebes/gfxFontEntry.cpp.
 #[derive(Clone, Debug, Default)]
+struct SimpleFamily {
+    regular: Option<FontTemplateRef>,
+    bold: Option<FontTemplateRef>,
+    italic: Option<FontTemplateRef>,
+    bold_italic: Option<FontTemplateRef>,
+}
+
+impl SimpleFamily {
+    /// Find a font in this family that matches a given descriptor.
+    fn find_for_descriptor(&self, descriptor_to_match: &FontDescriptor) -> Option<FontTemplateRef> {
+        let want_bold = descriptor_to_match.weight >= FontWeight::BOLD_THRESHOLD;
+        let want_italic = descriptor_to_match.style != FontStyle::NORMAL;
+
+        // This represents the preference of which font to return from the [`SimpleFamily`],
+        // given what kind of font we are requesting.
+        let preference = match (want_bold, want_italic) {
+            (true, true) => [&self.bold_italic, &self.italic, &self.bold, &self.regular],
+            (true, false) => [&self.bold, &self.regular, &self.bold_italic, &self.italic],
+            (false, true) => [&self.italic, &self.bold_italic, &self.regular, &self.bold],
+            (false, false) => [&self.regular, &self.bold, &self.italic, &self.bold_italic],
+        };
+        preference
+            .iter()
+            .filter_map(|template| (*template).clone())
+            .next()
+    }
+
+    fn remove_templates_for_stylesheet(&mut self, stylesheet: &DocumentStyleSheet) {
+        let remove_if_template_matches = |template: &mut Option<FontTemplateRef>| {
+            if template.as_ref().map_or(false, |template| {
+                template.borrow().stylesheet.as_ref() == Some(stylesheet)
+            }) {
+                *template = None;
+            }
+        };
+        remove_if_template_matches(&mut self.regular);
+        remove_if_template_matches(&mut self.bold);
+        remove_if_template_matches(&mut self.italic);
+        remove_if_template_matches(&mut self.bold_italic);
+    }
+}
+/// A list of font templates that make up a given font family.
+#[derive(Clone, Debug)]
 pub struct FontTemplates {
     pub(crate) templates: Vec<FontTemplateRef>,
+    simple_family: Option<SimpleFamily>,
+}
+
+impl Default for FontTemplates {
+    fn default() -> Self {
+        Self {
+            templates: Default::default(),
+            simple_family: Some(SimpleFamily::default()),
+        }
+    }
 }
 
 impl FontTemplates {
@@ -148,21 +209,18 @@ impl FontTemplates {
             return self.templates.clone();
         };
 
-        // TODO(Issue #189): optimize lookup for
-        // regular/bold/italic/bolditalic with fixed offsets and a
-        // static decision table for fallback between these values.
-        let matching_templates: Vec<FontTemplateRef> = self
-            .templates
-            .iter()
-            .filter(|template| template.matches_font_descriptor(descriptor_to_match))
-            .cloned()
-            .collect();
-        if !matching_templates.is_empty() {
-            return matching_templates;
+        if self.templates.len() == 1 {
+            return vec![self.templates[0].clone()];
         }
 
-        // We didn't find an exact match. Do more expensive fuzzy matching.
-        // TODO(#190): Do a better job.
+        if let Some(template) = self
+            .simple_family
+            .as_ref()
+            .and_then(|simple_family| simple_family.find_for_descriptor(descriptor_to_match))
+        {
+            return vec![template];
+        }
+
         let mut best_templates = Vec::new();
         let mut best_distance = f32::MAX;
         for template in self.templates.iter() {
@@ -198,8 +256,62 @@ impl FontTemplates {
                 return;
             }
         }
-        self.templates
-            .push(Arc::new(AtomicRefCell::new(new_template)));
+
+        let new_template = Arc::new(AtomicRefCell::new(new_template));
+        self.templates.push(new_template.clone());
+        self.update_simple_family(new_template);
+    }
+
+    fn update_simple_family(&mut self, added_template: FontTemplateRef) {
+        // If this was detected to not be a simple family before, it cannot ever be one
+        // in the future.
+        let Some(simple_family) = self.simple_family.as_mut() else {
+            return;
+        };
+
+        if self.templates.len() > 4 {
+            self.simple_family = None;
+            return;
+        }
+
+        // Variation fonts are never simple families.
+        if added_template.descriptor().is_variation_font() {
+            self.simple_family = None;
+            return;
+        }
+
+        let Some(first) = self.templates.first() else {
+            warn!("Called before adding any templates.");
+            return;
+        };
+
+        // If the stretch between any of these fonts differ, it cannot be a simple family nor if this
+        // font is oblique.
+        let stretch = added_template.descriptor().stretch.0;
+        let style = added_template.descriptor().style.0;
+        if first.descriptor().stretch.0 != stretch || style.is_oblique() {
+            self.simple_family = None;
+            return;
+        }
+
+        let weight = added_template.descriptor().weight.0;
+        let supports_bold = weight >= FontWeight::BOLD_THRESHOLD;
+        let is_italic = style == FontStyle::ITALIC;
+        let slot = match (supports_bold, is_italic) {
+            (true, true) => &mut simple_family.bold_italic,
+            (true, false) => &mut simple_family.bold,
+            (false, true) => &mut simple_family.italic,
+            (false, false) => &mut simple_family.regular,
+        };
+
+        // If the slot was already filled there are two fonts with the same simple properties
+        // and this isn't a simple family.
+        if slot.is_some() {
+            self.simple_family = None;
+            return;
+        }
+
+        slot.replace(added_template);
     }
 
     pub(crate) fn remove_templates_for_stylesheet(
@@ -209,6 +321,11 @@ impl FontTemplates {
         let length_before = self.templates.len();
         self.templates
             .retain(|template| template.borrow().stylesheet.as_ref() != Some(stylesheet));
+
+        if let Some(simple_family) = self.simple_family.as_mut() {
+            simple_family.remove_templates_for_stylesheet(stylesheet);
+        }
+
         length_before != self.templates.len()
     }
 }
