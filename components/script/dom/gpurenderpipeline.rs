@@ -100,10 +100,11 @@ impl GPURenderPipelineMethods for GPURenderPipeline {
 
 impl Drop for GPURenderPipeline {
     fn drop(&mut self) {
-        if let Err(e) = self.channel.0.send((
-            None,
-            WebGPURequest::DropRenderPipeline(self.render_pipeline.0),
-        )) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DropRenderPipeline(self.render_pipeline.0))
+        {
             warn!(
                 "Failed to send WebGPURequest::DropRenderPipeline({:?}) ({})",
                 self.render_pipeline.0, e

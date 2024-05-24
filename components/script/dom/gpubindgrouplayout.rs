@@ -62,10 +62,11 @@ impl GPUBindGroupLayout {
 
 impl Drop for GPUBindGroupLayout {
     fn drop(&mut self) {
-        if let Err(e) = self.channel.0.send((
-            None,
-            WebGPURequest::DropBindGroupLayout(self.bind_group_layout.0),
-        )) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DropBindGroupLayout(self.bind_group_layout.0))
+        {
             warn!(
                 "Failed to send WebGPURequest::DropBindGroupLayout({:?}) ({})",
                 self.bind_group_layout.0, e

@@ -111,7 +111,7 @@ pub struct GPUCanvasContext {
 impl GPUCanvasContext {
     fn new_inherited(canvas: HTMLCanvasElementOrOffscreenCanvas, channel: WebGPU) -> Self {
         let (sender, receiver) = ipc::channel().unwrap();
-        if let Err(e) = channel.0.send((None, WebGPURequest::CreateContext(sender))) {
+        if let Err(e) = channel.0.send(WebGPURequest::CreateContext(sender)) {
             warn!("Failed to send CreateContext ({:?})", e);
         }
         let external_id = receiver.recv().unwrap();
@@ -153,14 +153,11 @@ impl GPUCanvasContext {
             .wgpu_id_hub()
             .lock()
             .create_command_encoder_id(texture_id.backend());
-        if let Err(e) = self.channel.0.send((
-            None,
-            WebGPURequest::SwapChainPresent {
-                external_id: self.context_id.0,
-                texture_id,
-                encoder_id,
-            },
-        )) {
+        if let Err(e) = self.channel.0.send(WebGPURequest::SwapChainPresent {
+            external_id: self.context_id.0,
+            texture_id,
+            encoder_id,
+        }) {
             warn!(
                 "Failed to send UpdateWebrenderData({:?}) ({})",
                 self.context_id, e
@@ -275,17 +272,14 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
 
         self.channel
             .0
-            .send((
-                None,
-                WebGPURequest::CreateSwapChain {
-                    device_id: descriptor.device.id().0,
-                    buffer_ids,
-                    external_id: self.context_id.0,
-                    sender,
-                    image_desc,
-                    image_data,
-                },
-            ))
+            .send(WebGPURequest::CreateSwapChain {
+                device_id: descriptor.device.id().0,
+                buffer_ids,
+                external_id: self.context_id.0,
+                sender,
+                image_desc,
+                image_data,
+            })
             .expect("Failed to create WebGPU SwapChain");
 
         self.texture
@@ -298,13 +292,10 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-unconfigure>
     fn Unconfigure(&self) {
         if let Some(image_key) = self.webrender_image.take() {
-            if let Err(e) = self.channel.0.send((
-                None,
-                WebGPURequest::DestroySwapChain {
-                    external_id: self.context_id.0,
-                    image_key,
-                },
-            )) {
+            if let Err(e) = self.channel.0.send(WebGPURequest::DestroySwapChain {
+                external_id: self.context_id.0,
+                image_key,
+            }) {
                 warn!(
                     "Failed to send DestroySwapChain-ImageKey({:?}) ({})",
                     image_key, e

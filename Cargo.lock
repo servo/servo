@@ -376,7 +376,7 @@ dependencies = [
  "bitflags 2.5.0",
  "cexpr",
  "clang-sys",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "lazy_static",
  "lazycell",
  "log",
@@ -1173,7 +1173,7 @@ version = "0.20.0"
 source = "git+https://github.com/gfx-rs/wgpu?rev=d0a5e48aa7e84683114c3870051cc414ae92ac03#d0a5e48aa7e84683114c3870051cc414ae92ac03"
 dependencies = [
  "bitflags 2.5.0",
- "libloading 0.8.3",
+ "libloading 0.7.4",
  "winapi",
 ]
 
@@ -1263,7 +1263,7 @@ dependencies = [
 [[package]]
 name = "derive_common"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#ac65c5a27c1b9faf9e7bb5bbcb3a4837a810ef6b"
+source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -1380,7 +1380,7 @@ version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330c60081dcc4c72131f8eb70510f1ac07223e5d4163db481a04a0befcffa412"
 dependencies = [
- "libloading 0.8.3",
+ "libloading 0.7.4",
 ]
 
 [[package]]
@@ -1742,9 +1742,9 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
 name = "font-kit"
-version = "0.13.1"
+version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44cadc01b53dc565c4982e114a45a7124d1ec3b23682a20eb6ea271737414a42"
+checksum = "2845a73bbd781e691ab7c2a028c579727cd254942e8ced57ff73e0eafd60de87"
 dependencies = [
  "bitflags 2.5.0",
  "byteorder",
@@ -1754,7 +1754,7 @@ dependencies = [
  "dirs-next",
  "dwrote",
  "float-ord",
- "freetype",
+ "freetype-sys",
  "lazy_static",
  "libc",
  "log",
@@ -2024,6 +2024,7 @@ dependencies = [
  "core-foundation",
  "core-graphics",
  "core-text",
+ "crossbeam-channel",
  "cssparser",
  "dwrote",
  "euclid",
@@ -2172,9 +2173,9 @@ dependencies = [
 
 [[package]]
 name = "glib"
-version = "0.19.6"
+version = "0.19.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0116c428e4841cab183a32a71b900fd6712194c20f9c424f01d2c016c96bd23"
+checksum = "e52355166df21c7ed16b6a01f615669c7911ed74e27ef60eba339c0d2da12490"
 dependencies = [
  "bitflags 2.5.0",
  "futures-channel",
@@ -2194,9 +2195,9 @@ dependencies = [
 
 [[package]]
 name = "glib-macros"
-version = "0.19.5"
+version = "0.19.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ed782fa3e949c31146671da6e7a227a5e7d354660df1db6d0aac4974dc82a3c"
+checksum = "70025dbfa1275cf7d0531c3317ba6270dae15d87e63342229d638246ff45202e"
 dependencies = [
  "heck",
  "proc-macro-crate",
@@ -2294,9 +2295,9 @@ dependencies = [
 
 [[package]]
 name = "gstreamer"
-version = "0.22.4"
+version = "0.22.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc6f2d7dcde4b42b5297d25e9f51914cacfa148c99ba6ddabebf006fb2b18c20"
+checksum = "56b59fdce2dfacda226d4b1b71ce4700b2f04228909b52252c197d8e30bd54a6"
 dependencies = [
  "cfg-if",
  "futures-channel",
@@ -2304,7 +2305,7 @@ dependencies = [
  "futures-util",
  "glib",
  "gstreamer-sys",
- "itertools 0.12.1",
+ "itertools 0.13.0",
  "libc",
  "muldiv",
  "num-integer",
@@ -2334,9 +2335,9 @@ dependencies = [
 
 [[package]]
 name = "gstreamer-app-sys"
-version = "0.22.0"
+version = "0.22.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6771c0939f286fb261525494a0aad29435b37e802284756bab24afe3bbca7476"
+checksum = "5da6c85b35835fa484e1bd554830c6e724c99a7a7fcd0208ff1663c3c6d3c9cd"
 dependencies = [
  "glib-sys",
  "gstreamer-base-sys",
@@ -2347,9 +2348,9 @@ dependencies = [
 
 [[package]]
 name = "gstreamer-audio"
-version = "0.22.4"
+version = "0.22.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73a5de9ced05f9650168a74c7a4afeddbf3e63af595a7d56a700765be3b4869c"
+checksum = "703e65074d4f5dce207e855d8f36697ec93f953e5412780dcffc70cb5483337e"
 dependencies = [
  "cfg-if",
  "glib",
@@ -2363,9 +2364,9 @@ dependencies = [
 
 [[package]]
 name = "gstreamer-audio-sys"
-version = "0.22.0"
+version = "0.22.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34d92a1e2a915874f70f0a33c3ea4589bc6b66a138b6ec8bb6acedf49bdec2c3"
+checksum = "2dfb1c22539b9b31fde5513fd68e2f0edeeaa5591d92daaaadbfa392736e820f"
 dependencies = [
  "glib-sys",
  "gobject-sys",
@@ -2497,9 +2498,9 @@ dependencies = [
 
 [[package]]
 name = "gstreamer-player-sys"
-version = "0.22.0"
+version = "0.22.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0ff7af3d3c4692a36ce1c4695b2a3a6563d8e5724feded38def679bd755202f"
+checksum = "31707b98f1a80f5b35a23eccf5ee4a55c40f488bca72804f52526c9ccd08762c"
 dependencies = [
  "glib-sys",
  "gobject-sys",
@@ -2534,9 +2535,9 @@ dependencies = [
 
 [[package]]
 name = "gstreamer-sys"
-version = "0.22.2"
+version = "0.22.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d5ddf526b3bf90ea627224c804f00b8bcb0452e3b447978b4d5092f8e8ff5918"
+checksum = "4975a75279a9cf658bac1798dcf57100c6ec89fca7886572c8250ea4d94b76bd"
 dependencies = [
  "glib-sys",
  "gobject-sys",
@@ -2590,9 +2591,9 @@ dependencies = [
 
 [[package]]
 name = "gstreamer-webrtc-sys"
-version = "0.22.0"
+version = "0.22.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8968383c25abb00bdc434d21d92947654e3656503ccb24c8f1218cd96342c073"
+checksum = "30fab1103b0c75d2abc602b1058c8881a3b2b2b19726bd89e652d0938bc76bb0"
 dependencies = [
  "glib-sys",
  "gstreamer-sdp-sys",
@@ -3099,6 +3100,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3467,7 +3477,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.5",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -3638,7 +3648,7 @@ dependencies = [
 [[package]]
 name = "malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#ac65c5a27c1b9faf9e7bb5bbcb3a4837a810ef6b"
+source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
 dependencies = [
  "accountable-refcell",
  "app_units",
@@ -5243,7 +5253,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.24.0"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#ac65c5a27c1b9faf9e7bb5bbcb3a4837a810ef6b"
+source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
 dependencies = [
  "bitflags 2.5.0",
  "cssparser",
@@ -5531,7 +5541,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.2.0"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#ac65c5a27c1b9faf9e7bb5bbcb3a4837a810ef6b"
+source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
 dependencies = [
  "nodrop",
  "serde",
@@ -5541,7 +5551,7 @@ dependencies = [
 [[package]]
 name = "servo_atoms"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#ac65c5a27c1b9faf9e7bb5bbcb3a4837a810ef6b"
+source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -5739,7 +5749,7 @@ checksum = "38b58827f4464d87d377d175e90bf58eb00fd8716ff0a62f80356b5e61555d0d"
 [[package]]
 name = "size_of_test"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#ac65c5a27c1b9faf9e7bb5bbcb3a4837a810ef6b"
+source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
 dependencies = [
  "static_assertions",
 ]
@@ -5880,7 +5890,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "static_prefs"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#ac65c5a27c1b9faf9e7bb5bbcb3a4837a810ef6b"
+source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
 
 [[package]]
 name = "strict-num"
@@ -5917,7 +5927,7 @@ dependencies = [
 [[package]]
 name = "style"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#ac65c5a27c1b9faf9e7bb5bbcb3a4837a810ef6b"
+source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -5976,7 +5986,7 @@ dependencies = [
 [[package]]
 name = "style_config"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#ac65c5a27c1b9faf9e7bb5bbcb3a4837a810ef6b"
+source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
 dependencies = [
  "lazy_static",
 ]
@@ -5984,7 +5994,7 @@ dependencies = [
 [[package]]
 name = "style_derive"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#ac65c5a27c1b9faf9e7bb5bbcb3a4837a810ef6b"
+source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
 dependencies = [
  "darling",
  "derive_common",
@@ -6015,7 +6025,7 @@ dependencies = [
 [[package]]
 name = "style_traits"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#ac65c5a27c1b9faf9e7bb5bbcb3a4837a810ef6b"
+source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
 dependencies = [
  "app_units",
  "bitflags 2.5.0",
@@ -6378,7 +6388,7 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 [[package]]
 name = "to_shmem"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#ac65c5a27c1b9faf9e7bb5bbcb3a4837a810ef6b"
+source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -6391,7 +6401,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#ac65c5a27c1b9faf9e7bb5bbcb3a4837a810ef6b"
+source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
 dependencies = [
  "darling",
  "derive_common",
@@ -7287,7 +7297,7 @@ dependencies = [
  "js-sys",
  "khronos-egl",
  "libc",
- "libloading 0.8.3",
+ "libloading 0.7.4",
  "log",
  "metal 0.28.0",
  "naga",

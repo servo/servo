@@ -1086,19 +1086,28 @@ partial interface GPUDevice {
     readonly attribute Promise<GPUDeviceLostInfo> lost;
 };
 
-[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
-interface GPUValidationError {
-    [Throws]
-    constructor(DOMString message);
+[Exposed=(Window, Worker), Pref="dom.webgpu.enabled"]
+interface GPUError {
     readonly attribute DOMString message;
 };
 
-[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
-interface GPUOutOfMemoryError {
-    constructor();
+[Exposed=(Window, Worker), Pref="dom.webgpu.enabled"]
+interface GPUValidationError
+        : GPUError {
+    constructor(DOMString message);
 };
 
-typedef (GPUOutOfMemoryError or GPUValidationError) GPUError;
+[Exposed=(Window, Worker), Pref="dom.webgpu.enabled"]
+interface GPUOutOfMemoryError
+        : GPUError {
+    constructor(DOMString message);
+};
+
+[Exposed=(Window, Worker), Pref="dom.webgpu.enabled"]
+interface GPUInternalError
+        : GPUError {
+    constructor(DOMString message);
+};
 
 enum GPUErrorFilter {
     "validation",
@@ -1112,7 +1121,7 @@ partial interface GPUDevice {
     Promise<GPUError?> popErrorScope();
 };
 
-[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
+[Exposed=(Window, Worker), Pref="dom.webgpu.enabled"]
 interface GPUUncapturedErrorEvent : Event {
     constructor(
         DOMString type,

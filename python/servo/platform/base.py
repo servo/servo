@@ -55,8 +55,9 @@ class Base:
             return False
 
     def bootstrap(self, force: bool, skip_platform: bool):
+        installed_something = False
         if not skip_platform:
-            installed_something = self._platform_bootstrap(force)
+            installed_something |= self._platform_bootstrap(force)
         installed_something |= self.install_taplo(force)
         installed_something |= self.install_crown(force)
 

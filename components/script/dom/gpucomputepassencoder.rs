@@ -100,13 +100,10 @@ impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
         let compute_pass = self.compute_pass.borrow_mut().take();
         self.channel
             .0
-            .send((
-                None,
-                WebGPURequest::RunComputePass {
-                    command_encoder_id: self.command_encoder.id().0,
-                    compute_pass,
-                },
-            ))
+            .send(WebGPURequest::RunComputePass {
+                command_encoder_id: self.command_encoder.id().0,
+                compute_pass,
+            })
             .expect("Failed to send RunComputePass"); //TODO: handle error
 
         self.command_encoder.set_state(

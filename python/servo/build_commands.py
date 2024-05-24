@@ -256,12 +256,15 @@ class MachCommands(CommandBase):
                 print("[Warning] Could not generate notification: "
                       f"Could not run '{notify_command}'.", file=sys.stderr)
         else:
-            notifier = LinuxNotifier if sys.platform.startswith("linux") else None
-            notification = notifypy.Notify(use_custom_notifier=notifier)
-            notification.title = title
-            notification.message = message
-            notification.icon = path.join(self.get_top_dir(), "resources", "servo_64.png")
-            notification.send(block=False)
+            try:
+                notifier = LinuxNotifier if sys.platform.startswith("linux") else None
+                notification = notifypy.Notify(use_custom_notifier=notifier)
+                notification.title = title
+                notification.message = message
+                notification.icon = path.join(self.get_top_dir(), "resources", "servo_64.png")
+                notification.send(block=False)
+            except notifypy.exceptions.UnsupportedPlatform as e:
+                print(f"[Warning] Could not generate notification: {e}", file=sys.stderr)
 
 
 def otool(s):

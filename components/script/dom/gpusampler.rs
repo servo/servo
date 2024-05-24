@@ -88,7 +88,7 @@ impl Drop for GPUSampler {
         if let Err(e) = self
             .channel
             .0
-            .send((None, WebGPURequest::DropSampler(self.sampler.0)))
+            .send(WebGPURequest::DropSampler(self.sampler.0))
         {
             warn!("Failed to send DropSampler ({:?}) ({})", self.sampler.0, e);
         }
