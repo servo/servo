@@ -11,8 +11,24 @@ span {
 }
 p {
   word-break: break-all;
-  inline-size: 305px;
+  inline-size: calc(6em + 5px);
+}
+.mc {
+  columns: 2 calc(6em + 5px);
+  column-gap: 10px;
+  inline-size: calc(12em + 10px + 10px);
+  block-size: 80px;
+}
+.indent {
+  text-indent: -1em;
 }
 </style>
 <p>zzz<ruby><span>mmm</span><span>mm</span><rt><span>mmmmmm</span><span>mmmm</span></ruby>zzz
+</p>
+
+<p class="mc">zzz<ruby><span>mmm</span><span>mm</span><rt><span>mmmmmm</span><span>mmmm</span></ruby>zzz
+</p>
+
+<!-- The first line should contain 7 letters. -->
+<p class="indent">zzz<ruby>mmmmm<rt>mmmmmmmmmm</ruby>zzz
 </p>

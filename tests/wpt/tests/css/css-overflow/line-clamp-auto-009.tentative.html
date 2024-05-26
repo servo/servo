@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: `text-overflow: ellipsis` and `line-clamp: auto`</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-036-ref.html">
+<meta name="assert" content="text-overflow: ellipsis doesn't apply in a line-clamp: auto context">
+<style>
+.clamp {
+  width: 10ch;
+  max-height: 80px;
+  font: 16px / 32px monospace;
+  background-color: yellow;
+  padding: 4px;
+  line-clamp: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+</style>
+<div class="clamp">
+  supercalifragilisticexpialidocious
+  supercalifragilisticexpialidocious
+  supercalifragilisticexpialidocious
+</div>

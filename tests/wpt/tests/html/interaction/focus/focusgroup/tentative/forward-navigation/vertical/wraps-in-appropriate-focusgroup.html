@@ -2,7 +2,7 @@
 <meta charset="utf-8">
 <title>HTML Test: focusgroup - Focus wraps in the appropriate focusgroup.</title>
 <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
-<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/Focusgroup/explainer.md">
+<link rel="help" href="https://open-ui.org/components/focusgroup.explainer/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -10,12 +10,12 @@
 <script src="/resources/testdriver-actions.js"></script>
 <script src="../../resources/focusgroup-utils.js"></script>
 
-<div focusgroup=wrap> <!--Supports vertical wrapping-->
-  <div focusgroup="extend horizontal"> <!--Doesn't support vertical wrapping-->
+<div focusgroup=wrap> <!--Supports block wrapping-->
+  <div focusgroup="extend inline"> <!--Doesn't support block wrapping-->
     <span id=item1 tabindex=0>item1</span>
     <div id=item2 tabindex=-1 focusgroup="extend wrap">
       <!--Supports wrapping in both axis, but only extend the
-          wrapping behavior of its ancestors in the horizontal axis. -->
+          wrapping behavior of its ancestors in the inline axis. -->
       <span id=item3 tabindex=-1>item3</span>
       <span id=item4 tabindex=-1>item4</span>
     </div>

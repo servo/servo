@@ -23,6 +23,11 @@ let promise = new Promise((resolve, reject) => {
 </script>
 </head>
 <body>
+<!-- This is testing the part of
+https://html.spec.whatwg.org/multipage/webappapis.html#hostloadimportedmodule
+where step 6's condition is false and referencingScript remains null.
+Therefore, the onload event must be defined as an HTML attribute, outside of any script tag.
+-->
 <img src="/images/green.png?2"
   onload="import('./resources/log.js?pipe=sub&name=NoReferencingScriptValidCheck').then(promiseResolve).catch(promiseReject)">
 <script>

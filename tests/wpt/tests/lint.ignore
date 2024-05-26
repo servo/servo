@@ -827,7 +827,3 @@ TESTDRIVER-IN-UNSUPPORTED-TYPE: payment-handler/change-shipping-option-manual.ht
 TESTDRIVER-IN-UNSUPPORTED-TYPE: payment-handler/payment-request-event-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: payment-handler/supports-shipping-contact-delegation-manual.https.html
 TESTDRIVER-IN-UNSUPPORTED-TYPE: shadow-dom/crashtests/move-to-new-tree-1343016.html
-
-# Pre compressed data using Shared Brotli and Shared Zstandard.
-TRAILING WHITESPACE, INDENT TABS, CR AT EOL: fetch/compression-dictionary/resources/compressed.br-d.data
-TRAILING WHITESPACE, INDENT TABS, CR AT EOL: fetch/compression-dictionary/resources/compressed.zstd-d.data

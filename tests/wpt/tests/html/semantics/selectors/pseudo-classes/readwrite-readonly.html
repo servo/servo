@@ -5,6 +5,17 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="utils.js"></script>
+<script>
+  class CustomElement extends HTMLElement {
+    static formAssociated = true;
+
+    constructor() {
+      super();
+    }
+  }
+
+  window.customElements.define("custom-element", CustomElement);
+</script>
 <div id="log"></div>
 
 <div id=set0>
@@ -56,6 +67,14 @@
     <textarea id=ct3></textarea>
     <textarea id=ct4></textarea>
   </div>
+</div>
+
+<div id=set6>
+  <custom-element id=ce1>content</custom-element>
+  <custom-element id=ce2 contenteditable>content</custom-element>
+  <custom-element id=ce3 contenteditable readonly>content</custom-element>
+  <custom-element id=ce4 contenteditable disabled>content</custom-element>
+  <custom-element id=ce5 contenteditable readonly disabled>content</custom-element>
 </div>
 
 <script>
@@ -114,5 +133,10 @@
   document.designMode = "off";
 
   testSelectorIdsMatch("#set5 :read-write", ["cd1", "p3", "ci3", "ci4", "ct3", "ct4"], "The :read-write pseudo-class must match elements that are inside editing hosts, but not match inputs and textareas inside that aren't");
+
+  testSelectorIdsMatch("#set6 :read-only", ["ce1"], "The :read-only pseudo-class must match form-associated custom elements");
+
+  testSelectorIdsMatch("#set6 :read-write", ["ce2", "ce3", "ce4", "ce5"], "The :read-write pseudo-class must match form-associated contenteditable custom elements");
+
 
 </script>

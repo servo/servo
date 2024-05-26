@@ -34,7 +34,7 @@ test(() => {
 test(() => {
   const computedString = getComputedStyle(computed).width;
   assert_equals(computed.offsetWidth,
-      parseInt(computedString.substring(0, computedString.length - 2)));
+      Math.round(computedString.substring(0, computedString.length - 2)));
 }, 'Size attribute value affects layout-dependent computed style');
 
 test(() => {

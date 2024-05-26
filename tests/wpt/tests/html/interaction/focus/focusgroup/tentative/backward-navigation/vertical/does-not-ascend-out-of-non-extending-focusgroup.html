@@ -2,7 +2,7 @@
 <meta charset="utf-8">
 <title>HTML Test: focusgroup - Focus does not ascend out of current focusgroup if it does not extend the parent focusgroup.</title>
 <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
-<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/Focusgroup/explainer.md">
+<link rel="help" href="https://open-ui.org/components/focusgroup.explainer/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -10,9 +10,9 @@
 <script src="/resources/testdriver-actions.js"></script>
 <script src="../../resources/focusgroup-utils.js"></script>
 
-<ul focusgroup=vertical>
+<ul focusgroup=block>
   <li id=item1 tabindex="-1">
-    <ul focusgroup=horizontal>
+    <ul focusgroup=inline>
       <li id=item2 tabindex="-1">item2</li>
     </ul>
   </li>

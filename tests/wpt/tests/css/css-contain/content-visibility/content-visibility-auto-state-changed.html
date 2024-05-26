@@ -21,7 +21,18 @@
 .auto { content-visibility: auto; }
 </style>
 
+<script>
+let contentattrfired = false;
+
+function contentattrDidFire() {
+  contentattrfired = true;
+}
+
+</script>
+
 <div id=upper></div>
+<div id=attrtest></div>
+<div id=contentattrtest oncontentvisibilityautostatechange="contentattrDidFire()" class=auto></div>
 <div class=spacer></div>
 <div id=middle></div>
 <div class=spacer></div>
@@ -43,6 +54,18 @@ promise_test(t => new Promise(async (resolve, reject) => {
 promise_test(t => new Promise(async (resolve, reject) => {
   let shouldSkip = false;
   const listener = (e) => {
+    if (!e.skipped)
+      resolve();
+  };
+
+  attrtest.oncontentvisibilityautostatechange = listener;
+  t.add_cleanup(() => { attrtest.oncontentvisibilityautostatechange = () => {} });
+  attrtest.classList.add("auto");
+}), "ContentVisibilityAutoStateChange fires when relevant element gains `content-visibility:auto` (oncontentvisibilityautostatechange syntax)");
+
+promise_test(t => new Promise(async (resolve, reject) => {
+  let shouldSkip = false;
+  const listener = (e) => {
     if (e.skipped)
       resolve();
     else
@@ -53,6 +76,14 @@ promise_test(t => new Promise(async (resolve, reject) => {
   t.add_cleanup(() => lower.removeEventListener("contentvisibilityautostatechange", listener));
   lower.classList.add("auto");
 }), "ContentVisibilityAutoStateChange fires when not relevant element gains `content-visibility:auto`");
+
+async_test(t => {
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    t.step(() => assert_true(contentattrfired, "contentattrfired"));
+    t.done();
+  }));
+
+}, "ContentVisibilityAutoStateChange content attribute test");
 
 promise_test(t => new Promise(async (resolve, reject) => {
   await new Promise((waited, _) => {

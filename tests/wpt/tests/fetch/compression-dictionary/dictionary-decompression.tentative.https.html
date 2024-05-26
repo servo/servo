@@ -20,7 +20,7 @@ compression_dictionary_promise_test(async (t) => {
 
   // Check if the data compressed using Brotli with the dictionary can be
   // decompressed.
-  const data_url = `${kCompressedDataPath}?content_encoding=br-d`;
+  const data_url = `${kCompressedDataPath}?content_encoding=dcb`;
   assert_equals(await (await fetch(data_url)).text(), kExpectedCompressedData);
 }, 'Decompresion using Brotli with the dictionary works as expected');
 
@@ -34,7 +34,7 @@ compression_dictionary_promise_test(async (t) => {
 
   // Check if the data compressed using Zstandard with the dictionary can be
   // decompressed.
-  const data_url = `${kCompressedDataPath}?content_encoding=zstd-d`;
+  const data_url = `${kCompressedDataPath}?content_encoding=dcz`;
   assert_equals(await (await fetch(data_url)).text(), kExpectedCompressedData);
 }, 'Decompresion using Zstandard with the dictionary works as expected');
 
@@ -50,7 +50,7 @@ compression_dictionary_promise_test(async (t) => {
   // Check if the data compressed using Brotli with the dictionary can be
   // decompressed.
   const data_url =
-      getRemoteHostUrl(`${kCompressedDataPath}?content_encoding=br-d`);
+      getRemoteHostUrl(`${kCompressedDataPath}?content_encoding=dcb`);
   assert_equals(await (await fetch(data_url)).text(), kExpectedCompressedData);
 }, 'Decompresion of a cross origin resource works as expected');
 

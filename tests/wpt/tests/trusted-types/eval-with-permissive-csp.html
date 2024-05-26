@@ -23,6 +23,14 @@
   test(t => {
     let a = 0;
     assert_throws_js(EvalError, _ => {
+      eval?.('a="hello there"');
+    });
+    assert_equals(a, 0);
+  }, "indirect eval with plain string with Trusted Types and permissive CSP throws (no type).");
+
+  test(t => {
+    let a = 0;
+    assert_throws_js(EvalError, _ => {
       new Function('a="hello there"');
     });
     assert_equals(a, 0);
@@ -34,6 +42,11 @@
   }, "eval with TrustedScript and permissive CSP works.");
 
   test(t => {
+    let s = eval?.(p.createScript('"Hello transformed string"'));
+    assert_equals("" + s, "Hello a cat string");
+  }, "indirect eval with TrustedScript and permissive CSP works.");
+
+  test(t => {
     let s = new Function(p.createScript('return "Hello transformed string"'))();
     assert_equals(s, "Hello a cat string");
   }, "new Function with TrustedScript and permissive CSP works.");
@@ -43,6 +56,11 @@
     let s = eval('"Hello transformed untrusted string"');
     assert_equals(s, "Hello a cat untrusted string");
   }, "eval with default policy and permissive CSP still obeys default policy.");
+
+  test(t => {
+    let s = eval?.('"Hello transformed untrusted string"');
+    assert_equals(s, "Hello a cat untrusted string");
+  }, "indirect eval with default policy and permissive CSP still obeys default policy.");
 
   test(t => {
     let s = new Function('return "Hello transformed untrusted string"')();

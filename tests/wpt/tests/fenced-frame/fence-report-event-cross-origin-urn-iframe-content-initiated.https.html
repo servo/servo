@@ -14,7 +14,7 @@ promise_test(async(t) => {
   const iframe = await attachIFrameContext({
     generator_api: 'fledge',
     headers: [[
-      'Allow-Cross-Origin-Event-Reporting', 'true'
+      'Allow-Cross-Origin-Event-Reporting', '?1'
     ]],
     register_beacon: true,
     origin: get_host_info().HTTPS_ORIGIN

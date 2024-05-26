@@ -113,7 +113,6 @@ dictionary MLBatchNormalizationOptions {
   MLOperand bias;
   [EnforceRange] unsigned long axis = 1;
   float epsilon = 1e-5;
-  MLActivation activation;
 };
 
 partial interface MLGraphBuilder {
@@ -154,7 +153,6 @@ dictionary MLConv2dOptions {
   MLInputOperandLayout inputLayout = "nchw";
   MLConv2dFilterOperandLayout filterLayout = "oihw";
   MLOperand bias;
-  MLActivation activation;
 };
 
 partial interface MLGraphBuilder {
@@ -179,7 +177,6 @@ dictionary MLConvTranspose2dOptions {
   MLInputOperandLayout inputLayout = "nchw";
   MLConvTranspose2dFilterOperandLayout filterLayout = "iohw";
   MLOperand bias;
-  MLActivation activation;
 };
 
 partial interface MLGraphBuilder {

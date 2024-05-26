@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#snap-events" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+  <script src="/css/css-scroll-snap-2/resources/common.js"></script>
+  <script src="/web-animations/testcommon.js"></script>
+</head>
+
+<body>
+  <style>
+    #scroller {
+      overflow: scroll;
+      scroll-snap-type: y mandatory;
+      height: 200px;
+      width: 200px;
+      border: solid 1px;
+      position: absolute;
+    }
+
+    .snap_area {
+      position: absolute;
+      width: 100px;
+      left: calc(50% - 50px);
+    }
+
+    #outer_snap_area {
+      scroll-snap-align: start none;
+      height: 1000px;
+      background-color: blue;
+    }
+
+    #inner_snap_area {
+      scroll-snap-align: start none;
+      height: 100px;
+      top: 100px;
+      background-color: yellow;
+    }
+  </style>
+  <div id="scroller">
+    <div id="outer_snap_area" class="snap_area"></div>
+    <div id="inner_snap_area" class="snap_area"></div>
+  </div>
+  <script>
+    let scroller = document.getElementById("scroller");
+
+    async function reset(t) {
+      inner_snap_area.style.height = "100px";
+      inner_snap_area.style.scrollSnapAlign = "start none";
+      outer_snap_area.style.scrollSnapAlign = "start none";
+      scroller.style.scrollSnapType = "y mandatory";
+      await resetTargetScrollState(t, scroller);
+    }
+
+    async function setup(t) {
+      checkSnapEventSupport("scrollsnapchange");
+      await reset(t);
+      await waitForCompositorCommit();
+      assert_equals(scroller.scrollTop, 0, "test precondition: scroller " +
+          "is not scrolled.");
+    }
+
+    promise_test(async (t) => {
+      await setup(t);
+      let target_snap_position = inner_snap_area.offsetTop +
+          inner_snap_area.offsetHeight;
+      // Scroll to an offset close to the bottom of the inner snap area and
+      // expect to snap to an offset just below this snap area.
+      let scrollend_promise = waitForScrollendEventNoTimeout(scroller);
+      scroller.scrollTo(0, target_snap_position - 10);
+      await scrollend_promise;
+      assert_equals(scroller.scrollTop, target_snap_position,
+          "scroller snaps to just below the inner snap area.");
+      // We are just below the inner snap area. Increase its height so that it
+      // is larger than the snapport and straddled by the snapport. Verify
+      // that we snap to its bottom.
+      let scrollsnapchange_promise = waitForScrollSnapChangeEvent(scroller);
+      inner_snap_area.style.height =
+        `${scroller.clientHeight + inner_snap_area.clientHeight - 10}px`;
+      const evt = await scrollsnapchange_promise;
+      assertSnapEvent(evt, { block: inner_snap_area, inline: null });
+      target_snap_position = inner_snap_area.offsetTop +
+          inner_snap_area.offsetHeight - scroller.clientHeight;
+      assert_equals(scroller.scrollTop, target_snap_position,
+          "scroller snaps to the bottom of the smaller snap area (which is " +
+          "now covering).");
+    }, "scrollsnapchange fires after snap area is snapped to upon layout change.");
+
+    promise_test(async (t) => {
+      await setup(t);
+      let target_snap_position = inner_snap_area.offsetTop +
+          inner_snap_area.offsetHeight;
+      // Scroll to an offset close to the bottom of the inner snap area and
+      // expect to snap to an offset just below this snap area.
+      let scrollend_promise = waitForScrollendEventNoTimeout(scroller);
+      scroller.scrollTo(0, target_snap_position - 10);
+      await scrollend_promise;
+      assert_equals(scroller.scrollTop, target_snap_position,
+        "scroller snaps to just below the inner snap area.");
+      // We are just below the inner snap area. Increase its height so that it
+      // is larger than the snapport making the current scroll position
+      // a valid covering position within the inner snap area.
+      let scrollsnapchange_promise = waitForScrollSnapChangeEvent(scroller, false);
+      inner_snap_area.style.height =
+          `${scroller.clientHeight + inner_snap_area.clientHeight + 10}px`;
+      const evt = await scrollsnapchange_promise;
+      assertSnapEvent(evt, { block: inner_snap_area, inline: null });
+      assert_equals(scroller.scrollTop, target_snap_position,
+          "scroller maintains offset which is now covering within inner area");
+    }, "scrollsnapchange fires after snap area is snapped to upon layout change " +
+       "without scroll.");
+
+    promise_test(async(t) => {
+      await setup(t);
+      await waitForCompositorCommit();
+      let scrollsnapchange_promise = waitForScrollSnapChangeEvent(scroller, false);
+      scroller.style.scrollSnapType = "none";
+      let evt = await scrollsnapchange_promise;
+      assertSnapEvent(evt, { block: null, inline: null });
+      scrollsnapchange_promise = waitForScrollSnapChangeEvent(scroller, false);
+      scroller.style.scrollSnapType = "y mandatory";
+      evt = await scrollsnapchange_promise;
+      assertSnapEvent(evt, { block: outer_snap_area, inline: null });
+    }, "scrollsnapchange fires when container stops snapping");
+
+    promise_test(async(t) => {
+      await setup(t);
+      await waitForCompositorCommit();
+      let scrollsnapchange_promise = waitForScrollSnapChangeEvent(scroller, false);
+      inner_snap_area.style.scrollSnapAlign = "none";
+      outer_snap_area.style.scrollSnapAlign = "none";
+      let evt = await scrollsnapchange_promise;
+      assertSnapEvent(evt, { block: null, inline: null });
+      scrollsnapchange_promise = waitForScrollSnapChangeEvent(scroller, false);
+      inner_snap_area.style.scrollSnapAlign = "start";
+      outer_snap_area.style.scrollSnapAlign = "start";
+      evt = await scrollsnapchange_promise;
+      assertSnapEvent(evt, { block: outer_snap_area,  inline: null });
+    }, "scrollsnapchange fires when snap container no longer has snap areas");
+  </script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: anchor-scope appearing/disappearing dynamically</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-scope">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .scope-all { anchor-scope: all; }
+  .scope-a { anchor-scope: --a; }
+  .scope-b { anchor-scope: --b; }
+  .scope-ab { anchor-scope: --a, --b; }
+
+  .anchor-a { anchor-name: --a; }
+  .anchor-b { anchor-name: --b; }
+  .anchor-a, .anchor-b {
+    background: skyblue;
+    height: 10px;
+  }
+
+  .anchored-a { position-anchor: --a; }
+  .anchored-b { position-anchor: --b; }
+  .anchored-a, .anchored-b {
+    position: absolute;
+    top: anchor(bottom);
+    left: anchor(left);
+    width: 5px;
+    height: 5px;
+    background: coral;
+  }
+
+  /* Containing block */
+  main {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    border: 1px solid black;
+  }
+</style>
+<script>
+  function inflate(t, template_element) {
+    if (!template_element.hasAttribute('debug')) {
+      t.add_cleanup(() => main.replaceChildren());
+    }
+    main.append(template_element.content.cloneNode(true));
+  }
+</script>
+
+<main id=main>
+</main>
+
+<template id=test_scope_all_dynamic>
+  <div class=anchor-a></div>
+  <div class=anchor-a></div><!--A (after change)-->
+  <div id=dynamic>
+    <div class=anchor-a></div>
+    <div class=anchor-a></div><!--A (initially)-->
+  </div>
+  <div class=anchored-a></div>
+</template>
+<script>
+  test((t) => {
+    inflate(t, test_scope_all_dynamic);
+    assert_equals(getComputedStyle(main.querySelector('.anchored-a')).top, '40px');
+    dynamic.style.anchorScope = 'all';
+    assert_equals(getComputedStyle(main.querySelector('.anchored-a')).top, '20px');
+    dynamic.style.anchorScope = '';
+    assert_equals(getComputedStyle(main.querySelector('.anchored-a')).top, '40px');
+  }, 'anchor-scope:all appearing dynamically');
+</script>
+
+<template id=test_scope_named_dynamic>
+  <div class=anchor-a></div>
+  <div class=anchor-a></div><!--A (after change)-->
+  <div id=dynamic>
+    <div class=anchor-a></div>
+    <div class=anchor-a></div><!--A (initially)-->
+  </div>
+  <div class=anchored-a></div>
+</template>
+<script>
+  test((t) => {
+    inflate(t, test_scope_named_dynamic);
+    assert_equals(getComputedStyle(main.querySelector('.anchored-a')).top, '40px');
+    dynamic.style.anchorScope = '--a';
+    assert_equals(getComputedStyle(main.querySelector('.anchored-a')).top, '20px');
+    dynamic.style.anchorScope = '';
+    assert_equals(getComputedStyle(main.querySelector('.anchored-a')).top, '40px');
+  }, 'anchor-scope:--a appearing dynamically');
+</script>
+
+<template id=test_scope_named_unrelated_dynamic>
+  <div class=anchor-a></div>
+  <div class=anchor-a></div><!--A (after change)-->
+  <div id=dynamic>
+    <div class=anchor-a></div>
+    <div class=anchor-a></div><!--A (initially)-->
+  </div>
+  <div class=anchored-a></div>
+</template>
+<script>
+  test((t) => {
+    inflate(t, test_scope_named_unrelated_dynamic);
+    assert_equals(getComputedStyle(main.querySelector('.anchored-a')).top, '40px');
+    dynamic.style.anchorScope = '--b';
+    assert_equals(getComputedStyle(main.querySelector('.anchored-a')).top, '40px');
+    dynamic.style.anchorScope = '';
+    assert_equals(getComputedStyle(main.querySelector('.anchored-a')).top, '40px');
+  }, 'anchor-scope:--b appearing dynamically (--b never referenced)');
+</script>
+
+<template id=test_scope_a_dynamic>
+  <div class=anchor-b></div>
+  <div class=anchor-a></div><!--A (after change)-->
+  <div id=dynamic>
+    <div class=anchor-b></div><!--B-->
+    <div class=anchor-a></div><!--A (initially)-->
+  </div>
+  <div class=anchored-a></div>
+  <div class=anchored-b></div>
+</template>
+<script>
+  test((t) => {
+    inflate(t, test_scope_a_dynamic);
+    assert_equals(getComputedStyle(main.querySelector('.anchored-a')).top, '40px');
+    assert_equals(getComputedStyle(main.querySelector('.anchored-b')).top, '30px');
+    dynamic.style.anchorScope = '--a';
+    assert_equals(getComputedStyle(main.querySelector('.anchored-a')).top, '20px');
+    assert_equals(getComputedStyle(main.querySelector('.anchored-b')).top, '30px');
+    dynamic.style.anchorScope = '';
+    assert_equals(getComputedStyle(main.querySelector('.anchored-a')).top, '40px');
+    assert_equals(getComputedStyle(main.querySelector('.anchored-b')).top, '30px');
+  }, 'anchor-scope:--a appearing dynamically scopes only --a');
+</script>

@@ -17,21 +17,24 @@ async function runTest(embed_url,
 
   // Generate the url for the top level fenced frame, including the information
   // needed to pass on to its nested iframe
-  const cross_origin = get_host_info().HTTPS_REMOTE_ORIGIN;
+  const origin = get_host_info().HTTPS_REMOTE_ORIGIN;
   let fenced_frame_url = generateURL(
       "resources/ancestor-throttle-inner.https.html",
-      [ancestor_key, embed_url, cross_origin_to_top_level_iframe]);
+      [ancestor_key, embed_url, cross_origin_to_top_level_iframe], true);
   if (cross_origin_to_top_level_fenced_frame)
     fenced_frame_url = getRemoteOriginURL(fenced_frame_url, true);
 
-  attachFencedFrame(fenced_frame_url);
+  const fenced_frame_config = await generateURNFromFledgeRawURL(
+      fenced_frame_url, [], true);
+
+  attachFencedFrame(fenced_frame_config);
 
   // There is no API to observe whether the document in the FencedFrame loaded
   // or not. Instead, set up a timeout. If the document loads, "loaded" will be
   // sent to the server. Otherwise "blocked" will be sent after 3 seconds.
   step_timeout(() => {
     writeValueToServer(ancestor_key, "blocked");
-  }, 3000);
+  }, 1000);
 
   // Get the result for the fenced frame's nested iframe.
   const fenced_frame_result = await nextValueFromServer(ancestor_key);

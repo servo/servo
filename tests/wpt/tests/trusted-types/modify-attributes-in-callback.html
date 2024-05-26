@@ -7,14 +7,24 @@
 </head>
 <body>
 <iframe id="iframe" data-x="" srcdoc="content" onmouseover=""></iframe>
+<div id="div"></div>
 <script>
   // This is a regression test for https://g-issues.chromium.org/issues/333739948
   // The test should hold true for any browser that supports Trusted Types.
 
   let target = "data-x";
   trustedTypes.createPolicy("default", {
-    createHTML: (s) => {
+    createHTML: (s, _, sink) => {
+      assert_equals(sink, 'HTMLIFrameElement srcdoc');
       iframe.removeAttribute(target);
+      return s;
+    },
+    createScript: (s) => {
+      if (s == 'accepted') {
+        return s;
+      }
+
+      div.setAttribute('onmouseover', 'accepted');
       return s;
     }
   });
@@ -35,5 +45,26 @@
     iframe.setAttribute("srcdoc", "new srcdoc value");
     assert_equals(iframe.srcdoc, "new srcdoc value");
   }, "Ensure the deleted attributes is modified.");
+
+  test(t => {
+    div.toggleAttribute('onmouseover');
+    assert_equals(div.attributes.length, 2);
+    assert_equals(div.attributes.onmouseover.value, '');
+    div.removeAttribute('onmouseover');
+  }, "Ensure toggleAttribute results in an empty attribute.");
+
+  test(t => {
+    div.setAttribute('onmouseover', 'foo');
+    assert_equals(div.attributes.length, 2);
+    assert_equals(div.attributes.onmouseover.value, 'foo');
+    div.removeAttribute('onmouseover');
+  }, "Ensure setAttribute results in right attribute value.");
+
+  test(t => {
+    div.setAttributeNS(null, 'onmouseover', 'foo');
+    assert_equals(div.attributes.length, 2);
+    assert_equals(div.attributes.onmouseover.value, 'foo');
+    div.removeAttribute('onmouseover');
+  }, "Ensure setAttributeNS results in right attribute value.");
 
 </script>

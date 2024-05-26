@@ -19,6 +19,20 @@ const tests = [
     output: {dataType: 'float32', dimensions: [1, 2, 5, 6, 4]}
   },
   {
+    name: '[gather] Test gather with indices\'s dataType = uint32',
+    input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
+    indices: {dataType: 'uint32', dimensions: [5, 6]},
+    axis: 2,
+    output: {dataType: 'float32', dimensions: [1, 2, 5, 6, 4]}
+  },
+  {
+    name: '[gather] Test gather with indices\'s dataType = int32',
+    input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
+    indices: {dataType: 'int32', dimensions: [5, 6]},
+    axis: 2,
+    output: {dataType: 'float32', dimensions: [1, 2, 5, 6, 4]}
+  },
+  {
     name: '[gather] TypeError is expected if the input is a scalar',
     input: {dataType: 'float16', dimensions: []},
     indices: {dataType: 'int64', dimensions: [1]}
@@ -32,9 +46,15 @@ const tests = [
   },
   {
     name:
-        '[gather] TypeError is expected if the data type of indices is invalid',
+        '[gather] TypeError is expected if the data type of indices is float32 which is invalid',
     input: {dataType: 'float16', dimensions: [1, 2, 3, 4]},
     indices: {dataType: 'float32', dimensions: [5, 6]}
+  },
+  {
+    name:
+        '[gather] TypeError is expected if the data type of indices is uint64 which is invalid',
+    input: {dataType: 'float16', dimensions: [1, 2, 3, 4]},
+    indices: {dataType: 'uint64', dimensions: [5, 6]}
   }
 ];
 

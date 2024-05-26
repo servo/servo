@@ -64,7 +64,10 @@
     return new Promise(resolve => {
       p = trustedTypes.createPolicy("policyA", {createScript: s => s + 1});
       p1 = trustedTypes.createPolicy("policyA", {createHTML: _ => ""});
-      p2 = trustedTypes.createPolicy("default", {createScript: s => s});
+      p2 = trustedTypes.createPolicy("default", {createScript: (s, _, sink) => {
+        assert_equals(sink, 'HTMLScriptElement innerText');
+        return s;
+      }});
       script = p.createScript("1");
       assert_equals(script.toString(), "11");
       s = document.createElement("script");

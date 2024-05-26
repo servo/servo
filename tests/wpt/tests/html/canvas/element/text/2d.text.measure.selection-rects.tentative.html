@@ -32,7 +32,7 @@ _addTest(function(canvas, ctx) {
     const parent = range.getClientRects()[0];
 
     range.setStart(el.childNodes[0], from);
-    range.setEnd(el.childNodes[0], to+1);
+    range.setEnd(el.childNodes[0], to);
 
     let sel = window.getSelection();
     sel.removeAllRanges();
@@ -73,28 +73,32 @@ _addTest(function(canvas, ctx) {
     const tm = ctx.measureText(text);
     // First character.
     checkRectListsMatch(
-      tm.getSelectionRects(0, 0),
-      placeAndSelectTextInDOM(text, 0, 0)
+      tm.getSelectionRects(0, 1),
+      placeAndSelectTextInDOM(text, 0, 1)
     );
     // Last character.
     checkRectListsMatch(
-      tm.getSelectionRects(text.length - 1, text.length - 1),
-      placeAndSelectTextInDOM(text, text.length - 1, text.length - 1)
+      tm.getSelectionRects(text.length - 1, text.length),
+      placeAndSelectTextInDOM(text, text.length - 1, text.length)
     );
     // Whole string.
     checkRectListsMatch(
-      tm.getSelectionRects(0, text.length - 1),
-      placeAndSelectTextInDOM(text, 0, text.length - 1)
+      tm.getSelectionRects(0, text.length),
+      placeAndSelectTextInDOM(text, 0, text.length)
     );
     // Intermediate string.
     checkRectListsMatch(
-      tm.getSelectionRects(1, text.length - 2),
-      placeAndSelectTextInDOM(text, 1, text.length - 2)
+      tm.getSelectionRects(1, text.length - 1),
+      placeAndSelectTextInDOM(text, 1, text.length - 1)
     );
     // Invalid start > end string. Creates 0 width rectangle.
     checkRectListsMatch(
-      tm.getSelectionRects(2, 1),
-      placeAndSelectTextInDOM(text, 2, 1)
+      tm.getSelectionRects(3, 2),
+      placeAndSelectTextInDOM(text, 3, 2)
+    );
+    checkRectListsMatch(
+      tm.getSelectionRects(1, 0),
+      placeAndSelectTextInDOM(text, 1, 0)
     );
   }
 

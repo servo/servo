@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: DeviceOrientation Event Specification (https://w3c.github.io/deviceorientation/)
+// Source: Device Orientation and Motion (https://w3c.github.io/deviceorientation/)
 
 partial interface Window {
     [SecureContext] attribute EventHandler ondeviceorientation;

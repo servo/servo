@@ -1,4 +1,5 @@
 import pytest
+from webdriver.bidi.error import UnsupportedOperationException
 
 from .. import get_events
 
@@ -350,3 +351,39 @@ async def test_set_files_twice_same_in_different_folders(
             "type": "change",
         },
     ]
+
+
+async def test_non_existent_file(
+    bidi_session, top_context, load_static_test_page, get_element
+):
+    file = "non_existent_file.txt"
+
+    await load_static_test_page(page="files.html")
+    element = await get_element("#input")
+
+    # Firefox is unable to set non-existent files.
+    if bidi_session.capabilities.get("browserName") == "firefox":
+        with pytest.raises(UnsupportedOperationException):
+            await bidi_session.input.set_files(
+                context=top_context["context"],
+                element=element,
+                files=[file],
+            )
+    else:
+        await bidi_session.input.set_files(
+            context=top_context["context"],
+            element=element,
+            files=[file],
+        )
+
+        events = await get_events(bidi_session, top_context["context"])
+        assert events == [
+            {
+                "files": [file],
+                "type": "input",
+            },
+            {
+                "files": [file],
+                "type": "change",
+            },
+        ]

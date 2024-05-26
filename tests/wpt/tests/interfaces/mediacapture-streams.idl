@@ -179,6 +179,16 @@ interface InputDeviceInfo : MediaDeviceInfo {
   MediaTrackCapabilities getCapabilities();
 };
 
+[Exposed=Window]
+interface DeviceChangeEvent : Event {
+  constructor(DOMString type, optional DeviceChangeEventInit eventInitDict = {});
+  [SameObject] readonly attribute FrozenArray<MediaDeviceInfo> devices;
+};
+
+dictionary DeviceChangeEventInit : EventInit {
+  sequence<MediaDeviceInfo> devices = [];
+};
+
 partial interface MediaDevices {
   MediaTrackSupportedConstraints getSupportedConstraints();
   Promise<MediaStream> getUserMedia(optional MediaStreamConstraints constraints = {});

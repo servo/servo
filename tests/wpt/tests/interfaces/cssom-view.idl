@@ -84,7 +84,7 @@ interface Screen {
 partial interface Document {
   Element? elementFromPoint(double x, double y);
   sequence<Element> elementsFromPoint(double x, double y);
-  CaretPosition? caretPositionFromPoint(double x, double y);
+  CaretPosition? caretPositionFromPoint(double x, double y, ShadowRoot... shadowRoots);
   readonly attribute Element? scrollingElement;
 };
 

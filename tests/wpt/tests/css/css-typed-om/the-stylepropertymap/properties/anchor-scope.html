@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>'anchor-scope' property</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-scope">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/testhelper.js"></script>
+<script src="resources/testsuite.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+runPropertyTests('anchor-scope', [
+  { syntax: 'none' },
+  { syntax: 'all' },
+]);
+
+runUnsupportedPropertyTests('anchor-scope', [
+  '--a', '--a, --b'
+]);
+
+</script>
