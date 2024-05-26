@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS value parser: Crash with blocks in font-feature-settings</title>
+    <link rel="help" href="https://crbug.com/341349803">
+    <style>#a{font-feature-settings:var(--foo)}</style>
+  </head>
+  <body>
+    <p>Test passes if it does not crash.</p>
+  </body>
+</html>

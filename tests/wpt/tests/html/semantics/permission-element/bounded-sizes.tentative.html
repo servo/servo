@@ -11,7 +11,7 @@
   * max-height should be at most 3x min-height
 -->
 <style>
-  #id1 {
+  #el_outside_bounds {
     font-size: 10px;
     width: auto;
     height: auto;
@@ -28,7 +28,7 @@
     min-width: 10px;
     max-width: 1000px;
   }
-  #id2 {
+  #el_inside_bounds {
     font-size: 10px;
     width: auto;
     height: auto;
@@ -41,15 +41,23 @@
     padding-bottom: 6px;
     padding-right: 46px;
   }
+  #el_large_min_size {
+    font-size: 10px;
+    width: auto;
+    height: auto;
+
+    min-height: 50px;
+    min-width: 1000px;
+  }
 </style>
 
 
-<permission id="id1" type="geolocation">
-<permission id="id2" type="camera">
+<permission id="el_outside_bounds" type="geolocation">
+<permission id="el_inside_bounds" type="camera">
+<permission id="el_large_min_size" type="microphone">
 
 <script>
   test(function(){
-    let el_outside_bounds = document.getElementById("id1");
     let min_height = getComputedStyle(el_outside_bounds).minHeight;
     let max_height = getComputedStyle(el_outside_bounds).maxHeight;
     assert_true(min_height === "calc(10px)" || min_height === "10px", "min-height");
@@ -63,7 +71,6 @@
   }, "Properties with out-of-bounds values should be corrected");
 
   test(function(){
-    let el_inside_bounds = document.getElementById("id2");
     assert_equals(getComputedStyle(el_inside_bounds).minHeight, "calc(11px)", "min-height");
     assert_equals(getComputedStyle(el_inside_bounds).maxHeight, "calc(29px)", "max-height");
     assert_equals(getComputedStyle(el_inside_bounds).paddingLeft, "45px", "padding-left");
@@ -71,5 +78,12 @@
     assert_equals(getComputedStyle(el_inside_bounds).paddingTop, "5px", "padding-top");
     assert_equals(getComputedStyle(el_inside_bounds).paddingBottom, "5px", "padding-bottom");
   }, "Properties with values in bounds should not be modified");
+
+  test(function() {
+    let min_height = getComputedStyle(el_large_min_size).minHeight;
+    assert_true(min_height === "calc(30px)" || min_height === "30px", "min-height");
+    assert_not_equals(getComputedStyle(el_outside_bounds).minWidth, "1000px", "min-width");
+  }, "'Min' properties should not be allowed to go over the maximum allowed values for 'max' properties");
+
 </script>
 </body>

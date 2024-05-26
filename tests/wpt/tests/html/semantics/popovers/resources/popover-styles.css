@@ -10,6 +10,9 @@
   color: CanvasText;
   background-color: Canvas;
 }
+.fake-popover[anchor] {
+  inset: auto;
+}
 .fake-popover-backdrop {
   position: fixed;
   inset:0;

@@ -73,13 +73,13 @@
       };
 
       promise_test(async (t) => {
-        await test_snapchanged(t, test_data);
-      }, "snapTarget for snapchanged is the owning element when a snap area " +
+        await test_scrollsnapchange(t, test_data);
+      }, "snapTarget for scrollsnapchange is the owning element when a snap area " +
          "belongs to a pseudo-element");
 
       promise_test(async (t) => {
-        await test_snap_event(t, test_data, "snapchanging");
-      }, "snapTarget for snapchanging is the owning element when a snap area " +
+        await test_snap_event(t, test_data, "scrollsnapchanging");
+      }, "snapTarget for scrollsnapchanging is the owning element when a snap area " +
          "belongs to a pseudo-element");
     </script>
   </body>

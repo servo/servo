@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<script src="resources/variant-class.js"></script>
+<style>
+@font-face {
+  font-family: test-font;
+  src: url(resources/cap-x-height.ttf);
+}
+.spacer {
+  background: lightgray;
+  block-size: 100px;
+}
+.target {
+  font-family: test-font;
+  font-size: 100px;
+  line-height: 2;
+}
+.offset {
+  position: relative;
+}
+.vrl { writing-mode: vertical-rl; }
+.vlr { writing-mode: vertical-lr; }
+.text .target { line-height: 150px; }
+.text .offset { inset-block-start: 25px; }
+.alphabetic .target { line-height: 130px; }
+.alphabetic .offset { inset-block-start: 35px;}
+.cap .target { line-height: 130px; }
+.cap .offset { inset-block-start: -35px; }
+.ex .target { line-height: 90px; }
+.ex .offset { inset-block-start: -55px; }
+.vlr.cap .offset { inset-block-start: 35px; }
+.vlr.ex .offset { inset-block-start: 55px; }
+</style>
+<div class="spacer"></div>
+<div class="target">
+  <span class="offset">A</span>
+</div>
+<div class="spacer"></div>

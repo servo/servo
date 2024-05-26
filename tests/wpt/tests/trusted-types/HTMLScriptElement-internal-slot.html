@@ -7,24 +7,17 @@
 </head>
 <body>
 <script>
+  // This policy allows document.write to work as that's not relevant to what's actually being tested here.
+  trustedTypes.createPolicy('default', {createHTML: s => s});
   promise_test(t => {
-    // Setup: We create an <iframe> and trigger loading the document. We use
-    // WPTserve's ?pipe functionality to make sure it gets delivered in chunks
-    // and that parsing will be deferred.
-    var frame = document.createElement("iframe");
-    document.body.appendChild(frame);
-    frame.src = "support/HTMLScriptElement-internal-slot-support.html?pipe=trickle(200:d1)";
-
-    // This function tries to find the first <script> element in our iframe and
-    // manipulated it with DOM APIs (appendChild + createTextNode). If it
-    // doesn't find the script element then it'll just enqueue itself again
-    // in 100ms.
+    document.write(`<script>window.postMessage("first script element executed", "*");`);
     var manipulator = _ => {
-      let script = frame.contentDocument.getElementsByTagName("script")[0];
+      let script = document.body.getElementsByTagName("script")[1];
       if (script) {
-        script.appendChild(frame.contentDocument.createTextNode("/*byapi*/"));
+        script.appendChild(document.createTextNode('/*byapi*/'));
+        document.write('<\/script><script>window.parent.postMessage("second script element executed", "*");<\/script>');
       } else {
-        t.step_timeout(manipulator, 100);
+        t.step_timeout(manipulator, 50);
       }
     }
     manipulator();

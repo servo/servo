@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#propdef-text-box-edge">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#propdef-text-box-trim">
+<link rel="match" href="text-box-trim-float-clear-br-001-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.spacer {
+  background: lightgray;
+  block-size: 100px;
+}
+.target {
+  font-family: Ahem;
+  font-size: 50px;
+  line-height: 1;
+  text-box-trim: end;
+  text-box-edge: text;
+}
+.float {
+  float: left;
+  width: 100px;
+  height: 100px;
+  background: yellow;
+}
+.clear { clear: both; }
+</style>
+<div class="float"></div>
+<div class="target">
+  A
+  <br class="clear">
+</div>
+<div class="spacer"></div>

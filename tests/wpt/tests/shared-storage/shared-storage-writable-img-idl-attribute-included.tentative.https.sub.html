@@ -11,29 +11,25 @@
     const crossOrigin = 'https://{{domains[www]}}:{{ports[https][0]}}';
 
     promise_test(async t => {
-      const promise =  loadSharedStorageImage({
+      await loadSharedStorageImage({
         key: 'a', value: 'b',
         hasSharedStorageWritableAttribute: true,
         isSameOrigin: true,
       });
-      promise.then((img) => {
-        verifyKeyValueForOrigin('a', 'b', sameOrigin);
-        deleteKeyForOrigin('a', sameOrigin);
-        t.done();
-      });
+
+      await verifyKeyValueForOrigin('a', 'b', sameOrigin);
+      await deleteKeyForOrigin('a', sameOrigin);
     }, 'test <img sharedstoragewritable src=[url]> via JS for same origin img');
 
     promise_test(async t => {
-      const promise =  loadSharedStorageImage({
+      await loadSharedStorageImage({
         key: 'c', value: 'd',
         hasSharedStorageWritableAttribute: true,
         isSameOrigin: false,
       });
-      promise.then((img) => {
-        verifyKeyValueForOrigin('c', 'd', crossOrigin);
-        deleteKeyForOrigin('d', crossOrigin);
-        t.done();
-      });
+
+      await verifyKeyValueForOrigin('c', 'd', crossOrigin);
+      await deleteKeyForOrigin('d', crossOrigin);
     }, 'test <img sharedstoragewritable src=[url]> via JS for cross origin img');
   </script>
 </body>

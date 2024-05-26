@@ -17,4 +17,4 @@ kElementwiseLogicalBinaryOperators.forEach((operatorName) => {
 });
 
 // The `not()` operator is unary.
-validateInputFromOtherBuilder('not');
+validateInputFromAnotherBuilder('not');

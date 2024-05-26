@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8" />
 <title>Popover light dismiss behavior when scrolled within</title>
-<meta name="timeout" content="long">
 <link rel="author" href="mailto:masonf@chromium.org">
 <link rel=help href="https://open-ui.org/components/popover.research.explainer">
 <script src="/resources/testharness.js"></script>
@@ -26,11 +25,11 @@
 
 <div popover id=p>Inside popover
   <div style="height:2000px;background:lightgreen"></div>
-  Bottom of popover6
+  Bottom of popover
 </div>
 <button popovertarget=p>Popover</button>
 <style>
-  #p6 {
+  #p {
     width: 300px;
     height: 300px;
     overflow-y: scroll;

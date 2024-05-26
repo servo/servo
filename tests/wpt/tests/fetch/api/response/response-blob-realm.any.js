@@ -1,3 +1,4 @@
+// META: global=window
 // META: title=realm of Response bytes()
 
 "use strict";

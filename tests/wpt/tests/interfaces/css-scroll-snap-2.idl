@@ -14,3 +14,8 @@ interface SnapEvent : Event {
   readonly attribute Node? snapTargetBlock;
   readonly attribute Node? snapTargetInline;
 };
+
+partial interface mixin GlobalEventHandlers {
+  attribute EventHandler onsnapchanged;
+  attribute EventHandler onsnapchanging;
+};

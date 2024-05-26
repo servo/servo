@@ -9,8 +9,23 @@ span {
 }
 p {
   word-break: break-all;
-  inline-size: 305px;
+  inline-size: calc(6em + 5px);
+}
+.mc {
+  columns: 2 calc(6em + 5px);
+  column-gap: 10px;
+  inline-size: calc(12em + 10px + 10px);
+  block-size: 80px;
+}
+.indent {
+  text-indent: -1em;
 }
 </style>
 <p>zzz<ruby><span>mmm</span><rt><span>mmmmmm</span></ruby> <ruby><span>mm</span><rt><span>mmmm</span></ruby>zzz
+</p>
+
+<p class="mc">zzz<ruby><span>mmm</span><span>mm</span><rt><span>mmmmmm</span><span>mmmm</span></ruby>zzz
+</p>
+
+<p class="indent">zzz<ruby>mmmm<rt>mmmmmmmm</ruby><br><ruby>m<rt>mm</ruby>zzz
 </p>

@@ -4,9 +4,10 @@
 <link rel="author" title="Apple Inc." href="http://www.apple.com/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/helpers.js"></script>
 <script>
-setup({ explicit_done: true });
-
 /* Validity and well-formedness was determined by using the BCP 47
    Validator at http://schneegans.de/lv/ */
 
@@ -29,20 +30,20 @@ var invalid_langs = ["en-", "en-\-", "foo-\-bar", "id-\-\-Java", "fr-x",
                      "es2-KL-aa-bb-cc-dd", "es3-KM-aa-bb-cc-dd", "fooÉ",
                      "foöÉ-bÁr", "foöÉbÁr"];
 
+
+promise_setup(async () => {
+    // No need to show actual notification
+    await trySettingPermission("prompt");
+});
+
 function test_lang(language, should_passthrough) {
     var expected = should_passthrough ? language : "";
-    test(function() {
-        if (Notification.permission != "granted") {
-            this.force_timeout()
-            this.set_status(this.NOTRUN, "You must allow notifications for this origin before running this test.")
-        }
+    promise_test(async () => {
         var notification = new Notification("This is a notification.", {
             lang: language
         });
+        notification.close();
         assert_equals(notification.lang, expected, "notification.lang");
-        notification.onshow = function() {
-            notification.close();
-        };
     },
     "Roundtripping lang \"" + language + "\". Expecting \"" + expected + "\".");
 }
@@ -58,6 +59,4 @@ for (var i=0; i<well_formed_langs.length; i++) {
 for (var i=0; i<invalid_langs.length; i++) {
     test_lang(invalid_langs[i], false);
 }
-
-done();
 </script>

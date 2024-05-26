@@ -54,7 +54,14 @@
     });
   }, "`window.setInterval(null)` throws.");
 
-  let policy = window.trustedTypes.createPolicy("default", { createScript: x => "0" });
+  let policy = window.trustedTypes.createPolicy("default", { createScript: (x, _, sink) => {
+    if (x === "timeoutTestString") {
+      assert_equals(sink, 'Window setTimeout');
+    } else if (x === "intervalTestString") {
+      assert_equals(sink, 'Window setInterval');
+    }
+    return "0";
+  }});
   // After default policy creation string assignment implicitly calls createScript.
   test(t => {
     setTimeout(INPUTS.SCRIPT);

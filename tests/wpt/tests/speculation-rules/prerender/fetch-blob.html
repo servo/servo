@@ -15,10 +15,9 @@
 setup(() => assertSpeculationRulesIsSupported());
 
 promise_test(async t => {
-  const opt = {};
-  const init_opt = {};
   const rule_extras = {'target_hint': getTargetHint()};
-  const {exec} = await create_prerendered_page(t, opt, init_opt, rule_extras);
+  const {exec} = await create_prerendered_page(
+      t, undefined, undefined, rule_extras);
   const result = await exec(async () => {
     const blob = await (await fetch('cache.txt')).blob();
     const reader = new FileReader();

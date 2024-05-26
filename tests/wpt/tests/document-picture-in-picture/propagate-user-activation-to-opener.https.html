@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>Test that a user activation in a document picture-in-picture window is usable in its opener window</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+  await test_driver.bless('request PiP window');
+  const pipWindow = await documentPictureInPicture.requestWindow();
+
+  assert_false(navigator.userActivation.isActive, 'the opener should initially not have user activation');
+  assert_false(pipWindow.navigator.userActivation.isActive, 'the PiP window should initially not have user activation');
+
+  // Activating the picture-in-picture window should also activate the opener.
+  await test_driver.bless('activate pip window', null, pipWindow);
+  assert_true(navigator.userActivation.isActive, 'the opener should be activated when the PiP window is activated');
+  assert_true(pipWindow.navigator.userActivation.isActive, 'the PiP window should be activated');
+
+  // Consuming activation in the picture-in-picture window should also consume it in the opener.
+  pipWindow.open();
+  assert_false(navigator.userActivation.isActive, 'the opener should no longer be active once the PiP window consumes activation');
+  assert_false(pipWindow.navigator.userActivation.isActive, 'the PiP window should no longer be active once it consumes activation');
+});
+</script>

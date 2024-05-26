@@ -21,7 +21,7 @@ interface PressureObserver {
   undefined disconnect();
   sequence<PressureRecord> takeRecords();
 
-  [SameObject] static readonly attribute FrozenArray<PressureSource> supportedSources;
+  [SameObject] static readonly attribute FrozenArray<PressureSource> knownSources;
 };
 
 [Exposed=(DedicatedWorker,SharedWorker,Window), SecureContext]

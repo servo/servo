@@ -35,7 +35,11 @@
   }
 
   // Test that with a default policy, all comamnds will work again.
-  trustedTypes.createPolicy("default", {"createHTML": x => x});
+  trustedTypes.createPolicy("default", {"createHTML": (x, _, sink) => {
+    assert_equals(sink, 'Document execCommand');
+    return x;
+  }});
+
   for (const command of commands) {
     test(t => {
       document.execCommand(command, false, "<em>Hello World</em>");

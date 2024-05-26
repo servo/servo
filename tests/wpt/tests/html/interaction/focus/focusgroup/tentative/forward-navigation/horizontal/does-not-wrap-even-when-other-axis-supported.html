@@ -2,7 +2,7 @@
 <meta charset="utf-8">
 <title>HTML Test: focusgroup - Does not wrap when the arrow keypress is supported but the focusgroup only wraps in the other axis.</title>
 <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
-<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/Focusgroup/explainer.md">
+<link rel="help" href="https://open-ui.org/components/focusgroup.explainer/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -10,7 +10,7 @@
 <script src="/resources/testdriver-actions.js"></script>
 <script src="../../resources/focusgroup-utils.js"></script>
 
-<div id=root focusgroup="vertical wrap">
+<div id=root focusgroup="block wrap">
   <span id=item1 tabindex=0>item1</span>
   <div id=item2 tabindex=-1 focusgroup=extend>
     <!--This focusgroup supports both axes, but only wraps in the vertical one.-->

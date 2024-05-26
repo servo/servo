@@ -16,6 +16,10 @@
   }, "eval of TrustedScript works.");
 
   test(t => {
+    assert_equals(eval?.(p.createScript('1+1')), 2);
+  }, "indirect eval of TrustedScript works.");
+
+  test(t => {
     assert_equals(eval('1+1'), 5); // '1+1' becomes '4+1'.
   }, "eval of string works.");
 

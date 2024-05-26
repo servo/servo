@@ -19,11 +19,13 @@
 setup(() => assertSpeculationRulesIsSupported());
 
 const params = new URLSearchParams(window.location.search);
-const code = params.get('code');
 
 promise_test(async t => {
-  const {exec, tryToActivate} = await create_prerendered_page(t, {code});
+  // Pass the `code` search param so that a prerendered page is served with the
+  // response code.
+  const {exec, tryToActivate} =
+      await create_prerendered_page(t, {'prerendering': params});
   const result = await tryToActivate();
   assert_equals(result, 'discarded');
-},`Responses with code ${code} should be discarded`);
+},`Responses with code ${params.get('code')} should be discarded`);
 </script>

@@ -25,8 +25,8 @@ import './resources/log.js?pipe=sub&name=A';
 </script>
 <script type="module">
 test(t => {
-    assert_array_equals(log, []);
-  }, 'Static script did not load as it failed its integrity check');
+  assert_array_equals(log, []);
+}, 'Static script did not load as it failed its integrity check');
 log = [];
 </script>
 <script type="module">
@@ -34,8 +34,8 @@ import './resources/log.js?pipe=sub&name=C';
 </script>
 <script type="module">
 test(t => {
-    assert_array_equals(log, ["log:D"]);
-  }, 'Static script loaded as its integrity check passed');
+  assert_array_equals(log, ["log:D"]);
+}, 'Static script loaded as its integrity check passed');
 log = [];
 </script>
 <script type="module">
@@ -43,9 +43,9 @@ import './resources/log.js?pipe=sub&name=X';
 </script>
 <script type="module">
 test(t => {
-    assert_array_equals(log, []);
-  }, 'Static script did not load as it failed its integrity check, even' +
-     ' without an import defined');
+  assert_array_equals(log, []);
+}, 'Static script did not load as it failed its integrity check, even' +
+   ' without an import defined');
 log = [];
 </script>
 <script type="module">
@@ -53,16 +53,16 @@ import './resources/log.js?pipe=sub&name=Y';
 </script>
 <script type="module">
 test(t => {
-    assert_array_equals(log, ["log:Y"]);
-  }, 'Static script loaded as its integrity check passed without an import' +
-     ' defined');
+  assert_array_equals(log, ["log:Y"]);
+}, 'Static script loaded as its integrity check passed without an import' +
+   ' defined');
 log = [];
 </script>
 <script type="module" src="./resources/log.js?pipe=sub&name=Z">;
 </script>
 <script type="module">
 test(t => {
-    assert_array_equals(log, []);
-  }, 'HTML-based module script did not load as its integrity check failed.');
+  assert_array_equals(log, []);
+}, 'HTML-based module script did not load as its integrity check failed.');
 log = [];
 </script>

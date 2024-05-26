@@ -29,7 +29,9 @@ test(function(){
     cue.region = region;
     assert_equals(cue.region, region);
 
-    cue.region = 'foo';
+    assert_throws_js(TypeError, () => {
+        cue.region = 'foo';
+    });
     assert_equals(cue.region, region);
 
     cue.region = null;

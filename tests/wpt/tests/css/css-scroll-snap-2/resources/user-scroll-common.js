@@ -1,8 +1,8 @@
-// Helper functions for snapchanged-on-user-* tests.
+// Helper functions for scrollsnapchange-on-user-* tests.
 
 // This performs a touch scroll on |scroller| using the coordinates provided
 // in |start_pos| and |end_pos|.
-// It is meant for use in snapchanged & snapchanging tests for triggering snap
+// It is meant for use in scrollsnapchange & scrollsnapchanging tests for triggering snap
 // events when touch scrolling from |start_pos| to |end_pos|.
 function snap_event_touch_scroll_helper(start_pos, end_pos) {
   return new test_driver.Actions()
@@ -62,10 +62,10 @@ async function test_no_snap_event(test, scroller, delta, event_type) {
   assert_equals(scroller.scrollLeft, 0, "scroller snaps back to the left");
 }
 
-async function test_no_snapchanged(t, scroller, delta) {
-  await test_no_snap_event(t, scroller, delta, "snapchanged");
+async function test_no_scrollsnapchange(t, scroller, delta) {
+  await test_no_snap_event(t, scroller, delta, "scrollsnapchange");
 }
 
-async function test_no_snapchanging(t, scroller, delta) {
-  await test_no_snap_event(t, scroller, delta, "snapchanging");
+async function test_no_scrollsnapchanging(t, scroller, delta) {
+  await test_no_snap_event(t, scroller, delta, "scrollsnapchanging");
 }
