@@ -316,10 +316,11 @@ impl TextRun {
             } else {
                 Box::new(collapsed)
             };
+        let char_iterator = TwoCharsAtATimeIterator::new(char_iterator);
 
         let mut next_byte_index = 0;
         let text = char_iterator
-            .map(|character| {
+            .map(|(character, next_character)| {
                 let current_byte_index = next_byte_index;
                 next_byte_index += character.len_utf8();
 
@@ -338,10 +339,11 @@ impl TextRun {
                     return character;
                 }
 
-                let font = match font_group
-                    .write()
-                    .find_by_codepoint(font_context, character)
-                {
+                let font = match font_group.write().find_by_codepoint(
+                    font_context,
+                    character,
+                    next_character,
+                ) {
                     Some(font) => font,
                     None => return character,
                 };
@@ -790,4 +792,41 @@ fn capitalize_string(string: &str, allow_word_at_start: bool) -> String {
     }
 
     output_string
+}
+
+pub struct TwoCharsAtATimeIterator<InputIterator> {
+    /// The input character iterator.
+    iterator: InputIterator,
+    /// The first character to produce in the next run of the iterator.
+    next_character: Option<char>,
+}
+
+impl<InputIterator> TwoCharsAtATimeIterator<InputIterator> {
+    fn new(iterator: InputIterator) -> Self {
+        Self {
+            iterator,
+            next_character: None,
+        }
+    }
+}
+
+impl<InputIterator> Iterator for TwoCharsAtATimeIterator<InputIterator>
+where
+    InputIterator: Iterator<Item = char>,
+{
+    type Item = (char, Option<char>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // If the iterator isn't initialized do that now.
+        if self.next_character.is_none() {
+            self.next_character = self.iterator.next();
+        }
+
+        let Some(character) = self.next_character else {
+            return None;
+        };
+
+        self.next_character = self.iterator.next();
+        return Some((character, self.next_character.clone()));
+    }
 }
