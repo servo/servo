@@ -753,9 +753,9 @@ dependencies = [
 
 [[package]]
 name = "clang-sys"
-version = "1.7.0"
+version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67523a3b4be3ce1989d607a828d036249522dd9c1c8de7f4dd2dae43a37369d1"
+checksum = "a483f3cbf7cec2e153d424d0e92329d816becc6421389bd494375c6065921b9b"
 dependencies = [
  "glob",
  "libc",
@@ -1175,7 +1175,7 @@ version = "0.20.0"
 source = "git+https://github.com/gfx-rs/wgpu?rev=d0a5e48aa7e84683114c3870051cc414ae92ac03#d0a5e48aa7e84683114c3870051cc414ae92ac03"
 dependencies = [
  "bitflags 2.5.0",
- "libloading 0.8.3",
+ "libloading 0.7.4",
  "winapi",
 ]
 
@@ -1382,7 +1382,7 @@ version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330c60081dcc4c72131f8eb70510f1ac07223e5d4163db481a04a0befcffa412"
 dependencies = [
- "libloading 0.8.3",
+ "libloading 0.7.4",
 ]
 
 [[package]]
@@ -3454,7 +3454,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.5",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -7265,7 +7265,7 @@ dependencies = [
  "js-sys",
  "khronos-egl",
  "libc",
- "libloading 0.8.3",
+ "libloading 0.7.4",
  "log",
  "metal 0.28.0",
  "naga",
