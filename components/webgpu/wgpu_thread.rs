@@ -758,6 +758,7 @@ impl WGPU {
                                 "Invalid command buffer submitted",
                             )))
                         } else {
+                            let _guard = self.poller.lock();
                             gfx_select!(queue_id => global.queue_submit(queue_id, &command_buffers))
                                 .map_err(Error::from_error)
                         };
@@ -965,6 +966,7 @@ impl WGPU {
                         data,
                     } => {
                         let global = &self.global;
+                        let _guard = self.poller.lock();
                         //TODO: Report result to content process
                         let result = gfx_select!(queue_id => global.queue_write_texture(
                             queue_id,
@@ -973,6 +975,7 @@ impl WGPU {
                             &data_layout,
                             &size
                         ));
+                        drop(_guard);
                         self.maybe_dispatch_wgpu_error(queue_id.transmute(), result.err());
                     },
                     WebGPURequest::QueueOnSubmittedWorkDone { sender, queue_id } => {
