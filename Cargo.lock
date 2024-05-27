@@ -1131,8 +1131,9 @@ dependencies = [
 
 [[package]]
 name = "cssparser"
-version = "0.33.0"
-source = "git+https://github.com/servo/rust-cssparser?rev=aaa966d9d6ae70c4b8a62bb5e3a14c068bb7dff0#aaa966d9d6ae70c4b8a62bb5e3a14c068bb7dff0"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b7c66d1cd8ed61bf80b38432613a7a2f09401ab8d0501110655f8b341484a3e3"
 dependencies = [
  "cssparser-macros",
  "dtoa-short",
@@ -1145,7 +1146,8 @@ dependencies = [
 [[package]]
 name = "cssparser-macros"
 version = "0.6.1"
-source = "git+https://github.com/servo/rust-cssparser?rev=aaa966d9d6ae70c4b8a62bb5e3a14c068bb7dff0#aaa966d9d6ae70c4b8a62bb5e3a14c068bb7dff0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "13b588ba4ac1a99f7f2964d24b3d896ddc6bf847ee3855dbd4366f058cfcd331"
 dependencies = [
  "quote",
  "syn 2.0.66",
@@ -1173,7 +1175,7 @@ version = "0.20.0"
 source = "git+https://github.com/gfx-rs/wgpu?rev=d0a5e48aa7e84683114c3870051cc414ae92ac03#d0a5e48aa7e84683114c3870051cc414ae92ac03"
 dependencies = [
  "bitflags 2.5.0",
- "libloading 0.7.4",
+ "libloading 0.8.3",
  "winapi",
 ]
 
@@ -1263,7 +1265,7 @@ dependencies = [
 [[package]]
 name = "derive_common"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
+source = "git+https://github.com/servo/stylo?branch=2024-05-15#5e112c7bc6bf6dc78d2b5eeb0251b5ddb3e6585f"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -1380,7 +1382,7 @@ version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330c60081dcc4c72131f8eb70510f1ac07223e5d4163db481a04a0befcffa412"
 dependencies = [
- "libloading 0.7.4",
+ "libloading 0.8.3",
 ]
 
 [[package]]
@@ -2281,7 +2283,7 @@ checksum = "9c08c1f623a8d0b722b8b99f821eb0ba672a1618f0d3b16ddbee1cedd2dd8557"
 dependencies = [
  "bitflags 2.5.0",
  "gpu-descriptor-types",
- "hashbrown 0.14.3",
+ "hashbrown",
 ]
 
 [[package]]
@@ -2620,7 +2622,7 @@ dependencies = [
  "futures-sink",
  "futures-util",
  "http",
- "indexmap 2.2.6",
+ "indexmap",
  "slab",
  "tokio",
  "tokio-util",
@@ -2651,12 +2653,6 @@ dependencies = [
  "pkg-config",
  "winapi",
 ]
-
-[[package]]
-name = "hashbrown"
-version = "0.12.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
 
 [[package]]
 name = "hashbrown"
@@ -2990,22 +2986,12 @@ checksum = "76a49eaebc8750bcba241df1e1e47ebb51b81eb35c65e8f11ffa0aebac353f7f"
 
 [[package]]
 name = "indexmap"
-version = "1.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd070e393353796e801d209ad339e89596eb4c8d430d18ede6a1cced8fafbd99"
-dependencies = [
- "autocfg",
- "hashbrown 0.12.3",
-]
-
-[[package]]
-name = "indexmap"
 version = "2.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "168fb715dda47215e360912c096649d23d58bf392ac62f73919e831745e40f26"
 dependencies = [
  "equivalent",
- "hashbrown 0.14.3",
+ "hashbrown",
  "serde",
 ]
 
@@ -3468,7 +3454,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2a198fb6b0eada2a8df47933734e6d35d350665a33a3593d7164fa52c75c19"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.5",
 ]
 
 [[package]]
@@ -3639,7 +3625,7 @@ dependencies = [
 [[package]]
 name = "malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
+source = "git+https://github.com/servo/stylo?branch=2024-05-15#5e112c7bc6bf6dc78d2b5eeb0251b5ddb3e6585f"
 dependencies = [
  "accountable-refcell",
  "app_units",
@@ -3648,7 +3634,7 @@ dependencies = [
  "cssparser",
  "euclid",
  "http",
- "indexmap 2.2.6",
+ "indexmap",
  "keyboard-types",
  "selectors",
  "serde",
@@ -3927,7 +3913,7 @@ dependencies = [
  "bitflags 2.5.0",
  "codespan-reporting",
  "hexf-parse",
- "indexmap 2.2.6",
+ "indexmap",
  "log",
  "num-traits",
  "rustc-hash",
@@ -4315,15 +4301,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6b41438d2fc63c46c74a2203bf5ccd82c41ba04347b2fcf5754f230b167067d5"
 dependencies = [
  "ttf-parser",
-]
-
-[[package]]
-name = "owning_ref"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ff55baddef9e4ad00f88b6c743a2a8062d4c6ade126c2a528644b8e444d52ce"
-dependencies = [
- "stable_deref_trait",
 ]
 
 [[package]]
@@ -5069,7 +5046,7 @@ dependencies = [
  "http",
  "hyper_serde",
  "image",
- "indexmap 2.2.6",
+ "indexmap",
  "ipc-channel",
  "itertools 0.13.0",
  "jstraceable_derive",
@@ -5244,7 +5221,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.24.0"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
+source = "git+https://github.com/servo/stylo?branch=2024-05-15#5e112c7bc6bf6dc78d2b5eeb0251b5ddb3e6585f"
 dependencies = [
  "bitflags 2.5.0",
  "cssparser",
@@ -5532,7 +5509,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.2.0"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
+source = "git+https://github.com/servo/stylo?branch=2024-05-15#5e112c7bc6bf6dc78d2b5eeb0251b5ddb3e6585f"
 dependencies = [
  "nodrop",
  "serde",
@@ -5542,7 +5519,7 @@ dependencies = [
 [[package]]
 name = "servo_atoms"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
+source = "git+https://github.com/servo/stylo?branch=2024-05-15#5e112c7bc6bf6dc78d2b5eeb0251b5ddb3e6585f"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -5740,7 +5717,7 @@ checksum = "38b58827f4464d87d377d175e90bf58eb00fd8716ff0a62f80356b5e61555d0d"
 [[package]]
 name = "size_of_test"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
+source = "git+https://github.com/servo/stylo?branch=2024-05-15#5e112c7bc6bf6dc78d2b5eeb0251b5ddb3e6585f"
 dependencies = [
  "static_assertions",
 ]
@@ -5881,7 +5858,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "static_prefs"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
+source = "git+https://github.com/servo/stylo?branch=2024-05-15#5e112c7bc6bf6dc78d2b5eeb0251b5ddb3e6585f"
 
 [[package]]
 name = "strict-num"
@@ -5918,7 +5895,7 @@ dependencies = [
 [[package]]
 name = "style"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
+source = "git+https://github.com/servo/stylo?branch=2024-05-15#5e112c7bc6bf6dc78d2b5eeb0251b5ddb3e6585f"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -5931,7 +5908,7 @@ dependencies = [
  "euclid",
  "fxhash",
  "icu_segmenter",
- "indexmap 1.9.3",
+ "indexmap",
  "itertools 0.10.5",
  "itoa",
  "lazy_static",
@@ -5946,7 +5923,6 @@ dependencies = [
  "num-integer",
  "num-traits",
  "num_cpus",
- "owning_ref",
  "parking_lot",
  "precomputed-hash",
  "rayon",
@@ -5977,7 +5953,7 @@ dependencies = [
 [[package]]
 name = "style_config"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
+source = "git+https://github.com/servo/stylo?branch=2024-05-15#5e112c7bc6bf6dc78d2b5eeb0251b5ddb3e6585f"
 dependencies = [
  "lazy_static",
 ]
@@ -5985,7 +5961,7 @@ dependencies = [
 [[package]]
 name = "style_derive"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
+source = "git+https://github.com/servo/stylo?branch=2024-05-15#5e112c7bc6bf6dc78d2b5eeb0251b5ddb3e6585f"
 dependencies = [
  "darling",
  "derive_common",
@@ -6016,7 +5992,7 @@ dependencies = [
 [[package]]
 name = "style_traits"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
+source = "git+https://github.com/servo/stylo?branch=2024-05-15#5e112c7bc6bf6dc78d2b5eeb0251b5ddb3e6585f"
 dependencies = [
  "app_units",
  "bitflags 2.5.0",
@@ -6030,6 +6006,7 @@ dependencies = [
  "servo_arc",
  "servo_atoms",
  "size_of_test",
+ "thin-vec",
  "to_shmem",
  "to_shmem_derive",
  "url",
@@ -6379,7 +6356,7 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 [[package]]
 name = "to_shmem"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
+source = "git+https://github.com/servo/stylo?branch=2024-05-15#5e112c7bc6bf6dc78d2b5eeb0251b5ddb3e6585f"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -6392,7 +6369,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-04-16#d481c573aaa9ad6776b1149a5a44a045e6399157"
+source = "git+https://github.com/servo/stylo?branch=2024-05-15#5e112c7bc6bf6dc78d2b5eeb0251b5ddb3e6585f"
 dependencies = [
  "darling",
  "derive_common",
@@ -6513,7 +6490,7 @@ version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a8534fd7f78b5405e860340ad6575217ce99f38d4d5c8f2442cb5ecb50090e1"
 dependencies = [
- "indexmap 2.2.6",
+ "indexmap",
  "serde",
  "serde_spanned",
  "toml_datetime",
@@ -7253,7 +7230,7 @@ dependencies = [
  "bitflags 2.5.0",
  "cfg_aliases",
  "document-features",
- "indexmap 2.2.6",
+ "indexmap",
  "log",
  "naga",
  "once_cell",
@@ -7288,7 +7265,7 @@ dependencies = [
  "js-sys",
  "khronos-egl",
  "libc",
- "libloading 0.7.4",
+ "libloading 0.8.3",
  "log",
  "metal 0.28.0",
  "naga",

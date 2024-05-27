@@ -1397,7 +1397,7 @@ impl LayoutThread {
         );
 
         // Preserve any previously computed root font size.
-        device.set_root_font_size(self.stylist.device().root_font_size());
+        device.set_root_font_size(self.stylist.device().root_font_size().px());
 
         let sheet_origins_affected_by_device_change = self.stylist.set_device(device, guards);
         self.stylist

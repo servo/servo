@@ -105,7 +105,7 @@ where
             let style = self.as_element().unwrap().resolved_style();
 
             return TextContent::GeneratedContent(match style.as_ref().get_counters().content {
-                Content::Items(ref value) => value.to_vec(),
+                Content::Items(ref value) => value.items.to_vec(),
                 _ => vec![],
             });
         }

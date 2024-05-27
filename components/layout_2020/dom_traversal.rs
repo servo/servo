@@ -366,7 +366,7 @@ where
     match &pseudo_element_style.get_counters().content {
         Content::Items(ref items) => {
             let mut vec = vec![];
-            for item in items.iter() {
+            for item in items.items.iter() {
                 match item {
                     ContentItem::String(s) => {
                         vec.push(PseudoElementContentItem::Text(s.to_string()));
