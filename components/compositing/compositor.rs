@@ -30,9 +30,8 @@ use pixels::{CorsStatus, Image, PixelFormat};
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
 use script_traits::CompositorEvent::{MouseButtonEvent, MouseMoveEvent, TouchEvent, WheelEvent};
 use script_traits::{
-    AnimationState, AnimationTickType, ConstellationControlMsg, LayoutControlMsg, MouseButton,
-    MouseEventType, ScrollState, TouchEventType, TouchId, WheelDelta, WindowSizeData,
-    WindowSizeType,
+    AnimationState, AnimationTickType, ConstellationControlMsg, MouseButton, MouseEventType,
+    ScrollState, TouchEventType, TouchId, WheelDelta, WindowSizeData, WindowSizeType,
 };
 use servo_geometry::{DeviceIndependentPixel, FramebufferUintLength};
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
@@ -1940,10 +1939,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         });
 
         if let Some(pipeline) = details.pipeline.as_ref() {
-            let message = ConstellationControlMsg::ForLayoutFromConstellation(
-                LayoutControlMsg::SetScrollStates(scroll_states),
-                *pipeline_id,
-            );
+            let message = ConstellationControlMsg::SetScrollStates(*pipeline_id, scroll_states);
             let _ = pipeline.script_chan.send(message);
         }
     }
@@ -2154,11 +2150,14 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     to_remove.push(*id);
                     if let Some(pipeline) = self.pipeline(*id) {
                         // and inform layout with the measured paint time.
-                        let message = LayoutControlMsg::PaintMetric(epoch, paint_time);
-                        let message =
-                            ConstellationControlMsg::ForLayoutFromConstellation(message, *id);
-                        if let Err(e) = pipeline.script_chan.send(message) {
-                            warn!("Sending PaintMetric message to layout failed ({:?}).", e);
+                        if let Err(e) =
+                            pipeline
+                                .script_chan
+                                .send(ConstellationControlMsg::SetEpochPaintTime(
+                                    *id, epoch, paint_time,
+                                ))
+                        {
+                            warn!("Sending RequestLayoutPaintMetric message to layout failed ({e:?}).");
                         }
                     }
                 }

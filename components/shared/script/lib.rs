@@ -110,15 +110,6 @@ impl UntrustedNodeAddress {
     }
 }
 
-/// Messages sent to layout from the constellation and/or compositor.
-#[derive(Debug, Deserialize, Serialize)]
-pub enum LayoutControlMsg {
-    /// Tells layout about the new scrolling offsets of each scrollable stacking context.
-    SetScrollStates(Vec<ScrollState>),
-    /// Send the paint time for a specific epoch to layout.
-    PaintMetric(Epoch, u64),
-}
-
 /// The origin where a given load was initiated.
 /// Useful for origin checks, for example before evaluation a JS URL.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -302,11 +293,6 @@ pub enum ConstellationControlMsg {
     SendEvent(PipelineId, CompositorEvent),
     /// Notifies script of the viewport.
     Viewport(PipelineId, Rect<f32, UnknownUnit>),
-    /// Notifies script of a new set of scroll offsets.
-    SetScrollState(
-        PipelineId,
-        Vec<(UntrustedNodeAddress, Vector2D<f32, LayoutPixel>)>,
-    ),
     /// Requests that the script thread immediately send the constellation the title of a pipeline.
     GetTitle(PipelineId),
     /// Notifies script thread of a change to one of its document's activity
@@ -391,8 +377,11 @@ pub enum ConstellationControlMsg {
     MediaSessionAction(PipelineId, MediaSessionActionType),
     /// Notifies script thread that WebGPU server has started
     SetWebGPUPort(IpcReceiver<WebGPUMsg>),
-    /// A mesage for a layout from the constellation.
-    ForLayoutFromConstellation(LayoutControlMsg, PipelineId),
+    /// The compositor scrolled and is updating the scroll states of the nodes in the given
+    /// pipeline via the Constellation.
+    SetScrollStates(PipelineId, Vec<ScrollState>),
+    /// Send the paint time for a specific epoch.
+    SetEpochPaintTime(PipelineId, Epoch, u64),
 }
 
 impl fmt::Debug for ConstellationControlMsg {
@@ -409,7 +398,6 @@ impl fmt::Debug for ConstellationControlMsg {
             ExitScriptThread => "ExitScriptThread",
             SendEvent(..) => "SendEvent",
             Viewport(..) => "Viewport",
-            SetScrollState(..) => "SetScrollState",
             GetTitle(..) => "GetTitle",
             SetDocumentActivity(..) => "SetDocumentActivity",
             SetThrottled(..) => "SetThrottled",
@@ -431,7 +419,8 @@ impl fmt::Debug for ConstellationControlMsg {
             ExitFullScreen(..) => "ExitFullScreen",
             MediaSessionAction(..) => "MediaSessionAction",
             SetWebGPUPort(..) => "SetWebGPUPort",
-            ForLayoutFromConstellation(..) => "ForLayoutFromConstellation",
+            SetScrollStates(..) => "SetScrollStates",
+            SetEpochPaintTime(..) => "SetEpochPaintTime",
         };
         write!(formatter, "ConstellationControlMsg::{}", variant)
     }
