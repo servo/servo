@@ -3,11 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::cmp::{max, Ordering};
+use std::cmp::max;
 use std::slice::Iter;
 use std::sync::Arc;
 
 use app_units::Au;
+use gfx::font::{FontMetrics, FontRef, RunMetrics, ShapingFlags, ShapingOptions};
+use gfx::text::glyph::{ByteIndex, GlyphRun, GlyphStore};
 use log::debug;
 use range::Range;
 use serde::{Deserialize, Serialize};
@@ -15,9 +17,6 @@ use style::str::char_is_whitespace;
 use unicode_bidi as bidi;
 use webrender_api::FontInstanceKey;
 use xi_unicode::LineBreakLeafIter;
-
-use crate::font::{FontMetrics, FontRef, RunMetrics, ShapingFlags, ShapingOptions};
-use crate::text::glyph::{ByteIndex, GlyphStore};
 
 thread_local! {
     static INDEX_OF_FIRST_GLYPH_RUN_CACHE: Cell<Option<(*const TextRun, ByteIndex, usize)>> =
@@ -51,32 +50,11 @@ impl Drop for TextRun {
     }
 }
 
-/// A single series of glyphs within a text run.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct GlyphRun {
-    /// The glyphs.
-    pub glyph_store: Arc<GlyphStore>,
-    /// The byte range of characters in the containing run.
-    pub range: Range<ByteIndex>,
-}
-
 pub struct NaturalWordSliceIterator<'a> {
     glyphs: &'a [GlyphRun],
     index: usize,
     range: Range<ByteIndex>,
     reverse: bool,
-}
-
-impl GlyphRun {
-    fn compare(&self, key: &ByteIndex) -> Ordering {
-        if *key < self.range.begin() {
-            Ordering::Greater
-        } else if *key >= self.range.end() {
-            Ordering::Less
-        } else {
-            Ordering::Equal
-        }
-    }
 }
 
 /// A "slice" of a text run is a series of contiguous glyphs that all belong to the same glyph

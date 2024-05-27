@@ -1502,7 +1502,9 @@ impl Flow for InlineFlow {
                         .union_nonbreaking_inline(&intrinsic_sizes_for_fragment)
                 },
                 (
-                    WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::PreserveBreaks,
+                    WhiteSpaceCollapse::Preserve |
+                    WhiteSpaceCollapse::PreserveBreaks |
+                    WhiteSpaceCollapse::BreakSpaces,
                     TextWrapMode::Nowrap,
                 ) => {
                     intrinsic_sizes_for_nonbroken_run
@@ -1520,7 +1522,9 @@ impl Flow for InlineFlow {
                     }
                 },
                 (
-                    WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::PreserveBreaks,
+                    WhiteSpaceCollapse::Preserve |
+                    WhiteSpaceCollapse::PreserveBreaks |
+                    WhiteSpaceCollapse::BreakSpaces,
                     TextWrapMode::Wrap,
                 ) => {
                     // Flush the intrinsic sizes we were gathering up for the nonbroken run, if

@@ -152,9 +152,10 @@ pub(super) struct TextRunLineItem {
 
 impl TextRunLineItem {
     fn trim_whitespace_at_end(&mut self, whitespace_trimmed: &mut Length) -> bool {
-        if self.parent_style.get_inherited_text().white_space_collapse ==
-            WhiteSpaceCollapse::Preserve
-        {
+        if matches!(
+            self.parent_style.get_inherited_text().white_space_collapse,
+            WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces
+        ) {
             return false;
         }
 
@@ -177,9 +178,10 @@ impl TextRunLineItem {
     }
 
     fn trim_whitespace_at_start(&mut self, whitespace_trimmed: &mut Length) -> bool {
-        if self.parent_style.get_inherited_text().white_space_collapse ==
-            WhiteSpaceCollapse::Preserve
-        {
+        if matches!(
+            self.parent_style.get_inherited_text().white_space_collapse,
+            WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces
+        ) {
             return false;
         }
 

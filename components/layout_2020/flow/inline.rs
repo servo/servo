@@ -1361,7 +1361,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         inline_size: Length,
         flags: SegmentContentFlags,
     ) {
-        if flags.is_collapsible_whitespace() || flags.is_wrappable_whitespace() {
+        if flags.is_collapsible_whitespace() || flags.is_wrappable_and_hangable() {
             self.current_line_segment.trailing_whitespace_size = inline_size;
         } else {
             self.current_line_segment.trailing_whitespace_size = Length::zero();
@@ -1497,7 +1497,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
 bitflags! {
     pub struct SegmentContentFlags: u8 {
         const COLLAPSIBLE_WHITESPACE = 0b00000001;
-        const WRAPPABLE_WHITESPACE = 0b00000010;
+        const WRAPPABLE_AND_HANGABLE_WHITESPACE = 0b00000010;
     }
 }
 
@@ -1506,19 +1506,30 @@ impl SegmentContentFlags {
         self.contains(Self::COLLAPSIBLE_WHITESPACE)
     }
 
-    fn is_wrappable_whitespace(&self) -> bool {
-        self.contains(Self::WRAPPABLE_WHITESPACE)
+    fn is_wrappable_and_hangable(&self) -> bool {
+        self.contains(Self::WRAPPABLE_AND_HANGABLE_WHITESPACE)
     }
 }
 
 impl From<&InheritedText> for SegmentContentFlags {
     fn from(style_text: &InheritedText) -> Self {
         let mut flags = Self::empty();
-        if style_text.white_space_collapse != WhiteSpaceCollapse::Preserve {
+
+        // White-space with `white-space-collapse: break-spaces` or `white-space-collapse: preserve`
+        // never collapses.
+        if !matches!(
+            style_text.white_space_collapse,
+            WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces
+        ) {
             flags.insert(Self::COLLAPSIBLE_WHITESPACE);
         }
-        if style_text.text_wrap_mode == TextWrapMode::Wrap {
-            flags.insert(Self::WRAPPABLE_WHITESPACE);
+
+        // White-space with `white-space-collapse: break-spaces` never hangs and always takes up
+        // space.
+        if style_text.text_wrap_mode == TextWrapMode::Wrap &&
+            style_text.white_space_collapse != WhiteSpaceCollapse::BreakSpaces
+        {
+            flags.insert(Self::WRAPPABLE_AND_HANGABLE_WHITESPACE);
         }
         flags
     }

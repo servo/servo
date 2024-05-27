@@ -21,7 +21,6 @@ use euclid::default::{Point2D, Rect, SideOffsets2D as UntypedSideOffsets2D, Size
 use euclid::{rect, SideOffsets2D};
 use fnv::FnvHashMap;
 use gfx::text::glyph::ByteIndex;
-use gfx::text::TextRun;
 use ipc_channel::ipc;
 use log::{debug, warn};
 use net_traits::image_cache::UsePlaceholder;
@@ -73,6 +72,7 @@ use crate::fragment::{
 use crate::inline::InlineFragmentNodeFlags;
 use crate::model::MaybeAuto;
 use crate::table_cell::CollapsedBordersForCell;
+use crate::text_run::TextRun;
 
 static THREAD_TINT_COLORS: [ColorF; 8] = [
     ColorF {
