@@ -8,10 +8,10 @@ use std::rc::Rc;
 
 use compositing_traits::{CompositorProxy, CompositorReceiver, ConstellationMsg};
 use crossbeam_channel::Sender;
-use gfx::rendering_context::RenderingContext;
 use profile_traits::{mem, time};
 use webrender::RenderApi;
 use webrender_api::DocumentId;
+use webrender_traits::RenderingContext;
 
 pub use crate::compositor::{CompositeTarget, IOCompositor, ShutdownState};
 

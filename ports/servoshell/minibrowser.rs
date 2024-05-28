@@ -18,11 +18,11 @@ use gleam::gl;
 use glow::NativeFramebuffer;
 use log::{trace, warn};
 use servo::compositing::windowing::EmbedderEvent;
-use servo::rendering_context::RenderingContext;
 use servo::script_traits::TraversalDirection;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::servo_url::ServoUrl;
 use servo::style_traits::DevicePixel;
+use servo::webrender_traits::RenderingContext;
 use winit::event::{ElementState, MouseButton};
 
 use crate::egui_glue::EguiGlow;

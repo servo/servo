@@ -5,6 +5,7 @@
 #![deny(unsafe_code)]
 
 pub mod display_list;
+pub mod rendering_context;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -25,6 +26,8 @@ use webrender_api::{
     FontInstanceFlags, FontInstanceKey, FontKey, HitTestFlags, ImageData, ImageDescriptor,
     ImageKey, NativeFontHandle, PipelineId as WebRenderPipelineId,
 };
+
+pub use crate::rendering_context::RenderingContext;
 
 /// This trait is used as a bridge between the different GL clients
 /// in Servo that handles WebRender ExternalImages and the WebRender

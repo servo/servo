@@ -11,5 +11,4 @@ pub mod font_store;
 pub mod font_template;
 #[allow(unsafe_code)]
 pub mod platform;
-pub mod rendering_context;
 pub mod text;
