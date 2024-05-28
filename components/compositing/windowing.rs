@@ -10,7 +10,6 @@ use std::time::Duration;
 use base::id::{PipelineId, TopLevelBrowsingContextId};
 use embedder_traits::{EmbedderProxy, EventLoopWaker};
 use euclid::Scale;
-use gfx::rendering_context::RenderingContext;
 use keyboard_types::KeyboardEvent;
 use libc::c_void;
 use script_traits::{
@@ -22,6 +21,7 @@ use servo_url::ServoUrl;
 use style_traits::DevicePixel;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, DeviceRect};
 use webrender_api::ScrollLocation;
+use webrender_traits::RenderingContext;
 
 #[derive(Clone)]
 pub enum MouseWindowEvent {

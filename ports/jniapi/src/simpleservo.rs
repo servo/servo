@@ -30,7 +30,6 @@ use servo::embedder_traits::{
 };
 use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
-use servo::rendering_context::RenderingContext;
 pub use servo::script_traits::{MediaSessionActionType, MouseButton};
 use servo::script_traits::{TouchEventType, TouchId, TraversalDirection};
 use servo::servo_config::{opts, pref};
@@ -38,6 +37,7 @@ use servo::servo_url::ServoUrl;
 pub use servo::webrender_api::units::DeviceIntRect;
 use servo::webrender_api::units::DevicePixel;
 use servo::webrender_api::ScrollLocation;
+use servo::webrender_traits::RenderingContext;
 use servo::{self, gl, Servo, TopLevelBrowsingContextId};
 use surfman::{Connection, SurfaceType};
 
