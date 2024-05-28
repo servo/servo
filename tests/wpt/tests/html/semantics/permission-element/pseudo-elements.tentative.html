@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="match" href="pseudo-elements-ref.html">
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
+<body>
+  <div>
+    The permission element should not create any pseudo elements.
+  </div>
+
+  <style>
+    permission::before, permission::after { content: "FAIL"; }
+  </style>
+
+  <p>You should not see the word FAIL below.</p>
+
+  <permission type="camera">
+</body>
+</html>

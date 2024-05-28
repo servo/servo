@@ -1,4 +1,5 @@
 import pytest
+import time
 
 from webdriver.error import NoSuchWindowException
 
@@ -59,10 +60,21 @@ def wheel_chain(session):
 
 
 @pytest.fixture(autouse=True)
-def release_actions(session, request):
+def release_actions(session):
     # release all actions after each test
     # equivalent to a teardown_function, but with access to session fixture
-    request.addfinalizer(session.actions.release)
+    yield
+
+    # Avoid frequent intermittent failures on Mozilla Windows CI with
+    # perform_actions tests:
+    # https://bugzilla.mozilla.org/show_bug.cgi?id=1879556
+    if (
+        session.capabilities["browserName"] == "firefox"
+        and session.capabilities["platformName"] == "windows"
+    ):
+        time.sleep(0.1)
+
+    session.actions.release()
 
 
 @pytest.fixture

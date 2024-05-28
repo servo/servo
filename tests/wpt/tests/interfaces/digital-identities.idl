@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: Digital Credentials (https://wicg.github.io/digital-identities/)
+// Source: Digital Credentials (https://wicg.github.io/digital-credentials)
 
 partial interface Navigator {
   [SecureContext, SameObject] readonly attribute CredentialsContainer identity;
@@ -23,5 +23,5 @@ dictionary IdentityRequestProvider {
 [Exposed=Window, SecureContext]
 interface DigitalCredential : Credential {
   readonly attribute DOMString protocol;
-  [SameObject] readonly attribute Uint8Array data;
+  readonly attribute any data;
 };

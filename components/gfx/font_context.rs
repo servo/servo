@@ -8,8 +8,9 @@ use std::hash::{BuildHasherDefault, Hash, Hasher};
 use std::sync::Arc;
 
 use app_units::Au;
+use crossbeam_channel::unbounded;
 use fnv::FnvHasher;
-use ipc_channel::ipc::{self, IpcSender};
+use gfx_traits::WebFontLoadFinishedCallback;
 use log::{debug, trace};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
@@ -22,7 +23,7 @@ use style::font_face::{FontFaceSourceFormat, FontFaceSourceFormatKeyword, Source
 use style::media_queries::Device;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::shared_lock::SharedRwLockReadGuard;
-use style::stylesheets::{Stylesheet, StylesheetInDocument};
+use style::stylesheets::{DocumentStyleSheet, StylesheetInDocument};
 use style::Atom;
 use url::Url;
 
@@ -69,12 +70,20 @@ impl<S: FontSource> FontContext<S> {
         }
     }
 
-    /// Invalidate all caches that this [`FontContext`] holds and any in-process platform-specific
-    /// caches.
-    pub fn invalidate_caches(&self) {
-        #[cfg(target_os = "macos")]
-        CoreTextFontCache::clear_core_text_font_cache();
-        self.cache.invalidate()
+    pub fn web_fonts_still_loading(&self) -> usize {
+        self.web_fonts.read().number_of_fonts_still_loading()
+    }
+
+    /// Handle the situation where a web font finishes loading, specifying if the load suceeded or failed.
+    fn handle_web_font_load_finished(
+        &self,
+        finished_callback: &WebFontLoadFinishedCallback,
+        succeeded: bool,
+    ) {
+        if succeeded {
+            self.cache.invalidate_after_web_font_load();
+        }
+        finished_callback(succeeded);
     }
 
     /// Returns a `FontGroup` representing fonts which can be used for layout, given the `style`.
@@ -146,6 +155,8 @@ impl<S: FontSource> FontContext<S> {
             font_template, font_descriptor
         );
 
+        // TODO: Inserting `None` into the cache here is a bit bogus. Instead we should somehow
+        // mark this template as invalid so it isn't tried again.
         let font = self
             .create_font(
                 font_template,
@@ -216,39 +227,47 @@ impl<S: FontSource> FontContext<S> {
 
 #[derive(Clone)]
 pub struct WebFontDownloadState {
-    css_font_face_descriptors: Arc<CSSFontFaceDescriptors>,
+    pub css_font_face_descriptors: Arc<CSSFontFaceDescriptors>,
     remaining_sources: Vec<Source>,
-    result_sender: IpcSender<()>,
+    finished_callback: WebFontLoadFinishedCallback,
     core_resource_thread: CoreResourceThread,
     local_fonts: Arc<HashMap<Atom, Option<FontTemplateRef>>>,
+    pub stylesheet: DocumentStyleSheet,
 }
 
 pub trait FontContextWebFontMethods {
     fn add_all_web_fonts_from_stylesheet(
         &self,
-        stylesheet: &Stylesheet,
+        stylesheet: &DocumentStyleSheet,
         guard: &SharedRwLockReadGuard,
         device: &Device,
-        font_cache_sender: &IpcSender<()>,
+        finished_callback: WebFontLoadFinishedCallback,
         synchronous: bool,
     ) -> usize;
     fn process_next_web_font_source(&self, web_font_download_state: WebFontDownloadState);
+    fn remove_all_web_fonts_from_stylesheet(&self, stylesheet: &DocumentStyleSheet);
 }
 
 impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontContext<S>> {
     fn add_all_web_fonts_from_stylesheet(
         &self,
-        stylesheet: &Stylesheet,
+        stylesheet: &DocumentStyleSheet,
         guard: &SharedRwLockReadGuard,
         device: &Device,
-        font_cache_sender: &IpcSender<()>,
+        finished_callback: WebFontLoadFinishedCallback,
         synchronous: bool,
     ) -> usize {
-        let (result_sender, receiver) = if synchronous {
-            let (sender, receiver) = ipc::channel().unwrap();
-            (Some(sender), Some(receiver))
+        let (finished_callback, synchronous_receiver) = if synchronous {
+            let (sender, receiver) = unbounded();
+            let finished_callback = move |_succeeded: bool| {
+                let _ = sender.send(());
+            };
+            (
+                Arc::new(finished_callback) as WebFontLoadFinishedCallback,
+                Some(receiver),
+            )
         } else {
-            (None, None)
+            (finished_callback, None)
         };
 
         let mut number_loading = 0;
@@ -293,20 +312,24 @@ impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontConte
                 }
             }
 
-            let result_sender = result_sender.as_ref().unwrap_or(font_cache_sender).clone();
+            number_loading += 1;
+            self.web_fonts
+                .write()
+                .handle_web_font_load_started_for_stylesheet(stylesheet);
+
             self.process_next_web_font_source(WebFontDownloadState {
                 css_font_face_descriptors: Arc::new(rule.into()),
                 remaining_sources: sources,
-                result_sender,
+                finished_callback: finished_callback.clone(),
                 core_resource_thread: self.resource_threads.lock().clone(),
                 local_fonts: Arc::new(local_fonts),
+                stylesheet: stylesheet.clone(),
             });
 
-            // Either increment the count of loading web fonts, or wait for a synchronous load.
-            if let Some(ref receiver) = receiver {
-                receiver.recv().unwrap();
+            // If the load is synchronous wait for it to be signalled.
+            if let Some(ref synchronous_receiver) = synchronous_receiver {
+                synchronous_receiver.recv().unwrap();
             }
-            number_loading += 1;
         });
 
         number_loading
@@ -314,7 +337,10 @@ impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontConte
 
     fn process_next_web_font_source(&self, mut state: WebFontDownloadState) {
         let Some(source) = state.remaining_sources.pop() else {
-            state.result_sender.send(()).unwrap();
+            self.web_fonts
+                .write()
+                .handle_web_font_failed_to_load(&state);
+            self.handle_web_font_load_finished(&state.finished_callback, false);
             return;
         };
 
@@ -334,22 +360,47 @@ impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontConte
                         FontTemplate::new_for_local_web_font(
                             local_template,
                             &state.css_font_face_descriptors,
+                            state.stylesheet.clone(),
                         )
                         .ok()
                     })
                 {
-                    this.web_fonts
+                    let not_cancelled = self
+                        .web_fonts
                         .write()
-                        .families
-                        .entry(web_font_family_name.clone())
-                        .or_default()
-                        .add_template(new_template);
-                    drop(state.result_sender.send(()));
+                        .handle_web_font_loaded(&state, new_template);
+                    self.handle_web_font_load_finished(&state.finished_callback, not_cancelled);
                 } else {
                     this.process_next_web_font_source(state);
                 }
             },
         }
+    }
+
+    fn remove_all_web_fonts_from_stylesheet(&self, stylesheet: &DocumentStyleSheet) {
+        let mut web_fonts = self.web_fonts.write();
+        let mut fonts = self.cache.fonts.write();
+        let mut font_groups = self.cache.resolved_font_groups.write();
+
+        // Cancel any currently in-progress web font loads.
+        web_fonts.handle_stylesheet_removed(stylesheet);
+
+        let mut removed_any = false;
+        for family in web_fonts.families.values_mut() {
+            removed_any |= family.remove_templates_for_stylesheet(stylesheet);
+        }
+        if !removed_any {
+            return;
+        };
+
+        fonts.retain(|_, font| match font {
+            Some(font) => font.template.borrow().stylesheet.as_ref() != Some(stylesheet),
+            _ => true,
+        });
+
+        // Removing this stylesheet modified the available fonts, so invalidate the cache
+        // of resolved font groups.
+        font_groups.clear();
     }
 }
 
@@ -417,6 +468,18 @@ impl<FCT: FontSource + Send + 'static> RemoteWebFontDownloader<FCT> {
     /// After a download finishes, try to process the downloaded data, returning true if
     /// the font is added successfully to the [`FontContext`] or false if it isn't.
     fn process_downloaded_font_and_signal_completion(&self, state: &WebFontDownloadState) -> bool {
+        if self
+            .font_context
+            .web_fonts
+            .read()
+            .font_load_cancelled_for_stylesheet(&state.stylesheet)
+        {
+            self.font_context
+                .handle_web_font_load_finished(&state.finished_callback, false);
+            // Returning true here prevents trying to load the next font on the source list.
+            return true;
+        }
+
         let font_data = std::mem::take(&mut *self.response_data.lock());
         trace!(
             "@font-face {} data={:?}",
@@ -439,21 +502,21 @@ impl<FCT: FontSource + Send + 'static> RemoteWebFontDownloader<FCT> {
             self.url.clone().into(),
             Arc::new(font_data),
             &state.css_font_face_descriptors,
+            Some(state.stylesheet.clone()),
         ) else {
             return false;
         };
 
-        let family_name = state.css_font_face_descriptors.family_name.clone();
-        self.font_context
+        let not_cancelled = self
+            .font_context
             .web_fonts
             .write()
-            .families
-            .entry(family_name.clone())
-            .or_default()
-            .add_template(new_template);
+            .handle_web_font_loaded(state, new_template);
+        self.font_context
+            .handle_web_font_load_finished(&state.finished_callback, not_cancelled);
 
-        // Signal the Document that we have finished trying to load this web font.
-        drop(state.result_sender.send(()));
+        // If the load was canceled above, then we still want to return true from this function in
+        // order to halt any attempt to load sources that come later on the source list.
         true
     }
 
@@ -519,9 +582,7 @@ impl<FCT: FontSource> CachingFontSource<FCT> {
         }
     }
 
-    fn invalidate(&self) {
-        self.fonts.write().clear();
-        self.templates.write().clear();
+    fn invalidate_after_web_font_load(&self) {
         self.resolved_font_groups.write().clear();
     }
 

@@ -17,6 +17,7 @@ use gfx::font_cache_thread::{CSSFontFaceDescriptors, FontIdentifier, FontSource}
 use gfx::font_context::FontContext;
 use gfx::font_store::FontTemplates;
 use gfx::font_template::{FontTemplate, FontTemplateRef};
+use gfx::text::FallbackFontSelectionOptions;
 use ipc_channel::ipc;
 use net_traits::ResourceThreads;
 use servo_arc::Arc;
@@ -24,6 +25,7 @@ use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::properties::style_structs::Font as FontStyleStruct;
+use style::stylesheets::Stylesheet;
 use style::values::computed::font::{
     FamilyName, FontFamily, FontFamilyList, FontFamilyNameSyntax, FontSize, FontStretch, FontStyle,
     FontWeight, SingleFontFamily,
@@ -52,7 +54,10 @@ impl MockFontCacheThread {
         let mut families = HashMap::new();
         families.insert("CSSTest ASCII".to_owned(), csstest_ascii);
         families.insert("CSSTest Basic".to_owned(), csstest_basic);
-        families.insert(fallback_font_families(None)[0].to_owned(), fallback);
+        families.insert(
+            fallback_font_families(FallbackFontSelectionOptions::default())[0].to_owned(),
+            fallback,
+        );
 
         MockFontCacheThread {
             families: RefCell::new(families),
@@ -85,6 +90,7 @@ impl MockFontCacheThread {
                 Self::url_for_font_name(name),
                 std::sync::Arc::new(data),
                 &CSSFontFaceDescriptors::new(name),
+                None,
             )
             .unwrap(),
         );
@@ -209,7 +215,10 @@ fn test_font_group_find_by_codepoint() {
 
     let group = context.font_group(Arc::new(style));
 
-    let font = group.write().find_by_codepoint(&mut context, 'a').unwrap();
+    let font = group
+        .write()
+        .find_by_codepoint(&mut context, 'a', None)
+        .unwrap();
     assert_eq!(
         font.identifier(),
         MockFontCacheThread::identifier_for_font_name("csstest-ascii")
@@ -220,7 +229,10 @@ fn test_font_group_find_by_codepoint() {
         "only the first font in the list should have been loaded"
     );
 
-    let font = group.write().find_by_codepoint(&mut context, 'a').unwrap();
+    let font = group
+        .write()
+        .find_by_codepoint(&mut context, 'a', None)
+        .unwrap();
     assert_eq!(
         font.identifier(),
         MockFontCacheThread::identifier_for_font_name("csstest-ascii")
@@ -231,7 +243,10 @@ fn test_font_group_find_by_codepoint() {
         "we shouldn't load the same font a second time"
     );
 
-    let font = group.write().find_by_codepoint(&mut context, 'á').unwrap();
+    let font = group
+        .write()
+        .find_by_codepoint(&mut context, 'á', None)
+        .unwrap();
     assert_eq!(
         font.identifier(),
         MockFontCacheThread::identifier_for_font_name("csstest-basic-regular")
@@ -249,14 +264,20 @@ fn test_font_fallback() {
 
     let group = context.font_group(Arc::new(style));
 
-    let font = group.write().find_by_codepoint(&mut context, 'a').unwrap();
+    let font = group
+        .write()
+        .find_by_codepoint(&mut context, 'a', None)
+        .unwrap();
     assert_eq!(
         font.identifier(),
         MockFontCacheThread::identifier_for_font_name("csstest-ascii"),
         "a family in the group should be used if there is a matching glyph"
     );
 
-    let font = group.write().find_by_codepoint(&mut context, 'á').unwrap();
+    let font = group
+        .write()
+        .find_by_codepoint(&mut context, 'á', None)
+        .unwrap();
     assert_eq!(
         font.identifier(),
         MockFontCacheThread::identifier_for_font_name("csstest-basic-regular"),

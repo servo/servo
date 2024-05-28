@@ -135,17 +135,29 @@
     });
   }
 
-  test_no_interpolation({
+  test_interpolation({
     property: 'width',
     from: 'calc-size(20px, size)',
-    to: 'calc-size(50px, size)',
-  });
+    to: 'calc-size(60px, size)',
+  }, [
+    { at: -0.25, expect: '10px' },
+    { at: 0, expect: '20px' },
+    { at: 0.75, expect: '50px' },
+    { at: 1, expect: '60px' },
+    { at: 1.25, expect: '70px' },
+  ]);
 
-  test_no_interpolation({
+  test_interpolation({
     property: 'width',
-    from: 'calc-size(50%, size)',
-    to: 'calc-size(50px, size)',
-  });
+    from: 'calc-size(50%, size)', /* 100px */
+    to: 'calc-size(60px, size)',
+  }, [
+    { at: -0.25, expect: '110px' },
+    { at: 0, expect: '100px' },
+    { at: 0.75, expect: '70px' },
+    { at: 1, expect: '60px' },
+    { at: 1.25, expect: '50px' },
+  ]);
 
   test_interpolation({
     property: 'width',

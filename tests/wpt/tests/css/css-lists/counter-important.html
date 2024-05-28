@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Counters: !important flag parsing</title>
+    <link rel="help" href="https://crbug.com/340100643">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="target" style="counter-increment: abc 1 xyz 2 !important">Some text.</div>
+  </body>
+  <script>
+test(() => {
+  assert_equals(target.style.counterIncrement, 'abc 1 xyz 2');
+});
+  </script>
+</html>

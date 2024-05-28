@@ -32,7 +32,7 @@ use crate::platform::font::{FontTable, PlatformFont};
 pub use crate::platform::font_list::fallback_font_families;
 use crate::text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use crate::text::shaping::ShaperMethods;
-use crate::text::Shaper;
+use crate::text::{FallbackFontSelectionOptions, Shaper};
 
 #[macro_export]
 macro_rules! ot_tag {
@@ -487,9 +487,12 @@ impl FontGroup {
         &mut self,
         font_context: &FontContext<S>,
         codepoint: char,
+        next_codepoint: Option<char>,
     ) -> Option<FontRef> {
+        let options = FallbackFontSelectionOptions::new(codepoint, next_codepoint);
+
         let should_look_for_small_caps = self.descriptor.variant == font_variant_caps::T::SmallCaps &&
-            codepoint.is_ascii_lowercase();
+            options.character.is_ascii_lowercase();
         let font_or_synthesized_small_caps = |font: FontRef| {
             if should_look_for_small_caps && font.synthesized_small_caps.is_some() {
                 return font.synthesized_small_caps.clone();
@@ -497,9 +500,9 @@ impl FontGroup {
             Some(font)
         };
 
-        let glyph_in_font = |font: &FontRef| font.has_glyph_for(codepoint);
+        let glyph_in_font = |font: &FontRef| font.has_glyph_for(options.character);
         let char_in_template =
-            |template: FontTemplateRef| template.char_in_unicode_range(codepoint);
+            |template: FontTemplateRef| template.char_in_unicode_range(options.character);
 
         if let Some(font) = self.find(font_context, char_in_template, glyph_in_font) {
             return font_or_synthesized_small_caps(font);
@@ -513,12 +516,9 @@ impl FontGroup {
             }
         }
 
-        if let Some(font) = self.find_fallback(
-            font_context,
-            Some(codepoint),
-            char_in_template,
-            glyph_in_font,
-        ) {
+        if let Some(font) =
+            self.find_fallback(font_context, options, char_in_template, glyph_in_font)
+        {
             self.last_matching_fallback = Some(font.clone());
             return font_or_synthesized_small_caps(font);
         }
@@ -538,7 +538,14 @@ impl FontGroup {
         let space_in_template = |template: FontTemplateRef| template.char_in_unicode_range(' ');
         let font_predicate = |_: &FontRef| true;
         self.find(font_context, space_in_template, font_predicate)
-            .or_else(|| self.find_fallback(font_context, None, space_in_template, font_predicate))
+            .or_else(|| {
+                self.find_fallback(
+                    font_context,
+                    FallbackFontSelectionOptions::default(),
+                    space_in_template,
+                    font_predicate,
+                )
+            })
     }
 
     /// Attempts to find a font which matches the given `template_predicate` and `font_predicate`.
@@ -576,7 +583,7 @@ impl FontGroup {
     fn find_fallback<S, TemplatePredicate, FontPredicate>(
         &mut self,
         font_context: &FontContext<S>,
-        codepoint: Option<char>,
+        options: FallbackFontSelectionOptions,
         template_predicate: TemplatePredicate,
         font_predicate: FontPredicate,
     ) -> Option<FontRef>
@@ -586,7 +593,7 @@ impl FontGroup {
         FontPredicate: Fn(&FontRef) -> bool,
     {
         iter::once(FontFamilyDescriptor::serif())
-            .chain(fallback_font_families(codepoint).into_iter().map(|family| {
+            .chain(fallback_font_families(options).into_iter().map(|family| {
                 FontFamilyDescriptor::new(FontFamilyName::from(family), FontSearchScope::Local)
             }))
             .filter_map(|family_descriptor| {

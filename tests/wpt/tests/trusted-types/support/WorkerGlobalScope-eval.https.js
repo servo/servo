@@ -18,6 +18,10 @@ test(t => {
   assert_throws_js(EvalError, _ => eval("2"));
 }, "eval(string) in " + worker_type);
 
+test(t => {
+  assert_throws_js(EvalError, _ => eval?.("2"));
+}, "indirect eval(string) in " + worker_type);
+
 // Test eval(TrustedScript)
 let test_policy = trustedTypes.createPolicy("xxx", {
   createScript: x => x.replace("2", "7")
@@ -26,6 +30,10 @@ test(t => {
   assert_equals(eval(test_policy.createScript("2")), 7);
 }, "eval(TrustedScript) in " + worker_type);
 
+test(t => {
+  assert_equals(eval?.(test_policy.createScript("2")), 7);
+}, "indirect eval(TrustedScript) in " + worker_type);
+
 // Test eval(String) with default policy
 trustedTypes.createPolicy("default", {
   createScript: x => x.replace("2", "5")
@@ -33,5 +41,8 @@ trustedTypes.createPolicy("default", {
 test(t => {
   assert_equals(eval("2"), 5);
 }, "eval(string) with default policy in " + worker_type);
+test(t => {
+  assert_equals(eval?.("2"), 5);
+}, "indirect eval(string) with default policy in " + worker_type);
 
 done();

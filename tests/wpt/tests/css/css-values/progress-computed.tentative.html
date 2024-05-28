@@ -35,4 +35,5 @@ test_math_used('calc(progress(sign(1001em - 10lh * progress(100px from 2rex to 1
 test_math_used('calc(progress(sign(1001em - 10lh * progress(100px from 2rex to 10ex)) * 20em from 2rem to 12em) / 4)', '0.45', {prop:'flex-grow', type:'number'});
 test_math_used('calc(progress(sign(1001em - 10lh * progress(100px from 2rex to 10ex)) * 20em from 2rem to 12em) * 4)', '7', {prop:'column-count', type:'number'});
 test_math_used('calc(progress(sign(1001em - 10lh * progress(100px from 2rex to 10ex)) * 20em from 2rem to 12em) * 2)', '3.6', {prop:'scale'});
+test_math_used('rotate3d(progress(21em from 1rem to 11em), progress(21em from 1rem to 11em), progress(21em from 1rem to 11em), calc(progress(11em from 1rem to 11em) * 2deg))', 'rotate3d(2, 2, 2, 2deg)', {prop:'transform'});
 </script>

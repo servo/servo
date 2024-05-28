@@ -14,10 +14,10 @@ use log::warn;
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderEvent, WindowMethods,
 };
-use servo::rendering_context::RenderingContext;
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
 use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize};
+use servo::webrender_traits::RenderingContext;
 use surfman::{Connection, Context, Device, SurfaceType};
 
 use crate::events_loop::WakerEvent;

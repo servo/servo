@@ -29,7 +29,7 @@ use wgc::resource::{
 pub use {wgpu_core as wgc, wgpu_types as wgt};
 
 use crate::identity::*;
-use crate::{WebGPU, PRESENTATION_BUFFER_COUNT};
+use crate::{Error, ErrorFilter, PopError, WebGPU, PRESENTATION_BUFFER_COUNT};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[allow(clippy::large_enum_variant)]
@@ -48,6 +48,7 @@ pub enum WebGPUResponse {
     },
     BufferMapAsync(IpcSharedMemory),
     SubmittedWorkDone,
+    PoppedErrorScope(Result<Option<Error>, PopError>),
 }
 
 pub type WebGPUResponseResult = Result<WebGPUResponse, String>;
@@ -250,5 +251,17 @@ pub enum WebGPURequest {
     QueueOnSubmittedWorkDone {
         sender: IpcSender<Option<WebGPUResponseResult>>,
         queue_id: id::QueueId,
+    },
+    PushErrorScope {
+        device_id: id::DeviceId,
+        filter: ErrorFilter,
+    },
+    DispatchError {
+        device_id: id::DeviceId,
+        error: Error,
+    },
+    PopErrorScope {
+        device_id: id::DeviceId,
+        sender: IpcSender<Option<WebGPUResponseResult>>,
     },
 }

@@ -7,6 +7,12 @@ use std::fmt;
 use std::num::{NonZeroU32, NonZeroU64};
 use std::ops::Deref;
 
+/// Receiver type used in WebGLCommands.
+pub use base::generic_channel::GenericReceiver as WebGLReceiver;
+/// Sender type used in WebGLCommands.
+pub use base::generic_channel::GenericSender as WebGLSender;
+/// Result type for send()/recv() calls in in WebGLCommands.
+pub use base::generic_channel::SendResult as WebGLSendResult;
 use euclid::default::{Rect, Size2D};
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSharedMemory};
 use malloc_size_of_derive::MallocSizeOf;
@@ -20,17 +26,33 @@ use webxr_api::{
 };
 
 /// Helper function that creates a WebGL channel (WebGLSender, WebGLReceiver) to be used in WebGLCommands.
-pub use crate::webgl_channel::webgl_channel;
+pub fn webgl_channel<T>() -> Option<(WebGLSender<T>, WebGLReceiver<T>)>
+where
+    T: for<'de> Deserialize<'de> + Serialize,
+{
+    base::generic_channel::channel(servo_config::opts::multiprocess())
+}
+
 /// Entry point channel type used for sending WebGLMsg messages to the WebGL renderer.
-pub use crate::webgl_channel::WebGLChan;
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct WebGLChan(pub WebGLSender<WebGLMsg>);
+
+impl WebGLChan {
+    #[inline]
+    pub fn send(&self, msg: WebGLMsg) -> WebGLSendResult {
+        self.0.send(msg)
+    }
+}
+
 /// Entry point type used in a Script Pipeline to get the WebGLChan to be used in that thread.
-pub use crate::webgl_channel::WebGLPipeline;
-/// Receiver type used in WebGLCommands.
-pub use crate::webgl_channel::WebGLReceiver;
-/// Result type for send()/recv() calls in in WebGLCommands.
-pub use crate::webgl_channel::WebGLSendResult;
-/// Sender type used in WebGLCommands.
-pub use crate::webgl_channel::WebGLSender;
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct WebGLPipeline(pub WebGLChan);
+
+impl WebGLPipeline {
+    pub fn channel(&self) -> WebGLChan {
+        self.0.clone()
+    }
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WebGLCommandBacktrace {

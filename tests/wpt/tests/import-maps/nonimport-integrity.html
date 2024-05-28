@@ -23,17 +23,24 @@ let log = [];
 }
 </script>
 <script type="module">
+const test_not_loaded = async (elem) => {
+  const promise = new Promise((resolve, reject) => {
+    elem.onload = () =>  {
+       reject(new Error("It shouldn't have loaded"));
+     };
+    elem.onerror = resolve;
+  });
+  document.head.appendChild(elem);
+  const event = await promise;
+  assert_equals(event.type, "error");
+};
+
 promise_test(async t => {
   log = [];
   const script = document.createElement("script");
   script.type = "module";
   script.src = "./resources/log.js?pipe=sub&name=ModuleNoIntegrity";
-  const promise = new Promise((resolve, reject) => {
-    script.onload = resolve;
-    script.onerror = () => { reject(Error()); };
-  });
-  document.head.appendChild(script);
-  await promise_rejects_js(t, Error, promise);
+  await test_not_loaded(script);
 }, "Script was not loaded as its integrity check was not ignored");
 
 promise_test(async () => {
@@ -74,12 +81,7 @@ promise_test(async t => {
   script.type = "module";
   script.integrity = "sha384-foobar";
   script.src = "./resources/log.js?pipe=sub&name=ModuleBadIntegrityAttribute";
-  const promise = new Promise((resolve, reject) => {
-    script.onload = resolve;
-    script.onerror = () => { reject(Error()); };
-  });
-  document.head.appendChild(script);
-  await promise_rejects_js(t, Error, promise);
+  await test_not_loaded(script);
 }, "Script was not loaded as its bad integrity attribute was not overridden");
 
 promise_test(async t => {
@@ -125,12 +127,7 @@ promise_test(async t => {
   link.rel = "modulepreload";
   link.integrity = "sha384-foobar";
   link.href = "./resources/log.js?pipe=sub&name=ModulePreloadBadIntegrityAttribute";
-  const promise = new Promise((resolve, reject) => {
-    link.onload = resolve;
-    link.onerror = () => { reject(Error()); };
-  });
-  document.head.appendChild(link);
-  await promise_rejects_js(t, Error, promise);
+  await test_not_loaded(link);
 }, "Modulepreload was not loaded as its bad integrity attribute was not ignored");
 
 promise_test(async () => {

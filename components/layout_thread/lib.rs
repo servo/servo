@@ -10,10 +10,8 @@
 
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use std::process;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 use app_units::Au;
@@ -27,9 +25,9 @@ use fxhash::{FxHashMap, FxHashSet};
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::{FontContext, FontContextWebFontMethods};
+use gfx_traits::WebFontLoadFinishedCallback;
 use histogram::Histogram;
-use ipc_channel::ipc::{self, IpcSender};
-use ipc_channel::router::ROUTER;
+use ipc_channel::ipc::IpcSender;
 use layout::construct::ConstructionResult;
 use layout::context::{LayoutContext, RegisteredPainter, RegisteredPainters};
 use layout::display_list::items::{DisplayList, ScrollOffsetMap, WebRenderImageInfo};
@@ -64,13 +62,12 @@ use profile_traits::time::{
 use script::layout_dom::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_layout_interface::{
-    node_id_from_scroll_id, Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType,
-    OffsetParentResponse, Reflow, ReflowComplete, ReflowGoal, ScriptReflow, TrustedNodeAddress,
+    Layout, LayoutConfig, LayoutFactory, NodesFromPointQueryType, OffsetParentResponse, Reflow,
+    ReflowComplete, ReflowGoal, ScriptReflow, TrustedNodeAddress,
 };
 use script_traits::{
-    ConstellationControlMsg, DrawAPaintImageResult, IFrameSizeMsg, LayoutControlMsg,
-    LayoutMsg as ConstellationMsg, PaintWorkletError, Painter, ScrollState, UntrustedNodeAddress,
-    WindowSizeData, WindowSizeType,
+    ConstellationControlMsg, DrawAPaintImageResult, IFrameSizeMsg, LayoutMsg as ConstellationMsg,
+    PaintWorkletError, Painter, ScrollState, UntrustedNodeAddress, WindowSizeData, WindowSizeType,
 };
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
@@ -119,9 +116,6 @@ pub struct LayoutThread {
     /// Is the current reflow of an iframe, as opposed to a root window?
     is_iframe: bool,
 
-    /// The channel on which the font cache can send messages to us.
-    font_cache_sender: IpcSender<()>,
-
     /// The channel on which messages can be sent to the constellation.
     constellation_chan: IpcSender<ConstellationMsg>,
 
@@ -146,9 +140,6 @@ pub struct LayoutThread {
     /// Starts at zero, and increased by one every time a layout completes.
     /// This can be used to easily check for invalid stale data.
     generation: Cell<u32>,
-
-    /// The number of Web fonts that have been requested but not yet loaded.
-    outstanding_web_fonts: Arc<AtomicUsize>,
 
     /// The root of the flow tree.
     root_flow: RefCell<Option<FlowRef>>,
@@ -252,20 +243,12 @@ impl Drop for ScriptReflowResult {
 }
 
 impl Layout for LayoutThread {
-    fn handle_constellation_msg(&mut self, msg: script_traits::LayoutControlMsg) {
-        self.handle_request(Request::FromPipeline(msg));
-    }
-
-    fn handle_font_cache_msg(&mut self) {
-        self.handle_request(Request::FromFontCache);
-    }
-
     fn device(&self) -> &Device {
         self.stylist.device()
     }
 
     fn waiting_for_web_fonts_to_load(&self) -> bool {
-        self.outstanding_web_fonts.load(Ordering::SeqCst) != 0
+        self.font_context.web_fonts_still_loading() != 0
     }
 
     fn current_epoch(&self) -> Epoch {
@@ -274,7 +257,10 @@ impl Layout for LayoutThread {
 
     fn load_web_fonts_from_stylesheet(&self, stylesheet: ServoArc<Stylesheet>) {
         let guard = stylesheet.shared_lock.read();
-        self.load_all_web_fonts_from_stylesheet_with_guard(&stylesheet, &guard);
+        self.load_all_web_fonts_from_stylesheet_with_guard(
+            &DocumentStyleSheet(stylesheet.clone()),
+            &guard,
+        );
     }
 
     fn add_stylesheet(
@@ -283,24 +269,25 @@ impl Layout for LayoutThread {
         before_stylesheet: Option<ServoArc<Stylesheet>>,
     ) {
         let guard = stylesheet.shared_lock.read();
+        let stylesheet = DocumentStyleSheet(stylesheet.clone());
         self.load_all_web_fonts_from_stylesheet_with_guard(&stylesheet, &guard);
 
         match before_stylesheet {
             Some(insertion_point) => self.stylist.insert_stylesheet_before(
-                DocumentStyleSheet(stylesheet.clone()),
+                stylesheet,
                 DocumentStyleSheet(insertion_point),
                 &guard,
             ),
-            None => self
-                .stylist
-                .append_stylesheet(DocumentStyleSheet(stylesheet.clone()), &guard),
+            None => self.stylist.append_stylesheet(stylesheet, &guard),
         }
     }
 
     fn remove_stylesheet(&mut self, stylesheet: ServoArc<Stylesheet>) {
         let guard = stylesheet.shared_lock.read();
-        self.stylist
-            .remove_stylesheet(DocumentStyleSheet(stylesheet.clone()), &guard);
+        let stylesheet = DocumentStyleSheet(stylesheet.clone());
+        self.stylist.remove_stylesheet(stylesheet.clone(), &guard);
+        self.font_context
+            .remove_all_web_fonts_from_stylesheet(&stylesheet);
     }
 
     fn query_content_box(&self, node: OpaqueNode) -> Option<UntypedRect<Au>> {
@@ -547,12 +534,18 @@ impl Layout for LayoutThread {
             || self.handle_reflow(&mut result),
         );
     }
-}
-enum Request {
-    FromPipeline(LayoutControlMsg),
-    FromFontCache,
-}
 
+    fn set_scroll_states(&mut self, scroll_states: &[ScrollState]) {
+        *self.scroll_offsets.borrow_mut() = scroll_states
+            .iter()
+            .map(|scroll_state| (scroll_state.scroll_id, scroll_state.scroll_offset))
+            .collect();
+    }
+
+    fn set_epoch_paint_time(&mut self, epoch: Epoch, paint_time: u64) {
+        self.paint_time_metrics.maybe_set_metric(epoch, paint_time);
+    }
+}
 impl LayoutThread {
     fn root_flow_for_query(&self) -> Option<FlowRef> {
         self.root_flow.borrow().clone()
@@ -584,17 +577,6 @@ impl LayoutThread {
             Box::new(LayoutFontMetricsProvider),
         );
 
-        // Ask the router to proxy IPC messages from the font cache thread to layout.
-        let (ipc_font_cache_sender, ipc_font_cache_receiver) = ipc::channel().unwrap();
-        let cloned_script_chan = script_chan.clone();
-        ROUTER.add_route(
-            ipc_font_cache_receiver.to_opaque(),
-            Box::new(move |_message| {
-                let _ =
-                    cloned_script_chan.send(ConstellationControlMsg::ForLayoutFromFontCache(id));
-            }),
-        );
-
         LayoutThread {
             id,
             url,
@@ -606,10 +588,8 @@ impl LayoutThread {
             image_cache,
             font_context,
             first_reflow: Cell::new(true),
-            font_cache_sender: ipc_font_cache_sender,
             parallel_flag: true,
             generation: Cell::new(0),
-            outstanding_web_fonts: Arc::new(AtomicUsize::new(0)),
             root_flow: RefCell::new(None),
             // Epoch starts at 1 because of the initial display list for epoch 0 that we send to WR
             epoch: Cell::new(Epoch(1)),
@@ -685,53 +665,41 @@ impl LayoutThread {
         }
     }
 
-    /// Receives and dispatches messages from the script and constellation threads
-    fn handle_request(&mut self, request: Request) {
-        match request {
-            Request::FromFontCache => {
-                self.outstanding_web_fonts.fetch_sub(1, Ordering::SeqCst);
-                self.handle_web_font_loaded();
-            },
-            Request::FromPipeline(LayoutControlMsg::ExitNow) => self.exit_now(),
-            Request::FromPipeline(LayoutControlMsg::SetScrollStates(new_scroll_states)) => {
-                self.set_scroll_states(new_scroll_states);
-            },
-            Request::FromPipeline(LayoutControlMsg::PaintMetric(epoch, paint_time)) => {
-                self.paint_time_metrics.maybe_set_metric(epoch, paint_time);
-            },
-        };
-    }
-
     fn load_all_web_fonts_from_stylesheet_with_guard(
         &self,
-        stylesheet: &Stylesheet,
+        stylesheet: &DocumentStyleSheet,
         guard: &SharedRwLockReadGuard,
     ) {
-        // Find all font-face rules and notify the font cache of them.
-        // GWTODO: Need to handle unloading web fonts.
-        if stylesheet.is_effective_for_device(self.stylist.device(), guard) {
-            let newly_loading_font_count = self.font_context.add_all_web_fonts_from_stylesheet(
-                stylesheet,
-                guard,
-                self.stylist.device(),
-                &self.font_cache_sender,
-                self.debug.load_webfonts_synchronously,
-            );
-
-            if !self.debug.load_webfonts_synchronously {
-                self.outstanding_web_fonts
-                    .fetch_add(newly_loading_font_count, Ordering::SeqCst);
-            } else if newly_loading_font_count > 0 {
-                self.handle_web_font_loaded();
-            }
+        if !stylesheet.is_effective_for_device(self.stylist.device(), guard) {
+            return;
         }
-    }
 
-    fn handle_web_font_loaded(&self) {
-        self.font_context.invalidate_caches();
-        self.script_chan
-            .send(ConstellationControlMsg::WebFontLoaded(self.id))
-            .unwrap();
+        let locked_script_channel = Mutex::new(self.script_chan.clone());
+        let pipeline_id = self.id;
+        let web_font_finished_loading_callback = move |succeeded: bool| {
+            if succeeded {
+                let _ = locked_script_channel
+                    .lock()
+                    .unwrap()
+                    .send(ConstellationControlMsg::WebFontLoaded(pipeline_id));
+            }
+        };
+
+        // Find all font-face rules and notify the FontContext of them.
+        // GWTODO: Need to handle unloading web fonts.
+        let newly_loading_font_count = self.font_context.add_all_web_fonts_from_stylesheet(
+            stylesheet,
+            guard,
+            self.stylist.device(),
+            Arc::new(web_font_finished_loading_callback) as WebFontLoadFinishedCallback,
+            self.debug.load_webfonts_synchronously,
+        );
+
+        if self.debug.load_webfonts_synchronously && newly_loading_font_count > 0 {
+            let _ = self
+                .script_chan
+                .send(ConstellationControlMsg::WebFontLoaded(self.id));
+        }
     }
 
     fn try_get_layout_root<'dom>(&self, node: impl LayoutNode<'dom>) -> Option<FlowRef> {
@@ -1013,10 +981,7 @@ impl LayoutThread {
             for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
                 self.stylist
                     .append_stylesheet(stylesheet.clone(), &ua_or_user_guard);
-                self.load_all_web_fonts_from_stylesheet_with_guard(
-                    &stylesheet.0,
-                    &ua_or_user_guard,
-                );
+                self.load_all_web_fonts_from_stylesheet_with_guard(&stylesheet, &ua_or_user_guard);
             }
 
             if self.stylist.quirks_mode() != QuirksMode::NoQuirks {
@@ -1025,7 +990,7 @@ impl LayoutThread {
                     &ua_or_user_guard,
                 );
                 self.load_all_web_fonts_from_stylesheet_with_guard(
-                    &ua_stylesheets.quirks_mode_stylesheet.0,
+                    &ua_stylesheets.quirks_mode_stylesheet,
                     &ua_or_user_guard,
                 );
             }
@@ -1209,28 +1174,6 @@ impl LayoutThread {
             units::LayoutPoint::from_untyped(point),
             state.scroll_id,
         );
-    }
-
-    fn set_scroll_states(&mut self, new_scroll_states: Vec<ScrollState>) {
-        let mut script_scroll_states = vec![];
-        let mut layout_scroll_states = HashMap::new();
-        for new_state in &new_scroll_states {
-            let offset = new_state.scroll_offset;
-            layout_scroll_states.insert(new_state.scroll_id, offset);
-
-            if new_state.scroll_id.is_root() {
-                script_scroll_states.push((UntrustedNodeAddress::from_id(0), offset))
-            } else if let Some(node_id) = node_id_from_scroll_id(new_state.scroll_id.0 as usize) {
-                script_scroll_states.push((UntrustedNodeAddress::from_id(node_id), offset))
-            }
-        }
-        let _ = self
-            .script_chan
-            .send(ConstellationControlMsg::SetScrollState(
-                self.id,
-                script_scroll_states,
-            ));
-        *self.scroll_offsets.borrow_mut() = layout_scroll_states
     }
 
     /// Cancel animations for any nodes which have been removed from flow tree.
@@ -1454,7 +1397,7 @@ impl LayoutThread {
         );
 
         // Preserve any previously computed root font size.
-        device.set_root_font_size(self.stylist.device().root_font_size());
+        device.set_root_font_size(self.stylist.device().root_font_size().px());
 
         let sheet_origins_affected_by_device_change = self.stylist.set_device(device, guards);
         self.stylist

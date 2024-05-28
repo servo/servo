@@ -165,17 +165,29 @@
     });
   }
 
-  test_no_interpolation({
+  test_interpolation({
     property: 'height',
     from: 'calc-size(20px, size)',
-    to: 'calc-size(50px, size)',
-  });
+    to: 'calc-size(60px, size)',
+  }, [
+    { at: -0.25, expect: '10px' },
+    { at: 0, expect: '20px' },
+    { at: 0.75, expect: '50px' },
+    { at: 1, expect: '60px' },
+    { at: 1.25, expect: '70px' },
+  ]);
 
-  test_no_interpolation({
+  test_interpolation({
     property: 'height',
-    from: 'calc-size(50%, size)',
+    from: 'calc-size(50%, size)', /* 150px */
     to: 'calc-size(50px, size)',
-  });
+  }, [
+    { at: -0.25, expect: '175px' },
+    { at: 0, expect: '150px' },
+    { at: 0.75, expect: '75px' },
+    { at: 1, expect: '50px' },
+    { at: 1.25, expect: '25px' },
+  ]);
 
   test_interpolation({
     property: 'height',
@@ -227,5 +239,96 @@
   ]);
 
   auto_style_element.remove();
+
+  test_no_interpolation({
+    property: 'height',
+    from: 'calc-size(auto, size)',
+    to: 'calc-size(50%, size)',
+  });
+
+  test_no_interpolation({
+    property: 'height',
+    from: 'calc-size(calc-size(auto, size / 2), size * 2)',
+    to: 'calc-size(12.5%, size * 4)',
+  });
+
+  test_interpolation({
+    property: 'height',
+    from: 'calc-size(calc-size(auto, size / 2), size * 2)',
+    to: 'calc-size(auto, size * 2)',
+  }, [
+    { at: -0.25, expect: '75px' },
+    { at: 0, expect: '100px' },
+    { at: 0.75, expect: '175px' },
+    { at: 1, expect: '200px' },
+    { at: 1.25, expect: '225px' },
+  ]);
+
+  test_interpolation({
+    property: 'height',
+    from: 'calc-size(calc-size(min-content, size / 2), size * 2)', /* 100px */
+    to: 'calc-size(calc-size(any, 150px), size * 2)', /* 300px */
+  }, [
+    { at: -0.25, expect: '50px' },
+    { at: 0, expect: '100px' },
+    { at: 0.75, expect: '250px' },
+    { at: 1, expect: '300px' },
+    { at: 1.25, expect: '350px' },
+  ]);
+
+  test_interpolation({
+    property: 'height',
+    from: 'calc-size(calc-size(auto, size / 2), size * 2)',
+    to: 'calc-size(auto, size * 5)',
+  }, [
+    { at: -0.125, expect: '50px' },
+    { at: 0, expect: '100px' },
+    { at: 0.75, expect: '400px' },
+    { at: 1, expect: '500px' },
+    { at: 1.25, expect: '600px' },
+  ]);
+
+  test_interpolation({
+    property: 'height',
+    from: 'calc-size(calc-size(100px, size / 2), size * 2)',
+    to: 'calc-size(12.5%, size * 4)',
+  }, [
+    { at: -0.25, expect: '87.5px' },
+    { at: 0, expect: '100px' },
+    { at: 0.75, expect: '137.5px' },
+    { at: 1, expect: '150px' },
+    { at: 1.25, expect: '162.5px' },
+  ]);
+
+  test_interpolation({
+    property: 'height',
+    from: 'calc-size(calc-size(100px, size * 2), size * 2)',
+    to: 'calc-size(100px, size * 3)',
+  }, [
+    { at: -0.25, expect: '425px' },
+    { at: 0, expect: '400px' },
+    { at: 0.75, expect: '325px' },
+    { at: 1, expect: '300px' },
+    { at: 1.25, expect: '275px' },
+  ]);
+
+  test_interpolation({
+    property: 'height',
+    from: 'calc-size(calc-size(auto, size / 2), size * 2)',
+    to: 'calc-size(calc-size(calc-size(auto, size + size / 2 + size / 2), size + size), size / 4 + size / 8 + size / 8)',
+  }, [
+    { at: -0.25, expect: '75px' },
+    { at: 0, expect: '100px' },
+    { at: 0.75, expect: '175px' },
+    { at: 1, expect: '200px' },
+    { at: 1.25, expect: '225px' },
+  ]);
+
+  // Test that we don't interpolate if doing so would require too much expansion.
+  test_no_interpolation({
+    property: 'height',
+    from: 'calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(auto, size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2)',
+    to: 'calc-size(auto, size * 3)',
+  });
 
 </script>

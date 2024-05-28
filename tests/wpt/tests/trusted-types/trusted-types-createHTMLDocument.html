@@ -55,8 +55,12 @@ for (let doc_type in doc_types) {
 // (which hanve't yet run).
 promise_test(t => {
   return new Promise(resolve => {
-    trustedTypes.createPolicy("default",
-                              { createHTML: s => s + " [default]" });
+    trustedTypes.createPolicy("default", {
+      createHTML: (s, _, sink) => {
+        assert_equals(sink, 'Element innerHTML');
+        return s + " [default]";
+      }
+    });
     resolve();
   });
 }, "Install default policy.")

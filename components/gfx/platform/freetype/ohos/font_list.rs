@@ -17,6 +17,7 @@ use webrender_api::NativeFontHandle;
 
 use crate::font_template::{FontTemplate, FontTemplateDescriptor};
 use crate::text::util::is_cjk;
+use crate::text::FallbackFontSelectionOptions;
 
 lazy_static::lazy_static! {
     static ref FONT_LIST: FontList = FontList::new();
@@ -195,10 +196,10 @@ pub fn system_default_family(generic_name: &str) -> Option<String> {
 }
 
 // Based on fonts present in OpenHarmony.
-pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {
+pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
     let mut families = vec![];
 
-    if let Some(block) = codepoint.and_then(|c| c.block()) {
+    if let Some(block) = options.character.block() {
         match block {
             UnicodeBlock::Hebrew => {
                 families.push("Noto Sans Hebrew");
@@ -229,7 +230,7 @@ pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {
             },
 
             _ => {
-                if is_cjk(codepoint.unwrap()) {
+                if is_cjk(options.character) {
                     families.push("Noto Sans JP");
                     families.push("Noto Sans KR");
                 }

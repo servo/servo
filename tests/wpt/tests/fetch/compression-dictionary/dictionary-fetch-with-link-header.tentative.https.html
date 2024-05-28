@@ -11,11 +11,12 @@
 <body>
 <script>
 
-async function addIframeWithLinkRelDictionaryHeader(dict_url) {
+async function addIframeWithLinkRelCompressionDictionaryHeader(dict_url) {
   return new Promise((resolve) => {
     const base_page_url = './resources/empty.html';
     const page_url =
-        base_page_url + `?pipe=header(link,<${dict_url}>; rel="dictionary")`;
+        base_page_url +
+        `?pipe=header(link,<${dict_url}>; rel="compression-dictionary")`;
     const iframe = document.createElement('iframe');
     iframe.src = page_url;
     iframe.addEventListener('load', () => {
@@ -29,7 +30,8 @@ compression_dictionary_promise_test(async (t) => {
   const dict_token = token();
   const url = new URL(
       `${kRegisterDictionaryPath}?save_header=${dict_token}`, location.href);
-  const iframe = await addIframeWithLinkRelDictionaryHeader(url.href);
+  const iframe =
+      await addIframeWithLinkRelCompressionDictionaryHeader(url.href);
   t.add_cleanup(() => {
     iframe.remove();
   });
@@ -44,7 +46,7 @@ compression_dictionary_promise_test(async (t) => {
       kDefaultDictionaryHashBase64);
   // Check if the data compressed using Brotli with the dictionary can be
   // decompressed.
-  const data_url = `${kCompressedDataPath}?content_encoding=br-d`;
+  const data_url = `${kCompressedDataPath}?content_encoding=dcb`;
   assert_equals(await (await fetch(data_url)).text(), kExpectedCompressedData);
 }, 'Fetch same origin dictionary using link header');
 

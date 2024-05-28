@@ -7,11 +7,12 @@
     <script src="/resources/testharnessreport.js"></script>
   </head>
   <body>
-    <div id="target" style="transform: translateX(10px) !important">Some text.</div>
+    <div id="target" style="transform: translateX(10px) !important; will-change: transform !important">Some text.</div>
   </body>
   <script>
 test(() => {
   assert_equals(target.style.transform, 'translateX(10px)');
+  assert_equals(target.style.willChange, 'transform');
 });
   </script>
 </html>

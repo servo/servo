@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<body>
+  <div>
+    The permission element should not create any pseudo elements.
+  </div>
+
+  <style>
+    .inner::before {
+      content: 'BEFORE';
+    }
+    .inner::after {
+      content: 'AFTER';
+    }
+  </style>
+
+  <p>Should only see BEFOREAFTER once below</p>
+
+  <div>
+    <div class="inner"></div>
+    <permission type="camera">
+  </div>
+</body>
+</html>

@@ -295,6 +295,45 @@ test(() => {
   });
 }, 'No transition when removing @property rule');
 
+test(() => {
+  let name = generate_name();
+  with_style_node(`div { transition: ${name} steps(2, start) 100s; }`, () => {
+    let style1 = document.createElement('style');
+    style1.textContent = `
+      @property ${name} {
+        syntax: "<angle>";
+        inherits: false;
+        initial-value: -90deg;
+      }
+    `;
+
+    let style2 = document.createElement('style');
+    style2.textContent = `div { ${name}: 90deg; }`;
+
+    try {
+      // Register the property:
+      document.body.append(style1);
+      // No transition in the beginning.
+      assert_equals(getComputedStyle(div).getPropertyValue(name), '-90deg');
+
+      // Change the computed value:
+      document.body.append(style2);
+      // This should cause an interpolation between -90deg and 90deg (for more
+      // specifically, it is 50% from -90deg to 90deg, with steps(2, start)).
+      assert_equals(getComputedStyle(div).getPropertyValue(name), '0deg');
+
+      // In the middle of the transition above, remove style2, which creates
+      // a transition which reverses the existing one, from 0deg to -90deg.
+      // Also, it is 50% from 0deg to -90deg, with steps(2, start).
+      style2.remove();
+      assert_equals(getComputedStyle(div).getPropertyValue(name), '-45deg');
+    } finally {
+      style1.remove();
+      style2.remove();
+    }
+  });
+}, 'Ongoing transition reverts to its initial state');
+
 test_with_at_property({
   syntax: '"<length>"',
   inherits: false,

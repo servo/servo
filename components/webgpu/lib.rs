@@ -13,11 +13,11 @@ mod wgpu_thread;
 
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::num::NonZeroU64;
 use std::sync::{Arc, Mutex};
 
 use arrayvec::ArrayVec;
 use euclid::default::Size2D;
+pub use gpu_error::{Error, ErrorFilter, PopError};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
@@ -28,16 +28,15 @@ use webrender_traits::{
 use wgc::id;
 
 mod dom_messages;
+mod gpu_error;
 mod script_messages;
 pub use dom_messages::*;
 pub use identity::*;
 pub use script_messages::*;
-
-pub type ErrorScopeId = NonZeroU64;
 pub use wgpu_thread::PRESENTATION_BUFFER_COUNT;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct WebGPU(pub IpcSender<(Option<ErrorScopeId>, WebGPURequest)>);
+pub struct WebGPU(pub IpcSender<WebGPURequest>);
 
 impl WebGPU {
     pub fn new(
@@ -95,7 +94,7 @@ impl WebGPU {
 
     pub fn exit(&self, sender: IpcSender<()>) -> Result<(), &'static str> {
         self.0
-            .send((None, WebGPURequest::Exit(sender)))
+            .send(WebGPURequest::Exit(sender))
             .map_err(|_| "Failed to send Exit message")
     }
 }

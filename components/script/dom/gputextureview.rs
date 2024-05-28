@@ -83,7 +83,7 @@ impl Drop for GPUTextureView {
         if let Err(e) = self
             .channel
             .0
-            .send((None, WebGPURequest::DropTextureView(self.texture_view.0)))
+            .send(WebGPURequest::DropTextureView(self.texture_view.0))
         {
             warn!(
                 "Failed to send DropTextureView ({:?}) ({})",

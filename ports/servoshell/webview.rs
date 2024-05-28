@@ -38,6 +38,7 @@ use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
     current_url: Option<ServoUrl>,
     current_url_string: Option<String>,
+    status_text: Option<String>,
 
     /// List of top-level browsing contexts.
     /// Modified by EmbedderMsg::WebViewOpened and EmbedderMsg::WebViewClosed,
@@ -87,6 +88,7 @@ where
             title: None,
             current_url: None,
             current_url_string: None,
+            status_text: None,
             webviews: HashMap::default(),
             creation_order: vec![],
             focused_webview_id: None,
@@ -129,6 +131,10 @@ where
 
     pub fn load_status(&self) -> LoadStatus {
         self.load_status
+    }
+
+    pub fn status_text(&self) -> Option<String> {
+        self.status_text.clone()
     }
 
     pub fn get_events(&mut self) -> Vec<EmbedderEvent> {
@@ -442,8 +448,9 @@ where
                 trace_embedder_msg!(msg, "{msg:?}");
             }
             match msg {
-                EmbedderMsg::Status(_status) => {
-                    // FIXME: surface this status string in the UI somehow
+                EmbedderMsg::Status(status) => {
+                    self.status_text = status;
+                    need_update = true;
                 },
                 EmbedderMsg::ChangePageTitle(title) => {
                     self.title = title;

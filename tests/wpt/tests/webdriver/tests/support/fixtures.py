@@ -64,7 +64,7 @@ def full_configuration():
 
     host - WebDriver server host.
     port -  WebDriver server port.
-    capabilites - Capabilites passed when creating the WebDriver session
+    capabilities - Capabilities passed when creating the WebDriver session
     timeout_multiplier - Multiplier for timeout values
     webdriver - Dict with keys `binary`: path to webdriver binary, and
                 `args`: Additional command line arguments passed to the webdriver

@@ -11,9 +11,9 @@
 <body>
 <script>
 
-function addLinkRelDictionaryElement(url, crossOrigin) {
+function addLinkRelCompressionDictionaryElement(url, crossOrigin) {
   const link = document.createElement('link');
-  link.rel = 'dictionary';
+  link.rel = 'compression-dictionary';
   link.href = url;
   if (crossOrigin) {
     link.crossOrigin = crossOrigin;
@@ -22,13 +22,14 @@ function addLinkRelDictionaryElement(url, crossOrigin) {
 }
 
 test(t => {
-    assert_true(document.createElement('link').relList.supports('dictionary'));
-  }, "Browser supports link element with dictionary rel.");
+    const link_element = document.createElement('link');
+    assert_true(link_element.relList.supports('compression-dictionary'));
+  }, "Browser supports link element with compression-dictionary rel.");
 
 compression_dictionary_promise_test(async (t) => {
   const dict_token = token();
   const url = `${kRegisterDictionaryPath}?save_header=${dict_token}`;
-  addLinkRelDictionaryElement(url);
+  addLinkRelCompressionDictionaryElement(url);
   // Wait for a while to ensure that the dictionary is fetched.
   await new Promise(resolve => window.requestIdleCallback(resolve));
   const headers = await waitUntilPreviousRequestHeaders(t, dict_token);
@@ -40,7 +41,7 @@ compression_dictionary_promise_test(async (t) => {
       kDefaultDictionaryHashBase64);
   // Check if the data compressed using Brotli with the dictionary can be
   // decompressed.
-  const data_url = `${kCompressedDataPath}?content_encoding=br-d`;
+  const data_url = `${kCompressedDataPath}?content_encoding=dcb`;
   assert_equals(await (await fetch(data_url)).text(), kExpectedCompressedData);
 }, 'Fetch same origin dictionary using link element');
 
@@ -48,7 +49,7 @@ compression_dictionary_promise_test(async (t) => {
   const dict_token = token();
   const url =
       getRemoteHostUrl(`${kRegisterDictionaryPath}?save_header=${dict_token}`);
-  addLinkRelDictionaryElement(url, 'anonymous');
+  addLinkRelCompressionDictionaryElement(url, 'anonymous');
   // Wait for a while to ensure that the dictionary is fetched.
   await new Promise(resolve => window.requestIdleCallback(resolve));
   const headers = await waitUntilPreviousRequestHeaders(
@@ -63,7 +64,7 @@ compression_dictionary_promise_test(async (t) => {
   // Check if the data compressed using Brotli with the dictionary can be
   // decompressed.
   const data_url =
-      getRemoteHostUrl(`${kCompressedDataPath}?content_encoding=br-d`);
+      getRemoteHostUrl(`${kCompressedDataPath}?content_encoding=dcb`);
   assert_equals(await (await fetch(data_url)).text(), kExpectedCompressedData);
 }, 'Fetch cross origin dictionary using link element');
 

@@ -26,8 +26,8 @@ use std::rc::Rc;
 use std::result::Result;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
-use std::{ptr, thread};
 
 use background_hang_monitor_api::{
     BackgroundHangMonitor, BackgroundHangMonitorExitSignal, HangAnnotation, MonitoredComponentId,
@@ -36,6 +36,7 @@ use background_hang_monitor_api::{
 use base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, TopLevelBrowsingContextId,
 };
+use base::Epoch;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use chrono::{DateTime, Local};
@@ -46,7 +47,6 @@ use devtools_traits::{
 };
 use embedder_traits::EmbedderMsg;
 use euclid::default::{Point2D, Rect};
-use euclid::Vector2D;
 use gfx::font_cache_thread::FontCacheThread;
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
 use html5ever::{local_name, namespace_url, ns};
@@ -73,13 +73,15 @@ use parking_lot::Mutex;
 use percent_encoding::percent_decode;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
-use script_layout_interface::{LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory};
+use script_layout_interface::{
+    node_id_from_scroll_id, LayoutConfig, LayoutFactory, ReflowGoal, ScriptThreadFactory,
+};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::{
     CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext, DocumentActivity,
-    EventResult, HistoryEntryReplacement, InitialScriptState, JsEvalResult, LayoutControlMsg,
-    LayoutMsg, LoadData, LoadOrigin, MediaSessionActionType, MouseButton, MouseEventType,
-    NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptMsg, ScriptToConstellationChan,
+    EventResult, HistoryEntryReplacement, InitialScriptState, JsEvalResult, LayoutMsg, LoadData,
+    LoadOrigin, MediaSessionActionType, MouseButton, MouseEventType, NewLayoutInfo, Painter,
+    ProgressiveWebMetricType, ScriptMsg, ScriptToConstellationChan, ScrollState,
     StructuredSerializedData, TimerSchedulerMsg, TouchEventType, TouchId, UntrustedNodeAddress,
     UpdatePipelineIdReason, WheelDelta, WindowSizeData, WindowSizeType,
 };
@@ -91,7 +93,6 @@ use style::thread_state::{self, ThreadState};
 use time::precise_time_ns;
 use url::Position;
 use webgpu::WebGPUMsg;
-use webrender_api::units::LayoutPixel;
 use webrender_api::DocumentId;
 use webrender_traits::WebRenderScriptApi;
 
@@ -1836,11 +1837,6 @@ impl ScriptThread {
                     .profile_event(ScriptThreadEventCategory::SetViewport, Some(id), || {
                         self.handle_viewport(id, rect);
                     }),
-                FromConstellation(ConstellationControlMsg::SetScrollState(id, scroll_state)) => {
-                    self.profile_event(ScriptThreadEventCategory::SetScrollState, Some(id), || {
-                        self.handle_set_scroll_state(id, &scroll_state);
-                    })
-                },
                 FromConstellation(ConstellationControlMsg::TickAllAnimations(
                     pipeline_id,
                     tick_type,
@@ -2097,7 +2093,6 @@ impl ScriptThread {
                 ExitScriptThread => None,
                 SendEvent(id, ..) => Some(id),
                 Viewport(id, ..) => Some(id),
-                SetScrollState(id, ..) => Some(id),
                 GetTitle(id) => Some(id),
                 SetDocumentActivity(id, ..) => Some(id),
                 SetThrottled(id, ..) => Some(id),
@@ -2123,8 +2118,8 @@ impl ScriptThread {
                 ExitFullScreen(id, ..) => Some(id),
                 MediaSessionAction(..) => None,
                 SetWebGPUPort(..) => None,
-                ForLayoutFromConstellation(_, id) => Some(id),
-                ForLayoutFromFontCache(id) => Some(id),
+                SetScrollStates(id, ..) => Some(id),
+                SetEpochPaintTime(id, ..) => Some(id),
             },
             MixedMessage::FromDevtools(_) => None,
             MixedMessage::FromScript(ref inner_msg) => match *inner_msg {
@@ -2349,7 +2344,6 @@ impl ScriptThread {
             },
             msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
-            msg @ ConstellationControlMsg::SetScrollState(..) |
             msg @ ConstellationControlMsg::Resize(..) |
             msg @ ConstellationControlMsg::ExitFullScreen(..) |
             msg @ ConstellationControlMsg::SendEvent(..) |
@@ -2357,29 +2351,53 @@ impl ScriptThread {
             msg @ ConstellationControlMsg::ExitScriptThread => {
                 panic!("should have handled {:?} already", msg)
             },
-            ConstellationControlMsg::ForLayoutFromConstellation(msg, pipeline_id) => {
-                self.handle_layout_message(msg, pipeline_id)
+            ConstellationControlMsg::SetScrollStates(pipeline_id, scroll_states) => {
+                self.handle_set_scroll_states_msg(pipeline_id, scroll_states)
             },
-            ConstellationControlMsg::ForLayoutFromFontCache(pipeline_id) => {
-                self.handle_font_cache(pipeline_id)
+            ConstellationControlMsg::SetEpochPaintTime(pipeline_id, epoch, time) => {
+                self.handle_set_epoch_paint_time(pipeline_id, epoch, time)
             },
         }
     }
 
-    fn handle_layout_message(&self, msg: LayoutControlMsg, pipeline_id: PipelineId) {
+    fn handle_set_scroll_states_msg(
+        &self,
+        pipeline_id: PipelineId,
+        scroll_states: Vec<ScrollState>,
+    ) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
-            warn!("Received layout message pipeline {pipeline_id} closed: {msg:?}.");
+            warn!("Received scroll states for closed pipeline {pipeline_id}");
             return;
         };
-        window.layout_mut().handle_constellation_msg(msg);
+
+        self.profile_event(
+            ScriptThreadEventCategory::SetScrollState,
+            Some(pipeline_id),
+            || {
+                window.layout_mut().set_scroll_states(&scroll_states);
+
+                let mut scroll_offsets = HashMap::new();
+                for scroll_state in scroll_states.into_iter() {
+                    let scroll_offset = scroll_state.scroll_offset;
+                    if scroll_state.scroll_id.is_root() {
+                        window.update_viewport_for_scroll(-scroll_offset.x, -scroll_offset.y);
+                    } else if let Some(node_id) =
+                        node_id_from_scroll_id(scroll_state.scroll_id.0 as usize)
+                    {
+                        scroll_offsets.insert(OpaqueNode(node_id), -scroll_offset);
+                    }
+                }
+                window.set_scroll_offsets(scroll_offsets)
+            },
+        )
     }
 
-    fn handle_font_cache(&self, pipeline_id: PipelineId) {
+    fn handle_set_epoch_paint_time(&self, pipeline_id: PipelineId, epoch: Epoch, time: u64) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
-            warn!("Received font cache message pipeline {pipeline_id} closed.");
+            warn!("Received set epoch paint time message for closed pipeline {pipeline_id}.");
             return;
         };
-        window.layout_mut().handle_font_cache_msg();
+        window.layout_mut().set_epoch_paint_time(epoch, time);
     }
 
     fn handle_msg_from_webgpu_server(&self, msg: WebGPUMsg) {
@@ -2406,22 +2424,21 @@ impl ScriptThread {
             WebGPUMsg::FreeTexture(id) => self.gpu_id_hub.lock().kill_texture_id(id),
             WebGPUMsg::FreeTextureView(id) => self.gpu_id_hub.lock().kill_texture_view_id(id),
             WebGPUMsg::Exit => *self.webgpu_port.borrow_mut() = None,
-            WebGPUMsg::WebGPUOpResult {
-                device,
-                scope_id,
-                pipeline_id,
-                result,
-            } => {
-                let global = self.documents.borrow().find_global(pipeline_id).unwrap();
-                let _ac = enter_realm(&*global);
-                global.handle_wgpu_msg(device, scope_id, result);
-            },
             WebGPUMsg::CleanDevice {
                 pipeline_id,
                 device,
             } => {
                 let global = self.documents.borrow().find_global(pipeline_id).unwrap();
                 global.remove_gpu_device(device);
+            },
+            WebGPUMsg::UncapturedError {
+                device,
+                pipeline_id,
+                error,
+            } => {
+                let global = self.documents.borrow().find_global(pipeline_id).unwrap();
+                let _ac = enter_realm(&*global);
+                global.handle_uncaptured_gpu_error(device, error);
             },
             _ => {},
         }
@@ -2770,32 +2787,6 @@ impl ScriptThread {
             return;
         }
         warn!("Page rect message sent to nonexistent pipeline");
-    }
-
-    fn handle_set_scroll_state(
-        &self,
-        id: PipelineId,
-        scroll_states: &[(UntrustedNodeAddress, Vector2D<f32, LayoutPixel>)],
-    ) {
-        let window = match self.documents.borrow().find_window(id) {
-            Some(window) => window,
-            None => {
-                return warn!(
-                    "Set scroll state message sent to nonexistent pipeline: {:?}",
-                    id
-                );
-            },
-        };
-
-        let mut scroll_offsets = HashMap::new();
-        for &(node_address, ref scroll_offset) in scroll_states {
-            if node_address == UntrustedNodeAddress(ptr::null()) {
-                window.update_viewport_for_scroll(-scroll_offset.x, -scroll_offset.y);
-            } else {
-                scroll_offsets.insert(OpaqueNode(node_address.0 as usize), -*scroll_offset);
-            }
-        }
-        window.set_scroll_offsets(scroll_offsets)
     }
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo, origin: MutableOrigin) {

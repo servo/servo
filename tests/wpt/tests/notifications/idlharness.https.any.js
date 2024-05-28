@@ -26,6 +26,7 @@ idl_test(
         Notification: ['notification'],
       });
       self.notification = new Notification('title');
+      self.notification.close();
     }
   }
 );

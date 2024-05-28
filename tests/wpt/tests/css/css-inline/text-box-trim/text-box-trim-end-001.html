@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#propdef-text-box-edge">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#propdef-text-box-trim">
+<link rel="match" href="text-box-trim-end-001-ref.html">
+<script src="resources/variant-class.js"></script>
+<meta name="variant" content="?class=leading">
+<meta name="variant" content="?class=text">
+<meta name="variant" content="?class=alphabetic">
+<meta name="variant" content="?class=vrl,leading">
+<meta name="variant" content="?class=vrl,text">
+<meta name="variant" content="?class=vrl,alphabetic">
+<meta name="variant" content="?class=vlr,leading">
+<meta name="variant" content="?class=vlr,text">
+<meta name="variant" content="?class=vlr,cap">
+<meta name="variant" content="?class=vlr,ex">
+<style>
+@font-face {
+  font-family: test-font;
+  src: url(resources/cap-x-height.ttf);
+}
+.spacer {
+  background: lightgray;
+  block-size: 100px;
+}
+.target {
+  font-family: test-font;
+  font-size: 100px;
+  line-height: 2;
+  text-box-trim: end;
+}
+.vrl { writing-mode: vertical-rl; }
+.vlr { writing-mode: vertical-lr; }
+.leading .target { text-box-edge: leading; }
+.text .target { text-box-edge: text; }
+.alphabetic .target { text-box-edge: text alphabetic; }
+.cap .target { text-box-edge: cap; }
+.ex .target { text-box-edge: ex; }
+</style>
+<div class="spacer"></div>
+<div class="target">A</div>
+<div class="spacer"></div>

@@ -83,7 +83,7 @@ impl Drop for GPURenderBundle {
         if let Err(e) = self
             .channel
             .0
-            .send((None, WebGPURequest::DropRenderBundle(self.render_bundle.0)))
+            .send(WebGPURequest::DropRenderBundle(self.render_bundle.0))
         {
             warn!(
                 "Failed to send DropRenderBundle ({:?}) ({})",

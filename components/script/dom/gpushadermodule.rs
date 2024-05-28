@@ -82,7 +82,7 @@ impl Drop for GPUShaderModule {
         if let Err(e) = self
             .channel
             .0
-            .send((None, WebGPURequest::DropShaderModule(self.shader_module.0)))
+            .send(WebGPURequest::DropShaderModule(self.shader_module.0))
         {
             warn!(
                 "Failed to send DropShaderModule ({:?}) ({})",

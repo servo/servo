@@ -1,7 +1,9 @@
 function loadSharedStorageImage(data) {
   let {key, value, hasSharedStorageWritableAttribute, isSameOrigin} = data;
+  const encodedKey = encodeURIComponent(key);
+  const encodedValue = encodeURIComponent(value);
   const sameOriginSrc = `/shared-storage/resources/` +
-      `shared-storage-writable-pixel.png?key=${key}&value=${value}`;
+      `shared-storage-writable-pixel.png?key=${encodedKey}&value=${encodedValue}`;
   const crossOriginSrc =
       'https://{{domains[www]}}:{{ports[https][0]}}' + sameOriginSrc;
 

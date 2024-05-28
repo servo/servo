@@ -16,8 +16,16 @@
   }, "eval of TrustedScript works.");
 
   test(t => {
+    assert_equals(eval?.(p.createScript('1+1')), 2);
+  }, "indirect eval of TrustedScript works.");
+
+  test(t => {
     assert_equals(eval('1+1'), 2);
   }, "eval of string works and does not call a default policy.");
+
+  test(t => {
+    assert_equals(eval?.('1+1'), 2);
+  }, "indirect eval of string works and does not call a default policy.");
 
   test(t => {
     assert_equals(eval(42), 42);

@@ -8,25 +8,26 @@ use servo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUError, GPUUncapturedErrorEventInit, GPUUncapturedErrorEventMethods,
+    GPUUncapturedErrorEventInit, GPUUncapturedErrorEventMethods,
 };
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::gpuerror::GPUError;
 
 #[dom_struct]
 pub struct GPUUncapturedErrorEvent {
     event: Event,
     #[ignore_malloc_size_of = "Because it is non-owning"]
-    gpu_error: GPUError,
+    gpu_error: Dom<GPUError>,
 }
 
 impl GPUUncapturedErrorEvent {
     fn new_inherited(init: &GPUUncapturedErrorEventInit) -> Self {
         Self {
-            gpu_error: clone_gpu_error(&init.error),
+            gpu_error: Dom::from_ref(&init.error),
             event: Event::new_inherited(),
         }
     }
@@ -78,19 +79,12 @@ impl GPUUncapturedErrorEvent {
 
 impl GPUUncapturedErrorEventMethods for GPUUncapturedErrorEvent {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuuncapturederrorevent-error>
-    fn Error(&self) -> GPUError {
-        clone_gpu_error(&self.gpu_error)
+    fn Error(&self) -> DomRoot<GPUError> {
+        DomRoot::from_ref(&self.gpu_error)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
-    }
-}
-
-fn clone_gpu_error(error: &GPUError) -> GPUError {
-    match *error {
-        GPUError::GPUValidationError(ref v) => GPUError::GPUValidationError(v.clone()),
-        GPUError::GPUOutOfMemoryError(ref w) => GPUError::GPUOutOfMemoryError(w.clone()),
     }
 }
