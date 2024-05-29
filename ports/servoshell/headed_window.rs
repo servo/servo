@@ -16,13 +16,13 @@ use servo::compositing::windowing::{
 };
 use servo::embedder_traits::Cursor;
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
-use servo::rendering_context::RenderingContext;
 use servo::script_traits::{TouchEventType, WheelDelta, WheelMode};
 use servo::servo_config::{opts, pref};
 use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 use servo::webrender_api::ScrollLocation;
+use servo::webrender_traits::RenderingContext;
 use surfman::{Connection, Context, Device, SurfaceType};
 #[cfg(target_os = "windows")]
 use winapi;

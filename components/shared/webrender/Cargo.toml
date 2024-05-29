@@ -20,3 +20,5 @@ log = { workspace = true }
 libc = { workspace = true }
 webrender_api = { workspace = true }
 serde = { workspace = true }
+surfman = { workspace = true }
+

@@ -8,7 +8,6 @@ use std::sync::{Arc, Mutex};
 use canvas_traits::webgl::{webgl_channel, WebGLContextId, WebGLMsg, WebGLThreads};
 use euclid::default::Size2D;
 use fnv::FnvHashMap;
-use gfx::rendering_context::RenderingContext;
 use log::debug;
 use sparkle::gl::GlType;
 use surfman::chains::{SwapChainAPI, SwapChains, SwapChainsAPI};
@@ -16,7 +15,8 @@ use surfman::{Device, SurfaceInfo, SurfaceTexture};
 use webrender::RenderApiSender;
 use webrender_api::DocumentId;
 use webrender_traits::{
-    WebrenderExternalImageApi, WebrenderExternalImageRegistry, WebrenderImageSource,
+    RenderingContext, WebrenderExternalImageApi, WebrenderExternalImageRegistry,
+    WebrenderImageSource,
 };
 use webxr::SurfmanGL as WebXRSurfman;
 use webxr_api::LayerGrandManager as WebXRLayerGrandManager;

@@ -21,7 +21,6 @@ use crossbeam_channel::Sender;
 use embedder_traits::Cursor;
 use euclid::{Point2D, Rect, Scale, Transform3D, Vector2D};
 use fnv::{FnvHashMap, FnvHashSet};
-use gfx::rendering_context::RenderingContext;
 use image::{DynamicImage, ImageFormat};
 use ipc_channel::ipc;
 use libc::c_void;
@@ -49,7 +48,8 @@ use webrender_api::{
 use webrender_traits::display_list::{HitTestInfo, ScrollTree};
 use webrender_traits::{
     CanvasToCompositorMsg, CompositorHitTestResult, FontToCompositorMsg, ImageUpdate,
-    NetToCompositorMsg, ScriptToCompositorMsg, SerializedImageUpdate, UntrustedNodeAddress,
+    NetToCompositorMsg, RenderingContext, ScriptToCompositorMsg, SerializedImageUpdate,
+    UntrustedNodeAddress,
 };
 
 use crate::gl::RenderTargetInfo;

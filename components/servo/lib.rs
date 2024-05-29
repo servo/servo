@@ -65,8 +65,6 @@ use euclid::Scale;
 ))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
-pub use gfx::rendering_context;
-use gfx::rendering_context::RenderingContext;
 pub use gleam::gl;
 use ipc_channel::ipc::{self, IpcSender};
 use log::{error, trace, warn, Log, Metadata, Record};
@@ -94,7 +92,7 @@ use webrender_api::{
     NativeFontHandle,
 };
 use webrender_traits::{
-    CanvasToCompositorMsg, FontToCompositorMsg, ImageUpdate, WebRenderFontApi,
+    CanvasToCompositorMsg, FontToCompositorMsg, ImageUpdate, RenderingContext, WebRenderFontApi,
     WebrenderExternalImageHandlers, WebrenderExternalImageRegistry, WebrenderImageHandlerType,
 };
 pub use {
