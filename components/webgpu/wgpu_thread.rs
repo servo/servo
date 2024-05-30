@@ -192,7 +192,7 @@ impl WGPU {
                             .get(&command_encoder_id)
                         {
                             Err(Error::Internal(err.clone()))
-                        } else  if let Some(error) =
+                        } else if let Some(error) =
                             gfx_select!(command_encoder_id => global.command_encoder_finish(
                                 command_encoder_id,
                                 &wgt::CommandBufferDescriptor::default()
@@ -203,7 +203,7 @@ impl WGPU {
                         } else {
                             Ok(())
                         };
-                        
+
                         self.encoder_record_error(command_encoder_id, &result);
                         self.maybe_dispatch_error(device_id, result.err());
                     },
@@ -1083,10 +1083,10 @@ impl WGPU {
                                     );
                                 }
                             } else if let Err(e) = sender.send(Some(Ok(
-                                    WebGPUResponse::PoppedErrorScope(Err(PopError::Empty)),
-                                ))) {
-                                    warn!("Unable to send PopError::Empty: {e:?}");
-                                }
+                                WebGPUResponse::PoppedErrorScope(Err(PopError::Empty)),
+                            ))) {
+                                warn!("Unable to send PopError::Empty: {e:?}");
+                            }
                         } else {
                             // device lost
                             if let Err(e) = sender.send(Some(Ok(WebGPUResponse::PoppedErrorScope(
@@ -1140,7 +1140,6 @@ impl WGPU {
             {
                 warn!("Failed to send WebGPUMsg::UncapturedError: {error:?}");
             }
-            
         } // else device is lost
     }
 
