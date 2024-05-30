@@ -68,13 +68,22 @@
 //! The code for this phase, can mainly be found in `line.rs`.
 //!
 
+pub mod construct;
+pub mod line;
+pub mod text_run;
+
 use std::cell::OnceCell;
 use std::mem;
 
 use app_units::Au;
 use bitflags::bitflags;
+use construct::InlineFormattingContextBuilder;
 use gfx::font::FontMetrics;
 use gfx::text::glyph::GlyphStore;
+use line::{
+    layout_line_items, AbsolutelyPositionedLineItem, AtomicLineItem, FloatLineItem,
+    InlineBoxLineItem, LineItem, LineItemLayoutState, LineMetrics, TextRunLineItem,
+};
 use serde::Serialize;
 use servo_arc::Arc;
 use style::computed_values::text_wrap_mode::T as TextWrapMode;
@@ -91,19 +100,16 @@ use style::values::specified::box_::BaselineSource;
 use style::values::specified::text::{TextAlignKeyword, TextDecorationLine};
 use style::values::specified::{TextAlignLast, TextJustify};
 use style::Zero;
+use text_run::{add_or_get_font, get_font_for_first_font_for_style, TextRun};
 use webrender_api::FontInstanceKey;
 
 use super::float::PlacementAmongFloats;
-use super::line::{
-    layout_line_items, AbsolutelyPositionedLineItem, AtomicLineItem, FloatLineItem,
-    InlineBoxLineItem, LineItem, LineItemLayoutState, LineMetrics, TextRunLineItem,
-};
-use super::text_run::{add_or_get_font, get_font_for_first_font_for_style, TextRun};
-use super::CollapsibleWithParentStartMargin;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
+use crate::dom::NodeExt;
+use crate::dom_traversal::NodeAndStyleInfo;
 use crate::flow::float::{FloatBox, SequentialLayoutState};
-use crate::flow::FlowLayout;
+use crate::flow::{CollapsibleWithParentStartMargin, FlowLayout};
 use crate::formatting_contexts::{
     Baselines, IndependentFormattingContext, NonReplacedFormattingContextContents,
 };
@@ -124,6 +130,9 @@ static FONT_SUPERSCRIPT_OFFSET_RATIO: f32 = 0.34;
 #[derive(Debug, Serialize)]
 pub(crate) struct InlineFormattingContext {
     pub(super) inline_level_boxes: Vec<ArcRefCell<InlineLevelBox>>,
+
+    /// The text content of this inline formatting context.
+    pub(super) text_content: String,
 
     /// A store of font information for all the shaped segments in this formatting
     /// context in order to avoid duplicating this information.
@@ -167,6 +176,30 @@ pub(crate) struct InlineBox {
     /// The index of the default font in the [`InlineFormattingContext`]'s font metrics store.
     /// This is initialized during IFC shaping.
     pub default_font_index: Option<usize>,
+}
+
+impl InlineBox {
+    pub(crate) fn new<'dom, Node: NodeExt<'dom>>(info: &NodeAndStyleInfo<Node>) -> Self {
+        Self {
+            base_fragment_info: info.into(),
+            style: info.style.clone(),
+            is_first_fragment: true,
+            is_last_fragment: false,
+            children: vec![],
+            default_font_index: None,
+        }
+    }
+
+    pub(crate) fn split_around_block(&self) -> Self {
+        Self {
+            base_fragment_info: self.base_fragment_info,
+            style: self.style.clone(),
+            is_first_fragment: false,
+            is_last_fragment: false,
+            children: vec![],
+            default_font_index: None,
+        }
+    }
 }
 
 /// Information about the current line under construction for a particular
@@ -1541,17 +1574,51 @@ enum InlineFormattingContextIterItem<'a> {
 }
 
 impl InlineFormattingContext {
-    pub(super) fn new(
+    pub(super) fn new_with_builder(
+        builder: InlineFormattingContextBuilder,
+        layout_context: &LayoutContext,
         text_decoration_line: TextDecorationLine,
         has_first_formatted_line: bool,
-    ) -> InlineFormattingContext {
-        InlineFormattingContext {
-            inline_level_boxes: Default::default(),
+    ) -> Self {
+        let mut inline_formatting_context = InlineFormattingContext {
+            text_content: String::new(),
+            inline_level_boxes: builder.root_inline_boxes,
             font_metrics: Vec::new(),
             text_decoration_line,
             has_first_formatted_line,
-            contains_floats: false,
-        }
+            contains_floats: builder.contains_floats,
+        };
+
+        // This is to prevent a double borrow.
+        let text_content: String = builder.text_segments.into_iter().collect();
+        let mut font_metrics = Vec::new();
+
+        let mut linebreaker = None;
+        inline_formatting_context.foreach(|iter_item| match iter_item {
+            InlineFormattingContextIterItem::Item(InlineLevelBox::TextRun(ref mut text_run)) => {
+                text_run.break_and_shape(
+                    &text_content[text_run.text_range.clone()],
+                    &layout_context.font_context,
+                    &mut linebreaker,
+                    &mut font_metrics,
+                );
+            },
+            InlineFormattingContextIterItem::Item(InlineLevelBox::InlineBox(inline_box)) => {
+                if let Some(font) = get_font_for_first_font_for_style(
+                    &inline_box.style,
+                    &layout_context.font_context,
+                ) {
+                    inline_box.default_font_index = Some(add_or_get_font(&font, &mut font_metrics));
+                }
+            },
+            InlineFormattingContextIterItem::Item(InlineLevelBox::Atomic(_)) => {},
+            _ => {},
+        });
+
+        inline_formatting_context.text_content = text_content;
+        inline_formatting_context.font_metrics = font_metrics;
+
+        inline_formatting_context
     }
 
     fn foreach(&self, mut func: impl FnMut(InlineFormattingContextIterItem)) {
@@ -1739,75 +1806,6 @@ impl InlineFormattingContext {
             collapsible_margins_in_children,
             baselines: ifc.baselines,
         }
-    }
-
-    /// Return true if this [InlineFormattingContext] is empty for the purposes of ignoring
-    /// during box tree construction. An IFC is empty if it only contains TextRuns with
-    /// completely collapsible whitespace. When that happens it can be ignored completely.
-    pub fn is_empty(&self) -> bool {
-        fn inline_level_boxes_are_empty(boxes: &[ArcRefCell<InlineLevelBox>]) -> bool {
-            boxes
-                .iter()
-                .all(|inline_level_box| inline_level_box_is_empty(&inline_level_box.borrow()))
-        }
-
-        fn inline_level_box_is_empty(inline_level_box: &InlineLevelBox) -> bool {
-            match inline_level_box {
-                InlineLevelBox::InlineBox(_) => false,
-                InlineLevelBox::TextRun(text_run) => !text_run.has_uncollapsible_content(),
-                InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => false,
-                InlineLevelBox::OutOfFlowFloatBox(_) => false,
-                InlineLevelBox::Atomic(_) => false,
-            }
-        }
-
-        inline_level_boxes_are_empty(&self.inline_level_boxes)
-    }
-
-    /// Break and shape text of this InlineFormattingContext's TextRun's, which requires doing
-    /// all font matching and FontMetrics collection.
-    pub(crate) fn break_and_shape_text(&mut self, layout_context: &LayoutContext) {
-        let mut ifc_fonts = Vec::new();
-
-        // Whether the last processed node ended with whitespace. This is used to
-        // implement rule 4 of <https://www.w3.org/TR/css-text-3/#collapse>:
-        //
-        // > Any collapsible space immediately following another collapsible space—even one
-        // > outside the boundary of the inline containing that space, provided both spaces are
-        // > within the same inline formatting context—is collapsed to have zero advance width.
-        // > (It is invisible, but retains its soft wrap opportunity, if any.)
-        let mut last_inline_box_ended_with_white_space = false;
-
-        // For the purposes of `text-transform: capitalize` the start of the IFC is a word boundary.
-        let mut on_word_boundary = true;
-
-        let mut linebreaker = None;
-        self.foreach(|iter_item| match iter_item {
-            InlineFormattingContextIterItem::Item(InlineLevelBox::TextRun(ref mut text_run)) => {
-                text_run.break_and_shape(
-                    &layout_context.font_context,
-                    &mut linebreaker,
-                    &mut ifc_fonts,
-                    &mut last_inline_box_ended_with_white_space,
-                    &mut on_word_boundary,
-                );
-            },
-            InlineFormattingContextIterItem::Item(InlineLevelBox::InlineBox(inline_box)) => {
-                if let Some(font) = get_font_for_first_font_for_style(
-                    &inline_box.style,
-                    &layout_context.font_context,
-                ) {
-                    inline_box.default_font_index = Some(add_or_get_font(&font, &mut ifc_fonts));
-                }
-            },
-            InlineFormattingContextIterItem::Item(InlineLevelBox::Atomic(_)) => {
-                last_inline_box_ended_with_white_space = false;
-                on_word_boundary = true;
-            },
-            _ => {},
-        });
-
-        self.font_metrics = ifc_fonts;
     }
 }
 
@@ -2427,7 +2425,7 @@ impl<'a> ContentSizesComputation<'a> {
                         if run.glyph_store.is_whitespace() {
                             // If this run is a forced line break, we *must* break the line
                             // and start measuring from the inline origin once more.
-                            if text_run.glyph_run_is_preserved_newline(segment, run) {
+                            if run.is_single_preserved_newline() {
                                 self.forced_line_break();
                                 self.current_line = ContentSizes::zero();
                                 continue;
