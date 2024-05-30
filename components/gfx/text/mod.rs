@@ -5,11 +5,9 @@
 use unicode_properties::{emoji, UnicodeEmoji};
 
 pub use crate::text::shaping::Shaper;
-pub use crate::text::text_run::TextRun;
 
 pub mod glyph;
 pub mod shaping;
-pub mod text_run;
 pub mod util;
 
 #[derive(Clone, Copy, Debug)]

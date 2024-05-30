@@ -36,6 +36,7 @@ mod table_row;
 mod table_rowgroup;
 mod table_wrapper;
 mod text;
+mod text_run;
 pub mod traversal;
 pub mod wrapper;
 

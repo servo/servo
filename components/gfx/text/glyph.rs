@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cmp::{Ordering, PartialOrd};
+use std::sync::Arc;
 use std::vec::Vec;
 use std::{fmt, mem, u16};
 
@@ -770,6 +771,27 @@ impl<'a> Iterator for GlyphIterator<'a> {
         } else {
             // Fall back to the slow path.
             self.next_complex_glyph(&entry, i)
+        }
+    }
+}
+
+/// A single series of glyphs within a text run.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct GlyphRun {
+    /// The glyphs.
+    pub glyph_store: Arc<GlyphStore>,
+    /// The byte range of characters in the containing run.
+    pub range: Range<ByteIndex>,
+}
+
+impl GlyphRun {
+    pub fn compare(&self, key: &ByteIndex) -> Ordering {
+        if *key < self.range.begin() {
+            Ordering::Greater
+        } else if *key >= self.range.end() {
+            Ordering::Less
+        } else {
+            Ordering::Equal
         }
     }
 }
