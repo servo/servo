@@ -7,7 +7,7 @@ use std::borrow::Cow;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use style::values::specified::text::TextDecorationLine;
 
-use super::{FlexContainer, FlexLevelBox};
+use super::{FlexContainer, FlexLevelBox, FlexLevelBoxInner};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, LayoutBox, NodeExt};
@@ -178,8 +178,10 @@ where
                         ),
                     };
 
-                    Some(ArcRefCell::new(FlexLevelBox::FlexItem(
-                        IndependentFormattingContext::NonReplaced(non_replaced),
+                    Some(ArcRefCell::new(FlexLevelBox::new(
+                        FlexLevelBoxInner::FlexItem(IndependentFormattingContext::NonReplaced(
+                            non_replaced,
+                        )),
                     )))
                 },
                 FlexLevelJob::Element {
@@ -194,16 +196,18 @@ where
                     };
                     let box_ = if info.style.get_box().position.is_absolutely_positioned() {
                         // https://drafts.csswg.org/css-flexbox/#abspos-items
-                        ArcRefCell::new(FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(
-                            ArcRefCell::new(AbsolutelyPositionedBox::construct(
-                                self.context,
-                                &info,
-                                display_inside,
-                                contents,
+                        ArcRefCell::new(FlexLevelBox::new(
+                            FlexLevelBoxInner::OutOfFlowAbsolutelyPositionedBox(ArcRefCell::new(
+                                AbsolutelyPositionedBox::construct(
+                                    self.context,
+                                    &info,
+                                    display_inside,
+                                    contents,
+                                ),
                             )),
                         ))
                     } else {
-                        ArcRefCell::new(FlexLevelBox::FlexItem(
+                        ArcRefCell::new(FlexLevelBox::new(FlexLevelBoxInner::FlexItem(
                             IndependentFormattingContext::construct(
                                 self.context,
                                 &info,
@@ -211,7 +215,7 @@ where
                                 contents,
                                 self.text_decoration_line,
                             ),
-                        ))
+                        )))
                     };
                     box_slot.set(LayoutBox::FlexLevel(box_.clone()));
                     Some(box_)
@@ -220,13 +224,13 @@ where
             .collect::<Vec<_>>();
 
         // https://drafts.csswg.org/css-flexbox/#order-modified-document-order
-        children.sort_by_key(|child| match &*child.borrow() {
-            FlexLevelBox::FlexItem(item) => item.style().clone_order(),
+        children.sort_by_key(|child| match &child.borrow().flex_level_box {
+            FlexLevelBoxInner::FlexItem(item) => item.style().clone_order(),
 
             // “Absolutely-positioned children of a flex container are treated
             //  as having order: 0 for the purpose of determining their painting order
             //  relative to flex items.”
-            FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => 0,
+            FlexLevelBoxInner::OutOfFlowAbsolutelyPositionedBox(_) => 0,
         });
 
         FlexContainer { children }

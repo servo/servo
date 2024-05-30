@@ -20,7 +20,7 @@ use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, NodeExt};
 use crate::dom_traversal::{iter_child_nodes, Contents, NodeAndStyleInfo, NonReplacedContents};
-use crate::flexbox::FlexLevelBox;
+use crate::flexbox::{FlexLevelBox, FlexLevelBoxInner};
 use crate::flow::float::FloatBox;
 use crate::flow::inline::InlineItem;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
@@ -192,8 +192,11 @@ impl BoxTree {
                         },
                         _ => return None,
                     },
-                    LayoutBox::FlexLevel(flex_level_box) => match &*flex_level_box.borrow() {
-                        FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(_)
+                    LayoutBox::FlexLevel(flex_level_box) => match &flex_level_box
+                        .borrow()
+                        .flex_level_box
+                    {
+                        FlexLevelBoxInner::OutOfFlowAbsolutelyPositionedBox(_)
                             if box_style.position.is_absolutely_positioned() =>
                         {
                             UpdatePoint::AbsolutelyPositionedFlexLevelBox(flex_level_box.clone())
@@ -226,8 +229,8 @@ impl BoxTree {
                             );
                     },
                     UpdatePoint::AbsolutelyPositionedFlexLevelBox(flex_level_box) => {
-                        *flex_level_box.borrow_mut() =
-                            FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(
+                        flex_level_box.borrow_mut().flex_level_box =
+                            FlexLevelBoxInner::OutOfFlowAbsolutelyPositionedBox(
                                 out_of_flow_absolutely_positioned_box,
                             );
                     },
@@ -420,9 +423,9 @@ impl CanvasBackground {
         {
             // “that element’s first HTML `BODY` or XHTML `body` child element”
             if let Some(body) = iter_child_nodes(root_element).find(|child| {
-                child.is_element() &&
-                    child.type_id() ==
-                        LayoutNodeType::Element(LayoutElementType::HTMLBodyElement)
+                child.is_element()
+                    && child.type_id()
+                        == LayoutNodeType::Element(LayoutElementType::HTMLBodyElement)
             }) {
                 style = body.style(context);
                 from_element = body;

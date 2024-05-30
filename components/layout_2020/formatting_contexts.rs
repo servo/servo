@@ -93,8 +93,8 @@ impl IndependentFormattingContext {
         match contents {
             Contents::NonReplaced(non_replaced_contents) => {
                 let contents = match display_inside {
-                    DisplayInside::Flow { is_list_item } |
-                    DisplayInside::FlowRoot { is_list_item } => {
+                    DisplayInside::Flow { is_list_item }
+                    | DisplayInside::FlowRoot { is_list_item } => {
                         NonReplacedFormattingContextContents::Flow(
                             BlockFormattingContext::construct(
                                 context,
@@ -223,6 +223,15 @@ impl NonReplacedFormattingContext {
         *self
             .content_sizes
             .get_or_insert_with(|| contents.inline_content_sizes(layout_context, writing_mode))
+    }
+
+    pub fn measure(
+        &mut self,
+        layout_context: &LayoutContext,
+        positioning_context: &mut PositioningContext,
+        containing_block_for_children: &ContainingBlock,
+        containing_block: &ContainingBlock,
+    ) {
     }
 }
 
