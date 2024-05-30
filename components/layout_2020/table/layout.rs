@@ -22,6 +22,9 @@ use style::Zero;
 
 use super::{Table, TableSlot, TableSlotCell, TableTrack, TableTrackGroup};
 use crate::context::LayoutContext;
+use crate::flow::{
+    solve_containing_block_padding_and_border_for_in_flow_box, ContainingBlockPaddingAndBorder,
+};
 use crate::formatting_contexts::{Baselines, IndependentLayout};
 use crate::fragment_tree::{
     BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, ExtraBackground, Fragment, FragmentFlags,
@@ -661,14 +664,64 @@ impl<'a> TableLayout<'a> {
         grid_min_max
     }
 
-    fn compute_table_width(
+    fn compute_table_width<'b>(
         &mut self,
-        containing_block_for_children: &ContainingBlock,
-        containing_block_for_table: &ContainingBlock,
+        containing_block_from_table_wrapper: &'b ContainingBlock,
+        containing_block_of_table_wrapper: &'b ContainingBlock,
         grid_min_max: ContentSizes,
-    ) {
-        let style = &self.table.style;
-        self.pbm = style.padding_border_margin(containing_block_for_table);
+        style: &'b ComputedValues,
+    ) -> ContainingBlock<'b> {
+        // The table wrapper doesn't know anything about the `width` and `height` applied to the
+        // actual table's style, so recompute the containing block here using the style of the table
+        // itself. Percentages on the table style size should be resolved against the table wrapper
+        // box's containing block.
+
+        let mut containing_block_of_table_grid = containing_block_of_table_wrapper.clone();
+        containing_block_of_table_grid
+            .inline_size
+            .min_assign(containing_block_from_table_wrapper.inline_size);
+
+        let ContainingBlockPaddingAndBorder {
+            containing_block: mut containing_block_for_children,
+            pbm,
+            min_box_size,
+            max_box_size,
+        } = solve_containing_block_padding_and_border_for_in_flow_box(
+            &containing_block_of_table_grid,
+            style,
+        );
+
+        // There's an issue when computing the table width for absolutely positioned tables:
+        //
+        // The insets and min and max size that apply to the table can affect the size of the
+        // containing block established by the absolute's container. For non-positioned tables this
+        // doesn't happen and it's possible to use the freshly computed containing block above --
+        // which isn't affected by insets.
+        //
+        // Instead of using the wrapper style when computing `containing_block_for_table_wrapper`.
+        // The layout code for positioned content, reaches down to use the table's style, so
+        // `containing_block_for_table_wrapper` is now correct here.
+        //
+        // TODO: This is pretty big hack.
+        if self
+            .table
+            .wrapper_style
+            .clone_position()
+            .is_absolutely_positioned()
+        {
+            containing_block_for_children = containing_block_from_table_wrapper.clone();
+            containing_block_for_children.inline_size -= pbm.padding_border_sums.inline;
+        }
+
+        self.pbm = pbm;
+
+        // From <https://drafts.csswg.org/css-tables/#layout-principles>:
+        // > This section overrides the general-purpose rules that apply to calculating widths
+        // described in other specifications. In particular, if the margins of a table are set to 0...
+        //
+        // Margins are instead handled by the table wrapper, which has a style that inherits them
+        // from the table itself.
+        self.pbm.margin = LogicalSides::zero();
 
         // https://drafts.csswg.org/css-tables/#resolved-table-width
         // * If inline-size computes to 'auto', this is the stretch-fit size
@@ -676,7 +729,12 @@ impl<'a> TableLayout<'a> {
         // * Otherwise, it's the resulting length (with percentages resolved).
         // In both cases, it's clamped between min-inline-size and max-inline-size.
         // This diverges a little from the specification.
-        let resolved_table_width = containing_block_for_children.inline_size;
+        let resolved_table_width = containing_block_for_children
+            .inline_size
+            .clamp_between_extremums(
+                min_box_size.inline.into(),
+                max_box_size.inline.map(|size| size.into()),
+            );
 
         // https://drafts.csswg.org/css-tables/#used-width-of-table
         // * If table-root has a computed value for inline-size different than auto:
@@ -686,13 +744,13 @@ impl<'a> TableLayout<'a> {
         // This diverges a little from the specification, but should be equivalent
         // (other than using the stretch-fit size instead of the containing block width).
         let used_width_of_table = match style
-            .content_box_size(containing_block_for_table, &self.pbm)
+            .content_box_size(&containing_block_for_children, &self.pbm)
             .inline
         {
             LengthPercentage(_) => resolved_table_width.max(grid_min_max.min_content),
             Auto => {
                 let min_width: Au = style
-                    .content_min_box_size(containing_block_for_table, &self.pbm)
+                    .content_min_box_size(&containing_block_for_children, &self.pbm)
                     .inline
                     .auto_is(Length::zero)
                     .into();
@@ -711,6 +769,8 @@ impl<'a> TableLayout<'a> {
         // It matches what Gecko and Blink do, though they disagree when there is a big caption.
         self.basis_for_cell_padding_percentage =
             used_width_of_table - self.table.border_spacing().inline * 2;
+
+        containing_block_for_children
     }
 
     /// Distribute width to columns, performing step 2.4 of table layout from
@@ -1384,7 +1444,7 @@ impl<'a> TableLayout<'a> {
         &mut self,
         mut row_sizes: Vec<Au>,
         containing_block_for_children: &ContainingBlock,
-        containing_block_for_table: &ContainingBlock,
+        containing_block_of_table_wrapper: &ContainingBlock,
     ) {
         // The table content height is the maximum of the computed table height from style and the
         // sum of computed row heights from row layout plus size from borders and spacing.
@@ -1392,12 +1452,12 @@ impl<'a> TableLayout<'a> {
         // the resulting length, properly clamped between min-block-size and max-block-size.
         let style = &self.table.style;
         let table_height_from_style = match style
-            .content_box_size(containing_block_for_table, &self.pbm)
+            .content_box_size(containing_block_of_table_wrapper, &self.pbm)
             .block
         {
             LengthPercentage(_) => containing_block_for_children.block_size,
             Auto => style
-                .content_min_box_size(containing_block_for_table, &self.pbm)
+                .content_min_box_size(containing_block_of_table_wrapper, &self.pbm)
                 .block
                 .map(Au::from),
         }
@@ -1428,57 +1488,109 @@ impl<'a> TableLayout<'a> {
         self.row_sizes = row_sizes;
     }
 
-    /// Lay out the table of this [`TableLayout`] into fragments. This should only be be called
-    /// after calling [`TableLayout.compute_measures`].
+    /// Lay out the grid and caption parts of the table of this [`TableLayout`] into a
+    /// [`IndependentLayout`] This should only be be called after calling
+    /// [`TableLayout.compute_measures`].
     fn layout(
         mut self,
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
-        containing_block_for_children: &ContainingBlock,
-        containing_block_for_table: &ContainingBlock,
+        containing_block_from_table_wrapper: &ContainingBlock,
+        containing_block_of_table_wrapper: &ContainingBlock,
     ) -> IndependentLayout {
-        let writing_mode = containing_block_for_children.style.writing_mode;
+        let positioning_context_length_before_grid = positioning_context.len();
+        let grid_fragment = self.layout_grid(
+            layout_context,
+            positioning_context,
+            containing_block_from_table_wrapper,
+            containing_block_of_table_wrapper,
+        );
+
+        // Baselines are in the content rect, so offset them by grid content rect start in full
+        // table layout.
+        let offset = grid_fragment.content_rect.start_corner.block.into();
+        let baselines = Baselines {
+            first: grid_fragment
+                .baselines
+                .first
+                .map(|baseline| baseline + offset),
+            last: grid_fragment
+                .baselines
+                .last
+                .map(|baseline| baseline + offset),
+        };
+
+        let total_table_size = grid_fragment.border_rect().size;
+        let grid_fragment = Fragment::Box(grid_fragment);
+        positioning_context.adjust_static_position_of_hoisted_fragments(
+            &grid_fragment,
+            positioning_context_length_before_grid,
+        );
+
+        return IndependentLayout {
+            fragments: vec![grid_fragment],
+            content_block_size: total_table_size.block.into(),
+            content_inline_size_for_table: Some(total_table_size.inline.into()),
+            baselines,
+        };
+    }
+
+    /// Lay out the grid part of the table of this [`TableLayout`] into a single [`BoxFragment`]
+    /// which contains all the rows and columns. This should only be be called after calling
+    /// [`TableLayout.compute_measures`].
+    fn layout_grid(
+        &mut self,
+        layout_context: &LayoutContext,
+        positioning_context: &mut PositioningContext,
+        containing_block_from_table_wrapper: &ContainingBlock,
+        containing_block_of_table_wrapper: &ContainingBlock,
+    ) -> BoxFragment {
+        let writing_mode = self.table.style.writing_mode;
         let grid_min_max = self.compute_grid_min_max(layout_context, writing_mode);
-        self.compute_table_width(
-            containing_block_for_children,
-            containing_block_for_table,
+
+        let style = self.table.style.clone();
+        let containing_block_for_children = self.compute_table_width(
+            containing_block_from_table_wrapper,
+            containing_block_of_table_wrapper,
             grid_min_max,
+            &style,
         );
         self.distributed_column_widths = self.distribute_width_to_columns();
 
         self.layout_cells_in_row(
             layout_context,
-            containing_block_for_children,
+            &containing_block_for_children,
             positioning_context,
         );
         let first_layout_row_heights = self.do_first_row_layout(writing_mode);
         self.compute_table_height_and_final_row_heights(
             first_layout_row_heights,
-            containing_block_for_children,
-            containing_block_for_table,
+            &containing_block_for_children,
+            containing_block_of_table_wrapper,
         );
 
         assert_eq!(self.table.size.height, self.row_sizes.len());
         assert_eq!(self.table.size.width, self.distributed_column_widths.len());
 
-        let mut baselines = Baselines::default();
-        let mut table_fragments = Vec::new();
-
         if self.table.size.width == 0 && self.table.size.height == 0 {
-            return IndependentLayout {
-                fragments: table_fragments,
-                content_block_size: self.final_table_height,
-                content_inline_size_for_table: Some(self.assignable_width),
-                baselines,
-            };
+            return self.make_table_grid_fragment(
+                LogicalVec2 {
+                    inline: self.assignable_width,
+                    block: self.final_table_height,
+                },
+                vec![],
+                Baselines::default(),
+            );
         }
 
+        let mut table_fragments = Vec::new();
         let table_and_track_dimensions = TableAndTrackDimensions::new(&self);
         self.make_fragments_for_columns_and_column_groups(
             &table_and_track_dimensions,
             &mut table_fragments,
         );
 
+        let mut baselines = Baselines::default();
         let mut row_group_fragment_layout = None;
         for row_index in 0..self.table.size.height {
             // From <https://drafts.csswg.org/css-align-3/#baseline-export>
@@ -1515,7 +1627,7 @@ impl<'a> TableLayout<'a> {
                     table_fragments.push(Fragment::Box(old_row_group_layout.finish(
                         layout_context,
                         positioning_context,
-                        containing_block_for_children,
+                        &containing_block_for_children,
                     )));
                 }
 
@@ -1561,7 +1673,7 @@ impl<'a> TableLayout<'a> {
             let row_fragment = Fragment::Box(row_fragment_layout.finish(
                 layout_context,
                 positioning_context,
-                containing_block_for_children,
+                &containing_block_for_children,
                 &mut row_group_fragment_layout,
             ));
 
@@ -1575,18 +1687,43 @@ impl<'a> TableLayout<'a> {
             table_fragments.push(Fragment::Box(row_group_layout.finish(
                 layout_context,
                 positioning_context,
-                containing_block_for_children,
+                &containing_block_for_children,
             )));
         }
 
-        IndependentLayout {
-            fragments: table_fragments,
-            content_block_size: table_and_track_dimensions.table_rect.max_block_position(),
-            content_inline_size_for_table: Some(
-                table_and_track_dimensions.table_rect.max_inline_position(),
-            ),
+        self.make_table_grid_fragment(
+            table_and_track_dimensions.table_rect.size,
+            table_fragments,
             baselines,
-        }
+        )
+    }
+
+    fn make_table_grid_fragment(
+        &self,
+        content_size: LogicalVec2<Au>,
+        grid_fragments: Vec<Fragment>,
+        baselines: Baselines,
+    ) -> BoxFragment {
+        let content_rect = LogicalRect {
+            start_corner: LogicalVec2 {
+                inline: self.pbm.border.inline_start + self.pbm.padding.inline_start,
+                block: self.pbm.border.block_start + self.pbm.padding.block_start,
+            },
+            size: content_size,
+        };
+
+        BoxFragment::new(
+            self.table.base_fragment_info,
+            self.table.style.clone(),
+            grid_fragments,
+            content_rect.into(),
+            self.pbm.padding.clone(),
+            self.pbm.border.clone(),
+            LogicalSides::zero(),
+            None,
+            CollapsedBlockMargins::zero(),
+        )
+        .with_baselines(baselines)
     }
 
     fn is_row_collapsed(&self, row_index: usize) -> bool {
@@ -2100,7 +2237,60 @@ impl Table {
         layout_context: &LayoutContext,
         writing_mode: WritingMode,
     ) -> ContentSizes {
-        TableLayout::new(self).compute_grid_min_max(layout_context, writing_mode)
+        // From <https://drafts.csswg.org/css-tables/#computing-the-table-width>:
+        // > The used min-width of a table is the greater of the resolved min-width, CAPMIN, and GRIDMIN.
+        let mut content_sizes =
+            TableLayout::new(self).compute_grid_min_max(layout_context, writing_mode);
+
+        let min_inline_size = self
+            .style
+            .min_box_size(writing_mode)
+            .inline
+            .map(|length_percentage| {
+                length_percentage
+                    .percentage_relative_to(Length::zero())
+                    .into()
+            })
+            .auto_is(Au::zero);
+        let inline_size = self
+            .style
+            .box_size(writing_mode)
+            .inline
+            .map(|length_percentage| {
+                length_percentage
+                    .percentage_relative_to(Length::zero())
+                    .into()
+            })
+            .auto_is(Au::zero);
+        let max_inline_size =
+            self.style
+                .max_box_size(writing_mode)
+                .inline
+                .map(|length_percentage| {
+                    length_percentage
+                        .percentage_relative_to(Length::zero())
+                        .into()
+                });
+
+        content_sizes.min_content = content_sizes
+            .min_content
+            .clamp_between_extremums(min_inline_size.max(inline_size), max_inline_size);
+        content_sizes.max_content = content_sizes
+            .max_content
+            .clamp_between_extremums(min_inline_size.max(inline_size), max_inline_size);
+
+        let padding = self
+            .style
+            .padding(writing_mode)
+            .percentages_relative_to(Zero::zero());
+        let border = self.style.border_width(writing_mode);
+        let padding_border_sum = (border.inline_sum() + padding.inline_sum()).into();
+        let padding_border_content_sizes = ContentSizes {
+            min_content: padding_border_sum,
+            max_content: padding_border_sum,
+        };
+
+        content_sizes + padding_border_content_sizes
     }
 
     fn get_column_measure_for_column_at_index(
@@ -2170,14 +2360,14 @@ impl Table {
         &self,
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
-        containing_block_for_children: &ContainingBlock,
-        containing_block_for_table: &ContainingBlock,
+        containing_block_from_table_wrapper: &ContainingBlock,
+        containing_block_of_table_wrapper: &ContainingBlock,
     ) -> IndependentLayout {
         TableLayout::new(self).layout(
             layout_context,
             positioning_context,
-            containing_block_for_children,
-            containing_block_for_table,
+            containing_block_from_table_wrapper,
+            containing_block_of_table_wrapper,
         )
     }
 }

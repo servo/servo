@@ -28,6 +28,7 @@ use style::shared_lock::SharedRwLock;
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style::stylist::RuleInclusion;
 use style::traversal::resolve_style;
+use style::values::computed::Display;
 use style::values::generics::font::LineHeight;
 use style_traits::{ParsingMode, ToCss};
 
@@ -303,6 +304,23 @@ pub fn process_offset_parent_query(
     process_offset_parent_query_inner(node, fragment_tree).unwrap_or_default()
 }
 
+/// Returns whether or not the element with the given style and body element determination
+/// is eligible to be a parent element for offset* queries.
+///
+/// From <https://www.w3.org/TR/cssom-view-1/#extensions-to-the-htmlelement-interface>:
+/// >
+/// > Return the nearest ancestor element of the element for which at least one of the following is
+/// > true and terminate this algorithm if such an ancestor is found:
+/// >   1. The computed value of the position property is not static.
+/// >   2. It is the HTML body element.
+/// >   3. The computed value of the position property of the element is static and the ancestor is
+/// >      one of the following HTML elements: td, th, or table.
+fn is_eligible_parent(is_body_element: bool, style: &ComputedValues) -> bool {
+    is_body_element ||
+        style.get_box().position != Position::Static ||
+        matches!(style.clone_display(), Display::Table | Display::TableCell)
+}
+
 #[inline]
 fn process_offset_parent_query_inner(
     node: OpaqueNode,
@@ -398,24 +416,7 @@ fn process_offset_parent_query_inner(
             // Record the paths of the nodes being traversed.
             let parent_node_address = match fragment {
                 Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                    let is_eligible_parent =
-                        match (is_body_element, fragment.style.get_box().position) {
-                            // Spec says the element is eligible as `offsetParent` if any of
-                            // these are true:
-                            //  1) Is the body element
-                            //  2) Is static position *and* is a table or table cell
-                            //  3) Is not static position
-                            // TODO: Handle case 2
-                            (true, _) |
-                            (false, Position::Absolute) |
-                            (false, Position::Fixed) |
-                            (false, Position::Relative) |
-                            (false, Position::Sticky) => true,
-
-                            // Otherwise, it's not a valid parent
-                            (false, Position::Static) => false,
-                        };
-
+                    let is_eligible_parent = is_eligible_parent(is_body_element, &fragment.style);
                     match base.tag {
                         Some(tag) if is_eligible_parent && !tag.is_pseudo() => Some(tag.node),
                         _ => None,

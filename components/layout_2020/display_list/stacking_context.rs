@@ -613,10 +613,13 @@ impl StackingContext {
             },
         };
 
-        // The `StackingContextFragment` we found is for the root DOM element:
-        debug_assert_eq!(
-            fragment.tag().map(|tag| tag.node),
-            Some(fragment_tree.canvas_background.root_element),
+        // The `StackingContextFragment` we found is for the root DOM element or is anonymous,
+        // which can happen if the root element is `display: table` and this fragment is the
+        // anonymous table wrapper.
+        debug_assert!(
+            fragment.tag().is_none() ||
+                fragment.tag().map(|tag| tag.node) ==
+                    Some(fragment_tree.canvas_background.root_element)
         );
 
         // The root element may have a CSS transform, and we want the canvas’

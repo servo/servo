@@ -230,6 +230,89 @@ svg > * {
     overflow: visible;
 }
 
+/* This list of styles inherited by the table wrapper come from Gecko's user agent
+   stylesheet at: layout/style/res/ua.css */
+*|*::-servo-table-wrapper {
+  box-sizing: unset;
+
+  display: inherit; /* table or inline-table */
+  margin: inherit;
+  float: inherit;
+  clear: inherit;
+  position: inherit;
+  top: inherit;
+  right: inherit;
+  bottom: inherit;
+  left: inherit;
+  z-index: inherit;
+  page-break-before: inherit;
+  page-break-after: inherit;
+  page-break-inside: inherit;
+  vertical-align: inherit; /* needed for inline-table */
+  line-height: inherit; /* needed for vertical-align on inline-table */
+  transform: inherit;
+  transform-origin: inherit;
+  backface-visibility: inherit;
+  clip: inherit;
+  /* Other transform-related properties */
+  transform-style: inherit;
+  rotate: inherit;
+  scale: inherit;
+  translate: inherit;
+  /* When the table wrapper is a Flex/Grid item we need these: */
+  align-self: inherit;
+  justify-self: inherit;
+  grid-column-start: inherit;
+  grid-column-end: inherit;
+  grid-row-start: inherit;
+  grid-row-end: inherit;
+  order: inherit;
+  outline: inherit;
+  outline-offset: inherit;
+  column-span: inherit; /* needed if <table> has "column-span:all" */
+  contain: inherit; /* needed if table has 'contain:layout' or 'paint' */
+  container: inherit;
+  scroll-margin: inherit;
+}
+
+/* This prevents the above properties from applying to both the table wrapper
+   and the table grid. The omission of insets here is on purpose, as those are
+   handled specially for containing block calculation. */
+*|*::-servo-table-grid {
+  all: inherit;
+  margin: unset;
+  float: unset;
+  clear: unset;
+  position: unset;
+  z-index: unset;
+  page-break-before: unset;
+  page-break-after: unset;
+  page-break-inside: unset;
+  vertical-align: unset;
+  line-height: unset;
+  transform: unset;
+  transform-origin: unset;
+  backface-visibility: unset;
+  clip: unset;
+  transform-style: unset;
+  rotate: unset;
+  scale: unset;
+  translate: unset;
+  align-self: unset;
+  justify-self: unset;
+  grid-column-start: unset;
+  grid-column-end: unset;
+  grid-row-start: unset;
+  grid-row-end: unset;
+  order: unset;
+  outline: unset;
+  outline-offset: unset;
+  column-span: unset;
+  contain: unset;
+  container: unset;
+  scroll-margin: unset;
+}
+
 *|*::-servo-anonymous-table {
     display: table;
 }

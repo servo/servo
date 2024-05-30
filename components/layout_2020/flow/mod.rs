@@ -1364,11 +1364,11 @@ fn layout_in_flow_replaced_block_level(
     )
 }
 
-struct ContainingBlockPaddingAndBorder<'a> {
-    containing_block: ContainingBlock<'a>,
-    pbm: PaddingBorderMargin,
-    min_box_size: LogicalVec2<Length>,
-    max_box_size: LogicalVec2<Option<Length>>,
+pub(crate) struct ContainingBlockPaddingAndBorder<'a> {
+    pub containing_block: ContainingBlock<'a>,
+    pub pbm: PaddingBorderMargin,
+    pub min_box_size: LogicalVec2<Length>,
+    pub max_box_size: LogicalVec2<Option<Length>>,
 }
 
 struct ResolvedMargins {
@@ -1389,9 +1389,9 @@ struct ResolvedMargins {
 /// Note that in the presence of floats, this shouldn't be used for a block-level box
 /// that establishes an independent formatting context (or is replaced), since the
 /// inline size could then be incorrect.
-fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
+pub(crate) fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     containing_block: &ContainingBlock<'_>,
-    style: &'a Arc<ComputedValues>,
+    style: &'a ComputedValues,
 ) -> ContainingBlockPaddingAndBorder<'a> {
     let pbm = style.padding_border_margin(containing_block);
     let box_size = style.content_box_size(containing_block, &pbm);

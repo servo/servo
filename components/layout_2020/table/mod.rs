@@ -86,9 +86,16 @@ pub type TableSize = Size2D<usize, UnknownUnit>;
 
 #[derive(Debug, Serialize)]
 pub struct Table {
-    /// The style of this table.
+    /// The style of this table's grid.
     #[serde(skip_serializing)]
-    style: Arc<ComputedValues>,
+    pub style: Arc<ComputedValues>,
+
+    /// The style of this table's wrapper.
+    #[serde(skip_serializing)]
+    pub wrapper_style: Arc<ComputedValues>,
+
+    /// The [`BaseFragmentInfo`] for this table.
+    base_fragment_info: BaseFragmentInfo,
 
     /// The column groups for this table.
     pub column_groups: Vec<TableTrackGroup>,
@@ -114,9 +121,15 @@ pub struct Table {
 }
 
 impl Table {
-    pub(crate) fn new(style: Arc<ComputedValues>) -> Self {
+    pub(crate) fn new(
+        grid_style: Arc<ComputedValues>,
+        wrapper_style: Arc<ComputedValues>,
+        base_fragment_info: BaseFragmentInfo,
+    ) -> Self {
         Self {
-            style,
+            style: grid_style,
+            wrapper_style,
+            base_fragment_info,
             column_groups: Vec::new(),
             columns: Vec::new(),
             row_groups: Vec::new(),

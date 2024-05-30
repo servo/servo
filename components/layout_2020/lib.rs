@@ -33,12 +33,14 @@ use style::properties::ComputedValues;
 
 use crate::geom::LogicalVec2;
 
+#[derive(Clone, Debug)]
 pub struct ContainingBlock<'a> {
     inline_size: Au,
     block_size: AuOrAuto,
     style: &'a ComputedValues,
 }
 
+#[derive(Debug)]
 struct DefiniteContainingBlock<'a> {
     size: LogicalVec2<Au>,
     style: &'a ComputedValues,

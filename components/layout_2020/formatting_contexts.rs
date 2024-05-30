@@ -9,6 +9,7 @@ use serde::Serialize;
 use servo_arc::Arc;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
+use style::selector_parser::PseudoElement;
 use style::values::specified::text::TextDecorationLine;
 
 use crate::context::LayoutContext;
@@ -85,18 +86,18 @@ pub(crate) struct IndependentLayout {
 }
 
 impl IndependentFormattingContext {
-    pub fn construct<'dom>(
+    pub fn construct<'dom, Node: NodeExt<'dom>>(
         context: &LayoutContext,
-        node_and_style_info: &NodeAndStyleInfo<impl NodeExt<'dom>>,
+        node_and_style_info: &NodeAndStyleInfo<Node>,
         display_inside: DisplayInside,
         contents: Contents,
         propagated_text_decoration_line: TextDecorationLine,
     ) -> Self {
         match contents.try_into() {
             Ok(non_replaced_contents) => {
-                let contents = match display_inside {
+                let (contents, node_and_style_info) = match display_inside {
                     DisplayInside::Flow { is_list_item } |
-                    DisplayInside::FlowRoot { is_list_item } => {
+                    DisplayInside::FlowRoot { is_list_item } => (
                         NonReplacedFormattingContextContents::Flow(
                             BlockFormattingContext::construct(
                                 context,
@@ -105,27 +106,55 @@ impl IndependentFormattingContext {
                                 propagated_text_decoration_line,
                                 is_list_item,
                             ),
-                        )
-                    },
-                    DisplayInside::Flex => {
+                        ),
+                        node_and_style_info.clone(),
+                    ),
+                    DisplayInside::Flex => (
                         NonReplacedFormattingContextContents::Flex(FlexContainer::construct(
                             context,
                             node_and_style_info,
                             non_replaced_contents,
                             propagated_text_decoration_line,
-                        ))
-                    },
+                        )),
+                        node_and_style_info.clone(),
+                    ),
                     DisplayInside::Table => {
-                        NonReplacedFormattingContextContents::Table(Table::construct(
-                            context,
-                            node_and_style_info,
-                            non_replaced_contents,
-                            propagated_text_decoration_line,
-                        ))
+                        let table_wrapper_style = context
+                            .shared_context()
+                            .stylist
+                            .style_for_anonymous::<Node::ConcreteElement>(
+                            &context.shared_context().guards,
+                            &PseudoElement::ServoTableWrapper,
+                            &node_and_style_info.style,
+                        );
+                        let table_wrapper_info =
+                            node_and_style_info.new_anonymous(table_wrapper_style.clone());
+
+                        let table_grid_style = context
+                            .shared_context()
+                            .stylist
+                            .style_for_anonymous::<Node::ConcreteElement>(
+                            &context.shared_context().guards,
+                            &PseudoElement::ServoTableGrid,
+                            &node_and_style_info.style,
+                        );
+                        let table_grid_info =
+                            node_and_style_info.new_replacing_style(table_grid_style);
+
+                        (
+                            NonReplacedFormattingContextContents::Table(Table::construct(
+                                context,
+                                &table_grid_info,
+                                table_wrapper_style,
+                                non_replaced_contents,
+                                propagated_text_decoration_line,
+                            )),
+                            table_wrapper_info,
+                        )
                     },
                 };
                 Self::NonReplaced(NonReplacedFormattingContext {
-                    base_fragment_info: node_and_style_info.into(),
+                    base_fragment_info: (&node_and_style_info).into(),
                     style: Arc::clone(&node_and_style_info.style),
                     content_sizes: None,
                     contents,
@@ -225,6 +254,30 @@ impl NonReplacedFormattingContext {
         *self
             .content_sizes
             .get_or_insert_with(|| contents.inline_content_sizes(layout_context, writing_mode))
+    }
+
+    /// Get the style to use when computing sizes for absolute layout.
+    ///
+    /// There's an issue when computing the table width for absolutely positioned tables:
+    ///
+    /// The insets and min and max size that apply to the table can affect the size of the
+    /// containing block established by the absolute's container. For non-positioned tables this
+    /// doesn't happen and it's possible to use the freshly computed containing block above --
+    /// which isn't affected by insets.
+    ///
+    /// TODO: This is a big hack. This should be done in a cleaner way.
+    pub fn style_for_absolute_layout_sizing(&self) -> &ComputedValues {
+        match self.contents {
+            crate::formatting_contexts::NonReplacedFormattingContextContents::Flow(_) => {
+                &self.style
+            },
+            crate::formatting_contexts::NonReplacedFormattingContextContents::Flex(_) => {
+                &self.style
+            },
+            crate::formatting_contexts::NonReplacedFormattingContextContents::Table(ref table) => {
+                &table.style
+            },
+        }
     }
 }
 

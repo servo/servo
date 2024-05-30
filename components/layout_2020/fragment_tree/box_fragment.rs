@@ -64,9 +64,9 @@ pub(crate) struct BoxFragment {
     /// <https://drafts.csswg.org/css2/#clearance>
     pub clearance: Option<Au>,
 
-    /// When this [`BoxFragment`] is for content that has a baseline, this tracks
-    /// the first and last baselines of that content. This is used to propagate baselines
-    /// to things such as tables and inline formatting contexts.
+    /// When this [`BoxFragment`] is for content that has a baseline, this tracks the first and last
+    /// baselines of that content within the *content rect* of this fragment. This is used to
+    /// propagate baselines to things such as tables and inline formatting contexts.
     pub baselines: Baselines,
 
     pub block_margins_collapsed_with_children: CollapsedBlockMargins,

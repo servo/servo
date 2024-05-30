@@ -501,7 +501,7 @@ impl HoistedAbsolutelyPositionedBox {
                 }
             },
             IndependentFormattingContext::NonReplaced(non_replaced) => non_replaced
-                .style
+                .style_for_absolute_layout_sizing()
                 .content_box_size(&containing_block.into(), &pbm),
         };
 
@@ -535,6 +535,7 @@ impl HoistedAbsolutelyPositionedBox {
 
         let mut positioning_context =
             PositioningContext::new_for_style(absolutely_positioned_box.context.style()).unwrap();
+
         let mut new_fragment = {
             let content_size: LogicalVec2<Au>;
             let fragments;
@@ -549,12 +550,11 @@ impl HoistedAbsolutelyPositionedBox {
                 IndependentFormattingContext::NonReplaced(non_replaced) => {
                     // https://drafts.csswg.org/css2/#min-max-widths
                     // https://drafts.csswg.org/css2/#min-max-heights
-                    let min_size = non_replaced
-                        .style
+                    let style = non_replaced.style_for_absolute_layout_sizing();
+                    let min_size = style
                         .content_min_box_size(&containing_block.into(), &pbm)
                         .map(|t| t.map(Au::from).auto_is(Au::zero));
-                    let max_size = non_replaced
-                        .style
+                    let max_size = style
                         .content_max_box_size(&containing_block.into(), &pbm)
                         .map(|t| t.map(Au::from));
 
@@ -630,7 +630,19 @@ impl HoistedAbsolutelyPositionedBox {
                             &containing_block_for_children,
                             &containing_block.into(),
                         );
-                        let block_size = size.auto_is(|| independent_layout.content_block_size);
+
+                        let (block_size, inline_size) =
+                            match independent_layout.content_inline_size_for_table {
+                                Some(inline_size) => (
+                                    independent_layout.content_block_size.into(),
+                                    inline_size.into(),
+                                ),
+                                None => (
+                                    size.auto_is(|| independent_layout.content_block_size),
+                                    inline_size,
+                                ),
+                            };
+
                         Result {
                             content_size: LogicalVec2 {
                                 inline: inline_size,
