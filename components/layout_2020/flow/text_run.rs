@@ -827,7 +827,6 @@ where
         };
 
         self.next_character = self.iterator.next();
-        Some((character, self.next_character));
+        Some((character, self.next_character))
     }
 }
-
