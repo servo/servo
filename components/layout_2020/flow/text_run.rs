@@ -838,7 +838,7 @@ where
         };
 
         self.next_character = self.iterator.next();
-        return Some((character, self.next_character.clone()));
+        Some((character, self.next_character))
     }
 }
 
