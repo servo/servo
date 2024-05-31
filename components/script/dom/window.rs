@@ -16,6 +16,7 @@ use std::{cmp, env, mem};
 
 use app_units::Au;
 use backtrace::Backtrace;
+use base::generic_channel::GenericSender;
 use base::id::{BrowsingContextId, PipelineId};
 use base64::Engine;
 use bluetooth_traits::BluetoothRequest;
@@ -246,7 +247,7 @@ pub struct Window {
     /// A handle for communicating messages to the bluetooth thread.
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
-    bluetooth_thread: IpcSender<BluetoothRequest>,
+    bluetooth_thread: GenericSender<BluetoothRequest>,
 
     bluetooth_extra_permission_data: BluetoothExtraPermissionData,
 
@@ -471,7 +472,7 @@ impl Window {
         })
     }
 
-    pub fn bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
+    pub fn bluetooth_thread(&self) -> GenericSender<BluetoothRequest> {
         self.bluetooth_thread.clone()
     }
 
@@ -2512,7 +2513,7 @@ impl Window {
         image_cache_chan: Sender<ImageCacheMsg>,
         image_cache: Arc<dyn ImageCache>,
         resource_threads: ResourceThreads,
-        bluetooth_thread: IpcSender<BluetoothRequest>,
+        bluetooth_thread: GenericSender<BluetoothRequest>,
         mem_profiler_chan: MemProfilerChan,
         time_profiler_chan: TimeProfilerChan,
         devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,

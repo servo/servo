@@ -25,6 +25,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::vec::Drain;
 
+use base::generic_channel::GenericSender;
 pub use base::id::TopLevelBrowsingContextId;
 use base::id::{PipelineNamespace, PipelineNamespaceId};
 use bluetooth::BluetoothThreadFactory;
@@ -979,7 +980,7 @@ fn create_constellation(
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
 
-    let bluetooth_thread: IpcSender<BluetoothRequest> =
+    let bluetooth_thread: GenericSender<BluetoothRequest> =
         BluetoothThreadFactory::new(embedder_proxy.clone());
 
     let (public_resource_threads, private_resource_threads) = new_resource_threads(

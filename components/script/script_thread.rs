@@ -33,6 +33,7 @@ use background_hang_monitor_api::{
     BackgroundHangMonitor, BackgroundHangMonitorExitSignal, HangAnnotation, MonitoredComponentId,
     MonitoredComponentType, ScriptHangAnnotation,
 };
+use base::generic_channel::GenericSender;
 use base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, TopLevelBrowsingContextId,
 };
@@ -537,7 +538,7 @@ pub struct ScriptThread {
     resource_threads: ResourceThreads,
     /// A handle to the bluetooth thread.
     #[no_trace]
-    bluetooth_thread: IpcSender<BluetoothRequest>,
+    bluetooth_thread: GenericSender<BluetoothRequest>,
 
     /// A queue of tasks to be executed in this script-thread.
     task_queue: TaskQueue<MainThreadScriptMsg>,
