@@ -13,7 +13,8 @@ use arrayvec::ArrayVec;
 use base::id::PipelineId;
 use euclid::default::Size2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender, IpcSharedMemory};
-use log::{error, warn};
+use log::{error, info, warn};
+use servo_config::pref;
 use webrender::{RenderApi, RenderApiSender, Transaction};
 use webrender_api::{DirtyRect, DocumentId};
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
@@ -21,6 +22,7 @@ use wgc::command::{ImageCopyBuffer, ImageCopyTexture};
 use wgc::device::queue::SubmittedWorkDoneClosure;
 use wgc::device::{DeviceDescriptor, HostMap, ImplicitPipelineIds};
 use wgc::id::DeviceId;
+use wgc::instance::parse_backends_from_comma_list;
 use wgc::pipeline::ShaderModuleDescriptor;
 use wgc::resource::{BufferMapCallback, BufferMapOperation};
 use wgc::{gfx_select, id};
@@ -88,10 +90,20 @@ impl WGPU {
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
         wgpu_image_map: Arc<Mutex<HashMap<u64, PresentationData>>>,
     ) -> Self {
+        let backend_pref = pref!(dom.webgpu.wgpu_backend);
+        let backends = if backend_pref.is_empty() {
+            wgt::Backends::PRIMARY
+        } else {
+            info!(
+                "Selecting backends based on dom.webgpu.wgpu_backend pref: {:?}",
+                backend_pref
+            );
+            parse_backends_from_comma_list(&backend_pref)
+        };
         let global = Arc::new(wgc::global::Global::new(
             "wgpu-core",
             InstanceDescriptor {
-                backends: wgt::Backends::PRIMARY,
+                backends,
                 ..Default::default()
             },
         ));
