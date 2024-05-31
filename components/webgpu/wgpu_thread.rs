@@ -192,19 +192,18 @@ impl WGPU {
                             .get(&command_encoder_id)
                         {
                             Err(Error::Internal(err.clone()))
+                        } else if let Some(error) =
+                            gfx_select!(command_encoder_id => global.command_encoder_finish(
+                                command_encoder_id,
+                                &wgt::CommandBufferDescriptor::default()
+                            ))
+                            .1
+                        {
+                            Err(Error::from_error(error))
                         } else {
-                            if let Some(error) =
-                                gfx_select!(command_encoder_id => global.command_encoder_finish(
-                                    command_encoder_id,
-                                    &wgt::CommandBufferDescriptor::default()
-                                ))
-                                .1
-                            {
-                                Err(Error::from_error(error))
-                            } else {
-                                Ok(())
-                            }
+                            Ok(())
                         };
+
                         self.encoder_record_error(command_encoder_id, &result);
                         self.maybe_dispatch_error(device_id, result.err());
                     },
@@ -734,7 +733,7 @@ impl WGPU {
                             )))
                         } else {
                             gfx_select!(queue_id => global.queue_submit(queue_id, &command_buffers))
-                                .map_err(|e| Error::from_error(e))
+                                .map_err(Error::from_error)
                         };
                         self.maybe_dispatch_error(queue_id.transmute(), result.err());
                     },
@@ -1083,12 +1082,10 @@ impl WGPU {
                                         error_scope.errors
                                     );
                                 }
-                            } else {
-                                if let Err(e) = sender.send(Some(Ok(
-                                    WebGPUResponse::PoppedErrorScope(Err(PopError::Empty)),
-                                ))) {
-                                    warn!("Unable to send PopError::Empty: {e:?}");
-                                }
+                            } else if let Err(e) = sender.send(Some(Ok(
+                                WebGPUResponse::PoppedErrorScope(Err(PopError::Empty)),
+                            ))) {
+                                warn!("Unable to send PopError::Empty: {e:?}");
                             }
                         } else {
                             // device lost
@@ -1132,18 +1129,16 @@ impl WGPU {
                 .find(|error_scope| error_scope.filter == error.filter())
             {
                 error_scope.errors.push(error);
-            } else {
-                if self
-                    .script_sender
-                    .send(WebGPUMsg::UncapturedError {
-                        device: WebGPUDevice(device_id),
-                        pipeline_id: device_scope.pipeline_id,
-                        error: error.clone(),
-                    })
-                    .is_err()
-                {
-                    warn!("Failed to send WebGPUMsg::UncapturedError: {error:?}");
-                }
+            } else if self
+                .script_sender
+                .send(WebGPUMsg::UncapturedError {
+                    device: WebGPUDevice(device_id),
+                    pipeline_id: device_scope.pipeline_id,
+                    error: error.clone(),
+                })
+                .is_err()
+            {
+                warn!("Failed to send WebGPUMsg::UncapturedError: {error:?}");
             }
         } // else device is lost
     }
