@@ -9,6 +9,7 @@ use std::io::Read;
 use std::path::Path;
 use std::ptr;
 
+use base::text::{UnicodeBlock, UnicodeBlockMethod};
 use fontconfig_sys::constants::{
     FC_FAMILY, FC_FILE, FC_FONTFORMAT, FC_INDEX, FC_SLANT, FC_SLANT_ITALIC, FC_SLANT_OBLIQUE,
     FC_WEIGHT, FC_WEIGHT_BOLD, FC_WEIGHT_EXTRABLACK, FC_WEIGHT_REGULAR, FC_WIDTH,
@@ -28,7 +29,6 @@ use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use style::values::computed::{FontStretch, FontStyle, FontWeight};
 use style::Atom;
-use ucd::{Codepoint, UnicodeBlock};
 use unicode_script::Script;
 
 use super::c_str_to_string;

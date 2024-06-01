@@ -6,17 +6,16 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
+use base::text::{unicode_plane, UnicodeBlock, UnicodeBlockMethod};
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use style::Atom;
-use ucd::{Codepoint, UnicodeBlock};
 use unicode_script::Script;
 use webrender_api::NativeFontHandle;
 
 use crate::font_template::{FontTemplate, FontTemplateDescriptor};
 use crate::platform::font::CoreTextFontTraitsMapping;
-use crate::text::util::unicode_plane;
 use crate::text::FallbackFontSelectionOptions;
 
 /// An identifier for a local font on a MacOS system. These values comes from the CoreText
