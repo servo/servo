@@ -8,7 +8,6 @@ use rustc_lint::{LateContext, LateLintPass, LintContext, LintPass, LintStore};
 use rustc_middle::ty;
 use rustc_session::declare_tool_lint;
 use rustc_span::def_id::LocalDefId;
-use rustc_span::source_map;
 use rustc_span::symbol::{sym, Symbol};
 
 use crate::common::{in_derive_expn, match_def_path};
@@ -192,7 +191,9 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                         UNROOTED_MUST_ROOT,
                         "Type must be rooted, use #[crown::unrooted_must_root_lint::must_root] \
                          on the struct definition to propagate",
-                        |lint| lint.set_span(field.span),
+                        |lint| {
+                            lint.span(field.span);
+                        },
                     )
                 }
             }
@@ -216,7 +217,9 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                                 "Type must be rooted, \
                                 use #[crown::unrooted_must_root_lint::must_root] \
                                 on the enum definition to propagate",
-                                |lint| lint.set_span(field.ty.span),
+                                |lint| {
+                                    lint.span(field.ty.span);
+                                },
                             )
                         }
                     }
@@ -232,7 +235,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
         kind: visit::FnKind<'tcx>,
         decl: &'tcx hir::FnDecl,
         body: &'tcx hir::Body,
-        span: source_map::Span,
+        span: rustc_span::Span,
         def_id: LocalDefId,
     ) {
         let in_new_function = match kind {
@@ -248,7 +251,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
             for (arg, ty) in decl.inputs.iter().zip(sig.inputs().skip_binder().iter()) {
                 if is_unrooted_ty(&self.symbols, cx, *ty, false) {
                     cx.lint(UNROOTED_MUST_ROOT, "Type must be rooted", |lint| {
-                        lint.set_span(arg.span)
+                        lint.span(arg.span);
                     })
                 }
             }
@@ -257,7 +260,7 @@ impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
                 is_unrooted_ty(&self.symbols, cx, sig.output().skip_binder(), false)
             {
                 cx.lint(UNROOTED_MUST_ROOT, "Type must be rooted", |lint| {
-                    lint.set_span(decl.output.span())
+                    lint.span(decl.output.span());
                 })
             }
         }
@@ -289,7 +292,9 @@ impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
                 cx.lint(
                     UNROOTED_MUST_ROOT,
                     format!("Expression of type {:?} must be rooted", ty),
-                    |lint| lint.set_span(subexpr.span),
+                    |lint| {
+                        lint.span(subexpr.span);
+                    },
                 )
             }
         };
@@ -331,7 +336,9 @@ impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
                     cx.lint(
                         UNROOTED_MUST_ROOT,
                         format!("Expression of type {:?} must be rooted", ty),
-                        |lint| lint.set_span(pat.span),
+                        |lint| {
+                            lint.span(pat.span);
+                        },
                     )
                 }
             },
