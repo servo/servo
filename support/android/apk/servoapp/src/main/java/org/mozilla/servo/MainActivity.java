@@ -14,6 +14,7 @@ import android.os.Bundle;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.util.Log;
+import android.util.Patterns;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
@@ -79,7 +80,7 @@ public class MainActivity extends Activity implements Servo.Client {
         mServoView.setServoArgs(args, log);
 
         if (Intent.ACTION_VIEW.equals(intent.getAction())) {
-          mServoView.loadUri(intent.getData());
+            mServoView.loadUri(intent.getData());
         }
         setupUrlField();
     }
@@ -102,8 +103,9 @@ public class MainActivity extends Activity implements Servo.Client {
             return false;
         });
         mUrlField.setOnFocusChangeListener((v, hasFocus) -> {
-            if(v.getId() == R.id.urlfield && !hasFocus) {
-                InputMethodManager imm =  (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (v.getId() == R.id.urlfield && !hasFocus) {
+                InputMethodManager imm =
+                        (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
                 assert imm != null;
                 imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
             }
@@ -113,41 +115,42 @@ public class MainActivity extends Activity implements Servo.Client {
     private void loadUrlFromField() {
         String text = mUrlField.getText().toString();
         text = text.trim();
-        String uri;
+        String url;
 
-        if (text.contains(" ") || !text.contains(".")) {
-            uri =  URLUtil.composeSearchUrl(text, "https://duckduckgo.com/html/?q=%s", "%s");
+        if (Patterns.WEB_URL.matcher(text).matches()) {
+            url = URLUtil.guessUrl(text).replaceFirst("http://", "https://");
+        } else if (text.matches("(http://)?localhost:\\d{1,5}(/.*)?")) {
+            url = text.startsWith("http://") ? text : "http://" + text;
         } else {
-            uri = URLUtil.guessUrl(text);
-
-            if (uri.startsWith("http://") && !text.startsWith("http://")) {
-                uri = uri.replaceFirst("http://", "https://");
-            }
+            url = URLUtil.composeSearchUrl(text, "https://duckduckgo.com/html/?q=%s", "%s");
         }
 
-        mServoView.loadUri(Uri.parse(uri));
+        mServoView.loadUri(Uri.parse(url));
     }
 
     // From activity_main.xml:
     public void onReloadClicked(View v) {
         mServoView.reload();
     }
+
     public void onBackClicked(View v) {
         mServoView.goBack();
     }
+
     public void onForwardClicked(View v) {
         mServoView.goForward();
     }
+
     public void onStopClicked(View v) {
         mServoView.stop();
     }
 
     @Override
     public void onAlert(String message) {
-      AlertDialog.Builder builder = new AlertDialog.Builder(this);
-      builder.setMessage(message);
-      AlertDialog alert = builder.create();
-      alert.show();
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage(message);
+        AlertDialog alert = builder.create();
+        alert.show();
     }
 
     @Override
