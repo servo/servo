@@ -305,4 +305,16 @@
 
   }, `setCodecPreferences() filters on receiver and prefers receiver order`);
 
+["audio", "video"].forEach(kind => promise_test(async (t) => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const [codec] = RTCRtpReceiver.getCapabilities(kind).codecs;
+    codec.mimeType = codec.mimeType.toUpperCase();
+    const transceiver = pc.addTransceiver(kind);
+    transceiver.setCodecPreferences([codec]);
+
+    codec.mimeType = codec.mimeType.toLowerCase();
+    transceiver.setCodecPreferences([codec]);
+  }, `setCodecPreferences should accept ${kind} codecs regardless of mimeType case`));
+
  </script>

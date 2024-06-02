@@ -13,7 +13,8 @@ use arrayvec::ArrayVec;
 use base::id::PipelineId;
 use euclid::default::Size2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender, IpcSharedMemory};
-use log::{error, warn};
+use log::{error, info, warn};
+use servo_config::pref;
 use webrender::{RenderApi, RenderApiSender, Transaction};
 use webrender_api::{DirtyRect, DocumentId};
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
@@ -21,6 +22,7 @@ use wgc::command::{ImageCopyBuffer, ImageCopyTexture};
 use wgc::device::queue::SubmittedWorkDoneClosure;
 use wgc::device::{DeviceDescriptor, HostMap, ImplicitPipelineIds};
 use wgc::id::DeviceId;
+use wgc::instance::parse_backends_from_comma_list;
 use wgc::pipeline::ShaderModuleDescriptor;
 use wgc::resource::{BufferMapCallback, BufferMapOperation};
 use wgc::{gfx_select, id};
@@ -88,10 +90,20 @@ impl WGPU {
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
         wgpu_image_map: Arc<Mutex<HashMap<u64, PresentationData>>>,
     ) -> Self {
+        let backend_pref = pref!(dom.webgpu.wgpu_backend);
+        let backends = if backend_pref.is_empty() {
+            wgt::Backends::PRIMARY
+        } else {
+            info!(
+                "Selecting backends based on dom.webgpu.wgpu_backend pref: {:?}",
+                backend_pref
+            );
+            parse_backends_from_comma_list(&backend_pref)
+        };
         let global = Arc::new(wgc::global::Global::new(
             "wgpu-core",
             InstanceDescriptor {
-                backends: wgt::Backends::PRIMARY,
+                backends,
                 ..Default::default()
             },
         ));
@@ -192,19 +204,18 @@ impl WGPU {
                             .get(&command_encoder_id)
                         {
                             Err(Error::Internal(err.clone()))
+                        } else if let Some(error) =
+                            gfx_select!(command_encoder_id => global.command_encoder_finish(
+                                command_encoder_id,
+                                &wgt::CommandBufferDescriptor::default()
+                            ))
+                            .1
+                        {
+                            Err(Error::from_error(error))
                         } else {
-                            if let Some(error) =
-                                gfx_select!(command_encoder_id => global.command_encoder_finish(
-                                    command_encoder_id,
-                                    &wgt::CommandBufferDescriptor::default()
-                                ))
-                                .1
-                            {
-                                Err(Error::from_error(error))
-                            } else {
-                                Ok(())
-                            }
+                            Ok(())
                         };
+
                         self.encoder_record_error(command_encoder_id, &result);
                         self.maybe_dispatch_error(device_id, result.err());
                     },
@@ -734,7 +745,7 @@ impl WGPU {
                             )))
                         } else {
                             gfx_select!(queue_id => global.queue_submit(queue_id, &command_buffers))
-                                .map_err(|e| Error::from_error(e))
+                                .map_err(Error::from_error)
                         };
                         self.maybe_dispatch_error(queue_id.transmute(), result.err());
                     },
@@ -1083,12 +1094,10 @@ impl WGPU {
                                         error_scope.errors
                                     );
                                 }
-                            } else {
-                                if let Err(e) = sender.send(Some(Ok(
-                                    WebGPUResponse::PoppedErrorScope(Err(PopError::Empty)),
-                                ))) {
-                                    warn!("Unable to send PopError::Empty: {e:?}");
-                                }
+                            } else if let Err(e) = sender.send(Some(Ok(
+                                WebGPUResponse::PoppedErrorScope(Err(PopError::Empty)),
+                            ))) {
+                                warn!("Unable to send PopError::Empty: {e:?}");
                             }
                         } else {
                             // device lost
@@ -1132,18 +1141,16 @@ impl WGPU {
                 .find(|error_scope| error_scope.filter == error.filter())
             {
                 error_scope.errors.push(error);
-            } else {
-                if self
-                    .script_sender
-                    .send(WebGPUMsg::UncapturedError {
-                        device: WebGPUDevice(device_id),
-                        pipeline_id: device_scope.pipeline_id,
-                        error: error.clone(),
-                    })
-                    .is_err()
-                {
-                    warn!("Failed to send WebGPUMsg::UncapturedError: {error:?}");
-                }
+            } else if self
+                .script_sender
+                .send(WebGPUMsg::UncapturedError {
+                    device: WebGPUDevice(device_id),
+                    pipeline_id: device_scope.pipeline_id,
+                    error: error.clone(),
+                })
+                .is_err()
+            {
+                warn!("Failed to send WebGPUMsg::UncapturedError: {error:?}");
             }
         } // else device is lost
     }

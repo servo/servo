@@ -28,7 +28,7 @@
     window.onmessage = function(e) {
       if (e.source == i1.contentWindow) {
         if (e.data == "abc_executed") { t1.done(); return; }
-        if (e.data == "script-src 'nonce-abc' 'sha256-IIB78ZS1RMMrAWpsLg/RrDbVPhI14rKm3sFOeKPYulw=';") { t2.done(); return; }
+        if (e.data == "script-src 'nonce-abc' 'sha256-IIB78ZS1RMMrAWpsLg/RrDbVPhI14rKm3sFOeKPYulw='") { t2.done(); return; }
 
         t1.step(function() { assert_unreached("Unexpected message received"); });
         t2.step(function() { assert_unreached("Unexpected message received"); });
@@ -36,7 +36,7 @@
 
       if (e.source == i2.contentWindow) {
         if (e.data == "def_executed") { t3.done(); return; }
-        if (e.data == "script-src 'nonce-def' 'sha256-IIB78ZS1RMMrAWpsLg/RrDbVPhI14rKm3sFOeKPYulw=';") { t4.done(); return; }
+        if (e.data == "script-src 'nonce-def' 'sha256-IIB78ZS1RMMrAWpsLg/RrDbVPhI14rKm3sFOeKPYulw='") { t4.done(); return; }
 
         t3.step(function() { assert_unreached("Unexpected message received"); });
         t4.step(function() { assert_unreached("Unexpected message received"); });

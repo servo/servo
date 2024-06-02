@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-properties-values-api/#calculation-of-computed-values" />
+<link rel="match" href="registered-property-computation-color-001-ref.html">
+<style>
+@property --x {
+  inherits: true;
+  initial-value: black;
+  syntax: "<color>";
+}
+div {
+  color-scheme: dark;
+  --x: light-dark(red, green);
+  background-color: var(--x);
+  width: 100px;
+  height: 100px;
+}
+</style>
+<div></div>

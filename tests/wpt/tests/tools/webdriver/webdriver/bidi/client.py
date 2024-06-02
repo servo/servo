@@ -211,9 +211,9 @@ class BidiSession:
 
     async def end(self) -> None:
         """Close websocket connection."""
-        assert self.transport is not None
-        await self.transport.end()
-        self.transport = None
+        if self.transport is not None:
+            await self.transport.end()
+            self.transport = None
 
     def add_event_listener(
         self,

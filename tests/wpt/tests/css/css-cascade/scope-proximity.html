@@ -121,3 +121,21 @@ test_scope(document.currentScript, () => {
   assert_equals(getComputedStyle(item).borderColor, 'rgb(0, 128, 0)');
 }, 'Specificity wins over proximity');
 </script>
+
+<template>
+  <style>
+    @scope (.foo) {
+      .bar span[id] { border-color:green; }
+    }
+  </style>
+  <div class=foo>
+    <div class="foo bar">
+      <span id=item></span>
+    </div>
+  </div>
+</template>
+<script>
+test_scope(document.currentScript, () => {
+  assert_equals(getComputedStyle(item).borderColor, 'rgb(0, 128, 0)');
+}, 'Identical root with further proximity is not ignored');
+</script>

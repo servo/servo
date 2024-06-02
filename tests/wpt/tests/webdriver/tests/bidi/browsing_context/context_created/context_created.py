@@ -96,6 +96,10 @@ async def test_evaluate_window_open_with_url(bidi_session, subscribe_events, wai
 async def test_event_emitted_before_create_returns(
     bidi_session, subscribe_events, type_hint
 ):
+    # Subscribe before assigning the listener, as subscription emits the events
+    # for already existing contexts.
+    await subscribe_events([CONTEXT_CREATED_EVENT])
+
     events = []
 
     async def on_event(method, data):
@@ -103,7 +107,6 @@ async def test_event_emitted_before_create_returns(
 
     remove_listener = bidi_session.add_event_listener(CONTEXT_CREATED_EVENT, on_event)
 
-    await subscribe_events([CONTEXT_CREATED_EVENT])
     context = await bidi_session.browsing_context.create(type_hint=type_hint)
 
     # If the browsingContext.contextCreated event was emitted after the
@@ -124,13 +127,16 @@ async def test_event_emitted_before_create_returns(
 
 
 async def test_navigate_creates_iframes(bidi_session, subscribe_events, top_context, test_page_multiple_frames):
+    # Subscribe before assigning the listener, as subscription emits the events
+    # for already existing contexts.
+    await subscribe_events([CONTEXT_CREATED_EVENT])
+
     events = []
 
     async def on_event(method, data):
         events.append(data)
 
     remove_listener = bidi_session.add_event_listener(CONTEXT_CREATED_EVENT, on_event)
-    await subscribe_events([CONTEXT_CREATED_EVENT])
 
     await bidi_session.browsing_context.navigate(
         context=top_context["context"], url=test_page_multiple_frames, wait="complete"
@@ -172,13 +178,16 @@ async def test_navigate_creates_iframes(bidi_session, subscribe_events, top_cont
 
 
 async def test_navigate_creates_nested_iframes(bidi_session, subscribe_events, top_context, test_page_nested_frames):
+    # Subscribe before assigning the listener, as subscription emits the events
+    # for already existing contexts.
+    await subscribe_events([CONTEXT_CREATED_EVENT])
+
     events = []
 
     async def on_event(method, data):
         events.append(data)
 
     remove_listener = bidi_session.add_event_listener(CONTEXT_CREATED_EVENT, on_event)
-    await subscribe_events([CONTEXT_CREATED_EVENT])
 
     await bidi_session.browsing_context.navigate(
         context=top_context["context"], url=test_page_nested_frames, wait="complete"
@@ -264,14 +273,16 @@ async def test_new_user_context(
     create_user_context,
     type_hint,
 ):
+    # Subscribe before assigning the listener, as subscription emits the events
+    # for already existing contexts.
+    await subscribe_events([CONTEXT_CREATED_EVENT])
+
     events = []
 
     async def on_event(method, data):
         events.append(data)
 
     remove_listener = bidi_session.add_event_listener(CONTEXT_CREATED_EVENT, on_event)
-
-    await subscribe_events([CONTEXT_CREATED_EVENT])
 
     user_context = await create_user_context()
     assert len(events) == 0

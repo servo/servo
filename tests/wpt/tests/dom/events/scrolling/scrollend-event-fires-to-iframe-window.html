@@ -11,17 +11,6 @@
   <script src="scroll_support.js"></script>
   <script src="scrollend-user-scroll-common.js"></script>
   <style>
-    #targetDiv {
-      width: 200px;
-      height: 200px;
-      overflow: scroll;
-    }
-
-    #innerDiv {
-      width: 400px;
-      height: 400px;
-    }
-
     iframe {
       height: 300px;
       width: 300px;
@@ -54,7 +43,7 @@
     'dragging the scrollbar thumb.');
 
     promise_test(async (t) => {
-      await test_scrollend_on_mousewheel_scroll(t, target_div);
+      await test_scrollend_on_mousewheel_scroll(t, target_div, frame);
     }, 'Tests that the target_div within iframe gets scrollend event when mouse ' +
     'wheel scrolling.');
 

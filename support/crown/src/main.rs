@@ -10,10 +10,12 @@
 extern crate rustc_ast;
 extern crate rustc_driver;
 extern crate rustc_error_messages;
+extern crate rustc_errors;
 extern crate rustc_hir;
 extern crate rustc_infer;
 extern crate rustc_interface;
 extern crate rustc_lint;
+extern crate rustc_log;
 extern crate rustc_middle;
 extern crate rustc_session;
 extern crate rustc_span;
@@ -60,8 +62,8 @@ impl Callbacks for MyCallbacks {
 
 fn main() -> ExitCode {
     let handler =
-        rustc_session::EarlyErrorHandler::new(rustc_session::config::ErrorOutputType::default());
-    rustc_driver::init_env_logger(&handler, "CROWN_LOG");
+        rustc_session::EarlyDiagCtxt::new(rustc_session::config::ErrorOutputType::default());
+    rustc_driver::init_logger(&handler, rustc_log::LoggerConfig::from_env("CROWN_LOG"));
     let args: Vec<_> = std::env::args().collect();
 
     match rustc_driver::RunCompiler::new(&args, &mut MyCallbacks).run() {

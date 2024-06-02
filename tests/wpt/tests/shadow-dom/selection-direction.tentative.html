@@ -100,6 +100,24 @@ promise_test(async () => {
     assert_equals(sel.focusOffset, 1);
     assert_equals(sel.direction, 'none');
 }, 'direction returns "none" when there is a triple click selection(directionless)');
+
+promise_test(async () => {
+    container.innerHTML = 'hello, world';
+    const click = new test_driver.Actions()
+      .pointerMove(0, 0, container.firstChild)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    await click;
+
+    const sel = getSelection();
+    assert_equals(sel.anchorNode, container.firstChild);
+    assert_equals(sel.anchorOffset, 0);
+    assert_equals(sel.focusNode, container.firstChild);
+    assert_equals(sel.focusOffset, 0);
+    assert_true(sel.isCollapsed);
+    assert_equals(sel.direction, 'none');
+}, 'direction returns "none" when the selection is collapsed');
 </script>
 </body>
 </html>

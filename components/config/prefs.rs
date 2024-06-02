@@ -209,6 +209,8 @@ mod gen {
                 webgpu: {
                     /// Enable WebGPU APIs.
                     enabled: bool,
+                    /// List of comma-separated backends to be used by wgpu
+                    wgpu_backend: String,
                 },
                 bluetooth: {
                     enabled: bool,

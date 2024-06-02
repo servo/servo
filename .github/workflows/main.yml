@@ -35,7 +35,7 @@ jobs:
     uses: ./.github/workflows/linux.yml
     with:
       unit-tests: true
-      wpt-layout: ${{ github.event_name == 'pull_request' && 'none' || 'all' }}
+      wpt-layout: ${{ github.event_name == 'pull_request' && 'none' || '2020' }}
     secrets: inherit
 
   build-android:

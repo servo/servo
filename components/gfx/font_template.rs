@@ -79,9 +79,9 @@ impl FontTemplateDescriptor {
 
         // Sanity-check that the distances are within the expected range
         // (update if implementation of the distance functions is changed).
-        assert!(stretch_distance >= 0.0 && stretch_distance <= 2000.0);
-        assert!(style_distance >= 0.0 && style_distance <= 500.0);
-        assert!(weight_distance >= 0.0 && weight_distance <= 1600.0);
+        assert!((0.0..=2000.0).contains(&stretch_distance));
+        assert!((0.0..=500.0).contains(&style_distance));
+        assert!((0.0..=1600.0).contains(&weight_distance));
 
         // Factors used to weight the distances between the available and target font
         // properties during font-matching. These ensure that we respect the CSS-fonts
@@ -95,9 +95,9 @@ impl FontTemplateDescriptor {
         const STYLE_FACTOR: f32 = 1.0e4;
         const WEIGHT_FACTOR: f32 = 1.0e0;
 
-        return stretch_distance * STRETCH_FACTOR +
+        stretch_distance * STRETCH_FACTOR +
             style_distance * STYLE_FACTOR +
-            weight_distance * WEIGHT_FACTOR;
+            weight_distance * WEIGHT_FACTOR
     }
 
     fn matches(&self, descriptor_to_match: &FontDescriptor) -> bool {
@@ -395,7 +395,7 @@ impl FontMatchDistanceMethod for FontWeight {
             return (min_weight.to_float() - self.to_float()) + REVERSE_DISTANCE;
         }
         // Lighter weights are not as good as bolder ones within [400..500]
-        return (self.to_float() - max_weight.to_float()) + NOT_WITHIN_CENTRAL_RANGE;
+        (self.to_float() - max_weight.to_float()) + NOT_WITHIN_CENTRAL_RANGE
     }
 
     fn to_float(&self) -> f32 {
@@ -554,7 +554,7 @@ impl FontMatchDistanceMethod for FontStyle {
         if min_style == FontStyle::ITALIC {
             return REVERSE + NEGATE - 2.0;
         }
-        return REVERSE + NEGATE - 1.0;
+        REVERSE + NEGATE - 1.0
     }
 
     fn to_float(&self) -> f32 {

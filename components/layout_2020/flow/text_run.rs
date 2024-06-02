@@ -9,7 +9,7 @@ use app_units::Au;
 use gfx::font::{FontRef, ShapingFlags, ShapingOptions};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
-use gfx::text::text_run::GlyphRun;
+use gfx::text::glyph::GlyphRun;
 use gfx_traits::ByteIndex;
 use log::warn;
 use range::Range;
@@ -18,7 +18,10 @@ use servo_arc::Arc;
 use style::computed_values::text_rendering::T as TextRendering;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
+use style::properties::style_structs::InheritedText;
 use style::properties::ComputedValues;
+use style::str::char_is_whitespace;
+use style::values::computed::OverflowWrap;
 use style::values::specified::text::TextTransformCase;
 use style::values::specified::TextTransform;
 use unicode_script::Script;
@@ -256,14 +259,13 @@ impl TextRun {
                     script: segment.script,
                     flags,
                 };
-                (segment.runs, segment.break_at_start) =
-                    gfx::text::text_run::TextRun::break_and_shape(
-                        font,
-                        &self.text
-                            [segment.range.begin().0 as usize..segment.range.end().0 as usize],
-                        &shaping_options,
-                        linebreaker,
-                    );
+                (segment.runs, segment.break_at_start) = break_and_shape(
+                    font,
+                    &self.text[segment.range.begin().0 as usize..segment.range.end().0 as usize],
+                    &inherited_text_style,
+                    &shaping_options,
+                    linebreaker,
+                );
 
                 segment
             })
@@ -590,8 +592,17 @@ where
         // > characters are considered collapsible
         // If whitespace is not considered collapsible, it is preserved entirely, which
         // means that we can simply return the input string exactly.
-        if self.white_space_collapse == WhiteSpaceCollapse::Preserve {
-            return self.char_iterator.next();
+        if self.white_space_collapse == WhiteSpaceCollapse::Preserve ||
+            self.white_space_collapse == WhiteSpaceCollapse::BreakSpaces
+        {
+            // From <https://drafts.csswg.org/css-text-3/#white-space-processing>:
+            // > Carriage returns (U+000D) are treated identically to spaces (U+0020) in all respects.
+            //
+            // In the non-preserved case these are converted to space below.
+            return match self.char_iterator.next() {
+                Some('\r') => Some(' '),
+                next => next,
+            };
         }
 
         if let Some(character) = self.character_pending_to_return.take() {
@@ -827,6 +838,132 @@ where
         };
 
         self.next_character = self.iterator.next();
-        return Some((character, self.next_character.clone()));
+        Some((character, self.next_character))
     }
+}
+
+pub fn break_and_shape(
+    font: FontRef,
+    text: &str,
+    text_style: &InheritedText,
+    shaping_options: &ShapingOptions,
+    breaker: &mut Option<LineBreakLeafIter>,
+) -> (Vec<GlyphRun>, bool) {
+    let mut glyphs = vec![];
+
+    if breaker.is_none() {
+        if text.is_empty() {
+            return (glyphs, true);
+        }
+        *breaker = Some(LineBreakLeafIter::new(text, 0));
+    }
+
+    let breaker = breaker.as_mut().unwrap();
+
+    let mut push_range = |range: &std::ops::Range<usize>, options: &ShapingOptions| {
+        glyphs.push(GlyphRun {
+            glyph_store: font.shape_text(&text[range.clone()], options),
+            range: Range::new(
+                ByteIndex(range.start as isize),
+                ByteIndex(range.len() as isize),
+            ),
+        });
+    };
+
+    let can_break_anywhere = text_style.word_break == WordBreak::BreakAll ||
+        text_style.overflow_wrap == OverflowWrap::Anywhere ||
+        text_style.overflow_wrap == OverflowWrap::BreakWord;
+
+    let mut break_at_zero = false;
+    let mut last_slice_end = 0;
+    while last_slice_end != text.len() {
+        let (break_index, _is_hard_break) = breaker.next(text);
+        if break_index == 0 {
+            break_at_zero = true;
+        }
+
+        // Extend the slice to the next UAX#14 line break opportunity.
+        let mut slice = last_slice_end..break_index;
+        let word = &text[slice.clone()];
+
+        // Split off any trailing whitespace into a separate glyph run.
+        let mut whitespace = slice.end..slice.end;
+        let mut rev_char_indices = word.char_indices().rev().peekable();
+        let ends_with_newline = rev_char_indices.peek().map_or(false, |&(_, c)| c == '\n');
+        if let Some((first_white_space_index, first_white_space_character)) = rev_char_indices
+            .take_while(|&(_, c)| char_is_whitespace(c))
+            .last()
+        {
+            whitespace.start = slice.start + first_white_space_index;
+
+            // If line breaking for a piece of text that has `white-space-collapse: break-spaces` there
+            // is a line break opportunity *after* every preserved space, but not before. This means
+            // that we should not split off the first whitespace, unless that white-space is a preserved
+            // newline.
+            //
+            // An exception to this is if the style tells us that we can break in the middle of words.
+            if text_style.white_space_collapse == WhiteSpaceCollapse::BreakSpaces &&
+                first_white_space_character != '\n' &&
+                !can_break_anywhere
+            {
+                whitespace.start += first_white_space_character.len_utf8();
+            }
+
+            slice.end = whitespace.start;
+        }
+
+        // If there's no whitespace and `word-break` is set to `keep-all`, try increasing the slice.
+        // TODO: This should only happen for CJK text.
+        let can_break_anywhere = text_style.word_break == WordBreak::BreakAll ||
+            text_style.overflow_wrap == OverflowWrap::Anywhere ||
+            text_style.overflow_wrap == OverflowWrap::BreakWord;
+        if whitespace.is_empty() &&
+            break_index != text.len() &&
+            text_style.word_break == WordBreak::KeepAll &&
+            !can_break_anywhere
+        {
+            continue;
+        }
+
+        // Only advance the last_slice_end if we are not going to try to expand the slice.
+        last_slice_end = break_index;
+
+        // Push the non-whitespace part of the range.
+        if !slice.is_empty() {
+            push_range(&slice, shaping_options);
+        }
+
+        if whitespace.is_empty() {
+            continue;
+        }
+
+        let mut options = *shaping_options;
+        options
+            .flags
+            .insert(ShapingFlags::IS_WHITESPACE_SHAPING_FLAG);
+
+        // If `white-space-collapse: break-spaces` is active, insert a line breaking opportunity
+        // between each white space character in the white space that we trimmed off.
+        if text_style.white_space_collapse == WhiteSpaceCollapse::BreakSpaces {
+            let start_index = whitespace.start;
+            for (index, character) in text[whitespace].char_indices() {
+                let index = start_index + index;
+                push_range(&(index..index + character.len_utf8()), &options);
+            }
+            continue;
+        }
+
+        // The breaker breaks after every newline, so either there is none,
+        // or there is exactly one at the very end. In the latter case,
+        // split it into a different run. That's because shaping considers
+        // a newline to have the same advance as a space, but during layout
+        // we want to treat the newline as having no advance.
+        if ends_with_newline && whitespace.len() > 1 {
+            push_range(&(whitespace.start..whitespace.end - 1), &options);
+            push_range(&(whitespace.end - 1..whitespace.end), &options);
+        } else {
+            push_range(&whitespace, &options);
+        }
+    }
+    (glyphs, break_at_zero)
 }

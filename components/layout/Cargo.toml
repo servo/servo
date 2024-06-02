@@ -9,7 +9,7 @@ publish = false
 [lib]
 name = "layout_2013"
 path = "lib.rs"
-test = false
+test = true
 doctest = false
 
 [dependencies]

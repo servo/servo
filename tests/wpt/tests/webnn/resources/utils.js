@@ -1819,4 +1819,197 @@ const testDispatchWebNNBuffer = (testName) => {
         ml_context, dispatch_1_outputs['output2'],
         new Float32Array(sizeOfShape(shape)).fill(8));
   }, `${testName} / outputs_as_inputs`);
+
+  promise_test(async () => {
+    // MLBuffer was unsupported for the deviceType.
+    if (!isMLBufferSupported(ml_context)) {
+      return;
+    }
+
+    // Construct a simple graph: OUTPUT = LHS - RHS.
+    const builder = new MLGraphBuilder(ml_context);
+    const operandType = {dataType: 'float32', dimensions: shape};
+    const lhsOperand = builder.input('lhs', operandType);
+    const rhsOperand = builder.input('rhs', operandType);
+    const graph =
+        await builder.build({'output': builder.sub(lhsOperand, rhsOperand)});
+
+    const lhsBuffer = ml_context.createBuffer({size: inputs['lhs'].size});
+    const rhsBuffer = ml_context.createBuffer({size: inputs['rhs'].size});
+
+    const dispatchOutputs = {
+      'output': ml_context.createBuffer({size: outputs['output1'].size})
+    };
+
+    // Initialize inputs
+    ml_context.writeBuffer(
+        lhsBuffer, new TypedArrayDict['float32'](sizeOfShape(shape)).fill(5.0));
+    ml_context.writeBuffer(
+        rhsBuffer, new TypedArrayDict['float32'](sizeOfShape(shape)).fill(3.0));
+
+    // Output = LHS - RHS = 5 - 3 = 2
+    ml_context.dispatch(
+        graph, {
+          'lhs': lhsBuffer,
+          'rhs': rhsBuffer,
+        },
+        dispatchOutputs);
+
+    await assert_buffer_data_equals(
+        ml_context, dispatchOutputs['output'],
+        new Float32Array(sizeOfShape(shape)).fill(2));
+
+    // Output = RHS - LHS = 3 - 5 = -2
+    ml_context.dispatch(
+        graph, {
+          'lhs': rhsBuffer,
+          'rhs': lhsBuffer,
+        },
+        dispatchOutputs);
+
+    await assert_buffer_data_equals(
+        ml_context, dispatchOutputs['output'],
+        new Float32Array(sizeOfShape(shape)).fill(-2));
+  }, `${testName} / same name diff input buffers`);
+
+  promise_test(async () => {
+    // MLBuffer was unsupported for the deviceType.
+    if (!isMLBufferSupported(ml_context)) {
+      return;
+    }
+
+    const dispatchInputs = {
+      'lhs': ml_context.createBuffer({size: inputs['lhs'].size}),
+      'rhs': ml_context.createBuffer({size: inputs['rhs'].size}),
+    };
+
+    const outputBuffer1 =
+        ml_context.createBuffer({size: outputs['output1'].size});
+    const outputBuffer2 =
+        ml_context.createBuffer({size: outputs['output2'].size});
+
+    // Initialize inputs
+    const inputData1 =
+        new TypedArrayDict['float32'](sizeOfShape(shape)).fill(1.0);
+    ml_context.writeBuffer(dispatchInputs['lhs'], inputData1);
+    ml_context.writeBuffer(dispatchInputs['rhs'], inputData1);
+
+    // Output = LHS + RHS = 1 + 1 = 2
+    ml_context.dispatch(ml_graph, dispatchInputs, {
+      'output1': outputBuffer1,
+      'output2': outputBuffer2,
+    });
+
+    // Output = LHS + RHS = 2 + 2 = 4
+    const inputData2 =
+        new TypedArrayDict['float32'](sizeOfShape(shape)).fill(2.0);
+    ml_context.writeBuffer(dispatchInputs['lhs'], inputData2);
+    ml_context.writeBuffer(dispatchInputs['rhs'], inputData2);
+
+    ml_context.dispatch(ml_graph, dispatchInputs, {
+      'output1': outputBuffer1,
+      'output2': ml_context.createBuffer({size: outputs['output2'].size}),
+    });
+
+    // Ensure the last dispatch() did not modify the original second output
+    // buffer.
+    await assert_buffer_data_equals(
+        ml_context, outputBuffer2,
+        new Float32Array(sizeOfShape(shape)).fill(2));
+  }, `${testName} / same name diff outputs buffers`);
+
+  promise_test(async () => {
+    // MLBuffer was unsupported for the deviceType.
+    if (!isMLBufferSupported(ml_context)) {
+      return;
+    }
+
+    const dispatchInputs = {
+      'lhs': ml_context.createBuffer({size: inputs['lhs'].size}),
+      'rhs': ml_context.createBuffer({size: inputs['rhs'].size}),
+    };
+
+    const dispatchOutputs = {
+      'output1': ml_context.createBuffer({size: outputs['output1'].size}),
+      'output2': ml_context.createBuffer({size: outputs['output2'].size}),
+    };
+
+    // Initialize inputs
+    const inputData =
+        new TypedArrayDict['float32'](sizeOfShape(shape)).fill(1.0);
+    ml_context.writeBuffer(dispatchInputs['lhs'], inputData);
+    ml_context.writeBuffer(dispatchInputs['rhs'], inputData);
+
+    // Output = LHS + RHS = 1 + 1 = 2
+    ml_context.dispatch(ml_graph, dispatchInputs, dispatchOutputs);
+
+    // Check destroyed input buffers cannot be re-used in subsequent dispatches.
+    dispatchInputs['lhs'].destroy();
+    dispatchInputs['lhs'] = ml_context.createBuffer({size: inputs['lhs'].size});
+
+    const newInputData =
+        new TypedArrayDict['float32'](sizeOfShape(shape)).fill(2.0);
+    ml_context.writeBuffer(dispatchInputs['lhs'], newInputData);
+
+    // Output = LHS + RHS = 2 + 1 = 3
+    ml_context.dispatch(ml_graph, dispatchInputs, dispatchOutputs);
+
+    await assert_buffer_data_equals(
+        ml_context, dispatchOutputs['output1'],
+        new Float32Array(sizeOfShape(shape)).fill(3));
+
+    dispatchInputs['rhs'].destroy();
+    dispatchInputs['rhs'] = ml_context.createBuffer({size: inputs['rhs'].size});
+    ml_context.writeBuffer(dispatchInputs['rhs'], newInputData);
+
+    // Output = LHS + RHS = 2 + 2 = 4
+    ml_context.dispatch(ml_graph, dispatchInputs, dispatchOutputs);
+
+    await assert_buffer_data_equals(
+        ml_context, dispatchOutputs['output1'],
+        new Float32Array(sizeOfShape(shape)).fill(4));
+  }, `${testName} / same name diff inputs buffers destroy`);
+
+  promise_test(async () => {
+    // MLBuffer was unsupported for the deviceType.
+    if (!isMLBufferSupported(ml_context)) {
+      return;
+    }
+
+    const dispatchInputs = {
+      'lhs': ml_context.createBuffer({size: inputs['lhs'].size}),
+      'rhs': ml_context.createBuffer({size: inputs['rhs'].size}),
+    };
+
+    const dispatchOutputs = {
+      'output1': ml_context.createBuffer({size: outputs['output1'].size}),
+      'output2': ml_context.createBuffer({size: outputs['output2'].size}),
+    };
+
+    // Initialize inputs
+    const inputData =
+        new TypedArrayDict['float32'](sizeOfShape(shape)).fill(1.0);
+    ml_context.writeBuffer(dispatchInputs['lhs'], inputData);
+    ml_context.writeBuffer(dispatchInputs['rhs'], inputData);
+
+    // Output = LHS + RHS = 1 + 1 = 2
+    ml_context.dispatch(ml_graph, dispatchInputs, dispatchOutputs);
+
+    // Check destroyed output buffers cannot be re-used in subsequent
+    // dispatches.
+    dispatchOutputs['output1'].destroy();
+    dispatchOutputs['output1'] =
+        ml_context.createBuffer({size: outputs['output1'].size});
+
+    const newInputData =
+        new TypedArrayDict['float32'](sizeOfShape(shape)).fill(2.0);
+    ml_context.writeBuffer(dispatchInputs['lhs'], newInputData);
+
+    // Output = LHS + RHS = 2 + 1 = 3
+    ml_context.dispatch(ml_graph, dispatchInputs, dispatchOutputs);
+
+    await assert_buffer_data_equals(
+        ml_context, dispatchOutputs['output1'],
+        new Float32Array(sizeOfShape(shape)).fill(3));
+  }, `${testName} / same name diff outputs buffers destroy`);
 };

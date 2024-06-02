@@ -35,24 +35,24 @@ html {
   background: green;
   position-anchor: --a;
   position-try-options: --pf1, --pf2, --pf3;
-  inset-block-start: anchor(--a end);
-  inset-inline-start: anchor(--a end);
+  inset-block-start: anchor(end);
+  inset-inline-start: anchor(end);
 }
 
 @position-try --pf1 {
   inset: auto;
-  inset-block-end: anchor(--a start);
-  inset-inline-start: anchor(--a end);
+  inset-block-end: anchor(start);
+  inset-inline-start: anchor(end);
 }
 @position-try --pf2 {
   inset: auto;
-  inset-block-start: anchor(--a end);
-  inset-inline-end: anchor(--a start);
+  inset-block-start: anchor(end);
+  inset-inline-end: anchor(start);
 }
 @position-try --pf3 {
   inset: auto;
-  inset-block-end: anchor(--a start);
-  inset-inline-end: anchor(--a start);
+  inset-block-end: anchor(start);
+  inset-inline-end: anchor(start);
 }
 </style>
 
