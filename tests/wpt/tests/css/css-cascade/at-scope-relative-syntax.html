@@ -2,6 +2,7 @@
 <title>@scope and Nesting: Parsing inner style rules with relative selector syntax</title>
 <link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scoped-rules">
 <link rel="help" href="https://drafts.csswg.org/css-nesting/#nesting">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10196">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <main id=main></main>
@@ -60,9 +61,9 @@
 
   for (const method of Object.keys(create_method)) {
     test_inner(['@scope' , '.nest'], method, '> .foo', '& > .foo');
-    test_inner(['.nest', '@scope'], method, '> .foo', ':scope > .foo');
+    test_inner(['.nest', '@scope'], method, '> .foo');
 
     test_inner(['@scope' , '.nest', '@media screen'], method, '> .foo', '& > .foo');
-    test_inner(['.nest', '@scope', '@media screen'], method, '> .foo', ':scope > .foo');
+    test_inner(['.nest', '@scope', '@media screen'], method, '> .foo');
   }
 </script>

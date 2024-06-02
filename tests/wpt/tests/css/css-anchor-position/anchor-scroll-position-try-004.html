@@ -36,19 +36,19 @@ body {
   position-anchor: --a;
   position-try-options: --pf1, --pf2;
   /* Top of the anchor */
-  bottom: anchor(--a top);
-  left: anchor(--a left);
+  bottom: anchor(top);
+  left: anchor(left);
 }
 
 @position-try --pf1 {
   /* Bottom of the anchor */
-  top: anchor(--a bottom);
+  top: anchor(bottom);
   bottom: auto;
 }
 @position-try --pf2 {
   /* Left of the anchor */
-  top: anchor(--a top);
-  right: anchor(--a left);
+  top: anchor(top);
+  right: anchor(left);
   bottom: auto;
   left: auto;
 }

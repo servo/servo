@@ -40,6 +40,24 @@
       container.firstChild.remove();
   }, "insertAdjacentHTML with html assigned via policy (successful HTML transformation).");
 
+  test(t => {
+    let p = createHTML_policy(window, 1);
+    var d = document.createElement('div');
+    container.appendChild(d);
+
+    assert_throws_dom("SyntaxError", _ => {
+      d.insertAdjacentHTML('invalid', p.createHTML("<p>Fail</p>"));
+    });
+
+    assert_equals(d.previousSibling, null);
+    assert_equals(d.firstChild, null);
+    assert_equals(d.lastChild, null);
+    assert_equals(d.nextSibling, null);
+
+    while (container.firstChild)
+      container.firstChild.remove();
+  }, "insertAdjacentHTML(TrustedHTML) throws SyntaxError DOMException when position invalid.");
+
   // String assignments throw.
   test(t => {
     var d = document.createElement('div');
@@ -66,6 +84,23 @@
     while (container.firstChild)
       container.firstChild.remove();
   }, "`insertAdjacentHTML(string)` throws.");
+
+  test(t => {
+    var d = document.createElement('div');
+    container.appendChild(d);
+
+    assert_throws_js(TypeError, _ => {
+      d.insertAdjacentHTML('invalid', "<p>Fail</p>");
+    });
+
+    assert_equals(d.previousSibling, null);
+    assert_equals(d.firstChild, null);
+    assert_equals(d.lastChild, null);
+    assert_equals(d.nextSibling, null);
+
+    while (container.firstChild)
+      container.firstChild.remove();
+  }, "`insertAdjacentHTML(string)` still throws TypeError when position invalid.");
 
   // Null assignment throws.
   test(t => {

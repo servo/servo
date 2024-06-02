@@ -857,7 +857,7 @@
             promise = promiseOrConstructor;
             description = descriptionOrPromise;
             assert(maybeDescription === undefined,
-                   "Too many args pased to no-constructor version of promise_rejects_dom");
+                   "Too many args passed to no-constructor version of promise_rejects_dom, or accidentally explicitly passed undefined");
         }
         return bring_promise_to_current_realm(promise)
             .then(test.unreached_func("Should have rejected: " + description))
@@ -2174,7 +2174,7 @@
             func = funcOrConstructor;
             description = descriptionOrFunc;
             assert(maybeDescription === undefined,
-                   "Too many args pased to no-constructor version of assert_throws_dom");
+                   "Too many args passed to no-constructor version of assert_throws_dom, or accidentally explicitly passed undefined");
         }
         assert_throws_dom_impl(type, func, description, "assert_throws_dom", constructor)
     }

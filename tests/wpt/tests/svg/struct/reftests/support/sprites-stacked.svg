@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <style>
+    :root svg:not(:target) {
+      display: none;
+    }
+  </style>
+  <svg id="green-rect" viewBox="0 0 24 24">
+    <rect width="24" height="24" fill="green"/>
+  </svg>
+</svg>

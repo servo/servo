@@ -449,13 +449,24 @@ test_with_at_property({
       animation: test 100s -50s linear paused;
     }
   `, (style) => {
-    assert_equals(getComputedStyle(div).getPropertyValue(name), 'rgb(150, 150, 150)');
+    // See https://github.com/w3c/csswg-drafts/issues/10371 for the two
+    // possibilities.
+    assert_in_array(getComputedStyle(div).getPropertyValue(name), [
+      'color-mix(in srgb, currentcolor, rgb(200, 200, 200))',
+      'rgb(150, 150, 150)',
+    ]);
 
     outer.style.color = 'rgb(50, 50, 50)';
-    assert_equals(getComputedStyle(div).getPropertyValue(name), 'rgb(125, 125, 125)');
+    assert_in_array(getComputedStyle(div).getPropertyValue(name), [
+      'color-mix(in srgb, currentcolor, rgb(200, 200, 200))',
+      'rgb(125, 125, 125)',
+    ]);
 
     outer.style.color = 'rgb(150, 150, 150)';
-    assert_equals(getComputedStyle(div).getPropertyValue(name), 'rgb(175, 175, 175)');
+    assert_in_array(getComputedStyle(div).getPropertyValue(name), [
+      'color-mix(in srgb, currentcolor, rgb(200, 200, 200))',
+      'rgb(175, 175, 175)',
+    ]);
 
     outer.style.removeProperty("color");
   });
@@ -475,13 +486,22 @@ test_with_at_property({
     animation.currentTime = 500;
     animation.pause();
 
-    assert_equals(getComputedStyle(div).getPropertyValue(name), 'rgb(150, 150, 150)');
+    assert_in_array(getComputedStyle(div).getPropertyValue(name), [
+      'color-mix(in srgb, currentcolor, rgb(200, 200, 200))',
+      'rgb(150, 150, 150)',
+    ]);
 
     outer.style.color = 'rgb(50, 50, 50)';
-    assert_equals(getComputedStyle(div).getPropertyValue(name), 'rgb(125, 125, 125)');
+    assert_in_array(getComputedStyle(div).getPropertyValue(name), [
+      'color-mix(in srgb, currentcolor, rgb(200, 200, 200))',
+      'rgb(125, 125, 125)',
+    ]);
 
     outer.style.color = 'rgb(150, 150, 150)';
-    assert_equals(getComputedStyle(div).getPropertyValue(name), 'rgb(175, 175, 175)');
+    assert_in_array(getComputedStyle(div).getPropertyValue(name), [
+      'color-mix(in srgb, currentcolor, rgb(200, 200, 200))',
+      'rgb(175, 175, 175)',
+    ]);
 
     outer.style.removeProperty("color");
   });

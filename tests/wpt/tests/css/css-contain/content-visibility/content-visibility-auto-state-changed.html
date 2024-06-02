@@ -11,6 +11,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/rendering-utils.js"></script>
 <script src="/common/utils.js"></script>
 <script src="/scroll-to-text-fragment/stash.js"></script>
 
@@ -59,7 +60,7 @@ promise_test(t => new Promise(async (resolve, reject) => {
   };
 
   attrtest.oncontentvisibilityautostatechange = listener;
-  t.add_cleanup(() => { attrtest.oncontentvisibilityautostatechange = () => {} });
+  t.add_cleanup(() => { attrtest.oncontentvisibilityautostatechange = null });
   attrtest.classList.add("auto");
 }), "ContentVisibilityAutoStateChange fires when relevant element gains `content-visibility:auto` (oncontentvisibilityautostatechange syntax)");
 
@@ -77,12 +78,9 @@ promise_test(t => new Promise(async (resolve, reject) => {
   lower.classList.add("auto");
 }), "ContentVisibilityAutoStateChange fires when not relevant element gains `content-visibility:auto`");
 
-async_test(t => {
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    t.step(() => assert_true(contentattrfired, "contentattrfired"));
-    t.done();
-  }));
-
+promise_test(async t => {
+  await waitForAtLeastOneFrame();
+  assert_true(contentattrfired, "contentattrfired");
 }, "ContentVisibilityAutoStateChange content attribute test");
 
 promise_test(t => new Promise(async (resolve, reject) => {

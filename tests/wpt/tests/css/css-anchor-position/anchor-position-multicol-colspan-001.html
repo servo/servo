@@ -36,10 +36,11 @@
 }
 .target {
   position: absolute;
-  left: anchor(--a1 left);
-  top: anchor(--a1 top);
-  width: anchor-size(--a1 width);
-  height: anchor-size(--a1 height);
+  position-anchor: --a1;
+  left: anchor(left);
+  top: anchor(top);
+  width: anchor-size(width);
+  height: anchor-size(height);
   background: lime;
   opacity: .3;
 }

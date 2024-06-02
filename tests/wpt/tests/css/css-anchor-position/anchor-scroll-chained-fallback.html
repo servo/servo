@@ -31,21 +31,21 @@ div {
   background: green;
   position-try-options: --fallback;
   anchor-name: --a2;
-  left: anchor(--a1 left);
-  bottom: anchor(--a1 top);
+  left: anchor(left);
+  bottom: anchor(top);
 }
 
 #anchored2 {
   position: absolute;
   position-anchor: --a2;
-  left: anchor(--a2 left);
-  top: anchor(--a2 bottom);
+  left: anchor(left);
+  top: anchor(bottom);
   background: lime;
 }
 
 @position-try --fallback {
-  left: anchor(--a1 right);
-  top: anchor(--a1 top);
+  left: anchor(right);
+  top: anchor(top);
   bottom: auto;
 }
 
