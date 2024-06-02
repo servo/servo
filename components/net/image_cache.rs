@@ -576,7 +576,7 @@ impl ImageCache for ImageCacheImpl {
         origin: ImmutableOrigin,
         cors_setting: Option<CorsSettings>,
     ) -> Option<Image> {
-        let mut store: std::sync::MutexGuard<'_, ImageCacheStore> = self.store.lock().unwrap();
+        let mut store = self.store.lock().unwrap();
 
         let result = store
             .pending_loads
