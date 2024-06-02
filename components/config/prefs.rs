@@ -186,7 +186,10 @@ mod gen {
                     background_color: i64,
                     #[serde(default = "black")]
                     foreground_color: i64,
-                }
+                },
+                local_directory_listing: {
+                    enabled: bool,
+                },
             },
             css: {
                 animations: {

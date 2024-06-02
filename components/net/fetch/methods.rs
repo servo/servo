@@ -40,6 +40,7 @@ use net_traits::{
 use rustls::Certificate;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
+use servo_config::pref;
 use servo_url::ServoUrl;
 use time_03::OffsetDateTime;
 use tokio::sync::mpsc::{
@@ -694,7 +695,6 @@ async fn scheme_fetch(
     context: &FetchContext,
 ) -> Response {
     let url = request.current_url();
-
     match url.scheme() {
         "about" if url.path() == "blank" => create_blank_reply(url, request.timing_type()),
 
@@ -737,29 +737,7 @@ async fn scheme_fetch(
                 if let Ok(file) = File::open(file_path.clone()) {
                     if let Ok(metadata) = file.metadata() {
                         if metadata.is_dir() {
-                            let url = if !url.path().ends_with('/') {
-                                // Re-read the path as a directory, so that Servo adds the
-                                // forward-slash to the end of the URL (at least internally,
-                                // though the URL bar does not reflect this) and loads the
-                                // linked directories and files correctly when clicked.
-                                if let Ok(dir_url) = Url::from_directory_path(url.path()) {
-                                    ServoUrl::from_url(dir_url)
-                                } else {
-                                    return Response::network_error(NetworkError::Internal(
-                                        format!("Unable to parse local directory path {}", url),
-                                    ));
-                                }
-                            } else {
-                                url
-                            };
-                            let mut response =
-                                Response::new(url, ResourceFetchTiming::new(request.timing_type()));
-                            response.headers.typed_insert(ContentType::html());
-                            let directory_summary = build_directory_summary(file_path);
-                            let page_text = build_html_directory_listing(directory_summary);
-                            let bytes: Vec<u8> = page_text.into_bytes();
-                            *response.body.lock().unwrap() = ResponseBody::Done(bytes);
-                            return response;
+                            return consider_local_directory_listing(request, url, file_path);
                         }
                     }
 
@@ -891,14 +869,82 @@ async fn scheme_fetch(
     }
 }
 
+fn consider_local_directory_listing(
+    request: &mut Request,
+    url: ServoUrl,
+    file_path: std::path::PathBuf,
+) -> Response {
+    /*
+    If you want to be able to browse local directories, configure
+    Servo prefs so that "browser.local_directory_listing.enabled"
+    is set to true.
+    */
+    if pref!(browser.local_directory_listing.enabled) {
+        display_local_directory_listing(request, url, file_path)
+    } else {
+        Response::network_error(NetworkError::Internal(
+            "Local directory listing feature has not been enabled in preferences".into(),
+        ))
+    }
+}
+
+fn display_local_directory_listing(
+    request: &mut Request,
+    url: ServoUrl,
+    file_path: std::path::PathBuf,
+) -> Response {
+    if !request.origin.is_opaque() {
+        /*
+        Checking for an opaque origin may not fully guarantee that the request is safe
+        (knowingly requested by the local-machine owner) rather than unsafe (came from
+        third-party JavaScript for example) so more work needs to be done to consider how to
+        guarantee safety here.
+        This check should reject requests from pages fetched from the public internet over
+        HTTP[S], FTP, WS[S], but might not stop other public scheme types from generating a
+        local directory listing. (This is why this local directory listing feature is disabled
+        by default, only enabled when the "browser.local_directory_listing.enabled" preference
+        has been set to true.)
+        TODO: Work out whether more work is needed to protect access to local directory listing.
+        */
+        return Response::network_error(NetworkError::Internal(
+            "Cannot request local directory listing from non-local origin.".to_string(),
+        ));
+    }
+    let url = if !url.path().ends_with('/') {
+        // Re-read the path as a directory, so that Servo adds the
+        // forward-slash to the end of the URL (at least internally,
+        // though the URL bar does not reflect this) and loads the
+        // linked directories and files correctly when clicked.
+        if let Ok(dir_url) = Url::from_directory_path(url.path()) {
+            ServoUrl::from_url(dir_url)
+        } else {
+            return Response::network_error(NetworkError::Internal(format!(
+                "Unable to parse local directory path {}",
+                url
+            )));
+        }
+    } else {
+        url
+    };
+    let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
+    response.headers.typed_insert(ContentType::html());
+    let directory_summary = build_directory_summary(file_path);
+    let page_text = build_html_directory_listing(directory_summary);
+    let bytes: Vec<u8> = page_text.into_bytes();
+    *response.body.lock().unwrap() = ResponseBody::Done(bytes);
+    response
+}
+
 // TODO: WORK OUT WHY pub(crate) DOES NOT WORK HERE - VISIBILITY SHOULD NOT BE FULLY PUBLIC !!!
-// TODO: DO THE SAME FOR THE NUMEROUS METHODS/FIELDS BELOW !!!
+// TODO: FIND A WAY TO MAKE THIS VISIBLE ONLY TO THIS FILE AND THE UNIT TESTS !!!
 pub struct DirectorySummary {
     pub path: Result<String, &'static str>,
     pub has_parent: bool,
     pub items: Result<BTreeMap<OsString, DirectoryItemDescriptor>, &'static str>,
 }
 
+// TODO: WORK OUT WHY pub(crate) DOES NOT WORK HERE - VISIBILITY SHOULD NOT BE FULLY PUBLIC !!!
+// TODO: FIND A WAY TO MAKE THIS VISIBLE ONLY TO THIS FILE AND THE UNIT TESTS !!!
 pub fn build_directory_summary(file_path: std::path::PathBuf) -> DirectorySummary {
     let path = file_path
         .to_str()
@@ -956,12 +1002,16 @@ fn gather_directory_items(
     items
 }
 
+// TODO: WORK OUT WHY pub(crate) DOES NOT WORK HERE - VISIBILITY SHOULD NOT BE FULLY PUBLIC !!!
+// TODO: FIND A WAY TO MAKE THIS VISIBLE ONLY TO THIS FILE AND THE UNIT TESTS !!!
 pub enum DirectoryItemType {
     SubDirectory,
     File,
     Symlink,
 }
 
+// TODO: WORK OUT WHY pub(crate) DOES NOT WORK HERE - VISIBILITY SHOULD NOT BE FULLY PUBLIC !!!
+// TODO: FIND A WAY TO MAKE THIS VISIBLE ONLY TO THIS FILE AND THE UNIT TESTS !!!
 pub struct DirectoryItemDescriptor {
     pub item_type: DirectoryItemType,
     pub name: Option<String>,
@@ -969,6 +1019,8 @@ pub struct DirectoryItemDescriptor {
     pub last_modified: Option<io::Result<OffsetDateTime>>,
 }
 
+// TODO: WORK OUT WHY pub(crate) DOES NOT WORK HERE - VISIBILITY SHOULD NOT BE FULLY PUBLIC !!!
+// TODO: FIND A WAY TO MAKE THIS VISIBLE ONLY TO THIS FILE AND THE UNIT TESTS !!!
 // Returns an HTML5 document describing the content of the given local directory.
 pub fn build_html_directory_listing(summary: DirectorySummary) -> String {
     let mut page_html = String::with_capacity(1024);
@@ -1167,6 +1219,7 @@ fn write_datetime_for_display(last_mod: OffsetDateTime, page_html: &mut String) 
 }
 
 // Do not call this function with numbers outside the interval [1, 31].
+// TODO: WORK OUT WHY pub(crate) DOES NOT WORK HERE - VISIBILITY SHOULD NOT BE FULLY PUBLIC !!!
 // TODO: FIND A WAY TO MAKE THIS VISIBLE ONLY TO THIS FILE AND THE UNIT TESTS !!!
 pub fn day_of_month_ordinal_suffix(number: u8) -> &'static str {
     match number {

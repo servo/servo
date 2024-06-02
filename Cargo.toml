@@ -111,6 +111,7 @@ surfman = { version = "0.9", features = ["chains", "sm-angle", "sm-angle-default
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 thin-vec = "0.2.13"
+# TODO: Migrate Servo from time 0.1 to 0.3 so that we don't need to build both versions.
 time = "0.1.41"
 time_03 = { package = "time", version = "0.3 ", features = ["std", "local-offset"] }
 to_shmem = { git = "https://github.com/servo/stylo", branch = "2024-05-15" }

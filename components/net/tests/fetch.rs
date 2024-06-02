@@ -26,7 +26,7 @@ use http::{Method, StatusCode};
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
 use mime::{self, Mime};
 use net::fetch::cors_cache::CorsCache;
-use net::fetch::methods::{self, day_of_month_ordinal_suffix, CancellationListener, FetchContext};
+use net::fetch::methods::{self, CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::hsts::HstsEntry;
 use net::resource_thread::CoreResourceThreadPool;
@@ -41,6 +41,7 @@ use net_traits::{
     ResourceTimingType,
 };
 use servo_arc::Arc as ServoArc;
+use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use tempfile::{tempdir, TempDir};
 use time_03::{Date, Month, OffsetDateTime, Time};
@@ -49,8 +50,8 @@ use uuid::Uuid;
 
 use crate::http_loader::{expect_devtools_http_request, expect_devtools_http_response};
 use crate::methods::{
-    build_directory_summary, build_html_directory_listing, write_html_safe,
-    DirectoryItemDescriptor, DirectoryItemType, DirectorySummary,
+    build_directory_summary, build_html_directory_listing, day_of_month_ordinal_suffix,
+    write_html_safe, DirectoryItemDescriptor, DirectoryItemType, DirectorySummary,
 };
 use crate::{
     create_embedder_proxy, fetch, fetch_with_context, fetch_with_cors_cache, make_server,
@@ -298,7 +299,45 @@ fn test_file() {
 }
 
 #[test]
+fn test_local_directory_listing_forbidden() {
+    if pref!(browser.local_directory_listing.enabled) {
+        // Wrong preference setting for this unit test, so report success and skip actual code.
+        return;
+    }
+    let path = Path::new("../../tests/").canonicalize().unwrap();
+    let url = ServoUrl::from_file_path(path.clone()).unwrap();
+
+    let origin = Origin::Origin(url.origin());
+    let mut request = Request::new(
+        url,
+        Some(origin),
+        Referrer::NoReferrer,
+        None,
+        HttpsState::None,
+    );
+
+    let pool = CoreResourceThreadPool::new(1);
+    let pool_handle = Arc::new(pool);
+    let mut context = new_fetch_context(None, None, Some(Arc::downgrade(&pool_handle)));
+    let fetch_response = fetch_with_context(&mut request, &mut context);
+
+    // With the "local_directory_listing" preference disabled, we
+    // should receive an error if we try to open a local directory
+    // path.
+    assert_eq!(
+        fetch_response.response_type,
+        ResponseType::Error(NetworkError::Internal(
+            "Local directory listing feature has not been enabled in preferences".into()
+        ))
+    );
+}
+
+#[test]
 fn test_local_directory_listing_tempdir() {
+    if !pref!(browser.local_directory_listing.enabled) {
+        // Wrong preference setting for this unit test, so report success and skip actual code.
+        return;
+    }
     let mut temp_dir = tempdir().unwrap();
     /*
     Do not allow unwrap/expect/panic from now on, until the temporary directory is closed.

@@ -1,4 +1,5 @@
 {
+  "browser.local_directory_listing.enabled": false,
   "devtools.server.enabled": false,
   "devtools.server.port": 0,
   "dom.bluetooth.enabled": false,
