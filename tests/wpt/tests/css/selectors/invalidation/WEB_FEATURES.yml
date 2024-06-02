@@ -4,6 +4,9 @@ features:
   - has-*
   - "*-in-has.*"
   - "*-in-has-*"
+- name: modal
+  files:
+  - modal-pseudo-class-in-has.html
 - name: user-pseudos
   files:
   - user-valid-user-invalid.html

@@ -192,6 +192,19 @@ async def test_params_headers_header_name_invalid_type(
         )
 
 
+@pytest.mark.parametrize("value", ["", "\u0000", "\"", "{","\u0080"])
+async def test_params_headers_header_name_invalid_value(
+    setup_blocked_request, bidi_session, value
+):
+    request = await setup_blocked_request("beforeRequestSent")
+
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.network.continue_request(
+            request=request,
+            headers=[create_header(overrides={"name": value})],
+        )
+
+
 @pytest.mark.parametrize("value", [None, False, 42, "foo", []])
 async def test_params_headers_header_value_invalid_type(
     setup_blocked_request, bidi_session, value
@@ -257,8 +270,29 @@ async def test_params_headers_header_value_value_invalid_type(
         )
 
 
+@pytest.mark.parametrize("value", [" a", "a ", "\ta", "a\t", "a\nb", "a\0b"])
+async def test_params_headers_header_value_value_invalid_value(
+    setup_blocked_request, bidi_session, value
+):
+    request = await setup_blocked_request("beforeRequestSent")
+
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.network.continue_request(
+            request=request,
+            headers=[create_header(value_overrides={"value": value})],
+        )
+
+
 @pytest.mark.parametrize("value", [False, 42, {}, []])
 async def test_params_method_invalid_type(setup_blocked_request, bidi_session, value):
+    request = await setup_blocked_request("beforeRequestSent")
+
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.network.continue_request(request=request, method=value)
+
+
+@pytest.mark.parametrize("value", ["", "\u0000", "\"", "{","\u0080"])
+async def test_params_method_invalid_value(setup_blocked_request, bidi_session, value):
     request = await setup_blocked_request("beforeRequestSent")
 
     with pytest.raises(error.InvalidArgumentException):

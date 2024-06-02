@@ -274,10 +274,9 @@ impl RootCollection {
     unsafe fn unroot(&self, object: *const dyn JSTraceable) {
         assert_in_script();
         let roots = &mut *self.roots.get();
-        // FIXME: Use std::ptr::addr_eq after migrating to newer version of std.
         match roots
             .iter()
-            .rposition(|r| std::ptr::eq(*r as *const (), object as *const ()))
+            .rposition(|r| std::ptr::addr_eq(*r as *const (), object as *const ()))
         {
             Some(idx) => {
                 roots.remove(idx);

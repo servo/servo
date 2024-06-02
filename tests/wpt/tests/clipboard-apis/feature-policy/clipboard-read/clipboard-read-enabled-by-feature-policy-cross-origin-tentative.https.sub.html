@@ -12,7 +12,7 @@
 const same_origin_src =
   '/feature-policy/resources/feature-policy-clipboard-read.html';
 const cross_origin_src =
-  'https://{{domains[www]}}:{{ports[https][0]}}' + same_origin_src;
+  'https://{{hosts[alt][]}}:{{ports[https][0]}}' + same_origin_src;
 
 // TODO(https://github.com/whatwg/html/issues/5493, https://crbug.com/1074482):
 // In Chrome and Firefox, Cross-origin focus requires user gesture. In Chrome

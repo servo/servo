@@ -39,22 +39,22 @@
   position-try-options: --f1, --f2;
   width: 100px; height: 100px;
   /* Above the anchor */
-  left: anchor(--a left);
-  bottom: anchor(--a top);
+  left: anchor(left);
+  bottom: anchor(top);
 }
 
 @position-try --f1 {
   /* Left of the anchor */
-  right: anchor(--a left);
-  top: anchor(--a top);
+  right: anchor(left);
+  top: anchor(top);
   bottom: auto;
   left: auto;
 }
 
 @position-try --f2 {
   /* Right of the anchor */
-  left: anchor(--a right);
-  top: anchor(--a top);
+  left: anchor(right);
+  top: anchor(top);
   bottom: auto;
 }
 

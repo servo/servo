@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+<input type="number" id="number_input">
+<script>
+promise_test(async function() {
+  const inputElement = document.getElementById("number_input");
+  let events = [];
+  inputElement.addEventListener("beforeinput", () => {
+    events.push("beforeinput");
+  });
+  inputElement.addEventListener("input", () => {
+    events.push("input");
+  });
+  inputElement.addEventListener("change", () => {
+    events.push("change");
+  });
+
+  inputElement.focus();
+  // Get the spin button up arrow key location
+  const x1 = (inputElement.offsetLeft + inputElement.offsetWidth - 10);
+  const y1 = (inputElement.offsetTop + inputElement.offsetHeight / 4);
+  await test_driver_internal.click(inputElement,{x: x1, y: y1});
+  assert_array_equals(events, ['beforeinput','input','change']);
+}, "Number input should fire beforeinput event before the input and change event");
+</script>
+</body>
+</html>

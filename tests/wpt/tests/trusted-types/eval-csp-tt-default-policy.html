@@ -8,7 +8,7 @@
 </head>
 <body>
 <script>
-  trustedTypes.createPolicy("default", {createScript: s => s.replace("1", "4")});
+  trustedTypes.createPolicy("default", {createScript: s => s});
   const p = trustedTypes.createPolicy("p", {createScript: s => s});
 
   test(t => {
@@ -20,7 +20,7 @@
   }, "indirect eval of TrustedScript works.");
 
   test(t => {
-    assert_equals(eval('1+1'), 5); // '1+1' becomes '4+1'.
+    assert_equals(eval('1+1'), 2);
   }, "eval of string works.");
 
   test(t => {
@@ -35,7 +35,7 @@
   }, "Function constructor of TrustedScript works.");
 
   test(t => {
-    assert_equals(new Function('return 1+1')(), 5);
+    assert_equals(new Function('return 1+1')(), 2);
   }, "Function constructor of string works.");
 </script>
 

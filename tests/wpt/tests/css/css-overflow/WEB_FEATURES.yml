@@ -1,4 +1,7 @@
 features:
+- name: scrollbar-gutter
+  files:
+  - scrollbar-gutter-*
 - name: overflow-shorthand
   files:
   # This is all overflow-* except overflow-auto-scrollbar-gutter-intrinsic-*,

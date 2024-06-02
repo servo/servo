@@ -9,10 +9,11 @@ use rustc_hir::{ImplItemRef, ItemKind, Node, OwnerId, PrimTy, TraitItemRef};
 use rustc_infer::infer::type_variable::{TypeVariableOrigin, TypeVariableOriginKind};
 use rustc_infer::infer::TyCtxtInferExt;
 use rustc_lint::LateContext;
+use rustc_middle::ty::fast_reject::SimplifiedType;
 use rustc_middle::ty::{self, GenericArg, ParamEnv, Ty, TyCtxt, TypeVisitableExt};
-use rustc_span::source_map::{ExpnKind, MacroKind, Span};
+use rustc_span::hygiene::{ExpnKind, MacroKind};
 use rustc_span::symbol::{Ident, Symbol};
-use rustc_span::DUMMY_SP;
+use rustc_span::{Span, DUMMY_SP};
 use rustc_trait_selection::infer::InferCtxtExt;
 use rustc_type_ir::{FloatTy, IntTy, UintTy};
 
@@ -69,8 +70,9 @@ macro_rules! symbols {
 Stuff copied from clippy:
 */
 
+// This is adapted from
+// https://github.com/rust-lang/rust-clippy/blob/546408be416f0355a39601c1457b37727bc74395/clippy_utils/src/lib.rs#L517.
 fn find_primitive_impls<'tcx>(tcx: TyCtxt<'tcx>, name: &str) -> impl Iterator<Item = DefId> + 'tcx {
-    use rustc_middle::ty::fast_reject::SimplifiedType;
     let ty = match name {
         "bool" => SimplifiedType::Bool,
         "char" => SimplifiedType::Char,
@@ -96,10 +98,16 @@ fn find_primitive_impls<'tcx>(tcx: TyCtxt<'tcx>, name: &str) -> impl Iterator<It
         "u128" => SimplifiedType::Uint(UintTy::U128),
         "f32" => SimplifiedType::Float(FloatTy::F32),
         "f64" => SimplifiedType::Float(FloatTy::F64),
-        _ => return [].iter().copied(),
+        #[allow(trivial_casts)]
+        _ => {
+            return Result::<_, rustc_errors::ErrorGuaranteed>::Ok(&[] as &[_])
+                .into_iter()
+                .flatten()
+                .copied();
+        },
     };
 
-    tcx.incoherent_impls(ty).iter().copied()
+    tcx.incoherent_impls(ty).into_iter().flatten().copied()
 }
 
 fn non_local_item_children_by_name(tcx: TyCtxt<'_>, def_id: DefId, name: Symbol) -> Vec<Res> {
@@ -121,16 +129,18 @@ fn non_local_item_children_by_name(tcx: TyCtxt<'_>, def_id: DefId, name: Symbol)
     }
 }
 
+// This is adapted from clippy:
+// https://github.com/rust-lang/rust-clippy/blob/546408be416f0355a39601c1457b37727bc74395/clippy_utils/src/lib.rs#L574.
 fn local_item_children_by_name(tcx: TyCtxt<'_>, local_id: LocalDefId, name: Symbol) -> Vec<Res> {
     let hir = tcx.hir();
 
     let root_mod;
-    let item_kind = match hir.find_by_def_id(local_id) {
-        Some(Node::Crate(r#mod)) => {
+    let item_kind = match tcx.hir_node_by_def_id(local_id) {
+        Node::Crate(r#mod) => {
             root_mod = ItemKind::Mod(r#mod);
             &root_mod
         },
-        Some(Node::Item(item)) => &item.kind,
+        Node::Item(item) => &item.kind,
         _ => return Vec::new(),
     };
 
@@ -225,7 +235,8 @@ pub fn def_path_res(cx: &LateContext<'_>, path: &[&str]) -> Vec<Res> {
                 // `impl S { ... }`
                 let inherent_impl_children = tcx
                     .inherent_impls(def_id)
-                    .iter()
+                    .into_iter()
+                    .flatten()
                     .flat_map(|&impl_def_id| item_children_by_name(tcx, impl_def_id, segment));
 
                 let direct_children = item_children_by_name(tcx, def_id, segment);
@@ -238,6 +249,16 @@ pub fn def_path_res(cx: &LateContext<'_>, path: &[&str]) -> Vec<Res> {
     resolutions
 }
 
+pub fn get_trait_def_id(cx: &LateContext<'_>, path: &[&str]) -> Option<DefId> {
+    def_path_res(cx, path)
+        .into_iter()
+        .find_map(|res| match res {
+            Res::Def(DefKind::Trait | DefKind::TraitAlias, trait_id) => Some(trait_id),
+            _ => None,
+        })
+}
+
+// These are special variants made from the above functions.
 /// Resolves a def path like `std::vec::Vec`, but searches only local crate
 ///
 /// Also returns multiple results when there are multiple paths under the same name e.g. `std::vec`
@@ -259,7 +280,8 @@ pub fn def_local_res(cx: &LateContext<'_>, path: &str) -> Vec<Res> {
             // `impl S { ... }`
             let inherent_impl_children = tcx
                 .inherent_impls(def_id)
-                .iter()
+                .into_iter()
+                .flatten()
                 .flat_map(|&impl_def_id| item_children_by_name(tcx, impl_def_id, segment));
 
             let direct_children = item_children_by_name(tcx, def_id, segment);
@@ -269,15 +291,6 @@ pub fn def_local_res(cx: &LateContext<'_>, path: &str) -> Vec<Res> {
         .collect();
 
     resolutions
-}
-
-pub fn get_trait_def_id(cx: &LateContext<'_>, path: &[&str]) -> Option<DefId> {
-    def_path_res(cx, path)
-        .into_iter()
-        .find_map(|res| match res {
-            Res::Def(DefKind::Trait | DefKind::TraitAlias, trait_id) => Some(trait_id),
-            _ => None,
-        })
 }
 
 pub fn get_local_trait_def_id(cx: &LateContext<'_>, path: &str) -> Option<DefId> {

@@ -59,8 +59,8 @@ async function test_scrollend_on_scrollbar_gutter_click(t, target_div) {
   const bounds = target_div.getBoundingClientRect();
   // Some versions of webdriver have been known to frown at non-int arguments
   // to pointerMove.
-  const x = bounds.right - Math.round(scrollbar_width / 2);
-  const y = bounds.bottom - 20;
+  const x = Math.round(bounds.right - scrollbar_width / 2);
+  const y = Math.round(bounds.bottom - 20);
   await new test_driver.Actions()
     .addPointer('TestPointer', 'mouse')
     .pointerMove(x, y, { origin: 'viewport' })
@@ -91,8 +91,8 @@ async function test_scrollend_on_scrollbar_thumb_drag(t, target_div) {
   const bounds = target_div.getBoundingClientRect();
   // Some versions of webdriver have been known to frown at non-int arguments
   // to pointerMove.
-  const x = bounds.right - Math.round(scrollbar_width / 2);
-  const y = bounds.top + 30;
+  const x = Math.round(bounds.right - scrollbar_width / 2);
+  const y = Math.round(bounds.top + 30);
   const dy = 30;
   await new test_driver.Actions()
     .addPointer('TestPointer', 'mouse')
@@ -108,21 +108,26 @@ async function test_scrollend_on_scrollbar_thumb_drag(t, target_div) {
   await verifyScrollStopped(t, target_div);
 }
 
-async function test_scrollend_on_mousewheel_scroll(t, target_div) {
+async function test_scrollend_on_mousewheel_scroll(t, target_div, frame) {
   await resetTargetScrollState(t, target_div);
   await waitForCompositorReady();
 
   const targetScrollendPromise = waitForScrollendEventNoTimeout(target_div);
   verifyNoScrollendOnDocument(t);
 
+  let scroll_origin = target_div;
+  if (frame) {
+    // chromedriver doesn't support passing { origin: element }
+    // for an element within a subframe. Use the frame element itself.
+    scroll_origin = frame;
+  }
   const x = 0;
   const y = 0;
   const dx = 0;
   const dy = 40;
-  const duration_ms = 10;
   await new test_driver.Actions()
-    .scroll(x, y, dx, dy, { origin: target_div }, duration_ms)
-    .send();
+  .scroll(x, y, dx, dy, { origin: scroll_origin })
+  .send();
 
   await targetScrollendPromise;
   assert_true(target_div.scrollTop > 0);

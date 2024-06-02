@@ -12,7 +12,7 @@
 const same_origin_src =
   '/feature-policy/resources/feature-policy-clipboard-write.html';
 const cross_origin_src =
-  'https://{{domains[www]}}:{{ports[https][0]}}' + same_origin_src;
+  'https://{{hosts[alt][]}}:{{ports[https][0]}}' + same_origin_src;
 
 promise_test(async t => {
   await tryGrantWritePermission();

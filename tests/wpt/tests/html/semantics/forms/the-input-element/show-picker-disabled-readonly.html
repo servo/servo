@@ -22,21 +22,27 @@ const noReadonlySupport = ['button', 'checkbox', 'color', 'file',
 'hidden', 'image', 'radio', 'range', 'reset', 'submit'];
 for (const inputType of inputTypes) {
   if (!noReadonlySupport.includes(inputType)) {
-    test(() => {
+    promise_test(async () => {
       const input = document.createElement("input");
       input.setAttribute("type", inputType);
       input.setAttribute("readonly", "");
 
+      await test_driver.bless('show picker');
       assert_throws_dom('InvalidStateError', () => { input.showPicker(); });
+
+      assert_true(navigator.userActivation.isActive, 'User activation is not consumed for readonly showPicker() call');
     }, `input[type=${inputType}] showPicker() throws when readonly`);
   } else {
-    test(() => {
+    promise_test(async () => {
       const input = document.createElement("input");
       input.setAttribute("type", inputType);
       input.setAttribute("readonly", "");
 
-      // Missing user gesture activation throws.
-      assert_throws_dom('NotAllowedError', () => { input.showPicker(); });
+      await test_driver.bless('show picker');
+      input.showPicker();
+      input.blur();
+
+      assert_false(navigator.userActivation.isActive, 'User activation is consumed for non-readonly showPicker() call');
     }, `input[type=${inputType}] showPicker() doesn't throw when readonly`);
   }
 }

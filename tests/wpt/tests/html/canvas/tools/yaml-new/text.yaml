@@ -994,16 +994,6 @@
     @assert ctx.measureText("").width === 0;
   variants: *load-font-variant-definition
 
-- name: 2d.text.measure.advances-not-defined
-  desc: Testing that TextMetrics.advances is not defined
-  test_type: promise
-  fonts:
-  - CanvasTest
-  code: |
-    {{ load_font }}
-    ctx.font = '50px CanvasTest';
-    @assert !("advances" in ctx.measureText('Hello'));
-
 - name: 2d.text.measure.actualBoundingBox
   desc: Testing actualBoundingBox
   test_type: promise

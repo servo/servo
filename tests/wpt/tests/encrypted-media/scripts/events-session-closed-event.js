@@ -38,13 +38,13 @@ function runTest(config, qualifier)
             // Wait for the session to be closed.
             return mediaKeySession.closed;
         }).then(function (result) {
-            assert_equals(result, undefined);
+            assert_equals(result, "closed-by-application");
             // Now that the session is closed, verify that the
             // closed attribute immediately returns a fulfilled
             // promise.
             return mediaKeySession.closed;
         }).then(function (result) {
-            assert_equals(result, undefined);
+            assert_equals(result, "closed-by-application");
         }).catch(function(error) {
             assert_unreached('Error: ' + error.name);
         });

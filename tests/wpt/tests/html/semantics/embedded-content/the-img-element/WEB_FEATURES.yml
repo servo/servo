@@ -1,0 +1,9 @@
+features:
+- name: loading-lazy
+  files:
+  - "*loading-lazy*"
+  - image-loading-subpixel-clip.html
+  - move-element-and-scroll.html
+  - relevant-mutations-lazy.html
+  - remove-element-and-scroll.html
+  - scrolling-below-viewport-image-lazy-loading-in-iframe.html
