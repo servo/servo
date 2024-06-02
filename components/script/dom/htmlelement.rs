@@ -463,7 +463,6 @@ impl HTMLElementMethods for HTMLElement {
         }
 
         window.layout_reflow(QueryMsg::ElementInnerTextQuery);
-
         let text = window
             .layout()
             .query_element_inner_text(node.to_trusted_node_address());
@@ -493,7 +492,6 @@ impl HTMLElementMethods for HTMLElement {
         }
 
         window.layout_reflow(QueryMsg::ElementOuterTextQuery);
-
         let text = window
             .layout()
             .query_element_outer_text(node.to_trusted_node_address());
