@@ -246,6 +246,9 @@ class PostBuildCommands(CommandBase):
         if not path.exists(docs):
             os.makedirs(docs)
 
+        # Document library crates to avoid package name conlict between severoshell
+        # and libservo. Besides, main.rs in servoshell is just a stub.
+        params.insert(0, "--lib")
         # Documentation build errors shouldn't cause the entire build to fail. This
         # prevents issues with dependencies from breaking our documentation build,
         # with the downside that it hides documentation issues.
