@@ -4,13 +4,13 @@ def main(request, response):
         # with the 304 response
         response.status = 304
         headers = [(b"Content-Type", b"text/html"),
-                   (b"Content-Security-Policy", b"script-src 'nonce-def' 'sha256-IIB78ZS1RMMrAWpsLg/RrDbVPhI14rKm3sFOeKPYulw=';"),
+                   (b"Content-Security-Policy", b"script-src 'nonce-def' 'sha256-IIB78ZS1RMMrAWpsLg/RrDbVPhI14rKm3sFOeKPYulw='"),
                    (b"Cache-Control", b"private, max-age=0, must-revalidate"),
                    (b"ETag", b"123456")]
         return headers, u""
     else:
         headers = [(b"Content-Type", b"text/html"),
-                   (b"Content-Security-Policy", b"script-src 'nonce-abc' 'sha256-IIB78ZS1RMMrAWpsLg/RrDbVPhI14rKm3sFOeKPYulw=';"),
+                   (b"Content-Security-Policy", b"script-src 'nonce-abc' 'sha256-IIB78ZS1RMMrAWpsLg/RrDbVPhI14rKm3sFOeKPYulw='"),
                    (b"Cache-Control", b"private, max-age=0, must-revalidate"),
                    (b"Etag", b"123456")]
         return headers, u'''

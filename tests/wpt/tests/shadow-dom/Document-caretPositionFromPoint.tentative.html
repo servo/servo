@@ -22,7 +22,7 @@ test(() => {
     // Get x and y coordinate at `he|llo, world`.
     const x = rect.left + characterWidth * characterIndex;
     const y = rect.top + rect.height / 2;
-    const caretPosition = document.caretPositionFromPoint(x, y);
+    const caretPosition = document.caretPositionFromPoint(x, y, {});
     assert_true(caretPosition instanceof CaretPosition);
     assert_true(caretPosition.offsetNode instanceof Text);
     assert_equals(typeof(caretPosition.offset), "number");
@@ -68,7 +68,7 @@ test(() => {
     // Get x and y coordinate at `he|llo, world`.
     const x = rect.left + characterWidth * characterIndex;
     const y = rect.top + rect.height / 2;
-    const caretPosition = document.caretPositionFromPoint(x, y, shadowRoot);
+    const caretPosition = document.caretPositionFromPoint(x, y, {shadowRoots: [shadowRoot]});
     assert_true(caretPosition instanceof CaretPosition);
     assert_true(caretPosition.offsetNode instanceof Text);
     assert_equals(typeof(caretPosition.offset), "number");
@@ -92,7 +92,7 @@ test(() => {
     // Get x and y coordinate at `ab|cd`.
     const x = rect.left + characterWidth * characterIndex;
     const y = rect.top + rect.height / 2;
-    const caretPosition = document.caretPositionFromPoint(x, y, shadowRoot);
+    const caretPosition = document.caretPositionFromPoint(x, y, {shadowRoots: [shadowRoot]});
     assert_true(caretPosition instanceof CaretPosition);
     assert_true(caretPosition.offsetNode instanceof Text);
     assert_equals(typeof(caretPosition.offset), "number");
@@ -113,7 +113,7 @@ test(() => {
     // Get x and y coordinate at left-most location inside input element.
     const x = rect.left + 1;
     const y = rect.top + rect.height / 2;
-    const caretPosition = document.caretPositionFromPoint(x, y, shadowRoot);
+    const caretPosition = document.caretPositionFromPoint(x, y, {shadowRoots: [shadowRoot]});
     assert_true(caretPosition instanceof CaretPosition);
     assert_true(caretPosition.offsetNode instanceof Node);
     assert_equals(typeof(caretPosition.offset), "number");
@@ -134,7 +134,7 @@ test(() => {
     // Get x and y coordinate at left-most location inside input element.
     const x = rect.left + 1;
     const y = rect.top + rect.height / 2;
-    const caretPosition = document.caretPositionFromPoint(x, y);
+    const caretPosition = document.caretPositionFromPoint(x, y, {shadowRoots: []});
     assert_true(caretPosition instanceof CaretPosition);
     assert_true(caretPosition.offsetNode instanceof Node);
     assert_equals(typeof(caretPosition.offset), "number");
@@ -215,7 +215,7 @@ test(() => {
     // Get x and y coordinate at `so|me text`.
     const x = rect.left + characterWidth * characterIndex;
     const y = rect.top + rect.height / 2;
-    const caretPosition = document.caretPositionFromPoint(x, y, innerShadowRoot);
+    const caretPosition = document.caretPositionFromPoint(x, y, {shadowRoots: [innerShadowRoot]});
     assert_true(caretPosition instanceof CaretPosition);
     assert_true(caretPosition.offsetNode instanceof Text);
     assert_equals(typeof(caretPosition.offset), "number");
@@ -244,7 +244,7 @@ test(() => {
     // Get x and y coordinate at `so|me text`.
     const x = rect.left + characterWidth * characterIndex;
     const y = rect.top + rect.height / 2;
-    const caretPosition = document.caretPositionFromPoint(x, y, outerShadowRoot);
+    const caretPosition = document.caretPositionFromPoint(x, y, {shadowRoots: [outerShadowRoot]});
     assert_true(caretPosition instanceof CaretPosition);
     assert_true(caretPosition.offsetNode instanceof Node);
     assert_equals(typeof(caretPosition.offset), "number");
@@ -274,7 +274,7 @@ test(() => {
     // Get x and y coordinate at `so|me text`.
     const x = rect.left + characterWidth * characterIndex;
     const y = rect.top + rect.height / 2;
-    const caretPosition = document.caretPositionFromPoint(x, y, outerShadowRoot, innerShadowRoot);
+    const caretPosition = document.caretPositionFromPoint(x, y, {shadowRoots: [innerShadowRoot, outerShadowRoot]});
     assert_true(caretPosition instanceof CaretPosition);
     assert_true(caretPosition.offsetNode instanceof Text);
     assert_equals(typeof(caretPosition.offset), "number");

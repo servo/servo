@@ -1312,27 +1312,34 @@ class MockRuntime {
       return;
     }
 
+    let newDepthData;
+
     // If we don't have a current depth data, we'll return null
     // (i.e. no data is not a valid data, so it cannot be "StillValid").
     if (this.depthSensingData_ == null) {
-      frameData.depthData = null;
-      return;
+      newDepthData = null;
+    } else if(!this.depthSensingDataDirty_) {
+      newDepthData = { dataStillValid: {}};
+    } else {
+      newDepthData = {
+        updatedDepthData: {
+          timeDelta: frameData.timeDelta,
+          normTextureFromNormView: this.depthSensingData_.normDepthBufferFromNormView,
+          rawValueToMeters: this.depthSensingData_.rawValueToMeters,
+          size: { width: this.depthSensingData_.width, height: this.depthSensingData_.height },
+          pixelData: { bytes: this.depthSensingData_.depthData }
+        }
+      };
     }
 
-    if(!this.depthSensingDataDirty_) {
-      frameData.depthData = { dataStillValid: {}};
-      return;
+    for (let i = 0; i < this.primaryViews_.length; i++) {
+      this.primaryViews_[i].depthData = newDepthData;
     }
-
-    frameData.depthData = {
-      updatedDepthData: {
-        timeDelta: frameData.timeDelta,
-        normTextureFromNormView: this.depthSensingData_.normDepthBufferFromNormView,
-        rawValueToMeters: this.depthSensingData_.rawValueToMeters,
-        size: { width: this.depthSensingData_.width, height: this.depthSensingData_.height },
-        pixelData: { bytes: this.depthSensingData_.depthData }
+    if (this.enabledFeatures_.includes(xrSessionMojom.XRSessionFeature.SECONDARY_VIEWS)) {
+      for (let i = 0; i < this.secondaryViews_.length; i++) {
+        this.secondaryViews_[i].depthData = newDepthData;
       }
-    };
+    }
 
     this.depthSensingDataDirty_ = false;
   }

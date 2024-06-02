@@ -47,24 +47,24 @@
   background: green;
   position-anchor: --a;
   position-try-options: --pf1, --pf2, --pf3;
-  bottom: anchor(--a top);
-  left: anchor(--a right);
+  bottom: anchor(top);
+  left: anchor(right);
 }
 
 @position-try --pf1 {
   inset: auto;
-  top: anchor(--a bottom);
-  left: anchor(--a right);
+  top: anchor(bottom);
+  left: anchor(right);
 }
 @position-try --pf2 {
   inset: auto;
-  bottom: anchor(--a top);
-  right: anchor(--a left);
+  bottom: anchor(top);
+  right: anchor(left);
 }
 @position-try --pf3 {
   inset: auto;
-  top: anchor(--a bottom);
-  right: anchor(--a left);
+  top: anchor(bottom);
+  right: anchor(left);
 }
 </style>
 

@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<title>@scope - specificty</title>
+<title>@scope - specificity</title>
 <link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scope-atrule">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style id=style>
 </style>
 <main id=main>
+  <style id=styleImplicit></style>
   <div id=a class=a>
     <div id=b class=b>
     </div>
@@ -36,8 +37,13 @@ function format_scoped_rule(scoped_selector, declarations) {
 // Verify that the specificity of 'scoped_selector' is the same
 // as the specificity of 'ref_selector'. Both selectors must select
 // an element within #main.
-function test_scope_specificity(scoped_selector, ref_selector) {
-  test(() => {
+function test_scope_specificity(scoped_selector, ref_selector, style) {
+  if (style === undefined) {
+    style = document.getElementById("style");
+  }
+  test(t => {
+    t.add_cleanup(() => { style.textContent = ''; });
+
     let element = main.querySelector(ref_selector);
     assert_not_equals(element, null);
 
@@ -62,16 +68,25 @@ function test_scope_specificity(scoped_selector, ref_selector) {
     // cause the unscoped rule to win instead.
     style.textContent = `div${ref_rule} ${scoped_rule}`;
     assert_equals(getComputedStyle(element).zIndex, '2', 'unscoped + scoped');
-  }, format_scoped_rule(scoped_selector, ''));
+  }, format_scoped_rule(scoped_selector, '') + ' and ' + ref_selector);
 }
 
+// Selectors within @scope implicitly have `:scope <descendant-combinator>`
+// added, but no specificity associated with it is added.
+// See https://github.com/w3c/csswg-drafts/issues/10196
 test_scope_specificity(['@scope (#main)', '.b'], '.b');
 test_scope_specificity(['@scope (#main) to (.b)', '.a'], '.a');
 test_scope_specificity(['@scope (#main, .foo, .bar)', '#a'], '#a');
 test_scope_specificity(['@scope (#main)', 'div.b'], 'div.b');
 test_scope_specificity(['@scope (#main)', ':scope .b'], '.a .b');
+// Inherit the specificity of the scope-start selector.
 test_scope_specificity(['@scope (#main)', '& .b'], '#main .b');
 test_scope_specificity(['@scope (#main)', 'div .b'], 'div .b');
 test_scope_specificity(['@scope (#main)', '@scope (.a)', '.b'], '.b');
-
+// Explicit `:scope` adds specficity.
+test_scope_specificity(['@scope (#main)', ':scope .b'], ':scope .b');
+// Using & in scoped style with implicit scope root uses `:scope`, which adds specificity
+test_scope_specificity(['@scope', '& .b'], ':scope .b', styleImplicit);
+// Using relative selector syntax does not add specificity
+test_scope_specificity(['@scope (#main)', '> .a'], ':where(#main) > .a');
 </script>

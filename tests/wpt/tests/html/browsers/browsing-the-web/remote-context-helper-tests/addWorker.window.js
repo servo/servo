@@ -16,11 +16,14 @@ promise_test(async t => {
   const headerName = 'x-wpt-test-header';
   const headerValue = 'test-escaping()';
   const worker = await main.addWorker(
+      'workerVar',
       {
         scripts: ['/common/get-host-info.sub.js', './resources/test-script.js'],
         headers: [[headerName, headerValue]],
       },
   );
+
+  assert_true(await main.executeScript(() => workerVar instanceof Worker));
 
   await assertSimplestScriptRuns(worker);
   await assertFunctionRuns(worker, () => testFunction(), 'testFunction exists');

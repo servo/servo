@@ -51,20 +51,20 @@
     assert_equals(s, "Hello a cat string");
   }, "new Function with TrustedScript and permissive CSP works.");
 
-  trustedTypes.createPolicy("default", { createScript: createScriptJS }, true);
+  trustedTypes.createPolicy("default", { createScript: (s) => s });
   test(t => {
-    let s = eval('"Hello transformed untrusted string"');
-    assert_equals(s, "Hello a cat untrusted string");
-  }, "eval with default policy and permissive CSP still obeys default policy.");
+    let s = eval('1+1');
+    assert_equals(s, 2);
+  }, "eval with plain string with Trusted Types and permissive CSP works with default policy.");
 
   test(t => {
-    let s = eval?.('"Hello transformed untrusted string"');
-    assert_equals(s, "Hello a cat untrusted string");
-  }, "indirect eval with default policy and permissive CSP still obeys default policy.");
+    let s = eval?.('1+1');
+    assert_equals(s, 2);
+  }, "indirect eval with plain string with Trusted Types and permissive CSP works with default policy.");
 
   test(t => {
-    let s = new Function('return "Hello transformed untrusted string"')();
-    assert_equals(s, "Hello a cat untrusted string");
-  }, "new Function with default policy and permissive CSP still obeys default policy.");
+    let s = new Function('return 1+1')();
+    assert_equals(s, 2);
+  }, "new Function with plain string default policy and permissive CSP works with default policy.");
 </script>
 

@@ -3,18 +3,36 @@
 <link rel=author href="mailto:masonf@chromium.org">
 
 <p>There should be a green box attached to the right side of each orange box.</p>
-<div class=ex id=ex1><div class=anchor></div><div class=popover></div></div>
-<div class=ex id=ex2><div class=anchor></div><div class=popover></div></div>
-<div class=ex id=ex3><div class=anchor></div><div class=popover></div></div>
-<div class=ex id=ex4><div class=anchor></div><div class=popover></div></div>
-<div class=ex id=ex5><div class=anchor></div><div class=popover></div></div>
+<div id=proper_anchors class=wrapper>
+  <div><div class=anchor></div><div class=popover></div></div>
+  <div><div class=anchor></div><div class=popover></div></div>
+  <div><div class=anchor></div><div class=popover></div></div>
+  <div><div class=anchor></div><div class=popover></div></div>
+  <div><div class=anchor></div><div class=popover></div></div>
+  <div><div class=anchor></div><div class=popover></div></div>
+</div>
+
+<p>There should NOT be any red boxes next to the orange ones. (Red ones down below are ok.)</p>
+<div id=improper_anchors class=wrapper>
+  <div><div class=anchor></div><div class=popover></div></div>
+  <div><div class=anchor></div><div class=popover></div></div>
+</div>
 
 <style>
-  .ex {
-    margin: 15px;
+  body { margin:0; padding:0; box-sizing: border-box; }
+  p {height: 25px;}
+  .wrapper {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .wrapper>div {
+    position:relative;
+    width: 125px;
+    height: 75px;
     font-size: 0;
   }
-  .ex div {
+  .wrapper>div div {
     display:inline-block;
     width: 50px;
     height: 50px;
@@ -22,7 +40,13 @@
   .anchor {
     background: orange;
   }
-  .popover {
+  #proper_anchors .popover {
     background: lime;
+  }
+  #improper_anchors .popover {
+    background: red;
+    position:fixed;
+    left: 0;
+    top: 264px;
   }
 </style>

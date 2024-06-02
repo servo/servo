@@ -39,10 +39,15 @@ trustedTypes.createPolicy("default", {
   createScript: x => x.replace("2", "5")
 });
 test(t => {
-  assert_equals(eval("2"), 5);
+  assert_equals(eval("4"), 4);
 }, "eval(string) with default policy in " + worker_type);
 test(t => {
-  assert_equals(eval?.("2"), 5);
+  assert_equals(eval?.("4"), 4);
 }, "indirect eval(string) with default policy in " + worker_type);
-
+test(t => {
+  assert_throws_js(EvalError, _ => eval("2"));
+}, "eval(string) with default policy mutation in " + worker_type);
+test(t => {
+  assert_throws_js(EvalError, _ => eval?.("2"));
+}, "indirect eval(string) with default policy mutation in " + worker_type);
 done();

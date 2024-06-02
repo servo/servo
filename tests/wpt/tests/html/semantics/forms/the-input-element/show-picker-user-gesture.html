@@ -28,4 +28,17 @@ for (const inputType of inputTypes) {
     input.blur();
   }, `input[type=${inputType}] showPicker() does not throw when user activation is active`);
 }
+
+for (const inputType of inputTypes) {
+  promise_test(async () => {
+    const input = document.createElement('input');
+    input.setAttribute('type', inputType);
+
+    await test_driver.bless('show picker');
+    input.showPicker();
+    input.blur();
+
+    assert_false(navigator.userActivation.isActive);
+  }, `input[type=${inputType}] showPicker() consumes user activation`);
+}
 </script>

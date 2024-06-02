@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: 'mask-mode: luminance' with 'mask-size'</title>
+    <link rel="author" title="Antoine Quint" href="mailto:graouts@webkit.org">
+    <link rel="help" href="https://www.w3.org/TR/css-masking-1/#propdef-mask-mode">
+    <link rel="match" href="mask-mode-luminance-with-mask-size-ref.html">
+    <meta name="assert" content="Test checks that mask a PNG image referenced by mask-image is correct with 'mask mode: luminance', partial transparency and 'mask-mode'.">
+    <style type="text/css">
+      div {
+        background-color: blue;
+        position: absolute;
+
+        width: 100px;
+        height: 100px;
+
+        top: 10px;
+        left: 10px;
+
+        mask-mode: luminance;
+        mask-size: 100px 50px;
+        mask-image: url(support/transparent-100x50-blue-100x50.png);
+      }
+
+    </style>
+  </head>
+  <body>
+    <div></div>
+  </body>
+</html>
+

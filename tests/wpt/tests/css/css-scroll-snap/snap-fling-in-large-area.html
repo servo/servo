@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Fling within a large target is not interrupted by scroll snap</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap/"/>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+</head>
+<body>
+  <style>
+    main {
+      scroll-snap-type: y;
+
+      overflow: auto;
+      height: 100vh;
+    }
+
+    div {
+      scroll-snap-align: start;
+      width: 80vw;
+      height: 800vh;
+      background: yellow;
+      border: solid black 3px;
+    }
+  </style>
+  <main id="scroller">
+    <div></div>
+  </main>
+  <script>
+    promise_test(async (t) => {
+      await waitForCompositorCommit();
+      const scroller = document.getElementById("scroller");
+      assert_equals(scroller.scrollTop, 0, "scroller not initially scrolled");
+
+      let initial_scroll_top = scroller.scrollTop;
+      let last_scroll_top = initial_scroll_top;
+      const scroll_listener = () => {
+        assert_greater_than_equal(scroller.scrollTop, last_scroll_top,
+          "fling did not move backwards.");
+        last_scroll_top = scroller.scrollTop;
+      }
+      scroller.addEventListener("scroll", scroll_listener);
+      const scrollend_promise = waitForScrollendEventNoTimeout(scroller);
+      await touchFlingInTarget(/*pixels_to_scroll*/100, scroller, "down");
+      await scrollend_promise;
+
+      assert_greater_than(last_scroll_top, initial_scroll_top,
+        "received at least one scroll update.");
+      assert_greater_than_equal(scroller.scrollTop, last_scroll_top,
+        "fling did not move backwards at the end of the scroll.");
+    }, "fling within a large area is not interrupted by scroll snap");
+  </script>
+</body>
+</html>

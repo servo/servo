@@ -1,0 +1,4 @@
+features:
+- name: scrollbar-gutter
+  files:
+  - scrollbar-gutter-*

@@ -311,9 +311,14 @@
     };
   }
 
-  function workerExecutorCreator() {
+  function workerExecutorCreator(remoteContextWrapper, globalVariable) {
     return url => {
-      new Worker(url);
+      return remoteContextWrapper.executeScript((url, globalVariable) => {
+        const worker = new Worker(url);
+        if (globalVariable) {
+          window[globalVariable] = worker;
+        }
+      }, [url, globalVariable]);
     };
   }
 
@@ -428,12 +433,15 @@
 
     /**
      * Adds a dedicated worker to the current document.
+     * @param {string|null} [globalVariable] The name of the global variable to
+     *   which to assign the `Worker` object after construction. If `null`,
+     *   then no assignment will take place.
      * @param {RemoteContextConfig} [extraConfig]
      * @returns {Promise<RemoteContextWrapper>} The remote context.
      */
-    addWorker(extraConfig) {
+    addWorker(globalVariable, extraConfig) {
       return this.helper.createContext({
-        executorCreator: workerExecutorCreator(),
+        executorCreator: workerExecutorCreator(this, globalVariable),
         extraConfig,
         isWorker: true,
       });

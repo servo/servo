@@ -18,187 +18,6 @@ const kExample1DTensorDescriptor = {
   dimensions: [kExampleInputDescriptor.dimensions[/* axis */ 1]]
 };
 
-promise_test(async t => {
-  for (let dataType of allWebNNOperandDataTypes) {
-    const input = builder.input(`input${++inputIndex}`, {dataType, dimensions: dimensions2D});
-    const validAxisArray = getAxisArray(dimensions2D);
-    const invalidAxisArray = generateOutOfRangeValuesArray(unsignedLongType);
-    for (let axis of validAxisArray) {
-      let size = dimensions2D[axis];
-      const mean = builder.input(`mean${++meanIndex}`, {dataType, dimensions: [size]});
-      const variance = builder.input(`variance${++varianceIndex}`, {dataType, dimensions: [size]});
-      for (let invalidAxis of invalidAxisArray) {
-        assert_throws_js(TypeError, () => builder.batchNormalization(input, mean, variance, {axis: invalidAxis}));
-      }
-    }
-  }
-}, "[batchNormalization] TypeError is expected if options.axis is outside the 'unsigned long' value range");
-
-promise_test(async t => {
-  for (let dataType of allWebNNOperandDataTypes) {
-    const input = builder.input(`input${++inputIndex}`, {dataType, dimensions: dimensions2D});
-    const validAxisArray = getAxisArray(dimensions2D);
-    for (let axis of validAxisArray) {
-      let size = dimensions2D[axis];
-      const mean = builder.input(`mean${++meanIndex}`, {dataType, dimensions: [size]});
-      const variance = builder.input(`variance${++varianceIndex}`, {dataType, dimensions: [size]});
-      assert_throws_dom('DataError', () => builder.batchNormalization(input, mean, variance, {axis: getRank(dimensions2D)}));
-    }
-  }
-}, "[batchNormalization] DataError is expected if options.axis is 'unsigned long' and it's not in the range 0 to the rank of input, exclusive");
-
-promise_test(async t => {
-  for (let dataType of allWebNNOperandDataTypes) {
-    const input = builder.input(`input${++inputIndex}`, {dataType, dimensions: dimensions2D});
-    const validAxisArray = getAxisArray(dimensions2D);
-    for (let axis of validAxisArray) {
-      let size = dimensions2D[axis];
-      const mean = builder.input(`mean${++meanIndex}`, {dataType, dimensions: [size]});
-      const variance = builder.input(`variance${++varianceIndex}`, {dataType, dimensions: [size]});
-      for (let axis of notUnsignedLongAxisArray) {
-        assert_false(typeof axis === 'number' && Number.isInteger(axis), "[batchNormalization] options.axis should be of 'unsigned long'");
-        assert_throws_js(TypeError, () => builder.batchNormalization(input, mean, variance, {axis}));
-      }
-    }
-  }
-}, '[batchNormalization] TypeError is expected if options.axis is not an unsigned long interger');
-
-promise_test(async t => {
-  for (let dataType of allWebNNOperandDataTypes) {
-    const input = builder.input(`input${++inputIndex}`, {dataType, dimensions: dimensions2D});
-    const validAxisArray = getAxisArray(dimensions2D);
-    for (let axis of validAxisArray) {
-      const variance = builder.input(`variance${++varianceIndex}`, {dataType, dimensions: [dimensions2D[axis]]});
-      for (let dimensions of allWebNNDimensionsArray) {
-        if (dimensions.length !== 1) {
-          // set mean not be 1D tensor
-          const mean = builder.input(`mean${++meanIndex}`, {dataType, dimensions});
-          assert_throws_dom('DataError', () => builder.batchNormalization(input, mean, variance));
-        }
-      }
-    }
-  }
-}, "[batchNormalization] DataError is expected if the size of mean.dimensions is not 1");
-
-promise_test(async t => {
-  for (let dataType of allWebNNOperandDataTypes) {
-    const input = builder.input(`input${++inputIndex}`, {dataType, dimensions: dimensions2D});
-    const validAxisArray = getAxisArray(dimensions2D);
-    for (let axis of validAxisArray) {
-      let size = dimensions2D[axis];
-      const variance = builder.input(`variance${++varianceIndex}`, {dataType, dimensions: [size]});
-      for (let offset of adjustOffsetsArray) {
-        const adjustedSize = size + offset;
-        const mean = builder.input(`mean${++meanIndex}`, {dataType, dimensions: [adjustedSize]});
-        assert_throws_dom('DataError', () => builder.batchNormalization(input, mean, variance, {axis}));
-      }
-    }
-  }
-}, "[batchNormalization] DataError is expected if mean.dimensions[0] is not equal to input.dimensions[options.axis]");
-
-promise_test(async t => {
-  for (let dataType of allWebNNOperandDataTypes) {
-    const input = builder.input(`input${++inputIndex}`, {dataType, dimensions: dimensions2D});
-    const validAxisArray = getAxisArray(dimensions2D);
-    for (let axis of validAxisArray) {
-      const mean = builder.input(`mean${++meanIndex}`, {dataType, dimensions: [dimensions2D[axis]]});
-      for (let dimensions of allWebNNDimensionsArray) {
-        if (dimensions.length !== 1) {
-          // set variance not be 1D tensor
-          const variance = builder.input(`variance${++varianceIndex}`, {dataType, dimensions});
-          assert_throws_dom('DataError', () => builder.batchNormalization(input, mean, variance));
-        }
-      }
-    }
-  }
-}, "[batchNormalization] DataError is expected if the size of variance.dimensions is not 1");
-
-promise_test(async t => {
-  for (let dataType of allWebNNOperandDataTypes) {
-    const input = builder.input(`input${++inputIndex}`, {dataType, dimensions: dimensions2D});
-    const validAxisArray = getAxisArray(dimensions2D);
-    for (let axis of validAxisArray) {
-      let size = dimensions2D[axis];
-      const mean = builder.input(`mean${++meanIndex}`, {dataType, dimensions: [size]});
-      for (let offset of adjustOffsetsArray) {
-        const adjustedSize = size + offset;
-        const variance = builder.input(`variance${++varianceIndex}`, {dataType, dimensions: [adjustedSize]});
-        assert_throws_dom('DataError', () => builder.batchNormalization(input, mean, variance, {axis}));
-      }
-    }
-  }
-}, "[batchNormalization] DataError is expected if variance.dimensions[0] is not equal to input.dimensions[options.axis]");
-
-promise_test(async t => {
-  for (let dataType of allWebNNOperandDataTypes) {
-    const input = builder.input(`input${++inputIndex}`, {dataType, dimensions: dimensions2D});
-    const validAxisArray = getAxisArray(dimensions2D);
-    for (let axis of validAxisArray) {
-      const mean = builder.input(`mean${++meanIndex}`, {dataType, dimensions: [dimensions2D[axis]]});
-      const variance = builder.input(`variance${++varianceIndex}`, {dataType, dimensions: [dimensions2D[axis]]});
-      for (let dimensions of allWebNNDimensionsArray) {
-        if (dimensions.length !== 1) {
-          // set scale not be 1D tensor
-          const scale = builder.input('scale', {dataType, dimensions});
-          assert_throws_dom('DataError', () => builder.batchNormalization(input, mean, variance, {axis, scale}));
-        }
-      }
-    }
-  }
-}, "[batchNormalization] DataError is expected if the size of scale.dimensions is not 1");
-
-promise_test(async t => {
-  for (let dataType of allWebNNOperandDataTypes) {
-    const input = builder.input(`input${++inputIndex}`, {dataType, dimensions: dimensions2D});
-    const validAxisArray = getAxisArray(dimensions2D);
-    for (let axis of validAxisArray) {
-      let size = dimensions2D[axis];
-      const mean = builder.input(`mean${++meanIndex}`, {dataType, dimensions: [size]});
-      const variance = builder.input(`variance${++varianceIndex}`, {dataType, dimensions: [size]});
-      for (let offset of adjustOffsetsArray) {
-        const adjustedSize = size + offset;
-        const scale = builder.input('scale', {dataType, dimensions: [adjustedSize]});
-        assert_throws_dom('DataError', () => builder.batchNormalization(input, mean, variance, {axis, scale}));
-      }
-    }
-  }
-}, "[batchNormalization] DataError is expected if scale.dimensions[0] is not equal to input.dimensions[options.axis]");
-
-promise_test(async t => {
-  for (let dataType of allWebNNOperandDataTypes) {
-    const input = builder.input(`input${++inputIndex}`, {dataType, dimensions: dimensions2D});
-    const validAxisArray = getAxisArray(dimensions2D);
-    for (let axis of validAxisArray) {
-      const mean = builder.input(`mean${++meanIndex}`, {dataType, dimensions: [dimensions2D[axis]]});
-      const variance = builder.input(`variance${++varianceIndex}`, {dataType, dimensions: [dimensions2D[axis]]});
-      for (let dimensions of allWebNNDimensionsArray) {
-        if (dimensions.length !== 1) {
-          // set bias not be 1D tensor
-          const bias = builder.input('bias', {dataType, dimensions});
-          assert_throws_dom('DataError', () => builder.batchNormalization(input, mean, variance, {axis, bias}));
-        }
-      }
-    }
-  }
-}, "[batchNormalization] DataError is expected if the size of bias.dimensions is not 1");
-
-promise_test(async t => {
-  for (let dataType of allWebNNOperandDataTypes) {
-    const input = builder.input(`input${++inputIndex}`, {dataType, dimensions: dimensions2D});
-    const validAxisArray = getAxisArray(dimensions2D);
-    for (let axis of validAxisArray) {
-      let size = dimensions2D[axis];
-      const mean = builder.input(`mean${++meanIndex}`, {dataType, dimensions: [size]});
-      const variance = builder.input(`variance${++varianceIndex}`, {dataType, dimensions: [size]});
-      for (let offset of adjustOffsetsArray) {
-        const adjustedSize = size + offset;
-        const bias = builder.input('bias', {dataType, dimensions: [adjustedSize]});
-        assert_throws_dom('DataError', () => builder.batchNormalization(input, mean, variance, {axis, bias}));
-      }
-    }
-  }
-}, "[batchNormalization] DataError is expected if bias.dimensions[0] is not equal to input.dimensions[options.axis]");
-
 multi_builder_test(async (t, builder, otherBuilder) => {
   const inputFromOtherBuilder =
       otherBuilder.input('input', kExampleInputDescriptor);
@@ -268,3 +87,188 @@ multi_builder_test(async (t, builder, otherBuilder) => {
       TypeError,
       () => builder.batchNormalization(input, mean, variance, options));
 }, '[batchNormalization] throw if activation option is from another builder');
+
+const tests = [
+  {
+    name: '[batchNormalization] Test with default options.',
+    input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
+    mean: {dataType: 'float32', dimensions: [2]},
+    variance: {dataType: 'float32', dimensions: [2]},
+    output: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
+  },
+  {
+    name: '[batchNormalization] Test with axis = 2 and epsilon = 0.0001.',
+    input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
+    mean: {dataType: 'float32', dimensions: [5]},
+    variance: {dataType: 'float32', dimensions: [5]},
+    options: {
+      axis: 2,
+      epsilon: 1e-4,  // 1e-5 is the default value of epsilon.
+    },
+    output: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
+  },
+  {
+    name:
+        '[batchNormalization] Throw if the input data type is not one of floating point types.',
+    input: {dataType: 'int32', dimensions: [1, 2, 5, 5]},
+    mean: {dataType: 'int32', dimensions: [2]},
+    variance: {dataType: 'int32', dimensions: [2]},
+  },
+  {
+    name:
+        '[batchNormalization] Throw if the mean data type is not the same as the input data type.',
+    input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
+    mean: {dataType: 'float16', dimensions: [2]},
+    variance: {dataType: 'float32', dimensions: [2]},
+  },
+  {
+    name: '[batchNormalization] Throw if the mean operand is not a 1-D tensor.',
+    input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
+    mean: {dataType: 'float32', dimensions: [1, 2]},
+    variance: {dataType: 'float32', dimensions: [2]},
+  },
+  {
+    name:
+        '[batchNormalization] Throw if the size of mean operand is not equal to the size of the input dimension denoted by axis.',
+    input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
+    mean: {dataType: 'float32', dimensions: [3]},
+    variance: {dataType: 'float32', dimensions: [2]},
+    options: {
+      axis: 1,
+    },
+  },
+  {
+    name:
+        '[batchNormalization] Throw if the variance data type is not the same as the input data type.',
+    input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
+    mean: {dataType: 'float32', dimensions: [2]},
+    variance: {dataType: 'float16', dimensions: [2]},
+  },
+  {
+    name:
+        '[batchNormalization] Throw if the variance operand is not a 1-D tensor.',
+    input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
+    mean: {dataType: 'float32', dimensions: [2]},
+    variance: {dataType: 'float32', dimensions: [2, 2]},
+  },
+  {
+    name:
+        '[batchNormalization] Throw if the size of variance operand is not equal to the size of the input dimension denoted by axis.',
+    input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
+    mean: {dataType: 'float32', dimensions: [5]},
+    variance: {dataType: 'float32', dimensions: [2]},
+    options: {
+      axis: 2,
+    },
+  },
+  {
+    name:
+        '[batchNormalization] Throw if the scale data type is not the same as the input data type.',
+    input: {dataType: 'float16', dimensions: [1, 2, 5, 5]},
+    mean: {dataType: 'float16', dimensions: [2]},
+    variance: {dataType: 'float16', dimensions: [2]},
+    options: {
+      scale: {dataType: 'float32', dimensions: [2]},
+    },
+  },
+  {
+    name:
+        '[batchNormalization] Throw if the scale operand is not a 1-D tensor.',
+    input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
+    mean: {dataType: 'float32', dimensions: [2]},
+    variance: {dataType: 'float32', dimensions: [2]},
+    options: {
+      scale: {dataType: 'float32', dimensions: [2, 1]},
+    },
+  },
+  {
+    name:
+        '[batchNormalization] Throw if the size of scale operand is not equal to the size of the input dimension denoted by axis.',
+    input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
+    mean: {dataType: 'float32', dimensions: [5]},
+    variance: {dataType: 'float32', dimensions: [5]},
+    options: {
+      axis: 2,
+      scale: {dataType: 'float32', dimensions: [2]},
+    },
+  },
+  {
+    name:
+        '[batchNormalization] Throw if the bias data type is not the same as the input data type.',
+    input: {dataType: 'float16', dimensions: [1, 2, 5, 5]},
+    mean: {dataType: 'float16', dimensions: [2]},
+    variance: {dataType: 'float16', dimensions: [2]},
+    options: {
+      bias: {dataType: 'float32', dimensions: [2]},
+    },
+  },
+  {
+    name: '[batchNormalization] Throw if the bias operand is not a 1-D tensor.',
+    input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
+    mean: {dataType: 'float32', dimensions: [2]},
+    variance: {dataType: 'float32', dimensions: [2]},
+    options: {
+      bias: {dataType: 'float32', dimensions: [2, 1]},
+    },
+  },
+  {
+    name:
+        '[batchNormalization] Throw if the size of bias operand is not equal to the size of the input dimension denoted by axis.',
+    input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
+    mean: {dataType: 'float32', dimensions: [5]},
+    variance: {dataType: 'float32', dimensions: [5]},
+    options: {
+      axis: 2,
+      bias: {dataType: 'float32', dimensions: [2]},
+    },
+  },
+  {
+    name:
+        '[batchNormalization] Throw if the value of axis is not in the range of [0,N-1].',
+    input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
+    mean: {dataType: 'float32', dimensions: [5]},
+    variance: {dataType: 'float32', dimensions: [5]},
+    options: {
+      axis: 4,
+    },
+  },
+];
+
+tests.forEach(
+    test => promise_test(async t => {
+      const input = builder.input(
+          'input',
+          {dataType: test.input.dataType, dimensions: test.input.dimensions});
+      const mean = builder.input(
+          'mean',
+          {dataType: test.mean.dataType, dimensions: test.mean.dimensions});
+      const variance = builder.input('variance', {
+        dataType: test.variance.dataType,
+        dimensions: test.variance.dimensions
+      });
+
+      if (test.options && test.options.bias) {
+        test.options.bias = builder.input('bias', {
+          dataType: test.options.bias.dataType,
+          dimensions: test.options.bias.dimensions
+        });
+      }
+      if (test.options && test.options.scale) {
+        test.options.scale = builder.input('scale', {
+          dataType: test.options.scale.dataType,
+          dimensions: test.options.scale.dimensions
+        });
+      }
+
+      if (test.output) {
+        const output =
+            builder.batchNormalization(input, mean, variance, test.options);
+        assert_equals(output.dataType(), test.output.dataType);
+        assert_array_equals(output.shape(), test.output.dimensions);
+      } else {
+        assert_throws_js(
+            TypeError,
+            () => builder.batchNormalization(
+                input, mean, variance, test.options));
+      }
+    }, test.name));
