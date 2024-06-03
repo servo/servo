@@ -2021,6 +2021,7 @@ version = "0.0.1"
 dependencies = [
  "app_units",
  "atomic_refcell",
+ "base",
  "bitflags 2.5.0",
  "byteorder",
  "core-foundation",
@@ -2053,7 +2054,6 @@ dependencies = [
  "style",
  "surfman",
  "truetype",
- "ucd",
  "unicode-bidi",
  "unicode-properties",
  "unicode-script",
@@ -6605,12 +6605,6 @@ name = "typenum"
 version = "1.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42ff0bf0c66b8238c6f3b578df37d0b7848e55df8577b3f74f92a69acceeb825"
-
-[[package]]
-name = "ucd"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe4fa6e588762366f1eb4991ce59ad1b93651d0b769dfb4e4d1c5c4b943d1159"
 
 [[package]]
 name = "uluru"

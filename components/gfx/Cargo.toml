@@ -16,6 +16,7 @@ doctest = false
 [dependencies]
 app_units = { workspace = true }
 atomic_refcell = { workspace = true }
+base = { workspace = true }
 bitflags = { workspace = true }
 cssparser = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -40,7 +41,6 @@ servo_url = { path = "../url" }
 smallvec = { workspace = true, features = ["union"] }
 surfman = { workspace = true }
 style = { workspace = true }
-ucd = "0.1.1"
 unicode-bidi = { workspace = true, features = ["with_serde"] }
 unicode-properties = { workspace = true }
 unicode-script = { workspace = true }

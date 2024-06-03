@@ -12,6 +12,7 @@ use std::{f32, fmt};
 
 use app_units::Au;
 use base::id::{BrowsingContextId, PipelineId};
+use base::text::is_bidi_control;
 use bitflags::bitflags;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use euclid::default::{Point2D, Rect, Size2D, Vector2D};
@@ -2914,7 +2915,7 @@ impl Fragment {
                 let mut new_text_string = String::new();
                 let mut modified = false;
                 for (i, character) in unscanned_text_fragment_info.text.char_indices() {
-                    if gfx::text::util::is_bidi_control(character) {
+                    if is_bidi_control(character) {
                         new_text_string.push(character);
                         continue;
                     }
@@ -2984,7 +2985,7 @@ impl Fragment {
                 let mut trailing_bidi_control_characters_to_retain = Vec::new();
                 let (mut modified, mut last_character_index) = (true, 0);
                 for (i, character) in unscanned_text_fragment_info.text.char_indices().rev() {
-                    if gfx::text::util::is_bidi_control(character) {
+                    if is_bidi_control(character) {
                         trailing_bidi_control_characters_to_retain.push(character);
                         continue;
                     }
@@ -3401,7 +3402,7 @@ impl WhitespaceStrippingResult {
     ) -> WhitespaceStrippingResult {
         if info.text.is_empty() {
             WhitespaceStrippingResult::FragmentContainedOnlyWhitespace
-        } else if info.text.chars().all(gfx::text::util::is_bidi_control) {
+        } else if info.text.chars().all(is_bidi_control) {
             WhitespaceStrippingResult::FragmentContainedOnlyBidiControlCharacters
         } else {
             WhitespaceStrippingResult::RetainFragment

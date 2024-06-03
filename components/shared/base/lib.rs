@@ -9,11 +9,13 @@
 //! You should almost never need to add a data type to this crate. Instead look for
 //! a more shared crate that has fewer dependents.
 
-use serde::{Deserialize, Serialize};
-
 pub mod generic_channel;
 pub mod id;
 pub mod print_tree;
+pub mod text;
+mod unicode_block;
+
+use serde::{Deserialize, Serialize};
 use webrender_api::Epoch as WebRenderEpoch;
 
 /// A struct for denoting the age of messages; prevents race conditions.

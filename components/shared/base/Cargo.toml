@@ -9,7 +9,7 @@ publish = false
 [lib]
 name = "base"
 path = "lib.rs"
-test = false
+test = true
 doctest = false
 
 [dependencies]

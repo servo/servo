@@ -9,10 +9,10 @@ use std::collections::LinkedList;
 use std::sync::Arc;
 
 use app_units::Au;
+use base::text::is_bidi_control;
 use gfx::font::{self, FontMetrics, FontRef, RunMetrics, ShapingFlags, ShapingOptions};
 use gfx::font_cache_thread::FontIdentifier;
 use gfx::text::glyph::ByteIndex;
-use gfx::text::util::is_bidi_control;
 use log::{debug, warn};
 use range::Range;
 use style::computed_values::text_rendering::T as TextRendering;
