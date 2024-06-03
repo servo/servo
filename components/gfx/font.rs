@@ -314,12 +314,15 @@ impl Font {
             }
         }
 
+        let is_single_preserved_newline = text.len() == 1 && text.chars().next() == Some('\n');
+
         let start_time = Instant::now();
         let mut glyphs = GlyphStore::new(
             text.len(),
             options
                 .flags
                 .contains(ShapingFlags::IS_WHITESPACE_SHAPING_FLAG),
+            is_single_preserved_newline,
             options.flags.contains(ShapingFlags::RTL_FLAG),
         );
 

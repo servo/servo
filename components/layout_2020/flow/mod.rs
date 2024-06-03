@@ -6,6 +6,7 @@
 //! Flow layout, also known as block-and-inline layout.
 
 use app_units::Au;
+use inline::InlineFormattingContext;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::Serialize;
 use servo_arc::Arc;
@@ -22,7 +23,6 @@ use crate::context::LayoutContext;
 use crate::flow::float::{
     ContainingBlockPositionInfo, FloatBox, PlacementAmongFloats, SequentialLayoutState,
 };
-use crate::flow::inline::InlineFormattingContext;
 use crate::formatting_contexts::{
     Baselines, IndependentFormattingContext, IndependentLayout, NonReplacedFormattingContext,
 };
@@ -39,9 +39,7 @@ use crate::ContainingBlock;
 mod construct;
 pub mod float;
 pub mod inline;
-mod line;
 mod root;
-pub mod text_run;
 
 pub(crate) use construct::BlockContainerBuilder;
 pub use root::{BoxTree, CanvasBackground};
@@ -194,7 +192,7 @@ impl BlockLevelBox {
     }
 }
 
-struct FlowLayout {
+pub(crate) struct FlowLayout {
     pub fragments: Vec<Fragment>,
     pub content_block_size: Length,
     pub collapsible_margins_in_children: CollapsedBlockMargins,
@@ -205,7 +203,7 @@ struct FlowLayout {
 }
 
 #[derive(Clone, Copy)]
-struct CollapsibleWithParentStartMargin(bool);
+pub(crate) struct CollapsibleWithParentStartMargin(bool);
 
 /// The contentes of a BlockContainer created to render a list marker
 /// for a list that has `list-style-position: outside`.
