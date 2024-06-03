@@ -273,7 +273,7 @@ class CommandBase(object):
 
         config_path = path.join(context.topdir, ".servobuild")
         if path.exists(config_path):
-            with open(config_path) as f:
+            with open(config_path, "r", encoding="utf-8") as f:
                 self.config = toml.loads(f.read())
         else:
             self.config = {}
