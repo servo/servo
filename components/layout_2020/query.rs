@@ -218,9 +218,20 @@ pub fn process_resolved_style_request<'dom>(
                 _ => return None,
             };
 
+            // https://drafts.csswg.org/cssom/#resolved-value-special-case-property-like-height
+            // > If the property applies to the element or pseudo-element and the resolved value of the
+            // > display property is not none or contents, then the resolved value is the used value.
+            // > Otherwise the resolved value is the computed value.
+            //
+            // However, all browsers ignore that for margin and padding properties, and resolve to a length
+            // even if the property doesn't apply: https://github.com/w3c/csswg-drafts/issues/10391
             match longhand_id {
-                LonghandId::Width => Some(content_rect.size.width),
-                LonghandId::Height => Some(content_rect.size.height),
+                LonghandId::Width if resolved_size_should_be_used_value(fragment) => {
+                    Some(content_rect.size.width)
+                },
+                LonghandId::Height if resolved_size_should_be_used_value(fragment) => {
+                    Some(content_rect.size.height)
+                },
                 LonghandId::MarginBottom => Some(margins.bottom.into()),
                 LonghandId::MarginTop => Some(margins.top.into()),
                 LonghandId::MarginLeft => Some(margins.left.into()),
@@ -234,6 +245,25 @@ pub fn process_resolved_style_request<'dom>(
             .map(|value| value.to_css_string())
         })
         .unwrap_or_else(computed_style)
+}
+
+fn resolved_size_should_be_used_value(fragment: &Fragment) -> bool {
+    // https://drafts.csswg.org/css-sizing-3/#preferred-size-properties
+    // > Applies to: all elements except non-replaced inlines
+    match fragment {
+        Fragment::Box(box_fragment) => {
+            !box_fragment.style.get_box().display.is_inline_flow() ||
+                fragment.base().map_or(false, |base| {
+                    base.flags.contains(FragmentFlags::IS_REPLACED)
+                })
+        },
+        Fragment::Float(_) |
+        Fragment::Positioning(_) |
+        Fragment::AbsoluteOrFixedPositioned(_) |
+        Fragment::Image(_) |
+        Fragment::IFrame(_) => true,
+        Fragment::Text(_) => false,
+    }
 }
 
 pub fn process_resolved_style_request_for_unstyled_node<'dom>(
