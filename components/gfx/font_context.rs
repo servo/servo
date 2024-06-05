@@ -35,8 +35,6 @@ use crate::font_cache_thread::{
 };
 use crate::font_store::{CrossThreadFontStore, CrossThreadWebRenderFontStore};
 use crate::font_template::{FontTemplate, FontTemplateRef, FontTemplateRefMethods};
-#[cfg(target_os = "macos")]
-use crate::platform::core_text_font_cache::CoreTextFontCache;
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
 
