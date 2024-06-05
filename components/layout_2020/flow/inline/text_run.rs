@@ -386,7 +386,7 @@ fn char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character: ch
 /// character are not rendered at all, so it doesn't matter what font we use to render them. They
 /// should just be added to the current segment.
 fn char_does_not_change_font(character: char) -> bool {
-    if character.is_whitespace() || character.is_control() {
+    if character.is_control() {
         return true;
     }
     if character == '\u{00A0}' {
