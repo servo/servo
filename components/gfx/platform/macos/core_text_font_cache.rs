@@ -98,9 +98,4 @@ impl CoreTextFontCache {
         identifier_cache.insert(au_size, core_text_font.clone());
         Some(core_text_font)
     }
-
-    pub(crate) fn clear_core_text_font_cache() {
-        let cache = CACHE.0.get_or_init(Default::default);
-        cache.write().clear();
-    }
 }

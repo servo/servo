@@ -440,7 +440,14 @@ pub struct GlyphStore {
 
     /// Used to check if fast path should be used in glyph iteration.
     has_detailed_glyphs: bool,
+
+    /// Whether or not this glyph store contains only glyphs for whitespace.
     is_whitespace: bool,
+
+    /// Whether or not this glyph store contains only a single glyph for a single
+    /// preserved newline.
+    is_single_preserved_newline: bool,
+
     is_rtl: bool,
 }
 
@@ -448,7 +455,12 @@ impl<'a> GlyphStore {
     /// Initializes the glyph store, but doesn't actually shape anything.
     ///
     /// Use the `add_*` methods to store glyph data.
-    pub fn new(length: usize, is_whitespace: bool, is_rtl: bool) -> GlyphStore {
+    pub fn new(
+        length: usize,
+        is_whitespace: bool,
+        is_single_preserved_newline: bool,
+        is_rtl: bool,
+    ) -> GlyphStore {
         assert!(length > 0);
 
         GlyphStore {
@@ -458,6 +470,7 @@ impl<'a> GlyphStore {
             total_word_separators: 0,
             has_detailed_glyphs: false,
             is_whitespace,
+            is_single_preserved_newline,
             is_rtl,
         }
     }
@@ -793,5 +806,10 @@ impl GlyphRun {
         } else {
             Ordering::Equal
         }
+    }
+
+    #[inline]
+    pub fn is_single_preserved_newline(&self) -> bool {
+        self.glyph_store.is_single_preserved_newline
     }
 }

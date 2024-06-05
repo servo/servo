@@ -8,6 +8,7 @@ use std::os::raw::{c_char, c_int, c_uint, c_void};
 use std::{char, cmp, ptr};
 
 use app_units::Au;
+use base::text::is_bidi_control;
 use euclid::default::Point2D;
 // Eventually we would like the shaper to be pluggable, as many operating systems have their own
 // shapers. For now, however, HarfBuzz is a hard dependency.
@@ -29,7 +30,7 @@ use crate::ot_tag;
 use crate::platform::font::FontTable;
 use crate::text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use crate::text::shaping::ShaperMethods;
-use crate::text::util::{fixed_to_float, float_to_fixed, is_bidi_control};
+use crate::text::util::{fixed_to_float, float_to_fixed};
 
 const NO_GLYPH: i32 = -1;
 const LIGA: u32 = ot_tag!('l', 'i', 'g', 'a');

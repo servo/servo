@@ -147,22 +147,23 @@ class MachCommands(CommandBase):
                 test_patterns.append(test)
 
         self_contained_tests = [
-            "servoshell",
             "background_hang_monitor",
+            "base",
+            "compositing",
+            "constellation",
+            "crown",
             "gfx",
             "hyper_serde",
             "layout_2013",
             "layout_2020",
             "net",
             "net_traits",
-            "selectors",
-            "script_traits",
-            "servo_config",
-            "crown",
-            "constellation",
-            "style_config",
-            "compositing",
             "pixels",
+            "script_traits",
+            "selectors",
+            "servo_config",
+            "servoshell",
+            "style_config",
         ]
         if not packages:
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set(['.DS_Store'])

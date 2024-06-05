@@ -5,15 +5,14 @@
 use std::hash::Hash;
 use std::sync::Arc;
 
+use base::text::{unicode_plane, UnicodeBlock, UnicodeBlockMethod};
 use dwrote::{Font, FontCollection, FontDescriptor, FontStretch, FontStyle};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use style::values::computed::{FontStyle as StyleFontStyle, FontWeight as StyleFontWeight};
 use style::values::specified::font::FontStretchKeyword;
-use ucd::{Codepoint, UnicodeBlock};
 
 use crate::font_template::{FontTemplate, FontTemplateDescriptor};
-use crate::text::util::unicode_plane;
 use crate::text::FallbackFontSelectionOptions;
 
 pub static SANS_SERIF_FONT_FAMILY: &str = "Arial";

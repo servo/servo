@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::char::{ToLowercase, ToUppercase};
 use std::mem;
+use std::ops::Range;
 
 use app_units::Au;
 use gfx::font::{FontRef, ShapingFlags, ShapingOptions};
@@ -12,7 +12,7 @@ use gfx::font_context::FontContext;
 use gfx::text::glyph::GlyphRun;
 use gfx_traits::ByteIndex;
 use log::warn;
-use range::Range;
+use range::Range as ServoRange;
 use serde::Serialize;
 use servo_arc::Arc;
 use style::computed_values::text_rendering::T as TextRendering;
@@ -22,13 +22,10 @@ use style::properties::style_structs::InheritedText;
 use style::properties::ComputedValues;
 use style::str::char_is_whitespace;
 use style::values::computed::OverflowWrap;
-use style::values::specified::text::TextTransformCase;
-use style::values::specified::TextTransform;
 use unicode_script::Script;
-use unicode_segmentation::UnicodeSegmentation;
 use xi_unicode::{linebreak_property, LineBreakLeafIter};
 
-use super::inline::{FontKeyAndMetrics, InlineFormattingContextState};
+use super::{FontKeyAndMetrics, InlineFormattingContextState};
 use crate::fragment_tree::BaseFragmentInfo;
 
 // These constants are the xi-unicode line breaking classes that are defined in
@@ -45,7 +42,7 @@ pub(crate) struct TextRun {
     pub base_fragment_info: BaseFragmentInfo,
     #[serde(skip_serializing)]
     pub parent_style: Arc<ComputedValues>,
-    pub text: String,
+    pub text_range: Range<usize>,
 
     /// The text of this [`TextRun`] with a font selected, broken into unbreakable
     /// segments, and shaped.
@@ -88,7 +85,7 @@ pub(crate) struct TextRunSegment {
     pub script: Script,
 
     /// The range of bytes in the [`TextRun`]'s text that this segment covers.
-    pub range: Range<ByteIndex>,
+    pub range: ServoRange<ByteIndex>,
 
     /// Whether or not the linebreaker said that we should allow a line break at the start of this
     /// segment.
@@ -103,7 +100,7 @@ impl TextRunSegment {
         Self {
             script,
             font_index,
-            range: Range::new(byte_index, ByteIndex(0)),
+            range: ServoRange::new(byte_index, ByteIndex(0)),
             runs: Vec::new(),
             break_at_start: false,
         }
@@ -152,7 +149,7 @@ impl TextRunSegment {
             // If this whitespace forces a line break, queue up a hard line break the next time we
             // see any content. We don't line break immediately, because we'd like to finish processing
             // any ongoing inline boxes before ending the line.
-            if text_run.glyph_run_is_preserved_newline(self, run) {
+            if run.is_single_preserved_newline() {
                 ifc.defer_forced_line_break();
                 continue;
             }
@@ -176,52 +173,26 @@ impl TextRun {
     pub(crate) fn new(
         base_fragment_info: BaseFragmentInfo,
         parent_style: Arc<ComputedValues>,
-        text: String,
+        text_range: Range<usize>,
     ) -> Self {
         Self {
             base_fragment_info,
             parent_style,
-            text,
+            text_range,
             shaped_text: Vec::new(),
             prevent_soft_wrap_opportunity_at_start: false,
             prevent_soft_wrap_opportunity_at_end: false,
         }
     }
 
-    /// Whether or not this [`TextRun`] has uncollapsible content. This is used
-    /// to determine if an [`super::InlineFormattingContext`] is considered empty or not.
-    pub(super) fn has_uncollapsible_content(&self) -> bool {
-        let white_space_collapse = self.parent_style.clone_white_space_collapse();
-        if white_space_collapse == WhiteSpaceCollapse::Preserve && !self.text.is_empty() {
-            return true;
-        }
-
-        for character in self.text.chars() {
-            if !character.is_ascii_whitespace() {
-                return true;
-            }
-            if character == '\n' && white_space_collapse != WhiteSpaceCollapse::Collapse {
-                return true;
-            }
-        }
-
-        false
-    }
-
     pub(super) fn break_and_shape(
         &mut self,
+        text_content: &str,
         font_context: &FontContext<FontCacheThread>,
         linebreaker: &mut Option<LineBreakLeafIter>,
         font_cache: &mut Vec<FontKeyAndMetrics>,
-        last_inline_box_ended_with_collapsible_white_space: &mut bool,
-        on_word_boundary: &mut bool,
     ) {
-        let segment_results = self.segment_text(
-            font_context,
-            font_cache,
-            last_inline_box_ended_with_collapsible_white_space,
-            on_word_boundary,
-        );
+        let segment_results = self.segment_text(text_content, font_context, font_cache);
         let inherited_text_style = self.parent_style.get_inherited_text().clone();
         let letter_spacing = if inherited_text_style.letter_spacing.0.px() != 0. {
             Some(app_units::Au::from(inherited_text_style.letter_spacing.0))
@@ -261,7 +232,7 @@ impl TextRun {
                 };
                 (segment.runs, segment.break_at_start) = break_and_shape(
                     font,
-                    &self.text[segment.range.begin().0 as usize..segment.range.end().0 as usize],
+                    &text_content[segment.range.begin().0 as usize..segment.range.end().0 as usize],
                     &inherited_text_style,
                     &shaping_options,
                     linebreaker,
@@ -280,107 +251,65 @@ impl TextRun {
     /// [`super::InlineFormattingContext`].
     fn segment_text(
         &mut self,
+        text_content: &str,
         font_context: &FontContext<FontCacheThread>,
         font_cache: &mut Vec<FontKeyAndMetrics>,
-        last_inline_box_ended_with_collapsible_white_space: &mut bool,
-        on_word_boundary: &mut bool,
     ) -> Vec<(TextRunSegment, FontRef)> {
         let font_group = font_context.font_group(self.parent_style.clone_font());
         let mut current: Option<(TextRunSegment, FontRef)> = None;
         let mut results = Vec::new();
 
-        // TODO: Eventually the text should come directly from the Cow strings of the DOM nodes.
-        let text = std::mem::take(&mut self.text);
-        let white_space_collapse = self.parent_style.clone_white_space_collapse();
-        let collapsed = WhitespaceCollapse::new(
-            text.as_str().chars(),
-            white_space_collapse,
-            *last_inline_box_ended_with_collapsible_white_space,
-        );
-
-        let text_transform = self.parent_style.clone_text_transform();
-        let collected_text: String;
-        let char_iterator: Box<dyn Iterator<Item = char>> =
-            if text_transform.case_ == TextTransformCase::Capitalize {
-                // `TextTransformation` doesn't support capitalization, so we must capitalize the whole
-                // string at once and make a copy. Here `on_word_boundary` indicates whether or not the
-                // inline formatting context as a whole is on a word boundary. This is different from
-                // `last_inline_box_ended_with_collapsible_white_space` because the word boundaries are
-                // between atomic inlines and at the start of the IFC, and because preserved spaces
-                // are a word boundary.
-                let collapsed_string: String = collapsed.collect();
-                collected_text = capitalize_string(&collapsed_string, *on_word_boundary);
-                Box::new(collected_text.chars())
-            } else if !text_transform.is_none() {
-                // If `text-transform` is active, wrap the `WhitespaceCollapse` iterator in
-                // a `TextTransformation` iterator.
-                Box::new(TextTransformation::new(collapsed, text_transform))
-            } else {
-                Box::new(collapsed)
-            };
-        let char_iterator = TwoCharsAtATimeIterator::new(char_iterator);
-
+        let char_iterator = TwoCharsAtATimeIterator::new(text_content.chars());
         let mut next_byte_index = 0;
-        let text = char_iterator
-            .map(|(character, next_character)| {
-                let current_byte_index = next_byte_index;
-                next_byte_index += character.len_utf8();
+        for (character, next_character) in char_iterator {
+            let current_byte_index = next_byte_index;
+            next_byte_index += character.len_utf8();
 
-                *on_word_boundary = character.is_whitespace();
-                *last_inline_box_ended_with_collapsible_white_space =
-                    *on_word_boundary && white_space_collapse != WhiteSpaceCollapse::Preserve;
+            let prevents_soft_wrap_opportunity =
+                char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character);
+            if current_byte_index == 0 && prevents_soft_wrap_opportunity {
+                self.prevent_soft_wrap_opportunity_at_start = true;
+            }
+            self.prevent_soft_wrap_opportunity_at_end = prevents_soft_wrap_opportunity;
 
-                let prevents_soft_wrap_opportunity =
-                    char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character);
-                if current_byte_index == 0 && prevents_soft_wrap_opportunity {
-                    self.prevent_soft_wrap_opportunity_at_start = true;
+            if char_does_not_change_font(character) {
+                continue;
+            }
+
+            let Some(font) =
+                font_group
+                    .write()
+                    .find_by_codepoint(font_context, character, next_character)
+            else {
+                continue;
+            };
+
+            // If the existing segment is compatible with the character, keep going.
+            let script = Script::from(character);
+            if let Some(current) = current.as_mut() {
+                if current.0.update_if_compatible(&font, script, font_cache) {
+                    continue;
                 }
-                self.prevent_soft_wrap_opportunity_at_end = prevents_soft_wrap_opportunity;
+            }
 
-                if char_does_not_change_font(character) {
-                    return character;
-                }
+            let font_index = add_or_get_font(&font, font_cache);
 
-                let font = match font_group.write().find_by_codepoint(
-                    font_context,
-                    character,
-                    next_character,
-                ) {
-                    Some(font) => font,
-                    None => return character,
-                };
-
-                // If the existing segment is compatible with the character, keep going.
-                let script = Script::from(character);
-                if let Some(current) = current.as_mut() {
-                    if current.0.update_if_compatible(&font, script, font_cache) {
-                        return character;
-                    }
-                }
-
-                let font_index = add_or_get_font(&font, font_cache);
-
-                // Add the new segment and finish the existing one, if we had one. If the first
-                // characters in the run were control characters we may be creating the first
-                // segment in the middle of the run (ie the start should be 0).
-                let start_byte_index = match current {
-                    Some(_) => ByteIndex(current_byte_index as isize),
-                    None => ByteIndex(0_isize),
-                };
-                let new = (
-                    TextRunSegment::new(font_index, script, start_byte_index),
-                    font,
-                );
-                if let Some(mut finished) = current.replace(new) {
-                    finished.0.range.extend_to(start_byte_index);
-                    results.push(finished);
-                }
-
-                character
-            })
-            .collect();
-
-        let _ = std::mem::replace(&mut self.text, text);
+            // Add the new segment and finish the existing one, if we had one. If the first
+            // characters in the run were control characters we may be creating the first
+            // segment in the middle of the run (ie the start should be 0).
+            let start_byte_index = match current {
+                Some(_) => ByteIndex(current_byte_index as isize),
+                None => ByteIndex(0_isize),
+            };
+            let new = (
+                TextRunSegment::new(font_index, script, start_byte_index),
+                font,
+            );
+            if let Some(mut finished) = current.replace(new) {
+                finished.0.range.extend_to(start_byte_index);
+                results.push(finished);
+            }
+        }
 
         // Either we have a current segment or we only had control character and whitespace. In both
         // of those cases, just use the first font.
@@ -399,7 +328,7 @@ impl TextRun {
             last_segment
                 .0
                 .range
-                .extend_to(ByteIndex(self.text.len() as isize));
+                .extend_to(ByteIndex(text_content.len() as isize));
             results.push(last_segment);
         }
 
@@ -407,7 +336,7 @@ impl TextRun {
     }
 
     pub(super) fn layout_into_line_items(&self, ifc: &mut InlineFormattingContextState) {
-        if self.text.is_empty() {
+        if self.text_range.is_empty() {
             return;
         }
 
@@ -429,25 +358,6 @@ impl TextRun {
 
         ifc.prevent_soft_wrap_opportunity_before_next_atomic =
             self.prevent_soft_wrap_opportunity_at_end;
-    }
-
-    pub(super) fn glyph_run_is_preserved_newline(
-        &self,
-        text_run_segment: &TextRunSegment,
-        run: &GlyphRun,
-    ) -> bool {
-        if !run.glyph_store.is_whitespace() || run.range.length() != ByteIndex(1) {
-            return false;
-        }
-        if self.parent_style.get_inherited_text().white_space_collapse ==
-            WhiteSpaceCollapse::Collapse
-        {
-            return false;
-        }
-
-        let byte_offset = (text_run_segment.range.begin() + run.range.begin()).to_usize();
-        let byte = self.text.as_bytes().get(byte_offset);
-        byte == Some(&b'\n')
     }
 }
 
@@ -476,7 +386,7 @@ fn char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character: ch
 /// character are not rendered at all, so it doesn't matter what font we use to render them. They
 /// should just be added to the current segment.
 fn char_does_not_change_font(character: char) -> bool {
-    if character.is_whitespace() || character.is_control() {
+    if character.is_control() {
         return true;
     }
     if character == '\u{00A0}' {
@@ -517,295 +427,7 @@ pub(super) fn get_font_for_first_font_for_style(
     }
     font
 }
-
-fn preserve_segment_break() -> bool {
-    true
-}
-
-pub struct WhitespaceCollapse<InputIterator> {
-    char_iterator: InputIterator,
-    white_space_collapse: WhiteSpaceCollapse,
-
-    /// Whether or not we should collapse white space completely at the start of the string.
-    /// This is true when the last character handled in our owning [`super::InlineFormattingContext`]
-    /// was collapsible white space.
-    remove_collapsible_white_space_at_start: bool,
-
-    /// Whether or not the last character produced was newline. There is special behavior
-    /// we do after each newline.
-    following_newline: bool,
-
-    /// Whether or not we have seen any non-white space characters, indicating that we are not
-    /// in a collapsible white space section at the beginning of the string.
-    have_seen_non_white_space_characters: bool,
-
-    /// Whether the last character that we processed was a non-newline white space character. When
-    /// collapsing white space we need to wait until the next non-white space character or the end
-    /// of the string to push a single white space.
-    inside_white_space: bool,
-
-    /// When we enter a collapsible white space region, we may need to wait to produce a single
-    /// white space character as soon as we encounter a non-white space character. When that
-    /// happens we queue up the non-white space character for the next iterator call.
-    character_pending_to_return: Option<char>,
-}
-
-impl<InputIterator> WhitespaceCollapse<InputIterator> {
-    pub fn new(
-        char_iterator: InputIterator,
-        white_space_collapse: WhiteSpaceCollapse,
-        trim_beginning_white_space: bool,
-    ) -> Self {
-        Self {
-            char_iterator,
-            white_space_collapse,
-            remove_collapsible_white_space_at_start: trim_beginning_white_space,
-            inside_white_space: false,
-            following_newline: false,
-            have_seen_non_white_space_characters: false,
-            character_pending_to_return: None,
-        }
-    }
-
-    fn is_leading_trimmed_white_space(&self) -> bool {
-        !self.have_seen_non_white_space_characters && self.remove_collapsible_white_space_at_start
-    }
-
-    /// Whether or not we need to produce a space character if the next character is not a newline
-    /// and not white space. This happens when we are exiting a section of white space and we
-    /// waited to produce a single space character for the entire section of white space (but
-    /// not following or preceding a newline).
-    fn need_to_produce_space_character_after_white_space(&self) -> bool {
-        self.inside_white_space && !self.following_newline && !self.is_leading_trimmed_white_space()
-    }
-}
-
-impl<InputIterator> Iterator for WhitespaceCollapse<InputIterator>
-where
-    InputIterator: Iterator<Item = char>,
-{
-    type Item = char;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        // Point 4.1.1 first bullet:
-        // > If white-space is set to normal, nowrap, or pre-line, whitespace
-        // > characters are considered collapsible
-        // If whitespace is not considered collapsible, it is preserved entirely, which
-        // means that we can simply return the input string exactly.
-        if self.white_space_collapse == WhiteSpaceCollapse::Preserve ||
-            self.white_space_collapse == WhiteSpaceCollapse::BreakSpaces
-        {
-            // From <https://drafts.csswg.org/css-text-3/#white-space-processing>:
-            // > Carriage returns (U+000D) are treated identically to spaces (U+0020) in all respects.
-            //
-            // In the non-preserved case these are converted to space below.
-            return match self.char_iterator.next() {
-                Some('\r') => Some(' '),
-                next => next,
-            };
-        }
-
-        if let Some(character) = self.character_pending_to_return.take() {
-            self.inside_white_space = false;
-            self.have_seen_non_white_space_characters = true;
-            self.following_newline = false;
-            return Some(character);
-        }
-
-        while let Some(character) = self.char_iterator.next() {
-            // Don't push non-newline whitespace immediately. Instead wait to push it until we
-            // know that it isn't followed by a newline. See `push_pending_whitespace_if_needed`
-            // above.
-            if character.is_ascii_whitespace() && character != '\n' {
-                self.inside_white_space = true;
-                continue;
-            }
-
-            // Point 4.1.1:
-            // > 2. Collapsible segment breaks are transformed for rendering according to the
-            // >    segment break transformation rules.
-            if character == '\n' {
-                // From <https://drafts.csswg.org/css-text-3/#line-break-transform>
-                // (4.1.3 -- the segment break transformation rules):
-                //
-                // > When white-space is pre, pre-wrap, or pre-line, segment breaks are not
-                // > collapsible and are instead transformed into a preserved line feed"
-                if self.white_space_collapse != WhiteSpaceCollapse::Collapse {
-                    self.inside_white_space = false;
-                    self.following_newline = true;
-                    return Some(character);
-
-                // Point 4.1.3:
-                // > 1. First, any collapsible segment break immediately following another
-                // >    collapsible segment break is removed.
-                // > 2. Then any remaining segment break is either transformed into a space (U+0020)
-                // >    or removed depending on the context before and after the break.
-                } else if !self.following_newline &&
-                    preserve_segment_break() &&
-                    !self.is_leading_trimmed_white_space()
-                {
-                    self.inside_white_space = false;
-                    self.following_newline = true;
-                    return Some(' ');
-                } else {
-                    self.following_newline = true;
-                    continue;
-                }
-            }
-
-            // Point 4.1.1:
-            // > 2. Any sequence of collapsible spaces and tabs immediately preceding or
-            // >    following a segment break is removed.
-            // > 3. Every collapsible tab is converted to a collapsible space (U+0020).
-            // > 4. Any collapsible space immediately following another collapsible space—even
-            // >    one outside the boundary of the inline containing that space, provided both
-            // >    spaces are within the same inline formatting context—is collapsed to have zero
-            // >    advance width.
-            if self.need_to_produce_space_character_after_white_space() {
-                self.inside_white_space = false;
-                self.character_pending_to_return = Some(character);
-                return Some(' ');
-            }
-
-            self.inside_white_space = false;
-            self.have_seen_non_white_space_characters = true;
-            self.following_newline = false;
-            return Some(character);
-        }
-
-        if self.need_to_produce_space_character_after_white_space() {
-            self.inside_white_space = false;
-            return Some(' ');
-        }
-
-        None
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        self.char_iterator.size_hint()
-    }
-
-    fn count(self) -> usize
-    where
-        Self: Sized,
-    {
-        self.char_iterator.count()
-    }
-}
-
-enum PendingCaseConversionResult {
-    Uppercase(ToUppercase),
-    Lowercase(ToLowercase),
-}
-
-impl PendingCaseConversionResult {
-    fn next(&mut self) -> Option<char> {
-        match self {
-            PendingCaseConversionResult::Uppercase(to_uppercase) => to_uppercase.next(),
-            PendingCaseConversionResult::Lowercase(to_lowercase) => to_lowercase.next(),
-        }
-    }
-}
-
-/// This is an interator that consumes a char iterator and produces character transformed
-/// by the given CSS `text-transform` value. It currently does not support
-/// `text-transform: capitalize` because Unicode segmentation libraries do not support
-/// streaming input one character at a time.
-pub struct TextTransformation<InputIterator> {
-    /// The input character iterator.
-    char_iterator: InputIterator,
-    /// The `text-transform` value to use.
-    text_transform: TextTransform,
-    /// If an uppercasing or lowercasing produces more than one character, this
-    /// caches them so that they can be returned in subsequent iterator calls.
-    pending_case_conversion_result: Option<PendingCaseConversionResult>,
-}
-
-impl<InputIterator> TextTransformation<InputIterator> {
-    pub fn new(char_iterator: InputIterator, text_transform: TextTransform) -> Self {
-        Self {
-            char_iterator,
-            text_transform,
-            pending_case_conversion_result: None,
-        }
-    }
-}
-
-impl<InputIterator> Iterator for TextTransformation<InputIterator>
-where
-    InputIterator: Iterator<Item = char>,
-{
-    type Item = char;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some(character) = self
-            .pending_case_conversion_result
-            .as_mut()
-            .and_then(|result| result.next())
-        {
-            return Some(character);
-        }
-        self.pending_case_conversion_result = None;
-
-        for character in self.char_iterator.by_ref() {
-            match self.text_transform.case_ {
-                TextTransformCase::None => return Some(character),
-                TextTransformCase::Uppercase => {
-                    let mut pending_result =
-                        PendingCaseConversionResult::Uppercase(character.to_uppercase());
-                    if let Some(character) = pending_result.next() {
-                        self.pending_case_conversion_result = Some(pending_result);
-                        return Some(character);
-                    }
-                },
-                TextTransformCase::Lowercase => {
-                    let mut pending_result =
-                        PendingCaseConversionResult::Lowercase(character.to_lowercase());
-                    if let Some(character) = pending_result.next() {
-                        self.pending_case_conversion_result = Some(pending_result);
-                        return Some(character);
-                    }
-                },
-                // `text-transform: capitalize` currently cannot work on a per-character basis,
-                // so must be handled outside of this iterator.
-                // TODO: Add support for `full-width` and `full-size-kana`.
-                _ => return Some(character),
-            }
-        }
-        None
-    }
-}
-
-/// Given a string and whether the start of the string represents a word boundary, create a copy of
-/// the string with letters after word boundaries capitalized.
-fn capitalize_string(string: &str, allow_word_at_start: bool) -> String {
-    let mut output_string = String::new();
-    output_string.reserve(string.len());
-
-    let mut bounds = string.unicode_word_indices().peekable();
-    let mut byte_index = 0;
-    for character in string.chars() {
-        let current_byte_index = byte_index;
-        byte_index += character.len_utf8();
-
-        if let Some((next_index, _)) = bounds.peek() {
-            if *next_index == current_byte_index {
-                bounds.next();
-
-                if current_byte_index != 0 || allow_word_at_start {
-                    output_string.extend(character.to_uppercase());
-                    continue;
-                }
-            }
-        }
-
-        output_string.push(character);
-    }
-
-    output_string
-}
-
-pub struct TwoCharsAtATimeIterator<InputIterator> {
+pub(crate) struct TwoCharsAtATimeIterator<InputIterator> {
     /// The input character iterator.
     iterator: InputIterator,
     /// The first character to produce in the next run of the iterator.
@@ -860,10 +482,10 @@ pub fn break_and_shape(
 
     let breaker = breaker.as_mut().unwrap();
 
-    let mut push_range = |range: &std::ops::Range<usize>, options: &ShapingOptions| {
+    let mut push_range = |range: &Range<usize>, options: &ShapingOptions| {
         glyphs.push(GlyphRun {
             glyph_store: font.shape_text(&text[range.clone()], options),
-            range: Range::new(
+            range: ServoRange::new(
                 ByteIndex(range.start as isize),
                 ByteIndex(range.len() as isize),
             ),

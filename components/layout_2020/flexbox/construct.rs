@@ -12,7 +12,8 @@ use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, LayoutBox, NodeExt};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents, TraversalHandler};
-use crate::flow::BlockFormattingContext;
+use crate::flow::inline::construct::InlineFormattingContextBuilder;
+use crate::flow::{BlockContainer, BlockFormattingContext};
 use crate::formatting_contexts::{
     IndependentFormattingContext, NonReplacedFormattingContext,
     NonReplacedFormattingContextContents,
@@ -47,7 +48,7 @@ struct FlexContainerBuilder<'a, 'dom, Node> {
     context: &'a LayoutContext<'a>,
     info: &'a NodeAndStyleInfo<Node>,
     text_decoration_line: TextDecorationLine,
-    contiguous_text_runs: Vec<TextRun<'dom, Node>>,
+    contiguous_text_runs: Vec<FlexTextRun<'dom, Node>>,
     /// To be run in parallel with rayon in `finish`
     jobs: Vec<FlexLevelJob<'dom, Node>>,
     has_text_runs: bool,
@@ -61,10 +62,10 @@ enum FlexLevelJob<'dom, Node> {
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     },
-    TextRuns(Vec<TextRun<'dom, Node>>),
+    TextRuns(Vec<FlexTextRun<'dom, Node>>),
 }
 
-struct TextRun<'dom, Node> {
+struct FlexTextRun<'dom, Node> {
     info: NodeAndStyleInfo<Node>,
     text: Cow<'dom, str>,
 }
@@ -74,7 +75,7 @@ where
     Node: NodeExt<'dom>,
 {
     fn handle_text(&mut self, info: &NodeAndStyleInfo<Node>, text: Cow<'dom, str>) {
-        self.contiguous_text_runs.push(TextRun {
+        self.contiguous_text_runs.push(FlexTextRun {
             info: info.clone(),
             text,
         })
@@ -103,7 +104,7 @@ where
 }
 
 /// <https://drafts.csswg.org/css-text/#white-space>
-fn is_only_document_white_space<Node>(run: &TextRun<'_, Node>) -> bool {
+fn is_only_document_white_space<Node>(run: &FlexTextRun<'_, Node>) -> bool {
     // FIXME: is this the right definition? See
     // https://github.com/w3c/csswg-drafts/issues/5146
     // https://github.com/w3c/csswg-drafts/issues/5147
@@ -146,28 +147,40 @@ where
 
         let mut children = std::mem::take(&mut self.jobs)
             .into_par_iter()
-            .map(|job| match job {
-                FlexLevelJob::TextRuns(runs) => ArcRefCell::new(FlexLevelBox::FlexItem({
-                    let runs = runs.into_iter().map(|run| {
-                        crate::flow::text_run::TextRun::new(
-                            (&run.info).into(),
-                            run.info.style,
-                            run.text.into(),
-                        )
-                    });
-                    let bfc = BlockFormattingContext::construct_for_text_runs(
-                        runs,
+            .filter_map(|job| match job {
+                FlexLevelJob::TextRuns(runs) => {
+                    let mut inline_formatting_context_builder =
+                        InlineFormattingContextBuilder::new();
+                    for flex_text_run in runs.into_iter() {
+                        inline_formatting_context_builder
+                            .push_text(flex_text_run.text, &flex_text_run.info);
+                    }
+
+                    let Some(inline_formatting_context) = inline_formatting_context_builder.finish(
                         self.context,
                         self.text_decoration_line,
+                        true, /* has_first_formatted_line */
+                    ) else {
+                        return None;
+                    };
+
+                    let block_formatting_context = BlockFormattingContext::from_block_container(
+                        BlockContainer::InlineFormattingContext(inline_formatting_context),
                     );
                     let info = &self.info.new_anonymous(anonymous_style.clone().unwrap());
-                    IndependentFormattingContext::NonReplaced(NonReplacedFormattingContext {
+                    let non_replaced = NonReplacedFormattingContext {
                         base_fragment_info: info.into(),
                         style: info.style.clone(),
                         content_sizes: None,
-                        contents: NonReplacedFormattingContextContents::Flow(bfc),
-                    })
-                })),
+                        contents: NonReplacedFormattingContextContents::Flow(
+                            block_formatting_context,
+                        ),
+                    };
+
+                    Some(ArcRefCell::new(FlexLevelBox::FlexItem(
+                        IndependentFormattingContext::NonReplaced(non_replaced),
+                    )))
+                },
                 FlexLevelJob::Element {
                     info,
                     display,
@@ -200,7 +213,7 @@ where
                         ))
                     };
                     box_slot.set(LayoutBox::FlexLevel(box_.clone()));
-                    box_
+                    Some(box_)
                 },
             })
             .collect::<Vec<_>>();
