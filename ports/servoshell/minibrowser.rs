@@ -171,9 +171,8 @@ impl Minibrowser {
         } = self;
         let widget_fbo = *widget_surface_fbo;
         let _duration = context.run(window, |ctx| {
-            // TODO: While in fullscreen add some way to mitigate the increased phishing risk when not displaying the URL bar:
-            // https://github.com/servo/servo/issues/32443
-            // disables drawing the toolbar in fullscreen
+            // TODO: While in fullscreen add some way to mitigate the increased phishing risk
+            // when not displaying the URL bar: https://github.com/servo/servo/issues/32443
             if !window.fullscreen().is_some() {
                 TopBottomPanel::top("toolbar").show(ctx, |ui| {
                     ui.allocate_ui_with_layout(
