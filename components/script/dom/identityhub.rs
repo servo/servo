@@ -62,6 +62,8 @@ pub struct Identities {
     dx12_hub: IdentityHub,
     #[cfg(any(target_os = "ios", target_os = "macos"))]
     metal_hub: IdentityHub,
+    #[cfg(any(target_os = "linux", target_os = "windows"))]
+    gl_hub: IdentityHub,
     dummy_hub: IdentityHub,
 }
 
@@ -74,6 +76,8 @@ impl Identities {
             dx12_hub: IdentityHub::new(),
             #[cfg(any(target_os = "ios", target_os = "macos"))]
             metal_hub: IdentityHub::new(),
+            #[cfg(any(target_os = "linux", target_os = "windows"))]
+            gl_hub: IdentityHub::new(),
             dummy_hub: IdentityHub::new(),
         }
     }
@@ -86,6 +90,8 @@ impl Identities {
             Backend::Dx12 => &mut self.dx12_hub,
             #[cfg(any(target_os = "ios", target_os = "macos"))]
             Backend::Metal => &mut self.metal_hub,
+            #[cfg(any(target_os = "linux", target_os = "windows"))]
+            Backend::Gl => &mut self.gl_hub,
             _ => &mut self.dummy_hub,
         }
     }
@@ -98,6 +104,8 @@ impl Identities {
             (&mut self.dx12_hub, Backend::Dx12),
             #[cfg(any(target_os = "ios", target_os = "macos"))]
             (&mut self.metal_hub, Backend::Metal),
+            #[cfg(any(target_os = "linux", target_os = "windows"))]
+            (&mut self.gl_hub, Backend::Gl),
             (&mut self.dummy_hub, Backend::Empty),
         ]
     }
