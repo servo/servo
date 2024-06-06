@@ -30,6 +30,7 @@ use servo::embedder_traits::{
 };
 use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
+use servo::net_traits::pub_domains::is_reg_domain;
 pub use servo::script_traits::{MediaSessionActionType, MouseButton};
 use servo::script_traits::{TouchEventType, TouchId, TraversalDirection};
 use servo::servo_config::{opts, pref};
@@ -379,9 +380,17 @@ impl ServoGlue {
     }
 
     /// Load an URL. This needs to be a valid url.
-    pub fn load_uri(&mut self, url: &str) -> Result<(), &'static str> {
-        info!("load_uri: {}", url);
-        ServoUrl::parse(url)
+    pub fn load_uri(&mut self, request: &str) -> Result<(), &'static str> {
+        info!("load_uri: {}", request);
+        ServoUrl::parse(request)
+            .or_else(|_| {
+                if request.contains('/') || is_reg_domain(request) {
+                    ServoUrl::parse(&format!("https://{}", request))
+                } else {
+                    let search_url = pref!(shell.searchpage).replace("%s", request);
+                    ServoUrl::parse(&search_url)
+                }
+            })
             .map_err(|_| "Can't parse URL")
             .and_then(|url| {
                 let browser_id = self.get_browser_id()?;

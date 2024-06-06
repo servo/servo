@@ -14,11 +14,9 @@ import android.os.Bundle;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.util.Log;
-import android.util.Patterns;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
-import android.webkit.URLUtil;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
@@ -80,7 +78,7 @@ public class MainActivity extends Activity implements Servo.Client {
         mServoView.setServoArgs(args, log);
 
         if (Intent.ACTION_VIEW.equals(intent.getAction())) {
-            mServoView.loadUri(intent.getData());
+            mServoView.loadUri(intent.getData().toString());
         }
         setupUrlField();
     }
@@ -115,17 +113,8 @@ public class MainActivity extends Activity implements Servo.Client {
     private void loadUrlFromField() {
         String text = mUrlField.getText().toString();
         text = text.trim();
-        String url;
 
-        if (Patterns.WEB_URL.matcher(text).matches()) {
-            url = URLUtil.guessUrl(text).replaceFirst("http://", "https://");
-        } else if (text.matches("(http://)?localhost:\\d{1,5}(/.*)?")) {
-            url = text.startsWith("http://") ? text : "http://" + text;
-        } else {
-            url = URLUtil.composeSearchUrl(text, "https://duckduckgo.com/html/?q=%s", "%s");
-        }
-
-        mServoView.loadUri(Uri.parse(url));
+        mServoView.loadUri(text);
     }
 
     // From activity_main.xml:
