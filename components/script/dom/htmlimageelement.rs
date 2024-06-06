@@ -174,7 +174,7 @@ pub struct HTMLImageElement {
     source_set: DomRefCell<SourceSet>,
     last_selected_source: DomRefCell<Option<USVString>>,
     #[ignore_malloc_size_of = "promises are hard"]
-    image_decode_promise: DomRefCell<Rc<Promise>>,
+    image_decode_promises: DomRefCell<Vec<Rc<Promise>>>,
 }
 
 impl HTMLImageElement {
@@ -192,8 +192,14 @@ impl HTMLImageElement {
 
         match self.current_request.borrow().state {
             // If image's current request's state is broken, then throw an "InvalidStateError" DOMException.
-            State::Broken => Err(Error::InvalidState),
-            State::CompletelyAvailable => Ok(true),
+            State::Broken => {
+                self.reject_image_decode_promises();
+                Err(Error::InvalidState)
+            },
+            State::CompletelyAvailable => {
+                self.resolve_image_decode_promises();
+                Ok(true)
+            },
             // If image is not fully decodable, then return bad.
             State::PartiallyAvailable | State::Unavailable => Ok(false),
         }
@@ -420,6 +426,7 @@ impl HTMLImageElement {
 
     // Steps common to when an image has been loaded.
     fn handle_loaded_image(&self, image: Arc<Image>, url: ServoUrl) {
+        self.resolve_image_decode_promises();
         self.current_request.borrow_mut().metadata = Some(ImageMetadata {
             height: image.height,
             width: image.width,
@@ -504,29 +511,6 @@ impl HTMLImageElement {
     ) {
         match image {
             ImageResponse::Loaded(image, url) | ImageResponse::PlaceholderLoaded(image, url) => {
-                // Step 2.2 of <https://html.spec.whatwg.org/multipage/#dom-img-decode>
-                let window = window_from_node(self);
-                let image_cache = window.image_cache();
-
-                let decode_result = image_cache.decode(
-                    url.clone(),
-                    window.origin().immutable().clone(),
-                    cors_setting_for_element(self.upcast()),
-                );
-
-                match decode_result {
-                    Some(_) => {
-                        self.image_decode_promise.borrow().resolve_native(&());
-                    },
-                    None => {
-                        self.image_decode_promise
-                            .borrow()
-                            .reject_native(&DOMException::new(
-                                &self.global(),
-                                DOMErrorName::EncodingError,
-                            ));
-                    },
-                }
                 self.pending_request.borrow_mut().metadata = Some(ImageMetadata {
                     height: image.height,
                     width: image.width,
@@ -546,6 +530,10 @@ impl HTMLImageElement {
 
     /// <https://html.spec.whatwg.org/multipage/#abort-the-image-request>
     fn abort_request(&self, state: State, request: ImageRequestPhase) {
+        if matches!(state, State::Broken | State::Unavailable) {
+            self.reject_image_decode_promises();
+        }
+
         let mut request = match request {
             ImageRequestPhase::Current => self.current_request.borrow_mut(),
             ImageRequestPhase::Pending => self.pending_request.borrow_mut(),
@@ -861,7 +849,14 @@ impl HTMLImageElement {
                         self.image_request.set(ImageRequestPhase::Pending);
                         self.init_image_request(&mut pending_request, url, src);
                     },
-                    (_, State::Broken) | (_, State::Unavailable) => {
+                    (_, State::Broken) => {
+                        self.reject_image_decode_promises();
+                        // Step 17
+                        current_request.current_pixel_density = Some(selected_pixel_density);
+                        self.init_image_request(&mut current_request, url, src);
+                    },
+
+                    (_, State::Unavailable) => {
                         // Step 17
                         current_request.current_pixel_density = Some(selected_pixel_density);
                         self.init_image_request(&mut current_request, url, src);
@@ -1188,6 +1183,38 @@ impl HTMLImageElement {
         }
     }
 
+    // Step 2 for <https://html.spec.whatwg.org/multipage/#dom-img-decode>
+    fn react_to_decode_image_sync_steps(&self) {
+        let document = document_from_node(self);
+        // Step 2.1 of <https://html.spec.whatwg.org/multipage/#dom-img-decode>
+        if !document.is_fully_active() ||
+            matches!(self.current_request.borrow().state, State::Broken)
+        {
+            self.reject_image_decode_promises();
+        } else if matches!(
+            self.current_request.borrow().state,
+            State::CompletelyAvailable
+        ) {
+            self.resolve_image_decode_promises();
+        }
+    }
+
+    fn resolve_image_decode_promises(&self) {
+        for promise in self.image_decode_promises.borrow().iter() {
+            promise.resolve_native(&());
+        }
+    }
+
+    fn reject_image_decode_promises(&self) {
+        let document = document_from_node(self);
+        for promise in self.image_decode_promises.borrow().iter() {
+            promise.reject_native(&DOMException::new(
+                &document.global(),
+                DOMErrorName::EncodingError,
+            ));
+        }
+    }
+
     /// Step 15 for <https://html.spec.whatwg.org/multipage/#img-environment-changes>
     fn finish_reacting_to_environment_change(
         &self,
@@ -1276,7 +1303,7 @@ impl HTMLImageElement {
             generation: Default::default(),
             source_set: DomRefCell::new(SourceSet::new()),
             last_selected_source: DomRefCell::new(None),
-            image_decode_promise: DomRefCell::new(Promise::new(&document.global())),
+            image_decode_promises: DomRefCell::new(vec![]),
         }
     }
 
@@ -1377,7 +1404,6 @@ pub enum ImageElementMicrotask {
     },
     DecodeTask {
         elem: DomRoot<HTMLImageElement>,
-        document: DomRoot<Document>,
     },
 }
 
@@ -1400,26 +1426,8 @@ impl MicrotaskRunnable for ImageElementMicrotask {
             } => {
                 elem.react_to_environment_changes_sync_steps(*generation);
             },
-            ImageElementMicrotask::DecodeTask {
-                ref elem,
-                ref document,
-            } => {
-                // Step 2.1 of <https://html.spec.whatwg.org/multipage/#dom-img-decode>
-                let available = match elem.current_request.borrow().state {
-                    State::Unavailable => false,
-                    State::PartiallyAvailable => false,
-                    State::CompletelyAvailable => true,
-                    State::Broken => false,
-                };
-
-                if document.is_fully_active() || !available {
-                    elem.image_decode_promise
-                        .borrow()
-                        .reject_native(&DOMException::new(
-                            &document.global(),
-                            DOMErrorName::EncodingError,
-                        ));
-                }
+            ImageElementMicrotask::DecodeTask { ref elem } => {
+                elem.react_to_decode_image_sync_steps();
             },
         }
     }
@@ -1618,7 +1626,14 @@ impl HTMLImageElementMethods for HTMLImageElement {
         let request = self.current_request.borrow();
         let request_state = request.state;
         match request_state {
-            State::CompletelyAvailable | State::Broken => true,
+            State::CompletelyAvailable => {
+                self.resolve_image_decode_promises();
+                true
+            },
+            State::Broken => {
+                self.reject_image_decode_promises();
+                true
+            },
             State::PartiallyAvailable | State::Unavailable => false,
         }
     }
@@ -1663,16 +1678,16 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-img-decode>
     fn Decode(&self) -> Rc<Promise> {
-        let document = document_from_node(self);
         // Step 1
         let promise = Promise::new(&self.global());
 
-        *self.image_decode_promise.borrow_mut() = promise.clone();
+        self.image_decode_promises
+            .borrow_mut()
+            .push(promise.clone());
 
         // Step 2
         let task = ImageElementMicrotask::DecodeTask {
             elem: DomRoot::from_ref(self),
-            document,
         };
         ScriptThread::await_stable_state(Microtask::ImageElement(task));
 

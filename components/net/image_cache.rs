@@ -570,25 +570,6 @@ impl ImageCache for ImageCacheImpl {
         cache_result
     }
 
-    fn decode(
-        &self,
-        url: ServoUrl,
-        origin: ImmutableOrigin,
-        cors_setting: Option<CorsSettings>,
-    ) -> Option<Image> {
-        let mut store = self.store.lock().unwrap();
-
-        let result = store
-            .pending_loads
-            .get_cached(url.clone(), origin.clone(), cors_setting);
-        match result {
-            CacheResult::Hit(key, pl) => {
-                return decode_bytes_sync(key, &pl.bytes.as_slice(), pl.cors_status).image
-            },
-            CacheResult::Miss(_) => return None,
-        }
-    }
-
     /// Add a new listener for the given pending image id. If the image is already present,
     /// the responder will still receive the expected response.
     fn add_listener(&self, id: PendingImageId, listener: ImageResponder) {
