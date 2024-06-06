@@ -630,7 +630,19 @@ impl HoistedAbsolutelyPositionedBox {
                             &containing_block_for_children,
                             &containing_block.into(),
                         );
-                        let block_size = size.auto_is(|| independent_layout.content_block_size);
+
+                        let (block_size, inline_size) =
+                            match independent_layout.content_inline_size_for_table {
+                                Some(inline_size) => (
+                                    independent_layout.content_block_size.into(),
+                                    inline_size.into(),
+                                ),
+                                None => (
+                                    size.auto_is(|| independent_layout.content_block_size),
+                                    inline_size,
+                                ),
+                            };
+
                         Result {
                             content_size: LogicalVec2 {
                                 inline: inline_size,
