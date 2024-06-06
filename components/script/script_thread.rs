@@ -3273,10 +3273,14 @@ impl ScriptThread {
 
     /// Handles a Web font being loaded. Does nothing if the page no longer exists.
     fn handle_web_font_loaded(&self, pipeline_id: PipelineId) {
-        let document = self.documents.borrow().find_document(pipeline_id);
-        if let Some(document) = document {
-            self.rebuild_and_force_reflow(&document, ReflowReason::WebFontLoaded);
-        }
+        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+            warn!("Web font loaded in closed pipeline {}.", pipeline_id);
+            return;
+        };
+
+        // TODO: This should only dirty nodes that are waiting for a web font to finish loading!
+        document.dirty_all_nodes();
+        document.window().add_pending_reflow();
     }
 
     /// Handles a worklet being loaded. Does nothing if the page no longer exists.
