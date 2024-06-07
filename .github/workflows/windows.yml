@@ -59,6 +59,9 @@ jobs:
         with:
           ref: refs/pull/${{ github.event.number }}/head
           fetch-depth: 2
+      # Workaround for https://github.com/actions/runner-images/issues/10001:
+      - name: Upgrade llvm
+        run: choco upgrade llvm
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2
       - name: Install taplo
