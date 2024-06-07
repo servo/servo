@@ -5619,6 +5619,7 @@ dependencies = [
  "gleam",
  "glow",
  "image",
+ "ipc-channel",
  "keyboard-types",
  "lazy_static",
  "libc",
