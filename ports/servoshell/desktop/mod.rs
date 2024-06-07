@@ -5,6 +5,7 @@
 //! Contains files specific to the servoshell app for Desktop systems.
 
 pub(crate) mod app;
+pub(crate) mod desktop_main;
 mod egui_glue;
 mod embedder;
 pub(crate) mod events_loop;
