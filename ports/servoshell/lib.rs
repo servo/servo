@@ -9,28 +9,15 @@
 #[macro_use]
 extern crate sig;
 
-#[macro_use]
-mod tracing;
-
 #[cfg(test)]
 mod test;
 
-mod app;
 mod backtrace;
 mod crash_handler;
-mod egui_glue;
-mod embedder;
-mod events_loop;
-mod geometry;
-mod headed_window;
-mod headless_window;
-mod keyutils;
-mod minibrowser;
+pub(crate) mod desktop;
 mod parser;
 mod prefs;
 mod resources;
-mod webview;
-mod window_trait;
 
 pub mod platform {
     #[cfg(target_os = "macos")]
@@ -51,7 +38,7 @@ use log::{error, warn};
 use servo::config::opts::{self, ArgumentParsingResult};
 use servo::servo_config::pref;
 
-use crate::app::App;
+use crate::desktop::app::App;
 
 pub fn main() {
     crate::crash_handler::install();

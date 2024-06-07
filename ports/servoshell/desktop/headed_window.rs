@@ -32,10 +32,10 @@ use winit::keyboard::{Key as LogicalKey, ModifiersState, NamedKey};
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use winit::window::Icon;
 
-use crate::events_loop::{EventsLoop, WakerEvent};
-use crate::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size};
-use crate::keyutils::keyboard_event_from_winit;
-use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
+use super::events_loop::{EventsLoop, WakerEvent};
+use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size};
+use super::keyutils::keyboard_event_from_winit;
+use super::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 
 pub struct Window {
     winit_window: winit::window::Window,
@@ -103,7 +103,7 @@ impl Window {
 
         #[cfg(any(target_os = "linux", target_os = "windows"))]
         {
-            let icon_bytes = include_bytes!("../../resources/servo_64.png");
+            let icon_bytes = include_bytes!("../../../resources/servo_64.png");
             winit_window.set_window_icon(Some(load_icon(icon_bytes)));
         }
 
