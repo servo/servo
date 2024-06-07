@@ -18,6 +18,7 @@ pub(crate) mod desktop;
 mod parser;
 mod prefs;
 mod resources;
+mod panic_hook;
 
 pub mod platform {
     #[cfg(target_os = "macos")]
@@ -30,11 +31,10 @@ pub mod platform {
     pub fn deinit(_clean_shutdown: bool) {}
 }
 
-use std::io::Write;
-use std::{env, panic, process, thread};
+use std::{env, panic, process};
 
 use getopts::Options;
-use log::{error, warn};
+use log::error;
 use servo::config::opts::{self, ArgumentParsingResult};
 use servo::servo_config::pref;
 
@@ -92,42 +92,7 @@ pub fn main() {
 
     // TODO: once log-panics is released, can this be replaced by
     // log_panics::init()?
-    panic::set_hook(Box::new(|info| {
-        warn!("Panic hook called.");
-        let msg = match info.payload().downcast_ref::<&'static str>() {
-            Some(s) => *s,
-            None => match info.payload().downcast_ref::<String>() {
-                Some(s) => &**s,
-                None => "Box<Any>",
-            },
-        };
-        let current_thread = thread::current();
-        let name = current_thread.name().unwrap_or("<unnamed>");
-        let stderr = std::io::stderr();
-        let mut stderr = stderr.lock();
-        if let Some(location) = info.location() {
-            let _ = writeln!(
-                &mut stderr,
-                "{} (thread {}, at {}:{})",
-                msg,
-                name,
-                location.file(),
-                location.line()
-            );
-        } else {
-            let _ = writeln!(&mut stderr, "{} (thread {})", msg, name);
-        }
-        if env::var("RUST_BACKTRACE").is_ok() {
-            let _ = crate::backtrace::print(&mut stderr);
-        }
-        drop(stderr);
-
-        if opts::get().hard_fail && !opts::get().multiprocess {
-            std::process::exit(1);
-        }
-
-        error!("{}", msg);
-    }));
+    panic::set_hook(Box::new(panic_hook::panic_hook));
 
     if let Some(token) = content_process_token {
         return servo::run_content_process(token);
