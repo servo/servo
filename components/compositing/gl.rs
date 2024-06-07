@@ -31,11 +31,11 @@ impl RenderTargetInfo {
         gl.tex_image_2d(
             gl::TEXTURE_2D,
             0,
-            gl::RGB as gl::GLint,
+            gl::RGBA as gl::GLint,
             width.get() as gl::GLsizei,
             height.get() as gl::GLsizei,
             0,
-            gl::RGB,
+            gl::RGBA,
             gl::UNSIGNED_BYTE,
             None,
         );
