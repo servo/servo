@@ -433,8 +433,8 @@ impl<'a> TableLayout<'a> {
 
         for column_index in 0..self.table.size.width {
             let old_column_measure = &old_column_measures[column_index];
-            let mut new_column_content_sizes = ContentSizes::zero();
-            let mut new_column_intrinsic_percentage_width = Percentage(0.);
+            let mut new_column_content_sizes = old_column_measure.content_sizes;
+            let mut new_column_intrinsic_percentage_width = old_column_measure.percentage;
 
             for row_index in 0..self.table.size.height {
                 let coords = TableSlotCoordinates::new(column_index, row_index);
