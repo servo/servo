@@ -53,7 +53,7 @@ xr-profile = ["libservo/xr-profile"]
 # For optional feature servo_allocator/use-system-allocator
 servo_allocator = { path = "../../components/allocator" }
 
-[target.'cfg(not(target_os = "android"))'.dependencies]
+[target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
 arboard = { version = "3" }
 backtrace = { workspace = true }
 cfg-if = { workspace = true }
