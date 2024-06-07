@@ -192,14 +192,8 @@ impl HTMLImageElement {
 
         match self.current_request.borrow().state {
             // If image's current request's state is broken, then throw an "InvalidStateError" DOMException.
-            State::Broken => {
-                self.reject_image_decode_promises();
-                Err(Error::InvalidState)
-            },
-            State::CompletelyAvailable => {
-                self.resolve_image_decode_promises();
-                Ok(true)
-            },
+            State::Broken => Err(Error::InvalidState),
+            State::CompletelyAvailable => Ok(true),
             // If image is not fully decodable, then return bad.
             State::PartiallyAvailable | State::Unavailable => Ok(false),
         }
@@ -426,7 +420,6 @@ impl HTMLImageElement {
 
     // Steps common to when an image has been loaded.
     fn handle_loaded_image(&self, image: Arc<Image>, url: ServoUrl) {
-        self.resolve_image_decode_promises();
         self.current_request.borrow_mut().metadata = Some(ImageMetadata {
             height: image.height,
             width: image.width,
@@ -437,6 +430,7 @@ impl HTMLImageElement {
         LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker);
         // Mark the node dirty
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.resolve_image_decode_promises();
     }
 
     /// Step 24 of <https://html.spec.whatwg.org/multipage/#update-the-image-data>
@@ -530,10 +524,6 @@ impl HTMLImageElement {
 
     /// <https://html.spec.whatwg.org/multipage/#abort-the-image-request>
     fn abort_request(&self, state: State, request: ImageRequestPhase) {
-        if matches!(state, State::Broken | State::Unavailable) {
-            self.reject_image_decode_promises();
-        }
-
         let mut request = match request {
             ImageRequestPhase::Current => self.current_request.borrow_mut(),
             ImageRequestPhase::Pending => self.pending_request.borrow_mut(),
@@ -542,6 +532,10 @@ impl HTMLImageElement {
         request.state = state;
         request.image = None;
         request.metadata = None;
+
+        if matches!(state, State::Broken) {
+            self.reject_image_decode_promises();
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#update-the-source-set>
@@ -849,14 +843,7 @@ impl HTMLImageElement {
                         self.image_request.set(ImageRequestPhase::Pending);
                         self.init_image_request(&mut pending_request, url, src);
                     },
-                    (_, State::Broken) => {
-                        self.reject_image_decode_promises();
-                        // Step 17
-                        current_request.current_pixel_density = Some(selected_pixel_density);
-                        self.init_image_request(&mut current_request, url, src);
-                    },
-
-                    (_, State::Unavailable) => {
+                    (_, State::Broken) | (_, State::Unavailable) => {
                         // Step 17
                         current_request.current_pixel_density = Some(selected_pixel_density);
                         self.init_image_request(&mut current_request, url, src);
@@ -1626,14 +1613,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
         let request = self.current_request.borrow();
         let request_state = request.state;
         match request_state {
-            State::CompletelyAvailable => {
-                self.resolve_image_decode_promises();
-                true
-            },
-            State::Broken => {
-                self.reject_image_decode_promises();
-                true
-            },
+            State::CompletelyAvailable | State::Broken => true,
             State::PartiallyAvailable | State::Unavailable => false,
         }
     }
