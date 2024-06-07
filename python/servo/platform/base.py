@@ -59,6 +59,7 @@ class Base:
         if not skip_platform:
             installed_something |= self._platform_bootstrap(force)
         installed_something |= self.install_taplo(force)
+        installed_something |= self.install_cargo_deny(force)
         installed_something |= self.install_crown(force)
 
         if not installed_something:
@@ -71,6 +72,16 @@ class Base:
         print(" * Installing taplo...")
         if subprocess.call(["cargo", "install", "taplo-cli", "--locked"]) != 0:
             raise EnvironmentError("Installation of taplo failed.")
+
+        return True
+
+    def install_cargo_deny(self, force: bool) -> bool:
+        if not force and shutil.which("cargo-deny") is not None:
+            return False
+
+        print(" * Installing cargo-deny...")
+        if subprocess.call(["cargo", "install", "cargo-deny", "--locked"]) != 0:
+            raise EnvironmentError("Installation of cargo-deny failed.")
 
         return True
 
