@@ -50,9 +50,7 @@ macro_rules! trace_embedder_event {
     };
 }
 
-pub(crate) use trace_winit_event;
-pub(crate) use trace_embedder_msg;
-pub(crate) use trace_embedder_event;
+pub(crate) use {trace_embedder_event, trace_embedder_msg, trace_winit_event};
 
 /// Get the log target for an event, as a static string.
 pub(crate) trait LogTarget {

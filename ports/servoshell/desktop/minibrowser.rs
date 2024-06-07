@@ -28,9 +28,9 @@ use winit::event::{ElementState, MouseButton};
 use super::egui_glue::EguiGlow;
 use super::events_loop::EventsLoop;
 use super::geometry::winit_position_to_euclid_point;
-use crate::parser::location_bar_input_to_url;
 use super::webview::{LoadStatus, WebViewManager};
 use super::window_trait::WindowPortsMethods;
+use crate::parser::location_bar_input_to_url;
 
 pub struct Minibrowser {
     pub context: EguiGlow,
