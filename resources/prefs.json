@@ -1,5 +1,4 @@
 {
-  "browser.local_directory_listing.enabled": false,
   "devtools.server.enabled": false,
   "devtools.server.port": 0,
   "dom.bluetooth.enabled": false,
@@ -111,6 +110,7 @@
   "network.enforce_tls.localhost": false,
   "network.enforce_tls.onion": false,
   "network.http-cache.disabled": false,
+  "network.local_directory_listing.enabled": false,
   "network.mime.sniff": false,
   "session-history.max-length": 20,
   "shell.background-color.rgba": [1.0, 1.0, 1.0, 1.0],

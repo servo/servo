@@ -39,10 +39,7 @@ pub enum Origin {
 
 impl Origin {
     pub fn is_opaque(&self) -> bool {
-        match self {
-            Origin::Origin(ImmutableOrigin::Opaque(_)) => true,
-            _ => false,
-        }
+        matches!(self, Origin::Origin(ImmutableOrigin::Opaque(_)))
     }
 }
 

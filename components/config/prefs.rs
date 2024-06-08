@@ -187,9 +187,6 @@ mod gen {
                     #[serde(default = "black")]
                     foreground_color: i64,
                 },
-                local_directory_listing: {
-                    enabled: bool,
-                },
             },
             css: {
                 animations: {
@@ -550,6 +547,9 @@ mod gen {
                 http_cache: {
                     #[serde(rename = "network.http-cache.disabled")]
                     disabled: bool,
+                },
+                local_directory_listing: {
+                    enabled: bool,
                 },
                 mime: {
                     sniff: bool,
