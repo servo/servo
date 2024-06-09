@@ -34,7 +34,7 @@ features = ["metal"]
 # We want the wgpu-core Vulkan backend on Linux and Windows.
 [target.'cfg(any(windows, all(unix, not(any(target_os = "macos", target_os = "ios")))))'.dependencies.wgpu-core]
 workspace = true
-features = ["vulkan"]
+features = ["gles", "vulkan"]
 
 # We want the wgpu-core Direct3D backends on Windows.
 [target.'cfg(windows)'.dependencies.wgpu-core]
