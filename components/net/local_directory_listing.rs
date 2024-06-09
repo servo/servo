@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use std::collections::BTreeMap;
 use std::ffi::OsString;
 use std::io;
@@ -32,7 +36,11 @@ pub fn is_request_allowed(request: &Request) -> Result<(), Response> {
     }
 }
 
-pub fn fetch(request: &mut Request, url: ServoUrl, file_path: PathBuf) -> Response {
+pub fn fetch(
+    request: &mut Request,
+    url: ServoUrl,
+    directory: impl Into<DirectorySummary>,
+) -> Response {
     let url = if !url.path().ends_with('/') {
         // Re-read the path as a directory, so that Servo adds the
         // forward-slash to the end of the URL (at least internally,
@@ -51,28 +59,30 @@ pub fn fetch(request: &mut Request, url: ServoUrl, file_path: PathBuf) -> Respon
     };
     let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
     response.headers.typed_insert(ContentType::html());
-    let directory_summary = build_directory_summary(file_path);
+    let directory_summary = directory.into();
     let page_text = build_html_directory_listing(directory_summary);
     let bytes: Vec<u8> = page_text.into_bytes();
     *response.body.lock().unwrap() = ResponseBody::Done(bytes);
     response
 }
 
-pub fn build_directory_summary(file_path: PathBuf) -> DirectorySummary {
-    let path = file_path
-        .to_str()
-        .map(str::to_string)
-        .ok_or("Invalid directory path.");
-    let has_parent = file_path.parent().is_some();
-    let items = if let Ok(entries) = std::fs::read_dir(file_path) {
-        Ok(gather_directory_items(entries))
-    } else {
-        Err("Unable to iterate directory contents.")
-    };
-    DirectorySummary {
-        path,
-        has_parent,
-        items,
+impl Into<DirectorySummary> for PathBuf {
+    fn into(self) -> DirectorySummary {
+        let path = self
+            .to_str()
+            .map(str::to_string)
+            .ok_or("Invalid directory path.");
+        let has_parent = self.parent().is_some();
+        let items = if let Ok(entries) = std::fs::read_dir(self) {
+            Ok(gather_directory_items(entries))
+        } else {
+            Err("Unable to iterate directory contents.")
+        };
+        DirectorySummary {
+            path,
+            has_parent,
+            items,
+        }
     }
 }
 
@@ -144,7 +154,7 @@ pub fn build_html_directory_listing(summary: DirectorySummary) -> String {
     );
     let directory_label = match summary.path {
         Ok(p) => p,
-        Err(e) => format!("&lt;{}&gt;", e),
+        Err(e) => format!("<{}>", e),
     };
     write_html_safe(&directory_label, &mut page_html);
     page_html.push_str("</title><style>");
