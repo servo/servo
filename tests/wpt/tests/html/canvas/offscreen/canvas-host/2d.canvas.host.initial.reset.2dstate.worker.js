@@ -78,7 +78,6 @@ t.step(function() {
   ctx.globalCompositeOperation = "copy";
   canvas.width = 100;
   _assertSame(ctx.globalCompositeOperation, default_val, "ctx.globalCompositeOperation", "default_val");
-
   t.done();
 });
 done();

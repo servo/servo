@@ -16,17 +16,22 @@ const CROSS_ORIGIN_RESOURCES_URL = CROSS_ORIGIN + RESOURCES_PATH;
  * @property {string} as_attr - `as` attribute of this preload.
  * @property {string} [crossorigin_attr] - `crossorigin` attribute of this
  *     preload.
+ * @property {string} [fetchpriority_attr] - `fetchpriority` attribute of this
+ *     preload.
  *
  * @param {string} test_url - URL of a test after the Early Hints response.
  * @param {Array<Preload>} preloads  - Preloads included in the Early Hints response.
+ * @param {bool} exclude_preloads_from_ok_response - Whether to exclude the preloads from the 200 OK reponse.
  */
-function navigateToTestWithEarlyHints(test_url, preloads) {
+function navigateToTestWithEarlyHints(test_url, preloads, exclude_preloads_from_ok_response) {
     const params = new URLSearchParams();
     params.set("test_url", test_url);
+    params.set("exclude_preloads_from_ok_response",
+               (!!exclude_preloads_from_ok_response).toString());
     for (const preload of preloads) {
         params.append("preloads", JSON.stringify(preload));
     }
-    const url = "resources/early-hints-test-loader.h2.py?" + params.toString();
+    const url = RESOURCES_PATH +"/early-hints-test-loader.h2.py?" + params.toString();
     window.location.replace(new URL(url, window.location));
 }
 

@@ -65,8 +65,8 @@ function parseFmtp(fmtp) {
 }
 promise_test(async t => {
   const params = await negotiateParameters();
-  assert_true(!!params.codecs.find(codec => codec.mimeType === 'video/H264'));
-  assert_true(!!params.codecs.find(codec => codec.mimeType === 'video/VP8'));
+  assert_true(!!params.codecs.find(codec => codec.mimeType.toLowerCase() === 'video/h264'));
+  assert_true(!!params.codecs.find(codec => codec.mimeType.toLowerCase() === 'video/vP8'));
 }, 'H.264 and VP8 should be negotiated after handshake');
 
 // TODO: Section 6: Recipients MUST be able to decode 320x240@20 fps

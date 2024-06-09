@@ -294,7 +294,7 @@ test(function() {
   var metadata = 42;
 
   assert_throws_js(TypeError, _ => {
-    metadata
+    metadata =
       new MediaMetadata({ artwork: [ { src: 'http://[example.com]' }] });
   });
   assert_equals(metadata, 42);
@@ -311,7 +311,7 @@ test(function() {
   assert_equals(metadata.artwork.length, 0);
 
   assert_throws_js(TypeError, _ => {
-    metadata
+    metadata =
     new MediaMetadata({
       chapterInfo: [{
         title: 'Chapter 1',
@@ -345,7 +345,7 @@ test(function() {
   });
 
   assert_throws_js(TypeError, _ => {
-    metadata
+    metadata =
     new MediaMetadata({
       chapterInfo: [{
         title: 'Chapter 1',

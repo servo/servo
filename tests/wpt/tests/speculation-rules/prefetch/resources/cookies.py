@@ -1,11 +1,10 @@
+import json
 
 def main(request, response):
-  def get_cookie(key):
-    key = key.encode("utf-8")
-    if key in request.cookies:
-      return f'"{request.cookies[key].value.decode("utf-8")}"'
-    else:
-      return "undefined"
+  cookies = json.dumps({
+      key.decode("utf-8"): request.cookies[key].value.decode("utf-8")
+      for key in request.cookies
+  })
 
   purpose = request.headers.get("Purpose", b"").decode("utf-8")
   sec_purpose = request.headers.get("Sec-Purpose", b"").decode("utf-8")
@@ -19,6 +18,9 @@ def main(request, response):
 
   headers = [(b"Content-Type", b"text/html"), (b"Cache-Control", b"no-store")]
 
+  if b"cookieindices" in request.GET:
+    headers.extend([(b"Vary", b"Cookie"), (b"Cookie-Indices", b"\"vary1\", \"vary2\"")])
+
   content = f'''
   <!DOCTYPE html>
   <script src="/common/dispatcher/dispatcher.js"></script>
@@ -29,10 +31,7 @@ def main(request, response):
     sec_purpose: "{sec_purpose}"
   }};
 
-  window.requestCookies = {{
-    count: {get_cookie("count")},
-    type:  {get_cookie("type")}
-  }};
+  window.requestCookies = {cookies};
 
   const uuid = new URLSearchParams(location.search).get('uuid');
   window.executor = new Executor(uuid);

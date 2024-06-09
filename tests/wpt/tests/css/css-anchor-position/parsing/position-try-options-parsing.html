@@ -25,15 +25,15 @@
   test_valid_value("position-try-options", "--bar flip-inline flip-block");
   test_valid_value("position-try-options", "flip-inline --foo", "--foo flip-inline");
   test_valid_value("position-try-options", "flip-inline flip-start --foo", "--foo flip-inline flip-start");
-  test_valid_value("position-try-options", "inset-area(left top)");
-  test_valid_value("position-try-options", "inset-area(top left)", "inset-area(left top)");
-  test_valid_value("position-try-options", "inset-area(start start)", "inset-area(start)");
-  test_valid_value("position-try-options", "inset-area(left), inset-area(right)");
-  test_valid_value("position-try-options", "--foo, inset-area(left)");
-  test_valid_value("position-try-options", "--foo, inset-area(left), --bar");
-  test_valid_value("position-try-options", "--foo, flip-start, inset-area(left)");
-  test_valid_value("position-try-options", "--foo flip-start, inset-area(left)");
-  test_valid_value("position-try-options", "inset-area(left), --bar flip-start");
+  test_valid_value("position-try-options", "left top");
+  test_valid_value("position-try-options", "top left", "left top");
+  test_valid_value("position-try-options", "start start", "start");
+  test_valid_value("position-try-options", "left, right");
+  test_valid_value("position-try-options", "--foo, left");
+  test_valid_value("position-try-options", "--foo, left, --bar");
+  test_valid_value("position-try-options", "--foo, flip-start, left");
+  test_valid_value("position-try-options", "--foo flip-start, left");
+  test_valid_value("position-try-options", "left, --bar flip-start");
 
   test_invalid_value("position-try-options", "none, flip-start");
   test_invalid_value("position-try-options", "flip-block flip-block");
@@ -46,10 +46,9 @@
   test_invalid_value("position-try-options", "foo");
   test_invalid_value("position-try-options", "flip-start 123");
   test_invalid_value("position-try-options", "--foo 123");
-  test_invalid_value("position-try-options", "--foo inset-area(left)");
-  test_invalid_value("position-try-options", "flip-start inset-area(left)");
-  test_invalid_value("position-try-options", "inset-area(left) --foo ");
-  test_invalid_value("position-try-options", "inset-area(left) flip-start");
+  test_invalid_value("position-try-options", "--foo left");
+  test_invalid_value("position-try-options", "flip-start left");
+  test_invalid_value("position-try-options", "left --foo ");
+  test_invalid_value("position-try-options", "left flip-start");
   test_invalid_value("position-try-options", "--foo, none");
-  test_invalid_value("position-try-options", "--foo, inset-area(none)");
 </script>

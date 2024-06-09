@@ -34,6 +34,7 @@ from typing import Optional, Set, Tuple
 
 import re
 import collections
+import copy
 import dataclasses
 import enum
 import importlib
@@ -344,8 +345,19 @@ class _Variant():
         params = {
             'desc': '',
             'size': [100, 50],
-            'variant_names': [],
+            # Test name, which ultimately is used as filename. File variant
+            # dimension names are appended to this to produce unique filenames.
+            'name': '',
+            # List of this variant grid dimension names. This uniquely
+            # identifies a single variant in a variant grid file.
             'grid_variant_names': [],
+            # List of this variant dimension names, including both file and grid
+            # dimensions.
+            'variant_names': [],
+            # Same as `variant_names`, but concatenated into a single string.
+            # This is a useful shorthand for tests having a single variant
+            # dimension.
+            'variant_name': '',
             'images': [],
             'svgimages': [],
         }
@@ -354,26 +366,26 @@ class _Variant():
 
     def merge_params(self, params: _TestParams) -> '_Variant':
         """Returns a new `_Variant` that merges `self.params` and `params`."""
-        new_params = {}
-        new_params.update(self.params)
+        new_params = copy.deepcopy(self._params)
         new_params.update(params)
         return _Variant(new_params)
 
+    def _add_variant_name(self, name: str) -> None:
+        self._params['variant_name'] += (
+            ('.' if self.params['variant_name'] else '') + name)
+        self._params['variant_names'] += [name]
+
     def with_grid_variant_name(self, name: str) -> '_Variant':
         """Addend a variant name to include in the grid element label."""
-        self._params.update({
-            'variant_names': (self.params['variant_names'] + [name]),
-            'grid_variant_names': (self.params['grid_variant_names'] + [name]),
-        })
+        self._add_variant_name(name)
+        self._params['grid_variant_names'] += [name]
         return self
 
     def with_file_variant_name(self, name: str) -> '_Variant':
         """Addend a variant name to include in the generated file name."""
-        self._params.update({
-            'variant_names': (self.params['variant_names'] + [name]),
-        })
+        self._add_variant_name(name)
         if self.params.get('append_variants_to_name', True):
-            self._params['name'] = self.params['name'] + '.' + name
+            self._params['name'] += '.' + name
         return self
 
     def _render_param(self, jinja_env: jinja2.Environment,

@@ -88,7 +88,7 @@
     ctx.filter = 'this string is not a filter and should do nothing';
     @assert ctx.filter.toString() == '[object CanvasFilter]';
 
-- name: 2d.filter.{{ variant_names[0] }}.blur.exceptions{{ tentative }}
+- name: 2d.filter.{{ variant_name }}.blur.exceptions{{ tentative }}
   desc: Test exceptions on gaussianBlur filter
   code: |
     @assert throws TypeError {{ filter_declaration | replace("param",
@@ -115,7 +115,7 @@
           param)
       tentative: .tentative
 
-- name: 2d.filter.{{ variant_names[0] }}.colorMatrix{{ tentative }}
+- name: 2d.filter.{{ variant_name }}.colorMatrix{{ tentative }}
   desc: Test the functionality of ColorMatrix filters
   code: |
     @assert throws TypeError {{ filter_declaration | replace("param",
@@ -210,7 +210,7 @@
           param)
       tentative: .tentative
 
-- name: 2d.filter.{{ variant_names[0] }}.convolveMatrix.exceptions{{ tentative }}
+- name: 2d.filter.{{ variant_name }}.convolveMatrix.exceptions{{ tentative }}
   desc: Test exceptions on CanvasFilter() convolveMatrix
   code: |
     @assert throws TypeError {{ filter_declaration | replace("param",
@@ -263,7 +263,7 @@
       tentative: .tentative
 
 - name: >-
-    2d.filter.{{ variant_names[0] }}.componentTransfer.linear{{ tentative }}
+    2d.filter.{{ variant_name }}.componentTransfer.linear{{ tentative }}
   desc: Test pixels on CanvasFilter() componentTransfer with linear type
   size: [100, 100]
   fuzzy: maxDifference=0-2; totalPixels=0-500
@@ -334,7 +334,7 @@
       tentative: .tentative
 
 - name: >-
-    2d.filter.{{ variant_names[0] }}.componentTransfer.identity{{ tentative }}
+    2d.filter.{{ variant_name }}.componentTransfer.identity{{ tentative }}
   desc: Test pixels on CanvasFilter() componentTransfer with identity type
   size: [100, 100]
   code: |
@@ -385,7 +385,7 @@
       tentative: .tentative
 
 - name: >-
-    2d.filter.{{ variant_names[0] }}.componentTransfer.gamma{{ tentative }}
+    2d.filter.{{ variant_name }}.componentTransfer.gamma{{ tentative }}
   desc: Test pixels on CanvasFilter() componentTransfer with gamma type
   size: [100, 100]
   fuzzy: maxDifference=0-2; totalPixels=0-500
@@ -460,7 +460,7 @@
       tentative: .tentative
 
 - name: >-
-    2d.filter.{{ variant_names[0] }}.componentTransfer.table{{ tentative }}
+    2d.filter.{{ variant_name }}.componentTransfer.table{{ tentative }}
   desc: Test pixels on CanvasFilter() componentTransfer with table type
   size: [100, 100]
   fuzzy: maxDifference=0-2; totalPixels=0-500
@@ -539,7 +539,7 @@
       tentative: .tentative
 
 - name: >-
-    2d.filter.{{ variant_names[0] }}.componentTransfer.discrete{{ tentative }}
+    2d.filter.{{ variant_name }}.componentTransfer.discrete{{ tentative }}
   desc: Test pixels on CanvasFilter() componentTransfer with discrete type
   size: [100, 100]
   fuzzy: maxDifference=0-2; totalPixels=0-500
@@ -665,7 +665,7 @@
       blur_x: 0
       blur_y: 4
 
-- name: 2d.filter.{{ variant_names[0] }}.dropShadow{{ tentative }}
+- name: 2d.filter.{{ variant_name }}.dropShadow{{ tentative }}
   desc: Test CanvasFilter() dropShadow object.
   size: [520, 420]
   code: |
@@ -827,7 +827,7 @@
         ctx.filter = new CanvasFilter(param);
       tentative: .tentative
 
-- name: 2d.filter.{{ variant_names[0] }}.dropShadow.exceptions{{ tentative }}
+- name: 2d.filter.{{ variant_name }}.dropShadow.exceptions{{ tentative }}
   desc: Test exceptions on CanvasFilter() dropShadow object
   code: |
     // Should not throw an error.
@@ -874,7 +874,7 @@
           param)
       tentative: .tentative
 
-- name: 2d.filter.{{ variant_names[0] }}.turbulence.inputTypes{{ tentative }}
+- name: 2d.filter.{{ variant_name }}.turbulence.inputTypes{{ tentative }}
   desc: Test exceptions on CanvasFilter() turbulence object
   code: |
     const errorTestCases = [

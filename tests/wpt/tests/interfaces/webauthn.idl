@@ -268,7 +268,7 @@ enum UserVerificationRequirement {
 
 enum ClientCapability {
     "conditionalCreate",
-    "conditionalMediation",
+    "conditionalGet",
     "hybridTransport",
     "passkeyPlatformAuthenticator",
     "userVerifyingPlatformAuthenticator",

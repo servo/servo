@@ -6,6 +6,14 @@
 <meta name="assert" content="Ensure blockification of <details> children">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<style>
+
+/* continue testing the old behavior that this was intended to test */
+details[open]::details-content {
+  display: contents;
+}
+
+</style>
 
 <div id="example1">
   <details style="display: grid" open>

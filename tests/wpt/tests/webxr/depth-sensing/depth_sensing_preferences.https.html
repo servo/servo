@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+<script src="../resources/webxr_test_constants_fake_depth.js"></script>
+<script>
+  const depthConfigurationTestGenerator =
+    function (sessionOptions, shouldGrantSession, shouldDepthBeEnabled = true) {
+      return (t) => {
+        return navigator.xr.test.simulateDeviceConnection(IMMERSIVE_AR_DEVICE)
+          .then((controller) => new Promise((resolve, reject) => {
+            navigator.xr.test.simulateUserActivation(() => {
+              navigator.xr.requestSession('immersive-ar', sessionOptions)
+                .then((session) => {
+                  return session.end().then(() => {
+                    if (!shouldGrantSession) {
+                      reject("Session granted when expected rejection.");
+                      return;
+                    }
+
+                    t.step(() => {
+                      let depthEnabled = session.enabledFeatures.includes('depth-sensing');
+                      assert_true(depthEnabled == shouldDepthBeEnabled);
+                    });
+
+                    resolve();
+                  });
+                })
+                .catch((err) => {
+                  if (shouldGrantSession) {
+                    reject("Session rejected with error: " + err);
+                    return;
+                  }
+
+                  resolve();
+                });
+            });
+          }));
+      };
+    };
+
+  // Valid configurations when depth is a required feature
+  xr_promise_test(
+    "depthSensing - Required - Fully populated grants session",
+    depthConfigurationTestGenerator({
+      'requiredFeatures': ['depth-sensing'],
+      depthSensing: {
+        usagePreference: DEPTH_CONFIG_ALL_USAGES,
+        dataFormatPreference: DEPTH_CONFIG_ALL_FORMATS
+      },
+    }, /*shouldGrantSession=*/true));
+
+  xr_promise_test(
+    "depthSensing - Required - Empty usage grants session",
+    depthConfigurationTestGenerator({
+      'requiredFeatures': ['depth-sensing'],
+      depthSensing: {
+        usagePreference: [],
+        dataFormatPreference: DEPTH_CONFIG_ALL_FORMATS
+      },
+    }, /*shouldGrantSession=*/true));
+
+  xr_promise_test(
+    "depthSensing - Required - Empty format grants session",
+    depthConfigurationTestGenerator({
+      'requiredFeatures': ['depth-sensing'],
+      depthSensing: {
+        usagePreference: DEPTH_CONFIG_ALL_USAGES,
+        dataFormatPreference: [],
+      },
+    }, /*shouldGrantSession=*/true));
+
+  xr_promise_test(
+    "depthSensing - Required - Empty usage and format grants session",
+    depthConfigurationTestGenerator({
+      'requiredFeatures': ['depth-sensing'],
+      depthSensing: {
+        usagePreference: [],
+        dataFormatPreference: [],
+      },
+    }, /*shouldGrantSession=*/true));
+
+  // Invalid configurations when depth is a required feature
+  xr_promise_test(
+    "depthSensing - Required - Missing usage rejects session",
+    depthConfigurationTestGenerator({
+      'requiredFeatures': ['depth-sensing'],
+      depthSensing: {
+        dataFormatPreference: [],
+      },
+    }, /*shouldGrantSession=*/false));
+
+  xr_promise_test(
+    "depthSensing - Required - Missing format rejects session",
+    depthConfigurationTestGenerator({
+      'requiredFeatures': ['depth-sensing'],
+      depthSensing: {
+        usagePreference: [],
+      },
+    }, /*shouldGrantSession=*/false));
+
+  xr_promise_test(
+    "depthSensing - Required - Missing usage and format rejects session",
+    depthConfigurationTestGenerator({
+      'requiredFeatures': ['depth-sensing'],
+      depthSensing: {},
+    }, /*shouldGrantSession=*/false));
+
+  xr_promise_test(
+    "depthSensing - Required - Missing configuration rejects session",
+    depthConfigurationTestGenerator({
+      'requiredFeatures': ['depth-sensing'],
+    }, /*shouldGrantSession=*/false));
+
+  // Invalid configurations when depth is an optional feature
+  xr_promise_test(
+    "depthSensing - Optional - Missing usage optional still rejects session",
+    depthConfigurationTestGenerator({
+      'optionalFeatures': ['depth-sensing'],
+      depthSensing: {
+        dataFormatPreference: [],
+      },
+    }, /*shouldGrantSession=*/false));
+
+  xr_promise_test(
+    "depthSensing - Optional - Missing format optional still rejects session",
+    depthConfigurationTestGenerator({
+      'optionalFeatures': ['depth-sensing'],
+      depthSensing: {
+        usagePreference: [],
+      },
+    }, /*shouldGrantSession=*/false));
+
+  xr_promise_test(
+    "depthSensing - Optional - Missing usage and format optional still rejects session",
+    depthConfigurationTestGenerator({
+      'optionalFeatures': ['depth-sensing'],
+      depthSensing: {},
+    }, /*shouldGrantSession=*/false));
+
+  xr_promise_test(
+    "depthSensing - Optional - Missing configuration optional grants session without depth",
+    depthConfigurationTestGenerator({
+      'optionalFeatures': ['depth-sensing'],
+    }, /*shouldGrantSession=*/true,
+  /*shouldDepthBeEnabled=*/false));
+</script>

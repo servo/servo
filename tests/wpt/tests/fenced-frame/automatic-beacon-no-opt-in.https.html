@@ -40,8 +40,8 @@ promise_test(async (t) => {
     .pointerDown()
     .pointerUp()
     .send();
-  await verifyBeaconData("reserved.top_navigation_start", "<No data>", false,
-      t);
+  await verifyBeaconData("reserved.top_navigation_start", "<No data>", null,
+      false, t);
 }, "Automatic beacons will not send if the document does not opt in.");
 
 </script>

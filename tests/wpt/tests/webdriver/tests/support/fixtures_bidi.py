@@ -2,8 +2,6 @@ import asyncio
 import base64
 import copy
 import json
-import time
-from datetime import datetime, timedelta
 from typing import Any, Coroutine, Mapping
 
 import pytest
@@ -87,13 +85,9 @@ async def set_cookie(bidi_session):
 
     yield set_cookie
 
-    yesterday = datetime.now() - timedelta(1)
-    yesterday_timestamp = time.mktime(yesterday.timetuple())
-
     for cookie, partition in reversed(cookies):
         try:
-            cookie["expiry"] = yesterday_timestamp
-            await bidi_session.storage.set_cookie(cookie=cookie, partition=partition)
+            await bidi_session.storage.delete_cookies(filter=cookie, partition=partition)
         except (InvalidArgumentException, UnableToSetCookieException, UnderspecifiedStoragePartitionException):
             pass
 

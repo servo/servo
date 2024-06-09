@@ -40,8 +40,10 @@ promise_test(async(t) => {
       .pointerUp()
       .send();
 
-  await verifyBeaconData("reserved.top_navigation_start", "<No data>");
-  await verifyBeaconData("reserved.top_navigation_commit", "<No data>");
+  await verifyBeaconData("reserved.top_navigation_start", "<No data>",
+      get_host_info().HTTPS_REMOTE_ORIGIN);
+  await verifyBeaconData("reserved.top_navigation_commit", "<No data>",
+      get_host_info().HTTPS_REMOTE_ORIGIN);
 }, 'Automatic beacon in a cross-origin subframe with no beacon data set');
 </script>
 </body>

@@ -76,18 +76,6 @@ multi_builder_test(async (t, builder, otherBuilder) => {
       () => builder.batchNormalization(input, mean, variance, options));
 }, '[batchNormalization] throw if bias option is from another builder');
 
-multi_builder_test(async (t, builder, otherBuilder) => {
-  const activationFromOtherBuilder = otherBuilder.clamp();
-  const options = {activation: activationFromOtherBuilder};
-
-  const input = builder.input('input', kExampleInputDescriptor);
-  const mean = builder.input('mean', kExample1DTensorDescriptor);
-  const variance = builder.input('variance', kExample1DTensorDescriptor);
-  assert_throws_js(
-      TypeError,
-      () => builder.batchNormalization(input, mean, variance, options));
-}, '[batchNormalization] throw if activation option is from another builder');
-
 const tests = [
   {
     name: '[batchNormalization] Test with default options.',

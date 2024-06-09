@@ -1,4 +1,4 @@
-"""Endpoint to receive and return aggregatable debug reports."""
+"""Endpoint to receive and return attribution-success aggregatable reports."""
 from importlib import import_module
 
 reports = import_module('attribution-reporting.resources.reports')

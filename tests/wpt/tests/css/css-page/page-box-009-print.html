@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#page-properties">
+<link rel="match" href="page-box-009-print-ref.html">
+<meta name="assert" content="Test percentage-based @page margin/padding, orthogonal writing mode">
+<style>
+  @page {
+    writing-mode: vertical-rl;
+    size: 400px 800px;
+    margin-inline-start: 2%;
+    margin-block-start: 8%;
+    margin-inline-end: 6%;
+    margin-block-end: 20%;
+    padding-inline-start: 2%;
+    padding-block-start: 8%;
+    padding-inline-end: 6%;
+    padding-block-end: 20%;
+    background: blue;
+  }
+  body {
+    margin: 0;
+    background: hotpink;
+  }
+</style>
+<div style="box-sizing:border-box; padding:4px; height:100vh; background:yellow;">
+  This document should be in horizontal-tb writing mode.<br>
+  The page padding (in hotpink) and margins (in blue) should be identical.  They
+  should be smallest at the top, larger at the right, even larger at the bottom,
+  and largest at the left.
+</div>
