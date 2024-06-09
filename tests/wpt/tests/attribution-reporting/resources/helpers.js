@@ -16,8 +16,9 @@ const resetWptServer = () =>
           resetAttributionReports(eventLevelReportsUrl),
           resetAttributionReports(aggregatableReportsUrl),
           resetAttributionReports(eventLevelDebugReportsUrl),
-          resetAttributionReports(aggregatableDebugReportsUrl),
+          resetAttributionReports(attributionSuccessDebugAggregatableReportsUrl),
           resetAttributionReports(verboseDebugReportsUrl),
+          resetAttributionReports(aggregatableDebugReportsUrl),
           resetRegisteredSources(),
         ]);
 
@@ -27,10 +28,12 @@ const eventLevelDebugReportsUrl =
     '/.well-known/attribution-reporting/debug/report-event-attribution';
 const aggregatableReportsUrl =
     '/.well-known/attribution-reporting/report-aggregate-attribution';
-const aggregatableDebugReportsUrl =
+const attributionSuccessDebugAggregatableReportsUrl =
     '/.well-known/attribution-reporting/debug/report-aggregate-attribution';
 const verboseDebugReportsUrl =
     '/.well-known/attribution-reporting/debug/verbose';
+const aggregatableDebugReportsUrl =
+    '/.well-known/attribution-reporting/debug/report-aggregate-debug';
 
 const attributionDebugCookie = 'ar_debug=1;Secure;HttpOnly;SameSite=None;Path=/';
 
@@ -348,10 +351,12 @@ const pollEventLevelDebugReports = (origin) =>
     pollAttributionReports(eventLevelDebugReportsUrl, origin);
 const pollAggregatableReports = (origin) =>
     pollAttributionReports(aggregatableReportsUrl, origin);
-const pollAggregatableDebugReports = (origin) =>
-    pollAttributionReports(aggregatableDebugReportsUrl, origin);
+const pollAttributionSuccessDebugAggregatableReports = (origin) =>
+    pollAttributionReports(attributionSuccessDebugAggregatableReportsUrl, origin);
 const pollVerboseDebugReports = (origin) =>
     pollAttributionReports(verboseDebugReportsUrl, origin);
+const pollAggregatableDebugReports = (origin) =>
+  pollAttributionReports(aggregatableDebugReportsUrl, origin);
 
 const validateReportHeaders = headers => {
   assert_array_equals(headers['content-type'], ['application/json']);

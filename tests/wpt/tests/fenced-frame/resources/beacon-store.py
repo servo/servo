@@ -43,14 +43,18 @@ def main(request, response):
         # (either through reportEvent() or through an automatic beacon).
         if request.method == "POST" and event_type:
             request_body = request.body or NO_DATA_STRING
-            request_headers = request.headers.get("Origin") or NO_DATA_STRING
+            request_origin = request.headers.get("Origin") or NO_DATA_STRING
+            request_referrer = request.headers.get("Referer") or NO_DATA_STRING
             stash.put(string_to_uuid(event_type + request_body),
-                request_headers)
+                (request_origin + b"," + request_referrer))
             return (200, [], b"")
         # GET requests without an 'expected_body' parameter imply they were sent
         # as a destination URL reporting beacon.
         if request.method == "GET" and event_type:
-            stash.put(string_to_uuid(event_type + NO_DATA_STRING), NO_DATA_STRING)
+            request_origin = request.headers.get("Origin") or NO_DATA_STRING
+            request_referrer = request.headers.get("Referer") or NO_DATA_STRING
+            stash.put(string_to_uuid(event_type + NO_DATA_STRING),
+                (request_origin + b"," + request_referrer))
             return (200, [], b"")
 
         return (400, [], u"")

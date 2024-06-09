@@ -2246,6 +2246,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "glutin_wgl_sys"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c8098adac955faa2d31079b65dc48841251f69efd3ac25477903fc424362ead"
+dependencies = [
+ "gl_generator",
+]
+
+[[package]]
 name = "gobject-sys"
 version = "0.19.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3187,6 +3196,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6aae1df220ece3c0ada96b8153459b67eebe9ae9212258bb0134ae60416fdf76"
 dependencies = [
  "libc",
+ "libloading 0.8.3",
  "pkg-config",
 ]
 
@@ -7269,6 +7279,8 @@ dependencies = [
  "cfg_aliases",
  "core-graphics-types",
  "d3d12",
+ "glow",
+ "glutin_wgl_sys",
  "gpu-alloc",
  "gpu-descriptor",
  "js-sys",
@@ -7278,6 +7290,7 @@ dependencies = [
  "log",
  "metal 0.28.0",
  "naga",
+ "ndk-sys",
  "objc",
  "once_cell",
  "parking_lot",

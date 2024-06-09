@@ -6,8 +6,8 @@
 <script src="/common/get-host-info.sub.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="resources/test-helpers.sub.js"></script>
-<script src="resources/static-router-helpers.sub.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script src="/service-workers/service-worker/resources/static-router-helpers.sub.js"></script>
 <body>
 <script>
 const ROUTER_RULE_KEY = 'condition-urlpattern-constructed-source-network';
@@ -17,20 +17,19 @@ const ROUTER_RULE_KEY_REQUEST_CACHE = 'condition-request-navigate-source-cache';
 const ROUTER_RULE_KEY_URL_PATTERN_CONSTRUCTED_MATCH_ALL_CACHE =
   'condition-urlpattern-constructed-match-all-source-cache';
 const ROUTER_RULE_KEY_REQUEST_FETCH = 'condition-urlpattern-string-source-fetch-event';
-const REGISTERED_ROUTE = 'resources/direct.txt';
-const CACHED_ROUTE = 'resources/cache.txt';
-const NON_REGISTERED_ROUTE = 'resources/simple.html';
+const REGISTERED_ROUTE = '/service-workers/service-worker/resources/direct.txt';
+const CACHED_ROUTE = '/service-workers/service-worker/resources/cache.txt';
+const NON_REGISTERED_ROUTE = '/service-workers/service-worker/resources/simple.html';
 
 const RACE_ROUTER_KEY =
   'condition-urlpattern-string-source-race-network-and-fetch-handler';
-const RACE_SW_SRC = 'resources/static-router-race-network-and-fetch-handler-sw.js';
-const RACE_ROUTE = 'resources/direct.py';
+const RACE_SW_SRC = '/service-workers/service-worker/resources/static-router-race-network-and-fetch-handler-sw.js';
+const RACE_ROUTE = '/service-workers/service-worker/resources/direct.py';
 
 const host_info = get_host_info();
-const path = new URL(".", window.location).pathname;
 
 function resourceUrl(resource) {
-  return `${host_info['HTTPS_ORIGIN']}${path}${resource}`;
+  return `${host_info['HTTPS_ORIGIN']}${resource}`;
 }
 
 // Verify existance of a PerformanceEntry and the order between the timings of

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="early-hints-helpers.sub.js"></script>
+<body>
+<script>
+const preloads = getPreloadsFromSearchParams();
+["low", "high", "auto"].forEach((fetchpriority, i) => {
+    promise_test(() => {
+        return new Promise((resolve, reject) => {
+            assert_greater_than(preloads.length, i);
+            const preload = preloads[i];
+            assert_equals(preload.fetchpriority_attr, fetchpriority);
+            const el = document.createElement("script");
+            el.src = preload.url;
+            el.onload = () => {
+                const name = new URL(preload.url, window.location);
+                assert_true(isPreloadedByEarlyHints(name));
+                resolve();
+            };
+            el.onerror = reject;
+            document.body.appendChild(el);
+        });
+    }, `fetchpriority='${fetchpriority}' in early hints preload headers does cause not any error`);
+});
+</script>
+</body>

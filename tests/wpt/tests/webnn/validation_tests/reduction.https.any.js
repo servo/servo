@@ -24,7 +24,7 @@ const kFloatRestrictReductionOperators = [
   'reduceMean',
 ];
 
-const kFloatInt32Uint32RestrictReductionOperators = [
+const kFloatInt32Uint32Int64Uint64RestrictReductionOperators = [
   'reduceL1',
   'reduceProduct',
   'reduceSum',
@@ -87,7 +87,7 @@ const kFloatRestrictOperatorsTests = [
   },
 ];
 
-const kFloatInt32Uint32RestrictOperatorsTests = [
+const kFloatInt32Uint32Int64Uint64RestrictOperatorsTests = [
   {
     name: '[reduce] Test reduce when input\'s datatype is int32.',
     input: {dataType: 'int32', dimensions: [1, 2, 5, 5]},
@@ -99,9 +99,19 @@ const kFloatInt32Uint32RestrictOperatorsTests = [
     output: {dataType: 'uint32', dimensions: []}
   },
   {
-    name:
-        '[reduce] Throw if the input data type is not one of the {float32, float16, int32, uint32}.',
+    name: '[reduce] Test reduce when input\'s datatype is int64.',
     input: {dataType: 'int64', dimensions: [1, 2, 5, 5]},
+    output: {dataType: 'int64', dimensions: []}
+  },
+  {
+    name: '[reduce] Test reduce when input\'s datatype is uint64.',
+    input: {dataType: 'uint64', dimensions: [1, 2, 5, 5]},
+    output: {dataType: 'uint64', dimensions: []}
+  },
+  {
+    name:
+        '[reduce] Throw if the input data type is not one of the {float32, float16, int32, uint32, int64, uint64}.',
+    input: {dataType: 'int8', dimensions: [1, 2, 5, 5]},
     options: {
       axes: [0, 1],
     },
@@ -159,9 +169,11 @@ kFloatRestrictReductionOperators.forEach((operatorName) => {
   runReductionTests(operatorName, kFloatRestrictOperatorsTests);
 });
 
-kFloatInt32Uint32RestrictReductionOperators.forEach((operatorName) => {
-  runReductionTests(operatorName, kFloatInt32Uint32RestrictOperatorsTests);
-});
+kFloatInt32Uint32Int64Uint64RestrictReductionOperators.forEach(
+    (operatorName) => {
+      runReductionTests(
+          operatorName, kFloatInt32Uint32Int64Uint64RestrictOperatorsTests);
+    });
 
 kNoTypeRestrictReductionOperators.forEach((operatorName) => {
   runReductionTests(operatorName, kNoTypeRestrictOperatorsTests);

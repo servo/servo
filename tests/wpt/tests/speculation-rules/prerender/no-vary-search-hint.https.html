@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.js"></script>
+<script src="/common/subset-tests.js"></script>
+<script src="../prefetch/no-vary-search/test-utils.js"></script>
+<script src="../prefetch/no-vary-search/hint-test-inputs.js"></script>
+
+<meta name="variant" content="?1-1">
+<meta name="variant" content="?2-2">
+<meta name="variant" content="?3-3">
+<meta name="variant" content="?4-4">
+<meta name="variant" content="?5-5">
+<meta name="variant" content="?6-6">
+<meta name="variant" content="?7-7">
+<meta name="variant" content="?8-8">
+<meta name="variant" content="?9-9">
+<meta name="variant" content="?10-10">
+<meta name="variant" content="?11-11">
+<meta name="variant" content="?12-12">
+<meta name="variant" content="?13-13">
+<meta name="variant" content="?14-14">
+<meta name="variant" content="?15-15">
+<meta name="variant" content="?16-16">
+<meta name="variant" content="?17-17">
+<meta name="variant" content="?18-18">
+<meta name="variant" content="?19-19">
+<meta name="variant" content="?20-20">
+<meta name="variant" content="?21-21">
+<meta name="variant" content="?22-22">
+<meta name="variant" content="?23-23">
+<meta name="variant" content="?24-24">
+<meta name="variant" content="?25-25">
+<meta name="variant" content="?26-26">
+<meta name="variant" content="?27-27">
+<meta name="variant" content="?28-last">
+
+<body></body>
+<script>
+setup(() => assertSpeculationRulesIsSupported());
+
+function prerender_no_vary_search_test(description, noVarySearch, noVarySearchHint, prefetchQuery, navigateQuery, shouldUse) {
+  promise_test(async t => {
+    const prefetchQueryParams = new URLSearchParams(prefetchQuery);
+    const navigateQueryParams = new URLSearchParams(navigateQuery);
+
+    addNoVarySearchHeaderUsingPipe(prefetchQueryParams, noVarySearch);
+    addNoVarySearchHeaderUsingPipe(navigateQueryParams, noVarySearch);
+
+    const params = {
+      'prerendering': prefetchQueryParams,
+      'activating': navigateQueryParams
+    };
+
+    const rule_extras = {
+      'expects_no_vary_search': noVarySearchHint
+    };
+
+    // TODO(crbug.com/343754418): Block serving a response to prerendering
+    // request until `tryToActivate` processes the No-Vary-Search hint and
+    // starts waiting for the response. See prefetch-single-with-hint.https.html
+    // and prefetch_nvs_hint.py. Without that, the No-Vary-Search header may
+    // arrive before the hint is processed. The case is not what this test want
+    // to confirm.
+    const {tryToActivate, getNetworkRequestCount} =
+        await create_prerendered_page(t, params, undefined, rule_extras);
+
+    if (shouldUse) {
+      // The request should be sent only one time for prerendering.
+      assert_equals(await tryToActivate(), 'activated');
+      assert_equals(await getNetworkRequestCount(), '1');
+    } else {
+      // The request should be sent twice for prerendering and real navigation
+      // that doesn't activate the prerendered page.
+      assert_equals(await tryToActivate(), 'discarded');
+      assert_equals(await getNetworkRequestCount(), '2');
+    }
+  }, description);
+}
+
+hint_test_inputs.forEach(({description, noVarySearch, noVarySearchHint, prefetchQuery, navigateQuery, shouldUse}) => {
+  subsetTest(prerender_no_vary_search_test, description, noVarySearch, prefetchQuery, navigateQuery, shouldUse);
+});
+</script>

@@ -4,16 +4,43 @@
 <script src="/resources/testharnessreport.js"></script>
 <body></body>
 <script>
-promise_test(async t => {
-  const iframe = document.createElement("iframe");
-  document.body.appendChild(iframe);
-  await new Promise(resolve => {
-    iframe.onload = resolve;
-    iframe.src = "about:blank";
-  });
-  const exceptionCtor = iframe.contentWindow.DOMException;
-  const {navigator: nav} = iframe.contentWindow;
-  iframe.remove();
-  return promise_rejects_dom(t, "InvalidStateError", exceptionCtor, nav.setAppBadge(1));
-}, "badging a non-fully active document should reject with InvalidStateError");
+  promise_test(async (t) => {
+    const iframe = document.createElement("iframe");
+    document.body.appendChild(iframe);
+    await new Promise((resolve) => {
+      iframe.onload = resolve;
+      iframe.src = "about:blank";
+    });
+    const exceptionCtor = iframe.contentWindow.DOMException;
+    const { navigator: nav } = iframe.contentWindow;
+    iframe.remove();
+
+    await promise_rejects_dom(
+      t,
+      "InvalidStateError",
+      exceptionCtor,
+      nav.setAppBadge()
+    );
+
+    await promise_rejects_dom(
+      t,
+      "InvalidStateError",
+      exceptionCtor,
+      nav.setAppBadge(1)
+    );
+
+    await promise_rejects_dom(
+      t,
+      "InvalidStateError",
+      exceptionCtor,
+      nav.setAppBadge(0)
+    );
+
+    await promise_rejects_dom(
+      t,
+      "InvalidStateError",
+      exceptionCtor,
+      nav.clearAppBadge()
+    );
+  }, "badging a non-fully active document should reject with InvalidStateError");
 </script>

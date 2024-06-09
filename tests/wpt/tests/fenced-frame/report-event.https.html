@@ -31,12 +31,22 @@
       window.fence.reportEvent(destination_url_event);
     });
 
-  let enum_data = await nextBeacon('click', 'enum');
-  assert_equals(enum_data, location.origin);
+  const [enum_origin, enum_referrer] = await nextBeacon("click", "enum")
+      .then(data => data.split(','));
+  const [url_origin, url_referrer] = await nextBeacon("url", "<No data>")
+      .then(data => data.split(','));
 
-  let url_data = await nextBeacon('url', '<No data>');
-  assert_equals(url_data, '<No data>');
+  assert_equals(enum_origin, location.origin,
+      'The enum origin should be correctly set.');
+  // GET requests do not set an 'Origin' header if same-origin to the request's
+  // destination.
+  assert_equals(url_origin, '<No data>',
+      'The url origin should be correctly set.');
 
+  assert_equals(enum_referrer, location.origin + "/",
+      'The enum referrer should be correctly set.');
+  assert_equals(url_referrer, location.origin + "/",
+      'The url referrer should be correctly set.');
   }, 'Test that window.fence.reportEvent() succeeds in a fenced frame.');
   </script>
   </body>

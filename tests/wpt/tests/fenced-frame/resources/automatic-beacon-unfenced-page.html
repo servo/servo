@@ -15,7 +15,8 @@
     const beacon_data = "This is the beacon data!";
     const beacon_initiator_origin = await nextBeacon(
         "reserved.top_navigation_commit", beacon_data);
-    assert_equals(beacon_initiator_origin, get_host_info().HTTPS_ORIGIN);
+    assert_equals(beacon_initiator_origin, get_host_info().HTTPS_ORIGIN + "," +
+        get_host_info().HTTPS_REMOTE_ORIGIN + "/");
   });
 </script>
 </body>

@@ -42,7 +42,7 @@ test(t => {
 {% endif %}
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d'{%
-      if attributes %}, {{ variant.attributes }}{% endif %});
+      if variant.attributes %}, {{ variant.attributes }}{% endif %});
 
   {{ variant.code_element | trim | indent(2) }}
 }, "{{ variant.desc | double_quote_escape }}");

@@ -37,7 +37,8 @@ promise_test(async (t) => {
   // An automatic beacon should be sent out, but no data should be sent as part
   // of the beacon because the "buyer" destination was not specified in
   // setReportEventDataForAutomaticBeacons().
-  await verifyBeaconData(beacon_event.eventType, "<No data>");
+  await verifyBeaconData(beacon_event.eventType, "<No data>",
+      get_host_info().HTTPS_REMOTE_ORIGIN);
 }, "Set and trigger an automatic beacon with no destination specified");
 
 </script>

@@ -8,6 +8,7 @@
     <html:link rel="help" href="https://www.w3.org/TR/2016/CR-SVG2-20160915/painting.html#Markers"/>
     <html:link rel="match" href="marker-007-ref.svg"/>
     <html:meta name="assert" content="Test marker element with 'display' set to 'none' is rendered when referenced."/>
+    <html:meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-10"/>
     <defs>
         <marker id="testMarker" markerWidth="100" markerHeight="100" display="none">
             <path d="M 0 0 L 200 200 L 0 150 z" fill="green" />

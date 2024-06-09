@@ -85,55 +85,54 @@ async def test_find_by_locator(bidi_session, inline, top_context, type, value):
          "matchType": "full",
          "maxDepth": 0,
          "value": "foobarbarbaz"
-     }, ["body"]),
+     }, ["html"]),
     ({
          "type": "innerText",
          "ignoreCase": False,
          "matchType": "full",
          "maxDepth": 0,
          "value": "foobarBARbaz"
-     }, ["body"]),
+     }, ["html"]),
     ({
          "type": "innerText",
          "ignoreCase": True,
          "matchType": "partial",
          "maxDepth": 0,
          "value": "bar"
-     }, ["body"]),
+     }, ["html"]),
     ({
          "type": "innerText",
          "ignoreCase": False,
          "matchType": "partial",
          "maxDepth": 0,
          "value": "BAR"
-     }, ["body"]),
+     }, ["html"]),
     ({
-
          "type": "innerText",
          "ignoreCase": True,
          "matchType": "full",
-         "maxDepth": 1,
+         "maxDepth": 2,
          "value": "foobarbarbaz"
      }, ["div"]),
     ({
          "type": "innerText",
          "ignoreCase": False,
          "matchType": "full",
-         "maxDepth": 1,
+         "maxDepth": 2,
          "value": "foobarBARbaz"
      }, ["div"]),
     ({
          "type": "innerText",
          "ignoreCase": True,
          "matchType": "partial",
-         "maxDepth": 1,
+         "maxDepth": 2,
          "value": "bar"
      }, ["div"]),
     ({
          "type": "innerText",
          "ignoreCase": False,
          "matchType": "partial",
-         "maxDepth": 1,
+         "maxDepth": 2,
          "value": "BAR"
      }, ["div"]),
 ], ids=[
@@ -145,10 +144,10 @@ async def test_find_by_locator(bidi_session, inline, top_context, type, value):
     "ignore_case_false_full_match_max_depth_zero",
     "ignore_case_true_partial_match_max_depth_zero",
     "ignore_case_false_partial_match_max_depth_zero",
-    "ignore_case_true_full_match_max_depth_one",
-    "ignore_case_false_full_match_max_depth_one",
-    "ignore_case_true_partial_match_max_depth_one",
-    "ignore_case_false_partial_match_max_depth_one",
+    "ignore_case_true_full_match_max_depth_two",
+    "ignore_case_false_full_match_max_depth_two",
+    "ignore_case_true_partial_match_max_depth_two",
+    "ignore_case_false_partial_match_max_depth_two",
 ])
 @pytest.mark.asyncio
 async def test_find_by_inner_text(bidi_session, inline, top_context, locator, expected_nodes_values):

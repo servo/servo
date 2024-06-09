@@ -43,8 +43,8 @@ promise_test(async(t) => {
     }
     window.fence.reportEvent(destination_url_event);
   });
-  await verifyBeaconData("click", "enum", false, t);
-  await verifyBeaconData("url", "<No data>", false, t);
+  await verifyBeaconData("click", "enum", null, false, t);
+  await verifyBeaconData("url", "<No data>", null, false, t);
 }, 'Cross-origin window.fence.reportEvent without embedder opt-in');
 </script>
 </body>

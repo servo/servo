@@ -12,6 +12,7 @@ from .. import (
     PAGE_EMPTY_TEXT,
     PAGE_REDIRECT_HTTP_EQUIV,
     PAGE_REDIRECTED_HTML,
+    PAGE_SERVICEWORKER_HTML,
     BEFORE_REQUEST_SENT_EVENT,
 )
 
@@ -393,6 +394,48 @@ async def test_redirect_navigation(
 
     # Check that both requests share the same requestId
     assert events[0]["request"]["request"] == events[1]["request"]["request"]
+
+
+@pytest.mark.asyncio
+async def test_serviceworker_request(
+    bidi_session,
+    new_tab,
+    url,
+    wait_for_event,
+    wait_for_future_safe,
+    fetch,
+    setup_network_test,
+):
+    serviceworker_url = url(PAGE_SERVICEWORKER_HTML)
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=serviceworker_url,
+        wait="complete",
+    )
+
+    await bidi_session.script.evaluate(
+        expression="registerServiceWorker()",
+        target=ContextTarget(new_tab["context"]),
+        await_promise=True,
+    )
+
+    network_events = await setup_network_test(events=[BEFORE_REQUEST_SENT_EVENT])
+    events = network_events[BEFORE_REQUEST_SENT_EVENT]
+
+    on_before_request_sent = wait_for_event(BEFORE_REQUEST_SENT_EVENT)
+
+    # Make a request to serviceworker_url via fetch on the page, but any url
+    # would work here as this should be intercepted by the serviceworker.
+    await fetch(serviceworker_url, context=new_tab, method="GET")
+    await wait_for_future_safe(on_before_request_sent)
+
+    assert len(events) == 1
+
+    assert_before_request_sent_event(
+        events[0],
+        expected_request={"method": "GET", "url": serviceworker_url},
+        redirect_count=0,
+    )
 
 
 @pytest.mark.asyncio

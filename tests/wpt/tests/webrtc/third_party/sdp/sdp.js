@@ -47,6 +47,10 @@ SDPUtils.matchPrefix = function(blob, prefix) {
   });
 };
 
+SDPUtils.matchPrefixAndTrim = function(blob, prefix) {
+  return SDPUtils.matchPrefix(blob, prefix).map(l => l.substr(prefix.length).trim());
+}
+
 // Parses an ICE candidate line. Sample input:
 // candidate:702786350 2 udp 41819902 8.8.8.8 60769 typ relay raddr 8.8.8.8
 // rport 55996"

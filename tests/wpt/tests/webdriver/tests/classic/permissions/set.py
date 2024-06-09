@@ -73,23 +73,6 @@ def test_invalid_parameters(session, url, parameters):
     assert_error(response, "invalid argument")
 
 
-# > 6. If settings is a non-secure context and rootDesc.name isn't allowed in
-# >    non-secure contexts, return a WebDriver error with WebDriver error code
-# >    invalid argument.
-@pytest.mark.parametrize("state", ["granted", "denied", "prompt"])
-def test_non_secure_context(session, url, state):
-    session.url = url("/common/blank.html", protocol="http")
-    response = session.transport.send(
-        "POST", "/session/{session_id}/permissions".format(**vars(session)), {
-            "descriptor": {
-                "name": "push"
-            },
-            "state": state
-        })
-
-    assert_error(response, "invalid argument")
-
-
 @pytest.mark.parametrize("state", ["granted", "denied", "prompt"])
 def test_set_to_state(session, url, state):
     session.url = url("/common/blank.html", protocol="https")

@@ -18,6 +18,7 @@ promise_test(async(t) => {
   const fencedframe = await attachFencedFrameContext({
     generator_api: 'fledge',
     register_beacon: true,
+    component_origin: get_host_info().HTTPS_REMOTE_ORIGIN,
     num_components: 1,
     // These headers will also be given to the component ad.
     headers: [["Allow-Fenced-Frame-Automatic-Beacons", "true"]]
@@ -49,6 +50,7 @@ promise_test(async(t) => {
       .send();
 
   // The component frame should not use the data set in its parent.
+  // The referrer header should be set to the root ad frame's origin.
   await verifyBeaconData(beacon_event.eventType, "<No data>");
 }, 'Automatic beacon in an ad component should send without data with a ' +
    'header opt-in.');

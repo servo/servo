@@ -3,60 +3,60 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
+  // Testing valid input cases
+  promise_test(async () => {
+    const numberTestCases = [
+      { value: undefined, desc: "undefined" },
+      { value: null, desc: "null (coerced to 0)" },
+      { value: 1, desc: "integer value of 1" },
+      { value: 10.6, desc: "non-whole number" },
+      { value: Number.MAX_SAFE_INTEGER, desc: "maximum allowed value" },
+      { value: 0, desc: "zero" },
+    ];
 
-promise_test(async t => {
-  const result = await navigator.setAppBadge();
-  assert_equals(result, undefined);
-}, "No parameter should show a flag with no numeric value.");
+    for (const { value, desc } of numberTestCases) {
+      const result = await navigator.setAppBadge(value);
+      assert_equals(
+        result,
+        undefined,
+        `Resolves successfully when passed ${desc} as input`
+      );
+    }
+  }, "Resolves successfully for number input cases");
 
-promise_test(async t => {
-  const result = await navigator.setAppBadge(undefined);
-  assert_equals(result, undefined);
-}, "undefined should show a flag with no numeric value.");
+  promise_test(async () => {
+    const stringTestCases = [
+      { value: "3", desc: "numeric string '3' (coerced to 3)" },
+      {
+        value: " 300.000 ",
+        desc: "numeric string ' 300.000 ' (coerced to 300)",
+      },
+      { value: "", desc: "empty string (coerced to 0)" },
+    ];
 
-promise_test(async t => {
-  const result = await navigator.setAppBadge(1);
-  assert_equals(result, undefined);
-}, "An integer value of 3 should show the badge vale 3.");
+    for (const { value, desc } of stringTestCases) {
+      const result = await navigator.setAppBadge(value);
+      assert_equals(
+        result,
+        undefined,
+        `Resolves successfully when passed ${desc} as input`
+      );
+    }
+  }, "Resolves successfully for string input cases");
 
-promise_test(async t => {
-  const result = await navigator.setAppBadge(10.6);
-  assert_equals(result, undefined);
-}, "Non-whole number should round down to nearest integer (10).");
+  promise_test(async () => {
+    const resultFalse = await navigator.setAppBadge(false);
+    assert_equals(
+      resultFalse,
+      undefined,
+      "Resolves successfully when passed false as input (coerced to 0)"
+    );
 
-promise_test(async t => {
-  const result = await navigator.setAppBadge(Number.MAX_SAFE_INTEGER);
-  assert_equals(result, undefined);
-}, "Maximum allowed value (2^53 - 1) should display saturated value: '99+'.");
-
-promise_test(async t => {
-  const result = await navigator.setAppBadge(0);
-  assert_equals(result, undefined);
-}, "Set to zero should clear the badge.");
-
-promise_test(async t => {
-  const result = await navigator.clearAppBadge();
-  assert_equals(result, undefined);
-}, "Should clear the badge.");
-
-promise_test(async t => {
-  const result = await navigator.setAppBadge(null);
-  assert_equals(result, undefined);
-}, "Setting to null should clear the badge.");
-
-promise_test(async t => {
-  const result = await navigator.setAppBadge(false);
-  assert_equals(result, undefined);
-}, "Setting to false should clear the badge.");
-
-promise_test(async t => {
-  const result = await navigator.setAppBadge(true);
-  assert_equals(result, undefined);
-}, "Setting to true should display a value of 1.");
-
-promise_test(async t => {
-  const result = await navigator.setAppBadge("3");
-  assert_equals(result, undefined);
-}, "Setting to the string '3' should display a value of 3.");
-
+    const resultTrue = await navigator.setAppBadge(true);
+    assert_equals(
+      resultTrue,
+      undefined,
+      "Resolves successfully when passed true as input (coerced to 1)"
+    );
+  }, "Resolves successfully for boolean input cases");
 </script>

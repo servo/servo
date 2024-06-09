@@ -1,4 +1,4 @@
-A test suite for the ServiceWorker Static Routing API.
+A test suite for the ServiceWorker Static Routing API Resource Timing.
 
-WICG proposal: https://github.com/WICG/proposals/issues/102
-Specification PR: https://github.com/w3c/ServiceWorker/pull/1686
+Explainer: https://github.com/WICG/service-worker-static-routing-api/blob/main/resource-timing-api.md
+Resource-Timing Proposal: https://github.com/w3c/resource-timing/issues/389

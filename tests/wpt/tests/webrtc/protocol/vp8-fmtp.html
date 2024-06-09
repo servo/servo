@@ -34,8 +34,8 @@ promise_test(async t => {
 
   await pc.setRemoteDescription({type: 'offer', sdp});
   await pc.setLocalDescription();
-  const receiver = pc.getReceivers()[0];
-  const parameters = receiver.getParameters();
+  const sender = pc.getSenders()[0];
+  const parameters = sender.getParameters();
   const {sdpFmtpLine} = parameters.codecs[0];
   assert_true(!!sdpFmtpLine);
   assert_true(sdpFmtpLine.split(';').includes('max-fr=30'));

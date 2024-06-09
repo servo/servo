@@ -51,13 +51,13 @@
 
   test(() => {
     let cs = getComputedStyle(direct);
-    assert_equals(cs.width, '100px');
-    assert_equals(cs.height, '100px');
-  }, 'Direct slotted child queries shadow-including ancestors');
+    assert_equals(cs.width, '15px');
+    assert_equals(cs.height, '15px');
+  }, 'Direct slotted child queries flat tree');
 
   test(() => {
     let cs = getComputedStyle(nondirect);
-    assert_equals(cs.width, '10px'); // #direct
-    assert_equals(cs.height, '20px'); // #outer
-  }, 'Nondirect slotted child queries shadow-including ancestors');
+    assert_equals(cs.width, '1.5px');
+    assert_equals(cs.height, '3px');
+  }, 'Nondirect slotted child queries flat tree ancestors');
 </script>

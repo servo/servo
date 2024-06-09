@@ -776,9 +776,12 @@ class WdspecProtocol(ConnectionlessProtocol):
         proof enough to us that the server is alive and kicking.
         """
         conn = HTTPConnection(self.browser.host, self.browser.port)
-        conn.request("HEAD", "/invalid")
-        res = conn.getresponse()
-        return res.status == 404
+        try:
+            conn.request("HEAD", "/invalid")
+            res = conn.getresponse()
+            return res.status == 404
+        except OSError:
+            return False
 
 
 class VirtualSensorProtocolPart(ProtocolPart):

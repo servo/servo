@@ -54,6 +54,14 @@
 
     test(function() {
         var div = document.getElementsByTagName("div")[0];
+        div.innerHTML = "a\u0000b";
+        assert_equals(div.firstChild.data, "ab");
+    }, "U+0000 should be dropped in body");
+
+
+
+    test(function() {
+        var div = document.getElementsByTagName("div")[0];
         div.innerHTML = "<span title='&\u0000auml;'>";
         assert_equals(div.firstChild.title, "&\uFFFDauml;");
     }, "U+0000 should get replaced with U+FFFD after ampersand");

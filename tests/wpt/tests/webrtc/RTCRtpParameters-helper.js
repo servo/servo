@@ -179,13 +179,13 @@ function validateHeaderExtensionParameters(headerExt) {
 /*
   dictionary RTCRtpCodecParameters {
     [readonly]
-    unsigned short payloadType;
+    required unsigned short payloadType;
 
     [readonly]
-    DOMString      mimeType;
+    required DOMString      mimeType;
 
     [readonly]
-    unsigned long  clockRate;
+    required unsigned long  clockRate;
 
     [readonly]
     unsigned short channels;
@@ -195,9 +195,9 @@ function validateHeaderExtensionParameters(headerExt) {
   };
  */
 function validateCodecParameters(codec) {
-  assert_optional_unsigned_int_field(codec, 'payloadType');
-  assert_optional_string_field(codec, 'mimeType');
-  assert_optional_unsigned_int_field(codec, 'clockRate');
+  assert_unsigned_int_field(codec, 'payloadType');
+  assert_string_field(codec, 'mimeType');
+  assert_unsigned_int_field(codec, 'clockRate');
   assert_optional_unsigned_int_field(codec, 'channels');
   assert_optional_string_field(codec, 'sdpFmtpLine');
 }
