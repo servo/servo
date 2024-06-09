@@ -329,6 +329,7 @@ PAGE_REDIRECT_HTTP_EQUIV = (
     "/webdriver/tests/bidi/network/support/redirect_http_equiv.html"
 )
 PAGE_REDIRECTED_HTML = "/webdriver/tests/bidi/network/support/redirected.html"
+PAGE_SERVICEWORKER_HTML = "/webdriver/tests/bidi/network/support/serviceworker.html"
 
 AUTH_REQUIRED_EVENT = "network.authRequired"
 BEFORE_REQUEST_SENT_EVENT = "network.beforeRequestSent"

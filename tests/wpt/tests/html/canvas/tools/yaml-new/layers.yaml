@@ -43,7 +43,8 @@
     ctx2.fillRect(30, 5, 50, 40);
 
     ctx.drawImage(canvas2, 0, 0);
-  variants_layout: [single_file, multi_files, multi_files, multi_files]
+  variants_layout: [single_file, single_file, single_file, multi_files]
+  grid_width: 8
   variants: &global-state-variants
   - no-globalAlpha:
       alpha_statement: // No globalAlpha.
@@ -132,7 +133,8 @@
       ctx.drawImage(img, 0, 0);
     };
     img.src = 'data:image/svg+xml;base64,' + btoa(svg);
-  variants_layout: [single_file, multi_files, multi_files, multi_files]
+  variants_layout: [single_file, single_file, single_file, multi_files]
+  grid_width: 8
   variants: *global-state-variants
 
 - name: 2d.layer.globalCompositeOperation
@@ -148,7 +150,7 @@
     ctx.fillRect(15, 15, 25, 25);
 
     ctx.globalAlpha = 0.75;
-    ctx.globalCompositeOperation = '{{ variant_names[0] }}';
+    ctx.globalCompositeOperation = '{{ variant_name }}';
     ctx.shadowOffsetX = 7;
     ctx.shadowOffsetY = 7;
     ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
@@ -171,7 +173,7 @@
     ctx.fillRect(15, 15, 25, 25);
 
     ctx.globalAlpha = 0.75;
-    ctx.globalCompositeOperation = '{{ variant_names[0] }}';
+    ctx.globalCompositeOperation = '{{ variant_name }}';
     ctx.shadowOffsetX = 7;
     ctx.shadowOffsetY = 7;
     ctx.shadowColor = 'rgba(255, 165, 0, 0.5)';
@@ -632,7 +634,7 @@
     ctx.fillRect(80, 40, 75, 50);
 
 - name: 2d.layer.malformed-operations
-  desc: Throws if {{ variant_names[0] }} is called while layers are open.
+  desc: Throws if {{ variant_name }} is called while layers are open.
   size: [200, 200]
   test_type: sync
   code: |
@@ -672,7 +674,7 @@
       operation: canvas.transferToImageBitmap()
 
 - name: 2d.layer.malformed-operations-with-promises
-  desc: Throws if {{ variant_names[0] }} is called while layers are open.
+  desc: Throws if {{ variant_name }} is called while layers are open.
   size: [200, 200]
   test_type: promise
   code: |

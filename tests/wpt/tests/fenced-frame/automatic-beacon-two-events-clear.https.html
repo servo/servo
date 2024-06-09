@@ -34,7 +34,8 @@ promise_test(async(t) => {
                .pointerDown()
                .pointerUp()
                .send();
-  await verifyBeaconData(beacon_event.eventType, beacon_event.eventData);
+  await verifyBeaconData(beacon_event.eventType, beacon_event.eventData,
+      get_host_info().HTTPS_REMOTE_ORIGIN);
 
   // The second click should not have any associated automatic beacon info, so
   // no beacon should be sent.
@@ -44,8 +45,8 @@ promise_test(async(t) => {
                .pointerDown()
                .pointerUp()
                .send();
-  await verifyBeaconData(beacon_event.eventType, beacon_event.eventData, false,
-      t);
+  await verifyBeaconData(beacon_event.eventType, beacon_event.eventData,
+      get_host_info().HTTPS_REMOTE_ORIGIN, false, t);
 }, 'Set expiring automatic beacon but trigger two events in a click handler');
 
 </script>

@@ -1,6 +1,7 @@
 <!DOCTYPE HTML>
 <title>Details and summary and display property (subgrid)</title>
 <link rel="match" href="details-display-type-001-ref.html">
+<link rel="help" href="https://github.com/whatwg/html/pull/10265">
 <link rel="help" href="https://github.com/dbaron/details-styling">
 <link rel="help" href="https://crbug.com/1469418">
 <style>
@@ -28,6 +29,11 @@ details {
   display: grid;
   grid-template: subgrid / subgrid;
   grid-area: 2 / 2 / 4 / 4;
+}
+
+details[open]::details-content {
+  /* continue testing the old behavior that this was written to test */
+  display: contents;
 }
 
 summary {

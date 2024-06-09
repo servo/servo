@@ -19,9 +19,14 @@
     });
 
     promise_test(async (test) => {
-      const posError = await new Promise((resolve, reject) => {
+      // These operations are slow, so let's do them in parallel.
+      const getCurrentPositionPromise = new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(reject, resolve);
       });
+      const watchPositionPromise = new Promise((resolve, reject) => {
+        navigator.geolocation.watchPosition(reject, resolve);
+      });
+      const posError = await getCurrentPositionPromise;
 
       assert_true(
         posError instanceof GeolocationPositionError,
@@ -34,9 +39,7 @@
         "Expected PERMISSION_DENIED"
       );
 
-      const watchError = await new Promise((resolve, reject) => {
-        navigator.geolocation.watchPosition(reject, resolve);
-      });
+      const watchError = await watchPositionPromise;
       assert_true(
         watchError instanceof GeolocationPositionError,
         "Expected instance of GeolocationPositionError"

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  html {
+    writing-mode: vertical-rl;
+  }
+  @page {
+    size: 400px 800px;
+    margin: 0;
+  }
+  body {
+    margin: 0;
+  }
+</style>
+<div style="box-sizing:border-box; width:400px; border:solid blue; border-width:16px 32px 48px 80px;">
+  <div style="box-sizing:border-box; width:288px; border:solid hotpink; background:yellow; border-width:16px 32px 48px 80px; padding:4px;">
+    This document should be in vertical-rl writing-mode.<br>
+    The page padding (in hotpink) and margins (in blue) should be identical.
+    They should be smallest at the top, larger at the right, even larger at the
+    bottom, and largest at the left.
+  </div>
+</div>

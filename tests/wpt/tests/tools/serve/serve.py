@@ -599,6 +599,7 @@ class RoutesBuilder:
             ("*", "/.well-known/attribution-reporting/debug/report-event-attribution", handlers.PythonScriptHandler),
             ("*", "/.well-known/attribution-reporting/report-aggregate-attribution", handlers.PythonScriptHandler),
             ("*", "/.well-known/attribution-reporting/debug/report-aggregate-attribution", handlers.PythonScriptHandler),
+            ("*", "/.well-known/attribution-reporting/debug/report-aggregate-debug", handlers.PythonScriptHandler),
             ("*", "/.well-known/attribution-reporting/debug/verbose", handlers.PythonScriptHandler),
             ("GET", "/.well-known/interest-group/permissions/", handlers.PythonScriptHandler),
             ("*", "/.well-known/private-aggregation/*", handlers.PythonScriptHandler),

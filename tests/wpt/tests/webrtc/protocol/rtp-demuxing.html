@@ -56,6 +56,8 @@ promise_test(async t => {
   await caller.setRemoteDescription(answer);
   await callee.setLocalDescription(answer);
 
+  assert_equals(callee.getReceivers().length, 2);
+
   await metadataToBeLoaded;
 }, 'Can demux two video tracks with different payload types on a bundled connection');
 
@@ -102,6 +104,8 @@ promise_test(async t => {
   const answer = await callee.createAnswer();
   await caller.setRemoteDescription(answer);
   await callee.setLocalDescription(answer);
+
+  assert_equals(callee.getReceivers().length, 2);
 
   await metadataToBeLoaded;
 }, 'Can demux two video tracks with the same payload type on an unbundled connection');

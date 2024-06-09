@@ -229,7 +229,7 @@ dictionary EncodedAudioChunkInit {
   required EncodedAudioChunkType type;
   [EnforceRange] required long long timestamp;    // microseconds
   [EnforceRange] unsigned long long duration;     // microseconds
-  required BufferSource data;
+  required AllowSharedBufferSource data;
   sequence<ArrayBuffer> transfer = [];
 };
 

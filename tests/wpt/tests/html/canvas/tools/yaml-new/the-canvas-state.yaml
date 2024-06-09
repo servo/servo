@@ -87,3 +87,72 @@
     ctx.lineWidth = 0.5;
     ctx.restore();
     @assert ctx.lineWidth === 0.5;
+
+- name: 2d.state.saverestore
+  desc: save()/restore() works for {{ variant_names[0] }}
+  code: |
+    // Test that restore() undoes any modifications
+    var old = ctx.{{ variant_names[0] }};
+    ctx.save();
+    ctx.{{ variant_names[0] }} = {{ value }};
+    ctx.restore();
+    _assertSame(ctx.{{ variant_names[0] }}, old, "ctx.{{ variant_names[0] }}", "old");
+
+    // Also test that save() doesn't modify the values
+    ctx.{{ variant_names[0] }} = {{ value }};
+    old = ctx.{{ variant_names[0] }};
+        // we're not interested in failures caused by get(set(x)) != x (e.g.
+        // from rounding), so compare against 'old' instead of against {{ value }}
+    ctx.save();
+    _assertSame(ctx.{{ variant_names[0] }}, old, "ctx.{{ variant_names[0] }}", "old");
+    ctx.restore();
+  variants:
+  - &2d_state_test_cases
+    strokeStyle:
+      value: '"#ff0000"'
+    fillStyle:
+      value: '"#ff0000"'
+    globalAlpha:
+      value: 0.5
+    lineWidth:
+      value: 0.5
+    lineCap:
+      value: '"round"'
+    lineJoin:
+      value: '"round"'
+    miterLimit:
+      value: 0.5
+    shadowOffsetX:
+      value: 5
+    shadowOffsetY:
+      value: 5
+    shadowBlur:
+      value: 5
+    shadowColor:
+      value: '"#ff0000"'
+    globalCompositeOperation:
+      value: '"copy"'
+    font:
+      canvas_types: ['HtmlCanvas']
+      value: '"25px serif"'
+    textAlign:
+      canvas_types: ['HtmlCanvas']
+      value: '"center"'
+    textBaseline:
+      canvas_types: ['HtmlCanvas']
+      value: '"bottom"'
+
+- name: 2d.canvas.host.initial.reset.2dstate
+  desc: Resetting the canvas state resets 2D state variables
+  code: |
+    canvas.width = 100;
+    var default_val;
+    {% for state, params in states.items()
+       if not params['canvas_types'] or canvas_type in params['canvas_types'] %}
+
+    default_val = ctx.{{ state }};
+    ctx.{{ state }} = {{ params['value'] }};
+    canvas.width = 100;
+    @assert ctx.{{ state }} === default_val;
+    {% endfor %}
+  states: *2d_state_test_cases

@@ -52,7 +52,7 @@
       test_shared_storage_in_sandboxed_iframe(t,
         /*sandbox_flags=*/'allow-scripts',
         /*method=*/'createWorklet',
-        /*expect_success=*/false);
+        /*expect_success=*/true);
     }, 'test sharedStorage.createWorklet() in sandboxed iframe without "allow-same-origin"');
 
     async_test(t => {

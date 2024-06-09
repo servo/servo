@@ -3,6 +3,8 @@ from urllib.parse import quote
 
 import pytest
 
+from webdriver.bidi.modules.script import ContextTarget
+
 from tests.support.sync import AsyncPoll
 
 from .. import (
@@ -13,6 +15,7 @@ from .. import (
     PAGE_EMPTY_SCRIPT,
     PAGE_EMPTY_SVG,
     PAGE_EMPTY_TEXT,
+    PAGE_SERVICEWORKER_HTML,
     RESPONSE_COMPLETED_EVENT,
 )
 
@@ -368,6 +371,52 @@ async def test_redirect_document(
 
     # Check that the last 2 requests share the same request id
     assert events[1]["request"]["request"] == events[2]["request"]["request"]
+
+
+@pytest.mark.asyncio
+async def test_serviceworker_request(
+    bidi_session,
+    new_tab,
+    url,
+    wait_for_event,
+    wait_for_future_safe,
+    fetch,
+    setup_network_test,
+):
+    serviceworker_url = url(PAGE_SERVICEWORKER_HTML)
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=serviceworker_url,
+        wait="complete",
+    )
+
+    await bidi_session.script.evaluate(
+        expression="registerServiceWorker()",
+        target=ContextTarget(new_tab["context"]),
+        await_promise=True,
+    )
+
+    network_events = await setup_network_test(events=[RESPONSE_COMPLETED_EVENT])
+    events = network_events[RESPONSE_COMPLETED_EVENT]
+
+    on_response_completed = wait_for_event(RESPONSE_COMPLETED_EVENT)
+
+    # Make a request to serviceworker_url via fetch on the page, but any url
+    # would work here as this should be intercepted by the serviceworker.
+    await fetch(serviceworker_url, context=new_tab, method="GET")
+    await wait_for_future_safe(on_response_completed)
+
+    assert len(events) == 1
+
+    assert_response_event(
+        events[0],
+        expected_request={"method": "GET", "url": serviceworker_url},
+        expected_response={
+            "url": serviceworker_url,
+            "statusText": "OK from serviceworker",
+        },
+        redirect_count=0,
+    )
 
 
 @pytest.mark.asyncio

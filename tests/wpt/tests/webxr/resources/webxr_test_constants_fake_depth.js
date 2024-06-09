@@ -67,12 +67,15 @@ const getExpectedValueAt = function(column, row) {
   return Math.pow(column+1, row) * RAW_VALUE_TO_METERS;
 };
 
+const DEPTH_CONFIG_ALL_FORMATS = ['luminance-alpha', 'float32', 'unsigned-short'];
+const DEPTH_CONFIG_ALL_USAGES= ['gpu-optimized', 'cpu-optimized'];
+
 const VALID_DEPTH_CONFIG_CPU_USAGE = {
   usagePreference: ['cpu-optimized'],
-  dataFormatPreference: ['luminance-alpha', 'float32'],
+  dataFormatPreference: ['luminance-alpha', 'float32', 'unsigned-short'],
 };
 
 const VALID_DEPTH_CONFIG_GPU_USAGE = {
   usagePreference: ['gpu-optimized'],
-  dataFormatPreference: ['luminance-alpha', 'float32'],
+  dataFormatPreference: ['luminance-alpha', 'float32', 'unsigned-short'],
 };

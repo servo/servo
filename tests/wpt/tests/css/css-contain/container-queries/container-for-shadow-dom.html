@@ -49,7 +49,7 @@
       </div>
     </template>
     <style>
-      @container (width = 400px) {
+      @container (width = 200px) {
         #t2 { color: green; }
       }
     </style>
@@ -102,7 +102,7 @@
       </div>
     </template>
     <style>
-      @container (width = 400px) {
+      @container (width = 200px) {
         #inclusive-ancestor-part > div::part(part) { color: green; }
       }
     </style>
@@ -118,7 +118,7 @@
           width: 200px;
           container-type: inline-size;
         }
-        @container (width = 200px) {
+        @container (width = 400px) {
           ::slotted(#t6)::before {
             content: "X";
             color: green;
@@ -158,7 +158,7 @@
 
 <div id="inclusive-ancestor-part-before">
   <style>
-    @container (width = 400px) {
+    @container (width = 200px) {
       #inclusive-ancestor-part-before > div::part(part)::before {
         content: "X";
         color: green;
@@ -182,7 +182,7 @@
 
 <div id="inclusive-ancestor-inner-part">
   <style>
-    @container (width = 400px) {
+    @container (width = 200px) {
       #inclusive-ancestor-inner-part > div::part(inner-part) { color: green; }
     }
   </style>
@@ -236,7 +236,7 @@
           width: 200px;
           container-type: inline-size;
         }
-        #t11 { color: green; }
+        #t11 { color: red; }
       </style>
       <div>
         <span id="t11" part="part"></span>
@@ -244,7 +244,7 @@
     </template>
     <style>
       @container (width = 200px) {
-        #no-container-for-part > div::part(part) { color: red; }
+        #no-container-for-part > div::part(part) { color: green; }
       }
     </style>
   </div>
@@ -258,7 +258,7 @@
           width: 200px;
           container-type: inline-size;
         }
-        @container (width = 400px) {
+        @container (width = 200px) {
           :host::part(part) { color: green; }
         }
       </style>
@@ -286,7 +286,7 @@
   test(() => {
     const t2 = document.querySelector("#t2");
     assert_equals(getComputedStyle(t2).color, green);
-  }, "Match container in same tree, not walking flat tree ancestors");
+  }, "Match container in walking flat tree ancestors");
 
   test(() => {
     const t3 = document.querySelector("#t3");

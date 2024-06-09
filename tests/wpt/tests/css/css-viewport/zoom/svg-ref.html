@@ -1,0 +1,27 @@
+<!doctype html>
+<style>
+  body { margin: 0 }
+  :root {
+    font-size: 10px;
+  }
+  .container {
+    font-size: 20px;
+  }
+  line {
+    stroke-width: 40px;
+    stroke: lime;
+  }
+  svg {
+    background-color: red;
+  }
+</style>
+<div class="container">
+  <svg width=400 height=400>
+    <rect width=400 height=400 fill="blue"/>
+    <line y1=0   y2=0   x1=0 x2=200   />
+    <line y1=40  y2=40  x1=0 x2=10em  />
+    <line y1=80  y2=80  x1=0 x2=20rem />
+    <line y1=120 y2=120 x1=0 x2=50%   />
+    <line y1=160 y2=160 x1=0 x2=4vw   />
+  </svg>
+</div>
