@@ -249,9 +249,9 @@ class MachCommands(CommandBase):
                 print(f'    `cargo deny` reported {num_license_errors} licenses errors')
                 for msg in error_messages:
                     print(msg)
-                return False
-            else:
                 return True
+            else:
+                return False
 
         tidy_failed = tidy.scan(not all_files, not no_progress)
 
