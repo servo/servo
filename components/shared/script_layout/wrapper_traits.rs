@@ -230,6 +230,9 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
     /// Returns a ThreadSafeLayoutElement if this is an element, None otherwise.
     fn as_element(&self) -> Option<Self::ConcreteThreadSafeLayoutElement>;
 
+    /// Returns a ThreadSafeLayoutElement if this is an element in an HTML namespace, None otherwise.
+    fn as_html_element(&self) -> Option<Self::ConcreteThreadSafeLayoutElement>;
+
     #[inline]
     fn get_pseudo_element_type(&self) -> PseudoElementType {
         self.as_element()

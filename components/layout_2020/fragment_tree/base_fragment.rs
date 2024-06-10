@@ -88,15 +88,19 @@ bitflags! {
         const IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT = 0b00000001;
         /// Whether or not the node that created this Fragment is a `<br>` element.
         const IS_BR_ELEMENT = 0b00000010;
+        /// Whether or not the node that created was a `<table>`, `<th>` or
+        /// `<td>` element. Note that this does *not* include elements with
+        /// `display: table` or `display: table-cell`.
+        const IS_TABLE_TH_OR_TD_ELEMENT = 0b00000100;
         /// Whether or not this Fragment was created to contain a replaced element or is
         /// a replaced element.
-        const IS_REPLACED = 0b00000100;
+        const IS_REPLACED = 0b00001000;
         /// Whether or not this Fragment was created to contain a list item marker
         /// with a used value of `list-style-position: outside`.
-        const IS_OUTSIDE_LIST_ITEM_MARKER = 0b00001000;
+        const IS_OUTSIDE_LIST_ITEM_MARKER = 0b00010000;
         /// Avoid painting the fragment, this is used for empty table cells when 'empty-cells' is 'hide'.
         /// This flag doesn't avoid hit-testing.
-        const DO_NOT_PAINT = 0b00010000;
+        const DO_NOT_PAINT = 0b00100000;
     }
 }
 

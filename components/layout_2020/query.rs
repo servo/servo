@@ -31,7 +31,7 @@ use style::traversal::resolve_style;
 use style::values::generics::font::LineHeight;
 use style_traits::{ParsingMode, ToCss};
 
-use crate::fragment_tree::{Fragment, FragmentFlags, FragmentTree, Tag};
+use crate::fragment_tree::{BoxFragment, Fragment, FragmentFlags, FragmentTree, Tag};
 
 pub fn process_content_box_request(
     requested_node: OpaqueNode,
@@ -428,24 +428,7 @@ fn process_offset_parent_query_inner(
             // Record the paths of the nodes being traversed.
             let parent_node_address = match fragment {
                 Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                    let is_eligible_parent =
-                        match (is_body_element, fragment.style.get_box().position) {
-                            // Spec says the element is eligible as `offsetParent` if any of
-                            // these are true:
-                            //  1) Is the body element
-                            //  2) Is static position *and* is a table or table cell
-                            //  3) Is not static position
-                            // TODO: Handle case 2
-                            (true, _) |
-                            (false, Position::Absolute) |
-                            (false, Position::Fixed) |
-                            (false, Position::Relative) |
-                            (false, Position::Sticky) => true,
-
-                            // Otherwise, it's not a valid parent
-                            (false, Position::Static) => false,
-                        };
-
+                    let is_eligible_parent = is_eligible_parent(fragment);
                     match base.tag {
                         Some(tag) if is_eligible_parent && !tag.is_pseudo() => Some(tag.node),
                         _ => None,
@@ -529,6 +512,29 @@ fn process_offset_parent_query_inner(
             .border_box
             .translate(-offset_parent_padding_box_corner),
     })
+}
+
+/// Returns whether or not the element with the given style and body element determination
+/// is eligible to be a parent element for offset* queries.
+///
+/// From <https://www.w3.org/TR/cssom-view-1/#dom-htmlelement-offsetparent>:
+/// >
+/// > Return the nearest ancestor element of the element for which at least one of the following is
+/// > true and terminate this algorithm if such an ancestor is found:
+/// >   1. The computed value of the position property is not static.
+/// >   2. It is the HTML body element.
+/// >   3. The computed value of the position property of the element is static and the ancestor is
+/// >      one of the following HTML elements: td, th, or table.
+fn is_eligible_parent(fragment: &BoxFragment) -> bool {
+    fragment
+        .base
+        .flags
+        .contains(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT) ||
+        fragment.style.get_box().position != Position::Static ||
+        fragment
+            .base
+            .flags
+            .contains(FragmentFlags::IS_TABLE_TH_OR_TD_ELEMENT)
 }
 
 // https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute
