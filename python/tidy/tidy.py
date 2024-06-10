@@ -24,7 +24,7 @@ import toml
 
 import wpt.manifestupdate
 
-from .licenseck import OLD_MPL, MPL, APACHE, COPYRIGHT, licenses_toml, licenses_dep_toml
+from .licenseck import OLD_MPL, MPL, APACHE, COPYRIGHT, licenses_toml
 
 TOPDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
 WPT_PATH = os.path.join(".", "tests", "wpt")
@@ -994,28 +994,6 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
                     yield (filename,) + error
 
 
-def get_dep_toml_files(only_changed_files=False):
-    if not only_changed_files:
-        print('\nRunning the dependency licensing lint...')
-        for root, directories, filenames in os.walk(".cargo"):
-            for filename in filenames:
-                if filename == "Cargo.toml":
-                    yield os.path.join(root, filename)
-
-
-def check_dep_license_errors(filenames, progress=True):
-    filenames = progress_wrapper(filenames) if progress else filenames
-    for filename in filenames:
-        with open(filename, "r") as f:
-            ok_licensed = False
-            lines = f.readlines()
-            for idx, line in enumerate(lines):
-                for license_line in licenses_dep_toml:
-                    ok_licensed |= (license_line in line)
-            if not ok_licensed:
-                yield (filename, 0, "dependency should contain a valid license.")
-
-
 def scan(only_changed_files=False, progress=False):
     # check config file for errors
     config_errors = check_config_file(CONFIG_FILE_PATH)
@@ -1028,14 +1006,12 @@ def scan(only_changed_files=False, progress=False):
                                check_rust, check_spec, check_modeline)
     lock_errors = check_cargo_lock_file(os.path.join(TOPDIR, "Cargo.lock"))
     file_errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
-    # check dependecy licenses
-    dep_license_errors = check_dep_license_errors(get_dep_toml_files(only_changed_files), progress)
 
     wpt_errors = run_wpt_lints(only_changed_files)
 
     # chain all the iterators
     errors = itertools.chain(config_errors, directory_errors, lock_errors, file_errors,
-                             dep_license_errors, wpt_errors)
+                             wpt_errors)
 
     colorama.init()
     error = None
