@@ -68,6 +68,7 @@ mod actors {
     pub mod tab;
     pub mod thread;
     pub mod timeline;
+    pub mod watcher;
     pub mod worker;
 }
 mod protocol;
@@ -403,6 +404,7 @@ fn run_server(
         browsing_contexts: &HashMap<BrowsingContextId, String>,
         pipelines: &HashMap<PipelineId, BrowsingContextId>,
     ) -> Option<String> {
+        // TODO: Unwrapping error
         let actors = actors.lock().unwrap();
         if let Some(worker_id) = worker_id {
             let actor_name = actor_workers.get(&worker_id)?;

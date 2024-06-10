@@ -105,6 +105,7 @@ pub struct DescriptorTraits {
     pub(crate) supports_reload_descriptor: bool,
 }
 
+// https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/process.js
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ProcessForm {
@@ -169,6 +170,7 @@ impl Actor for RootActor {
                 ActorMessageStatus::Processed
             },
 
+            // TODO: Unexpected message getTarget for process (when inspecting)
             "getProcess" => {
                 let reply = GetProcessResponse {
                     from: self.name(),
@@ -237,6 +239,7 @@ impl Actor for RootActor {
                 ActorMessageStatus::Processed
             },
 
+            // TODO: Unexpected message getWatcher for tab (when inspecting)
             "getTab" => {
                 let Some(serde_json::Value::Number(browser_id)) = msg.get("browserId") else {
                     return Ok(ActorMessageStatus::Ignored);

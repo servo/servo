@@ -10,6 +10,7 @@ use serde_json::{Map, Value};
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
 use crate::actors::root::{DescriptorTraits, RootActor};
+use crate::actors::watcher::{SessionContext, SessionContextType, WatcherActor, WatcherActorMsg};
 use crate::protocol::JsonPacketStream;
 use crate::StreamId;
 
@@ -44,6 +45,12 @@ struct GetTargetReply {
 struct GetFaviconReply {
     from: String,
     favicon: String,
+}
+
+#[derive(Serialize)]
+struct GetWatcherReply {
+    from: String,
+    watcher: WatcherActorMsg, // TODO: This may not be right
 }
 
 pub struct TabDescriptorActor {
@@ -83,7 +90,21 @@ impl Actor for TabDescriptorActor {
                 });
                 ActorMessageStatus::Processed
             },
-            // TODO: Unexpected message getWatcher when inspecting tab (create watcher actor)
+            "getWatcher" => {
+                // TODO: Propperly implement watcher
+                let ctx_actor = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
+                let browserId = ctx_actor.active_pipeline.get().index.0.get();
+                let watcher = WatcherActor::new(
+                    "test".into(),
+                    SessionContext::new(SessionContextType::BrowserElement(browserId)),
+                )
+                .encodable();
+                let _ = stream.write_json_packet(&GetWatcherReply {
+                    from: self.name(),
+                    watcher,
+                });
+                ActorMessageStatus::Processed
+            },
             _ => ActorMessageStatus::Ignored,
         })
     }
@@ -108,6 +129,8 @@ impl TabDescriptorActor {
 
         let title = ctx_actor.title.borrow().clone();
         let url = ctx_actor.url.borrow().clone();
+        let browserId = ctx_actor.active_pipeline.get().index.0.get();
+        let browsingContextId = ctx_actor.browsing_context_id.index.0.get();
 
         TabDescriptorActorMsg {
             actor: self.name(),
