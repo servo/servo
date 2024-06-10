@@ -379,7 +379,8 @@ impl ServoGlue {
         Ok(())
     }
 
-    /// Load an URL. This needs to be a valid url.
+    /// Load an URL. If this is not a valid URL, try to "fix" it by adding a scheme or if all else fails,
+    /// interpret the string as a search term.
     pub fn load_uri(&mut self, request: &str) -> Result<(), &'static str> {
         info!("load_uri: {}", request);
         ServoUrl::parse(request)
