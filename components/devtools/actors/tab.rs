@@ -13,27 +13,42 @@ use crate::actors::root::RootActor;
 use crate::protocol::JsonPacketStream;
 use crate::StreamId;
 
-#[derive(Serialize)]
-pub struct TabDescriptorTraits {
-    getFavicon: bool,
-    hasTabInfo: bool,
+#[derive(Debug, Default, Serialize)]
+pub struct DescriptorTraits {
     watcher: bool,
+    supportsReloadDescriptor: bool,
 }
 
-#[derive(Serialize)]
+// https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/tab.js#56
+#[derive(Debug, Serialize)]
 pub struct TabDescriptorActorMsg {
     actor: String,
-    title: String,
-    url: String,
-    outerWindowID: u32,
+    browserId: u32,
     browsingContextId: u32,
-    traits: TabDescriptorTraits,
+    isZombieTab: bool,
+    outerWindowID: u32,
+    selected: bool,
+    title: String,
+    traits: DescriptorTraits,
+    url: String,
+}
+
+impl TabDescriptorActorMsg {
+    pub fn id(&self) -> u32 {
+        self.browserId
+    }
 }
 
 #[derive(Serialize)]
 struct GetTargetReply {
     from: String,
     frame: BrowsingContextActorMsg,
+}
+
+#[derive(Serialize)]
+struct GetFaviconReply {
+    from: String,
+    favicon: String,
 }
 
 pub struct TabDescriptorActor {
@@ -65,6 +80,14 @@ impl Actor for TabDescriptorActor {
                 });
                 ActorMessageStatus::Processed
             },
+            "getFavicon" => {
+                // TODO: Return a favicon when available
+                let _ = stream.write_json_packet(&GetFaviconReply {
+                    from: self.name(),
+                    favicon: String::new(),
+                });
+                ActorMessageStatus::Processed
+            },
             _ => ActorMessageStatus::Ignored,
         })
     }
@@ -84,23 +107,25 @@ impl TabDescriptorActor {
         }
     }
 
-    pub fn encodable(&self, registry: &ActorRegistry) -> TabDescriptorActorMsg {
+    pub fn encodable(&self, registry: &ActorRegistry, selected: bool) -> TabDescriptorActorMsg {
         let ctx_actor = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
 
         let title = ctx_actor.title.borrow().clone();
         let url = ctx_actor.url.borrow().clone();
 
         TabDescriptorActorMsg {
-            title,
-            url,
             actor: self.name(),
             browsingContextId: ctx_actor.browsing_context_id.index.0.get(),
+            browserId: ctx_actor.active_pipeline.get().index.0.get(),
+            isZombieTab: false,
             outerWindowID: ctx_actor.active_pipeline.get().index.0.get(),
-            traits: TabDescriptorTraits {
-                getFavicon: false,
-                hasTabInfo: true,
-                watcher: false,
+            selected,
+            title,
+            traits: DescriptorTraits {
+                watcher: true,
+                supportsReloadDescriptor: false,
             },
+            url,
         }
     }
 }

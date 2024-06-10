@@ -14,7 +14,7 @@ use serde_json::{Map, Value};
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::device::DeviceActor;
 use crate::actors::performance::PerformanceActor;
-use crate::actors::tab::{TabDescriptorActor, TabDescriptorActorMsg};
+use crate::actors::tab::{DescriptorTraits, TabDescriptorActor, TabDescriptorActorMsg};
 use crate::actors::worker::{WorkerActor, WorkerMsg};
 use crate::protocol::{ActorDescription, JsonPacketStream};
 use crate::StreamId;
@@ -95,17 +95,20 @@ struct ListProcessesResponse {
     processes: Vec<ProcessForm>,
 }
 
+// https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/process.js#196
 #[derive(Serialize)]
 struct ProcessForm {
     actor: String,
     id: u32,
     isParent: bool,
+    isWindowlessParent: bool,
+    traits: DescriptorTraits,
 }
 
 #[derive(Serialize)]
 struct GetProcessResponse {
     from: String,
-    form: ProcessForm,
+    processDescriptor: ProcessForm,
 }
 
 pub struct RootActor {
@@ -126,7 +129,7 @@ impl Actor for RootActor {
         &self,
         registry: &ActorRegistry,
         msg_type: &str,
-        _msg: &Map<String, Value>,
+        msg: &Map<String, Value>,
         stream: &mut TcpStream,
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
@@ -147,19 +150,24 @@ impl Actor for RootActor {
                         actor: self.process.clone(),
                         id: 0,
                         isParent: true,
+                        isWindowlessParent: false,
+                        traits: Default::default(),
                     }],
                 };
                 let _ = stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed
             },
 
+            // TODO: Unexpected message getTarget for process (when inspecting)
             "getProcess" => {
                 let reply = GetProcessResponse {
                     from: self.name(),
-                    form: ProcessForm {
+                    processDescriptor: ProcessForm {
                         actor: self.process.clone(),
                         id: 0,
                         isParent: true,
+                        isWindowlessParent: false,
+                        traits: Default::default(),
                     },
                 };
                 let _ = stream.write_json_packet(&reply);
@@ -178,7 +186,7 @@ impl Actor for RootActor {
                 ActorMessageStatus::Processed
             },
 
-            // https://docs.firefox-dev.tools/backend/protocol.html#listing-browser-tabs
+            // https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#listing-browser-tabs
             "listTabs" => {
                 let actor = ListTabsReply {
                     from: "root".to_owned(),
@@ -189,10 +197,11 @@ impl Actor for RootActor {
                         .map(|target| {
                             registry
                                 .find::<TabDescriptorActor>(target)
-                                .encodable(registry)
+                                .encodable(registry, false)
                         })
                         .collect(),
                 };
+                println!("LIST TABS: {:#?}", actor.tabs);
                 let _ = stream.write_json_packet(&actor);
                 ActorMessageStatus::Processed
             },
@@ -219,14 +228,34 @@ impl Actor for RootActor {
                 ActorMessageStatus::Processed
             },
 
+            // TODO: Unexpected message getWatcher for tab (when inspecting)
             "getTab" => {
-                let tab = registry.find::<TabDescriptorActor>(&self.tabs[0]);
-                let reply = GetTabReply {
-                    from: self.name(),
-                    tab: tab.encodable(registry),
-                };
-                let _ = stream.write_json_packet(&reply);
-                ActorMessageStatus::Processed
+                if let Some(serde_json::Value::Number(browserId)) = msg.get("browserId") {
+                    let targetTab = self
+                        .tabs
+                        .iter()
+                        .map(|target| {
+                            registry
+                                .find::<TabDescriptorActor>(target)
+                                .encodable(registry, true)
+                        })
+                        .find(|tab| tab.id() as u64 == browserId.as_u64().unwrap()); // TODO: HANDLE
+
+                    if let Some(tab) = targetTab {
+                        let reply = GetTabReply {
+                            from: self.name(),
+                            tab: tab,
+                        };
+                        println!("GET TAB: id {} tab {:#?}", browserId, reply.tab);
+                        let _ = stream.write_json_packet(&reply);
+                        ActorMessageStatus::Processed
+                    } else {
+                        println!("GET TAB: id {} tab none", browserId);
+                        ActorMessageStatus::Ignored
+                    }
+                } else {
+                    ActorMessageStatus::Ignored
+                }
             },
 
             "protocolDescription" => {
