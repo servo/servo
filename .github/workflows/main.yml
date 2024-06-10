@@ -46,6 +46,13 @@ jobs:
       profile: "release"
     secrets: inherit
 
+  build-ohos:
+    name: OpenHarmony
+    if: ${{ github.event_name != 'pull_request' }}
+    uses: ./.github/workflows/ohos.yml
+    with:
+      profile: "release"
+
   build-result:
     name: Result
     runs-on: ubuntu-latest
@@ -56,6 +63,7 @@ jobs:
       - "build-mac"
       - "build-linux"
       - "build-android"
+      - "build-ohos"
     steps:
       - name: Merge build timings
         uses: actions/upload-artifact/merge@v4
