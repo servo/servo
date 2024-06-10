@@ -535,6 +535,8 @@ impl HTMLImageElement {
 
         if matches!(state, State::Broken) {
             self.reject_image_decode_promises();
+        } else if matches!(state, State::CompletelyAvailable) {
+            self.resolve_image_decode_promises();
         }
     }
 
