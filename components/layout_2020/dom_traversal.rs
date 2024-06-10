@@ -90,7 +90,8 @@ where
 
         let threadsafe_node = node.to_threadsafe();
         let mut flags = FragmentFlags::empty();
-        if let Some(element) = threadsafe_node.as_element() {
+
+        if let Some(element) = threadsafe_node.as_html_element() {
             if element.is_body_element_of_html_element_root() {
                 flags.insert(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT);
             }

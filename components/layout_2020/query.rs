@@ -517,7 +517,7 @@ fn process_offset_parent_query_inner(
 /// Returns whether or not the element with the given style and body element determination
 /// is eligible to be a parent element for offset* queries.
 ///
-/// From <https://www.w3.org/TR/cssom-view-1/#extensions-to-the-htmlelement-interface>:
+/// From <https://www.w3.org/TR/cssom-view-1/#dom-htmlelement-offsetparent>:
 /// >
 /// > Return the nearest ancestor element of the element for which at least one of the following is
 /// > true and terminate this algorithm if such an ancestor is found:
