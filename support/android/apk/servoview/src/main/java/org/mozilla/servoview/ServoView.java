@@ -211,11 +211,11 @@ public class ServoView extends SurfaceView
         mServo.stop();
     }
 
-    public void loadUri(Uri uri) {
+    public void loadUri(String uri) {
         if (mServo != null) {
-            mServo.loadUri(uri.toString());
+            mServo.loadUri(uri);
         } else {
-            mInitialUri = uri.toString();
+            mInitialUri = uri;
         }
     }
 
