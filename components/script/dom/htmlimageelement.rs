@@ -1190,6 +1190,7 @@ impl HTMLImageElement {
         for promise in self.image_decode_promises.borrow().iter() {
             promise.resolve_native(&());
         }
+        self.image_decode_promises.borrow_mut().clear();
     }
 
     fn reject_image_decode_promises(&self) {
@@ -1200,6 +1201,7 @@ impl HTMLImageElement {
                 DOMErrorName::EncodingError,
             ));
         }
+        self.image_decode_promises.borrow_mut().clear();
     }
 
     /// Step 15 for <https://html.spec.whatwg.org/multipage/#img-environment-changes>
@@ -1332,6 +1334,10 @@ impl HTMLImageElement {
         if let Some(h) = height {
             image.SetHeight(h);
         }
+
+        // run update_the_image_data when the element is created.
+        // https://html.spec.whatwg.org/multipage/#when-to-obtain-images
+        image.update_the_image_data();
 
         Ok(image)
     }
