@@ -50,7 +50,7 @@ confidence-threshold = 0.8
 exceptions = [
     # Each entry is the crate and version constraint, and its specific allow
     # list
-    { allow = ["OFL-1.1", "LicenseRef-UFL-1.0"], crate = "epaint"},
+    { allow = ["OFL-1.1", "LicenseRef-UFL-1.0"], crate = "epaint" },
     { allow = ["Unicode-DFS-2016"], crate = "unicode-ident" },
 ]
 
