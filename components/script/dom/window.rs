@@ -182,7 +182,6 @@ pub enum ReflowReason {
     StylesheetLoaded,
     Timer,
     Viewport,
-    WebFontLoaded,
     WindowResize,
     WorkletLoaded,
 }
