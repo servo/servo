@@ -1173,7 +1173,11 @@ impl HTMLImageElement {
     }
 
     // Step 2 for <https://html.spec.whatwg.org/multipage/#dom-img-decode>
-    fn react_to_decode_image_sync_steps(&self) {
+    fn react_to_decode_image_sync_steps(&self, promise: Rc<Promise>) {
+        self.image_decode_promises
+            .borrow_mut()
+            .push(promise.clone());
+
         let document = document_from_node(self);
         // Step 2.1 of <https://html.spec.whatwg.org/multipage/#dom-img-decode>
         if !document.is_fully_active() ||
@@ -1399,6 +1403,8 @@ pub enum ImageElementMicrotask {
     },
     DecodeTask {
         elem: DomRoot<HTMLImageElement>,
+        #[ignore_malloc_size_of = "promises are hard"]
+        promise: Rc<Promise>,
     },
 }
 
@@ -1421,8 +1427,11 @@ impl MicrotaskRunnable for ImageElementMicrotask {
             } => {
                 elem.react_to_environment_changes_sync_steps(*generation);
             },
-            ImageElementMicrotask::DecodeTask { ref elem } => {
-                elem.react_to_decode_image_sync_steps();
+            ImageElementMicrotask::DecodeTask {
+                ref elem,
+                ref promise,
+            } => {
+                elem.react_to_decode_image_sync_steps(promise.clone());
             },
         }
     }
@@ -1669,13 +1678,10 @@ impl HTMLImageElementMethods for HTMLImageElement {
         // Step 1
         let promise = Promise::new(&self.global());
 
-        self.image_decode_promises
-            .borrow_mut()
-            .push(promise.clone());
-
         // Step 2
         let task = ImageElementMicrotask::DecodeTask {
             elem: DomRoot::from_ref(self),
+            promise: promise.clone(),
         };
         ScriptThread::await_stable_state(Microtask::ImageElement(task));
 
