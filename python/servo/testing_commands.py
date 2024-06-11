@@ -16,7 +16,6 @@ import os.path as path
 import shutil
 import subprocess
 import textwrap
-import json
 
 import wpt
 import wpt.manifestupdate
@@ -227,33 +226,8 @@ class MachCommands(CommandBase):
     @CommandArgument('--no-progress', default=False, action="store_true",
                      help="Don't show progress for tidy")
     def test_tidy(self, all_files, no_progress):
-        def check_dep_license_errors() -> bool:
-            print("\r ➤  Checking Licenses of Rust dependencies...")
-            result = subprocess.run(["cargo-deny", "--format=json", "check", "licenses"], encoding='utf-8',
-                                    capture_output=True)
-            if result.returncode != 0:
-                assert result.stderr is not None, "cargo deny should return error information via stderr when failing"
-                json_lines = result.stderr.splitlines()
-                error_info = [json.loads(json_struct) for json_struct in json_lines]
-                error_messages = []
-                num_license_errors = 'unknown'
-                for error in error_info:
-                    if error['type'] == 'summary':
-                        num_license_errors = error['fields']['licenses']['errors']
-                    else:
-                        crate = error['fields']['graphs'][0]['Krate']
-                        lic_name = error['fields']['notes'][0]
-                        error_msg = f'Rejected license {lic_name} . Run `cargo deny` for more details'
-                        error_messages.append(
-                            f'   | Rust dependency {crate["name"]} (version {crate["version"]}): {error_msg}')
-                print(f'    `cargo deny` reported {num_license_errors} licenses errors')
-                for msg in error_messages:
-                    print(msg)
-                return True
-            else:
-                return False
-
         tidy_failed = tidy.scan(not all_files, not no_progress)
+        cargo_deny_licenses_failed = tidy.check_license_errors()
 
         print("\r ➤  Checking formatting of rust files...")
         rustfmt_failed = call(["cargo", "fmt", "--", *UNSTABLE_RUSTFMT_ARGUMENTS, "--check"])
@@ -262,8 +236,6 @@ class MachCommands(CommandBase):
 
         print("\r ➤  Checking formatting of toml files...")
         taplo_failed = format_toml_files_with_taplo()
-
-        cargo_deny_licenses_failed = check_dep_license_errors()
 
         tidy_failed = tidy_failed or rustfmt_failed or taplo_failed or cargo_deny_licenses_failed
         print()
