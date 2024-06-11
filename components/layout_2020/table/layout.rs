@@ -6,6 +6,7 @@ use std::ops::Range;
 
 use app_units::{Au, MAX_AU};
 use log::warn;
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use servo_arc::Arc;
 use style::computed_values::border_collapse::T as BorderCollapse;
 use style::computed_values::box_sizing::T as BoxSizing;
@@ -1004,94 +1005,106 @@ impl<'a> TableLayout<'a> {
         containing_block_for_table: &ContainingBlock,
         parent_positioning_context: &mut PositioningContext,
     ) {
-        for row_index in 0..self.table.slots.len() {
-            // When building the PositioningContext for this cell, we want it to have the same
-            // configuration for whatever PositioningContext the contents are ultimately added to.
-            let collect_for_nearest_positioned_ancestor = parent_positioning_context
-                .collects_for_nearest_positioned_ancestor() ||
-                self.table.rows.get(row_index).map_or(false, |row| {
-                    let row_group_collects_for_nearest_positioned_ancestor =
-                        row.group_index.map_or(false, |group_index| {
-                            self.table.row_groups[group_index]
-                                .style
+        self.cells_laid_out = self
+            .table
+            .slots
+            .par_iter()
+            .enumerate()
+            .map(|(row_index, row_slots)| {
+                // When building the PositioningContext for this cell, we want it to have the same
+                // configuration for whatever PositioningContext the contents are ultimately added to.
+                let collect_for_nearest_positioned_ancestor = parent_positioning_context
+                    .collects_for_nearest_positioned_ancestor() ||
+                    self.table.rows.get(row_index).map_or(false, |row| {
+                        let row_group_collects_for_nearest_positioned_ancestor =
+                            row.group_index.map_or(false, |group_index| {
+                                self.table.row_groups[group_index]
+                                    .style
+                                    .establishes_containing_block_for_absolute_descendants(
+                                        FragmentFlags::empty(),
+                                    )
+                            });
+                        row_group_collects_for_nearest_positioned_ancestor ||
+                            row.style
                                 .establishes_containing_block_for_absolute_descendants(
                                     FragmentFlags::empty(),
                                 )
-                        });
-                    row_group_collects_for_nearest_positioned_ancestor ||
-                        row.style
-                            .establishes_containing_block_for_absolute_descendants(
-                                FragmentFlags::empty(),
-                            )
-                });
+                    });
 
-            let mut cells_laid_out_row = Vec::new();
-            let slots = &self.table.slots[row_index];
-            for (column_index, slot) in slots.iter().enumerate() {
-                let cell = match slot {
-                    TableSlot::Cell(cell) => cell,
-                    _ => {
-                        cells_laid_out_row.push(None);
-                        continue;
-                    },
-                };
+                row_slots
+                    .par_iter()
+                    .enumerate()
+                    .map(|(column_index, slot)| {
+                        let TableSlot::Cell(ref cell) = slot else {
+                            return None;
+                        };
 
-                let mut total_width = Au::zero();
-                for width_index in column_index..column_index + cell.colspan {
-                    total_width += self.distributed_column_widths[width_index];
-                }
+                        let coordinates = TableSlotCoordinates::new(column_index, row_index);
+                        let border: LogicalSides<Au> = self
+                            .get_collapsed_borders_for_cell(cell, coordinates)
+                            .unwrap_or_else(|| {
+                                cell.style
+                                    .border_width(containing_block_for_table.style.writing_mode)
+                            })
+                            .into();
 
-                let border: LogicalSides<Au> = self
-                    .get_collapsed_borders_for_cell(
-                        cell,
-                        TableSlotCoordinates::new(column_index, row_index),
-                    )
-                    .unwrap_or_else(|| {
-                        cell.style
-                            .border_width(containing_block_for_table.style.writing_mode)
+                        let padding: LogicalSides<Au> = cell
+                            .style
+                            .padding(containing_block_for_table.style.writing_mode)
+                            .percentages_relative_to(self.basis_for_cell_padding_percentage.into())
+                            .into();
+                        let inline_border_padding_sum = border.inline_sum() + padding.inline_sum();
+
+                        let mut total_cell_width: Au = (column_index..column_index + cell.colspan)
+                            .map(|column_index| self.distributed_column_widths[column_index])
+                            .sum::<Au>() -
+                            inline_border_padding_sum;
+                        total_cell_width = total_cell_width.max(Au::zero());
+
+                        let containing_block_for_children = ContainingBlock {
+                            inline_size: total_cell_width,
+                            block_size: AuOrAuto::Auto,
+                            style: &cell.style,
+                        };
+
+                        let mut positioning_context = PositioningContext::new_for_subtree(
+                            collect_for_nearest_positioned_ancestor,
+                        );
+
+                        let layout = cell.contents.layout(
+                            layout_context,
+                            &mut positioning_context,
+                            &containing_block_for_children,
+                        );
+
+                        Some(CellLayout {
+                            layout,
+                            padding: padding.clone(),
+                            border: border.clone(),
+                            positioning_context,
+                        })
                     })
-                    .into();
+                    .collect()
+            })
+            .collect();
 
-                let padding: LogicalSides<Au> = cell
-                    .style
-                    .padding(containing_block_for_table.style.writing_mode)
-                    .percentages_relative_to(self.basis_for_cell_padding_percentage.into())
-                    .into();
-                let inline_border_padding_sum = border.inline_sum() + padding.inline_sum();
-                let total_width = (total_width - inline_border_padding_sum).max(Au::zero());
-
-                let containing_block_for_children = ContainingBlock {
-                    inline_size: total_width,
-                    block_size: AuOrAuto::Auto,
-                    style: &cell.style,
+        // Now go through all cells laid out and update the cell measure based on the size
+        // determined during layout.
+        for row_index in 0..self.table.size.height {
+            for column_index in 0..self.table.size.width {
+                let Some(layout) = &self.cells_laid_out[row_index][column_index] else {
+                    continue;
                 };
-
-                let mut positioning_context =
-                    PositioningContext::new_for_subtree(collect_for_nearest_positioned_ancestor);
-
-                let layout = cell.contents.layout(
-                    layout_context,
-                    &mut positioning_context,
-                    &containing_block_for_children,
-                );
 
                 let content_size_from_layout = ContentSizes {
-                    min_content: layout.content_block_size,
-                    max_content: layout.content_block_size,
+                    min_content: layout.layout.content_block_size,
+                    max_content: layout.layout.content_block_size,
                 };
                 self.cell_measures[row_index][column_index]
                     .block
                     .content_sizes
                     .max_assign(content_size_from_layout);
-
-                cells_laid_out_row.push(Some(CellLayout {
-                    layout,
-                    padding,
-                    border,
-                    positioning_context,
-                }));
             }
-            self.cells_laid_out.push(cells_laid_out_row);
         }
     }
 
