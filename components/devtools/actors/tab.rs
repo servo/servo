@@ -9,18 +9,12 @@ use serde_json::{Map, Value};
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
-use crate::actors::root::RootActor;
+use crate::actors::root::{DescriptorTraits, RootActor};
 use crate::protocol::JsonPacketStream;
 use crate::StreamId;
 
-#[derive(Debug, Default, Serialize)]
-pub struct DescriptorTraits {
-    watcher: bool,
-    supportsReloadDescriptor: bool,
-}
-
-// https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/tab.js#56
-#[derive(Debug, Serialize)]
+// https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/tab.js
+#[derive(Serialize)]
 pub struct TabDescriptorActorMsg {
     actor: String,
     browserId: u32,
@@ -88,6 +82,7 @@ impl Actor for TabDescriptorActor {
                 });
                 ActorMessageStatus::Processed
             },
+            // TODO: Unexpected message getWatcher when inspecting tab (create watcher actor)
             _ => ActorMessageStatus::Ignored,
         })
     }

@@ -14,7 +14,7 @@ use serde_json::{Map, Value};
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::device::DeviceActor;
 use crate::actors::performance::PerformanceActor;
-use crate::actors::tab::{DescriptorTraits, TabDescriptorActor, TabDescriptorActorMsg};
+use crate::actors::tab::{TabDescriptorActor, TabDescriptorActorMsg};
 use crate::actors::worker::{WorkerActor, WorkerMsg};
 use crate::protocol::{ActorDescription, JsonPacketStream};
 use crate::StreamId;
@@ -95,7 +95,12 @@ struct ListProcessesResponse {
     processes: Vec<ProcessForm>,
 }
 
-// https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/process.js#196
+#[derive(Default, Serialize)]
+pub struct DescriptorTraits {
+    pub(crate) watcher: bool,
+    pub(crate) supportsReloadDescriptor: bool,
+}
+
 #[derive(Serialize)]
 struct ProcessForm {
     actor: String,
@@ -158,7 +163,6 @@ impl Actor for RootActor {
                 ActorMessageStatus::Processed
             },
 
-            // TODO: Unexpected message getTarget for process (when inspecting)
             "getProcess" => {
                 let reply = GetProcessResponse {
                     from: self.name(),
@@ -201,7 +205,6 @@ impl Actor for RootActor {
                         })
                         .collect(),
                 };
-                println!("LIST TABS: {:#?}", actor.tabs);
                 let _ = stream.write_json_packet(&actor);
                 ActorMessageStatus::Processed
             },
@@ -228,7 +231,6 @@ impl Actor for RootActor {
                 ActorMessageStatus::Processed
             },
 
-            // TODO: Unexpected message getWatcher for tab (when inspecting)
             "getTab" => {
                 if let Some(serde_json::Value::Number(browserId)) = msg.get("browserId") {
                     let targetTab = self
@@ -239,18 +241,16 @@ impl Actor for RootActor {
                                 .find::<TabDescriptorActor>(target)
                                 .encodable(registry, true)
                         })
-                        .find(|tab| tab.id() as u64 == browserId.as_u64().unwrap()); // TODO: HANDLE
+                        .find(|tab| tab.id() as u64 == browserId.as_u64().unwrap());
 
                     if let Some(tab) = targetTab {
                         let reply = GetTabReply {
                             from: self.name(),
                             tab: tab,
                         };
-                        println!("GET TAB: id {} tab {:#?}", browserId, reply.tab);
                         let _ = stream.write_json_packet(&reply);
                         ActorMessageStatus::Processed
                     } else {
-                        println!("GET TAB: id {} tab none", browserId);
                         ActorMessageStatus::Ignored
                     }
                 } else {
