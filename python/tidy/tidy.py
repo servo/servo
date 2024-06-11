@@ -1011,7 +1011,7 @@ def check_license_errors() -> bool:
         else:
             crate = error['fields']['graphs'][0]['Krate']
             lic_name = error['fields']['notes'][0]
-            error_msg = f'Rejected license {lic_name} . Run `cargo deny` for more details'
+            error_msg = f'Rejected license "{lic_name}". Run `cargo deny` for more details'
             error_messages.append(
                 f'   | Rust dependency {crate["name"]} (version {crate["version"]}): {error_msg}')
     print(f'    `cargo deny` reported {num_license_errors} licenses errors')
