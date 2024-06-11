@@ -226,7 +226,7 @@ impl StorageManager {
             .send(
                 data.get(&origin)
                     .and_then(|(_, entry)| entry.get(&name))
-                    .map(String::clone),
+                    .cloned(),
             )
             .unwrap();
     }
