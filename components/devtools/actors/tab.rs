@@ -9,31 +9,41 @@ use serde_json::{Map, Value};
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
-use crate::actors::root::RootActor;
+use crate::actors::root::{DescriptorTraits, RootActor};
 use crate::protocol::JsonPacketStream;
 use crate::StreamId;
 
+// https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/tab.js
 #[derive(Serialize)]
-pub struct TabDescriptorTraits {
-    getFavicon: bool,
-    hasTabInfo: bool,
-    watcher: bool,
-}
-
-#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TabDescriptorActorMsg {
     actor: String,
+    browser_id: u32,
+    browsing_context_id: u32,
+    is_zombie_tab: bool,
+    outer_window_id: u32,
+    selected: bool,
     title: String,
+    traits: DescriptorTraits,
     url: String,
-    outerWindowID: u32,
-    browsingContextId: u32,
-    traits: TabDescriptorTraits,
+}
+
+impl TabDescriptorActorMsg {
+    pub fn id(&self) -> u32 {
+        self.browser_id
+    }
 }
 
 #[derive(Serialize)]
 struct GetTargetReply {
     from: String,
     frame: BrowsingContextActorMsg,
+}
+
+#[derive(Serialize)]
+struct GetFaviconReply {
+    from: String,
+    favicon: String,
 }
 
 pub struct TabDescriptorActor {
@@ -65,6 +75,15 @@ impl Actor for TabDescriptorActor {
                 });
                 ActorMessageStatus::Processed
             },
+            "getFavicon" => {
+                // TODO: Return a favicon when available
+                let _ = stream.write_json_packet(&GetFaviconReply {
+                    from: self.name(),
+                    favicon: String::new(),
+                });
+                ActorMessageStatus::Processed
+            },
+            // TODO: Unexpected message getWatcher when inspecting tab (create watcher actor)
             _ => ActorMessageStatus::Ignored,
         })
     }
@@ -84,23 +103,25 @@ impl TabDescriptorActor {
         }
     }
 
-    pub fn encodable(&self, registry: &ActorRegistry) -> TabDescriptorActorMsg {
+    pub fn encodable(&self, registry: &ActorRegistry, selected: bool) -> TabDescriptorActorMsg {
         let ctx_actor = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
 
         let title = ctx_actor.title.borrow().clone();
         let url = ctx_actor.url.borrow().clone();
 
         TabDescriptorActorMsg {
-            title,
-            url,
             actor: self.name(),
-            browsingContextId: ctx_actor.browsing_context_id.index.0.get(),
-            outerWindowID: ctx_actor.active_pipeline.get().index.0.get(),
-            traits: TabDescriptorTraits {
-                getFavicon: false,
-                hasTabInfo: true,
-                watcher: false,
+            browsing_context_id: ctx_actor.browsing_context_id.index.0.get(),
+            browser_id: ctx_actor.active_pipeline.get().index.0.get(),
+            is_zombie_tab: false,
+            outer_window_id: ctx_actor.active_pipeline.get().index.0.get(),
+            selected,
+            title,
+            traits: DescriptorTraits {
+                watcher: true,
+                supports_reload_descriptor: false,
             },
+            url,
         }
     }
 }
