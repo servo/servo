@@ -238,30 +238,21 @@ impl Actor for RootActor {
             },
 
             "getTab" => {
-                if let Some(serde_json::Value::Number(browser_id)) = msg.get("browserId") {
-                    let target_tab = self
-                        .tabs
-                        .iter()
-                        .map(|target| {
-                            registry
-                                .find::<TabDescriptorActor>(target)
-                                .encodable(registry, true)
-                        })
-                        .find(|tab| tab.id() as u64 == browser_id.as_u64().unwrap());
+                let Some(serde_json::Value::Number(browser_id)) = msg.get("browserId") else {
+                    return Ok(ActorMessageStatus::Ignored);
+                };
 
-                    if let Some(tab) = target_tab {
-                        let reply = GetTabReply {
-                            from: self.name(),
-                            tab: tab,
-                        };
-                        let _ = stream.write_json_packet(&reply);
-                        ActorMessageStatus::Processed
-                    } else {
-                        ActorMessageStatus::Ignored
-                    }
-                } else {
-                    ActorMessageStatus::Ignored
-                }
+                let browser_id = browser_id.as_u64().unwrap();
+                let Some(tab) = self.get_tab_msg_by_browser_id(registry, browser_id as u32) else {
+                    return Ok(ActorMessageStatus::Ignored);
+                };
+
+                let reply = GetTabReply {
+                    from: self.name(),
+                    tab,
+                };
+                let _ = stream.write_json_packet(&reply);
+                ActorMessageStatus::Processed
             },
 
             "protocolDescription" => {
@@ -293,5 +284,20 @@ impl RootActor {
                 network_monitor: false,
             },
         }
+    }
+
+    fn get_tab_msg_by_browser_id(
+        &self,
+        registry: &ActorRegistry,
+        browser_id: u32,
+    ) -> Option<TabDescriptorActorMsg> {
+        self.tabs
+            .iter()
+            .map(|target| {
+                registry
+                    .find::<TabDescriptorActor>(target)
+                    .encodable(registry, true)
+            })
+            .find(|tab| tab.id() == browser_id)
     }
 }
