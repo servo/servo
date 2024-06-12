@@ -9,7 +9,7 @@ publish = false
 [lib]
 name = "layout_2020"
 path = "lib.rs"
-test = false
+test = true
 doctest = false
 
 [dependencies]
@@ -26,6 +26,7 @@ fxhash = { workspace = true }
 gfx = { path = "../gfx" }
 gfx_traits = { workspace = true }
 html5ever = { workspace = true }
+icu_segmenter = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
 net_traits = { workspace = true }

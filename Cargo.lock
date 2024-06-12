@@ -3270,6 +3270,7 @@ dependencies = [
  "gfx",
  "gfx_traits",
  "html5ever",
+ "icu_segmenter",
  "ipc-channel",
  "lazy_static",
  "log",
