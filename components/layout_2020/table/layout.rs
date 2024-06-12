@@ -1944,36 +1944,40 @@ impl TableAndTrackDimensions {
         let fallback_block_size = table_layout.final_table_height;
 
         let mut column_dimensions = Vec::new();
-        let mut column_offset = if table_layout.table.size.width == 0 {
-            fallback_inline_size
-        } else {
-            border_spacing.inline
-        };
+        let mut column_offset = Au::zero();
         for column_index in 0..table_layout.table.size.width {
             if table_layout.is_column_collapsed(column_index) {
                 column_dimensions.push((column_offset, column_offset));
                 continue;
             }
-            let column_size = table_layout.distributed_column_widths[column_index];
-            column_dimensions.push((column_offset, column_offset + column_size));
-            column_offset += column_size + border_spacing.inline;
+            let start_offset = column_offset + border_spacing.inline;
+            let end_offset = start_offset + table_layout.distributed_column_widths[column_index];
+            column_dimensions.push((start_offset, end_offset));
+            column_offset = end_offset;
         }
+        column_offset += if table_layout.table.size.width == 0 {
+            fallback_inline_size
+        } else {
+            border_spacing.inline
+        };
 
         let mut row_dimensions = Vec::new();
-        let mut row_offset = if table_layout.table.size.height == 0 {
-            fallback_block_size
-        } else {
-            border_spacing.block
-        };
+        let mut row_offset = Au::zero();
         for row_index in 0..table_layout.table.size.height {
             if table_layout.is_row_collapsed(row_index) {
                 row_dimensions.push((row_offset, row_offset));
                 continue;
             }
-            let row_size = table_layout.row_sizes[row_index];
-            row_dimensions.push((row_offset, row_offset + row_size));
-            row_offset += row_size + border_spacing.block;
+            let start_offset = row_offset + border_spacing.block;
+            let end_offset = start_offset + table_layout.row_sizes[row_index];
+            row_dimensions.push((start_offset, end_offset));
+            row_offset = end_offset;
         }
+        row_offset += if table_layout.table.size.height == 0 {
+            fallback_block_size
+        } else {
+            border_spacing.block
+        };
 
         let table_start_corner = LogicalVec2 {
             inline: column_dimensions.first().map_or_else(Au::zero, |v| v.0),

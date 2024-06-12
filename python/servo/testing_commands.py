@@ -228,7 +228,7 @@ class MachCommands(CommandBase):
     def test_tidy(self, all_files, no_progress):
         tidy_failed = tidy.scan(not all_files, not no_progress)
 
-        print("\r ➤  Checking formatting of rust files...")
+        print("\r ➤  Checking formatting of Rust files...")
         rustfmt_failed = call(["cargo", "fmt", "--", *UNSTABLE_RUSTFMT_ARGUMENTS, "--check"])
         if rustfmt_failed:
             print("Run `./mach fmt` to fix the formatting")

@@ -328,14 +328,19 @@ fn create_cached_response(
             .unwrap()
             .push(done_sender);
     }
-    response.location_url = cached_resource.data.location_url.clone();
-    response.status = cached_resource.data.status.clone();
-    response.raw_status = cached_resource.data.raw_status.clone();
-    response.url_list = cached_resource.data.url_list.clone();
+    response
+        .location_url
+        .clone_from(&cached_resource.data.location_url);
+    response.status.clone_from(&cached_resource.data.status);
+    response
+        .raw_status
+        .clone_from(&cached_resource.data.raw_status);
+    response.url_list.clone_from(&cached_resource.data.url_list);
     response.https_state = cached_resource.data.https_state;
     response.referrer = request.referrer.to_url().cloned();
     response.referrer_policy = request.referrer_policy;
     response.aborted = cached_resource.aborted.clone();
+
     let expires = cached_resource.data.expires;
     let adjusted_expires = get_expiry_adjustment_from_request_headers(request, expires);
     let now = Duration::seconds(time::now().to_timespec().sec);
@@ -781,12 +786,18 @@ impl HttpCache {
                     resource_timing,
                 );
                 constructed_response.body = cached_resource.body.clone();
-                constructed_response.status = cached_resource.data.status.clone();
+                constructed_response
+                    .status
+                    .clone_from(&cached_resource.data.status);
                 constructed_response.https_state = cached_resource.data.https_state;
                 constructed_response.referrer = request.referrer.to_url().cloned();
                 constructed_response.referrer_policy = request.referrer_policy;
-                constructed_response.raw_status = cached_resource.data.raw_status.clone();
-                constructed_response.url_list = cached_resource.data.url_list.clone();
+                constructed_response
+                    .raw_status
+                    .clone_from(&cached_resource.data.raw_status);
+                constructed_response
+                    .url_list
+                    .clone_from(&cached_resource.data.url_list);
                 cached_resource.data.expires = get_response_expiry(&constructed_response);
                 let mut stored_headers = cached_resource.data.metadata.headers.lock().unwrap();
                 stored_headers.extend(response.headers);
