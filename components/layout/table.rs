@@ -823,10 +823,9 @@ fn perform_border_collapse_for_row(
 
     // Compute block-start borders.
     let block_start_borders = &mut child_table_row.final_collapsed_borders.block_start;
-    *block_start_borders = child_table_row
-        .preliminary_collapsed_borders
-        .block_start
-        .clone();
+
+    block_start_borders.clone_from(&child_table_row.preliminary_collapsed_borders.block_start);
+
     for (i, this_border) in block_start_borders.iter_mut().enumerate() {
         match previous_block_borders {
             PreviousBlockCollapsedBorders::FromPreviousRow(ref previous_block_borders) => {

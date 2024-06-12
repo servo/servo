@@ -944,7 +944,9 @@ pub fn propagate_column_inline_sizes_to_child(
                 column_computed_inline_sizes.to_vec();
             child_table_row_flow.spacing = *border_spacing;
             child_table_row_flow.table_writing_mode = table_writing_mode;
-            child_table_row_flow.incoming_rowspan = incoming_rowspan.clone();
+            child_table_row_flow
+                .incoming_rowspan
+                .clone_from(incoming_rowspan);
 
             // Update the incoming rowspan for the next row.
             let mut col = 0;

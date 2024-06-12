@@ -304,11 +304,11 @@ impl Response {
                     .map(|v| v.into())
                     .as_ref(),
             );
-            metadata.location_url = response.location_url.clone();
+            metadata.location_url.clone_from(&response.location_url);
             metadata.headers = Some(Serde(response.headers.clone()));
-            metadata.status = response.raw_status.clone();
+            metadata.status.clone_from(&response.raw_status);
             metadata.https_state = response.https_state;
-            metadata.referrer = response.referrer.clone();
+            metadata.referrer.clone_from(&response.referrer);
             metadata.referrer_policy = response.referrer_policy;
             metadata.redirected = response.actual_response().url_list.len() > 1;
             metadata

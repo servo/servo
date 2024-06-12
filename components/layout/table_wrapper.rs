@@ -360,7 +360,8 @@ impl Flow for TableWrapperFlow {
             debug_assert!(kid.is_table_caption() || kid.is_table());
             if kid.is_table() {
                 let table = kid.as_table();
-                self.column_intrinsic_inline_sizes = table.column_intrinsic_inline_sizes.clone();
+                self.column_intrinsic_inline_sizes
+                    .clone_from(&table.column_intrinsic_inline_sizes)
             }
         }
 

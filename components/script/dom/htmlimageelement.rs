@@ -954,7 +954,9 @@ impl HTMLImageElement {
         };
 
         // Step 5
-        *self.last_selected_source.borrow_mut() = selected_source.clone();
+        self.last_selected_source
+            .borrow_mut()
+            .clone_from(&selected_source);
 
         // Step 6, check the list of available images
         if let Some(src) = selected_source {

@@ -324,7 +324,10 @@ impl MutationObserverMethods for MutationObserver {
                 registered.options.character_data_old_value = character_data_old_value;
                 registered.options.child_list = child_list;
                 registered.options.subtree = subtree;
-                registered.options.attribute_filter = attribute_filter.clone();
+                registered
+                    .options
+                    .attribute_filter
+                    .clone_from(&attribute_filter);
                 replaced = true;
             }
             !replaced

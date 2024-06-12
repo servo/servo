@@ -348,7 +348,7 @@ impl BrowsingContextActor {
         }
         *self.url.borrow_mut() = url.as_str().to_owned();
         if let Some(ref t) = title {
-            *self.title.borrow_mut() = t.clone();
+            self.title.borrow_mut().clone_from(t);
         }
 
         let msg = TabNavigated {
