@@ -17,10 +17,14 @@ use crate::StreamId;
 #[derive(Serialize)]
 pub struct TabDescriptorActorMsg {
     actor: String,
-    browserId: u32,
-    browsingContextId: u32,
-    isZombieTab: bool,
-    outerWindowID: u32,
+   #[serde(rename(serialize = "browserId"))]
+    browser_id: u32,
+    #[serde(rename(serialize = "browsingContextId"))]
+    browsing_context_id: u32,
+    #[serde(rename(serialize = "isZombieTab"))]
+    is_zombie_tab: bool,
+    #[serde(rename(serialize = "outerWindowId"))]
+    outer_window_id: u32,
     selected: bool,
     title: String,
     traits: DescriptorTraits,

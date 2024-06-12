@@ -98,7 +98,8 @@ struct ListProcessesResponse {
 #[derive(Default, Serialize)]
 pub struct DescriptorTraits {
     pub(crate) watcher: bool,
-    pub(crate) supportsReloadDescriptor: bool,
+    #[serde(rename(serialize = "supportsReloadDescriptor"))]
+    pub(crate) supports_reload_descriptor: bool,
 }
 
 #[derive(Serialize)]
@@ -232,8 +233,8 @@ impl Actor for RootActor {
             },
 
             "getTab" => {
-                if let Some(serde_json::Value::Number(browserId)) = msg.get("browserId") {
-                    let targetTab = self
+                if let Some(serde_json::Value::Number(browser_id)) = msg.get("browserId") {
+                    let target_tab = self
                         .tabs
                         .iter()
                         .map(|target| {
