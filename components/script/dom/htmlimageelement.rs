@@ -1174,21 +1174,24 @@ impl HTMLImageElement {
 
     // Step 2 for <https://html.spec.whatwg.org/multipage/#dom-img-decode>
     fn react_to_decode_image_sync_steps(&self, promise: Rc<Promise>) {
-        self.image_decode_promises
-            .borrow_mut()
-            .push(promise.clone());
-
         let document = document_from_node(self);
         // Step 2.1 of <https://html.spec.whatwg.org/multipage/#dom-img-decode>
         if !document.is_fully_active() ||
             matches!(self.current_request.borrow().state, State::Broken)
         {
-            self.reject_image_decode_promises();
+            promise.reject_native(&DOMException::new(
+                &document.global(),
+                DOMErrorName::EncodingError,
+            ));
         } else if matches!(
             self.current_request.borrow().state,
             State::CompletelyAvailable
         ) {
-            self.resolve_image_decode_promises();
+            promise.resolve_native(&());
+        } else {
+            self.image_decode_promises
+                .borrow_mut()
+                .push(promise.clone());
         }
     }
 
