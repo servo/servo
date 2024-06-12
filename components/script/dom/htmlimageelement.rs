@@ -1184,6 +1184,11 @@ impl HTMLImageElement {
             matches!(self.current_request.borrow().state, State::Broken)
         {
             self.reject_image_decode_promises();
+        } else if matches!(
+            self.current_request.borrow().state,
+            State::CompletelyAvailable
+        ) {
+            self.resolve_image_decode_promises();
         }
     }
 
