@@ -174,7 +174,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertNoMoreErrors(errors)
 
     def test_lock(self):
-        errors = tidy.check_cargo_lock_file(test_file_path('duplicated_package.lock'), print_text=False)
+        errors = tidy.run_custom_cargo_lock_lints(test_file_path('duplicated_package.lock'), print_text=False)
         msg = """duplicate versions for package `test`
 \t\x1b[93mThe following packages depend on version 0.4.9 from 'crates.io':\x1b[0m
 \t\ttest2 0.1.0
@@ -191,7 +191,7 @@ class CheckTidiness(unittest.TestCase):
 
     def test_lock_ignore_without_duplicates(self):
         tidy.config["ignore"]["packages"] = ["test", "test2", "test3", "test5"]
-        errors = tidy.check_cargo_lock_file(test_file_path('duplicated_package.lock'), print_text=False)
+        errors = tidy.run_custom_cargo_lock_lints(test_file_path('duplicated_package.lock'), print_text=False)
 
         msg = (
             "duplicates for `test2` are allowed, but only single version found"
@@ -209,7 +209,7 @@ class CheckTidiness(unittest.TestCase):
 
     def test_lock_exceptions(self):
         tidy.config["blocked-packages"]["rand"] = ["test_exception", "test_unneeded_exception"]
-        errors = tidy.check_cargo_lock_file(test_file_path('blocked_package.lock'), print_text=False)
+        errors = tidy.run_custom_cargo_lock_lints(test_file_path('blocked_package.lock'), print_text=False)
 
         msg = (
             "Package test_blocked 0.0.2 depends on blocked package rand."

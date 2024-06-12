@@ -332,13 +332,14 @@ def check_cargo_lock_file(only_changed_files: bool):
         print("\r ➤  Skipping `Cargo.lock` lint checks, because it is unchanged.")
         return
 
-    yield from run_custom_cargo_lock_lints()
+    yield from run_custom_cargo_lock_lints(CARGO_LOCK_FILE)
     yield from validate_dependency_licenses()
 
 
-def run_custom_cargo_lock_lints():
-    print(f"\r ➤  Linting cargo lock ({CARGO_LOCK_FILE})...")
-    with open(CARGO_LOCK_FILE) as cargo_lock_file:
+def run_custom_cargo_lock_lints(cargo_lock_filename: str, print_text: bool = True):
+    if print_text:
+        print(f"\r ➤  Linting cargo lock ({cargo_lock_filename})...")
+    with open(cargo_lock_filename) as cargo_lock_file:
         content = toml.load(cargo_lock_file)
 
     def find_reverse_dependencies(name, content):
@@ -363,7 +364,7 @@ def run_custom_cargo_lock_lints():
 
     for name in exceptions:
         if name not in packages_by_name:
-            yield (CARGO_LOCK_FILE, 1, "duplicates are allowed for `{}` but it is not a dependency".format(name))
+            yield (cargo_lock_filename, 1, "duplicates are allowed for `{}` but it is not a dependency".format(name))
 
     for (name, packages) in packages_by_name.items():
         has_duplicates = len(packages) > 1
@@ -387,7 +388,7 @@ def run_custom_cargo_lock_lints():
                 if (not dependency[1] or version in dependency[1]) and \
                    (not dependency[2] or short_source in dependency[2]):
                     message += "\n\t\t" + pname + " " + package_version
-        yield (CARGO_LOCK_FILE, 1, message)
+        yield (cargo_lock_filename, 1, message)
 
     # Check to see if we are transitively using any blocked packages
     blocked_packages = config["blocked-packages"]
@@ -405,7 +406,7 @@ def run_custom_cargo_lock_lints():
                 if package_name not in whitelist:
                     fmt = "Package {} {} depends on blocked package {}."
                     message = fmt.format(package_name, package_version, dependency_name)
-                    yield (CARGO_LOCK_FILE, 1, message)
+                    yield (cargo_lock_filename, 1, message)
                 else:
                     visited_whitelisted_packages[dependency_name][package_name] = True
 
@@ -415,7 +416,7 @@ def run_custom_cargo_lock_lints():
             if not visited_whitelisted_packages[dependency_name].get(package_name):
                 fmt = "Package {} is not required to be an exception of blocked package {}."
                 message = fmt.format(package_name, dependency_name)
-                yield (CARGO_LOCK_FILE, 1, message)
+                yield (cargo_lock_filename, 1, message)
 
 
 def validate_dependency_licenses():
