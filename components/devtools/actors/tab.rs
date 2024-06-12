@@ -15,15 +15,12 @@ use crate::StreamId;
 
 // https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/tab.js
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TabDescriptorActorMsg {
     actor: String,
-   #[serde(rename(serialize = "browserId"))]
     browser_id: u32,
-    #[serde(rename(serialize = "browsingContextId"))]
     browsing_context_id: u32,
-    #[serde(rename(serialize = "isZombieTab"))]
     is_zombie_tab: bool,
-    #[serde(rename(serialize = "outerWindowId"))]
     outer_window_id: u32,
     selected: bool,
     title: String,
@@ -33,7 +30,7 @@ pub struct TabDescriptorActorMsg {
 
 impl TabDescriptorActorMsg {
     pub fn id(&self) -> u32 {
-        self.browserId
+        self.browser_id
     }
 }
 
@@ -114,15 +111,15 @@ impl TabDescriptorActor {
 
         TabDescriptorActorMsg {
             actor: self.name(),
-            browsingContextId: ctx_actor.browsing_context_id.index.0.get(),
-            browserId: ctx_actor.active_pipeline.get().index.0.get(),
-            isZombieTab: false,
-            outerWindowID: ctx_actor.active_pipeline.get().index.0.get(),
+            browsing_context_id: ctx_actor.browsing_context_id.index.0.get(),
+            browser_id: ctx_actor.active_pipeline.get().index.0.get(),
+            is_zombie_tab: false,
+            outer_window_id: ctx_actor.active_pipeline.get().index.0.get(),
             selected,
             title,
             traits: DescriptorTraits {
                 watcher: true,
-                supportsReloadDescriptor: false,
+                supports_reload_descriptor: false,
             },
             url,
         }

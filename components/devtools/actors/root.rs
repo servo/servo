@@ -20,11 +20,12 @@ use crate::protocol::{ActorDescription, JsonPacketStream};
 use crate::StreamId;
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct ActorTraits {
     sources: bool,
     highlightable: bool,
-    customHighlighters: bool,
-    networkMonitor: bool,
+    custom_highlighters: bool,
+    network_monitor: bool,
 }
 
 #[derive(Serialize)]
@@ -37,12 +38,13 @@ struct ListAddonsReply {
 enum AddonMsg {}
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct GetRootReply {
     from: String,
     selected: u32,
-    performanceActor: String,
-    deviceActor: String,
-    preferenceActor: String,
+    performance_actor: String,
+    device_actor: String,
+    preference_actor: String,
 }
 
 #[derive(Serialize)]
@@ -59,9 +61,10 @@ struct GetTabReply {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RootActorMsg {
     from: String,
-    applicationType: String,
+    application_type: String,
     traits: ActorTraits,
 }
 
@@ -96,25 +99,27 @@ struct ListProcessesResponse {
 }
 
 #[derive(Default, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DescriptorTraits {
     pub(crate) watcher: bool,
-    #[serde(rename(serialize = "supportsReloadDescriptor"))]
     pub(crate) supports_reload_descriptor: bool,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct ProcessForm {
     actor: String,
     id: u32,
-    isParent: bool,
-    isWindowlessParent: bool,
+    is_parent: bool,
+    is_windowless_parent: bool,
     traits: DescriptorTraits,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct GetProcessResponse {
     from: String,
-    processDescriptor: ProcessForm,
+    process_descriptor: ProcessForm,
 }
 
 pub struct RootActor {
@@ -155,8 +160,8 @@ impl Actor for RootActor {
                     processes: vec![ProcessForm {
                         actor: self.process.clone(),
                         id: 0,
-                        isParent: true,
-                        isWindowlessParent: false,
+                        is_parent: true,
+                        is_windowless_parent: false,
                         traits: Default::default(),
                     }],
                 };
@@ -167,11 +172,11 @@ impl Actor for RootActor {
             "getProcess" => {
                 let reply = GetProcessResponse {
                     from: self.name(),
-                    processDescriptor: ProcessForm {
+                    process_descriptor: ProcessForm {
                         actor: self.process.clone(),
                         id: 0,
-                        isParent: true,
-                        isWindowlessParent: false,
+                        is_parent: true,
+                        is_windowless_parent: false,
                         traits: Default::default(),
                     },
                 };
@@ -183,9 +188,9 @@ impl Actor for RootActor {
                 let actor = GetRootReply {
                     from: "root".to_owned(),
                     selected: 0,
-                    performanceActor: self.performance.clone(),
-                    deviceActor: self.device.clone(),
-                    preferenceActor: self.preference.clone(),
+                    performance_actor: self.performance.clone(),
+                    device_actor: self.device.clone(),
+                    preference_actor: self.preference.clone(),
                 };
                 let _ = stream.write_json_packet(&actor);
                 ActorMessageStatus::Processed
@@ -242,9 +247,9 @@ impl Actor for RootActor {
                                 .find::<TabDescriptorActor>(target)
                                 .encodable(registry, true)
                         })
-                        .find(|tab| tab.id() as u64 == browserId.as_u64().unwrap());
+                        .find(|tab| tab.id() as u64 == browser_id.as_u64().unwrap());
 
-                    if let Some(tab) = targetTab {
+                    if let Some(tab) = target_tab {
                         let reply = GetTabReply {
                             from: self.name(),
                             tab: tab,
@@ -280,12 +285,12 @@ impl RootActor {
     pub fn encodable(&self) -> RootActorMsg {
         RootActorMsg {
             from: "root".to_owned(),
-            applicationType: "browser".to_owned(),
+            application_type: "browser".to_owned(),
             traits: ActorTraits {
                 sources: false,
                 highlightable: true,
-                customHighlighters: true,
-                networkMonitor: false,
+                custom_highlighters: true,
+                network_monitor: false,
             },
         }
     }
