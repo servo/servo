@@ -336,9 +336,15 @@ impl ResponseMethods for Response {
         // only store the relevant fields, and only clone them here
         *new_response.response_type.borrow_mut() = *self.response_type.borrow();
         *new_response.status.borrow_mut() = *self.status.borrow();
-        *new_response.raw_status.borrow_mut() = self.raw_status.borrow().clone();
-        *new_response.url.borrow_mut() = self.url.borrow().clone();
-        *new_response.url_list.borrow_mut() = self.url_list.borrow().clone();
+        new_response
+            .raw_status
+            .borrow_mut()
+            .clone_from(&self.raw_status.borrow());
+        new_response.url.borrow_mut().clone_from(&self.url.borrow());
+        new_response
+            .url_list
+            .borrow_mut()
+            .clone_from(&self.url_list.borrow());
 
         if let Some(stream) = self.body_stream.get().clone() {
             new_response.body_stream.set(Some(&*stream));
