@@ -1187,6 +1187,7 @@ impl HTMLImageElement {
             self.current_request.borrow().state,
             State::CompletelyAvailable
         ) {
+            // this doesn't follow the spec, but it's been discussed in <https://github.com/whatwg/html/issues/4217>
             promise.resolve_native(&());
         } else {
             self.image_decode_promises
