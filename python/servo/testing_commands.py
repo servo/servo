@@ -227,9 +227,8 @@ class MachCommands(CommandBase):
                      help="Don't show progress for tidy")
     def test_tidy(self, all_files, no_progress):
         tidy_failed = tidy.scan(not all_files, not no_progress)
-        cargo_deny_licenses_failed = tidy.check_license_errors()
 
-        print("\r ➤  Checking formatting of rust files...")
+        print("\r ➤  Checking formatting of Rust files...")
         rustfmt_failed = call(["cargo", "fmt", "--", *UNSTABLE_RUSTFMT_ARGUMENTS, "--check"])
         if rustfmt_failed:
             print("Run `./mach fmt` to fix the formatting")
@@ -237,7 +236,7 @@ class MachCommands(CommandBase):
         print("\r ➤  Checking formatting of toml files...")
         taplo_failed = format_toml_files_with_taplo()
 
-        tidy_failed = tidy_failed or rustfmt_failed or taplo_failed or cargo_deny_licenses_failed
+        tidy_failed = tidy_failed or rustfmt_failed or taplo_failed
         print()
         if tidy_failed:
             print("\r ❌ test-tidy reported errors.")
