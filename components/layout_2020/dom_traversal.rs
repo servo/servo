@@ -122,20 +122,19 @@ where
 
 #[derive(Debug)]
 pub(super) enum Contents {
-    /// Refers to a DOM subtree, plus `::before` and `::after` pseudo-elements.
-    OfElement,
-
+    /// Any kind of content that is not replaced, including the contents of pseudo-elements.
+    NonReplaced(NonReplacedContents),
     /// Example: an `<img src=…>` element.
     /// <https://drafts.csswg.org/css2/conform.html#replaced-element>
     Replaced(ReplacedContent),
-
-    /// Content of a `::before` or `::after` pseudo-element that is being generated.
-    /// <https://drafts.csswg.org/css2/generate.html#content>
-    OfPseudoElement(Vec<PseudoElementContentItem>),
 }
 
+#[derive(Debug)]
 pub(super) enum NonReplacedContents {
+    /// Refers to a DOM subtree, plus `::before` and `::after` pseudo-elements.
     OfElement,
+    /// Content of a `::before` or `::after` pseudo-element that is being generated.
+    /// <https://drafts.csswg.org/css2/generate.html#content>
     OfPseudoElement(Vec<PseudoElementContentItem>),
 }
 
@@ -221,7 +220,8 @@ fn traverse_element<'dom, Node>(
             }
         },
         Display::GeneratingBox(display) => {
-            let contents = replaced.map_or(Contents::OfElement, Contents::Replaced);
+            let contents =
+                replaced.map_or(NonReplacedContents::OfElement.into(), Contents::Replaced);
             let display = display.used_value_for_contents(&contents);
             let box_slot = element.element_box_slot();
             let info = NodeAndStyleInfo::new(element, style);
@@ -251,7 +251,7 @@ fn traverse_pseudo_element<'dom, Node>(
             Display::GeneratingBox(display) => {
                 let items = generate_pseudo_element_content(&info.style, element, context);
                 let box_slot = element.pseudo_element_box_slot(which);
-                let contents = Contents::OfPseudoElement(items);
+                let contents = NonReplacedContents::OfPseudoElement(items).into();
                 handler.handle_element(&info, display, contents, box_slot);
             },
         }
@@ -310,30 +310,25 @@ fn traverse_pseudo_element_contents<'dom, Node>(
 impl Contents {
     /// Returns true iff the `try_from` impl below would return `Err(_)`
     pub fn is_replaced(&self) -> bool {
-        match self {
-            Contents::OfElement | Contents::OfPseudoElement(_) => false,
-            Contents::Replaced(_) => true,
-        }
-    }
-}
-
-impl std::convert::TryFrom<Contents> for NonReplacedContents {
-    type Error = ReplacedContent;
-
-    fn try_from(contents: Contents) -> Result<Self, Self::Error> {
-        match contents {
-            Contents::OfElement => Ok(NonReplacedContents::OfElement),
-            Contents::OfPseudoElement(items) => Ok(NonReplacedContents::OfPseudoElement(items)),
-            Contents::Replaced(replaced) => Err(replaced),
-        }
+        matches!(self, Contents::Replaced(_))
     }
 }
 
 impl From<NonReplacedContents> for Contents {
-    fn from(contents: NonReplacedContents) -> Self {
+    fn from(non_replaced_contents: NonReplacedContents) -> Self {
+        Contents::NonReplaced(non_replaced_contents)
+    }
+}
+
+impl std::convert::TryFrom<Contents> for NonReplacedContents {
+    type Error = &'static str;
+
+    fn try_from(contents: Contents) -> Result<Self, Self::Error> {
         match contents {
-            NonReplacedContents::OfElement => Contents::OfElement,
-            NonReplacedContents::OfPseudoElement(items) => Contents::OfPseudoElement(items),
+            Contents::NonReplaced(non_replaced_contents) => Ok(non_replaced_contents),
+            Contents::Replaced(_) => {
+                Err("Tried to covnert a `Contents::Replaced` into `NonReplacedContent`")
+            },
         }
     }
 }

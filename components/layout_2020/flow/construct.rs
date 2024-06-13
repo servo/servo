@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::convert::{TryFrom, TryInto};
+use std::convert::TryFrom;
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use servo_arc::Arc;
@@ -401,7 +401,7 @@ where
             DisplayInside::Flow {
                 is_list_item: false,
             },
-            Contents::OfPseudoElement(contents),
+            NonReplacedContents::OfPseudoElement(contents).into(),
             BoxSlot::dummy(),
         );
     }
@@ -494,8 +494,8 @@ where
         }
 
         let propagated_text_decoration_line = self.text_decoration_line;
-        let kind = match contents.try_into() {
-            Ok(contents) => match display_inside {
+        let kind = match contents {
+            Contents::NonReplaced(contents) => match display_inside {
                 DisplayInside::Flow { is_list_item }
                     if !info.style.establishes_block_formatting_context() =>
                 {
@@ -513,7 +513,7 @@ where
                     propagated_text_decoration_line,
                 },
             },
-            Err(contents) => {
+            Contents::Replaced(contents) => {
                 let contents = Contents::Replaced(contents);
                 BlockLevelCreator::Independent {
                     display_inside,
