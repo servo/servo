@@ -4,6 +4,7 @@
 
 #![allow(dead_code)] // TODO: Remove this
 
+use std::collections::HashMap;
 use std::net::TcpStream;
 
 use serde::Serialize;
@@ -58,10 +59,11 @@ pub enum SessionContextType {
 };*/
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SessionContext {
     isServerTargetSwitchingEnabled: bool,
-    supportedTargets: bool, // TODO: These need to be a dictionary of supported types
-    supportedResources: bool,
+    supportedTargets: HashMap<&'static str, bool>,
+    supportedResources: HashMap<&'static str, bool>,
     r#type: SessionContextType,
 }
 
@@ -69,8 +71,11 @@ impl SessionContext {
     pub fn new(r#type: SessionContextType) -> Self {
         Self {
             isServerTargetSwitchingEnabled: false,
-            supportedTargets: true,
-            supportedResources: true,
+            supportedTargets: HashMap::new(), // TODO: Fill this
+            supportedResources: HashMap::from([
+                ("Resources.TYPES.CONSOLE_MESSAGE", true),
+                ("Resources.TYPES.CSS_CHANGE", true),
+            ]),
             r#type,
         }
     }
@@ -78,11 +83,17 @@ impl SessionContext {
 
 #[derive(Serialize)]
 struct WatcherTraits {
-    resources: bool,
-    // TODO: This doesn't go here, instead, all of the targets are destructured into the traits
-    // object and are accessed directly
-    // I am getting this.watcherFront.traits is undefined TypeError
-    targets: bool,
+    resources: HashMap<&'static str, bool>,
+    #[serde(rename = "Targets.TYPES.FRAME")]
+    frame: bool,
+    #[serde(rename = "Targets.TYPES.PROCESS")]
+    process: bool,
+    #[serde(rename = "Targets.TYPES.WORKER")]
+    worker: bool,
+    #[serde(rename = "Targets.TYPES.SERVICE_WORKER")]
+    service_worker: bool,
+    #[serde(rename = "Targets.TYPES.SHARED_WORKER")]
+    shared_worker: bool,
 }
 
 #[derive(Serialize)]
@@ -108,8 +119,12 @@ impl WatcherActor {
         WatcherActorMsg {
             actor: self.name(),
             traits: WatcherTraits {
-                resources: self.sessionContext.supportedResources,
-                targets: self.sessionContext.supportedTargets,
+                resources: self.sessionContext.supportedResources.clone(),
+                frame: true,
+                process: true,
+                worker: true,
+                service_worker: true,
+                shared_worker: true,
             },
         }
     }

@@ -93,10 +93,10 @@ impl Actor for TabDescriptorActor {
             "getWatcher" => {
                 // TODO: Propperly implement watcher
                 let ctx_actor = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
-                let browserId = ctx_actor.active_pipeline.get().index.0.get();
+                let browser_id = ctx_actor.active_pipeline.get().index.0.get();
                 let watcher = WatcherActor::new(
                     "test".into(),
-                    SessionContext::new(SessionContextType::BrowserElement(browserId)),
+                    SessionContext::new(SessionContextType::BrowserElement(browser_id)),
                 )
                 .encodable();
                 let _ = stream.write_json_packet(&GetWatcherReply {
@@ -129,20 +129,20 @@ impl TabDescriptorActor {
 
         let title = ctx_actor.title.borrow().clone();
         let url = ctx_actor.url.borrow().clone();
-        let browserId = ctx_actor.active_pipeline.get().index.0.get();
-        let browsingContextId = ctx_actor.browsing_context_id.index.0.get();
+        let browser_id = ctx_actor.active_pipeline.get().index.0.get();
+        let browsing_context_id = ctx_actor.browsing_context_id.index.0.get();
 
         TabDescriptorActorMsg {
             actor: self.name(),
-            browsing_context_id: ctx_actor.browsing_context_id.index.0.get(),
-            browser_id: ctx_actor.active_pipeline.get().index.0.get(),
+            browsing_context_id,
+            browser_id,
             is_zombie_tab: false,
-            outer_window_id: ctx_actor.active_pipeline.get().index.0.get(),
+            outer_window_id: browser_id,
             selected,
             title,
             traits: DescriptorTraits {
                 watcher: true,
-                supports_reload_descriptor: false,
+                supports_reload_descriptor: true,
             },
             url,
         }
