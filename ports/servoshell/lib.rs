@@ -34,7 +34,7 @@ pub mod platform {
 
 #[cfg(not(any(target_os = "android", target_env = "ohos")))]
 pub fn main() {
-    desktop::desktop_main::main()
+    desktop::cli::main()
 }
 
 #[cfg(target_os = "android")]
