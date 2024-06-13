@@ -131,8 +131,16 @@ impl InlineFormattingContextBuilder {
             ArcRefCell::new(InlineLevelBox::Atomic(independent_formatting_context));
         self.current_inline_level_boxes()
             .push(inline_level_box.clone());
+
+        // Push an object replacement character for this atomic, which will ensure that the line breaker
+        // inserts a line breaking opportunity here.
+        let string_to_push = "\u{fffc}";
+        self.text_segments.push(string_to_push.to_owned());
+        self.current_text_offset += string_to_push.len();
+
         self.last_inline_box_ended_with_collapsible_white_space = false;
         self.on_word_boundary = true;
+
         inline_level_box
     }
 
