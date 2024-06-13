@@ -62,7 +62,6 @@ lazy_static = { workspace = true }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 backtrace = { workspace = true }
-# Todo: Could argument parsing be useful on non-desktop?
 getopts = { workspace = true }
 
 [target.'cfg(target_env = "ohos")'.dependencies]
