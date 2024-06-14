@@ -92,7 +92,7 @@ pub enum EmbedderEvent {
     SendError(Option<TopLevelBrowsingContextId>, String),
     /// Move and/or resize a webview to the given rect.
     MoveResizeWebView(TopLevelBrowsingContextId, DeviceRect, Option<BorderRadius>),
-    /// Start painting a webview, and optionally stop painting allBorderRadius::uniform(0.) others.
+    /// Start painting a webview, and optionally stop painting all others.
     ShowWebView(TopLevelBrowsingContextId, bool),
     /// Stop painting a webview.
     HideWebView(TopLevelBrowsingContextId),
