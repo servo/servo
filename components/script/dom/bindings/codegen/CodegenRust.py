@@ -6129,10 +6129,10 @@ class CGClassConstructHook(CGAbstractExternMethod):
 let args = CallArgs::from_vp(vp, argc);
 let global = GlobalScope::from_object(JS_CALLEE(*cx, vp).to_object());
 """
-        if len(self.exposureSet) == 1:
+        if len(self.exposureSet) > 0:
             preamble += """\
 let global = DomRoot::downcast::<dom::types::%s>(global).unwrap();
-""" % list(self.exposureSet)[0]
+""" % list(self.exposureSet)[len(self.exposureSet) - 1]
         if self.constructor.isHTMLConstructor():
             signatures = self.constructor.signatures()
             assert len(signatures) == 1

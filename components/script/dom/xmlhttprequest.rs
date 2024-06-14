@@ -46,7 +46,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::{
     XMLHttpRequestMethods, XMLHttpRequestResponseType,
 };
-use crate::dom::bindings::codegen::UnionTypes::DocumentOrXMLHttpRequestBodyInit;
+use crate::dom::bindings::codegen::UnionTypes::DocumentOrBlobOrArrayBufferViewOrArrayBufferOrFormDataOrStringOrURLSearchParams as DocumentOrXMLHttpRequestBodyInit;
 use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -113,10 +113,10 @@ pub enum XHRProgress {
 impl XHRProgress {
     fn generation_id(&self) -> GenerationId {
         match *self {
-            XHRProgress::HeadersReceived(id, _, _) |
-            XHRProgress::Loading(id, _) |
-            XHRProgress::Done(id) |
-            XHRProgress::Errored(id, _) => id,
+            XHRProgress::HeadersReceived(id, _, _)
+            | XHRProgress::Loading(id, _)
+            | XHRProgress::Done(id)
+            | XHRProgress::Errored(id, _) => id,
         }
     }
 }
@@ -376,8 +376,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             // despite the there being a rust-http method variant for them
             let upper = s.to_ascii_uppercase();
             match &*upper {
-                "DELETE" | "GET" | "HEAD" | "OPTIONS" | "POST" | "PUT" | "CONNECT" | "TRACE" |
-                "TRACK" => upper.parse().ok(),
+                "DELETE" | "GET" | "HEAD" | "OPTIONS" | "POST" | "PUT" | "CONNECT" | "TRACE"
+                | "TRACK" => upper.parse().ok(),
                 _ => s.parse().ok(),
             }
         });
@@ -414,8 +414,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 // Step 10
                 if !asynch {
                     // FIXME: This should only happen if the global environment is a document environment
-                    if self.timeout.get() != 0 ||
-                        self.response_type.get() != XMLHttpRequestResponseType::_empty
+                    if self.timeout.get() != 0
+                        || self.response_type.get() != XMLHttpRequestResponseType::_empty
                     {
                         return Err(Error::InvalidAccess);
                     }
@@ -545,9 +545,9 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     fn SetWithCredentials(&self, with_credentials: bool) -> ErrorResult {
         match self.ready_state.get() {
             // Step 1
-            XMLHttpRequestState::HeadersReceived |
-            XMLHttpRequestState::Loading |
-            XMLHttpRequestState::Done => Err(Error::InvalidState),
+            XMLHttpRequestState::HeadersReceived
+            | XMLHttpRequestState::Loading
+            | XMLHttpRequestState::Done => Err(Error::InvalidState),
             // Step 2
             _ if self.send_flag.get() => Err(Error::InvalidState),
             // Step 3
@@ -726,8 +726,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         // step 4 (second half)
         if let Some(content_type) = content_type {
             let encoding = match data {
-                Some(DocumentOrXMLHttpRequestBodyInit::String(_)) |
-                Some(DocumentOrXMLHttpRequestBodyInit::Document(_)) =>
+                Some(DocumentOrXMLHttpRequestBodyInit::String(_))
+                | Some(DocumentOrXMLHttpRequestBodyInit::Document(_)) =>
                 // XHR spec differs from http, and says UTF-8 should be in capitals,
                 // instead of "utf-8", which is what Hyper defaults to. So not
                 // using content types provided by Hyper.
@@ -752,8 +752,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                     if let Some(encoding) = encoding {
                         let mime: Mime = ct.into();
                         for param in mime.params() {
-                            if param.0 == mime::CHARSET &&
-                                !param.1.as_ref().eq_ignore_ascii_case(encoding)
+                            if param.0 == mime::CHARSET
+                                && !param.1.as_ref().eq_ignore_ascii_case(encoding)
                             {
                                 let new_params: Vec<(Name, Name)> = mime
                                     .params()
@@ -803,9 +803,9 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         self.terminate_ongoing_fetch();
         // Step 2
         let state = self.ready_state.get();
-        if (state == XMLHttpRequestState::Opened && self.send_flag.get()) ||
-            state == XMLHttpRequestState::HeadersReceived ||
-            state == XMLHttpRequestState::Loading
+        if (state == XMLHttpRequestState::Opened && self.send_flag.get())
+            || state == XMLHttpRequestState::HeadersReceived
+            || state == XMLHttpRequestState::Loading
         {
             let gen_id = self.generation_id.get();
             self.process_partial_response(XHRProgress::Errored(gen_id, Error::Abort));
@@ -919,8 +919,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     /// <https://xhr.spec.whatwg.org/#the-responsetype-attribute>
     fn SetResponseType(&self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
         // Step 1
-        if self.global().is::<WorkerGlobalScope>() &&
-            response_type == XMLHttpRequestResponseType::Document
+        if self.global().is::<WorkerGlobalScope>()
+            && response_type == XMLHttpRequestResponseType::Document
         {
             return Ok(());
         }
@@ -948,8 +948,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => unsafe {
                 let ready_state = self.ready_state.get();
                 // Step 2
-                if ready_state == XMLHttpRequestState::Done ||
-                    ready_state == XMLHttpRequestState::Loading
+                if ready_state == XMLHttpRequestState::Done
+                    || ready_state == XMLHttpRequestState::Loading
                 {
                     self.text_response().to_jsval(*cx, rval.handle_mut());
                 } else {
@@ -1179,9 +1179,9 @@ impl XMLHttpRequest {
             },
             XHRProgress::Done(_) => {
                 assert!(
-                    self.ready_state.get() == XMLHttpRequestState::HeadersReceived ||
-                        self.ready_state.get() == XMLHttpRequestState::Loading ||
-                        self.sync.get()
+                    self.ready_state.get() == XMLHttpRequestState::HeadersReceived
+                        || self.ready_state.get() == XMLHttpRequestState::Loading
+                        || self.sync.get()
                 );
 
                 self.cancel_timeout();
@@ -1400,9 +1400,9 @@ impl XMLHttpRequest {
                 }
             },
             Some(ref mime)
-                if (mime.type_() == mime::TEXT && mime.subtype() == mime::XML) ||
-                    (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML) ||
-                    mime.suffix() == Some(mime::XML) =>
+                if (mime.type_() == mime::TEXT && mime.subtype() == mime::XML)
+                    || (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML)
+                    || mime.suffix() == Some(mime::XML) =>
             {
                 temp_doc = self.handle_xml();
                 // Not sure it the parser should throw an error for this case
