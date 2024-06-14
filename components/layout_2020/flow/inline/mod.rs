@@ -70,6 +70,7 @@
 
 pub mod construct;
 pub mod line;
+mod line_breaker;
 pub mod text_run;
 
 use std::cell::OnceCell;
@@ -84,6 +85,7 @@ use line::{
     layout_line_items, AbsolutelyPositionedLineItem, AtomicLineItem, FloatLineItem,
     InlineBoxLineItem, LineItem, LineItemLayoutState, LineMetrics, TextRunLineItem,
 };
+use line_breaker::LineBreaker;
 use serde::Serialize;
 use servo_arc::Arc;
 use style::computed_values::text_wrap_mode::T as TextWrapMode;
@@ -1593,13 +1595,13 @@ impl InlineFormattingContext {
         let text_content: String = builder.text_segments.into_iter().collect();
         let mut font_metrics = Vec::new();
 
-        let mut linebreaker = None;
+        let mut new_linebreaker = LineBreaker::new(text_content.as_str());
         inline_formatting_context.foreach(|iter_item| match iter_item {
             InlineFormattingContextIterItem::Item(InlineLevelBox::TextRun(ref mut text_run)) => {
-                text_run.break_and_shape(
-                    &text_content[text_run.text_range.clone()],
+                text_run.segment_and_shape(
+                    &text_content,
                     &layout_context.font_context,
-                    &mut linebreaker,
+                    &mut new_linebreaker,
                     &mut font_metrics,
                 );
             },

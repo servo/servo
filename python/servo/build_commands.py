@@ -99,7 +99,7 @@ class MachCommands(CommandBase):
                 print((key, env[key]))
 
         status = self.run_cargo_build_like_command(
-            "build", opts, env=env, verbose=verbose, **kwargs)
+            "rustc", opts, env=env, verbose=verbose, **kwargs)
 
         if status == 0:
             built_binary = self.get_binary_path(

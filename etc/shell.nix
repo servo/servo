@@ -60,7 +60,7 @@ let
     GRADLE_OPTS = "-Dorg.gradle.project.android.aapt2FromMavenOverride=${ANDROID_SDK_ROOT}/build-tools/${buildToolsVersion}/aapt2";
   };
 in
-stdenv.mkDerivation (androidEnvironment // rec {
+stdenv.mkDerivation (androidEnvironment // {
   name = "servo-env";
 
   buildInputs = [
@@ -111,7 +111,7 @@ stdenv.mkDerivation (androidEnvironment // rec {
         '';
         dontInstall = true;
       });
-    in (rustPlatform.buildRustPackage rec {
+    in (rustPlatform.buildRustPackage {
       name = "crown";
       src = ../support/crown;
       doCheck = false;
@@ -145,7 +145,7 @@ stdenv.mkDerivation (androidEnvironment // rec {
     androidSdk
   ]);
 
-  LIBCLANG_PATH = llvmPackages.clang-unwrapped.lib + "/lib/";
+  LIBCLANG_PATH = lib.makeLibraryPath [ llvmPackages.clang-unwrapped.lib ];
 
   # Allow cargo to download crates
   SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";
