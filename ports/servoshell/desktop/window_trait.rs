@@ -13,7 +13,7 @@ use servo::servo_geometry::DeviceIndependentPixel;
 use servo::style_traits::DevicePixel;
 use servo::webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 
-use crate::events_loop::WakerEvent;
+use super::events_loop::WakerEvent;
 
 // This should vary by zoom level and maybe actual text size (focused or under cursor)
 pub const LINE_HEIGHT: f32 = 38.0;

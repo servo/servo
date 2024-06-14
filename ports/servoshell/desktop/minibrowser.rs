@@ -25,12 +25,12 @@ use servo::style_traits::DevicePixel;
 use servo::webrender_traits::RenderingContext;
 use winit::event::{ElementState, MouseButton};
 
-use crate::egui_glue::EguiGlow;
-use crate::events_loop::EventsLoop;
-use crate::geometry::winit_position_to_euclid_point;
+use super::egui_glue::EguiGlow;
+use super::events_loop::EventsLoop;
+use super::geometry::winit_position_to_euclid_point;
+use super::webview::{LoadStatus, WebViewManager};
+use super::window_trait::WindowPortsMethods;
 use crate::parser::location_bar_input_to_url;
-use crate::webview::{LoadStatus, WebViewManager};
-use crate::window_trait::WindowPortsMethods;
 
 pub struct Minibrowser {
     pub context: EguiGlow,

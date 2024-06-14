@@ -20,8 +20,8 @@ use servo::webrender_api::units::{DeviceIntRect, DeviceIntSize};
 use servo::webrender_traits::RenderingContext;
 use surfman::{Connection, Context, Device, SurfaceType};
 
-use crate::events_loop::WakerEvent;
-use crate::window_trait::WindowPortsMethods;
+use super::events_loop::WakerEvent;
+use crate::desktop::window_trait::WindowPortsMethods;
 
 pub struct Window {
     rendering_context: RenderingContext,

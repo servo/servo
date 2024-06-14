@@ -31,9 +31,10 @@ use servo::webrender_api::units::DeviceRect;
 use servo::webrender_api::ScrollLocation;
 use tinyfiledialogs::{self, MessageBoxIcon, OkCancel, YesNo};
 
-use crate::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
+use super::keyutils::{CMD_OR_ALT, CMD_OR_CONTROL};
+use super::window_trait::{WindowPortsMethods, LINE_HEIGHT};
+use crate::desktop::tracing::{trace_embedder_event, trace_embedder_msg};
 use crate::parser::location_bar_input_to_url;
-use crate::window_trait::{WindowPortsMethods, LINE_HEIGHT};
 
 pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
     current_url: Option<ServoUrl>,

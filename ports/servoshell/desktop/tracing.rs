@@ -18,7 +18,7 @@ macro_rules! trace_winit_event {
     // This macro only exists to put the docs in the same file as the target prefix,
     // so the macro definition is always the same.
     ($event:expr, $($rest:tt)+) => {
-        ::log::trace!(target: $crate::tracing::LogTarget::log_target(&$event), $($rest)+)
+        ::log::trace!(target: $crate::desktop::tracing::LogTarget::log_target(&$event), $($rest)+)
     };
 }
 
@@ -32,7 +32,7 @@ macro_rules! trace_embedder_msg {
     // This macro only exists to put the docs in the same file as the target prefix,
     // so the macro definition is always the same.
     ($event:expr, $($rest:tt)+) => {
-        ::log::trace!(target: $crate::tracing::LogTarget::log_target(&$event), $($rest)+)
+        ::log::trace!(target: $crate::desktop::tracing::LogTarget::log_target(&$event), $($rest)+)
     };
 }
 
@@ -46,9 +46,11 @@ macro_rules! trace_embedder_event {
     // This macro only exists to put the docs in the same file as the target prefix,
     // so the macro definition is always the same.
     ($event:expr, $($rest:tt)+) => {
-        ::log::trace!(target: $crate::tracing::LogTarget::log_target(&$event), $($rest)+)
+        ::log::trace!(target: $crate::desktop::tracing::LogTarget::log_target(&$event), $($rest)+)
     };
 }
+
+pub(crate) use {trace_embedder_event, trace_embedder_msg, trace_winit_event};
 
 /// Get the log target for an event, as a static string.
 pub(crate) trait LogTarget {
@@ -57,7 +59,7 @@ pub(crate) trait LogTarget {
 
 mod from_winit {
     use super::LogTarget;
-    use crate::events_loop::WakerEvent;
+    use crate::desktop::events_loop::WakerEvent;
 
     macro_rules! target {
         ($($name:literal)+) => {

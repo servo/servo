@@ -23,13 +23,14 @@ use winit::event::WindowEvent;
 use winit::event_loop::EventLoopWindowTarget;
 use winit::window::WindowId;
 
-use crate::embedder::EmbedderCallbacks;
-use crate::events_loop::{EventsLoop, WakerEvent};
-use crate::minibrowser::Minibrowser;
+use super::events_loop::{EventsLoop, WakerEvent};
+use super::minibrowser::Minibrowser;
+use super::webview::WebViewManager;
+use super::{headed_window, headless_window};
+use crate::desktop::embedder::EmbedderCallbacks;
+use crate::desktop::tracing::trace_winit_event;
+use crate::desktop::window_trait::WindowPortsMethods;
 use crate::parser::get_default_url;
-use crate::webview::WebViewManager;
-use crate::window_trait::WindowPortsMethods;
-use crate::{headed_window, headless_window};
 
 pub struct App {
     servo: Option<Servo<dyn WindowPortsMethods>>,
