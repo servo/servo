@@ -111,7 +111,7 @@ jobs:
         run: python3 ./mach test-tidy --no-progress --all
       - name: Build (${{ inputs.profile }})
         run: |
-          python3 ./mach build --locked --${{ inputs.profile }}
+          python3 ./mach build --locked --${{ inputs.profile }} --use-crown
           cp -r target/cargo-timings target/cargo-timings-linux
       - name: Smoketest
         run: xvfb-run python3 ./mach smoketest --${{ inputs.profile  }}

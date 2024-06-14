@@ -863,6 +863,12 @@ class CommandBase(object):
                     help='Build with frame pointer enabled, used by the background hang monitor.',
                 ),
                 CommandArgument('--without-wgl', group="Feature Selection", default=None, action='store_true'),
+                CommandArgument(
+                    '--use-crown',
+                    default=False,
+                    action='store_true',
+                    help='Enable servos `crown` linter tool'
+                )
             ]
 
         def decorator_function(original_function):
@@ -977,6 +983,7 @@ class CommandBase(object):
         env=None, verbose=False,
         debug_mozjs=False, with_debug_assertions=False,
         with_frame_pointer=False, without_wgl=False,
+        use_crown=False,
         target_override: Optional[str] = None,
         **_kwargs
     ):
@@ -1008,6 +1015,9 @@ class CommandBase(object):
                 assert command != 'build', "For Android / OpenHarmony `cargo rustc` must be used instead of cargo build"
                 if command == 'rustc':
                     args += ["--lib", "--crate-type=cdylib"]
+
+        if use_crown:
+            env['CARGO_BUILD_RUSTC'] = 'crown'
 
         if "-p" not in cargo_args:  # We're building specific package, that may not have features
             features = list(self.features)
