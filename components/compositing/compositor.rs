@@ -36,7 +36,7 @@ use servo_geometry::{DeviceIndependentPixel, FramebufferUintLength};
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use webrender::{CaptureBits, RenderApi, Transaction};
 use webrender_api::units::{
-    DeviceIntPoint, DeviceIntSize, DevicePoint, DeviceRect, LayoutPoint, LayoutRect, LayoutSize,
+    DeviceIntPoint, DeviceIntSize, DevicePoint, DeviceRect, LayoutPoint, LayoutRect,
     LayoutVector2D, WorldPoint,
 };
 use webrender_api::{
@@ -558,7 +558,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             CompositorMsg::MoveResizeWebView(webview_id, rect) => {
-                self.move_resize_webview(webview_id, rect);
+                self.move_resize_webview(webview_id, rect, None);
             },
 
             CompositorMsg::ShowWebView(webview_id, hide_others) => {
@@ -1213,7 +1213,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.frame_tree_id.next();
     }
 
-    pub fn move_resize_webview(&mut self, webview_id: TopLevelBrowsingContextId, rect: DeviceRect) {
+    pub fn move_resize_webview(
+        &mut self,
+        webview_id: TopLevelBrowsingContextId,
+        rect: DeviceRect,
+        radius: Option<BorderRadius>,
+    ) {
         debug!("{webview_id}: Moving and/or resizing webview; rect={rect:?}");
         let rect_changed;
         let size_changed;
@@ -1222,6 +1227,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 rect_changed = rect != webview.rect;
                 size_changed = rect.size() != webview.rect.size();
                 webview.rect = rect;
+
+                if let Some(r) = radius {
+                    webview.radius = r;
+                }
             },
             None => {
                 warn!("{webview_id}: MoveResizeWebView on unknown webview id");

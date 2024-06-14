@@ -482,7 +482,7 @@ where
                         });
                         if let Some(new_rect) = new_rect {
                             self.event_queue
-                                .push(EmbedderEvent::MoveResizeWebView(webview_id, new_rect));
+                                .push(EmbedderEvent::MoveResizeWebView(webview_id, new_rect, None));
                         }
                     }
                     self.window.request_inner_size(size);
@@ -599,8 +599,11 @@ where
                     self.creation_order.push(new_webview_id);
                     self.event_queue
                         .push(EmbedderEvent::FocusWebView(new_webview_id));
-                    self.event_queue
-                        .push(EmbedderEvent::MoveResizeWebView(new_webview_id, rect));
+                    self.event_queue.push(EmbedderEvent::MoveResizeWebView(
+                        new_webview_id,
+                        rect,
+                        None,
+                    ));
                     self.event_queue
                         .push(EmbedderEvent::RaiseWebViewToTop(new_webview_id, true));
                 },

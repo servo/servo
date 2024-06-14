@@ -348,8 +348,8 @@ where
                     } else {
                         ShaderPrecacheFlags::empty()
                     },
-                    enable_subpixel_aa: pref!(gfx.subpixel_text_antialiasing.enabled) &&
-                        !opts.debug.disable_subpixel_text_antialiasing,
+                    enable_subpixel_aa: pref!(gfx.subpixel_text_antialiasing.enabled)
+                        && !opts.debug.disable_subpixel_text_antialiasing,
                     allow_texture_swizzling: pref!(gfx.texture_swizzling.enabled),
                     clear_color,
                     ..Default::default()
@@ -770,8 +770,9 @@ where
                 }
             },
 
-            EmbedderEvent::MoveResizeWebView(webview_id, rect) => {
-                self.compositor.move_resize_webview(webview_id, rect);
+            EmbedderEvent::MoveResizeWebView(webview_id, rect, radius) => {
+                self.compositor
+                    .move_resize_webview(webview_id, rect, radius);
             },
             EmbedderEvent::ShowWebView(webview_id, hide_others) => {
                 if let Err(UnknownWebView(webview_id)) =

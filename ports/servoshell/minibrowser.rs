@@ -129,8 +129,8 @@ impl Minibrowser {
                 self.event_queue.borrow_mut().push(MinibrowserEvent::Back);
                 true
             },
-            winit::event::WindowEvent::MouseWheel { .. } |
-            winit::event::WindowEvent::MouseInput { .. } => self
+            winit::event::WindowEvent::MouseWheel { .. }
+            | winit::event::WindowEvent::MouseInput { .. } => self
                 .last_mouse_position
                 .map_or(false, |p| self.is_in_browser_rect(p)),
             _ => true,
@@ -217,8 +217,8 @@ impl Minibrowser {
                                     }) {
                                         location_field.request_focus();
                                     }
-                                    if location_field.lost_focus() &&
-                                        ui.input(|i| i.clone().key_pressed(Key::Enter))
+                                    if location_field.lost_focus()
+                                        && ui.input(|i| i.clone().key_pressed(Key::Enter))
                                     {
                                         event_queue.borrow_mut().push(MinibrowserEvent::Go);
                                         location_dirty.set(false);
@@ -265,14 +265,16 @@ impl Minibrowser {
                         x: width,
                         y: height,
                     } = ui.available_size();
-                    let rect = Box2D::from_origin_and_size(
-                        Point2D::new(x, y),
-                        Size2D::new(width, height),
-                    ) * scale;
+                    let rect =
+                        Box2D::from_origin_and_size(Point2D::new(x, y), Size2D::new(width, height))
+                            * scale;
                     if rect != webview.rect {
                         webview.rect = rect;
-                        embedder_events
-                            .push(EmbedderEvent::MoveResizeWebView(focused_webview_id, rect));
+                        embedder_events.push(EmbedderEvent::MoveResizeWebView(
+                            focused_webview_id,
+                            rect,
+                            None,
+                        ));
                     }
                     let min = ui.cursor().min;
                     let size = ui.available_size();
@@ -430,8 +432,8 @@ impl Minibrowser {
         //       because logical OR would short-circuit if any of the functions return true.
         //       We want to ensure that all functions are called. The "bitwise OR" operator
         //       does not short-circuit.
-        self.update_location_in_toolbar(browser) |
-            self.update_spinner_in_toolbar(browser) |
-            self.update_status_text(browser)
+        self.update_location_in_toolbar(browser)
+            | self.update_spinner_in_toolbar(browser)
+            | self.update_status_text(browser)
     }
 }

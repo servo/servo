@@ -20,7 +20,7 @@ use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use style_traits::DevicePixel;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint, DeviceRect};
-use webrender_api::ScrollLocation;
+use webrender_api::{BorderRadius, ScrollLocation};
 use webrender_traits::RenderingContext;
 
 #[derive(Clone)]
@@ -91,8 +91,8 @@ pub enum EmbedderEvent {
     /// Panic a top-level browsing context.
     SendError(Option<TopLevelBrowsingContextId>, String),
     /// Move and/or resize a webview to the given rect.
-    MoveResizeWebView(TopLevelBrowsingContextId, DeviceRect),
-    /// Start painting a webview, and optionally stop painting all others.
+    MoveResizeWebView(TopLevelBrowsingContextId, DeviceRect, Option<BorderRadius>),
+    /// Start painting a webview, and optionally stop painting allBorderRadius::uniform(0.) others.
     ShowWebView(TopLevelBrowsingContextId, bool),
     /// Stop painting a webview.
     HideWebView(TopLevelBrowsingContextId),
@@ -156,7 +156,7 @@ impl Debug for EmbedderEvent {
             EmbedderEvent::CloseWebView(TopLevelBrowsingContextId(webview_id)) => {
                 write!(f, "CloseWebView({webview_id:?})")
             },
-            EmbedderEvent::MoveResizeWebView(webview_id, _) => {
+            EmbedderEvent::MoveResizeWebView(webview_id, _, _) => {
                 write!(f, "MoveResizeWebView({webview_id:?})")
             },
             EmbedderEvent::ShowWebView(TopLevelBrowsingContextId(webview_id), hide_others) => {
