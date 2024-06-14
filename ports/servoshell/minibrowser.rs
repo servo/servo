@@ -271,8 +271,11 @@ impl Minibrowser {
                     ) * scale;
                     if rect != webview.rect {
                         webview.rect = rect;
-                        embedder_events
-                            .push(EmbedderEvent::MoveResizeWebView(focused_webview_id, rect));
+                        embedder_events.push(EmbedderEvent::MoveResizeWebView(
+                            focused_webview_id,
+                            rect,
+                            None,
+                        ));
                     }
                     let min = ui.cursor().min;
                     let size = ui.available_size();

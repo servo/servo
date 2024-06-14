@@ -36,14 +36,15 @@ use servo_geometry::{DeviceIndependentPixel, FramebufferUintLength};
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use webrender::{CaptureBits, RenderApi, Transaction};
 use webrender_api::units::{
-    DeviceIntPoint, DeviceIntSize, DevicePoint, DeviceRect, LayoutPoint, LayoutRect, LayoutSize,
+    DeviceIntPoint, DeviceIntSize, DevicePoint, DeviceRect, LayoutPoint, LayoutRect,
     LayoutVector2D, WorldPoint,
 };
 use webrender_api::{
-    self, BuiltDisplayList, DirtyRect, DisplayListPayload, DocumentId, Epoch as WebRenderEpoch,
-    ExternalScrollId, FontInstanceOptions, HitTestFlags, PipelineId as WebRenderPipelineId,
-    PropertyBinding, ReferenceFrameKind, RenderReasons, SampledScrollOffset, ScrollLocation,
-    SpaceAndClipInfo, SpatialId, SpatialTreeItemKey, TransformStyle,
+    self, BorderRadius, BuiltDisplayList, ClipMode, ComplexClipRegion, DirtyRect,
+    DisplayListPayload, DocumentId, Epoch as WebRenderEpoch, ExternalScrollId, FontInstanceOptions,
+    HitTestFlags, PipelineId as WebRenderPipelineId, PropertyBinding, ReferenceFrameKind,
+    RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo, SpatialId,
+    SpatialTreeItemKey, TransformStyle,
 };
 use webrender_traits::display_list::{HitTestInfo, ScrollTree};
 use webrender_traits::{
@@ -366,6 +367,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 WebView {
                     pipeline_id: None,
                     rect: embedder_coordinates.get_viewport().to_f32(),
+                    radius: BorderRadius::default(),
                 },
             )
             .expect("Infallible with a new WebViewManager");
@@ -556,7 +558,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             CompositorMsg::MoveResizeWebView(webview_id, rect) => {
-                self.move_resize_webview(webview_id, rect);
+                self.move_resize_webview(webview_id, rect, None);
             },
 
             CompositorMsg::ShowWebView(webview_id, hide_others) => {
@@ -1095,20 +1097,17 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             SpatialTreeItemKey::new(0, 0),
         );
 
-        let scaled_viewport_size =
-            self.embedder_coordinates.get_viewport().size().to_f32() / zoom_factor;
-        let scaled_viewport_size = LayoutSize::from_untyped(scaled_viewport_size.to_untyped());
-        let scaled_viewport_rect =
-            LayoutRect::from_origin_and_size(LayoutPoint::zero(), scaled_viewport_size);
-
-        let root_clip_id = builder.define_clip_rect(zoom_reference_frame, scaled_viewport_rect);
-        let clip_chain_id = builder.define_clip_chain(None, [root_clip_id]);
         for (_, webview) in self.webviews.painting_order() {
             if let Some(pipeline_id) = webview.pipeline_id {
-                let scaled_webview_rect = webview.rect / zoom_factor;
+                let scaled_webview_rect =
+                    LayoutRect::from_untyped(&(webview.rect / zoom_factor).to_untyped());
+                let complex =
+                    ComplexClipRegion::new(scaled_webview_rect, webview.radius, ClipMode::Clip);
+                let root_clip_id = builder.define_clip_rounded_rect(zoom_reference_frame, complex);
+                let clip_chain_id = builder.define_clip_chain(None, [root_clip_id]);
                 builder.push_iframe(
-                    LayoutRect::from_untyped(&scaled_webview_rect.to_untyped()),
-                    LayoutRect::from_untyped(&scaled_webview_rect.to_untyped()),
+                    scaled_webview_rect,
+                    scaled_webview_rect,
                     &SpaceAndClipInfo {
                         spatial_id: zoom_reference_frame,
                         clip_chain_id,
@@ -1180,6 +1179,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 WebView {
                     pipeline_id,
                     rect: self.embedder_coordinates.get_viewport().to_f32(),
+                    radius: BorderRadius::default(),
                 },
             ) {
                 error!("{webview_id}: Creating webview that already exists");
@@ -1213,7 +1213,12 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         self.frame_tree_id.next();
     }
 
-    pub fn move_resize_webview(&mut self, webview_id: TopLevelBrowsingContextId, rect: DeviceRect) {
+    pub fn move_resize_webview(
+        &mut self,
+        webview_id: TopLevelBrowsingContextId,
+        rect: DeviceRect,
+        radius: Option<BorderRadius>,
+    ) {
         debug!("{webview_id}: Moving and/or resizing webview; rect={rect:?}");
         let rect_changed;
         let size_changed;
@@ -1222,6 +1227,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 rect_changed = rect != webview.rect;
                 size_changed = rect.size() != webview.rect.size();
                 webview.rect = rect;
+
+                if let Some(r) = radius {
+                    webview.radius = r;
+                }
             },
             None => {
                 warn!("{webview_id}: MoveResizeWebView on unknown webview id");
