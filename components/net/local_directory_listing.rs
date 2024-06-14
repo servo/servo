@@ -4,6 +4,7 @@
 
 use std::collections::BTreeMap;
 use std::ffi::OsString;
+use std::fs::{DirEntry, Metadata};
 use std::io;
 use std::path::PathBuf;
 
@@ -83,35 +84,41 @@ pub fn summarise_directory(
 }
 
 fn gather_directory_items(entries: std::fs::ReadDir) -> BTreeMap<OsString, DirectoryItem> {
-    let mut items = BTreeMap::new();
-    for entry in entries {
-        if let Ok(entry) = entry {
-            if let Ok(meta) = entry.metadata() {
-                let os_name = entry.file_name();
-                let entry_name = os_name.to_str().map(str::to_string);
-                if meta.is_dir() {
-                    items.insert(
-                        os_name,
-                        DirectoryItem::SubDirectory {
-                            name: entry_name,
-                            last_modified: meta.modified().map(|m| m.into()),
-                        },
-                    );
-                } else if meta.is_file() || meta.is_symlink() {
-                    items.insert(
-                        os_name,
-                        DirectoryItem::File {
-                            is_symlink: meta.is_symlink(),
-                            name: entry_name,
-                            size: meta.len(),
-                            last_modified: meta.modified().map(|m| m.into()),
-                        },
-                    );
-                }
-            }
-        }
+    let map: BTreeMap<OsString, DirectoryItem> = entries
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .flat_map(|e| create_name_item_mapping(e))
+        .collect();
+    map
+}
+
+fn create_name_item_mapping(entry: DirEntry) -> Option<(OsString, DirectoryItem)> {
+    if let Ok(meta) = entry.metadata() {
+        let os_name = entry.file_name();
+        let entry_name = os_name.to_str().map(str::to_string);
+        create_directory_item(entry_name, meta).map(|i| (os_name, i))
+    } else {
+        None
     }
-    items
+}
+
+fn create_directory_item(name: Option<String>, meta: Metadata) -> Option<DirectoryItem> {
+    let last_modified = meta.modified().map(|m| m.into());
+    if meta.is_dir() {
+        Some(DirectoryItem::SubDirectory {
+            name,
+            last_modified,
+        })
+    } else if meta.is_file() || meta.is_symlink() {
+        Some(DirectoryItem::File {
+            is_symlink: meta.is_symlink(),
+            name,
+            size: meta.len(),
+            last_modified,
+        })
+    } else {
+        None
+    }
 }
 
 pub enum DirectoryItem {
