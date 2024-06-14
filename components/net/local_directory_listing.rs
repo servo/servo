@@ -36,11 +36,7 @@ pub fn is_request_allowed(request: &Request) -> Result<(), Response> {
     }
 }
 
-pub fn fetch(
-    request: &mut Request,
-    url: ServoUrl,
-    directory: impl Into<DirectorySummary>,
-) -> Response {
+pub fn fetch(request: &mut Request, url: ServoUrl, path_buf: PathBuf) -> Response {
     let url = if !url.path().ends_with('/') {
         // Re-read the path as a directory, so that Servo adds the
         // forward-slash to the end of the URL (at least internally,
@@ -59,36 +55,34 @@ pub fn fetch(
     };
     let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
     response.headers.typed_insert(ContentType::html());
-    let directory_summary = directory.into();
-    let page_text = build_html_directory_listing(directory_summary);
+    let (path, has_parent, items) = summarise_directory(path_buf);
+    let page_text = build_html_directory_listing(path, has_parent, items);
     let bytes: Vec<u8> = page_text.into_bytes();
     *response.body.lock().unwrap() = ResponseBody::Done(bytes);
     response
 }
 
-impl Into<DirectorySummary> for PathBuf {
-    fn into(self) -> DirectorySummary {
-        let path = self
-            .to_str()
-            .map(str::to_string)
-            .ok_or("Invalid directory path.");
-        let has_parent = self.parent().is_some();
-        let items = if let Ok(entries) = std::fs::read_dir(self) {
-            Ok(gather_directory_items(entries))
-        } else {
-            Err("Unable to iterate directory contents.")
-        };
-        DirectorySummary {
-            path,
-            has_parent,
-            items,
-        }
-    }
+pub fn summarise_directory(
+    value: PathBuf,
+) -> (
+    Result<String, &'static str>,
+    bool,
+    Result<BTreeMap<OsString, DirectoryItem>, &'static str>,
+) {
+    let path = value
+        .to_str()
+        .map(str::to_string)
+        .ok_or("Invalid directory path.");
+    let has_parent = value.parent().is_some();
+    let items = if let Ok(entries) = std::fs::read_dir(value) {
+        Ok(gather_directory_items(entries))
+    } else {
+        Err("Unable to iterate directory contents.")
+    };
+    (path, has_parent, items)
 }
 
-fn gather_directory_items(
-    entries: std::fs::ReadDir,
-) -> BTreeMap<OsString, DirectoryItemDescriptor> {
+fn gather_directory_items(entries: std::fs::ReadDir) -> BTreeMap<OsString, DirectoryItem> {
     let mut items = BTreeMap::new();
     for entry in entries {
         if let Ok(entry) = entry {
@@ -98,24 +92,19 @@ fn gather_directory_items(
                 if meta.is_dir() {
                     items.insert(
                         os_name,
-                        DirectoryItemDescriptor {
-                            item_type: DirectoryItemType::SubDirectory,
+                        DirectoryItem::SubDirectory {
                             name: entry_name,
-                            size: None,
-                            last_modified: Some(meta.modified().map(|m| m.into())),
+                            last_modified: meta.modified().map(|m| m.into()),
                         },
                     );
                 } else if meta.is_file() || meta.is_symlink() {
                     items.insert(
                         os_name,
-                        DirectoryItemDescriptor {
-                            item_type: match meta.is_symlink() {
-                                true => DirectoryItemType::Symlink,
-                                false => DirectoryItemType::File,
-                            },
+                        DirectoryItem::File {
+                            is_symlink: meta.is_symlink(),
                             name: entry_name,
-                            size: Some(meta.len()),
-                            last_modified: Some(meta.modified().map(|m| m.into())),
+                            size: meta.len(),
+                            last_modified: meta.modified().map(|m| m.into()),
                         },
                     );
                 }
@@ -125,34 +114,32 @@ fn gather_directory_items(
     items
 }
 
-pub struct DirectorySummary {
-    pub path: Result<String, &'static str>,
-    pub has_parent: bool,
-    pub items: Result<BTreeMap<OsString, DirectoryItemDescriptor>, &'static str>,
-}
-
-pub enum DirectoryItemType {
-    SubDirectory,
-    File,
-    Symlink,
-}
-
-pub struct DirectoryItemDescriptor {
-    pub item_type: DirectoryItemType,
-    pub name: Option<String>,
-    pub size: Option<u64>,
-    pub last_modified: Option<io::Result<OffsetDateTime>>,
+pub enum DirectoryItem {
+    SubDirectory {
+        name: Option<String>,
+        last_modified: io::Result<OffsetDateTime>,
+    },
+    File {
+        is_symlink: bool,
+        name: Option<String>,
+        size: u64,
+        last_modified: io::Result<OffsetDateTime>,
+    },
 }
 
 // Returns an HTML5 document describing the content of the given local directory.
-pub fn build_html_directory_listing(summary: DirectorySummary) -> String {
+pub fn build_html_directory_listing(
+    path: Result<String, &'static str>,
+    has_parent: bool,
+    items: Result<BTreeMap<OsString, DirectoryItem>, &'static str>,
+) -> String {
     let mut page_html = String::with_capacity(1024);
     page_html.push_str(
         "<!DOCTYPE html>\
 <html lang=\"en\">\
 <head><title>Directory listing: ",
     );
-    let directory_label = match summary.path {
+    let directory_label = match path {
         Ok(p) => p,
         Err(e) => format!("<{}>", e),
     };
@@ -166,9 +153,9 @@ pub fn build_html_directory_listing(summary: DirectorySummary) -> String {
     write_html_safe(&directory_label, &mut page_html);
     page_html.push_str("</span></h1></header>");
     page_html.push_str("<div class=\"directory_info\">");
-    if let Ok(items) = summary.items {
+    if let Ok(items) = items {
         let items_found = !&items.is_empty();
-        if summary.has_parent {
+        if has_parent {
             write_parent_link(&mut page_html);
         }
         if items_found {
@@ -193,17 +180,35 @@ pub fn build_html_directory_listing(summary: DirectorySummary) -> String {
     page_html
 }
 
-fn write_directory_listing_row(descriptor: DirectoryItemDescriptor, page_html: &mut String) {
+fn write_directory_listing_row(descriptor: DirectoryItem, page_html: &mut String) {
     page_html.push_str("<div class=\"row ");
-    page_html.push_str(match descriptor.item_type {
-        DirectoryItemType::SubDirectory => "directory",
-        DirectoryItemType::File => "file",
-        DirectoryItemType::Symlink => "symlink",
+    page_html.push_str(match &descriptor {
+        DirectoryItem::SubDirectory {
+            name: _,
+            last_modified: _,
+        } => "directory",
+        DirectoryItem::File {
+            is_symlink,
+            name: _,
+            size: _,
+            last_modified: _,
+        } => match is_symlink {
+            true => "symlink",
+            _ => "file",
+        },
     });
     page_html.push_str("\">");
-    match descriptor.item_type {
-        DirectoryItemType::SubDirectory => write_directory_data(descriptor, page_html),
-        _ => write_file_data(descriptor, page_html),
+    match descriptor {
+        DirectoryItem::SubDirectory {
+            name,
+            last_modified,
+        } => write_directory_data(name, last_modified, page_html),
+        DirectoryItem::File {
+            is_symlink: _,
+            name,
+            size,
+            last_modified,
+        } => write_file_data(name, size, last_modified, page_html),
     }
     page_html.push_str("</div>");
 }
@@ -214,9 +219,13 @@ fn write_parent_link(page_html: &mut String) {
     page_html.push_str("</div>");
 }
 
-fn write_directory_data(descriptor: DirectoryItemDescriptor, page_html: &mut String) {
+fn write_directory_data(
+    name: Option<String>,
+    last_modified: io::Result<OffsetDateTime>,
+    page_html: &mut String,
+) {
     page_html.push_str("<div class=\"name\">");
-    if let Some(n) = descriptor.name {
+    if let Some(n) = name {
         page_html.push_str("<a href=\"");
         write_html_safe(&n, page_html);
         page_html.push('/');
@@ -229,15 +238,20 @@ fn write_directory_data(descriptor: DirectoryItemDescriptor, page_html: &mut Str
     }
     page_html.push_str("</div><div class=\"size\">-</div>");
     page_html.push_str("<div class=\"modified\">");
-    if let Some(Ok(last_mod)) = descriptor.last_modified {
+    if let Ok(last_mod) = last_modified {
         write_system_time(last_mod, page_html);
     }
     page_html.push_str("</div>");
 }
 
-fn write_file_data(descriptor: DirectoryItemDescriptor, page_html: &mut String) {
+fn write_file_data(
+    name: Option<String>,
+    size: u64,
+    last_modified: io::Result<OffsetDateTime>,
+    page_html: &mut String,
+) {
     page_html.push_str("<div class=\"name\">");
-    if let Some(n) = descriptor.name {
+    if let Some(n) = name {
         page_html.push_str("<a href=\"");
         write_html_safe(&n, page_html);
         page_html.push_str("\">");
@@ -247,13 +261,9 @@ fn write_file_data(descriptor: DirectoryItemDescriptor, page_html: &mut String) 
         page_html.push_str("&lt;invalid name&gt;");
     }
     page_html.push_str("</div><div class=\"size\">");
-    if let Some(s) = descriptor.size {
-        write_file_size(s, page_html);
-    } else {
-        page_html.push('-');
-    }
+    write_file_size(size, page_html);
     page_html.push_str("</div><div class=\"modified\">");
-    if let Some(Ok(last_mod)) = descriptor.last_modified {
+    if let Ok(last_mod) = last_modified {
         write_system_time(last_mod, page_html);
     }
     page_html.push_str("</div>");

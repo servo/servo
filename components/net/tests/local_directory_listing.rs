@@ -8,8 +8,7 @@ use std::collections::BTreeMap;
 
 use embedder_traits::resources::{read_string, Resource};
 use net::local_directory_listing::{
-    build_html_directory_listing, day_of_month_ordinal_suffix, write_html_safe,
-    DirectoryItemDescriptor, DirectoryItemType, DirectorySummary,
+    build_html_directory_listing, day_of_month_ordinal_suffix, write_html_safe, DirectoryItem,
 };
 use time_03::{Date, Month, OffsetDateTime, Time};
 
@@ -77,11 +76,11 @@ fn test_build_html_directory_listing_single_file() {
         "README.txt".into(),
         create_file_descriptor("README.txt", false, 26, 2023, Month::January, 1, 0, 0, 0, 0),
     );
-    let summary = DirectorySummary {
-        path: Ok("/home/bob/demo/www/public_html/".to_string()),
-        has_parent: true,
-        items: Ok(items),
-    };
+    let (path, has_parent, items) = (
+        Ok("/home/bob/demo/www/public_html/".to_string()),
+        true,
+        Ok(items),
+    );
     let mut expected = String::with_capacity(1024);
     write_expected_start_and_header(&mut expected, "/home/bob/demo/www/public_html/", true);
     write_expected_file_row(
@@ -102,7 +101,7 @@ fn test_build_html_directory_listing_single_file() {
         "00",
     );
     write_expected_foooter_and_end(&mut expected);
-    let result = build_html_directory_listing(summary);
+    let result = build_html_directory_listing(path, has_parent, items);
     assert_eq!(result, expected);
 }
 
@@ -113,11 +112,7 @@ fn test_build_html_directory_listing_single_directory() {
         "sub-directory".into(),
         create_directory_descriptor("sub-directory", 2023, Month::December, 31, 23, 59, 59, 999),
     );
-    let summary = DirectorySummary {
-        path: Ok("/var/www/".to_string()),
-        has_parent: true,
-        items: Ok(items),
-    };
+    let (path, has_parent, items) = (Ok("/var/www/".to_string()), true, Ok(items));
     let mut expected = String::with_capacity(1024);
     write_expected_start_and_header(&mut expected, "/var/www/", true);
     write_expected_directory_row(
@@ -135,7 +130,7 @@ fn test_build_html_directory_listing_single_directory() {
         "59",
     );
     write_expected_foooter_and_end(&mut expected);
-    let result = build_html_directory_listing(summary);
+    let result = build_html_directory_listing(path, has_parent, items);
     assert_eq!(result, expected);
 }
 
@@ -169,11 +164,7 @@ fn test_build_html_directory_listing_root() {
             616,
         ),
     );
-    let summary = DirectorySummary {
-        path: Ok("/".to_string()),
-        has_parent: false,
-        items: Ok(items),
-    };
+    let (path, has_parent, items) = (Ok("/".to_string()), false, Ok(items));
     let mut expected = String::with_capacity(1024);
 
     write_expected_start_and_header(&mut expected, "/", false);
@@ -237,7 +228,7 @@ fn test_build_html_directory_listing_root() {
         "21",
     );
     write_expected_foooter_and_end(&mut expected);
-    let result = build_html_directory_listing(summary);
+    let result = build_html_directory_listing(path, has_parent, items);
     assert_eq!(result, expected);
 }
 
@@ -359,11 +350,7 @@ fn test_build_html_directory_listing_space_time_odyssey() {
             120,
         ),
     );
-    let summary = DirectorySummary {
-        path: Ok("/var/sys_logs/".to_string()),
-        has_parent: true,
-        items: Ok(items),
-    };
+    let (path, has_parent, items) = (Ok("/var/sys_logs/".to_string()), true, Ok(items));
     let now_year = now.year().to_string();
     let now_month_iso = format!("{:0>2}", u8::from(now.month()));
     let now_month_display = now.month().to_string();
@@ -510,7 +497,7 @@ fn test_build_html_directory_listing_space_time_odyssey() {
         "22",
     );
     write_expected_foooter_and_end(&mut expected);
-    let result = build_html_directory_listing(summary);
+    let result = build_html_directory_listing(path, has_parent, items);
     assert_eq!(result, expected);
 }
 
@@ -649,22 +636,21 @@ fn create_file_descriptor(
     mod_minute: u8,
     mod_second: u8,
     mod_milli: u16,
-) -> DirectoryItemDescriptor {
-    DirectoryItemDescriptor {
-        item_type: match symlink {
-            true => DirectoryItemType::Symlink,
-            false => DirectoryItemType::File,
+) -> DirectoryItem {
+    DirectoryItem::File {
+        is_symlink: symlink,
+        name: {
+            if name.is_empty() {
+                None
+            } else {
+                Some(name.to_string())
+            }
         },
-        name: if name.is_empty() {
-            None
-        } else {
-            Some(name.to_string())
-        },
-        size: Some(size),
-        last_modified: Some(Ok(OffsetDateTime::new_utc(
+        size,
+        last_modified: Ok(OffsetDateTime::new_utc(
             Date::from_calendar_date(mod_year, mod_month, mod_day).unwrap(),
             Time::from_hms_milli(mod_hour, mod_minute, mod_second, mod_milli).unwrap(),
-        ))),
+        )),
     }
 }
 
@@ -677,19 +663,19 @@ fn create_directory_descriptor(
     mod_minute: u8,
     mod_second: u8,
     mod_milli: u16,
-) -> DirectoryItemDescriptor {
-    DirectoryItemDescriptor {
-        item_type: DirectoryItemType::SubDirectory,
-        name: if name.is_empty() {
-            None
-        } else {
-            Some(name.to_string())
+) -> DirectoryItem {
+    DirectoryItem::SubDirectory {
+        name: {
+            if name.is_empty() {
+                None
+            } else {
+                Some(name.to_string())
+            }
         },
-        size: None,
-        last_modified: Some(Ok(OffsetDateTime::new_utc(
+        last_modified: Ok(OffsetDateTime::new_utc(
             Date::from_calendar_date(mod_year, mod_month, mod_day).unwrap(),
             Time::from_hms_milli(mod_hour, mod_minute, mod_second, mod_milli).unwrap(),
-        ))),
+        )),
     }
 }
 

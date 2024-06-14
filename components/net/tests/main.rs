@@ -14,7 +14,7 @@ mod filemanager_thread;
 mod hsts;
 mod http_cache;
 mod http_loader;
-mod local_index;
+mod local_directory_listing;
 mod mime_classifier;
 mod resource_thread;
 mod subresource_integrity;
