@@ -692,13 +692,30 @@ impl WGPU {
                         let callback =
                             DeviceLostClosure::from_rust(Box::from(move |reason, msg| {
                                 let _ = devices.lock().unwrap().remove(&device_id);
-                                if let Err(e) = script_sender.send(WebGPUMsg::DeviceLost {
-                                    device: WebGPUDevice(device_id),
-                                    pipeline_id,
-                                    reason: crate::DeviceLostReason::new(reason),
-                                    msg,
-                                }) {
-                                    warn!("Failed to send WebGPUMsg::DeviceLost: {e}");
+                                let reason = match reason {
+                                    wgt::DeviceLostReason::Unknown => {
+                                        Some(crate::DeviceLostReason::Unknown)
+                                    },
+                                    wgt::DeviceLostReason::Destroyed => {
+                                        Some(crate::DeviceLostReason::Destroyed)
+                                    },
+                                    wgt::DeviceLostReason::Dropped => None,
+                                    wgt::DeviceLostReason::ReplacedCallback => {
+                                        panic!("DeviceLost callback should only be set once")
+                                    },
+                                    wgt::DeviceLostReason::DeviceInvalid => {
+                                        Some(crate::DeviceLostReason::Unknown)
+                                    },
+                                };
+                                if let Some(reason) = reason {
+                                    if let Err(e) = script_sender.send(WebGPUMsg::DeviceLost {
+                                        device: WebGPUDevice(device_id),
+                                        pipeline_id,
+                                        reason,
+                                        msg,
+                                    }) {
+                                        warn!("Failed to send WebGPUMsg::DeviceLost: {e}");
+                                    }
                                 }
                             }));
                         gfx_select!(device_id => global.device_set_device_lost_closure(device_id, callback));

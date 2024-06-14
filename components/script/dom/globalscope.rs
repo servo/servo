@@ -56,8 +56,7 @@ use script_traits::{
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use uuid::Uuid;
-use webgpu::wgt::DeviceLostReason;
-use webgpu::WebGPUDevice;
+use webgpu::{DeviceLostReason, WebGPUDevice};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::GPUDeviceLostReason;
 use super::bindings::trace::HashMapTracedValues;
@@ -3096,41 +3095,23 @@ impl GlobalScope {
     }
 
     pub fn gpu_device_lost(&self, device: WebGPUDevice, reason: DeviceLostReason, msg: String) {
-        match reason {
-            DeviceLostReason::Unknown => {
-                let _ac = enter_realm(&*self);
-                self.gpu_devices
-                    .borrow_mut()
-                    .remove(&device)
-                    .expect("GPUDevice should still exists")
-                    .lose(GPUDeviceLostReason::Unknown, msg)
-            },
-            DeviceLostReason::Destroyed => {
-                let _ac = enter_realm(&*self);
-                self.gpu_devices
-                    .borrow_mut()
-                    .remove(&device)
-                    .expect("GPUDevice should still exists")
-                    .lose(GPUDeviceLostReason::Destroyed, msg)
-            },
-            DeviceLostReason::Dropped => {
-                // TODO: Can device even be dropped if we keep it alive in hashmap all the time?
-                let _ = self.gpu_devices.borrow_mut().remove(&device);
-            },
-            DeviceLostReason::ReplacedCallback => {
-                panic!("DeviceLost callback should not be replaced")
-            },
-            DeviceLostReason::DeviceInvalid => {
-                panic!("Device should be valid when setting callback")
-            },
-        }
+        let reason = match reason {
+            DeviceLostReason::Unknown => GPUDeviceLostReason::Unknown,
+            DeviceLostReason::Destroyed => GPUDeviceLostReason::Destroyed,
+        };
+        let _ac = enter_realm(&*self);
+        self.gpu_devices
+            .borrow_mut()
+            .remove(&device)
+            .expect("GPUDevice should still exists")
+            .lose(reason, msg);
     }
 
     pub fn handle_uncaptured_gpu_error(&self, device: WebGPUDevice, error: webgpu::Error) {
         if let Some(gpu_device) = self.gpu_devices.borrow().get(&device) {
             gpu_device.fire_uncaptured_error(error);
         } else {
-            warn!("GPUDevice is not available, but error is still dispatched!")
+            warn!("Recived error for lost GPUDevice!")
         }
     }
 

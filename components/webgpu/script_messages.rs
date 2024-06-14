@@ -14,57 +14,12 @@ use crate::wgc::id::{
     DeviceId, PipelineLayoutId, QuerySetId, RenderBundleId, RenderPipelineId, SamplerId,
     ShaderModuleId, StagingBufferId, SurfaceId, TextureId, TextureViewId,
 };
-use crate::wgt;
 
-// Workaround until https://github.com/gfx-rs/wgpu/pull/5732
+/// <https://gpuweb.github.io/gpuweb/#enumdef-gpudevicelostreason>
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum DeviceLostReason {
-    /// Triggered by driver
-    Unknown = 0,
-    /// After Device::destroy
-    Destroyed = 1,
-    /// After Device::drop
-    ///
-    /// WebGPU does not invoke the device lost callback when the device is
-    /// dropped to prevent garbage collection from being observable. In wgpu,
-    /// we invoke the callback on drop to help with managing memory owned by
-    /// the callback.
-    Dropped = 2,
-    /// After replacing the device_lost_callback
-    ///
-    /// WebGPU does not have a concept of a device lost callback, but wgpu
-    /// does. wgpu guarantees that any supplied callback will be invoked
-    /// exactly once before it is dropped, which helps with managing the
-    /// memory owned by the callback.
-    ReplacedCallback = 3,
-    /// When setting the callback, but the device is already invalid
-    ///
-    /// As above, when the callback is provided, wgpu guarantees that it
-    /// will eventually be called. If the device is already invalid, wgpu
-    /// will call the callback immediately, with this reason.
-    DeviceInvalid = 4,
-}
-
-impl DeviceLostReason {
-    pub fn new(reason: wgt::DeviceLostReason) -> Self {
-        match reason {
-            wgt::DeviceLostReason::Unknown => DeviceLostReason::Unknown,
-            wgt::DeviceLostReason::Destroyed => DeviceLostReason::Destroyed,
-            wgt::DeviceLostReason::Dropped => DeviceLostReason::Dropped,
-            wgt::DeviceLostReason::ReplacedCallback => DeviceLostReason::ReplacedCallback,
-            wgt::DeviceLostReason::DeviceInvalid => DeviceLostReason::DeviceInvalid,
-        }
-    }
-
-    pub fn wgt(&self) -> wgt::DeviceLostReason {
-        match self {
-            DeviceLostReason::Unknown => wgt::DeviceLostReason::Unknown,
-            DeviceLostReason::Destroyed => wgt::DeviceLostReason::Destroyed,
-            DeviceLostReason::Dropped => wgt::DeviceLostReason::Dropped,
-            DeviceLostReason::ReplacedCallback => wgt::DeviceLostReason::ReplacedCallback,
-            DeviceLostReason::DeviceInvalid => wgt::DeviceLostReason::DeviceInvalid,
-        }
-    }
+    Unknown,
+    Destroyed,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
