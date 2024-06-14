@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 use base::text::{UnicodeBlock, UnicodeBlockMethod};
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 use unicode_script::Script;
 
 #[cfg(any(target_os = "linux", target_os = "android"))]
@@ -11,6 +13,7 @@ pub use crate::platform::freetype::{font, font_list, library_handle};
 pub use crate::platform::macos::{core_text_font_cache, font, font_list};
 #[cfg(target_os = "windows")]
 pub use crate::platform::windows::{font, font_list};
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 use crate::text::FallbackFontSelectionOptions;
 
 #[cfg(any(target_os = "linux", target_os = "android"))]

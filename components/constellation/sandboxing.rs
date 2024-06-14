@@ -243,6 +243,7 @@ fn setup_common<C: CommandMethods>(command: &mut C, token: String) {
 }
 
 /// A trait to unify commands launched as multiprocess with or without a sandbox.
+#[allow(dead_code)]
 trait CommandMethods {
     /// A command line argument.
     fn arg<T>(&mut self, arg: T)
