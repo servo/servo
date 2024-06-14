@@ -5,12 +5,13 @@
 use std::collections::HashMap;
 
 use base::id::{PipelineId, WebViewId};
-use webrender_api::units::DeviceRect;
+use webrender_api::{units::DeviceRect, BorderRadius};
 
 #[derive(Debug, Default)]
 pub struct WebView {
     pub pipeline_id: Option<PipelineId>,
     pub rect: DeviceRect,
+    pub radius: BorderRadius,
 }
 
 #[derive(Debug, Default)]

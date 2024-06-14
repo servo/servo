@@ -40,10 +40,11 @@ use webrender_api::units::{
     LayoutVector2D, WorldPoint,
 };
 use webrender_api::{
-    self, BuiltDisplayList, DirtyRect, DisplayListPayload, DocumentId, Epoch as WebRenderEpoch,
-    ExternalScrollId, FontInstanceOptions, HitTestFlags, PipelineId as WebRenderPipelineId,
-    PropertyBinding, ReferenceFrameKind, RenderReasons, SampledScrollOffset, ScrollLocation,
-    SpaceAndClipInfo, SpatialId, SpatialTreeItemKey, TransformStyle,
+    self, BorderRadius, BuiltDisplayList, ClipMode, ComplexClipRegion, DirtyRect,
+    DisplayListPayload, DocumentId, Epoch as WebRenderEpoch, ExternalScrollId, FontInstanceOptions,
+    HitTestFlags, PipelineId as WebRenderPipelineId, PropertyBinding, ReferenceFrameKind,
+    RenderReasons, SampledScrollOffset, ScrollLocation, SpaceAndClipInfo, SpatialId,
+    SpatialTreeItemKey, TransformStyle,
 };
 use webrender_traits::display_list::{HitTestInfo, ScrollTree};
 use webrender_traits::{
@@ -366,6 +367,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 WebView {
                     pipeline_id: None,
                     rect: embedder_coordinates.get_viewport().to_f32(),
+                    radius: BorderRadius::default(),
                 },
             )
             .expect("Infallible with a new WebViewManager");
@@ -1099,8 +1101,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             if let Some(pipeline_id) = webview.pipeline_id {
                 let scaled_webview_rect =
                     LayoutRect::from_untyped(&(webview.rect / zoom_factor).to_untyped());
-                let root_clip_id =
-                    builder.define_clip_rect(zoom_reference_frame, scaled_webview_rect);
+                let complex =
+                    ComplexClipRegion::new(scaled_webview_rect, webview.radius, ClipMode::Clip);
+                let root_clip_id = builder.define_clip_rounded_rect(zoom_reference_frame, complex);
                 let clip_chain_id = builder.define_clip_chain(None, [root_clip_id]);
                 builder.push_iframe(
                     scaled_webview_rect,
@@ -1176,6 +1179,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 WebView {
                     pipeline_id,
                     rect: self.embedder_coordinates.get_viewport().to_f32(),
+                    radius: BorderRadius::default(),
                 },
             ) {
                 error!("{webview_id}: Creating webview that already exists");
