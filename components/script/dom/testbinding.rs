@@ -617,9 +617,9 @@ impl TestBindingMethods for TestBinding {
     }
 
     fn DictMatchesPassedValues(&self, arg: RootedTraceableBox<TestDictionary>) -> bool {
-        arg.type_.as_ref().map(|s| s == "success").unwrap_or(false)
-            && arg.nonRequiredNullable.is_none()
-            && arg.nonRequiredNullable2 == Some(None)
+        arg.type_.as_ref().map(|s| s == "success").unwrap_or(false) &&
+            arg.nonRequiredNullable.is_none() &&
+            arg.nonRequiredNullable2 == Some(None)
     }
 
     fn PassBoolean(&self, _: bool) {}
