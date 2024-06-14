@@ -313,6 +313,11 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
             })
     }
 
+    fn as_html_element(&self) -> Option<ServoThreadSafeLayoutElement<'dom>> {
+        self.as_element()
+            .filter(|element| element.element.is_html_element())
+    }
+
     fn style_data(&self) -> Option<&'dom StyleData> {
         self.node.style_data()
     }

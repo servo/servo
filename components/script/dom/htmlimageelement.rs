@@ -5,6 +5,7 @@
 use std::cell::Cell;
 use std::collections::HashSet;
 use std::default::Default;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::{char, i32, mem};
 
@@ -47,6 +48,8 @@ use style::values::specified::AbsoluteLength;
 use style_traits::ParsingMode;
 use url::Url;
 
+use super::domexception::DOMErrorName;
+use super::types::DOMException;
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
@@ -84,6 +87,7 @@ use crate::dom::node::{
     UnbindContext,
 };
 use crate::dom::performanceresourcetiming::InitiatorType;
+use crate::dom::promise::Promise;
 use crate::dom::values::UNSIGNED_LONG_MAX;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
@@ -169,6 +173,8 @@ pub struct HTMLImageElement {
     #[ignore_malloc_size_of = "SourceSet"]
     source_set: DomRefCell<SourceSet>,
     last_selected_source: DomRefCell<Option<USVString>>,
+    #[ignore_malloc_size_of = "promises are hard"]
+    image_decode_promises: DomRefCell<Vec<Rc<Promise>>>,
 }
 
 impl HTMLImageElement {
@@ -424,6 +430,7 @@ impl HTMLImageElement {
         LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker);
         // Mark the node dirty
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.resolve_image_decode_promises();
     }
 
     /// Step 24 of <https://html.spec.whatwg.org/multipage/#update-the-image-data>
@@ -525,6 +532,12 @@ impl HTMLImageElement {
         request.state = state;
         request.image = None;
         request.metadata = None;
+
+        if matches!(state, State::Broken) {
+            self.reject_image_decode_promises();
+        } else if matches!(state, State::CompletelyAvailable) {
+            self.resolve_image_decode_promises();
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#update-the-source-set>
@@ -954,7 +967,9 @@ impl HTMLImageElement {
         };
 
         // Step 5
-        *self.last_selected_source.borrow_mut() = selected_source.clone();
+        self.last_selected_source
+            .borrow_mut()
+            .clone_from(&selected_source);
 
         // Step 6, check the list of available images
         if let Some(src) = selected_source {
@@ -1159,6 +1174,48 @@ impl HTMLImageElement {
         }
     }
 
+    // Step 2 for <https://html.spec.whatwg.org/multipage/#dom-img-decode>
+    fn react_to_decode_image_sync_steps(&self, promise: Rc<Promise>) {
+        let document = document_from_node(self);
+        // Step 2.1 of <https://html.spec.whatwg.org/multipage/#dom-img-decode>
+        if !document.is_fully_active() ||
+            matches!(self.current_request.borrow().state, State::Broken)
+        {
+            promise.reject_native(&DOMException::new(
+                &document.global(),
+                DOMErrorName::EncodingError,
+            ));
+        } else if matches!(
+            self.current_request.borrow().state,
+            State::CompletelyAvailable
+        ) {
+            // this doesn't follow the spec, but it's been discussed in <https://github.com/whatwg/html/issues/4217>
+            promise.resolve_native(&());
+        } else {
+            self.image_decode_promises
+                .borrow_mut()
+                .push(promise.clone());
+        }
+    }
+
+    fn resolve_image_decode_promises(&self) {
+        for promise in self.image_decode_promises.borrow().iter() {
+            promise.resolve_native(&());
+        }
+        self.image_decode_promises.borrow_mut().clear();
+    }
+
+    fn reject_image_decode_promises(&self) {
+        let document = document_from_node(self);
+        for promise in self.image_decode_promises.borrow().iter() {
+            promise.reject_native(&DOMException::new(
+                &document.global(),
+                DOMErrorName::EncodingError,
+            ));
+        }
+        self.image_decode_promises.borrow_mut().clear();
+    }
+
     /// Step 15 for <https://html.spec.whatwg.org/multipage/#img-environment-changes>
     fn finish_reacting_to_environment_change(
         &self,
@@ -1247,6 +1304,7 @@ impl HTMLImageElement {
             generation: Default::default(),
             source_set: DomRefCell::new(SourceSet::new()),
             last_selected_source: DomRefCell::new(None),
+            image_decode_promises: DomRefCell::new(vec![]),
         }
     }
 
@@ -1288,6 +1346,10 @@ impl HTMLImageElement {
         if let Some(h) = height {
             image.SetHeight(h);
         }
+
+        // run update_the_image_data when the element is created.
+        // https://html.spec.whatwg.org/multipage/#when-to-obtain-images
+        image.update_the_image_data();
 
         Ok(image)
     }
@@ -1345,6 +1407,11 @@ pub enum ImageElementMicrotask {
         elem: DomRoot<HTMLImageElement>,
         generation: u32,
     },
+    DecodeTask {
+        elem: DomRoot<HTMLImageElement>,
+        #[ignore_malloc_size_of = "promises are hard"]
+        promise: Rc<Promise>,
+    },
 }
 
 impl MicrotaskRunnable for ImageElementMicrotask {
@@ -1366,13 +1433,20 @@ impl MicrotaskRunnable for ImageElementMicrotask {
             } => {
                 elem.react_to_environment_changes_sync_steps(*generation);
             },
+            ImageElementMicrotask::DecodeTask {
+                ref elem,
+                ref promise,
+            } => {
+                elem.react_to_decode_image_sync_steps(promise.clone());
+            },
         }
     }
 
     fn enter_realm(&self) -> JSAutoRealm {
         match self {
             &ImageElementMicrotask::StableStateUpdateImageDataTask { ref elem, .. } |
-            &ImageElementMicrotask::EnvironmentChangesTask { ref elem, .. } => enter_realm(&**elem),
+            &ImageElementMicrotask::EnvironmentChangesTask { ref elem, .. } |
+            &ImageElementMicrotask::DecodeTask { ref elem, .. } => enter_realm(&**elem),
         }
     }
 }
@@ -1603,6 +1677,22 @@ impl HTMLImageElementMethods for HTMLImageElement {
             // We don't want to start an update if referrerpolicy is set to the same value.
             element.set_string_attribute(&referrerpolicy_attr_name, correct_value_or_empty_string);
         }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-img-decode>
+    fn Decode(&self) -> Rc<Promise> {
+        // Step 1
+        let promise = Promise::new(&self.global());
+
+        // Step 2
+        let task = ImageElementMicrotask::DecodeTask {
+            elem: DomRoot::from_ref(self),
+            promise: promise.clone(),
+        };
+        ScriptThread::await_stable_state(Microtask::ImageElement(task));
+
+        // Step 3
+        promise
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-name

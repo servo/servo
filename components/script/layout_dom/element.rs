@@ -69,6 +69,10 @@ impl<'dom> ServoLayoutElement<'dom> {
         ServoLayoutElement { element: el }
     }
 
+    pub(super) fn is_html_element(&self) -> bool {
+        self.element.is_html_element()
+    }
+
     #[inline]
     fn get_attr_enum(&self, namespace: &Namespace, name: &LocalName) -> Option<&AttrValue> {
         self.element.get_attr_for_layout(namespace, name)
@@ -139,7 +143,7 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     }
 
     fn is_html_element(&self) -> bool {
-        self.element.is_html_element()
+        ServoLayoutElement::is_html_element(self)
     }
 
     fn is_mathml_element(&self) -> bool {

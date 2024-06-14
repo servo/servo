@@ -24,7 +24,7 @@ import toml
 
 import wpt.manifestupdate
 
-from .licenseck import OLD_MPL, MPL, APACHE, COPYRIGHT, licenses_toml, licenses_dep_toml
+from .licenseck import OLD_MPL, MPL, APACHE, COPYRIGHT, licenses_toml
 
 TOPDIR = os.path.abspath(os.path.dirname(sys.argv[0]))
 WPT_PATH = os.path.join(".", "tests", "wpt")
@@ -32,6 +32,7 @@ CONFIG_FILE_PATH = os.path.join(".", "servo-tidy.toml")
 WPT_CONFIG_INI_PATH = os.path.join(WPT_PATH, "config.ini")
 # regex source https://stackoverflow.com/questions/6883049/
 URL_REGEX = re.compile(br'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+')
+CARGO_LOCK_FILE = os.path.join(TOPDIR, "Cargo.lock")
 
 sys.path.append(os.path.join(WPT_PATH, "tests"))
 sys.path.append(os.path.join(WPT_PATH, "tests", "tools", "wptrunner"))
@@ -326,11 +327,19 @@ def check_flake8(file_name, contents):
         yield line_num, message.strip()
 
 
-def check_cargo_lock_file(filename, print_text=True):
-    if print_text:
-        print(f"\r ➤  Checking cargo lock ({filename})...")
+def check_cargo_lock_file(only_changed_files: bool):
+    if not list(FileList("./Cargo.lock", only_changed_files=only_changed_files, progress=False)):
+        print("\r ➤  Skipping `Cargo.lock` lint checks, because it is unchanged.")
+        return
 
-    with open(filename) as cargo_lock_file:
+    yield from run_custom_cargo_lock_lints(CARGO_LOCK_FILE)
+    yield from validate_dependency_licenses()
+
+
+def run_custom_cargo_lock_lints(cargo_lock_filename: str, print_text: bool = True):
+    if print_text:
+        print(f"\r ➤  Linting cargo lock ({cargo_lock_filename})...")
+    with open(cargo_lock_filename) as cargo_lock_file:
         content = toml.load(cargo_lock_file)
 
     def find_reverse_dependencies(name, content):
@@ -355,7 +364,7 @@ def check_cargo_lock_file(filename, print_text=True):
 
     for name in exceptions:
         if name not in packages_by_name:
-            yield (filename, 1, "duplicates are allowed for `{}` but it is not a dependency".format(name))
+            yield (cargo_lock_filename, 1, "duplicates are allowed for `{}` but it is not a dependency".format(name))
 
     for (name, packages) in packages_by_name.items():
         has_duplicates = len(packages) > 1
@@ -379,7 +388,7 @@ def check_cargo_lock_file(filename, print_text=True):
                 if (not dependency[1] or version in dependency[1]) and \
                    (not dependency[2] or short_source in dependency[2]):
                     message += "\n\t\t" + pname + " " + package_version
-        yield (filename, 1, message)
+        yield (cargo_lock_filename, 1, message)
 
     # Check to see if we are transitively using any blocked packages
     blocked_packages = config["blocked-packages"]
@@ -397,7 +406,7 @@ def check_cargo_lock_file(filename, print_text=True):
                 if package_name not in whitelist:
                     fmt = "Package {} {} depends on blocked package {}."
                     message = fmt.format(package_name, package_version, dependency_name)
-                    yield (filename, 1, message)
+                    yield (cargo_lock_filename, 1, message)
                 else:
                     visited_whitelisted_packages[dependency_name][package_name] = True
 
@@ -407,7 +416,36 @@ def check_cargo_lock_file(filename, print_text=True):
             if not visited_whitelisted_packages[dependency_name].get(package_name):
                 fmt = "Package {} is not required to be an exception of blocked package {}."
                 message = fmt.format(package_name, dependency_name)
-                yield (filename, 1, message)
+                yield (cargo_lock_filename, 1, message)
+
+
+def validate_dependency_licenses():
+    print("\r ➤  Checking licenses of Rust dependencies...")
+    result = subprocess.run(["cargo-deny", "--format=json", "check", "licenses"], encoding='utf-8',
+                            capture_output=True)
+    if result.returncode == 0:
+        return False
+    assert result.stderr is not None, "cargo deny should return error information via stderr when failing"
+
+    error_info = [json.loads(json_struct) for json_struct in result.stderr.splitlines()]
+    error_messages = []
+    num_license_errors = 'unknown'
+    for error in error_info:
+        error_fields = error['fields']
+        if error['type'] == 'summary':
+            num_license_errors = error_fields['licenses']['errors']
+        elif 'graphs' in error_fields:
+            crate = error_fields['graphs'][0]['Krate']
+            license_name = error_fields['notes'][0]
+            message = f'Rejected license "{license_name}". Run `cargo deny` for more details'
+            error_messages.append(
+                f'Rust dependency {crate["name"]}@{crate["version"]}: {message}')
+        else:
+            error_messages.append(error_fields['message'])
+
+    print(f'    `cargo deny` reported {num_license_errors} licenses errors')
+    for message in error_messages:
+        yield (CARGO_LOCK_FILE, 1, message)
 
 
 def check_toml(file_name, lines):
@@ -974,7 +1012,7 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
     if not has_element:
         return
     if print_text:
-        print("\r ➤  Checking files for tidiness")
+        print("\r ➤  Checking files for tidiness...")
 
     for filename in files_to_check:
         if not os.path.exists(filename):
@@ -994,28 +1032,6 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
                     yield (filename,) + error
 
 
-def get_dep_toml_files(only_changed_files=False):
-    if not only_changed_files:
-        print('\nRunning the dependency licensing lint...')
-        for root, directories, filenames in os.walk(".cargo"):
-            for filename in filenames:
-                if filename == "Cargo.toml":
-                    yield os.path.join(root, filename)
-
-
-def check_dep_license_errors(filenames, progress=True):
-    filenames = progress_wrapper(filenames) if progress else filenames
-    for filename in filenames:
-        with open(filename, "r") as f:
-            ok_licensed = False
-            lines = f.readlines()
-            for idx, line in enumerate(lines):
-                for license_line in licenses_dep_toml:
-                    ok_licensed |= (license_line in line)
-            if not ok_licensed:
-                yield (filename, 0, "dependency should contain a valid license.")
-
-
 def scan(only_changed_files=False, progress=False):
     # check config file for errors
     config_errors = check_config_file(CONFIG_FILE_PATH)
@@ -1026,16 +1042,16 @@ def scan(only_changed_files=False, progress=False):
     checking_functions = (check_flake8, check_webidl_spec, check_json)
     line_checking_functions = (check_license, check_by_line, check_toml, check_shell,
                                check_rust, check_spec, check_modeline)
-    lock_errors = check_cargo_lock_file(os.path.join(TOPDIR, "Cargo.lock"))
     file_errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
-    # check dependecy licenses
-    dep_license_errors = check_dep_license_errors(get_dep_toml_files(only_changed_files), progress)
+
+    # These checks are essentially checking a single file.
+    cargo_lock_errors = check_cargo_lock_file(only_changed_files)
 
     wpt_errors = run_wpt_lints(only_changed_files)
 
     # chain all the iterators
-    errors = itertools.chain(config_errors, directory_errors, lock_errors, file_errors,
-                             dep_license_errors, wpt_errors)
+    errors = itertools.chain(config_errors, directory_errors, file_errors,
+                             wpt_errors, cargo_lock_errors)
 
     colorama.init()
     error = None

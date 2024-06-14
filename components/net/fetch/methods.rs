@@ -414,7 +414,7 @@ pub async fn main_fetch(
 
         // Step 16.
         if internal_response.url_list.is_empty() {
-            internal_response.url_list = request.url_list.clone();
+            internal_response.url_list.clone_from(&request.url_list)
         }
 
         // Step 17.

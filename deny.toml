@@ -1,0 +1,91 @@
+[graph]
+all-features = false
+no-default-features = false
+#features = []
+
+# The output table provides options for how/if diagnostics are outputted
+[output]
+feature-depth = 1
+
+# This section is considered when running `cargo deny check advisories`
+# More documentation for the advisories section can be found here:
+# https://embarkstudios.github.io/cargo-deny/checks/advisories/cfg.html
+[advisories]
+ignore = [
+    #"RUSTSEC-0000-0000",
+    #{ id = "RUSTSEC-0000-0000", reason = "you can specify a reason the advisory is ignored" },
+    #"a-crate-that-is-yanked@0.1.1", # you can also ignore yanked crate versions if you wish
+    #{ crate = "a-crate-that-is-yanked@0.1.1", reason = "you can specify why you are ignoring the yanked crate" },
+]
+
+# This section is considered when running `cargo deny check licenses`
+# More documentation for the licenses section can be found here:
+# https://embarkstudios.github.io/cargo-deny/checks/licenses/cfg.html
+[licenses]
+# List of explicitly allowed licenses
+# See https://spdx.org/licenses/ for list of possible licenses
+# [possible values: any SPDX 3.11 short identifier (+ optional exception)].
+allow = [
+    "Apache-2.0 WITH LLVM-exception",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "CC0-1.0",
+    "ISC",
+    "MIT",
+    "MPL-2.0",
+    "OpenSSL",
+    "Unicode-3.0",
+    "Zlib",
+    "zlib-acknowledgement",
+]
+# The confidence threshold for detecting a license from license text.
+# The higher the value, the more closely the license text must be to the
+# canonical license text of a valid SPDX license file.
+# [possible values: any between 0.0 and 1.0].
+confidence-threshold = 0.8
+# Allow 1 or more licenses on a per-crate basis, so that particular licenses
+# aren't accepted for every possible crate as with the normal allow list
+exceptions = [
+    # Each entry is the crate and version constraint, and its specific allow
+    # list
+    { allow = ["OFL-1.1", "LicenseRef-UFL-1.0"], crate = "epaint" },
+    { allow = ["Unicode-DFS-2016"], crate = "unicode-ident" },
+]
+
+# Some crates don't have (easily) machine readable licensing information,
+# adding a clarification entry for it allows you to manually specify the
+# licensing information
+[[licenses.clarify]]
+crate = "ring"
+# The SPDX expression for the license requirements of the crate
+expression = "MIT AND ISC AND OpenSSL"
+license-files = [
+    # Each entry is a crate relative path, and the (opaque) hash of its contents
+    { path = "LICENSE", hash = 0xbd0eed23 },
+]
+
+
+# This section is considered when running `cargo deny check bans`.
+# More documentation about the 'bans' section can be found here:
+# https://embarkstudios.github.io/cargo-deny/checks/bans/cfg.html
+[bans]
+multiple-versions = "warn"
+wildcards = "warn"
+highlight = "all"
+workspace-default-features = "allow"
+external-default-features = "allow"
+# List of crates that are allowed. Use with care!
+allow = [
+    #"ansi_term@0.11.0",
+    #{ crate = "ansi_term@0.11.0", reason = "you can specify a reason it is allowed" },
+]
+# List of crates to deny
+deny = [
+    #"ansi_term@0.11.0",
+    #{ crate = "ansi_term@0.11.0", reason = "you can specify a reason it is banned" },
+    # Wrapper crates can optionally be specified to allow the crate when it
+    # is a direct dependency of the otherwise banned crate
+    #{ crate = "ansi_term@0.11.0", wrappers = ["this-crate-directly-depends-on-ansi_term"] },
+]

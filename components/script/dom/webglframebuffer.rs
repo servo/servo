@@ -961,7 +961,7 @@ impl WebGLFramebuffer {
             return Err(WebGLError::InvalidOperation);
         }
 
-        *self.color_draw_buffers.borrow_mut() = buffers.clone();
+        self.color_draw_buffers.borrow_mut().clone_from(&buffers);
         context.send_command(WebGLCommand::DrawBuffers(buffers));
         Ok(())
     }

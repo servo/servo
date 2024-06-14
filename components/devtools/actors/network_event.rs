@@ -359,7 +359,7 @@ impl NetworkEventActor {
     }
 
     pub fn add_response(&mut self, response: DevtoolsHttpResponse) {
-        self.response.headers = response.headers.clone();
+        self.response.headers.clone_from(&response.headers);
         self.response.status = response.status.as_ref().map(|&(s, ref st)| {
             let status_text = String::from_utf8_lossy(st).into_owned();
             (StatusCode::from_u16(s).unwrap(), status_text)

@@ -777,20 +777,12 @@ where
                     ::std::mem::forget(box_slot)
                 },
                 DisplayLayoutInternal::TableColumn => {
-                    let span = info
-                        .node
-                        .and_then(|node| node.to_threadsafe().get_span())
-                        .unwrap_or(1)
-                        .min(1000);
-
-                    for _ in 0..span + 1 {
-                        self.builder.table.columns.push(TableTrack {
-                            base_fragment_info: info.into(),
-                            style: info.style.clone(),
-                            group_index: None,
-                            is_anonymous: false,
-                        })
-                    }
+                    add_column(
+                        &mut self.builder.table.columns,
+                        info,
+                        None,  /* group_index */
+                        false, /* is_anonymous */
+                    );
 
                     // We are doing this until we have actually set a Box for this `BoxSlot`.
                     ::std::mem::forget(box_slot)
@@ -810,20 +802,11 @@ where
 
                     let first_column = self.builder.table.columns.len();
                     if column_group_builder.columns.is_empty() {
-                        let span = info
-                            .node
-                            .and_then(|node| node.to_threadsafe().get_span())
-                            .unwrap_or(1)
-                            .min(1000) as usize;
-
-                        self.builder.table.columns.extend(
-                            repeat(TableTrack {
-                                base_fragment_info: info.into(),
-                                style: info.style.clone(),
-                                group_index: Some(column_group_index),
-                                is_anonymous: true,
-                            })
-                            .take(span),
+                        add_column(
+                            &mut self.builder.table.columns,
+                            info,
+                            Some(column_group_index),
+                            true, /* is_anonymous */
                         );
                     } else {
                         self.builder
@@ -1068,12 +1051,12 @@ where
         ) {
             return;
         }
-        self.columns.push(TableTrack {
-            base_fragment_info: info.into(),
-            style: info.style.clone(),
-            group_index: Some(self.column_group_index),
-            is_anonymous: false,
-        });
+        add_column(
+            &mut self.columns,
+            info,
+            Some(self.column_group_index),
+            false, /* is_anonymous */
+        );
     }
 }
 
@@ -1087,4 +1070,28 @@ impl From<DisplayLayoutInternal> for TableTrackGroupType {
             _ => unreachable!(),
         }
     }
+}
+
+fn add_column<'dom, Node>(
+    collection: &mut Vec<TableTrack>,
+    column_info: &NodeAndStyleInfo<Node>,
+    group_index: Option<usize>,
+    is_anonymous: bool,
+) where
+    Node: NodeExt<'dom>,
+{
+    let span = column_info
+        .node
+        .and_then(|node| node.to_threadsafe().get_span())
+        .map_or(1, |span| span.min(1000) as usize);
+
+    collection.extend(
+        repeat(TableTrack {
+            base_fragment_info: column_info.into(),
+            style: column_info.style.clone(),
+            group_index,
+            is_anonymous,
+        })
+        .take(span),
+    );
 }

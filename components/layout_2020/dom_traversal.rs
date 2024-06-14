@@ -89,14 +89,21 @@ where
         });
 
         let threadsafe_node = node.to_threadsafe();
-        let flags = match threadsafe_node.as_element() {
-            Some(element) if element.is_body_element_of_html_element_root() => {
-                FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT
-            },
-            Some(element) if element.get_local_name() == &local_name!("br") => {
-                FragmentFlags::IS_BR_ELEMENT
-            },
-            _ => FragmentFlags::empty(),
+        let mut flags = FragmentFlags::empty();
+
+        if let Some(element) = threadsafe_node.as_html_element() {
+            if element.is_body_element_of_html_element_root() {
+                flags.insert(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT);
+            }
+            match element.get_local_name() {
+                &local_name!("br") => {
+                    flags.insert(FragmentFlags::IS_BR_ELEMENT);
+                },
+                &local_name!("table") | &local_name!("th") | &local_name!("td") => {
+                    flags.insert(FragmentFlags::IS_TABLE_TH_OR_TD_ELEMENT);
+                },
+                _ => {},
+            }
         };
 
         Self {

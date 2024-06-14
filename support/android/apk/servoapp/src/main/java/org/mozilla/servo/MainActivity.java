@@ -17,7 +17,6 @@ import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
-import android.webkit.URLUtil;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
@@ -79,7 +78,7 @@ public class MainActivity extends Activity implements Servo.Client {
         mServoView.setServoArgs(args, log);
 
         if (Intent.ACTION_VIEW.equals(intent.getAction())) {
-          mServoView.loadUri(intent.getData());
+            mServoView.loadUri(intent.getData().toString());
         }
         setupUrlField();
     }
@@ -102,8 +101,9 @@ public class MainActivity extends Activity implements Servo.Client {
             return false;
         });
         mUrlField.setOnFocusChangeListener((v, hasFocus) -> {
-            if(v.getId() == R.id.urlfield && !hasFocus) {
-                InputMethodManager imm =  (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (v.getId() == R.id.urlfield && !hasFocus) {
+                InputMethodManager imm =
+                        (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
                 assert imm != null;
                 imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
             }
@@ -113,41 +113,33 @@ public class MainActivity extends Activity implements Servo.Client {
     private void loadUrlFromField() {
         String text = mUrlField.getText().toString();
         text = text.trim();
-        String uri;
 
-        if (text.contains(" ") || !text.contains(".")) {
-            uri =  URLUtil.composeSearchUrl(text, "https://duckduckgo.com/html/?q=%s", "%s");
-        } else {
-            uri = URLUtil.guessUrl(text);
-
-            if (uri.startsWith("http://") && !text.startsWith("http://")) {
-                uri = uri.replaceFirst("http://", "https://");
-            }
-        }
-
-        mServoView.loadUri(Uri.parse(uri));
+        mServoView.loadUri(text);
     }
 
     // From activity_main.xml:
     public void onReloadClicked(View v) {
         mServoView.reload();
     }
+
     public void onBackClicked(View v) {
         mServoView.goBack();
     }
+
     public void onForwardClicked(View v) {
         mServoView.goForward();
     }
+
     public void onStopClicked(View v) {
         mServoView.stop();
     }
 
     @Override
     public void onAlert(String message) {
-      AlertDialog.Builder builder = new AlertDialog.Builder(this);
-      builder.setMessage(message);
-      AlertDialog alert = builder.create();
-      alert.show();
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage(message);
+        AlertDialog alert = builder.create();
+        alert.show();
     }
 
     @Override
