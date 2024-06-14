@@ -1,6 +1,3 @@
-import WebIDL
-
-
 def WebIDLTest(parser, harness):
     parser.parse(
         """

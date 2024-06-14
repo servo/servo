@@ -30,7 +30,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(threw, "Should not allow two 'stringifier;'")
@@ -48,7 +48,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(threw, "Should not allow a 'stringifier;' and a 'stringifier()'")
@@ -156,7 +156,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(threw, "Should not allow ByteString")
@@ -173,7 +173,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(threw, "Should not allow a 'stringifier;' and a stringifier attribute")
@@ -190,7 +190,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(threw, "Should not allow multiple stringifier attributes")

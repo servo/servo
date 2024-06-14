@@ -28,8 +28,8 @@ def WebIDLTest(parser, harness):
             };
         """
         )
-        results = parser.finish()
-    except:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(threw, "Should not allow non-callback parent of callback interface")
@@ -46,8 +46,8 @@ def WebIDLTest(parser, harness):
             };
         """
         )
-        results = parser.finish()
-    except:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(threw, "Should not allow callback parent of non-callback interface")
@@ -97,7 +97,7 @@ def WebIDLTest(parser, harness):
     """
     )
     results = parser.finish()
-    for (i, iface) in enumerate(results):
+    for i, iface in enumerate(results):
         harness.check(
             iface.isSingleOperationInterface(),
             i < 4,

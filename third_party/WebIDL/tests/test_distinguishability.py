@@ -1,4 +1,4 @@
-import traceback
+import WebIDL
 
 
 def firstArgType(method):
@@ -143,8 +143,8 @@ def WebIDLTest(parser, harness):
           };
         """
         )
-        results = parser.finish()
-    except:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(
@@ -167,8 +167,8 @@ def WebIDLTest(parser, harness):
           };
         """
         )
-        results = parser.finish()
-    except:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(threw, "Should throw when there is no distinguishing index")
@@ -228,7 +228,9 @@ def WebIDLTest(parser, harness):
             and (a != "any" and a != "Promise<any>" and a != "Promise<any>?")
         ]
 
-    unions = ["(long or Callback)", "(long or Dict)"]
+    unionsWithCallback = ["(long or Callback)"]
+    unionsNoCallback = ["(long or Dict)"]
+    unions = unionsWithCallback + unionsNoCallback
     numerics = ["long", "short", "long?", "short?"]
     booleans = ["boolean", "boolean?"]
     undefineds = ["undefined", "undefined?"]
@@ -246,7 +248,6 @@ def WebIDLTest(parser, harness):
     ]
     nonStrings = allBut(argTypes, strings)
     nonObjects = undefineds + primitives + strings
-    objects = allBut(argTypes, nonObjects)
     bufferSourceTypes = ["ArrayBuffer", "ArrayBufferView", "Uint8Array", "Uint16Array"]
     interfaces = [
         "Interface",
@@ -266,7 +267,7 @@ def WebIDLTest(parser, harness):
         "Date?",
         "any",
         "Promise<any>?",
-    ] + allBut(unions, ["(long or Callback)"])
+    ] + unionsNoCallback
     sequences = ["sequence<long>", "sequence<short>"]
     nonUserObjects = nonObjects + interfaces + sequences
     otherObjects = allBut(argTypes, nonUserObjects + ["object"])
@@ -283,17 +284,14 @@ def WebIDLTest(parser, harness):
         "record<ByteString, long>",
         "record<UTF8String, long>",
     ]  # JSString not supported in records
-    dictionaryLike = (
-        [
-            "Dict",
-            "Dict2",
-            "CallbackInterface",
-            "CallbackInterface?",
-            "CallbackInterface2",
-        ]
-        + records
-        + allBut(unions, ["(long or Callback)"])
-    )
+    dicts = ["Dict", "Dict2"]
+    callbacks = ["Callback", "Callback2"]
+    callbackInterfaces = [
+        "CallbackInterface",
+        "CallbackInterface?",
+        "CallbackInterface2",
+    ]
+    dictionaryLike = dicts + callbackInterfaces + records + unionsNoCallback
 
     # Build a representation of the distinguishability table as a dict
     # of dicts, holding True values where needed, holes elsewhere.
@@ -328,23 +326,60 @@ def WebIDLTest(parser, harness):
     setDistinguishable(
         "UnrelatedInterface", allBut(argTypes, ["object", "UnrelatedInterface"])
     )
-    setDistinguishable("CallbackInterface", allBut(nonUserObjects, undefineds))
     setDistinguishable(
-        "CallbackInterface?", allBut(nonUserObjects, nullables + undefineds)
+        "CallbackInterface",
+        allBut(nonUserObjects + callbacks + unionsWithCallback, undefineds),
     )
-    setDistinguishable("CallbackInterface2", allBut(nonUserObjects, undefineds))
+    setDistinguishable(
+        "CallbackInterface?",
+        allBut(nonUserObjects + callbacks + unionsWithCallback, nullables + undefineds),
+    )
+    setDistinguishable(
+        "CallbackInterface2",
+        allBut(nonUserObjects + callbacks + unionsWithCallback, undefineds),
+    )
     setDistinguishable("object", nonObjects)
-    setDistinguishable("Callback", nonUserObjects)
-    setDistinguishable("Callback2", nonUserObjects)
-    setDistinguishable("Dict", allBut(nonUserObjects, nullables + undefineds))
-    setDistinguishable("Dict2", allBut(nonUserObjects, nullables + undefineds))
-    setDistinguishable("sequence<long>", allBut(argTypes, sequences + ["object"]))
-    setDistinguishable("sequence<short>", allBut(argTypes, sequences + ["object"]))
-    setDistinguishable("record<DOMString, object>", allBut(nonUserObjects, undefineds))
-    setDistinguishable("record<USVString, Dict>", allBut(nonUserObjects, undefineds))
+    setDistinguishable(
+        "Callback",
+        nonUserObjects + unionsNoCallback + dicts + records + callbackInterfaces,
+    )
+    setDistinguishable(
+        "Callback2",
+        nonUserObjects + unionsNoCallback + dicts + records + callbackInterfaces,
+    )
+    setDistinguishable(
+        "Dict",
+        allBut(nonUserObjects + unionsWithCallback + callbacks, nullables + undefineds),
+    )
+    setDistinguishable(
+        "Dict2",
+        allBut(nonUserObjects + unionsWithCallback + callbacks, nullables + undefineds),
+    )
+    setDistinguishable(
+        "sequence<long>",
+        allBut(argTypes, sequences + ["object"]),
+    )
+    setDistinguishable(
+        "sequence<short>",
+        allBut(argTypes, sequences + ["object"]),
+    )
+    setDistinguishable(
+        "record<DOMString, object>",
+        allBut(nonUserObjects + unionsWithCallback + callbacks, undefineds),
+    )
+    setDistinguishable(
+        "record<USVString, Dict>",
+        allBut(nonUserObjects + unionsWithCallback + callbacks, undefineds),
+    )
     # JSString not supported in records
-    setDistinguishable("record<ByteString, long>", allBut(nonUserObjects, undefineds))
-    setDistinguishable("record<UTF8String, long>", allBut(nonUserObjects, undefineds))
+    setDistinguishable(
+        "record<ByteString, long>",
+        allBut(nonUserObjects + unionsWithCallback + callbacks, undefineds),
+    )
+    setDistinguishable(
+        "record<UTF8String, long>",
+        allBut(nonUserObjects + unionsWithCallback + callbacks, undefineds),
+    )
     setDistinguishable("any", [])
     setDistinguishable("Promise<any>", [])
     setDistinguishable("Promise<any>?", [])
@@ -359,9 +394,13 @@ def WebIDLTest(parser, harness):
     setDistinguishable(
         "Uint16Array", allBut(argTypes, ["ArrayBufferView", "Uint16Array", "object"])
     )
-    setDistinguishable("(long or Callback)", allBut(nonUserObjects, numerics))
     setDistinguishable(
-        "(long or Dict)", allBut(nonUserObjects, numerics + nullables + undefineds)
+        "(long or Callback)",
+        allBut(nonUserObjects + dicts + records + callbackInterfaces, numerics),
+    )
+    setDistinguishable(
+        "(long or Dict)",
+        allBut(nonUserObjects + callbacks, numerics + nullables + undefineds),
     )
 
     def areDistinguishable(type1, type2):
@@ -378,6 +417,7 @@ def WebIDLTest(parser, harness):
           callback interface CallbackInterface2 {};
           callback Callback = any();
           callback Callback2 = long(short arg);
+          [LegacyTreatNonObjectAsNull] callback LegacyCallback1 = any();
           // Give our dictionaries required members so we don't need to
           // mess with optional and default values.
           dictionary Dict { required long member; };
@@ -401,8 +441,8 @@ def WebIDLTest(parser, harness):
         threw = False
         try:
             parser.parse(idl)
-            results = parser.finish()
-        except:
+            parser.finish()
+        except WebIDL.WebIDLError:
             threw = True
 
         if areDistinguishable(type1, type2):

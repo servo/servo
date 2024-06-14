@@ -1,3 +1,6 @@
+import WebIDL
+
+
 def WebIDLTest(parser, harness):
     threw = False
     try:
@@ -8,8 +11,8 @@ def WebIDLTest(parser, harness):
             };
             """
         )
-        results = parser.finish()
-    except:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(not threw, "Should allow a toJSON method.")
 
@@ -24,8 +27,8 @@ def WebIDLTest(parser, harness):
             };
             """
         )
-        results = parser.finish()
-    except:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should not allow overloads of a toJSON method.")
 
@@ -39,8 +42,8 @@ def WebIDLTest(parser, harness):
             };
             """
         )
-        results = parser.finish()
-    except:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should not allow a toJSON method with arguments.")
 
@@ -54,8 +57,8 @@ def WebIDLTest(parser, harness):
             };
             """
         )
-        results = parser.finish()
-    except:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(not threw, "Should allow a toJSON method with 'long' as return type.")
 
@@ -69,8 +72,8 @@ def WebIDLTest(parser, harness):
             };
             """
         )
-        results = parser.finish()
-    except:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         not threw, "Should allow a default toJSON method with 'object' as return type."
@@ -86,8 +89,8 @@ def WebIDLTest(parser, harness):
             };
             """
         )
-        results = parser.finish()
-    except:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw,

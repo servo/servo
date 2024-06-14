@@ -1,3 +1,6 @@
+import WebIDL
+
+
 def WebIDLTest(parser, harness):
     parser.parse(
         """
@@ -32,7 +35,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(threw, "Should have thrown on nullable inside nullable arg.")
@@ -49,7 +52,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(threw, "Should have thrown on nullable inside nullable const.")
@@ -66,7 +69,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(

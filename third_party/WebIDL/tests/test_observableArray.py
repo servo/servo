@@ -4,7 +4,6 @@
 
 
 def WebIDLTest(parser, harness):
-
     # Test dictionary as inner type
     harness.should_throw(
         parser,

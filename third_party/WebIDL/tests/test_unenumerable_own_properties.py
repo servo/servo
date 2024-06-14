@@ -1,5 +1,7 @@
-def WebIDLTest(parser, harness):
+import WebIDL
 
+
+def WebIDLTest(parser, harness):
     parser.parse(
         """
         interface Foo {};
@@ -27,7 +29,7 @@ def WebIDLTest(parser, harness):
         )
 
         results = parser.finish()
-    except Exception as x:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should have thrown.")
 
@@ -44,7 +46,7 @@ def WebIDLTest(parser, harness):
         )
 
         results = parser.finish()
-    except Exception as x:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should have thrown.")
 
@@ -66,6 +68,6 @@ def WebIDLTest(parser, harness):
         )
 
         results = parser.finish()
-    except Exception as x:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should have thrown.")

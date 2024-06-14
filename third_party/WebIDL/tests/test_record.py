@@ -38,7 +38,7 @@ def WebIDLTest(parser, harness):
         )
 
         results = parser.finish()
-    except Exception as x:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw, "Should have thrown because record can't have undefined as value type."
@@ -56,6 +56,6 @@ def WebIDLTest(parser, harness):
         )
 
         results = parser.finish()
-    except Exception as x:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should have thrown on dictionary containing itself via record.")

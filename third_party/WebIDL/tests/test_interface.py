@@ -70,7 +70,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(threw, "Should not allow cycles in interface inheritance chains")
@@ -86,7 +86,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(
@@ -103,7 +103,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(
@@ -223,7 +223,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should not allow two non-partial interfaces with the same name")
 
@@ -241,7 +241,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Must have a non-partial interface for a given name")
 
@@ -259,7 +259,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw,
@@ -281,7 +281,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw, "Should not allow a name collision between interface " "and other object"
@@ -299,7 +299,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw,
@@ -319,7 +319,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw,
@@ -351,14 +351,14 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should not allow unknown extended attributes on interfaces")
 
     parser = parser.reset()
     parser.parse(
         """
-        [Global, Exposed=Window] interface Window {};
+        [Global=Window, Exposed=Window] interface Window {};
         [Exposed=Window, LegacyWindowAlias=A]
         interface B {};
         [Exposed=Window, LegacyWindowAlias=(C, D)]
@@ -383,7 +383,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should not allow [LegacyWindowAlias] with no value")
 
@@ -397,7 +397,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should not allow [LegacyWindowAlias] without Window exposure")
 
@@ -406,7 +406,7 @@ def WebIDLTest(parser, harness):
     try:
         parser.parse(
             """
-            [Global, Exposed=Window] interface Window {};
+            [Global=Window, Exposed=Window] interface Window {};
             [Exposed=Window]
             interface A {};
             [Exposed=Window, LegacyWindowAlias=A]
@@ -414,7 +414,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw, "Should not allow [LegacyWindowAlias] to conflict with other identifiers"
@@ -425,7 +425,7 @@ def WebIDLTest(parser, harness):
     try:
         parser.parse(
             """
-            [Global, Exposed=Window] interface Window {};
+            [Global=Window, Exposed=Window] interface Window {};
             [Exposed=Window, LegacyWindowAlias=A]
             interface B {};
             [Exposed=Window]
@@ -433,7 +433,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw, "Should not allow [LegacyWindowAlias] to conflict with other identifiers"
@@ -444,7 +444,7 @@ def WebIDLTest(parser, harness):
     try:
         parser.parse(
             """
-            [Global, Exposed=Window] interface Window {};
+            [Global=Window, Exposed=Window] interface Window {};
             [Exposed=Window, LegacyWindowAlias=A]
             interface B {};
             [Exposed=Window, LegacyWindowAlias=A]
@@ -452,7 +452,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw, "Should not allow [LegacyWindowAlias] to conflict with other identifiers"
