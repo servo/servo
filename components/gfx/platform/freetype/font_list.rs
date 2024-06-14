@@ -35,7 +35,7 @@ use super::c_str_to_string;
 use crate::font::map_platform_values_to_style_values;
 use crate::font_template::{FontTemplate, FontTemplateDescriptor};
 use crate::platform::add_noto_fallback_families;
-use crate::text::FallbackFontSelectionOptions;
+use crate::text::{EmojiPresentationPreference, FallbackFontSelectionOptions};
 
 /// An identifier for a local font on systems using Freetype.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
@@ -204,7 +204,7 @@ pub static SANS_SERIF_FONT_FAMILY: &str = "DejaVu Sans";
 // Based on gfxPlatformGtk::GetCommonFallbackFonts() in Gecko
 pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
     let mut families = Vec::new();
-    if options.prefer_emoji_presentation {
+    if options.presentation_preference == EmojiPresentationPreference::Emoji {
         families.push("Noto Color Emoji");
     }
 
