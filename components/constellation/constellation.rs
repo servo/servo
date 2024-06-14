@@ -152,7 +152,7 @@ use servo_config::{opts, pref};
 use servo_rand::{random, Rng, ServoRng, SliceRandom};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use style_traits::CSSPixel;
-use webgpu::{self, WebGPU, WebGPURequest};
+use webgpu::{self, send_request, WebGPU, WebGPURequest};
 use webrender::{RenderApi, RenderApiSender};
 use webrender_api::DocumentId;
 use webrender_traits::{WebRenderNetApi, WebRenderScriptApi, WebrenderExternalImageRegistry};
@@ -2079,9 +2079,7 @@ where
                         options,
                         ids,
                     };
-                    if webgpu_chan.0.send(adapter_request).is_err() {
-                        warn!("Failed to send request adapter message on WebGPU channel");
-                    }
+                    send_request!(webgpu_chan.0, adapter_request);
                 },
             },
             FromScriptMsg::GetWebGPUChan(response_sender) => {

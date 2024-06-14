@@ -265,3 +265,12 @@ pub enum WebGPURequest {
         sender: IpcSender<Option<WebGPUResponseResult>>,
     },
 }
+
+#[macro_export]
+macro_rules! send_request {
+    ($sender:expr, $request:expr) => {
+        if let Err(e) = $sender.send($request) {
+            error!("Failed to send {:?} ({})", stringify!($request), e);
+        }
+    };
+}

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::{WebGPU, WebGPUDevice, WebGPURenderBundle, WebGPURequest};
+use webgpu::{send_request, WebGPU, WebGPUDevice, WebGPURenderBundle, WebGPURequest};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPURenderBundleMethods;
@@ -80,15 +80,9 @@ impl GPURenderBundleMethods for GPURenderBundle {
 
 impl Drop for GPURenderBundle {
     fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropRenderBundle(self.render_bundle.0))
-        {
-            warn!(
-                "Failed to send DropRenderBundle ({:?}) ({})",
-                self.render_bundle.0, e
-            );
-        }
+        send_request!(
+            self.channel.0,
+            WebGPURequest::DropRenderBundle(self.render_bundle.0)
+        );
     }
 }

@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use webgpu::wgc::command::{bundle_ffi as wgpu_bundle, RenderBundleEncoder};
-use webgpu::{wgt, WebGPU, WebGPURenderBundle, WebGPURequest};
+use webgpu::{send_request, wgt, WebGPU, WebGPURenderBundle, WebGPURequest};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::GPUIndexFormat;
 use crate::dom::bindings::cell::DomRefCell;
@@ -207,15 +207,15 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
             .lock()
             .create_render_bundle_id(self.device.id().0.backend());
 
-        self.channel
-            .0
-            .send(WebGPURequest::RenderBundleEncoderFinish {
+        send_request!(
+            self.channel.0,
+            WebGPURequest::RenderBundleEncoderFinish {
                 render_bundle_encoder: encoder,
                 descriptor: desc,
                 render_bundle_id,
                 device_id: self.device.id().0,
-            })
-            .expect("Failed to send RenderBundleEncoderFinish");
+            }
+        );
 
         let render_bundle = WebGPURenderBundle(render_bundle_id);
         GPURenderBundle::new(

@@ -5,7 +5,7 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use webgpu::{WebGPU, WebGPURequest, WebGPUShaderModule};
+use webgpu::{send_request, WebGPU, WebGPURequest, WebGPUShaderModule};
 
 use super::bindings::error::Fallible;
 use super::promise::Promise;
@@ -79,15 +79,9 @@ impl GPUShaderModuleMethods for GPUShaderModule {
 
 impl Drop for GPUShaderModule {
     fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropShaderModule(self.shader_module.0))
-        {
-            warn!(
-                "Failed to send DropShaderModule ({:?}) ({})",
-                self.shader_module.0, e
-            );
-        }
+        send_request!(
+            self.channel.0,
+            WebGPURequest::DropShaderModule(self.shader_module.0)
+        );
     }
 }

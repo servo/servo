@@ -5,7 +5,7 @@
 use std::string::String;
 
 use dom_struct::dom_struct;
-use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPUComputePipeline, WebGPURequest};
+use webgpu::{send_request, WebGPU, WebGPUBindGroupLayout, WebGPUComputePipeline, WebGPURequest};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUComputePipelineMethods;
@@ -103,15 +103,9 @@ impl GPUComputePipelineMethods for GPUComputePipeline {
 
 impl Drop for GPUComputePipeline {
     fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropComputePipeline(self.compute_pipeline.0))
-        {
-            warn!(
-                "Failed to send WebGPURequest::DropComputePipeline({:?}) ({})",
-                self.compute_pipeline.0, e
-            );
-        };
+        send_request!(
+            self.channel.0,
+            WebGPURequest::DropComputePipeline(self.compute_pipeline.0)
+        );
     }
 }

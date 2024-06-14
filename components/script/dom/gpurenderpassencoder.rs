@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use webgpu::wgc::command::{render_commands as wgpu_render, RenderPass};
-use webgpu::{wgt, WebGPU, WebGPURequest};
+use webgpu::{send_request, wgt, WebGPU, WebGPURequest};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::GPUIndexFormat;
 use super::bindings::error::Fallible;
@@ -162,14 +162,13 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-end>
     fn End(&self) -> Fallible<()> {
         let render_pass = self.render_pass.borrow_mut().take();
-        self.channel
-            .0
-            .send(WebGPURequest::RunRenderPass {
+        send_request!(
+            self.channel.0,
+            WebGPURequest::RunRenderPass {
                 command_encoder_id: self.command_encoder.id().0,
                 render_pass,
-            })
-            .expect("Failed to send RunRenderPass");
-
+            }
+        );
         self.command_encoder.set_state(
             GPUCommandEncoderState::Open,
             GPUCommandEncoderState::EncodingRenderPass,

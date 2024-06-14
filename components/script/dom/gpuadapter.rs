@@ -7,7 +7,9 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
-use webgpu::{wgt, WebGPU, WebGPUAdapter, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
+use webgpu::{
+    send_request, wgt, WebGPU, WebGPUAdapter, WebGPURequest, WebGPUResponse, WebGPUResponseResult,
+};
 
 use super::gpusupportedfeatures::GPUSupportedFeatures;
 use super::types::{GPUAdapterInfo, GPUSupportedLimits};
@@ -88,16 +90,7 @@ impl GPUAdapter {
 
 impl Drop for GPUAdapter {
     fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropAdapter(self.adapter.0))
-        {
-            warn!(
-                "Failed to send WebGPURequest::DropAdapter({:?}) ({})",
-                self.adapter.0, e
-            );
-        };
+        send_request!(self.channel.0, WebGPURequest::DropAdapter(self.adapter.0));
     }
 }
 
@@ -214,20 +207,16 @@ impl GPUAdapterMethods for GPUAdapter {
             .lock()
             .create_device_id(self.adapter.0.backend());
         let pipeline_id = self.global().pipeline_id();
-        if self
-            .channel
-            .0
-            .send(WebGPURequest::RequestDevice {
+        send_request!(
+            self.channel.0,
+            WebGPURequest::RequestDevice {
                 sender,
                 adapter_id: self.adapter,
                 descriptor: desc,
                 device_id: id,
                 pipeline_id,
-            })
-            .is_err()
-        {
-            promise.reject_error(Error::Operation);
-        }
+            }
+        );
         // Step 5
         promise
     }

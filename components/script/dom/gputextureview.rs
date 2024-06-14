@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::{WebGPU, WebGPURequest, WebGPUTextureView};
+use webgpu::{send_request, WebGPU, WebGPURequest, WebGPUTextureView};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUTextureViewMethods;
@@ -80,15 +80,9 @@ impl GPUTextureViewMethods for GPUTextureView {
 
 impl Drop for GPUTextureView {
     fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropTextureView(self.texture_view.0))
-        {
-            warn!(
-                "Failed to send DropTextureView ({:?}) ({})",
-                self.texture_view.0, e
-            );
-        }
+        send_request!(
+            self.channel.0,
+            WebGPURequest::DropTextureView(self.texture_view.0)
+        );
     }
 }

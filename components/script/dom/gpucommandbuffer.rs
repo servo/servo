@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 
 use dom_struct::dom_struct;
-use webgpu::{WebGPU, WebGPUCommandBuffer, WebGPURequest};
+use webgpu::{send_request, WebGPU, WebGPUCommandBuffer, WebGPURequest};
 
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUCommandBufferMethods;
@@ -72,16 +72,10 @@ impl GPUCommandBuffer {
 
 impl Drop for GPUCommandBuffer {
     fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropCommandBuffer(self.command_buffer.0))
-        {
-            warn!(
-                "Failed to send DropCommandBuffer({:?}) ({})",
-                self.command_buffer.0, e
-            );
-        }
+        send_request!(
+            self.channel.0,
+            WebGPURequest::DropCommandBuffer(self.command_buffer.0)
+        );
     }
 }
 

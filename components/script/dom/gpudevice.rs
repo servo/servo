@@ -17,7 +17,9 @@ use webgpu::wgc::id::{BindGroupLayoutId, PipelineLayoutId};
 use webgpu::wgc::{
     binding_model as wgpu_bind, command as wgpu_com, pipeline as wgpu_pipe, resource as wgpu_res,
 };
-use webgpu::{self, wgt, PopError, WebGPU, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
+use webgpu::{
+    self, send_request, wgt, PopError, WebGPU, WebGPURequest, WebGPUResponse, WebGPUResponseResult,
+};
 
 use super::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
 use super::bindings::error::Fallible;
@@ -152,12 +154,13 @@ impl GPUDevice {
     }
 
     pub fn dispatch_error(&self, error: webgpu::Error) {
-        if let Err(e) = self.channel.0.send(WebGPURequest::DispatchError {
-            device_id: self.device.0,
-            error,
-        }) {
-            warn!("Failed to send WebGPURequest::DispatchError due to {e:?}");
-        }
+        send_request!(
+            self.channel.0,
+            WebGPURequest::DispatchError {
+                device_id: self.device.0,
+                error,
+            }
+        );
     }
 
     pub fn fire_uncaptured_error(&self, error: webgpu::Error) {
@@ -275,14 +278,14 @@ impl GPUDeviceMethods for GPUDevice {
             )));
         }
 
-        self.channel
-            .0
-            .send(WebGPURequest::CreateBuffer {
+        send_request!(
+            self.channel.0,
+            WebGPURequest::CreateBuffer {
                 device_id: self.device.0,
                 buffer_id: id,
                 descriptor: desc,
-            })
-            .expect("Failed to create WebGPU buffer");
+            }
+        );
 
         let buffer = webgpu::WebGPUBuffer(id);
         let map_info;
@@ -411,14 +414,14 @@ impl GPUDeviceMethods for GPUDevice {
             .wgpu_id_hub()
             .lock()
             .create_bind_group_layout_id(self.device.0.backend());
-        self.channel
-            .0
-            .send(WebGPURequest::CreateBindGroupLayout {
+        send_request!(
+            self.channel.0,
+            WebGPURequest::CreateBindGroupLayout {
                 device_id: self.device.0,
                 bind_group_layout_id,
                 descriptor: desc,
-            })
-            .expect("Failed to create WebGPU BindGroupLayout");
+            }
+        );
 
         let bgl = webgpu::WebGPUBindGroupLayout(bind_group_layout_id);
 
@@ -452,14 +455,15 @@ impl GPUDeviceMethods for GPUDevice {
             .wgpu_id_hub()
             .lock()
             .create_pipeline_layout_id(self.device.0.backend());
-        self.channel
-            .0
-            .send(WebGPURequest::CreatePipelineLayout {
+
+        send_request!(
+            self.channel.0,
+            WebGPURequest::CreatePipelineLayout {
                 device_id: self.device.0,
                 pipeline_layout_id,
                 descriptor: desc,
-            })
-            .expect("Failed to create WebGPU PipelineLayout");
+            }
+        );
 
         let bgls = descriptor
             .bindGroupLayouts
@@ -512,14 +516,15 @@ impl GPUDeviceMethods for GPUDevice {
             .wgpu_id_hub()
             .lock()
             .create_bind_group_id(self.device.0.backend());
-        self.channel
-            .0
-            .send(WebGPURequest::CreateBindGroup {
+
+        send_request!(
+            self.channel.0,
+            WebGPURequest::CreateBindGroup {
                 device_id: self.device.0,
                 bind_group_id,
                 descriptor: desc,
-            })
-            .expect("Failed to create WebGPU BindGroup");
+            }
+        );
 
         let bind_group = webgpu::WebGPUBindGroup(bind_group_id);
 
@@ -544,15 +549,15 @@ impl GPUDeviceMethods for GPUDevice {
             .lock()
             .create_shader_module_id(self.device.0.backend());
 
-        self.channel
-            .0
-            .send(WebGPURequest::CreateShaderModule {
+        send_request!(
+            self.channel.0,
+            WebGPURequest::CreateShaderModule {
                 device_id: self.device.0,
                 program_id,
                 program: descriptor.code.0.clone(),
                 label: None,
-            })
-            .expect("Failed to create WebGPU ShaderModule");
+            }
+        );
 
         let shader_module = webgpu::WebGPUShaderModule(program_id);
         GPUShaderModule::new(
@@ -587,15 +592,15 @@ impl GPUDeviceMethods for GPUDevice {
             },
         };
 
-        self.channel
-            .0
-            .send(WebGPURequest::CreateComputePipeline {
+        send_request!(
+            self.channel.0,
+            WebGPURequest::CreateComputePipeline {
                 device_id: self.device.0,
                 compute_pipeline_id,
                 descriptor: desc,
                 implicit_ids,
-            })
-            .expect("Failed to create WebGPU ComputePipeline");
+            }
+        );
 
         let compute_pipeline = webgpu::WebGPUComputePipeline(compute_pipeline_id);
         GPUComputePipeline::new(
@@ -629,14 +634,15 @@ impl GPUDeviceMethods for GPUDevice {
             .wgpu_id_hub()
             .lock()
             .create_command_encoder_id(self.device.0.backend());
-        self.channel
-            .0
-            .send(WebGPURequest::CreateCommandEncoder {
+
+        send_request!(
+            self.channel.0,
+            WebGPURequest::CreateCommandEncoder {
                 device_id: self.device.0,
                 command_encoder_id,
                 label: convert_label(&descriptor.parent),
-            })
-            .expect("Failed to create WebGPU command encoder");
+            }
+        );
 
         let encoder = webgpu::WebGPUCommandEncoder(command_encoder_id);
 
@@ -682,14 +688,15 @@ impl GPUDeviceMethods for GPUDevice {
         if desc.is_none() {
             return Err(Error::Type(String::from("Invalid GPUTextureUsage")));
         }
-        self.channel
-            .0
-            .send(WebGPURequest::CreateTexture {
+
+        send_request!(
+            self.channel.0,
+            WebGPURequest::CreateTexture {
                 device_id: self.device.0,
                 texture_id,
                 descriptor: desc,
-            })
-            .expect("Failed to create WebGPU Texture");
+            }
+        );
 
         let texture = webgpu::WebGPUTexture(texture_id);
 
@@ -733,14 +740,14 @@ impl GPUDeviceMethods for GPUDevice {
             border_color: None,
         };
 
-        self.channel
-            .0
-            .send(WebGPURequest::CreateSampler {
+        send_request!(
+            self.channel.0,
+            WebGPURequest::CreateSampler {
                 device_id: self.device.0,
                 sampler_id,
                 descriptor: desc,
-            })
-            .expect("Failed to create WebGPU sampler");
+            }
+        );
 
         let sampler = webgpu::WebGPUSampler(sampler_id);
 
@@ -888,15 +895,15 @@ impl GPUDeviceMethods for GPUDevice {
             .lock()
             .create_render_pipeline_id(self.device.0.backend());
 
-        self.channel
-            .0
-            .send(WebGPURequest::CreateRenderPipeline {
+        send_request!(
+            self.channel.0,
+            WebGPURequest::CreateRenderPipeline {
                 device_id: self.device.0,
                 render_pipeline_id,
                 descriptor: desc,
                 implicit_ids,
-            })
-            .expect("Failed to create WebGPU render pipeline");
+            }
+        );
 
         let render_pipeline = webgpu::WebGPURenderPipeline(render_pipeline_id);
 
@@ -961,34 +968,26 @@ impl GPUDeviceMethods for GPUDevice {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-pusherrorscope>
     fn PushErrorScope(&self, filter: GPUErrorFilter) {
-        if self
-            .channel
-            .0
-            .send(WebGPURequest::PushErrorScope {
+        send_request!(
+            self.channel.0,
+            WebGPURequest::PushErrorScope {
                 device_id: self.device.0,
                 filter: filter.to_webgpu(),
-            })
-            .is_err()
-        {
-            warn!("Failed sending WebGPURequest::PushErrorScope");
-        }
+            }
+        );
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-poperrorscope>
     fn PopErrorScope(&self, comp: InRealm) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp);
         let sender = response_async(&promise, self);
-        if self
-            .channel
-            .0
-            .send(WebGPURequest::PopErrorScope {
+        send_request!(
+            self.channel.0,
+            WebGPURequest::PopErrorScope {
                 device_id: self.device.0,
                 sender,
-            })
-            .is_err()
-        {
-            warn!("Error when sending WebGPURequest::PopErrorScope");
-        }
+            }
+        );
         promise
     }
 
@@ -1002,13 +1001,7 @@ impl GPUDeviceMethods for GPUDevice {
 
             self.lose(GPUDeviceLostReason::Destroyed);
 
-            if let Err(e) = self
-                .channel
-                .0
-                .send(WebGPURequest::DestroyDevice(self.device.0))
-            {
-                warn!("Failed to send DestroyDevice ({:?}) ({})", self.device.0, e);
-            }
+            send_request!(self.channel.0, WebGPURequest::DestroyDevice(self.device.0));
         }
     }
 }
@@ -1031,19 +1024,7 @@ impl AsyncWGPUListener for GPUDevice {
 
 impl Drop for GPUDevice {
     fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DestroyDevice(self.device.0))
-        {
-            warn!("Failed to send DestroyDevice ({:?}) ({})", self.device.0, e);
-        }
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropDevice(self.device.0))
-        {
-            warn!("Failed to send DropDevice ({:?}) ({})", self.device.0, e);
-        }
+        send_request!(self.channel.0, WebGPURequest::DestroyDevice(self.device.0));
+        send_request!(self.channel.0, WebGPURequest::DropDevice(self.device.0));
     }
 }

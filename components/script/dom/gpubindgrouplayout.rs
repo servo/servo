@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPURequest};
+use webgpu::{send_request, WebGPU, WebGPUBindGroupLayout, WebGPURequest};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUBindGroupLayoutMethods;
@@ -62,16 +62,10 @@ impl GPUBindGroupLayout {
 
 impl Drop for GPUBindGroupLayout {
     fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropBindGroupLayout(self.bind_group_layout.0))
-        {
-            warn!(
-                "Failed to send WebGPURequest::DropBindGroupLayout({:?}) ({})",
-                self.bind_group_layout.0, e
-            );
-        };
+        send_request!(
+            self.channel.0,
+            WebGPURequest::DropBindGroupLayout(self.bind_group_layout.0)
+        );
     }
 }
 

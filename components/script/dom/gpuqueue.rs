@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
-use webgpu::{wgt, WebGPU, WebGPUQueue, WebGPURequest, WebGPUResponse};
+use webgpu::{send_request, wgt, WebGPU, WebGPUQueue, WebGPURequest, WebGPUResponse};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::{GPUImageCopyTexture, GPUImageDataLayout};
 use super::gpu::{response_async, AsyncWGPUListener};
@@ -92,13 +92,13 @@ impl GPUQueueMethods for GPUQueue {
             return;
         }
         let command_buffers = command_buffers.iter().map(|cb| cb.id().0).collect();
-        self.channel
-            .0
-            .send(WebGPURequest::Submit {
+        send_request!(
+            self.channel.0,
+            WebGPURequest::Submit {
                 queue_id: self.queue.0,
                 command_buffers,
-            })
-            .unwrap();
+            }
+        );
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-writebuffer>
@@ -191,16 +191,13 @@ impl GPUQueueMethods for GPUQueue {
         let global = self.global();
         let promise = Promise::new(&global);
         let sender = response_async(&promise, self);
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::QueueOnSubmittedWorkDone {
+        send_request!(
+            self.channel.0,
+            WebGPURequest::QueueOnSubmittedWorkDone {
                 sender,
                 queue_id: self.queue.0,
-            })
-        {
-            warn!("QueueOnSubmittedWorkDone failed with {e}")
-        }
+            }
+        );
         promise
     }
 }

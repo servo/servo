@@ -12,7 +12,9 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
 use js::typedarray::{ArrayBuffer, ArrayBufferU8};
 use webgpu::wgc::device::HostMap;
-use webgpu::{WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
+use webgpu::{
+    send_request, WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse, WebGPUResponseResult,
+};
 
 use super::bindings::buffer_source::{create_new_external_array_buffer, HeapBufferSource};
 use crate::dom::bindings::cell::DomRefCell;
@@ -132,16 +134,7 @@ impl Drop for GPUBuffer {
         if matches!(self.state(), GPUBufferState::Destroyed) {
             return;
         }
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropBuffer(self.buffer.0))
-        {
-            warn!(
-                "Failed to send WebGPURequest::DropBuffer({:?}) ({})",
-                self.buffer.0, e
-            );
-        };
+        send_request!(self.channel.0, WebGPURequest::DropBuffer(self.buffer.0));
     }
 }
 
@@ -164,16 +157,18 @@ impl GPUBufferMethods for GPUBuffer {
                     return Err(Error::Operation);
                 };
                 let m_range = m_info.mapping_range.clone();
-                if let Err(e) = self.channel.0.send(WebGPURequest::UnmapBuffer {
-                    buffer_id: self.id().0,
-                    device_id: self.device.id().0,
-                    array_buffer: IpcSharedMemory::from_bytes(&m_info.mapping.lock().unwrap()),
-                    is_map_read: m_info.map_mode == Some(GPUMapModeConstants::READ),
-                    offset: m_range.start,
-                    size: m_range.end - m_range.start,
-                }) {
-                    warn!("Failed to send Buffer unmap ({:?}) ({})", self.buffer.0, e);
-                }
+
+                send_request!(
+                    self.channel.0,
+                    WebGPURequest::UnmapBuffer {
+                        buffer_id: self.id().0,
+                        device_id: self.device.id().0,
+                        array_buffer: IpcSharedMemory::from_bytes(&m_info.mapping.lock().unwrap()),
+                        is_map_read: m_info.map_mode == Some(GPUMapModeConstants::READ),
+                        offset: m_range.start,
+                        size: m_range.end - m_range.start,
+                    }
+                );
                 // Step 3.3
                 m_info.js_buffers.drain(..).for_each(|obj| {
                     obj.detach_buffer(cx);
@@ -201,16 +196,7 @@ impl GPUBufferMethods for GPUBuffer {
             GPUBufferState::Destroyed => return Ok(()),
             _ => {},
         };
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DestroyBuffer(self.buffer.0))
-        {
-            warn!(
-                "Failed to send WebGPURequest::DestroyBuffer({:?}) ({})",
-                self.buffer.0, e
-            );
-        };
+        send_request!(self.channel.0, WebGPURequest::DestroyBuffer(self.buffer.0));
         self.state.set(GPUBufferState::Destroyed);
         Ok(())
     }

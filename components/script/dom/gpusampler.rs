@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::{WebGPU, WebGPUDevice, WebGPURequest, WebGPUSampler};
+use webgpu::{send_request, WebGPU, WebGPUDevice, WebGPURequest, WebGPUSampler};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUSamplerMethods;
@@ -85,12 +85,6 @@ impl GPUSamplerMethods for GPUSampler {
 
 impl Drop for GPUSampler {
     fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropSampler(self.sampler.0))
-        {
-            warn!("Failed to send DropSampler ({:?}) ({})", self.sampler.0, e);
-        }
+        send_request!(self.channel.0, WebGPURequest::DropSampler(self.sampler.0));
     }
 }

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPUPipelineLayout, WebGPURequest};
+use webgpu::{send_request, WebGPU, WebGPUBindGroupLayout, WebGPUPipelineLayout, WebGPURequest};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUPipelineLayoutMethods;
@@ -84,15 +84,9 @@ impl GPUPipelineLayoutMethods for GPUPipelineLayout {
 
 impl Drop for GPUPipelineLayout {
     fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropPipelineLayout(self.pipeline_layout.0))
-        {
-            warn!(
-                "Failed to send DropPipelineLayout ({:?}) ({})",
-                self.pipeline_layout.0, e
-            );
-        }
+        send_request!(
+            self.channel.0,
+            WebGPURequest::DropPipelineLayout(self.pipeline_layout.0)
+        );
     }
 }

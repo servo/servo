@@ -7,7 +7,7 @@ use std::string::String;
 
 use dom_struct::dom_struct;
 use webgpu::wgc::resource;
-use webgpu::{wgt, WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
+use webgpu::{send_request, wgt, WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -111,16 +111,7 @@ impl Drop for GPUTexture {
         if self.destroyed.get() {
             return;
         }
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropTexture(self.texture.0))
-        {
-            warn!(
-                "Failed to send WebGPURequest::DropTexture({:?}) ({})",
-                self.texture.0, e
-            );
-        };
+        send_request!(self.channel.0, WebGPURequest::DropTexture(self.texture.0));
     }
 }
 
@@ -175,16 +166,15 @@ impl GPUTextureMethods for GPUTexture {
             .wgpu_id_hub()
             .lock()
             .create_texture_view_id(self.device.id().0.backend());
-
-        self.channel
-            .0
-            .send(WebGPURequest::CreateTextureView {
+        send_request!(
+            self.channel.0,
+            WebGPURequest::CreateTextureView {
                 texture_id: self.texture.0,
                 texture_view_id,
                 device_id: self.device.id().0,
                 descriptor: desc,
-            })
-            .expect("Failed to create WebGPU texture view");
+            }
+        );
 
         let texture_view = WebGPUTextureView(texture_view_id);
 
@@ -202,15 +192,13 @@ impl GPUTextureMethods for GPUTexture {
         if self.destroyed.get() {
             return;
         }
-        if let Err(e) = self.channel.0.send(WebGPURequest::DestroyTexture {
-            device_id: self.device.id().0,
-            texture_id: self.texture.0,
-        }) {
-            warn!(
-                "Failed to send WebGPURequest::DestroyTexture({:?}) ({})",
-                self.texture.0, e
-            );
-        };
+        send_request!(
+            self.channel.0,
+            WebGPURequest::DestroyTexture {
+                device_id: self.device.id().0,
+                texture_id: self.texture.0,
+            }
+        );
         self.destroyed.set(true);
     }
 }

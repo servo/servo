@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use webgpu::wgc::command::{compute_commands as wgpu_comp, ComputePass};
-use webgpu::{WebGPU, WebGPURequest};
+use webgpu::{send_request, WebGPU, WebGPURequest};
 
 use super::bindings::error::Fallible;
 use crate::dom::bindings::cell::DomRefCell;
@@ -98,14 +98,13 @@ impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-endpass>
     fn End(&self) -> Fallible<()> {
         let compute_pass = self.compute_pass.borrow_mut().take();
-        self.channel
-            .0
-            .send(WebGPURequest::RunComputePass {
+        send_request!(
+            self.channel.0,
+            WebGPURequest::RunComputePass {
                 command_encoder_id: self.command_encoder.id().0,
                 compute_pass,
-            })
-            .expect("Failed to send RunComputePass"); //TODO: handle error
-
+            }
+        );
         self.command_encoder.set_state(
             GPUCommandEncoderState::Open,
             GPUCommandEncoderState::EncodingComputePass,
