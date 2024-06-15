@@ -15,3 +15,11 @@ dictionary QueuingStrategyInit {
   required unrestricted double highWaterMark;
 };
 
+[Exposed=*]
+interface ByteLengthQueuingStrategy {
+  constructor(QueuingStrategyInit init);
+
+  readonly attribute unrestricted double highWaterMark;
+  readonly attribute Function size;
+};
+
