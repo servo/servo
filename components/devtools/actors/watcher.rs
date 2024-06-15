@@ -9,15 +9,17 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
+use crate::protocol::JsonPacketStream;
 use crate::StreamId;
 
 #[derive(Serialize)]
 pub enum SessionContextType {
     BrowserElement,
-    ContextProcess,
-    WebExtension,
-    Worker,
-    All,
+    _ContextProcess,
+    _WebExtension,
+    _Worker,
+    _All,
 }
 
 #[derive(Serialize)]
@@ -72,6 +74,12 @@ impl SessionContext {
 }
 
 #[derive(Serialize)]
+struct WatchTargetsReply {
+    from: String,
+    target: BrowsingContextActorMsg,
+}
+
+#[derive(Serialize)]
 struct WatcherTraits {
     resources: HashMap<&'static str, bool>,
     #[serde(flatten)]
@@ -86,13 +94,49 @@ pub struct WatcherActorMsg {
 
 pub struct WatcherActor {
     name: String,
+    browsing_context_actor: String,
     session_context: SessionContext,
 }
 
+impl Actor for WatcherActor {
+    fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    fn handle_message(
+        &self,
+        registry: &ActorRegistry,
+        msg_type: &str,
+        _msg: &Map<String, Value>,
+        stream: &mut TcpStream,
+        _id: StreamId,
+    ) -> Result<ActorMessageStatus, ()> {
+        Ok(match msg_type {
+            "watchTargets" => {
+                let target = registry
+                    .find::<BrowsingContextActor>(&self.browsing_context_actor)
+                    .encodable();
+                let _ = stream.write_json_packet(&WatchTargetsReply {
+                    from: self.name(),
+                    target,
+                });
+                ActorMessageStatus::Processed
+            },
+            // TODO: Handle watchResources (!!!)
+            _ => ActorMessageStatus::Ignored,
+        })
+    }
+}
+
 impl WatcherActor {
-    pub fn new(name: String, session_context: SessionContext) -> Self {
+    pub fn new(
+        name: String,
+        browsing_context_actor: String,
+        session_context: SessionContext,
+    ) -> Self {
         Self {
             name,
+            browsing_context_actor,
             session_context,
         }
     }
@@ -105,24 +149,5 @@ impl WatcherActor {
                 targets: self.session_context.supported_targets.clone(),
             },
         }
-    }
-}
-
-impl Actor for WatcherActor {
-    fn name(&self) -> String {
-        self.name.clone()
-    }
-
-    fn handle_message(
-        &self,
-        _registry: &ActorRegistry,
-        msg_type: &str,
-        _msg: &Map<String, Value>,
-        _stream: &mut TcpStream,
-        _id: StreamId,
-    ) -> Result<ActorMessageStatus, ()> {
-        Ok(match msg_type {
-            _ => ActorMessageStatus::Ignored,
-        })
     }
 }

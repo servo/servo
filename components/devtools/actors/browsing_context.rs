@@ -272,6 +272,7 @@ impl BrowsingContextActor {
 
         let watcher = WatcherActor::new(
             actors.new_name("watcher"),
+            name.clone(),
             SessionContext::new(SessionContextType::BrowserElement),
         );
 

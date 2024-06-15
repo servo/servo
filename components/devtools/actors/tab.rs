@@ -121,11 +121,10 @@ impl TabDescriptorActor {
 
     pub fn encodable(&self, registry: &ActorRegistry, selected: bool) -> TabDescriptorActorMsg {
         let ctx_actor = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
-
-        let title = ctx_actor.title.borrow().clone();
-        let url = ctx_actor.url.borrow().clone();
         let browser_id = ctx_actor.active_pipeline.get().index.0.get();
         let browsing_context_id = ctx_actor.browsing_context_id.index.0.get();
+        let title = ctx_actor.title.borrow().clone();
+        let url = ctx_actor.url.borrow().clone();
 
         TabDescriptorActorMsg {
             actor: self.name(),
