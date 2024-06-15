@@ -10,7 +10,7 @@ use serde_json::{Map, Value};
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
 use crate::actors::root::{DescriptorTraits, RootActor};
-use crate::actors::watcher::{SessionContext, SessionContextType, WatcherActor, WatcherActorMsg};
+use crate::actors::watcher::{WatcherActor, WatcherTraits};
 use crate::protocol::JsonPacketStream;
 use crate::StreamId;
 
@@ -50,7 +50,8 @@ struct GetFaviconReply {
 #[derive(Serialize)]
 struct GetWatcherReply {
     from: String,
-    watcher: WatcherActorMsg, // TODO: This may not be right
+    actor: String,
+    traits: WatcherTraits,
 }
 
 pub struct TabDescriptorActor {
@@ -91,17 +92,13 @@ impl Actor for TabDescriptorActor {
                 ActorMessageStatus::Processed
             },
             "getWatcher" => {
-                // TODO: Propperly implement watcher
+                // TODO: Handle watcher message there in encodable
                 let ctx_actor = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
-                let browser_id = ctx_actor.active_pipeline.get().index.0.get();
-                let watcher = WatcherActor::new(
-                    "test".into(),
-                    SessionContext::new(SessionContextType::BrowserElement(browser_id)),
-                )
-                .encodable();
+                let watcher = registry.find::<WatcherActor>(&ctx_actor.watcher);
                 let _ = stream.write_json_packet(&GetWatcherReply {
                     from: self.name(),
-                    watcher,
+                    actor: watcher.name(),
+                    traits: watcher.traits(),
                 });
                 ActorMessageStatus::Processed
             },

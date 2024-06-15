@@ -26,6 +26,7 @@ use crate::actors::stylesheets::StyleSheetsActor;
 use crate::actors::tab::TabDescriptorActor;
 use crate::actors::thread::ThreadActor;
 use crate::actors::timeline::TimelineActor;
+use crate::actors::watcher::{SessionContext, SessionContextType, WatcherActor};
 use crate::protocol::JsonPacketStream;
 use crate::StreamId;
 
@@ -128,6 +129,7 @@ pub(crate) struct BrowsingContextActor {
     pub console: String,
     pub _emulation: String,
     pub _inspector: String,
+    pub watcher: String,
     pub _timeline: String,
     pub _profiler: String,
     pub _performance: String,
@@ -268,6 +270,11 @@ impl BrowsingContextActor {
             browsing_context: name.clone(),
         };
 
+        let watcher = WatcherActor::new(
+            actors.new_name("watcher"),
+            SessionContext::new(SessionContextType::BrowserElement),
+        );
+
         let timeline =
             TimelineActor::new(actors.new_name("timeline"), pipeline, script_sender.clone());
 
@@ -291,6 +298,7 @@ impl BrowsingContextActor {
             console,
             _emulation: emulation.name(),
             _inspector: inspector.name(),
+            watcher: watcher.name(),
             _timeline: timeline.name(),
             _profiler: profiler.name(),
             _performance: performance.name(),
@@ -310,6 +318,7 @@ impl BrowsingContextActor {
         actors.register(Box::new(styleSheets));
         actors.register(Box::new(thread));
         actors.register(Box::new(tabdesc));
+        actors.register(Box::new(watcher));
 
         target
     }
