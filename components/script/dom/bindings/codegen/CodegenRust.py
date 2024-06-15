@@ -3980,13 +3980,7 @@ class CGAbstractStaticBindingMethod(CGAbstractMethod):
 let args = CallArgs::from_vp(vp, argc);
 let global = GlobalScope::from_object(args.callee());
 """
-
-        # Exposure set {'DissimilarOriginWindow', 'Window'} should downcast to Window.
-        # DissimilarOriginWindow is not for external usage.
-        if len(self.exposureSet) == 2 and "Window" in self.exposureSet and "DissimilarOriginWindow" in self.exposureSet:
-            print(self.exposureSet)
-            preamble += "let global = DomRoot::downcast::<dom::types::Window>(global).unwrap();\n"
-        elif len(self.exposureSet) == 1:
+        if len(self.exposureSet) == 1:
             preamble += ("let global = DomRoot::downcast::<dom::types::%s>(global).unwrap();\n" %
                          list(self.exposureSet)[0])
         return CGList([CGGeneric(preamble), self.generate_code()])
@@ -6135,12 +6129,7 @@ class CGClassConstructHook(CGAbstractExternMethod):
 let args = CallArgs::from_vp(vp, argc);
 let global = GlobalScope::from_object(JS_CALLEE(*cx, vp).to_object());
 """
-
-        # Exposure set {'DissimilarOriginWindow', 'Window'} should downcast to Window.
-        # DissimilarOriginWindow is not for external usage.
-        if len(self.exposureSet) == 2 and "Window" in self.exposureSet and "DissimilarOriginWindow" in self.exposureSet:
-            preamble += "let global = DomRoot::downcast::<dom::types::Window>(global).unwrap();\n"
-        elif len(self.exposureSet) == 1:
+        if len(self.exposureSet) == 1:
             preamble += """\
 let global = DomRoot::downcast::<dom::types::%s>(global).unwrap();
 """ % list(self.exposureSet)[0]
