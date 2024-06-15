@@ -2258,6 +2258,10 @@ class CGImports(CGWrapper):
         descriptorProvider = config.getDescriptorProvider()
         extras = []
         for t in types:
+            # Importing these callbacks in the same module that defines them is an error.
+            if t.isCallback():
+                if getIdentifier(t) in [c.identifier for c in callbacks]:
+                    continue
             # Importing these types in the same module that defines them is an error.
             if t in dictionaries or t in enums:
                 continue
