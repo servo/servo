@@ -55,7 +55,7 @@ jobs:
         run: sudo apt update && python3 ./mach bootstrap
       - name: Setup OpenHarmony SDK
         id: setup_sdk
-        uses: openharmony-rs/ohos-sdk@v0.1
+        uses: openharmony-rs/setup-ohos-sdk@v0.1
         with:
           version: "4.1"
       - name: Build (arch ${{ matrix.arch }} profile ${{ inputs.profile }})
