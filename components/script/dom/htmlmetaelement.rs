@@ -85,8 +85,15 @@ impl HTMLMetaElement {
             if name == "referrer" {
                 self.apply_referrer();
             }
+        // https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv
         } else if !self.HttpEquiv().is_empty() {
-            self.declarative_refresh();
+            // TODO: Implement additional http-equiv candidates
+            match self.HttpEquiv().to_ascii_lowercase().as_str() {
+                "refresh" => {
+                    self.declarative_refresh();
+                },
+                _ => {},
+            }
         }
     }
 
