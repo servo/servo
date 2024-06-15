@@ -1,3 +1,6 @@
+import WebIDL
+
+
 def WebIDLTest(parser, harness):
     parser.parse(
         """
@@ -95,7 +98,7 @@ def WebIDLTest(parser, harness):
         )
 
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw,
@@ -118,7 +121,7 @@ def WebIDLTest(parser, harness):
         )
 
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw,
@@ -141,7 +144,7 @@ def WebIDLTest(parser, harness):
         )
 
         results = parser.finish()
-    except Exception as x:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw,
@@ -164,7 +167,7 @@ def WebIDLTest(parser, harness):
         )
 
         results = parser.finish()
-    except Exception as x:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw,
@@ -210,7 +213,7 @@ def WebIDLTest(parser, harness):
         )
 
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(
@@ -240,7 +243,7 @@ def WebIDLTest(parser, harness):
         )
 
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(
@@ -270,7 +273,7 @@ def WebIDLTest(parser, harness):
         )
 
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(
@@ -305,7 +308,7 @@ def WebIDLTest(parser, harness):
         )
 
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(threw, "Should have thrown for static [LegacyUnforgeable] attribute.")

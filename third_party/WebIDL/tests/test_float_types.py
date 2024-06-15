@@ -55,7 +55,7 @@ def WebIDLTest(parser, harness):
     method = iface.members[6]
     harness.ok(isinstance(method, WebIDL.IDLMethod), "Should be an IDLMethod")
     argtypes = [a.type for a in method.signatures()[0][1]]
-    for (idx, type) in enumerate(argtypes):
+    for idx, type in enumerate(argtypes):
         harness.ok(type.isFloat(), "Type %d should be float" % idx)
         harness.check(
             type.isUnrestricted(),
@@ -74,7 +74,7 @@ def WebIDLTest(parser, harness):
             };
         """
         )
-    except Exception as x:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "[LenientFloat] only allowed on methods returning undefined")
 
@@ -89,7 +89,7 @@ def WebIDLTest(parser, harness):
             };
         """
         )
-    except Exception as x:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw, "[LenientFloat] only allowed on methods with unrestricted float args"
@@ -106,7 +106,7 @@ def WebIDLTest(parser, harness):
             };
         """
         )
-    except Exception as x:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw, "[LenientFloat] only allowed on methods with unrestricted float args (2)"
@@ -123,7 +123,7 @@ def WebIDLTest(parser, harness):
             };
         """
         )
-    except Exception as x:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw, "[LenientFloat] only allowed on methods with unrestricted float args (3)"
@@ -140,6 +140,6 @@ def WebIDLTest(parser, harness):
             };
         """
         )
-    except Exception as x:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "[LenientFloat] only allowed on writable attributes")

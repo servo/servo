@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import WebIDL
+
 
 def should_throw(parser, harness, message, code):
     parser = parser.reset()
@@ -9,7 +11,7 @@ def should_throw(parser, harness, message, code):
     try:
         parser.parse(code)
         parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(threw, "Should have thrown: %s" % message)

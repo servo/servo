@@ -41,11 +41,17 @@ def WebIDLTest(parser, harness):
     )
     harness.ok(
         results[0].members[3].getExtendedAttribute("SecureContext"),
-        "[SecureContext] should propagate from interface to constant members from partial interface",
+        (
+            "[SecureContext] should propagate from interface to "
+            "constant members from partial interface"
+        ),
     )
     harness.ok(
         results[0].members[4].getExtendedAttribute("SecureContext"),
-        "[SecureContext] should propagate from interface to attribute members from partial interface",
+        (
+            "[SecureContext] should propagate from interface to "
+            "attribute members from partial interface"
+        ),
     )
     harness.ok(
         results[0].members[5].getExtendedAttribute("SecureContext"),
@@ -93,15 +99,24 @@ def WebIDLTest(parser, harness):
     )
     harness.ok(
         results[1].members[3].getExtendedAttribute("SecureContext"),
-        "[SecureContext] should propagate from interface to constant members from partial interface",
+        (
+            "[SecureContext] should propagate from interface to constant members from "
+            "partial interface"
+        ),
     )
     harness.ok(
         results[1].members[4].getExtendedAttribute("SecureContext"),
-        "[SecureContext] should propagate from interface to attribute members from partial interface",
+        (
+            "[SecureContext] should propagate from interface to attribute members from "
+            "partial interface"
+        ),
     )
     harness.ok(
         results[1].members[5].getExtendedAttribute("SecureContext"),
-        "[SecureContext] should propagate from interface to method members from partial interface",
+        (
+            "[SecureContext] should propagate from interface to method members from partial "
+            "interface"
+        ),
     )
 
     parser = parser.reset()
@@ -132,15 +147,24 @@ def WebIDLTest(parser, harness):
     )
     harness.ok(
         results[0].members[0].getExtendedAttribute("SecureContext") is None,
-        "[SecureContext] should not propagate from a partial interface to the interface's constant members",
+        (
+            "[SecureContext] should not propagate from a partial interface to the interface's "
+            "constant members"
+        ),
     )
     harness.ok(
         results[0].members[1].getExtendedAttribute("SecureContext") is None,
-        "[SecureContext] should not propagate from a partial interface to the interface's attribute members",
+        (
+            "[SecureContext] should not propagate from a partial interface to the interface's "
+            "attribute members"
+        ),
     )
     harness.ok(
         results[0].members[2].getExtendedAttribute("SecureContext") is None,
-        "[SecureContext] should not propagate from a partial interface to the interface's method members",
+        (
+            "[SecureContext] should not propagate from a partial interface to the interface's "
+            "method members"
+        ),
     )
     harness.ok(
         results[0].members[3].getExtendedAttribute("SecureContext"),
@@ -297,7 +321,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "[SecureContext] must take no arguments (testing on interface)")
 
@@ -316,11 +340,14 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw,
-        "If [SecureContext] appears on an overloaded operation, then it MUST appear on all overloads",
+        (
+            "If [SecureContext] appears on an overloaded operation, then it MUST appear on all "
+            "overloads"
+        ),
     )
 
     parser = parser.reset()
@@ -339,7 +366,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         not threw,
@@ -359,7 +386,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw, "[SecureContext] must not appear on an interface and interface member"
@@ -380,11 +407,14 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw,
-        "[SecureContext] must not appear on a partial interface and one of the partial interface's member's",
+        (
+            "[SecureContext] must not appear on a partial interface and one of the partial "
+            "interface's member's"
+        ),
     )
 
     parser = parser.reset()
@@ -402,11 +432,14 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw,
-        "[SecureContext] must not appear on an interface and one of its partial interface's member's",
+        (
+            "[SecureContext] must not appear on an interface and one of its partial interface's "
+            "member's"
+        ),
     )
 
     parser = parser.reset()
@@ -423,11 +456,14 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw,
-        "[SecureContext] must appear on interfaces that inherit from another [SecureContext] interface",
+        (
+            "[SecureContext] must appear on interfaces that inherit from another [SecureContext] "
+            "interface"
+        ),
     )
 
     # Test 'includes'.
@@ -450,7 +486,10 @@ def WebIDLTest(parser, harness):
     harness.check(
         len(results[0].members),
         4,
-        "TestSecureContextInterfaceThatImplementsNonSecureContextInterface should have four members",
+        (
+            "TestSecureContextInterfaceThatImplementsNonSecureContextInterface should have four "
+            "members"
+        ),
     )
     harness.ok(
         results[0].getExtendedAttribute("SecureContext"),
@@ -458,7 +497,10 @@ def WebIDLTest(parser, harness):
     )
     harness.ok(
         results[0].members[0].getExtendedAttribute("SecureContext"),
-        "[SecureContext] should propagate from interface to constant members even when other members are copied from a non-[SecureContext] interface",
+        (
+            "[SecureContext] should propagate from interface to constant members even when other "
+            "members are copied from a non-[SecureContext] interface"
+        ),
     )
     harness.ok(
         results[0].members[1].getExtendedAttribute("SecureContext") is None,

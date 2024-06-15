@@ -105,13 +105,17 @@ def checkEquivalent(iface, harness):
         if callable(a1):
             try:
                 v1 = a1()
-            except:
-                # Can't call a1 with no args, so skip this attriute.
+            except AssertionError:
+                # Various methods assert that they're called on objects of
+                # the right type, skip them if the assert fails.
+                continue
+            except TypeError:
+                # a1 requires positional arguments, so skip this attribute.
                 continue
 
             try:
                 a2 = getattr(type2, attr)
-            except:
+            except WebIDL.WebIDLError:
                 harness.ok(
                     False,
                     "Missing %s attribute on type %s in %s" % (attr, type2, iface),
@@ -131,7 +135,7 @@ def checkEquivalent(iface, harness):
         else:
             try:
                 a2 = getattr(type2, attr)
-            except:
+            except WebIDL.WebIDLError:
                 harness.ok(
                     False,
                     "Missing %s attribute on type %s in %s" % (attr, type2, iface),

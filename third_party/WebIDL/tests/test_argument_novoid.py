@@ -6,8 +6,8 @@ def WebIDLTest(parser, harness):
     try:
         parser.parse(
             """
-            interface DoubleNull {
-              attribute byte?? foo;
+            interface VoidArgument1 {
+              void foo(void arg2);
             };
         """
         )

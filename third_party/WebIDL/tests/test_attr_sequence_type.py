@@ -1,3 +1,6 @@
+import WebIDL
+
+
 def WebIDLTest(parser, harness):
     threw = False
     try:
@@ -9,8 +12,8 @@ def WebIDLTest(parser, harness):
         """
         )
 
-        results = parser.finish()
-    except:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(threw, "Attribute type must not be a sequence type")
@@ -27,8 +30,8 @@ def WebIDLTest(parser, harness):
         """
         )
 
-        results = parser.finish()
-    except:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(threw, "Attribute type must not be a union with a sequence member type")
@@ -45,8 +48,8 @@ def WebIDLTest(parser, harness):
         """
         )
 
-        results = parser.finish()
-    except:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(
@@ -59,15 +62,15 @@ def WebIDLTest(parser, harness):
     threw = False
     try:
         parser.parse(
-            """
-            interface AttrUnionWithUnionWithSequenceType {
-              attribute ((sequence<object> or DOMString) or AttrUnionWithUnionWithSequenceType) foo;
-            };
-        """
+            "\n"
+            "    interface AttrUnionWithUnionWithSequenceType {\n"
+            "      attribute ((sequence<object> or DOMString) or "
+            "AttrUnionWithUnionWithSequenceType) foo;\n"
+            "    };\n"
         )
 
-        results = parser.finish()
-    except:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(

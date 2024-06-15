@@ -46,7 +46,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::{
     XMLHttpRequestMethods, XMLHttpRequestResponseType,
 };
-use crate::dom::bindings::codegen::UnionTypes::DocumentOrXMLHttpRequestBodyInit;
+use crate::dom::bindings::codegen::UnionTypes::DocumentOrBlobOrArrayBufferViewOrArrayBufferOrFormDataOrStringOrURLSearchParams as DocumentOrXMLHttpRequestBodyInit;
 use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;

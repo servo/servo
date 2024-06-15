@@ -90,7 +90,7 @@ def WebIDLTest(parser, harness):
         )
 
         sigpairs = zip(method.signatures(), signatures)
-        for (gotSignature, expectedSignature) in sigpairs:
+        for gotSignature, expectedSignature in sigpairs:
             (gotRetType, gotArgs) = gotSignature
             (expectedRetType, expectedArgs) = expectedSignature
 
@@ -267,7 +267,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except Exception as x:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(not threw, "Should allow integer to float type corecion")
 
@@ -282,7 +282,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except Exception as x:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should not allow [GetterThrows] on methods")
 
@@ -297,7 +297,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except Exception as x:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should not allow [SetterThrows] on methods")
 
@@ -312,7 +312,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except Exception as x:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should spell [Throws] correctly on methods")
 
@@ -327,7 +327,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except Exception as x:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should not allow __noSuchMethod__ methods")
 
@@ -345,7 +345,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except Exception as x:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(not threw, "Should allow LenientFloat to be only in a specific overload")
 
@@ -383,7 +383,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except Exception as x:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw,
@@ -404,7 +404,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except Exception as x:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw,
@@ -425,6 +425,6 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except Exception as x:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should prevent overloads from getting redundant [LenientFloat]")

@@ -155,7 +155,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw, "Should not allow two non-partial interface mixins with the same name"
@@ -175,7 +175,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Must have a non-partial interface mixin for a given name")
 
@@ -193,7 +193,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw,
@@ -215,7 +215,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw,
@@ -234,7 +234,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw,
@@ -254,7 +254,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw, "Should not allow unknown extended attributes on interface mixins"
@@ -271,7 +271,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should not allow getters on interface mixins")
 
@@ -286,7 +286,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should not allow setters on interface mixins")
 
@@ -301,7 +301,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should not allow deleters on interface mixins")
 
@@ -316,7 +316,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should not allow legacycallers on interface mixins")
 
@@ -331,7 +331,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should not allow inherited attribute on interface mixins")
 
@@ -348,7 +348,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should fail if the right side does not point an interface mixin")
 
@@ -365,7 +365,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should fail if the left side does not point an interface")
 
@@ -380,7 +380,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should fail if an interface mixin includes iterable")
 
@@ -395,7 +395,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should fail if an interface mixin includes setlike")
 
@@ -410,7 +410,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should fail if an interface mixin includes maplike")
 
@@ -429,7 +429,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw, "Should fail if the included mixin interface has duplicated member"
@@ -452,7 +452,7 @@ def WebIDLTest(parser, harness):
         """
         )
         results = parser.finish()
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw, "Should fail if the included mixin interfaces have duplicated member"
@@ -461,8 +461,8 @@ def WebIDLTest(parser, harness):
     parser = parser.reset()
     parser.parse(
         """
-        [Global, Exposed=Window] interface Window {};
-        [Global, Exposed=Worker] interface Worker {};
+        [Global=Window, Exposed=Window] interface Window {};
+        [Global=Worker, Exposed=Worker] interface Worker {};
         [Exposed=Window]
         interface Base {};
         interface mixin Mixin {
@@ -483,8 +483,8 @@ def WebIDLTest(parser, harness):
     parser = parser.reset()
     parser.parse(
         """
-        [Global, Exposed=Window] interface Window {};
-        [Global, Exposed=Worker] interface Worker {};
+        [Global=Window, Exposed=Window] interface Window {};
+        [Global=Worker, Exposed=Worker] interface Worker {};
         [Exposed=Window]
         interface Base {};
         [Exposed=Window]
@@ -504,8 +504,8 @@ def WebIDLTest(parser, harness):
     parser = parser.reset()
     parser.parse(
         """
-        [Global, Exposed=Window] interface Window {};
-        [Global, Exposed=Worker] interface Worker {};
+        [Global=Window, Exposed=Window] interface Window {};
+        [Global=Worker, Exposed=Worker] interface Worker {};
         [Exposed=Window]
         interface Base1 {};
         [Exposed=Worker]

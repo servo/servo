@@ -79,7 +79,7 @@ def WebIDLTest(parser, harness):
               };
         """
         )
-        results2 = parser.finish()
+        parser.finish()
     except WebIDL.WebIDLError as e:
         harness.ok(
             False,
@@ -96,7 +96,7 @@ def WebIDLTest(parser, harness):
         };
         """
         )
-        results3 = parser.finish()
+        parser.finish()
     except WebIDL.WebIDLError as e:
         harness.ok(
             False,
@@ -114,8 +114,8 @@ def WebIDLTest(parser, harness):
         };
         """
         )
-        results4 = parser.finish()
-    except WebIDL.WebIDLError as e:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(
