@@ -239,7 +239,6 @@ impl Actor for RootActor {
                 ActorMessageStatus::Processed
             },
 
-            // TODO: Unexpected message getWatcher for tab (when inspecting)
             "getTab" => {
                 let Some(serde_json::Value::Number(browser_id)) = msg.get("browserId") else {
                     return Ok(ActorMessageStatus::Ignored);

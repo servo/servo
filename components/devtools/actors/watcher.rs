@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![allow(dead_code)] // TODO: Remove this
-
 use std::collections::HashMap;
 use std::net::TcpStream;
 
@@ -28,14 +26,20 @@ pub struct SessionContext {
     is_server_target_switching_enabled: bool,
     supported_targets: HashMap<&'static str, bool>,
     supported_resources: HashMap<&'static str, bool>,
-    r#type: SessionContextType,
+    context_type: SessionContextType,
 }
 
 impl SessionContext {
-    pub fn new(r#type: SessionContextType) -> Self {
+    pub fn new(context_type: SessionContextType) -> Self {
         Self {
             is_server_target_switching_enabled: false,
-            supported_targets: HashMap::new(), // TODO: Fill this
+            supported_targets: HashMap::from([
+                ("frame", true),
+                ("process", true),
+                ("worker", true),
+                ("service_worker", true),
+                ("shared_worker", true),
+            ]),
             supported_resources: HashMap::from([
                 ("console-message", true),
                 ("css-change", true),
@@ -62,25 +66,22 @@ impl SessionContext {
                 ("jstracer-state", true),
                 ("last-private-context-exit", true),
             ]),
-            r#type,
+            context_type,
         }
     }
 }
 
-/*
-{"actor":"server1.conn0.watcher42",
- "traits":{"frame":true,"process":true,"worker":true,"service_worker":true,"resources":{"console-message":true,"css-change":true,"css-message":true,"css-registered-properties":true,"document-event":true,"Cache":true,"cookies":true,"error-message":true,"extension-storage":true,"indexed-db":true,"local-storage":true,"session-storage":true,"platform-message":true,"network-event":true,"network-event-stacktrace":true,"reflow":true,"stylesheet":true,"source":true,"thread-state":true,"server-sent-event":true,"websocket":true,"jstracer-trace":true,"jstracer-state":true,"last-private-context-exit":true}},
- "from":"server1.conn0.tabDescriptor11"}
- */
+#[derive(Serialize)]
+struct WatcherTraits {
+    resources: HashMap<&'static str, bool>,
+    #[serde(flatten)]
+    targets: HashMap<&'static str, bool>,
+}
 
 #[derive(Serialize)]
-pub struct WatcherTraits {
-    resources: HashMap<&'static str, bool>,
-    frame: bool,
-    process: bool,
-    worker: bool,
-    service_worker: bool,
-    // shared_worker: bool,
+pub struct WatcherActorMsg {
+    actor: String,
+    traits: WatcherTraits,
 }
 
 pub struct WatcherActor {
@@ -96,14 +97,13 @@ impl WatcherActor {
         }
     }
 
-    // TODO: Change this for encodable and handle message here
-    pub fn traits(&self) -> WatcherTraits {
-        WatcherTraits {
-            resources: self.session_context.supported_resources.clone(),
-            frame: true,
-            process: true,
-            worker: true,
-            service_worker: true,
+    pub fn encodable(&self) -> WatcherActorMsg {
+        WatcherActorMsg {
+            actor: self.name(),
+            traits: WatcherTraits {
+                resources: self.session_context.supported_resources.clone(),
+                targets: self.session_context.supported_targets.clone(),
+            },
         }
     }
 }
