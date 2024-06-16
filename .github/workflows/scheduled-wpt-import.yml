@@ -42,7 +42,7 @@ jobs:
           python3 ./mach bootstrap
       - name: Add upstream remote
         run: |
-          git config --local user.email "josh+wptsync@joshmatthews.net"
+          git config --local user.email "ghbot+wpt-sync@servo.org"
           git config --local user.name "WPT Sync Bot"
           git remote add upstream https://github.com/servo/servo.git
           git fetch --unshallow upstream
