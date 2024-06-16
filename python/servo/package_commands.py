@@ -143,7 +143,7 @@ class PackageCommands(CommandBase):
                      action='store_true',
                      help='Create a local Maven repository')
     @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
-    def package(self, build_type: BuildType, android=None, target=None, flavor=None, maven=False):
+    def package(self, build_type: BuildType, android=None, target=None, flavor=None, maven=False, with_asan=False):
         if android is None:
             android = self.config["build"]["android"]
         if target and android:
@@ -156,7 +156,7 @@ class PackageCommands(CommandBase):
 
         self.cross_compile_target = target
         env = self.build_env()
-        binary_path = self.get_binary_path(build_type, target=target, android=android)
+        binary_path = self.get_binary_path(build_type, target=target, android=android, asan=with_asan)
         dir_to_root = self.get_top_dir()
         target_dir = path.dirname(binary_path)
         if android:
@@ -382,7 +382,7 @@ class PackageCommands(CommandBase):
                      default=None,
                      help='Install the given target platform')
     @CommandBase.common_command_arguments(build_configuration=False, build_type=True)
-    def install(self, build_type: BuildType, android=False, emulator=False, usb=False, target=None):
+    def install(self, build_type: BuildType, android=False, emulator=False, usb=False, target=None, with_asan=False):
         if target and android:
             print("Please specify either --target or --android.")
             sys.exit(1)
@@ -392,7 +392,7 @@ class PackageCommands(CommandBase):
 
         env = self.build_env()
         try:
-            binary_path = self.get_binary_path(build_type, android=android)
+            binary_path = self.get_binary_path(build_type, android=android, asan=with_asan)
         except BuildNotFound:
             print("Servo build not found. Building servo...")
             result = Registrar.dispatch(
@@ -401,7 +401,7 @@ class PackageCommands(CommandBase):
             if result:
                 return result
             try:
-                binary_path = self.get_binary_path(build_type, android=android)
+                binary_path = self.get_binary_path(build_type, android=android, asan=with_asan)
             except BuildNotFound:
                 print("Rebuilding Servo did not solve the missing build problem.")
                 return 1

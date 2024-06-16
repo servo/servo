@@ -331,7 +331,10 @@ class CommandBase(object):
         apk_name = "servoapp.apk"
         return path.join(base_path, build_type.directory_name(), apk_name)
 
-    def get_binary_path(self, build_type: BuildType, target=None, android=False):
+    def get_binary_path(self, build_type: BuildType, target=None, android=False, asan=False):
+        if target is None and asan:
+            target = servo.platform.host_triple()
+
         base_path = util.get_target_dir()
         if android:
             base_path = path.join(base_path, self.config["android"]["target"])
@@ -343,7 +346,11 @@ class CommandBase(object):
         binary_path = path.join(base_path, build_type.directory_name(), binary_name)
 
         if not path.exists(binary_path):
-            raise BuildNotFound('No Servo binary found. Perhaps you forgot to run `./mach build`?')
+            if target is None:
+                print("WARNING: Fallback to host-triplet prefixed target dirctory for binary path.")
+                return self.get_binary_path(build_type, target=servo.platform.host_triple(), android=android)
+            else:
+                raise BuildNotFound('No Servo binary found. Perhaps you forgot to run `./mach build`?')
         return binary_path
 
     def detach_volume(self, mounted_volume):
@@ -664,6 +671,7 @@ class CommandBase(object):
                                 help='Build in release mode without debug assertions'),
                 CommandArgument('--profile', group="Build Type",
                                 help='Build with custom Cargo profile'),
+                CommandArgument('--with-asan', action='store_true', help="Build with AddressSanitizer")
             ]
 
         if build_configuration:
@@ -825,6 +833,7 @@ class CommandBase(object):
         env=None, verbose=False,
         debug_mozjs=False, with_debug_assertions=False,
         with_frame_pointer=False, without_wgl=False,
+        target_override: Optional[str] = None,
         **_kwargs
     ):
         env = env or self.build_env()
@@ -850,7 +859,9 @@ class CommandBase(object):
                 "--manifest-path",
                 path.join(self.context.topdir, "ports", port, "Cargo.toml"),
             ]
-        if self.cross_compile_target:
+        if target_override:
+            args += ["--target", target_override]
+        elif self.cross_compile_target:
             args += ["--target", self.cross_compile_target]
 
         if "-p" not in cargo_args:  # We're building specific package, that may not have features
