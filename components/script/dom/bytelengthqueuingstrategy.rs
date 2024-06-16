@@ -1,6 +1,11 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::jsapi::JS_NewFunction;
 use js::rust::HandleObject;
 
 use super::{
@@ -9,7 +14,7 @@ use super::{
             FunctionBinding::Function,
             QueuingStrategyBinding::{ByteLengthQueuingStrategyMethods, QueuingStrategyInit},
         },
-        import::module::{DomRoot, Reflector},
+        import::module::{DomRoot, Fallible, Reflector},
         reflector::reflect_dom_object_with_proto,
     },
     types::GlobalScope,
@@ -50,7 +55,7 @@ impl ByteLengthQueuingStrategyMethods for ByteLengthQueuingStrategy {
         self.high_water_mark
     }
 
-    fn Size(&self) -> Rc<Function> {
+    fn GetSize(&self) -> Fallible<Rc<Function>> {
         todo!()
     }
 }
