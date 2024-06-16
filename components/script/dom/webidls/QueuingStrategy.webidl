@@ -23,3 +23,10 @@ interface ByteLengthQueuingStrategy {
   readonly attribute Function size;
 };
 
+[Exposed=*]
+interface CountQueuingStrategy {
+  constructor(QueuingStrategyInit init);
+
+  readonly attribute unrestricted double highWaterMark;
+  readonly attribute Function size;
+};
