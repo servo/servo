@@ -2,27 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::{ffi::c_char, rc::Rc};
+use std::ffi::c_char;
+use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::{
-    gc::{HandleValue, MutableHandleValue},
-    jsapi::{CallArgs, JSContext, JS_GetFunctionObject, JS_NewFunction},
-    jsval::JSVal,
-    rust::HandleObject,
-};
+use js::gc::{HandleValue, MutableHandleValue};
+use js::jsapi::{CallArgs, JSContext, JS_GetFunctionObject, JS_NewFunction};
+use js::jsval::JSVal;
+use js::rust::HandleObject;
 
-use super::{
-    bindings::{
-        codegen::Bindings::{
-            FunctionBinding::Function,
-            QueuingStrategyBinding::{ByteLengthQueuingStrategyMethods, QueuingStrategyInit},
-        },
-        import::module::{get_dictionary_property, DomObject, DomRoot, Fallible, Reflector},
-        reflector::reflect_dom_object_with_proto,
-    },
-    types::GlobalScope,
+use super::bindings::codegen::Bindings::FunctionBinding::Function;
+use super::bindings::codegen::Bindings::QueuingStrategyBinding::{
+    ByteLengthQueuingStrategyMethods, QueuingStrategyInit,
 };
+use super::bindings::import::module::{
+    get_dictionary_property, DomObject, DomRoot, Fallible, Reflector,
+};
+use super::bindings::reflector::reflect_dom_object_with_proto;
+use super::types::GlobalScope;
 
 #[dom_struct]
 pub struct ByteLengthQueuingStrategy {
