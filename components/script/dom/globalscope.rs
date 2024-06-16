@@ -347,6 +347,13 @@ pub struct GlobalScope {
     /// Is considered in a secure context
     inherited_secure_context: Option<bool>,
 
+    /// The byte length queuing strategy size function that will be initialized once
+    /// `size` getter of `ByteLengthQueuingStrategy` is called.
+    ///
+    /// <https://streams.spec.whatwg.org/#byte-length-queuing-strategy-size-function>
+    #[ignore_malloc_size_of = "Rc<T> is hard"]
+    byte_length_queuing_strategy_size_function: OnceCell<Rc<Function>>,
+
     /// The count queuing strategy size function that will be initialized once
     /// `size` getter of `CountQueuingStrategy` is called.
     ///
@@ -813,6 +820,7 @@ impl GlobalScope {
             console_count_map: Default::default(),
             dynamic_modules: DomRefCell::new(DynamicModuleList::new()),
             inherited_secure_context,
+            byte_length_queuing_strategy_size_function: OnceCell::new(),
             count_queuing_strategy_size_function: OnceCell::new(),
         }
     }
@@ -3274,6 +3282,21 @@ impl GlobalScope {
 
     pub(crate) fn dynamic_module_list(&self) -> RefMut<DynamicModuleList> {
         self.dynamic_modules.borrow_mut()
+    }
+
+    pub(crate) fn set_byte_length_queuing_strategy_size(&self, function: Rc<Function>) {
+        if let Err(_) = self
+            .byte_length_queuing_strategy_size_function
+            .set(function)
+        {
+            warn!("byte length queuing strategy size function is set twice.");
+        };
+    }
+
+    pub(crate) fn get_byte_length_queuing_strategy_size(&self) -> Option<Rc<Function>> {
+        self.byte_length_queuing_strategy_size_function
+            .get()
+            .map(|s| s.clone())
     }
 
     pub(crate) fn set_count_queuing_strategy_size(&self, function: Rc<Function>) {
