@@ -1,0 +1,56 @@
+use std::rc::Rc;
+
+use dom_struct::dom_struct;
+use js::rust::HandleObject;
+
+use super::{
+    bindings::{
+        codegen::Bindings::{
+            FunctionBinding::Function,
+            QueuingStrategyBinding::{CountQueuingStrategyMethods, QueuingStrategyInit},
+        },
+        import::module::{DomRoot, Reflector},
+        reflector::reflect_dom_object_with_proto,
+    },
+    types::GlobalScope,
+};
+
+#[dom_struct]
+pub struct CountQueuingStrategy {
+    reflector_: Reflector,
+    high_water_mark: f64,
+}
+
+#[allow(non_snake_case)]
+impl CountQueuingStrategy {
+    // https://streams.spec.whatwg.org/#cqs-constructor
+    pub fn Constructor(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        init: &QueuingStrategyInit,
+    ) -> DomRoot<Self> {
+        Self::new(global, proto, init.highWaterMark)
+    }
+
+    pub fn new_inherited(init: f64) -> Self {
+        Self {
+            reflector_: Reflector::new(),
+            high_water_mark: init,
+        }
+    }
+
+    pub fn new(global: &GlobalScope, proto: Option<HandleObject>, init: f64) -> DomRoot<Self> {
+        reflect_dom_object_with_proto(Box::new(Self::new_inherited(init)), global, proto)
+    }
+}
+
+impl CountQueuingStrategyMethods for CountQueuingStrategy {
+    // https://streams.spec.whatwg.org/#cqs-high-water-mark
+    fn HighWaterMark(&self) -> f64 {
+        self.high_water_mark
+    }
+
+    fn Size(&self) -> Rc<Function> {
+        todo!()
+    }
+}
