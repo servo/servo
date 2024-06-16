@@ -4,8 +4,8 @@ How to use pytest with an existing test suite
 ==============================================
 
 Pytest can be used with most existing test suites, but its
-behavior differs from other test runners such as :ref:`nose <noseintegration>` or
-Python's default unittest framework.
+behavior differs from other test runners such as Python's
+default unittest framework.
 
 Before using this section you will want to :ref:`install pytest <getstarted>`.
 

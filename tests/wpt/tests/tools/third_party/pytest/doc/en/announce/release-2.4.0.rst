@@ -181,7 +181,7 @@ Bug fixes:
   partially failed (finalizers would not always be called before)
 
 - fix issue320 - fix class scope for fixtures when mixed with
-  module-level functions.  Thanks Anatloy Bubenkoff.
+  module-level functions.  Thanks Anatoly Bubenkoff.
 
 - you can specify "-q" or "-qq" to get different levels of "quieter"
   reporting (thanks Katarzyna Jachim)

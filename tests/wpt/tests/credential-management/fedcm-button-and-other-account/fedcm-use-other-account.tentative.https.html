@@ -41,7 +41,8 @@ fedcm_test(async t => {
   type = await fedcm_get_dialog_type_promise(t);
   assert_equals(type, "AccountChooser");
 
-  await window.test_driver.select_fedcm_account(1);
+  // Select the first account, which is the most recently signed in account.
+  await window.test_driver.select_fedcm_account(0);
   const cred = await cred_promise;
   assert_equals(cred.token, "account_id=jane_doe");
 }, 'Test that the "Use Other Account" button works correctly.');

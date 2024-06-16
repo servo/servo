@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Display: reading-order-items with value flex-flow</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-order-items">
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='../../resources/shadow-dom.js'></script>
+<script src="../../resources/focus-utils.js"></script>
+
+<style>
+.wrapper button:nth-child(3) {
+    order: -1;
+}
+
+.wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    reading-order-items: flex-flow;
+}
+</style>
+
+<div class="test-case" data-expect="C1,A1,B1,D1,E1"
+      data-description="Flex items in flexbox should follow flex-flow reading order">
+  <div class="wrapper" style="width: 200px">
+    <button id="A1">Item A</button>
+    <button id="B1">Item B</button>
+    <button id="C1">Item C</button>
+    <button id="D1">Item D</button>
+    <button id="E1">Item E</button>
+  </div>
+</div>
+
+<div class="test-case" data-expect="C2,A2,B2,D2,E2"
+      data-description="Flex items in rtl flexbox should follow flex-flow reading order">
+  <div class="wrapper" style="width: 200px; direction: rtl">
+    <button id="A2">Item A</button>
+    <button id="B2">Item B</button>
+    <button id="C2">Item C</button>
+    <button id="D2">Item D</button>
+    <button id="E2">Item E</button>
+  </div>
+</div>
+
+<div class="test-case" data-expect="C3,A3,B3,D3,E3"
+      data-description="Flex items in vertical-lr flexbox should follow flex-flow reading order">
+  <div class="wrapper" style="height: 200px; writing-mode: vertical-lr">
+    <button id="A3">Item A</button>
+    <button id="B3">Item B</button>
+    <button id="C3">Item C</button>
+    <button id="D3">Item D</button>
+    <button id="E3">Item E</button>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

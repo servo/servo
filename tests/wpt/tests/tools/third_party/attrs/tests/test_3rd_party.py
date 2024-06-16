@@ -14,12 +14,12 @@ from .strategies import simple_classes
 cloudpickle = pytest.importorskip("cloudpickle")
 
 
-class TestCloudpickleCompat(object):
+class TestCloudpickleCompat:
     """
     Tests for compatibility with ``cloudpickle``.
     """
 
-    @given(simple_classes())
+    @given(simple_classes(cached_property=False))
     def test_repr(self, cls):
         """
         attrs instances can be pickled and un-pickled with cloudpickle.

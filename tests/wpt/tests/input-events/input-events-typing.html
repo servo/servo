@@ -126,6 +126,53 @@ promise_test(async function() {
     assert_equals(beforeInputEvent.data, inputEvent.data);
 }, 'It triggers beforeinput and input events on typing BACK_SPACE with pre-existing content');
 
+promise_test(async function () {
+    this.add_cleanup(resetRich);
+    rich.innerHTML = '<p>Preexisting <i id="caret">c</i>ontent</p>';
+
+    const expectedResult = [
+        // Remove selected text with Backspace
+        'deleteContentBackward',
+        // Remove selected text with Delete
+        'deleteContentForward'
+    ];
+    const result = [];
+
+    rich.addEventListener("input", (inputEvent) => {
+      result.push(inputEvent.inputType);
+    });
+
+    const modifierKey = navigator.platform === "MacIntel" ? '\u2318' : '\uE009';
+
+    // Click before "content"
+    await test_driver.click(document.querySelector('#caret')); // Preexisting |content
+    // Select text to the left
+    await new test_driver.Actions()
+        .keyDown(modifierKey)
+        .keyDown('\uE008') // Shift
+        .keyDown('\uE012') // Arrow Left
+        .keyUp('\uE012')
+        .keyUp('\uE008')
+        .keyUp(modifierKey)
+        .send(); // |Preexisting ^content
+    // Backspace
+    await test_driver.send_keys(rich, "\uE003"); // |content
+    // Select text to the right
+    await new test_driver.Actions()
+        .keyDown(modifierKey)
+        .keyDown('\uE008') // Shift
+        .keyDown('\uE014') // Arrow Right
+        .keyUp('\uE012')
+        .keyUp('\uE008')
+        .keyUp(modifierKey)
+        .send(); // ^content|
+    // Delete
+    await test_driver.send_keys(rich, "\uE017"); // |
+
+    assert_equals(expectedResult.length, result.length);
+    expectedResult.forEach((er, index) => assert_equals(er, result[index]));
+}, 'Input events have correct inputType when selected text is removed with Backspace or Delete');
+
 promise_test(async function() {
     this.add_cleanup(resetRich);
     rich.focus();

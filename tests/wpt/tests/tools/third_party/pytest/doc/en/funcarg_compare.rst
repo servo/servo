@@ -11,8 +11,6 @@ funcarg mechanism, see :ref:`historical funcargs and pytest.funcargs`.
 If you are new to pytest, then you can simply ignore this
 section and read the other sections.
 
-.. currentmodule:: _pytest
-
 Shortcomings of the previous ``pytest_funcarg__`` mechanism
 --------------------------------------------------------------
 
@@ -46,7 +44,7 @@ There are several limitations and difficulties with this approach:
 
 2. parametrizing the "db" resource is not straight forward:
    you need to apply a "parametrize" decorator or implement a
-   :py:func:`~hookspec.pytest_generate_tests` hook
+   :hook:`pytest_generate_tests` hook
    calling :py:func:`~pytest.Metafunc.parametrize` which
    performs parametrization at the places where the resource
    is used.  Moreover, you need to modify the factory to use an
@@ -94,15 +92,14 @@ Direct parametrization of funcarg resource factories
 
 Previously, funcarg factories could not directly cause parametrization.
 You needed to specify a ``@parametrize`` decorator on your test function
-or implement a ``pytest_generate_tests`` hook to perform
+or implement a :hook:`pytest_generate_tests` hook to perform
 parametrization, i.e. calling a test multiple times with different value
 sets.  pytest-2.3 introduces a decorator for use on the factory itself:
 
 .. code-block:: python
 
     @pytest.fixture(params=["mysql", "pg"])
-    def db(request):
-        ...  # use request.param
+    def db(request): ...  # use request.param
 
 Here the factory will be invoked twice (with the respective "mysql"
 and "pg" values set as ``request.param`` attributes) and all of
@@ -143,8 +140,7 @@ argument:
 .. code-block:: python
 
     @pytest.fixture()
-    def db(request):
-        ...
+    def db(request): ...
 
 The name under which the funcarg resource can be requested is ``db``.
 
@@ -153,8 +149,7 @@ aka:
 
 .. code-block:: python
 
-    def pytest_funcarg__db(request):
-        ...
+    def pytest_funcarg__db(request): ...
 
 
 But it is then not possible to define scoping and parametrization.

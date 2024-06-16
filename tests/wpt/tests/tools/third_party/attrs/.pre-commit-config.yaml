@@ -4,40 +4,26 @@ ci:
 
 repos:
   - repo: https://github.com/psf/black
-    rev: 21.12b0
+    rev: 23.12.1
     hooks:
       - id: black
-        exclude: tests/test_pattern_matching.py
-        language_version: python3.10
 
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.10.1
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.9
     hooks:
-      - id: isort
-        additional_dependencies: [toml]
-        files: \.py$
-        language_version: python3.10
-
-  - repo: https://github.com/PyCQA/flake8
-    rev: 4.0.1
-    hooks:
-      - id: flake8
-        language_version: python3.10
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
 
   - repo: https://github.com/econchick/interrogate
     rev: 1.5.0
     hooks:
       - id: interrogate
-        exclude: tests/test_pattern_matching.py
         args: [tests]
-        language_version: python3.10
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.1.0
+    rev: v4.5.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
-      - id: debug-statements
-        language_version: python3.10
       - id: check-toml
       - id: check-yaml

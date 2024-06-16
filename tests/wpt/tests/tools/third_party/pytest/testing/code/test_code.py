@@ -1,15 +1,16 @@
+# mypy: allow-untyped-defs
 import re
 import sys
 from types import FrameType
 from unittest import mock
 
-import pytest
 from _pytest._code import Code
 from _pytest._code import ExceptionInfo
 from _pytest._code import Frame
 from _pytest._code import Source
 from _pytest._code.code import ExceptionChainRepr
 from _pytest._code.code import ReprFuncArgs
+import pytest
 
 
 def test_ne() -> None:

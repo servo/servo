@@ -1,6 +1,7 @@
 import os.path
 import shutil
 
+
 failure_demo = os.path.join(os.path.dirname(__file__), "failure_demo.py")
 pytest_plugins = ("pytester",)
 

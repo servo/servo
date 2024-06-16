@@ -54,7 +54,12 @@
           cookie: "test=8;       Secure     ;",
           expected: "test=8",
           name: "Set cookie for space Secure with ;",
-        }
+        },
+        {
+          cookie: ["testa9a=x; secure; ", "; secure", "testa9b=y; secure;"],
+          expected: "testa9a=x; testa9b=y",
+          name: "Ignore name- and value-less `Set-Cookie: ; secure`",
+        },
       ];
 
       for (const test of secureTests) {

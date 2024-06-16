@@ -47,6 +47,11 @@ let test_cases = [
     description:  'Exact text with no context should match text'
   },
   {
+    fragment: '#:~:text=TEST',
+    expect_position: 'text',
+    description:  'Case-insensitive search with no context should match text'
+  },
+  {
     fragment: '#:~:text=this is a-,test',
     expect_position: 'text',
     description: 'Exact text with prefix should match text'

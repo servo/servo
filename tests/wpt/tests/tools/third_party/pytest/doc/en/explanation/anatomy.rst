@@ -34,7 +34,7 @@ a function/method call.
 
 **Assert** is where we look at that resulting state and check if it looks how
 we'd expect after the dust has settled. It's where we gather evidence to say the
-behavior does or does not aligns with what we expect. The ``assert`` in our test
+behavior does or does not align with what we expect. The ``assert`` in our test
 is where we take that measurement/observation and apply our judgement to it. If
 something should be green, we'd say ``assert thing == "green"``.
 

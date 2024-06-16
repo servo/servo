@@ -35,7 +35,7 @@ async def test_type(bidi_session, top_context, type_hint):
         contexts[0],
         new_context["context"],
         children=None,
-        is_root=True,
+        parent_expected=True,
         parent=None,
         url="about:blank",
     )

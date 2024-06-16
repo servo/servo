@@ -99,3 +99,18 @@ Running this directly gets us::
     http://doc.devpi.net
 .. _read the docs:
    https://pluggy.readthedocs.io/en/latest/
+
+
+Support pluggy
+--------------
+
+`Open Collective`_ is an online funding platform for open and transparent communities.
+It provides tools to raise money and share your finances in full transparency.
+
+It is the platform of choice for individuals and companies that want to make one-time or
+monthly donations directly to the project.
+
+``pluggy`` is part of the ``pytest-dev`` project, see more details in the `pytest collective`_.
+
+.. _Open Collective: https://opencollective.com
+.. _pytest collective: https://opencollective.com/pytest

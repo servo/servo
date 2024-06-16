@@ -123,10 +123,12 @@ const template = document.getElementById('declarative');
       const childPart2 = childPart1.getParts()[0];
       assertIsComment(childPart2.previousSibling,'');
       assertIsComment(childPart2.nextSibling,'');
-      const expectedChild2Parts = [{type:'NodePart',metadata:[]}];
-      assertEqualParts(childPart2.getParts(),expectedChild2Parts,0,'Second level childpart should have just the node part (AttributePart is automatic)');
+      const expectedChild2Parts = [{type:'NodePart',metadata:[]},{type:'AttributePart',metadata:[]}];
+      assertEqualParts(childPart2.getParts(),expectedChild2Parts,0,'Second level childpart should have NodePart and AttributePart');
       assert_true(childPart2.getParts()[0].node instanceof HTMLSpanElement);
       assert_equals(childPart2.getParts()[0].node.textContent,'Middle');
+      assert_true(childPart2.getParts()[1].node instanceof HTMLSpanElement);
+      assert_equals(childPart2.getParts()[1].node.textContent,'Middle');
     } else {
       assertEqualParts(root.getParts(),[],[]);
     }

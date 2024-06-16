@@ -9,10 +9,26 @@ enum TaskPriority {
   "background"
 };
 
+enum ContinuationPriority {
+  "user-blocking",
+  "user-visible",
+  "background",
+  "inherit"
+};
+
 dictionary SchedulerPostTaskOptions {
   AbortSignal signal;
   TaskPriority priority;
   [EnforceRange] unsigned long long delay = 0;
+};
+
+enum SchedulerSignalInherit {
+  "inherit"
+};
+
+dictionary SchedulerYieldOptions {
+  (AbortSignal or SchedulerSignalInherit) signal;
+  ContinuationPriority priority;
 };
 
 callback SchedulerPostTaskCallback = any ();
@@ -21,6 +37,7 @@ callback SchedulerPostTaskCallback = any ();
 interface Scheduler {
   Promise<any> postTask(SchedulerPostTaskCallback callback,
                         optional SchedulerPostTaskOptions options = {});
+  Promise<undefined> yield(optional SchedulerYieldOptions options = {});
 };
 
 [Exposed=(Window, Worker)]

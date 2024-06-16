@@ -20,7 +20,7 @@
         Note that the values of .getScreenCTM() and .getCTM() can only be tested correctly if they are
         in the html-based test or the width and height of the root element is explicitly set to 480x360.
         The methods .getScreenCTM() and .getCTM() are tested from the rotated text element, the method .getBBox(),
-        .getTransformToElement() is tested between the rotated text and its parent group, the method .getBBox() and
+        is tested between the rotated text and its parent group, the method .getBBox() and
         the properties .farthestViewportElement and .nearestViewportElement are tested on the blue circle.
       </p>
     </d:testDescription>
@@ -38,9 +38,6 @@
       </p>
       <p>
         .getCTM() for id "rotText": 0.42,0.42,-0.42,0.42,70.00,-60.00
-      </p>
-      <p>
-        .getTransformToElement() between id "rotText" and id "parentGroup": 0.42,0.42,-0.42,0.42,0.00,0.00
       </p>
       <p>
         .getBBox() for 'blueCircle': .x=-50,.y=-50,.width=100,.height=100
@@ -70,12 +67,10 @@
       document.getElementById("result1").firstChild.nodeValue = ".getScreenCTM(): " + matr.a.toFixed(2) + "," + matr.b.toFixed(2) + "," + matr.c.toFixed(2) + "," + matr.d.toFixed(2) + "," + matr.e.toFixed(2) + "," + matr.f.toFixed(2);
       var matr = rotText.getCTM();
       document.getElementById("result2").firstChild.nodeValue = ".getCTM(): " + matr.a.toFixed(2) + "," + matr.b.toFixed(2) + "," + matr.c.toFixed(2) + "," + matr.d.toFixed(2) + "," + matr.e.toFixed(2) + "," + matr.f.toFixed(2);
-      var matr = rotText.getTransformToElement(document.getElementById("parentGroup"));
-      document.getElementById("result3").firstChild.nodeValue = ".getTransformToElement(): " + matr.a.toFixed(2) + "," + matr.b.toFixed(2) + "," + matr.c.toFixed(2) + "," + matr.d.toFixed(2) + "," + matr.e.toFixed(2) + "," + matr.f.toFixed(2);
       var bbox = blueCircle.getBBox();
-      document.getElementById("result4").firstChild.nodeValue = ".getBBox() for 'blueCircle': .x="+bbox.x+",.y="+bbox.y+",.width="+bbox.width+",.height="+bbox.height;
-      document.getElementById("result5").firstChild.nodeValue = ".farthestViewportElement of blueCircle="+blueCircle.farthestViewportElement.getAttributeNS(null,"id");
-      document.getElementById("result6").firstChild.nodeValue = ".nearestViewportElement of blueCircle="+blueCircle.nearestViewportElement.getAttributeNS(null,"id");
+      document.getElementById("result3").firstChild.nodeValue = ".getBBox() for 'blueCircle': .x="+bbox.x+",.y="+bbox.y+",.width="+bbox.width+",.height="+bbox.height;
+      document.getElementById("result4").firstChild.nodeValue = ".farthestViewportElement of blueCircle="+blueCircle.farthestViewportElement.getAttributeNS(null,"id");
+      document.getElementById("result5").firstChild.nodeValue = ".nearestViewportElement of blueCircle="+blueCircle.nearestViewportElement.getAttributeNS(null,"id");
       }
     </script>
     <g font-size="12">
@@ -91,7 +86,6 @@
       <text id="result3" x="10" y="240"> </text>
       <text id="result4" x="10" y="260"> </text>
       <text id="result5" x="10" y="280"> </text>
-      <text id="result6" x="10" y="300"> </text>
     </g>
   </g>
   <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">

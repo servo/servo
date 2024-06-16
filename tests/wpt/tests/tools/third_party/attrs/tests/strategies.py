@@ -3,7 +3,7 @@
 """
 Testing strategies for Hypothesis-based tests.
 """
-
+import functools
 import keyword
 import string
 
@@ -12,6 +12,8 @@ from collections import OrderedDict
 from hypothesis import strategies as st
 
 import attr
+
+from attr._compat import PY_3_8_PLUS
 
 from .utils import make_class
 
@@ -28,8 +30,7 @@ def gen_attr_names():
     Some short strings (such as 'as') are keywords, so we skip them.
     """
     lc = string.ascii_lowercase
-    for c in lc:
-        yield c
+    yield from lc
     for outer in lc:
         for inner in lc:
             res = outer + inner
@@ -67,7 +68,7 @@ def _create_hyp_nested_strategy(draw, simple_class_strategy):
         lambda: OrderedDict([("cls", cls())]),
     ]
     factory = draw(st.sampled_from(factories))
-    attrs = draw(list_of_attrs) + [attr.ib(default=attr.Factory(factory))]
+    attrs = [*draw(list_of_attrs), attr.ib(default=attr.Factory(factory))]
     return make_class("HypClass", dict(zip(gen_attr_names(), attrs)))
 
 
@@ -112,13 +113,19 @@ def simple_attrs_with_metadata(draw):
 
 simple_attrs = simple_attrs_without_metadata | simple_attrs_with_metadata()
 
+
 # Python functions support up to 255 arguments.
 list_of_attrs = st.lists(simple_attrs, max_size=3)
 
 
 @st.composite
 def simple_classes(
-    draw, slots=None, frozen=None, weakref_slot=None, private_attrs=None
+    draw,
+    slots=None,
+    frozen=None,
+    weakref_slot=None,
+    private_attrs=None,
+    cached_property=None,
 ):
     """
     A strategy that generates classes with default non-attr attributes.
@@ -158,6 +165,7 @@ def simple_classes(
     pre_init_flag = draw(st.booleans())
     post_init_flag = draw(st.booleans())
     init_flag = draw(st.booleans())
+    cached_property_flag = draw(st.booleans())
 
     if pre_init_flag:
 
@@ -180,9 +188,22 @@ def simple_classes(
 
         cls_dict["__init__"] = init
 
+    bases = (object,)
+    if cached_property or (
+        PY_3_8_PLUS and cached_property is None and cached_property_flag
+    ):
+
+        class BaseWithCachedProperty:
+            @functools.cached_property
+            def _cached_property(self) -> int:
+                return 1
+
+        bases = (BaseWithCachedProperty,)
+
     return make_class(
         "HypClass",
         cls_dict,
+        bases=bases,
         slots=slots_flag if slots is None else slots,
         frozen=frozen_flag if frozen is None else frozen,
         weakref_slot=weakref_flag if weakref_slot is None else weakref_slot,

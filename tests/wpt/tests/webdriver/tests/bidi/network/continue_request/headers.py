@@ -44,7 +44,15 @@ async def test_override_cookies(
     wait_for_event,
     bidi_session,
     top_context,
+    url
 ):
+    # Navigate away from about:blank to make sure document.cookies can be used.
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=url("/webdriver/tests/bidi/support/empty.html"),
+        wait="complete"
+    )
+
     await bidi_session.script.evaluate(
         expression="document.cookie = 'foo=bar';",
         target=ContextTarget(top_context["context"]),

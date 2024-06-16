@@ -1,4 +1,5 @@
 """Helper plugin for pytester; should not be loaded on its own."""
+
 # This plugin contains assertions used by pytester. pytester cannot
 # contain them itself, since it is imported by the `pytest` module,
 # hence cannot be subject to assertion rewriting, which requires a

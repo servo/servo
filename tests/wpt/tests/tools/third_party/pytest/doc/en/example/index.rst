@@ -18,7 +18,6 @@ For basic examples, see
 - :ref:`Fixtures <fixtures>` for basic fixture/setup examples
 - :ref:`parametrize` for basic test function parametrization
 - :ref:`unittest` for basic unittest integration
-- :ref:`noseintegration` for basic nosetests integration
 
 The following examples aim at various use cases you might encounter.
 
@@ -32,3 +31,4 @@ The following examples aim at various use cases you might encounter.
    special
    pythoncollection
    nonpython
+   customdirectory

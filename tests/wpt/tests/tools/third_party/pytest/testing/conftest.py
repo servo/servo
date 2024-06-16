@@ -1,10 +1,14 @@
+# mypy: allow-untyped-defs
+import dataclasses
 import re
 import sys
+from typing import Generator
 from typing import List
 
-import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from _pytest.pytester import Pytester
+import pytest
+
 
 if sys.gettrace():
 
@@ -20,11 +24,31 @@ if sys.gettrace():
             sys.settrace(orig_trace)
 
 
-@pytest.hookimpl(hookwrapper=True, tryfirst=True)
-def pytest_collection_modifyitems(items):
+@pytest.fixture(autouse=True)
+def set_column_width(monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Force terminal width to 80: some tests check the formatting of --help, which is sensible
+    to terminal width.
+    """
+    monkeypatch.setenv("COLUMNS", "80")
+
+
+@pytest.fixture(autouse=True)
+def reset_colors(monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Reset all color-related variables to prevent them from affecting internal pytest output
+    in tests that depend on it.
+    """
+    monkeypatch.delenv("PY_COLORS", raising=False)
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.delenv("FORCE_COLOR", raising=False)
+
+
+@pytest.hookimpl(wrapper=True, tryfirst=True)
+def pytest_collection_modifyitems(items) -> Generator[None, None, None]:
     """Prefer faster tests.
 
-    Use a hookwrapper to do this in the beginning, so e.g. --ff still works
+    Use a hook wrapper to do this in the beginning, so e.g. --ff still works
     correctly.
     """
     fast_items = []
@@ -61,7 +85,7 @@ def pytest_collection_modifyitems(items):
 
     items[:] = fast_items + neutral_items + slow_items + slowest_items
 
-    yield
+    return (yield)
 
 
 @pytest.fixture
@@ -104,7 +128,7 @@ def tw_mock():
 
 
 @pytest.fixture
-def dummy_yaml_custom_test(pytester: Pytester):
+def dummy_yaml_custom_test(pytester: Pytester) -> None:
     """Writes a conftest file that collects and executes a dummy yaml test.
 
     Taken from the docs, but stripped down to the bare minimum, useful for
@@ -149,6 +173,9 @@ def color_mapping():
             "red": "\x1b[31m",
             "green": "\x1b[32m",
             "yellow": "\x1b[33m",
+            "light-gray": "\x1b[90m",
+            "light-red": "\x1b[91m",
+            "light-green": "\x1b[92m",
             "bold": "\x1b[1m",
             "reset": "\x1b[0m",
             "kw": "\x1b[94m",
@@ -157,8 +184,10 @@ def color_mapping():
             "number": "\x1b[94m",
             "str": "\x1b[33m",
             "print": "\x1b[96m",
+            "endline": "\x1b[90m\x1b[39;49;00m",
         }
         RE_COLORS = {k: re.escape(v) for k, v in COLORS.items()}
+        NO_COLORS = {k: "" for k in COLORS.keys()}
 
         @classmethod
         def format(cls, lines: List[str]) -> List[str]:
@@ -174,6 +203,11 @@ def color_mapping():
         def format_for_rematch(cls, lines: List[str]) -> List[str]:
             """Replace color names for use with LineMatcher.re_match_lines"""
             return [line.format(**cls.RE_COLORS) for line in lines]
+
+        @classmethod
+        def strip_colors(cls, lines: List[str]) -> List[str]:
+            """Entirely remove every color code"""
+            return [line.format(**cls.NO_COLORS) for line in lines]
 
     return ColorMapping
 
@@ -191,20 +225,18 @@ def mock_timing(monkeypatch: MonkeyPatch):
     Time is static, and only advances through `sleep` calls, thus tests might sleep over large
     numbers and obtain accurate time() calls at the end, making tests reliable and instant.
     """
-    import attr
 
-    @attr.s
+    @dataclasses.dataclass
     class MockTiming:
+        _current_time: float = 1590150050.0
 
-        _current_time = attr.ib(default=1590150050.0)
-
-        def sleep(self, seconds):
+        def sleep(self, seconds: float) -> None:
             self._current_time += seconds
 
-        def time(self):
+        def time(self) -> float:
             return self._current_time
 
-        def patch(self):
+        def patch(self) -> None:
             from _pytest import timing
 
             monkeypatch.setattr(timing, "sleep", self.sleep)

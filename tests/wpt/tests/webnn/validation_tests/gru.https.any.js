@@ -430,8 +430,8 @@ multi_builder_test(async (t, builder, otherBuilder) => {
 }, '[gru] throw if initialHiddenState option is from another builder');
 
 multi_builder_test(async (t, builder, otherBuilder) => {
-  const activation = builder.clamp();
-  const activationFromOtherBuilder = otherBuilder.clamp();
+  const activation = builder.relu();
+  const activationFromOtherBuilder = otherBuilder.relu();
   const options = {activations: [activation, activationFromOtherBuilder]};
 
   const input = builder.input('input', kExampleInputDescriptor);

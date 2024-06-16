@@ -1,82 +1,9 @@
-from typing import Any
-
-import pytest
-from _pytest import runner
+# mypy: allow-untyped-defs
 from _pytest._code import getfslineno
 from _pytest.fixtures import getfixturemarker
 from _pytest.pytester import Pytester
 from _pytest.python import Function
-
-
-class TestOEJSKITSpecials:
-    def test_funcarg_non_pycollectobj(
-        self, pytester: Pytester, recwarn
-    ) -> None:  # rough jstests usage
-        pytester.makeconftest(
-            """
-            import pytest
-            def pytest_pycollect_makeitem(collector, name, obj):
-                if name == "MyClass":
-                    return MyCollector.from_parent(collector, name=name)
-            class MyCollector(pytest.Collector):
-                def reportinfo(self):
-                    return self.path, 3, "xyz"
-        """
-        )
-        modcol = pytester.getmodulecol(
-            """
-            import pytest
-            @pytest.fixture
-            def arg1(request):
-                return 42
-            class MyClass(object):
-                pass
-        """
-        )
-        # this hook finds funcarg factories
-        rep = runner.collect_one_node(collector=modcol)
-        # TODO: Don't treat as Any.
-        clscol: Any = rep.result[0]
-        clscol.obj = lambda arg1: None
-        clscol.funcargs = {}
-        pytest._fillfuncargs(clscol)
-        assert clscol.funcargs["arg1"] == 42
-
-    def test_autouse_fixture(
-        self, pytester: Pytester, recwarn
-    ) -> None:  # rough jstests usage
-        pytester.makeconftest(
-            """
-            import pytest
-            def pytest_pycollect_makeitem(collector, name, obj):
-                if name == "MyClass":
-                    return MyCollector.from_parent(collector, name=name)
-            class MyCollector(pytest.Collector):
-                def reportinfo(self):
-                    return self.path, 3, "xyz"
-        """
-        )
-        modcol = pytester.getmodulecol(
-            """
-            import pytest
-            @pytest.fixture(autouse=True)
-            def hello():
-                pass
-            @pytest.fixture
-            def arg1(request):
-                return 42
-            class MyClass(object):
-                pass
-        """
-        )
-        # this hook finds funcarg factories
-        rep = runner.collect_one_node(modcol)
-        # TODO: Don't treat as Any.
-        clscol: Any = rep.result[0]
-        clscol.obj = lambda: None
-        clscol.funcargs = {}
-        pytest._fillfuncargs(clscol)
-        assert not clscol.funcargs
+import pytest
 
 
 def test_wrapped_getfslineno() -> None:
@@ -116,8 +43,9 @@ class TestMockDecoration:
         assert values == ("x",)
 
     def test_getfuncargnames_patching(self):
-        from _pytest.compat import getfuncargnames
         from unittest.mock import patch
+
+        from _pytest.compat import getfuncargnames
 
         class T:
             def original(self, x, y, z):
@@ -235,7 +163,7 @@ class TestMockDecoration:
             @mock.patch("os.path.abspath")
             @mock.patch("os.path.normpath")
             @mock.patch("os.path.basename", new=mock_basename)
-            def test_someting(normpath, abspath, tmp_path):
+            def test_something(normpath, abspath, tmp_path):
                 abspath.return_value = "this"
                 os.path.normpath(os.path.abspath("hello"))
                 normpath.assert_any_call("this")
@@ -248,7 +176,7 @@ class TestMockDecoration:
         funcnames = [
             call.report.location[2] for call in calls if call.report.when == "call"
         ]
-        assert funcnames == ["T.test_hello", "test_someting"]
+        assert funcnames == ["T.test_hello", "test_something"]
 
     def test_mock_sorting(self, pytester: Pytester) -> None:
         pytest.importorskip("mock", "1.0.1")
@@ -482,22 +410,37 @@ def test_function_instance(pytester: Pytester) -> None:
     items = pytester.getitems(
         """
         def test_func(): pass
+
         class TestIt:
             def test_method(self): pass
+
             @classmethod
             def test_class(cls): pass
+
             @staticmethod
             def test_static(): pass
         """
     )
-    assert len(items) == 3
+    assert len(items) == 4
+
     assert isinstance(items[0], Function)
     assert items[0].name == "test_func"
     assert items[0].instance is None
+
     assert isinstance(items[1], Function)
     assert items[1].name == "test_method"
     assert items[1].instance is not None
     assert items[1].instance.__class__.__name__ == "TestIt"
+
+    # Even class and static methods get an instance!
+    # This is the instance used for bound fixture methods, which
+    # class/staticmethod tests are perfectly able to request.
     assert isinstance(items[2], Function)
-    assert items[2].name == "test_static"
-    assert items[2].instance is None
+    assert items[2].name == "test_class"
+    assert items[2].instance is not None
+
+    assert isinstance(items[3], Function)
+    assert items[3].name == "test_static"
+    assert items[3].instance is not None
+
+    assert items[1].instance is not items[2].instance is not items[3].instance

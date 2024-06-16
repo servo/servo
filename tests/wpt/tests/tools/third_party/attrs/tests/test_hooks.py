@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: MIT
 
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Dict, List
 
 import attr
 
@@ -99,6 +100,24 @@ class TestTransformHook:
 
         assert attr.asdict(C(1, 2)) == {"x": 1, "new": 2}
 
+    def test_hook_override_alias(self):
+        """
+        It is possible to set field alias via hook
+        """
+
+        def use_dataclass_names(cls, attribs):
+            return [a.evolve(alias=a.name) for a in attribs]
+
+        @attr.s(auto_attribs=True, field_transformer=use_dataclass_names)
+        class NameCase:
+            public: int
+            _private: int
+            __dunder__: int
+
+        assert NameCase(public=1, _private=2, __dunder__=3) == NameCase(
+            1, 2, 3
+        )
+
     def test_hook_with_inheritance(self):
         """
         The hook receives all fields from base classes.
@@ -151,14 +170,14 @@ class TestAsDictHook:
         @attr.dataclass
         class Child:
             x: datetime
-            y: List[datetime]
+            y: list[datetime]
 
         @attr.dataclass
         class Parent:
             a: Child
-            b: List[Child]
-            c: Dict[str, Child]
-            d: Dict[str, datetime]
+            b: list[Child]
+            c: dict[str, Child]
+            d: dict[str, datetime]
 
         inst = Parent(
             a=Child(1, [datetime(2020, 7, 1)]),
@@ -192,8 +211,8 @@ class TestAsDictHook:
         @attr.dataclass
         class Parent:
             a: Child
-            b: List[Child]
-            c: Dict[str, Child]
+            b: list[Child]
+            c: dict[str, Child]
 
         inst = Parent(a=Child(1), b=[Child(2)], c={"spam": Child(3)})
 

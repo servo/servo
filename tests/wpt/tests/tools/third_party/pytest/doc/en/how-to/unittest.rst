@@ -27,12 +27,15 @@ Almost all ``unittest`` features are supported:
 * ``setUpClass/tearDownClass``;
 * ``setUpModule/tearDownModule``;
 
+.. _`pytest-subtests`: https://github.com/pytest-dev/pytest-subtests
 .. _`load_tests protocol`: https://docs.python.org/3/library/unittest.html#load-tests-protocol
+
+Additionally, :ref:`subtests <python:subtests>` are supported by the
+`pytest-subtests`_ plugin.
 
 Up to this point pytest does not have support for the following features:
 
 * `load_tests protocol`_;
-* :ref:`subtests <python:subtests>`;
 
 Benefits out of the box
 -----------------------
@@ -115,6 +118,7 @@ fixture definition:
     # content of test_unittest_db.py
 
     import unittest
+
     import pytest
 
 
@@ -136,7 +140,7 @@ the ``self.db`` values in the traceback:
 
     $ pytest test_unittest_db.py
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    platform linux -- Python 3.x.y, pytest-8.x.y, pluggy-1.x.y
     rootdir: /home/sweet/project
     collected 2 items
 
@@ -153,7 +157,7 @@ the ``self.db`` values in the traceback:
     E       AssertionError: <conftest.db_class.<locals>.DummyDB object at 0xdeadbeef0001>
     E       assert 0
 
-    test_unittest_db.py:10: AssertionError
+    test_unittest_db.py:11: AssertionError
     ___________________________ MyTest.test_method2 ____________________________
 
     self = <test_unittest_db.MyTest testMethod=test_method2>
@@ -163,7 +167,7 @@ the ``self.db`` values in the traceback:
     E       AssertionError: <conftest.db_class.<locals>.DummyDB object at 0xdeadbeef0001>
     E       assert 0
 
-    test_unittest_db.py:13: AssertionError
+    test_unittest_db.py:14: AssertionError
     ========================= short test summary info ==========================
     FAILED test_unittest_db.py::MyTest::test_method1 - AssertionError: <conft...
     FAILED test_unittest_db.py::MyTest::test_method2 - AssertionError: <conft...
@@ -194,19 +198,19 @@ creation of a per-test temporary directory:
 .. code-block:: python
 
     # content of test_unittest_cleandir.py
-    import os
-    import pytest
     import unittest
+
+    import pytest
 
 
     class MyTest(unittest.TestCase):
         @pytest.fixture(autouse=True)
         def initdir(self, tmp_path, monkeypatch):
             monkeypatch.chdir(tmp_path)  # change to pytest-provided temporary directory
-            tmp_path.joinpath("samplefile.ini").write_text("# testdata")
+            tmp_path.joinpath("samplefile.ini").write_text("# testdata", encoding="utf-8")
 
         def test_method(self):
-            with open("samplefile.ini") as f:
+            with open("samplefile.ini", encoding="utf-8") as f:
                 s = f.read()
             assert "testdata" in s
 

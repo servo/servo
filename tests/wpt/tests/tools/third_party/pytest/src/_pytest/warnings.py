@@ -1,20 +1,18 @@
-import sys
-import warnings
+# mypy: allow-untyped-defs
 from contextlib import contextmanager
+import sys
 from typing import Generator
+from typing import Literal
 from typing import Optional
-from typing import TYPE_CHECKING
+import warnings
 
-import pytest
 from _pytest.config import apply_warning_filters
 from _pytest.config import Config
 from _pytest.config import parse_warning_filter
 from _pytest.main import Session
 from _pytest.nodes import Item
 from _pytest.terminal import TerminalReporter
-
-if TYPE_CHECKING:
-    from typing_extensions import Literal
+import pytest
 
 
 def pytest_configure(config: Config) -> None:
@@ -29,7 +27,7 @@ def pytest_configure(config: Config) -> None:
 def catch_warnings_for_item(
     config: Config,
     ihook,
-    when: "Literal['config', 'collect', 'runtest']",
+    when: Literal["config", "collect", "runtest"],
     item: Optional[Item],
 ) -> Generator[None, None, None]:
     """Context manager that catches warnings generated in the contained execution block.
@@ -49,7 +47,8 @@ def catch_warnings_for_item(
             warnings.filterwarnings("always", category=DeprecationWarning)
             warnings.filterwarnings("always", category=PendingDeprecationWarning)
 
-        warnings.filterwarnings("error", category=pytest.PytestRemovedIn7Warning)
+        # To be enabled in pytest 9.0.0.
+        # warnings.filterwarnings("error", category=pytest.PytestRemovedIn9Warning)
 
         apply_warning_filters(config_filters, cmdline_filters)
 
@@ -60,25 +59,18 @@ def catch_warnings_for_item(
                 for arg in mark.args:
                     warnings.filterwarnings(*parse_warning_filter(arg, escape=False))
 
-        yield
-
-        for warning_message in log:
-            ihook.pytest_warning_captured.call_historic(
-                kwargs=dict(
-                    warning_message=warning_message,
-                    when=when,
-                    item=item,
-                    location=None,
+        try:
+            yield
+        finally:
+            for warning_message in log:
+                ihook.pytest_warning_recorded.call_historic(
+                    kwargs=dict(
+                        warning_message=warning_message,
+                        nodeid=nodeid,
+                        when=when,
+                        location=None,
+                    )
                 )
-            )
-            ihook.pytest_warning_recorded.call_historic(
-                kwargs=dict(
-                    warning_message=warning_message,
-                    nodeid=nodeid,
-                    when=when,
-                    location=None,
-                )
-            )
 
 
 def warning_record_to_str(warning_message: warnings.WarningMessage) -> str:
@@ -91,27 +83,44 @@ def warning_record_to_str(warning_message: warnings.WarningMessage) -> str:
         warning_message.lineno,
         warning_message.line,
     )
+    if warning_message.source is not None:
+        try:
+            import tracemalloc
+        except ImportError:
+            pass
+        else:
+            tb = tracemalloc.get_object_traceback(warning_message.source)
+            if tb is not None:
+                formatted_tb = "\n".join(tb.format())
+                # Use a leading new line to better separate the (large) output
+                # from the traceback to the previous warning text.
+                msg += f"\nObject allocated at:\n{formatted_tb}"
+            else:
+                # No need for a leading new line.
+                url = "https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings"
+                msg += "Enable tracemalloc to get traceback where the object was allocated.\n"
+                msg += f"See {url} for more info."
     return msg
 
 
-@pytest.hookimpl(hookwrapper=True, tryfirst=True)
-def pytest_runtest_protocol(item: Item) -> Generator[None, None, None]:
+@pytest.hookimpl(wrapper=True, tryfirst=True)
+def pytest_runtest_protocol(item: Item) -> Generator[None, object, object]:
     with catch_warnings_for_item(
         config=item.config, ihook=item.ihook, when="runtest", item=item
     ):
-        yield
+        return (yield)
 
 
-@pytest.hookimpl(hookwrapper=True, tryfirst=True)
-def pytest_collection(session: Session) -> Generator[None, None, None]:
+@pytest.hookimpl(wrapper=True, tryfirst=True)
+def pytest_collection(session: Session) -> Generator[None, object, object]:
     config = session.config
     with catch_warnings_for_item(
         config=config, ihook=config.hook, when="collect", item=None
     ):
-        yield
+        return (yield)
 
 
-@pytest.hookimpl(hookwrapper=True)
+@pytest.hookimpl(wrapper=True)
 def pytest_terminal_summary(
     terminalreporter: TerminalReporter,
 ) -> Generator[None, None, None]:
@@ -119,23 +128,23 @@ def pytest_terminal_summary(
     with catch_warnings_for_item(
         config=config, ihook=config.hook, when="config", item=None
     ):
-        yield
+        return (yield)
 
 
-@pytest.hookimpl(hookwrapper=True)
+@pytest.hookimpl(wrapper=True)
 def pytest_sessionfinish(session: Session) -> Generator[None, None, None]:
     config = session.config
     with catch_warnings_for_item(
         config=config, ihook=config.hook, when="config", item=None
     ):
-        yield
+        return (yield)
 
 
-@pytest.hookimpl(hookwrapper=True)
+@pytest.hookimpl(wrapper=True)
 def pytest_load_initial_conftests(
     early_config: "Config",
 ) -> Generator[None, None, None]:
     with catch_warnings_for_item(
         config=early_config, ihook=early_config.hook, when="config", item=None
     ):
-        yield
+        return (yield)

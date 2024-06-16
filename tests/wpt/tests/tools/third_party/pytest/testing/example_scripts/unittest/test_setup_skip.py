@@ -1,4 +1,6 @@
+# mypy: allow-untyped-defs
 """Skipping an entire subclass with unittest.skip() should *not* call setUp from a base class."""
+
 import unittest
 
 

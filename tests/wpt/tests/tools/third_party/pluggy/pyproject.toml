@@ -1,9 +1,24 @@
 [build-system]
 requires = [
-  "setuptools",
-  "setuptools-scm",
-  "wheel",
+  # sync with setup.py until we discard non-pep-517/518
+  "setuptools>=45.0",
+  "setuptools-scm[toml]>=6.2.3",
 ]
+build-backend = "setuptools.build_meta"
+
+
+[tool.ruff.lint]
+select = [
+    "I",  # isort
+]
+
+[tool.ruff.lint.isort]
+force-single-line = true
+combine-as-imports = true
+force-sort-within-sections = true
+order-by-type = false
+known-local-folder = ["pluggy"]
+lines-after-imports = 2
 
 [tool.setuptools_scm]
 write_to = "src/pluggy/_version.py"
@@ -45,3 +60,25 @@ template = "changelog/_template.rst"
   directory = "trivial"
   name = "Trivial/Internal Changes"
   showcontent = true
+
+[tool.mypy]
+mypy_path = "src"
+check_untyped_defs = true
+# Hopefully we can set this someday!
+# disallow_any_expr = true
+disallow_any_generics = true
+disallow_any_unimported = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_decorators = true
+ignore_missing_imports = true
+implicit_reexport = false
+no_implicit_optional = true
+show_error_codes = true
+strict_equality = true
+strict_optional = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unreachable = true
+warn_unused_configs = true
+warn_unused_ignores = true

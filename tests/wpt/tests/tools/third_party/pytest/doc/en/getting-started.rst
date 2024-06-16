@@ -9,7 +9,7 @@ Get Started
 Install ``pytest``
 ----------------------------------------
 
-``pytest`` requires: Python 3.6, 3.7, 3.8, 3.9, or PyPy3.
+``pytest`` requires: Python 3.8+ or PyPy3.
 
 1. Run the following command in your command line:
 
@@ -22,7 +22,7 @@ Install ``pytest``
 .. code-block:: bash
 
     $ pytest --version
-    pytest 7.0.1
+    pytest 8.2.1
 
 .. _`simpletest`:
 
@@ -47,7 +47,7 @@ The test
 
     $ pytest
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    platform linux -- Python 3.x.y, pytest-8.x.y, pluggy-1.x.y
     rootdir: /home/sweet/project
     collected 1 item
 
@@ -96,6 +96,30 @@ Use the :ref:`raises <assertraises>` helper to assert that some code raises an e
     def test_mytest():
         with pytest.raises(SystemExit):
             f()
+
+You can also use the context provided by :ref:`raises <assertraises>` to
+assert that an expected exception is part of a raised :class:`ExceptionGroup`:
+
+.. code-block:: python
+
+    # content of test_exceptiongroup.py
+    import pytest
+
+
+    def f():
+        raise ExceptionGroup(
+            "Group message",
+            [
+                RuntimeError(),
+            ],
+        )
+
+
+    def test_exception_in_group():
+        with pytest.raises(ExceptionGroup) as excinfo:
+            f()
+        assert excinfo.group_contains(RuntimeError)
+        assert not excinfo.group_contains(TypeError)
 
 Execute the test function with “quiet” reporting mode:
 
@@ -250,7 +274,7 @@ Continue reading
 Check out additional pytest resources to help you customize tests for your unique workflow:
 
 * ":ref:`usage`" for command line invocation examples
-* ":ref:`existingtestsuite`" for working with pre-existing tests
+* ":ref:`existingtestsuite`" for working with preexisting tests
 * ":ref:`mark`" for information on the ``pytest.mark`` mechanism
 * ":ref:`fixtures`" for providing a functional baseline to your tests
 * ":ref:`plugins`" for managing and writing plugins

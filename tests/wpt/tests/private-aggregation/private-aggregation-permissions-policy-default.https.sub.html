@@ -1,0 +1,41 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/private-aggregation/resources/util.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+const paa_data = {
+  enableDebugMode: true,
+  contributions: [{bucket: 1n, value: 2}]
+};
+
+const cross_origin = 'https://{{domains[www]}}:{{ports[https][0]}}';
+
+promise_test(async () => {
+  await VerifyContributeToHistogram(paa_data);
+}, 'In a page with default "private-aggregation" permissions policy, ' +
+   'initialize the worklet via sharedStorage.worklet.addModule(), and then ' +
+   'execute contributeToHistogram() inside the worklet');
+
+promise_test(async () => {
+  await CreateWorkletAndVerifyContributeToHistogram(
+      /*shared_storage_origin=*/'', paa_data);
+}, 'In a page with default "private-aggregation" permissions policy, ' +
+   'createWorklet() with same-origin script, and then execute ' +
+   'contributeToHistogram() inside the worklet');
+
+promise_test(async () => {
+  await CreateWorkletAndVerifyContributeToHistogram(
+      /*shared_storage_origin=*/cross_origin, paa_data);
+}, 'In a page with default "private-aggregation" permissions policy, ' +
+   'createWorklet() with cross-origin script, and then execute ' +
+   'contributeToHistogram() inside the worklet');
+
+</script>
+</body>

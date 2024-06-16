@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+    <title>Reference: Finishing a View Transition on a scrolled page should properly reset state</title>
+    <style>
+        html {
+            background: lightblue;
+        }
+        body {
+            background-color: lightgreen;
+        }
+    </style>
+</head>
+<body>
+    <p>Start</p>
+    <div style="height: 200vh"></div>
+    <p>End</p>
+
+    <script>
+        function scrollBy(y) {
+            return new Promise(resolve => {
+                addEventListener("scroll", () => {
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(resolve);
+                    });
+                }, { once: true, capture: true });
+                document.documentElement.scrollBy({
+                    top: y,
+                    behavior: "instant"
+                });
+            });
+        }
+        addEventListener("load", async () => {
+            await scrollBy(document.documentElement.scrollHeight);
+            document.documentElement.classList.remove("reftest-wait");
+        });
+    </script>
+</body>
+</html>

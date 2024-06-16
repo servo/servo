@@ -55,7 +55,7 @@ holger krekel
   github.  See https://pytest.org/en/stable/contributing.html .
   Thanks to Anatoly for pushing and initial work on this.
 
-- fix issue650: new option ``--docttest-ignore-import-errors`` which
+- fix issue650: new option ``--doctest-ignore-import-errors`` which
   will turn import errors in doctests into skips.  Thanks Charles Cloud
   for the complete PR.
 

@@ -1,7 +1,8 @@
-import pytest
+# mypy: allow-untyped-defs
 from _pytest.config import ExitCode
 from _pytest.monkeypatch import MonkeyPatch
 from _pytest.pytester import Pytester
+import pytest
 
 
 class SessionTests:
@@ -172,8 +173,9 @@ class SessionTests:
         except pytest.skip.Exception:  # pragma: no cover
             pytest.fail("wrong skipped caught")
         reports = reprec.getreports("pytest_collectreport")
-        assert len(reports) == 1
-        assert reports[0].skipped
+        # Session, Dir
+        assert len(reports) == 2
+        assert reports[1].skipped
 
 
 class TestNewSession(SessionTests):
@@ -265,9 +267,9 @@ def test_plugin_already_exists(pytester: Pytester) -> None:
 
 def test_exclude(pytester: Pytester) -> None:
     hellodir = pytester.mkdir("hello")
-    hellodir.joinpath("test_hello.py").write_text("x y syntaxerror")
+    hellodir.joinpath("test_hello.py").write_text("x y syntaxerror", encoding="utf-8")
     hello2dir = pytester.mkdir("hello2")
-    hello2dir.joinpath("test_hello2.py").write_text("x y syntaxerror")
+    hello2dir.joinpath("test_hello2.py").write_text("x y syntaxerror", encoding="utf-8")
     pytester.makepyfile(test_ok="def test_pass(): pass")
     result = pytester.runpytest("--ignore=hello", "--ignore=hello2")
     assert result.ret == 0
@@ -276,13 +278,13 @@ def test_exclude(pytester: Pytester) -> None:
 
 def test_exclude_glob(pytester: Pytester) -> None:
     hellodir = pytester.mkdir("hello")
-    hellodir.joinpath("test_hello.py").write_text("x y syntaxerror")
+    hellodir.joinpath("test_hello.py").write_text("x y syntaxerror", encoding="utf-8")
     hello2dir = pytester.mkdir("hello2")
-    hello2dir.joinpath("test_hello2.py").write_text("x y syntaxerror")
+    hello2dir.joinpath("test_hello2.py").write_text("x y syntaxerror", encoding="utf-8")
     hello3dir = pytester.mkdir("hallo3")
-    hello3dir.joinpath("test_hello3.py").write_text("x y syntaxerror")
+    hello3dir.joinpath("test_hello3.py").write_text("x y syntaxerror", encoding="utf-8")
     subdir = pytester.mkdir("sub")
-    subdir.joinpath("test_hello4.py").write_text("x y syntaxerror")
+    subdir.joinpath("test_hello4.py").write_text("x y syntaxerror", encoding="utf-8")
     pytester.makepyfile(test_ok="def test_pass(): pass")
     result = pytester.runpytest("--ignore-glob=*h[ea]llo*")
     assert result.ret == 0
@@ -335,6 +337,56 @@ def test_sessionfinish_with_start(pytester: Pytester) -> None:
     assert res.ret == ExitCode.NO_TESTS_COLLECTED
 
 
+def test_collection_args_do_not_duplicate_modules(pytester: Pytester) -> None:
+    """Test that when multiple collection args are specified on the command line
+    for the same module, only a single Module collector is created.
+
+    Regression test for #723, #3358.
+    """
+    pytester.makepyfile(
+        **{
+            "d/test_it": """
+                def test_1(): pass
+                def test_2(): pass
+                """
+        }
+    )
+
+    result = pytester.runpytest(
+        "--collect-only",
+        "d/test_it.py::test_1",
+        "d/test_it.py::test_2",
+    )
+    result.stdout.fnmatch_lines(
+        [
+            "  <Dir d>",
+            "    <Module test_it.py>",
+            "      <Function test_1>",
+            "      <Function test_2>",
+        ],
+        consecutive=True,
+    )
+
+    # Different, but related case.
+    result = pytester.runpytest(
+        "--collect-only",
+        "--keep-duplicates",
+        "d",
+        "d",
+    )
+    result.stdout.fnmatch_lines(
+        [
+            "  <Dir d>",
+            "    <Module test_it.py>",
+            "      <Function test_1>",
+            "      <Function test_2>",
+            "      <Function test_1>",
+            "      <Function test_2>",
+        ],
+        consecutive=True,
+    )
+
+
 @pytest.mark.parametrize("path", ["root", "{relative}/root", "{environment}/root"])
 def test_rootdir_option_arg(
     pytester: Pytester, monkeypatch: MonkeyPatch, path: str
@@ -367,3 +419,63 @@ def test_rootdir_wrong_option_arg(pytester: Pytester) -> None:
     result.stderr.fnmatch_lines(
         ["*Directory *wrong_dir* not found. Check your '--rootdir' option.*"]
     )
+
+
+def test_shouldfail_is_sticky(pytester: Pytester) -> None:
+    """Test that session.shouldfail cannot be reset to False after being set.
+
+    Issue #11706.
+    """
+    pytester.makeconftest(
+        """
+        def pytest_sessionfinish(session):
+            assert session.shouldfail
+            session.shouldfail = False
+            assert session.shouldfail
+        """
+    )
+    pytester.makepyfile(
+        """
+        import pytest
+
+        def test_foo():
+            pytest.fail("This is a failing test")
+
+        def test_bar(): pass
+        """
+    )
+
+    result = pytester.runpytest("--maxfail=1", "-Wall")
+
+    result.assert_outcomes(failed=1, warnings=1)
+    result.stdout.fnmatch_lines("*session.shouldfail cannot be unset*")
+
+
+def test_shouldstop_is_sticky(pytester: Pytester) -> None:
+    """Test that session.shouldstop cannot be reset to False after being set.
+
+    Issue #11706.
+    """
+    pytester.makeconftest(
+        """
+        def pytest_sessionfinish(session):
+            assert session.shouldstop
+            session.shouldstop = False
+            assert session.shouldstop
+        """
+    )
+    pytester.makepyfile(
+        """
+        import pytest
+
+        def test_foo():
+            pytest.fail("This is a failing test")
+
+        def test_bar(): pass
+        """
+    )
+
+    result = pytester.runpytest("--stepwise", "-Wall")
+
+    result.assert_outcomes(failed=1, warnings=1)
+    result.stdout.fnmatch_lines("*session.shouldstop cannot be unset*")

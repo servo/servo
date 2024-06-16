@@ -7,7 +7,7 @@
   'use strict';
 
   window.onload = async function() {
-    if (await AreSharedStorageMethodsAllowedByPermissionsPolicy()) {
+    if (await AreRegularSharedStorageMethodsAllowed()) {
       parent.postMessage({ type: 'availability-result', enabled: true }, '*');
       return;
     }

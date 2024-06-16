@@ -1,16 +1,20 @@
+# mypy: allow-untyped-defs
 """Version info, help messages, tracing configuration."""
+
+from argparse import Action
 import os
 import sys
-from argparse import Action
+from typing import Generator
 from typing import List
 from typing import Optional
 from typing import Union
 
-import pytest
 from _pytest.config import Config
 from _pytest.config import ExitCode
 from _pytest.config import PrintHelp
 from _pytest.config.argparsing import Parser
+from _pytest.terminal import TerminalReporter
+import pytest
 
 
 class HelpAction(Action):
@@ -49,7 +53,7 @@ def pytest_addoption(parser: Parser) -> None:
         action="count",
         default=0,
         dest="version",
-        help="display pytest version and information about plugins. "
+        help="Display pytest version and information about plugins. "
         "When given twice, also display information about plugins.",
     )
     group._addoption(
@@ -57,7 +61,7 @@ def pytest_addoption(parser: Parser) -> None:
         "--help",
         action=HelpAction,
         dest="help",
-        help="show help message and configuration info",
+        help="Show help message and configuration info",
     )
     group._addoption(
         "-p",
@@ -65,7 +69,7 @@ def pytest_addoption(parser: Parser) -> None:
         dest="plugins",
         default=[],
         metavar="name",
-        help="early-load given plugin module name or entry point (multi-allowed).\n"
+        help="Early-load given plugin module name or entry point (multi-allowed). "
         "To avoid loading of plugins, use the `no:` prefix, e.g. "
         "`no:doctest`.",
     )
@@ -74,7 +78,7 @@ def pytest_addoption(parser: Parser) -> None:
         "--trace-config",
         action="store_true",
         default=False,
-        help="trace considerations of conftest.py files.",
+        help="Trace considerations of conftest.py files",
     )
     group.addoption(
         "--debug",
@@ -83,34 +87,34 @@ def pytest_addoption(parser: Parser) -> None:
         const="pytestdebug.log",
         dest="debug",
         metavar="DEBUG_FILE_NAME",
-        help="store internal tracing debug information in this log file.\n"
-        "This file is opened with 'w' and truncated as a result, care advised.\n"
-        "Defaults to 'pytestdebug.log'.",
+        help="Store internal tracing debug information in this log file. "
+        "This file is opened with 'w' and truncated as a result, care advised. "
+        "Default: pytestdebug.log.",
     )
     group._addoption(
         "-o",
         "--override-ini",
         dest="override_ini",
         action="append",
-        help='override ini option with "option=value" style, e.g. `-o xfail_strict=True -o cache_dir=cache`.',
+        help='Override ini option with "option=value" style, '
+        "e.g. `-o xfail_strict=True -o cache_dir=cache`.",
     )
 
 
-@pytest.hookimpl(hookwrapper=True)
-def pytest_cmdline_parse():
-    outcome = yield
-    config: Config = outcome.get_result()
+@pytest.hookimpl(wrapper=True)
+def pytest_cmdline_parse() -> Generator[None, Config, Config]:
+    config = yield
 
     if config.option.debug:
         # --debug | --debug <file.log> was provided.
         path = config.option.debug
-        debugfile = open(path, "w")
+        debugfile = open(path, "w", encoding="utf-8")
         debugfile.write(
-            "versions pytest-%s, "
-            "python-%s\ncwd=%s\nargs=%s\n\n"
-            % (
+            "versions pytest-{}, "
+            "python-{}\ninvocation_dir={}\ncwd={}\nargs={}\n\n".format(
                 pytest.__version__,
                 ".".join(map(str, sys.version_info)),
+                config.invocation_params.dir,
                 os.getcwd(),
                 config.invocation_params.args,
             )
@@ -127,13 +131,13 @@ def pytest_cmdline_parse():
 
         config.add_cleanup(unset_tracing)
 
+    return config
+
 
 def showversion(config: Config) -> None:
     if config.option.version > 1:
         sys.stdout.write(
-            "This is pytest version {}, imported from {}\n".format(
-                pytest.__version__, pytest.__file__
-            )
+            f"This is pytest version {pytest.__version__}, imported from {pytest.__file__}\n"
         )
         plugininfo = getpluginversioninfo(config)
         if plugininfo:
@@ -158,12 +162,16 @@ def pytest_cmdline_main(config: Config) -> Optional[Union[int, ExitCode]]:
 def showhelp(config: Config) -> None:
     import textwrap
 
-    reporter = config.pluginmanager.get_plugin("terminalreporter")
+    reporter: Optional[TerminalReporter] = config.pluginmanager.get_plugin(
+        "terminalreporter"
+    )
+    assert reporter is not None
     tw = reporter._tw
     tw.write(config._parser.optparser.format_help())
     tw.line()
     tw.line(
-        "[pytest] ini-options in the first pytest.ini|tox.ini|setup.cfg file found:"
+        "[pytest] ini-options in the first "
+        "pytest.ini|tox.ini|setup.cfg|pyproject.toml file found:"
     )
     tw.line()
 
@@ -203,12 +211,12 @@ def showhelp(config: Config) -> None:
                     tw.line(indent + line)
 
     tw.line()
-    tw.line("environment variables:")
+    tw.line("Environment variables:")
     vars = [
-        ("PYTEST_ADDOPTS", "extra command line options"),
-        ("PYTEST_PLUGINS", "comma-separated plugins to load during startup"),
-        ("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "set to disable plugin auto-loading"),
-        ("PYTEST_DEBUG", "set to enable debug tracing of pytest's internals"),
+        ("PYTEST_ADDOPTS", "Extra command line options"),
+        ("PYTEST_PLUGINS", "Comma-separated plugins to load during startup"),
+        ("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "Set to disable plugin auto-loading"),
+        ("PYTEST_DEBUG", "Set to enable debug tracing of pytest's internals"),
     ]
     for name, help in vars:
         tw.line(f"  {name:<24} {help}")

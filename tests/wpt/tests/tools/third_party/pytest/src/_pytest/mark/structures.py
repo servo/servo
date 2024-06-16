@@ -1,9 +1,11 @@
+# mypy: allow-untyped-defs
 import collections.abc
+import dataclasses
 import inspect
-import warnings
 from typing import Any
 from typing import Callable
 from typing import Collection
+from typing import final
 from typing import Iterable
 from typing import Iterator
 from typing import List
@@ -19,18 +21,18 @@ from typing import Type
 from typing import TYPE_CHECKING
 from typing import TypeVar
 from typing import Union
-
-import attr
+import warnings
 
 from .._code import getfslineno
 from ..compat import ascii_escaped
-from ..compat import final
 from ..compat import NOTSET
 from ..compat import NotSetType
 from _pytest.config import Config
 from _pytest.deprecated import check_ispytest
+from _pytest.deprecated import MARKED_FIXTURE
 from _pytest.outcomes import fail
 from _pytest.warning_types import PytestUnknownMarkWarning
+
 
 if TYPE_CHECKING:
     from ..nodes import Node
@@ -72,16 +74,11 @@ def get_empty_parameterset_mark(
     return mark
 
 
-class ParameterSet(
-    NamedTuple(
-        "ParameterSet",
-        [
-            ("values", Sequence[Union[object, NotSetType]]),
-            ("marks", Collection[Union["MarkDecorator", "Mark"]]),
-            ("id", Optional[str]),
-        ],
-    )
-):
+class ParameterSet(NamedTuple):
+    values: Sequence[Union[object, NotSetType]]
+    marks: Collection[Union["MarkDecorator", "Mark"]]
+    id: Optional[str]
+
     @classmethod
     def param(
         cls,
@@ -116,7 +113,6 @@ class ParameterSet(
             Enforce tuple wrapping so single argument tuple values
             don't get decomposed and break tests.
         """
-
         if isinstance(parameterset, cls):
             return parameterset
         if force_tuple:
@@ -131,12 +127,12 @@ class ParameterSet(
 
     @staticmethod
     def _parse_parametrize_args(
-        argnames: Union[str, List[str], Tuple[str, ...]],
+        argnames: Union[str, Sequence[str]],
         argvalues: Iterable[Union["ParameterSet", Sequence[object], object]],
         *args,
         **kwargs,
-    ) -> Tuple[Union[List[str], Tuple[str, ...]], bool]:
-        if not isinstance(argnames, (tuple, list)):
+    ) -> Tuple[Sequence[str], bool]:
+        if isinstance(argnames, str):
             argnames = [x.strip() for x in argnames.split(",") if x.strip()]
             force_tuple = len(argnames) == 1
         else:
@@ -155,12 +151,12 @@ class ParameterSet(
     @classmethod
     def _for_parametrize(
         cls,
-        argnames: Union[str, List[str], Tuple[str, ...]],
+        argnames: Union[str, Sequence[str]],
         argvalues: Iterable[Union["ParameterSet", Sequence[object], object]],
         func,
         config: Config,
         nodeid: str,
-    ) -> Tuple[Union[List[str], Tuple[str, ...]], List["ParameterSet"]]:
+    ) -> Tuple[Sequence[str], List["ParameterSet"]]:
         argnames, force_tuple = cls._parse_parametrize_args(argnames, argvalues)
         parameters = cls._parse_parametrize_parameters(argvalues, force_tuple)
         del argvalues
@@ -196,8 +192,10 @@ class ParameterSet(
 
 
 @final
-@attr.s(frozen=True, init=False, auto_attribs=True)
+@dataclasses.dataclass(frozen=True)
 class Mark:
+    """A pytest mark."""
+
     #: Name of the mark.
     name: str
     #: Positional arguments of the mark decorator.
@@ -206,9 +204,11 @@ class Mark:
     kwargs: Mapping[str, Any]
 
     #: Source Mark for ids with parametrize Marks.
-    _param_ids_from: Optional["Mark"] = attr.ib(default=None, repr=False)
+    _param_ids_from: Optional["Mark"] = dataclasses.field(default=None, repr=False)
     #: Resolved/generated ids with parametrize Marks.
-    _param_ids_generated: Optional[Sequence[str]] = attr.ib(default=None, repr=False)
+    _param_ids_generated: Optional[Sequence[str]] = dataclasses.field(
+        default=None, repr=False
+    )
 
     def __init__(
         self,
@@ -266,14 +266,14 @@ class Mark:
 Markable = TypeVar("Markable", bound=Union[Callable[..., object], type])
 
 
-@attr.s(init=False, auto_attribs=True)
+@dataclasses.dataclass
 class MarkDecorator:
     """A decorator for applying a mark on test functions and classes.
 
     ``MarkDecorators`` are created with ``pytest.mark``::
 
-        mark1 = pytest.mark.NAME              # Simple MarkDecorator
-        mark2 = pytest.mark.NAME(name1=value) # Parametrized MarkDecorator
+        mark1 = pytest.mark.NAME  # Simple MarkDecorator
+        mark2 = pytest.mark.NAME(name1=value)  # Parametrized MarkDecorator
 
     and can then be applied as decorators to test functions::
 
@@ -342,7 +342,7 @@ class MarkDecorator:
     # return type. Not much we can do about that. Thankfully mypy picks
     # the first match so it works out even if we break the rules.
     @overload
-    def __call__(self, arg: Markable) -> Markable:  # type: ignore[misc]
+    def __call__(self, arg: Markable) -> Markable:  # type: ignore[overload-overlap]
         pass
 
     @overload
@@ -355,21 +355,46 @@ class MarkDecorator:
             func = args[0]
             is_class = inspect.isclass(func)
             if len(args) == 1 and (istestfunc(func) or is_class):
-                store_mark(func, self.mark)
+                store_mark(func, self.mark, stacklevel=3)
                 return func
         return self.with_args(*args, **kwargs)
 
 
-def get_unpacked_marks(obj: object) -> Iterable[Mark]:
-    """Obtain the unpacked marks that are stored on an object."""
-    mark_list = getattr(obj, "pytestmark", [])
-    if not isinstance(mark_list, list):
-        mark_list = [mark_list]
-    return normalize_mark_list(mark_list)
+def get_unpacked_marks(
+    obj: Union[object, type],
+    *,
+    consider_mro: bool = True,
+) -> List[Mark]:
+    """Obtain the unpacked marks that are stored on an object.
+
+    If obj is a class and consider_mro is true, return marks applied to
+    this class and all of its super-classes in MRO order. If consider_mro
+    is false, only return marks applied directly to this class.
+    """
+    if isinstance(obj, type):
+        if not consider_mro:
+            mark_lists = [obj.__dict__.get("pytestmark", [])]
+        else:
+            mark_lists = [
+                x.__dict__.get("pytestmark", []) for x in reversed(obj.__mro__)
+            ]
+        mark_list = []
+        for item in mark_lists:
+            if isinstance(item, list):
+                mark_list.extend(item)
+            else:
+                mark_list.append(item)
+    else:
+        mark_attribute = getattr(obj, "pytestmark", [])
+        if isinstance(mark_attribute, list):
+            mark_list = mark_attribute
+        else:
+            mark_list = [mark_attribute]
+    return list(normalize_mark_list(mark_list))
 
 
 def normalize_mark_list(
-    mark_list: Iterable[Union[Mark, MarkDecorator]]
+    mark_list: Iterable[Union[Mark, MarkDecorator]],
 ) -> Iterable[Mark]:
     """
     Normalize an iterable of Mark or MarkDecorator objects into a list of marks
@@ -381,19 +406,25 @@ def normalize_mark_list(
     for mark in mark_list:
         mark_obj = getattr(mark, "mark", mark)
         if not isinstance(mark_obj, Mark):
-            raise TypeError(f"got {repr(mark_obj)} instead of Mark")
+            raise TypeError(f"got {mark_obj!r} instead of Mark")
         yield mark_obj
 
 
-def store_mark(obj, mark: Mark) -> None:
+def store_mark(obj, mark: Mark, *, stacklevel: int = 2) -> None:
     """Store a Mark on an object.
 
     This is used to implement the Mark declarations/decorators correctly.
     """
     assert isinstance(mark, Mark), mark
+
+    from ..fixtures import getfixturemarker
+
+    if getfixturemarker(obj) is not None:
+        warnings.warn(MARKED_FIXTURE, stacklevel=stacklevel)
+
     # Always reassign name to avoid updating pytestmark in a reference that
     # was only borrowed.
-    obj.pytestmark = [*get_unpacked_marks(obj), mark]
+    obj.pytestmark = [*get_unpacked_marks(obj, consider_mro=False), mark]
 
 
 # Typing for builtin pytest marks. This is cheating; it gives builtin marks
@@ -402,13 +433,11 @@ if TYPE_CHECKING:
     from _pytest.scope import _ScopeName
 
     class _SkipMarkDecorator(MarkDecorator):
-        @overload  # type: ignore[override,misc]
-        def __call__(self, arg: Markable) -> Markable:
-            ...
+        @overload  # type: ignore[override,no-overload-impl]
+        def __call__(self, arg: Markable) -> Markable: ...
 
         @overload
-        def __call__(self, reason: str = ...) -> "MarkDecorator":
-            ...
+        def __call__(self, reason: str = ...) -> "MarkDecorator": ...
 
     class _SkipifMarkDecorator(MarkDecorator):
         def __call__(  # type: ignore[override]
@@ -416,30 +445,29 @@ if TYPE_CHECKING:
             condition: Union[str, bool] = ...,
             *conditions: Union[str, bool],
             reason: str = ...,
-        ) -> MarkDecorator:
-            ...
+        ) -> MarkDecorator: ...
 
     class _XfailMarkDecorator(MarkDecorator):
-        @overload  # type: ignore[override,misc]
-        def __call__(self, arg: Markable) -> Markable:
-            ...
+        @overload  # type: ignore[override,no-overload-impl]
+        def __call__(self, arg: Markable) -> Markable: ...
 
         @overload
         def __call__(
             self,
-            condition: Union[str, bool] = ...,
+            condition: Union[str, bool] = False,
             *conditions: Union[str, bool],
             reason: str = ...,
             run: bool = ...,
-            raises: Union[Type[BaseException], Tuple[Type[BaseException], ...]] = ...,
+            raises: Union[
+                None, Type[BaseException], Tuple[Type[BaseException], ...]
+            ] = ...,
             strict: bool = ...,
-        ) -> MarkDecorator:
-            ...
+        ) -> MarkDecorator: ...
 
     class _ParametrizeMarkDecorator(MarkDecorator):
         def __call__(  # type: ignore[override]
             self,
-            argnames: Union[str, List[str], Tuple[str, ...]],
+            argnames: Union[str, Sequence[str]],
             argvalues: Iterable[Union[ParameterSet, Sequence[object], object]],
             *,
             indirect: Union[bool, Sequence[str]] = ...,
@@ -450,8 +478,7 @@ if TYPE_CHECKING:
                 ]
             ] = ...,
             scope: Optional[_ScopeName] = ...,
-        ) -> MarkDecorator:
-            ...
+        ) -> MarkDecorator: ...
 
     class _UsefixturesMarkDecorator(MarkDecorator):
         def __call__(self, *fixtures: str) -> MarkDecorator:  # type: ignore[override]
@@ -471,9 +498,10 @@ class MarkGenerator:
 
          import pytest
 
+
          @pytest.mark.slowtest
          def test_function():
-            pass
+             pass
 
     applies a 'slowtest' :class:`Mark` on ``test_function``.
     """

@@ -24,17 +24,17 @@ span::before { content: counters(n, '.'); }
 <span style="counter-set: n 6; counter-increment: n 2"></span><!-- "6" -->
 <span style="counter-set: n; counter-increment: n 2"></span><!-- "0" -->
 <x style="counter-reset: n 9">
-  <span style="counter-set: n 2"></span><!-- "0.2" -->
+  <span style="counter-set: n 2"></span><!-- "2" -->
 </x>
-<span style="counter-increment: n"></span><!-- "0.3" -->
+<span style="counter-increment: n"></span><!-- "3" -->
 <x style="counter-reset: n 9">
-  <span style="counter-set: n"></span><!-- "0.3.0" -->
-  <span style="counter-set: n 2"></span><!-- "0.3.2" -->
+  <span style="counter-set: n"></span><!-- "0" -->
+  <span style="counter-set: n 2"></span><!-- "2" -->
   <x style="counter-reset: n 1">
-    <span style="counter-set: n 5"></span><!-- "0.3.2.5" -->
+    <span style="counter-set: n 5"></span><!-- "2.5" -->
   </x>
 </x>
-<span style="counter-increment: n"></span><!-- "0.3.3" -->
+<span style="counter-increment: n"></span><!-- "3" -->
 
 </body>
 </html>

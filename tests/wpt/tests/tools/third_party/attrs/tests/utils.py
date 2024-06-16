@@ -4,10 +4,9 @@
 Common helper functions for tests.
 """
 
-from __future__ import absolute_import, division, print_function
 
 from attr import Attribute
-from attr._make import NOTHING, make_class
+from attr._make import NOTHING, _default_init_alias_for, make_class
 
 
 def simple_class(
@@ -65,22 +64,5 @@ def simple_attr(
         converter=converter,
         kw_only=kw_only,
         inherited=inherited,
+        alias=_default_init_alias_for(name),
     )
-
-
-class TestSimpleClass(object):
-    """
-    Tests for the testing helper function `make_class`.
-    """
-
-    def test_returns_class(self):
-        """
-        Returns a class object.
-        """
-        assert type is simple_class().__class__
-
-    def returns_distinct_classes(self):
-        """
-        Each call returns a completely new class.
-        """
-        assert simple_class() is not simple_class()

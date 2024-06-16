@@ -44,7 +44,7 @@ Partner projects, sign up here! (by 22 March)
 What does it mean to "adopt pytest"?
 -----------------------------------------
 
-There can be many different definitions of "success". Pytest can run many nose_ and unittest_ tests by default, so using pytest as your testrunner may be possible from day 1. Job done, right?
+There can be many different definitions of "success". Pytest can run many unittest_ tests by default, so using pytest as your testrunner may be possible from day 1. Job done, right?
 
 Progressive success might look like:
 
@@ -62,7 +62,6 @@ Progressive success might look like:
 
 It may be after the month is up, the partner project decides that pytest is not right for it. That's okay - hopefully the pytest team will also learn something about its weaknesses or deficiencies.
 
-.. _nose: nose.html
 .. _unittest: unittest.html
 .. _assert: assert.html
 .. _pycmd: https://bitbucket.org/hpk42/pycmd/overview

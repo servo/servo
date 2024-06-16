@@ -10,7 +10,8 @@ enum XRDepthUsage {
 
 enum XRDepthDataFormat {
   "luminance-alpha",
-  "float32"
+  "float32",
+  "unsigned-short",
 };
 
 dictionary XRDepthStateInit {
@@ -50,6 +51,9 @@ partial interface XRFrame {
 [Exposed=Window]
 interface XRWebGLDepthInformation : XRDepthInformation {
   [SameObject] readonly attribute WebGLTexture texture;
+
+  readonly attribute XRTextureType textureType;
+  readonly attribute unsigned long? imageIndex;
 };
 
 partial interface XRWebGLBinding {
