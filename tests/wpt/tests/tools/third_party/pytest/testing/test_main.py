@@ -1,16 +1,17 @@
+# mypy: allow-untyped-defs
 import argparse
 import os
-import re
-import sys
 from pathlib import Path
+import re
 from typing import Optional
 
-import pytest
 from _pytest.config import ExitCode
 from _pytest.config import UsageError
+from _pytest.main import CollectionArgument
 from _pytest.main import resolve_collection_argument
 from _pytest.main import validate_basetemp
 from _pytest.pytester import Pytester
+import pytest
 
 
 @pytest.mark.parametrize(
@@ -24,19 +25,17 @@ from _pytest.pytester import Pytester
 def test_wrap_session_notify_exception(ret_exc, pytester: Pytester) -> None:
     returncode, exc = ret_exc
     c1 = pytester.makeconftest(
-        """
+        f"""
         import pytest
 
         def pytest_sessionstart():
-            raise {exc}("boom")
+            raise {exc.__name__}("boom")
 
         def pytest_internalerror(excrepr, excinfo):
             returncode = {returncode!r}
             if returncode is not False:
                 pytest.exit("exiting after %s..." % excinfo.typename, returncode={returncode!r})
-    """.format(
-            returncode=returncode, exc=exc.__name__
-        )
+    """
     )
     result = pytester.runpytest()
     if returncode:
@@ -45,32 +44,18 @@ def test_wrap_session_notify_exception(ret_exc, pytester: Pytester) -> None:
         assert result.ret == ExitCode.INTERNAL_ERROR
     assert result.stdout.lines[0] == "INTERNALERROR> Traceback (most recent call last):"
 
-    end_lines = (
-        result.stdout.lines[-4:]
-        if sys.version_info >= (3, 11)
-        else result.stdout.lines[-3:]
-    )
+    end_lines = result.stdout.lines[-3:]
 
     if exc == SystemExit:
         assert end_lines == [
             f'INTERNALERROR>   File "{c1}", line 4, in pytest_sessionstart',
             'INTERNALERROR>     raise SystemExit("boom")',
-            *(
-                ("INTERNALERROR>     ^^^^^^^^^^^^^^^^^^^^^^^^",)
-                if sys.version_info >= (3, 11)
-                else ()
-            ),
             "INTERNALERROR> SystemExit: boom",
         ]
     else:
         assert end_lines == [
             f'INTERNALERROR>   File "{c1}", line 4, in pytest_sessionstart',
             'INTERNALERROR>     raise ValueError("boom")',
-            *(
-                ("INTERNALERROR>     ^^^^^^^^^^^^^^^^^^^^^^^^",)
-                if sys.version_info >= (3, 11)
-                else ()
-            ),
             "INTERNALERROR> ValueError: boom",
         ]
     if returncode is False:
@@ -84,13 +69,11 @@ def test_wrap_session_exit_sessionfinish(
     returncode: Optional[int], pytester: Pytester
 ) -> None:
     pytester.makeconftest(
-        """
+        f"""
         import pytest
         def pytest_sessionfinish():
             pytest.exit(reason="exit_pytest_sessionfinish", returncode={returncode})
-    """.format(
-            returncode=returncode
-        )
+    """
     )
     result = pytester.runpytest()
     if returncode:
@@ -136,26 +119,43 @@ class TestResolveCollectionArgument:
 
     def test_file(self, invocation_path: Path) -> None:
         """File and parts."""
-        assert resolve_collection_argument(invocation_path, "src/pkg/test.py") == (
-            invocation_path / "src/pkg/test.py",
-            [],
+        assert resolve_collection_argument(
+            invocation_path, "src/pkg/test.py"
+        ) == CollectionArgument(
+            path=invocation_path / "src/pkg/test.py",
+            parts=[],
+            module_name=None,
         )
-        assert resolve_collection_argument(invocation_path, "src/pkg/test.py::") == (
-            invocation_path / "src/pkg/test.py",
-            [""],
+        assert resolve_collection_argument(
+            invocation_path, "src/pkg/test.py::"
+        ) == CollectionArgument(
+            path=invocation_path / "src/pkg/test.py",
+            parts=[""],
+            module_name=None,
         )
         assert resolve_collection_argument(
             invocation_path, "src/pkg/test.py::foo::bar"
-        ) == (invocation_path / "src/pkg/test.py", ["foo", "bar"])
+        ) == CollectionArgument(
+            path=invocation_path / "src/pkg/test.py",
+            parts=["foo", "bar"],
+            module_name=None,
+        )
         assert resolve_collection_argument(
             invocation_path, "src/pkg/test.py::foo::bar::"
-        ) == (invocation_path / "src/pkg/test.py", ["foo", "bar", ""])
+        ) == CollectionArgument(
+            path=invocation_path / "src/pkg/test.py",
+            parts=["foo", "bar", ""],
+            module_name=None,
+        )
 
     def test_dir(self, invocation_path: Path) -> None:
         """Directory and parts."""
-        assert resolve_collection_argument(invocation_path, "src/pkg") == (
-            invocation_path / "src/pkg",
-            [],
+        assert resolve_collection_argument(
+            invocation_path, "src/pkg"
+        ) == CollectionArgument(
+            path=invocation_path / "src/pkg",
+            parts=[],
+            module_name=None,
         )
 
         with pytest.raises(
@@ -172,13 +172,24 @@ class TestResolveCollectionArgument:
         """Dotted name and parts."""
         assert resolve_collection_argument(
             invocation_path, "pkg.test", as_pypath=True
-        ) == (invocation_path / "src/pkg/test.py", [])
+        ) == CollectionArgument(
+            path=invocation_path / "src/pkg/test.py",
+            parts=[],
+            module_name="pkg.test",
+        )
         assert resolve_collection_argument(
             invocation_path, "pkg.test::foo::bar", as_pypath=True
-        ) == (invocation_path / "src/pkg/test.py", ["foo", "bar"])
-        assert resolve_collection_argument(invocation_path, "pkg", as_pypath=True) == (
-            invocation_path / "src/pkg",
-            [],
+        ) == CollectionArgument(
+            path=invocation_path / "src/pkg/test.py",
+            parts=["foo", "bar"],
+            module_name="pkg.test",
+        )
+        assert resolve_collection_argument(
+            invocation_path, "pkg", as_pypath=True
+        ) == CollectionArgument(
+            path=invocation_path / "src/pkg",
+            parts=[],
+            module_name="pkg",
         )
 
         with pytest.raises(
@@ -189,10 +200,13 @@ class TestResolveCollectionArgument:
             )
 
     def test_parametrized_name_with_colons(self, invocation_path: Path) -> None:
-        ret = resolve_collection_argument(
+        assert resolve_collection_argument(
             invocation_path, "src/pkg/test.py::test[a::b]"
+        ) == CollectionArgument(
+            path=invocation_path / "src/pkg/test.py",
+            parts=["test[a::b]"],
+            module_name=None,
         )
-        assert ret == (invocation_path / "src/pkg/test.py", ["test[a::b]"])
 
     def test_does_not_exist(self, invocation_path: Path) -> None:
         """Given a file/module that does not exist raises UsageError."""
@@ -212,9 +226,12 @@ class TestResolveCollectionArgument:
     def test_absolute_paths_are_resolved_correctly(self, invocation_path: Path) -> None:
         """Absolute paths resolve back to absolute paths."""
         full_path = str(invocation_path / "src")
-        assert resolve_collection_argument(invocation_path, full_path) == (
-            Path(os.path.abspath("src")),
-            [],
+        assert resolve_collection_argument(
+            invocation_path, full_path
+        ) == CollectionArgument(
+            path=Path(os.path.abspath("src")),
+            parts=[],
+            module_name=None,
         )
 
         # ensure full paths given in the command-line without the drive letter resolve
@@ -222,7 +239,11 @@ class TestResolveCollectionArgument:
         drive, full_path_without_drive = os.path.splitdrive(full_path)
         assert resolve_collection_argument(
             invocation_path, full_path_without_drive
-        ) == (Path(os.path.abspath("src")), [])
+        ) == CollectionArgument(
+            path=Path(os.path.abspath("src")),
+            parts=[],
+            module_name=None,
+        )
 
 
 def test_module_full_path_without_drive(pytester: Pytester) -> None:
@@ -262,3 +283,34 @@ def test_module_full_path_without_drive(pytester: Pytester) -> None:
             "* 1 passed in *",
         ]
     )
+
+
+def test_very_long_cmdline_arg(pytester: Pytester) -> None:
+    """
+    Regression test for #11394.
+
+    Note: we could not manage to actually reproduce the error with this code, we suspect
+    GitHub runners are configured to support very long paths, however decided to leave
+    the test in place in case this ever regresses in the future.
+    """
+    pytester.makeconftest(
+        """
+        import pytest
+
+        def pytest_addoption(parser):
+            parser.addoption("--long-list", dest="long_list", action="store", default="all", help="List of things")
+
+        @pytest.fixture(scope="module")
+        def specified_feeds(request):
+            list_string = request.config.getoption("--long-list")
+            return list_string.split(',')
+        """
+    )
+    pytester.makepyfile(
+        """
+        def test_foo(specified_feeds):
+            assert len(specified_feeds) == 100_000
+        """
+    )
+    result = pytester.runpytest("--long-list", ",".join(["helloworld"] * 100_000))
+    result.stdout.fnmatch_lines("* 1 passed *")

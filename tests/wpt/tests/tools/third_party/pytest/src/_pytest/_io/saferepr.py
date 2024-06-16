@@ -1,8 +1,5 @@
 import pprint
 import reprlib
-from typing import Any
-from typing import Dict
-from typing import IO
 from typing import Optional
 
 
@@ -22,8 +19,8 @@ def _format_repr_exception(exc: BaseException, obj: object) -> str:
         raise
     except BaseException as exc:
         exc_info = f"unpresentable exception ({_try_repr_or_str(exc)})"
-    return "<[{} raised in repr()] {} object at 0x{:x}>".format(
-        exc_info, type(obj).__name__, id(obj)
+    return (
+        f"<[{exc_info} raised in repr()] {type(obj).__name__} object at 0x{id(obj):x}>"
     )
 
 
@@ -41,7 +38,7 @@ class SafeRepr(reprlib.Repr):
     information on exceptions raised during the call.
     """
 
-    def __init__(self, maxsize: Optional[int]) -> None:
+    def __init__(self, maxsize: Optional[int], use_ascii: bool = False) -> None:
         """
         :param maxsize:
             If not None, will truncate the resulting repr to that specific size, using ellipsis
@@ -54,10 +51,15 @@ class SafeRepr(reprlib.Repr):
         # truncation.
         self.maxstring = maxsize if maxsize is not None else 1_000_000_000
         self.maxsize = maxsize
+        self.use_ascii = use_ascii
 
     def repr(self, x: object) -> str:
         try:
-            s = super().repr(x)
+            if self.use_ascii:
+                s = ascii(x)
+            else:
+                s = super().repr(x)
+
         except (KeyboardInterrupt, SystemExit):
             raise
         except BaseException as exc:
@@ -94,7 +96,9 @@ def safeformat(obj: object) -> str:
 DEFAULT_REPR_MAX_SIZE = 240
 
 
-def saferepr(obj: object, maxsize: Optional[int] = DEFAULT_REPR_MAX_SIZE) -> str:
+def saferepr(
+    obj: object, maxsize: Optional[int] = DEFAULT_REPR_MAX_SIZE, use_ascii: bool = False
+) -> str:
     """Return a size-limited safe repr-string for the given object.
 
     Failing __repr__ functions of user instances will be represented
@@ -104,50 +108,23 @@ def saferepr(obj: object, maxsize: Optional[int] = DEFAULT_REPR_MAX_SIZE) -> str
     This function is a wrapper around the Repr/reprlib functionality of the
     stdlib.
     """
-    return SafeRepr(maxsize).repr(obj)
+    return SafeRepr(maxsize, use_ascii).repr(obj)
 
 
-class AlwaysDispatchingPrettyPrinter(pprint.PrettyPrinter):
-    """PrettyPrinter that always dispatches (regardless of width)."""
+def saferepr_unlimited(obj: object, use_ascii: bool = True) -> str:
+    """Return an unlimited-size safe repr-string for the given object.
 
-    def _format(
-        self,
-        object: object,
-        stream: IO[str],
-        indent: int,
-        allowance: int,
-        context: Dict[int, Any],
-        level: int,
-    ) -> None:
-        # Type ignored because _dispatch is private.
-        p = self._dispatch.get(type(object).__repr__, None)  # type: ignore[attr-defined]
+    As with saferepr, failing __repr__ functions of user instances
+    will be represented with a short exception info.
 
-        objid = id(object)
-        if objid in context or p is None:
-            # Type ignored because _format is private.
-            super()._format(  # type: ignore[misc]
-                object,
-                stream,
-                indent,
-                allowance,
-                context,
-                level,
-            )
-            return
+    This function is a wrapper around simple repr.
 
-        context[objid] = 1
-        p(self, object, stream, indent, allowance, context, level + 1)
-        del context[objid]
-
-
-def _pformat_dispatch(
-    object: object,
-    indent: int = 1,
-    width: int = 80,
-    depth: Optional[int] = None,
-    *,
-    compact: bool = False,
-) -> str:
-    return AlwaysDispatchingPrettyPrinter(
-        indent=indent, width=width, depth=depth, compact=compact
-    ).pformat(object)
+    Note: a cleaner solution would be to alter ``saferepr``this way
+    when maxsize=None, but that might affect some other code.
+    """
+    try:
+        if use_ascii:
+            return ascii(obj)
+        return repr(obj)
+    except Exception as exc:
+        return _format_repr_exception(exc, obj)

@@ -1,6 +1,12 @@
 # SPDX-License-Identifier: MIT
 
 from importlib import metadata
+from pathlib import Path
+
+
+# -- Path setup -----------------------------------------------------------
+
+PROJECT_ROOT_DIR = Path(__file__).parents[1].resolve()
 
 
 # -- General configuration ------------------------------------------------
@@ -12,9 +18,8 @@ from attr import define, frozen, field, validators, Factory
 linkcheck_ignore = [
     # We run into GitHub's rate limits.
     r"https://github.com/.*/(issues|pull)/\d+",
-    # It never finds the anchor even though it's there.
-    "https://github.com/microsoft/pyright/blob/main/specs/"
-    "dataclass_transforms.md#attrs",
+    # Rate limits and the latest tag is missing anyways on release.
+    "https://github.com/python-attrs/attrs/tree/.*",
 ]
 
 # In nitpick mode (-n), still ignore any of the following "broken" references
@@ -30,13 +35,20 @@ nitpick_ignore = [
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "myst_parser",
     "sphinx.ext.autodoc",
     "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
     "notfound.extension",
+    "sphinxcontrib.towncrier",
 ]
 
+myst_enable_extensions = [
+    "colon_fence",
+    "smartquotes",
+    "deflist",
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -58,8 +70,11 @@ copyright = f"2015, {author}"
 
 # The full version, including alpha/beta/rc tags.
 release = metadata.version("attrs")
-# The short X.Y version.
-version = release.rsplit(".", 1)[0]
+if "dev" in release:
+    release = version = "UNRELEASED"
+else:
+    # The short X.Y version.
+    version = release.rsplit(".", 1)[0]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -82,7 +97,14 @@ html_theme_options = {
     "sidebar_hide_name": True,
     "light_logo": "attrs_logo.svg",
     "dark_logo": "attrs_logo_white.svg",
+    "top_of_page_button": None,
+    "light_css_variables": {
+        "font-stack": "Inter,sans-serif",
+        "font-stack--monospace": "BerkeleyMono, MonoLisa, ui-monospace, "
+        "SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace",
+    },
 }
+html_css_files = ["custom.css"]
 
 
 # The name of an image file (within the static path) to use as favicon of the
@@ -147,9 +169,15 @@ texinfo_documents = [
 
 epub_description = "Python Clases Without Boilerplate"
 
-intersphinx_mapping = {
-    "https://docs.python.org/3": None,
-}
+intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
 
 # Allow non-local URIs so we can have images in CHANGELOG etc.
 suppress_warnings = ["image.nonlocal_uri"]
+
+
+# -- Options for sphinxcontrib.towncrier extension ------------------------
+
+towncrier_draft_autoversion_mode = "draft"
+towncrier_draft_include_empty = True
+towncrier_draft_working_directory = PROJECT_ROOT_DIR
+towncrier_draft_config_path = "pyproject.toml"

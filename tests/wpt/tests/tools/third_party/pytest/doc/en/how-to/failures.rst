@@ -135,10 +135,6 @@ Warning about unraisable exceptions and unhandled thread exceptions
 
 .. versionadded:: 6.2
 
-.. note::
-
-    These features only work on Python>=3.8.
-
 Unhandled exceptions are exceptions that are raised in a situation in which
 they cannot propagate to a caller. The most common case is an exception raised
 in a :meth:`__del__ <object.__del__>` implementation.

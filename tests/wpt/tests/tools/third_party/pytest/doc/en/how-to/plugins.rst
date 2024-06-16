@@ -21,7 +21,7 @@ there is no need to activate it.
 Here is a little annotated list for some popular plugins:
 
 * :pypi:`pytest-django`: write tests
-  for :std:doc:`django <django:index>` apps, using pytest integration.
+  for `django <https://docs.djangoproject.com/>`_ apps, using pytest integration.
 
 * :pypi:`pytest-twisted`: write tests
   for `twisted <https://twistedmatrix.com/>`_ apps, starting a reactor and
@@ -51,8 +51,8 @@ Here is a little annotated list for some popular plugins:
 * :pypi:`pytest-flakes`:
   check source code with pyflakes.
 
-* :pypi:`oejskit`:
-  a plugin to run javascript unittests in live browsers.
+* :pypi:`allure-pytest`:
+  report test results via `allure-framework <https://github.com/allure-framework/>`_.
 
 To see a complete list of all plugins with their latest testing
 status against different pytest and Python versions, please visit

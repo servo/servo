@@ -29,7 +29,7 @@ you will see the return value of the function call:
 
     $ pytest test_assert1.py
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    platform linux -- Python 3.x.y, pytest-8.x.y, pluggy-1.x.y
     rootdir: /home/sweet/project
     collected 1 item
 
@@ -54,14 +54,13 @@ operators. (See :ref:`tbreportdemo`).  This allows you to use the
 idiomatic python constructs without boilerplate code while not losing
 introspection information.
 
-However, if you specify a message with the assertion like this:
+If a message is specified with the assertion like this:
 
 .. code-block:: python
 
     assert a % 2 == 0, "value was odd, should be even"
 
-then no assertion introspection takes places at all and the message
-will be simply shown in the traceback.
+it is printed alongside the assertion introspection in the traceback.
 
 See :ref:`assert-details` for more information on assertion introspection.
 
@@ -99,6 +98,27 @@ and if you need to have access to the actual exception info you may use:
 the actual exception raised.  The main attributes of interest are
 ``.type``, ``.value`` and ``.traceback``.
 
+Note that ``pytest.raises`` will match the exception type or any subclasses (like the standard ``except`` statement).
+If you want to check if a block of code is raising an exact exception type, you need to check that explicitly:
+
+
+.. code-block:: python
+
+    def test_foo_not_implemented():
+        def foo():
+            raise NotImplementedError
+
+        with pytest.raises(RuntimeError) as excinfo:
+            foo()
+        assert excinfo.type is RuntimeError
+
+The :func:`pytest.raises` call will succeed, even though the function raises :class:`NotImplementedError`, because
+:class:`NotImplementedError` is a subclass of :class:`RuntimeError`; however the following `assert` statement will
+catch the problem.
+
+Matching exception messages
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 You can pass a ``match`` keyword parameter to the context-manager to test
 that a regular expression matches on the string representation of an exception
 (similar to the ``TestCase.assertRaisesRegex`` method from ``unittest``):
@@ -116,36 +136,113 @@ that a regular expression matches on the string representation of an exception
         with pytest.raises(ValueError, match=r".* 123 .*"):
             myfunc()
 
-The regexp parameter of the ``match`` method is matched with the ``re.search``
-function, so in the above example ``match='123'`` would have worked as
-well.
+Notes:
 
-There's an alternate form of the :func:`pytest.raises` function where you pass
-a function that will be executed with the given ``*args`` and ``**kwargs`` and
-assert that the given exception is raised:
+* The ``match`` parameter is matched with the :func:`re.search`
+  function, so in the above example ``match='123'`` would have worked as well.
+* The ``match`` parameter also matches against `PEP-678 <https://peps.python.org/pep-0678/>`__ ``__notes__``.
+
+
+.. _`assert-matching-exception-groups`:
+
+Matching exception groups
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can also use the :func:`excinfo.group_contains() <pytest.ExceptionInfo.group_contains>`
+method to test for exceptions returned as part of an :class:`ExceptionGroup`:
 
 .. code-block:: python
 
-    pytest.raises(ExpectedException, func, *args, **kwargs)
+    def test_exception_in_group():
+        with pytest.raises(ExceptionGroup) as excinfo:
+            raise ExceptionGroup(
+                "Group message",
+                [
+                    RuntimeError("Exception 123 raised"),
+                ],
+            )
+        assert excinfo.group_contains(RuntimeError, match=r".* 123 .*")
+        assert not excinfo.group_contains(TypeError)
+
+The optional ``match`` keyword parameter works the same way as for
+:func:`pytest.raises`.
+
+By default ``group_contains()`` will recursively search for a matching
+exception at any level of nested ``ExceptionGroup`` instances. You can
+specify a ``depth`` keyword parameter if you only want to match an
+exception at a specific level; exceptions contained directly in the top
+``ExceptionGroup`` would match ``depth=1``.
+
+.. code-block:: python
+
+    def test_exception_in_group_at_given_depth():
+        with pytest.raises(ExceptionGroup) as excinfo:
+            raise ExceptionGroup(
+                "Group message",
+                [
+                    RuntimeError(),
+                    ExceptionGroup(
+                        "Nested group",
+                        [
+                            TypeError(),
+                        ],
+                    ),
+                ],
+            )
+        assert excinfo.group_contains(RuntimeError, depth=1)
+        assert excinfo.group_contains(TypeError, depth=2)
+        assert not excinfo.group_contains(RuntimeError, depth=2)
+        assert not excinfo.group_contains(TypeError, depth=1)
+
+Alternate form (legacy)
+~~~~~~~~~~~~~~~~~~~~~~~
+
+There is an alternate form where you pass
+a function that will be executed, along ``*args`` and ``**kwargs``, and :func:`pytest.raises`
+will execute the function with the arguments and assert that the given exception is raised:
+
+.. code-block:: python
+
+    def func(x):
+        if x <= 0:
+            raise ValueError("x needs to be larger than zero")
+
+
+    pytest.raises(ValueError, func, x=-1)
 
 The reporter will provide you with helpful output in case of failures such as *no
 exception* or *wrong exception*.
 
-Note that it is also possible to specify a "raises" argument to
-``pytest.mark.xfail``, which checks that the test is failing in a more
+This form was the original :func:`pytest.raises` API, developed before the ``with`` statement was
+added to the Python language. Nowadays, this form is rarely used, with the context-manager form (using ``with``)
+being considered more readable.
+Nonetheless, this form is fully supported and not deprecated in any way.
+
+xfail mark and pytest.raises
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It is also possible to specify a ``raises`` argument to
+:ref:`pytest.mark.xfail <pytest.mark.xfail ref>`, which checks that the test is failing in a more
 specific way than just having any exception raised:
 
 .. code-block:: python
+
+    def f():
+        raise IndexError()
+
 
     @pytest.mark.xfail(raises=IndexError)
     def test_f():
         f()
 
-Using :func:`pytest.raises` is likely to be better for cases where you are
-testing exceptions your own code is deliberately raising, whereas using
-``@pytest.mark.xfail`` with a check function is probably better for something
-like documenting unfixed bugs (where the test describes what "should" happen)
-or bugs in dependencies.
+
+This will only "xfail" if the test fails by raising ``IndexError`` or subclasses.
+
+* Using :ref:`pytest.mark.xfail <pytest.mark.xfail ref>` with the ``raises`` parameter is probably better for something
+  like documenting unfixed bugs (where the test describes what "should" happen) or bugs in dependencies.
+
+* Using :func:`pytest.raises` is likely to be better for cases where you are
+  testing exceptions your own code is deliberately raising, which is the majority of cases.
 
 
 .. _`assertwarns`:
@@ -183,7 +280,7 @@ if you run this module:
 
     $ pytest test_assert2.py
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    platform linux -- Python 3.x.y, pytest-8.x.y, pluggy-1.x.y
     rootdir: /home/sweet/project
     collected 1 item
 
@@ -197,11 +294,12 @@ if you run this module:
             set2 = set("8035")
     >       assert set1 == set2
     E       AssertionError: assert {'0', '1', '3', '8'} == {'0', '3', '5', '8'}
+    E
     E         Extra items in the left set:
     E         '1'
     E         Extra items in the right set:
     E         '5'
-    E         Use -v to get the full diff
+    E         Use -v to get more diff
 
     test_assert2.py:4: AssertionError
     ========================= short test summary info ==========================
@@ -238,7 +336,7 @@ file which provides an alternative explanation for ``Foo`` objects:
        if isinstance(left, Foo) and isinstance(right, Foo) and op == "==":
            return [
                "Comparing Foo instances:",
-               "   vals: {} != {}".format(left.val, right.val),
+               f"   vals: {left.val} != {right.val}",
            ]
 
 now, given this test module:

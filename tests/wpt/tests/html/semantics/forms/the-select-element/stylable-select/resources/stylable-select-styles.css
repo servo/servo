@@ -38,6 +38,13 @@
   align-content: center;
 }
 
+.stylable-select-option::before {
+  content: '\2713' / '';
+}
+.stylable-select-option:not(.selected)::before {
+  visibility: hidden;
+}
+
 .stylable-select-button {
   color: FieldText;
   background-color: Field;

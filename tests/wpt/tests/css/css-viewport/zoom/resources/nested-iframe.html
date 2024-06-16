@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+
+<style>
+body {
+  --top-scale: 1;
+  --sub-scale: 1;
+  margin: calc(12px * var(--top-scale));
+  background-color: orange;
+}
+iframe {
+  border: none;
+  width: calc(96px * var(--top-scale) * var(--sub-scale));
+  height: calc(48px * var(--top-scale) * var(--sub-scale));
+}
+</style>
+
+<iframe id="target" scrolling="no"></iframe>
+
+<script>
+let target = document.getElementById("target");
+let params = new URLSearchParams(location.search);
+let scale = 1;
+
+if (params.has("zoom")) {
+  target.style.zoom = parseFloat(params.get("zoom"));
+}
+if (params.has("topscale")) {
+  let topscale = parseFloat(params.get("topscale"));
+  document.body.style.setProperty("--top-scale", topscale);
+  scale *= topscale;
+}
+if (params.has("subscale")) {
+  let subscale = parseFloat(params.get("subscale"));
+  document.body.style.setProperty("--sub-scale", subscale);
+  scale *= subscale;
+}
+
+let url = "leaf.html";
+if (scale != 1) {
+  url += `?scale=${scale}`;
+}
+target.src = url;
+</script>

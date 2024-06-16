@@ -1,0 +1,77 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection Simulcast Tests - setParameters/maxFramerate</title>
+<meta name="timeout" content="long">
+<script src="../third_party/sdp/sdp.js"></script>
+<script src="simulcast.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async function queryReceiverStats(pc) {
+  const inboundStats = [];
+  await Promise.all(pc.getReceivers().map(async receiver => {
+    const receiverStats = await receiver.getStats();
+    receiverStats.forEach(stat => {
+      if (stat.type === 'inbound-rtp') {
+        inboundStats.push(stat);
+      }
+    });
+  }));
+  return inboundStats;
+}
+
+async function statsDelta(pc, t) {
+  const initialStats = await queryReceiverStats(pc);
+  await new Promise(resolve => t.step_timeout(resolve, 1000)); // Wait more.
+  const subsequentStats = await queryReceiverStats(pc);
+  return {initialStats, subsequentStats};
+}
+
+function calculateFramerate(newStats, oldStats) {
+  const deltaF = newStats.framesDecoded - oldStats.framesDecoded;
+  const deltaT = newStats.timestamp - oldStats.timestamp;
+  return deltaF / deltaT * 1000;
+}
+
+promise_test(async t => {
+  const expectedFramerates = [15, 10, 5];
+  const rids = [0, 1, 2];
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  await negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2);
+
+  // Assert that our framerate is bigger than 20, otherwise this test does not assert anything useful.
+  await new Promise(resolve => t.step_timeout(resolve, 1000)); // Wait for framerate to stabilize.
+  const defaultStats = await statsDelta(pc2, t);
+  defaultStats.subsequentStats.forEach((_, idx) => {
+    const actualFramerate = calculateFramerate(defaultStats.subsequentStats[idx], defaultStats.initialStats[idx]);
+    assert_greater_than(actualFramerate, 20);
+  });
+
+  // Change the framerate on all layers.
+  const parameters = pc1.getSenders()[0].getParameters();
+  parameters.encodings.forEach((e, idx) => {
+    e.maxFramerate = expectedFramerates[idx];
+  });
+  await pc1.getSenders()[0].setParameters(parameters);
+  await new Promise(resolve => t.step_timeout(resolve, 100)); // Wait for the change to propagate to the receiver.
+
+  // Assert the approximate framerate
+  const newStats = await statsDelta(pc2, t);
+
+  const framerates = [];
+  newStats.subsequentStats.forEach((_, idx) => {
+    const expectedFramerate = expectedFramerates[idx];
+    const actualFramerate = calculateFramerate(newStats.subsequentStats[idx], newStats.initialStats[idx]);
+    // Assert that the framerate is at most the expected framerate (plus a tiny bit).
+    assert_less_than(actualFramerate, expectedFramerate + 0.5);
+    framerates.push(actualFramerate);
+  });
+  // Assert that the framerates are ordered as configured.
+  assert_equals(framerates, framerates.sort());
+}, 'Simulcast setParameters maxFramerate reduces the framerate');
+</script>

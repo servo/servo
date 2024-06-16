@@ -1,1 +1,1 @@
-collect_ignore = ["nonpython"]
+collect_ignore = ["nonpython", "customdirectory"]

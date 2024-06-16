@@ -1,9 +1,11 @@
+# mypy: allow-untyped-defs
 from pathlib import Path
 
-import pytest
 from _pytest.compat import LEGACY_PATH
+from _pytest.fixtures import TopRequest
 from _pytest.legacypath import TempdirFactory
 from _pytest.legacypath import Testdir
+import pytest
 
 
 def test_item_fspath(pytester: pytest.Pytester) -> None:
@@ -14,7 +16,7 @@ def test_item_fspath(pytester: pytest.Pytester) -> None:
     items2, hookrec = pytester.inline_genitems(item.nodeid)
     (item2,) = items2
     assert item2.name == item.name
-    assert item2.fspath == item.fspath  # type: ignore[attr-defined]
+    assert item2.fspath == item.fspath
     assert item2.path == item.path
 
 
@@ -90,7 +92,8 @@ def test_cache_makedir(cache: pytest.Cache) -> None:
 def test_fixturerequest_getmodulepath(pytester: pytest.Pytester) -> None:
     modcol = pytester.getmodulecol("def test_somefunc(): pass")
     (item,) = pytester.genitems([modcol])
-    req = pytest.FixtureRequest(item, _ispytest=True)
+    assert isinstance(item, pytest.Function)
+    req = TopRequest(item, _ispytest=True)
     assert req.path == modcol.path
     assert req.fspath == modcol.fspath  # type: ignore[attr-defined]
 
@@ -105,7 +108,7 @@ class TestFixtureRequestSessionScoped:
             AttributeError,
             match="path not available in session-scoped context",
         ):
-            session_request.fspath
+            _ = session_request.fspath
 
 
 @pytest.mark.parametrize("config_type", ["ini", "pyproject"])
@@ -152,7 +155,7 @@ def test_override_ini_paths(pytester: pytest.Pytester) -> None:
     )
     pytester.makepyfile(
         r"""
-        def test_overriden(pytestconfig):
+        def test_overridden(pytestconfig):
             config_paths = pytestconfig.getini("paths")
             print(config_paths)
             for cpf in config_paths:

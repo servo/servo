@@ -1,0 +1,51 @@
+name: backport
+
+on:
+  # Note that `pull_request_target` has security implications:
+  # https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
+  # In particular:
+  # - Only allow triggers that can be used only be trusted users
+  # - Don't execute any code from the target branch
+  # - Don't use cache
+  pull_request_target:
+    types: [labeled]
+
+# Set permissions at the job level.
+permissions: {}
+
+jobs:
+  backport:
+    if: startsWith(github.event.label.name, 'backport ') && github.event.pull_request.merged
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        persist-credentials: true
+
+    - name: Create backport PR
+      run: |
+        set -eux
+
+        git config --global user.name "pytest bot"
+        git config --global user.email "pytestbot@gmail.com"
+
+        label='${{ github.event.label.name }}'
+        target_branch="${label#backport }"
+        backport_branch=backport-${{ github.event.number }}-to-"${target_branch}"
+        subject="[$target_branch] $(gh pr view --json title -q .title ${{ github.event.number }})"
+
+        git checkout origin/"${target_branch}" -b "${backport_branch}"
+        git cherry-pick -x --mainline 1 ${{ github.event.pull_request.merge_commit_sha }}
+        git commit --amend --message "$subject"
+        git push --set-upstream origin --force-with-lease "${backport_branch}"
+        gh pr create \
+          --base "${target_branch}" \
+          --title "${subject}" \
+          --body "Backport of PR #${{ github.event.number }} to $target_branch branch. PR created by backport workflow."
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

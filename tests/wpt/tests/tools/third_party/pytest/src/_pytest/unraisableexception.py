@@ -1,12 +1,12 @@
 import sys
 import traceback
-import warnings
 from types import TracebackType
 from typing import Any
 from typing import Callable
 from typing import Generator
 from typing import Optional
 from typing import Type
+import warnings
 
 import pytest
 
@@ -61,33 +61,35 @@ class catch_unraisable_exception:
 
 def unraisable_exception_runtest_hook() -> Generator[None, None, None]:
     with catch_unraisable_exception() as cm:
-        yield
-        if cm.unraisable:
-            if cm.unraisable.err_msg is not None:
-                err_msg = cm.unraisable.err_msg
-            else:
-                err_msg = "Exception ignored in"
-            msg = f"{err_msg}: {cm.unraisable.object!r}\n\n"
-            msg += "".join(
-                traceback.format_exception(
-                    cm.unraisable.exc_type,
-                    cm.unraisable.exc_value,
-                    cm.unraisable.exc_traceback,
+        try:
+            yield
+        finally:
+            if cm.unraisable:
+                if cm.unraisable.err_msg is not None:
+                    err_msg = cm.unraisable.err_msg
+                else:
+                    err_msg = "Exception ignored in"
+                msg = f"{err_msg}: {cm.unraisable.object!r}\n\n"
+                msg += "".join(
+                    traceback.format_exception(
+                        cm.unraisable.exc_type,
+                        cm.unraisable.exc_value,
+                        cm.unraisable.exc_traceback,
+                    )
                 )
-            )
-            warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+                warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
 
 
-@pytest.hookimpl(hookwrapper=True, tryfirst=True)
+@pytest.hookimpl(wrapper=True, tryfirst=True)
 def pytest_runtest_setup() -> Generator[None, None, None]:
     yield from unraisable_exception_runtest_hook()
 
 
-@pytest.hookimpl(hookwrapper=True, tryfirst=True)
+@pytest.hookimpl(wrapper=True, tryfirst=True)
 def pytest_runtest_call() -> Generator[None, None, None]:
     yield from unraisable_exception_runtest_hook()
 
 
-@pytest.hookimpl(hookwrapper=True, tryfirst=True)
+@pytest.hookimpl(wrapper=True, tryfirst=True)
 def pytest_runtest_teardown() -> Generator[None, None, None]:
     yield from unraisable_exception_runtest_hook()

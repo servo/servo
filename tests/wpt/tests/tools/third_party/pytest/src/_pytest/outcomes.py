@@ -1,28 +1,17 @@
 """Exception classes and constants handling test outcomes as well as
 functions creating them."""
+
 import sys
-import warnings
 from typing import Any
 from typing import Callable
 from typing import cast
+from typing import NoReturn
 from typing import Optional
+from typing import Protocol
 from typing import Type
 from typing import TypeVar
 
-from _pytest.deprecated import KEYWORD_MSG_ARG
-
-TYPE_CHECKING = False  # Avoid circular import through compat.
-
-if TYPE_CHECKING:
-    from typing import NoReturn
-    from typing_extensions import Protocol
-else:
-    # typing.Protocol is only available starting from Python 3.8. It is also
-    # available from typing_extensions, but we don't want a runtime dependency
-    # on that. So use a dummy runtime implementation.
-    from typing import Generic
-
-    Protocol = Generic
+from .warning_types import PytestDeprecationWarning
 
 
 class OutcomeException(BaseException):
@@ -114,8 +103,9 @@ def _with_exception(exception_type: _ET) -> Callable[[_F], _WithException[_F, _E
 
 @_with_exception(Exit)
 def exit(
-    reason: str = "", returncode: Optional[int] = None, *, msg: Optional[str] = None
-) -> "NoReturn":
+    reason: str = "",
+    returncode: Optional[int] = None,
+) -> NoReturn:
     """Exit testing process.
 
     :param reason:
@@ -123,30 +113,21 @@ def exit(
         only because `msg` is deprecated.
 
     :param returncode:
-        Return code to be used when exiting pytest.
+        Return code to be used when exiting pytest. None means the same as ``0`` (no error), same as :func:`sys.exit`.
 
-    :param msg:
-        Same as ``reason``, but deprecated. Will be removed in a future version, use ``reason`` instead.
+    :raises pytest.exit.Exception:
+        The exception that is raised.
     """
     __tracebackhide__ = True
-    from _pytest.config import UsageError
-
-    if reason and msg:
-        raise UsageError(
-            "cannot pass reason and msg to exit(), `msg` is deprecated, use `reason`."
-        )
-    if not reason:
-        if msg is None:
-            raise UsageError("exit() requires a reason argument")
-        warnings.warn(KEYWORD_MSG_ARG.format(func="exit"), stacklevel=2)
-        reason = msg
     raise Exit(reason, returncode)
 
 
 @_with_exception(Skipped)
 def skip(
-    reason: str = "", *, allow_module_level: bool = False, msg: Optional[str] = None
-) -> "NoReturn":
+    reason: str = "",
+    *,
+    allow_module_level: bool = False,
+) -> NoReturn:
     """Skip an executing test with the given message.
 
     This function should be called only during testing (setup, call or teardown) or
@@ -157,11 +138,15 @@ def skip(
         The message to show the user as reason for the skip.
 
     :param allow_module_level:
-        Allows this function to be called at module level, skipping the rest
-        of the module. Defaults to False.
+        Allows this function to be called at module level.
+        Raising the skip exception at module level will stop
+        the execution of the module and prevent the collection of all tests in the module,
+        even those defined before the `skip` call.
 
-    :param msg:
-        Same as ``reason``, but deprecated. Will be removed in a future version, use ``reason`` instead.
+        Defaults to False.
+
+    :raises pytest.skip.Exception:
+        The exception that is raised.
 
     .. note::
         It is better to use the :ref:`pytest.mark.skipif ref` marker when
@@ -171,14 +156,11 @@ def skip(
         to skip a doctest statically.
     """
     __tracebackhide__ = True
-    reason = _resolve_msg_to_reason("skip", reason, msg)
     raise Skipped(msg=reason, allow_module_level=allow_module_level)
 
 
 @_with_exception(Failed)
-def fail(
-    reason: str = "", pytrace: bool = True, msg: Optional[str] = None
-) -> "NoReturn":
+def fail(reason: str = "", pytrace: bool = True) -> NoReturn:
     """Explicitly fail an executing test with the given message.
 
     :param reason:
@@ -188,49 +170,11 @@ def fail(
         If False, msg represents the full failure information and no
         python traceback will be reported.
 
-    :param msg:
-        Same as ``reason``, but deprecated. Will be removed in a future version, use ``reason`` instead.
+    :raises pytest.fail.Exception:
+        The exception that is raised.
     """
     __tracebackhide__ = True
-    reason = _resolve_msg_to_reason("fail", reason, msg)
     raise Failed(msg=reason, pytrace=pytrace)
-
-
-def _resolve_msg_to_reason(
-    func_name: str, reason: str, msg: Optional[str] = None
-) -> str:
-    """
-    Handles converting the deprecated msg parameter if provided into
-    reason, raising a deprecation warning.  This function will be removed
-    when the optional msg argument is removed from here in future.
-
-    :param str func_name:
-        The name of the offending function, this is formatted into the deprecation message.
-
-    :param str reason:
-        The reason= passed into either pytest.fail() or pytest.skip()
-
-    :param str msg:
-        The msg= passed into either pytest.fail() or pytest.skip().  This will
-        be converted into reason if it is provided to allow pytest.skip(msg=) or
-        pytest.fail(msg=) to continue working in the interim period.
-
-    :returns:
-        The value to use as reason.
-
-    """
-    __tracebackhide__ = True
-    if msg is not None:
-
-        if reason:
-            from pytest import UsageError
-
-            raise UsageError(
-                f"Passing both ``reason`` and ``msg`` to pytest.{func_name}(...) is not permitted."
-            )
-        warnings.warn(KEYWORD_MSG_ARG.format(func=func_name), stacklevel=3)
-        reason = msg
-    return reason
 
 
 class XFailed(Failed):
@@ -238,58 +182,125 @@ class XFailed(Failed):
 
 
 @_with_exception(XFailed)
-def xfail(reason: str = "") -> "NoReturn":
+def xfail(reason: str = "") -> NoReturn:
     """Imperatively xfail an executing test or setup function with the given reason.
 
     This function should be called only during testing (setup, call or teardown).
+
+    No other code is executed after using ``xfail()`` (it is implemented
+    internally by raising an exception).
+
+    :param reason:
+        The message to show the user as reason for the xfail.
 
     .. note::
         It is better to use the :ref:`pytest.mark.xfail ref` marker when
         possible to declare a test to be xfailed under certain conditions
         like known bugs or missing features.
+
+    :raises pytest.xfail.Exception:
+        The exception that is raised.
     """
     __tracebackhide__ = True
     raise XFailed(reason)
 
 
 def importorskip(
-    modname: str, minversion: Optional[str] = None, reason: Optional[str] = None
+    modname: str,
+    minversion: Optional[str] = None,
+    reason: Optional[str] = None,
+    *,
+    exc_type: Optional[Type[ImportError]] = None,
 ) -> Any:
     """Import and return the requested module ``modname``, or skip the
     current test if the module cannot be imported.
 
-    :param str modname:
+    :param modname:
         The name of the module to import.
-    :param str minversion:
+    :param minversion:
         If given, the imported module's ``__version__`` attribute must be at
         least this minimal version, otherwise the test is still skipped.
-    :param str reason:
+    :param reason:
         If given, this reason is shown as the message when the module cannot
         be imported.
+    :param exc_type:
+        The exception that should be captured in order to skip modules.
+        Must be :py:class:`ImportError` or a subclass.
+
+        If the module can be imported but raises :class:`ImportError`, pytest will
+        issue a warning to the user, as often users expect the module not to be
+        found (which would raise :class:`ModuleNotFoundError` instead).
+
+        This warning can be suppressed by passing ``exc_type=ImportError`` explicitly.
+
+        See :ref:`import-or-skip-import-error` for details.
+
 
     :returns:
         The imported module. This should be assigned to its canonical name.
 
+    :raises pytest.skip.Exception:
+        If the module cannot be imported.
+
     Example::
 
         docutils = pytest.importorskip("docutils")
+
+    .. versionadded:: 8.2
+
+        The ``exc_type`` parameter.
     """
     import warnings
 
     __tracebackhide__ = True
     compile(modname, "", "eval")  # to catch syntaxerrors
 
+    # Until pytest 9.1, we will warn the user if we catch ImportError (instead of ModuleNotFoundError),
+    # as this might be hiding an installation/environment problem, which is not usually what is intended
+    # when using importorskip() (#11523).
+    # In 9.1, to keep the function signature compatible, we just change the code below to:
+    # 1. Use `exc_type = ModuleNotFoundError` if `exc_type` is not given.
+    # 2. Remove `warn_on_import` and the warning handling.
+    if exc_type is None:
+        exc_type = ImportError
+        warn_on_import_error = True
+    else:
+        warn_on_import_error = False
+
+    skipped: Optional[Skipped] = None
+    warning: Optional[Warning] = None
+
     with warnings.catch_warnings():
         # Make sure to ignore ImportWarnings that might happen because
         # of existing directories with the same name we're trying to
         # import but without a __init__.py file.
         warnings.simplefilter("ignore")
+
         try:
             __import__(modname)
-        except ImportError as exc:
+        except exc_type as exc:
+            # Do not raise or issue warnings inside the catch_warnings() block.
             if reason is None:
                 reason = f"could not import {modname!r}: {exc}"
-            raise Skipped(reason, allow_module_level=True) from None
+            skipped = Skipped(reason, allow_module_level=True)
+
+            if warn_on_import_error and not isinstance(exc, ModuleNotFoundError):
+                lines = [
+                    "",
+                    f"Module '{modname}' was found, but when imported by pytest it raised:",
+                    f"    {exc!r}",
+                    "In pytest 9.1 this warning will become an error by default.",
+                    "You can fix the underlying problem, or alternatively overwrite this behavior and silence this "
+                    "warning by passing exc_type=ImportError explicitly.",
+                    "See https://docs.pytest.org/en/stable/deprecations.html#pytest-importorskip-default-behavior-regarding-importerror",
+                ]
+                warning = PytestDeprecationWarning("\n".join(lines))
+
+    if warning:
+        warnings.warn(warning, stacklevel=2)
+    if skipped:
+        raise skipped
+
     mod = sys.modules[modname]
     if minversion is None:
         return mod
@@ -300,8 +311,7 @@ def importorskip(
 
         if verattr is None or Version(verattr) < Version(minversion):
             raise Skipped(
-                "module %r has __version__ %r, required is: %r"
-                % (modname, verattr, minversion),
+                f"module {modname!r} has __version__ {verattr!r}, required is: {minversion!r}",
                 allow_module_level=True,
             )
     return mod

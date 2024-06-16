@@ -1,3 +1,4 @@
+# mypy: allow-untyped-defs
 from test_1 import func
 
 

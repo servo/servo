@@ -77,6 +77,11 @@ def test_delayed_lock(add_cleanup):
 
     queue = multiprocessing.Queue()
 
+    # Reset internal state of the stash class
+    Stash._proxy = None
+    Stash.lock = None
+    Stash.manager = None
+
     def mutex_lock_request():
         """This request handler allows the caller to delay execution of a
         thread which has requested a proxied representation of the `lock`
@@ -119,6 +124,11 @@ def test_delayed_dict(add_cleanup):
     response_lock = multiprocessing.Lock()
 
     queue = multiprocessing.Queue()
+
+    # Reset internal state of the stash class
+    Stash._proxy = None
+    Stash.lock = None
+    Stash.manager = None
 
     # This request handler allows the caller to delay execution of a thread
     # which has requested a proxied representation of the "get_dict" property.

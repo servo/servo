@@ -59,23 +59,14 @@ function addCleanup(t, part) {
 
     assert_throws_js(TypeError,() => new NodePart(nodePart,target.children[0]),'Constructing a Part with a NodePart as the PartRoot should throw');
 
-    const attributePart = addCleanup(t,new AttributePart(root,target,'attributename',/*automatic*/false,{metadata: ['attribute-non-auto']}));
-    assertEqualParts([attributePart],[{type:'AttributePart',metadata:['attribute-non-auto']}],0,'Basic AttributePart');
+    const attributePart = addCleanup(t,new AttributePart(root,target,'attributename',{metadata: ['attribute']}));
+    assertEqualParts([attributePart],[{type:'AttributePart',metadata:['attribute']}],0,'Basic AttributePart');
     assert_equals(attributePart.node,target);
     assert_equals(attributePart.root,root);
     assert_equals(attributePart.localName,'attributename');
-    assert_equals(attributePart.automatic,false);
-    runningPartsExpectation.push({type:'AttributePart',metadata:['attribute-non-auto']});
+    runningPartsExpectation.push({type:'AttributePart',metadata:['attribute']});
     assertEqualParts(root.getParts(),runningPartsExpectation,[nodePart,attributePart],'getParts() for the root should now have this attributePart');
     assert_equals(parts.length,0,'Return value of getParts() is not live');
-
-    const attributePartAuto = addCleanup(t,new AttributePart(root,target,'attributename',/*automatic*/true,{metadata: ['attribute-auto']}));
-    assertEqualParts([attributePartAuto],[{type:'AttributePart',metadata:['attribute-auto']}],0,'Basic automatic AttributePart');
-    assert_equals(attributePartAuto.node,target);
-    assert_equals(attributePartAuto.root,root);
-    assert_equals(attributePartAuto.localName,'attributename');
-    assert_equals(attributePartAuto.automatic,true);
-    assertEqualParts(root.getParts(),runningPartsExpectation,[nodePart,attributePart],'automatic AttributePart should not get included in getParts()');
 
     const childNodePart = addCleanup(t,new ChildNodePart(root,target.children[0], target.children[2],{metadata:['bar','baz']}));
     assertEqualParts([childNodePart],[{type:'ChildNodePart',metadata:['bar','baz']}],0,'Basic ChildNodePart');
@@ -126,8 +117,7 @@ function addCleanup(t, part) {
   test((t) => {
     const root = doc.getPartRoot();
     const nodePart = addCleanup(t,new NodePart(root,target,{metadata:['node1']}));
-    const attributePart = addCleanup(t,new AttributePart(root,target,'attributeName',/*automatic*/false,{metadata: ['attribute']}));
-    const nonTrackedAttributePart = addCleanup(t,new AttributePart(root,target,'attributeName',/*automatic*/true,{metadata: ['attribute-auto']}));
+    const attributePart = addCleanup(t,new AttributePart(root,target,'attributeName',{metadata: ['attribute']}));
     const childNodePart = addCleanup(t,new ChildNodePart(root,target.children[0], target.children[2],{metadata:['child']}));
     const nodePart3 = addCleanup(t,new NodePart(childNodePart,target.children[1].firstChild,{metadata: ['node 3']}));
     const nodePart2 = addCleanup(t,new NodePart(childNodePart,target.children[1].firstChild,{metadata: ['node 2']}));
@@ -158,7 +148,6 @@ function addCleanup(t, part) {
     assert_not_equals(newAttributePart.node,target,'Node references should not point to original nodes');
     assert_equals(newAttributePart.node.id,target.id,'New parts should point to cloned nodes');
     assert_equals(newAttributePart.localName,attributePart.localName,'New attribute parts should carry over localName');
-    assert_equals(newAttributePart.automatic,attributePart.automatic,'New attribute parts should carry over automatic');
     assert_not_equals(newChildNodePart.previousSibling,a,'Node references should not point to original nodes');
     assert_equals(newChildNodePart.previousSibling.id,'a');
     assert_not_equals(newChildNodePart.nextSibling,c,'Node references should not point to original nodes');

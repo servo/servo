@@ -1,18 +1,21 @@
-import warnings
 import pytest
-from pluggy import PluginManager, HookimplMarker, HookspecMarker
+
+from pluggy import HookimplMarker
+from pluggy import HookspecMarker
+from pluggy import PluginManager
+
 
 hookspec = HookspecMarker("example")
 hookimpl = HookimplMarker("example")
 
 
-def test_parse_hookimpl_override():
+def test_parse_hookimpl_override() -> None:
     class MyPluginManager(PluginManager):
         def parse_hookimpl_opts(self, module_or_class, name):
             opts = PluginManager.parse_hookimpl_opts(self, module_or_class, name)
             if opts is None:
                 if name.startswith("x1"):
-                    opts = {}
+                    opts = {}  # type: ignore[assignment]
             return opts
 
     class Plugin:
@@ -23,6 +26,10 @@ def test_parse_hookimpl_override():
         def x1meth2(self):
             yield  # pragma: no cover
 
+        @hookimpl(wrapper=True, trylast=True)
+        def x1meth3(self):
+            return (yield)  # pragma: no cover
+
     class Spec:
         @hookspec
         def x1meth(self):
@@ -32,19 +39,37 @@ def test_parse_hookimpl_override():
         def x1meth2(self):
             pass
 
+        @hookspec
+        def x1meth3(self):
+            pass
+
     pm = MyPluginManager(hookspec.project_name)
     pm.register(Plugin())
     pm.add_hookspecs(Spec)
-    assert not pm.hook.x1meth._nonwrappers[0].hookwrapper
-    assert not pm.hook.x1meth._nonwrappers[0].tryfirst
-    assert not pm.hook.x1meth._nonwrappers[0].trylast
-    assert not pm.hook.x1meth._nonwrappers[0].optionalhook
 
-    assert pm.hook.x1meth2._wrappers[0].tryfirst
-    assert pm.hook.x1meth2._wrappers[0].hookwrapper
+    hookimpls = pm.hook.x1meth.get_hookimpls()
+    assert len(hookimpls) == 1
+    assert not hookimpls[0].hookwrapper
+    assert not hookimpls[0].wrapper
+    assert not hookimpls[0].tryfirst
+    assert not hookimpls[0].trylast
+    assert not hookimpls[0].optionalhook
+
+    hookimpls = pm.hook.x1meth2.get_hookimpls()
+    assert len(hookimpls) == 1
+    assert hookimpls[0].hookwrapper
+    assert not hookimpls[0].wrapper
+    assert hookimpls[0].tryfirst
+
+    hookimpls = pm.hook.x1meth3.get_hookimpls()
+    assert len(hookimpls) == 1
+    assert not hookimpls[0].hookwrapper
+    assert hookimpls[0].wrapper
+    assert not hookimpls[0].tryfirst
+    assert hookimpls[0].trylast
 
 
-def test_warn_when_deprecated_specified(recwarn):
+def test_warn_when_deprecated_specified(recwarn) -> None:
     warning = DeprecationWarning("foo is deprecated")
 
     class Spec:
@@ -68,20 +93,53 @@ def test_warn_when_deprecated_specified(recwarn):
     assert record.lineno == Plugin.foo.__code__.co_firstlineno
 
 
-def test_plugin_getattr_raises_errors():
+def test_warn_when_deprecated_args_specified(recwarn) -> None:
+    warning1 = DeprecationWarning("old1 is deprecated")
+    warning2 = DeprecationWarning("old2 is deprecated")
+
+    class Spec:
+        @hookspec(
+            warn_on_impl_args={
+                "old1": warning1,
+                "old2": warning2,
+            },
+        )
+        def foo(self, old1, new, old2):
+            raise NotImplementedError()
+
+    class Plugin:
+        @hookimpl
+        def foo(self, old2, old1, new):
+            raise NotImplementedError()
+
+    pm = PluginManager(hookspec.project_name)
+    pm.add_hookspecs(Spec)
+
+    with pytest.warns(DeprecationWarning) as records:
+        pm.register(Plugin())
+    (record1, record2) = records
+    assert record1.message is warning2
+    assert record1.filename == Plugin.foo.__code__.co_filename
+    assert record1.lineno == Plugin.foo.__code__.co_firstlineno
+    assert record2.message is warning1
+    assert record2.filename == Plugin.foo.__code__.co_filename
+    assert record2.lineno == Plugin.foo.__code__.co_firstlineno
+
+
+def test_plugin_getattr_raises_errors() -> None:
     """Pluggy must be able to handle plugins which raise weird exceptions
     when getattr() gets called (#11).
     """
 
     class DontTouchMe:
         def __getattr__(self, x):
-            raise Exception("cant touch me")
+            raise Exception("can't touch me")
 
     class Module:
         pass
 
     module = Module()
-    module.x = DontTouchMe()
+    module.x = DontTouchMe()  # type: ignore[attr-defined]
 
     pm = PluginManager(hookspec.project_name)
     # register() would raise an error
@@ -89,38 +147,36 @@ def test_plugin_getattr_raises_errors():
     assert pm.get_plugin("donttouch") is module
 
 
-def test_warning_on_call_vs_hookspec_arg_mismatch():
-    """Verify that is a hook is called with less arguments then defined in the
-    spec that a warning is emitted.
-    """
+def test_not_all_arguments_are_provided_issues_a_warning(pm: PluginManager) -> None:
+    """Calling a hook without providing all arguments specified in
+    the hook spec issues a warning."""
 
     class Spec:
         @hookspec
-        def myhook(self, arg1, arg2):
+        def hello(self, arg1, arg2):
             pass
 
-    class Plugin:
-        @hookimpl
-        def myhook(self, arg1):
+        @hookspec(historic=True)
+        def herstory(self, arg1, arg2):
             pass
 
-    pm = PluginManager(hookspec.project_name)
-    pm.register(Plugin())
-    pm.add_hookspecs(Spec())
+    pm.add_hookspecs(Spec)
 
-    with warnings.catch_warnings(record=True) as warns:
-        warnings.simplefilter("always")
+    with pytest.warns(UserWarning, match=r"'arg1', 'arg2'.*cannot be found.*$"):
+        pm.hook.hello()
+    with pytest.warns(UserWarning, match=r"'arg2'.*cannot be found.*$"):
+        pm.hook.hello(arg1=1)
+    with pytest.warns(UserWarning, match=r"'arg1'.*cannot be found.*$"):
+        pm.hook.hello(arg2=2)
 
-        # calling should trigger a warning
-        pm.hook.myhook(arg1=1)
+    with pytest.warns(UserWarning, match=r"'arg1', 'arg2'.*cannot be found.*$"):
+        pm.hook.hello.call_extra([], kwargs=dict())
 
-        assert len(warns) == 1
-        warning = warns[-1]
-        assert issubclass(warning.category, Warning)
-        assert "Argument(s) ('arg2',)" in str(warning.message)
+    with pytest.warns(UserWarning, match=r"'arg1', 'arg2'.*cannot be found.*$"):
+        pm.hook.herstory.call_historic(kwargs=dict())
 
 
-def test_repr():
+def test_repr() -> None:
     class Plugin:
         @hookimpl
         def myhook(self):
@@ -130,6 +186,6 @@ def test_repr():
 
     plugin = Plugin()
     pname = pm.register(plugin)
-    assert repr(pm.hook.myhook._nonwrappers[0]) == (
+    assert repr(pm.hook.myhook.get_hookimpls()[0]) == (
         f"<HookImpl plugin_name={pname!r}, plugin={plugin!r}>"
     )

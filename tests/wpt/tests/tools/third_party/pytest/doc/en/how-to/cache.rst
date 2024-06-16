@@ -86,7 +86,7 @@ If you then run it with ``--lf``:
 
     $ pytest --lf
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    platform linux -- Python 3.x.y, pytest-8.x.y, pluggy-1.x.y
     rootdir: /home/sweet/project
     collected 2 items
     run-last-failure: rerun previous 2 failures
@@ -132,7 +132,7 @@ of ``FF`` and dots):
 
     $ pytest --ff
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    platform linux -- Python 3.x.y, pytest-8.x.y, pluggy-1.x.y
     rootdir: /home/sweet/project
     collected 50 items
     run-last-failure: rerun previous 2 failures first
@@ -176,14 +176,21 @@ with more recent files coming first.
 Behavior when no tests failed in the last run
 ---------------------------------------------
 
-When no tests failed in the last run, or when no cached ``lastfailed`` data was
-found, ``pytest`` can be configured either to run all of the tests or no tests,
-using the ``--last-failed-no-failures`` option, which takes one of the following values:
+The ``--lfnf/--last-failed-no-failures`` option governs the behavior of ``--last-failed``.
+Determines whether to execute tests when there are no previously (known)
+failures or when no cached ``lastfailed`` data was found.
+
+There are two options:
+
+* ``all``:  when there are no known test failures, runs all tests (the full test suite). This is the default.
+* ``none``: when there are no known test failures, just emits a message stating this and exit successfully.
+
+Example:
 
 .. code-block:: bash
 
-    pytest --last-failed --last-failed-no-failures all    # run all tests (default behavior)
-    pytest --last-failed --last-failed-no-failures none   # run no tests and exit
+    pytest --last-failed --last-failed-no-failures all    # runs the full test suite (default behavior)
+    pytest --last-failed --last-failed-no-failures none   # runs no tests and exits successfully
 
 The new config.cache object
 --------------------------------
@@ -199,7 +206,6 @@ across pytest invocations:
 
     # content of test_caching.py
     import pytest
-    import time
 
 
     def expensive_computation():
@@ -207,12 +213,12 @@ across pytest invocations:
 
 
     @pytest.fixture
-    def mydata(request):
-        val = request.config.cache.get("example/value", None)
+    def mydata(pytestconfig):
+        val = pytestconfig.cache.get("example/value", None)
         if val is None:
             expensive_computation()
             val = 42
-            request.config.cache.set("example/value", val)
+            pytestconfig.cache.set("example/value", val)
         return val
 
 
@@ -234,7 +240,7 @@ If you run this command for the first time, you can see the print statement:
     >       assert mydata == 23
     E       assert 42 == 23
 
-    test_caching.py:20: AssertionError
+    test_caching.py:19: AssertionError
     -------------------------- Captured stdout setup ---------------------------
     running expensive computation...
     ========================= short test summary info ==========================
@@ -257,7 +263,7 @@ the cache and nothing will be printed:
     >       assert mydata == 23
     E       assert 42 == 23
 
-    test_caching.py:20: AssertionError
+    test_caching.py:19: AssertionError
     ========================= short test summary info ==========================
     FAILED test_caching.py::test_function - assert 42 == 23
     1 failed in 0.12s
@@ -275,7 +281,7 @@ You can always peek at the content of the cache using the
 
     $ pytest --cache-show
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    platform linux -- Python 3.x.y, pytest-8.x.y, pluggy-1.x.y
     rootdir: /home/sweet/project
     cachedir: /home/sweet/project/.pytest_cache
     --------------------------- cache values for '*' ---------------------------
@@ -297,7 +303,7 @@ filtering:
 
     $ pytest --cache-show example/*
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    platform linux -- Python 3.x.y, pytest-8.x.y, pluggy-1.x.y
     rootdir: /home/sweet/project
     cachedir: /home/sweet/project/.pytest_cache
     ----------------------- cache values for 'example/*' -----------------------

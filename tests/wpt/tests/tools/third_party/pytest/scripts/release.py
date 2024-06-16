@@ -1,4 +1,6 @@
+# mypy: disallow-untyped-defs
 """Invoke development tasks."""
+
 import argparse
 import os
 from pathlib import Path
@@ -10,15 +12,15 @@ from colorama import Fore
 from colorama import init
 
 
-def announce(version, template_name, doc_version):
+def announce(version: str, template_name: str, doc_version: str) -> None:
     """Generates a new release announcement entry in the docs."""
     # Get our list of authors
-    stdout = check_output(["git", "describe", "--abbrev=0", "--tags"])
-    stdout = stdout.decode("utf-8")
+    stdout = check_output(["git", "describe", "--abbrev=0", "--tags"], encoding="UTF-8")
     last_version = stdout.strip()
 
-    stdout = check_output(["git", "log", f"{last_version}..HEAD", "--format=%aN"])
-    stdout = stdout.decode("utf-8")
+    stdout = check_output(
+        ["git", "log", f"{last_version}..HEAD", "--format=%aN"], encoding="UTF-8"
+    )
 
     contributors = {
         name
@@ -61,7 +63,7 @@ def announce(version, template_name, doc_version):
     check_call(["git", "add", str(target)])
 
 
-def regen(version):
+def regen(version: str) -> None:
     """Call regendoc tool to update examples and pytest output in the docs."""
     print(f"{Fore.CYAN}[generate.regen] {Fore.RESET}Updating docs")
     check_call(
@@ -70,7 +72,7 @@ def regen(version):
     )
 
 
-def fix_formatting():
+def fix_formatting() -> None:
     """Runs pre-commit in all files to ensure they are formatted correctly"""
     print(
         f"{Fore.CYAN}[generate.fix linting] {Fore.RESET}Fixing formatting using pre-commit"
@@ -78,13 +80,15 @@ def fix_formatting():
     call(["pre-commit", "run", "--all-files"])
 
 
-def check_links():
+def check_links() -> None:
     """Runs sphinx-build to check links"""
     print(f"{Fore.CYAN}[generate.check_links] {Fore.RESET}Checking links")
     check_call(["tox", "-e", "docs-checklinks"])
 
 
-def pre_release(version, template_name, doc_version, *, skip_check_links):
+def pre_release(
+    version: str, template_name: str, doc_version: str, *, skip_check_links: bool
+) -> None:
     """Generates new docs, release announcements and creates a local tag."""
     announce(version, template_name, doc_version)
     regen(version)
@@ -102,12 +106,12 @@ def pre_release(version, template_name, doc_version, *, skip_check_links):
     print("Please push your branch and open a PR.")
 
 
-def changelog(version, write_out=False):
+def changelog(version: str, write_out: bool = False) -> None:
     addopts = [] if write_out else ["--draft"]
-    check_call(["towncrier", "--yes", "--version", version] + addopts)
+    check_call(["towncrier", "--yes", "--version", version, *addopts])
 
 
-def main():
+def main() -> None:
     init(autoreset=True)
     parser = argparse.ArgumentParser()
     parser.add_argument("version", help="Release version")

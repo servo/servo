@@ -17,7 +17,7 @@ def b(a, order):
 
 
 @pytest.fixture
-def c(a, b, order):
+def c(b, order):
     order.append("c")
 
 

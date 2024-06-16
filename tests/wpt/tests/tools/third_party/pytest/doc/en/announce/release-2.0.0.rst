@@ -62,7 +62,7 @@ New Features
 - new "-q" option which decreases verbosity and prints a more
   nose/unittest-style "dot" output.
 
-- many many more detailed improvements details
+- many, many, more detailed improvements details
 
 Fixes
 -----------------------
@@ -109,7 +109,7 @@ Important Notes
     in conftest.py files.  They will cause nothing special.
   - removed support for calling the pre-1.0 collection API of "run()" and "join"
   - removed reading option values from conftest.py files or env variables.
-    This can now be done much much better and easier through the ini-file
+    This can now be done much, much, better and easier through the ini-file
     mechanism and the "addopts" entry in particular.
   - removed the "disabled" attribute in test classes.  Use the skipping
     and pytestmark mechanism to skip or xfail a test class.

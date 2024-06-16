@@ -1,23 +1,24 @@
+# mypy: allow-untyped-defs
 import os
 import sys
 from typing import List
 from typing import Optional
 from unittest import mock
 
-import pytest
 from _pytest.config import ExitCode
 from _pytest.mark import MarkGenerator
 from _pytest.mark.structures import EMPTY_PARAMETERSET_OPTION
 from _pytest.nodes import Collector
 from _pytest.nodes import Node
 from _pytest.pytester import Pytester
+import pytest
 
 
 class TestMark:
     @pytest.mark.parametrize("attr", ["mark", "param"])
     def test_pytest_exists_in_namespace_all(self, attr: str) -> None:
         module = sys.modules["pytest"]
-        assert attr in module.__all__  # type: ignore
+        assert attr in module.__all__
 
     def test_pytest_mark_notcallable(self) -> None:
         mark = MarkGenerator(_ispytest=True)
@@ -33,7 +34,7 @@ class TestMark:
 
         assert pytest.mark.foo(some_function) is some_function
         marked_with_args = pytest.mark.foo.with_args(some_function)
-        assert marked_with_args is not some_function  # type: ignore[comparison-overlap]
+        assert marked_with_args is not some_function
 
         assert pytest.mark.foo(SomeClass) is SomeClass
         assert pytest.mark.foo.with_args(SomeClass) is not SomeClass  # type: ignore[comparison-overlap]
@@ -41,7 +42,7 @@ class TestMark:
     def test_pytest_mark_name_starts_with_underscore(self) -> None:
         mark = MarkGenerator(_ispytest=True)
         with pytest.raises(AttributeError):
-            mark._some_name
+            _ = mark._some_name
 
 
 def test_marked_class_run_twice(pytester: Pytester) -> None:
@@ -806,12 +807,12 @@ class TestKeywordSelection:
         pytester.makepyfile(
             conftest="""
             import pytest
-            @pytest.hookimpl(hookwrapper=True)
+            @pytest.hookimpl(wrapper=True)
             def pytest_pycollect_makeitem(name):
-                outcome = yield
+                item = yield
                 if name == "TestClass":
-                    item = outcome.get_result()
                     item.extra_keyword_matches.add("xxx")
+                return item
         """
         )
         reprec = pytester.inline_run(p.parent, "-s", "-k", keyword)
@@ -822,25 +823,6 @@ class TestKeywordSelection:
         dlist = reprec.getcalls("pytest_deselected")
         assert len(dlist) == 1
         assert dlist[0].items[0].name == "test_1"
-
-    def test_select_starton(self, pytester: Pytester) -> None:
-        threepass = pytester.makepyfile(
-            test_threepass="""
-            def test_one(): assert 1
-            def test_two(): assert 1
-            def test_three(): assert 1
-        """
-        )
-        reprec = pytester.inline_run(
-            "-Wignore::pytest.PytestRemovedIn7Warning", "-k", "test_two:", threepass
-        )
-        passed, skipped, failed = reprec.listoutcomes()
-        assert len(passed) == 2
-        assert not failed
-        dlist = reprec.getcalls("pytest_deselected")
-        assert len(dlist) == 1
-        item = dlist[0].items[0]
-        assert item.name == "test_one"
 
     def test_keyword_extra(self, pytester: Pytester) -> None:
         p = pytester.makepyfile(
@@ -890,17 +872,30 @@ class TestKeywordSelection:
         deselected_tests = dlist[0].items
         assert len(deselected_tests) == 1
 
-    def test_no_match_directories_outside_the_suite(self, pytester: Pytester) -> None:
+    def test_no_match_directories_outside_the_suite(
+        self,
+        pytester: Pytester,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
         """`-k` should not match against directories containing the test suite (#7040)."""
-        test_contents = """
-            def test_aaa(): pass
-            def test_ddd(): pass
-        """
-        pytester.makepyfile(
-            **{"ddd/tests/__init__.py": "", "ddd/tests/test_foo.py": test_contents}
+        pytester.makefile(
+            **{
+                "suite/pytest": """[pytest]""",
+            },
+            ext=".ini",
         )
+        pytester.makepyfile(
+            **{
+                "suite/ddd/tests/__init__.py": "",
+                "suite/ddd/tests/test_foo.py": """
+                def test_aaa(): pass
+                def test_ddd(): pass
+            """,
+            }
+        )
+        monkeypatch.chdir(pytester.path / "suite")
 
-        def get_collected_names(*args):
+        def get_collected_names(*args: str) -> List[str]:
             _, rec = pytester.inline_genitems(*args)
             calls = rec.getcalls("pytest_collection_finish")
             assert len(calls) == 1
@@ -911,12 +906,6 @@ class TestKeywordSelection:
 
         # do not collect anything based on names outside the collection tree
         assert get_collected_names("-k", pytester._name) == []
-
-        # "-k ddd" should only collect "test_ddd", but not
-        # 'test_aaa' just because one of its parent directories is named "ddd";
-        # this was matched previously because Package.name would contain the full path
-        # to the package
-        assert get_collected_names("-k", "ddd") == ["test_ddd"]
 
 
 class TestMarkDecorator:
@@ -945,16 +934,15 @@ def test_parameterset_for_parametrize_marks(
 ) -> None:
     if mark is not None:
         pytester.makeini(
-            """
+            f"""
         [pytest]
-        {}={}
-        """.format(
-                EMPTY_PARAMETERSET_OPTION, mark
-            )
+        {EMPTY_PARAMETERSET_OPTION}={mark}
+        """
         )
 
     config = pytester.parseconfig()
-    from _pytest.mark import pytest_configure, get_empty_parameterset_mark
+    from _pytest.mark import get_empty_parameterset_mark
+    from _pytest.mark import pytest_configure
 
     pytest_configure(config)
     result_mark = get_empty_parameterset_mark(config, ["a"], all)
@@ -969,16 +957,15 @@ def test_parameterset_for_parametrize_marks(
 
 def test_parameterset_for_fail_at_collect(pytester: Pytester) -> None:
     pytester.makeini(
-        """
+        f"""
     [pytest]
-    {}=fail_at_collect
-    """.format(
-            EMPTY_PARAMETERSET_OPTION
-        )
+    {EMPTY_PARAMETERSET_OPTION}=fail_at_collect
+    """
     )
 
     config = pytester.parseconfig()
-    from _pytest.mark import pytest_configure, get_empty_parameterset_mark
+    from _pytest.mark import get_empty_parameterset_mark
+    from _pytest.mark import pytest_configure
 
     pytest_configure(config)
 
@@ -1128,3 +1115,62 @@ def test_marker_expr_eval_failure_handling(pytester: Pytester, expr) -> None:
     result = pytester.runpytest(foo, "-m", expr)
     result.stderr.fnmatch_lines([expected])
     assert result.ret == ExitCode.USAGE_ERROR
+
+
+def test_mark_mro() -> None:
+    xfail = pytest.mark.xfail
+
+    @xfail("a")
+    class A:
+        pass
+
+    @xfail("b")
+    class B:
+        pass
+
+    @xfail("c")
+    class C(A, B):
+        pass
+
+    from _pytest.mark.structures import get_unpacked_marks
+
+    all_marks = get_unpacked_marks(C)
+
+    assert all_marks == [xfail("b").mark, xfail("a").mark, xfail("c").mark]
+
+    assert get_unpacked_marks(C, consider_mro=False) == [xfail("c").mark]
+
+
+# @pytest.mark.issue("https://github.com/pytest-dev/pytest/issues/10447")
+def test_mark_fixture_order_mro(pytester: Pytester):
+    """This ensures we walk marks of the mro starting with the base classes
+    the action at a distance fixtures are taken as minimal example from a real project
+
+    """
+    foo = pytester.makepyfile(
+        """
+        import pytest
+
+        @pytest.fixture
+        def add_attr1(request):
+            request.instance.attr1 = object()
+
+
+        @pytest.fixture
+        def add_attr2(request):
+            request.instance.attr2 = request.instance.attr1
+
+
+        @pytest.mark.usefixtures('add_attr1')
+        class Parent:
+            pass
+
+
+        @pytest.mark.usefixtures('add_attr2')
+        class TestThings(Parent):
+            def test_attrs(self):
+                assert self.attr1 == self.attr2
+        """
+    )
+    result = pytester.runpytest(foo)
+    result.assert_outcomes(passed=1)

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display: reading-order-items with value flex-visual</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-order-items">
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='../../resources/shadow-dom.js'></script>
+<script src="../../resources/focus-utils.js"></script>
+
+<style>
+.wrapper {
+  display: flex;
+  reading-order-items: flex-visual;
+}
+</style>
+
+<div class="test-case" data-expect="A,B,C"
+      data-description="Flex items in flexbox should follow flex-visual reading order">
+  <div class="wrapper">
+    <button id="A">A</button>
+    <button id="B">B</button>
+    <button id="C">C</button>
+  </div>
+</div>
+
+<div class="test-case" data-expect="C1,B1,A1"
+      data-description="Flex items in row-reverse flexbox should follow flex-visual reading order">
+  <div class="wrapper" style="flex-direction: row-reverse">
+    <button id="A1">A</button>
+    <button id="B1">B</button>
+    <button id="C1">C</button>
+  </div>
+</div>
+
+<div class="test-case" data-expect="C2,B2,A2"
+      data-description="Flex items in row-reverse rtl flexbox should follow flex-visual reading order">
+  <div class="wrapper" style="flex-direction: row-reverse; direction: rtl">
+    <button id="A2">A</button>
+    <button id="B2">B</button>
+    <button id="C2">C</button>
+  </div>
+</div>
+
+<div class="test-case" data-expect="C3,B3,A3"
+      data-description="Flex items in row-reverse and vertical-lr flexbox should follow flex-visual reading order">
+  <div class="wrapper" style="flex-direction: row-reverse; writing-mode: vertical-lr;">
+    <button id="A3">A</button>
+    <button id="B3">B</button>
+    <button id="C3">C</button>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

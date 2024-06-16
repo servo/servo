@@ -1,5 +1,6 @@
 from setuptools import setup
 
+
 setup(
     name="eggsample-spam",
     install_requires="eggsample",

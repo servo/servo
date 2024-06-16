@@ -5,8 +5,10 @@ pytest runtime information (issue #185).
 
 Fixture "mock_timing" also interacts with this module for pytest's own tests.
 """
+
 from time import perf_counter
 from time import sleep
 from time import time
+
 
 __all__ = ["perf_counter", "sleep", "time"]

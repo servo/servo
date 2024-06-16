@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="UTF-8" />
+<title>CSS Fonts: font-variant-emoji web font test</title>
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#font-variant-emoji-prop" />
+<link rel="help" href="https://www.unicode.org/reports/tr51" />
+<link rel="match" href="font-variant-emoji-003-ref.html"/>
+<meta name="assert" content="font-variant-emoji sets an emoji's presentation for the emoji default and text default emoji codepoints and affects the fallback font selection."/>
+<link rel="stylesheet" type="text/css" href="support/css/variation-sequences.css" />
+<style>
+    .emoji {
+      font-variant-emoji: emoji;
+    }
+
+    .text {
+      font-variant-emoji: text;
+    }
+
+    .unicode {
+      font-variant-emoji: unicode;
+    }
+</style>
+
+<p>Emoji Default</p>
+<!-- Codepoint U+1FAE8 has emoji presentation by default,
+(Emoji=Yes,Emoji_Presentation=Yes).
+See https://www.unicode.org/Public/15.1.0/ucd/emoji/emoji-data.txt.
+So when font-variant-emoji is set to `unicode`, the codepoint
+should be displayed in color. -->
+<div style="font-family: MonoEmojiFont, ColorEmojiFont;">
+  <span class="emoji">&#x1fae8;</span>
+  <span class="text">&#x1fae8;</span>
+  <span class="unicode">&#x1fae8;</span>
+</div>
+
+<p>Text Default</p>
+<!-- Codepoint U+2139 has text presentation by default,
+(Emoji=Yes,Emoji_Presentation=No).
+See https://www.unicode.org/Public/15.1.0/ucd/emoji/emoji-data.txt.
+So when font-variant-emoji is set to `unicode`, the codepoint
+should be displayed in monochrome. -->
+<div style="font-family: ColorEmojiFont, MonoEmojiFont;">
+  <span class="emoji">&#x2139;</span>
+  <span class="text">&#x2139;</span>
+  <span class="unicode">&#x2139;</span>
+</div>

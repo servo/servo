@@ -1,4 +1,6 @@
+# mypy: allow-untyped-defs
 """setUpModule is always called, even if all tests in the module are skipped"""
+
 import unittest
 
 

@@ -1,3 +1,4 @@
+# mypy: allow-untyped-defs
 import pprint
 from typing import List
 from typing import Tuple
@@ -22,13 +23,13 @@ def checked_order():
     assert order == [
         ("issue_519.py", "fix1", "arg1v1"),
         ("test_one[arg1v1-arg2v1]", "fix2", "arg2v1"),
-        ("test_two[arg1v1-arg2v1]", "fix2", "arg2v1"),
         ("test_one[arg1v1-arg2v2]", "fix2", "arg2v2"),
+        ("test_two[arg1v1-arg2v1]", "fix2", "arg2v1"),
         ("test_two[arg1v1-arg2v2]", "fix2", "arg2v2"),
         ("issue_519.py", "fix1", "arg1v2"),
         ("test_one[arg1v2-arg2v1]", "fix2", "arg2v1"),
-        ("test_two[arg1v2-arg2v1]", "fix2", "arg2v1"),
         ("test_one[arg1v2-arg2v2]", "fix2", "arg2v2"),
+        ("test_two[arg1v2-arg2v1]", "fix2", "arg2v1"),
         ("test_two[arg1v2-arg2v2]", "fix2", "arg2v2"),
     ]
 

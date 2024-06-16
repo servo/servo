@@ -1,8 +1,8 @@
 from typing import Callable
 
-import pytest
 from _pytest.mark.expression import Expression
 from _pytest.mark.expression import ParseError
+import pytest
 
 
 def evaluate(input: str, matcher: Callable[[str], bool]) -> bool:
@@ -61,7 +61,7 @@ def test_basic(expr: str, expected: bool) -> None:
         ("not not not not not true", False),
     ),
 )
-def test_syntax_oddeties(expr: str, expected: bool) -> None:
+def test_syntax_oddities(expr: str, expected: bool) -> None:
     matcher = {"true": True, "false": False}.__getitem__
     assert evaluate(expr, matcher) is expected
 

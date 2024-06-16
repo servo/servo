@@ -1,24 +1,22 @@
-import io
 import os
 import sys
 from typing import Generator
-from typing import TextIO
 
-import pytest
 from _pytest.config import Config
 from _pytest.config.argparsing import Parser
 from _pytest.nodes import Item
 from _pytest.stash import StashKey
+import pytest
 
 
-fault_handler_stderr_key = StashKey[TextIO]()
-fault_handler_originally_enabled_key = StashKey[bool]()
+fault_handler_original_stderr_fd_key = StashKey[int]()
+fault_handler_stderr_fd_key = StashKey[int]()
 
 
 def pytest_addoption(parser: Parser) -> None:
     help = (
         "Dump the traceback of all threads if a test takes "
-        "more than TIMEOUT seconds to finish."
+        "more than TIMEOUT seconds to finish"
     )
     parser.addini("faulthandler_timeout", help, default=0.0)
 
@@ -26,10 +24,16 @@ def pytest_addoption(parser: Parser) -> None:
 def pytest_configure(config: Config) -> None:
     import faulthandler
 
-    stderr_fd_copy = os.dup(get_stderr_fileno())
-    config.stash[fault_handler_stderr_key] = open(stderr_fd_copy, "w")
-    config.stash[fault_handler_originally_enabled_key] = faulthandler.is_enabled()
-    faulthandler.enable(file=config.stash[fault_handler_stderr_key])
+    # at teardown we want to restore the original faulthandler fileno
+    # but faulthandler has no api to return the original fileno
+    # so here we stash the stderr fileno to be used at teardown
+    # sys.stderr and sys.__stderr__ may be closed or patched during the session
+    # so we can't rely on their values being good at that point (#11572).
+    stderr_fileno = get_stderr_fileno()
+    if faulthandler.is_enabled():
+        config.stash[fault_handler_original_stderr_fd_key] = stderr_fileno
+    config.stash[fault_handler_stderr_fd_key] = os.dup(stderr_fileno)
+    faulthandler.enable(file=config.stash[fault_handler_stderr_fd_key])
 
 
 def pytest_unconfigure(config: Config) -> None:
@@ -37,12 +41,13 @@ def pytest_unconfigure(config: Config) -> None:
 
     faulthandler.disable()
     # Close the dup file installed during pytest_configure.
-    if fault_handler_stderr_key in config.stash:
-        config.stash[fault_handler_stderr_key].close()
-        del config.stash[fault_handler_stderr_key]
-    if config.stash.get(fault_handler_originally_enabled_key, False):
-        # Re-enable the faulthandler if it was originally enabled.
-        faulthandler.enable(file=get_stderr_fileno())
+    if fault_handler_stderr_fd_key in config.stash:
+        os.close(config.stash[fault_handler_stderr_fd_key])
+        del config.stash[fault_handler_stderr_fd_key]
+    # Re-enable the faulthandler if it was originally enabled.
+    if fault_handler_original_stderr_fd_key in config.stash:
+        faulthandler.enable(config.stash[fault_handler_original_stderr_fd_key])
+        del config.stash[fault_handler_original_stderr_fd_key]
 
 
 def get_stderr_fileno() -> int:
@@ -53,7 +58,7 @@ def get_stderr_fileno() -> int:
         if fileno == -1:
             raise AttributeError()
         return fileno
-    except (AttributeError, io.UnsupportedOperation):
+    except (AttributeError, ValueError):
         # pytest-xdist monkeypatches sys.stderr with an object that is not an actual file.
         # https://docs.python.org/3/library/faulthandler.html#issue-with-file-descriptors
         # This is potentially dangerous, but the best we can do.
@@ -64,20 +69,20 @@ def get_timeout_config_value(config: Config) -> float:
     return float(config.getini("faulthandler_timeout") or 0.0)
 
 
-@pytest.hookimpl(hookwrapper=True, trylast=True)
-def pytest_runtest_protocol(item: Item) -> Generator[None, None, None]:
+@pytest.hookimpl(wrapper=True, trylast=True)
+def pytest_runtest_protocol(item: Item) -> Generator[None, object, object]:
     timeout = get_timeout_config_value(item.config)
-    stderr = item.config.stash[fault_handler_stderr_key]
-    if timeout > 0 and stderr is not None:
+    if timeout > 0:
         import faulthandler
 
+        stderr = item.config.stash[fault_handler_stderr_fd_key]
         faulthandler.dump_traceback_later(timeout, file=stderr)
         try:
-            yield
+            return (yield)
         finally:
             faulthandler.cancel_dump_traceback_later()
     else:
-        yield
+        return (yield)
 
 
 @pytest.hookimpl(tryfirst=True)

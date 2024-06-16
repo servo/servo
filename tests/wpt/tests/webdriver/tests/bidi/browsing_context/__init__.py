@@ -14,7 +14,7 @@ def assert_browsing_context(
     info,
     context,
     children=None,
-    is_root=True,
+    parent_expected=True,
     parent=None,
     url=None,
     user_context="default",
@@ -34,7 +34,7 @@ def assert_browsing_context(
     if context is not None:
         assert info["context"] == context
 
-    if is_root:
+    if parent_expected:
         if parent is None:
             # For a top-level browsing context there is no parent
             assert info["parent"] is None

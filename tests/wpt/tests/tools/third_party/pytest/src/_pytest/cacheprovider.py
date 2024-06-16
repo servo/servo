@@ -1,10 +1,15 @@
+# mypy: allow-untyped-defs
 """Implementation of the cache provider."""
+
 # This plugin was not named "cache" to avoid conflicts with the external
 # pytest-cache version.
+import dataclasses
 import json
 import os
 from pathlib import Path
+import tempfile
 from typing import Dict
+from typing import final
 from typing import Generator
 from typing import Iterable
 from typing import List
@@ -12,14 +17,11 @@ from typing import Optional
 from typing import Set
 from typing import Union
 
-import attr
-
 from .pathlib import resolve_from_str
 from .pathlib import rm_rf
 from .reports import CollectReport
 from _pytest import nodes
 from _pytest._io import TerminalWriter
-from _pytest.compat import final
 from _pytest.config import Config
 from _pytest.config import ExitCode
 from _pytest.config import hookimpl
@@ -28,8 +30,8 @@ from _pytest.deprecated import check_ispytest
 from _pytest.fixtures import fixture
 from _pytest.fixtures import FixtureRequest
 from _pytest.main import Session
-from _pytest.python import Module
-from _pytest.python import Package
+from _pytest.nodes import Directory
+from _pytest.nodes import File
 from _pytest.reports import TestReport
 
 
@@ -53,10 +55,12 @@ Signature: 8a477f597d28d172789f06886806bc55
 
 
 @final
-@attr.s(init=False, auto_attribs=True)
+@dataclasses.dataclass
 class Cache:
-    _cachedir: Path = attr.ib(repr=False)
-    _config: Config = attr.ib(repr=False)
+    """Instance of the `cache` fixture."""
+
+    _cachedir: Path = dataclasses.field(repr=False)
+    _config: Config = dataclasses.field(repr=False)
 
     # Sub-directory under cache-dir for directories created by `mkdir()`.
     _CACHE_PREFIX_DIRS = "d"
@@ -111,6 +115,7 @@ class Cache:
         """
         check_ispytest(_ispytest)
         import warnings
+
         from _pytest.warning_types import PytestCacheWarning
 
         warnings.warn(
@@ -118,6 +123,10 @@ class Cache:
             self._config.hook,
             stacklevel=3,
         )
+
+    def _mkdir(self, path: Path) -> None:
+        self._ensure_cache_dir_and_supporting_files()
+        path.mkdir(exist_ok=True, parents=True)
 
     def mkdir(self, name: str) -> Path:
         """Return a directory path object with the given name.
@@ -137,7 +146,7 @@ class Cache:
         if len(path.parts) > 1:
             raise ValueError("name is not allowed to contain path separators")
         res = self._cachedir.joinpath(self._CACHE_PREFIX_DIRS, path)
-        res.mkdir(exist_ok=True, parents=True)
+        self._mkdir(res)
         return res
 
     def _getvaluepath(self, key: str) -> Path:
@@ -157,7 +166,7 @@ class Cache:
         """
         path = self._getvaluepath(key)
         try:
-            with path.open("r") as f:
+            with path.open("r", encoding="UTF-8") as f:
                 return json.load(f)
         except (ValueError, OSError):
             return default
@@ -174,36 +183,58 @@ class Cache:
         """
         path = self._getvaluepath(key)
         try:
-            if path.parent.is_dir():
-                cache_dir_exists_already = True
-            else:
-                cache_dir_exists_already = self._cachedir.exists()
-                path.parent.mkdir(exist_ok=True, parents=True)
-        except OSError:
-            self.warn("could not create cache path {path}", path=path, _ispytest=True)
+            self._mkdir(path.parent)
+        except OSError as exc:
+            self.warn(
+                f"could not create cache path {path}: {exc}",
+                _ispytest=True,
+            )
             return
-        if not cache_dir_exists_already:
-            self._ensure_supporting_files()
-        data = json.dumps(value, indent=2)
+        data = json.dumps(value, ensure_ascii=False, indent=2)
         try:
-            f = path.open("w")
-        except OSError:
-            self.warn("cache could not write path {path}", path=path, _ispytest=True)
+            f = path.open("w", encoding="UTF-8")
+        except OSError as exc:
+            self.warn(
+                f"cache could not write path {path}: {exc}",
+                _ispytest=True,
+            )
         else:
             with f:
                 f.write(data)
 
-    def _ensure_supporting_files(self) -> None:
-        """Create supporting files in the cache dir that are not really part of the cache."""
-        readme_path = self._cachedir / "README.md"
-        readme_path.write_text(README_CONTENT)
+    def _ensure_cache_dir_and_supporting_files(self) -> None:
+        """Create the cache dir and its supporting files."""
+        if self._cachedir.is_dir():
+            return
 
-        gitignore_path = self._cachedir.joinpath(".gitignore")
-        msg = "# Created by pytest automatically.\n*\n"
-        gitignore_path.write_text(msg, encoding="UTF-8")
+        self._cachedir.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(
+            prefix="pytest-cache-files-",
+            dir=self._cachedir.parent,
+        ) as newpath:
+            path = Path(newpath)
 
-        cachedir_tag_path = self._cachedir.joinpath("CACHEDIR.TAG")
-        cachedir_tag_path.write_bytes(CACHEDIR_TAG_CONTENT)
+            # Reset permissions to the default, see #12308.
+            # Note: there's no way to get the current umask atomically, eek.
+            umask = os.umask(0o022)
+            os.umask(umask)
+            path.chmod(0o777 - umask)
+
+            with open(path.joinpath("README.md"), "xt", encoding="UTF-8") as f:
+                f.write(README_CONTENT)
+            with open(path.joinpath(".gitignore"), "xt", encoding="UTF-8") as f:
+                f.write("# Created by pytest automatically.\n*\n")
+            with open(path.joinpath("CACHEDIR.TAG"), "xb") as f:
+                f.write(CACHEDIR_TAG_CONTENT)
+
+            path.rename(self._cachedir)
+            # Create a directory in place of the one we just moved so that `TemporaryDirectory`'s
+            # cleanup doesn't complain.
+            #
+            # TODO: pass ignore_cleanup_errors=True when we no longer support python < 3.10. See
+            # https://github.com/python/cpython/issues/74168. Note that passing delete=False would
+            # do the wrong thing in case of errors and isn't supported until python 3.12.
+            path.mkdir()
 
 
 class LFPluginCollWrapper:
@@ -211,34 +242,34 @@ class LFPluginCollWrapper:
         self.lfplugin = lfplugin
         self._collected_at_least_one_failure = False
 
-    @hookimpl(hookwrapper=True)
-    def pytest_make_collect_report(self, collector: nodes.Collector):
-        if isinstance(collector, Session):
-            out = yield
-            res: CollectReport = out.get_result()
-
+    @hookimpl(wrapper=True)
+    def pytest_make_collect_report(
+        self, collector: nodes.Collector
+    ) -> Generator[None, CollectReport, CollectReport]:
+        res = yield
+        if isinstance(collector, (Session, Directory)):
             # Sort any lf-paths to the beginning.
             lf_paths = self.lfplugin._last_failed_paths
 
+            # Use stable sort to prioritize last failed.
+            def sort_key(node: Union[nodes.Item, nodes.Collector]) -> bool:
+                return node.path in lf_paths
+
             res.result = sorted(
                 res.result,
-                # use stable sort to priorize last failed
-                key=lambda x: x.path in lf_paths,
+                key=sort_key,
                 reverse=True,
             )
-            return
 
-        elif isinstance(collector, Module):
+        elif isinstance(collector, File):
             if collector.path in self.lfplugin._last_failed_paths:
-                out = yield
-                res = out.get_result()
                 result = res.result
                 lastfailed = self.lfplugin.lastfailed
 
                 # Only filter with known failures.
                 if not self._collected_at_least_one_failure:
                     if not any(x.nodeid in lastfailed for x in result):
-                        return
+                        return res
                     self.lfplugin.config.pluginmanager.register(
                         LFPluginCollSkipfiles(self.lfplugin), "lfplugin-collskip"
                     )
@@ -254,8 +285,8 @@ class LFPluginCollWrapper:
                     # Keep all sub-collectors.
                     or isinstance(x, nodes.Collector)
                 ]
-                return
-        yield
+
+        return res
 
 
 class LFPluginCollSkipfiles:
@@ -266,10 +297,7 @@ class LFPluginCollSkipfiles:
     def pytest_make_collect_report(
         self, collector: nodes.Collector
     ) -> Optional[CollectReport]:
-        # Packages are Modules, but _last_failed_paths only contains
-        # test-bearing paths and doesn't try to include the paths of their
-        # packages, so don't filter them.
-        if isinstance(collector, Module) and not isinstance(collector, Package):
+        if isinstance(collector, File):
             if collector.path not in self.lfplugin._last_failed_paths:
                 self.lfplugin._skipped_files += 1
 
@@ -299,9 +327,14 @@ class LFPlugin:
             )
 
     def get_last_failed_paths(self) -> Set[Path]:
-        """Return a set with all Paths()s of the previously failed nodeids."""
+        """Return a set with all Paths of the previously failed nodeids and
+        their parents."""
         rootpath = self.config.rootpath
-        result = {rootpath / nodeid.split("::")[0] for nodeid in self.lastfailed}
+        result = set()
+        for nodeid in self.lastfailed:
+            path = rootpath / nodeid.split("::")[0]
+            result.add(path)
+            result.update(path.parents)
         return {x for x in result if x.exists()}
 
     def pytest_report_collectionfinish(self) -> Optional[str]:
@@ -324,14 +357,14 @@ class LFPlugin:
         else:
             self.lastfailed[report.nodeid] = True
 
-    @hookimpl(hookwrapper=True, tryfirst=True)
+    @hookimpl(wrapper=True, tryfirst=True)
     def pytest_collection_modifyitems(
         self, config: Config, items: List[nodes.Item]
     ) -> Generator[None, None, None]:
-        yield
+        res = yield
 
         if not self.active:
-            return
+            return res
 
         if self.lastfailed:
             previously_failed = []
@@ -358,15 +391,13 @@ class LFPlugin:
 
                 noun = "failure" if self._previously_failed_count == 1 else "failures"
                 suffix = " first" if self.config.getoption("failedfirst") else ""
-                self._report_status = "rerun previous {count} {noun}{suffix}".format(
-                    count=self._previously_failed_count, suffix=suffix, noun=noun
+                self._report_status = (
+                    f"rerun previous {self._previously_failed_count} {noun}{suffix}"
                 )
 
             if self._skipped_files > 0:
                 files_noun = "file" if self._skipped_files == 1 else "files"
-                self._report_status += " (skipped {files} {files_noun})".format(
-                    files=self._skipped_files, files_noun=files_noun
-                )
+                self._report_status += f" (skipped {self._skipped_files} {files_noun})"
         else:
             self._report_status = "no previously failed tests, "
             if self.config.getoption("last_failed_no_failures") == "none":
@@ -375,6 +406,8 @@ class LFPlugin:
                 items[:] = []
             else:
                 self._report_status += "not deselecting items."
+
+        return res
 
     def pytest_sessionfinish(self, session: Session) -> None:
         config = self.config
@@ -396,11 +429,11 @@ class NFPlugin:
         assert config.cache is not None
         self.cached_nodeids = set(config.cache.get("cache/nodeids", []))
 
-    @hookimpl(hookwrapper=True, tryfirst=True)
+    @hookimpl(wrapper=True, tryfirst=True)
     def pytest_collection_modifyitems(
         self, items: List[nodes.Item]
     ) -> Generator[None, None, None]:
-        yield
+        res = yield
 
         if self.active:
             new_items: Dict[str, nodes.Item] = {}
@@ -418,8 +451,10 @@ class NFPlugin:
         else:
             self.cached_nodeids.update(item.nodeid for item in items)
 
+        return res
+
     def _get_increasing_order(self, items: Iterable[nodes.Item]) -> List[nodes.Item]:
-        return sorted(items, key=lambda item: item.path.stat().st_mtime, reverse=True)  # type: ignore[no-any-return]
+        return sorted(items, key=lambda item: item.path.stat().st_mtime, reverse=True)
 
     def pytest_sessionfinish(self) -> None:
         config = self.config
@@ -440,7 +475,7 @@ def pytest_addoption(parser: Parser) -> None:
         "--last-failed",
         action="store_true",
         dest="lf",
-        help="rerun only the tests that failed "
+        help="Rerun only the tests that failed "
         "at the last run (or all if none failed)",
     )
     group.addoption(
@@ -448,7 +483,7 @@ def pytest_addoption(parser: Parser) -> None:
         "--failed-first",
         action="store_true",
         dest="failedfirst",
-        help="run all tests, but run the last failures first.\n"
+        help="Run all tests, but run the last failures first. "
         "This may re-order tests and thus lead to "
         "repeated fixture setup/teardown.",
     )
@@ -457,7 +492,7 @@ def pytest_addoption(parser: Parser) -> None:
         "--new-first",
         action="store_true",
         dest="newfirst",
-        help="run tests from new files first, then the rest of the tests "
+        help="Run tests from new files first, then the rest of the tests "
         "sorted by file mtime",
     )
     group.addoption(
@@ -466,7 +501,7 @@ def pytest_addoption(parser: Parser) -> None:
         nargs="?",
         dest="cacheshow",
         help=(
-            "show cache contents, don't perform collection or tests. "
+            "Show cache contents, don't perform collection or tests. "
             "Optional argument: glob (default: '*')."
         ),
     )
@@ -474,12 +509,12 @@ def pytest_addoption(parser: Parser) -> None:
         "--cache-clear",
         action="store_true",
         dest="cacheclear",
-        help="remove all cache contents at start of test run.",
+        help="Remove all cache contents at start of test run",
     )
     cache_dir_default = ".pytest_cache"
     if "TOX_ENV_DIR" in os.environ:
         cache_dir_default = os.path.join(os.environ["TOX_ENV_DIR"], cache_dir_default)
-    parser.addini("cache_dir", default=cache_dir_default, help="cache directory path.")
+    parser.addini("cache_dir", default=cache_dir_default, help="Cache directory path")
     group.addoption(
         "--lfnf",
         "--last-failed-no-failures",
@@ -487,12 +522,16 @@ def pytest_addoption(parser: Parser) -> None:
         dest="last_failed_no_failures",
         choices=("all", "none"),
         default="all",
-        help="which tests to run with no previously (known) failures.",
+        help="With ``--lf``, determines whether to execute tests when there "
+        "are no previously (known) failures or when no "
+        "cached ``lastfailed`` data was found. "
+        "``all`` (the default) runs the full test suite again. "
+        "``none`` just emits a message about no known failures and exits successfully.",
     )
 
 
 def pytest_cmdline_main(config: Config) -> Optional[Union[int, ExitCode]]:
-    if config.option.cacheshow:
+    if config.option.cacheshow and not config.option.help:
         from _pytest.main import wrap_session
 
         return wrap_session(config, cacheshow)

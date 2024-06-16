@@ -1,5 +1,5 @@
-import unicodedata
 from functools import lru_cache
+import unicodedata
 
 
 @lru_cache(100)

@@ -4,7 +4,7 @@ from webdriver.bidi.modules.network import CookieHeader, Header, NetworkStringVa
 from webdriver.bidi.modules.script import ContextTarget
 
 from ... import recursive_compare
-from .. import assert_response_event, RESPONSE_COMPLETED_EVENT
+from .. import RESPONSE_COMPLETED_EVENT
 
 pytestmark = pytest.mark.asyncio
 
@@ -26,7 +26,15 @@ async def test_modify_cookies(
     top_context,
     document_cookies,
     modified_cookies,
+    url
 ):
+    # Navigate away from about:blank to make sure document.cookies can be used.
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=url("/webdriver/tests/bidi/support/empty.html"),
+        wait="complete"
+    )
+
     expression = ""
     for name, value in document_cookies.items():
         expression += f"document.cookie = '{name}={value}';"

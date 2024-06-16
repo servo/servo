@@ -112,6 +112,16 @@ attribute_test(
             `content-type should be exposed for iframes having only same origin redirects`);
 });
 
+// Content-type for iframes is not exposed if any redirect is not same origin.
+var finalDestUrl = `${SAME_ORIGIN}/resource-timing/resources/content-type.py?content_type=text/html`;
+var interimDestUrl = `${REMOTE_ORIGIN}/resource-timing/resources/resources/redirect-cors.py?location=` + encodeURIComponent(finalDestUrl);
+var destUrl = `${SAME_ORIGIN}/resource-timing/resources/redirect-cors.py?location=` + encodeURIComponent(interimDestUrl);
+attribute_test(
+    load.iframe, new URL(destUrl),
+    entry => {
+        assert_equals(entry.contentType, "",
+            `content-type should not be exposed for iframes with any non-same-origin redirect`);
+});
 </script>
 </body>
 </html>

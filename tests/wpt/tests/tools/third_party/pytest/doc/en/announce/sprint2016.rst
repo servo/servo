@@ -49,7 +49,7 @@ place on 20th, 21st, 22nd, 24th and 25th. On the 23rd we took a break
 day for some hot hiking in the Black Forest.
 
 Sprint activity was organised heavily around pairing, with plenty of group
-discusssions to take advantage of the high bandwidth, and lightning talks
+discussions to take advantage of the high bandwidth, and lightning talks
 as well.
 
 

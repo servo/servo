@@ -1,0 +1,4 @@
+# Higher bound for safety, can bump it if builds fine with new major versions.
+sphinx>=6,<8
+pygments
+towncrier

@@ -4,7 +4,7 @@ pytest-2.2.2: bug fixes
 pytest-2.2.2 (updated to 2.2.3 to fix packaging issues) is a minor
 backward-compatible release of the versatile py.test testing tool.   It
 contains bug fixes and a few refinements particularly to reporting with
-"--collectonly", see below for betails.
+"--collectonly", see below for details.
 
 For general information see here:
 

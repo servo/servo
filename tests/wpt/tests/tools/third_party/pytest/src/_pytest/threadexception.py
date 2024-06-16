@@ -1,12 +1,12 @@
 import threading
 import traceback
-import warnings
 from types import TracebackType
 from typing import Any
 from typing import Callable
 from typing import Generator
 from typing import Optional
 from typing import Type
+import warnings
 
 import pytest
 
@@ -59,30 +59,34 @@ class catch_threading_exception:
 
 def thread_exception_runtest_hook() -> Generator[None, None, None]:
     with catch_threading_exception() as cm:
-        yield
-        if cm.args:
-            thread_name = "<unknown>" if cm.args.thread is None else cm.args.thread.name
-            msg = f"Exception in thread {thread_name}\n\n"
-            msg += "".join(
-                traceback.format_exception(
-                    cm.args.exc_type,
-                    cm.args.exc_value,
-                    cm.args.exc_traceback,
+        try:
+            yield
+        finally:
+            if cm.args:
+                thread_name = (
+                    "<unknown>" if cm.args.thread is None else cm.args.thread.name
                 )
-            )
-            warnings.warn(pytest.PytestUnhandledThreadExceptionWarning(msg))
+                msg = f"Exception in thread {thread_name}\n\n"
+                msg += "".join(
+                    traceback.format_exception(
+                        cm.args.exc_type,
+                        cm.args.exc_value,
+                        cm.args.exc_traceback,
+                    )
+                )
+                warnings.warn(pytest.PytestUnhandledThreadExceptionWarning(msg))
 
 
-@pytest.hookimpl(hookwrapper=True, trylast=True)
+@pytest.hookimpl(wrapper=True, trylast=True)
 def pytest_runtest_setup() -> Generator[None, None, None]:
     yield from thread_exception_runtest_hook()
 
 
-@pytest.hookimpl(hookwrapper=True, tryfirst=True)
+@pytest.hookimpl(wrapper=True, tryfirst=True)
 def pytest_runtest_call() -> Generator[None, None, None]:
     yield from thread_exception_runtest_hook()
 
 
-@pytest.hookimpl(hookwrapper=True, tryfirst=True)
+@pytest.hookimpl(wrapper=True, tryfirst=True)
 def pytest_runtest_teardown() -> Generator[None, None, None]:
     yield from thread_exception_runtest_hook()

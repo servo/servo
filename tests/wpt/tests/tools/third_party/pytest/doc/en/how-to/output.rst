@@ -12,8 +12,15 @@ Examples for modifying traceback printing:
 
 .. code-block:: bash
 
-    pytest --showlocals # show local variables in tracebacks
-    pytest -l           # show local variables (shortcut)
+    pytest --showlocals     # show local variables in tracebacks
+    pytest -l               # show local variables (shortcut)
+    pytest --no-showlocals  # hide local variables (if addopts enables them)
+
+    pytest --capture=fd  # default, capture at the file descriptor level
+    pytest --capture=sys # capture at the sys level
+    pytest --capture=no  # don't capture
+    pytest -s            # don't capture (shortcut)
+    pytest --capture=tee-sys # capture to logs but also output to sys level streams
 
     pytest --tb=auto    # (default) 'long' tracebacks for the first and last
                          # entry, but 'short' style for the other entries
@@ -34,6 +41,16 @@ option you make sure a trace is shown.
 
 Verbosity
 --------------------------------------------------
+
+Examples for modifying printing verbosity:
+
+.. code-block:: bash
+
+    pytest --quiet          # quiet - less verbose - mode
+    pytest -q               # quiet - less verbose - mode (shortcut)
+    pytest -v               # increase verbosity, display individual test names
+    pytest -vv              # more verbose, display more details from the test output
+    pytest -vvv             # not a standard , but may be used for even more detail in certain setups
 
 The ``-v`` flag controls the verbosity of pytest output in various aspects: test session progress, assertion
 details when tests fail, fixtures details with ``--fixtures``, etc.
@@ -83,8 +100,9 @@ Executing pytest normally gives us this output (we are skipping the header to fo
             fruits2 = ["banana", "apple", "orange", "melon", "kiwi"]
     >       assert fruits1 == fruits2
     E       AssertionError: assert ['banana', 'a...elon', 'kiwi'] == ['banana', 'a...elon', 'kiwi']
+    E
     E         At index 2 diff: 'grapes' != 'orange'
-    E         Use -v to get the full diff
+    E         Use -v to get more diff
 
     test_verbosity_example.py:8: AssertionError
     ____________________________ test_numbers_fail _____________________________
@@ -94,12 +112,13 @@ Executing pytest normally gives us this output (we are skipping the header to fo
             number_to_text2 = {str(x * 10): x * 10 for x in range(5)}
     >       assert number_to_text1 == number_to_text2
     E       AssertionError: assert {'0': 0, '1':..., '3': 3, ...} == {'0': 0, '10'...'30': 30, ...}
+    E
     E         Omitting 1 identical items, use -vv to show
     E         Left contains 4 more items:
     E         {'1': 1, '2': 2, '3': 3, '4': 4}
     E         Right contains 4 more items:
     E         {'10': 10, '20': 20, '30': 30, '40': 40}
-    E         Use -v to get the full diff
+    E         Use -v to get more diff
 
     test_verbosity_example.py:14: AssertionError
     ___________________________ test_long_text_fail ____________________________
@@ -145,12 +164,15 @@ Now we can increase pytest's verbosity:
             fruits2 = ["banana", "apple", "orange", "melon", "kiwi"]
     >       assert fruits1 == fruits2
     E       AssertionError: assert ['banana', 'a...elon', 'kiwi'] == ['banana', 'a...elon', 'kiwi']
+    E
     E         At index 2 diff: 'grapes' != 'orange'
+    E
     E         Full diff:
-    E         - ['banana', 'apple', 'orange', 'melon', 'kiwi']
-    E         ?                      ^  ^^
-    E         + ['banana', 'apple', 'grapes', 'melon', 'kiwi']
-    E         ?                      ^  ^ +
+    E           [
+    E               'banana',
+    E               'apple',...
+    E
+    E         ...Full output truncated (7 lines hidden), use '-vv' to show
 
     test_verbosity_example.py:8: AssertionError
     ____________________________ test_numbers_fail _____________________________
@@ -160,15 +182,15 @@ Now we can increase pytest's verbosity:
             number_to_text2 = {str(x * 10): x * 10 for x in range(5)}
     >       assert number_to_text1 == number_to_text2
     E       AssertionError: assert {'0': 0, '1':..., '3': 3, ...} == {'0': 0, '10'...'30': 30, ...}
+    E
     E         Omitting 1 identical items, use -vv to show
     E         Left contains 4 more items:
     E         {'1': 1, '2': 2, '3': 3, '4': 4}
     E         Right contains 4 more items:
     E         {'10': 10, '20': 20, '30': 30, '40': 40}
-    E         Full diff:
-    E         - {'0': 0, '10': 10, '20': 20, '30': 30, '40': 40}...
+    E         ...
     E
-    E         ...Full output truncated (3 lines hidden), use '-vv' to show
+    E         ...Full output truncated (16 lines hidden), use '-vv' to show
 
     test_verbosity_example.py:14: AssertionError
     ___________________________ test_long_text_fail ____________________________
@@ -214,12 +236,20 @@ Now if we increase verbosity even more:
             fruits2 = ["banana", "apple", "orange", "melon", "kiwi"]
     >       assert fruits1 == fruits2
     E       AssertionError: assert ['banana', 'apple', 'grapes', 'melon', 'kiwi'] == ['banana', 'apple', 'orange', 'melon', 'kiwi']
+    E
     E         At index 2 diff: 'grapes' != 'orange'
+    E
     E         Full diff:
-    E         - ['banana', 'apple', 'orange', 'melon', 'kiwi']
-    E         ?                      ^  ^^
-    E         + ['banana', 'apple', 'grapes', 'melon', 'kiwi']
-    E         ?                      ^  ^ +
+    E           [
+    E               'banana',
+    E               'apple',
+    E         -     'orange',
+    E         ?      ^  ^^
+    E         +     'grapes',
+    E         ?      ^  ^ +
+    E               'melon',
+    E               'kiwi',
+    E           ]
 
     test_verbosity_example.py:8: AssertionError
     ____________________________ test_numbers_fail _____________________________
@@ -229,16 +259,30 @@ Now if we increase verbosity even more:
             number_to_text2 = {str(x * 10): x * 10 for x in range(5)}
     >       assert number_to_text1 == number_to_text2
     E       AssertionError: assert {'0': 0, '1': 1, '2': 2, '3': 3, '4': 4} == {'0': 0, '10': 10, '20': 20, '30': 30, '40': 40}
+    E
     E         Common items:
     E         {'0': 0}
     E         Left contains 4 more items:
     E         {'1': 1, '2': 2, '3': 3, '4': 4}
     E         Right contains 4 more items:
     E         {'10': 10, '20': 20, '30': 30, '40': 40}
+    E
     E         Full diff:
-    E         - {'0': 0, '10': 10, '20': 20, '30': 30, '40': 40}
-    E         ?            -    -    -    -    -    -    -    -
-    E         + {'0': 0, '1': 1, '2': 2, '3': 3, '4': 4}
+    E           {
+    E               '0': 0,
+    E         -     '10': 10,
+    E         ?       -    -
+    E         +     '1': 1,
+    E         -     '20': 20,
+    E         ?       -    -
+    E         +     '2': 2,
+    E         -     '30': 30,
+    E         ?       -    -
+    E         +     '3': 3,
+    E         -     '40': 40,
+    E         ?       -    -
+    E         +     '4': 4,
+    E           }
 
     test_verbosity_example.py:14: AssertionError
     ___________________________ test_long_text_fail ____________________________
@@ -250,9 +294,47 @@ Now if we increase verbosity even more:
 
     test_verbosity_example.py:19: AssertionError
     ========================= short test summary info ==========================
-    FAILED test_verbosity_example.py::test_words_fail - AssertionError: asser...
-    FAILED test_verbosity_example.py::test_numbers_fail - AssertionError: ass...
-    FAILED test_verbosity_example.py::test_long_text_fail - AssertionError: a...
+    FAILED test_verbosity_example.py::test_words_fail - AssertionError: assert ['banana', 'apple', 'grapes', 'melon', 'kiwi'] == ['banana', 'apple', 'orange', 'melon', 'kiwi']
+
+      At index 2 diff: 'grapes' != 'orange'
+
+      Full diff:
+        [
+            'banana',
+            'apple',
+      -     'orange',
+      ?      ^  ^^
+      +     'grapes',
+      ?      ^  ^ +
+            'melon',
+            'kiwi',
+        ]
+    FAILED test_verbosity_example.py::test_numbers_fail - AssertionError: assert {'0': 0, '1': 1, '2': 2, '3': 3, '4': 4} == {'0': 0, '10': 10, '20': 20, '30': 30, '40': 40}
+
+      Common items:
+      {'0': 0}
+      Left contains 4 more items:
+      {'1': 1, '2': 2, '3': 3, '4': 4}
+      Right contains 4 more items:
+      {'10': 10, '20': 20, '30': 30, '40': 40}
+
+      Full diff:
+        {
+            '0': 0,
+      -     '10': 10,
+      ?       -    -
+      +     '1': 1,
+      -     '20': 20,
+      ?       -    -
+      +     '2': 2,
+      -     '30': 30,
+      ?       -    -
+      +     '3': 3,
+      -     '40': 40,
+      ?       -    -
+      +     '4': 4,
+        }
+    FAILED test_verbosity_example.py::test_long_text_fail - AssertionError: assert 'hello world' in 'Lorem ipsum dolor sit amet Lorem ipsum dolor sit amet Lorem ipsum dolor sit amet Lorem ipsum dolor sit amet Lorem ipsum dolor sit amet Lorem ipsum dolor sit amet Lorem ipsum dolor sit amet Lorem ipsum dolor sit amet Lorem ipsum dolor sit amet Lorem ipsum dolor sit amet '
     ======================= 3 failed, 1 passed in 0.12s ========================
 
 Notice now that:
@@ -268,6 +350,22 @@ situations, for example you are shown even fixtures that start with ``_`` if you
 
 Using higher verbosity levels (``-vvv``, ``-vvvv``, ...) is supported, but has no effect in pytest itself at the moment,
 however some plugins might make use of higher verbosity.
+
+.. _`pytest.fine_grained_verbosity`:
+
+Fine-grained verbosity
+~~~~~~~~~~~~~~~~~~~~~~
+
+In addition to specifying the application wide verbosity level, it is possible to control specific aspects independently.
+This is done by setting a verbosity level in the configuration file for the specific aspect of the output.
+
+:confval:`verbosity_assertions`: Controls how verbose the assertion output should be when pytest is executed. Running
+``pytest --no-header`` with a value of ``2`` would have the same output as the previous example, but each test inside
+the file is shown by a single character in the output.
+
+:confval:`verbosity_test_cases`: Controls how verbose the test execution output should be when pytest is executed.
+Running ``pytest --no-header`` with a value of ``2`` would have the same output as the first verbosity example, but each
+test inside the file gets its own line in the output.
 
 .. _`pytest.detailed_failed_tests_usage`:
 
@@ -323,7 +421,7 @@ Example:
 
     $ pytest -ra
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    platform linux -- Python 3.x.y, pytest-8.x.y, pluggy-1.x.y
     rootdir: /home/sweet/project
     collected 6 items
 
@@ -346,11 +444,19 @@ Example:
     E       assert 0
 
     test_example.py:14: AssertionError
+    ================================ XFAILURES =================================
+    ________________________________ test_xfail ________________________________
+
+        def test_xfail():
+    >       pytest.xfail("xfailing this test")
+    E       _pytest.outcomes.XFailed: xfailing this test
+
+    test_example.py:26: XFailed
+    ================================= XPASSES ==================================
     ========================= short test summary info ==========================
     SKIPPED [1] test_example.py:22: skipping this test
-    XFAIL test_example.py::test_xfail
-      reason: xfailing this test
-    XPASS test_example.py::test_xpass always xfail
+    XFAIL test_example.py::test_xfail - reason: xfailing this test
+    XPASS test_example.py::test_xpass - always xfail
     ERROR test_example.py::test_error - assert 0
     FAILED test_example.py::test_fail - assert 0
     == 1 failed, 1 passed, 1 skipped, 1 xfailed, 1 xpassed, 1 error in 0.12s ===
@@ -380,7 +486,7 @@ More than one character can be used, so for example to only see failed and skipp
 
     $ pytest -rfs
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    platform linux -- Python 3.x.y, pytest-8.x.y, pluggy-1.x.y
     rootdir: /home/sweet/project
     collected 6 items
 
@@ -415,7 +521,7 @@ captured output:
 
     $ pytest -rpP
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    platform linux -- Python 3.x.y, pytest-8.x.y, pluggy-1.x.y
     rootdir: /home/sweet/project
     collected 6 items
 
@@ -478,7 +584,7 @@ integration servers, use this invocation:
 
 .. code-block:: bash
 
-    pytest --junitxml=path
+    pytest --junit-xml=path
 
 to create an XML file at ``path``.
 

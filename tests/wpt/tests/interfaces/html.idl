@@ -77,8 +77,8 @@ partial interface Document {
   [CEReactions] Document open(optional DOMString unused1, optional DOMString unused2); // both arguments are ignored
   WindowProxy? open(USVString url, DOMString name, DOMString features);
   [CEReactions] undefined close();
-  [CEReactions] undefined write(HTMLString... text);
-  [CEReactions] undefined writeln(HTMLString... text);
+  [CEReactions] undefined write((TrustedHTML or DOMString)... text);
+  [CEReactions] undefined writeln((TrustedHTML or DOMString)... text);
 
   // user interaction
   readonly attribute WindowProxy? defaultView;
@@ -2260,7 +2260,7 @@ interface mixin WindowEventHandlers {
   attribute EventHandler onunload;
 };
 
-typedef (DOMString or Function) TimerHandler;
+typedef (DOMString or Function or TrustedScript) TimerHandler;
 
 interface mixin WindowOrWorkerGlobalScope {
   [Replaceable] readonly attribute USVString origin;
