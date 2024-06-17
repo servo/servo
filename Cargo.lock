@@ -5696,6 +5696,7 @@ dependencies = [
 name = "servoshell"
 version = "0.0.1"
 dependencies = [
+ "android_logger",
  "arboard",
  "backtrace",
  "cc",
@@ -5706,16 +5707,20 @@ dependencies = [
  "euclid",
  "getopts",
  "gilrs",
+ "gl_generator",
  "gleam",
  "glow",
  "image",
  "ipc-channel",
+ "jni",
  "keyboard-types",
  "lazy_static",
  "libc",
+ "libloading 0.8.3",
  "libservo",
  "log",
  "raw-window-handle",
+ "serde_json",
  "servo-media",
  "servo_allocator",
  "shellwords",
@@ -5787,27 +5792,6 @@ name = "simd-adler32"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d66dc143e6b11c1eddc06d5c423cfc97062865baf299914ab64caa38182078fe"
-
-[[package]]
-name = "simpleservo_jniapi"
-version = "0.0.1"
-dependencies = [
- "android_logger",
- "cc",
- "getopts",
- "gl_generator",
- "ipc-channel",
- "jni",
- "libc",
- "libloading 0.8.3",
- "libservo",
- "log",
- "serde_json",
- "servo-media",
- "surfman",
- "vergen",
- "webxr",
-]
 
 [[package]]
 name = "siphasher"
