@@ -62,7 +62,5 @@ jobs:
     if: ${{ inputs.workflow == 'ohos' }}
     name: OpenHarmony
     uses: ./.github/workflows/ohos.yml
-    # I believe we don't need any secrets in the OpenHarmony CI workflow.
-    # secrets: inherit
     with:
       profile: ${{ inputs.profile }}
