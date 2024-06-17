@@ -27,6 +27,7 @@ use crate::font::{
 };
 use crate::font_cache_thread::FontIdentifier;
 use crate::font_template::FontTemplateDescriptor;
+use crate::ot_tag;
 use crate::text::glyph::GlyphId;
 
 // 1em = 12pt = 16px, assuming 72 points per inch and 96 px per inch
@@ -59,16 +60,6 @@ impl FontTableMethods for FontTable {
     fn buffer(&self) -> &[u8] {
         &self.data
     }
-}
-
-#[macro_export]
-/// Packs the components of a font tag name into 32 bytes, while respecting the
-/// necessary Rust 4-byte alignment for pointers. This is similar to
-/// [`crate::ot_tag`], but the bytes are reversed.
-macro_rules! font_tag {
-    ($t1:expr, $t2:expr, $t3:expr, $t4:expr) => {
-        (($t4 as u32) << 24) | (($t3 as u32) << 16) | (($t2 as u32) << 8) | ($t1 as u32)
-    };
 }
 
 #[derive(Debug)]
@@ -142,7 +133,12 @@ impl PlatformFontMethods for PlatformFont {
         //
         // Instead, we do the parsing work using the truetype crate for raw fonts.
         // We're just extracting basic info, so this is sufficient for now.
-        let windows_metrics_bytes = self.face.get_font_table(font_tag!('O', 'S', '/', '2'));
+        //
+        // The `dwrote` APIs take SFNT table tags in a reversed byte order, which
+        // is why `u32::swap_bytes()` is called here.
+        let windows_metrics_bytes = self
+            .face
+            .get_font_table(u32::swap_bytes(ot_tag!('O', 'S', '/', '2')));
         if windows_metrics_bytes.is_none() {
             warn!("Could not find OS/2 table in font.");
             return FontTemplateDescriptor::default();
@@ -269,8 +265,11 @@ impl PlatformFontMethods for PlatformFont {
     }
 
     fn table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
+        // dwrote (and presumably the Windows APIs) accept a reversed version of the table
+        // tag bytes, which means that `u32::swap_bytes` must be called here in order to
+        // use a byte order compatible with the rest of Servo.
         self.face
-            .get_font_table(tag)
+            .get_font_table(u32::swap_bytes(tag))
             .map(|bytes| FontTable { data: bytes })
     }
 
