@@ -28,7 +28,7 @@ pub fn is_request_allowed(request: &Request) -> Result<(), Response> {
     } else if !request.origin.is_opaque() {
         // Checking for an opaque origin as a shorthand for user activation
         // as opposed to a request originating from a script.
-        // TODO: Raise and link to GitHub issue to request consideration of this concern.
+        // TODO(#{32534}): carefully consider security of this approach.
         Err(Response::network_error(NetworkError::Internal(
             "Cannot request local directory listing from non-local origin.".to_string(),
         )))
@@ -63,19 +63,35 @@ pub fn fetch(request: &mut Request, url: ServoUrl, path_buf: PathBuf) -> Respons
     response
 }
 
+/// Returns information about the given local directory.
+///
+/// # Arguments
+///
+/// `path_buf` - a `PathBuf` which points to a local directory path.
+///
+/// # Returns
+///
+/// A tuple containing three members (path, has_parent, items):
+///
+/// * `path` - contains the full path to the local directory, or an error message if the path
+/// cannot be successfully rendered as a `String`.
+/// * `has_parent` - will be `true` if the local directory has a parent directory, or `false` if
+/// the local directory is the top-level directory or cannot reach its parent for any reason.
+/// * `items` - will contain a map of directory items in alphabetical order by name, or an error
+/// message if the local directory path could not be iterated for any reason.
 pub fn summarise_directory(
-    value: PathBuf,
+    path_buf: PathBuf,
 ) -> (
     Result<String, &'static str>,
     bool,
     Result<BTreeMap<OsString, DirectoryItem>, &'static str>,
 ) {
-    let path = value
+    let path = path_buf
         .to_str()
         .map(str::to_string)
         .ok_or("Invalid directory path.");
-    let has_parent = value.parent().is_some();
-    let items = if let Ok(entries) = std::fs::read_dir(value) {
+    let has_parent = path_buf.parent().is_some();
+    let items = if let Ok(entries) = std::fs::read_dir(path_buf) {
         Ok(gather_directory_items(entries))
     } else {
         Err("Unable to iterate directory contents.")
@@ -134,7 +150,16 @@ pub enum DirectoryItem {
     },
 }
 
-// Returns an HTML5 document describing the content of the given local directory.
+/// Returns an HTML document describing the content of the given local directory.
+///
+/// # Arguments
+///
+/// * `path` - the full path to the local directory, or an error message if the path cannot be
+/// successfully rendered as a `String`.
+/// * `has_parent` - should be `true` if the local directory has a parent directory, or `false`
+/// if the local directory is the top-level directory or cannot reach its parent for any reason.
+/// * `items` - a map of directory items in alphabetical order by name, or an error message if
+/// the local directory path could not be iterated for any reason.
 pub fn build_html_directory_listing(
     path: Result<String, &'static str>,
     has_parent: bool,

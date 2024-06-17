@@ -4086,7 +4086,6 @@ dependencies = [
  "servo_config",
  "servo_url",
  "sha2",
- "tempfile",
  "time 0.1.45",
  "time 0.3.36",
  "tokio",

@@ -74,7 +74,6 @@ futures = { version = "0.3", features = ["compat"] }
 tokio-test = "0.4"
 tokio-stream = { version = "0.1", features = ["net"] }
 hyper = { workspace = true, features = ["full"] }
-tempfile = "3"
 
 [[test]]
 name = "main"
