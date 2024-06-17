@@ -4,12 +4,10 @@
 Tests for methods from `attrib._cmp`.
 """
 
-from __future__ import absolute_import, division, print_function
 
 import pytest
 
 from attr._cmp import cmp_using
-from attr._compat import PY2
 
 
 # Test parameters.
@@ -57,7 +55,7 @@ cmp_data = eq_data + order_data
 cmp_ids = eq_ids + order_ids
 
 
-class TestEqOrder(object):
+class TestEqOrder:
     """
     Tests for eq and order related methods.
     """
@@ -65,7 +63,9 @@ class TestEqOrder(object):
     #########
     # eq
     #########
-    @pytest.mark.parametrize("cls, requires_same_type", cmp_data, ids=cmp_ids)
+    @pytest.mark.parametrize(
+        ("cls", "requires_same_type"), cmp_data, ids=cmp_ids
+    )
     def test_equal_same_type(self, cls, requires_same_type):
         """
         Equal objects are detected as equal.
@@ -73,7 +73,9 @@ class TestEqOrder(object):
         assert cls(1) == cls(1)
         assert not (cls(1) != cls(1))
 
-    @pytest.mark.parametrize("cls, requires_same_type", cmp_data, ids=cmp_ids)
+    @pytest.mark.parametrize(
+        ("cls", "requires_same_type"), cmp_data, ids=cmp_ids
+    )
     def test_unequal_same_type(self, cls, requires_same_type):
         """
         Unequal objects of correct type are detected as unequal.
@@ -81,7 +83,9 @@ class TestEqOrder(object):
         assert cls(1) != cls(2)
         assert not (cls(1) == cls(2))
 
-    @pytest.mark.parametrize("cls, requires_same_type", cmp_data, ids=cmp_ids)
+    @pytest.mark.parametrize(
+        ("cls", "requires_same_type"), cmp_data, ids=cmp_ids
+    )
     def test_equal_different_type(self, cls, requires_same_type):
         """
         Equal values of different types are detected appropriately.
@@ -92,8 +96,9 @@ class TestEqOrder(object):
     #########
     # lt
     #########
-    @pytest.mark.skipif(PY2, reason="PY2 does not raise TypeError")
-    @pytest.mark.parametrize("cls, requires_same_type", eq_data, ids=eq_ids)
+    @pytest.mark.parametrize(
+        ("cls", "requires_same_type"), eq_data, ids=eq_ids
+    )
     def test_lt_unorderable(self, cls, requires_same_type):
         """
         TypeError is raised if class does not implement __lt__.
@@ -102,7 +107,7 @@ class TestEqOrder(object):
             cls(1) < cls(2)
 
     @pytest.mark.parametrize(
-        "cls, requires_same_type", order_data, ids=order_ids
+        ("cls", "requires_same_type"), order_data, ids=order_ids
     )
     def test_lt_same_type(self, cls, requires_same_type):
         """
@@ -112,7 +117,7 @@ class TestEqOrder(object):
         assert not (cls(2) < cls(1))
 
     @pytest.mark.parametrize(
-        "cls, requires_same_type", order_data, ids=order_ids
+        ("cls", "requires_same_type"), order_data, ids=order_ids
     )
     def test_not_lt_same_type(self, cls, requires_same_type):
         """
@@ -122,7 +127,7 @@ class TestEqOrder(object):
         assert not (cls(1) >= cls(2))
 
     @pytest.mark.parametrize(
-        "cls, requires_same_type", order_data, ids=order_ids
+        ("cls", "requires_same_type"), order_data, ids=order_ids
     )
     def test_lt_different_type(self, cls, requires_same_type):
         """
@@ -131,9 +136,8 @@ class TestEqOrder(object):
         if requires_same_type:
             # Unlike __eq__, NotImplemented will cause an exception to be
             # raised from __lt__.
-            if not PY2:
-                with pytest.raises(TypeError):
-                    cls(1) < cls(2.0)
+            with pytest.raises(TypeError):
+                cls(1) < cls(2.0)
         else:
             assert cls(1) < cls(2.0)
             assert not (cls(2) < cls(1.0))
@@ -141,8 +145,9 @@ class TestEqOrder(object):
     #########
     # le
     #########
-    @pytest.mark.skipif(PY2, reason="PY2 does not raise TypeError")
-    @pytest.mark.parametrize("cls, requires_same_type", eq_data, ids=eq_ids)
+    @pytest.mark.parametrize(
+        ("cls", "requires_same_type"), eq_data, ids=eq_ids
+    )
     def test_le_unorderable(self, cls, requires_same_type):
         """
         TypeError is raised if class does not implement __le__.
@@ -151,7 +156,7 @@ class TestEqOrder(object):
             cls(1) <= cls(2)
 
     @pytest.mark.parametrize(
-        "cls, requires_same_type", order_data, ids=order_ids
+        ("cls", "requires_same_type"), order_data, ids=order_ids
     )
     def test_le_same_type(self, cls, requires_same_type):
         """
@@ -162,7 +167,7 @@ class TestEqOrder(object):
         assert not (cls(2) <= cls(1))
 
     @pytest.mark.parametrize(
-        "cls, requires_same_type", order_data, ids=order_ids
+        ("cls", "requires_same_type"), order_data, ids=order_ids
     )
     def test_not_le_same_type(self, cls, requires_same_type):
         """
@@ -173,7 +178,7 @@ class TestEqOrder(object):
         assert not (cls(1) > cls(2))
 
     @pytest.mark.parametrize(
-        "cls, requires_same_type", order_data, ids=order_ids
+        ("cls", "requires_same_type"), order_data, ids=order_ids
     )
     def test_le_different_type(self, cls, requires_same_type):
         """
@@ -182,9 +187,8 @@ class TestEqOrder(object):
         if requires_same_type:
             # Unlike __eq__, NotImplemented will cause an exception to be
             # raised from __le__.
-            if not PY2:
-                with pytest.raises(TypeError):
-                    cls(1) <= cls(2.0)
+            with pytest.raises(TypeError):
+                cls(1) <= cls(2.0)
         else:
             assert cls(1) <= cls(2.0)
             assert cls(1) <= cls(1.0)
@@ -193,8 +197,9 @@ class TestEqOrder(object):
     #########
     # gt
     #########
-    @pytest.mark.skipif(PY2, reason="PY2 does not raise TypeError")
-    @pytest.mark.parametrize("cls, requires_same_type", eq_data, ids=eq_ids)
+    @pytest.mark.parametrize(
+        ("cls", "requires_same_type"), eq_data, ids=eq_ids
+    )
     def test_gt_unorderable(self, cls, requires_same_type):
         """
         TypeError is raised if class does not implement __gt__.
@@ -203,7 +208,7 @@ class TestEqOrder(object):
             cls(2) > cls(1)
 
     @pytest.mark.parametrize(
-        "cls, requires_same_type", order_data, ids=order_ids
+        ("cls", "requires_same_type"), order_data, ids=order_ids
     )
     def test_gt_same_type(self, cls, requires_same_type):
         """
@@ -213,7 +218,7 @@ class TestEqOrder(object):
         assert not (cls(1) > cls(2))
 
     @pytest.mark.parametrize(
-        "cls, requires_same_type", order_data, ids=order_ids
+        ("cls", "requires_same_type"), order_data, ids=order_ids
     )
     def test_not_gt_same_type(self, cls, requires_same_type):
         """
@@ -223,7 +228,7 @@ class TestEqOrder(object):
         assert not (cls(2) <= cls(1))
 
     @pytest.mark.parametrize(
-        "cls, requires_same_type", order_data, ids=order_ids
+        ("cls", "requires_same_type"), order_data, ids=order_ids
     )
     def test_gt_different_type(self, cls, requires_same_type):
         """
@@ -232,9 +237,8 @@ class TestEqOrder(object):
         if requires_same_type:
             # Unlike __eq__, NotImplemented will cause an exception to be
             # raised from __gt__.
-            if not PY2:
-                with pytest.raises(TypeError):
-                    cls(2) > cls(1.0)
+            with pytest.raises(TypeError):
+                cls(2) > cls(1.0)
         else:
             assert cls(2) > cls(1.0)
             assert not (cls(1) > cls(2.0))
@@ -242,8 +246,9 @@ class TestEqOrder(object):
     #########
     # ge
     #########
-    @pytest.mark.skipif(PY2, reason="PY2 does not raise TypeError")
-    @pytest.mark.parametrize("cls, requires_same_type", eq_data, ids=eq_ids)
+    @pytest.mark.parametrize(
+        ("cls", "requires_same_type"), eq_data, ids=eq_ids
+    )
     def test_ge_unorderable(self, cls, requires_same_type):
         """
         TypeError is raised if class does not implement __ge__.
@@ -252,7 +257,7 @@ class TestEqOrder(object):
             cls(2) >= cls(1)
 
     @pytest.mark.parametrize(
-        "cls, requires_same_type", order_data, ids=order_ids
+        ("cls", "requires_same_type"), order_data, ids=order_ids
     )
     def test_ge_same_type(self, cls, requires_same_type):
         """
@@ -263,7 +268,7 @@ class TestEqOrder(object):
         assert not (cls(1) >= cls(2))
 
     @pytest.mark.parametrize(
-        "cls, requires_same_type", order_data, ids=order_ids
+        ("cls", "requires_same_type"), order_data, ids=order_ids
     )
     def test_not_ge_same_type(self, cls, requires_same_type):
         """
@@ -274,7 +279,7 @@ class TestEqOrder(object):
         assert not (cls(2) < cls(1))
 
     @pytest.mark.parametrize(
-        "cls, requires_same_type", order_data, ids=order_ids
+        ("cls", "requires_same_type"), order_data, ids=order_ids
     )
     def test_ge_different_type(self, cls, requires_same_type):
         """
@@ -283,16 +288,15 @@ class TestEqOrder(object):
         if requires_same_type:
             # Unlike __eq__, NotImplemented will cause an exception to be
             # raised from __ge__.
-            if not PY2:
-                with pytest.raises(TypeError):
-                    cls(2) >= cls(1.0)
+            with pytest.raises(TypeError):
+                cls(2) >= cls(1.0)
         else:
             assert cls(2) >= cls(2.0)
             assert cls(2) >= cls(1.0)
             assert not (cls(1) >= cls(2.0))
 
 
-class TestDundersUnnamedClass(object):
+class TestDundersUnnamedClass:
     """
     Tests for dunder attributes of unnamed classes.
     """
@@ -304,8 +308,7 @@ class TestDundersUnnamedClass(object):
         Class name and qualified name should be well behaved.
         """
         assert self.cls.__name__ == "Comparable"
-        if not PY2:
-            assert self.cls.__qualname__ == "Comparable"
+        assert self.cls.__qualname__ == "Comparable"
 
     def test_eq(self):
         """
@@ -327,7 +330,7 @@ class TestDundersUnnamedClass(object):
         assert method.__name__ == "__ne__"
 
 
-class TestTotalOrderingException(object):
+class TestTotalOrderingException:
     """
     Test for exceptions related to total ordering.
     """
@@ -345,7 +348,7 @@ class TestTotalOrderingException(object):
         )
 
 
-class TestNotImplementedIsPropagated(object):
+class TestNotImplementedIsPropagated:
     """
     Test related to functions that return NotImplemented.
     """
@@ -361,7 +364,7 @@ class TestNotImplementedIsPropagated(object):
         assert C(1) != C(1)
 
 
-class TestDundersPartialOrdering(object):
+class TestDundersPartialOrdering:
     """
     Tests for dunder attributes of classes with partial ordering.
     """
@@ -373,8 +376,7 @@ class TestDundersPartialOrdering(object):
         Class name and qualified name should be well behaved.
         """
         assert self.cls.__name__ == "PartialOrderCSameType"
-        if not PY2:
-            assert self.cls.__qualname__ == "PartialOrderCSameType"
+        assert self.cls.__qualname__ == "PartialOrderCSameType"
 
     def test_eq(self):
         """
@@ -408,12 +410,9 @@ class TestDundersPartialOrdering(object):
         __le__ docstring and qualified name should be well behaved.
         """
         method = self.cls.__le__
-        if PY2:
-            assert method.__doc__ == "x.__le__(y) <==> x<=y"
-        else:
-            assert method.__doc__.strip().startswith(
-                "Return a <= b.  Computed by @total_ordering from"
-            )
+        assert method.__doc__.strip().startswith(
+            "Return a <= b.  Computed by @total_ordering from"
+        )
         assert method.__name__ == "__le__"
 
     def test_gt(self):
@@ -421,12 +420,9 @@ class TestDundersPartialOrdering(object):
         __gt__ docstring and qualified name should be well behaved.
         """
         method = self.cls.__gt__
-        if PY2:
-            assert method.__doc__ == "x.__gt__(y) <==> x>y"
-        else:
-            assert method.__doc__.strip().startswith(
-                "Return a > b.  Computed by @total_ordering from"
-            )
+        assert method.__doc__.strip().startswith(
+            "Return a > b.  Computed by @total_ordering from"
+        )
         assert method.__name__ == "__gt__"
 
     def test_ge(self):
@@ -434,16 +430,13 @@ class TestDundersPartialOrdering(object):
         __ge__ docstring and qualified name should be well behaved.
         """
         method = self.cls.__ge__
-        if PY2:
-            assert method.__doc__ == "x.__ge__(y) <==> x>=y"
-        else:
-            assert method.__doc__.strip().startswith(
-                "Return a >= b.  Computed by @total_ordering from"
-            )
+        assert method.__doc__.strip().startswith(
+            "Return a >= b.  Computed by @total_ordering from"
+        )
         assert method.__name__ == "__ge__"
 
 
-class TestDundersFullOrdering(object):
+class TestDundersFullOrdering:
     """
     Tests for dunder attributes of classes with full ordering.
     """
@@ -455,8 +448,7 @@ class TestDundersFullOrdering(object):
         Class name and qualified name should be well behaved.
         """
         assert self.cls.__name__ == "FullOrderCSameType"
-        if not PY2:
-            assert self.cls.__qualname__ == "FullOrderCSameType"
+        assert self.cls.__qualname__ == "FullOrderCSameType"
 
     def test_eq(self):
         """

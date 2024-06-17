@@ -65,13 +65,10 @@ async function poll(condition, interval = 100, duration = 3000) {
 }
 
 // Open and return a popup on `screen`, optionally asserting placement.
-async function openPopupOnScreen(screen, assertPlacement = true, fullscreen = false) {
+async function openPopupOnScreen(screen, assertPlacement = true) {
   const left = screen.availLeft + Math.floor(screen.availWidth / 2) - 150;
   const top = screen.availTop + Math.floor(screen.availHeight / 2) - 50;
   let features = `left=${left},top=${top},width=300,height=100`;
-  if (fullscreen) {
-    features += ",fullscreen";
-  }
   log(`Opening a popup with features '${features}' on ${screenLog(screen)}`);
   // Window.open() synchronously returns a Window with estimated screenLeft|Top,
   // which may be clamped to the opener's screen or incompletely initialized.

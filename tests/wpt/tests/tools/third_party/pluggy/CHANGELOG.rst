@@ -2,7 +2,144 @@
 Changelog
 =========
 
+Versions follow `Semantic Versioning <https://semver.org/>`_ (``<major>.<minor>.<patch>``).
+
+..
+    You should *NOT* be adding new change log entries to this file, this
+    file is managed by towncrier. You *may* edit previous change logs to
+    fix problems like typo corrections or such.
+    To add a new change log entry, please see
+    https://pip.pypa.io/en/latest/development/contributing/#news-entries
+    we named the news folder changelog
+
+.. only:: changelog_towncrier_draft
+
+    .. The 'changelog_towncrier_draft' tag is included by our 'tox -e docs',
+       but not on readthedocs.
+
+    .. include:: _changelog_towncrier_draft.rst
+
 .. towncrier release notes start
+
+pluggy 1.5.0 (2024-04-19)
+=========================
+
+Features
+--------
+
+- `#178 <https://github.com/pytest-dev/pluggy/issues/178>`_: Add support for deprecating specific hook parameters, or more generally, for issuing a warning whenever a hook implementation requests certain parameters.
+
+  See :ref:`warn_on_impl` for details.
+
+
+
+Bug Fixes
+---------
+
+- `#481 <https://github.com/pytest-dev/pluggy/issues/481>`_: ``PluginManager.get_plugins()`` no longer returns ``None`` for blocked plugins.
+
+
+pluggy 1.4.0 (2024-01-24)
+=========================
+
+Features
+--------
+
+- `#463 <https://github.com/pytest-dev/pluggy/issues/463>`_: A warning :class:`~pluggy.PluggyTeardownRaisedWarning` is now issued when an old-style hookwrapper raises an exception during teardown.
+  See the warning documentation for more details.
+
+- `#471 <https://github.com/pytest-dev/pluggy/issues/471>`_: Add :func:`PluginManager.unblock <pluggy.PluginManager.unblock>` method to unblock a plugin by plugin name.
+
+Bug Fixes
+---------
+
+- `#441 <https://github.com/pytest-dev/pluggy/issues/441>`_: Fix :func:`~pluggy.HookCaller.call_extra()` extra methods getting ordered before everything else in some circumstances. Regressed in pluggy 1.1.0.
+
+- `#438 <https://github.com/pytest-dev/pluggy/issues/438>`_: Fix plugins registering other plugins in a hook when the other plugins implement the same hook itself. Regressed in pluggy 1.1.0.
+
+
+pluggy 1.3.0 (2023-08-26)
+=========================
+
+Deprecations and Removals
+-------------------------
+
+- `#426 <https://github.com/pytest-dev/pluggy/issues/426>`_: Python 3.7 is no longer supported.
+
+
+
+Features
+--------
+
+- `#428 <https://github.com/pytest-dev/pluggy/issues/428>`_: Pluggy now exposes its typings to static type checkers.
+
+  As part of this, the following changes are made:
+
+  - Renamed ``_Result`` to ``Result``, and exported as :class:`pluggy.Result`.
+  - Renamed ``_HookRelay`` to ``HookRelay``, and exported as :class:`pluggy.HookRelay`.
+  - Renamed ``_HookCaller`` to ``HookCaller``, and exported as :class:`pluggy.HookCaller`.
+  - Exported ``HookImpl`` as :class:`pluggy.HookImpl`.
+  - Renamed ``_HookImplOpts`` to ``HookimplOpts``, and exported as :class:`pluggy.HookimplOpts`.
+  - Renamed ``_HookSpecOpts`` to ``HookspecOpts``, and exported as :class:`pluggy.HookspecOpts`.
+  - Some fields and classes are marked ``Final`` and ``@final``.
+  - The :ref:`api-reference` is updated to clearly delineate pluggy's public API.
+
+  Compatibility aliases are put in place for the renamed types.
+  We do not plan to remove the aliases, but we strongly recommend to only import from ``pluggy.*`` to ensure future compatibility.
+
+  Please note that pluggy is currently unable to provide strong typing for hook calls, e.g. ``pm.hook.my_hook(...)``,
+  nor to statically check that a hook implementation matches the hook specification's type.
+
+
+pluggy 1.2.0 (2023-06-21)
+=========================
+
+Features
+--------
+
+- `#405 <https://github.com/pytest-dev/pluggy/issues/405>`_: The new-style hook wrappers, added in the yanked 1.1.0 release, now require an explicit ``wrapper=True`` designation in the ``@hookimpl()`` decorator.
+
+
+pluggy 1.1.0 (YANKED)
+=====================
+
+.. note::
+
+  This release was yanked because unfortunately the implicit new-style hook wrappers broke some downstream projects.
+  See `#403 <https://github.com/pytest-dev/pluggy/issues/403>`__ for more information.
+  This was rectified in the 1.2.0 release.
+
+Deprecations and Removals
+-------------------------
+
+- `#364 <https://github.com/pytest-dev/pluggy/issues/364>`_: Python 3.6 is no longer supported.
+
+
+
+Features
+--------
+
+- `#260 <https://github.com/pytest-dev/pluggy/issues/260>`_: Added "new-style" hook wrappers, a simpler but equally powerful alternative to the existing ``hookwrapper=True`` wrappers.
+
+  New-style wrappers are generator functions, similarly to ``hookwrapper``, but do away with the :class:`result <pluggy.Result>` object.
+  Instead, the return value is sent directly to the ``yield`` statement, or, if inner calls raised an exception, it is raised from the ``yield``.
+  The wrapper is expected to return a value or raise an exception, which will become the result of the hook call.
+
+  New-style wrappers are fully interoperable with old-style wrappers.
+  We encourage users to use the new style, however we do not intend to deprecate the old style any time soon.
+
+  See :ref:`hookwrappers` for the full documentation.
+
+
+- `#364 <https://github.com/pytest-dev/pluggy/issues/364>`_: Python 3.11 and 3.12 are now officially supported.
+
+
+- `#394 <https://github.com/pytest-dev/pluggy/issues/394>`_: Added the :meth:`~pluggy.Result.force_exception` method to ``_Result``.
+
+  ``force_exception`` allows (old-style) hookwrappers to force an exception or override/adjust an existing exception of a hook invocation,
+  in a properly behaving manner. Using ``force_exception`` is preferred over raising an exception from the hookwrapper,
+  because raising an exception causes other hookwrappers to be skipped.
+
 
 pluggy 1.0.0 (2021-08-25)
 =========================
@@ -48,7 +185,7 @@ Features
 --------
 
 - `#282 <https://github.com/pytest-dev/pluggy/issues/282>`_: When registering a hookimpl which is declared as ``hookwrapper=True`` but whose
-  function is not a generator function, a ``PluggyValidationError`` exception is
+  function is not a generator function, a :class:`~pluggy.PluginValidationError` exception is
   now raised.
 
   Previously this problem would cause an error only later, when calling the hook.
@@ -58,7 +195,7 @@ Features
 
   .. code-block:: python
 
-      def my_hook_real_implementation(arg):
+      def my_hook_implementation(arg):
           print("before")
           yield
           print("after")
@@ -78,6 +215,10 @@ Features
 
 
 - `#309 <https://github.com/pytest-dev/pluggy/issues/309>`_: Add official support for Python 3.9.
+
+- `#251 <https://github.com/pytest-dev/pluggy/issues/251>`_: Add ``specname`` option to ``@hookimpl``. If ``specname`` is provided, it will be used
+  instead of the function name when matching this hook implementation to a hook specification during registration (allowing a plugin to register
+  a hook implementation that was not named the same thing as the corresponding ``@hookspec``).
 
 
 pluggy 0.13.1 (2019-11-21)

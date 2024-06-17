@@ -11,9 +11,6 @@ Fixtures reference
 .. seealso:: :ref:`about-fixtures`
 .. seealso:: :ref:`how-to-fixtures`
 
-
-.. currentmodule:: _pytest.python
-
 .. _`Dependency injection`: https://en.wikipedia.org/wiki/Dependency_injection
 
 
@@ -42,7 +39,7 @@ Built-in fixtures
         Store and retrieve values across pytest runs.
 
    :fixture:`doctest_namespace`
-        Provide a dict injected into the docstests namespace.
+        Provide a dict injected into the doctests namespace.
 
    :fixture:`monkeypatch`
        Temporarily modify classes, functions, dictionaries,
@@ -76,15 +73,13 @@ Built-in fixtures
         :class:`pathlib.Path` objects.
 
    :fixture:`tmpdir`
-        Provide a :class:`py.path.local` object to a temporary
+        Provide a `py.path.local <https://py.readthedocs.io/en/latest/path.html>`_ object to a temporary
         directory which is unique to each test function;
         replaced by :fixture:`tmp_path`.
 
-        .. _`py.path.local`: https://py.readthedocs.io/en/latest/path.html
-
    :fixture:`tmpdir_factory`
         Make session-scoped temporary directories and return
-        :class:`py.path.local` objects;
+        ``py.path.local`` objects;
         replaced by :fixture:`tmp_path_factory`.
 
 
@@ -98,7 +93,7 @@ Fixture availability is determined from the perspective of the test. A fixture
 is only available for tests to request if they are in the scope that fixture is
 defined in. If a fixture is defined inside a class, it can only be requested by
 tests inside that class. But if a fixture is defined inside the global scope of
-the module, than every test in that module, even if it's defined inside a class,
+the module, then every test in that module, even if it's defined inside a class,
 can request it.
 
 Similarly, a test can also only be affected by an autouse fixture if that test
@@ -335,7 +330,7 @@ For example:
 
 .. literalinclude:: /example/fixtures/test_fixtures_order_dependencies.py
 
-If we map out what depends on what, we get something that look like this:
+If we map out what depends on what, we get something that looks like this:
 
 .. image:: /example/fixtures/test_fixtures_order_dependencies.*
     :align: center

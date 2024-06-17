@@ -32,7 +32,7 @@ which will usually be called once for all the functions:
 .. code-block:: python
 
     def setup_module(module):
-        """ setup any state specific to the execution of the given module."""
+        """setup any state specific to the execution of the given module."""
 
 
     def teardown_module(module):
@@ -62,6 +62,8 @@ and after all test methods of the class are called:
         """teardown any state that was previously setup with a call to
         setup_class.
         """
+
+.. _xunit-method-setup:
 
 Method and function level setup/teardown
 -----------------------------------------------

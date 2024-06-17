@@ -3,6 +3,7 @@
 This ensures all internal packages can be imported without needing the pytest
 namespace being set, which is critical for the initialization of xdist.
 """
+
 import pkgutil
 import subprocess
 import sys

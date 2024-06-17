@@ -59,3 +59,8 @@ media-stack = "auto"
 # Defaults to the value of $ANDROID_SDK_ROOT, $ANDROID_NDK_ROOT respectively
 #sdk = "/opt/android-sdk"
 #ndk = "/opt/android-ndk"
+
+# OpenHarmony
+[ohos]
+# Defaults to the value of $OHOS_SDK_NATIVE
+#ndk = "/path/to/ohos-sdk/<host-os>/native"

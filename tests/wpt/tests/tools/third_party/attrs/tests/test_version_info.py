@@ -1,11 +1,9 @@
 # SPDX-License-Identifier: MIT
 
-from __future__ import absolute_import, division, print_function
 
 import pytest
 
 from attr import VersionInfo
-from attr._compat import PY2
 
 
 @pytest.fixture(name="vi")
@@ -29,9 +27,6 @@ class TestVersionInfo:
             == VersionInfo._from_version_string("19.2.0.dev0").releaselevel
         )
 
-    @pytest.mark.skipif(
-        PY2, reason="Python 2 is too YOLO to care about comparability."
-    )
     @pytest.mark.parametrize("other", [(), (19, 2, 0, "final", "garbage")])
     def test_wrong_len(self, vi, other):
         """

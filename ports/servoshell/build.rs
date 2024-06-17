@@ -21,15 +21,21 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("cargo:rustc-cfg=servo_do_not_use_in_production");
     }
 
-    #[cfg(windows)]
-    {
-        let mut res = winres::WindowsResource::new();
-        res.set_icon("../../resources/servo.ico");
-        res.set_manifest_file("platform/windows/servo.exe.manifest");
-        res.compile().unwrap();
-    }
-    #[cfg(target_os = "macos")]
-    {
+    // Note: We can't use `#[cfg(windows)]`, since that would check the host platform
+    // and not the target platform
+    let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap();
+
+    if target_os == "windows" {
+        #[cfg(windows)]
+        {
+            let mut res = winres::WindowsResource::new();
+            res.set_icon("../../resources/servo.ico");
+            res.set_manifest_file("platform/windows/servo.exe.manifest");
+            res.compile().unwrap();
+        }
+        #[cfg(not(windows))]
+        panic!("Cross-compiling to windows is currently not supported");
+    } else if target_os == "macos" {
         cc::Build::new()
             .file("platform/macos/count_threads.c")
             .compile("count_threads");
@@ -50,8 +56,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     // On MacOS, all dylib dependencies are shipped along with the binary
     // in the "/lib" directory. Setting the rpath here, allows the dynamic
     // linker to locate them. See `man dyld` for more info.
-    #[cfg(target_os = "macos")]
-    println!("cargo:rustc-link-arg=-Wl,-rpath,@executable_path/lib/");
-
+    if target_os == "macos" {
+        println!("cargo:rustc-link-arg=-Wl,-rpath,@executable_path/lib/");
+    }
     Ok(())
 }

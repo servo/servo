@@ -1,31 +1,26 @@
 <!DOCTYPE html>
 <title>ref for iframe in an element with css zoom</title>
 <link rel="author" title="Yotam Hacohen" href="mailto:yotha@chromium.org">
+<link rel="author" title="Stefan Zager" href="mailto:szager@chromium.org">
 <link rel="author" title="Google" href="http://www.google.com/">
 <link rel="help" href="https://drafts.csswg.org/css-viewport/">
 
-<head>
-  <style>
-    iframe {
-      border: none;
-      margin: 0px;
-      padding: 0px;
-    }
-  </style>
-</head>
+<style>
+body {
+  --iframe-width: 128px;
+  --iframe-height: 64px;
+  --scale: 1;
+}
+iframe {
+  border: none;
+  width: calc(var(--iframe-width) * var(--scale));
+  height: calc(var(--iframe-height) * var(--scale));
+}
+.scale {
+  --scale: 2;
+}
+</style>
 
-<body>
-
-  <div id="no_zoom">
-    <iframe style="height: 80px;" srcdoc='<body style="margin: 0;"><div id="target" style="background-color: aqua; width: 64px; height: 64px;"></div></body>'></iframe>
-  </div>
-
-  <div id="with_zoom">
-    <iframe style="height: 248px;" srcdoc='<body style="margin: 0;"><div id="target" style="background-color: aqua; width: 64px; height: 64px; zoom: 3;"></div></body>'></iframe>
-  </div>
-
-  <div id="another_with_zoom">
-    <iframe style="height: 240px;" srcdoc='<body style="margin: 0;"><div id="target" style="background-color: aqua; width: 64px; height: 64px; zoom: 3;"></div></body>'></iframe>
-  </div>
-
-</body>
+<iframe id="baseline-ref" src="../resources/leaf.html"></iframe>
+<iframe id="zoom-same-origin-ref" class="scale" src="../resources/leaf.html?scale=2"></iframe>
+<iframe id="zoom-cross-origin-ref" class="scale" src="../resources/leaf.html?scale=2"></iframe>

@@ -28,11 +28,10 @@ use crate::dom::bindings::codegen::Bindings::TestBindingBinding::{
 use crate::dom::bindings::codegen::UnionTypes;
 use crate::dom::bindings::codegen::UnionTypes::{
     BlobOrBlobSequence, BlobOrBoolean, BlobOrString, BlobOrUnsignedLong, ByteStringOrLong,
-    ByteStringSequenceOrLong, ByteStringSequenceOrLongOrString, DocumentOrTestTypedef,
-    EventOrString, EventOrUSVString, HTMLElementOrLong, HTMLElementOrUnsignedLongOrStringOrBoolean,
-    LongOrLongSequenceSequence, LongSequenceOrBoolean, LongSequenceOrTestTypedef, StringOrBoolean,
-    StringOrLongSequence, StringOrStringSequence, StringOrUnsignedLong,
-    StringSequenceOrUnsignedLong, UnsignedLongOrBoolean,
+    ByteStringSequenceOrLong, ByteStringSequenceOrLongOrString, EventOrString, EventOrUSVString,
+    HTMLElementOrLong, HTMLElementOrUnsignedLongOrStringOrBoolean, LongOrLongSequenceSequence,
+    LongSequenceOrBoolean, StringOrBoolean, StringOrLongSequence, StringOrStringSequence,
+    StringOrUnsignedLong, StringSequenceOrUnsignedLong, UnsignedLongOrBoolean,
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
@@ -655,8 +654,8 @@ impl TestBindingMethods for TestBinding {
     fn PassUnion9(&self, _: UnionTypes::TestDictionaryOrLong) {}
     fn PassUnion10(&self, _: SafeJSContext, _: UnionTypes::StringOrObject) {}
     fn PassUnion11(&self, _: UnionTypes::ArrayBufferOrArrayBufferView) {}
-    fn PassUnionWithTypedef(&self, _: DocumentOrTestTypedef) {}
-    fn PassUnionWithTypedef2(&self, _: LongSequenceOrTestTypedef) {}
+    fn PassUnionWithTypedef(&self, _: UnionTypes::DocumentOrStringOrURLOrBlob) {}
+    fn PassUnionWithTypedef2(&self, _: UnionTypes::LongSequenceOrStringOrURLOrBlob) {}
     fn PassAny(&self, _: SafeJSContext, _: HandleValue) {}
     fn PassObject(&self, _: SafeJSContext, _: *mut JSObject) {}
     fn PassCallbackFunction(&self, _: Rc<Function>) {}

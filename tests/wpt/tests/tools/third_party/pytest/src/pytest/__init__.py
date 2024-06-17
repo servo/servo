@@ -1,6 +1,6 @@
 # PYTHON_ARGCOMPLETE_OK
 """pytest: unit and functional testing with Python."""
-from . import collect
+
 from _pytest import __version__
 from _pytest import version_tuple
 from _pytest._code import ExceptionInfo
@@ -19,8 +19,9 @@ from _pytest.config import UsageError
 from _pytest.config.argparsing import OptionGroup
 from _pytest.config.argparsing import Parser
 from _pytest.debugging import pytestPDB as __pytestPDB
-from _pytest.fixtures import _fillfuncargs
+from _pytest.doctest import DoctestItem
 from _pytest.fixtures import fixture
+from _pytest.fixtures import FixtureDef
 from _pytest.fixtures import FixtureLookupError
 from _pytest.fixtures import FixtureRequest
 from _pytest.fixtures import yield_fixture
@@ -28,6 +29,7 @@ from _pytest.freeze_support import freeze_includes
 from _pytest.legacypath import TempdirFactory
 from _pytest.legacypath import Testdir
 from _pytest.logging import LogCaptureFixture
+from _pytest.main import Dir
 from _pytest.main import Session
 from _pytest.mark import Mark
 from _pytest.mark import MARK_GEN as mark
@@ -36,6 +38,7 @@ from _pytest.mark import MarkGenerator
 from _pytest.mark import param
 from _pytest.monkeypatch import MonkeyPatch
 from _pytest.nodes import Collector
+from _pytest.nodes import Directory
 from _pytest.nodes import File
 from _pytest.nodes import Item
 from _pytest.outcomes import exit
@@ -63,6 +66,7 @@ from _pytest.reports import TestReport
 from _pytest.runner import CallInfo
 from _pytest.stash import Stash
 from _pytest.stash import StashKey
+from _pytest.terminal import TestShortLogReport
 from _pytest.tmpdir import TempPathFactory
 from _pytest.warning_types import PytestAssertRewriteWarning
 from _pytest.warning_types import PytestCacheWarning
@@ -70,38 +74,41 @@ from _pytest.warning_types import PytestCollectionWarning
 from _pytest.warning_types import PytestConfigWarning
 from _pytest.warning_types import PytestDeprecationWarning
 from _pytest.warning_types import PytestExperimentalApiWarning
-from _pytest.warning_types import PytestRemovedIn7Warning
-from _pytest.warning_types import PytestRemovedIn8Warning
+from _pytest.warning_types import PytestRemovedIn9Warning
+from _pytest.warning_types import PytestReturnNotNoneWarning
 from _pytest.warning_types import PytestUnhandledCoroutineWarning
 from _pytest.warning_types import PytestUnhandledThreadExceptionWarning
 from _pytest.warning_types import PytestUnknownMarkWarning
 from _pytest.warning_types import PytestUnraisableExceptionWarning
 from _pytest.warning_types import PytestWarning
 
+
 set_trace = __pytestPDB.set_trace
 
 
 __all__ = [
     "__version__",
-    "_fillfuncargs",
     "approx",
     "Cache",
     "CallInfo",
     "CaptureFixture",
     "Class",
     "cmdline",
-    "collect",
     "Collector",
     "CollectReport",
     "Config",
     "console_main",
     "deprecated_call",
+    "Dir",
+    "Directory",
+    "DoctestItem",
     "exit",
     "ExceptionInfo",
     "ExitCode",
     "fail",
     "File",
     "fixture",
+    "FixtureDef",
     "FixtureLookupError",
     "FixtureRequest",
     "freeze_includes",
@@ -131,8 +138,8 @@ __all__ = [
     "PytestConfigWarning",
     "PytestDeprecationWarning",
     "PytestExperimentalApiWarning",
-    "PytestRemovedIn7Warning",
-    "PytestRemovedIn8Warning",
+    "PytestRemovedIn9Warning",
+    "PytestReturnNotNoneWarning",
     "Pytester",
     "PytestPluginManager",
     "PytestUnhandledCoroutineWarning",
@@ -154,18 +161,10 @@ __all__ = [
     "TempPathFactory",
     "Testdir",
     "TestReport",
+    "TestShortLogReport",
     "UsageError",
     "WarningsRecorder",
     "warns",
     "xfail",
     "yield_fixture",
 ]
-
-
-def __getattr__(name: str) -> object:
-    if name == "Instance":
-        # The import emits a deprecation warning.
-        from _pytest.python import Instance
-
-        return Instance
-    raise AttributeError(f"module {__name__} has no attribute {name}")

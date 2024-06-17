@@ -1,10 +1,12 @@
+# mypy: allow-untyped-defs
+import email.message
 import io
 from typing import List
 from typing import Union
 
-import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from _pytest.pytester import Pytester
+import pytest
 
 
 class TestPasteCapture:
@@ -98,7 +100,9 @@ class TestPaste:
 
         def mocked(url, data):
             calls.append((url, data))
-            raise urllib.error.HTTPError(url, 400, "Bad request", {}, io.BytesIO())
+            raise urllib.error.HTTPError(
+                url, 400, "Bad request", email.message.Message(), io.BytesIO()
+            )
 
         monkeypatch.setattr(urllib.request, "urlopen", mocked)
         return calls

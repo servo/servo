@@ -47,8 +47,7 @@ which may be passed an optional ``reason``:
 .. code-block:: python
 
     @pytest.mark.skip(reason="no way of currently testing this")
-    def test_the_unknown():
-        ...
+    def test_the_unknown(): ...
 
 
 Alternatively, it is also possible to skip imperatively during test execution or setup
@@ -69,6 +68,7 @@ It is also possible to skip the whole module using
 .. code-block:: python
 
     import sys
+
     import pytest
 
     if not sys.platform.startswith("win"):
@@ -84,16 +84,15 @@ It is also possible to skip the whole module using
 
 If you wish to skip something conditionally then you can use ``skipif`` instead.
 Here is an example of marking a test function to be skipped
-when run on an interpreter earlier than Python3.6:
+when run on an interpreter earlier than Python3.10:
 
 .. code-block:: python
 
     import sys
 
 
-    @pytest.mark.skipif(sys.version_info < (3, 7), reason="requires python3.7 or higher")
-    def test_function():
-        ...
+    @pytest.mark.skipif(sys.version_info < (3, 10), reason="requires python3.10 or higher")
+    def test_function(): ...
 
 If the condition evaluates to ``True`` during collection, the test function will be skipped,
 with the specified reason appearing in the summary when using ``-rs``.
@@ -111,8 +110,7 @@ You can share ``skipif`` markers between modules.  Consider this test module:
 
 
     @minversion
-    def test_function():
-        ...
+    def test_function(): ...
 
 You can import the marker and reuse it in another test module:
 
@@ -123,8 +121,7 @@ You can import the marker and reuse it in another test module:
 
 
     @minversion
-    def test_anotherfunction():
-        ...
+    def test_anotherfunction(): ...
 
 For larger test suites it's usually a good idea to have one file
 where you define the markers which you then consistently apply
@@ -231,8 +228,7 @@ expect a test to fail:
 .. code-block:: python
 
     @pytest.mark.xfail
-    def test_function():
-        ...
+    def test_function(): ...
 
 This test will run but no traceback will be reported when it fails. Instead, terminal
 reporting will list it in the "expected to fail" (``XFAIL``) or "unexpectedly
@@ -274,8 +270,7 @@ that condition as the first parameter:
 .. code-block:: python
 
     @pytest.mark.xfail(sys.platform == "win32", reason="bug in a 3rd party library")
-    def test_function():
-        ...
+    def test_function(): ...
 
 Note that you have to pass a reason as well (see the parameter description at
 :ref:`pytest.mark.xfail ref`).
@@ -288,8 +283,7 @@ You can specify the motive of an expected failure with the ``reason`` parameter:
 .. code-block:: python
 
     @pytest.mark.xfail(reason="known parser issue")
-    def test_function():
-        ...
+    def test_function(): ...
 
 
 ``raises`` parameter
@@ -301,8 +295,7 @@ a single exception, or a tuple of exceptions, in the ``raises`` argument.
 .. code-block:: python
 
     @pytest.mark.xfail(raises=RuntimeError)
-    def test_function():
-        ...
+    def test_function(): ...
 
 Then the test will be reported as a regular failure if it fails with an
 exception not mentioned in ``raises``.
@@ -316,8 +309,7 @@ even executed, use the ``run`` parameter as ``False``:
 .. code-block:: python
 
     @pytest.mark.xfail(run=False)
-    def test_function():
-        ...
+    def test_function(): ...
 
 This is specially useful for xfailing tests that are crashing the interpreter and should be
 investigated later.
@@ -333,8 +325,7 @@ You can change this by setting the ``strict`` keyword-only parameter to ``True``
 .. code-block:: python
 
     @pytest.mark.xfail(strict=True)
-    def test_function():
-        ...
+    def test_function(): ...
 
 
 This will make ``XPASS`` ("unexpectedly passing") results from this test to fail the test suite.
@@ -409,6 +400,7 @@ test instances when using parametrize:
 .. code-block:: python
 
     import sys
+
     import pytest
 
 

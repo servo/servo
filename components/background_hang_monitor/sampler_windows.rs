@@ -4,7 +4,7 @@
 
 use crate::sampler::{NativeStack, Sampler};
 
-type MonitoredThreadId = usize; // TODO: use winapi
+type MonitoredThreadId = usize; // TODO: use the `windows` crate to do this.
 
 #[allow(dead_code)]
 pub struct WindowsSampler {
@@ -14,7 +14,7 @@ pub struct WindowsSampler {
 impl WindowsSampler {
     #[allow(unsafe_code, dead_code)]
     pub fn new_boxed() -> Box<dyn Sampler> {
-        let thread_id = 0; // TODO: use winapi::um::processthreadsapi::GetThreadId
+        let thread_id = 0; // TODO: use windows::Win32::System::Threading::GetThreadId
         Box::new(WindowsSampler { thread_id })
     }
 }
@@ -28,11 +28,11 @@ impl Sampler for WindowsSampler {
         // or any other unshareable resource.
 
         // TODO:
-        // 1: use winapi::um::processthreadsapi::SuspendThread
-        // 2: use winapi::um::processthreadsapi::GetThreadContext
+        // 1: use windows::Win32::Threading::SuspendThread
+        // 2: use windows::Win32::Threading::GetThreadContext
         // 3: populate registers using the context, see
         // https://dxr.mozilla.org/mozilla-central/source/tools/profiler/core/platform-win32.cpp#129
-        // 4: use winapi::um::processthreadsapi::ResumeThread
+        // 4: use windows::Win32::Threading::ResumeThread
 
         // NOTE: End of "critical section".
         Err(())

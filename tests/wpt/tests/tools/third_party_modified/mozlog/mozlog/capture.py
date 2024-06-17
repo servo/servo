@@ -88,7 +88,7 @@ class CaptureIO(object):
                 while not self.logging_queue.empty():
                     try:
                         self.logger.warning(
-                            "Dropping log message: %r", self.logging_queue.get()
+                            "Dropping log message: %r" % self.logging_queue.get()
                         )
                     except Exception:
                         pass

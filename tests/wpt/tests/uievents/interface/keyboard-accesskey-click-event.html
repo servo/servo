@@ -24,7 +24,7 @@ elementList.forEach((el)=>{eventList.forEach((ev)=>el.addEventListener(ev, (e)=>
     currentTest.step(()=>{
       if(e instanceof PointerEvent){
         // We want the test to run on all browsers even if click is not a PointerEvent.
-        assert_equals(e.pointerId, 0, "Click's pointerId has default value");
+        assert_equals(e.pointerId, -1, "Click's pointerId has -1 because of non-pointing device input");
         assert_equals(e.pointerType, "", "Click's pointerType has default value");
       }
       assert_equals(e.screenX, 0, "Click's screenX has default value");

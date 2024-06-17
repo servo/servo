@@ -4,7 +4,6 @@
 Tests for `attr.filters`.
 """
 
-from __future__ import absolute_import, division, print_function
 
 import pytest
 
@@ -15,12 +14,12 @@ from attr.filters import _split_what, exclude, include
 
 
 @attr.s
-class C(object):
+class C:
     a = attr.ib()
     b = attr.ib()
 
 
-class TestSplitWhat(object):
+class TestSplitWhat:
     """
     Tests for `_split_what`.
     """
@@ -31,22 +30,27 @@ class TestSplitWhat(object):
         """
         assert (
             frozenset((int, str)),
+            frozenset(("abcd", "123")),
             frozenset((fields(C).a,)),
-        ) == _split_what((str, fields(C).a, int))
+        ) == _split_what((str, "123", fields(C).a, int, "abcd"))
 
 
-class TestInclude(object):
+class TestInclude:
     """
     Tests for `include`.
     """
 
     @pytest.mark.parametrize(
-        "incl,value",
+        ("incl", "value"),
         [
             ((int,), 42),
             ((str,), "hello"),
             ((str, fields(C).a), 42),
             ((str, fields(C).b), "hello"),
+            (("a",), 42),
+            (("a",), "hello"),
+            (("a", str), 42),
+            (("a", fields(C).b), "hello"),
         ],
     )
     def test_allow(self, incl, value):
@@ -57,12 +61,16 @@ class TestInclude(object):
         assert i(fields(C).a, value) is True
 
     @pytest.mark.parametrize(
-        "incl,value",
+        ("incl", "value"),
         [
             ((str,), 42),
             ((int,), "hello"),
             ((str, fields(C).b), 42),
             ((int, fields(C).b), "hello"),
+            (("b",), 42),
+            (("b",), "hello"),
+            (("b", str), 42),
+            (("b", fields(C).b), "hello"),
         ],
     )
     def test_drop_class(self, incl, value):
@@ -73,18 +81,22 @@ class TestInclude(object):
         assert i(fields(C).a, value) is False
 
 
-class TestExclude(object):
+class TestExclude:
     """
     Tests for `exclude`.
     """
 
     @pytest.mark.parametrize(
-        "excl,value",
+        ("excl", "value"),
         [
             ((str,), 42),
             ((int,), "hello"),
             ((str, fields(C).b), 42),
             ((int, fields(C).b), "hello"),
+            (("b",), 42),
+            (("b",), "hello"),
+            (("b", str), 42),
+            (("b", fields(C).b), "hello"),
         ],
     )
     def test_allow(self, excl, value):
@@ -95,12 +107,16 @@ class TestExclude(object):
         assert e(fields(C).a, value) is True
 
     @pytest.mark.parametrize(
-        "excl,value",
+        ("excl", "value"),
         [
             ((int,), 42),
             ((str,), "hello"),
             ((str, fields(C).a), 42),
             ((str, fields(C).b), "hello"),
+            (("a",), 42),
+            (("a",), "hello"),
+            (("a", str), 42),
+            (("a", fields(C).b), "hello"),
         ],
     )
     def test_drop_class(self, excl, value):

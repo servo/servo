@@ -1,10 +1,11 @@
+# mypy: allow-untyped-defs
+from contextlib import contextmanager
 import os.path
+from pathlib import Path
+from string import ascii_lowercase
 import subprocess
 import sys
 import textwrap
-from contextlib import contextmanager
-from pathlib import Path
-from string import ascii_lowercase
 
 from _pytest.pytester import Pytester
 
@@ -59,7 +60,8 @@ def test_link_resolve(pytester: Pytester) -> None:
         def test_foo():
             raise AssertionError()
         """
-        )
+        ),
+        encoding="utf-8",
     )
 
     subst = subst_path_linux

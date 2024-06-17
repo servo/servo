@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: MIT
 
+from __future__ import annotations
+
 import re
 
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple
 
 import attr
 import attrs
@@ -49,12 +51,12 @@ CC(a=1)
 
 @attr.s
 class DD:
-    x: List[int] = attr.ib()
+    x: list[int] = attr.ib()
 
 
 @attr.s
 class EE:
-    y: "List[int]" = attr.ib()
+    y: "list[int]" = attr.ib()
 
 
 @attr.s
@@ -119,6 +121,17 @@ except Error as e:
     e.args
     str(e)
 
+# Field aliases
+
+
+@attrs.define
+class AliasExample:
+    without_alias: int
+    _with_alias: int = attr.ib(alias="_with_alias")
+
+
+attr.fields(AliasExample).without_alias.alias
+attr.fields(AliasExample)._with_alias.alias
 
 # Converters
 # XXX: Currently converters can only be functions so none of this works
@@ -165,7 +178,7 @@ class Validated:
             attr.validators.instance_of(C), attr.validators.instance_of(list)
         ),
     )
-    a = attr.ib(
+    aa = attr.ib(
         type=Tuple[C],
         validator=attr.validators.deep_iterable(
             attr.validators.instance_of(C), attr.validators.instance_of(tuple)
@@ -199,11 +212,38 @@ class Validated:
     # Test different forms of instance_of
     g: int = attr.ib(validator=attr.validators.instance_of(int))
     h: int = attr.ib(validator=attr.validators.instance_of((int,)))
-    j: Union[int, str] = attr.ib(
-        validator=attr.validators.instance_of((int, str))
-    )
-    k: Union[int, str, C] = attr.ib(
+    j: int | str = attr.ib(validator=attr.validators.instance_of((int, str)))
+    k: int | str | C = attr.ib(
         validator=attrs.validators.instance_of((int, C, str))
+    )
+
+    l: Any = attr.ib(
+        validator=attr.validators.not_(attr.validators.in_("abc"))
+    )
+    m: Any = attr.ib(
+        validator=attr.validators.not_(
+            attr.validators.in_("abc"), exc_types=ValueError
+        )
+    )
+    n: Any = attr.ib(
+        validator=attr.validators.not_(
+            attr.validators.in_("abc"), exc_types=(ValueError,)
+        )
+    )
+    o: Any = attr.ib(
+        validator=attr.validators.not_(attr.validators.in_("abc"), msg="spam")
+    )
+    p: Any = attr.ib(
+        validator=attr.validators.not_(attr.validators.in_("abc"), msg=None)
+    )
+    q: Any = attr.ib(
+        validator=attrs.validators.optional(attrs.validators.instance_of(C))
+    )
+    r: Any = attr.ib(
+        validator=attrs.validators.optional([attrs.validators.instance_of(C)])
+    )
+    s: Any = attr.ib(
+        validator=attrs.validators.optional((attrs.validators.instance_of(C),))
     )
 
 
@@ -284,14 +324,14 @@ class ValidatedSetter2:
 
 
 # field_transformer
-def ft_hook(cls: type, attribs: List[attr.Attribute]) -> List[attr.Attribute]:
+def ft_hook(cls: type, attribs: list[attr.Attribute]) -> list[attr.Attribute]:
     return attribs
 
 
 # field_transformer
 def ft_hook2(
-    cls: type, attribs: List[attrs.Attribute]
-) -> List[attrs.Attribute]:
+    cls: type, attribs: list[attrs.Attribute]
+) -> list[attrs.Attribute]:
     return attribs
 
 
@@ -355,16 +395,16 @@ class MRO:
 
 @attr.s
 class FactoryTest:
-    a: List[int] = attr.ib(default=attr.Factory(list))
-    b: List[Any] = attr.ib(default=attr.Factory(list, False))
-    c: List[int] = attr.ib(default=attr.Factory((lambda s: s.a), True))
+    a: list[int] = attr.ib(default=attr.Factory(list))
+    b: list[Any] = attr.ib(default=attr.Factory(list, False))
+    c: list[int] = attr.ib(default=attr.Factory((lambda s: s.a), True))
 
 
 @attrs.define
 class FactoryTest2:
-    a: List[int] = attrs.field(default=attrs.Factory(list))
-    b: List[Any] = attrs.field(default=attrs.Factory(list, False))
-    c: List[int] = attrs.field(default=attrs.Factory((lambda s: s.a), True))
+    a: list[int] = attrs.field(default=attrs.Factory(list))
+    b: list[Any] = attrs.field(default=attrs.Factory(list, False))
+    c: list[int] = attrs.field(default=attrs.Factory((lambda s: s.a), True))
 
 
 attrs.asdict(FactoryTest2())
@@ -394,27 +434,42 @@ attrs.asdict(MatchArgs2(1, 2))
 attrs.astuple(MatchArgs2(1, 2))
 
 
-def importing_from_attr() -> None:
+def accessing_from_attr() -> None:
     """
     Use a function to keep the ns clean.
     """
-    from attr.converters import optional
-    from attr.exceptions import FrozenError
-    from attr.filters import include
-    from attr.setters import frozen
-    from attr.validators import and_
+    attr.converters.optional
+    attr.exceptions.FrozenError
+    attr.filters.include
+    attr.filters.exclude
+    attr.setters.frozen
+    attr.validators.and_
+    attr.cmp_using
 
-    assert optional and FrozenError and include and frozen and and_
 
-
-def importing_from_attrs() -> None:
+def accessing_from_attrs() -> None:
     """
     Use a function to keep the ns clean.
     """
-    from attrs.converters import optional
-    from attrs.exceptions import FrozenError
-    from attrs.filters import include
-    from attrs.setters import frozen
-    from attrs.validators import and_
+    attrs.converters.optional
+    attrs.exceptions.FrozenError
+    attrs.filters.include
+    attrs.filters.exclude
+    attrs.setters.frozen
+    attrs.validators.and_
+    attrs.cmp_using
 
-    assert optional and FrozenError and include and frozen and and_
+
+foo = object
+if attrs.has(foo) or attr.has(foo):
+    foo.__attrs_attrs__
+
+
+@attrs.define(unsafe_hash=True)
+class Hashable:
+    pass
+
+
+def test(cls: type) -> None:
+    if attr.has(cls):
+        attr.resolve_types(cls)

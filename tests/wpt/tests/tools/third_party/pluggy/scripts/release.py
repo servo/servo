@@ -1,12 +1,15 @@
 """
 Release script.
 """
-import argparse
-import sys
-from subprocess import check_call
 
-from colorama import init, Fore
-from git import Repo, Remote
+import argparse
+from subprocess import check_call
+import sys
+
+from colorama import Fore
+from colorama import init
+from git import Remote
+from git import Repo
 
 
 def create_branch(version):
@@ -50,7 +53,7 @@ def changelog(version, write_out=False):
     else:
         addopts = ["--draft"]
     print(f"{Fore.CYAN}Generating CHANGELOG")
-    check_call(["towncrier", "--yes", "--version", version] + addopts)
+    check_call(["towncrier", "build", "--yes", "--version", version] + addopts)
 
 
 def main():

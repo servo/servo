@@ -1,39 +1,16 @@
-import re
-import warnings
+# mypy: allow-untyped-defs
 from pathlib import Path
+import re
 from typing import cast
-from typing import List
 from typing import Type
+import warnings
 
-import pytest
 from _pytest import nodes
 from _pytest.compat import legacy_path
 from _pytest.outcomes import OutcomeException
 from _pytest.pytester import Pytester
 from _pytest.warning_types import PytestWarning
-
-
-@pytest.mark.parametrize(
-    ("nodeid", "expected"),
-    (
-        ("", [""]),
-        ("a", ["", "a"]),
-        ("aa/b", ["", "aa", "aa/b"]),
-        ("a/b/c", ["", "a", "a/b", "a/b/c"]),
-        ("a/bbb/c::D", ["", "a", "a/bbb", "a/bbb/c", "a/bbb/c::D"]),
-        ("a/b/c::D::eee", ["", "a", "a/b", "a/b/c", "a/b/c::D", "a/b/c::D::eee"]),
-        ("::xx", ["", "::xx"]),
-        # / only considered until first ::
-        ("a/b/c::D/d::e", ["", "a", "a/b", "a/b/c", "a/b/c::D/d", "a/b/c::D/d::e"]),
-        # : alone is not a separator.
-        ("a/b::D:e:f::g", ["", "a", "a/b", "a/b::D:e:f", "a/b::D:e:f::g"]),
-        # / not considered if a part of a test name
-        ("a/b::c/d::e[/test]", ["", "a", "a/b", "a/b::c/d", "a/b::c/d::e[/test]"]),
-    ),
-)
-def test_iterparentnodeids(nodeid: str, expected: List[str]) -> None:
-    result = list(nodes.iterparentnodeids(nodeid))
-    assert result == expected
+import pytest
 
 
 def test_node_from_parent_disallowed_arguments() -> None:
@@ -63,7 +40,6 @@ def test_subclassing_both_item_and_collector_deprecated(
     Verifies we warn on diamond inheritance as well as correctly managing legacy
     inheritance constructors with missing args as found in plugins.
     """
-
     # We do not expect any warnings messages to issued during class definition.
     with warnings.catch_warnings():
         warnings.simplefilter("error")
@@ -72,6 +48,12 @@ def test_subclassing_both_item_and_collector_deprecated(
             def __init__(self, fspath, parent):
                 """Legacy ctor with legacy call # don't wana see"""
                 super().__init__(fspath, parent)
+
+            def collect(self):
+                raise NotImplementedError()
+
+            def runtest(self):
+                raise NotImplementedError()
 
     with pytest.warns(PytestWarning) as rec:
         SoWrong.from_parent(

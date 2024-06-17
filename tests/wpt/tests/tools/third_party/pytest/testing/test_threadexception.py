@@ -1,11 +1,5 @@
-import sys
-
-import pytest
 from _pytest.pytester import Pytester
-
-
-if sys.version_info < (3, 8):
-    pytest.skip("threadexception plugin needs Python>=3.8", allow_module_level=True)
+import pytest
 
 
 @pytest.mark.filterwarnings("default::pytest.PytestUnhandledThreadExceptionWarning")

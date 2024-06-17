@@ -1,12 +1,15 @@
+# mypy: allow-untyped-defs
 import os
-import warnings
+import sys
 from typing import List
 from typing import Optional
 from typing import Tuple
+import warnings
 
-import pytest
 from _pytest.fixtures import FixtureRequest
 from _pytest.pytester import Pytester
+import pytest
+
 
 WARNINGS_SUMMARY_HEADER = "warnings summary"
 
@@ -15,16 +18,13 @@ WARNINGS_SUMMARY_HEADER = "warnings summary"
 def pyfile_with_warnings(pytester: Pytester, request: FixtureRequest) -> str:
     """Create a test file which calls a function in a module which generates warnings."""
     pytester.syspathinsert()
-    test_name = request.function.__name__
-    module_name = test_name.lstrip("test_") + "_module"
+    module_name = request.function.__name__[len("test_") :] + "_module"
     test_file = pytester.makepyfile(
-        """
+        f"""
         import {module_name}
         def test_func():
             assert {module_name}.foo() == 1
-        """.format(
-            module_name=module_name
-        ),
+        """,
         **{
             module_name: """
             import warnings
@@ -239,7 +239,7 @@ def test_filterwarnings_mark_registration(pytester: Pytester) -> None:
 
 
 @pytest.mark.filterwarnings("always::UserWarning")
-def test_warning_captured_hook(pytester: Pytester) -> None:
+def test_warning_recorded_hook(pytester: Pytester) -> None:
     pytester.makeconftest(
         """
         def pytest_configure(config):
@@ -276,9 +276,9 @@ def test_warning_captured_hook(pytester: Pytester) -> None:
     expected = [
         ("config warning", "config", ""),
         ("collect warning", "collect", ""),
-        ("setup warning", "runtest", "test_warning_captured_hook.py::test_func"),
-        ("call warning", "runtest", "test_warning_captured_hook.py::test_func"),
-        ("teardown warning", "runtest", "test_warning_captured_hook.py::test_func"),
+        ("setup warning", "runtest", "test_warning_recorded_hook.py::test_func"),
+        ("call warning", "runtest", "test_warning_recorded_hook.py::test_func"),
+        ("teardown warning", "runtest", "test_warning_recorded_hook.py::test_func"),
     ]
     for index in range(len(expected)):
         collected_result = collected[index]
@@ -435,7 +435,7 @@ class TestDeprecationWarningsByDefault:
 
     def create_file(self, pytester: Pytester, mark="") -> None:
         pytester.makepyfile(
-            """
+            f"""
             import pytest, warnings
 
             warnings.warn(DeprecationWarning("collection"))
@@ -443,9 +443,7 @@ class TestDeprecationWarningsByDefault:
             {mark}
             def test_foo():
                 warnings.warn(PendingDeprecationWarning("test run"))
-        """.format(
-                mark=mark
-            )
+        """
         )
 
     @pytest.mark.parametrize("customize_filters", [True, False])
@@ -517,6 +515,7 @@ class TestDeprecationWarningsByDefault:
         assert WARNINGS_SUMMARY_HEADER not in result.stdout.str()
 
 
+@pytest.mark.skip("not relevant until pytest 9.0")
 @pytest.mark.parametrize("change_default", [None, "ini", "cmdline"])
 def test_removed_in_x_warning_as_error(pytester: Pytester, change_default) -> None:
     """This ensures that PytestRemovedInXWarnings raised by pytest are turned into errors.
@@ -528,7 +527,7 @@ def test_removed_in_x_warning_as_error(pytester: Pytester, change_default) -> No
         """
         import warnings, pytest
         def test():
-            warnings.warn(pytest.PytestRemovedIn7Warning("some warning"))
+            warnings.warn(pytest.PytestRemovedIn9Warning("some warning"))
     """
     )
     if change_default == "ini":
@@ -536,12 +535,12 @@ def test_removed_in_x_warning_as_error(pytester: Pytester, change_default) -> No
             """
             [pytest]
             filterwarnings =
-                ignore::pytest.PytestRemovedIn7Warning
+                ignore::pytest.PytestRemovedIn9Warning
         """
         )
 
     args = (
-        ("-Wignore::pytest.PytestRemovedIn7Warning",)
+        ("-Wignore::pytest.PytestRemovedIn9Warning",)
         if change_default == "cmdline"
         else ()
     )
@@ -621,11 +620,11 @@ def test_group_warnings_by_message_summary(pytester: Pytester) -> None:
             "*== %s ==*" % WARNINGS_SUMMARY_HEADER,
             "test_1.py: 21 warnings",
             "test_2.py: 1 warning",
-            "  */test_1.py:7: UserWarning: foo",
+            "  */test_1.py:8: UserWarning: foo",
             "    warnings.warn(UserWarning(msg))",
             "",
             "test_1.py: 20 warnings",
-            "  */test_1.py:7: UserWarning: bar",
+            "  */test_1.py:8: UserWarning: bar",
             "    warnings.warn(UserWarning(msg))",
             "",
             "-- Docs: *",
@@ -773,3 +772,71 @@ class TestStackLevel:
                 "*Unknown pytest.mark.unknown*",
             ]
         )
+
+
+def test_warning_on_testpaths_not_found(pytester: Pytester) -> None:
+    # Check for warning when testpaths set, but not found by glob
+    pytester.makeini(
+        """
+        [pytest]
+        testpaths = absent
+        """
+    )
+    result = pytester.runpytest()
+    result.stdout.fnmatch_lines(
+        ["*ConfigWarning: No files were found in testpaths*", "*1 warning*"]
+    )
+
+
+def test_resource_warning(pytester: Pytester, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Some platforms (notably PyPy) don't have tracemalloc.
+    # We choose to explicitly not skip this in case tracemalloc is not
+    # available, using `importorskip("tracemalloc")` for example,
+    # because we want to ensure the same code path does not break in those platforms.
+    try:
+        import tracemalloc  # noqa: F401
+
+        has_tracemalloc = True
+    except ImportError:
+        has_tracemalloc = False
+
+    # Explicitly disable PYTHONTRACEMALLOC in case pytest's test suite is running
+    # with it enabled.
+    monkeypatch.delenv("PYTHONTRACEMALLOC", raising=False)
+
+    pytester.makepyfile(
+        """
+        def open_file(p):
+            f = p.open("r", encoding="utf-8")
+            assert p.read_text() == "hello"
+
+        def test_resource_warning(tmp_path):
+            p = tmp_path.joinpath("foo.txt")
+            p.write_text("hello", encoding="utf-8")
+            open_file(p)
+        """
+    )
+    result = pytester.run(sys.executable, "-Xdev", "-m", "pytest")
+    expected_extra = (
+        [
+            "*ResourceWarning* unclosed file*",
+            "*Enable tracemalloc to get traceback where the object was allocated*",
+            "*See https* for more info.",
+        ]
+        if has_tracemalloc
+        else []
+    )
+    result.stdout.fnmatch_lines([*expected_extra, "*1 passed*"])
+
+    monkeypatch.setenv("PYTHONTRACEMALLOC", "20")
+
+    result = pytester.run(sys.executable, "-Xdev", "-m", "pytest")
+    expected_extra = (
+        [
+            "*ResourceWarning* unclosed file*",
+            "*Object allocated at*",
+        ]
+        if has_tracemalloc
+        else []
+    )
+    result.stdout.fnmatch_lines([*expected_extra, "*1 passed*"])

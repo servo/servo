@@ -90,9 +90,9 @@ Object.keys(constraintSet).forEach(property => {
     const [videoTrack] = stream.getVideoTracks();
 
     const capabilities = videoTrack.getCapabilities();
-    const constraints = {advanced: [{
-      [property]: constraintSet[property]
-    }]};
+    const constraints = {
+      [property]: {exact: constraintSet[property]}
+    };
     const oldSettings = videoTrack.getSettings();
 
     if (supportedConstraints[property] && !(property in capabilities)) {

@@ -25,6 +25,13 @@ body {
 
 <script>
   function scrollContainer() {
+    addEventListener("scroll", () => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          document.documentElement.classList.remove("reftest-wait");
+        });
+      });
+    }, { once: true, capture: true });
     document.documentElement.scrollTop = 500;
   }
 

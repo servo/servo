@@ -55,6 +55,13 @@ These options can also be customized through ``pytest.ini`` file:
     log_format = %(asctime)s %(levelname)s %(message)s
     log_date_format = %Y-%m-%d %H:%M:%S
 
+Specific loggers can be disabled via ``--log-disable={logger_name}``.
+This argument can be passed multiple times:
+
+.. code-block:: bash
+
+    pytest --log-disable=main --log-disable=testing
+
 Further it is possible to disable reporting of captured content (stdout,
 stderr and logs) on failed tests completely with:
 
@@ -73,7 +80,6 @@ messages.  This is supported by the ``caplog`` fixture:
 
     def test_foo(caplog):
         caplog.set_level(logging.INFO)
-        pass
 
 By default the level is set on the root logger,
 however as a convenience it is also possible to set the log level of any
@@ -83,7 +89,6 @@ logger:
 
     def test_foo(caplog):
         caplog.set_level(logging.CRITICAL, logger="root.baz")
-        pass
 
 The log levels set are restored automatically at the end of the test.
 
@@ -161,13 +166,18 @@ the records for the ``setup`` and ``call`` stages during teardown like so:
                 x.message for x in caplog.get_records(when) if x.levelno == logging.WARNING
             ]
             if messages:
-                pytest.fail(
-                    "warning messages encountered during testing: {}".format(messages)
-                )
+                pytest.fail(f"warning messages encountered during testing: {messages}")
 
 
 
 The full API is available at :class:`pytest.LogCaptureFixture`.
+
+.. warning::
+
+    The ``caplog`` fixture adds a handler to the root logger to capture logs. If the root logger is
+    modified during a test, for example with ``logging.config.dictConfig``, this handler may be
+    removed and cause no logs to be captured. To avoid this, ensure that any root logger configuration
+    only adds to the existing handlers.
 
 
 .. _live_logs:
@@ -180,8 +190,8 @@ logging records as they are emitted directly into the console.
 
 You can specify the logging level for which log records with equal or higher
 level are printed to the console by passing ``--log-cli-level``. This setting
-accepts the logging level names as seen in python's documentation or an integer
-as the logging level num.
+accepts the logging level names or numeric values as seen in
+:ref:`logging's documentation <python:levels>`.
 
 Additionally, you can also specify ``--log-cli-format`` and
 ``--log-cli-date-format`` which mirror and default to ``--log-format`` and
@@ -196,13 +206,15 @@ option names are:
 * ``log_cli_date_format``
 
 If you need to record the whole test suite logging calls to a file, you can pass
-``--log-file=/path/to/log/file``. This log file is opened in write mode which
+``--log-file=/path/to/log/file``. This log file is opened in write mode by default which
 means that it will be overwritten at each run tests session.
+If you'd like the file opened in append mode instead, then you can pass ``--log-file-mode=a``.
+Note that relative paths for the log-file location, whether passed on the CLI or declared in a
+config file, are always resolved relative to the current working directory.
 
 You can also specify the logging level for the log file by passing
-``--log-file-level``. This setting accepts the logging level names as seen in
-python's documentation(ie, uppercased level names) or an integer as the logging
-level num.
+``--log-file-level``. This setting accepts the logging level names or numeric
+values as seen in :ref:`logging's documentation <python:levels>`.
 
 Additionally, you can also specify ``--log-file-format`` and
 ``--log-file-date-format`` which are equal to ``--log-format`` and
@@ -212,12 +224,13 @@ All of the log file options can also be set in the configuration INI file. The
 option names are:
 
 * ``log_file``
+* ``log_file_mode``
 * ``log_file_level``
 * ``log_file_format``
 * ``log_file_date_format``
 
 You can call ``set_log_path()`` to customize the log_file path dynamically. This functionality
-is considered **experimental**.
+is considered **experimental**. Note that ``set_log_path()`` respects the ``log_file_mode`` option.
 
 .. _log_colors:
 
@@ -230,7 +243,7 @@ through ``add_color_level()``. Example:
 
 .. code-block:: python
 
-    @pytest.hookimpl
+    @pytest.hookimpl(trylast=True)
     def pytest_configure(config):
         logging_plugin = config.pluginmanager.get_plugin("logging-plugin")
 

@@ -1,14 +1,14 @@
-"""
-module containing a parametrized tests testing cross-python
-serialization via the pickle module.
-"""
+"""Module containing a parametrized tests testing cross-python serialization
+via the pickle module."""
+
 import shutil
 import subprocess
 import textwrap
 
 import pytest
 
-pythonlist = ["python3.5", "python3.6", "python3.7"]
+
+pythonlist = ["python3.9", "python3.10", "python3.11"]
 
 
 @pytest.fixture(params=pythonlist)
@@ -33,37 +33,33 @@ class Python:
         dumpfile = self.picklefile.with_name("dump.py")
         dumpfile.write_text(
             textwrap.dedent(
-                r"""
+                rf"""
                 import pickle
-                f = open({!r}, 'wb')
-                s = pickle.dump({!r}, f, protocol=2)
+                f = open({str(self.picklefile)!r}, 'wb')
+                s = pickle.dump({obj!r}, f, protocol=2)
                 f.close()
-                """.format(
-                    str(self.picklefile), obj
-                )
+                """
             )
         )
-        subprocess.check_call((self.pythonpath, str(dumpfile)))
+        subprocess.run((self.pythonpath, str(dumpfile)), check=True)
 
     def load_and_is_true(self, expression):
         loadfile = self.picklefile.with_name("load.py")
         loadfile.write_text(
             textwrap.dedent(
-                r"""
+                rf"""
                 import pickle
-                f = open({!r}, 'rb')
+                f = open({str(self.picklefile)!r}, 'rb')
                 obj = pickle.load(f)
                 f.close()
-                res = eval({!r})
+                res = eval({expression!r})
                 if not res:
                     raise SystemExit(1)
-                """.format(
-                    str(self.picklefile), expression
-                )
+                """
             )
         )
         print(loadfile)
-        subprocess.check_call((self.pythonpath, str(loadfile)))
+        subprocess.run((self.pythonpath, str(loadfile)), check=True)
 
 
 @pytest.mark.parametrize("obj", [42, {}, {1: 3}])

@@ -1,3 +1,3 @@
 # SPDX-License-Identifier: MIT
 
-from attr.exceptions import *  # noqa
+from attr.exceptions import *  # noqa: F403

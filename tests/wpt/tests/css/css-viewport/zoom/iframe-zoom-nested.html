@@ -1,38 +1,28 @@
 <!DOCTYPE html>
 <title>nested iframes with CSS zoom</title>
 <link rel="author" title="Yotam Hacohen" href="mailto:yotha@chromium.org">
+<link rel="author" title="Stefan Zager" href="mailto:szager@chromium.org">
 <link rel="author" title="Google" href="http://www.google.com/">
 <link href="reference/iframe-zoom-nested-ref.html" rel="match">
 <link rel="help" href="https://drafts.csswg.org/css-viewport/">
-<head>
-  <style>
-    body {
-      overflow: hidden;
-    }
 
-    div {
-        margin: 0px;
-        padding: 0px;
-        overflow: visible;
-    }
+<style>
+body {
+  columns: 2;
+  --iframe-width: 256px;
+  --iframe-height: 128px;
+}
+iframe {
+  border: none;
+  width: var(--iframe-width);
+  height: var(--iframe-height);
+}
+.zoom {
+  zoom: 1.5;
+}
+</style>
 
-    iframe {
-      overflow: visible;
-      border: none;
-    }
-  </style>
-</head>
-<body>
-  <div id="no_zoom">
-    <iframe src="resources/nested-iframe-no-zoom.html" scrolling="no"></iframe>
-  </div>
-  <div id="no_zoom2">
-    <iframe src="resources/nested-iframe-with-zoom.html" scrolling="no"></iframe>
-  </div>
-  <div id="with_zoom" style="zoom: 2;">
-    <iframe src="resources/nested-iframe-no-zoom.html" scrolling="no"></iframe>
-  </div>
-  <div id="another_with_zoom" style="zoom: 2;">
-    <iframe src="resources/nested-iframe-with-zoom.html" scrolling="no"></iframe>
-  </div>
-</body>
+<iframe id="baseline" src="resources/nested-iframe.html" scrolling="no"></iframe>
+<iframe id="zoom-child" src="resources/nested-iframe.html?zoom=2" scrolling="no"></iframe>
+<iframe id="zoom-top" class="zoom" src="resources/nested-iframe.html" scrolling="no"></iframe>
+<iframe id="zoom-top-child" class="zoom" src="resources/nested-iframe.html?zoom=2" scrolling="no"></iframe>

@@ -146,3 +146,18 @@ getall_test((t, connection) => {
     t.done();
   });
 }, 'zero maxCount');
+
+getall_test((t, connection) => {
+  const transaction = connection.transaction('out-of-line', 'readonly');
+  const store = transaction.objectStore('out-of-line');
+  const req = store.getAll();
+  transaction.commit();
+  transaction.oncomplete =
+      t.unreached_func('transaction completed before request succeeded');
+
+  req.onerror = t.unreached_func('getAll request should succeed');
+  req.onsuccess = t.step_func(evt => {
+    assert_array_equals(evt.target.result, alphabet.map(c => `value-${c}`));
+    transaction.oncomplete = t.step_func_done();
+  });
+}, 'Get all values with transaction.commit()');

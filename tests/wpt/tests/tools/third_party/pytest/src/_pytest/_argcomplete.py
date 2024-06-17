@@ -61,10 +61,11 @@ If things do not work right away:
   which should throw a KeyError: 'COMPLINE' (which is properly set by the
   global argcomplete script).
 """
+
 import argparse
+from glob import glob
 import os
 import sys
-from glob import glob
 from typing import Any
 from typing import List
 from typing import Optional
@@ -78,15 +79,15 @@ class FastFilesCompleter:
 
     def __call__(self, prefix: str, **kwargs: Any) -> List[str]:
         # Only called on non option completions.
-        if os.path.sep in prefix[1:]:
-            prefix_dir = len(os.path.dirname(prefix) + os.path.sep)
+        if os.sep in prefix[1:]:
+            prefix_dir = len(os.path.dirname(prefix) + os.sep)
         else:
             prefix_dir = 0
         completion = []
         globbed = []
         if "*" not in prefix and "?" not in prefix:
             # We are on unix, otherwise no bash.
-            if not prefix or prefix[-1] == os.path.sep:
+            if not prefix or prefix[-1] == os.sep:
                 globbed.extend(glob(prefix + ".*"))
             prefix += "*"
         globbed.extend(glob(prefix))
@@ -107,7 +108,6 @@ if os.environ.get("_ARGCOMPLETE"):
 
     def try_argcomplete(parser: argparse.ArgumentParser) -> None:
         argcomplete.autocomplete(parser, always_complete_options=False)
-
 
 else:
 

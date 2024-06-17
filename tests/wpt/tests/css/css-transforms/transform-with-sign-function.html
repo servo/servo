@@ -22,5 +22,6 @@ test_math_used('rotateX(calc(sign(1em - 1px) * 2deg))', 'rotateX(2deg)', {prop:'
 test_math_used('rotateY(calc(sign(1em - 1px) * 2deg))', 'rotateY(2deg)', {prop:'transform'});
 test_math_used('rotateZ(calc(sign(1em - 1px) * 2deg))', 'rotateZ(2deg)', {prop:'transform'});
 test_math_used('calc(sign(1em - 1px) * 2) calc(sign(1em - 1px) * 2) calc(sign(1em - 1px) * 2)', '2 2 2', {prop:'scale'});
+test_math_used('calc(sign(1em - 1px) * 2) calc(sign(1em - 1px) * 2) calc(sign(1em - 1px) * 2) calc(sign(1em - 1px) * 2deg)', '2 2 2 2deg', {prop:'rotate'});
 
 </script>

@@ -46,24 +46,18 @@ Plugin discovery order at tool startup
 
 5. by loading all plugins specified through the :envvar:`PYTEST_PLUGINS` environment variable.
 
-6. by loading all :file:`conftest.py` files as inferred by the command line
-   invocation:
+6. by loading all "initial ":file:`conftest.py` files:
 
-   - if no test paths are specified, use the current dir as a test path
-   - if exists, load ``conftest.py`` and ``test*/conftest.py`` relative
-     to the directory part of the first test path. After the ``conftest.py``
-     file is loaded, load all plugins specified in its
-     :globalvar:`pytest_plugins` variable if present.
-
-   Note that pytest does not find ``conftest.py`` files in deeper nested
-   sub directories at tool startup.  It is usually a good idea to keep
-   your ``conftest.py`` file in the top level test or project root directory.
-
-7. by recursively loading all plugins specified by the
-   :globalvar:`pytest_plugins` variable in ``conftest.py`` files.
+   - determine the test paths: specified on the command line, otherwise in
+     :confval:`testpaths` if defined and running from the rootdir, otherwise the
+     current dir
+   - for each test path, load ``conftest.py`` and ``test*/conftest.py`` relative
+     to the directory part of the test path, if exist. Before a ``conftest.py``
+     file is loaded, load ``conftest.py`` files in all of its parent directories.
+     After a ``conftest.py`` file is loaded, recursively load all plugins specified
+     in its :globalvar:`pytest_plugins` variable if present.
 
 
-.. _`pytest/plugin`: http://bitbucket.org/pytest-dev/pytest/src/tip/pytest/plugin/
 .. _`conftest.py plugins`:
 .. _`localplugin`:
 .. _`local conftest plugins`:
@@ -108,9 +102,9 @@ Here is how you might run it::
     See also: :ref:`pythonpath`.
 
 .. note::
-    Some hooks should be implemented only in plugins or conftest.py files situated at the
-    tests root directory due to how pytest discovers plugins during startup,
-    see the documentation of each hook for details.
+    Some hooks cannot be implemented in conftest.py files which are not
+    :ref:`initial <pluginorder>` due to how pytest discovers plugins during
+    startup. See the documentation of each hook for details.
 
 Writing your own plugin
 -----------------------
@@ -147,29 +141,32 @@ Making your plugin installable by others
 
 If you want to make your plugin externally available, you
 may define a so-called entry point for your distribution so
-that ``pytest`` finds your plugin module.  Entry points are
-a feature that is provided by :std:doc:`setuptools:index`. pytest looks up
-the ``pytest11`` entrypoint to discover its
-plugins and you can thus make your plugin available by defining
-it in your setuptools-invocation:
+that ``pytest`` finds your plugin module. Entry points are
+a feature that is provided by :std:doc:`setuptools <setuptools:index>`.
 
-.. sourcecode:: python
+pytest looks up the ``pytest11`` entrypoint to discover its
+plugins, thus you can make your plugin available by defining
+it in your ``pyproject.toml`` file.
 
-    # sample ./setup.py file
-    from setuptools import setup
+.. sourcecode:: toml
 
-    setup(
-        name="myproject",
-        packages=["myproject"],
-        # the following makes a plugin available to pytest
-        entry_points={"pytest11": ["name_of_plugin = myproject.pluginmodule"]},
-        # custom PyPI classifier for pytest plugins
-        classifiers=["Framework :: Pytest"],
-    )
+    # sample ./pyproject.toml file
+    [build-system]
+    requires = ["hatchling"]
+    build-backend = "hatchling.build"
+
+    [project]
+    name = "myproject"
+    classifiers = [
+        "Framework :: Pytest",
+    ]
+
+    [project.entry-points.pytest11]
+    myproject = "myproject.pluginmodule"
 
 If a package is installed this way, ``pytest`` will load
 ``myproject.pluginmodule`` as a plugin which can define
-:ref:`hooks <hook-reference>`.
+:ref:`hooks <hook-reference>`. Confirm registration with ``pytest --trace-config``
 
 .. note::
 
@@ -367,7 +364,7 @@ string value of ``Hello World!`` if we do not supply a value or ``Hello
         def _hello(name=None):
             if not name:
                 name = request.config.getoption("name")
-            return "Hello {name}!".format(name=name)
+            return f"Hello {name}!"
 
         return _hello
 
@@ -445,8 +442,9 @@ in our ``pytest.ini`` to tell pytest where to look for example files.
 
     $ pytest
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
-    rootdir: /home/sweet/project, configfile: pytest.ini
+    platform linux -- Python 3.x.y, pytest-8.x.y, pluggy-1.x.y
+    rootdir: /home/sweet/project
+    configfile: pytest.ini
     collected 2 items
 
     test_example.py ..                                                   [100%]

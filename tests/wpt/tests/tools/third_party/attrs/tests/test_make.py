@@ -4,7 +4,6 @@
 Tests for `attr._make`.
 """
 
-from __future__ import absolute_import, division, print_function
 
 import copy
 import functools
@@ -14,6 +13,7 @@ import itertools
 import sys
 
 from operator import attrgetter
+from typing import Generic, TypeVar
 
 import pytest
 
@@ -23,7 +23,7 @@ from hypothesis.strategies import booleans, integers, lists, sampled_from, text
 import attr
 
 from attr import _config
-from attr._compat import PY2, PY310, ordered_dict
+from attr._compat import PY310
 from attr._make import (
     Attribute,
     Factory,
@@ -41,11 +41,7 @@ from attr._make import (
     make_class,
     validate,
 )
-from attr.exceptions import (
-    DefaultAlreadySetError,
-    NotAnAttrsClassError,
-    PythonTooOldError,
-)
+from attr.exceptions import DefaultAlreadySetError, NotAnAttrsClassError
 
 from .strategies import (
     gen_attr_names,
@@ -62,7 +58,20 @@ from .utils import simple_attr
 attrs_st = simple_attrs.map(lambda c: Attribute.from_counting_attr("name", c))
 
 
-class TestCountingAttr(object):
+@pytest.fixture(name="with_and_without_validation", params=[True, False])
+def _with_and_without_validation(request):
+    """
+    Run tests with and without validation enabled.
+    """
+    attr.validators.set_disabled(request.param)
+
+    try:
+        yield
+    finally:
+        attr.validators.set_disabled(False)
+
+
+class TestCountingAttr:
     """
     Tests for `attr`.
     """
@@ -151,7 +160,7 @@ class TestCountingAttr(object):
 
 
 def make_tc():
-    class TransformC(object):
+    class TransformC:
         z = attr.ib()
         y = attr.ib()
         x = attr.ib()
@@ -160,7 +169,7 @@ def make_tc():
     return TransformC
 
 
-class TestTransformAttrs(object):
+class TestTransformAttrs:
     """
     Tests for `_transform_attrs`.
     """
@@ -189,7 +198,7 @@ class TestTransformAttrs(object):
         """
 
         @attr.s
-        class C(object):
+        class C:
             pass
 
         assert _Attributes(((), [], {})) == _transform_attrs(
@@ -215,7 +224,7 @@ class TestTransformAttrs(object):
         mandatory attributes.
         """
 
-        class C(object):
+        class C:
             x = attr.ib(default=None)
             y = attr.ib()
 
@@ -228,20 +237,20 @@ class TestTransformAttrs(object):
             "eq=True, eq_key=None, order=True, order_key=None, "
             "hash=None, init=True, "
             "metadata=mappingproxy({}), type=None, converter=None, "
-            "kw_only=False, inherited=False, on_setattr=None)",
+            "kw_only=False, inherited=False, on_setattr=None, alias=None)",
         ) == e.value.args
 
     def test_kw_only(self):
         """
         Converts all attributes, including base class' attributes, if `kw_only`
         is provided. Therefore, `kw_only` allows attributes with defaults to
-        preceed mandatory attributes.
+        precede mandatory attributes.
 
         Updates in the subclass *don't* affect the base class attributes.
         """
 
         @attr.s
-        class B(object):
+        class B:
             b = attr.ib()
 
         for b_a in B.__attrs_attrs__:
@@ -269,7 +278,7 @@ class TestTransformAttrs(object):
         If these is passed, use it and ignore body and base classes.
         """
 
-        class Base(object):
+        class Base:
             z = attr.ib()
 
         class C(Base):
@@ -288,7 +297,7 @@ class TestTransformAttrs(object):
         """
 
         @attr.s(init=False, these={"x": attr.ib()})
-        class C(object):
+        class C:
             x = 5
 
         assert 5 == C().x
@@ -302,21 +311,21 @@ class TestTransformAttrs(object):
         b = attr.ib(default=2)
         a = attr.ib(default=1)
 
-        @attr.s(these=ordered_dict([("a", a), ("b", b)]))
-        class C(object):
+        @attr.s(these={"a": a, "b": b})
+        class C:
             pass
 
         assert "C(a=1, b=2)" == repr(C())
 
     def test_multiple_inheritance_old(self):
         """
-        Old multiple inheritance attributre collection behavior is retained.
+        Old multiple inheritance attribute collection behavior is retained.
 
         See #285
         """
 
         @attr.s
-        class A(object):
+        class A:
             a1 = attr.ib(default="a1")
             a2 = attr.ib(default="a2")
 
@@ -351,7 +360,7 @@ class TestTransformAttrs(object):
         """
 
         @attr.s(collect_by_mro=True)
-        class C(object):
+        class C:
             x = attr.ib(default=1)
 
         @attr.s(collect_by_mro=True)
@@ -368,7 +377,7 @@ class TestTransformAttrs(object):
         """
 
         @attr.s
-        class A(object):
+        class A:
             a1 = attr.ib(default="a1")
             a2 = attr.ib(default="a2")
 
@@ -405,8 +414,7 @@ class TestTransformAttrs(object):
         """
 
         @attr.s(collect_by_mro=True)
-        class A(object):
-
+        class A:
             x = attr.ib(10)
 
             def xx(self):
@@ -437,7 +445,7 @@ class TestTransformAttrs(object):
         """
 
         @attr.s
-        class A(object):
+        class A:
             a = attr.ib()
 
         @attr.s
@@ -461,23 +469,10 @@ class TestTransformAttrs(object):
         assert False is f(C).c.inherited
 
 
-class TestAttributes(object):
+class TestAttributes:
     """
     Tests for the `attrs`/`attr.s` class decorator.
     """
-
-    @pytest.mark.skipif(not PY2, reason="No old-style classes in Py3")
-    def test_catches_old_style(self):
-        """
-        Raises TypeError on old-style classes.
-        """
-        with pytest.raises(TypeError) as e:
-
-            @attr.s
-            class C:
-                pass
-
-        assert ("attrs only works with new-style classes.",) == e.value.args
 
     def test_sets_attrs(self):
         """
@@ -485,7 +480,7 @@ class TestAttributes(object):
         """
 
         @attr.s
-        class C(object):
+        class C:
             x = attr.ib()
 
         assert "x" == C.__attrs_attrs__[0].name
@@ -497,7 +492,7 @@ class TestAttributes(object):
         """
 
         @attr.s
-        class C3(object):
+        class C3:
             pass
 
         assert "C3()" == repr(C3())
@@ -523,7 +518,7 @@ class TestAttributes(object):
         # overwritten afterwards.
         sentinel = object()
 
-        class C(object):
+        class C:
             x = attr.ib()
 
         setattr(C, method_name, sentinel)
@@ -536,7 +531,7 @@ class TestAttributes(object):
             assert meth is None
 
     @pytest.mark.parametrize(
-        "arg_name, method_name",
+        ("arg_name", "method_name"),
         [
             ("repr", "__repr__"),
             ("eq", "__eq__"),
@@ -564,7 +559,7 @@ class TestAttributes(object):
         if arg_name == "eq":
             am_args["order"] = False
 
-        class C(object):
+        class C:
             x = attr.ib()
 
         setattr(C, method_name, sentinel)
@@ -580,23 +575,22 @@ class TestAttributes(object):
         Otherwise, it does not.
         """
 
-        class C(object):
+        class C:
             x = attr.ib()
 
         C = attr.s(init=init)(C)
         assert hasattr(C, "__attrs_init__") != init
 
-    @pytest.mark.skipif(PY2, reason="__qualname__ is PY3-only.")
     @given(slots_outer=booleans(), slots_inner=booleans())
     def test_repr_qualname(self, slots_outer, slots_inner):
         """
-        On Python 3, the name in repr is the __qualname__.
+        The name in repr is the __qualname__.
         """
 
         @attr.s(slots=slots_outer)
-        class C(object):
+        class C:
             @attr.s(slots=slots_inner)
-            class D(object):
+            class D:
                 pass
 
         assert "C.D()" == repr(C.D())
@@ -609,38 +603,36 @@ class TestAttributes(object):
         """
 
         @attr.s(slots=slots_outer)
-        class C(object):
+        class C:
             @attr.s(repr_ns="C", slots=slots_inner)
-            class D(object):
+            class D:
                 pass
 
         assert "C.D()" == repr(C.D())
 
-    @pytest.mark.skipif(PY2, reason="__qualname__ is PY3-only.")
     @given(slots_outer=booleans(), slots_inner=booleans())
     def test_name_not_overridden(self, slots_outer, slots_inner):
         """
-        On Python 3, __name__ is different from __qualname__.
+        __name__ is different from __qualname__.
         """
 
         @attr.s(slots=slots_outer)
-        class C(object):
+        class C:
             @attr.s(slots=slots_inner)
-            class D(object):
+            class D:
                 pass
 
         assert C.D.__name__ == "D"
         assert C.D.__qualname__ == C.__qualname__ + ".D"
 
-    @pytest.mark.parametrize("with_validation", [True, False])
-    def test_pre_init(self, with_validation, monkeypatch):
+    @pytest.mark.usefixtures("with_and_without_validation")
+    def test_pre_init(self):
         """
         Verify that __attrs_pre_init__ gets called if defined.
         """
-        monkeypatch.setattr(_config, "_run_validators", with_validation)
 
         @attr.s
-        class C(object):
+        class C:
             def __attrs_pre_init__(self2):
                 self2.z = 30
 
@@ -648,15 +640,68 @@ class TestAttributes(object):
 
         assert 30 == getattr(c, "z", None)
 
-    @pytest.mark.parametrize("with_validation", [True, False])
-    def test_post_init(self, with_validation, monkeypatch):
+    @pytest.mark.usefixtures("with_and_without_validation")
+    def test_pre_init_args(self):
+        """
+        Verify that __attrs_pre_init__ gets called with extra args if defined.
+        """
+
+        @attr.s
+        class C:
+            x = attr.ib()
+
+            def __attrs_pre_init__(self2, x):
+                self2.z = x + 1
+
+        c = C(x=10)
+
+        assert 11 == getattr(c, "z", None)
+
+    @pytest.mark.usefixtures("with_and_without_validation")
+    def test_pre_init_kwargs(self):
+        """
+        Verify that __attrs_pre_init__ gets called with extra args and kwargs
+        if defined.
+        """
+
+        @attr.s
+        class C:
+            x = attr.ib()
+            y = attr.field(kw_only=True)
+
+            def __attrs_pre_init__(self2, x, y):
+                self2.z = x + y + 1
+
+        c = C(10, y=11)
+
+        assert 22 == getattr(c, "z", None)
+
+    @pytest.mark.usefixtures("with_and_without_validation")
+    def test_pre_init_kwargs_only(self):
+        """
+        Verify that __attrs_pre_init__ gets called with extra kwargs only if
+        defined.
+        """
+
+        @attr.s
+        class C:
+            y = attr.field(kw_only=True)
+
+            def __attrs_pre_init__(self2, y):
+                self2.z = y + 1
+
+        c = C(y=11)
+
+        assert 12 == getattr(c, "z", None)
+
+    @pytest.mark.usefixtures("with_and_without_validation")
+    def test_post_init(self):
         """
         Verify that __attrs_post_init__ gets called if defined.
         """
-        monkeypatch.setattr(_config, "_run_validators", with_validation)
 
         @attr.s
-        class C(object):
+        class C:
             x = attr.ib()
             y = attr.ib()
 
@@ -667,15 +712,14 @@ class TestAttributes(object):
 
         assert 30 == getattr(c, "z", None)
 
-    @pytest.mark.parametrize("with_validation", [True, False])
-    def test_pre_post_init_order(self, with_validation, monkeypatch):
+    @pytest.mark.usefixtures("with_and_without_validation")
+    def test_pre_post_init_order(self):
         """
         Verify that __attrs_post_init__ gets called if defined.
         """
-        monkeypatch.setattr(_config, "_run_validators", with_validation)
 
         @attr.s
-        class C(object):
+        class C:
             x = attr.ib()
 
             def __attrs_pre_init__(self2):
@@ -694,7 +738,7 @@ class TestAttributes(object):
         """
 
         @attr.s
-        class C(object):
+        class C:
             x = attr.ib(type=int)
             y = attr.ib(type=str)
             z = attr.ib()
@@ -703,14 +747,13 @@ class TestAttributes(object):
         assert str is fields(C).y.type
         assert None is fields(C).z.type
 
-    @pytest.mark.parametrize("slots", [True, False])
     def test_clean_class(self, slots):
         """
         Attribute definitions do not appear on the class body after @attr.s.
         """
 
         @attr.s(slots=slots)
-        class C(object):
+        class C:
             x = attr.ib()
 
         x = getattr(C, "x", None)
@@ -723,7 +766,7 @@ class TestAttributes(object):
         """
 
         @attr.s
-        class C(object):
+        class C:
             x = attr.ib(factory=list)
 
         assert Factory(list) == attr.fields(C).x.default
@@ -735,7 +778,7 @@ class TestAttributes(object):
         with pytest.raises(ValueError, match="mutually exclusive"):
 
             @attr.s
-            class C(object):
+            class C:
                 x = attr.ib(factory=list, default=Factory(list))
 
     def test_sugar_callable(self):
@@ -746,7 +789,7 @@ class TestAttributes(object):
         with pytest.raises(ValueError, match="must be a callable"):
 
             @attr.s
-            class C(object):
+            class C:
                 x = attr.ib(factory=Factory(list))
 
     def test_inherited_does_not_affect_hashing_and_equality(self):
@@ -756,7 +799,7 @@ class TestAttributes(object):
         """
 
         @attr.s
-        class BaseClass(object):
+        class BaseClass:
             x = attr.ib()
 
         @attr.s
@@ -770,7 +813,7 @@ class TestAttributes(object):
         assert hash(ba) == hash(sa)
 
 
-class TestKeywordOnlyAttributes(object):
+class TestKeywordOnlyAttributes:
     """
     Tests for keyword-only attributes.
     """
@@ -781,7 +824,7 @@ class TestKeywordOnlyAttributes(object):
         """
 
         @attr.s
-        class C(object):
+        class C:
             a = attr.ib()
             b = attr.ib(default=2, kw_only=True)
             c = attr.ib(kw_only=True)
@@ -800,7 +843,7 @@ class TestKeywordOnlyAttributes(object):
         """
 
         @attr.s
-        class C(object):
+        class C:
             x = attr.ib(init=False, default=0, kw_only=True)
             y = attr.ib()
 
@@ -816,20 +859,15 @@ class TestKeywordOnlyAttributes(object):
         """
 
         @attr.s
-        class C(object):
+        class C:
             x = attr.ib(kw_only=True)
 
         with pytest.raises(TypeError) as e:
             C()
 
-        if PY2:
-            assert (
-                "missing required keyword-only argument: 'x'"
-            ) in e.value.args[0]
-        else:
-            assert (
-                "missing 1 required keyword-only argument: 'x'"
-            ) in e.value.args[0]
+        assert (
+            "missing 1 required keyword-only argument: 'x'"
+        ) in e.value.args[0]
 
     def test_keyword_only_attributes_unexpected(self):
         """
@@ -837,7 +875,7 @@ class TestKeywordOnlyAttributes(object):
         """
 
         @attr.s
-        class C(object):
+        class C:
             x = attr.ib(kw_only=True)
 
         with pytest.raises(TypeError) as e:
@@ -854,7 +892,7 @@ class TestKeywordOnlyAttributes(object):
         """
 
         @attr.s
-        class C(object):
+        class C:
             a = attr.ib(kw_only=True)
             b = attr.ib(kw_only=True, default="b")
             c = attr.ib(kw_only=True)
@@ -883,7 +921,7 @@ class TestKeywordOnlyAttributes(object):
         """
 
         @attr.s
-        class Base(object):
+        class Base:
             x = attr.ib(default=0)
 
         @attr.s
@@ -902,7 +940,7 @@ class TestKeywordOnlyAttributes(object):
         """
 
         @attr.s(kw_only=True)
-        class C(object):
+        class C:
             x = attr.ib()
             y = attr.ib(kw_only=True)
 
@@ -921,7 +959,7 @@ class TestKeywordOnlyAttributes(object):
         """
 
         @attr.s
-        class Base(object):
+        class Base:
             x = attr.ib(default=0)
 
         @attr.s(kw_only=True)
@@ -944,7 +982,7 @@ class TestKeywordOnlyAttributes(object):
         """
 
         @attr.s
-        class KwArgBeforeInitFalse(object):
+        class KwArgBeforeInitFalse:
             kwarg = attr.ib(kw_only=True)
             non_init_function_default = attr.ib(init=False)
             non_init_keyword_default = attr.ib(
@@ -972,7 +1010,7 @@ class TestKeywordOnlyAttributes(object):
         """
 
         @attr.s
-        class KwArgBeforeInitFalseParent(object):
+        class KwArgBeforeInitFalseParent:
             kwarg = attr.ib(kw_only=True)
 
         @attr.s
@@ -993,34 +1031,14 @@ class TestKeywordOnlyAttributes(object):
         assert c.non_init_keyword_default == "default-by-keyword"
 
 
-@pytest.mark.skipif(not PY2, reason="PY2-specific keyword-only error behavior")
-class TestKeywordOnlyAttributesOnPy2(object):
-    """
-    Tests for keyword-only attribute behavior on py2.
-    """
-
-    def test_no_init(self):
-        """
-        Keyworld-only is a no-op, not any error, if ``init=false``.
-        """
-
-        @attr.s(kw_only=True, init=False)
-        class ClassLevel(object):
-            a = attr.ib()
-
-        @attr.s(init=False)
-        class AttrLevel(object):
-            a = attr.ib(kw_only=True)
-
-
 @attr.s
-class GC(object):
+class GC:
     @attr.s
-    class D(object):
+    class D:
         pass
 
 
-class TestMakeClass(object):
+class TestMakeClass:
     """
     Tests for `make_class`.
     """
@@ -1033,7 +1051,7 @@ class TestMakeClass(object):
         C1 = make_class("C1", ls(["a", "b"]))
 
         @attr.s
-        class C2(object):
+        class C2:
             a = attr.ib()
             b = attr.ib()
 
@@ -1048,7 +1066,7 @@ class TestMakeClass(object):
         )
 
         @attr.s
-        class C2(object):
+        class C2:
             a = attr.ib(default=42)
             b = attr.ib(default=None)
 
@@ -1076,7 +1094,7 @@ class TestMakeClass(object):
         Parameter bases default to (object,) and subclasses correctly
         """
 
-        class D(object):
+        class D:
             pass
 
         cls = make_class("C", {})
@@ -1088,7 +1106,18 @@ class TestMakeClass(object):
         assert D in cls.__mro__
         assert isinstance(cls(), D)
 
-    @pytest.mark.parametrize("slots", [True, False])
+    def test_additional_class_body(self):
+        """
+        Additional class_body is added to newly created class.
+        """
+
+        def echo_func(cls, *args):
+            return args
+
+        cls = make_class("C", {}, class_body={"echo": classmethod(echo_func)})
+
+        assert ("a", "b") == cls.echo("a", "b")
+
     def test_clean_class(self, slots):
         """
         Attribute definitions do not appear on the class body.
@@ -1116,11 +1145,10 @@ class TestMakeClass(object):
         b = attr.ib(default=2)
         a = attr.ib(default=1)
 
-        C = attr.make_class("C", ordered_dict([("a", a), ("b", b)]))
+        C = attr.make_class("C", {"a": a, "b": b})
 
         assert "C(a=1, b=2)" == repr(C())
 
-    @pytest.mark.skipif(PY2, reason="Python 3-only")
     def test_generic_dynamic_class(self):
         """
         make_class can create generic dynamic classes.
@@ -1137,7 +1165,7 @@ class TestMakeClass(object):
         attr.make_class("test", {"id": attr.ib(type=str)}, (MyParent[int],))
 
 
-class TestFields(object):
+class TestFields:
     """
     Tests for `fields`.
     """
@@ -1154,13 +1182,29 @@ class TestFields(object):
 
     def test_handler_non_attrs_class(self):
         """
-        Raises `ValueError` if passed a non-``attrs`` instance.
+        Raises `ValueError` if passed a non-*attrs* instance.
         """
         with pytest.raises(NotAnAttrsClassError) as e:
             fields(object)
 
         assert (
-            "{o!r} is not an attrs-decorated class.".format(o=object)
+            f"{object!r} is not an attrs-decorated class."
+        ) == e.value.args[0]
+
+    def test_handler_non_attrs_generic_class(self):
+        """
+        Raises `ValueError` if passed a non-*attrs* generic class.
+        """
+        T = TypeVar("T")
+
+        class B(Generic[T]):
+            pass
+
+        with pytest.raises(NotAnAttrsClassError) as e:
+            fields(B[str])
+
+        assert (
+            f"{B[str]!r} is not an attrs-decorated class."
         ) == e.value.args[0]
 
     @given(simple_classes())
@@ -1178,8 +1222,26 @@ class TestFields(object):
         for attribute in fields(C):
             assert getattr(fields(C), attribute.name) is attribute
 
+    def test_generics(self):
+        """
+        Fields work with generic classes.
+        """
+        T = TypeVar("T")
 
-class TestFieldsDict(object):
+        @attr.define
+        class A(Generic[T]):
+            a: T
+
+        assert len(fields(A)) == 1
+        assert fields(A).a.name == "a"
+        assert fields(A).a.default is attr.NOTHING
+
+        assert len(fields(A[str])) == 1
+        assert fields(A[str]).a.name == "a"
+        assert fields(A[str]).a.default is attr.NOTHING
+
+
+class TestFieldsDict:
     """
     Tests for `fields_dict`.
     """
@@ -1196,13 +1258,13 @@ class TestFieldsDict(object):
 
     def test_handler_non_attrs_class(self):
         """
-        Raises `ValueError` if passed a non-``attrs`` instance.
+        Raises `ValueError` if passed a non-*attrs* instance.
         """
         with pytest.raises(NotAnAttrsClassError) as e:
             fields_dict(object)
 
         assert (
-            "{o!r} is not an attrs-decorated class.".format(o=object)
+            f"{object!r} is not an attrs-decorated class."
         ) == e.value.args[0]
 
     @given(simple_classes())
@@ -1212,12 +1274,12 @@ class TestFieldsDict(object):
         """
         d = fields_dict(C)
 
-        assert isinstance(d, ordered_dict)
+        assert isinstance(d, dict)
         assert list(fields(C)) == list(d.values())
-        assert [a.name for a in fields(C)] == [field_name for field_name in d]
+        assert [a.name for a in fields(C)] == list(d)
 
 
-class TestConverter(object):
+class TestConverter:
     """
     Tests for attribute conversion.
     """
@@ -1260,19 +1322,14 @@ class TestConverter(object):
         """
         C = make_class(
             "C",
-            ordered_dict(
-                [
-                    ("y", attr.ib()),
-                    (
-                        "x",
-                        attr.ib(
-                            init=init,
-                            default=Factory(lambda: val),
-                            converter=lambda v: v + 1,
-                        ),
-                    ),
-                ]
-            ),
+            {
+                "y": attr.ib(),
+                "x": attr.ib(
+                    init=init,
+                    default=Factory(lambda: val),
+                    converter=lambda v: v + 1,
+                ),
+            },
         )
         c = C(2)
 
@@ -1330,7 +1387,7 @@ class TestConverter(object):
         C("1")
 
 
-class TestValidate(object):
+class TestValidate:
     """
     Tests for `validate`.
     """
@@ -1424,11 +1481,11 @@ class TestValidate(object):
 # Hypothesis seems to cache values, so the lists of attributes come out
 # unsorted.
 sorted_lists_of_attrs = list_of_attrs.map(
-    lambda l: sorted(l, key=attrgetter("counter"))
+    lambda ln: sorted(ln, key=attrgetter("counter"))
 )
 
 
-class TestMetadata(object):
+class TestMetadata:
     """
     Tests for metadata handling.
     """
@@ -1471,8 +1528,8 @@ class TestMetadata(object):
                 a.metadata.setdefault(string, string)
 
             for k in a.metadata:
-                # For some reason, Python 3's MappingProxyType throws an
-                # IndexError for deletes on a large integer key.
+                # For some reason, MappingProxyType throws an IndexError for
+                # deletes on a large integer key.
                 with pytest.raises((TypeError, IndexError)):
                     del a.metadata[k]
                 with pytest.raises(AttributeError):
@@ -1523,7 +1580,7 @@ class TestMetadata(object):
         assert md is a.metadata
 
 
-class TestClassBuilder(object):
+class TestClassBuilder:
     """
     Tests for `_ClassBuilder`.
     """
@@ -1545,7 +1602,7 @@ class TestClassBuilder(object):
         repr of builder itself makes sense.
         """
 
-        class C(object):
+        class C:
             pass
 
         b = _ClassBuilder(
@@ -1572,7 +1629,7 @@ class TestClassBuilder(object):
         All methods return the builder for chaining.
         """
 
-        class C(object):
+        class C:
             x = attr.ib()
 
         b = _ClassBuilder(
@@ -1627,12 +1684,12 @@ class TestClassBuilder(object):
         """
 
         @attr.s(hash=True, str=True)
-        class C(object):
+        class C:
             def organic(self):
                 pass
 
         @attr.s(hash=True, str=True)
-        class D(object):
+        class D:
             pass
 
         meth_C = getattr(C, meth_name)
@@ -1640,11 +1697,10 @@ class TestClassBuilder(object):
 
         assert meth_name == meth_C.__name__ == meth_D.__name__
         assert C.organic.__module__ == meth_C.__module__ == meth_D.__module__
-        if not PY2:
-            # This is assertion that would fail if a single __ne__ instance
-            # was reused across multiple _make_eq calls.
-            organic_prefix = C.organic.__qualname__.rsplit(".", 1)[0]
-            assert organic_prefix + "." + meth_name == meth_C.__qualname__
+        # This is assertion that would fail if a single __ne__ instance
+        # was reused across multiple _make_eq calls.
+        organic_prefix = C.organic.__qualname__.rsplit(".", 1)[0]
+        assert organic_prefix + "." + meth_name == meth_C.__qualname__
 
     def test_handles_missing_meta_on_class(self):
         """
@@ -1652,7 +1708,7 @@ class TestClassBuilder(object):
         either.
         """
 
-        class C(object):
+        class C:
             pass
 
         b = _ClassBuilder(
@@ -1691,7 +1747,7 @@ class TestClassBuilder(object):
         """
 
         @attr.s(slots=True)
-        class C(object):
+        class C:
             __weakref__ = attr.ib(
                 init=False, hash=False, repr=False, eq=False, order=False
             )
@@ -1705,7 +1761,7 @@ class TestClassBuilder(object):
         """
 
         @attr.s(slots=True)
-        class C(object):
+        class C:
             pass
 
         @attr.s(slots=True)
@@ -1748,7 +1804,7 @@ class TestClassBuilder(object):
         """
 
         @attr.s(eq=True, **kwargs)
-        class C(object):
+        class C:
             x = attr.ib()
 
         a = C(1)
@@ -1763,7 +1819,7 @@ class TestClassBuilder(object):
         """
 
         @attr.s(eq=True, **kwargs)
-        class C(object):
+        class C:
             x = attr.ib()
 
             def __getstate__(self):
@@ -1779,6 +1835,107 @@ class TestClassBuilder(object):
         assert actual == expected
 
 
+class TestInitAlias:
+    """
+    Tests for Attribute alias handling.
+    """
+
+    def test_default_and_specify(self):
+        """
+        alias is present on the Attributes returned from attr.fields.
+
+        If left unspecified, it defaults to standard private-attribute
+        handling.  If specified, it passes through the explicit alias.
+        """
+
+        # alias is None by default on _CountingAttr
+        default_counting = attr.ib()
+        assert default_counting.alias is None
+
+        override_counting = attr.ib(alias="specified")
+        assert override_counting.alias == "specified"
+
+        @attr.s
+        class Cases:
+            public_default = attr.ib()
+            _private_default = attr.ib()
+            __dunder_default__ = attr.ib()
+
+            public_override = attr.ib(alias="public")
+            _private_override = attr.ib(alias="_private")
+            __dunder_override__ = attr.ib(alias="__dunder__")
+
+        cases = attr.fields_dict(Cases)
+
+        # Default applies private-name mangling logic
+        assert cases["public_default"].name == "public_default"
+        assert cases["public_default"].alias == "public_default"
+
+        assert cases["_private_default"].name == "_private_default"
+        assert cases["_private_default"].alias == "private_default"
+
+        assert cases["__dunder_default__"].name == "__dunder_default__"
+        assert cases["__dunder_default__"].alias == "dunder_default__"
+
+        # Override is passed through
+        assert cases["public_override"].name == "public_override"
+        assert cases["public_override"].alias == "public"
+
+        assert cases["_private_override"].name == "_private_override"
+        assert cases["_private_override"].alias == "_private"
+
+        assert cases["__dunder_override__"].name == "__dunder_override__"
+        assert cases["__dunder_override__"].alias == "__dunder__"
+
+        # And aliases are applied to the __init__ signature
+        example = Cases(
+            public_default=1,
+            private_default=2,
+            dunder_default__=3,
+            public=4,
+            _private=5,
+            __dunder__=6,
+        )
+
+        assert example.public_default == 1
+        assert example._private_default == 2
+        assert example.__dunder_default__ == 3
+        assert example.public_override == 4
+        assert example._private_override == 5
+        assert example.__dunder_override__ == 6
+
+    def test_evolve(self):
+        """
+        attr.evolve uses Attribute.alias to determine parameter names.
+        """
+
+        @attr.s
+        class EvolveCase:
+            _override = attr.ib(alias="_override")
+            __mangled = attr.ib()
+            __dunder__ = attr.ib()
+
+        org = EvolveCase(1, 2, 3)
+
+        # Previous behavior of evolve as broken for double-underscore
+        # passthrough, and would raise here due to mis-mapping the __dunder__
+        # alias
+        assert attr.evolve(org) == org
+
+        # evolve uses the alias to match __init__ signature
+        assert attr.evolve(
+            org,
+            _override=0,
+        ) == EvolveCase(0, 2, 3)
+
+        # and properly passes through dunders and mangles
+        assert attr.evolve(
+            org,
+            EvolveCase__mangled=4,
+            dunder__=5,
+        ) == EvolveCase(1, 4, 5)
+
+
 class TestMakeOrder:
     """
     Tests for _make_order().
@@ -1788,11 +1945,11 @@ class TestMakeOrder:
         """
         Calling comparison methods on subclasses raises a TypeError.
 
-        We use the actual operation so we get an error raised on Python 3.
+        We use the actual operation so we get an error raised.
         """
 
         @attr.s
-        class A(object):
+        class A:
             a = attr.ib()
 
         @attr.s
@@ -1815,21 +1972,20 @@ class TestMakeOrder:
             == a.__ge__(b)
         )
 
-        if not PY2:
-            with pytest.raises(TypeError):
-                a <= b
+        with pytest.raises(TypeError):
+            a <= b
 
-            with pytest.raises(TypeError):
-                a >= b
+        with pytest.raises(TypeError):
+            a >= b
 
-            with pytest.raises(TypeError):
-                a < b
+        with pytest.raises(TypeError):
+            a < b
 
-            with pytest.raises(TypeError):
-                a > b
+        with pytest.raises(TypeError):
+            a > b
 
 
-class TestDetermineAttrsEqOrder(object):
+class TestDetermineAttrsEqOrder:
     def test_default(self):
         """
         If all are set to None, set both eq and order to the passed default.
@@ -1865,7 +2021,7 @@ class TestDetermineAttrsEqOrder(object):
             _determine_attrs_eq_order(cmp, eq, order, True)
 
 
-class TestDetermineAttribEqOrder(object):
+class TestDetermineAttribEqOrder:
     def test_default(self):
         """
         If all are set to None, set both eq and order to the passed default.
@@ -1953,37 +2109,25 @@ class TestDocs:
         """
 
         @attr.s
-        class A(object):
+        class A:
             pass
 
         if hasattr(A, "__qualname__"):
             method = getattr(A, meth_name)
-            expected = "Method generated by attrs for class {}.".format(
-                A.__qualname__
-            )
+            expected = f"Method generated by attrs for class {A.__qualname__}."
             assert expected == method.__doc__
 
 
-@pytest.mark.skipif(not PY2, reason="Needs to be only caught on Python 2.")
-def test_auto_detect_raises_on_py2():
-    """
-    Trying to pass auto_detect=True to attr.s raises PythonTooOldError.
-    """
-    with pytest.raises(PythonTooOldError):
-        attr.s(auto_detect=True)
-
-
-class BareC(object):
+class BareC:
     pass
 
 
-class BareSlottedC(object):
+class BareSlottedC:
     __slots__ = ()
 
 
-@pytest.mark.skipif(PY2, reason="Auto-detection is Python 3-only.")
 class TestAutoDetect:
-    @pytest.mark.parametrize("C", (BareC, BareSlottedC))
+    @pytest.mark.parametrize("C", [BareC, BareSlottedC])
     def test_determine_detects_non_presence_correctly(self, C):
         """
         On an empty class, nothing should be detected.
@@ -2001,8 +2145,6 @@ class TestAutoDetect:
             C, None, True, ("__le__", "__lt__", "__ge__", "__gt__")
         )
 
-    @pytest.mark.parametrize("slots", [True, False])
-    @pytest.mark.parametrize("frozen", [True, False])
     def test_make_all_by_default(self, slots, frozen):
         """
         If nothing is there to be detected, imply init=True, repr=True,
@@ -2010,7 +2152,7 @@ class TestAutoDetect:
         """
 
         @attr.s(auto_detect=True, slots=slots, frozen=frozen)
-        class C(object):
+        class C:
             x = attr.ib()
 
         i = C(1)
@@ -2025,15 +2167,13 @@ class TestAutoDetect:
         assert i.__ge__ is not o.__ge__
         assert i.__gt__ is not o.__gt__
 
-    @pytest.mark.parametrize("slots", [True, False])
-    @pytest.mark.parametrize("frozen", [True, False])
     def test_detect_auto_init(self, slots, frozen):
         """
         If auto_detect=True and an __init__ exists, don't write one.
         """
 
         @attr.s(auto_detect=True, slots=slots, frozen=frozen)
-        class CI(object):
+        class CI:
             x = attr.ib()
 
             def __init__(self):
@@ -2041,15 +2181,13 @@ class TestAutoDetect:
 
         assert 42 == CI().x
 
-    @pytest.mark.parametrize("slots", [True, False])
-    @pytest.mark.parametrize("frozen", [True, False])
     def test_detect_auto_repr(self, slots, frozen):
         """
         If auto_detect=True and an __repr__ exists, don't write one.
         """
 
         @attr.s(auto_detect=True, slots=slots, frozen=frozen)
-        class C(object):
+        class C:
             x = attr.ib()
 
             def __repr__(self):
@@ -2057,15 +2195,32 @@ class TestAutoDetect:
 
         assert "hi" == repr(C(42))
 
-    @pytest.mark.parametrize("slots", [True, False])
-    @pytest.mark.parametrize("frozen", [True, False])
+    def test_hash_uses_eq(self, slots, frozen):
+        """
+        If eq is passed in, then __hash__ should use the eq callable
+        to generate the hash code.
+        """
+
+        @attr.s(slots=slots, frozen=frozen, hash=True)
+        class C:
+            x = attr.ib(eq=str)
+
+        @attr.s(slots=slots, frozen=frozen, hash=True)
+        class D:
+            x = attr.ib()
+
+        # These hashes should be the same because 1 is turned into
+        # string before hashing.
+        assert hash(C("1")) == hash(C(1))
+        assert hash(D("1")) != hash(D(1))
+
     def test_detect_auto_hash(self, slots, frozen):
         """
         If auto_detect=True and an __hash__ exists, don't write one.
         """
 
         @attr.s(auto_detect=True, slots=slots, frozen=frozen)
-        class C(object):
+        class C:
             x = attr.ib()
 
             def __hash__(self):
@@ -2073,15 +2228,13 @@ class TestAutoDetect:
 
         assert 0xC0FFEE == hash(C(42))
 
-    @pytest.mark.parametrize("slots", [True, False])
-    @pytest.mark.parametrize("frozen", [True, False])
     def test_detect_auto_eq(self, slots, frozen):
         """
         If auto_detect=True and an __eq__ or an __ne__, exist, don't write one.
         """
 
         @attr.s(auto_detect=True, slots=slots, frozen=frozen)
-        class C(object):
+        class C:
             x = attr.ib()
 
             def __eq__(self, o):
@@ -2091,7 +2244,7 @@ class TestAutoDetect:
             C(1) == C(1)
 
         @attr.s(auto_detect=True, slots=slots, frozen=frozen)
-        class D(object):
+        class D:
             x = attr.ib()
 
             def __ne__(self, o):
@@ -2100,8 +2253,6 @@ class TestAutoDetect:
         with pytest.raises(ValueError, match="worked"):
             D(1) != D(1)
 
-    @pytest.mark.parametrize("slots", [True, False])
-    @pytest.mark.parametrize("frozen", [True, False])
     def test_detect_auto_order(self, slots, frozen):
         """
         If auto_detect=True and an __ge__, __gt__, __le__, or and __lt__ exist,
@@ -2127,19 +2278,19 @@ class TestAutoDetect:
                 assert_not_set(cls, ex, "__" + m + "__")
 
         @attr.s(auto_detect=True, slots=slots, frozen=frozen)
-        class LE(object):
+        class LE:
             __le__ = 42
 
         @attr.s(auto_detect=True, slots=slots, frozen=frozen)
-        class LT(object):
+        class LT:
             __lt__ = 42
 
         @attr.s(auto_detect=True, slots=slots, frozen=frozen)
-        class GE(object):
+        class GE:
             __ge__ = 42
 
         @attr.s(auto_detect=True, slots=slots, frozen=frozen)
-        class GT(object):
+        class GT:
             __gt__ = 42
 
         assert_none_set(LE, "__le__")
@@ -2147,15 +2298,13 @@ class TestAutoDetect:
         assert_none_set(GE, "__ge__")
         assert_none_set(GT, "__gt__")
 
-    @pytest.mark.parametrize("slots", [True, False])
-    @pytest.mark.parametrize("frozen", [True, False])
     def test_override_init(self, slots, frozen):
         """
         If init=True is passed, ignore __init__.
         """
 
         @attr.s(init=True, auto_detect=True, slots=slots, frozen=frozen)
-        class C(object):
+        class C:
             x = attr.ib()
 
             def __init__(self):
@@ -2163,15 +2312,13 @@ class TestAutoDetect:
 
         assert C(1) == C(1)
 
-    @pytest.mark.parametrize("slots", [True, False])
-    @pytest.mark.parametrize("frozen", [True, False])
     def test_override_repr(self, slots, frozen):
         """
         If repr=True is passed, ignore __repr__.
         """
 
         @attr.s(repr=True, auto_detect=True, slots=slots, frozen=frozen)
-        class C(object):
+        class C:
             x = attr.ib()
 
             def __repr__(self):
@@ -2179,15 +2326,13 @@ class TestAutoDetect:
 
         assert "C(x=1)" == repr(C(1))
 
-    @pytest.mark.parametrize("slots", [True, False])
-    @pytest.mark.parametrize("frozen", [True, False])
     def test_override_hash(self, slots, frozen):
         """
         If hash=True is passed, ignore __hash__.
         """
 
         @attr.s(hash=True, auto_detect=True, slots=slots, frozen=frozen)
-        class C(object):
+        class C:
             x = attr.ib()
 
             def __hash__(self):
@@ -2195,15 +2340,13 @@ class TestAutoDetect:
 
         assert hash(C(1))
 
-    @pytest.mark.parametrize("slots", [True, False])
-    @pytest.mark.parametrize("frozen", [True, False])
     def test_override_eq(self, slots, frozen):
         """
         If eq=True is passed, ignore __eq__ and __ne__.
         """
 
         @attr.s(eq=True, auto_detect=True, slots=slots, frozen=frozen)
-        class C(object):
+        class C:
             x = attr.ib()
 
             def __eq__(self, o):
@@ -2214,10 +2357,8 @@ class TestAutoDetect:
 
         assert C(1) == C(1)
 
-    @pytest.mark.parametrize("slots", [True, False])
-    @pytest.mark.parametrize("frozen", [True, False])
     @pytest.mark.parametrize(
-        "eq,order,cmp",
+        ("eq", "order", "cmp"),
         [
             (True, None, None),
             (True, True, None),
@@ -2243,7 +2384,7 @@ class TestAutoDetect:
             slots=slots,
             frozen=frozen,
         )
-        class C(object):
+        class C:
             x = attr.ib()
             __le__ = __lt__ = __gt__ = __ge__ = meth
 
@@ -2252,7 +2393,6 @@ class TestAutoDetect:
         assert C(2) > C(1)
         assert C(2) >= C(1)
 
-    @pytest.mark.parametrize("slots", [True, False])
     @pytest.mark.parametrize("first", [True, False])
     def test_total_ordering(self, slots, first):
         """
@@ -2262,7 +2402,7 @@ class TestAutoDetect:
         Ensure the order doesn't matter.
         """
 
-        class C(object):
+        class C:
             x = attr.ib()
             own_eq_called = attr.ib(default=False)
             own_le_called = attr.ib(default=False)
@@ -2301,21 +2441,22 @@ class TestAutoDetect:
 
         assert c1.own_eq_called
 
-    @pytest.mark.parametrize("slots", [True, False])
     def test_detects_setstate_getstate(self, slots):
         """
         __getstate__ and __setstate__ are not overwritten if either is present.
         """
 
         @attr.s(slots=slots, auto_detect=True)
-        class C(object):
+        class C:
             def __getstate__(self):
                 return ("hi",)
 
-        assert None is getattr(C(), "__setstate__", None)
+        assert getattr(object, "__setstate__", None) is getattr(
+            C, "__setstate__", None
+        )
 
         @attr.s(slots=slots, auto_detect=True)
-        class C(object):
+        class C:
             called = attr.ib(False)
 
             def __setstate__(self, state):
@@ -2328,7 +2469,9 @@ class TestAutoDetect:
         i.__setstate__(())
 
         assert True is i.called
-        assert None is getattr(C(), "__getstate__", None)
+        assert getattr(object, "__getstate__", None) is getattr(
+            C, "__getstate__", None
+        )
 
     @pytest.mark.skipif(PY310, reason="Pre-3.10 only.")
     def test_match_args_pre_310(self):
@@ -2337,14 +2480,14 @@ class TestAutoDetect:
         """
 
         @attr.s
-        class C(object):
+        class C:
             a = attr.ib()
 
         assert None is getattr(C, "__match_args__", None)
 
 
 @pytest.mark.skipif(not PY310, reason="Structural pattern matching is 3.10+")
-class TestMatchArgs(object):
+class TestMatchArgs:
     """
     Tests for match_args and __match_args__ generation.
     """

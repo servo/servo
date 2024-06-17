@@ -1,3 +1,6 @@
+import WebIDL
+
+
 def WebIDLTest(parser, harness):
     threw = False
     try:
@@ -8,9 +11,9 @@ def WebIDLTest(parser, harness):
             };
         """
         )
-        results = parser.finish()
+        parser.finish()
 
-    except:
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should not allow Promise return values for legacycaller.")
 
@@ -25,8 +28,8 @@ def WebIDLTest(parser, harness):
             };
         """
         )
-        results = parser.finish()
-    except:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw,
@@ -45,8 +48,8 @@ def WebIDLTest(parser, harness):
             };
         """
         )
-        results = parser.finish()
-    except:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw,
@@ -64,8 +67,8 @@ def WebIDLTest(parser, harness):
             };
         """
         )
-        results = parser.finish()
-    except:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should not allow nullable Promise return values.")
 
@@ -79,8 +82,8 @@ def WebIDLTest(parser, harness):
             };
         """
         )
-        results = parser.finish()
-    except:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should not allow nullable Promise arguments.")
 
@@ -93,7 +96,7 @@ def WebIDLTest(parser, harness):
         };
     """
     )
-    results = parser.finish()
+    parser.finish()
 
     harness.ok(
         True, "Should allow overloads which only have Promise and return " "types."
@@ -109,8 +112,8 @@ def WebIDLTest(parser, harness):
             };
         """
         )
-        results = parser.finish()
-    except:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should not allow writable Promise-typed attributes.")
 
@@ -124,8 +127,8 @@ def WebIDLTest(parser, harness):
             };
         """
         )
-        results = parser.finish()
-    except:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(
         threw, "Should not allow [LegacyLenientSetter] Promise-typed attributes."
@@ -141,8 +144,8 @@ def WebIDLTest(parser, harness):
             };
         """
         )
-        results = parser.finish()
-    except:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should not allow [PutForwards] Promise-typed attributes.")
 
@@ -156,8 +159,8 @@ def WebIDLTest(parser, harness):
             };
         """
         )
-        results = parser.finish()
-    except:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should not allow [Replaceable] Promise-typed attributes.")
 
@@ -171,7 +174,7 @@ def WebIDLTest(parser, harness):
             };
         """
         )
-        results = parser.finish()
-    except:
+        parser.finish()
+    except WebIDL.WebIDLError:
         threw = True
     harness.ok(threw, "Should not allow [SameObject] Promise-typed attributes.")

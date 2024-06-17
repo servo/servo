@@ -26,6 +26,7 @@ enum MediaSessionAction {
   "seekto",
   "togglemicrophone",
   "togglecamera",
+  "togglescreenshare",
   "hangup",
   "previousslide",
   "nextslide",
@@ -47,6 +48,8 @@ interface MediaSession {
   Promise<undefined> setMicrophoneActive(boolean active);
 
   Promise<undefined> setCameraActive(boolean active);
+
+  Promise<undefined> setScreenshareActive(boolean active);
 };
 
 [Exposed=Window]

@@ -35,6 +35,7 @@ typedef (USVString or FencedFrameConfig) UrnOrConfig;
 partial interface Navigator {
   Promise<undefined> deprecatedReplaceInURN(
     UrnOrConfig urnOrConfig, record<USVString, USVString> replacements);
+  sequence<USVString> adAuctionComponents(unsigned short numAdComponents);
 };
 
 enum FenceReportingDestination {

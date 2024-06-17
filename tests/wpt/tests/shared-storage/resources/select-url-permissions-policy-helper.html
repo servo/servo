@@ -7,7 +7,9 @@
   'use strict';
 
   window.onload = async function() {
-    if (await IsSharedStorageSelectUrlAllowedByPermissionsPolicy()) {
+    await sharedStorage.worklet.addModule('/shared-storage/resources/simple-module.js');
+
+    if (await IsSharedStorageSelectUrlAllowed()) {
       parent.postMessage({ type: 'availability-result', enabled: true }, '*');
       return;
     }

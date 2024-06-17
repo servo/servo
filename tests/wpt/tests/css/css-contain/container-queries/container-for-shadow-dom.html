@@ -6,23 +6,23 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="support/cq-testcommon.js"></script>
 <style>
-  #inclusive-ancestor-across-root,
-  #inclusive-ancestor-skip-slotting,
-  #inclusive-ancestor-slotted,
-  #inclusive-ancestor-host,
-  #inclusive-ancestor-part,
-  #inclusive-ancestor-slotted-before,
-  #inclusive-ancestor-host-before,
-  #inclusive-ancestor-part-before,
-  #inclusive-ancestor-inner-part,
-  #inclusive-ancestor-slot-fallback,
+  #ancestor-across-root,
+  #ancestor-skip-slotting,
+  #ancestor-slotted,
+  #ancestor-host,
+  #ancestor-part,
+  #ancestor-slotted-before,
+  #ancestor-host-before,
+  #ancestor-part-before,
+  #ancestor-inner-part,
+  #ancestor-slot-fallback,
   #inner-scope-host-part {
     width: 400px;
     container-type: inline-size;
   }
 </style>
 
-<div id="inclusive-ancestor-across-root">
+<div id="ancestor-across-root">
   <div>
     <template shadowrootmode="open">
       <style>
@@ -35,7 +35,7 @@
   </div>
 </div>
 
-<div id="inclusive-ancestor-skip-slotting">
+<div id="ancestor-skip-slotting">
   <div>
     <template shadowrootmode="open">
       <style>
@@ -57,7 +57,7 @@
   </div>
 </div>
 
-<div id="inclusive-ancestor-slotted">
+<div id="ancestor-slotted">
   <div>
     <template shadowrootmode="open">
       <style>
@@ -76,7 +76,7 @@
   </div>
 </div>
 
-<div id="inclusive-ancestor-host">
+<div id="ancestor-host">
   <div id="t4">
     <template shadowrootmode="open">
       <style>
@@ -88,7 +88,7 @@
   </div>
 </div>
 
-<div id="inclusive-ancestor-part">
+<div id="ancestor-part">
   <div>
     <template shadowrootmode="open">
       <style>
@@ -103,13 +103,13 @@
     </template>
     <style>
       @container (width = 200px) {
-        #inclusive-ancestor-part > div::part(part) { color: green; }
+        #ancestor-part > div::part(part) { color: green; }
       }
     </style>
   </div>
 </div>
 
-<div id="inclusive-ancestor-slotted-before">
+<div id="ancestor-slotted-before">
   <div>
     <template shadowrootmode="open">
       <style>
@@ -137,7 +137,7 @@
   </div>
 </div>
 
-<div id="inclusive-ancestor-host-before">
+<div id="ancestor-host-before">
   <div id="t7">
     <template shadowrootmode="open">
       <style>
@@ -156,10 +156,10 @@
   </div>
 </div>
 
-<div id="inclusive-ancestor-part-before">
+<div id="ancestor-part-before">
   <style>
     @container (width = 200px) {
-      #inclusive-ancestor-part-before > div::part(part)::before {
+      #ancestor-part-before > div::part(part)::before {
         content: "X";
         color: green;
       }
@@ -180,10 +180,10 @@
   </div>
 </div>
 
-<div id="inclusive-ancestor-inner-part">
+<div id="ancestor-inner-part">
   <style>
     @container (width = 200px) {
-      #inclusive-ancestor-inner-part > div::part(inner-part) { color: green; }
+      #ancestor-inner-part > div::part(inner-part) { color: green; }
     }
   </style>
   <div>
@@ -211,7 +211,7 @@
   </div>
 </div>
 
-<div id="inclusive-ancestor-slot-fallback">
+<div id="ancestor-slot-fallback">
   <div><template shadowrootmode="open">
     <style>
       div {
@@ -266,9 +266,79 @@
         <span id="t12" part="part"></span>
       </div>
     </template>
-    <style>
-    </style>
   </div>
+</div>
+
+<div id="named-part-host">
+  <template shadowrootmode="open">
+    <style>
+      @container --part2 (width >= 0px) {
+        #named-part2-child { color: green; }
+      }
+      #named-part1 {
+        container: --part1 / inline-size;
+        color: green;
+      }
+    </style>
+    <div id="named-part1" part="part1">
+      <div id="named-part1-child" part="part1-child"></div>
+    </div>
+    <div part="part2">
+      <div id="named-part2-child" part="part2-child"></div>
+    </div>
+  </template>
+  <style>
+    #named-part-host::part(part2) { container: --part2 / inline-size; }
+    @container --part1 (width >= 0px) {
+      #named-part-host::part(part1-child) { background-color: red; }
+    }
+  </style>
+</div>
+
+<div id="named-slotted-host">
+  <template shadowrootmode="open">
+    <style>
+      @container --slot-container (width >= 0px) {
+        ::slotted(#slotted1) { color: green; }
+      }
+      #named-slotted-container {
+        container: --slot-container / inline-size;
+      }
+    </style>
+    <div id="named-slotted-container">
+      <slot></slot>
+    </div>
+  </template>
+  <div id="slotted1"></div>
+  <div id="slotted2"></div>
+  <style>
+    @container --slot-container (width >= 0px) {
+      #slotted2 { color: red; }
+    }
+  </style>
+</div>
+
+<div id="named-host">
+  <template shadowrootmode="open">
+    <style>
+      :host {
+        container: --host-container / inline-size;
+      }
+      @container --host-container (width >= 0px) {
+        #host-descendant { color: green; }
+        ::slotted(#host-slotted1) { color: green; }
+      }
+    </style>
+    <div id="host-descendant"></div>
+    <slot></slot>
+  </template>
+  <div id="host-slotted1"></div>
+  <div id="host-slotted2"></div>
+  <style>
+    @container --host-container (width >= 0px) {
+      #host-slotted2 { color: red; }
+    }
+  </style>
 </div>
 
 <script>
@@ -277,9 +347,10 @@
   });
 
   const green = "rgb(0, 128, 0)";
+  const red = "rgb(255, 0, 0)";
 
   test(() => {
-    const t1 = document.querySelector("#inclusive-ancestor-across-root > div").shadowRoot.querySelector("#t1");
+    const t1 = document.querySelector("#ancestor-across-root > div").shadowRoot.querySelector("#t1");
     assert_equals(getComputedStyle(t1).color, green);
   }, "Match container in outer tree");
 
@@ -299,7 +370,7 @@
   }, "Match container in outer tree for :host");
 
   test(() => {
-    const t5 = document.querySelector("#inclusive-ancestor-part > div").shadowRoot.querySelector("#t5");
+    const t5 = document.querySelector("#ancestor-part > div").shadowRoot.querySelector("#t5");
     assert_equals(getComputedStyle(t5).color, green);
   }, "Match container in ::part selector's originating element tree");
 
@@ -314,19 +385,19 @@
   }, "Match container in outer tree for :host::before");
 
   test(() => {
-    const t8 = document.querySelector("#inclusive-ancestor-part-before > div").shadowRoot.querySelector("#t8");
+    const t8 = document.querySelector("#ancestor-part-before > div").shadowRoot.querySelector("#t8");
     assert_equals(getComputedStyle(t8, "::before").color, green);
   }, "Match container for ::before in ::part selector's originating element tree");
 
   test(() => {
-    const outerhost = document.querySelector("#inclusive-ancestor-inner-part > div");
+    const outerhost = document.querySelector("#ancestor-inner-part > div");
     const innerhost = outerhost.shadowRoot.querySelector("div");
     const t9 = innerhost.shadowRoot.querySelector("#t9");
     assert_equals(getComputedStyle(t9).color, green);
   }, "Match container for ::part selector's originating element tree for exportparts");
 
   test(() => {
-    const t10 = document.querySelector("#inclusive-ancestor-slot-fallback > div").shadowRoot.querySelector("#t10");
+    const t10 = document.querySelector("#ancestor-slot-fallback > div").shadowRoot.querySelector("#t10");
     assert_equals(getComputedStyle(t10).color, green);
   }, "Match container for slot light tree child fallback");
 
@@ -339,5 +410,40 @@
     const t12 = document.querySelector("#inner-scope-host-part > div").shadowRoot.querySelector("#t12");
     assert_equals(getComputedStyle(t12).color, green);
   }, "A :host::part rule should match containers in the originating element tree");
+
+  test(() => {
+    const target = document.querySelector("#named-part-host").shadowRoot.querySelector("#named-part1-child");
+    assert_equals(getComputedStyle(target).color, green);
+  }, "Container name set inside a shadow tree should not match query using ::part on the outside");
+
+  test(() => {
+    const target = document.querySelector("#named-part-host").shadowRoot.querySelector("#named-part2-child");
+    assert_equals(getComputedStyle(target).color, green);
+  }, "Container name set with a ::part should match query inside the shadow tree");
+
+  test(() => {
+    const target = document.querySelector("#slotted1");
+    assert_equals(getComputedStyle(target).color, green);
+  }, "Container name set inside a shadow tree should match query for a ::slotted() rule inside the tree");
+
+  test(() => {
+    const target = document.querySelector("#slotted2");
+    assert_not_equals(getComputedStyle(target).color, red);
+  }, "Container name set inside a shadow tree should not match query for host child on the outside");
+
+  test(() => {
+    const target = document.querySelector("#named-host").shadowRoot.querySelector("#host-descendant");
+    assert_equals(getComputedStyle(target).color, green);
+  }, "Container name set on :host from inside a shadow tree matching query inside the shadow tree");
+
+  test(() => {
+    const target = document.querySelector("#host-slotted1");
+    assert_equals(getComputedStyle(target).color, green);
+  }, "Container name set on :host from inside a shadow tree matching query for ::slotted inside the shadow tree");
+
+  test(() => {
+    const target = document.querySelector("#host-slotted2");
+    assert_not_equals(getComputedStyle(target).color, red);
+  }, "Container name set on :host from inside a shadow tree not matching query for slotted from the outside of the shadow tree");
 
 </script>

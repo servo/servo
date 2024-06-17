@@ -1,18 +1,20 @@
 # SPDX-License-Identifier: MIT
 
+import types
+
 import pytest
 
-from attr._compat import metadata_proxy
+import attr
 
 
 @pytest.fixture(name="mp")
 def _mp():
-    return metadata_proxy({"x": 42, "y": "foo"})
+    return types.MappingProxyType({"x": 42, "y": "foo"})
 
 
 class TestMetadataProxy:
     """
-    Ensure properties of metadata_proxy independently of hypothesis strategies.
+    Ensure properties of metadata proxy independently of hypothesis strategies.
     """
 
     def test_repr(self, mp):
@@ -50,3 +52,13 @@ class TestMetadataProxy:
 
         with pytest.raises(AttributeError, match="no attribute 'setdefault'"):
             mp.setdefault("x")
+
+
+def test_attrsinstance_subclass_protocol():
+    """
+    It's possible to subclass AttrsInstance and Protocol at once.
+    """
+
+    class Foo(attr.AttrsInstance, attr._compat.Protocol):
+        def attribute(self) -> int:
+            ...

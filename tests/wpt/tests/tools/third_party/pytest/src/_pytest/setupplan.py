@@ -1,12 +1,12 @@
 from typing import Optional
 from typing import Union
 
-import pytest
 from _pytest.config import Config
 from _pytest.config import ExitCode
 from _pytest.config.argparsing import Parser
 from _pytest.fixtures import FixtureDef
 from _pytest.fixtures import SubRequest
+import pytest
 
 
 def pytest_addoption(parser: Parser) -> None:
@@ -15,8 +15,8 @@ def pytest_addoption(parser: Parser) -> None:
         "--setupplan",
         "--setup-plan",
         action="store_true",
-        help="show what fixtures and tests would be executed but "
-        "don't execute anything.",
+        help="Show what fixtures and tests would be executed but "
+        "don't execute anything",
     )
 
 

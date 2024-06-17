@@ -859,6 +859,13 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
+    pub fn note_rendering_opportunity(pipeline_id: PipelineId) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            script_thread.rendering_opportunity(pipeline_id);
+        })
+    }
+
     pub fn runtime_handle() -> ParentRuntime {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
@@ -1692,7 +1699,17 @@ impl ScriptThread {
             // Run the animation frame callbacks.
             document.tick_all_animations();
 
-            // TODO(#31006): Implement the resize observer steps.
+            // Run the resize observer steps.
+            let _realm = enter_realm(&*document);
+            let mut depth = Default::default();
+            while document.gather_active_resize_observations_at_depth(&depth) {
+                // Note: this will reflow the doc.
+                depth = document.broadcast_active_resize_observations();
+            }
+
+            if document.has_skipped_resize_observations() {
+                document.deliver_resize_loop_error_notification();
+            }
 
             // TODO(#31870): Implement step 17: if the focused area of doc is not a focusable area,
             // then run the focusing steps for document's viewport.
@@ -1963,6 +1980,9 @@ impl ScriptThread {
             for document in docs.iter() {
                 let _realm = enter_realm(&**document);
                 document.maybe_queue_document_completion();
+
+                // Document load is a rendering opportunity.
+                ScriptThread::note_rendering_opportunity(document.window().pipeline_id());
             }
             docs.clear();
         }
@@ -2424,12 +2444,14 @@ impl ScriptThread {
             WebGPUMsg::FreeTexture(id) => self.gpu_id_hub.lock().kill_texture_id(id),
             WebGPUMsg::FreeTextureView(id) => self.gpu_id_hub.lock().kill_texture_view_id(id),
             WebGPUMsg::Exit => *self.webgpu_port.borrow_mut() = None,
-            WebGPUMsg::CleanDevice {
+            WebGPUMsg::DeviceLost {
                 pipeline_id,
                 device,
+                reason,
+                msg,
             } => {
                 let global = self.documents.borrow().find_global(pipeline_id).unwrap();
-                global.remove_gpu_device(device);
+                global.gpu_device_lost(device, reason, msg);
             },
             WebGPUMsg::UncapturedError {
                 device,

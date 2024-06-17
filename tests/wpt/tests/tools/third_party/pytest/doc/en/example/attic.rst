@@ -25,7 +25,7 @@ example: specifying and selecting acceptance tests
             self.tmpdir = request.config.mktemp(request.function.__name__, numbered=True)
 
         def run(self, *cmd):
-            """ called by test code to execute an acceptance test. """
+            """called by test code to execute an acceptance test."""
             self.tmpdir.chdir()
             return subprocess.check_output(cmd).decode()
 

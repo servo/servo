@@ -1,4 +1,4 @@
-from typing import Any, NewType, NoReturn, TypeVar, cast
+from typing import Any, NewType, NoReturn, TypeVar
 
 from . import Attribute, _OnSetAttrType
 

@@ -15,6 +15,13 @@ use crate::wgc::id::{
     ShaderModuleId, StagingBufferId, SurfaceId, TextureId, TextureViewId,
 };
 
+/// <https://gpuweb.github.io/gpuweb/#enumdef-gpudevicelostreason>
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub enum DeviceLostReason {
+    Unknown,
+    Destroyed,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebGPUMsg {
     FreeAdapter(AdapterId),
@@ -34,14 +41,16 @@ pub enum WebGPUMsg {
     FreeRenderBundle(RenderBundleId),
     FreeStagingBuffer(StagingBufferId),
     FreeQuerySet(QuerySetId),
-    CleanDevice {
-        device: WebGPUDevice,
-        pipeline_id: PipelineId,
-    },
     UncapturedError {
         device: WebGPUDevice,
         pipeline_id: PipelineId,
         error: Error,
+    },
+    DeviceLost {
+        device: WebGPUDevice,
+        pipeline_id: PipelineId,
+        reason: DeviceLostReason,
+        msg: String,
     },
     Exit,
 }

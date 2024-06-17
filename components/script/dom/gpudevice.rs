@@ -84,8 +84,9 @@ pub struct GPUDevice {
     #[no_trace]
     device: webgpu::WebGPUDevice,
     default_queue: Dom<GPUQueue>,
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-lost>
     #[ignore_malloc_size_of = "promises are hard"]
-    lost_promise: DomRefCell<Option<Rc<Promise>>>,
+    lost_promise: DomRefCell<Rc<Promise>>,
     valid: Cell<bool>,
 }
 
@@ -100,6 +101,7 @@ impl GPUDevice {
         device: webgpu::WebGPUDevice,
         queue: &GPUQueue,
         label: String,
+        lost_promise: Rc<Promise>,
     ) -> Self {
         Self {
             eventtarget: EventTarget::new_inherited(),
@@ -111,7 +113,7 @@ impl GPUDevice {
             label: DomRefCell::new(USVString::from(label)),
             device,
             default_queue: Dom::from_ref(queue),
-            lost_promise: DomRefCell::new(None),
+            lost_promise: DomRefCell::new(lost_promise),
             valid: Cell::new(true),
         }
     }
@@ -131,9 +133,18 @@ impl GPUDevice {
         let queue = GPUQueue::new(global, channel.clone(), queue);
         let limits = GPUSupportedLimits::new(global, limits);
         let features = GPUSupportedFeatures::Constructor(global, None, features).unwrap();
+        let lost_promise = Promise::new(global);
         let device = reflect_dom_object(
             Box::new(GPUDevice::new_inherited(
-                channel, adapter, extensions, &features, &limits, device, &queue, label,
+                channel,
+                adapter,
+                extensions,
+                &features,
+                &limits,
+                device,
+                &queue,
+                label,
+                lost_promise,
             )),
             global,
         );
@@ -206,18 +217,11 @@ impl GPUDevice {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#lose-the-device>
-    pub fn lose(&self, reason: GPUDeviceLostReason) {
-        if let Some(ref lost_promise) = *self.lost_promise.borrow() {
-            let global = &self.global();
-            let msg = match reason {
-                GPUDeviceLostReason::Unknown => "Unknown reason for your device loss.",
-                GPUDeviceLostReason::Destroyed => {
-                    "Device self-destruction sequence activated successfully!"
-                },
-            };
-            let lost = GPUDeviceLostInfo::new(global, msg.into(), reason);
-            lost_promise.resolve_native(&*lost);
-        }
+    pub fn lose(&self, reason: GPUDeviceLostReason, msg: String) {
+        let ref lost_promise = *self.lost_promise.borrow();
+        let global = &self.global();
+        let lost = GPUDeviceLostInfo::new(global, msg.into(), reason);
+        lost_promise.resolve_native(&*lost);
     }
 }
 
@@ -248,10 +252,8 @@ impl GPUDeviceMethods for GPUDevice {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-lost>
-    fn GetLost(&self, comp: InRealm) -> Fallible<Rc<Promise>> {
-        let promise = Promise::new_in_current_realm(comp);
-        *self.lost_promise.borrow_mut() = Some(promise.clone());
-        Ok(promise)
+    fn Lost(&self) -> Rc<Promise> {
+        self.lost_promise.borrow().clone()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer>
@@ -999,8 +1001,6 @@ impl GPUDeviceMethods for GPUDevice {
     fn Destroy(&self) {
         if self.valid.get() {
             self.valid.set(false);
-
-            self.lose(GPUDeviceLostReason::Destroyed);
 
             if let Err(e) = self
                 .channel

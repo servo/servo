@@ -4,10 +4,9 @@ Tests and examples for correct "+/-" usage in error diffs.
 See https://github.com/pytest-dev/pytest/issues/3333 for details.
 
 """
-import sys
 
-import pytest
 from _pytest.pytester import Pytester
+import pytest
 
 
 TESTCASES = [
@@ -23,10 +22,14 @@ TESTCASES = [
         E       assert [1, 4, 3] == [1, 2, 3]
         E         At index 1 diff: 4 != 2
         E         Full diff:
-        E         - [1, 2, 3]
+        E           [
+        E               1,
+        E         -     2,
         E         ?     ^
-        E         + [1, 4, 3]
+        E         +     4,
         E         ?     ^
+        E               3,
+        E           ]
         """,
         id="Compare lists, one item differs",
     ),
@@ -42,9 +45,11 @@ TESTCASES = [
         E       assert [1, 2, 3] == [1, 2]
         E         Left contains one more item: 3
         E         Full diff:
-        E         - [1, 2]
-        E         + [1, 2, 3]
-        E         ?      +++
+        E           [
+        E               1,
+        E               2,
+        E         +     3,
+        E           ]
         """,
         id="Compare lists, one extra item",
     ),
@@ -61,9 +66,11 @@ TESTCASES = [
         E         At index 1 diff: 3 != 2
         E         Right contains one more item: 3
         E         Full diff:
-        E         - [1, 2, 3]
-        E         ?     ---
-        E         + [1, 3]
+        E           [
+        E               1,
+        E         -     2,
+        E               3,
+        E           ]
         """,
         id="Compare lists, one item missing",
     ),
@@ -79,10 +86,14 @@ TESTCASES = [
         E       assert (1, 4, 3) == (1, 2, 3)
         E         At index 1 diff: 4 != 2
         E         Full diff:
-        E         - (1, 2, 3)
+        E           (
+        E               1,
+        E         -     2,
         E         ?     ^
-        E         + (1, 4, 3)
+        E         +     4,
         E         ?     ^
+        E               3,
+        E           )
         """,
         id="Compare tuples",
     ),
@@ -101,10 +112,12 @@ TESTCASES = [
         E         Extra items in the right set:
         E         2
         E         Full diff:
-        E         - {1, 2, 3}
-        E         ?     ^  ^
-        E         + {1, 3, 4}
-        E         ?     ^  ^
+        E           {
+        E               1,
+        E         -     2,
+        E               3,
+        E         +     4,
+        E           }
         """,
         id="Compare sets",
     ),
@@ -125,10 +138,13 @@ TESTCASES = [
         E         Right contains 1 more item:
         E         {2: 'eggs'}
         E         Full diff:
-        E         - {1: 'spam', 2: 'eggs'}
-        E         ?             ^
-        E         + {1: 'spam', 3: 'eggs'}
-        E         ?             ^
+        E           {
+        E               1: 'spam',
+        E         -     2: 'eggs',
+        E         ?     ^
+        E         +     3: 'eggs',
+        E         ?     ^
+        E           }
         """,
         id="Compare dicts with differing keys",
     ),
@@ -147,10 +163,11 @@ TESTCASES = [
         E         Differing items:
         E         {2: 'eggs'} != {2: 'bacon'}
         E         Full diff:
-        E         - {1: 'spam', 2: 'bacon'}
-        E         ?                 ^^^^^
-        E         + {1: 'spam', 2: 'eggs'}
-        E         ?                 ^^^^
+        E           {
+        E               1: 'spam',
+        E         -     2: 'bacon',
+        E         +     2: 'eggs',
+        E           }
         """,
         id="Compare dicts with differing values",
     ),
@@ -171,10 +188,11 @@ TESTCASES = [
         E         Right contains 1 more item:
         E         {3: 'bacon'}
         E         Full diff:
-        E         - {1: 'spam', 3: 'bacon'}
-        E         ?             ^   ^^^^^
-        E         + {1: 'spam', 2: 'eggs'}
-        E         ?             ^   ^^^^
+        E           {
+        E               1: 'spam',
+        E         -     3: 'bacon',
+        E         +     2: 'eggs',
+        E           }
         """,
         id="Compare dicts with differing items",
     ),
@@ -210,68 +228,61 @@ TESTCASES = [
         """,
         id='Test "not in" string',
     ),
+    pytest.param(
+        """
+        from dataclasses import dataclass
+
+        @dataclass
+        class A:
+            a: int
+            b: str
+
+        def test_this():
+            result =   A(1, 'spam')
+            expected = A(2, 'spam')
+            assert result == expected
+        """,
+        """
+        >       assert result == expected
+        E       AssertionError: assert A(a=1, b='spam') == A(a=2, b='spam')
+        E         Matching attributes:
+        E         ['b']
+        E         Differing attributes:
+        E         ['a']
+        E         Drill down into differing attribute a:
+        E           a: 1 != 2
+        """,
+        id="Compare data classes",
+    ),
+    pytest.param(
+        """
+        import attr
+
+        @attr.s(auto_attribs=True)
+        class A:
+            a: int
+            b: str
+
+        def test_this():
+            result =   A(1, 'spam')
+            expected = A(1, 'eggs')
+            assert result == expected
+        """,
+        """
+        >       assert result == expected
+        E       AssertionError: assert A(a=1, b='spam') == A(a=1, b='eggs')
+        E         Matching attributes:
+        E         ['a']
+        E         Differing attributes:
+        E         ['b']
+        E         Drill down into differing attribute b:
+        E           b: 'spam' != 'eggs'
+        E           - eggs
+        E           + spam
+        """,
+        id="Compare attrs classes",
+    ),
 ]
-if sys.version_info[:2] >= (3, 7):
-    TESTCASES.extend(
-        [
-            pytest.param(
-                """
-                from dataclasses import dataclass
-
-                @dataclass
-                class A:
-                    a: int
-                    b: str
-
-                def test_this():
-                    result =   A(1, 'spam')
-                    expected = A(2, 'spam')
-                    assert result == expected
-                """,
-                """
-                >       assert result == expected
-                E       AssertionError: assert A(a=1, b='spam') == A(a=2, b='spam')
-                E         Matching attributes:
-                E         ['b']
-                E         Differing attributes:
-                E         ['a']
-                E         Drill down into differing attribute a:
-                E           a: 1 != 2
-                E           +1
-                E           -2
-                """,
-                id="Compare data classes",
-            ),
-            pytest.param(
-                """
-                import attr
-
-                @attr.s(auto_attribs=True)
-                class A:
-                    a: int
-                    b: str
-
-                def test_this():
-                    result =   A(1, 'spam')
-                    expected = A(1, 'eggs')
-                    assert result == expected
-                """,
-                """
-                >       assert result == expected
-                E       AssertionError: assert A(a=1, b='spam') == A(a=1, b='eggs')
-                E         Matching attributes:
-                E         ['a']
-                E         Differing attributes:
-                E         ['b']
-                E         Drill down into differing attribute b:
-                E           b: 'spam' != 'eggs'
-                E           - eggs
-                E           + spam
-                """,
-                id="Compare attrs classes",
-            ),
-        ]
-    )
 
 
 @pytest.mark.parametrize("code, expected", TESTCASES)

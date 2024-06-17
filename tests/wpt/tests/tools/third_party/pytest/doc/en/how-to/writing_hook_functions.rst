@@ -56,12 +56,8 @@ The remaining hook functions will not be called in this case.
 
 .. _`hookwrapper`:
 
-hookwrapper: executing around other hooks
+hook wrappers: executing around other hooks
 -------------------------------------------------
-
-.. currentmodule:: _pytest.core
-
-
 
 pytest plugins can implement hook wrappers which wrap the execution
 of other hook implementations.  A hook wrapper is a generator function
@@ -69,10 +65,8 @@ which yields exactly once. When pytest invokes hooks it first executes
 hook wrappers and passes the same arguments as to the regular hooks.
 
 At the yield point of the hook wrapper pytest will execute the next hook
-implementations and return their result to the yield point in the form of
-a :py:class:`Result <pluggy._Result>` instance which encapsulates a result or
-exception info.  The yield point itself will thus typically not raise
-exceptions (unless there are bugs).
+implementations and return their result to the yield point, or will
+propagate an exception if they raised.
 
 Here is an example definition of a hook wrapper:
 
@@ -81,26 +75,35 @@ Here is an example definition of a hook wrapper:
     import pytest
 
 
-    @pytest.hookimpl(hookwrapper=True)
+    @pytest.hookimpl(wrapper=True)
     def pytest_pyfunc_call(pyfuncitem):
         do_something_before_next_hook_executes()
 
-        outcome = yield
-        # outcome.excinfo may be None or a (cls, val, tb) tuple
+        # If the outcome is an exception, will raise the exception.
+        res = yield
 
-        res = outcome.get_result()  # will raise if outcome was exception
+        new_res = post_process_result(res)
 
-        post_process_result(res)
+        # Override the return value to the plugin system.
+        return new_res
 
-        outcome.force_result(new_res)  # to override the return value to the plugin system
+The hook wrapper needs to return a result for the hook, or raise an exception.
 
-Note that hook wrappers don't return results themselves, they merely
-perform tracing or other side effects around the actual hook implementations.
-If the result of the underlying hook is a mutable object, they may modify
-that result but it's probably better to avoid it.
+In many cases, the wrapper only needs to perform tracing or other side effects
+around the actual hook implementations, in which case it can return the result
+value of the ``yield``. The simplest (though useless) hook wrapper is
+``return (yield)``.
+
+In other cases, the wrapper wants the adjust or adapt the result, in which case
+it can return a new value. If the result of the underlying hook is a mutable
+object, the wrapper may modify that result, but it's probably better to avoid it.
+
+If the hook implementation failed with an exception, the wrapper can handle that
+exception using a ``try-catch-finally`` around the ``yield``, by propagating it,
+suppressing it, or raising a different exception entirely.
 
 For more information, consult the
-:ref:`pluggy documentation about hookwrappers <pluggy:hookwrappers>`.
+:ref:`pluggy documentation about hook wrappers <pluggy:hookwrappers>`.
 
 .. _plugin-hookorder:
 
@@ -130,11 +133,14 @@ after others, i.e.  the position in the ``N``-sized list of functions:
 
 
     # Plugin 3
-    @pytest.hookimpl(hookwrapper=True)
+    @pytest.hookimpl(wrapper=True)
     def pytest_collection_modifyitems(items):
         # will execute even before the tryfirst one above!
-        outcome = yield
-        # will execute after all non-hookwrappers executed
+        try:
+            return (yield)
+        finally:
+            # will execute after all non-wrappers executed
+            ...
 
 Here is the order of execution:
 
@@ -149,13 +155,13 @@ Here is the order of execution:
    Plugin1).
 
 4. Plugin3's pytest_collection_modifyitems then executing the code after the yield
-   point.  The yield receives a :py:class:`Result <pluggy._Result>` instance which encapsulates
-   the result from calling the non-wrappers.  Wrappers shall not modify the result.
+   point.  The yield receives the result from calling the non-wrappers, or raises
+   an exception if the non-wrappers raised.
 
-It's possible to use ``tryfirst`` and ``trylast`` also in conjunction with
-``hookwrapper=True`` in which case it will influence the ordering of hookwrappers
-among each other.
+It's possible to use ``tryfirst`` and ``trylast`` also on hook wrappers
+in which case it will influence the ordering of hook wrappers among each other.
 
+.. _`declaringhooks`:
 
 Declaring new hooks
 ------------------------
@@ -165,13 +171,11 @@ Declaring new hooks
     This is a quick overview on how to add new hooks and how they work in general, but a more complete
     overview can be found in `the pluggy documentation <https://pluggy.readthedocs.io/en/latest/>`__.
 
-.. currentmodule:: _pytest.hookspec
-
 Plugins and ``conftest.py`` files may declare new hooks that can then be
 implemented by other plugins in order to alter behaviour or interact with
 the new plugin:
 
-.. autofunction:: pytest_addhooks
+.. autofunction:: _pytest.hookspec.pytest_addhooks
     :noindex:
 
 Hooks are usually declared as do-nothing functions that contain only
@@ -194,7 +198,7 @@ class or module can then be passed to the ``pluginmanager`` using the ``pytest_a
 .. code-block:: python
 
     def pytest_addhooks(pluginmanager):
-        """ This example assumes the hooks are grouped in the 'sample_hook' module. """
+        """This example assumes the hooks are grouped in the 'sample_hook' module."""
         from my_app.tests import sample_hook
 
         pluginmanager.add_hookspecs(sample_hook)
@@ -249,18 +253,19 @@ and use pytest_addoption as follows:
 
    # contents of hooks.py
 
+
    # Use firstresult=True because we only want one plugin to define this
    # default value
    @hookspec(firstresult=True)
    def pytest_config_file_default_value():
-       """ Return the default value for the config file command line option. """
+       """Return the default value for the config file command line option."""
 
 
    # contents of myplugin.py
 
 
    def pytest_addhooks(pluginmanager):
-       """ This example assumes the hooks are grouped in the 'hooks' module. """
+       """This example assumes the hooks are grouped in the 'hooks' module."""
        from . import hooks
 
        pluginmanager.add_hookspecs(hooks)

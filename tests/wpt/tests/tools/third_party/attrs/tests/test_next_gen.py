@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: MIT
 
 """
-Python 3-only integration tests for provisional next generation APIs.
+Integration tests for next-generation APIs.
 """
 
 import re
 
+from contextlib import contextmanager
 from functools import partial
 
 import pytest
@@ -27,6 +28,16 @@ class TestNextGen:
         """
         C("1", 2)
 
+    def test_field_type(self):
+        """
+        Make class with attrs.field and type parameter.
+        """
+        classFields = {"testint": attrs.field(type=int)}
+
+        A = attrs.make_class("A", classFields)
+
+        assert int == attrs.fields(A).testint.type
+
     def test_no_slots(self):
         """
         slots can be deactivated.
@@ -38,7 +49,7 @@ class TestNextGen:
 
         ns = NoSlots(1)
 
-        assert {"x": 1} == getattr(ns, "__dict__")
+        assert {"x": 1} == ns.__dict__
 
     def test_validates(self):
         """
@@ -312,6 +323,38 @@ class TestNextGen:
         assert "foo" == ei.value.x
         assert ei.value.__cause__ is None
 
+    @pytest.mark.parametrize(
+        "decorator",
+        [
+            partial(_attr.s, frozen=True, slots=True, auto_exc=True),
+            attrs.frozen,
+            attrs.define,
+            attrs.mutable,
+        ],
+    )
+    def test_setting_traceback_on_exception(self, decorator):
+        """
+        contextlib.contextlib (re-)sets __traceback__ on raised exceptions.
+
+        Ensure that works, as well as if done explicitly
+        """
+
+        @decorator
+        class MyException(Exception):
+            pass
+
+        @contextmanager
+        def do_nothing():
+            yield
+
+        with do_nothing(), pytest.raises(MyException) as ei:
+            raise MyException()
+
+        assert isinstance(ei.value, MyException)
+
+        # this should not raise an exception either
+        ei.value.__traceback__ = ei.value.__traceback__
+
     def test_converts_and_validates_by_default(self):
         """
         If no on_setattr is set, assume setters.convert, setters.validate.
@@ -346,7 +389,6 @@ class TestNextGen:
 
         @attrs.define
         class A:
-
             x: int = 10
 
             def xx(self):

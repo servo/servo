@@ -115,6 +115,13 @@ async def test_fetch(
     # Clean up cookies in case some other tests failed before cleaning up.
     await bidi_session.storage.delete_cookies()
 
+    # Navigate away from about:blank to make sure document.cookies can be used.
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"],
+        url=url("/webdriver/tests/bidi/support/empty.html"),
+        wait="complete"
+    )
+
     cookie_name = "foo"
     cookie_value = "bar"
     # Add `Access-Control-Allow-Origin` header for cross-origin request to work.

@@ -30,7 +30,7 @@ then you can just invoke ``pytest`` directly:
 
     $ pytest
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    platform linux -- Python 3.x.y, pytest-8.x.y, pluggy-1.x.y
     rootdir: /home/sweet/project
     collected 1 item
 
@@ -58,7 +58,7 @@ and functions, including from test modules:
 
     $ pytest --doctest-modules
     =========================== test session starts ============================
-    platform linux -- Python 3.x.y, pytest-7.x.y, pluggy-1.x.y
+    platform linux -- Python 3.x.y, pytest-8.x.y, pluggy-1.x.y
     rootdir: /home/sweet/project
     collected 2 items
 
@@ -126,14 +126,17 @@ pytest also introduces new options:
   in expected doctest output.
 
 * ``NUMBER``: when enabled, floating-point numbers only need to match as far as
-  the precision you have written in the expected doctest output. For example,
-  the following output would only need to match to 2 decimal places::
+  the precision you have written in the expected doctest output. The numbers are
+  compared using :func:`pytest.approx` with relative tolerance equal to the
+  precision. For example, the following output would only need to match to 2
+  decimal places when comparing ``3.14`` to
+  ``pytest.approx(math.pi, rel=10**-2)``::
 
       >>> math.pi
       3.14
 
-  If you wrote ``3.1416`` then the actual output would need to match to 4
-  decimal places; and so on.
+  If you wrote ``3.1416`` then the actual output would need to match to
+  approximately 4 decimal places; and so on.
 
   This avoids false positives caused by limited floating-point precision, like
   this::
@@ -221,6 +224,7 @@ place the objects you want to appear in the doctest namespace:
 .. code-block:: python
 
     # content of conftest.py
+    import pytest
     import numpy
 
 
@@ -239,7 +243,6 @@ which can then be used in your doctests directly:
         >>> len(a)
         10
         """
-        pass
 
 Note that like the normal ``conftest.py``, the fixtures are discovered in the directory tree conftest is in.
 Meaning that if you put your doctest with your source code, the relevant conftest.py needs to be in the same directory tree.

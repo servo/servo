@@ -1,26 +1,26 @@
 - case: attr_s_with_type_argument
   parametrized:
-    - val: 'a = attr.ib(type=int)'
-    - val: 'a: int = attr.ib()'
+    - val: "a = attr.ib(type=int)"
+    - val: "a: int = attr.ib()"
   main: |
     import attr
     @attr.s
     class C:
         {{ val }}
-    C()  # E: Missing positional argument "a" in call to "C"
+    C()  # E: Missing positional argument "a" in call to "C"  [call-arg]
     C(1)
     C(a=1)
-    C(a="hi")  # E: Argument "a" to "C" has incompatible type "str"; expected "int"
+    C(a="hi")  # E: Argument "a" to "C" has incompatible type "str"; expected "int"  [arg-type]
 - case: attr_s_with_type_annotations
-  main : |
+  main: |
     import attr
     @attr.s
     class C:
       a: int = attr.ib()
-    C()  # E: Missing positional argument "a" in call to "C"
+    C()  # E: Missing positional argument "a" in call to "C"  [call-arg]
     C(1)
     C(a=1)
-    C(a="hi")  # E: Argument "a" to "C" has incompatible type "str"; expected "int"
+    C(a="hi")  # E: Argument "a" to "C" has incompatible type "str"; expected "int"  [arg-type]
 
 - case: testAttrsSimple
   main: |
@@ -39,9 +39,10 @@
     A(1, [2])
     A(1, [2], '3', 4)
     A(1, 2, 3, 4)
-    A(1, [2], '3', 4, 5)  # E: Too many arguments for "A"
+    A(1, [2], '3', 4, 5)  # E: Too many arguments for "A"  [call-arg]
 
 - case: testAttrsAnnotated
+  regex: true
   main: |
     import attr
     from typing import List, ClassVar
@@ -53,13 +54,14 @@
         _d: int = attr.ib(validator=None, default=18)
         E = 7
         F: ClassVar[int] = 22
-    reveal_type(A)  # N: Revealed type is "def (a: builtins.int, b: builtins.list[builtins.int], c: builtins.str =, d: builtins.int =) -> main.A"
+    reveal_type(A)  # N: Revealed type is "def \(a: builtins\.int, b: builtins\.list\[builtins\.int\], c: builtins\.str =, d: builtins\.int =\) -> main\.A"
     A(1, [2])
     A(1, [2], '3', 4)
-    A(1, 2, 3, 4)  # E: Argument 2 to "A" has incompatible type "int"; expected "List[int]" # E: Argument 3 to "A" has incompatible type "int"; expected "str"
-    A(1, [2], '3', 4, 5)  # E: Too many arguments for "A"
+    A(1, 2, 3, 4)  # E: Argument 2 to "A" has incompatible type "int"; expected "[Ll]ist\[int\]"  \[arg-type\] # E: Argument 3 to "A" has incompatible type "int"; expected "str"  \[arg-type\]
+    A(1, [2], '3', 4, 5)  # E: Too many arguments for "A"  \[call-arg\]
 
 - case: testAttrsPython2Annotations
+  regex: true
   main: |
     import attr
     from typing import List, ClassVar
@@ -71,13 +73,14 @@
         _d = attr.ib(validator=None, default=18) # type: int
         E = 7
         F: ClassVar[int] = 22
-    reveal_type(A)  # N: Revealed type is "def (a: builtins.int, b: builtins.list[builtins.int], c: builtins.str =, d: builtins.int =) -> main.A"
+    reveal_type(A)  # N: Revealed type is "def \(a: builtins\.int, b: builtins\.list\[builtins\.int\], c: builtins\.str =, d: builtins\.int =\) -> main\.A"
     A(1, [2])
     A(1, [2], '3', 4)
-    A(1, 2, 3, 4)  # E: Argument 2 to "A" has incompatible type "int"; expected "List[int]" # E: Argument 3 to "A" has incompatible type "int"; expected "str"
-    A(1, [2], '3', 4, 5)  # E: Too many arguments for "A"
+    A(1, 2, 3, 4)  # E: Argument 2 to "A" has incompatible type "int"; expected "[Ll]ist\[int\]"  \[arg-type\] # E: Argument 3 to "A" has incompatible type "int"; expected "str"  \[arg-type\]
+    A(1, [2], '3', 4, 5)  # E: Too many arguments for "A"  \[call-arg\]
 
 - case: testAttrsAutoAttribs
+  regex: true
   main: |
     import attr
     from typing import List, ClassVar
@@ -89,23 +92,23 @@
         _d: int = attr.ib(validator=None, default=18)
         E = 7
         F: ClassVar[int] = 22
-    reveal_type(A)  # N: Revealed type is "def (a: builtins.int, b: builtins.list[builtins.int], c: builtins.str =, d: builtins.int =) -> main.A"
+    reveal_type(A)  # N: Revealed type is "def \(a: builtins\.int, b: builtins.list\[builtins.int\], c: builtins\.str =, d: builtins\.int =\) -> main\.A"
     A(1, [2])
     A(1, [2], '3', 4)
-    A(1, 2, 3, 4)  # E: Argument 2 to "A" has incompatible type "int"; expected "List[int]" # E: Argument 3 to "A" has incompatible type "int"; expected "str"
-    A(1, [2], '3', 4, 5)  # E: Too many arguments for "A"
+    A(1, 2, 3, 4)  # E: Argument 2 to "A" has incompatible type "int"; expected "[Ll]ist\[int\]"  \[arg-type\] # E: Argument 3 to "A" has incompatible type "int"; expected "str"  \[arg-type\]
+    A(1, [2], '3', 4, 5)  # E: Too many arguments for "A"  \[call-arg\]
 
 - case: testAttrsUntypedNoUntypedDefs
   mypy_config: |
-     disallow_untyped_defs = True
+    disallow_untyped_defs = True
   main: |
     import attr
     @attr.s
     class A:
-        a = attr.ib()  # E: Need type annotation for "a"
-        _b = attr.ib()  # E: Need type annotation for "_b"
-        c = attr.ib(18)  # E: Need type annotation for "c"
-        _d = attr.ib(validator=None, default=18)   # E: Need type annotation for "_d"
+        a = attr.ib()  # E: Need type annotation for "a"  [var-annotated]
+        _b = attr.ib()  # E: Need type annotation for "_b"  [var-annotated]
+        c = attr.ib(18)  # E: Need type annotation for "c"  [var-annotated]
+        _d = attr.ib(validator=None, default=18)   # E: Need type annotation for "_d"  [var-annotated]
         E = 18
 
 - case: testAttrsWrongReturnValue
@@ -115,24 +118,25 @@
     class A:
         x: int = attr.ib(8)
         def foo(self) -> str:
-            return self.x  # E: Incompatible return value type (got "int", expected "str")
+            return self.x  # E: Incompatible return value type (got "int", expected "str")  [return-value]
     @attr.s
     class B:
         x = attr.ib(8)  # type: int
         def foo(self) -> str:
-            return self.x  # E: Incompatible return value type (got "int", expected "str")
+            return self.x  # E: Incompatible return value type (got "int", expected "str")  [return-value]
     @attr.dataclass
     class C:
         x: int = 8
         def foo(self) -> str:
-            return self.x  # E: Incompatible return value type (got "int", expected "str")
+            return self.x  # E: Incompatible return value type (got "int", expected "str")  [return-value]
     @attr.s
     class D:
         x = attr.ib(8, type=int)
         def foo(self) -> str:
-            return self.x  # E: Incompatible return value type (got "int", expected "str")
+            return self.x  # E: Incompatible return value type (got "int", expected "str")  [return-value]
 
 - case: testAttrsSeriousNames
+  regex: true
   main: |
     from attr import attrib, attrs
     from typing import List
@@ -143,11 +147,11 @@
         c = attrib(18)
         _d = attrib(validator=None, default=18)
         CLASS_VAR = 18
-    reveal_type(A)  # N: Revealed type is "def (a: Any, b: builtins.list[builtins.int], c: Any =, d: Any =) -> main.A"
+    reveal_type(A)  # N: Revealed type is "def \(a: Any, b: builtins.list\[builtins.int\], c: Any =, d: Any =\) -> main\.A"
     A(1, [2])
     A(1, [2], '3', 4)
-    A(1, 2, 3, 4)  # E: Argument 2 to "A" has incompatible type "int"; expected "List[int]"
-    A(1, [2], '3', 4, 5)  # E: Too many arguments for "A"
+    A(1, 2, 3, 4)  # E: Argument 2 to "A" has incompatible type "int"; expected "[Ll]ist\[int\]"  \[arg-type\]
+    A(1, [2], '3', 4, 5)  # E: Too many arguments for "A"  \[call-arg\]
 
 - case: testAttrsDefaultErrors
   main: |
@@ -155,19 +159,19 @@
     @attr.s
     class A:
         x = attr.ib(default=17)
-        y = attr.ib()  # E: Non-default attributes not allowed after default attributes.
+        y = attr.ib()  # E: Non-default attributes not allowed after default attributes.  [misc]
     @attr.s(auto_attribs=True)
     class B:
         x: int = 17
-        y: int # E: Non-default attributes not allowed after default attributes.
+        y: int # E: Non-default attributes not allowed after default attributes.  [misc]
     @attr.s(auto_attribs=True)
     class C:
         x: int = attr.ib(default=17)
-        y: int # E: Non-default attributes not allowed after default attributes.
+        y: int # E: Non-default attributes not allowed after default attributes.  [misc]
     @attr.s
     class D:
         x = attr.ib()
-        y = attr.ib() # E: Non-default attributes not allowed after default attributes.
+        y = attr.ib() # E: Non-default attributes not allowed after default attributes.  [misc]
 
         @x.default
         def foo(self):
@@ -177,9 +181,9 @@
   main: |
     import attr
     x = True
-    @attr.s(cmp=x)  # E: "cmp" argument must be True or False.
+    @attr.s(cmp=x)  # E: "cmp" argument must be a True, False, or None literal  [literal-required]
     class A:
-        a = attr.ib(init=x)  # E: "init" argument must be True or False.
+        a = attr.ib(init=x)  # E: "init" argument must be a True or False literal  [literal-required]
 
 - case: testAttrsInitFalse
   main: |
@@ -192,8 +196,8 @@
         _d: int = attrib(validator=None, default=18)
     reveal_type(A)  # N: Revealed type is "def () -> main.A"
     A()
-    A(1, [2])  # E: Too many arguments for "A"
-    A(1, [2], '3', 4)  # E: Too many arguments for "A"
+    A(1, [2])  # E: Too many arguments for "A"  [call-arg]
+    A(1, [2], '3', 4)  # E: Too many arguments for "A"  [call-arg]
 
 - case: testAttrsInitAttribFalse
   main: |
@@ -205,16 +209,17 @@
     reveal_type(A)  # N: Revealed type is "def (b: Any) -> main.A"
 
 - case: testAttrsCmpTrue
+  regex: true
   main: |
     from attr import attrib, attrs
     @attrs(auto_attribs=True)
     class A:
         a: int
-    reveal_type(A)  # N: Revealed type is "def (a: builtins.int) -> main.A"
-    reveal_type(A.__lt__)  # N: Revealed type is "def [_AT] (self: _AT`-1, other: _AT`-1) -> builtins.bool"
-    reveal_type(A.__le__)  # N: Revealed type is "def [_AT] (self: _AT`-1, other: _AT`-1) -> builtins.bool"
-    reveal_type(A.__gt__)  # N: Revealed type is "def [_AT] (self: _AT`-1, other: _AT`-1) -> builtins.bool"
-    reveal_type(A.__ge__)  # N: Revealed type is "def [_AT] (self: _AT`-1, other: _AT`-1) -> builtins.bool"
+    reveal_type(A)  # N: Revealed type is "def \(a: builtins.int\) -> main.A"
+    reveal_type(A.__lt__)  # N: Revealed type is "def \[_AT\] \(self: _AT`\d+, other: _AT`\d+\) -> builtins.bool"
+    reveal_type(A.__le__)  # N: Revealed type is "def \[_AT\] \(self: _AT`\d+, other: _AT`\d+\) -> builtins.bool"
+    reveal_type(A.__gt__)  # N: Revealed type is "def \[_AT\] \(self: _AT`\d+, other: _AT`\d+\) -> builtins.bool"
+    reveal_type(A.__ge__)  # N: Revealed type is "def \[_AT\] \(self: _AT`\d+, other: _AT`\d+\) -> builtins.bool"
 
     A(1) < A(2)
     A(1) <= A(2)
@@ -223,17 +228,17 @@
     A(1) == A(2)
     A(1) != A(2)
 
-    A(1) < 1  # E: Unsupported operand types for < ("A" and "int")
-    A(1) <= 1  # E: Unsupported operand types for <= ("A" and "int")
-    A(1) > 1  # E: Unsupported operand types for > ("A" and "int")
-    A(1) >= 1  # E: Unsupported operand types for >= ("A" and "int")
+    A(1) < 1  # E: Unsupported operand types for < \("A" and "int"\)  \[operator\]
+    A(1) <= 1  # E: Unsupported operand types for <= \("A" and "int"\)  \[operator\]
+    A(1) > 1  # E: Unsupported operand types for > \("A" and "int"\)  \[operator\]
+    A(1) >= 1  # E: Unsupported operand types for >= \("A" and "int"\)  \[operator\]
     A(1) == 1
     A(1) != 1
 
-    1 < A(1)  # E: Unsupported operand types for < ("int" and "A")
-    1 <= A(1)  # E: Unsupported operand types for <= ("int" and "A")
-    1 > A(1)  # E: Unsupported operand types for > ("int" and "A")
-    1 >= A(1)  # E: Unsupported operand types for >= ("int" and "A")
+    1 < A(1)  # E: Unsupported operand types for < \("int" and "A"\)  \[operator\]
+    1 <= A(1)  # E: Unsupported operand types for <= \("int" and "A"\)  \[operator\]
+    1 > A(1)  # E: Unsupported operand types for > \("int" and "A"\)  \[operator\]
+    1 >= A(1)  # E: Unsupported operand types for >= \("int" and "A"\)  \[operator\]
     1 == A(1)
     1 != A(1)
 
@@ -247,24 +252,24 @@
     reveal_type(A.__eq__)  # N: Revealed type is "def (builtins.object, builtins.object) -> builtins.bool"
     reveal_type(A.__ne__)  # N: Revealed type is "def (builtins.object, builtins.object) -> builtins.bool"
 
-    A(1) < A(2)  # E: Unsupported left operand type for < ("A")
-    A(1) <= A(2)  # E: Unsupported left operand type for <= ("A")
-    A(1) > A(2)  # E: Unsupported left operand type for > ("A")
-    A(1) >= A(2)  # E: Unsupported left operand type for >= ("A")
+    A(1) < A(2)  # E: Unsupported left operand type for < ("A")  [operator]
+    A(1) <= A(2)  # E: Unsupported left operand type for <= ("A")  [operator]
+    A(1) > A(2)  # E: Unsupported left operand type for > ("A")  [operator]
+    A(1) >= A(2)  # E: Unsupported left operand type for >= ("A")  [operator]
     A(1) == A(2)
     A(1) != A(2)
 
-    A(1) < 1  # E: Unsupported operand types for > ("int" and "A")
-    A(1) <= 1  # E: Unsupported operand types for >= ("int" and "A")
-    A(1) > 1  # E: Unsupported operand types for < ("int" and "A")
-    A(1) >= 1  # E: Unsupported operand types for <= ("int" and "A")
+    A(1) < 1  # E: Unsupported operand types for > ("int" and "A")  [operator]
+    A(1) <= 1  # E: Unsupported operand types for >= ("int" and "A")  [operator]
+    A(1) > 1  # E: Unsupported operand types for < ("int" and "A")  [operator]
+    A(1) >= 1  # E: Unsupported operand types for <= ("int" and "A")  [operator]
     A(1) == 1
     A(1) != 1
 
-    1 < A(1)  # E: Unsupported operand types for < ("int" and "A")
-    1 <= A(1)  # E: Unsupported operand types for <= ("int" and "A")
-    1 > A(1)  # E: Unsupported operand types for > ("int" and "A")
-    1 >= A(1)  # E: Unsupported operand types for >= ("int" and "A")
+    1 < A(1)  # E: Unsupported operand types for < ("int" and "A")  [operator]
+    1 <= A(1)  # E: Unsupported operand types for <= ("int" and "A")  [operator]
+    1 > A(1)  # E: Unsupported operand types for > ("int" and "A")  [operator]
+    1 >= A(1)  # E: Unsupported operand types for >= ("int" and "A")  [operator]
     1 == A(1)
     1 != A(1)
 
@@ -276,24 +281,24 @@
         a: int
     reveal_type(A)  # N: Revealed type is "def (a: builtins.int) -> main.A"
 
-    A(1) < A(2)  # E: Unsupported left operand type for < ("A")
-    A(1) <= A(2)  # E: Unsupported left operand type for <= ("A")
-    A(1) > A(2)  # E: Unsupported left operand type for > ("A")
-    A(1) >= A(2)  # E: Unsupported left operand type for >= ("A")
+    A(1) < A(2)  # E: Unsupported left operand type for < ("A")  [operator]
+    A(1) <= A(2)  # E: Unsupported left operand type for <= ("A")  [operator]
+    A(1) > A(2)  # E: Unsupported left operand type for > ("A")  [operator]
+    A(1) >= A(2)  # E: Unsupported left operand type for >= ("A")  [operator]
     A(1) == A(2)
     A(1) != A(2)
 
-    A(1) < 1  # E: Unsupported operand types for > ("int" and "A")
-    A(1) <= 1  # E: Unsupported operand types for >= ("int" and "A")
-    A(1) > 1  # E: Unsupported operand types for < ("int" and "A")
-    A(1) >= 1  # E: Unsupported operand types for <= ("int" and "A")
+    A(1) < 1  # E: Unsupported operand types for > ("int" and "A")  [operator]
+    A(1) <= 1  # E: Unsupported operand types for >= ("int" and "A")  [operator]
+    A(1) > 1  # E: Unsupported operand types for < ("int" and "A")  [operator]
+    A(1) >= 1  # E: Unsupported operand types for <= ("int" and "A")  [operator]
     A(1) == 1
     A(1) != 1
 
-    1 < A(1)  # E: Unsupported operand types for < ("int" and "A")
-    1 <= A(1)  # E: Unsupported operand types for <= ("int" and "A")
-    1 > A(1)  # E: Unsupported operand types for > ("int" and "A")
-    1 >= A(1)  # E: Unsupported operand types for >= ("int" and "A")
+    1 < A(1)  # E: Unsupported operand types for < ("int" and "A")  [operator]
+    1 <= A(1)  # E: Unsupported operand types for <= ("int" and "A")  [operator]
+    1 > A(1)  # E: Unsupported operand types for > ("int" and "A")  [operator]
+    1 >= A(1)  # E: Unsupported operand types for >= ("int" and "A")  [operator]
     1 == A(1)
     1 != A(1)
 
@@ -308,14 +313,13 @@
     class DeprecatedFalse:
        ...
 
-    @attrs(cmp=False, eq=True)  # E: Don't mix "cmp" with "eq" and "order"
+    @attrs(cmp=False, eq=True)  # E: Don't mix "cmp" with "eq" and "order"  [misc]
     class Mixed:
        ...
 
-    @attrs(order=True, eq=False)  # E: eq must be True if order is True
+    @attrs(order=True, eq=False)  # E: eq must be True if order is True  [misc]
     class Confused:
        ...
-
 
 - case: testAttrsInheritance
   main: |
@@ -385,7 +389,7 @@
         a = attr.ib()
 
     a = A(5)
-    a.a = 16  # E: Property "a" defined in "A" is read-only
+    a.a = 16  # E: Property "a" defined in "A" is read-only  [misc]
 - case: testAttrsNextGenFrozen
   main: |
     from attr import frozen, field
@@ -395,7 +399,7 @@
         a = field()
 
     a = A(5)
-    a.a = 16  # E: Property "a" defined in "A" is read-only
+    a.a = 16  # E: Property "a" defined in "A" is read-only  [misc]
 
 - case: testAttrsNextGenDetect
   main: |
@@ -419,7 +423,6 @@
         a: int
         b = field()
 
-    # TODO: Next Gen hasn't shipped with mypy yet so the following are wrong
     reveal_type(A) # N: Revealed type is "def (a: Any) -> main.A"
     reveal_type(B) # N: Revealed type is "def (a: builtins.int) -> main.B"
     reveal_type(C) # N: Revealed type is "def (a: builtins.int, b: Any) -> main.C"
@@ -453,6 +456,7 @@
     reveal_type(A) # N: Revealed type is "def (x: builtins.list[builtins.int], y: builtins.list[builtins.str]) -> main.A"
 
 - case: testAttrsGeneric
+  regex: true
   main: |
     from typing import TypeVar, Generic, List
     import attr
@@ -466,16 +470,15 @@
         def bar(self) -> T:
             return self.x[0]
         def problem(self) -> T:
-            return self.x  # E: Incompatible return value type (got "List[T]", expected "T")
-    reveal_type(A) # N: Revealed type is "def [T] (x: builtins.list[T`1], y: T`1) -> main.A[T`1]"
+            return self.x  # E: Incompatible return value type \(got "[Ll]ist\[T\]", expected "T"\)  \[return-value\]
+    reveal_type(A) # N: Revealed type is "def \[T\] \(x: builtins\.list\[T`1\], y: T`1\) -> main.A\[T`1\]"
     a = A([1], 2)
-    reveal_type(a)  # N: Revealed type is "main.A[builtins.int*]"
-    reveal_type(a.x)  # N: Revealed type is "builtins.list[builtins.int*]"
-    reveal_type(a.y)  # N: Revealed type is "builtins.int*"
+    reveal_type(a)  # N: Revealed type is "main\.A\[builtins.int\]"
+    reveal_type(a.x)  # N: Revealed type is "builtins\.list\[builtins\.int\]"
+    reveal_type(a.y)  # N: Revealed type is "builtins\.int"
 
-    A(['str'], 7)  # E: Cannot infer type argument 1 of "A"
-    A([1], '2')  # E: Cannot infer type argument 1 of "A"
-
+    A(['str'], 7)  # E: Cannot infer type argument 1 of "A"  \[misc\]
+    A([1], '2')  # E: Cannot infer type argument 1 of "A"  \[misc\]
 
 - case: testAttrsUntypedGenericInheritance
   main: |
@@ -514,12 +517,12 @@
         pass
 
     sub_int = Sub[int](attr=1)
-    reveal_type(sub_int)  # N: Revealed type is "main.Sub[builtins.int*]"
-    reveal_type(sub_int.attr)  # N: Revealed type is "builtins.int*"
+    reveal_type(sub_int)  # N: Revealed type is "main.Sub[builtins.int]"
+    reveal_type(sub_int.attr)  # N: Revealed type is "builtins.int"
 
     sub_str = Sub[str](attr='ok')
-    reveal_type(sub_str)  # N: Revealed type is "main.Sub[builtins.str*]"
-    reveal_type(sub_str.attr)  # N: Revealed type is "builtins.str*"
+    reveal_type(sub_str)  # N: Revealed type is "main.Sub[builtins.str]"
+    reveal_type(sub_str.attr)  # N: Revealed type is "builtins.str"
 
 - case: testAttrsGenericInheritance2
   main: |
@@ -646,7 +649,7 @@
            return cls(6, 'hello')
         @classmethod
         def bad(cls) -> A:
-            return cls(17)  # E: Missing positional argument "b" in call to "A"
+            return cls(17)  # E: Missing positional argument "b" in call to "A"  [call-arg]
         def foo(self) -> int:
            return self.a
     reveal_type(A)  # N: Revealed type is "def (a: builtins.int, b: builtins.str) -> main.A"
@@ -688,7 +691,7 @@
   main: |
     import attr
     @attr.s
-    class C(object):
+    class C:
         x: int = attr.ib(default=1)
         y: int = attr.ib()
         @y.default
@@ -700,7 +703,7 @@
   main: |
     import attr
     @attr.s
-    class C(object):
+    class C:
         x = attr.ib()
         @x.validator
         def check(self, attribute, value):
@@ -764,8 +767,7 @@
             return 'hello'
 
 - case: testAttrsUsingBadConverter
-  mypy_config:
-    strict_optional = False
+  regex: true
   main: |
     import attr
     from typing import overload
@@ -785,15 +787,14 @@
         bad_overloaded: int = attr.ib(converter=bad_overloaded_converter)
     reveal_type(A)
   out: |
-    main:15: error: Cannot determine __init__ type from converter
-    main:15: error: Argument "converter" has incompatible type "Callable[[], str]"; expected "Callable[[Any], Any]"
-    main:16: error: Cannot determine __init__ type from converter
-    main:16: error: Argument "converter" has incompatible type overloaded function; expected "Callable[[Any], Any]"
-    main:17: note: Revealed type is "def (bad: Any, bad_overloaded: Any) -> main.A"
+    main:15: error: Cannot determine __init__ type from converter  \[misc\]
+    main:15: error: Argument "converter" has incompatible type \"Callable\[\[\], str\]\"; expected (\"Callable\[\[Any\], Any\] \| None\"|\"Optional\[Callable\[\[Any\], Any\]\]\")  \[arg-type\]
+    main:16: error: Cannot determine __init__ type from converter  \[misc\]
+    main:16: error: Argument "converter" has incompatible type overloaded function; expected (\"Callable\[\[Any\], Any\] \| None\"|\"Optional\[Callable\[\[Any\], Any\]\]\")  \[arg-type\]
+    main:17: note: Revealed type is "def (bad: Any, bad_overloaded: Any\) -> main.A"
 
 - case: testAttrsUsingBadConverterReprocess
-  mypy_config:
-    strict_optional = False
+  regex: true
   main: |
     import attr
     from typing import overload
@@ -814,26 +815,26 @@
         bad_overloaded: int = attr.ib(converter=bad_overloaded_converter)
     reveal_type(A)
   out: |
-    main:16: error: Cannot determine __init__ type from converter
-    main:16: error: Argument "converter" has incompatible type "Callable[[], str]"; expected "Callable[[Any], Any]"
-    main:17: error: Cannot determine __init__ type from converter
-    main:17: error: Argument "converter" has incompatible type overloaded function; expected "Callable[[Any], Any]"
-    main:18: note: Revealed type is "def (bad: Any, bad_overloaded: Any) -> main.A"
+    main:16: error: Cannot determine __init__ type from converter  \[misc\]
+    main:16: error: Argument \"converter\" has incompatible type \"Callable\[\[\], str\]\"; expected (\"Callable\[\[Any\], Any\] \| None\"|\"Optional\[Callable\[\[Any\], Any\]\]\")  \[arg-type\]
+    main:17: error: Cannot determine __init__ type from converter  \[misc\]
+    main:17: error: Argument "converter" has incompatible type overloaded function; expected (\"Callable\[\[Any\], Any\] \| None\"|\"Optional\[Callable\[\[Any\], Any\]\]\")  \[arg-type\]
+    main:18: note: Revealed type is "def (bad: Any, bad_overloaded: Any\) -> main.A"
 
 - case: testAttrsUsingUnsupportedConverter
   main: |
     import attr
     class Thing:
         def do_it(self, int) -> str:
-            ...
+            return ""
     thing = Thing()
     def factory(default: int):
-       ...
+       return 1
     @attr.s
     class C:
-        x: str = attr.ib(converter=thing.do_it)  # E: Unsupported converter, only named functions and types are currently supported
-        y: str = attr.ib(converter=lambda x: x)  # E: Unsupported converter, only named functions and types are currently supported
-        z: str = attr.ib(converter=factory(8))   # E: Unsupported converter, only named functions and types are currently supported
+        x: str = attr.ib(converter=thing.do_it)  # E: Unsupported converter, only named functions, types and lambdas are currently supported  [misc]
+        y: str = attr.ib(converter=lambda x: x)
+        z: str = attr.ib(converter=factory(8))   # E: Unsupported converter, only named functions, types and lambdas are currently supported  [misc]
     reveal_type(C)  # N: Revealed type is "def (x: Any, y: Any, z: Any) -> main.C"
 
 - case: testAttrsUsingConverterAndSubclass
@@ -874,6 +875,7 @@
     o = C(1, 2, "3")
 
 - case: testAttrsCmpWithSubclasses
+  regex: true
   main: |
     import attr
     @attr.s
@@ -885,29 +887,29 @@
     @attr.s
     class D(A): pass
 
-    reveal_type(A.__lt__)  # N: Revealed type is "def [_AT] (self: _AT`-1, other: _AT`-1) -> builtins.bool"
-    reveal_type(B.__lt__)  # N: Revealed type is "def [_AT] (self: _AT`-1, other: _AT`-1) -> builtins.bool"
-    reveal_type(C.__lt__)  # N: Revealed type is "def [_AT] (self: _AT`-1, other: _AT`-1) -> builtins.bool"
-    reveal_type(D.__lt__)  # N: Revealed type is "def [_AT] (self: _AT`-1, other: _AT`-1) -> builtins.bool"
+    reveal_type(A.__lt__)  # N: Revealed type is "def \[_AT\] \(self: _AT`\d+, other: _AT`\d+\) -> builtins.bool"
+    reveal_type(B.__lt__)  # N: Revealed type is "def \[_AT\] \(self: _AT`\d+, other: _AT`\d+\) -> builtins.bool"
+    reveal_type(C.__lt__)  # N: Revealed type is "def \[_AT\] \(self: _AT`\d+, other: _AT`\d+\) -> builtins.bool"
+    reveal_type(D.__lt__)  # N: Revealed type is "def \[_AT\] \(self: _AT`\d+, other: _AT`\d+\) -> builtins.bool"
 
     A() < A()
     B() < B()
-    A() < B() # E: Unsupported operand types for < ("A" and "B")
+    A() < B() # E: Unsupported operand types for < \("A" and "B"\)  \[operator\]
 
     C() > A()
     C() > B()
     C() > C()
-    C() > D() # E: Unsupported operand types for > ("C" and "D")
+    C() > D() # E: Unsupported operand types for > \("C" and "D"\)  \[operator\]
 
     D() >= A()
-    D() >= B()  # E: Unsupported operand types for >= ("D" and "B")
-    D() >= C()  # E: Unsupported operand types for >= ("D" and "C")
+    D() >= B()  # E: Unsupported operand types for >= \("D" and "B"\)  \[operator\]
+    D() >= C()  # E: Unsupported operand types for >= \("D" and "C"\)  \[operator\]
     D() >= D()
 
-    A() <= 1  # E: Unsupported operand types for <= ("A" and "int")
-    B() <= 1  # E: Unsupported operand types for <= ("B" and "int")
-    C() <= 1  # E: Unsupported operand types for <= ("C" and "int")
-    D() <= 1  # E: Unsupported operand types for <= ("D" and "int")
+    A() <= 1  # E: Unsupported operand types for <= \("A" and "int"\)  \[operator\]
+    B() <= 1  # E: Unsupported operand types for <= \("B" and "int"\)  \[operator\]
+    C() <= 1  # E: Unsupported operand types for <= \("C" and "int"\)  \[operator\]
+    D() <= 1  # E: Unsupported operand types for <= \("D" and "int"\)  \[operator\]
 
 - case: testAttrsComplexSuperclass
   main: |
@@ -938,16 +940,16 @@
     import attr
     @attr.s
     class A:
-       x = y = z = attr.ib()  # E: Too many names for one attribute
+       x = y = z = attr.ib()  # E: Too many names for one attribute  [misc]
 
 - case: testAttrsPrivateInit
   main: |
     import attr
     @attr.s
-    class C(object):
+    class C:
         _x = attr.ib(init=False, default=42)
     C()
-    C(_x=42)  # E: Unexpected keyword argument "_x" for "C"
+    C(_x=42)  # E: Unexpected keyword argument "_x" for "C"  [call-arg]
 
 - case: testAttrsAutoMustBeAll
   main: |
@@ -957,9 +959,9 @@
        a: int
        b = 17
        # The following forms are not allowed with auto_attribs=True
-       c = attr.ib()  # E: Need type annotation for "c"
-       d, e = attr.ib(), attr.ib() # E: Need type annotation for "d" # E: Need type annotation for "e"
-       f = g = attr.ib()  # E: Need type annotation for "f" # E: Need type annotation for "g"
+       c = attr.ib()  # E: Need type annotation for "c"  [var-annotated]
+       d, e = attr.ib(), attr.ib() # E: Need type annotation for "d"  [var-annotated] # E: Need type annotation for "e"  [var-annotated]
+       f = g = attr.ib()  # E: Need type annotation for "f"  [var-annotated] # E: Need type annotation for "g"  [var-annotated]
 
 - case: testAttrsRepeatedName
   main: |
@@ -974,37 +976,14 @@
     class B:
        a: int = attr.ib(default=8)
        b: int = attr.ib()
-       a: int = attr.ib()  # E: Name "a" already defined on line 10
+       a: int = attr.ib()  # E: Name "a" already defined on line 10  [no-redef]
     reveal_type(B)  # N: Revealed type is "def (b: builtins.int, a: builtins.int) -> main.B"
     @attr.s(auto_attribs=True)
     class C:
        a: int = 8
        b: int
-       a: int = attr.ib()  # E: Name "a" already defined on line 16
+       a: int = attr.ib()  # E: Name "a" already defined on line 16  [no-redef]
     reveal_type(C)  # N: Revealed type is "def (a: builtins.int, b: builtins.int) -> main.C"
-
-- case: testAttrsNewStyleClassPy2
-  mypy_config:
-    python_version = 2.7
-  main: |
-    import attr
-    @attr.s
-    class Good(object):
-        pass
-    @attr.s
-    class Bad:  # E: attrs only works with new-style classes
-        pass
-  skip: True # https://github.com/typeddjango/pytest-mypy-plugins/issues/47
-
-- case: testAttrsAutoAttribsPy2
-  mypy_config: |
-    python_version = 2.7
-  main: |
-    import attr
-    @attr.s(auto_attribs=True)  # E: auto_attribs is not supported in Python 2
-    class A(object):
-        x = attr.ib()
-  skip: True # https://github.com/typeddjango/pytest-mypy-plugins/issues/47
 
 - case: testAttrsFrozenSubclass
   main: |
@@ -1034,19 +1013,19 @@
     non_frozen_base = NonFrozenBase(1)
     non_frozen_base.a = 17
     frozen_base = FrozenBase(1)
-    frozen_base.a = 17  # E: Property "a" defined in "FrozenBase" is read-only
+    frozen_base.a = 17  # E: Property "a" defined in "FrozenBase" is read-only  [misc]
 
     a = FrozenNonFrozen(1, 2)
-    a.a = 17  # E: Property "a" defined in "FrozenNonFrozen" is read-only
-    a.b = 17  # E: Property "b" defined in "FrozenNonFrozen" is read-only
+    a.a = 17  # E: Property "a" defined in "FrozenNonFrozen" is read-only  [misc]
+    a.b = 17  # E: Property "b" defined in "FrozenNonFrozen" is read-only  [misc]
 
     b = FrozenFrozen(1, 2)
-    b.a = 17  # E: Property "a" defined in "FrozenFrozen" is read-only
-    b.b = 17  # E: Property "b" defined in "FrozenFrozen" is read-only
+    b.a = 17  # E: Property "a" defined in "FrozenFrozen" is read-only  [misc]
+    b.b = 17  # E: Property "b" defined in "FrozenFrozen" is read-only  [misc]
 
     c = NonFrozenFrozen(1, 2)
-    c.a = 17  # E: Property "a" defined in "NonFrozenFrozen" is read-only
-    c.b = 17  # E: Property "b" defined in "NonFrozenFrozen" is read-only
+    c.a = 17  # E: Property "a" defined in "NonFrozenFrozen" is read-only  [misc]
+    c.b = 17  # E: Property "b" defined in "NonFrozenFrozen" is read-only  [misc]
 - case: testAttrsCallableAttributes
   main: |
     from typing import Callable
@@ -1088,17 +1067,18 @@
     import attr
     @attr.s
     class A:
-        x: int = attr.ib(factory=int, default=7)  # E: Can't pass both "default" and "factory".
+        x: int = attr.ib(factory=int, default=7)  # E: Can't pass both "default" and "factory".  [misc]
 
 - case: testAttrsFactoryBadReturn
+  regex: true
   main: |
     import attr
     def my_factory() -> int:
         return 7
     @attr.s
     class A:
-        x: int = attr.ib(factory=list)  # E: Incompatible types in assignment (expression has type "List[_T]", variable has type "int")
-        y: str = attr.ib(factory=my_factory) # E: Incompatible types in assignment (expression has type "int", variable has type "str")
+        x: int = attr.ib(factory=list)  # E: Incompatible types in assignment \(expression has type "[Ll]ist\[.*\]", variable has type "int"\)  \[assignment\]
+        y: str = attr.ib(factory=my_factory) # E: Incompatible types in assignment \(expression has type "int", variable has type "str"\)  \[assignment\]
 
 - case: testAttrsDefaultAndInit
   main: |
@@ -1110,7 +1090,7 @@
        b = attr.ib()  # Ok because previous attribute is init=False
        c = attr.ib(default=44)
        d = attr.ib(init=False)  # Ok because this attribute is init=False
-       e = attr.ib()  # E: Non-default attributes not allowed after default attributes.
+       e = attr.ib()  # E: Non-default attributes not allowed after default attributes.  [misc]
 
 - case: testAttrsOptionalConverter
   main: |
@@ -1149,8 +1129,8 @@
     @attr.s
     class A:
         a = attr.ib(kw_only=True)
-    A()  # E: Missing named argument "a" for "A"
-    A(15) # E: Too many positional arguments for "A"
+    A()  # E: Missing named argument "a" for "A"  [call-arg]
+    A(15) # E: Too many positional arguments for "A"  [misc]
     A(a=15)
 
 - case: testAttrsKwOnlyClass
@@ -1160,7 +1140,7 @@
     class A:
         a: int
         b: bool
-    A()  # E: Missing named argument "a" for "A" # E: Missing named argument "b" for "A"
+    A()  # E: Missing named argument "a" for "A"  [call-arg] # E: Missing named argument "b" for "A"  [call-arg]
     A(b=True, a=15)
 
 - case: testAttrsKwOnlyClassNoInit
@@ -1192,7 +1172,6 @@
         c = attr.ib(15)
     D(b=17)
 
-
 - case: testAttrsKwOnlySubclass
   main: |
     import attr
@@ -1218,19 +1197,6 @@
         a = attr.ib(kw_only=True)
         b = attr.ib(15)
 
-- case: testAttrsKwOnlyPy2
-  mypy_config:
-    python_version=2.7
-  main: |
-    import attr
-    @attr.s(kw_only=True)  # E: kw_only is not supported in Python 2
-    class A(object):
-        x = attr.ib()
-    @attr.s
-    class B(object):
-        x = attr.ib(kw_only=True)  # E: kw_only is not supported in Python 2
-  skip: True # https://github.com/typeddjango/pytest-mypy-plugins/issues/47
-
 - case: testAttrsDisallowUntypedWorksForward
   main: |
     # flags: --disallow-untyped-defs
@@ -1247,14 +1213,13 @@
     reveal_type(B)  # N: Revealed type is "def (x: main.C) -> main.B"
 
 - case: testDisallowUntypedWorksForwardBad
-  mypy_config:
-    disallow_untyped_defs = True
+  mypy_config: disallow_untyped_defs = True
   main: |
     import attr
 
     @attr.s
     class B:
-        x = attr.ib()  # E: Need type annotation for "x"
+        x = attr.ib()  # E: Need type annotation for "x"  [var-annotated]
 
     reveal_type(B)  # N: Revealed type is "def (x: Any) -> main.B"
 
@@ -1264,7 +1229,7 @@
 
     import attr
     @attr.s
-    class C(object):
+    class C:
         x: int = attr.ib(default=1)
         y: int = attr.ib()
         @y.default
@@ -1279,7 +1244,7 @@
 
     import attr
     @attr.s
-    class C(object):
+    class C:
         x = attr.ib()
         @x.validator
         def check(self, attribute, value):
@@ -1296,7 +1261,7 @@
 
     @attr.s
     class C:
-        total = attr.ib(type=Bad)  # E: Name "Bad" is not defined
+        total = attr.ib(type=Bad)  # E: Name "Bad" is not defined  [name-defined]
 
 - case: testTypeInAttrForwardInRuntime
   main: |
@@ -1307,7 +1272,7 @@
         total = attr.ib(type=Forward)
 
     reveal_type(C.total)  # N: Revealed type is "main.Forward"
-    C('no')  # E: Argument 1 to "C" has incompatible type "str"; expected "Forward"
+    C('no')  # E: Argument 1 to "C" has incompatible type "str"; expected "Forward"  [arg-type]
     class Forward: ...
 
 - case: testDefaultInAttrForward
@@ -1318,11 +1283,11 @@
     class C:
         total = attr.ib(default=func())
 
-    def func() -> int: ...
+    def func() -> int: return 5
 
     C()
     C(1)
-    C(1, 2)  # E: Too many arguments for "C"
+    C(1, 2)  # E: Too many arguments for "C"  [call-arg]
 
 - case: testTypeInAttrUndefinedFrozen
   main: |
@@ -1330,9 +1295,9 @@
 
     @attr.s(frozen=True)
     class C:
-        total = attr.ib(type=Bad)  # E: Name "Bad" is not defined
+        total = attr.ib(type=Bad)  # E: Name "Bad" is not defined  [name-defined]
 
-    C(0).total = 1  # E: Property "total" defined in "C" is read-only
+    C(0).total = 1  # E: Property "total" defined in "C" is read-only  [misc]
 
 - case: testTypeInAttrDeferredStar
   main: |
@@ -1349,8 +1314,8 @@
         class C:
             total = attr.ib(type=int)
 
-        C()  # E: Missing positional argument "total" in call to "C"
-        C('no')  # E: Argument 1 to "C" has incompatible type "str"; expected "int"
+        C()  # E: Missing positional argument "total" in call to "C"  [call-arg]
+        C('no')  # E: Argument 1 to "C" has incompatible type "str"; expected "int"  [arg-type]
     - path: other.py
       content: |
         import lib
@@ -1365,7 +1330,7 @@
         from b import A1, A2
 
         @attr.s
-        class Asdf(A1, A2):  # E: Non-default attributes not allowed after default attributes.
+        class Asdf(A1, A2):  # E: Non-default attributes not allowed after default attributes.  [misc]
             pass
     - path: b.py
       content: |
@@ -1393,3 +1358,57 @@
         foo = x
 
     reveal_type(B)  # N: Revealed type is "def (foo: builtins.int) -> main.B"
+
+- case: testFields
+  regex: true
+  main: |
+    from attrs import define, fields
+
+    @define
+    class A:
+      a: int
+      b: str
+
+    reveal_type(fields(A))  # N: Revealed type is "[Tt]uple\[attr.Attribute\[builtins.int\], attr.Attribute\[builtins.str\], fallback=main.A.__main_A_AttrsAttributes__\]"
+
+- case: testFieldsError
+  regex: true
+  main: |
+    from attrs import fields
+
+    class A:
+      a: int
+      b: str
+
+    fields(A)  # E: Argument 1 to "fields" has incompatible type "[Tt]ype\[A\]"; expected "[Tt]ype\[AttrsInstance\]"  \[arg-type\]
+
+- case: testAsDict
+  main: |
+    from attrs import asdict, define
+
+    @define
+    class A:
+      a: int
+
+    asdict(A(1))
+
+- case: testAsDictError
+  main: |
+    from attrs import asdict
+
+    class A:
+      a: int
+
+    asdict(A())  # E: Argument 1 to "asdict" has incompatible type "A"; expected "AttrsInstance"  [arg-type]
+
+- case: testHasTypeGuard
+  main: |
+    from attrs import define, has
+
+    @define
+    class A:
+        pass
+
+    reveal_type(A)  # N: Revealed type is "def () -> main.A"
+    if has(A):
+        reveal_type(A)  # N: Revealed type is "Type[attr.AttrsInstance]"

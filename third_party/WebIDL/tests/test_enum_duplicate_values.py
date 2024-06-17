@@ -12,5 +12,5 @@ def WebIDLTest(parser, harness):
         """
         )
         harness.ok(False, "Should have thrown!")
-    except:
+    except WebIDL.WebIDLError:
         harness.ok(True, "Enum TestEnumDuplicateValue should throw")

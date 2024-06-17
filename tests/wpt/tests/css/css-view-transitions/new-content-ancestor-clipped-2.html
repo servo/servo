@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: clips from ancestor elements are not applied to captures</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:mattwoodrow@apple.com">
+<link rel="match" href="new-content-ancestor-clipped-2-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.outer {
+  background-color: blue;
+  overflow: hidden;
+  position: relative;
+  left: 100px;
+  top: 100px;
+  width: 200px;
+  height: 200px;
+}
+.inner {
+  background-color: red;
+  position: relative;
+  left: 50px;
+  top: 50px;
+  width: 200px;
+  height: 200px;
+  view-transition-name: inner;
+}
+/* We're verifying what we capture, so just display the new contents for 5 minutes.  */
+html::view-transition-group(*) { animation-duration: 300s; }
+html::view-transition-new(*) { animation: unset; opacity: 1; }
+html::view-transition-old(*) { animation: unset; opacity: 0; }
+/* hide the root so we show transition background to ensure we're in a transition */
+html::view-transition-group(root) { animation: unset; opacity: 0; }
+html::view-transition { background: lightpink; }
+</style>
+<div class="outer">
+  <div class="inner"></div>
+</div>
+<script>
+async function runTest() {
+  let t = document.startViewTransition(() => {
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  });
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

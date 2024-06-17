@@ -1,17 +1,20 @@
+# mypy: allow-untyped-defs
 """Add backward compatibility support for the legacy py path type."""
+
+import dataclasses
+from pathlib import Path
 import shlex
 import subprocess
-from pathlib import Path
+from typing import Final
+from typing import final
 from typing import List
 from typing import Optional
 from typing import TYPE_CHECKING
 from typing import Union
 
-import attr
 from iniconfig import SectionWrapper
 
 from _pytest.cacheprovider import Cache
-from _pytest.compat import final
 from _pytest.compat import LEGACY_PATH
 from _pytest.compat import legacy_path
 from _pytest.config import Config
@@ -31,9 +34,8 @@ from _pytest.pytester import RunResult
 from _pytest.terminal import TerminalReporter
 from _pytest.tmpdir import TempPathFactory
 
-if TYPE_CHECKING:
-    from typing_extensions import Final
 
+if TYPE_CHECKING:
     import pexpect
 
 
@@ -89,7 +91,6 @@ class Testdir:
         return self._pytester.chdir()
 
     def finalize(self) -> None:
-        """See :meth:`Pytester._finalize`."""
         return self._pytester._finalize()
 
     def makefile(self, ext, *args, **kwargs) -> LEGACY_PATH:
@@ -268,10 +269,17 @@ class LegacyTestdirPlugin:
 
 
 @final
-@attr.s(init=False, auto_attribs=True)
+@dataclasses.dataclass
 class TempdirFactory:
-    """Backward compatibility wrapper that implements :class:``_pytest.compat.LEGACY_PATH``
-    for :class:``TempPathFactory``."""
+    """Backward compatibility wrapper that implements ``py.path.local``
+    for :class:`TempPathFactory`.
+
+    .. note::
+        These days, it is preferred to use ``tmp_path_factory``.
+
+        :ref:`About the tmpdir and tmpdir_factory fixtures<tmpdir and tmpdir_factory>`.
+
+    """
 
     _tmppath_factory: TempPathFactory
 
@@ -282,11 +290,11 @@ class TempdirFactory:
         self._tmppath_factory = tmppath_factory
 
     def mktemp(self, basename: str, numbered: bool = True) -> LEGACY_PATH:
-        """Same as :meth:`TempPathFactory.mktemp`, but returns a ``_pytest.compat.LEGACY_PATH`` object."""
+        """Same as :meth:`TempPathFactory.mktemp`, but returns a ``py.path.local`` object."""
         return legacy_path(self._tmppath_factory.mktemp(basename, numbered).resolve())
 
     def getbasetemp(self) -> LEGACY_PATH:
-        """Backward compat wrapper for ``_tmppath_factory.getbasetemp``."""
+        """Same as :meth:`TempPathFactory.getbasetemp`, but returns a ``py.path.local`` object."""
         return legacy_path(self._tmppath_factory.getbasetemp().resolve())
 
 
@@ -307,10 +315,15 @@ class LegacyTmpdirPlugin:
 
         By default, a new base temporary directory is created each test session,
         and old bases are removed after 3 sessions, to aid in debugging. If
-        ``--basetemp`` is used then it is cleared each session. See :ref:`base
-        temporary directory`.
+        ``--basetemp`` is used then it is cleared each session. See
+        :ref:`temporary directory location and retention`.
 
         The returned object is a `legacy_path`_ object.
+
+        .. note::
+            These days, it is preferred to use ``tmp_path``.
+
+            :ref:`About the tmpdir and tmpdir_factory fixtures<tmpdir and tmpdir_factory>`.
 
         .. _legacy_path: https://py.readthedocs.io/en/latest/path.html
         """
@@ -371,7 +384,7 @@ def Config_inifile(self: Config) -> Optional[LEGACY_PATH]:
     return legacy_path(str(self.inipath)) if self.inipath else None
 
 
-def Session_stardir(self: Session) -> LEGACY_PATH:
+def Session_startdir(self: Session) -> LEGACY_PATH:
     """The path from which pytest was invoked.
 
     Prefer to use ``startpath`` which is a :class:`pathlib.Path`.
@@ -426,7 +439,7 @@ def pytest_load_initial_conftests(early_config: Config) -> None:
     mp.setattr(Config, "inifile", property(Config_inifile), raising=False)
 
     # Add Session.startdir property.
-    mp.setattr(Session, "startdir", property(Session_stardir), raising=False)
+    mp.setattr(Session, "startdir", property(Session_startdir), raising=False)
 
     # Add pathlist configuration type.
     mp.setattr(Config, "_getini_unknown_type", Config__getini_unknown_type)

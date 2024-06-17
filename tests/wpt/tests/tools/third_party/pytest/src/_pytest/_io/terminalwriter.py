@@ -1,13 +1,16 @@
 """Helper functions for writing to terminals and files."""
+
 import os
 import shutil
 import sys
+from typing import final
+from typing import Literal
 from typing import Optional
 from typing import Sequence
 from typing import TextIO
 
+from ..compat import assert_never
 from .wcwidth import wcswidth
-from _pytest.compat import final
 
 
 # This code was initially copied from py 1.8.1, file _io/terminalwriter.py.
@@ -28,9 +31,9 @@ def should_do_markup(file: TextIO) -> bool:
         return True
     if os.environ.get("PY_COLORS") == "0":
         return False
-    if "NO_COLOR" in os.environ:
+    if os.environ.get("NO_COLOR"):
         return False
-    if "FORCE_COLOR" in os.environ:
+    if os.environ.get("FORCE_COLOR"):
         return True
     return (
         hasattr(file, "isatty") and file.isatty() and os.environ.get("TERM") != "dumb"
@@ -182,9 +185,7 @@ class TerminalWriter:
         """
         if indents and len(indents) != len(lines):
             raise ValueError(
-                "indents size ({}) should have same size as lines ({})".format(
-                    len(indents), len(lines)
-                )
+                f"indents size ({len(indents)}) should have same size as lines ({len(lines)})"
             )
         if not indents:
             indents = [""] * len(lines)
@@ -193,15 +194,24 @@ class TerminalWriter:
         for indent, new_line in zip(indents, new_lines):
             self.line(indent + new_line)
 
-    def _highlight(self, source: str) -> str:
-        """Highlight the given source code if we have markup support."""
+    def _highlight(
+        self, source: str, lexer: Literal["diff", "python"] = "python"
+    ) -> str:
+        """Highlight the given source if we have markup support."""
         from _pytest.config.exceptions import UsageError
 
-        if not self.hasmarkup or not self.code_highlight:
+        if not source or not self.hasmarkup or not self.code_highlight:
             return source
+
         try:
             from pygments.formatters.terminal import TerminalFormatter
-            from pygments.lexers.python import PythonLexer
+
+            if lexer == "python":
+                from pygments.lexers.python import PythonLexer as Lexer
+            elif lexer == "diff":
+                from pygments.lexers.diff import DiffLexer as Lexer
+            else:
+                assert_never(lexer)
             from pygments import highlight
             import pygments.util
         except ImportError:
@@ -210,24 +220,32 @@ class TerminalWriter:
             try:
                 highlighted: str = highlight(
                     source,
-                    PythonLexer(),
+                    Lexer(),
                     TerminalFormatter(
                         bg=os.getenv("PYTEST_THEME_MODE", "dark"),
                         style=os.getenv("PYTEST_THEME"),
                     ),
                 )
-                return highlighted
-            except pygments.util.ClassNotFound:
+                # pygments terminal formatter may add a newline when there wasn't one.
+                # We don't want this, remove.
+                if highlighted[-1] == "\n" and source[-1] != "\n":
+                    highlighted = highlighted[:-1]
+
+                # Some lexers will not set the initial color explicitly
+                # which may lead to the previous color being propagated to the
+                # start of the expression, so reset first.
+                return "\x1b[0m" + highlighted
+            except pygments.util.ClassNotFound as e:
                 raise UsageError(
                     "PYTEST_THEME environment variable had an invalid value: '{}'. "
                     "Only valid pygment styles are allowed.".format(
                         os.getenv("PYTEST_THEME")
                     )
-                )
-            except pygments.util.OptionError:
+                ) from e
+            except pygments.util.OptionError as e:
                 raise UsageError(
                     "PYTEST_THEME_MODE environment variable had an invalid value: '{}'. "
                     "The only allowed values are 'dark' and 'light'.".format(
                         os.getenv("PYTEST_THEME_MODE")
                     )
-                )
+                ) from e

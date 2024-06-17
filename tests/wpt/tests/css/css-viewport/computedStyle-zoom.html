@@ -9,6 +9,7 @@
   div {
     width: 64px;
     height: 64px;
+    font-size: 64px;
     line-height: 64px;
     text-indent: 64px;
     background-color: blue
@@ -29,8 +30,15 @@
   <div class="x2_zoom" id="parent_div">
     <div class="x4_zoom" id="nested_zoom"></div>
   </div>
-  <div class="x2_zoom" id="testing_set_style" style="height: 1px; width: 1px; line-height: 1px; text-indent: 1px;"></div>
+  <div class="x2_zoom" id="testing_set_style"></div>
   <script>
+    const LENGTH_PROPS = [
+      "width",
+      "height",
+      "line-height",
+      "text-indent",
+      "font-size",
+    ];
     test(function() {
       assert_true(!!no_zoom, "no zoom target exists");
       assert_true(!!with_zoom, "zoom target exists");
@@ -38,7 +46,7 @@
       assert_true(!!parent_div, "parent div with zoom exists")
     });
     function assert_length_props(style, expected) {
-      for (let prop of ["width", "height", "line-height", "text-indent"]) {
+      for (let prop of LENGTH_PROPS) {
         assert_equals(style.getPropertyValue(prop), expected, prop);
       }
     }
@@ -64,9 +72,10 @@
     });
     test(function(){
       testDivStyle = getComputedStyle(testing_set_style);
+      testing_set_style.setAttribute("style", LENGTH_PROPS.map(p => p + ": 1px").join(";"));
       assert_length_props(testDivStyle, "1px");
       assert_equals(testDivStyle.getPropertyValue("zoom"), "2");
-      testing_set_style.setAttribute("style", "width: 64px; height: 64px; line-height: 64px; text-indent: 64px;");
+      testing_set_style.setAttribute("style", LENGTH_PROPS.map(p => p + ": 64px").join(";"));
       assert_length_props(testDivStyle, "64px");
       assert_equals(testDivStyle.getPropertyValue("zoom"), "2");
     });

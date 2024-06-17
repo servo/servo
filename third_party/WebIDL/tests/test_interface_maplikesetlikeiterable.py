@@ -1,5 +1,4 @@
 import WebIDL
-import traceback
 
 
 def WebIDLTest(parser, harness):
@@ -20,7 +19,10 @@ def WebIDLTest(parser, harness):
         expectedMembers = list(expectedMembers)
         for m in results[0].members:
             name = m.identifier.name
-            if (name, type(m)) in expectedMembers:
+            if m.isMethod() and m.isStatic():
+                # None of the expected members are static methods, so ignore those.
+                harness.ok(True, "%s - %s - Should be a %s" % (prefix, name, type(m)))
+            elif (name, type(m)) in expectedMembers:
                 harness.ok(True, "%s - %s - Should be a %s" % (prefix, name, type(m)))
                 expectedMembers.remove((name, type(m)))
             else:
@@ -45,7 +47,7 @@ def WebIDLTest(parser, harness):
             p.parse(iface)
             p.finish()
             harness.ok(False, prefix + " - Interface passed when should've failed")
-        except WebIDL.WebIDLError as e:
+        except WebIDL.WebIDLError:
             harness.ok(True, prefix + " - Interface failed as expected")
         except Exception as e:
             harness.ok(
@@ -66,12 +68,6 @@ def WebIDLTest(parser, harness):
     setRWMembers = [
         (x, WebIDL.IDLMethod) for x in ["add", "clear", "delete"]
     ] + setROMembers
-    setROChromeMembers = [
-        (x, WebIDL.IDLMethod) for x in ["__add", "__clear", "__delete"]
-    ] + setROMembers
-    setRWChromeMembers = [
-        (x, WebIDL.IDLMethod) for x in ["__add", "__clear", "__delete"]
-    ] + setRWMembers
     mapROMembers = (
         [(x, WebIDL.IDLMethod) for x in ["get", "has"]]
         + [("__maplike", WebIDL.IDLMaplikeOrSetlike)]
@@ -81,9 +77,6 @@ def WebIDLTest(parser, harness):
     mapRWMembers = [
         (x, WebIDL.IDLMethod) for x in ["set", "clear", "delete"]
     ] + mapROMembers
-    mapRWChromeMembers = [
-        (x, WebIDL.IDLMethod) for x in ["__set", "__clear", "__delete"]
-    ] + mapRWMembers
 
     # OK, now that we've used iterableMembers to set up the above, append
     # __iterable to it for the iterable<> case.
@@ -101,12 +94,23 @@ def WebIDLTest(parser, harness):
     valueAsyncIterableMembers = [("__iterable", WebIDL.IDLAsyncIterable)]
     valueAsyncIterableMembers.append(("values", WebIDL.IDLMethod))
 
-    disallowedIterableNames = ["keys", "entries", "values"]
-    disallowedMemberNames = ["forEach", "has", "size"] + disallowedIterableNames
-    mapDisallowedMemberNames = ["get"] + disallowedMemberNames
-    disallowedNonMethodNames = ["clear", "delete"]
-    mapDisallowedNonMethodNames = ["set"] + disallowedNonMethodNames
-    setDisallowedNonMethodNames = ["add"] + disallowedNonMethodNames
+    disallowedIterableNames = [
+        ("keys", WebIDL.IDLMethod),
+        ("entries", WebIDL.IDLMethod),
+        ("values", WebIDL.IDLMethod),
+    ]
+    disallowedMemberNames = [
+        ("forEach", WebIDL.IDLMethod),
+        ("has", WebIDL.IDLMethod),
+        ("size", WebIDL.IDLAttribute),
+    ] + disallowedIterableNames
+    mapDisallowedMemberNames = [("get", WebIDL.IDLMethod)] + disallowedMemberNames
+    disallowedNonMethodNames = [
+        ("clear", WebIDL.IDLMethod),
+        ("delete", WebIDL.IDLMethod),
+    ]
+    mapDisallowedNonMethodNames = [("set", WebIDL.IDLMethod)] + disallowedNonMethodNames
+    setDisallowedNonMethodNames = [("add", WebIDL.IDLMethod)] + disallowedNonMethodNames
     unrelatedMembers = [
         ("unrelatedAttribute", WebIDL.IDLAttribute),
         ("unrelatedMethod", WebIDL.IDLMethod),
@@ -570,7 +574,9 @@ def WebIDLTest(parser, harness):
     # Member name collision tests
     #
 
-    def testConflictingMembers(likeMember, conflictName, expectedMembers, methodPasses):
+    def testConflictingMembers(
+        likeMember, conflict, expectedMembers, methodPasses, numProductions=1
+    ):
         """
         Tests for maplike/setlike member generation against conflicting member
         names. If methodPasses is True, this means we expect the interface to
@@ -578,6 +584,7 @@ def WebIDLTest(parser, harness):
         list of interface members to check against on the passing interface.
 
         """
+        (conflictName, conflictType) = conflict
         if methodPasses:
             shouldPass(
                 "Conflicting method: %s and %s" % (likeMember, conflictName),
@@ -616,16 +623,30 @@ def WebIDLTest(parser, harness):
                    """
             % (conflictName, likeMember),
         )
-        shouldFail(
-            "Conflicting static method: %s and %s" % (likeMember, conflictName),
-            """
-                   interface Foo1 {
-                   %s;
-                   static undefined %s(long test1, double test2, double test3);
-                   };
-                   """
-            % (likeMember, conflictName),
-        )
+        if conflictType == WebIDL.IDLAttribute:
+            shouldFail(
+                "Conflicting static method: %s and %s" % (likeMember, conflictName),
+                """
+                       interface Foo1 {
+                       %s;
+                       static undefined %s(long test1, double test2, double test3);
+                       };
+                       """
+                % (likeMember, conflictName),
+            )
+        else:
+            shouldPass(
+                "Conflicting static method: %s and %s" % (likeMember, conflictName),
+                """
+                       interface Foo1 {
+                       %s;
+                       static undefined %s(long test1, double test2, double test3);
+                       };
+                       """
+                % (likeMember, conflictName),
+                expectedMembers,
+                numProductions=numProductions,
+            )
         shouldFail(
             "Conflicting attribute: %s and %s" % (likeMember, conflictName),
             """
@@ -658,7 +679,9 @@ def WebIDLTest(parser, harness):
         )
 
     for member in disallowedIterableNames:
-        testConflictingMembers("iterable<long, long>", member, iterableMembers, False)
+        testConflictingMembers(
+            "iterable<long, long>", member, iterableMembers, False, numProductions=2
+        )
     for member in mapDisallowedMemberNames:
         testConflictingMembers("maplike<long, long>", member, mapRWMembers, False)
     for member in disallowedMemberNames:

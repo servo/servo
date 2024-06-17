@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 
 
-class TestImportStar(object):
+class TestImportStar:
     def test_from_attr_import_star(self):
         """
         import * from attr

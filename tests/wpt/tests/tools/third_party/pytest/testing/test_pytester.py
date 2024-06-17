@@ -1,22 +1,21 @@
+# mypy: allow-untyped-defs
 import os
 import subprocess
 import sys
 import time
-from pathlib import Path
 from types import ModuleType
 from typing import List
 
-import _pytest.pytester as pytester_mod
-import pytest
 from _pytest.config import ExitCode
 from _pytest.config import PytestPluginManager
 from _pytest.monkeypatch import MonkeyPatch
-from _pytest.pytester import CwdSnapshot
+import _pytest.pytester as pytester_mod
 from _pytest.pytester import HookRecorder
 from _pytest.pytester import LineMatcher
 from _pytest.pytester import Pytester
 from _pytest.pytester import SysModulesSnapshot
 from _pytest.pytester import SysPathsSnapshot
+import pytest
 
 
 def test_make_hook_recorder(pytester: Pytester) -> None:
@@ -222,13 +221,13 @@ class TestInlineRunModulesCleanup:
         result = pytester.inline_run(str(test_mod))
         assert result.ret == ExitCode.OK
         # rewrite module, now test should fail if module was re-imported
-        test_mod.write_text("def test_foo(): assert False")
+        test_mod.write_text("def test_foo(): assert False", encoding="utf-8")
         result2 = pytester.inline_run(str(test_mod))
         assert result2.ret == ExitCode.TESTS_FAILED
 
     def spy_factory(self):
         class SysModulesSnapshotSpy:
-            instances: List["SysModulesSnapshotSpy"] = []  # noqa: F821
+            instances: List["SysModulesSnapshotSpy"] = []
 
             def __init__(self, preserve=None) -> None:
                 SysModulesSnapshotSpy.instances.append(self)
@@ -299,17 +298,6 @@ def test_assert_outcomes_after_pytest_error(pytester: Pytester) -> None:
     result = pytester.runpytest("--unexpected-argument")
     with pytest.raises(ValueError, match="Pytest terminal summary report not found"):
         result.assert_outcomes(passed=0)
-
-
-def test_cwd_snapshot(pytester: Pytester) -> None:
-    foo = pytester.mkdir("foo")
-    bar = pytester.mkdir("bar")
-    os.chdir(foo)
-    snapshot = CwdSnapshot()
-    os.chdir(bar)
-    assert Path().absolute() == bar
-    snapshot.restore()
-    assert Path().absolute() == foo
 
 
 class TestSysModulesSnapshot:
@@ -618,14 +606,9 @@ def test_linematcher_string_api() -> None:
 
 
 def test_pytest_addopts_before_pytester(request, monkeypatch: MonkeyPatch) -> None:
-    orig = os.environ.get("PYTEST_ADDOPTS", None)
     monkeypatch.setenv("PYTEST_ADDOPTS", "--orig-unused")
-    pytester: Pytester = request.getfixturevalue("pytester")
+    _: Pytester = request.getfixturevalue("pytester")
     assert "PYTEST_ADDOPTS" not in os.environ
-    pytester._finalize()
-    assert os.environ.get("PYTEST_ADDOPTS") == "--orig-unused"
-    monkeypatch.undo()
-    assert os.environ.get("PYTEST_ADDOPTS") == orig
 
 
 def test_run_stdin(pytester: Pytester) -> None:
@@ -722,15 +705,13 @@ def test_spawn_uses_tmphome(pytester: Pytester) -> None:
     pytester._monkeypatch.setenv("CUSTOMENV", "42")
 
     p1 = pytester.makepyfile(
-        """
+        f"""
         import os
 
         def test():
             assert os.environ["HOME"] == {tmphome!r}
             assert os.environ["CUSTOMENV"] == "42"
-        """.format(
-            tmphome=tmphome
-        )
+        """
     )
     child = pytester.spawn_pytest(str(p1))
     out = child.read()
@@ -744,7 +725,7 @@ def test_run_result_repr() -> None:
     # known exit code
     r = pytester_mod.RunResult(1, outlines, errlines, duration=0.5)
     assert repr(r) == (
-        f"<RunResult ret={str(pytest.ExitCode.TESTS_FAILED)} len(stdout.lines)=3"
+        f"<RunResult ret={pytest.ExitCode.TESTS_FAILED!s} len(stdout.lines)=3"
         " len(stderr.lines)=4 duration=0.50s>"
     )
 

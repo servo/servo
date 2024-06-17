@@ -43,13 +43,17 @@ pub struct Registers {
     pub frame_ptr: Address,
 }
 
+#[allow(dead_code)]
 pub struct NativeStack {
     instruction_ptrs: [*mut std::ffi::c_void; MAX_NATIVE_FRAMES],
+    #[allow(dead_code)]
     stack_ptrs: [*mut std::ffi::c_void; MAX_NATIVE_FRAMES],
+    #[allow(dead_code)]
     count: usize,
 }
 
 impl NativeStack {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         NativeStack {
             instruction_ptrs: [ptr::null_mut(); MAX_NATIVE_FRAMES],
@@ -58,6 +62,7 @@ impl NativeStack {
         }
     }
 
+    #[allow(dead_code)]
     pub fn process_register(
         &mut self,
         instruction_ptr: *mut std::ffi::c_void,

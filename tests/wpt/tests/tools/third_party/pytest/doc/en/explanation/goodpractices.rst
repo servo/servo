@@ -12,41 +12,27 @@ For development, we recommend you use :mod:`venv` for virtual environments and
 as well as the ``pytest`` package itself.
 This ensures your code and dependencies are isolated from your system Python installation.
 
-Next, place a ``pyproject.toml`` file in the root of your package:
+Create a ``pyproject.toml`` file in the root of your repository as described in
+:doc:`packaging:tutorials/packaging-projects`.
+The first few lines should look like this:
 
 .. code-block:: toml
 
     [build-system]
-    requires = ["setuptools>=42", "wheel"]
-    build-backend = "setuptools.build_meta"
+    requires = ["hatchling"]
+    build-backend = "hatchling.build"
 
-and a ``setup.cfg`` file containing your package's metadata with the following minimum content:
+    [project]
+    name = "PACKAGENAME"
+    version = "PACKAGEVERSION"
 
-.. code-block:: ini
-
-    [metadata]
-    name = PACKAGENAME
-
-    [options]
-    packages = find:
-
-where ``PACKAGENAME`` is the name of your package.
-
-.. note::
-
-    If your pip version is older than ``21.3``, you'll also need a ``setup.py`` file:
-
-    .. code-block:: python
-
-        from setuptools import setup
-
-        setup()
+where ``PACKAGENAME`` and ``PACKAGEVERSION`` are the name and version of your package respectively.
 
 You can then install your package in "editable" mode by running from the same directory:
 
 .. code-block:: bash
 
-     pip install -e .
+    pip install -e .
 
 which lets you change your source code (both tests and application) and rerun tests at will.
 
@@ -65,8 +51,8 @@ Conventions for Python test discovery
 * In those directories, search for ``test_*.py`` or ``*_test.py`` files, imported by their `test package name`_.
 * From those files, collect test items:
 
-  * ``test`` prefixed test functions or methods outside of class
-  * ``test`` prefixed test functions or methods inside ``Test`` prefixed test classes (without an ``__init__`` method)
+  * ``test`` prefixed test functions or methods outside of class.
+  * ``test`` prefixed test functions or methods inside ``Test`` prefixed test classes (without an ``__init__`` method). Methods decorated with ``@staticmethod`` and ``@classmethods`` are also considered.
 
 For examples of how to customize your test discovery :doc:`/example/pythoncollection`.
 
@@ -74,8 +60,10 @@ Within Python modules, ``pytest`` also discovers tests using the standard
 :ref:`unittest.TestCase <unittest.TestCase>` subclassing technique.
 
 
-Choosing a test layout / import rules
--------------------------------------
+.. _`test layout`:
+
+Choosing a test layout
+----------------------
 
 ``pytest`` supports two common test layouts:
 
@@ -89,11 +77,11 @@ to keep tests separate from actual application code (often a good idea):
 .. code-block:: text
 
     pyproject.toml
-    setup.cfg
-    mypkg/
-        __init__.py
-        app.py
-        view.py
+    src/
+        mypkg/
+            __init__.py
+            app.py
+            view.py
     tests/
         test_app.py
         test_view.py
@@ -103,83 +91,56 @@ This has the following benefits:
 
 * Your tests can run against an installed version after executing ``pip install .``.
 * Your tests can run against the local copy with an editable install after executing ``pip install --editable .``.
-* If you don't use an editable install and are relying on the fact that Python by default puts the current
-  directory in ``sys.path`` to import your package, you can execute ``python -m pytest`` to execute the tests against the
-  local copy directly, without using ``pip``.
+
+For new projects, we recommend to use ``importlib`` :ref:`import mode <import-modes>`
+(see which-import-mode_ for a detailed explanation).
+To this end, add the following to your ``pyproject.toml``:
+
+.. code-block:: toml
+
+    [tool.pytest.ini_options]
+    addopts = [
+        "--import-mode=importlib",
+    ]
+
+.. _src-layout:
+
+Generally, but especially if you use the default import mode ``prepend``,
+it is **strongly** suggested to use a ``src`` layout.
+Here, your application root package resides in a sub-directory of your root,
+i.e. ``src/mypkg/`` instead of ``mypkg``.
+
+This layout prevents a lot of common pitfalls and has many benefits,
+which are better explained in this excellent `blog post`_ by Ionel Cristian Mărieș.
+
+.. _blog post: https://blog.ionelmc.ro/2014/05/25/python-packaging/#the-structure>
 
 .. note::
+
+    If you do not use an editable install and use the ``src`` layout as above you need to extend the Python's
+    search path for module files to execute the tests against the local copy directly. You can do it in an
+    ad-hoc manner by setting the ``PYTHONPATH`` environment variable:
+
+    .. code-block:: bash
+
+       PYTHONPATH=src pytest
+
+    or in a permanent manner by using the :confval:`pythonpath` configuration variable and adding the
+    following to your ``pyproject.toml``:
+
+    .. code-block:: toml
+
+        [tool.pytest.ini_options]
+        pythonpath = "src"
+
+.. note::
+
+    If you do not use an editable install and not use the ``src`` layout (``mypkg`` directly in the root
+    directory) you can rely on the fact that Python by default puts the current directory in ``sys.path`` to
+    import your package and run ``python -m pytest`` to execute the tests against the local copy directly.
 
     See :ref:`pytest vs python -m pytest` for more information about the difference between calling ``pytest`` and
     ``python -m pytest``.
-
-Note that this scheme has a drawback if you are using ``prepend`` :ref:`import mode <import-modes>`
-(which is the default): your test files must have **unique names**, because
-``pytest`` will import them as *top-level* modules since there are no packages
-to derive a full package name from. In other words, the test files in the example above will
-be imported as ``test_app`` and ``test_view`` top-level modules by adding ``tests/`` to
-``sys.path``.
-
-If you need to have test modules with the same name, you might add ``__init__.py`` files to your
-``tests`` folder and subfolders, changing them to packages:
-
-.. code-block:: text
-
-    pyproject.toml
-    setup.cfg
-    mypkg/
-        ...
-    tests/
-        __init__.py
-        foo/
-            __init__.py
-            test_view.py
-        bar/
-            __init__.py
-            test_view.py
-
-Now pytest will load the modules as ``tests.foo.test_view`` and ``tests.bar.test_view``, allowing
-you to have modules with the same name. But now this introduces a subtle problem: in order to load
-the test modules from the ``tests`` directory, pytest prepends the root of the repository to
-``sys.path``, which adds the side-effect that now ``mypkg`` is also importable.
-
-This is problematic if you are using a tool like `tox`_ to test your package in a virtual environment,
-because you want to test the *installed* version of your package, not the local code from the repository.
-
-.. _`src-layout`:
-
-In this situation, it is **strongly** suggested to use a ``src`` layout where application root package resides in a
-sub-directory of your root:
-
-.. code-block:: text
-
-    pyproject.toml
-    setup.cfg
-    src/
-        mypkg/
-            __init__.py
-            app.py
-            view.py
-    tests/
-        __init__.py
-        foo/
-            __init__.py
-            test_view.py
-        bar/
-            __init__.py
-            test_view.py
-
-
-This layout prevents a lot of common pitfalls and has many benefits, which are better explained in this excellent
-`blog post by Ionel Cristian Mărieș <https://blog.ionelmc.ro/2014/05/25/python-packaging/#the-structure>`_.
-
-.. note::
-    The new ``--import-mode=importlib`` (see :ref:`import-modes`) doesn't have
-    any of the drawbacks above because ``sys.path`` is not changed when importing
-    test modules, so users that run
-    into this issue are strongly encouraged to try it and report if the new option works well for them.
-
-    The ``src`` directory layout is still strongly recommended however.
-
 
 Tests as part of application code
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -191,12 +152,11 @@ want to distribute them along with your application:
 .. code-block:: text
 
     pyproject.toml
-    setup.cfg
-    mypkg/
+    [src/]mypkg/
         __init__.py
         app.py
         view.py
-        test/
+        tests/
             __init__.py
             test_app.py
             test_view.py
@@ -254,6 +214,56 @@ Note that this layout also works in conjunction with the ``src`` layout mentione
     much less surprising.
 
 
+.. _which-import-mode:
+
+Choosing an import mode
+^^^^^^^^^^^^^^^^^^^^^^^
+
+For historical reasons, pytest defaults to the ``prepend`` :ref:`import mode <import-modes>`
+instead of the ``importlib`` import mode we recommend for new projects.
+The reason lies in the way the ``prepend`` mode works:
+
+Since there are no packages to derive a full package name from,
+``pytest`` will import your test files as *top-level* modules.
+The test files in the first example (:ref:`src layout <src-layout>`) would be imported as
+``test_app`` and ``test_view`` top-level modules by adding ``tests/`` to ``sys.path``.
+
+This results in a drawback compared to the import mode ``importlib``:
+your test files must have **unique names**.
+
+If you need to have test modules with the same name,
+as a workaround you might add ``__init__.py`` files to your ``tests`` folder and subfolders,
+changing them to packages:
+
+.. code-block:: text
+
+    pyproject.toml
+    mypkg/
+        ...
+    tests/
+        __init__.py
+        foo/
+            __init__.py
+            test_view.py
+        bar/
+            __init__.py
+            test_view.py
+
+Now pytest will load the modules as ``tests.foo.test_view`` and ``tests.bar.test_view``,
+allowing you to have modules with the same name.
+But now this introduces a subtle problem:
+in order to load the test modules from the ``tests`` directory,
+pytest prepends the root of the repository to ``sys.path``,
+which adds the side-effect that now ``mypkg`` is also importable.
+
+This is problematic if you are using a tool like tox_ to test your package in a virtual environment,
+because you want to test the *installed* version of your package,
+not the local code from the repository.
+
+The ``importlib`` import mode does not have any of the drawbacks above,
+because ``sys.path`` is not changed when importing test modules.
+
+
 .. _`buildout`: http://www.buildout.org/en/latest/
 
 .. _`use tox`:
@@ -263,8 +273,8 @@ tox
 
 Once you are done with your work and want to make sure that your actual
 package passes all tests you may want to look into :doc:`tox <tox:index>`, the
-virtualenv test automation tool and its :doc:`pytest support <tox:example/pytest>`.
-tox helps you to setup virtualenv environments with pre-defined
+virtualenv test automation tool.
+``tox`` helps you to setup virtualenv environments with pre-defined
 dependencies and then executing a pre-configured test command with
 options.  It will run tests against the installed package and not
 against your source code checkout, helping to detect packaging
@@ -286,3 +296,20 @@ See also `pypa/setuptools#1684 <https://github.com/pypa/setuptools/issues/1684>`
 
 setuptools intends to
 `remove the test command <https://github.com/pypa/setuptools/issues/931>`_.
+
+Checking with flake8-pytest-style
+---------------------------------
+
+In order to ensure that pytest is being used correctly in your project,
+it can be helpful to use the `flake8-pytest-style <https://github.com/m-burst/flake8-pytest-style>`_ flake8 plugin.
+
+flake8-pytest-style checks for common mistakes and coding style violations in pytest code,
+such as incorrect use of fixtures, test function names, and markers.
+By using this plugin, you can catch these errors early in the development process
+and ensure that your pytest code is consistent and easy to maintain.
+
+A list of the lints detected by flake8-pytest-style can be found on its `PyPI page <https://pypi.org/project/flake8-pytest-style/>`_.
+
+.. note::
+
+    flake8-pytest-style is not an official pytest project. Some of the rules enforce certain style choices, such as using `@pytest.fixture()` over `@pytest.fixture`, but you can configure the plugin to fit your preferred style.

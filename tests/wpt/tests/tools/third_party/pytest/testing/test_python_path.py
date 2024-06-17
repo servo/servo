@@ -1,11 +1,12 @@
+# mypy: allow-untyped-defs
 import sys
 from textwrap import dedent
 from typing import Generator
 from typing import List
 from typing import Optional
 
-import pytest
 from _pytest.pytester import Pytester
+import pytest
 
 
 @pytest.fixture()
@@ -82,11 +83,11 @@ def test_no_ini(pytester: Pytester, file_structure) -> None:
 
 def test_clean_up(pytester: Pytester) -> None:
     """Test that the plugin cleans up after itself."""
-    # This is tough to test behaviorly because the cleanup really runs last.
+    # This is tough to test behaviorally because the cleanup really runs last.
     # So the test make several implementation assumptions:
     # - Cleanup is done in pytest_unconfigure().
-    # - Not a hookwrapper.
-    # So we can add a hookwrapper ourselves to test what it does.
+    # - Not a hook wrapper.
+    # So we can add a hook wrapper ourselves to test what it does.
     pytester.makefile(".ini", pytest="[pytest]\npythonpath=I_SHALL_BE_REMOVED\n")
     pytester.makepyfile(test_foo="""def test_foo(): pass""")
 
@@ -94,12 +95,14 @@ def test_clean_up(pytester: Pytester) -> None:
     after: Optional[List[str]] = None
 
     class Plugin:
-        @pytest.hookimpl(hookwrapper=True, tryfirst=True)
+        @pytest.hookimpl(wrapper=True, tryfirst=True)
         def pytest_unconfigure(self) -> Generator[None, None, None]:
             nonlocal before, after
             before = sys.path.copy()
-            yield
-            after = sys.path.copy()
+            try:
+                return (yield)
+            finally:
+                after = sys.path.copy()
 
     result = pytester.runpytest_inprocess(plugins=[Plugin()])
     assert result.ret == 0

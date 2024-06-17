@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MIT
 
 """
-These are Python 3.6+-only and keyword-only APIs that call `attr.s` and
-`attr.ib` with different default values.
+These are keyword-only APIs that call `attr.s` and `attr.ib` with different
+default values.
 """
 
 
@@ -26,6 +26,7 @@ def define(
     *,
     these=None,
     repr=None,
+    unsafe_hash=None,
     hash=None,
     init=None,
     slots=True,
@@ -45,20 +46,24 @@ def define(
     match_args=True,
 ):
     r"""
-    Define an ``attrs`` class.
+    Define an *attrs* class.
 
     Differences to the classic `attr.s` that it uses underneath:
 
-    - Automatically detect whether or not *auto_attribs* should be `True`
-      (c.f. *auto_attribs* parameter).
-    - If *frozen* is `False`, run converters and validators when setting an
-      attribute by default.
-    - *slots=True* (see :term:`slotted classes` for potentially surprising
-      behaviors)
+    - Automatically detect whether or not *auto_attribs* should be `True` (c.f.
+      *auto_attribs* parameter).
+    - Converters and validators run when attributes are set by default -- if
+      *frozen* is `False`.
+    - *slots=True*
+
+      .. caution::
+
+         Usually this has only upsides and few visible effects in everyday
+         programming. But it *can* lead to some surprising behaviors, so please
+         make sure to read :term:`slotted classes`.
     - *auto_exc=True*
     - *auto_detect=True*
     - *order=False*
-    - *match_args=True*
     - Some options that were only relevant on Python 2 or were kept around for
       backwards-compatibility have been removed.
 
@@ -77,6 +82,8 @@ def define(
 
     .. versionadded:: 20.1.0
     .. versionchanged:: 21.3.0 Converters are also run ``on_setattr``.
+    .. versionadded:: 22.2.0
+       *unsafe_hash* as an alias for *hash* (for :pep:`681` compliance).
     """
 
     def do_it(cls, auto_attribs):
@@ -85,6 +92,7 @@ def define(
             these=these,
             repr=repr,
             hash=hash,
+            unsafe_hash=unsafe_hash,
             init=init,
             slots=slots,
             frozen=frozen,
@@ -123,10 +131,8 @@ def define(
         for base_cls in cls.__bases__:
             if base_cls.__setattr__ is _frozen_setattrs:
                 if had_on_setattr:
-                    raise ValueError(
-                        "Frozen classes can't use on_setattr "
-                        "(frozen-ness was inherited)."
-                    )
+                    msg = "Frozen classes can't use on_setattr (frozen-ness was inherited)."
+                    raise ValueError(msg)
 
                 on_setattr = setters.NO_OP
                 break
@@ -143,8 +149,8 @@ def define(
     # if it's used as `@attrs` but ``None`` if used as `@attrs()`.
     if maybe_cls is None:
         return wrap
-    else:
-        return wrap(maybe_cls)
+
+    return wrap(maybe_cls)
 
 
 mutable = define
@@ -159,17 +165,22 @@ def field(
     hash=None,
     init=True,
     metadata=None,
+    type=None,
     converter=None,
     factory=None,
     kw_only=False,
     eq=None,
     order=None,
     on_setattr=None,
+    alias=None,
 ):
     """
     Identical to `attr.ib`, except keyword-only and with some arguments
     removed.
 
+    .. versionadded:: 23.1.0
+       The *type* parameter has been re-added; mostly for `attrs.make_class`.
+       Please note that type checkers ignore this metadata.
     .. versionadded:: 20.1.0
     """
     return attrib(
@@ -179,12 +190,14 @@ def field(
         hash=hash,
         init=init,
         metadata=metadata,
+        type=type,
         converter=converter,
         factory=factory,
         kw_only=kw_only,
         eq=eq,
         order=order,
         on_setattr=on_setattr,
+        alias=alias,
     )
 
 

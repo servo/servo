@@ -76,7 +76,7 @@ class Configuration:
         for key, val in filters.items():
             if key == 'webIDLFile':
                 def getter(x):
-                    return x.interface.filename()
+                    return x.interface.location.filename
             elif key == 'hasInterfaceObject':
                 def getter(x):
                     return x.interface.hasInterfaceObject()
@@ -108,10 +108,10 @@ class Configuration:
         return curr
 
     def getEnums(self, webIDLFile):
-        return [e for e in self.enums if e.filename() == webIDLFile]
+        return [e for e in self.enums if e.filename == webIDLFile]
 
     def getTypedefs(self, webIDLFile):
-        return [e for e in self.typedefs if e.filename() == webIDLFile]
+        return [e for e in self.typedefs if e.filename == webIDLFile]
 
     @staticmethod
     def _filterForFile(items, webIDLFile=""):
@@ -119,7 +119,7 @@ class Configuration:
         if not webIDLFile:
             return items
 
-        return [x for x in items if x.filename() == webIDLFile]
+        return [x for x in items if x.filename == webIDLFile]
 
     def getDictionaries(self, webIDLFile=""):
         return self._filterForFile(self.dictionaries, webIDLFile=webIDLFile)
@@ -471,7 +471,7 @@ def MakeNativeName(name):
 
 
 def getIdlFileName(object):
-    return os.path.basename(object.location.filename()).split('.webidl')[0]
+    return os.path.basename(object.location.filename).split('.webidl')[0]
 
 
 def getModuleFromObject(object):

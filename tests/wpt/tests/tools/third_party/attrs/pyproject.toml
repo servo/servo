@@ -1,34 +1,157 @@
+# SPDX-License-Identifier: MIT
+
 [build-system]
-requires = ["setuptools>=40.6.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling", "hatch-vcs", "hatch-fancy-pypi-readme>=23.2.0"]
+build-backend = "hatchling.build"
+
+
+[project]
+name = "attrs"
+authors = [{ name = "Hynek Schlawack", email = "hs@ox.cx" }]
+license = "MIT"
+requires-python = ">=3.7"
+description = "Classes Without Boilerplate"
+keywords = ["class", "attribute", "boilerplate"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+  "Typing :: Typed",
+]
+dependencies = ["importlib_metadata;python_version<'3.8'"]
+dynamic = ["version", "readme"]
+
+[project.optional-dependencies]
+tests-mypy = [
+  'pytest-mypy-plugins; python_implementation == "CPython" and python_version >= "3.8"',
+  # Since the mypy error messages keep changing, we have to keep updating this
+  # pin.
+  'mypy>=1.6; python_implementation == "CPython" and python_version >= "3.8"',
+]
+tests-no-zope = [
+  # For regression test to ensure cloudpickle compat doesn't break.
+  'cloudpickle; python_implementation == "CPython"',
+  "hypothesis",
+  "pympler",
+  # 4.3.0 dropped last use of `convert`
+  "pytest>=4.3.0",
+  "pytest-xdist[psutil]",
+  "attrs[tests-mypy]",
+]
+tests = ["attrs[tests-no-zope]", "zope.interface"]
+cov = [
+  "attrs[tests]",
+  # Ensure coverage is new enough for `source_pkgs`.
+  "coverage[toml]>=5.3",
+]
+docs = [
+  "furo",
+  "myst-parser",
+  "sphinx",
+  "zope.interface",
+  "sphinx-notfound-page",
+  "sphinxcontrib-towncrier",
+  "towncrier",
+]
+dev = ["attrs[tests]", "pre-commit"]
+
+[project.urls]
+Documentation = "https://www.attrs.org/"
+Changelog = "https://www.attrs.org/en/stable/changelog.html"
+GitHub = "https://github.com/python-attrs/attrs"
+Funding = "https://github.com/sponsors/hynek"
+Tidelift = "https://tidelift.com/subscription/pkg/pypi-attrs?utm_source=pypi-attrs&utm_medium=pypi"
+
+
+[tool.hatch.version]
+source = "vcs"
+raw-options = { local_scheme = "no-local-version" }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/attr", "src/attrs"]
+
+[tool.hatch.metadata.hooks.fancy-pypi-readme]
+content-type = "text/markdown"
+
+# PyPI doesn't support the <picture> tag.
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+text = """<p align="center">
+  <a href="https://www.attrs.org/">
+    <img src="https://raw.githubusercontent.com/python-attrs/attrs/main/docs/_static/attrs_logo.svg" width="35%" alt="attrs" />
+  </a>
+</p>
+"""
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+path = "README.md"
+start-after = "<!-- teaser-begin -->"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+text = """
+
+## Release Information
+
+"""
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+path = "CHANGELOG.md"
+pattern = "\n(###.+?\n)## "
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+text = """
+
+---
+
+[Full changelog](https://www.attrs.org/en/stable/changelog.html)
+"""
+
+# Point sponsor image URLs to versions.
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '\/latest\/_static/sponsors'
+replacement = '/$HFPR_VERSION/_static/sponsors'
+
+
+[tool.pytest.ini_options]
+addopts = ["-ra", "--strict-markers", "--strict-config"]
+xfail_strict = true
+testpaths = "tests"
+filterwarnings = ["once::Warning", "ignore:::pympler[.*]"]
 
 
 [tool.coverage.run]
 parallel = true
 branch = true
-source = ["attr", "attrs"]
+source_pkgs = ["attr", "attrs"]
 
 [tool.coverage.paths]
-source = ["src", ".tox/*/site-packages"]
+source = ["src", ".tox/py*/**/site-packages"]
 
 [tool.coverage.report]
 show_missing = true
+skip_covered = true
 exclude_lines = [
-    "pragma: no cover",
-    # PyPy is unacceptably slow under coverage.
-    "if PYPY:",
+  "pragma: no cover",
+  # PyPy is unacceptably slow under coverage.
+  "if PYPY:",
+  # not meant to be executed
+  ': \.\.\.$',
+  '^ +\.\.\.$',
 ]
 
 
 [tool.black]
 line-length = 79
-extend-exclude = '''
-# Exclude pattern matching test till black gains Python 3.10 support
-.*test_pattern_matching.*
-'''
 
 
 [tool.interrogate]
+omit-covered-files = true
 verbose = 2
 fail-under = 100
 whitelist-regex = ["test_.*"]
@@ -38,34 +161,113 @@ whitelist-regex = ["test_.*"]
 toplevel = ["attr", "attrs"]
 
 
-[tool.isort]
-profile = "attrs"
+[tool.ruff]
+src = ["src", "tests", "conftest.py", "docs"]
+
+select = ["ALL"]
+ignore = [
+  "A001",    # shadowing is fine
+  "A002",    # shadowing is fine
+  "A003",    # shadowing is fine
+  "ANN",     # Mypy is better at this
+  "ARG",     # unused arguments are normal when implementing interfaces
+  "COM",     # Black takes care of our commas
+  "D",       # We prefer our own docstring style.
+  "E501",    # leave line-length enforcement to Black
+  "FBT",     # we don't hate bool args around here
+  "FIX",     # Yes, we want XXX as a marker.
+  "PLR0913", # yes, many arguments, but most have defaults
+  "PLR2004", # numbers are sometimes fine
+  "SLF001",  # private members are accessed by friendly functions
+  "TCH",     # TYPE_CHECKING blocks break autodocs
+  "TD",      # we don't follow other people's todo style
+  "C901",    # we're complex software
+  "PLR0911", # we're complex software
+  "PLR0912", # we're complex software
+  "PLR0915", # we're complex software
+  "PGH001",  # eval FTW
+  "S307",    # eval FTW
+  "N807",    # we need to create functions that start with __
+  "ERA001",  # we need to keep around some notes
+  "RSE102",  # I like empty parens on raised exceptions
+  "N",       # we need more naming freedom
+  "UP031",   # format() is slow as molasses; % and f'' FTW.
+  "PD",      # we're not pandas
+  "PLW0603", # sometimes we need globals
+  "TRY301",  # I'm sorry, but this makes not sense for us.
+]
+
+[tool.ruff.per-file-ignores]
+"**/test_*" = [
+  "ARG005",  # we need stub lambdas
+  "S",
+  "SIM300",  # Yoda rocks in asserts
+  "SIM201",  # sometimes we need to check `not ==`
+  "SIM202",  # sometimes we need to check `not ==`
+  "PT005",   # we always add underscores and explicit names
+  "PT011",   # broad is fine
+  "TRY",     # exception best practices don't matter in tests
+  "EM101",   # no need for exception msg hygiene in tests
+  "B904",    # exception best practices don't matter in tests
+  "B015",    # pointless comparison in tests aren't pointless
+  "B018",    # pointless expressions in tests aren't pointless
+  "PLR0124", # pointless comparison in tests aren't pointless
+  "DTZ",     # datetime best practices don't matter in tests
+  "UP037",   # we test some older syntaxes on purpose
+  "B017",    # pytest.raises(Exception) is fine
+  "PT012",   # sometimes we need more than a single stmt
+  "RUF012",  # we don't do ClassVar annotations in tests
+]
+
+"conftest.py" = [
+  "PT005", # we always add underscores and explicit names
+]
+
+"src/*/*.pyi" = ["ALL"] # TODO
+"tests/test_annotations.py" = ["FA100"]
+"tests/typing_example.py" = [
+  "E741",   # ambiguous variable names don't matter in type checks
+  "B018",   # useless expressions aren't useless in type checks
+  "B015",   # pointless comparison in type checks aren't pointless
+  "TRY301", # exception hygiene isn't important in type checks
+  "UP037",  # we test some older syntaxes on purpose
+]
+
+[tool.ruff.isort]
+lines-between-types = 1
+lines-after-imports = 2
+known-first-party = ["attr", "attrs"]
 
 
 [tool.towncrier]
-    package = "attr"
-    package_dir = "src"
-    filename = "CHANGELOG.rst"
-    template = "changelog.d/towncrier_template.rst"
-    issue_format = "`#{issue} <https://github.com/python-attrs/attrs/issues/{issue}>`_"
-    directory = "changelog.d"
-    title_format = "{version} ({project_date})"
-    underlines = ["-", "^"]
+name = "attrs"
+directory = "changelog.d"
+filename = "CHANGELOG.md"
+start_string = "<!-- towncrier release notes start -->\n"
+template = "changelog.d/towncrier_template.md.jinja"
+title_format = ""
+issue_format = "[#{issue}](https://github.com/python-attrs/attrs/issues/{issue})"
+underlines = ["", "", ""]
 
-    [[tool.towncrier.section]]
-        path = ""
+[[tool.towncrier.section]]
+path = ""
 
-    [[tool.towncrier.type]]
-        directory = "breaking"
-        name = "Backward-incompatible Changes"
-        showcontent = true
+[[tool.towncrier.type]]
+directory = "breaking"
+name = "Backwards-incompatible Changes"
+showcontent = true
 
-    [[tool.towncrier.type]]
-        directory = "deprecation"
-        name = "Deprecations"
-        showcontent = true
+[[tool.towncrier.type]]
+directory = "deprecation"
+name = "Deprecations"
+showcontent = true
 
-    [[tool.towncrier.type]]
-        directory = "change"
-        name = "Changes"
-        showcontent = true
+[[tool.towncrier.type]]
+directory = "change"
+name = "Changes"
+showcontent = true
+
+
+[tool.mypy]
+disallow_untyped_defs = true
+check_untyped_defs = true

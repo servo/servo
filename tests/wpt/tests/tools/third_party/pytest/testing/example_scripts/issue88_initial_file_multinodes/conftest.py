@@ -1,3 +1,4 @@
+# mypy: allow-untyped-defs
 import pytest
 
 
@@ -11,4 +12,5 @@ def pytest_collect_file(file_path, parent):
 
 
 class MyItem(pytest.Item):
-    pass
+    def runtest(self):
+        raise NotImplementedError()

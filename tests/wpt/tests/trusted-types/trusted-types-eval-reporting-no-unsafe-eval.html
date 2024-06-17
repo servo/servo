@@ -91,20 +91,22 @@
     expect_throws(_ => eval(scriptyPolicy.createScript('script_run_beacon="i ran"')));
     flush();
     assert_not_equals(script_run_beacon, 'i ran'); // Code did not run.
+    assert_equals(script_run_beacon, 'never_overwritten');
     return p;
   }, "Trusted Type violation report: evaluating a Trusted Script violates script-src.");
 
   promise_test(t => {
     trustedTypes.createPolicy('default', {
-      createScript: s => s.replace('payload', 'default policy'),
+      createScript: s => s,
     }, true);
     let p = Promise.resolve()
         .then(promise_violation((e) =>
            e.effectiveDirective.includes('script-src') &&
-           e.sample.includes("default policy")))
+           e.sample.includes("should not run")))
         .then(promise_flush());
-    expect_throws(_ => eval('script_run_beacon="payload"')); // script-src will block.
-    assert_not_equals(script_run_beacon, 'default policy'); // Code did not run.
+    expect_throws(_ => eval('script_run_beacon="should not run"')); // script-src will block.
+    assert_not_equals(script_run_beacon, 'should not run'); // Code did not run.
+    assert_equals(script_run_beacon, 'never_overwritten');
     flush();
     return p;
   }, "Trusted Type violation report: script-src restrictions apply after the default policy runs.");

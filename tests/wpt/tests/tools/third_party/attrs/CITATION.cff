@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: If you use this software, please cite it as below.
+title: attrs
+type: software
+authors:
+  - given-names: Hynek
+    family-names: Schlawack
+    email: hs@ox.cx
+doi: 10.5281/zenodo.6925130

@@ -5,7 +5,7 @@ How to set up bash completion
 =============================
 
 When using bash as your shell, ``pytest`` can use argcomplete
-(https://argcomplete.readthedocs.io/) for auto-completion.
+(https://kislyuk.github.io/argcomplete/) for auto-completion.
 For this ``argcomplete`` needs to be installed **and** enabled.
 
 Install argcomplete using:

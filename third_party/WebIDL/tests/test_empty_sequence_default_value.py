@@ -13,7 +13,7 @@ def WebIDLTest(parser, harness):
         )
 
         results = parser.finish()
-    except Exception as x:
+    except WebIDL.WebIDLError:
         threw = True
 
     harness.ok(threw, "Constant cannot have [] as a default value")

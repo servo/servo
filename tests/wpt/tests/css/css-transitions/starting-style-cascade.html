@@ -40,6 +40,16 @@
   @starting-style {
     #t5 > div { color: inherit; }
   }
+
+  #t6 { color: green; }
+  @starting-style {
+    #t6 { color: black; }
+  }
+  #t6 .color-transition { color: lime; }
+  @starting-style {
+    #t6 .color-transition { color: inherit; }
+  }
+
 </style>
 <div id="t1" hidden class="color-transition"></div>
 <div id="t2" hidden class="color-transition"></div>
@@ -51,6 +61,11 @@
 </div>
 <div id="t5" hidden class="color-transition">
   <div class="color-transition"></div>
+</div>
+<div id="t6" hidden class="color-transition">
+  <div>
+    <div class="color-transition"></div>
+  </div>
 </div>
 <script>
   setup(() => {
@@ -98,4 +113,16 @@
     assert_equals(getComputedStyle(t5.firstElementChild).color, "rgb(0, 192, 0)",
                   "Transition started from parent's after-change style color");
   }, "Starting style inheriting from parent's after-change style while parent transitioning");
+
+  promise_test(async t => {
+    t6.removeAttribute("hidden");
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(t6).color, "rgb(0, 64, 0)",
+                  "Parent transition started");
+    assert_equals(getComputedStyle(t6.firstElementChild).color, "rgb(0, 64, 0)",
+                  "Inherited effect from parent transition");
+    assert_equals(getComputedStyle(t6.firstElementChild.firstElementChild).color, "rgb(0, 192, 0)",
+                  "Transition started from parent's after-change style color, inherited from ancestors after-change color");
+  }, "Starting style inheriting from parent's after-change style while ancestor is transitioning");
+
 </script>

@@ -1,0 +1,111 @@
+[build-system]
+requires = ["flit_scm"]
+build-backend = "flit_scm:buildapi"
+
+[project]
+name = "exceptiongroup"
+description = "Backport of PEP 654 (exception groups)"
+readme = "README.rst"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
+    "Typing :: Typed"
+]
+authors = [{name = "Alex Grönholm", email = "alex.gronholm@nextday.fi"}]
+license = {file = "LICENSE"}
+requires-python = ">=3.7"
+dynamic = ["version"]
+
+[project.urls]
+Changelog = "https://github.com/agronholm/exceptiongroup/blob/main/CHANGES.rst"
+"Source code" = "https://github.com/agronholm/exceptiongroup"
+"Issue Tracker" = "https://github.com/agronholm/exceptiongroup/issues"
+
+[project.optional-dependencies]
+test = [
+    "pytest >= 6"
+]
+
+[tool.flit.sdist]
+include = [
+    "CHANGES.rst",
+    "tests",
+]
+exclude = [
+    ".github/*",
+    ".gitignore",
+    ".pre-commit-config.yaml"
+]
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "dirty-tag"
+write_to = "src/exceptiongroup/_version.py"
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",  # default flake-8
+    "I",            # isort
+    "ISC",          # flake8-implicit-str-concat
+    "PGH",          # pygrep-hooks
+    "RUF100",       # unused noqa (yesqa)
+    "UP",           # pyupgrade
+]
+
+[tool.ruff.lint.pyupgrade]
+# Preserve types, even if a file imports `from __future__ import annotations`.
+keep-runtime-typing = true
+
+[tool.ruff.lint.isort]
+known-first-party = ["exceptiongroup"]
+
+[tool.pytest.ini_options]
+addopts = "-rsx --tb=short --strict-config --strict-markers"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["exceptiongroup"]
+relative_files = true
+
+[tool.coverage.report]
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "@overload",
+]
+
+[tool.pyright]
+# for type tests, the code itself isn't type checked in CI
+reportUnnecessaryTypeIgnoreComment = true
+
+[tool.mypy]
+# for type tests, the code itself isn't type checked in CI
+warn_unused_ignores = true
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist = py37, py38, py39, py310, py311, py312, pypy3
+labels =
+    typing = py{310,311,312}-typing
+skip_missing_interpreters = true
+minversion = 4.0
+
+[testenv]
+extras = test
+commands = python -m pytest {posargs}
+package = editable
+usedevelop = true
+
+[testenv:{py37-,py38-,py39-,py310-,py311-,py312-,}typing]
+deps =
+    pyright
+    mypy
+commands =
+    pyright --verifytypes exceptiongroup
+    pyright tests/check_types.py
+    mypy tests/check_types.py
+usedevelop = true
+"""

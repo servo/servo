@@ -1,8 +1,9 @@
+# mypy: allow-untyped-defs
 import sys
 
-import pytest
 from _pytest.config import ExitCode
 from _pytest.pytester import Pytester
+import pytest
 
 
 @pytest.fixture(params=["--setup-only", "--setup-plan", "--setup-show"], scope="module")

@@ -8,7 +8,7 @@ If you used older version of the ``py`` distribution (which
 included the py.test command line tool and Python name space)
 you accessed helpers and possibly collection classes through
 the ``py.test`` Python namespaces.  The new ``pytest``
-Python module flaty provides the same objects, following
+Python module flatly provides the same objects, following
 these renaming rules::
 
     py.test.XYZ          -> pytest.XYZ
