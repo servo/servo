@@ -61,7 +61,8 @@ mod platform {
     pub use std::alloc::System as Allocator;
     use std::os::raw::c_void;
 
-    use winapi::um::heapapi::{GetProcessHeap, HeapSize, HeapValidate};
+    use windows_sys::Win32::Foundation::FALSE;
+    use windows_sys::Win32::System::Memory::{GetProcessHeap, HeapSize, HeapValidate};
 
     /// Get the size of a heap block.
     ///
@@ -71,8 +72,8 @@ mod platform {
     pub unsafe extern "C" fn usable_size(mut ptr: *const c_void) -> usize {
         let heap = GetProcessHeap();
 
-        if HeapValidate(heap, 0, ptr) == 0 {
-            ptr = *(ptr as *const *const c_void).offset(-1);
+        if HeapValidate(heap, 0, ptr) == FALSE {
+            ptr = *(ptr as *const *const c_void).offset(-1)
         }
 
         HeapSize(heap, 0, ptr) as usize

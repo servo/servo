@@ -24,8 +24,6 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 use servo::webrender_api::ScrollLocation;
 use servo::webrender_traits::RenderingContext;
 use surfman::{Connection, Context, Device, SurfaceType};
-#[cfg(target_os = "windows")]
-use winapi;
 use winit::dpi::{LogicalPosition, PhysicalPosition, PhysicalSize};
 use winit::event::{ElementState, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase};
 use winit::keyboard::{Key as LogicalKey, ModifiersState, NamedKey};
@@ -66,8 +64,9 @@ fn window_creation_scale_factor() -> Scale<f32, DeviceIndependentPixel, DevicePi
 
 #[cfg(target_os = "windows")]
 fn window_creation_scale_factor() -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
-    let hdc = unsafe { winapi::um::winuser::GetDC(::std::ptr::null_mut()) };
-    let ppi = unsafe { winapi::um::wingdi::GetDeviceCaps(hdc, winapi::um::wingdi::LOGPIXELSY) };
+    use windows_sys::Win32::Graphics::Gdi::{GetDC, GetDeviceCaps, LOGPIXELSY};
+
+    let ppi = unsafe { GetDeviceCaps(GetDC(0), LOGPIXELSY as i32) };
     Scale::new(ppi as f32 / 96.0)
 }
 

@@ -18,7 +18,7 @@ jemalloc-sys = { workspace = true }
 libc = { workspace = true, optional = true }
 
 [target.'cfg(windows)'.dependencies]
-winapi = { workspace = true, features = ["heapapi"] }
+windows-sys = { workspace = true, features = ["Win32_System_Memory"] }
 
 [target.'cfg(target_env = "ohos")'.dependencies]
 libc = { workspace = true }
