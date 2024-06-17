@@ -37,46 +37,57 @@ impl SessionContext {
             is_server_target_switching_enabled: false,
             supported_targets: HashMap::from([
                 ("frame", true),
-                ("process", true),
-                ("worker", true),
-                ("service_worker", true),
-                ("shared_worker", true),
+                ("process", false),
+                ("worker", false),
+                ("service_worker", false),
+                ("shared_worker", false),
             ]),
             supported_resources: HashMap::from([
-                ("console-message", true),
-                ("css-change", true),
-                ("css-message", true),
-                ("css-registered-properties", true),
+                ("console-message", false),
+                ("css-change", false),
+                ("css-message", false),
+                ("css-registered-properties", false),
                 ("document-event", true),
-                ("Cache", true),
-                ("cookies", true),
-                ("error-message", true),
-                ("extension-storage", true),
-                ("indexed-db", true),
-                ("local-storage", true),
-                ("session-storage", true),
-                ("platform-message", true),
-                ("network-event", true),
-                ("network-event-stacktrace", true),
-                ("reflow", true),
-                ("stylesheet", true),
-                ("source", true),
-                ("thread-state", true),
-                ("server-sent-event", true),
-                ("websocket", true),
-                ("jstracer-trace", true),
-                ("jstracer-state", true),
-                ("last-private-context-exit", true),
+                ("Cache", false),
+                ("cookies", false),
+                ("error-message", false),
+                ("extension-storage", false),
+                ("indexed-db", false),
+                ("local-storage", false),
+                ("session-storage", false),
+                ("platform-message", false),
+                ("network-event", false),
+                ("network-event-stacktrace", false),
+                ("reflow", false),
+                ("stylesheet", false),
+                ("source", false),
+                ("thread-state", false),
+                ("server-sent-event", false),
+                ("websocket", false),
+                ("jstracer-trace", false),
+                ("jstracer-state", false),
+                ("last-private-context-exit", false),
             ]),
             context_type,
         }
     }
 }
 
+// TODO: This is not actually going through
+// It hangs indefinitely and I get this error:
+// Exception while opening the toolbox Error: Connection closed, pending request to watcher8, type watchTargets failed
+// I suspect it has to do with the thread actor that I am now passing
 #[derive(Serialize)]
 struct WatchTargetsReply {
     from: String,
+    #[serde(rename = "type")]
+    type_: String,
     target: BrowsingContextActorMsg,
+}
+
+#[derive(Serialize)]
+struct WatchResourcesReply {
+    from: String,
 }
 
 #[derive(Serialize)]
@@ -107,7 +118,7 @@ impl Actor for WatcherActor {
         &self,
         registry: &ActorRegistry,
         msg_type: &str,
-        _msg: &Map<String, Value>,
+        msg: &Map<String, Value>,
         stream: &mut TcpStream,
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
@@ -118,15 +129,42 @@ impl Actor for WatcherActor {
                     .encodable();
                 let _ = stream.write_json_packet(&WatchTargetsReply {
                     from: self.name(),
+                    type_: "target-available-form".into(),
                     target,
                 });
                 ActorMessageStatus::Processed
             },
-            // TODO: Handle watchResources (!!!)
+            "watchResources" => {
+                let Some(resource_types) = msg.get("resourceTypes") else {
+                    return Ok(ActorMessageStatus::Ignored);
+                };
+
+                let Some(resource_types) = resource_types.as_array() else {
+                    return Ok(ActorMessageStatus::Ignored);
+                };
+
+                for resource in resource_types {
+                    let Some(resource) = resource.as_str() else {
+                        continue;
+                    };
+
+                    // Let the browsing context reply with the resource availability status
+                    let target =
+                        registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
+                    target.resource_available(resource, stream);
+
+                    // This just responds with and acknowledgement
+                    let _ = stream.write_json_packet(&WatchResourcesReply { from: self.name() });
+                }
+
+                ActorMessageStatus::Processed
+            },
             _ => ActorMessageStatus::Ignored,
         })
     }
 }
+
+// TODO: Improve the JSON response builder (with from, different forms, etc...)
 
 impl WatcherActor {
     pub fn new(

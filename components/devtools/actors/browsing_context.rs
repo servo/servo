@@ -98,15 +98,18 @@ pub struct BrowsingContextActorMsg {
     title: String,
     url: String,
     outerWindowID: u32,
-    browsingContextId: u32,
+    // innerWindowId: u32,
+    browsingContextID: u32,
+    isTopLevelTarget: bool,
     consoleActor: String,
+    threadActor: String,
+    traits: BrowsingContextTraits,
     /*emulationActor: String,
     inspectorActor: String,
     timelineActor: String,
     profilerActor: String,
     performanceActor: String,
     styleSheetsActor: String,*/
-    traits: BrowsingContextTraits,
     // Part of the official protocol, but not yet implemented.
     /*storageActor: String,
     memoryActor: String,
@@ -333,10 +336,12 @@ impl BrowsingContextActor {
             title: self.title.borrow().clone(),
             url: self.url.borrow().clone(),
             //FIXME: shouldn't ignore pipeline namespace field
-            browsingContextId: self.browsing_context_id.index.0.get(),
+            browsingContextID: self.browsing_context_id.index.0.get(),
             //FIXME: shouldn't ignore pipeline namespace field
             outerWindowID: self.active_pipeline.get().index.0.get(),
+            isTopLevelTarget: true,
             consoleActor: self.console.clone(),
+            threadActor: self.thread.clone(),
             /*emulationActor: self.emulation.clone(),
             inspectorActor: self.inspector.clone(),
             timelineActor: self.timeline.clone(),
@@ -381,6 +386,78 @@ impl BrowsingContextActor {
         }
         *self.title.borrow_mut() = title;
     }
+
+    pub(crate) fn resource_available(&self, resource_type: &str, stream: &mut TcpStream) {
+        match resource_type {
+            "document-event" => {
+                let _ = stream.write_json_packet(&ResourceAvailableReply {
+                    from: self.name(),
+                    type_: "resource-available-form".into(),
+                    resources: vec![ResourceAvailableMsg {
+                        has_native_console_api: None,
+                        // TODO: Multiple phases: dom-loading, dom-interactive, dom-complete
+                        name: "dom-loading".into(),
+                        new_uri: None,
+                        resource_type: "document-event".into(),
+                        time: 0, // TODO: What is this time?
+                        title: None,
+                        url: Some(self.url.borrow().clone()),
+                    }],
+                });
+
+                let _ = stream.write_json_packet(&ResourceAvailableReply {
+                    from: self.name(),
+                    type_: "resource-available-form".into(),
+                    resources: vec![ResourceAvailableMsg {
+                        has_native_console_api: None,
+                        name: "dom-interactive".into(),
+                        new_uri: None,
+                        resource_type: "document-event".into(),
+                        time: 1,
+                        title: Some(self.title.borrow().clone()),
+                        url: Some(self.url.borrow().clone()),
+                    }],
+                });
+
+                let _ = stream.write_json_packet(&ResourceAvailableReply {
+                    from: self.name(),
+                    type_: "resource-available-form".into(),
+                    resources: vec![ResourceAvailableMsg {
+                        has_native_console_api: None,
+                        name: "dom-complete".into(),
+                        new_uri: None,
+                        resource_type: "document-event".into(),
+                        time: 2,
+                        title: None,
+                        url: None,
+                    }],
+                });
+            },
+            _ => {},
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct ResourceAvailableReply {
+    from: String,
+    #[serde(rename = "type")]
+    type_: String,
+    resources: Vec<ResourceAvailableMsg>,
+}
+
+#[derive(Serialize)]
+struct ResourceAvailableMsg {
+    #[serde(rename = "hasNativeConsoleAPI")]
+    has_native_console_api: Option<bool>,
+    name: String,
+    #[serde(rename = "newURI")]
+    new_uri: Option<String>,
+    #[serde(rename = "resourceType")]
+    resource_type: String,
+    time: u64,
+    title: Option<String>,
+    url: Option<String>,
 }
 
 #[derive(Serialize)]
