@@ -2110,6 +2110,8 @@ impl Node {
             MutationObserver::queue_a_mutation_record(parent, mutation);
         }
         node.owner_doc().remove_script_and_layout_blocker();
+
+        ScriptThread::note_rendering_opportunity(window_from_node(parent).pipeline_id());
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-replace-all>
@@ -2233,6 +2235,7 @@ impl Node {
             MutationObserver::queue_a_mutation_record(parent, mutation);
         }
         parent.owner_doc().remove_script_and_layout_blocker();
+        ScriptThread::note_rendering_opportunity(window_from_node(parent).pipeline_id());
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-clone>
