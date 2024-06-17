@@ -46,6 +46,7 @@ class Workflow(str, Enum):
     MACOS = "macos"
     WINDOWS = "windows"
     ANDROID = "android"
+    OHOS = "ohos"
 
 
 @dataclass
@@ -95,6 +96,8 @@ def handle_preset(s: str) -> Optional[JobConfig]:
         return JobConfig("MacOS WPT", Workflow.MACOS, wpt_layout=Layout.layout2020)
     elif s == "android":
         return JobConfig("Android", Workflow.ANDROID)
+    elif s in ["ohos", "openharmony"]:
+        return JobConfig("OpenHarmony", Workflow.OHOS)
     elif s == "webgpu":
         return JobConfig("WebGPU CTS", Workflow.LINUX,
                          wpt_layout=Layout.layout2020,  # reftests are mode for new layout
@@ -135,7 +138,7 @@ class Config(object):
                 self.fail_fast = True
                 continue  # skip over keyword
             if word == "full":
-                words.extend(["linux-wpt", "macos", "windows", "android"])
+                words.extend(["linux-wpt", "macos", "windows", "android", "ohos"])
                 continue  # skip over keyword
 
             job = handle_preset(word)
@@ -211,6 +214,14 @@ class TestParser(unittest.TestCase):
                                   "profile": "release",
                                   "unit_tests": False,
                                   "wpt_tests_to_run": ""
+                              },
+                              {
+                                  "name": "OpenHarmony",
+                                  "workflow": "ohos",
+                                  "wpt_layout": "none",
+                                  "profile": "release",
+                                  "unit_tests": False,
+                                  "wpt_tests_to_run": ""
                               }
                               ]})
 
@@ -248,7 +259,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(a, JobConfig("Linux", Workflow.LINUX, unit_tests=True))
 
     def test_full(self):
-        self.assertDictEqual(json.loads(Config("linux-wpt macos windows android").to_json()),
+        self.assertDictEqual(json.loads(Config("linux-wpt macos windows android ohos").to_json()),
                              json.loads(Config("").to_json()))
 
 
