@@ -43,6 +43,7 @@ import servo.util as util
 from servo.util import download_file, get_default_cache_dir
 
 NIGHTLY_REPOSITORY_URL = "https://servo-builds2.s3.amazonaws.com/"
+ASAN_LEAK_SUPPRESSION_FILE = "support/suppressed_leaks_for_asan.txt"
 
 
 @dataclass
@@ -518,6 +519,9 @@ class CommandBase(object):
         # Work around https://github.com/servo/servo/issues/24446
         # Argument-less str.split normalizes leading, trailing, and double spaces
         env['RUSTFLAGS'] = " ".join(env['RUSTFLAGS'].split())
+
+        # Suppress known false-positives during memory leak sanitizing.
+        env["LSAN_OPTIONS"] = f"{env.get('LSAN_OPTIONS', '')}:suppressions={ASAN_LEAK_SUPPRESSION_FILE}"
 
         self.build_android_env_if_needed(env)
 
