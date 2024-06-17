@@ -43,7 +43,9 @@ pub(crate) struct DeviceScope {
     pub device_id: DeviceId,
     pub pipeline_id: PipelineId,
     /// <https://www.w3.org/TR/webgpu/#dom-gpudevice-errorscopestack-slot>
-    pub error_scope_stack: Vec<ErrorScope>,
+    ///
+    /// Is `None` if device is lost
+    pub error_scope_stack: Option<Vec<ErrorScope>>,
     // TODO:
     // Queue for this device (to remove transmutes)
     // queue_id: QueueId,
@@ -56,7 +58,7 @@ impl DeviceScope {
         Self {
             device_id,
             pipeline_id,
-            error_scope_stack: Vec::new(),
+            error_scope_stack: Some(Vec::new()),
         }
     }
 }
@@ -583,9 +585,17 @@ impl WGPU {
                     },
                     WebGPURequest::DropDevice(device_id) => {
                         let global = &self.global;
-                        // device_drop also calls device lost callback
                         gfx_select!(device_id => global.device_drop(device_id));
-                        if let Err(e) = self.script_sender.send(WebGPUMsg::FreeDevice(device_id)) {
+                        let device_scope = self
+                            .devices
+                            .lock()
+                            .unwrap()
+                            .remove(&device_id)
+                            .expect("Device should not be dropped by this point");
+                        if let Err(e) = self.script_sender.send(WebGPUMsg::FreeDevice {
+                            device_id,
+                            pipeline_id: device_scope.pipeline_id,
+                        }) {
                             warn!("Unable to send FreeDevice({:?}) ({:?})", device_id, e);
                         };
                     },
@@ -691,7 +701,6 @@ impl WGPU {
                         let devices = Arc::clone(&self.devices);
                         let callback =
                             DeviceLostClosure::from_rust(Box::from(move |reason, msg| {
-                                let _ = devices.lock().unwrap().remove(&device_id);
                                 let reason = match reason {
                                     wgt::DeviceLostReason::Unknown => {
                                         Some(crate::DeviceLostReason::Unknown)
@@ -699,7 +708,7 @@ impl WGPU {
                                     wgt::DeviceLostReason::Destroyed => {
                                         Some(crate::DeviceLostReason::Destroyed)
                                     },
-                                    wgt::DeviceLostReason::Dropped => None,
+                                    wgt::DeviceLostReason::Dropped => None, // we handle this in WebGPUMsg::FreeDevice
                                     wgt::DeviceLostReason::ReplacedCallback => {
                                         panic!("DeviceLost callback should only be set once")
                                     },
@@ -708,6 +717,14 @@ impl WGPU {
                                     },
                                 };
                                 if let Some(reason) = reason {
+                                    // make device lost by removing error scopes stack
+                                    let _ = devices
+                                        .lock()
+                                        .unwrap()
+                                        .get_mut(&device_id)
+                                        .expect("Device should not be dropped by this point")
+                                        .error_scope_stack
+                                        .take();
                                     if let Err(e) = script_sender.send(WebGPUMsg::DeviceLost {
                                         device: WebGPUDevice(device_id),
                                         pipeline_id,
@@ -1105,8 +1122,11 @@ impl WGPU {
                     WebGPURequest::PushErrorScope { device_id, filter } => {
                         // <https://www.w3.org/TR/webgpu/#dom-gpudevice-pusherrorscope>
                         let mut devices = self.devices.lock().unwrap();
-                        if let Some(device_scope) = devices.get_mut(&device_id) {
-                            device_scope.error_scope_stack.push(ErrorScope::new(filter));
+                        let device_scope = devices
+                            .get_mut(&device_id)
+                            .expect("Device should not be dropped by this point");
+                        if let Some(error_scope_stack) = &mut device_scope.error_scope_stack {
+                            error_scope_stack.push(ErrorScope::new(filter));
                         } // else device is lost
                     },
                     WebGPURequest::DispatchError { device_id, error } => {
@@ -1114,9 +1134,12 @@ impl WGPU {
                     },
                     WebGPURequest::PopErrorScope { device_id, sender } => {
                         // <https://www.w3.org/TR/webgpu/#dom-gpudevice-poperrorscope>
-                        if let Some(device_scope) = self.devices.lock().unwrap().get_mut(&device_id)
-                        {
-                            if let Some(error_scope) = device_scope.error_scope_stack.pop() {
+                        let mut devices = self.devices.lock().unwrap();
+                        let device_scope = devices
+                            .get_mut(&device_id)
+                            .expect("Device should not be dropped by this point");
+                        if let Some(error_scope_stack) = &mut device_scope.error_scope_stack {
+                            if let Some(error_scope) = error_scope_stack.pop() {
                                 if let Err(e) =
                                     sender.send(Some(Ok(WebGPUResponse::PoppedErrorScope(Ok(
                                         // TODO: Do actual selection instead of selecting first error
@@ -1167,9 +1190,12 @@ impl WGPU {
 
     /// <https://www.w3.org/TR/webgpu/#abstract-opdef-dispatch-error>
     fn dispatch_error(&mut self, device_id: id::DeviceId, error: Error) {
-        if let Some(device_scope) = self.devices.lock().unwrap().get_mut(&device_id) {
-            if let Some(error_scope) = device_scope
-                .error_scope_stack
+        let mut devices = self.devices.lock().unwrap();
+        let device_scope = devices
+            .get_mut(&device_id)
+            .expect("Device should not be dropped by this point");
+        if let Some(error_scope_stack) = &mut device_scope.error_scope_stack {
+            if let Some(error_scope) = error_scope_stack
                 .iter_mut()
                 .rev()
                 .find(|error_scope| error_scope.filter == error.filter())

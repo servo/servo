@@ -25,7 +25,10 @@ pub enum DeviceLostReason {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebGPUMsg {
     FreeAdapter(AdapterId),
-    FreeDevice(DeviceId),
+    FreeDevice {
+        device_id: DeviceId,
+        pipeline_id: PipelineId,
+    },
     FreeBuffer(BufferId),
     FreePipelineLayout(PipelineLayoutId),
     FreeComputePipeline(ComputePipelineId),

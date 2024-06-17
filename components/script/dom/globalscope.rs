@@ -3094,6 +3094,12 @@ impl GlobalScope {
             .insert(device.id(), Dom::from_ref(device));
     }
 
+    pub fn remove_gpu_device(&self, device: WebGPUDevice) {
+        // by this point GPUDevice may not be present in HashMap anymore
+        // because it was lost
+        let _ = self.gpu_devices.borrow_mut().remove(&device);
+    }
+
     pub fn gpu_device_lost(&self, device: WebGPUDevice, reason: DeviceLostReason, msg: String) {
         let reason = match reason {
             DeviceLostReason::Unknown => GPUDeviceLostReason::Unknown,
