@@ -89,8 +89,8 @@ impl FontTemplateDescriptor {
         // a mismatch between the desired and actual glyph presentation (emoji vs text)
         // will take precedence over any of the style attributes.
         //
-        // TODO: Take into account Unicode presentation preferences here, in order to properly
-        // choose a font for emoji clusters that start with non-emoji characters.
+        // Also relevant for font selection is the emoji presentation preference, but this
+        // is handled later when filtering fonts based on the glyphs they contain.
         const STRETCH_FACTOR: f32 = 1.0e8;
         const STYLE_FACTOR: f32 = 1.0e4;
         const WEIGHT_FACTOR: f32 = 1.0e0;

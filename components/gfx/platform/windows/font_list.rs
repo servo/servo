@@ -13,7 +13,7 @@ use style::values::computed::{FontStyle as StyleFontStyle, FontWeight as StyleFo
 use style::values::specified::font::FontStretchKeyword;
 
 use crate::font_template::{FontTemplate, FontTemplateDescriptor};
-use crate::text::FallbackFontSelectionOptions;
+use crate::text::{EmojiPresentationPreference, FallbackFontSelectionOptions};
 
 pub static SANS_SERIF_FONT_FAMILY: &str = "Arial";
 
@@ -92,8 +92,7 @@ where
 // Based on gfxWindowsPlatform::GetCommonFallbackFonts() in Gecko
 pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
     let mut families = Vec::new();
-
-    if options.prefer_emoji_presentation {
+    if options.presentation_preference == EmojiPresentationPreference::Emoji {
         families.push("Segoe UI Emoji");
     }
 

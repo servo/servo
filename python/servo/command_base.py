@@ -600,7 +600,7 @@ class CommandBase(object):
         host_cxx = env.get('HOST_CXX') or shutil.which("clang++")
 
         llvm_toolchain = path.join(env['ANDROID_NDK_ROOT'], "toolchains", "llvm", "prebuilt", host)
-        env['PATH'] = (path.join(llvm_toolchain, "bin") + ':' + env['PATH'])
+        env['PATH'] = (env['PATH'] + ':' + path.join(llvm_toolchain, "bin"))
 
         def to_ndk_bin(prog):
             return path.join(llvm_toolchain, "bin", prog)
@@ -623,18 +623,20 @@ class CommandBase(object):
         env['HOST_CXX'] = host_cxx
         env['HOST_CFLAGS'] = ''
         env['HOST_CXXFLAGS'] = ''
-        env['CC'] = to_ndk_bin("clang")
-        env['CPP'] = to_ndk_bin("clang") + " -E"
-        env['CXX'] = to_ndk_bin("clang++")
+        env['TARGET_CC'] = to_ndk_bin("clang")
+        env['TARGET_CPP'] = to_ndk_bin("clang") + " -E"
+        env['TARGET_CXX'] = to_ndk_bin("clang++")
 
-        env['AR'] = to_ndk_bin("llvm-ar")
-        env['RANLIB'] = to_ndk_bin("llvm-ranlib")
-        env['OBJCOPY'] = to_ndk_bin("llvm-objcopy")
-        env['YASM'] = to_ndk_bin("yasm")
-        env['STRIP'] = to_ndk_bin("llvm-strip")
+        env['TARGET_AR'] = to_ndk_bin("llvm-ar")
+        env['TARGET_RANLIB'] = to_ndk_bin("llvm-ranlib")
+        env['TARGET_OBJCOPY'] = to_ndk_bin("llvm-objcopy")
+        env['TARGET_YASM'] = to_ndk_bin("yasm")
+        env['TARGET_STRIP'] = to_ndk_bin("llvm-strip")
         env['RUST_FONTCONFIG_DLOPEN'] = "on"
 
         env["LIBCLANG_PATH"] = path.join(llvm_toolchain, "lib64")
+        env["CLANG_PATH"] = to_ndk_bin("clang")
+
         # A cheat-sheet for some of the build errors caused by getting the search path wrong...
         #
         # fatal error: 'limits' file not found
@@ -646,8 +648,8 @@ class CommandBase(object):
         #
         # Also worth remembering: autoconf uses C for its configuration,
         # even for C++ builds, so the C flags need to line up with the C++ flags.
-        env['CFLAGS'] = "--target=" + android_toolchain_name
-        env['CXXFLAGS'] = "--target=" + android_toolchain_name
+        env['TARGET_CFLAGS'] = "--target=" + android_toolchain_name
+        env['TARGET_CXXFLAGS'] = "--target=" + android_toolchain_name
 
         # These two variables are needed for the mozjs compilation.
         env['ANDROID_API_LEVEL'] = android_api
@@ -667,7 +669,7 @@ class CommandBase(object):
         if not os.path.exists(env['AAR_OUT_DIR']):
             os.makedirs(env['AAR_OUT_DIR'])
 
-        env['PKG_CONFIG_SYSROOT_DIR'] = path.join(llvm_toolchain, 'sysroot')
+        env['TARGET_PKG_CONFIG_SYSROOT_DIR'] = path.join(llvm_toolchain, 'sysroot')
 
     def build_ohos_env_if_needed(self, env: Dict[str, str]):
         if not (self.cross_compile_target and self.cross_compile_target.endswith('-ohos')):

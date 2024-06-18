@@ -43,6 +43,8 @@ dictionary TestDictionary {
   // in dictionaries.
   DOMString? nonRequiredNullable;
   DOMString? nonRequiredNullable2;
+  SimpleCallback noCallbackImport;
+  callbackWithOnlyOneOptionalArg noCallbackImport2;
 };
 
 dictionary TestDictionaryParent {
@@ -594,6 +596,7 @@ partial interface TestBinding {
 };
 
 callback SimpleCallback = undefined(any value);
+callback callbackWithOnlyOneOptionalArg = Promise<undefined> (optional any reason);
 
 partial interface TestBinding {
   [Pref="dom.testable_crash.enabled"]

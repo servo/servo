@@ -1,11 +1,10 @@
 [package]
-
 name = "task_info"
-version = "0.0.1"
-authors = ["The Servo Project Developers"]
-license = "MPL-2.0"
-edition = "2018"
-
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
 build = "build.rs"
 
 [build-dependencies]

@@ -219,6 +219,16 @@ impl Drop for ScriptReflowResult {
     }
 }
 
+impl Drop for LayoutThread {
+    fn drop(&mut self) {
+        let (keys, instance_keys) = self
+            .font_context
+            .collect_unused_webrender_resources(true /* all */);
+        self.webrender_api
+            .remove_unused_font_resources(keys, instance_keys)
+    }
+}
+
 impl Layout for LayoutThread {
     fn device(&self) -> &Device {
         self.stylist.device()
@@ -912,6 +922,12 @@ impl LayoutThread {
         if reflow_goal.needs_display() {
             self.webrender_api
                 .send_display_list(display_list.compositor_info, display_list.wr.end().1);
+
+            let (keys, instance_keys) = self
+                .font_context
+                .collect_unused_webrender_resources(false /* all */);
+            self.webrender_api
+                .remove_unused_font_resources(keys, instance_keys)
         }
 
         self.update_iframe_sizes(iframe_sizes);

@@ -1048,6 +1048,7 @@ impl Document {
             DocumentReadyState::Loading => {
                 if self.window().is_top_level() {
                     self.send_to_embedder(EmbedderMsg::LoadStart);
+                    self.send_to_embedder(EmbedderMsg::Status(None));
                 }
                 update_with_current_time_ms(&self.dom_loading);
             },

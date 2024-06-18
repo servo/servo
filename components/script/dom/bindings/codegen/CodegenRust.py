@@ -2258,6 +2258,10 @@ class CGImports(CGWrapper):
         descriptorProvider = config.getDescriptorProvider()
         extras = []
         for t in types:
+            # Importing these callbacks in the same module that defines them is an error.
+            if t.isCallback():
+                if getIdentifier(t) in [c.identifier for c in callbacks]:
+                    continue
             # Importing these types in the same module that defines them is an error.
             if t in dictionaries or t in enums:
                 continue
@@ -7327,7 +7331,7 @@ class CallbackMember(CGNativeMember):
                                 visibility=visibility)
         # We have to do all the generation of our body now, because
         # the caller relies on us throwing if we can't manage it.
-        self.exceptionCode = "return Err(JSFailed);"
+        self.exceptionCode = "return Err(JSFailed);\n"
         self.body = self.getImpl()
 
     def getImpl(self):
@@ -7390,14 +7394,19 @@ class CallbackMember(CGNativeMember):
         # Just reget the arglist from self.originalSig, because our superclasses
         # just have way to many members they like to clobber, so I can't find a
         # safe member name to store it in.
+        arglist = self.originalSig[1]
         argConversions = [self.getArgConversion(i, arg) for (i, arg)
-                          in enumerate(self.originalSig[1])]
+                          in enumerate(arglist)]
         # Do them back to front, so our argc modifications will work
         # correctly, because we examine trailing arguments first.
         argConversions.reverse()
         argConversions = [CGGeneric(c) for c in argConversions]
-        if self.argCount > 0:
-            argConversions.insert(0, self.getArgcDecl())
+        # If arg count is only 1 but it's optional and not default value,
+        # argc should be mutable.
+        if self.argCount == 1 and not (arglist[0].optional and not arglist[0].defaultValue):
+            argConversions.insert(0, self.getArgcDecl(True))
+        elif self.argCount > 0:
+            argConversions.insert(0, self.getArgcDecl(False))
         # And slap them together.
         return CGList(argConversions, "\n\n").define() + "\n\n"
 
@@ -7462,8 +7471,8 @@ class CallbackMember(CGNativeMember):
             "    return Err(JSFailed);\n"
             "}\n")
 
-    def getArgcDecl(self):
-        if self.argCount <= 1:
+    def getArgcDecl(self, immutable):
+        if immutable:
             return CGGeneric("let argc = %s;" % self.argCountStr)
         return CGGeneric("let mut argc = %s;" % self.argCountStr)
 

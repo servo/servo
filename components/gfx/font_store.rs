@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use app_units::Au;
@@ -132,6 +132,50 @@ impl WebRenderFontStore {
                 font_cache_thread.get_web_font_instance(font_key, pt_size.to_f32_px(), flags)
             })
     }
+
+    pub(crate) fn remove_all_fonts(&mut self) -> (Vec<FontKey>, Vec<FontInstanceKey>) {
+        (
+            self.webrender_font_key_map
+                .drain()
+                .map(|(_, key)| key)
+                .collect(),
+            self.webrender_font_instance_map
+                .drain()
+                .map(|(_, key)| key)
+                .collect(),
+        )
+    }
+
+    pub(crate) fn remove_all_fonts_for_identifiers(
+        &mut self,
+        identifiers: HashSet<FontIdentifier>,
+    ) -> (Vec<FontKey>, Vec<FontInstanceKey>) {
+        let mut removed_keys: HashSet<FontKey> = HashSet::new();
+        self.webrender_font_key_map.retain(|identifier, font_key| {
+            if identifiers.contains(identifier) {
+                removed_keys.insert(*font_key);
+                false
+            } else {
+                true
+            }
+        });
+
+        let mut removed_instance_keys: HashSet<FontInstanceKey> = HashSet::new();
+        self.webrender_font_instance_map
+            .retain(|(font_key, _), instance_key| {
+                if removed_keys.contains(font_key) {
+                    removed_instance_keys.insert(*instance_key);
+                    false
+                } else {
+                    true
+                }
+            });
+
+        (
+            removed_keys.into_iter().collect(),
+            removed_instance_keys.into_iter().collect(),
+        )
+    }
 }
 
 /// A struct that represents the available templates in a "simple family." A simple family
@@ -181,6 +225,18 @@ impl SimpleFamily {
         remove_if_template_matches(&mut self.bold);
         remove_if_template_matches(&mut self.italic);
         remove_if_template_matches(&mut self.bold_italic);
+    }
+
+    pub(crate) fn for_all_identifiers(&self, mut callback: impl FnMut(&FontIdentifier)) {
+        let mut call_if_not_none = |template: &Option<FontTemplateRef>| {
+            if let Some(template) = template {
+                callback(&template.identifier())
+            }
+        };
+        call_if_not_none(&self.regular);
+        call_if_not_none(&self.bold);
+        call_if_not_none(&self.italic);
+        call_if_not_none(&self.bold_italic);
     }
 }
 /// A list of font templates that make up a given font family.
@@ -327,5 +383,14 @@ impl FontTemplates {
         }
 
         length_before != self.templates.len()
+    }
+
+    pub(crate) fn for_all_identifiers(&self, mut callback: impl FnMut(&FontIdentifier)) {
+        for template in self.templates.iter() {
+            callback(&template.borrow().identifier);
+        }
+        if let Some(ref simple_family) = self.simple_family {
+            simple_family.for_all_identifiers(callback)
+        }
     }
 }
