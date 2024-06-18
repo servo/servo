@@ -612,14 +612,18 @@ impl TestBindingMethods for TestBinding {
             unsignedShortValue: None,
             usvstringValue: None,
             nonRequiredNullable: None,
-            nonRequiredNullable2: Some(None), // null
+            nonRequiredNullable2: Some(None),
+            noCallbackImport: None,
+            noCallbackImport2: None,
         })
     }
 
     fn DictMatchesPassedValues(&self, arg: RootedTraceableBox<TestDictionary>) -> bool {
         arg.type_.as_ref().map(|s| s == "success").unwrap_or(false) &&
             arg.nonRequiredNullable.is_none() &&
-            arg.nonRequiredNullable2 == Some(None)
+            arg.nonRequiredNullable2 == Some(None) &&
+            arg.noCallbackImport == None &&
+            arg.noCallbackImport2 == None
     }
 
     fn PassBoolean(&self, _: bool) {}
