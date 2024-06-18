@@ -771,18 +771,6 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 .map(|index| &self.fonts[index].metrics),
         );
 
-        if inline_box.is_first_fragment {
-            self.current_line.inline_position += Length::from(
-                inline_box_state.pbm.padding.inline_start +
-                    inline_box_state.pbm.border.inline_start,
-            ) + inline_box_state
-                .pbm
-                .margin
-                .inline_start
-                .auto_is(Au::zero)
-                .into()
-        }
-
         // If we are starting a `<br>` element prepare to clear after its deferred linebreak has been
         // processed. Note that a `<br>` is composed of the element itself and the inner pseudo-element
         // with the actual linebreak. Both will have this `FragmentFlag`; that's why this code only
@@ -794,6 +782,18 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             self.deferred_br_clear == Clear::None
         {
             self.deferred_br_clear = inline_box_state.base.style.clone_clear();
+        }
+
+        if inline_box.is_first_fragment {
+            self.current_line_segment.inline_size += Length::from(
+                inline_box_state.pbm.padding.inline_start +
+                    inline_box_state.pbm.border.inline_start,
+            ) + inline_box_state
+                .pbm
+                .margin
+                .inline_start
+                .auto_is(Au::zero)
+                .into()
         }
 
         let line_item = inline_box_state
