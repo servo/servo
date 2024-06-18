@@ -683,6 +683,10 @@ where
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!("Sending navigation to constellation failed ({:?}).", e);
                 }
+                self.messages_for_embedder.push((
+                    Some(top_level_browsing_context_id),
+                    EmbedderMsg::Status(None),
+                ));
             },
 
             EmbedderEvent::Keyboard(key_event) => {
