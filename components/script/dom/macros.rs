@@ -157,7 +157,7 @@ macro_rules! make_labels_getter(
 
 #[macro_export]
 macro_rules! make_enumerated_getter(
-    ( $attr:ident, $htmlname:tt, $default:expr, $($choices: pat)|+) => (
+    ( $attr:ident, $htmlname:tt, $default:expr, $($choices:pat_param)|+) => (
         fn $attr(&self) -> DOMString {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;

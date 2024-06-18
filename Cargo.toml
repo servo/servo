@@ -9,6 +9,13 @@ members = [
 default-members = ["ports/servoshell"]
 exclude = [".cargo"]
 
+[workspace.package]
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2021"
+publish = false
+
 [workspace.dependencies]
 accountable-refcell = "0.2.0"
 app_units = "0.7"

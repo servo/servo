@@ -465,6 +465,8 @@ def check_toml(file_name, lines):
             yield (idx + 1, "found asterisk instead of minimum version number")
         for license_line in licenses_toml:
             ok_licensed |= (license_line in line)
+        if "license.workspace" in line:
+            ok_licensed = True
     if not ok_licensed:
         yield (0, ".toml file should contain a valid license.")
 
