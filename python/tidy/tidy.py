@@ -130,6 +130,18 @@ def progress_wrapper(iterator):
         yield thing
 
 
+def git_changes_since_last_merge(path):
+    args = ["git", "log", "-n1", "--committer", "noreply@github.com", "--format=%H"]
+    last_merge = subprocess.check_output(args, universal_newlines=True).strip()
+    if not last_merge:
+        return
+
+    args = ["git", "diff", "--name-only", last_merge, path]
+    file_list = normilize_paths(subprocess.check_output(args, universal_newlines=True).splitlines())
+
+    return file_list
+
+
 class FileList(object):
     def __init__(self, directory, only_changed_files=False, exclude_dirs=[], progress=True):
         self.directory = directory
@@ -146,14 +158,7 @@ class FileList(object):
                 yield os.path.join(root, f)
 
     def _git_changed_files(self):
-        args = ["git", "log", "-n1", "--committer", "noreply@github.com", "--format=%H"]
-        last_merge = subprocess.check_output(args, universal_newlines=True).strip()
-        if not last_merge:
-            return
-
-        args = ["git", "diff", "--name-only", last_merge, self.directory]
-        file_list = normilize_paths(subprocess.check_output(args, universal_newlines=True).splitlines())
-
+        file_list = git_changes_since_last_merge(self.directory)
         for f in file_list:
             if not any(os.path.join('.', os.path.dirname(f)).startswith(path) for path in self.excluded):
                 yield os.path.join('.', f)
@@ -328,7 +333,7 @@ def check_flake8(file_name, contents):
 
 
 def check_cargo_lock_file(only_changed_files: bool):
-    if not list(FileList("./Cargo.lock", only_changed_files=only_changed_files, progress=False)):
+    if only_changed_files and not list(git_changes_since_last_merge("./Cargo.lock")):
         print("\r ➤  Skipping `Cargo.lock` lint checks, because it is unchanged.")
         return
 
