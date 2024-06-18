@@ -17,7 +17,7 @@ use webrender_api::NativeFontHandle;
 use crate::font_template::{FontTemplate, FontTemplateDescriptor};
 use crate::platform::add_noto_fallback_families;
 use crate::platform::font::CoreTextFontTraitsMapping;
-use crate::text::FallbackFontSelectionOptions;
+use crate::text::{EmojiPresentationPreference, FallbackFontSelectionOptions};
 
 /// An identifier for a local font on a MacOS system. These values comes from the CoreText
 /// CTFontCollection. Note that `path` here is required. We do not load fonts that do not
@@ -97,7 +97,7 @@ pub fn system_default_family(_generic_name: &str) -> Option<String> {
 /// <https://searchfox.org/mozilla-central/source/gfx/thebes/gfxPlatformMac.cpp>.
 pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
     let mut families = Vec::new();
-    if options.prefer_emoji_presentation {
+    if options.presentation_preference == EmojiPresentationPreference::Emoji {
         families.push("Apple Color Emoji");
     }
 
