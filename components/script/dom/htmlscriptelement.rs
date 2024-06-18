@@ -116,8 +116,12 @@ unsafe extern "C" fn off_thread_compilation_callback(
             let cx = GlobalScope::get_cx();
             let _ar = enter_realm(&*global);
 
-            let compiled_script = FinishOffThreadStencil(*cx, token.0, ptr::null_mut());
+            // TODO: This is necessary because the rust compiler will otherwise try to move the *mut
+            // OffThreadToken directly, which isn't marked as Send. The correct fix is that this
+            // type is marked as Send in mozjs.
+            let used_token = token;
 
+            let compiled_script = FinishOffThreadStencil(*cx, used_token.0, ptr::null_mut());
             let load = if compiled_script.is_null() {
                 Err(NoTrace(NetworkError::Internal(
                     "Off-thread compilation failed.".into(),
