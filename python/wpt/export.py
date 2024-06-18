@@ -33,7 +33,7 @@ def main() -> int:
         github_api_token=os.environ['WPT_SYNC_TOKEN'],
         github_api_url='https://api.github.com/',
         github_username='servo-wpt-sync',
-        github_email='josh+wptsync@joshmatthews.net',
+        github_email='ghbot+wpt-sync@servo.org',
         github_name='Servo WPT Sync',
     ).run(context["event"])
     return 0 if success else 1
