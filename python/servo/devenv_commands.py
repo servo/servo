@@ -268,7 +268,7 @@ class MachCommands(CommandBase):
             ndk_gdb,
             "--adb", adb_path,
             "--project", "support/android/apk/servoapp/src/main/",
-            "--launch", "org.mozilla.servo.MainActivity",
+            "--launch", "org.servo.servoshell.MainActivity",
             "-x", f.name,
             "--verbose",
         ], env=env)

@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.servo;
+package org.servo.servoshell;
 
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -16,7 +16,7 @@ import android.content.IntentFilter;
 import android.os.Build;
 import android.util.Log;
 
-import org.mozilla.servoview.ServoView;
+import org.servo.servoview.ServoView;
 
 public class MediaSession {
     private class NotificationID {
@@ -48,11 +48,11 @@ public class MediaSession {
     private static final int ACTION_SEEK_TO = 9;
 
     private static final String MEDIA_CHANNEL_ID = "MediaNotificationChannel";
-    private static final String KEY_MEDIA_PLAY = "org.mozilla.servoview.MainActivity.play";
-    private static final String KEY_MEDIA_PAUSE = "org.mozilla.servoview.MainActivity.pause";
-    private static final String KEY_MEDIA_PREV = "org.mozilla.servoview.MainActivity.prev";
-    private static final String KEY_MEDIA_NEXT = "org.mozilla.servoview.MainActivity.next";
-    private static final String KEY_MEDIA_STOP = "org.mozilla.servoview.MainActivity.stop";
+    private static final String KEY_MEDIA_PLAY = "org.servo.servoview.MainActivity.play";
+    private static final String KEY_MEDIA_PAUSE = "org.servo.servoview.MainActivity.pause";
+    private static final String KEY_MEDIA_PREV = "org.servo.servoview.MainActivity.prev";
+    private static final String KEY_MEDIA_NEXT = "org.servo.servoview.MainActivity.next";
+    private static final String KEY_MEDIA_STOP = "org.servo.servoview.MainActivity.stop";
 
     ServoView mView;
     MainActivity mActivity;

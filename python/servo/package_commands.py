@@ -54,8 +54,8 @@ PACKAGES = {
         'production/servo-tech-demo.dmg',
     ],
     'maven': [
-        'android/gradle/servoview/maven/org/mozilla/servoview/servoview-armv7/',
-        'android/gradle/servoview/maven/org/mozilla/servoview/servoview-x86/',
+        'android/gradle/servoview/maven/org/servo/servoview/servoview-armv7/',
+        'android/gradle/servoview/maven/org/servo/servoview/servoview-x86/',
     ],
     'windows-msvc': [
         r'production\msi\Servo.exe',

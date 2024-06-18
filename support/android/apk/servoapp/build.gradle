@@ -9,12 +9,12 @@ android {
     compileSdk 33
     buildToolsVersion = "33.0.2"
 
-    namespace 'org.mozilla.servo'
+    namespace 'org.servo.servoshell'
 
     buildDir = rootDir.absolutePath + "/../../../target/android/gradle/servoapp"
 
     defaultConfig {
-        applicationId "org.mozilla.servo"
+        applicationId "org.servo.servoshell"
         minSdk 30
         targetSdk 30
         versionCode 1

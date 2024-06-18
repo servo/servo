@@ -3,13 +3,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.servoview;
+package org.servo.servoview;
 
 import android.app.Activity;
 import android.view.Surface;
 
-import org.mozilla.servoview.JNIServo.ServoCoordinates;
-import org.mozilla.servoview.JNIServo.ServoOptions;
+import org.servo.servoview.JNIServo.ServoCoordinates;
+import org.servo.servoview.JNIServo.ServoOptions;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;

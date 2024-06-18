@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.servoview;
+package org.servo.servoview;
 
 import android.app.Activity;
 import android.content.Context;
@@ -17,11 +17,11 @@ import android.view.Surface;
 import android.view.SurfaceView;
 import android.view.SurfaceHolder;
 
-import org.mozilla.servoview.JNIServo.ServoCoordinates;
-import org.mozilla.servoview.JNIServo.ServoOptions;
-import org.mozilla.servoview.Servo.Client;
-import org.mozilla.servoview.Servo.GfxCallbacks;
-import org.mozilla.servoview.Servo.RunCallback;
+import org.servo.servoview.JNIServo.ServoCoordinates;
+import org.servo.servoview.JNIServo.ServoOptions;
+import org.servo.servoview.Servo.Client;
+import org.servo.servoview.Servo.GfxCallbacks;
+import org.servo.servoview.Servo.RunCallback;
 
 import android.view.Choreographer;
 import android.view.GestureDetector;

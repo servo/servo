@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.servo;
+package org.servo.servoshell;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -22,8 +22,8 @@ import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import org.mozilla.servoview.Servo;
-import org.mozilla.servoview.ServoView;
+import org.servo.servoview.Servo;
+import org.servo.servoview.ServoView;
 
 import java.io.File;
 

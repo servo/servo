@@ -104,7 +104,7 @@ class PostBuildCommands(CommandBase):
                 print("https://github.com/servo/servo/wiki/Building-for-Android#debugging-on-device")
                 return
             script = [
-                "am force-stop org.mozilla.servo",
+                "am force-stop org.servo.servoshell",
             ]
             json_params = shell_quote(json.dumps(params))
             extra = "-e servoargs " + json_params
@@ -115,10 +115,10 @@ class PostBuildCommands(CommandBase):
             if gst_debug:
                 extra += " -e gstdebug " + gst_debug
             script += [
-                "am start " + extra + " org.mozilla.servo/org.mozilla.servo.MainActivity",
+                "am start " + extra + " org.servo.servoshell/org.servo.servoshell.MainActivity",
                 "sleep 0.5",
-                "echo Servo PID: $(pidof org.mozilla.servo)",
-                "logcat --pid=$(pidof org.mozilla.servo)",
+                "echo Servo PID: $(pidof org.servo.servoshell)",
+                "logcat --pid=$(pidof org.servo.sevoshell)",
                 "exit"
             ]
             args = [self.android_adb_path(env)]

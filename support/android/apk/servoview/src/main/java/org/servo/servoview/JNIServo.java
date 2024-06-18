@@ -3,12 +3,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.servoview;
+package org.servo.servoview;
 
 import android.app.Activity;
 import android.view.Surface;
 /**
- * Maps /ports/libservoshell API
+ * Maps /ports/servoshell API
  */
 @SuppressWarnings("JniMissingFunction")
 public class JNIServo {
