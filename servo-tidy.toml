@@ -24,6 +24,7 @@ packages = [
     "cfg_aliases",
     "cookie",
     "futures",
+    "hermit-abi",
     "libloading",
     "nix",
     "redox_syscall",
