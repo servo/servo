@@ -12,9 +12,9 @@ use js::rust::HandleObject;
 
 use super::bindings::codegen::Bindings::FunctionBinding::Function;
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::{
-    CountQueuingStrategyMethods, QueuingStrategyInit,
+    CountQueuingStrategyMethods, QueuingStrategy, QueuingStrategyInit, QueuingStrategySize,
 };
-use super::bindings::import::module::{DomObject, DomRoot, Fallible, Reflector};
+use super::bindings::import::module::{DomObject, DomRoot, Error, Fallible, Reflector};
 use super::bindings::reflector::reflect_dom_object_with_proto;
 use super::types::GlobalScope;
 
@@ -102,4 +102,123 @@ unsafe extern "C" fn count_queuing_strategy_size(
     // Step 1.1. Return 1.
     args.rval().set(Int32Value(1));
     true
+}
+
+/// Extract the high water mark from a QueuingStrategy.
+/// If the high water mark is not set, return the default value.
+pub fn extract_high_water_mark(strategy: &QueuingStrategy, default_hwm: f64) -> Result<f64, Error> {
+    if strategy.highWaterMark.is_none() {
+        return Ok(default_hwm);
+    }
+
+    let high_water_mark = strategy.highWaterMark.unwrap();
+    if high_water_mark.is_nan() || high_water_mark < 0.0 {
+        return Err(Error::Range(
+            "High water mark must be a non-negative number.".to_string(),
+        ));
+    }
+
+    Ok(high_water_mark)
+}
+
+/// Extract the size algorithm from a QueuingStrategy.
+/// If the size algorithm is not set, return a fallback function which always returns 1.
+pub fn extract_size_algorithm(strategy: &QueuingStrategy) -> Rc<QueuingStrategySize> {
+    if strategy.size.is_none() {
+        #[allow(unsafe_code)]
+        unsafe extern "C" fn fallback_strategy_size(
+            _cx: *mut JSContext,
+            argc: u32,
+            vp: *mut JSVal,
+        ) -> bool {
+            let args = CallArgs::from_vp(vp, argc);
+            args.rval().set(Int32Value(1));
+            true
+        }
+        #[allow(unsafe_code)]
+        unsafe {
+            let cx = GlobalScope::get_cx();
+            let raw_fun = JS_NewFunction(
+                *cx,
+                Some(fallback_strategy_size),
+                0,
+                0,
+                b"size\0".as_ptr() as *const c_char,
+            );
+            assert!(!raw_fun.is_null());
+            let fun_obj = JS_GetFunctionObject(raw_fun);
+            return QueuingStrategySize::new(cx, fun_obj).clone();
+        }
+    }
+    strategy.size.as_ref().unwrap().clone()
+}
+
+mod test {
+    use js::jsval::Int32Value;
+
+    use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
+    use crate::dom::bindings::import::module::{Error, ExceptionHandling};
+    use crate::dom::types::GlobalScope;
+
+    #[test]
+    fn extract_size_algorithm() {
+        let strategy = QueuingStrategy {
+            highWaterMark: None,
+            size: None,
+        };
+
+        #[allow(unsafe_code)]
+        unsafe {
+            // FIXME: panic here because cx is null
+            let cx = super::GlobalScope::get_cx();
+            let global = GlobalScope::current().unwrap();
+            let size = super::extract_size_algorithm(&strategy);
+            rooted!(in(*cx) let value = Int32Value(100));
+            let _ = size.Call_(&*global, value.handle(), ExceptionHandling::Report);
+            // assert_eq!((100), 1);
+        }
+    }
+
+    #[test]
+    fn extract_high_water_mark() {
+        let strategy = QueuingStrategy {
+            highWaterMark: None,
+            size: None,
+        };
+        let hwm = super::extract_high_water_mark(&strategy, 100.0);
+        assert_eq!(hwm.unwrap(), 100.0);
+
+        let strategy = QueuingStrategy {
+            highWaterMark: Some(-1.5),
+            size: None,
+        };
+        let hwm = super::extract_high_water_mark(&strategy, 100.0);
+        assert_eq!(
+            hwm.is_err_and(|err| match err {
+                Error::Range(_) => true,
+                _ => false,
+            }),
+            true
+        );
+
+        let strategy = QueuingStrategy {
+            highWaterMark: Some(f64::NAN),
+            size: None,
+        };
+        let hwm = super::extract_high_water_mark(&strategy, 100.0);
+        assert_eq!(
+            hwm.is_err_and(|err| match err {
+                Error::Range(_) => true,
+                _ => false,
+            }),
+            true
+        );
+
+        let strategy = QueuingStrategy {
+            highWaterMark: Some(9.527),
+            size: None,
+        };
+        let hwm = super::extract_high_water_mark(&strategy, 100.0);
+        assert_eq!(hwm.unwrap(), 9.527);
+    }
 }
