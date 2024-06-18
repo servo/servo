@@ -11,7 +11,7 @@ use style::values::specified::text::TextTransformCase;
 use unicode_segmentation::UnicodeSegmentation;
 
 use super::text_run::TextRun;
-use super::{InlineBox, InlineFormattingContext, InlineLevelBox};
+use super::{InlineBox, InlineBoxIdentifier, InlineBoxes, InlineFormattingContext, InlineItem};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
@@ -22,7 +22,12 @@ use crate::positioned::AbsolutelyPositionedBox;
 
 #[derive(Default)]
 pub(crate) struct InlineFormattingContextBuilder {
+    /// The collection of text strings that make up this [`InlineFormattingContext`] under
+    /// construction.
     pub text_segments: Vec<String>,
+
+    /// The current offset in the final text string of this [`InlineFormattingContext`],
+    /// used to properly set the text range of new [`InlineItem::TextRun`]s.
     current_text_offset: usize,
 
     /// Whether the last processed node ended with whitespace. This is used to
@@ -41,13 +46,13 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// Whether or not this inline formatting context will contain floats.
     pub contains_floats: bool,
 
-    /// Inline elements are direct descendants of the element that establishes
-    /// the inline formatting context that this builder builds.
-    pub root_inline_boxes: Vec<ArcRefCell<InlineLevelBox>>,
+    /// The current list of [`InlineItem`]s in this [`InlineFormattingContext`] under
+    /// construction. This is stored in a flat list to make it easy to access the last
+    /// item.
+    pub inline_items: Vec<ArcRefCell<InlineItem>>,
 
-    /// Whether or not the inline formatting context under construction has any
-    /// uncollapsible text content.
-    pub has_uncollapsible_text_content: bool,
+    /// The current [`InlineBox`] tree of this [`InlineFormattingContext`] under construction.
+    pub inline_boxes: InlineBoxes,
 
     /// The ongoing stack of inline boxes stack of the builder.
     ///
@@ -56,16 +61,12 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// which is why the code doesn't need to keep track of the actual
     /// container root (see `handle_inline_level_element`).
     ///
-    /// Whenever the end of a DOM element that represents an inline box is
-    /// reached, the inline box at the top of this stack is complete and ready
-    /// to be pushed to the children of the next last ongoing inline box
-    /// the ongoing inline formatting context if the stack is now empty,
-    /// which means we reached the end of a child of the actual
-    /// container root (see `move_to_next_sibling`).
-    ///
-    /// When an inline box ends, it's removed from this stack and added to
-    /// [`Self::root_inline_boxes`].
-    inline_box_stack: Vec<InlineBox>,
+    /// When an inline box ends, it's removed from this stack.
+    inline_box_stack: Vec<InlineBoxIdentifier>,
+
+    /// Whether or not the inline formatting context under construction has any
+    /// uncollapsible text content.
+    pub has_uncollapsible_text_content: bool,
 }
 
 impl InlineFormattingContextBuilder {
@@ -93,44 +94,30 @@ impl InlineFormattingContextBuilder {
             return false;
         }
 
-        fn inline_level_boxes_are_empty(boxes: &[ArcRefCell<InlineLevelBox>]) -> bool {
-            boxes
-                .iter()
-                .all(|inline_level_box| inline_level_box_is_empty(&inline_level_box.borrow()))
-        }
-
-        fn inline_level_box_is_empty(inline_level_box: &InlineLevelBox) -> bool {
+        fn inline_level_box_is_empty(inline_level_box: &InlineItem) -> bool {
             match inline_level_box {
-                InlineLevelBox::InlineBox(_) => false,
+                InlineItem::StartInlineBox(_) => false,
+                InlineItem::EndInlineBox => false,
                 // Text content is handled by `self.has_uncollapsible_text` content above in order
                 // to avoid having to iterate through the character once again.
-                InlineLevelBox::TextRun(_) => true,
-                InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => false,
-                InlineLevelBox::OutOfFlowFloatBox(_) => false,
-                InlineLevelBox::Atomic(_) => false,
+                InlineItem::TextRun(_) => true,
+                InlineItem::OutOfFlowAbsolutelyPositionedBox(_) => false,
+                InlineItem::OutOfFlowFloatBox(_) => false,
+                InlineItem::Atomic(_) => false,
             }
         }
 
-        inline_level_boxes_are_empty(&self.root_inline_boxes)
-    }
-
-    // Retrieves the mutable reference of inline boxes either from the last
-    // element of a stack or directly from the formatting context, depending on the situation.
-    fn current_inline_level_boxes(&mut self) -> &mut Vec<ArcRefCell<InlineLevelBox>> {
-        match self.inline_box_stack.last_mut() {
-            Some(last) => &mut last.children,
-            None => &mut self.root_inline_boxes,
-        }
+        self.inline_items
+            .iter()
+            .all(|inline_level_box| inline_level_box_is_empty(&inline_level_box.borrow()))
     }
 
     pub(crate) fn push_atomic(
         &mut self,
         independent_formatting_context: IndependentFormattingContext,
-    ) -> ArcRefCell<InlineLevelBox> {
-        let inline_level_box =
-            ArcRefCell::new(InlineLevelBox::Atomic(independent_formatting_context));
-        self.current_inline_level_boxes()
-            .push(inline_level_box.clone());
+    ) -> ArcRefCell<InlineItem> {
+        let inline_level_box = ArcRefCell::new(InlineItem::Atomic(independent_formatting_context));
+        self.inline_items.push(inline_level_box.clone());
 
         // Push an object replacement character for this atomic, which will ensure that the line breaker
         // inserts a line breaking opportunity here.
@@ -147,49 +134,43 @@ impl InlineFormattingContextBuilder {
     pub(crate) fn push_absolutely_positioned_box(
         &mut self,
         absolutely_positioned_box: AbsolutelyPositionedBox,
-    ) -> ArcRefCell<InlineLevelBox> {
+    ) -> ArcRefCell<InlineItem> {
         let absolutely_positioned_box = ArcRefCell::new(absolutely_positioned_box);
-        let inline_level_box = ArcRefCell::new(InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(
+        let inline_level_box = ArcRefCell::new(InlineItem::OutOfFlowAbsolutelyPositionedBox(
             absolutely_positioned_box,
         ));
-        self.current_inline_level_boxes()
-            .push(inline_level_box.clone());
+        self.inline_items.push(inline_level_box.clone());
         inline_level_box
     }
 
-    pub(crate) fn push_float_box(&mut self, float_box: FloatBox) -> ArcRefCell<InlineLevelBox> {
-        let inline_level_box = ArcRefCell::new(InlineLevelBox::OutOfFlowFloatBox(float_box));
-        self.current_inline_level_boxes()
-            .push(inline_level_box.clone());
+    pub(crate) fn push_float_box(&mut self, float_box: FloatBox) -> ArcRefCell<InlineItem> {
+        let inline_level_box = ArcRefCell::new(InlineItem::OutOfFlowFloatBox(float_box));
+        self.inline_items.push(inline_level_box.clone());
         self.contains_floats = true;
         inline_level_box
     }
 
-    pub(crate) fn start_inline_box<'dom, Node: NodeExt<'dom>>(
-        &mut self,
-        info: &NodeAndStyleInfo<Node>,
-    ) {
-        self.inline_box_stack.push(InlineBox::new(info))
+    pub(crate) fn start_inline_box(&mut self, inline_box: InlineBox) {
+        let identifier = self.inline_boxes.start_inline_box(inline_box);
+        self.inline_items
+            .push(ArcRefCell::new(InlineItem::StartInlineBox(identifier)));
+        self.inline_box_stack.push(identifier);
     }
 
-    pub(crate) fn end_inline_box(&mut self) -> ArcRefCell<InlineLevelBox> {
-        self.end_inline_box_internal(true)
+    pub(crate) fn end_inline_box(&mut self) -> ArcRefCell<InlineBox> {
+        let identifier = self.end_inline_box_internal();
+        let inline_level_box = self.inline_boxes.get(&identifier);
+        inline_level_box.borrow_mut().is_last_fragment = true;
+        inline_level_box
     }
 
-    fn end_inline_box_internal(&mut self, is_last_fragment: bool) -> ArcRefCell<InlineLevelBox> {
-        let mut inline_box = self
-            .inline_box_stack
+    fn end_inline_box_internal(&mut self) -> InlineBoxIdentifier {
+        self.inline_boxes.end_inline_box();
+        self.inline_items
+            .push(ArcRefCell::new(InlineItem::EndInlineBox));
+        self.inline_box_stack
             .pop()
-            .expect("no ongoing inline level box found");
-
-        if is_last_fragment {
-            inline_box.is_last_fragment = true;
-        }
-
-        let inline_box = ArcRefCell::new(InlineLevelBox::InlineBox(inline_box));
-        self.current_inline_level_boxes().push(inline_box.clone());
-
-        inline_box
+            .expect("Ended non-existent inline box")
     }
 
     pub(crate) fn push_text<'dom, Node: NodeExt<'dom>>(
@@ -251,19 +232,19 @@ impl InlineFormattingContextBuilder {
         self.current_text_offset = new_range.end;
         self.text_segments.push(new_text);
 
-        let inlines = self.current_inline_level_boxes();
-        if let Some(mut last_box) = inlines.last_mut().map(|last| last.borrow_mut()) {
-            if let InlineLevelBox::TextRun(ref mut text_run) = *last_box {
+        if let Some(inline_item) = self.inline_items.last() {
+            if let InlineItem::TextRun(text_run) = &mut *inline_item.borrow_mut() {
                 text_run.text_range.end = new_range.end;
                 return;
             }
         }
 
-        inlines.push(ArcRefCell::new(InlineLevelBox::TextRun(TextRun::new(
-            info.into(),
-            info.style.clone(),
-            new_range,
-        ))));
+        self.inline_items
+            .push(ArcRefCell::new(InlineItem::TextRun(TextRun::new(
+                info.into(),
+                info.style.clone(),
+                new_range,
+            ))));
     }
 
     pub(crate) fn split_around_block_and_finish(
@@ -280,27 +261,25 @@ impl InlineFormattingContextBuilder {
         // context. It has the same inline box structure as this builder, except the boxes are
         // marked as not being the first fragment. No inline content is carried over to this new
         // builder.
-        let mut inline_buidler_from_before_split = std::mem::replace(
-            self,
-            InlineFormattingContextBuilder {
-                on_word_boundary: true,
-                inline_box_stack: self
-                    .inline_box_stack
-                    .iter()
-                    .map(|inline_box| inline_box.split_around_block())
-                    .collect(),
-                ..Default::default()
-            },
-        );
+        let mut new_builder = InlineFormattingContextBuilder::new();
+        for identifier in self.inline_box_stack.iter() {
+            new_builder.start_inline_box(
+                self.inline_boxes
+                    .get(&identifier)
+                    .borrow()
+                    .split_around_block(),
+            );
+        }
+        let mut inline_builder_from_before_split = std::mem::replace(self, new_builder);
 
         // End all ongoing inline boxes in the first builder, but ensure that they are not
         // marked as the final fragments, so that they do not get inline end margin, borders,
         // and padding.
-        while !inline_buidler_from_before_split.inline_box_stack.is_empty() {
-            inline_buidler_from_before_split.end_inline_box_internal(false);
+        while !inline_builder_from_before_split.inline_box_stack.is_empty() {
+            inline_builder_from_before_split.end_inline_box_internal();
         }
 
-        inline_buidler_from_before_split.finish(
+        inline_builder_from_before_split.finish(
             layout_context,
             text_decoration_line,
             has_first_formatted_line,

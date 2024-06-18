@@ -21,7 +21,7 @@ use crate::dom::{LayoutBox, NodeExt};
 use crate::dom_traversal::{iter_child_nodes, Contents, NodeAndStyleInfo};
 use crate::flexbox::FlexLevelBox;
 use crate::flow::float::FloatBox;
-use crate::flow::inline::InlineLevelBox;
+use crate::flow::inline::InlineItem;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::FragmentTree;
@@ -122,7 +122,7 @@ impl BoxTree {
         #[allow(clippy::enum_variant_names)]
         enum UpdatePoint {
             AbsolutelyPositionedBlockLevelBox(ArcRefCell<BlockLevelBox>),
-            AbsolutelyPositionedInlineLevelBox(ArcRefCell<InlineLevelBox>),
+            AbsolutelyPositionedInlineLevelBox(ArcRefCell<InlineItem>),
             AbsolutelyPositionedFlexLevelBox(ArcRefCell<FlexLevelBox>),
         }
 
@@ -180,8 +180,9 @@ impl BoxTree {
                         },
                         _ => return None,
                     },
+                    LayoutBox::InlineBox(_) => return None,
                     LayoutBox::InlineLevel(inline_level_box) => match &*inline_level_box.borrow() {
-                        InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(_)
+                        InlineItem::OutOfFlowAbsolutelyPositionedBox(_)
                             if box_style.position.is_absolutely_positioned() =>
                         {
                             UpdatePoint::AbsolutelyPositionedInlineLevelBox(
@@ -219,7 +220,7 @@ impl BoxTree {
                     },
                     UpdatePoint::AbsolutelyPositionedInlineLevelBox(inline_level_box) => {
                         *inline_level_box.borrow_mut() =
-                            InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(
+                            InlineItem::OutOfFlowAbsolutelyPositionedBox(
                                 out_of_flow_absolutely_positioned_box,
                             );
                     },
