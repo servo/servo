@@ -57,3 +57,10 @@ jobs:
     secrets: inherit
     with:
       profile: ${{ inputs.profile }}
+
+  ohos:
+    if: ${{ inputs.workflow == 'ohos' }}
+    name: OpenHarmony
+    uses: ./.github/workflows/ohos.yml
+    with:
+      profile: ${{ inputs.profile }}

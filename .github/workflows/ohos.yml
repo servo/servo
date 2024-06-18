@@ -1,0 +1,77 @@
+name: OpenHarmony
+on:
+  workflow_call:
+    inputs:
+      profile:
+        required: false
+        default: "release"
+        type: string
+  workflow_dispatch:
+    inputs:
+      profile:
+        required: false
+        default: "release"
+        type: choice
+        description: "Cargo build profile"
+        options: [ "release", "debug", "production"]
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+  SCCACHE_GHA_ENABLED: "true"
+  RUSTC_WRAPPER: "sccache"
+  CCACHE: "sccache"
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  build:
+    name: OpenHarmony Build
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        arch: ['aarch64-unknown-linux-ohos']
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name != 'issue_comment' && github.event_name != 'pull_request_target'
+        with:
+          fetch-depth: 2
+      # This is necessary to checkout the pull request if this run was triggered
+      # via an `issue_comment` action on a pull request.
+      - uses: actions/checkout@v4
+        if: github.event_name == 'issue_comment' || github.event_name == 'pull_request_target'
+        with:
+          ref: refs/pull/${{ github.event.issue.number || github.event.number }}/head
+          fetch-depth: 2
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.4
+      - name: Install taplo
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: taplo-cli
+          locked: true
+      - name: Install cargo-deny
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: cargo-deny
+          locked: true
+      - name: Bootstrap Python
+        run: python3 -m pip install --upgrade pip virtualenv
+      - name: Bootstrap dependencies
+        run: sudo apt update && python3 ./mach bootstrap
+      - name: Setup OpenHarmony SDK
+        id: setup_sdk
+        uses: openharmony-rs/setup-ohos-sdk@v0.1
+        with:
+          version: "4.1"
+      - name: Build (arch ${{ matrix.arch }} profile ${{ inputs.profile }})
+        env:
+          OHOS_SDK_NATIVE: ${{ steps.setup_sdk.outputs.ohos_sdk_native }}
+        run: |
+          python3 ./mach build --locked --target ${{ matrix.arch }} --${{ inputs.profile }}
+          cp -r target/cargo-timings target/cargo-timings-ohos-${{ matrix.arch }}
+      - name: Archive build timing
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-timings-ohos-${{ matrix.arch }}
+          # Using a wildcard here ensures that the archive includes the path.
+          path: target/cargo-timings-*

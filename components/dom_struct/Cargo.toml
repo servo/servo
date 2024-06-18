@@ -1,10 +1,10 @@
 [package]
-authors = ["The Servo Project Developers"]
-license = "MPL-2.0"
 name = "dom_struct"
-edition = "2018"
-publish = false
-version = "0.0.1"
+edition.workspace = true
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
 
 [dependencies]
 quote = { workspace = true }

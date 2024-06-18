@@ -21,6 +21,7 @@ rand = [
 # Ignored packages with duplicated versions
 packages = [
     "bitflags",
+    "cfg_aliases",
     "cookie",
     "futures",
     "libloading",

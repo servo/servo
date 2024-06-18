@@ -32,7 +32,7 @@ use crate::platform::font::{FontTable, PlatformFont};
 pub use crate::platform::font_list::fallback_font_families;
 use crate::text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use crate::text::shaping::ShaperMethods;
-use crate::text::{FallbackFontSelectionOptions, Shaper};
+use crate::text::{EmojiPresentationPreference, FallbackFontSelectionOptions, Shaper};
 
 #[macro_export]
 macro_rules! ot_tag {
@@ -219,6 +219,11 @@ pub struct Font {
     /// the version of the font used to replace lowercase ASCII letters. It's up
     /// to the consumer of this font to properly use this reference.
     pub synthesized_small_caps: Option<FontRef>,
+
+    /// Whether or not this font supports color bitmaps or a COLR table. This is
+    /// essentially equivalent to whether or not we use it for emoji presentation.
+    /// This is cached, because getting table data is expensive.
+    has_color_bitmap_or_colr_table: OnceLock<bool>,
 }
 
 impl malloc_size_of::MallocSizeOf for Font {
@@ -250,6 +255,7 @@ impl Font {
             cached_shape_data: Default::default(),
             font_key: FontInstanceKey::default(),
             synthesized_small_caps,
+            has_color_bitmap_or_colr_table: OnceLock::new(),
         })
     }
 
@@ -260,6 +266,14 @@ impl Font {
 
     pub fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
         self.handle.webrender_font_instance_flags()
+    }
+
+    pub fn has_color_bitmap_or_colr_table(&self) -> bool {
+        *self.has_color_bitmap_or_colr_table.get_or_init(|| {
+            self.table_for_tag(SBIX).is_some() ||
+                self.table_for_tag(CBDT).is_some() ||
+                self.table_for_tag(COLR).is_some()
+        })
     }
 }
 
@@ -503,25 +517,45 @@ impl FontGroup {
             Some(font)
         };
 
-        let glyph_in_font = |font: &FontRef| font.has_glyph_for(options.character);
+        let font_has_glyph_and_presentation = |font: &FontRef| {
+            // Do not select this font if it goes against our emoji preference.
+            match options.presentation_preference {
+                EmojiPresentationPreference::Text if font.has_color_bitmap_or_colr_table() => {
+                    return false
+                },
+                EmojiPresentationPreference::Emoji if !font.has_color_bitmap_or_colr_table() => {
+                    return false
+                },
+                _ => {},
+            }
+            font.has_glyph_for(options.character)
+        };
+
         let char_in_template =
             |template: FontTemplateRef| template.char_in_unicode_range(options.character);
 
-        if let Some(font) = self.find(font_context, char_in_template, glyph_in_font) {
+        if let Some(font) = self.find(
+            font_context,
+            char_in_template,
+            font_has_glyph_and_presentation,
+        ) {
             return font_or_synthesized_small_caps(font);
         }
 
         if let Some(ref last_matching_fallback) = self.last_matching_fallback {
             if char_in_template(last_matching_fallback.template.clone()) &&
-                glyph_in_font(last_matching_fallback)
+                font_has_glyph_and_presentation(last_matching_fallback)
             {
                 return font_or_synthesized_small_caps(last_matching_fallback.clone());
             }
         }
 
-        if let Some(font) =
-            self.find_fallback(font_context, options, char_in_template, glyph_in_font)
-        {
+        if let Some(font) = self.find_fallback(
+            font_context,
+            options,
+            char_in_template,
+            font_has_glyph_and_presentation,
+        ) {
             self.last_matching_fallback = Some(font.clone());
             return font_or_synthesized_small_caps(font);
         }
