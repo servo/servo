@@ -64,6 +64,7 @@ pub struct ReadableStream {
 
 impl ReadableStream {
     #[allow(non_snake_case)]
+    // https://streams.spec.whatwg.org/#rs-constructor
     pub fn Constructor(
         cx: SafeJSContext,
         global: &GlobalScope,

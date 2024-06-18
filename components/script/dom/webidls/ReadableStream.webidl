@@ -9,3 +9,5 @@ interface _ReadableStream {
     [Throws]
     constructor(optional object underlyingSource, optional QueuingStrategy strategy = {});
 };
+
+enum ReadableStreamType { "bytes" };
