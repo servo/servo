@@ -48,8 +48,8 @@ devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
 env_logger = { workspace = true }
 euclid = { workspace = true }
-gfx = { path = "../gfx" }
-gfx_traits = { workspace = true }
+fonts = { path = "../fonts" }
+fonts_traits = { workspace = true }
 gleam = { workspace = true }
 gstreamer = { workspace = true, optional = true }
 ipc-channel = { workspace = true }

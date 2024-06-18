@@ -25,12 +25,11 @@ use harfbuzz_sys::{
 use lazy_static::lazy_static;
 use log::debug;
 
-use crate::font::{Font, FontTableMethods, FontTableTag, ShapingFlags, ShapingOptions, KERN};
-use crate::ot_tag;
 use crate::platform::font::FontTable;
-use crate::text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
-use crate::text::shaping::ShaperMethods;
-use crate::text::util::{fixed_to_float, float_to_fixed};
+use crate::{
+    fixed_to_float, float_to_fixed, ot_tag, ByteIndex, Font, FontTableMethods, FontTableTag,
+    GlyphData, GlyphId, GlyphStore, ShapingFlags, ShapingOptions, KERN,
+};
 
 const NO_GLYPH: i32 = -1;
 const LIGA: u32 = ot_tag!('l', 'i', 'g', 'a');
@@ -361,10 +360,10 @@ pub fn unicode_to_hb_script(script: unicode_script::Script) -> harfbuzz_sys::hb_
     }
 }
 
-impl ShaperMethods for Shaper {
+impl Shaper {
     /// Calculate the layout metrics associated with the given text when painted in a specific
     /// font.
-    fn shape_text(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore) {
+    pub(crate) fn shape_text(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore) {
         unsafe {
             let hb_buffer: *mut hb_buffer_t = hb_buffer_create();
             hb_buffer_set_direction(
@@ -420,9 +419,7 @@ impl ShaperMethods for Shaper {
             hb_buffer_destroy(hb_buffer);
         }
     }
-}
 
-impl Shaper {
     fn save_glyph_results(
         &self,
         text: &str,

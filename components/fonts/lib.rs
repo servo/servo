@@ -2,13 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![deny(unsafe_code)]
+
+mod font;
+mod font_cache_thread;
+mod font_context;
+mod font_store;
+mod font_template;
+mod glyph;
+#[allow(unsafe_code)]
+pub mod platform;
+mod shaper;
+
+pub use font::*;
+pub use font_cache_thread::*;
+pub use font_context::*;
+pub use font_store::*;
+pub use font_template::*;
+pub use glyph::*;
+pub use shaper::*;
 use unicode_properties::{emoji, EmojiStatus, UnicodeEmoji};
-
-pub use crate::text::shaping::Shaper;
-
-pub mod glyph;
-pub mod shaping;
-pub mod util;
 
 /// Whether or not font fallback selection prefers the emoji or text representation
 /// of a character. If `None` then either presentation is acceptable.
@@ -65,4 +78,12 @@ impl FallbackFontSelectionOptions {
             presentation_preference,
         }
     }
+}
+
+pub(crate) fn float_to_fixed(before: usize, f: f64) -> i32 {
+    ((1i32 << before) as f64 * f) as i32
+}
+
+pub(crate) fn fixed_to_float(before: usize, f: i32) -> f64 {
+    f as f64 * 1.0f64 / ((1i32 << before) as f64)
 }

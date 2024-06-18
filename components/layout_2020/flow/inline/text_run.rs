@@ -6,11 +6,11 @@ use std::mem;
 use std::ops::Range;
 
 use app_units::Au;
-use gfx::font::{FontRef, ShapingFlags, ShapingOptions};
-use gfx::font_cache_thread::FontCacheThread;
-use gfx::font_context::FontContext;
-use gfx::text::glyph::GlyphRun;
-use gfx_traits::ByteIndex;
+use fonts::{
+    FontCacheThread, FontContext, FontRef, GlyphRun, ShapingFlags, ShapingOptions,
+    LAST_RESORT_GLYPH_ADVANCE,
+};
+use fonts_traits::ByteIndex;
 use log::warn;
 use range::Range as ServoRange;
 use serde::Serialize;
@@ -371,7 +371,7 @@ impl TextRun {
                     let space_width = font
                         .glyph_index(' ')
                         .map(|glyph_id| font.glyph_h_advance(glyph_id))
-                        .unwrap_or(gfx::font::LAST_RESORT_GLYPH_ADVANCE);
+                        .unwrap_or(LAST_RESORT_GLYPH_ADVANCE);
                     specified_word_spacing.to_used_value(Au::from_f64_px(space_width))
                 });
 

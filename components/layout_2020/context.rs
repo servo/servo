@@ -6,8 +6,7 @@ use std::sync::Arc;
 
 use base::id::PipelineId;
 use fnv::FnvHashMap;
-use gfx::font_cache_thread::FontCacheThread;
-use gfx::font_context::FontContext;
+use fonts::{FontCacheThread, FontContext};
 use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageOrMetadataAvailable, UsePlaceholder,
 };

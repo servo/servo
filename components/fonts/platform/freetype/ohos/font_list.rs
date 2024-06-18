@@ -15,8 +15,7 @@ use style::values::computed::{
 };
 use style::Atom;
 
-use crate::font_template::{FontTemplate, FontTemplateDescriptor};
-use crate::text::FallbackFontSelectionOptions;
+use crate::{FallbackFontSelectionOptions, FontTemplate, FontTemplateDescriptor};
 
 lazy_static::lazy_static! {
     static ref FONT_LIST: FontList = FontList::new();

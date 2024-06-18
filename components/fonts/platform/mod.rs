@@ -14,7 +14,7 @@ pub use crate::platform::macos::{core_text_font_cache, font, font_list};
 #[cfg(target_os = "windows")]
 pub use crate::platform::windows::{font, font_list};
 #[cfg(any(target_os = "linux", target_os = "macos"))]
-use crate::text::FallbackFontSelectionOptions;
+use crate::FallbackFontSelectionOptions;
 
 #[cfg(any(target_os = "linux", target_os = "android"))]
 mod freetype {

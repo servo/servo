@@ -22,13 +22,10 @@ use truetype::tables::WindowsMetrics;
 use truetype::value::Read;
 use webrender_api::FontInstanceFlags;
 
-use crate::font::{
-    FontMetrics, FontTableMethods, FontTableTag, FractionalPixel, PlatformFontMethods,
+use crate::{
+    ot_tag, FontIdentifier, FontMetrics, FontTableMethods, FontTableTag, FontTemplateDescriptor,
+    FractionalPixel, GlyphId, PlatformFontMethods,
 };
-use crate::font_cache_thread::FontIdentifier;
-use crate::font_template::FontTemplateDescriptor;
-use crate::ot_tag;
-use crate::text::glyph::GlyphId;
 
 // 1em = 12pt = 16px, assuming 72 points per inch and 96 px per inch
 fn pt_to_px(pt: f64) -> f64 {

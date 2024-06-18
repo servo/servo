@@ -14,10 +14,11 @@ use style::Atom;
 use unicode_script::Script;
 use webrender_api::NativeFontHandle;
 
-use crate::font_template::{FontTemplate, FontTemplateDescriptor};
 use crate::platform::add_noto_fallback_families;
 use crate::platform::font::CoreTextFontTraitsMapping;
-use crate::text::{EmojiPresentationPreference, FallbackFontSelectionOptions};
+use crate::{
+    EmojiPresentationPreference, FallbackFontSelectionOptions, FontTemplate, FontTemplateDescriptor,
+};
 
 /// An identifier for a local font on a MacOS system. These values comes from the CoreText
 /// CTFontCollection. Note that `path` here is required. We do not load fonts that do not

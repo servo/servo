@@ -16,7 +16,7 @@ use base::text::is_bidi_control;
 use bitflags::bitflags;
 use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use euclid::default::{Point2D, Rect, Size2D, Vector2D};
-use gfx::text::glyph::ByteIndex;
+use fonts::ByteIndex;
 use html5ever::{local_name, namespace_url, ns};
 use ipc_channel::ipc::IpcSender;
 use log::debug;

@@ -79,8 +79,7 @@ use std::mem;
 use app_units::Au;
 use bitflags::bitflags;
 use construct::InlineFormattingContextBuilder;
-use gfx::font::FontMetrics;
-use gfx::text::glyph::GlyphStore;
+use fonts::{FontMetrics, GlyphStore};
 use line::{
     layout_line_items, AbsolutelyPositionedLineItem, AtomicLineItem, FloatLineItem,
     InlineBoxLineItem, LineItem, LineItemLayoutState, LineMetrics, TextRunLineItem,

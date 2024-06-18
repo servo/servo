@@ -55,6 +55,7 @@ use crossbeam_channel::{unbounded, Sender};
 use embedder_traits::{EmbedderMsg, EmbedderProxy, EmbedderReceiver, EventLoopWaker};
 use env_logger::Builder as EnvLoggerBuilder;
 use euclid::Scale;
+use fonts::FontCacheThread;
 #[cfg(all(
     not(target_os = "windows"),
     not(target_os = "ios"),
@@ -64,7 +65,6 @@ use euclid::Scale;
     not(target_env = "ohos"),
 ))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
-use gfx::font_cache_thread::FontCacheThread;
 pub use gleam::gl;
 use ipc_channel::ipc::{self, IpcSender};
 use log::{error, trace, warn, Log, Metadata, Record};
@@ -97,7 +97,7 @@ use webrender_traits::{
 };
 pub use {
     background_hang_monitor, base, bluetooth, bluetooth_traits, canvas, canvas_traits, compositing,
-    constellation, devtools, devtools_traits, embedder_traits, euclid, gfx, ipc_channel,
+    constellation, devtools, devtools_traits, embedder_traits, euclid, fonts, ipc_channel,
     keyboard_types, layout_thread_2013, layout_thread_2020, media, net, net_traits, profile,
     profile_traits, script, script_layout_interface, script_traits, servo_config as config,
     servo_config, servo_geometry, servo_url as url, servo_url, style, style_traits, webgpu,

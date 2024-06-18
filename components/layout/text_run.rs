@@ -8,8 +8,9 @@ use std::slice::Iter;
 use std::sync::Arc;
 
 use app_units::Au;
-use gfx::font::{FontMetrics, FontRef, RunMetrics, ShapingFlags, ShapingOptions};
-use gfx::text::glyph::{ByteIndex, GlyphRun, GlyphStore};
+use fonts::{
+    ByteIndex, FontMetrics, FontRef, GlyphRun, GlyphStore, RunMetrics, ShapingFlags, ShapingOptions,
+};
 use log::debug;
 use range::Range;
 use serde::{Deserialize, Serialize};

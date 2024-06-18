@@ -11,7 +11,7 @@ use std::sync::Arc;
 use app_units::Au;
 use crossbeam_channel::unbounded;
 use fnv::FnvHasher;
-use gfx_traits::WebFontLoadFinishedCallback;
+use fonts_traits::WebFontLoadFinishedCallback;
 use log::{debug, trace};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;

@@ -6,8 +6,7 @@ use std::vec::IntoIter;
 
 use app_units::Au;
 use atomic_refcell::AtomicRef;
-use gfx::font::FontMetrics;
-use gfx::text::glyph::GlyphStore;
+use fonts::{FontMetrics, GlyphStore};
 use servo_arc::Arc;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::properties::ComputedValues;

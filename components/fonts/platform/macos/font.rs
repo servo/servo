@@ -22,13 +22,11 @@ use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
 use webrender_api::FontInstanceFlags;
 
 use super::core_text_font_cache::CoreTextFontCache;
-use crate::font::{
-    map_platform_values_to_style_values, FontMetrics, FontTableMethods, FontTableTag,
-    FractionalPixel, PlatformFontMethods, CBDT, COLR, GPOS, GSUB, KERN, SBIX,
+use crate::{
+    map_platform_values_to_style_values, FontIdentifier, FontMetrics, FontTableMethods,
+    FontTableTag, FontTemplateDescriptor, FractionalPixel, GlyphId, PlatformFontMethods, CBDT,
+    COLR, GPOS, GSUB, KERN, SBIX,
 };
-use crate::font_cache_thread::FontIdentifier;
-use crate::font_template::FontTemplateDescriptor;
-use crate::text::glyph::GlyphId;
 
 const KERN_PAIR_LEN: usize = 6;
 
