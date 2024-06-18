@@ -78,8 +78,10 @@ The `--` separates `mach` options from `servo` options. This is not required, bu
 This guide only covers the most important options. Be sure to look at all the available mach commands and the servo options:
 
 ```shell
-./mach --help         # mach options
-./mach run -- --help  # servo options
+./mach --help             # mach options
+./mach run -- --help      # servo options
+./mach build              # Build servo with the default configuration
+./mach build --use-crown  # Enable the crown linting tool - recommended when hacking on DOM code.
 ```
 
 ## Some basic Rust
@@ -183,26 +185,39 @@ work done by `./mach` (and vice versa).
 
 You can override this in a `.vscode/settings.json` file:
 
-```
+```json
 {
     "rust-analyzer.check.overrideCommand": [
         "./mach", "check", "--message-format=json" ],
     "rust-analyzer.cargo.buildScripts.overrideCommand": [
         "./mach", "check", "--message-format=json" ],
-    "rust-analyzer.rustfmt.overrideCommand": [ "./mach", "fmt" ],
+    "rust-analyzer.rustfmt.overrideCommand": [ "./mach", "fmt" ]
+}
+```
+
+If you are hacking on DOM code it is recommended to build servo with `./mach build --use-crown` and configure
+rust-analyzer to do the same by adding `--use-crown` to the `rust-analyzer.check.overrideCommand`:
+
+```json
+{
+    "rust-analyzer.check.overrideCommand": [
+        "./mach", "check", "--message-format=json", "--use-crown" ],
+    "rust-analyzer.cargo.buildScripts.overrideCommand": [
+        "./mach", "check", "--message-format=json", "--use-crown" ],
+    "rust-analyzer.rustfmt.overrideCommand": [ "./mach", "fmt" ]
 }
 ```
 
 If that still causes problems, then supplying a different target directory should fix this (although it will increase
 the amount of disc space used).
 
-```
+```json
 {
     "rust-analyzer.checkOnSave.overrideCommand": [
         "./mach", "check", "--message-format=json", "--target-dir", "target/lsp" ],
     "rust-analyzer.cargo.buildScripts.overrideCommand": [
         "./mach", "check", "--message-format=json", "--target-dir", "target/lsp" ],
-    "rust-analyzer.rustfmt.overrideCommand": [ "./mach", "fmt" ],
+    "rust-analyzer.rustfmt.overrideCommand": [ "./mach", "fmt" ]
 }
 ```
 
@@ -211,11 +226,11 @@ where `/nix/store/.../crown` is the output of `nix-shell etc/shell.nix --run 'co
 These settings should be enough to not need to run `code .` from within a `nix-shell etc/shell.nix`,
 but it wouldn’t hurt to try that if you still have problems.
 
-```
+```json
 {
     "rust-analyzer.server.extraEnv": {
-        "CARGO_BUILD_RUSTC": "/nix/store/.../crown",
-    },
+        "CARGO_BUILD_RUSTC": "/nix/store/.../crown"
+    }
 }
 ```
 
@@ -234,11 +249,11 @@ info: component 'llvm-tools' for target 'x86_64-unknown-linux-gnu' is up to date
 
 Then configure either your sysroot path or proc macro server path in `.vscode/settings.json`:
 
-```
+```json
 {
     "rust-analyzer.procMacro.enable": true,
     "rust-analyzer.cargo.sysroot": "[paste what you copied]",
-    "rust-analyzer.procMacro.server": "[paste what you copied]/libexec/rust-analyzer-proc-macro-srv",
+    "rust-analyzer.procMacro.server": "[paste what you copied]/libexec/rust-analyzer-proc-macro-srv"
 }
 ```
 
