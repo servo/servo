@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use app_units::Au;
@@ -26,6 +27,7 @@ use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::{DocumentStyleSheet, StylesheetInDocument};
 use style::Atom;
 use url::Url;
+use webrender_api::{FontInstanceKey, FontKey};
 
 use crate::font::{
     Font, FontDescriptor, FontFamilyDescriptor, FontFamilyName, FontGroup, FontRef, FontSearchScope,
@@ -48,6 +50,7 @@ pub struct FontContext<S: FontSource> {
     cache: CachingFontSource<S>,
     web_fonts: CrossThreadFontStore,
     webrender_font_store: CrossThreadWebRenderFontStore,
+    have_removed_web_fonts: AtomicBool,
 }
 
 impl<S: FontSource> MallocSizeOf for FontContext<S> {
@@ -65,6 +68,7 @@ impl<S: FontSource> FontContext<S> {
             cache: CachingFontSource::new(font_source),
             web_fonts: Arc::new(RwLock::default()),
             webrender_font_store: Arc::new(RwLock::default()),
+            have_removed_web_fonts: AtomicBool::new(false),
         }
     }
 
@@ -244,6 +248,8 @@ pub trait FontContextWebFontMethods {
     ) -> usize;
     fn process_next_web_font_source(&self, web_font_download_state: WebFontDownloadState);
     fn remove_all_web_fonts_from_stylesheet(&self, stylesheet: &DocumentStyleSheet);
+    fn collect_unused_webrender_resources(&self, all: bool)
+        -> (Vec<FontKey>, Vec<FontInstanceKey>);
 }
 
 impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontContext<S>> {
@@ -399,6 +405,44 @@ impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontConte
         // Removing this stylesheet modified the available fonts, so invalidate the cache
         // of resolved font groups.
         font_groups.clear();
+
+        // Ensure that we clean up any WebRender resources on the next display list update.
+        self.have_removed_web_fonts.store(true, Ordering::Relaxed);
+    }
+
+    fn collect_unused_webrender_resources(
+        &self,
+        all: bool,
+    ) -> (Vec<FontKey>, Vec<FontInstanceKey>) {
+        if all {
+            let mut webrender_font_store = self.webrender_font_store.write();
+            self.have_removed_web_fonts.store(false, Ordering::Relaxed);
+            return webrender_font_store.remove_all_fonts();
+        }
+
+        if !self.have_removed_web_fonts.load(Ordering::Relaxed) {
+            return (Vec::new(), Vec::new());
+        }
+
+        // Lock everything to prevent adding new fonts while we are cleaning up the old ones.
+        let web_fonts = self.web_fonts.write();
+        let _fonts = self.cache.fonts.write();
+        let _font_groups = self.cache.resolved_font_groups.write();
+        let mut webrender_font_store = self.webrender_font_store.write();
+
+        let mut unused_identifiers: HashSet<FontIdentifier> = webrender_font_store
+            .webrender_font_key_map
+            .keys()
+            .cloned()
+            .collect();
+        for templates in web_fonts.families.values() {
+            templates.for_all_identifiers(|identifier| {
+                unused_identifiers.remove(identifier);
+            });
+        }
+
+        self.have_removed_web_fonts.store(false, Ordering::Relaxed);
+        webrender_font_store.remove_all_fonts_for_identifiers(unused_identifiers)
     }
 }
 

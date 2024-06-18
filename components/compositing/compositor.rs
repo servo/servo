@@ -845,6 +845,23 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     .send_transaction(self.webrender_document, txn);
             },
 
+            ForwardedToCompositorMsg::Layout(ScriptToCompositorMsg::RemoveFonts(
+                keys,
+                instance_keys,
+            )) => {
+                let mut transaction = Transaction::new();
+
+                for instance in instance_keys.into_iter() {
+                    transaction.delete_font_instance(instance);
+                }
+                for key in keys.into_iter() {
+                    transaction.delete_font(key);
+                }
+
+                self.webrender_api
+                    .send_transaction(self.webrender_document, transaction);
+            },
+
             ForwardedToCompositorMsg::Net(NetToCompositorMsg::AddImage(key, desc, data)) => {
                 let mut txn = Transaction::new();
                 txn.add_image(key, desc, data, None);
