@@ -132,6 +132,12 @@ impl Actor for WatcherActor {
                     type_: "target-available-form".into(),
                     target,
                 });
+
+                let target = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
+                target.frame_update(stream);
+
+                let _ = stream.write_json_packet(&WatchResourcesReply { from: self.name() });
+
                 ActorMessageStatus::Processed
             },
             "watchResources" => {

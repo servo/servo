@@ -387,6 +387,19 @@ impl BrowsingContextActor {
         *self.title.borrow_mut() = title;
     }
 
+    pub(crate) fn frame_update(&self, stream: &mut TcpStream) {
+        let _ = stream.write_json_packet(&FrameUpdateReply {
+            from: self.name(),
+            type_: "frameUpdate".into(),
+            frames: vec![FrameUpdateMsg {
+                id: self.browsing_context_id.index.0.get(),
+                isTopLevel: true,
+                title: self.title.borrow().clone(),
+                url: self.url.borrow().clone(),
+            }],
+        });
+    }
+
     pub(crate) fn resource_available(&self, resource_type: &str, stream: &mut TcpStream) {
         match resource_type {
             "document-event" => {
@@ -436,6 +449,22 @@ impl BrowsingContextActor {
             _ => {},
         }
     }
+}
+
+#[derive(Serialize)]
+struct FrameUpdateReply {
+    from: String,
+    #[serde(rename = "type")]
+    type_: String,
+    frames: Vec<FrameUpdateMsg>,
+}
+
+#[derive(Serialize)]
+struct FrameUpdateMsg {
+    id: u32,
+    isTopLevel: bool,
+    url: String,
+    title: String,
 }
 
 #[derive(Serialize)]
