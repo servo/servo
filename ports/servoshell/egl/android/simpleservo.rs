@@ -184,14 +184,6 @@ pub struct ServoGlue {
 #[derive(Debug)]
 pub struct WebView {}
 
-pub fn servo_version() -> String {
-    format!(
-        "Servo {}-{}",
-        env!("CARGO_PKG_VERSION"),
-        env!("VERGEN_GIT_SHA")
-    )
-}
-
 /// Test if a url is valid.
 pub fn is_uri_valid(url: &str) -> bool {
     info!("load_uri: {}", url);
@@ -926,28 +918,28 @@ impl ResourceReaderMethods for ResourceReaderInstance {
         Vec::from(match res {
             Resource::Preferences => &include_bytes!(concat!(env!("OUT_DIR"), "/prefs.json"))[..],
             Resource::HstsPreloadList => {
-                &include_bytes!("../../../resources/hsts_preload.json")[..]
+                &include_bytes!("../../../../resources/hsts_preload.json")[..]
             },
-            Resource::BadCertHTML => &include_bytes!("../../../resources/badcert.html")[..],
-            Resource::NetErrorHTML => &include_bytes!("../../../resources/neterror.html")[..],
-            Resource::UserAgentCSS => &include_bytes!("../../../resources/user-agent.css")[..],
-            Resource::ServoCSS => &include_bytes!("../../../resources/servo.css")[..],
+            Resource::BadCertHTML => &include_bytes!("../../../../resources/badcert.html")[..],
+            Resource::NetErrorHTML => &include_bytes!("../../../../resources/neterror.html")[..],
+            Resource::UserAgentCSS => &include_bytes!("../../../../resources/user-agent.css")[..],
+            Resource::ServoCSS => &include_bytes!("../../../../resources/servo.css")[..],
             Resource::PresentationalHintsCSS => {
-                &include_bytes!("../../../resources/presentational-hints.css")[..]
+                &include_bytes!("../../../../resources/presentational-hints.css")[..]
             },
-            Resource::QuirksModeCSS => &include_bytes!("../../../resources/quirks-mode.css")[..],
-            Resource::RippyPNG => &include_bytes!("../../../resources/rippy.png")[..],
-            Resource::DomainList => &include_bytes!("../../../resources/public_domains.txt")[..],
+            Resource::QuirksModeCSS => &include_bytes!("../../../../resources/quirks-mode.css")[..],
+            Resource::RippyPNG => &include_bytes!("../../../../resources/rippy.png")[..],
+            Resource::DomainList => &include_bytes!("../../../../resources/public_domains.txt")[..],
             Resource::BluetoothBlocklist => {
-                &include_bytes!("../../../resources/gatt_blocklist.txt")[..]
+                &include_bytes!("../../../../resources/gatt_blocklist.txt")[..]
             },
             Resource::MediaControlsCSS => {
-                &include_bytes!("../../../resources/media-controls.css")[..]
+                &include_bytes!("../../../../resources/media-controls.css")[..]
             },
             Resource::MediaControlsJS => {
-                &include_bytes!("../../../resources/media-controls.js")[..]
+                &include_bytes!("../../../../resources/media-controls.js")[..]
             },
-            Resource::CrashHTML => &include_bytes!("../../../resources/crash.html")[..],
+            Resource::CrashHTML => &include_bytes!("../../../../resources/crash.html")[..],
         })
     }
 

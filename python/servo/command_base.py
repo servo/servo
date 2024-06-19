@@ -344,13 +344,12 @@ class CommandBase(object):
             target = servo.platform.host_triple()
 
         base_path = util.get_target_dir()
+
         if android:
             base_path = path.join(base_path, self.config["android"]["target"])
-            return path.join(base_path, build_type.directory_name(), "libsimpleservo.so")
         elif target:
             base_path = path.join(base_path, target)
-
-        if target is not None and "-ohos" in target:
+        if android or (target is not None and "-ohos" in target):
             return path.join(base_path, build_type.directory_name(), "libservoshell.so")
 
         binary_name = f"servo{servo.platform.get().executable_suffix()}"
@@ -996,20 +995,15 @@ class CommandBase(object):
 
         args = []
         if "--manifest-path" not in cargo_args:
-            if self.is_android_build:
-                port = "jniapi"
-            else:
-                port = "servoshell"
             args += [
                 "--manifest-path",
-                path.join(self.context.topdir, "ports", port, "Cargo.toml"),
+                path.join(self.context.topdir, "ports", "servoshell", "Cargo.toml"),
             ]
         if target_override:
             args += ["--target", target_override]
         elif self.cross_compile_target:
             args += ["--target", self.cross_compile_target]
-            # The same would apply to android once we merge the jniapi into servoshell
-            if '-ohos' in self.cross_compile_target:
+            if self.is_android_build or '-ohos' in self.cross_compile_target:
                 # Note: in practice `cargo rustc` should just be used unconditionally.
                 assert command != 'build', "For Android / OpenHarmony `cargo rustc` must be used instead of cargo build"
                 if command == 'rustc':

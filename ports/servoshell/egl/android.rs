@@ -4,7 +4,6 @@
 
 #![allow(non_snake_case)]
 
-mod gl_glue;
 mod simpleservo;
 
 use std::collections::HashMap;
@@ -23,6 +22,8 @@ use simpleservo::{
     MediaSessionPlaybackState, PromptResult, ServoGlue, SERVO,
 };
 
+use super::gl_glue;
+
 struct HostCallbacks {
     callbacks: GlobalRef,
     jvm: JavaVM,
@@ -35,7 +36,7 @@ extern "C" {
 #[no_mangle]
 pub extern "C" fn android_main() {
     // FIXME(mukilan): this android_main is only present to stop
-    // the java side 'System.loadLibrary('simpleservo') call from
+    // the java side 'System.loadLibrary('servoshell') call from
     // failing due to undefined reference to android_main introduced
     // by winit's android-activity crate. There is no way to disable
     // this currently.
@@ -60,7 +61,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_version<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) -> JString<'local> {
-    let v = simpleservo::servo_version();
+    let v = crate::servo_version();
     env.new_string(&v)
         .unwrap_or_else(|_str| JObject::null().into())
 }
@@ -88,9 +89,8 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_init<'local>(
         // should show up in adb logcat with a release build.
         let filters = [
             "servo",
-            "simpleservo",
-            "simpleservo::jniapi",
-            "simpleservo::gl_glue::egl",
+            "servoshell",
+            "servoshell::egl:gl_glue",
             // Show JS errors by default.
             "script::dom::bindings::error",
             // Show GL errors by default.
@@ -112,7 +112,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_init<'local>(
             Config::default()
                 .with_max_level(log::LevelFilter::Debug)
                 .with_filter(filter_builder.build())
-                .with_tag("simpleservo"),
+                .with_tag("servoshell"),
         )
     }
 
@@ -134,7 +134,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_init<'local>(
     let wakeup = Box::new(WakeupCallback::new(callbacks_ref.clone(), &env));
     let callbacks = Box::new(HostCallbacks::new(callbacks_ref, &env));
 
-    if let Err(err) = gl_glue::egl::init()
+    if let Err(err) = gl_glue::init()
         .and_then(|egl_init| simpleservo::init(opts, egl_init.gl_wrapper, wakeup, callbacks))
     {
         throw(&mut env, err)
@@ -714,7 +714,7 @@ fn redirect_stdout_to_logcat() {
 
         let mut cursor = 0_usize;
 
-        let tag = b"simpleservo\0".as_ptr() as _;
+        let tag = b"servoshell\0".as_ptr() as _;
 
         loop {
             let result = {
@@ -893,7 +893,7 @@ fn get_options<'local>(
     let gst_debug_str = get_field_as_string(env, opts, "gstDebugStr")?;
     let density = get_non_null_field(env, opts, "density", "F")?
         .f()
-        .map_err(|_| "densitiy not a float")? as f32;
+        .map_err(|_| "density not a float")? as f32;
     let log = get_non_null_field(env, opts, "enableLogs", "Z")?
         .z()
         .map_err(|_| "enableLogs not a boolean")?;

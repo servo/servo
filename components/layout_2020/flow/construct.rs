@@ -14,6 +14,7 @@ use style::str::char_is_whitespace;
 use style::values::specified::text::TextDecorationLine;
 
 use super::inline::construct::InlineFormattingContextBuilder;
+use super::inline::{InlineBox, InlineFormattingContext};
 use super::OutsideMarker;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
@@ -22,7 +23,6 @@ use crate::dom_traversal::{
     Contents, NodeAndStyleInfo, NonReplacedContents, PseudoElementContentItem, TraversalHandler,
 };
 use crate::flow::float::FloatBox;
-use crate::flow::inline::{InlineFormattingContext, InlineLevelBox};
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::positioned::AbsolutelyPositionedBox;
@@ -325,9 +325,9 @@ where
                 self.finish_anonymous_table_if_needed();
 
                 match outside {
-                    DisplayOutside::Inline => box_slot.set(LayoutBox::InlineLevel(
-                        self.handle_inline_level_element(info, inside, contents),
-                    )),
+                    DisplayOutside::Inline => {
+                        self.handle_inline_level_element(info, inside, contents, box_slot)
+                    },
                     DisplayOutside::Block => {
                         let box_style = info.style.get_box();
                         // Floats and abspos cause blockification, so they only happen in this case.
@@ -400,6 +400,7 @@ where
                 is_list_item: false,
             },
             Contents::OfPseudoElement(contents),
+            BoxSlot::dummy(),
         );
     }
 
@@ -420,12 +421,13 @@ where
         info: &NodeAndStyleInfo<Node>,
         display_inside: DisplayInside,
         contents: Contents,
-    ) -> ArcRefCell<InlineLevelBox> {
+        box_slot: BoxSlot<'dom>,
+    ) {
         let (DisplayInside::Flow { is_list_item }, false) =
             (display_inside, contents.is_replaced())
         else {
             // If this inline element is an atomic, handle it and return.
-            return self.inline_formatting_context_builder.push_atomic(
+            let atomic = self.inline_formatting_context_builder.push_atomic(
                 IndependentFormattingContext::construct(
                     self.context,
                     info,
@@ -435,12 +437,14 @@ where
                     TextDecorationLine::NONE,
                 ),
             );
+            box_slot.set(LayoutBox::InlineLevel(atomic));
+            return;
         };
 
         // Otherwise, this is just a normal inline box. Whatever happened before, all we need to do
         // before recurring is to remember this ongoing inline level box.
         self.inline_formatting_context_builder
-            .start_inline_box(info);
+            .start_inline_box(InlineBox::new(info));
 
         if is_list_item {
             if let Some(marker_contents) = crate::lists::make_marker(self.context, info) {
@@ -458,8 +462,9 @@ where
 
         self.finish_anonymous_table_if_needed();
 
-        // Finish the inline box in our IFC builder and return it for `display: contents`.
-        self.inline_formatting_context_builder.end_inline_box()
+        box_slot.set(LayoutBox::InlineBox(
+            self.inline_formatting_context_builder.end_inline_box(),
+        ));
     }
 
     fn handle_block_level_element(
