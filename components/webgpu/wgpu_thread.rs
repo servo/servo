@@ -703,36 +703,34 @@ impl WGPU {
                             DeviceLostClosure::from_rust(Box::from(move |reason, msg| {
                                 let reason = match reason {
                                     wgt::DeviceLostReason::Unknown => {
-                                        Some(crate::DeviceLostReason::Unknown)
+                                        crate::DeviceLostReason::Unknown
                                     },
                                     wgt::DeviceLostReason::Destroyed => {
-                                        Some(crate::DeviceLostReason::Destroyed)
+                                        crate::DeviceLostReason::Destroyed
                                     },
-                                    wgt::DeviceLostReason::Dropped => None, // we handle this in WebGPUMsg::FreeDevice
+                                    wgt::DeviceLostReason::Dropped => return, // we handle this in WebGPUMsg::FreeDevice
                                     wgt::DeviceLostReason::ReplacedCallback => {
                                         panic!("DeviceLost callback should only be set once")
                                     },
                                     wgt::DeviceLostReason::DeviceInvalid => {
-                                        Some(crate::DeviceLostReason::Unknown)
+                                        crate::DeviceLostReason::Unknown
                                     },
                                 };
-                                if let Some(reason) = reason {
-                                    // make device lost by removing error scopes stack
-                                    let _ = devices
-                                        .lock()
-                                        .unwrap()
-                                        .get_mut(&device_id)
-                                        .expect("Device should not be dropped by this point")
-                                        .error_scope_stack
-                                        .take();
-                                    if let Err(e) = script_sender.send(WebGPUMsg::DeviceLost {
-                                        device: WebGPUDevice(device_id),
-                                        pipeline_id,
-                                        reason,
-                                        msg,
-                                    }) {
-                                        warn!("Failed to send WebGPUMsg::DeviceLost: {e}");
-                                    }
+                                // make device lost by removing error scopes stack
+                                let _ = devices
+                                    .lock()
+                                    .unwrap()
+                                    .get_mut(&device_id)
+                                    .expect("Device should not be dropped by this point")
+                                    .error_scope_stack
+                                    .take();
+                                if let Err(e) = script_sender.send(WebGPUMsg::DeviceLost {
+                                    device: WebGPUDevice(device_id),
+                                    pipeline_id,
+                                    reason,
+                                    msg,
+                                }) {
+                                    warn!("Failed to send WebGPUMsg::DeviceLost: {e}");
                                 }
                             }));
                         gfx_select!(device_id => global.device_set_device_lost_closure(device_id, callback));
