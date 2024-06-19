@@ -10,7 +10,11 @@ use serde_json::{Map, Value};
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
-use crate::protocol::JsonPacketStream;
+use crate::actors::configuration::{
+    TargetConfigurationActor, TargetConfigurationActorMsg, ThreadConfigurationActor,
+    ThreadConfigurationActorMsg,
+};
+use crate::protocol::{EmptyReply, JsonPacketStream};
 use crate::StreamId;
 
 #[derive(Serialize)]
@@ -73,10 +77,6 @@ impl SessionContext {
     }
 }
 
-// TODO: This is not actually going through
-// It hangs indefinitely and I get this error:
-// Exception while opening the toolbox Error: Connection closed, pending request to watcher8, type watchTargets failed
-// I suspect it has to do with the thread actor that I am now passing
 #[derive(Serialize)]
 struct WatchTargetsReply {
     from: String,
@@ -86,8 +86,15 @@ struct WatchTargetsReply {
 }
 
 #[derive(Serialize)]
-struct WatchResourcesReply {
+struct GetTargetConfigurationActorReply {
     from: String,
+    configuration: TargetConfigurationActorMsg,
+}
+
+#[derive(Serialize)]
+struct GetThreadConfigurationActorReply {
+    from: String,
+    configuration: ThreadConfigurationActorMsg,
 }
 
 #[derive(Serialize)]
@@ -136,7 +143,8 @@ impl Actor for WatcherActor {
                 let target = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
                 target.frame_update(stream);
 
-                let _ = stream.write_json_packet(&WatchResourcesReply { from: self.name() });
+                // TODO: Document this type of reply after sending event messages
+                let _ = stream.write_json_packet(&EmptyReply { from: self.name() });
 
                 ActorMessageStatus::Processed
             },
@@ -164,15 +172,32 @@ impl Actor for WatcherActor {
                         _ => {},
                     }
 
-                    // This just responds with and acknowledgement
-                    let _ = stream.write_json_packet(&WatchResourcesReply { from: self.name() });
+                    let _ = stream.write_json_packet(&EmptyReply { from: self.name() });
                 }
 
                 ActorMessageStatus::Processed
             },
             "getTargetConfigurationActor" => {
-                // TODO: Send propper configuration
-                let _ = stream.write_json_packet(&WatchResourcesReply { from: self.name() });
+                let target = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
+                let target_configuration =
+                    registry.find::<TargetConfigurationActor>(&target.target_configuration);
+
+                let _ = stream.write_json_packet(&GetTargetConfigurationActorReply {
+                    from: self.name(),
+                    configuration: target_configuration.encodable(),
+                });
+
+                ActorMessageStatus::Processed
+            },
+            "getThreadConfigurationActor" => {
+                let target = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
+                let thread_configuration =
+                    registry.find::<ThreadConfigurationActor>(&target.thread_configuration);
+
+                let _ = stream.write_json_packet(&GetThreadConfigurationActorReply {
+                    from: self.name(),
+                    configuration: thread_configuration.encodable(),
+                });
 
                 ActorMessageStatus::Processed
             },

@@ -51,6 +51,7 @@ mod actor;
 /// Corresponds to <http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/>
 mod actors {
     pub mod browsing_context;
+    pub mod configuration;
     pub mod console;
     pub mod device;
     pub mod emulation;

@@ -18,6 +18,7 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actors::configuration::{TargetConfigurationActor, ThreadConfigurationActor};
 use crate::actors::emulation::EmulationActor;
 use crate::actors::inspector::InspectorActor;
 use crate::actors::performance::PerformanceActor;
@@ -195,6 +196,8 @@ pub(crate) struct BrowsingContextActor {
     pub _profiler: String,
     pub _performance: String,
     pub _styleSheets: String,
+    pub target_configuration: String,
+    pub thread_configuration: String,
     pub thread: String,
     pub _tab: String,
     pub streams: RefCell<HashMap<StreamId, TcpStream>>,
@@ -353,6 +356,12 @@ impl BrowsingContextActor {
 
         let tabdesc = TabDescriptorActor::new(actors, name.clone());
 
+        let target_configuration =
+            TargetConfigurationActor::new(actors.new_name("target-configuration"));
+
+        let thread_configuration =
+            ThreadConfigurationActor::new(actors.new_name("thread-configuration"));
+
         let target = BrowsingContextActor {
             name,
             script_chan: script_sender,
@@ -367,6 +376,8 @@ impl BrowsingContextActor {
             _performance: performance.name(),
             _styleSheets: styleSheets.name(),
             _tab: tabdesc.name(),
+            target_configuration: target_configuration.name(),
+            thread_configuration: thread_configuration.name(),
             thread: thread.name(),
             streams: RefCell::new(HashMap::new()),
             browsing_context_id: id,
@@ -382,6 +393,8 @@ impl BrowsingContextActor {
         actors.register(Box::new(thread));
         actors.register(Box::new(tabdesc));
         actors.register(Box::new(watcher));
+        actors.register(Box::new(target_configuration));
+        actors.register(Box::new(thread_configuration));
 
         target
     }

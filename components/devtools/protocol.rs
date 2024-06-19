@@ -27,6 +27,11 @@ pub struct Method {
     pub response: Value,
 }
 
+#[derive(Serialize)]
+pub struct EmptyReply {
+    pub from: String,
+}
+
 pub trait JsonPacketStream {
     fn write_json_packet<T: Serialize>(&mut self, obj: &T) -> Result<(), Box<dyn Error>>;
     fn write_merged_json_packet<T: Serialize, U: Serialize>(
