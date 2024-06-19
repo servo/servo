@@ -14,7 +14,8 @@ use style::str::char_is_whitespace;
 use style::values::specified::text::TextDecorationLine;
 
 use super::inline::construct::InlineFormattingContextBuilder;
-use super::inline::{InlineBox, InlineFormattingContext};
+use super::inline::inline_box::InlineBox;
+use super::inline::InlineFormattingContext;
 use super::OutsideMarker;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
