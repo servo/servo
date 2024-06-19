@@ -10,9 +10,10 @@ use std::sync::Arc;
 
 use app_units::Au;
 use base::text::is_bidi_control;
-use gfx::font::{self, FontMetrics, FontRef, RunMetrics, ShapingFlags, ShapingOptions};
-use gfx::font_cache_thread::FontIdentifier;
-use gfx::text::glyph::ByteIndex;
+use fonts::{
+    self, ByteIndex, FontIdentifier, FontMetrics, FontRef, RunMetrics, ShapingFlags,
+    ShapingOptions, LAST_RESORT_GLYPH_ADVANCE,
+};
 use log::{debug, warn};
 use range::Range;
 use style::computed_values::text_rendering::T as TextRendering;
@@ -211,7 +212,7 @@ impl TextRunScanner {
                                 font.glyph_index(' ')
                                     .map(|glyph_id| font.glyph_h_advance(glyph_id))
                             })
-                            .unwrap_or(font::LAST_RESORT_GLYPH_ADVANCE);
+                            .unwrap_or(LAST_RESORT_GLYPH_ADVANCE);
                         inherited_text_style
                             .word_spacing
                             .to_used_value(Au::from_f64_px(space_width))

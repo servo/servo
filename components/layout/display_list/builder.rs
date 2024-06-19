@@ -20,7 +20,7 @@ use embedder_traits::Cursor;
 use euclid::default::{Point2D, Rect, SideOffsets2D as UntypedSideOffsets2D, Size2D};
 use euclid::{rect, SideOffsets2D};
 use fnv::FnvHashMap;
-use gfx::text::glyph::ByteIndex;
+use fonts::ByteIndex;
 use ipc_channel::ipc;
 use log::{debug, warn};
 use net_traits::image_cache::UsePlaceholder;

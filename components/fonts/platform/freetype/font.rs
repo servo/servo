@@ -31,7 +31,7 @@ use crate::font::{
 };
 use crate::font_cache_thread::FontIdentifier;
 use crate::font_template::FontTemplateDescriptor;
-use crate::text::glyph::GlyphId;
+use crate::glyph::GlyphId;
 
 // This constant is not present in the freetype
 // bindings due to bindgen not handling the way

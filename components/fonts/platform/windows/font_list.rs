@@ -12,8 +12,9 @@ use serde::{Deserialize, Serialize};
 use style::values::computed::{FontStyle as StyleFontStyle, FontWeight as StyleFontWeight};
 use style::values::specified::font::FontStretchKeyword;
 
-use crate::font_template::{FontTemplate, FontTemplateDescriptor};
-use crate::text::{EmojiPresentationPreference, FallbackFontSelectionOptions};
+use crate::{
+    EmojiPresentationPreference, FallbackFontSelectionOptions, FontTemplate, FontTemplateDescriptor,
+};
 
 pub static SANS_SERIF_FONT_FAMILY: &str = "Arial";
 

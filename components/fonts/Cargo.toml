@@ -1,5 +1,5 @@
 [package]
-name = "gfx"
+name = "fonts"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -7,7 +7,7 @@ edition.workspace = true
 publish.workspace = true
 
 [lib]
-name = "gfx"
+name = "fonts"
 path = "lib.rs"
 test = false
 doctest = false
@@ -22,7 +22,7 @@ crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
 fontsan = { git = "https://github.com/servo/fontsan" }
-gfx_traits = { workspace = true }
+fonts_traits = { workspace = true }
 harfbuzz-sys = "0.6.1"
 ipc-channel = { workspace = true }
 lazy_static = { workspace = true }

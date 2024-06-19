@@ -13,7 +13,7 @@ doctest = false
 
 [dependencies]
 base = { workspace = true }
-gfx_traits = { workspace = true }
+fonts_traits = { workspace = true }
 ipc-channel = { workspace = true }
 metrics = { path = "../../../components/metrics" }
 profile_traits = { workspace = true }

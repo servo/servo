@@ -18,8 +18,8 @@ embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
 fxhash = { workspace = true }
-gfx = { path = "../gfx" }
-gfx_traits = { workspace = true }
+fonts = { path = "../fonts" }
+fonts_traits = { workspace = true }
 histogram = "0.6.8"
 ipc-channel = { workspace = true }
 layout = { path = "../layout", package = "layout_2013" }

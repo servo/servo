@@ -23,7 +23,7 @@ use canvas_traits::canvas::{CanvasId, CanvasMsg};
 use crossbeam_channel::Sender;
 use euclid::default::{Point2D, Rect};
 use euclid::Size2D;
-use gfx::font_cache_thread::FontCacheThread;
+use fonts::FontCacheThread;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
 use malloc_size_of_derive::MallocSizeOf;

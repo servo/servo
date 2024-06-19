@@ -9,7 +9,7 @@ use std::{fmt, mem, u16};
 
 use app_units::Au;
 use euclid::default::Point2D;
-pub use gfx_traits::ByteIndex;
+pub use fonts_traits::ByteIndex;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use range::{self, EachIndex, Range, RangeIndex};

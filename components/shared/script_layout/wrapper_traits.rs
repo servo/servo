@@ -10,7 +10,7 @@ use std::sync::Arc as StdArc;
 
 use atomic_refcell::AtomicRef;
 use base::id::{BrowsingContextId, PipelineId};
-use gfx_traits::ByteIndex;
+use fonts_traits::ByteIndex;
 use html5ever::{local_name, namespace_url, ns, LocalName, Namespace};
 use pixels::{Image, ImageMetadata};
 use range::Range;

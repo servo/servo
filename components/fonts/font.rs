@@ -30,9 +30,10 @@ use crate::font_context::FontContext;
 use crate::font_template::{FontTemplateDescriptor, FontTemplateRef, FontTemplateRefMethods};
 use crate::platform::font::{FontTable, PlatformFont};
 pub use crate::platform::font_list::fallback_font_families;
-use crate::text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
-use crate::text::shaping::ShaperMethods;
-use crate::text::{EmojiPresentationPreference, FallbackFontSelectionOptions, Shaper};
+use crate::{
+    ByteIndex, EmojiPresentationPreference, FallbackFontSelectionOptions, GlyphData, GlyphId,
+    GlyphStore, Shaper,
+};
 
 #[macro_export]
 macro_rules! ot_tag {

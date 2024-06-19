@@ -11,7 +11,7 @@ use app_units::{Au, MIN_AU};
 use base::print_tree::PrintTree;
 use bitflags::bitflags;
 use euclid::default::{Point2D, Rect, Size2D};
-use gfx::font::FontMetrics;
+use fonts::FontMetrics;
 use log::debug;
 use range::{int_range_index, Range, RangeIndex};
 use script_layout_interface::wrapper_traits::PseudoElementType;

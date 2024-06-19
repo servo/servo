@@ -24,7 +24,7 @@ cssparser = { workspace = true }
 euclid = { workspace = true }
 font-kit = { version = "0.13" }
 fnv = { workspace = true }
-gfx = { path = "../gfx" }
+fonts = { path = "../fonts" }
 half = "2"
 ipc-channel = { workspace = true }
 log = { workspace = true }

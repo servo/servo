@@ -11,10 +11,8 @@ fn test_font_template_descriptor() {
     use std::path::PathBuf;
     use std::sync::Arc;
 
-    use gfx::font::PlatformFontMethods;
-    use gfx::font_cache_thread::FontIdentifier;
-    use gfx::font_template::FontTemplateDescriptor;
-    use gfx::platform::font::PlatformFont;
+    use fonts::platform::font::PlatformFont;
+    use fonts::{FontIdentifier, FontTemplateDescriptor, PlatformFontMethods};
     use servo_url::ServoUrl;
     use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
 

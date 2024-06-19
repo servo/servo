@@ -10,14 +10,11 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use app_units::Au;
-use gfx::font::{
-    fallback_font_families, FontDescriptor, FontFamilyDescriptor, FontFamilyName, FontSearchScope,
+use fonts::{
+    fallback_font_families, CSSFontFaceDescriptors, FallbackFontSelectionOptions, FontContext,
+    FontDescriptor, FontFamilyDescriptor, FontFamilyName, FontIdentifier, FontSearchScope,
+    FontSource, FontTemplate, FontTemplateRef, FontTemplates,
 };
-use gfx::font_cache_thread::{CSSFontFaceDescriptors, FontIdentifier, FontSource};
-use gfx::font_context::FontContext;
-use gfx::font_store::FontTemplates;
-use gfx::font_template::{FontTemplate, FontTemplateRef};
-use gfx::text::FallbackFontSelectionOptions;
 use ipc_channel::ipc;
 use net_traits::ResourceThreads;
 use servo_arc::Arc;
@@ -25,7 +22,6 @@ use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::properties::style_structs::Font as FontStyleStruct;
-use style::stylesheets::Stylesheet;
 use style::values::computed::font::{
     FamilyName, FontFamily, FontFamilyList, FontFamilyNameSyntax, FontSize, FontStretch, FontStyle,
     FontWeight, SingleFontFamily,

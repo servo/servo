@@ -47,7 +47,7 @@ use devtools_traits::{
 };
 use embedder_traits::EmbedderMsg;
 use euclid::default::{Point2D, Rect};
-use gfx::font_cache_thread::FontCacheThread;
+use fonts::FontCacheThread;
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
 use html5ever::{local_name, namespace_url, ns};
 use hyper_serde::Serde;
