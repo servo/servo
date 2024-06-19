@@ -403,7 +403,7 @@ impl PositioningContext {
 }
 
 /// A data structure which stores the size of a positioning context.
-#[derive(PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub(crate) struct PositioningContextLength {
     /// The number of boxes that will be hoisted the the nearest positioned ancestor for
     /// layout.
