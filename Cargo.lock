@@ -2144,9 +2144,9 @@ checksum = "40ecd4077b5ae9fd2e9e169b102c6c330d0605168eb0e8bf79952b256dbefffd"
 
 [[package]]
 name = "gio-sys"
-version = "0.19.5"
+version = "0.19.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4bdbef451b0f0361e7f762987cc6bebd5facab1d535e85a3cf1115dfb08db40"
+checksum = "2cd743ba4714d671ad6b6234e8ab2a13b42304d0e13ab7eba1dcdd78a7d6d4ef"
 dependencies = [
  "glib-sys",
  "gobject-sys",
