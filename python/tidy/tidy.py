@@ -159,6 +159,8 @@ class FileList(object):
 
     def _git_changed_files(self):
         file_list = git_changes_since_last_merge(self.directory)
+        if not file_list:
+            return
         for f in file_list:
             if not any(os.path.join('.', os.path.dirname(f)).startswith(path) for path in self.excluded):
                 yield os.path.join('.', f)
