@@ -17,8 +17,16 @@ name = "servo"
 path = "main.rs"
 bench = false
 
+# Some of these dependencies are only needed for a specific target os, but
+# since build-scripts can't detect the cargo target os at build-time, we
+# must unconditionally add these dependencies. See https://github.com/rust-lang/cargo/issues/4932
 [build-dependencies]
 vergen = { version = "8.3.1", features = ["git", "git2"] }
+# Android and OpenHarmony
+gl_generator = "0.14"
+# Android only
+serde_json = { workspace = true }
+# MacOS only
 cc = "1.0"
 
 [target.'cfg(windows)'.build-dependencies]
@@ -47,26 +55,37 @@ webgl_backtrace = ["libservo/webgl_backtrace"]
 xr-profile = ["libservo/xr-profile"]
 
 [dependencies]
-# For optional feature servo_allocator/use-system-allocator
-servo_allocator = { path = "../../components/allocator" }
 libc = { workspace = true }
 libservo = { path = "../../components/servo" }
 cfg-if = { workspace = true }
 log = { workspace = true }
-url = { workspace = true }
 lazy_static = { workspace = true }
+getopts = { workspace = true }
+url = { workspace = true }
+
+[target.'cfg(target_os = "android")'.dependencies]
+android_logger = "0.14"
+ipc-channel = { workspace = true }
+jni = "0.21.1"
+libloading = "0.8"
+serde_json = { workspace = true }
+servo-media = { workspace = true }
+surfman = { workspace = true, features = ["sm-angle-default"] }
+webxr = { git = "https://github.com/servo/webxr" }
 
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 backtrace = { workspace = true }
-getopts = { workspace = true }
 
 [target.'cfg(target_env = "ohos")'.dependencies]
-# force inprocess, until libc-rs is updated to include `shm_open` and unlink.
+# force inprocess, until libc-rs 0.2.156 is released containing
+# https://github.com/rust-lang/libc/commit/9e248e212c5602cb4e98676e4c21ea0382663a12
 ipc-channel = { workspace = true, features = ["force-inprocess"] }
 
 
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
+# For optional feature servo_allocator/use-system-allocator
+servo_allocator = { path = "../../components/allocator" }
 arboard = { version = "3" }
 egui = { version = "0.26.2" }
 egui_glow = { version = "0.26.2", features = ["winit"] }

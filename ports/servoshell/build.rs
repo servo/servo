@@ -3,8 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::error::Error;
-use std::path::Path;
+use std::fs::File;
+use std::io::Write;
+use std::path::{Path, PathBuf};
 
+use gl_generator::{Api, Fallbacks, Profile, Registry};
+use serde_json::Value;
 use vergen::EmitBuilder;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -39,6 +43,29 @@ fn main() -> Result<(), Box<dyn Error>> {
         cc::Build::new()
             .file("platform/macos/count_threads.c")
             .compile("count_threads");
+    } else if target_os == "android" {
+        // Generate GL bindings. For now, we only support EGL.
+        let mut file = File::create(out.join("egl_bindings.rs")).unwrap();
+        Registry::new(Api::Egl, (1, 5), Profile::Core, Fallbacks::All, [])
+            .write_bindings(gl_generator::StaticStructGenerator, &mut file)
+            .unwrap();
+        println!("cargo:rustc-link-lib=EGL");
+
+        // FIXME: We need this workaround since jemalloc-sys still links
+        // to libgcc instead of libunwind, but Android NDK 23c and above
+        // don't have libgcc. We can't disable jemalloc for Android as
+        // in 64-bit aarch builds, the system allocator uses tagged
+        // pointers by default which causes the assertions in SM & mozjs
+        // to fail. See https://github.com/servo/servo/issues/32175.
+        let mut libgcc = File::create(out.join("libgcc.a")).unwrap();
+        libgcc.write_all(b"INPUT(-lunwind)").unwrap();
+        println!("cargo:rustc-link-search=native={}", out.display());
+
+        let mut default_prefs = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        default_prefs.push("../../resources/prefs.json");
+        let prefs: Value = serde_json::from_reader(File::open(&default_prefs).unwrap()).unwrap();
+        let file = File::create(out.join("prefs.json")).unwrap();
+        serde_json::to_writer(file, &prefs).unwrap();
     }
 
     if let Err(error) = EmitBuilder::builder()

@@ -8,13 +8,13 @@ package org.mozilla.servoview;
 import android.app.Activity;
 import android.view.Surface;
 /**
- * Maps /ports/libsimpleservo API
+ * Maps /ports/libservoshell API
  */
 @SuppressWarnings("JniMissingFunction")
 public class JNIServo {
     JNIServo() {
         System.loadLibrary("c++_shared");
-        System.loadLibrary("simpleservo");
+        System.loadLibrary("servoshell");
     }
 
     public native String version();
