@@ -7,3 +7,6 @@ pub mod gl_glue;
 
 #[cfg(target_os = "android")]
 mod android;
+
+#[cfg(target_env = "ohos")]
+mod ohos;

@@ -978,6 +978,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "convert_case"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
+dependencies = [
+ "unicode-segmentation",
+]
+
+[[package]]
 name = "cookie"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1165,6 +1174,16 @@ checksum = "68523903c8ae5aacfa32a0d9ae60cadeb764e1da14ee0d26b1f3089f13a54636"
 dependencies = [
  "proc-macro2",
  "quote",
+]
+
+[[package]]
+name = "ctor"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "edb49164822f3ee45b17acd4a208cfc1251410cf0cad9a833234c9890774dd9f"
+dependencies = [
+ "quote",
+ "syn 2.0.67",
 ]
 
 [[package]]
@@ -2742,6 +2761,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dfa686283ad6dd069f105e5ab091b04c62850d3e4cf5d67debad1933f55023df"
 
 [[package]]
+name = "hilog"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d5646a745e293209c82e88f05b40bb596479cd84738408410ea16d5242e7ad0"
+dependencies = [
+ "env_filter",
+ "hilog-sys",
+ "log",
+]
+
+[[package]]
+name = "hilog-sys"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0de0e35e8534a70b5af5ccc943ffa3e2dcfe481b2b983c9fd514d7421a46b69e"
+dependencies = [
+ "log",
+]
+
+[[package]]
 name = "histogram"
 version = "0.6.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3551,7 +3590,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e310b3a6b5907f99202fcdb4960ff45b93735d7c7d96b760fcff8db2dc0e103d"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.5",
 ]
 
 [[package]]
@@ -4021,6 +4060,55 @@ dependencies = [
 ]
 
 [[package]]
+name = "napi-derive-backend-ohos"
+version = "0.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6b18d697bedddd2d4c9f8f76b49fe65bd81ed1c55a7eec21ba40c176c236ddc"
+dependencies = [
+ "convert_case",
+ "once_cell",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "syn 2.0.67",
+]
+
+[[package]]
+name = "napi-derive-ohos"
+version = "0.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8462d74a2d6c7a671bd610f99f9ba34c739aadd2da4d8dd9f109a7e666cc2ad2"
+dependencies = [
+ "cfg-if",
+ "convert_case",
+ "napi-derive-backend-ohos",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.67",
+]
+
+[[package]]
+name = "napi-ohos"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ad5a3bbb2ae61f345b8c11776f2e79fc2bb71d1901af9a5f81f03c9238a05d86"
+dependencies = [
+ "bitflags 2.5.0",
+ "ctor",
+ "napi-sys-ohos",
+ "once_cell",
+]
+
+[[package]]
+name = "napi-sys-ohos"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f101404db01422d034db5afa63eefff6d9c8f66c0894278bc456b4c30954e166"
+dependencies = [
+ "libloading 0.8.3",
+]
+
+[[package]]
 name = "ndk"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4360,6 +4448,11 @@ checksum = "576dfe1fc8f9df304abb159d767a29d0476f7750fbf8aa7ad07816004a207434"
 dependencies = [
  "memchr",
 ]
+
+[[package]]
+name = "ohos-sys"
+version = "0.1.0"
+source = "git+https://github.com/jschwe/ohos-sys.git#bf0625fc7ea8035c2991626fb0a593e06c9c8c21"
 
 [[package]]
 name = "once_cell"
@@ -5706,6 +5799,7 @@ dependencies = [
  "gl_generator",
  "gleam",
  "glow",
+ "hilog",
  "image",
  "ipc-channel",
  "jni",
@@ -5715,6 +5809,9 @@ dependencies = [
  "libloading 0.8.4",
  "libservo",
  "log",
+ "napi-derive-ohos",
+ "napi-ohos",
+ "ohos-sys",
  "raw-window-handle",
  "serde_json",
  "servo-media",
