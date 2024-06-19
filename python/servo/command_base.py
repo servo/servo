@@ -867,7 +867,7 @@ class CommandBase(object):
                     '--use-crown',
                     default=False,
                     action='store_true',
-                    help='Enable servos `crown` linter tool'
+                    help="Enable Servo's `crown` linter tool"
                 )
             ]
 
