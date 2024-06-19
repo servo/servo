@@ -20,8 +20,10 @@ use crate::StreamId;
 pub struct TabDescriptorActorMsg {
     actor: String,
     browser_id: u32,
+    #[serde(rename = "browsingContextID")]
     browsing_context_id: u32,
     is_zombie_tab: bool,
+    #[serde(rename = "outerWindowID")]
     outer_window_id: u32,
     selected: bool,
     title: String,

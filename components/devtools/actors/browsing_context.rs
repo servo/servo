@@ -31,27 +31,24 @@ use crate::protocol::JsonPacketStream;
 use crate::StreamId;
 
 #[derive(Serialize)]
-struct BrowsingContextTraits {
-    isBrowsingContext: bool,
-}
-
-#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct AttachedTraits {
     reconfigure: bool,
     frames: bool,
-    logInPage: bool,
-    canRewind: bool,
+    log_in_page: bool,
+    can_rewind: bool,
     watchpoints: bool,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct BrowsingContextAttachedReply {
     from: String,
     #[serde(rename = "type")]
     type_: String,
-    threadActor: String,
-    cacheDisabled: bool,
-    javascriptEnabled: bool,
+    thread_actor: String,
+    cache_disabled: bool,
+    javascript_enabled: bool,
     traits: AttachedTraits,
 }
 
@@ -70,15 +67,16 @@ struct ReconfigureReply {
 #[derive(Serialize)]
 struct ListFramesReply {
     from: String,
-    frames: Vec<FrameMsg>,
+    frames: Vec<ListFramesMsg>,
 }
 
 #[derive(Serialize)]
-struct FrameMsg {
+struct ListFramesMsg {
     id: u32,
     url: String,
     title: String,
-    parentID: u32,
+    #[serde(rename = "parentID")]
+    parent_id: u32,
 }
 
 #[derive(Serialize)]
@@ -93,36 +91,96 @@ struct WorkerMsg {
 }
 
 #[derive(Serialize)]
+struct FrameUpdateReply {
+    from: String,
+    #[serde(rename = "type")]
+    type_: String,
+    frames: Vec<FrameUpdateMsg>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FrameUpdateMsg {
+    id: u32,
+    is_top_level: bool,
+    url: String,
+    title: String,
+}
+
+#[derive(Serialize)]
+struct ResourceAvailableReply {
+    from: String,
+    #[serde(rename = "type")]
+    type_: String,
+    resources: Vec<ResourceAvailableMsg>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ResourceAvailableMsg {
+    #[serde(rename = "hasNativeConsoleAPI")]
+    has_native_console_api: Option<bool>,
+    name: String,
+    #[serde(rename = "newURI")]
+    new_uri: Option<String>,
+    resource_type: String,
+    time: u64,
+    title: Option<String>,
+    url: Option<String>,
+}
+
+#[derive(Serialize)]
+struct TabNavigated {
+    from: String,
+    #[serde(rename = "type")]
+    type_: String,
+    url: String,
+    title: Option<String>,
+    #[serde(rename = "nativeConsoleAPI")]
+    native_console_api: bool,
+    state: String,
+    is_frame_switching: bool,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct BrowsingContextTraits {
+    is_browsing_context: bool,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BrowsingContextActorMsg {
     actor: String,
     title: String,
     url: String,
-    outerWindowID: u32,
-    // innerWindowId: u32,
-    browsingContextID: u32,
-    isTopLevelTarget: bool,
-    consoleActor: String,
-    threadActor: String,
+    #[serde(rename = "outerWindowID")]
+    outer_window_id: u32,
+    #[serde(rename = "browsingContextID")]
+    browsing_context_id: u32,
+    is_top_level_target: bool,
+    console_actor: String,
+    thread_actor: String,
     traits: BrowsingContextTraits,
-    /*emulationActor: String,
-    inspectorActor: String,
-    timelineActor: String,
-    profilerActor: String,
-    performanceActor: String,
-    styleSheetsActor: String,*/
+    // emulation_actor: String,
+    // inspector_actor: String,
+    // timeline_actor: String,
+    // profiler_actor: String,
+    // performance_actor: String,
+    // style_sheets_actor: String,
     // Part of the official protocol, but not yet implemented.
-    /*storageActor: String,
-    memoryActor: String,
-    framerateActor: String,
-    reflowActor: String,
-    cssPropertiesActor: String,
-    animationsActor: String,
-    webExtensionInspectedWindowActor: String,
-    accessibilityActor: String,
-    screenshotActor: String,
-    changesActor: String,
-    webSocketActor: String,
-    manifestActor: String,*/
+    // storage_actor: String,
+    // memory_actor: String,
+    // framerate_actor: String,
+    // reflow_actor: String,
+    // css_properties_actor: String,
+    // animations_actor: String,
+    // web_extension_inspected_window_actor: String,
+    // accessibility_actor: String,
+    // screenshot_actor: String,
+    // changes_actor: String,
+    // web_socket_actor: String,
+    // manifest_actor: String,
 }
 
 pub(crate) struct BrowsingContextActor {
@@ -159,6 +217,7 @@ impl Actor for BrowsingContextActor {
         id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
+            // TODO: Is this deprecated?
             "reconfigure" => {
                 if let Some(options) = msg.get("options").and_then(|o| o.as_object()) {
                     if let Some(val) = options.get("performReload") {
@@ -173,20 +232,19 @@ impl Actor for BrowsingContextActor {
                 ActorMessageStatus::Processed
             },
 
-            // https://docs.firefox-dev.tools/backend/protocol.html#listing-browser-tabs
-            // (see "To attach to a _targetActor_")
+            // TODO: I think this is too, replaced by watcher
             "attach" => {
                 let msg = BrowsingContextAttachedReply {
                     from: self.name(),
                     type_: "tabAttached".to_owned(),
-                    threadActor: self.thread.clone(),
-                    cacheDisabled: false,
-                    javascriptEnabled: true,
+                    thread_actor: self.thread.clone(),
+                    cache_disabled: false,
+                    javascript_enabled: true,
                     traits: AttachedTraits {
                         reconfigure: false,
                         frames: true,
-                        logInPage: false,
-                        canRewind: false,
+                        log_in_page: false,
+                        can_rewind: false,
                         watchpoints: false,
                     },
                 };
@@ -203,6 +261,7 @@ impl Actor for BrowsingContextActor {
                 ActorMessageStatus::Processed
             },
 
+            // TODO: And this too
             "detach" => {
                 let msg = BrowsingContextDetachedReply {
                     from: self.name(),
@@ -216,10 +275,10 @@ impl Actor for BrowsingContextActor {
             "listFrames" => {
                 let msg = ListFramesReply {
                     from: self.name(),
-                    frames: vec![FrameMsg {
+                    frames: vec![ListFramesMsg {
                         //FIXME: shouldn't ignore pipeline namespace field
                         id: self.active_pipeline.get().index.0.get(),
-                        parentID: 0,
+                        parent_id: 0,
                         url: self.url.borrow().clone(),
                         title: self.title.borrow().clone(),
                     }],
@@ -331,23 +390,17 @@ impl BrowsingContextActor {
         BrowsingContextActorMsg {
             actor: self.name(),
             traits: BrowsingContextTraits {
-                isBrowsingContext: true,
+                is_browsing_context: true,
             },
             title: self.title.borrow().clone(),
             url: self.url.borrow().clone(),
             //FIXME: shouldn't ignore pipeline namespace field
-            browsingContextID: self.browsing_context_id.index.0.get(),
+            browsing_context_id: self.browsing_context_id.index.0.get(),
             //FIXME: shouldn't ignore pipeline namespace field
-            outerWindowID: self.active_pipeline.get().index.0.get(),
-            isTopLevelTarget: true,
-            consoleActor: self.console.clone(),
-            threadActor: self.thread.clone(),
-            /*emulationActor: self.emulation.clone(),
-            inspectorActor: self.inspector.clone(),
-            timelineActor: self.timeline.clone(),
-            profilerActor: self.profiler.clone(),
-            performanceActor: self.performance.clone(),
-            styleSheetsActor: self.styleSheets.clone(),*/
+            outer_window_id: self.active_pipeline.get().index.0.get(),
+            is_top_level_target: true,
+            console_actor: self.console.clone(),
+            thread_actor: self.thread.clone(),
         }
     }
 
@@ -371,10 +424,11 @@ impl BrowsingContextActor {
             type_: "tabNavigated".to_owned(),
             url: url.as_str().to_owned(),
             title,
-            nativeConsoleAPI: true,
+            native_console_api: true,
             state: state.to_owned(),
-            isFrameSwitching: false,
+            is_frame_switching: false,
         };
+
         for stream in self.streams.borrow_mut().values_mut() {
             let _ = stream.write_json_packet(&msg);
         }
@@ -393,110 +447,33 @@ impl BrowsingContextActor {
             type_: "frameUpdate".into(),
             frames: vec![FrameUpdateMsg {
                 id: self.browsing_context_id.index.0.get(),
-                isTopLevel: true,
+                is_top_level: true,
                 title: self.title.borrow().clone(),
                 url: self.url.borrow().clone(),
             }],
         });
     }
 
-    pub(crate) fn resource_available(&self, resource_type: &str, stream: &mut TcpStream) {
-        match resource_type {
-            "document-event" => {
-                let _ = stream.write_json_packet(&ResourceAvailableReply {
-                    from: self.name(),
-                    type_: "resource-available-form".into(),
-                    resources: vec![ResourceAvailableMsg {
-                        has_native_console_api: None,
-                        // TODO: Multiple phases: dom-loading, dom-interactive, dom-complete
-                        name: "dom-loading".into(),
-                        new_uri: None,
-                        resource_type: "document-event".into(),
-                        time: 0, // TODO: What is this time?
-                        title: None,
-                        url: Some(self.url.borrow().clone()),
-                    }],
-                });
-
-                let _ = stream.write_json_packet(&ResourceAvailableReply {
-                    from: self.name(),
-                    type_: "resource-available-form".into(),
-                    resources: vec![ResourceAvailableMsg {
-                        has_native_console_api: None,
-                        name: "dom-interactive".into(),
-                        new_uri: None,
-                        resource_type: "document-event".into(),
-                        time: 1,
-                        title: Some(self.title.borrow().clone()),
-                        url: Some(self.url.borrow().clone()),
-                    }],
-                });
-
-                let _ = stream.write_json_packet(&ResourceAvailableReply {
-                    from: self.name(),
-                    type_: "resource-available-form".into(),
-                    resources: vec![ResourceAvailableMsg {
-                        has_native_console_api: None,
-                        name: "dom-complete".into(),
-                        new_uri: None,
-                        resource_type: "document-event".into(),
-                        time: 2,
-                        title: None,
-                        url: None,
-                    }],
-                });
-            },
-            _ => {},
+    pub(crate) fn document_event(&self, stream: &mut TcpStream) {
+        // TODO: This is a hacky way of sending the 3 messages
+        //       Figure out if there needs work to be done here, ensure the page is loaded
+        for (i, &name) in ["dom-loading", "dom-interactive", "dom-complete"]
+            .iter()
+            .enumerate()
+        {
+            let _ = stream.write_json_packet(&ResourceAvailableReply {
+                from: self.name(),
+                type_: "resource-available-form".into(),
+                resources: vec![ResourceAvailableMsg {
+                    has_native_console_api: None,
+                    name: name.into(),
+                    new_uri: None,
+                    resource_type: "document-event".into(),
+                    time: i as u64, // TODO: What is this time?
+                    title: Some(self.title.borrow().clone()),
+                    url: Some(self.url.borrow().clone()),
+                }],
+            });
         }
     }
-}
-
-#[derive(Serialize)]
-struct FrameUpdateReply {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-    frames: Vec<FrameUpdateMsg>,
-}
-
-#[derive(Serialize)]
-struct FrameUpdateMsg {
-    id: u32,
-    isTopLevel: bool,
-    url: String,
-    title: String,
-}
-
-#[derive(Serialize)]
-struct ResourceAvailableReply {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-    resources: Vec<ResourceAvailableMsg>,
-}
-
-#[derive(Serialize)]
-struct ResourceAvailableMsg {
-    #[serde(rename = "hasNativeConsoleAPI")]
-    has_native_console_api: Option<bool>,
-    name: String,
-    #[serde(rename = "newURI")]
-    new_uri: Option<String>,
-    #[serde(rename = "resourceType")]
-    resource_type: String,
-    time: u64,
-    title: Option<String>,
-    url: Option<String>,
-}
-
-#[derive(Serialize)]
-struct TabNavigated {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-    url: String,
-    title: Option<String>,
-    nativeConsoleAPI: bool,
-    state: String,
-    isFrameSwitching: bool,
 }

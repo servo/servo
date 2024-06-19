@@ -154,14 +154,25 @@ impl Actor for WatcherActor {
                         continue;
                     };
 
-                    // Let the browsing context reply with the resource availability status
                     let target =
                         registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
-                    target.resource_available(resource, stream);
+
+                    match resource {
+                        "document-event" => {
+                            target.document_event(stream);
+                        },
+                        _ => {},
+                    }
 
                     // This just responds with and acknowledgement
                     let _ = stream.write_json_packet(&WatchResourcesReply { from: self.name() });
                 }
+
+                ActorMessageStatus::Processed
+            },
+            "getTargetConfigurationActor" => {
+                // TODO: Send propper configuration
+                let _ = stream.write_json_packet(&WatchResourcesReply { from: self.name() });
 
                 ActorMessageStatus::Processed
             },
