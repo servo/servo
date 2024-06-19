@@ -11,8 +11,10 @@ updates:
   groups:
     gstreamer-related:
        patterns:
-         - "gstreamer*"
+         - "gio*"
          - "glib*"
+         - "gobject*"
+         - "gstreamer*"
   ignore:
   # Ignore all stylo crates as their upgrades are coordinated via companion PRs.
   - dependency-name: servo_atoms
