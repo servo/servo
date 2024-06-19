@@ -22,7 +22,7 @@ use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom_traversal::WhichPseudoElement;
 use crate::flexbox::FlexLevelBox;
-use crate::flow::inline::InlineLevelBox;
+use crate::flow::inline::{InlineBox, InlineItem};
 use crate::flow::BlockLevelBox;
 use crate::geom::PhysicalSize;
 use crate::replaced::{CanvasInfo, CanvasSource};
@@ -39,7 +39,9 @@ pub struct InnerDOMLayoutData {
 pub(super) enum LayoutBox {
     DisplayContents,
     BlockLevel(ArcRefCell<BlockLevelBox>),
-    InlineLevel(ArcRefCell<InlineLevelBox>),
+    #[allow(dead_code)]
+    InlineBox(ArcRefCell<InlineBox>),
+    InlineLevel(ArcRefCell<InlineItem>),
     FlexLevel(ArcRefCell<FlexLevelBox>),
 }
 
