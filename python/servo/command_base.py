@@ -1017,6 +1017,13 @@ class CommandBase(object):
                     args += ["--lib", "--crate-type=cdylib"]
 
         if use_crown:
+            if 'CARGO_BUILD_RUSTC' in env:
+                current_rustc = env['CARGO_BUILD_RUSTC']
+                if current_rustc != 'crown':
+                    print('Error: `mach` was called with `--use-crown` while `CARGO_BUILD_RUSTC` was'
+                          f'already set to `{current_rustc}` in the parent environment.\n'
+                          'These options conflict, please specify only one of them.')
+                    sys.exit(1)
             env['CARGO_BUILD_RUSTC'] = 'crown'
 
         if "-p" not in cargo_args:  # We're building specific package, that may not have features
