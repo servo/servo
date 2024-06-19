@@ -3095,9 +3095,12 @@ impl GlobalScope {
     }
 
     pub fn remove_gpu_device(&self, device: WebGPUDevice) {
-        // by this point GPUDevice may not be present in HashMap anymore
-        // because it was lost
-        let _ = self.gpu_devices.borrow_mut().remove(&device);
+        let device = self
+            .gpu_devices
+            .borrow_mut()
+            .remove(&device)
+            .expect("GPUDevice should still be in devices hashmap");
+        assert!(device.root().is_none())
     }
 
     pub fn gpu_device_lost(&self, device: WebGPUDevice, reason: DeviceLostReason, msg: String) {
@@ -3109,8 +3112,8 @@ impl GlobalScope {
         if let Some(device) = self
             .gpu_devices
             .borrow_mut()
-            .remove(&device)
-            .expect("GPUDevice should still exists")
+            .get_mut(&device)
+            .expect("GPUDevice should still be in devices hashmap")
             .root()
         {
             device.lose(reason, msg);
