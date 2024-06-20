@@ -3,32 +3,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::jsapi::{
-    AutoRequireNoGC, HandleObject, HandleValue, Heap, IsReadableStream, JSContext, JSObject,
-};
-use js::jsval::{JSVal, ObjectValue, UndefinedValue};
-use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle};
+use js::rust::HandleValue as SafeHandleValue;
 
 use crate::dom::bindings::codegen::Bindings::ReadableByteStreamControllerBinding::ReadableByteStreamControllerMethods;
-use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
-use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
-use crate::dom::bindings::utils::get_dictionary_property;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
-use crate::js::conversions::FromJSValConvertible;
-use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::JSContext as SafeJSContext;
 
+/// <https://streams.spec.whatwg.org/#readablebytestreamcontroller>
 #[dom_struct]
 pub struct ReadableByteStreamController {
     reflector_: Reflector,
 }
 
 impl ReadableByteStreamControllerMethods for ReadableByteStreamController {
+    /// <https://streams.spec.whatwg.org/#rbs-controller-byob-request>
     fn GetByobRequest(
         &self,
     ) -> Fallible<Option<DomRoot<super::readablestreambyobrequest::ReadableStreamBYOBRequest>>>
@@ -36,22 +26,26 @@ impl ReadableByteStreamControllerMethods for ReadableByteStreamController {
         todo!()
     }
 
+    /// <https://streams.spec.whatwg.org/#rbs-controller-desired-size>
     fn GetDesiredSize(&self) -> Option<f64> {
         todo!()
     }
 
+    /// <https://streams.spec.whatwg.org/#rbs-controller-close>
     fn Close(&self) -> Fallible<()> {
         todo!()
     }
 
+    /// <https://streams.spec.whatwg.org/#rbs-controller-enqueue>
     fn Enqueue(
         &self,
-        chunk: js::gc::CustomAutoRooterGuard<js::typedarray::ArrayBufferView>,
+        _chunk: js::gc::CustomAutoRooterGuard<js::typedarray::ArrayBufferView>,
     ) -> Fallible<()> {
         todo!()
     }
 
-    fn Error(&self, cx: SafeJSContext, e: SafeHandleValue) -> Fallible<()> {
+    /// <https://streams.spec.whatwg.org/#rbs-controller-error>
+    fn Error(&self, _cx: SafeJSContext, _e: SafeHandleValue) -> Fallible<()> {
         todo!()
     }
 }

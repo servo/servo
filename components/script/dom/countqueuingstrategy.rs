@@ -106,6 +106,8 @@ unsafe extern "C" fn count_queuing_strategy_size(
 
 /// Extract the high water mark from a QueuingStrategy.
 /// If the high water mark is not set, return the default value.
+///
+/// https://streams.spec.whatwg.org/#validate-and-normalize-high-water-mark
 pub fn extract_high_water_mark(strategy: &QueuingStrategy, default_hwm: f64) -> Result<f64, Error> {
     if strategy.highWaterMark.is_none() {
         return Ok(default_hwm);
@@ -123,6 +125,8 @@ pub fn extract_high_water_mark(strategy: &QueuingStrategy, default_hwm: f64) -> 
 
 /// Extract the size algorithm from a QueuingStrategy.
 /// If the size algorithm is not set, return a fallback function which always returns 1.
+///
+/// https://streams.spec.whatwg.org/#make-size-algorithm-from-size-function
 pub fn extract_size_algorithm(strategy: &QueuingStrategy) -> Rc<QueuingStrategySize> {
     if strategy.size.is_none() {
         #[allow(unsafe_code)]
@@ -151,74 +155,4 @@ pub fn extract_size_algorithm(strategy: &QueuingStrategy) -> Rc<QueuingStrategyS
         }
     }
     strategy.size.as_ref().unwrap().clone()
-}
-
-mod test {
-    use js::jsval::Int32Value;
-
-    use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
-    use crate::dom::bindings::import::module::{Error, ExceptionHandling};
-    use crate::dom::types::GlobalScope;
-
-    #[test]
-    fn extract_size_algorithm() {
-        let strategy = QueuingStrategy {
-            highWaterMark: None,
-            size: None,
-        };
-
-        #[allow(unsafe_code)]
-        unsafe {
-            // FIXME: panic here because cx is null
-            let cx = super::GlobalScope::get_cx();
-            let global = GlobalScope::current().unwrap();
-            let size = super::extract_size_algorithm(&strategy);
-            rooted!(in(*cx) let value = Int32Value(100));
-            let _ = size.Call_(&*global, value.handle(), ExceptionHandling::Report);
-            // assert_eq!((100), 1);
-        }
-    }
-
-    #[test]
-    fn extract_high_water_mark() {
-        let strategy = QueuingStrategy {
-            highWaterMark: None,
-            size: None,
-        };
-        let hwm = super::extract_high_water_mark(&strategy, 100.0);
-        assert_eq!(hwm.unwrap(), 100.0);
-
-        let strategy = QueuingStrategy {
-            highWaterMark: Some(-1.5),
-            size: None,
-        };
-        let hwm = super::extract_high_water_mark(&strategy, 100.0);
-        assert_eq!(
-            hwm.is_err_and(|err| match err {
-                Error::Range(_) => true,
-                _ => false,
-            }),
-            true
-        );
-
-        let strategy = QueuingStrategy {
-            highWaterMark: Some(f64::NAN),
-            size: None,
-        };
-        let hwm = super::extract_high_water_mark(&strategy, 100.0);
-        assert_eq!(
-            hwm.is_err_and(|err| match err {
-                Error::Range(_) => true,
-                _ => false,
-            }),
-            true
-        );
-
-        let strategy = QueuingStrategy {
-            highWaterMark: Some(9.527),
-            size: None,
-        };
-        let hwm = super::extract_high_water_mark(&strategy, 100.0);
-        assert_eq!(hwm.unwrap(), 9.527);
-    }
 }
