@@ -1,10 +1,10 @@
 [package]
 name = "crown"
-version.workspace = true
-authors.workspace = true
-license.workspace = true
-edition.workspace = true
-publish.workspace = true
+authors = ["The Servo Project Developers"]
+version = "0.0.1"
+edition = "2021"
+license = "MPL-2.0"
+publish = false
 
 # Do not use workspace dependencies in this package!
 # In etc/shell.nix, we filter Cargo.lock and build this package in isolation,
