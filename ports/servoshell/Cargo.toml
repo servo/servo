@@ -24,8 +24,6 @@ bench = false
 vergen = { version = "8.3.1", features = ["git", "git2"] }
 # Android and OpenHarmony
 gl_generator = "0.14"
-# Android only
-serde_json = { workspace = true }
 # MacOS only
 cc = "1.0"
 
