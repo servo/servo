@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBYOBRequestBinding::ReadableStreamBYOBRequestMethods;
-use crate::dom::bindings::import::module::Fallible;
+use crate::dom::bindings::import::module::{Error, Fallible};
 use crate::dom::bindings::reflector::Reflector;
 use crate::script_runtime::JSContext as SafeJSContext;
 
@@ -18,12 +18,14 @@ pub struct ReadableStreamBYOBRequest {
 impl ReadableStreamBYOBRequestMethods for ReadableStreamBYOBRequest {
     /// <https://streams.spec.whatwg.org/#rs-byob-request-view>
     fn GetView(&self, _cx: SafeJSContext) -> Option<js::typedarray::ArrayBufferView> {
-        todo!()
+        // TODO
+        None
     }
 
     /// <https://streams.spec.whatwg.org/#rs-byob-request-respond>
     fn Respond(&self, _bytes_written: u64) -> Fallible<()> {
-        todo!()
+        // TODO
+        Err(Error::NotFound)
     }
 
     /// <https://streams.spec.whatwg.org/#rs-byob-request-respond-with-new-view>
@@ -31,6 +33,7 @@ impl ReadableStreamBYOBRequestMethods for ReadableStreamBYOBRequest {
         &self,
         _view: js::gc::CustomAutoRooterGuard<js::typedarray::ArrayBufferView>,
     ) -> Fallible<()> {
-        todo!()
+        // TODO
+        Err(Error::NotFound)
     }
 }

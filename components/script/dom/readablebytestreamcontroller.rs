@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::rust::HandleValue as SafeHandleValue;
 
 use crate::dom::bindings::codegen::Bindings::ReadableByteStreamControllerBinding::ReadableByteStreamControllerMethods;
-use crate::dom::bindings::import::module::Fallible;
+use crate::dom::bindings::import::module::{Error, Fallible};
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::DomRoot;
 use crate::script_runtime::JSContext as SafeJSContext;
@@ -23,17 +23,20 @@ impl ReadableByteStreamControllerMethods for ReadableByteStreamController {
         &self,
     ) -> Fallible<Option<DomRoot<super::readablestreambyobrequest::ReadableStreamBYOBRequest>>>
     {
-        todo!()
+        // TODO
+        Err(Error::NotFound)
     }
 
     /// <https://streams.spec.whatwg.org/#rbs-controller-desired-size>
     fn GetDesiredSize(&self) -> Option<f64> {
-        todo!()
+        // TODO
+        None
     }
 
     /// <https://streams.spec.whatwg.org/#rbs-controller-close>
     fn Close(&self) -> Fallible<()> {
-        todo!()
+        // TODO
+        Err(Error::NotFound)
     }
 
     /// <https://streams.spec.whatwg.org/#rbs-controller-enqueue>
@@ -41,11 +44,13 @@ impl ReadableByteStreamControllerMethods for ReadableByteStreamController {
         &self,
         _chunk: js::gc::CustomAutoRooterGuard<js::typedarray::ArrayBufferView>,
     ) -> Fallible<()> {
-        todo!()
+        // TODO
+        Err(Error::NotFound)
     }
 
     /// <https://streams.spec.whatwg.org/#rbs-controller-error>
     fn Error(&self, _cx: SafeJSContext, _e: SafeHandleValue) -> Fallible<()> {
-        todo!()
+        // TODO
+        Err(Error::NotFound)
     }
 }

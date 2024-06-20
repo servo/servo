@@ -88,7 +88,8 @@ impl ReadableStream {
         } else {
             UnderlyingSource::empty()
         };
-        todo!()
+        // TODO
+        Err(Error::NotFound)
     }
 
     fn new_inherited(

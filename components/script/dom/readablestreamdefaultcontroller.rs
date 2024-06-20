@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::rust::HandleValue as SafeHandleValue;
 
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultControllerMethods;
-use crate::dom::bindings::import::module::Fallible;
+use crate::dom::bindings::import::module::{Error, Fallible};
 use crate::dom::bindings::reflector::Reflector;
 use crate::script_runtime::JSContext as SafeJSContext;
 
@@ -19,21 +19,25 @@ pub struct ReadableStreamDefaultController {
 impl ReadableStreamDefaultControllerMethods for ReadableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#rs-default-controller-desired-size>
     fn GetDesiredSize(&self) -> Option<f64> {
-        todo!()
+        // TODO
+        None
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-close>
     fn Close(&self) -> Fallible<()> {
-        todo!()
+        // TODO
+        Err(Error::NotFound)
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-enqueue>
     fn Enqueue(&self, _cx: SafeJSContext, _chunk: SafeHandleValue) -> Fallible<()> {
-        todo!()
+        // TODO
+        Err(Error::NotFound)
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-error>
     fn Error(&self, _cx: SafeJSContext, _e: SafeHandleValue) -> Fallible<()> {
-        todo!()
+        // TODO
+        Err(Error::NotFound)
     }
 }
