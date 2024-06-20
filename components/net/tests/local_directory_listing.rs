@@ -5,24 +5,13 @@
 use std::collections::BTreeMap;
 
 use embedder_traits::resources::{read_string, Resource};
-use net::local_directory_listing::{
-    build_html_directory_listing, day_of_month_ordinal_suffix, write_html_safe, DirectoryItem,
-};
-use time_03::{Date, Month, OffsetDateTime, Time};
+use net::local_directory_listing::{build_html_directory_listing, write_html_safe, DirectoryItem};
+use time_03::format_description::well_known::Iso8601;
+use time_03::OffsetDateTime;
 
 enum FileType {
     File,
     Symlink,
-}
-
-enum DateType {
-    NotToday,
-    Today,
-}
-
-enum YearType {
-    NotThisYear,
-    CurrentYear,
 }
 
 enum BinarySizeUnit {
@@ -30,11 +19,6 @@ enum BinarySizeUnit {
     Kibibytes,
     Mebibytes,
     Gibibytes,
-    Tebibytes,
-    Pebibytes,
-    Exbibytes,
-    Zebibytes,
-    Yobibytes,
 }
 
 impl BinarySizeUnit {
@@ -44,11 +28,6 @@ impl BinarySizeUnit {
             Self::Kibibytes => "kibibytes",
             Self::Mebibytes => "mebibytes",
             Self::Gibibytes => "gibibytes",
-            Self::Tebibytes => "tebibytes",
-            Self::Pebibytes => "pebibytes",
-            Self::Exbibytes => "exbibytes",
-            Self::Zebibytes => "zebibytes",
-            Self::Yobibytes => "yobibytes",
         }
     }
 
@@ -58,11 +37,6 @@ impl BinarySizeUnit {
             Self::Kibibytes => "KiB",
             Self::Mebibytes => "MiB",
             Self::Gibibytes => "GiB",
-            Self::Tebibytes => "TiB",
-            Self::Pebibytes => "PiB",
-            Self::Exbibytes => "EiB",
-            Self::Zebibytes => "ZiB",
-            Self::Yobibytes => "YiB",
         }
     }
 }
@@ -72,7 +46,12 @@ fn test_build_html_directory_listing_single_file() {
     let mut items = BTreeMap::new();
     items.insert(
         "README.txt".into(),
-        create_file_descriptor("README.txt", false, 26, 2023, Month::January, 1, 0, 0, 0, 0),
+        create_file_descriptor(
+            "README.txt",
+            false,
+            26,
+            OffsetDateTime::parse("2023-01-01T00:00:00+00:00", &Iso8601::DEFAULT).unwrap(),
+        ),
     );
     let (path, has_parent, items) = (
         Ok("/home/bob/demo/www/public_html/".to_string()),
@@ -87,16 +66,7 @@ fn test_build_html_directory_listing_single_file() {
         FileType::File,
         "26",
         BinarySizeUnit::Bytes,
-        "2023-01-01T00:00:00.000",
-        DateType::NotToday,
-        "1",
-        "st",
-        "January",
-        YearType::NotThisYear,
-        "2023",
-        "00",
-        "00",
-        "00",
+        OffsetDateTime::parse("2023-01-01T00:00:00+00:00", &Iso8601::DEFAULT).unwrap(),
     );
     write_expected_foooter_and_end(&mut expected);
     let result = build_html_directory_listing(path, has_parent, items);
@@ -108,7 +78,10 @@ fn test_build_html_directory_listing_single_directory() {
     let mut items = BTreeMap::new();
     items.insert(
         "sub-directory".into(),
-        create_directory_descriptor("sub-directory", 2023, Month::December, 31, 23, 59, 59, 999),
+        create_directory_descriptor(
+            "sub-directory",
+            OffsetDateTime::parse("2023-12-31T23:59:59.999+00:00", &Iso8601::DEFAULT).unwrap(),
+        ),
     );
     let (path, has_parent, items) = (Ok("/var/www/".to_string()), true, Ok(items));
     let mut expected = String::with_capacity(1024);
@@ -116,16 +89,7 @@ fn test_build_html_directory_listing_single_directory() {
     write_expected_directory_row(
         &mut expected,
         "sub-directory",
-        "2023-12-31T23:59:59.999",
-        DateType::NotToday,
-        "31",
-        "st",
-        "December",
-        YearType::NotThisYear,
-        "2023",
-        "23",
-        "59",
-        "59",
+        OffsetDateTime::parse("2023-12-31T23:59:59.999+00:00", &Iso8601::DEFAULT).unwrap(),
     );
     write_expected_foooter_and_end(&mut expected);
     let result = build_html_directory_listing(path, has_parent, items);
@@ -137,15 +101,24 @@ fn test_build_html_directory_listing_root() {
     let mut items = BTreeMap::new();
     items.insert(
         "var".into(),
-        create_directory_descriptor("var", 2023, Month::February, 17, 22, 31, 21, 386),
+        create_directory_descriptor(
+            "var",
+            OffsetDateTime::parse("2023-02-17T22:31:21.386-05:00", &Iso8601::DEFAULT).unwrap(),
+        ),
     );
     items.insert(
         "etc".into(),
-        create_directory_descriptor("etc", 2023, Month::February, 17, 22, 31, 21, 387),
+        create_directory_descriptor(
+            "etc",
+            OffsetDateTime::parse("2023-02-17T22:31:21.387-05:00", &Iso8601::DEFAULT).unwrap(),
+        ),
     );
     items.insert(
         "home".into(),
-        create_directory_descriptor("home", 2023, Month::February, 17, 22, 31, 34, 212),
+        create_directory_descriptor(
+            "home",
+            OffsetDateTime::parse("2023-02-17T22:31:34.212-05:00", &Iso8601::DEFAULT).unwrap(),
+        ),
     );
     items.insert(
         ".hcwd".into(),
@@ -153,13 +126,7 @@ fn test_build_html_directory_listing_root() {
             ".hcwd",
             false,
             0,
-            2023,
-            Month::February,
-            17,
-            22,
-            31,
-            22,
-            616,
+            OffsetDateTime::parse("2023-02-17T22:31:22.616-05:00", &Iso8601::DEFAULT).unwrap(),
         ),
     );
     let (path, has_parent, items) = (Ok("/".to_string()), false, Ok(items));
@@ -172,58 +139,22 @@ fn test_build_html_directory_listing_root() {
         FileType::File,
         "0",
         BinarySizeUnit::Bytes,
-        "2023-02-17T22:31:22.616",
-        DateType::NotToday,
-        "17",
-        "th",
-        "February",
-        YearType::NotThisYear,
-        "2023",
-        "22",
-        "31",
-        "22",
+        OffsetDateTime::parse("2023-02-17T22:31:22.616-05:00", &Iso8601::DEFAULT).unwrap(),
     );
     write_expected_directory_row(
         &mut expected,
         "etc",
-        "2023-02-17T22:31:21.387",
-        DateType::NotToday,
-        "17",
-        "th",
-        "February",
-        YearType::NotThisYear,
-        "2023",
-        "22",
-        "31",
-        "21",
+        OffsetDateTime::parse("2023-02-17T22:31:21.387-05:00", &Iso8601::DEFAULT).unwrap(),
     );
     write_expected_directory_row(
         &mut expected,
         "home",
-        "2023-02-17T22:31:34.212",
-        DateType::NotToday,
-        "17",
-        "th",
-        "February",
-        YearType::NotThisYear,
-        "2023",
-        "22",
-        "31",
-        "34",
+        OffsetDateTime::parse("2023-02-17T22:31:34.212-05:00", &Iso8601::DEFAULT).unwrap(),
     );
     write_expected_directory_row(
         &mut expected,
         "var",
-        "2023-02-17T22:31:21.386",
-        DateType::NotToday,
-        "17",
-        "th",
-        "February",
-        YearType::NotThisYear,
-        "2023",
-        "22",
-        "31",
-        "21",
+        OffsetDateTime::parse("2023-02-17T22:31:21.386-05:00", &Iso8601::DEFAULT).unwrap(),
     );
     write_expected_foooter_and_end(&mut expected);
     let result = build_html_directory_listing(path, has_parent, items);
@@ -231,268 +162,91 @@ fn test_build_html_directory_listing_root() {
 }
 
 #[test]
-fn test_build_html_directory_listing_space_time_odyssey() {
-    let now = OffsetDateTime::now_utc();
-    let today = now.day();
-    let not_today = match today {
-        1 => 2,
-        _ => today - 1,
-    };
+fn test_build_html_directory_listing_home() {
     let mut items = BTreeMap::new();
     items.insert(
-        "archived".into(),
-        create_directory_descriptor("archived", now.year(), now.month(), today, 12, 34, 56, 789),
-    );
-    items.insert(
-        "rust-log".into(),
-        create_file_descriptor(
-            "rust-log",
-            false,
-            13,
-            2023,
-            now.month(),
-            now.day(),
-            22,
-            31,
-            22,
-            333,
+        "docs".into(),
+        create_directory_descriptor(
+            "docs",
+            OffsetDateTime::parse("2024-06-20T20:41:21.999+01:00", &Iso8601::DEFAULT).unwrap(),
         ),
     );
     items.insert(
-        "java-log".into(),
+        ".profile".into(),
         create_file_descriptor(
-            "java-log",
+            ".profile",
             false,
-            88_128,
-            now.year(),
-            now.month(),
-            not_today,
-            6,
-            30,
-            28,
-            734,
-        ),
-    );
-    items.insert(
-        "cobol-log".into(),
-        create_file_descriptor(
-            "cobol-log",
-            false,
-            18_963_218,
-            1997,
-            Month::March,
             21,
-            2,
-            7,
-            52,
-            298,
+            OffsetDateTime::parse("2023-11-11T13:54:16.212+00:00", &Iso8601::DEFAULT).unwrap(),
         ),
     );
     items.insert(
-        "cpp-log".into(),
+        "minify-css.sh".into(),
         create_file_descriptor(
-            "cpp-log",
+            "minify-css.sh",
             false,
-            566_242_762_437,
-            now.year(),
-            now.month(),
-            today,
-            5,
-            22,
-            6,
-            992,
+            3_204,
+            OffsetDateTime::parse("2022-12-01T18:34:08.321+00:00", &Iso8601::DEFAULT).unwrap(),
         ),
     );
     items.insert(
-        "cs-log".into(),
+        "Lian and Jo 21st Party.wmv".into(),
         create_file_descriptor(
-            "cs-log",
+            "Lian and Jo 21st Party.wmv",
             false,
-            93_477_133_853_546,
-            now.year(),
-            now.month(),
-            today,
-            23,
-            17,
-            0,
-            515,
+            115_731_474,
+            OffsetDateTime::parse("2014-12-08T13:04:58.111+00:00", &Iso8601::DEFAULT).unwrap(),
         ),
     );
     items.insert(
-        "c-log".into(),
+        "ゴジラ - the proof.avi".into(),
         create_file_descriptor(
-            "c-log",
+            "ゴジラ - the proof.avi",
             false,
-            988_193_477_133_853_546,
-            now.year(),
-            now.month(),
-            today,
-            23,
-            57,
-            58,
-            119,
+            999_911_119_112,
+            OffsetDateTime::parse("2024-05-01T12:00:00.000+01:00", &Iso8601::DEFAULT).unwrap(),
         ),
     );
-    items.insert(
-        "latest".into(),
-        create_file_descriptor(
-            "latest",
-            true,
-            19,
-            now.year(),
-            now.month(),
-            today,
-            23,
-            57,
-            58,
-            120,
-        ),
-    );
-    let (path, has_parent, items) = (Ok("/var/sys_logs/".to_string()), true, Ok(items));
-    let now_year = now.year().to_string();
-    let now_month_iso = format!("{:0>2}", u8::from(now.month()));
-    let now_month_display = now.month().to_string();
-    let now_day_iso = format!("{:0>2}", now.day());
-    let now_day_display = now.day().to_string();
-    let not_today_iso = format!("{:0>2}", not_today);
-    let not_today_display = not_today.to_string();
-    let today_suffix = day_of_month_ordinal_suffix(today);
-    let not_today_suffix = day_of_month_ordinal_suffix(not_today);
-
+    let (path, has_parent, items) = (Ok("/".to_string()), false, Ok(items));
     let mut expected = String::with_capacity(1024);
-    write_expected_start_and_header(&mut expected, "/var/sys_logs/", true);
+
+    write_expected_start_and_header(&mut expected, "/", false);
+    write_expected_file_row(
+        &mut expected,
+        ".profile",
+        FileType::File,
+        "21",
+        BinarySizeUnit::Bytes,
+        OffsetDateTime::parse("2023-11-11T13:54:16.212+00:00", &Iso8601::DEFAULT).unwrap(),
+    );
+    write_expected_file_row(
+        &mut expected,
+        "Lian and Jo 21st Party.wmv",
+        FileType::File,
+        "110.37",
+        BinarySizeUnit::Mebibytes,
+        OffsetDateTime::parse("2014-12-08T13:04:58.111+00:00", &Iso8601::DEFAULT).unwrap(),
+    );
     write_expected_directory_row(
         &mut expected,
-        "archived",
-        format!("{now_year}-{now_month_iso}-{now_day_iso}T12:34:56.789",).as_str(),
-        DateType::Today,
-        &now_day_display,
-        &today_suffix,
-        &now_month_display,
-        YearType::CurrentYear,
-        &now_year.as_str(),
-        "12",
-        "34",
-        "56",
+        "docs",
+        OffsetDateTime::parse("2024-06-20T20:41:21.999+01:00", &Iso8601::DEFAULT).unwrap(),
     );
     write_expected_file_row(
         &mut expected,
-        "c-log",
+        "minify-css.sh",
         FileType::File,
-        "877.69",
-        BinarySizeUnit::Pebibytes,
-        format!("{now_year}-{now_month_iso}-{now_day_iso}T23:57:58.119").as_str(),
-        DateType::Today,
-        &now_day_display,
-        &today_suffix,
-        &now_month_display,
-        YearType::CurrentYear,
-        &now_year.as_str(),
-        "23",
-        "57",
-        "58",
-    );
-    write_expected_file_row(
-        &mut expected,
-        "cobol-log",
-        FileType::File,
-        "18.08",
-        BinarySizeUnit::Mebibytes,
-        "1997-03-21T02:07:52.298",
-        DateType::NotToday,
-        "21",
-        "st",
-        "March",
-        YearType::NotThisYear,
-        "1997",
-        "02",
-        "07",
-        "52",
-    );
-    write_expected_file_row(
-        &mut expected,
-        "cpp-log",
-        FileType::File,
-        "527.35",
-        BinarySizeUnit::Gibibytes,
-        format!("{now_year}-{now_month_iso}-{now_day_iso}T05:22:06.992").as_str(),
-        DateType::Today,
-        &now_day_display,
-        &today_suffix,
-        &now_month_display,
-        YearType::CurrentYear,
-        &now_year.as_str(),
-        "05",
-        "22",
-        "06",
-    );
-    write_expected_file_row(
-        &mut expected,
-        "cs-log",
-        FileType::File,
-        "85.02",
-        BinarySizeUnit::Tebibytes,
-        format!("{now_year}-{now_month_iso}-{now_day_iso}T23:17:00.515").as_str(),
-        DateType::Today,
-        &now_day_display,
-        &today_suffix,
-        &now_month_display,
-        YearType::CurrentYear,
-        &now_year.as_str(),
-        "23",
-        "17",
-        "00",
-    );
-    write_expected_file_row(
-        &mut expected,
-        "java-log",
-        FileType::File,
-        "86.06",
+        "3.13",
         BinarySizeUnit::Kibibytes,
-        format!("{now_year}-{now_month_iso}-{not_today_iso}T06:30:28.734").as_str(),
-        DateType::NotToday,
-        &not_today_display,
-        &not_today_suffix,
-        &now_month_display,
-        YearType::CurrentYear,
-        &now_year.as_str(),
-        "06",
-        "30",
-        "28",
+        OffsetDateTime::parse("2022-12-01T18:34:08.321+00:00", &Iso8601::DEFAULT).unwrap(),
     );
     write_expected_file_row(
         &mut expected,
-        "latest",
-        FileType::Symlink,
-        "19",
-        BinarySizeUnit::Bytes,
-        format!("{now_year}-{now_month_iso}-{now_day_iso}T23:57:58.120").as_str(),
-        DateType::Today,
-        &now_day_display,
-        &today_suffix,
-        &now_month_display,
-        YearType::CurrentYear,
-        &now_year.as_str(),
-        "23",
-        "57",
-        "58",
-    );
-    write_expected_file_row(
-        &mut expected,
-        "rust-log",
+        "ゴジラ - the proof.avi",
         FileType::File,
-        "13",
-        BinarySizeUnit::Bytes,
-        format!("2023-{now_month_iso}-{now_day_iso}T22:31:22.333").as_str(),
-        DateType::NotToday,
-        &now_day_display,
-        &today_suffix,
-        &now_month_display,
-        YearType::NotThisYear,
-        "2023",
-        "22",
-        "31",
-        "22",
+        "931.24",
+        BinarySizeUnit::Gibibytes,
+        OffsetDateTime::parse("2024-05-01T12:00:00.000+01:00", &Iso8601::DEFAULT).unwrap(),
     );
     write_expected_foooter_and_end(&mut expected);
     let result = build_html_directory_listing(path, has_parent, items);
@@ -530,28 +284,11 @@ fn write_expected_file_row(
     is_symlink: FileType,
     filesize: &str,
     size_unit: BinarySizeUnit,
-    iso_datetime: &str,
-    day_is_current: DateType,
-    now_day_display: &str,
-    today_suffix: &str,
-    now_month_display: &str,
-    year_is_current: YearType,
-    now_year_display: &str,
-    now_hour_display: &str,
-    now_minute_display: &str,
-    now_second_display: &str,
+    last_modified: OffsetDateTime,
 ) {
     let row_type = match is_symlink {
         FileType::Symlink => "row symlink",
         _ => "row file",
-    };
-    let day_current = match day_is_current {
-        DateType::Today => " current",
-        _ => "",
-    };
-    let year_current = match year_is_current {
-        YearType::CurrentYear => " current",
-        _ => "",
     };
     let size_unit_name = size_unit.get_name();
     let size_unit_suffix = size_unit.get_suffix();
@@ -561,59 +298,42 @@ fn write_expected_file_row(
         <a href=\"{filename}\">{filename}</a>\
         </div><div class=\"size\">{filesize} \
         <abbr title=\"{size_unit_name}\">{size_unit_suffix}</abbr></div>\
-        <div class=\"modified\">\
-        <time datetime=\"{iso_datetime}\">\
-        <span class=\"date{day_current}\">{now_day_display}\
-        <span class=\"day_ordinal_suffix\">{today_suffix}</span> \
-        <span class=\"month\">{now_month_display}</span> \
-        <span class=\"year{year_current}\">{now_year_display}</span></span> \
-        <span class=\"time\"><span class=\"hour\">{now_hour_display}</span>:\
-        <span class=\"minute\">{now_minute_display}</span>:\
-        <span class=\"second\">{now_second_display}</span></span></time></div></div>",
+        <div class=\"modified\">"
         )
         .as_str(),
     );
+    expected.push_str("<time>");
+    expected.push_str(
+        last_modified
+            .format(&Iso8601::DATE_TIME)
+            .unwrap_or("Invalid datetime".to_string())
+            .as_str(),
+    );
+    expected.push_str("</time></div></div>");
 }
 
 fn write_expected_directory_row(
     expected: &mut String,
     directory_name: &str,
-    iso_datetime: &str,
-    day_type: DateType,
-    now_day_display: &str,
-    today_suffix: &str,
-    now_month_display: &str,
-    year_type: YearType,
-    now_year_display: &str,
-    now_hour_display: &str,
-    now_minute_display: &str,
-    now_second_display: &str,
+    last_modified: OffsetDateTime,
 ) {
-    let day_current = match day_type {
-        DateType::Today => " current",
-        _ => "",
-    };
-    let year_current = match year_type {
-        YearType::CurrentYear => " current",
-        _ => "",
-    };
     expected.push_str(
         format!(
             "<div class=\"row directory\"><div class=\"name\">\
         <a href=\"{directory_name}/\">{directory_name}/</a>\
         </div><div class=\"size\">-</div>\
-        <div class=\"modified\">\
-        <time datetime=\"{iso_datetime}\">\
-        <span class=\"date{day_current}\">{now_day_display}\
-        <span class=\"day_ordinal_suffix\">{today_suffix}</span> \
-        <span class=\"month\">{now_month_display}</span> \
-        <span class=\"year{year_current}\">{now_year_display}</span></span> \
-        <span class=\"time\"><span class=\"hour\">{now_hour_display}</span>:\
-        <span class=\"minute\">{now_minute_display}</span>:\
-        <span class=\"second\">{now_second_display}</span></span></time></div></div>"
+        <div class=\"modified\">"
         )
         .as_str(),
     );
+    expected.push_str("<time>");
+    expected.push_str(
+        last_modified
+            .format(&Iso8601::DATE_TIME)
+            .unwrap_or("Invalid datetime".to_string())
+            .as_str(),
+    );
+    expected.push_str("</time></div></div>");
 }
 
 fn write_expected_foooter_and_end(expected: &mut String) {
@@ -627,13 +347,7 @@ fn create_file_descriptor(
     name: &str,
     symlink: bool,
     size: u64,
-    mod_year: i32,
-    mod_month: Month,
-    mod_day: u8,
-    mod_hour: u8,
-    mod_minute: u8,
-    mod_second: u8,
-    mod_milli: u16,
+    last_modified: OffsetDateTime,
 ) -> DirectoryItem {
     DirectoryItem::File {
         is_symlink: symlink,
@@ -645,23 +359,11 @@ fn create_file_descriptor(
             }
         },
         size,
-        last_modified: Ok(OffsetDateTime::new_utc(
-            Date::from_calendar_date(mod_year, mod_month, mod_day).unwrap(),
-            Time::from_hms_milli(mod_hour, mod_minute, mod_second, mod_milli).unwrap(),
-        )),
+        last_modified: Ok(last_modified),
     }
 }
 
-fn create_directory_descriptor(
-    name: &str,
-    mod_year: i32,
-    mod_month: Month,
-    mod_day: u8,
-    mod_hour: u8,
-    mod_minute: u8,
-    mod_second: u8,
-    mod_milli: u16,
-) -> DirectoryItem {
+fn create_directory_descriptor(name: &str, last_modified: OffsetDateTime) -> DirectoryItem {
     DirectoryItem::SubDirectory {
         name: {
             if name.is_empty() {
@@ -670,10 +372,7 @@ fn create_directory_descriptor(
                 Some(name.to_string())
             }
         },
-        last_modified: Ok(OffsetDateTime::new_utc(
-            Date::from_calendar_date(mod_year, mod_month, mod_day).unwrap(),
-            Time::from_hms_milli(mod_hour, mod_minute, mod_second, mod_milli).unwrap(),
-        )),
+        last_modified: Ok(last_modified),
     }
 }
 

@@ -15,6 +15,7 @@ use net_traits::response::{Response, ResponseBody};
 use net_traits::{NetworkError, ResourceFetchTiming};
 use servo_config::pref;
 use servo_url::ServoUrl;
+use time_03::format_description::well_known::Iso8601;
 use time_03::OffsetDateTime;
 use url::Url;
 
@@ -109,12 +110,13 @@ fn gather_directory_items(entries: std::fs::ReadDir) -> BTreeMap<OsString, Direc
 }
 
 fn create_name_item_mapping(entry: DirEntry) -> Option<(OsString, DirectoryItem)> {
-    if let Ok(meta) = entry.metadata() {
-        let os_name = entry.file_name();
-        let entry_name = os_name.to_str().map(str::to_string);
-        create_directory_item(entry_name, meta).map(|i| (os_name, i))
-    } else {
-        None
+    match entry.metadata() {
+        Err(_) => None,
+        Ok(metadata) => {
+            let os_name = entry.file_name();
+            let entry_name = os_name.to_str().map(str::to_string);
+            create_directory_item(entry_name, metadata).map(|i| (os_name, i))
+        },
     }
 }
 
@@ -309,19 +311,14 @@ fn write_file_size(size: u64, page_html: &mut String) {
     } else {
         let mut dec_size = size as f64;
         let mut prefix_power = 0;
-        while dec_size > 1024.0 && prefix_power < 8 {
+        while dec_size > 1024.0 && prefix_power < 3 {
             dec_size /= 1024.0;
             prefix_power += 1;
         }
         let prefix = match prefix_power {
             1 => "<abbr title=\"kibibytes\">KiB</abbr>",
             2 => "<abbr title=\"mebibytes\">MiB</abbr>",
-            3 => "<abbr title=\"gibibytes\">GiB</abbr>",
-            4 => "<abbr title=\"tebibytes\">TiB</abbr>",
-            5 => "<abbr title=\"pebibytes\">PiB</abbr>",
-            6 => "<abbr title=\"exbibytes\">EiB</abbr>",
-            7 => "<abbr title=\"zebibytes\">ZiB</abbr>",
-            _ => "<abbr title=\"yobibytes\">YiB</abbr>",
+            _ => "<abbr title=\"gibibytes\">GiB</abbr>",
         };
         page_html.push_str(format!("{:.2}", dec_size).as_str());
         page_html.push(' ');
@@ -330,67 +327,14 @@ fn write_file_size(size: u64, page_html: &mut String) {
 }
 
 fn write_system_time(last_mod: OffsetDateTime, page_html: &mut String) {
-    page_html.push_str("<time datetime=\"");
-    write_datetime_iso_format(last_mod, page_html);
-    page_html.push_str("\">");
-    write_datetime_for_display(last_mod, page_html);
+    page_html.push_str("<time>");
+    page_html.push_str(
+        last_mod
+            .format(&Iso8601::DATE_TIME)
+            .unwrap_or("Invalid datetime".to_string())
+            .as_str(),
+    );
     page_html.push_str("</time>");
-}
-
-fn write_datetime_iso_format(last_mod: OffsetDateTime, page_html: &mut String) {
-    page_html.push_str(format!("{:0>4}", last_mod.year()).as_str());
-    page_html.push('-');
-    let month_number: u8 = last_mod.month().into();
-    page_html.push_str(format!("{:0>2}", month_number.to_string()).as_str());
-    page_html.push('-');
-    page_html.push_str(format!("{:0>2}", last_mod.day()).as_str());
-    page_html.push('T');
-    page_html.push_str(format!("{:0>2}", last_mod.hour()).as_str());
-    page_html.push(':');
-    page_html.push_str(format!("{:0>2}", last_mod.minute()).as_str());
-    page_html.push(':');
-    page_html.push_str(format!("{:0>2}", last_mod.second()).as_str());
-    page_html.push('.');
-    page_html.push_str(format!("{:0>3}", last_mod.millisecond()).as_str());
-}
-
-fn write_datetime_for_display(last_mod: OffsetDateTime, page_html: &mut String) {
-    let now = OffsetDateTime::now_local().unwrap_or(OffsetDateTime::now_utc());
-    page_html.push_str("<span class=\"date");
-    if now.date().eq(&last_mod.date()) {
-        page_html.push_str(" current");
-    }
-    page_html.push_str("\">");
-    page_html.push_str(last_mod.day().to_string().as_str());
-    page_html.push_str("<span class=\"day_ordinal_suffix\">");
-    page_html.push_str(day_of_month_ordinal_suffix(last_mod.day()));
-    page_html.push_str("</span> <span class=\"month\">");
-    page_html.push_str(last_mod.month().to_string().as_str());
-    page_html.push_str("</span> <span class=\"year");
-    if last_mod.year() == now.year() {
-        page_html.push_str(" current");
-    }
-    page_html.push_str("\">");
-    page_html.push_str(last_mod.year().to_string().as_str());
-    page_html.push_str("</span></span> ");
-
-    page_html.push_str("<span class=\"time\">");
-    page_html.push_str(format!("<span class=\"hour\">{:0>2}</span>", last_mod.hour()).as_str());
-    page_html.push(':');
-    page_html.push_str(format!("<span class=\"minute\">{:0>2}</span>", last_mod.minute()).as_str());
-    page_html.push(':');
-    page_html.push_str(format!("<span class=\"second\">{:0>2}</span>", last_mod.second()).as_str());
-    page_html.push_str("</span>");
-}
-
-// Do not call this function with numbers outside the interval [1, 31].
-pub fn day_of_month_ordinal_suffix(number: u8) -> &'static str {
-    match number {
-        1 | 21 | 31 => "st",
-        2 | 22 => "nd",
-        3 | 23 => "rd",
-        _ => "th",
-    }
 }
 
 /// Writes the given content to the given mutable String, escaping sensitive HTML characters.
