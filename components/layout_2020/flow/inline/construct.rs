@@ -283,6 +283,7 @@ impl InlineFormattingContextBuilder {
             layout_context,
             text_decoration_line,
             has_first_formatted_line,
+            /* is_single_line_text_input = */ false,
         )
     }
 
@@ -292,6 +293,7 @@ impl InlineFormattingContextBuilder {
         layout_context: &LayoutContext,
         text_decoration_line: TextDecorationLine,
         has_first_formatted_line: bool,
+        is_single_line_text_input: bool,
     ) -> Option<InlineFormattingContext> {
         if self.is_empty() {
             return None;
@@ -305,6 +307,7 @@ impl InlineFormattingContextBuilder {
             layout_context,
             text_decoration_line,
             has_first_formatted_line,
+            is_single_line_text_input,
         ))
     }
 }

@@ -191,6 +191,7 @@ where
     ) -> Self {
         let text_decoration_line =
             propagated_text_decoration_line | info.style.clone_text_decoration_line();
+
         BlockContainerBuilder {
             context,
             info,
@@ -214,6 +215,7 @@ where
             self.context,
             self.text_decoration_line,
             !self.have_already_seen_first_line_for_text_indent,
+            self.info.is_single_line_text_input(),
         ) {
             // There are two options here. This block was composed of both one or more inline formatting contexts
             // and child blocks OR this block was a single inline formatting context. In the latter case, we
@@ -598,6 +600,7 @@ where
             self.context,
             self.text_decoration_line,
             !self.have_already_seen_first_line_for_text_indent,
+            self.info.is_single_line_text_input(),
         ) {
             self.push_block_level_job_for_inline_formatting_context(inline_formatting_context);
         }
