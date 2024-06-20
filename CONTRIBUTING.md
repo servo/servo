@@ -75,7 +75,7 @@ For now, we’re taking a cautious approach to these tools due to their effects 
 
 **Copyright issues:** Publicly available models are trained on copyrighted content, both accidentally and intentionally, and their output often includes that content verbatim. Since the legality of this is uncertain, these contributions may violate the licenses of copyrighted works.
 
-**Ethical issues:** AI tools require an unreasonable amount of energy and water to build and operate, their models are built with heavily exploited workers in unacceptable working conditions, and are being used to undermine labor and justify layoffs. These are harms that we do not want to perpetuate, even if only indirectly.
+**Ethical issues:** AI tools require an unreasonable amount of energy and water to build and operate, their models are built with heavily exploited workers in unacceptable working conditions, and they are being used to undermine labor and justify layoffs. These are harms that we do not want to perpetuate, even if only indirectly.
 
 ## Conduct
 
