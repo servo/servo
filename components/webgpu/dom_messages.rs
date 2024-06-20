@@ -16,8 +16,7 @@ use wgc::binding_model::{
     BindGroupDescriptor, BindGroupLayoutDescriptor, PipelineLayoutDescriptor,
 };
 use wgc::command::{
-    ComputePass, ImageCopyBuffer, ImageCopyTexture, RenderBundleDescriptor, RenderBundleEncoder,
-    RenderPass,
+    ImageCopyBuffer, ImageCopyTexture, RenderBundleDescriptor, RenderBundleEncoder, RenderPass,
 };
 use wgc::device::HostMap;
 use wgc::id;
@@ -191,6 +190,7 @@ pub enum WebGPURequest {
     DropShaderModule(id::ShaderModuleId),
     DropRenderBundle(id::RenderBundleId),
     DropQuerySet(id::QuerySetId),
+    DropComputePass(id::ComputePassEncoderId),
     Exit(IpcSender<()>),
     RenderBundleEncoderFinish {
         render_bundle_encoder: RenderBundleEncoder,
@@ -210,13 +210,38 @@ pub enum WebGPURequest {
         device_id: id::DeviceId,
         pipeline_id: PipelineId,
     },
-    RunComputePass {
+    BeginComputePass {
         command_encoder_id: id::CommandEncoderId,
-        compute_pass: Option<ComputePass>,
+        compute_pass_id: ComputePassId,
     },
-    RunRenderPass {
-        command_encoder_id: id::CommandEncoderId,
+    ComputePassSetPipeline {
+        compute_pass_id: ComputePassId,
+        pipeline_id: id::ComputePipelineId,
+    },
+    ComputePassSetBindGroup {
+        compute_pass_id: ComputePassId,
+        index: u32,
+        bind_group_id: id::BindGroupId,
+        offsets: Vec<u32>,
+    },
+    ComputePassDispatchWorkgroups {
+        compute_pass_id: ComputePassId,
+        x: u32,
+        y: u32,
+        z: u32,
+    },
+    ComputePassDispatchWorkgroupsIndirect {
+        compute_pass_id: ComputePassId,
+        buffer_id: id::BufferId,
+        offset: u64,
+    },
+    EndComputePass {
+        compute_pass_id: ComputePassId,
+        device_id: id::DeviceId,
+    },
+    EndRenderPass {
         render_pass: Option<RenderPass>,
+        device_id: id::DeviceId,
     },
     Submit {
         queue_id: id::QueueId,

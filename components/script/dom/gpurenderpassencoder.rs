@@ -19,7 +19,7 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubindgroup::GPUBindGroup;
 use crate::dom::gpubuffer::GPUBuffer;
-use crate::dom::gpucommandencoder::{GPUCommandEncoder, GPUCommandEncoderState};
+use crate::dom::gpucommandencoder::GPUCommandEncoder;
 use crate::dom::gpurenderbundle::GPURenderBundle;
 use crate::dom::gpurenderpipeline::GPURenderPipeline;
 
@@ -164,16 +164,12 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         let render_pass = self.render_pass.borrow_mut().take();
         self.channel
             .0
-            .send(WebGPURequest::RunRenderPass {
-                command_encoder_id: self.command_encoder.id().0,
+            .send(WebGPURequest::EndRenderPass {
                 render_pass,
+                device_id: self.command_encoder.device_id().0,
             })
             .expect("Failed to send RunRenderPass");
 
-        self.command_encoder.set_state(
-            GPUCommandEncoderState::Open,
-            GPUCommandEncoderState::EncodingRenderPass,
-        );
         Ok(())
     }
 

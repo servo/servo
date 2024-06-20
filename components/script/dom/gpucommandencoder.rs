@@ -8,7 +8,7 @@ use std::collections::HashSet;
 
 use dom_struct::dom_struct;
 use webgpu::wgc::command as wgpu_com;
-use webgpu::{self, wgt, WebGPU, WebGPURequest};
+use webgpu::{self, wgt, WebGPU, WebGPUComputePass, WebGPURequest};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -31,16 +31,6 @@ use crate::dom::gpuconvert::{
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::gpurenderpassencoder::GPURenderPassEncoder;
 
-// TODO(sagudev): this is different now
-// https://gpuweb.github.io/gpuweb/#enumdef-encoder-state
-#[derive(MallocSizeOf, PartialEq)]
-pub enum GPUCommandEncoderState {
-    Open,
-    EncodingRenderPass,
-    EncodingComputePass,
-    Closed,
-}
-
 #[dom_struct]
 pub struct GPUCommandEncoder {
     reflector_: Reflector,
@@ -51,7 +41,6 @@ pub struct GPUCommandEncoder {
     #[no_trace]
     encoder: webgpu::WebGPUCommandEncoder,
     buffers: DomRefCell<HashSet<DomRoot<GPUBuffer>>>,
-    state: DomRefCell<GPUCommandEncoderState>,
     device: Dom<GPUDevice>,
     valid: Cell<bool>,
 }
@@ -70,7 +59,6 @@ impl GPUCommandEncoder {
             device: Dom::from_ref(device),
             encoder,
             buffers: DomRefCell::new(HashSet::new()),
-            state: DomRefCell::new(GPUCommandEncoderState::Open),
             valid: Cell::new(true),
         }
     }
@@ -96,13 +84,8 @@ impl GPUCommandEncoder {
         self.encoder
     }
 
-    pub fn set_state(&self, set: GPUCommandEncoderState, expect: GPUCommandEncoderState) {
-        if *self.state.borrow() == expect {
-            *self.state.borrow_mut() = set;
-        } else {
-            self.valid.set(false);
-            *self.state.borrow_mut() = GPUCommandEncoderState::Closed;
-        }
+    pub fn device_id(&self) -> webgpu::WebGPUDevice {
+        self.device.id()
     }
 }
 
@@ -122,32 +105,24 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         &self,
         descriptor: &GPUComputePassDescriptor,
     ) -> DomRoot<GPUComputePassEncoder> {
-        self.set_state(
-            GPUCommandEncoderState::EncodingComputePass,
-            GPUCommandEncoderState::Open,
-        );
+        let compute_pass_id = self
+            .global()
+            .wgpu_id_hub()
+            .lock()
+            .create_compute_pass_id(self.device.id().0.backend());
 
-        let compute_pass = if !self.valid.get() {
-            None
-        } else {
-            Some(wgpu_com::ComputePass::new(
-                self.encoder.0,
-                &wgpu_com::ComputePassDescriptor {
-                    label: descriptor
-                        .parent
-                        .label
-                        .as_ref()
-                        .map(|l| Cow::Borrowed(&**l)),
-                    timestamp_writes: None,
-                },
-            ))
-        };
+        if let Err(e) = self.channel.0.send(WebGPURequest::BeginComputePass {
+            command_encoder_id: self.id().0,
+            compute_pass_id,
+        }) {
+            warn!("Failed to send WebGPURequest::BeginComputePass {e:?}");
+        }
 
         GPUComputePassEncoder::new(
             &self.global(),
             self.channel.clone(),
             self,
-            compute_pass,
+            WebGPUComputePass(compute_pass_id),
             descriptor.parent.label.clone().unwrap_or_default(),
         )
     }
@@ -157,11 +132,6 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         &self,
         descriptor: &GPURenderPassDescriptor,
     ) -> DomRoot<GPURenderPassEncoder> {
-        self.set_state(
-            GPUCommandEncoderState::EncodingRenderPass,
-            GPUCommandEncoderState::Open,
-        );
-
         let render_pass = if !self.valid.get() {
             None
         } else {
@@ -259,11 +229,6 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         destination_offset: GPUSize64,
         size: GPUSize64,
     ) {
-        if !(*self.state.borrow() == GPUCommandEncoderState::Open) {
-            self.valid.set(false);
-            return;
-        }
-
         self.buffers.borrow_mut().insert(DomRoot::from_ref(source));
         self.buffers
             .borrow_mut()
@@ -288,11 +253,6 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         destination: &GPUImageCopyTexture,
         copy_size: GPUExtent3D,
     ) {
-        if !(*self.state.borrow() == GPUCommandEncoderState::Open) {
-            self.valid.set(false);
-            return;
-        }
-
         self.buffers
             .borrow_mut()
             .insert(DomRoot::from_ref(&*source.buffer));
@@ -315,11 +275,6 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         destination: &GPUImageCopyBuffer,
         copy_size: GPUExtent3D,
     ) {
-        if !(*self.state.borrow() == GPUCommandEncoderState::Open) {
-            self.valid.set(false);
-            return;
-        }
-
         self.buffers
             .borrow_mut()
             .insert(DomRoot::from_ref(&*destination.buffer));
@@ -342,11 +297,6 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         destination: &GPUImageCopyTexture,
         copy_size: GPUExtent3D,
     ) {
-        if !(*self.state.borrow() == GPUCommandEncoderState::Open) {
-            self.valid.set(false);
-            return;
-        }
-
         self.channel
             .0
             .send(WebGPURequest::CopyTextureToTexture {
@@ -371,7 +321,6 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             })
             .expect("Failed to send Finish");
 
-        *self.state.borrow_mut() = GPUCommandEncoderState::Closed;
         let buffer = webgpu::WebGPUCommandBuffer(self.encoder.0.into_command_buffer_id());
         GPUCommandBuffer::new(
             &self.global(),
