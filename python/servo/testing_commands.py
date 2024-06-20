@@ -152,7 +152,7 @@ class MachCommands(CommandBase):
             "compositing",
             "constellation",
             "crown",
-            "gfx",
+            "fonts",
             "hyper_serde",
             "layout_2013",
             "layout_2020",

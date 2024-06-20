@@ -9,7 +9,7 @@ use std::fmt;
 use std::sync::Arc as StdArc;
 
 use base::id::{BrowsingContextId, PipelineId};
-use gfx_traits::ByteIndex;
+use fonts_traits::ByteIndex;
 use html5ever::{local_name, namespace_url, ns};
 use pixels::{Image, ImageMetadata};
 use range::Range;

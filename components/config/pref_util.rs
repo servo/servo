@@ -158,9 +158,11 @@ impl From<PrefValue> for [f64; 4] {
     fn from(other: PrefValue) -> [f64; 4] {
         match other {
             PrefValue::Array(values) if values.len() == 4 => {
-                let mut f = values.into_iter().map(|v| v.try_into());
-                if f.all(|v| v.is_ok()) {
-                    let f = f.flatten().collect::<Vec<f64>>();
+                let f = values
+                    .into_iter()
+                    .filter_map(|v| v.try_into().ok())
+                    .collect::<Vec<f64>>();
+                if f.len() == 4 {
                     [f[0], f[1], f[2], f[3]]
                 } else {
                     panic!(

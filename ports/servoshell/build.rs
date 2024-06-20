@@ -5,10 +5,9 @@
 use std::error::Error;
 use std::fs::File;
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use gl_generator::{Api, Fallbacks, Profile, Registry};
-use serde_json::Value;
 use vergen::EmitBuilder;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -60,12 +59,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         let mut libgcc = File::create(out.join("libgcc.a")).unwrap();
         libgcc.write_all(b"INPUT(-lunwind)").unwrap();
         println!("cargo:rustc-link-search=native={}", out.display());
-
-        let mut default_prefs = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        default_prefs.push("../../resources/prefs.json");
-        let prefs: Value = serde_json::from_reader(File::open(&default_prefs).unwrap()).unwrap();
-        let file = File::create(out.join("prefs.json")).unwrap();
-        serde_json::to_writer(file, &prefs).unwrap();
     }
 
     if let Err(error) = EmitBuilder::builder()

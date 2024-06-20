@@ -5,7 +5,10 @@
 </head>
 <body>
 <div style="line-height: 100px">
-    <input type="text" style="line-height: 1.8"></input>
+    <!-- https://html.spec.whatwg.org/multipage/#form-controls defines `line-height` for form
+        controls to be `initial` ie `normal`. -->
+    <input type="text" style="line-height: initial;"></input>
+    <input type="text" style="line-height: normal;"></input>
 </div>
 </body>
 </html>

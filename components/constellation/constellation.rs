@@ -121,7 +121,7 @@ use embedder_traits::{
 };
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::Size2D;
-use gfx::font_cache_thread::FontCacheThread;
+use fonts::FontCacheThread;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use ipc_channel::Error as IpcError;

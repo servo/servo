@@ -21,11 +21,12 @@ use embedder_traits::resources::{self, Resource};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Rect, Scale, Size2D};
 use fnv::FnvHashMap;
+use fonts::{
+    get_and_reset_text_shaping_performance_counter, FontCacheThread, FontContext,
+    FontContextWebFontMethods,
+};
+use fonts_traits::WebFontLoadFinishedCallback;
 use fxhash::{FxHashMap, FxHashSet};
-use gfx::font;
-use gfx::font_cache_thread::FontCacheThread;
-use gfx::font_context::{FontContext, FontContextWebFontMethods};
-use gfx_traits::WebFontLoadFinishedCallback;
 use histogram::Histogram;
 use ipc_channel::ipc::IpcSender;
 use layout::construct::ConstructionResult;
@@ -1119,8 +1120,7 @@ impl LayoutThread {
                 },
             );
             // TODO(pcwalton): Measure energy usage of text shaping, perhaps?
-            let text_shaping_time =
-                font::get_and_reset_text_shaping_performance_counter() / num_threads;
+            let text_shaping_time = get_and_reset_text_shaping_performance_counter() / num_threads;
             profile_time::send_profile_data(
                 profile_time::ProfilerCategory::LayoutTextShaping,
                 self.profiler_metadata(),

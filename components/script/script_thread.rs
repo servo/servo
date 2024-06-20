@@ -47,7 +47,7 @@ use devtools_traits::{
 };
 use embedder_traits::EmbedderMsg;
 use euclid::default::{Point2D, Rect};
-use gfx::font_cache_thread::FontCacheThread;
+use fonts::FontCacheThread;
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
 use html5ever::{local_name, namespace_url, ns};
 use hyper_serde::Serde;
@@ -92,7 +92,7 @@ use style::dom::OpaqueNode;
 use style::thread_state::{self, ThreadState};
 use time::precise_time_ns;
 use url::Position;
-use webgpu::WebGPUMsg;
+use webgpu::{WebGPUDevice, WebGPUMsg};
 use webrender_api::DocumentId;
 use webrender_traits::WebRenderScriptApi;
 
@@ -2423,7 +2423,14 @@ impl ScriptThread {
     fn handle_msg_from_webgpu_server(&self, msg: WebGPUMsg) {
         match msg {
             WebGPUMsg::FreeAdapter(id) => self.gpu_id_hub.lock().kill_adapter_id(id),
-            WebGPUMsg::FreeDevice(id) => self.gpu_id_hub.lock().kill_device_id(id),
+            WebGPUMsg::FreeDevice {
+                device_id,
+                pipeline_id,
+            } => {
+                self.gpu_id_hub.lock().kill_device_id(device_id);
+                let global = self.documents.borrow().find_global(pipeline_id).unwrap();
+                global.remove_gpu_device(WebGPUDevice(device_id));
+            },
             WebGPUMsg::FreeBuffer(id) => self.gpu_id_hub.lock().kill_buffer_id(id),
             WebGPUMsg::FreePipelineLayout(id) => self.gpu_id_hub.lock().kill_pipeline_layout_id(id),
             WebGPUMsg::FreeComputePipeline(id) => {

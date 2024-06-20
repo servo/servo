@@ -46,7 +46,7 @@ fnv = "1.0"
 freetype-sys = "0.20"
 fxhash = "0.2"
 getopts = "0.2.11"
-gfx_traits = { path = "components/shared/gfx" }
+fonts_traits = { path = "components/shared/fonts" }
 gleam = "0.15"
 glib = "0.19"
 gstreamer = { version = "0.22", features = ["v1_18"] }

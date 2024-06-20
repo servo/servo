@@ -10,7 +10,7 @@ use base::WebRenderEpochToU16;
 use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D};
 use fnv::FnvHashMap;
-use gfx::text::glyph::GlyphStore;
+use fonts::GlyphStore;
 use net_traits::image_cache::UsePlaceholder;
 use servo_geometry::MaxRect;
 use style::color::{AbsoluteColor, ColorSpace};
@@ -962,7 +962,7 @@ fn glyphs(
     mut baseline_origin: PhysicalPoint<Length>,
     justification_adjustment: Length,
 ) -> Vec<wr::GlyphInstance> {
-    use gfx_traits::ByteIndex;
+    use fonts_traits::ByteIndex;
     use range::Range;
 
     let mut glyphs = vec![];

@@ -79,8 +79,7 @@ use std::mem;
 use app_units::Au;
 use bitflags::bitflags;
 use construct::InlineFormattingContextBuilder;
-use gfx::font::FontMetrics;
-use gfx::text::glyph::GlyphStore;
+use fonts::{FontMetrics, GlyphStore};
 use line::{
     layout_line_items, AbsolutelyPositionedLineItem, AtomicLineItem, FloatLineItem,
     InlineBoxLineItem, LineItem, LineItemLayoutState, LineMetrics, TextRunLineItem,
@@ -156,6 +155,9 @@ pub(crate) struct InlineFormattingContext {
 
     /// Whether or not this [`InlineFormattingContext`] contains floats.
     pub(super) contains_floats: bool,
+
+    /// Whether or not this is an inline formatting context for a single line text input.
+    pub(super) is_single_line_text_input: bool,
 }
 
 /// A collection of data used to cache [`FontMetrics`] in the [`InlineFormattingContext`]
@@ -575,9 +577,19 @@ impl UnbreakableSegmentUnderConstruction {
     }
 }
 
+bitflags! {
+    pub struct InlineContainerStateFlags: u8 {
+        const CREATE_STRUT = 0b0001;
+        const IS_SINGLE_LINE_TEXT_INPUT = 0b0010;
+    }
+}
+
 struct InlineContainerState {
     /// The style of this inline container.
     style: Arc<ComputedValues>,
+
+    /// Flags which describe details of this [`InlineContainerState`].
+    flags: InlineContainerStateFlags,
 
     /// Whether or not we have processed any content (an atomic element or text) for
     /// this inline box on the current line OR any previous line.
@@ -1584,6 +1596,7 @@ impl InlineFormattingContext {
         layout_context: &LayoutContext,
         text_decoration_line: TextDecorationLine,
         has_first_formatted_line: bool,
+        is_single_line_text_input: bool,
     ) -> Self {
         // This is to prevent a double borrow.
         let text_content: String = builder.text_segments.into_iter().collect();
@@ -1623,6 +1636,7 @@ impl InlineFormattingContext {
             text_decoration_line,
             has_first_formatted_line,
             contains_floats: builder.contains_floats,
+            is_single_line_text_input,
         }
     }
 
@@ -1666,6 +1680,15 @@ impl InlineFormattingContext {
                 .map(|font| font.metrics.clone());
 
         let style_text = containing_block.style.get_inherited_text();
+        let mut inline_container_state_flags = InlineContainerStateFlags::empty();
+        if inline_container_needs_strut(style, layout_context, None) {
+            inline_container_state_flags.insert(InlineContainerStateFlags::CREATE_STRUT);
+        }
+        if self.is_single_line_text_input {
+            inline_container_state_flags
+                .insert(InlineContainerStateFlags::IS_SINGLE_LINE_TEXT_INPUT);
+        }
+
         let mut ifc = InlineFormattingContextState {
             positioning_context,
             containing_block,
@@ -1679,10 +1702,10 @@ impl InlineFormattingContext {
             }),
             root_nesting_level: InlineContainerState::new(
                 style.to_arc(),
+                inline_container_state_flags,
                 None, /* parent_container */
                 self.text_decoration_line,
                 default_font_metrics.as_ref(),
-                inline_container_needs_strut(style, layout_context, None),
             ),
             inline_box_state_stack: Vec::new(),
             current_line_segment: UnbreakableSegmentUnderConstruction::new(),
@@ -1754,14 +1777,18 @@ impl InlineFormattingContext {
 impl InlineContainerState {
     fn new(
         style: Arc<ComputedValues>,
+        flags: InlineContainerStateFlags,
         parent_container: Option<&InlineContainerState>,
         parent_text_decoration_line: TextDecorationLine,
         font_metrics: Option<&FontMetrics>,
-        create_strut: bool,
     ) -> Self {
         let text_decoration_line = parent_text_decoration_line | style.clone_text_decoration_line();
         let font_metrics = font_metrics.cloned().unwrap_or_else(FontMetrics::empty);
-        let line_height = line_height(&style, &font_metrics);
+        let line_height = line_height(
+            &style,
+            &font_metrics,
+            flags.contains(InlineContainerStateFlags::IS_SINGLE_LINE_TEXT_INPUT),
+        );
 
         let mut baseline_offset = Au::zero();
         let mut strut_block_sizes = Self::get_block_sizes_with_style(
@@ -1784,12 +1811,13 @@ impl InlineContainerState {
         let mut nested_block_sizes = parent_container
             .map(|container| container.nested_strut_block_sizes.clone())
             .unwrap_or_else(LineBlockSizes::zero);
-        if create_strut {
+        if flags.contains(InlineContainerStateFlags::CREATE_STRUT) {
             nested_block_sizes.max_assign(&strut_block_sizes);
         }
 
         Self {
             style,
+            flags,
             has_content: false,
             text_decoration_line,
             nested_strut_block_sizes: nested_block_sizes,
@@ -1878,7 +1906,12 @@ impl InlineContainerState {
             &self.style,
             font_metrics,
             font_metrics_of_first_font,
-            line_height(&self.style, font_metrics),
+            line_height(
+                &self.style,
+                font_metrics,
+                self.flags
+                    .contains(InlineContainerStateFlags::IS_SINGLE_LINE_TEXT_INPUT),
+            ),
         )
     }
 
@@ -1946,14 +1979,19 @@ impl InlineBoxContainerState {
     ) -> Self {
         let style = inline_box.style.clone();
         let pbm = style.padding_border_margin(containing_block);
-        let create_strut = inline_container_needs_strut(&style, layout_context, Some(&pbm));
+
+        let mut flags = InlineContainerStateFlags::empty();
+        if inline_container_needs_strut(&style, layout_context, Some(&pbm)) {
+            flags.insert(InlineContainerStateFlags::CREATE_STRUT);
+        }
+
         Self {
             base: InlineContainerState::new(
                 style,
+                flags,
                 Some(parent_container),
                 parent_container.text_decoration_line,
                 font_metrics,
-                create_strut,
             ),
             base_fragment_info: inline_box.base_fragment_info,
             pbm,
@@ -2223,14 +2261,26 @@ fn place_pending_floats(ifc: &mut InlineFormattingContextState, line_items: &mut
     }
 }
 
-fn line_height(parent_style: &ComputedValues, font_metrics: &FontMetrics) -> Length {
+fn line_height(
+    parent_style: &ComputedValues,
+    font_metrics: &FontMetrics,
+    is_single_line_text_input: bool,
+) -> Length {
     let font = parent_style.get_font();
     let font_size = font.font_size.computed_size();
-    match font.line_height {
+    let mut line_height = match font.line_height {
         LineHeight::Normal => Length::from(font_metrics.line_gap),
         LineHeight::Number(number) => font_size * number.0,
         LineHeight::Length(length) => length.0,
+    };
+
+    // Single line text inputs line height is clamped to the size of `normal`. See
+    // <https://github.com/whatwg/html/pull/5462>.
+    if is_single_line_text_input {
+        line_height.max_assign(font_metrics.line_gap.into());
     }
+
+    line_height
 }
 
 fn effective_vertical_align(

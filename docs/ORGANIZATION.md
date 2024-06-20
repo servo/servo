@@ -16,10 +16,10 @@
     * In-process server to allow manipulating browser instances via a remote Firefox developer tools client.
   * devtools_traits
     * APIs to the devtools crate for crates that don't want to depend on the devtools crate for build speed reasons.
-  * gfx
-    * Draws the result of laying out a page, and sends the result to the compositor.
-  * gfx_traits
-    * APIs to the gfx crate for crates that don't want to depend on the gfx crate for build speed reasons.
+  * fonts
+    * Code for dealing with fonts and text shaping.
+  * fonts_traits
+    * APIs to the fonts crate for crates that don't want to depend on the fonts crate for build speed reasons.
   * layout
     * Converts page content into positioned, styled boxes and passes the result to the renderer.
   * layout_thread

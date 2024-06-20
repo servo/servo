@@ -1034,13 +1034,6 @@ impl Drop for GPUDevice {
         if let Err(e) = self
             .channel
             .0
-            .send(WebGPURequest::DestroyDevice(self.device.0))
-        {
-            warn!("Failed to send DestroyDevice ({:?}) ({})", self.device.0, e);
-        }
-        if let Err(e) = self
-            .channel
-            .0
             .send(WebGPURequest::DropDevice(self.device.0))
         {
             warn!("Failed to send DropDevice ({:?}) ({})", self.device.0, e);

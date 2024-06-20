@@ -21,8 +21,8 @@ canvas_traits = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }
-gfx = { path = "../gfx" }
-gfx_traits = { workspace = true }
+fonts = { path = "../fonts" }
+fonts_traits = { workspace = true }
 html5ever = { workspace = true }
 ipc-channel = { workspace = true }
 lazy_static = { workspace = true }
