@@ -1026,7 +1026,8 @@ impl WGPU {
                     },
                     WebGPURequest::DropTexture(id) => {
                         let global = &self.global;
-                        gfx_select!(id => global.texture_drop(id, true));
+                        gfx_select!(id => global.texture_drop(id, false));
+                        self.poller.wake();
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeTexture(id)) {
                             warn!("Unable to send FreeTexture({:?}) ({:?})", id, e);
                         };
@@ -1040,7 +1041,8 @@ impl WGPU {
                     },
                     WebGPURequest::DropBuffer(id) => {
                         let global = &self.global;
-                        gfx_select!(id => global.buffer_drop(id, true));
+                        gfx_select!(id => global.buffer_drop(id, false));
+                        self.poller.wake();
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeBuffer(id)) {
                             warn!("Unable to send FreeBuffer({:?}) ({:?})", id, e);
                         };
@@ -1084,7 +1086,8 @@ impl WGPU {
                     },
                     WebGPURequest::DropTextureView(id) => {
                         let global = &self.global;
-                        let _result = gfx_select!(id => global.texture_view_drop(id, true));
+                        let _result = gfx_select!(id => global.texture_view_drop(id, false));
+                        self.poller.wake();
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeTextureView(id)) {
                             warn!("Unable to send FreeTextureView({:?}) ({:?})", id, e);
                         };
