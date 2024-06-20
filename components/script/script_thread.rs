@@ -126,7 +126,7 @@ use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::identityhub::Identities;
 use crate::dom::mutationobserver::MutationObserver;
-use crate::dom::node::{window_from_node, Node, ShadowIncluding};
+use crate::dom::node::{document_from_node, window_from_node, Node, ShadowIncluding};
 use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performancepainttiming::PerformancePaintTiming;
 use crate::dom::serviceworker::TrustedServiceWorkerAddress;
@@ -1653,7 +1653,17 @@ impl ScriptThread {
             .documents
             .borrow()
             .iter()
+            .filter(|(_, document)| document.window().is_top_level())
             .map(|(id, document)| (id, DomRoot::from_ref(&*document)))
+            .flat_map(|(id, document)| {
+                let mut documents = vec![(id.clone(), document.clone())];
+                documents.extend(document.iter_iframes().filter_map(|iframe| {
+                    iframe
+                        .pipeline_id()
+                        .map(|id| (id, document_from_node(&*iframe)))
+                }));
+                documents
+            })
             .collect();
         // Note: the spec reads: "for doc in docs" at each step
         // whereas this runs all steps per doc in docs.
