@@ -322,7 +322,7 @@ pub struct GlobalScope {
     gpu_id_hub: Arc<Mutex<Identities>>,
 
     /// WebGPU devices
-    gpu_devices: DomRefCell<HashMapTracedValues<WebGPUDevice, Dom<GPUDevice>>>,
+    gpu_devices: DomRefCell<HashMapTracedValues<WebGPUDevice, WeakRef<GPUDevice>>>,
 
     // https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute
     #[ignore_malloc_size_of = "mozjs"]
@@ -3091,7 +3091,16 @@ impl GlobalScope {
     pub fn add_gpu_device(&self, device: &GPUDevice) {
         self.gpu_devices
             .borrow_mut()
-            .insert(device.id(), Dom::from_ref(device));
+            .insert(device.id(), WeakRef::new(device));
+    }
+
+    pub fn remove_gpu_device(&self, device: WebGPUDevice) {
+        let device = self
+            .gpu_devices
+            .borrow_mut()
+            .remove(&device)
+            .expect("GPUDevice should still be in devices hashmap");
+        assert!(device.root().is_none())
     }
 
     pub fn gpu_device_lost(&self, device: WebGPUDevice, reason: DeviceLostReason, msg: String) {
@@ -3100,15 +3109,24 @@ impl GlobalScope {
             DeviceLostReason::Destroyed => GPUDeviceLostReason::Destroyed,
         };
         let _ac = enter_realm(&*self);
-        self.gpu_devices
+        if let Some(device) = self
+            .gpu_devices
             .borrow_mut()
-            .remove(&device)
-            .expect("GPUDevice should still exists")
-            .lose(reason, msg);
+            .get_mut(&device)
+            .expect("GPUDevice should still be in devices hashmap")
+            .root()
+        {
+            device.lose(reason, msg);
+        }
     }
 
     pub fn handle_uncaptured_gpu_error(&self, device: WebGPUDevice, error: webgpu::Error) {
-        if let Some(gpu_device) = self.gpu_devices.borrow().get(&device) {
+        if let Some(gpu_device) = self
+            .gpu_devices
+            .borrow()
+            .get(&device)
+            .and_then(|device| device.root())
+        {
             gpu_device.fire_uncaptured_error(error);
         } else {
             warn!("Recived error for lost GPUDevice!")
