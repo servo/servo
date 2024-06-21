@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+//! Liberally derived from <https://searchfox.org/mozilla-central/source/devtools/server/actors/target-configuration.js>
+//! and <https://searchfox.org/mozilla-central/source/devtools/server/actors/thread-configuration.js>
+//! These actors manage the configuration flags that the devtools host can apply to the targets and threads.
+
 use std::collections::HashMap;
 use std::net::TcpStream;
 
@@ -46,6 +50,9 @@ impl Actor for TargetConfigurationActor {
         self.name.clone()
     }
 
+    /// The target configuration actor can handle the following messages:
+    ///
+    /// - `updateConfiguration`: Receives new configuration flags from the devtools host.
     fn handle_message(
         &self,
         _registry: &ActorRegistry,
@@ -57,7 +64,6 @@ impl Actor for TargetConfigurationActor {
         Ok(match msg_type {
             "updateConfiguration" => {
                 // TODO: Actually update configuration
-
                 let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
 
                 ActorMessageStatus::Processed
@@ -110,6 +116,9 @@ impl Actor for ThreadConfigurationActor {
         self.name.clone()
     }
 
+    /// The thread configuration actor can handle the following messages:
+    ///
+    /// - `updateConfiguration`: Receives new configuration flags from the devtools host.
     fn handle_message(
         &self,
         _registry: &ActorRegistry,
@@ -121,7 +130,6 @@ impl Actor for ThreadConfigurationActor {
         Ok(match msg_type {
             "updateConfiguration" => {
                 // TODO: Actually update configuration
-
                 let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
 
                 ActorMessageStatus::Processed

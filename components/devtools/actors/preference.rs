@@ -37,9 +37,6 @@ impl Actor for PreferenceActor {
         stream: &mut TcpStream,
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
-        // TODO: Here in some cases the field is called name and others value. It throws errors
-        // With the button devtools.debugger.prompt-connection is name
-        // With the other connections is value
         let mut key = msg.get("value").unwrap().as_str().unwrap();
 
         // Mapping to translate a Firefox preference name onto the corresponding Servo preference name

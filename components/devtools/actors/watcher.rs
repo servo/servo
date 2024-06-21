@@ -2,6 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+//! Liberally derived from the [Firefox JS implementation]
+//! (https://searchfox.org/mozilla-central/source/devtools/server/actors/watcher.js).
+//! The watcher is the main entry point when debugging an element. Right now only web views are supported.
+//! It talks to the devtools remote and lists the capabilities of the inspected target, and it serves
+//! as a bridge for messages between actors.
+
 use std::collections::HashMap;
 use std::net::TcpStream;
 
@@ -17,15 +23,8 @@ use crate::actors::configuration::{
 use crate::protocol::JsonPacketStream;
 use crate::{EmptyReplyMsg, StreamId};
 
-#[derive(Serialize)]
-pub enum SessionContextType {
-    BrowserElement,
-    _ContextProcess,
-    _WebExtension,
-    _Worker,
-    _All,
-}
-
+/// Describes the debugged context. It informs the server of which objects can be debugged.
+/// <https://searchfox.org/mozilla-central/source/devtools/server/actors/watcher/session-context.js>
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionContext {
@@ -39,6 +38,7 @@ impl SessionContext {
     pub fn new(context_type: SessionContextType) -> Self {
         Self {
             is_server_target_switching_enabled: false,
+            // Right now we only support debugging web views (frames)
             supported_targets: HashMap::from([
                 ("frame", true),
                 ("process", false),
@@ -46,6 +46,9 @@ impl SessionContext {
                 ("service_worker", false),
                 ("shared_worker", false),
             ]),
+            // At the moment we are blocking most resources to avoid errors
+            // Support for them will be enabled gradually once the corresponding actors start
+            // working propperly
             supported_resources: HashMap::from([
                 ("console-message", false),
                 ("css-change", false),
@@ -75,6 +78,15 @@ impl SessionContext {
             context_type,
         }
     }
+}
+
+#[derive(Serialize)]
+pub enum SessionContextType {
+    BrowserElement,
+    _ContextProcess,
+    _WebExtension,
+    _Worker,
+    _All,
 }
 
 #[derive(Serialize)]
@@ -121,6 +133,19 @@ impl Actor for WatcherActor {
         self.name.clone()
     }
 
+    /// The watcher actor can handle the following messages:
+    ///
+    /// - `watchTargets`: Returns a list of objects to debug. Since we only support web views, it
+    /// returns the associated `BrowsingContextActor`. Every target sent creates a
+    /// `target-available-form` event.
+    ///
+    /// - `watchResources`: Start watching certain resource types. This sends
+    /// `resource-available-form` events.
+    ///
+    /// - `getTargetConfigurationActor`: Returns the configuration actor for a specific target, so
+    /// that the server can update its settings.
+    ///
+    /// - `getThreadConfigurationActor`: The same but with the configuration actor for the thread
     fn handle_message(
         &self,
         registry: &ActorRegistry,
@@ -143,7 +168,10 @@ impl Actor for WatcherActor {
                 let target = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
                 target.frame_update(stream);
 
-                // TODO: Document this type of reply after sending event messages
+                // Messages that contain a `type` field are used to send event callbacks, but they
+                // don't count as a reply. Since every message needs to be responded, we send an
+                // extra empty packet to the devtools host to inform that we successfully received
+                // and processed the message so that it can continue
                 let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
 
                 ActorMessageStatus::Processed
