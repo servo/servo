@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+//! Liberally derived from the [Firefox JS implementation]
+//! (https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/tab.js)
+//! Descriptor actor that represents a web view. It can link a tab to the corresponding watcher
+//! actor to enable inspection.
+
 use std::net::TcpStream;
 
 use serde::Serialize;
@@ -14,7 +19,6 @@ use crate::actors::watcher::{WatcherActor, WatcherActorMsg};
 use crate::protocol::JsonPacketStream;
 use crate::StreamId;
 
-// https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/tab.js
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TabDescriptorActorMsg {
@@ -66,6 +70,12 @@ impl Actor for TabDescriptorActor {
         self.name.clone()
     }
 
+    /// The tab actor can handle the following messages:
+    ///
+    /// - `getTarget`: Returns the surrounding `BrowsingContextActor`.
+    /// - `getFavicon`: Should return the tab favicon, but it is not yet supported.
+    /// - `getWatcher`: Returns a `WatcherActor` linked to the tab's `BrowsingContext`. It is used
+    /// to describe the debugging capabilities of this tab.
     fn handle_message(
         &self,
         registry: &ActorRegistry,

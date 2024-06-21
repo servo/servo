@@ -14,8 +14,8 @@ use crate::actors::configuration::{
     TargetConfigurationActor, TargetConfigurationActorMsg, ThreadConfigurationActor,
     ThreadConfigurationActorMsg,
 };
-use crate::protocol::{EmptyReply, JsonPacketStream};
-use crate::StreamId;
+use crate::protocol::JsonPacketStream;
+use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
 pub enum SessionContextType {
@@ -144,7 +144,7 @@ impl Actor for WatcherActor {
                 target.frame_update(stream);
 
                 // TODO: Document this type of reply after sending event messages
-                let _ = stream.write_json_packet(&EmptyReply { from: self.name() });
+                let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
 
                 ActorMessageStatus::Processed
             },
@@ -172,7 +172,7 @@ impl Actor for WatcherActor {
                         _ => {},
                     }
 
-                    let _ = stream.write_json_packet(&EmptyReply { from: self.name() });
+                    let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
                 }
 
                 ActorMessageStatus::Processed
@@ -205,8 +205,6 @@ impl Actor for WatcherActor {
         })
     }
 }
-
-// TODO: Improve the JSON response builder (with from, different forms, etc...)
 
 impl WatcherActor {
     pub fn new(

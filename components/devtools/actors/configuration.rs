@@ -9,8 +9,8 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::protocol::{EmptyReply, JsonPacketStream};
-use crate::StreamId;
+use crate::protocol::JsonPacketStream;
+use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -58,7 +58,7 @@ impl Actor for TargetConfigurationActor {
             "updateConfiguration" => {
                 // TODO: Actually update configuration
 
-                let _ = stream.write_json_packet(&EmptyReply { from: self.name() });
+                let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
 
                 ActorMessageStatus::Processed
             },
@@ -122,7 +122,7 @@ impl Actor for ThreadConfigurationActor {
             "updateConfiguration" => {
                 // TODO: Actually update configuration
 
-                let _ = stream.write_json_packet(&EmptyReply { from: self.name() });
+                let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
 
                 ActorMessageStatus::Processed
             },

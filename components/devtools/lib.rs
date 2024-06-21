@@ -5,7 +5,7 @@
 //! An actor-based remote devtools server implementation. Only tested with
 //! nightly Firefox versions at time of writing. Largely based on
 //! reverse-engineering of Firefox chrome devtool logs and reading of
-//! [code](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/).
+//! [code](https://searchfox.org/mozilla-central/source/devtools/server).
 
 #![crate_name = "devtools"]
 #![crate_type = "rlib"]
@@ -48,7 +48,7 @@ use crate::actors::worker::{WorkerActor, WorkerType};
 use crate::protocol::JsonPacketStream;
 
 mod actor;
-/// Corresponds to <http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/>
+/// <https://firefox-source-docs.mozilla.org/devtools/backend/actor-hierarchy.html>
 mod actors {
     pub mod browsing_context;
     pub mod configuration;
@@ -113,6 +113,11 @@ struct ResponseStartUpdateMsg {
     type_: String,
     updateType: String,
     response: ResponseStartMsg,
+}
+
+#[derive(Serialize)]
+pub struct EmptyReplyMsg {
+    pub from: String,
 }
 
 /// Spin up a devtools server that listens for connections on the specified port.
@@ -405,7 +410,6 @@ fn run_server(
         browsing_contexts: &HashMap<BrowsingContextId, String>,
         pipelines: &HashMap<PipelineId, BrowsingContextId>,
     ) -> Option<String> {
-        // TODO: Unwrapping error
         let actors = actors.lock().unwrap();
         if let Some(worker_id) = worker_id {
             let actor_name = actor_workers.get(&worker_id)?;
