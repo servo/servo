@@ -279,7 +279,7 @@ impl ReplacedContent {
                         style: style.clone(),
                         rect: LogicalRect {
                             start_corner: LogicalVec2::zero(),
-                            size: size.into(),
+                            size,
                         },
                         image_key,
                     })
@@ -291,7 +291,7 @@ impl ReplacedContent {
                 style: style.clone(),
                 rect: LogicalRect {
                     start_corner: LogicalVec2::zero(),
-                    size: size.into(),
+                    size,
                 },
                 image_key: video.image_key,
             })],
@@ -303,7 +303,7 @@ impl ReplacedContent {
                     browsing_context_id: iframe.browsing_context_id,
                     rect: LogicalRect {
                         start_corner: LogicalVec2::zero(),
-                        size: size.into(),
+                        size,
                     },
                 })]
             },
@@ -337,7 +337,7 @@ impl ReplacedContent {
                     style: style.clone(),
                     rect: LogicalRect {
                         start_corner: LogicalVec2::zero(),
-                        size: size.into(),
+                        size,
                     },
                     image_key,
                 })]

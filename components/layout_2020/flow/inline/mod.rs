@@ -381,13 +381,13 @@ impl LineBlockSizes {
         }
     }
 
-    fn resolve(&self) -> Length {
+    fn resolve(&self) -> Au {
         let height_from_ascent_and_descent = self
             .baseline_relative_size_for_line_height
             .as_ref()
             .map(|size| (size.ascent + size.descent).abs())
             .unwrap_or_else(Au::zero);
-        self.line_height.max(height_from_ascent_and_descent.into())
+        Au::from(self.line_height).max(height_from_ascent_and_descent)
     }
 
     fn max(&self, other: &LineBlockSizes) -> LineBlockSizes {
@@ -431,7 +431,7 @@ impl LineBlockSizes {
             None => {
                 // This is the case mentinoned above where there are multiple solutions.
                 // This code is putting the baseline roughly in the middle of the line.
-                let leading = Au::from(self.resolve()) -
+                let leading = self.resolve() -
                     (self.size_for_baseline_positioning.ascent +
                         self.size_for_baseline_positioning.descent);
                 leading.scale_by(0.5) + self.size_for_baseline_positioning.ascent
@@ -900,7 +900,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             LineBlockSizes::zero()
         };
 
-        let resolved_block_advance = effective_block_advance.resolve().into();
+        let resolved_block_advance = effective_block_advance.resolve();
         let mut block_end_position = block_start_position + resolved_block_advance;
         if let Some(sequential_layout_state) = self.sequential_layout_state.as_mut() {
             // This amount includes both the block size of the line and any extra space
@@ -942,7 +942,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             justification_adjustment,
             line_metrics: &LineMetrics {
                 block_offset: block_start_position.into(),
-                block_size: effective_block_advance.resolve(),
+                block_size: effective_block_advance.resolve().into(),
                 baseline_block_offset: baseline_offset,
             },
         };
@@ -973,11 +973,11 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             // the inline start of the line in `calculate_inline_start_for_current_line` so
             // we do not need to include it in the `start_corner` of the line's main Fragment.
             start_corner: LogicalVec2 {
-                inline: Length::zero(),
-                block: block_start_position.into(),
+                inline: Au::zero(),
+                block: block_start_position,
             },
             size: LogicalVec2 {
-                inline: self.containing_block.inline_size.into(),
+                inline: self.containing_block.inline_size,
                 block: effective_block_advance.resolve(),
             },
         };
@@ -1134,8 +1134,8 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         let margin_box = float_item
             .fragment
             .border_rect()
-            .inflate(&float_item.fragment.margin.map(|t| (*t).into()));
-        let inline_size = margin_box.size.inline.max(Length::zero());
+            .inflate(&float_item.fragment.margin);
+        let inline_size = margin_box.size.inline.max(Au::zero());
 
         let available_inline_size = match self.current_line.placement_among_floats.get() {
             Some(placement_among_floats) => placement_among_floats.size.inline,
@@ -1148,7 +1148,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         // parenting in their stacking contexts). Once all the line content is gathered we
         // will place them later.
         let has_content = self.current_line.has_content || self.current_line_segment.has_content;
-        let fits_on_line = !has_content || inline_size <= available_inline_size;
+        let fits_on_line = !has_content || inline_size <= available_inline_size.into();
         let needs_placement_later =
             self.current_line.has_floats_waiting_to_be_placed || !fits_on_line;
 
@@ -1165,7 +1165,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         // start position.
         let new_placement = self.place_line_among_floats(&LogicalVec2 {
             inline: line_inline_size_without_trailing_whitespace,
-            block: self.current_line.max_block_size.resolve(),
+            block: self.current_line.max_block_size.resolve().into(),
         });
         self.current_line
             .replace_placement_among_floats(new_placement);
@@ -1472,7 +1472,8 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             block: self
                 .current_line_max_block_size_including_nested_containers()
                 .max(&self.current_line_segment.max_block_size)
-                .resolve(),
+                .resolve()
+                .into(),
         };
 
         if self.new_potential_line_size_causes_line_break(&potential_line_size) {
@@ -1520,7 +1521,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         if self.current_line.line_items.is_empty() {
             let will_break = self.new_potential_line_size_causes_line_break(&LogicalVec2 {
                 inline: line_inline_size_without_trailing_whitespace,
-                block: self.current_line_segment.max_block_size.resolve(),
+                block: self.current_line_segment.max_block_size.resolve().into(),
             });
             assert!(!will_break);
         }
@@ -1938,13 +1939,13 @@ impl InlineContainerState {
                     block_size
                         .resolve()
                         .scale_by(FONT_SUBSCRIPT_OFFSET_RATIO)
-                        .px(),
+                        .to_f32_px(),
                 ),
                 VerticalAlign::Keyword(VerticalAlignKeyword::Super) => -Au::from_f32_px(
                     block_size
                         .resolve()
                         .scale_by(FONT_SUPERSCRIPT_OFFSET_RATIO)
-                        .px(),
+                        .to_f32_px(),
                 ),
                 VerticalAlign::Keyword(VerticalAlignKeyword::TextTop) => {
                     child_block_size.size_for_baseline_positioning.ascent - self.font_metrics.ascent
@@ -2047,7 +2048,7 @@ impl IndependentFormattingContext {
                     replaced.base_fragment_info,
                     replaced.style.clone(),
                     fragments,
-                    content_rect.into(),
+                    content_rect,
                     pbm.padding,
                     pbm.border,
                     margin,
@@ -2136,7 +2137,7 @@ impl IndependentFormattingContext {
                     non_replaced.base_fragment_info,
                     non_replaced.style.clone(),
                     independent_layout.fragments,
-                    content_rect.into(),
+                    content_rect,
                     pbm.padding,
                     pbm.border,
                     margin,
@@ -2155,22 +2156,22 @@ impl IndependentFormattingContext {
             ifc.process_soft_wrap_opportunity();
         }
 
-        let size = &pbm_sums.sum().into() + &fragment.content_rect.size;
+        let size = &pbm_sums.sum() + &fragment.content_rect.size;
         let baseline_offset = self
             .pick_baseline(&fragment.baselines)
             .map(|baseline| pbm_sums.block_start + baseline)
-            .unwrap_or(size.block.into());
+            .unwrap_or(size.block);
 
         let (block_sizes, baseline_offset_in_parent) =
-            self.get_block_sizes_and_baseline_offset(ifc, size.block, baseline_offset);
+            self.get_block_sizes_and_baseline_offset(ifc, size.block.into(), baseline_offset);
         ifc.update_unbreakable_segment_for_new_content(
             &block_sizes,
-            size.inline,
+            size.inline.into(),
             SegmentContentFlags::empty(),
         );
         ifc.push_line_item_to_unbreakable_segment(LineItem::Atomic(AtomicLineItem {
             fragment,
-            size,
+            size: size.into(),
             positioning_context: child_positioning_context,
             baseline_offset_in_parent,
             baseline_offset_in_item: baseline_offset,

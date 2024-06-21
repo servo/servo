@@ -240,7 +240,7 @@ impl TextRunLineItem {
         Some(TextFragment {
             base: self.base_fragment_info.into(),
             parent_style: self.parent_style,
-            rect,
+            rect: rect.into(),
             font_metrics: self.font_metrics,
             font_key: self.font_key,
             glyphs: self.text,
@@ -366,14 +366,15 @@ impl InlineBoxLineItem {
         // Relative adjustment should not affect the rest of line layout, so we can
         // do it right before creating the Fragment.
         if style.clone_position().is_relative() {
-            content_rect.start_corner += &relative_adjustement(&style, state.ifc_containing_block);
+            content_rect.start_corner +=
+                &relative_adjustement(&style, state.ifc_containing_block).into();
         }
 
         let mut fragment = BoxFragment::new(
             self.base_fragment_info,
             self.style.clone(),
             fragments,
-            content_rect,
+            content_rect.into(),
             padding,
             border,
             margin,
@@ -460,13 +461,13 @@ impl AtomicLineItem {
         // The initial `start_corner` of the Fragment is only the PaddingBorderMargin sum start
         // offset, which is the sum of the start component of the padding, border, and margin.
         // This needs to be added to the calculated block and inline positions.
-        self.fragment.content_rect.start_corner.inline += state.inline_position;
+        self.fragment.content_rect.start_corner.inline += state.inline_position.into();
         self.fragment.content_rect.start_corner.block +=
-            self.calculate_block_start(state.line_metrics);
+            self.calculate_block_start(state.line_metrics).into();
 
         // Make the final result relative to the parent box.
         self.fragment.content_rect.start_corner =
-            &self.fragment.content_rect.start_corner - &state.parent_offset;
+            &self.fragment.content_rect.start_corner - &state.parent_offset.into();
 
         if self.fragment.style.clone_position().is_relative() {
             self.fragment.content_rect.start_corner +=
@@ -571,7 +572,7 @@ impl FloatLineItem {
             block: state.line_metrics.block_offset + state.parent_offset.block,
         };
         self.fragment.content_rect.start_corner =
-            &self.fragment.content_rect.start_corner - &distance_from_parent_to_ifc;
+            &self.fragment.content_rect.start_corner - &distance_from_parent_to_ifc.into();
         self.fragment
     }
 }

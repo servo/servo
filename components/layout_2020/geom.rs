@@ -216,6 +216,19 @@ impl fmt::Debug for LogicalRect<Length> {
     }
 }
 
+impl fmt::Debug for LogicalRect<Au> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Rect(i{}×b{} @ (i{},b{}))",
+            self.size.inline.to_px(),
+            self.size.block.to_px(),
+            self.start_corner.inline.to_px(),
+            self.start_corner.block.to_px(),
+        )
+    }
+}
+
 impl<T: Clone> LogicalVec2<T> {
     pub fn to_physical(&self, mode: WritingMode) -> PhysicalSize<T> {
         // https://drafts.csswg.org/css-writing-modes/#logical-to-physical
@@ -524,18 +537,4 @@ impl From<LogicalRect<CSSPixelLength>> for LogicalRect<Au> {
             size: value.size.into(),
         }
     }
-}
-
-/// Convert a `PhysicalRect<Length>` (one that uses CSSPixel as the unit) to an untyped `Rect<Au>`.
-pub fn physical_rect_to_au_rect(rect: PhysicalRect<Length>) -> euclid::default::Rect<Au> {
-    euclid::default::Rect::new(
-        euclid::default::Point2D::new(
-            Au::from_f32_px(rect.origin.x.px()),
-            Au::from_f32_px(rect.origin.y.px()),
-        ),
-        euclid::default::Size2D::new(
-            Au::from_f32_px(rect.size.width.px()),
-            Au::from_f32_px(rect.size.height.px()),
-        ),
-    )
 }

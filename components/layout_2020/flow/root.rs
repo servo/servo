@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use atomic_refcell::AtomicRef;
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
@@ -11,7 +12,7 @@ use serde::Serialize;
 use servo_arc::Arc;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, Overflow};
+use style::values::computed::Overflow;
 use style_traits::CSSPixel;
 use webrender_traits::display_list::ScrollSensitivity;
 
@@ -306,12 +307,15 @@ impl BoxTree {
         // https://drafts.csswg.org/css-writing-modes/#principal-flow
         let physical_containing_block = PhysicalRect::new(
             PhysicalPoint::zero(),
-            PhysicalSize::new(Length::new(viewport.width), Length::new(viewport.height)),
+            PhysicalSize::new(
+                Au::from_f32_px(viewport.width),
+                Au::from_f32_px(viewport.height),
+            ),
         );
         let initial_containing_block = DefiniteContainingBlock {
             size: LogicalVec2 {
-                inline: physical_containing_block.size.width.into(),
-                block: physical_containing_block.size.height.into(),
+                inline: physical_containing_block.size.width,
+                block: physical_containing_block.size.height,
             },
             style,
         };

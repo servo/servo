@@ -433,7 +433,7 @@ impl FlexContainer {
                     },
                 };
                 for (fragment, _) in &mut line.item_fragments {
-                    fragment.content_rect.start_corner += &flow_relative_line_position
+                    fragment.content_rect.start_corner += &flow_relative_line_position.into()
                 }
                 line.item_fragments
             });
@@ -965,7 +965,7 @@ impl FlexLine<'_> {
                         item.box_.base_fragment_info(),
                         item.box_.style().clone(),
                         item_result.fragments,
-                        content_rect,
+                        content_rect.into(),
                         flex_context.sides_to_flow_relative(item.padding),
                         flex_context.sides_to_flow_relative(item.border),
                         margin,

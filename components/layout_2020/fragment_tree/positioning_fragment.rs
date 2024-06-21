@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use base::print_tree::PrintTree;
 use serde::Serialize;
 use servo_arc::Arc as ServoArc;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::computed::Length;
 
 use super::{BaseFragment, BaseFragmentInfo, Fragment};
 use crate::cell::ArcRefCell;
@@ -19,12 +19,12 @@ use crate::geom::{LogicalRect, PhysicalRect};
 #[derive(Serialize)]
 pub(crate) struct PositioningFragment {
     pub base: BaseFragment,
-    pub rect: LogicalRect<Length>,
+    pub rect: LogicalRect<Au>,
     pub children: Vec<ArcRefCell<Fragment>>,
     pub writing_mode: WritingMode,
 
     /// The scrollable overflow of this anonymous fragment's children.
-    pub scrollable_overflow: PhysicalRect<Length>,
+    pub scrollable_overflow: PhysicalRect<Au>,
 
     /// If this fragment was created with a style, the style of the fragment.
     #[serde(skip_serializing)]
@@ -33,7 +33,7 @@ pub(crate) struct PositioningFragment {
 
 impl PositioningFragment {
     pub fn new_anonymous(
-        rect: LogicalRect<Length>,
+        rect: LogicalRect<Au>,
         children: Vec<Fragment>,
         mode: WritingMode,
     ) -> Self {
@@ -42,7 +42,7 @@ impl PositioningFragment {
 
     pub fn new_empty(
         base_fragment_info: BaseFragmentInfo,
-        rect: LogicalRect<Length>,
+        rect: LogicalRect<Au>,
         style: ServoArc<ComputedValues>,
     ) -> Self {
         let writing_mode = style.writing_mode;
@@ -58,7 +58,7 @@ impl PositioningFragment {
     fn new_with_base_fragment(
         base: BaseFragment,
         style: Option<ServoArc<ComputedValues>>,
-        rect: LogicalRect<Length>,
+        rect: LogicalRect<Au>,
         children: Vec<Fragment>,
         mode: WritingMode,
     ) -> Self {
