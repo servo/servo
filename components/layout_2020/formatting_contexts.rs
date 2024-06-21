@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::convert::TryInto;
-
 use app_units::Au;
 use serde::Serialize;
 use servo_arc::Arc;
@@ -92,8 +90,8 @@ impl IndependentFormattingContext {
         contents: Contents,
         propagated_text_decoration_line: TextDecorationLine,
     ) -> Self {
-        match contents.try_into() {
-            Ok(non_replaced_contents) => {
+        match contents {
+            Contents::NonReplaced(non_replaced_contents) => {
                 let contents = match display_inside {
                     DisplayInside::Flow { is_list_item } |
                     DisplayInside::FlowRoot { is_list_item } => {
@@ -131,7 +129,7 @@ impl IndependentFormattingContext {
                     contents,
                 })
             },
-            Err(contents) => {
+            Contents::Replaced(contents) => {
                 let mut base_fragment_info: BaseFragmentInfo = node_and_style_info.into();
                 base_fragment_info.flags.insert(FragmentFlags::IS_REPLACED);
                 Self::Replaced(ReplacedFormattingContext {

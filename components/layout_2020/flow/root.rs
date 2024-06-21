@@ -18,7 +18,7 @@ use webrender_traits::display_list::ScrollSensitivity;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, NodeExt};
-use crate::dom_traversal::{iter_child_nodes, Contents, NodeAndStyleInfo};
+use crate::dom_traversal::{iter_child_nodes, Contents, NodeAndStyleInfo, NonReplacedContents};
 use crate::flexbox::FlexLevelBox;
 use crate::flow::float::FloatBox;
 use crate::flow::inline::InlineItem;
@@ -206,7 +206,7 @@ impl BoxTree {
         loop {
             if let Some((primary_style, display_inside, update_point)) = update_point(dirty_node) {
                 let contents = ReplacedContent::for_element(dirty_node, context)
-                    .map_or(Contents::OfElement, Contents::Replaced);
+                    .map_or_else(|| NonReplacedContents::OfElement.into(), Contents::Replaced);
                 let info = NodeAndStyleInfo::new(dirty_node, Arc::clone(&primary_style));
                 let out_of_flow_absolutely_positioned_box = ArcRefCell::new(
                     AbsolutelyPositionedBox::construct(context, &info, display_inside, contents),
@@ -264,7 +264,7 @@ fn construct_for_root_element<'dom>(
     };
 
     let contents = ReplacedContent::for_element(root_element, context)
-        .map_or(Contents::OfElement, Contents::Replaced);
+        .map_or_else(|| NonReplacedContents::OfElement.into(), Contents::Replaced);
     let root_box = if box_style.position.is_absolutely_positioned() {
         BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(ArcRefCell::new(
             AbsolutelyPositionedBox::construct(context, &info, display_inside, contents),
