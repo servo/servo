@@ -144,9 +144,12 @@ impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
 
 impl Drop for GPUComputePassEncoder {
     fn drop(&mut self) {
-        self.channel
+        if let Err(e) = self
+            .channel
             .0
             .send(WebGPURequest::DropComputePass(self.compute_pass.0))
-            .unwrap()
+        {
+            warn!("Failed to send WebGPURequest::DropComputePass with {e:?}");
+        }
     }
 }
