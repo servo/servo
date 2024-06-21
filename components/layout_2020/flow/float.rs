@@ -991,7 +991,7 @@ impl FloatBox {
                     self.contents.base_fragment_info(),
                     style.clone(),
                     children,
-                    content_rect,
+                    content_rect.into(),
                     pbm.padding,
                     pbm.border,
                     margin,
@@ -1209,7 +1209,7 @@ impl SequentialLayoutState {
         );
 
         let pbm_sums = &(&box_fragment.padding + &box_fragment.border) + &box_fragment.margin;
-        let content_rect: LogicalRect<Au> = box_fragment.content_rect.clone().into();
+        let content_rect = box_fragment.content_rect.clone();
         let margin_box_start_corner = self.floats.add_float(&PlacementInfo {
             size: &content_rect.size + &pbm_sums.sum(),
             side: FloatSide::from_style(&box_fragment.style).expect("Float box wasn't floated!"),
@@ -1227,6 +1227,6 @@ impl SequentialLayoutState {
             block: new_position_in_bfc.block - block_start_of_containing_block_in_bfc,
         };
 
-        box_fragment.content_rect.start_corner = new_position_in_containing_block.into();
+        box_fragment.content_rect.start_corner = new_position_in_containing_block;
     }
 }
