@@ -5,7 +5,7 @@
 //! An actor-based remote devtools server implementation. Only tested with
 //! nightly Firefox versions at time of writing. Largely based on
 //! reverse-engineering of Firefox chrome devtool logs and reading of
-//! [code](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/).
+//! [code](https://searchfox.org/mozilla-central/source/devtools/server).
 
 #![crate_name = "devtools"]
 #![crate_type = "rlib"]
@@ -48,9 +48,10 @@ use crate::actors::worker::{WorkerActor, WorkerType};
 use crate::protocol::JsonPacketStream;
 
 mod actor;
-/// Corresponds to <http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/>
+/// <https://searchfox.org/mozilla-central/source/devtools/server/actors>
 mod actors {
     pub mod browsing_context;
+    pub mod configuration;
     pub mod console;
     pub mod device;
     pub mod emulation;
@@ -68,6 +69,7 @@ mod actors {
     pub mod tab;
     pub mod thread;
     pub mod timeline;
+    pub mod watcher;
     pub mod worker;
 }
 mod protocol;
@@ -111,6 +113,11 @@ struct ResponseStartUpdateMsg {
     type_: String,
     updateType: String,
     response: ResponseStartMsg,
+}
+
+#[derive(Serialize)]
+pub struct EmptyReplyMsg {
+    pub from: String,
 }
 
 /// Spin up a devtools server that listens for connections on the specified port.
