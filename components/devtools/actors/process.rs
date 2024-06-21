@@ -40,6 +40,9 @@ impl Actor for ProcessActor {
         self.name.clone()
     }
 
+    /// The process actor can handle the following messages:
+    ///
+    /// - `listWorkers`: Returns a list of web workers, not supported yet.
     fn handle_message(
         &self,
         _registry: &ActorRegistry,

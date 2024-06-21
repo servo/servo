@@ -50,14 +50,14 @@ impl SessionContext {
             // Support for them will be enabled gradually once the corresponding actors start
             // working propperly
             supported_resources: HashMap::from([
-                ("console-message", false),
+                ("console-message", true),
                 ("css-change", false),
                 ("css-message", false),
                 ("css-registered-properties", false),
                 ("document-event", true),
                 ("Cache", false),
                 ("cookies", false),
-                ("error-message", false),
+                ("error-message", true),
                 ("extension-storage", false),
                 ("indexed-db", false),
                 ("local-storage", false),

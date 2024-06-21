@@ -48,7 +48,7 @@ use crate::actors::worker::{WorkerActor, WorkerType};
 use crate::protocol::JsonPacketStream;
 
 mod actor;
-/// <https://searchfox.org/mozilla-central/source/devtools/server/actors/>
+/// <https://searchfox.org/mozilla-central/source/devtools/server/actors>
 mod actors {
     pub mod browsing_context;
     pub mod configuration;
