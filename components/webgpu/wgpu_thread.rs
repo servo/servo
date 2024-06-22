@@ -4,7 +4,6 @@
 
 //! Data and main loop of WebGPU thread.
 
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::slice;
 use std::sync::{Arc, Mutex};
@@ -74,8 +73,11 @@ pub(crate) struct WGPU {
     devices: Arc<Mutex<HashMap<DeviceId, DeviceScope>>>,
     // Track invalid adapters https://gpuweb.github.io/gpuweb/#invalid
     _invalid_adapters: Vec<WebGPUAdapter>,
-    //TODO: Remove this (https://github.com/gfx-rs/wgpu/issues/867)
-    error_command_encoders: RefCell<HashMap<id::CommandEncoderId, String>>,
+    // TODO: Remove this (https://github.com/gfx-rs/wgpu/issues/867)
+    // This stores first error on command encoder,
+    // because wgpu does not invalidate command encoder object
+    // (this is also reused for invalidation of command buffers)
+    error_command_encoders: HashMap<id::CommandEncoderId, String>,
     webrender_api: Arc<Mutex<RenderApi>>,
     webrender_document: DocumentId,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
@@ -122,7 +124,7 @@ impl WGPU {
             adapters: Vec::new(),
             devices: Arc::new(Mutex::new(HashMap::new())),
             _invalid_adapters: Vec::new(),
-            error_command_encoders: RefCell::new(HashMap::new()),
+            error_command_encoders: HashMap::new(),
             webrender_api: Arc::new(Mutex::new(webrender_api_sender.create_api())),
             webrender_document,
             external_images,
@@ -205,10 +207,8 @@ impl WGPU {
                         let global = &self.global;
                         let result = if is_error {
                             Err(Error::Internal(String::from("Invalid GPUCommandEncoder")))
-                        } else if let Some(err) = self
-                            .error_command_encoders
-                            .borrow()
-                            .get(&command_encoder_id)
+                        } else if let Some(err) =
+                            self.error_command_encoders.get(&command_encoder_id)
                         {
                             Err(Error::Internal(err.clone()))
                         } else if let Some(error) =
@@ -223,7 +223,9 @@ impl WGPU {
                             Ok(())
                         };
 
+                        // invalidate command buffer too
                         self.encoder_record_error(command_encoder_id, &result);
+                        // dispatch validation error
                         self.maybe_dispatch_error(device_id, result.err());
                     },
                     WebGPURequest::CopyBufferToBuffer {
@@ -580,7 +582,6 @@ impl WGPU {
                     },
                     WebGPURequest::DropCommandBuffer(id) => {
                         self.error_command_encoders
-                            .borrow_mut()
                             .remove(&id.into_command_encoder_id());
                         let global = &self.global;
                         gfx_select!(id => global.command_buffer_drop(id));
@@ -839,7 +840,6 @@ impl WGPU {
                         let global = &self.global;
                         let cmd_id = command_buffers.iter().find(|id| {
                             self.error_command_encoders
-                                .borrow()
                                 .contains_key(&id.into_command_encoder_id())
                         });
                         let result = if cmd_id.is_some() {
@@ -1280,13 +1280,12 @@ impl WGPU {
     }
 
     fn encoder_record_error<U, T: std::fmt::Debug>(
-        &self,
+        &mut self,
         encoder_id: id::CommandEncoderId,
         result: &Result<U, T>,
     ) {
         if let Err(ref e) = result {
             self.error_command_encoders
-                .borrow_mut()
                 .entry(encoder_id)
                 .or_insert_with(|| format!("{:?}", e));
         }
