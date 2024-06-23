@@ -6216,7 +6216,6 @@ dependencies = [
 [[package]]
 name = "taffy"
 version = "0.5.1"
-source = "git+https://github.com/DioxusLabs/taffy?branch=traitify-style#ba0e262260142e8c034882c3879e1d61382cc0e1"
 dependencies = [
  "arrayvec",
  "grid",
@@ -6228,7 +6227,6 @@ dependencies = [
 [[package]]
 name = "taffy_stylo"
 version = "0.0.1"
-source = "git+https://github.com/DioxusLabs/taffy?branch=traitify-style#ba0e262260142e8c034882c3879e1d61382cc0e1"
 dependencies = [
  "servo_arc",
  "style",

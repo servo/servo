@@ -51,8 +51,8 @@ data-url = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
 xi-unicode = { workspace = true }
-taffy = { git = "https://github.com/DioxusLabs/taffy", branch = "traitify-style", features = ["serde"] }
-taffy_stylo = { git = "https://github.com/DioxusLabs/taffy", branch = "traitify-style" }
+taffy = { path = "../../../taffy", features = ["serde"] }
+taffy_stylo = { path = "../../../taffy/taffy_stylo" }
 
 [dev-dependencies]
 lazy_static = { workspace = true }
