@@ -135,7 +135,7 @@ mod media_platform {
 
             match GStreamerBackend::init_with_plugins(
                 plugin_dir,
-                &gstreamer_plugins::GSTREAMER_PLUGINS,
+                gstreamer_plugins::GSTREAMER_PLUGINS,
             ) {
                 Ok(b) => b,
                 Err(e) => {

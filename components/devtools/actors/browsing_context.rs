@@ -298,7 +298,8 @@ impl BrowsingContextActor {
         if let Some(p) = pipeline {
             self.active_pipeline.set(p);
         }
-        *self.url.borrow_mut() = url.as_str().to_owned();
+        // *self.url.borrow_mut() = url.as_str().to_owned();
+        url.as_str().clone_into(&mut self.url.borrow_mut());
         if let Some(ref t) = title {
             self.title.borrow_mut().clone_from(t);
         }
