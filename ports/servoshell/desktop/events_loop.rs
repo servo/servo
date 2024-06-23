@@ -96,11 +96,12 @@ impl EventsLoop {
 
     pub fn run_forever<F>(self, mut callback: F)
     where
-        F: 'static + FnMut(
-            winit::event::Event<WakerEvent>,
-            Option<&winit::event_loop::EventLoopWindowTarget<WakerEvent>>,
-            &mut ControlFlow,
-        ),
+        F: 'static
+            + FnMut(
+                winit::event::Event<WakerEvent>,
+                Option<&winit::event_loop::EventLoopWindowTarget<WakerEvent>>,
+                &mut ControlFlow,
+            ),
     {
         match self.0 {
             EventLoop::Winit(events_loop) => {
