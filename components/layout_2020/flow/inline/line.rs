@@ -444,7 +444,7 @@ impl InlineBoxLineItem {
 
 pub(super) struct AtomicLineItem {
     pub fragment: BoxFragment,
-    pub size: LogicalVec2<Length>,
+    pub size: LogicalVec2<Au>,
     pub positioning_context: Option<PositioningContext>,
 
     /// The block offset of this items' baseline relative to the baseline of the line.
@@ -474,7 +474,7 @@ impl AtomicLineItem {
                 &relative_adjustement(&self.fragment.style, state.ifc_containing_block);
         }
 
-        state.inline_position += self.size.inline;
+        state.inline_position += self.size.inline.into();
 
         if let Some(mut positioning_context) = self.positioning_context {
             positioning_context.adjust_static_position_of_hoisted_fragments_with_offset(
@@ -493,7 +493,7 @@ impl AtomicLineItem {
         match self.fragment.style.clone_vertical_align() {
             GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) => Length::zero(),
             GenericVerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => {
-                line_metrics.block_size - self.size.block
+                line_metrics.block_size - self.size.block.into()
             },
 
             // This covers all baseline-relative vertical alignment.
