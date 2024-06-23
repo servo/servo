@@ -271,7 +271,7 @@
    */
   function addHeaders(url, headers) {
     function escape(s) {
-      return s.replace('(', '\\(').replace(')', '\\)');
+      return s.replace('(', '\\(').replace(')', '\\)').replace(',', '\\,');
     }
     const formattedHeaders = headers.map((header) => {
       return `header(${escape(header[0])}, ${escape(header[1])})`;
@@ -288,15 +288,22 @@
   function elementExecutorCreator(
       remoteContextWrapper, elementName, attributes) {
     return url => {
-      return remoteContextWrapper.executeScript((url, elementName, attributes) => {
-        const el = document.createElement(elementName);
-        for (const attribute in attributes) {
-          el.setAttribute(attribute, attributes[attribute]);
-        }
-        el.src = url;
-        const parent = elementName == "frame" ? findOrCreateFrameset() : document.body;
-        parent.appendChild(el);
-      }, [url, elementName, attributes]);
+      return remoteContextWrapper.executeScript(
+          (url, elementName, attributes) => {
+            const el = document.createElement(elementName);
+            for (const attribute in attributes) {
+              el.setAttribute(attribute, attributes[attribute]);
+            }
+            if (elementName == 'object') {
+              el.data = url;
+            } else {
+              el.src = url;
+            }
+            const parent =
+                elementName == 'frame' ? findOrCreateFrameset() : document.body;
+            parent.appendChild(el);
+          },
+          [url, elementName, attributes]);
     };
   }
 
@@ -406,7 +413,7 @@
      * `frameset` element.
      * @param {RemoteContextConfig} [extraConfig]
      * @param {[string, string][]} [attributes] A list of pairs of strings
-     *     of attribute name and value these will be set on the iframe element
+     *     of attribute name and value these will be set on the frame element
      *     when added to the document.
      * @returns {Promise<RemoteContextWrapper>} The remote context.
      */
@@ -416,6 +423,37 @@
         extraConfig,
       });
     }
+
+    /**
+     * Adds an `embed` with `src` attribute to the current document.
+     * @param {RemoteContextConfig} [extraConfig]
+     * @param {[string, string][]} [attributes] A list of pairs of strings
+     *     of attribute name and value these will be set on the embed element
+     *     when added to the document.
+     * @returns {Promise<RemoteContextWrapper>} The remote context.
+     */
+    addEmbed(extraConfig, attributes = {}) {
+      return this.helper.createContext({
+        executorCreator: elementExecutorCreator(this, 'embed', attributes),
+        extraConfig,
+      });
+    }
+
+    /**
+     * Adds an `object` with `data` attribute to the current document.
+     * @param {RemoteContextConfig} [extraConfig]
+     * @param {[string, string][]} [attributes] A list of pairs of strings
+     *     of attribute name and value these will be set on the object element
+     *     when added to the document.
+     * @returns {Promise<RemoteContextWrapper>} The remote context.
+     */
+    addObject(extraConfig, attributes = {}) {
+      return this.helper.createContext({
+        executorCreator: elementExecutorCreator(this, 'object', attributes),
+        extraConfig,
+      });
+    }
+
     /**
      * Adds an iframe with `srcdoc` attribute to the current document
      * @param {RemoteContextConfig} [extraConfig]

@@ -26,26 +26,6 @@ async function createIframeAndWaitForMessage(test, iframeUrl) {
     return message.data;
 }
 
-// Builds a valid navigator.identity.get() request where IdentityRequestProvider#request is an object.
-function buildValidNavigatorIdentityRequestWithRequestObject() {
-  return {
-      digital: {
-        providers: [{
-          protocol: "urn:openid.net:oid4vp",
-          request: {
-            // Based on https://github.com/openid/OpenID4VP/issues/125
-            client_id: "client.example.org",
-            client_id_scheme: "web-origin",
-            nonce: "n-0S6_WzA2Mj",
-            presentation_definition: {
-              // Presentation Exchange request, omitted for brevity
-            }
-          },
-        }],
-      },
-  };
-}
-
 // Requires browser to have mode where OS-presented digital-identity-prompt is
 // bypassed in favour of returning "fake_test_token" directly.
 promise_test(async t=>{
@@ -53,13 +33,6 @@ promise_test(async t=>{
   let request = buildValidNavigatorIdentityRequest();
   await promise_rejects_dom(t, "NetworkError", navigator.identity.get(request));
 }, "navigator.identity.get() fails if the page doesn't have user activation");
-
-promise_test(async t => {
-  let request = buildValidNavigatorIdentityRequest();
-  let credential = await requestIdentityWithActivation(test_driver, request);
-  assert_equals("urn:openid.net:oid4vp", credential.protocol);
-  assert_equals("fake_test_token", credential.data);
-}, "navigator.identity.get() API works in toplevel frame.");
 
 promise_test(async t => {
   let request = buildValidNavigatorIdentityRequest();
@@ -72,46 +45,6 @@ promise_test(async t => {
   request.digital.providers = [];
   await promise_rejects_js(t, TypeError, requestIdentityWithActivation(test_driver, request));
 }, "navigator.identity.get() API fails if there are no providers.");
-
-promise_test(async t => {
-  let request = buildValidNavigatorIdentityRequest();
-  let providerCopy = structuredClone(request.digital.providers[0]);
-  request.digital.providers.push(providerCopy);
-  await promise_rejects_js(t, TypeError, requestIdentityWithActivation(test_driver, request));
-}, "navigator.identity.get() API fails if there is more than one provider.");
-
-promise_test(async t => {
-  const request = buildValidNavigatorIdentityRequestWithRequestObject();
-  let credential = await requestIdentityWithActivation(test_driver, request);
-  assert_equals("urn:openid.net:oid4vp", credential.protocol);
-  assert_equals("fake_test_token", credential.data);
-}, "navigator.identity.get() API succeeds when IdentityRequestProvider#request is an object instead of stringified JSON object");
-
-promise_test(async t => {
-  const request = buildValidNavigatorIdentityRequestWithRequestObject();
-  const largeList = [];
-  for (let i = 0; i < 1000000; ++i) {
-    largeList.push("Value " + i);
-  }
-  request.digital.providers[0].request.random = largeList;
-  await promise_rejects_js(t, TypeError, requestIdentityWithActivation(test_driver, request));
-}, "navigator.identity.get() API fails when IdentityRequestProvider#request object is too big");
-
-promise_test(async t=> {
-  let abortController = new AbortController();
-  let request = buildValidNavigatorIdentityRequest();
-  request.signal = abortController.signal;
-  let requestPromise = requestIdentityWithActivation(test_driver, request);
-  abortController.abort();
-  await promise_rejects_dom(t, "AbortError", requestPromise);
-}, "navigator.identity.get() promise is rejected when the page aborts the request.");
-
-promise_test(async t=> {
-  const message = await createIframeAndWaitForMessage(
-      t, basePath + "support/iframe.html");
-  assert_equals(message.result, "Pass");
-  assert_equals(message.data, "fake_test_token");
-}, "navigator.identity.get() succeeds in same-origin iframe");
 
 promise_test(async t=> {
   const message = await createIframeAndWaitForMessage(

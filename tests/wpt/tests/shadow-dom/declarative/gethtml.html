@@ -12,7 +12,7 @@
 <script>
 function testElementType(allowsShadowDom, elementType, runGetHTMLOnShadowRoot,
       lightDOMContent, declarativeShadowDom, mode, delegatesFocus,
-      serializable, clonable) {
+      serializable, clonable, emptyShadowTree) {
   const t = test(t => {
     // Create and attach element
     let wrapper;
@@ -63,15 +63,17 @@ function testElementType(allowsShadowDom, elementType, runGetHTMLOnShadowRoot,
 
     if (allowsShadowDom) {
       const correctShadowHtml = `<template shadowrootmode="${mode}"` +
-          `${delegatesAttr}${serializableAttr}${clonableAttr}><slot></slot>` +
-          `</template>`;
+          `${delegatesAttr}${serializableAttr}${clonableAttr}>` +
+          (emptyShadowTree ? `` : `<slot></slot>`) + `</template>`;
       const correctHtml = `<${elementType}>${correctShadowHtml}` +
           `${lightDOMContent}</${elementType}>`;
       assert_equals(shadowRoot.mode,mode);
       assert_equals(shadowRoot.delegatesFocus,delegatesFocus);
       assert_equals(shadowRoot.serializable,expectedSerializable);
       assert_equals(shadowRoot.clonable,clonable);
-      shadowRoot.appendChild(document.createElement('slot'));
+      if (!emptyShadowTree) {
+        shadowRoot.appendChild(document.createElement('slot'));
+      }
       const emptyElement = `<${elementType}>${lightDOMContent}</${elementType}>`;
       if (expectedSerializable) {
         assert_equals(wrapper.getHTML({serializableShadowRoots: true}),
@@ -104,7 +106,8 @@ function testElementType(allowsShadowDom, elementType, runGetHTMLOnShadowRoot,
       `<${elementType}>${lightDOMContent}${allowsShadowDom ?
       `, with ${declarativeShadowDom ? 'declarative' : 'imperative'} shadow, ` +
       `mode=${mode}, delegatesFocus=${delegatesFocus}, ` +
-      `serializable=${serializable}, clonable=${clonable}.` : ''}`);
+      `serializable=${serializable}, clonable=${clonable},` : ''}` +
+      ` with${emptyShadowTree ? `out` : ``} shadow tree contents.`);
 }
 
 function runAllTests() {
@@ -120,9 +123,12 @@ function runAllTests() {
               for (const clonable of [false, true]) {
                 for (const mode of ['open', 'closed']) {
                   for (const serializable of [undefined, 'false', 'true']) {
-                    testElementType(true, elementName, runGetHTMLOnShadowRoot,
-                        lightDOMContent, declarativeShadowDom, mode,
-                        delegatesFocus, serializable, clonable);
+                    for (const emptyShadowTree of [false, true]) {
+                      testElementType(true, elementName, runGetHTMLOnShadowRoot,
+                          lightDOMContent, declarativeShadowDom, mode,
+                          delegatesFocus, serializable, clonable,
+                          emptyShadowTree);
+                    }
                   }
                 }
               }

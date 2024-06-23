@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Display: reading-flow with value grid-order</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='../../resources/shadow-dom.js'></script>
+<script src="../../resources/focus-utils.js"></script>
+
+<style>
+.wrapper {
+  display: grid;
+  reading-flow: grid-order;
+}
+.popover {
+  inset:auto;
+  top:200px;
+  left:200px;
+}
+</style>
+
+<div class="wrapper">
+  <button id=a style="order: 4">A</button>
+  <button id=invoker style="order: 2" popovertarget=P>Invoker</button>
+  <button id=c style="order: 1">C</button>
+</div>
+<div popover id=P class="popover">
+  <button id=b1 style="order: 3">Popover button B1</button>
+  <button id=b2 style="order: 1">Popover button B2</button>
+  <button id=b3 style="order: 2">Popover button B3</button>
+</div>
+
+<script>
+document.querySelector('[popovertarget]').click();
+
+promise_test(async () => {
+  let elements = [
+    'c',
+    'invoker',
+    'b1',
+    'b2',
+    'b3',
+    'a',
+  ];
+  await assert_focus_navigation_forward(elements);
+}, `Popover in reading-flow: grid-order container.`);
+
+promise_test(async () => {
+  P.classList.add("wrapper");
+  let elements = [
+    'c',
+    'invoker',
+    'b2',
+    'b3',
+    'b1',
+    'a',
+  ];
+  await assert_focus_navigation_forward(elements);
+}, `Popover in container and itself with reading-flow: grid-order.`);
+</script>

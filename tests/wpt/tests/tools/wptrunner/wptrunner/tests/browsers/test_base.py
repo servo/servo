@@ -2,6 +2,7 @@
 
 import sys
 from os.path import dirname, join
+from unittest import mock
 
 import pytest
 
@@ -29,14 +30,19 @@ def test_logging_immediate_exit():
     handler = MozLogTestHandler()
     logger.add_handler(handler)
 
-    browser = base.WebDriverBrowser(
-        logger, webdriver_binary="echo", webdriver_args=["sample output"]
-    )
-    try:
-        browser.start(group_metadata={})
-    finally:
-        # Ensure the `echo` process actually exits
-        browser._proc.wait()
+    class CustomException(Exception):
+        pass
+
+    with mock.patch.object(base, "wait_for_service", side_effect=CustomException):
+        browser = base.WebDriverBrowser(
+            logger, webdriver_binary="echo", webdriver_args=["sample output"]
+        )
+        try:
+            with pytest.raises(CustomException):
+                browser.start(group_metadata={})
+        finally:
+            # Ensure the `echo` process actually exits
+            browser._proc.wait()
 
     process_output_actions = [
         data for data in handler.items if data["action"] == "process_output"

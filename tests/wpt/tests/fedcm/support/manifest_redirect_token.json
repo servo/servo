@@ -1,0 +1,7 @@
+{
+  "accounts_endpoint": "accounts.py",
+  "client_metadata_endpoint": "client_metadata.py",
+  "id_assertion_endpoint": "/common/redirect.py?location=/fedcm/support/token.py&status=308",
+  "disconnect_endpoint": "disconnect.py",
+  "login_url": "login.html"
+}

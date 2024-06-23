@@ -142,10 +142,10 @@
       "pointerover@child",
       "pointerenter@host", "pointerenter@parent", "pointerenter@slot", "pointerenter@child",
       "pointerdown@child", "(child-removed)",
-      "pointerout@child", "pointerleave@child",
-      "pointerover@parent", "pointerup@parent",
-      "pointerdown@parent", "pointerup@parent",
-      "pointerout@parent", "pointerleave@parent"
+      "pointerover@parent", "pointerup@parent", "pointerup@host",
+      "pointerdown@parent", "pointerdown@host", "pointerup@parent", "pointerup@host",
+      "pointerout@parent",
+      "pointerleave@parent", "pointerleave@host"
     ]
   );
   addPromiseTest(
@@ -155,9 +155,10 @@
       "pointerover@child",
       "pointerenter@host", "pointerenter@parent", "pointerenter@slot", "pointerenter@child",
       "pointerdown@child", "(child-removed)",
-      "pointerleave@slot", "pointerover@parent", "pointerup@parent",
-      "pointerdown@parent", "pointerup@parent",
-      "pointerout@parent", "pointerleave@parent"
+      "pointerleave@slot", "pointerover@parent", "pointerup@parent", "pointerup@host",
+      "pointerdown@parent", "pointerdown@host", "pointerup@parent", "pointerup@host",
+      "pointerout@parent",
+      "pointerleave@parent", "pointerleave@host"
     ]
   );
   addPromiseTest(
@@ -167,9 +168,10 @@
       "pointerover@child",
       "pointerenter@host", "pointerenter@parent", "pointerenter@slot", "pointerenter@child",
       "pointerdown@child", "pointerup@child", "(child-removed)",
-      "pointerout@child", "pointerleave@child",
-      "pointerover@parent", "pointerdown@parent", "pointerup@parent",
-      "pointerout@parent", "pointerleave@parent"
+      "pointerover@parent",
+      "pointerdown@parent", "pointerdown@host", "pointerup@parent", "pointerup@host",
+      "pointerout@parent",
+      "pointerleave@parent", "pointerleave@host"
     ]
   );
   addPromiseTest(
@@ -179,8 +181,10 @@
       "pointerover@child",
       "pointerenter@host", "pointerenter@parent", "pointerenter@slot", "pointerenter@child",
       "pointerdown@child", "pointerup@child", "(child-removed)",
-      "pointerleave@slot", "pointerover@parent", "pointerdown@parent", "pointerup@parent",
-      "pointerout@parent", "pointerleave@parent"
+      "pointerleave@slot", "pointerover@parent",
+      "pointerdown@parent", "pointerdown@host", "pointerup@parent", "pointerup@host",
+      "pointerout@parent",
+      "pointerleave@parent", "pointerleave@host"
     ]
   );
 </script>

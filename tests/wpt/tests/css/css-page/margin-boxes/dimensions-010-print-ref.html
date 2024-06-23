@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  @page {
+    size: 650px 500px;
+    margin: 0;
+  }
+  body {
+    margin: 0;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 100px auto 100px;
+    grid-template-rows: 100px auto 100px;
+    height: 100vh;
+  }
+  .vertical-edge {
+    display: flex;
+  }
+  .horizontal-edge {
+    display: flex;
+    flex-flow: column;
+  }
+</style>
+<div class="grid">
+  <div class="corner"></div>
+  <div class="vertical-edge">
+    <div style="width:150px; background:hotpink;"></div>
+    <div style="width:150px; background:cyan;"></div>
+    <div style="width:150px; background:yellow;"></div>
+  </div>
+  <div class="corner"></div>
+  <div class="horizontal-edge">
+    <div style="height:100px; background:yellow;"></div>
+    <div style="height:100px; background:cyan;"></div>
+    <div style="height:100px; background:hotpink;"></div>
+  </div>
+  <div></div>
+  <div class="horizontal-edge">
+    <div style="height:300px; background:cyan;"></div>
+  </div>
+  <div class="corner"></div>
+  <div class="vertical-edge">
+    <div style="width:225px; background:hotpink;"></div>
+    <div style="width:225px; background:yellow;"></div>
+  </div>
+  <div class="corner"></div>
+</div>

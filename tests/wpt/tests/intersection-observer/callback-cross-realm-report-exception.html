@@ -24,7 +24,7 @@ async_test(t => {
     t.step_timeout(() => {
       assert_array_equals(onerrorCalls, ["frame1"]);
       t.done();
-    }, 25);
+    }, 100);
   });
 });
 </script>

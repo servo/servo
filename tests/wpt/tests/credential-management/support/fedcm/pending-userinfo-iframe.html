@@ -6,7 +6,7 @@ import {alt_manifest_origin} from './../fedcm-helper.sub.js';
 window.onload = async () => {
   try {
     const manifest_path = `${alt_manifest_origin}/\
-credential-management/support/fedcm/manifest.py`;
+fedcm/support/manifest.py`;
     IdentityProvider.getUserInfo({
       configURL: manifest_path,
       // Approved client

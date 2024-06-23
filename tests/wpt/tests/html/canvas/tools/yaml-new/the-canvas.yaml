@@ -1,0 +1,416 @@
+- name: 2d.canvas.host.reference
+  desc: canvas refers back to its canvas
+  code: |
+    @assert ctx.canvas === canvas;
+
+- name: 2d.canvas.host.readonly
+  desc: Canvas objects are readonly
+  code: |
+    var canvas2 = {{ new_canvas }};
+    var d = ctx.canvas;
+    @assert canvas2 !== d;
+    ctx.canvas = canvas2;
+    @assert ctx.canvas === d;
+  variants: &new-canvas-definition
+   - HtmlCanvas:
+       append_variants_to_name: false
+       canvas_types: ['HtmlCanvas']
+       new_canvas: |-
+         document.createElement('canvas')
+     OffscreenCanvas:
+       append_variants_to_name: false
+       canvas_types: ['OffscreenCanvas', 'Worker']
+       new_canvas: |-
+         new OffscreenCanvas(100, 50)
+
+- name: 2d.canvas.host.type.delete
+  canvas_types: ['HtmlCanvas']
+  desc: window.HTMLCanvasElement interface object is [[Configurable]]
+  code: |
+    @assert delete window.HTMLCanvasElement === true;
+    @assert window.HTMLCanvasElement === undefined;
+
+- name: 2d.canvas.host.type.delete
+  canvas_types: ['OffscreenCanvas', 'Worker']
+  desc: OffscreenCanvas interface object is [[Configurable]]
+  code: |
+    {% set root = 'self' if canvas_type == 'Worker' else 'window' %}
+    @assert delete {{ root }}.OffscreenCanvas === true;
+    @assert {{ root }}.OffscreenCanvas === undefined;
+
+- name: 2d.canvas.host.type.name
+  canvas_types: ['HtmlCanvas']
+  desc: HTMLCanvasElement type and toString
+  code: |
+    @assert Object.prototype.toString.call(canvas) === '[object HTMLCanvasElement]';
+
+- name: 2d.canvas.host.type.name
+  canvas_types: ['OffscreenCanvas', 'Worker']
+  desc: OffscreenCanvas type and toString
+  code: |
+    @assert Object.prototype.toString.call(canvas) === '[object OffscreenCanvas]';
+
+- name: 2d.canvas.context.exists
+  desc: The 2D context is implemented
+  code: |
+    @assert canvas.getContext('2d') !== null;
+
+- name: 2d.canvas.context.extraargs.create
+  desc: The 2D context doesn't throw with extra getContext arguments (new context)
+  code: |
+    @assert {{ new_canvas }}.getContext('2d', false, {}, [], 1, "2") !== null;
+    @assert {{ new_canvas }}.getContext('2d', 123) !== null;
+    @assert {{ new_canvas }}.getContext('2d', "test") !== null;
+    @assert {{ new_canvas }}.getContext('2d', undefined) !== null;
+    @assert {{ new_canvas }}.getContext('2d', null) !== null;
+    @assert {{ new_canvas }}.getContext('2d', Symbol.hasInstance) !== null;
+  variants: *new-canvas-definition
+
+- name: 2d.canvas.context.invalid.args
+  desc: Calling getContext with invalid arguments.
+  canvas_types: ['HtmlCanvas']
+  code: |
+    @assert canvas.getContext('') === null;
+    @assert canvas.getContext('2d#') === null;
+    @assert canvas.getContext('This is clearly not a valid context name.') === null;
+    @assert canvas.getContext('2d\0') === null;
+    @assert canvas.getContext('2\uFF44') === null;
+    @assert canvas.getContext('2D') === null;
+    @assert throws TypeError canvas.getContext();
+    @assert canvas.getContext('null') === null;
+    @assert canvas.getContext('undefined') === null;
+
+- name: 2d.canvas.context.invalid.args
+  desc: Calling getContext with invalid arguments.
+  canvas_types: ['OffscreenCanvas', 'Worker']
+  code: |
+    @assert throws TypeError canvas.getContext('');
+    @assert throws TypeError canvas.getContext('This is not an implemented context in any real browser');
+    @assert throws TypeError canvas.getContext('2d#');
+    @assert throws TypeError canvas.getContext('2d\0');
+    @assert throws TypeError canvas.getContext('2\uFF44');
+    @assert throws TypeError canvas.getContext('2D');
+    @assert throws TypeError canvas.getContext();
+    @assert throws TypeError canvas.getContext('null');
+    @assert throws TypeError canvas.getContext('undefined');
+
+
+- name: 2d.canvas.context.extraargs.cache
+  desc: The 2D context doesn't throw with extra getContext arguments (cached)
+  code: |
+    @assert canvas.getContext('2d', false, {}, [], 1, '2') !== null;
+    @assert canvas.getContext('2d', 123) !== null;
+    @assert canvas.getContext('2d', 'test') !== null;
+    @assert canvas.getContext('2d', undefined) !== null;
+    @assert canvas.getContext('2d', null) !== null;
+    @assert canvas.getContext('2d', Symbol.hasInstance) !== null;
+
+- name: 2d.canvas.context.unique
+  desc: getContext('2d') returns the same object
+  code: |
+    @assert canvas.getContext('2d') === canvas.getContext('2d');
+
+- name: 2d.canvas.context.shared
+  desc: getContext('2d') returns objects which share canvas state
+  code: |
+    var ctx2 = canvas.getContext('2d');
+    ctx.fillStyle = '#f00';
+    ctx2.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.canvas.host.initial.color
+  desc: Initial state is transparent black
+  code: |
+    @assert pixel 20,20 == 0,0,0,0;
+
+- name: 2d.canvas.host.initial.reset.different
+  desc: Changing size resets canvas to transparent black
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 50, 50);
+    @assert pixel 20,20 == 255,0,0,255;
+    canvas.width = 50;
+    @assert pixel 20,20 == 0,0,0,0;
+
+- name: 2d.canvas.host.initial.reset.same
+  desc: Setting size (not changing the value) resets canvas to transparent black
+  code: |
+    canvas.width = 100;
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 50, 50);
+    @assert pixel 20,20 == 255,0,0,255;
+    canvas.width = 100;
+    @assert pixel 20,20 == 0,0,0,0;
+
+
+- name: 2d.canvas.host.initial.reset.path
+  desc: Resetting the canvas state resets the current path
+  code: |
+    canvas.width = 100;
+    ctx.rect(0, 0, 100, 50);
+    canvas.width = 100;
+    ctx.fillStyle = '#f00';
+    ctx.fill();
+    @assert pixel 20,20 == 0,0,0,0;
+
+- name: 2d.canvas.host.initial.reset.clip
+  desc: Resetting the canvas state resets the current clip region
+  code: |
+    canvas.width = 100;
+    ctx.rect(0, 0, 1, 1);
+    ctx.clip();
+    canvas.width = 100;
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 20,20 == 0,255,0,255;
+
+- name: 2d.canvas.host.initial.reset.transform
+  desc: Resetting the canvas state resets the current transformation matrix
+  code: |
+    canvas.width = 100;
+    ctx.scale(0.1, 0.1);
+    canvas.width = 100;
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 20,20 == 0,255,0,255;
+
+- name: 2d.canvas.host.initial.reset.gradient
+  desc: Resetting the canvas state does not invalidate any existing gradients
+  code: |
+    canvas.width = 50;
+    var g = ctx.createLinearGradient(0, 0, 100, 0);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(1, '#0f0');
+    canvas.width = 100;
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+
+- name: 2d.canvas.host.initial.reset.pattern
+  desc: Resetting the canvas state does not invalidate any existing patterns
+  code: |
+    canvas.width = 30;
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 30, 50);
+    var p = ctx.createPattern(canvas, 'repeat-x');
+    canvas.width = 100;
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = p;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+
+- name: 2d.canvas.host.size.attributes.idl.set.zero
+  desc: Setting width/height IDL attributes to 0
+  code: |
+    canvas.width = 0;
+    canvas.height = 0;
+    @assert canvas.width === 0;
+    @assert canvas.height === 0;
+
+- name: 2d.canvas.host.size.attributes.idl
+  desc: Getting/setting width/height IDL attributes
+  code: |
+    canvas.width = '100';
+    canvas.height = '100';
+    @assert canvas.width === 100;
+    @assert canvas.height === 100;
+    canvas.width = 301.999;
+    canvas.height = 301.001;
+    @assert canvas.width === 301;
+    @assert canvas.height === 301;
+    canvas.width = "+1.5e2";
+    canvas.height = "0x96";
+    @assert canvas.width === 150;
+    @assert canvas.height === 150;
+
+- name: 2d.canvas.host.size.invalid.attributes.idl
+  canvas_types: ['OffscreenCanvas', 'Worker']
+  desc: Getting/setting width/height IDL attributes
+  code: |
+    @assert throws TypeError canvas.width = 200 - Math.pow(2, 32);
+    @assert throws TypeError canvas.height = 200 - Math.pow(2, 32);
+    @assert throws TypeError canvas.width = '400x';
+    @assert throws TypeError canvas.height = 'foo';
+
+- name: 2d.canvas.host.size.invalid.attributes.idl
+  canvas_types: ['HtmlCanvas']
+  desc: Getting/setting width/height IDL attributes
+  code: |
+    canvas.width = 200 - Math.pow(2, 32);
+    canvas.height = 200 - Math.pow(2, 32);
+    @assert canvas.width === 200;
+    @assert canvas.height === 200;
+    canvas.width = '400x';
+    canvas.height = 'foo';
+    @assert canvas.width === 0;
+    @assert canvas.height === 0;
+
+- name: 2d.canvas.host.size.attributes.default
+  desc: Default width/height when attributes are missing
+  code: |
+    @assert canvas.width === 100;
+    @assert canvas.height === 50;
+
+- name: 2d.canvas.host.size.attributes.removed
+  size: [120, 50]
+  canvas_types: ['HtmlCanvas']
+  desc: Removing content attributes reverts to default size
+  code: |
+    @assert canvas.width === 120;
+    canvas.removeAttribute('width');
+    @assert canvas.width === 300;
+
+
+- name: 2d.canvas.host.size.attributes.reflect.setidl
+  desc: Setting IDL attributes updates IDL and content attributes
+  code: |
+    canvas.width = 120;
+    canvas.height = 60;
+    @assert canvas.width === 120;
+    @assert canvas.height === 60;
+    {% if canvas_type == 'HtmlCanvas' %}
+    @assert canvas.getAttribute('width') === '120';
+    @assert canvas.getAttribute('height') === '60';
+    {% endif %}
+
+- name: 2d.canvas.host.size.attributes.reflect.setidlzero
+  desc: Setting IDL attributes to 0 updates IDL and content attributes
+  code: |
+    canvas.width = 0;
+    canvas.height = 0;
+    {% if canvas_type == 'HtmlCanvas' %}
+    _assertSame(canvas.getAttribute('width'), '0', "canvas.getAttribute('width')", "'0'");
+    _assertSame(canvas.getAttribute('height'), '0', "canvas.getAttribute('height')", "'0'");
+    {% endif %}
+    @assert canvas.width === 0;
+    @assert canvas.height === 0;
+
+- name: 2d.canvas.host.size.attributes.reflect.setcontent
+  canvas_types: ['HtmlCanvas']
+  desc: Setting content attributes updates IDL and content attributes
+  code: |
+    canvas.setAttribute('width', '120');
+    canvas.setAttribute('height', '60');
+    @assert canvas.getAttribute('width') === '120';
+    @assert canvas.getAttribute('height') === '60';
+    @assert canvas.width === 120;
+    @assert canvas.height === 60;
+
+- name: 2d.canvas.host.size.large
+  notes: Not sure how reasonable this is, but the spec doesn't say there's an upper
+    limit on the size.
+  code: |
+    var n = 2147483647; // 2^31 - 1, which should be supported by any sensible definition of "long"
+    canvas.width = n;
+    canvas.height = n;
+    @assert canvas.width === n;
+    @assert canvas.height === n;
+
+- name: 2d.canvas.context.prototype
+  desc: checks CanvasRenderingContext2D prototype
+  canvas_types: ['HtmlCanvas']
+  code: |
+    @assert Object.getPrototypeOf(CanvasRenderingContext2D.prototype) === Object.prototype;
+    @assert Object.getPrototypeOf(ctx) === CanvasRenderingContext2D.prototype;
+
+- name: 2d.canvas.context.prototype
+  desc: checks OffscreenCanvasRenderingContext2D prototype
+  canvas_types: ['OffscreenCanvas', 'Worker']
+  code: |
+    @assert Object.getPrototypeOf(OffscreenCanvasRenderingContext2D.prototype) === Object.prototype;
+    @assert Object.getPrototypeOf(ctx) === OffscreenCanvasRenderingContext2D.prototype;
+
+- name: 2d.canvas.host.scaled
+  desc: CSS-scaled canvases get drawn correctly
+  canvas_types: ['HtmlCanvas']
+  size: [50, 25]
+  canvas: 'style="width: 100px; height: 50px"'
+  manual:
+  code: |
+    ctx.fillStyle = '#00f';
+    ctx.fillRect(0, 0, 50, 25);
+    ctx.fillStyle = '#0ff';
+    ctx.fillRect(0, 0, 25, 10);
+  expected: |
+    size 100 50
+    cr.set_source_rgb(0, 0, 1)
+    cr.rectangle(0, 0, 100, 50)
+    cr.fill()
+    cr.set_source_rgb(0, 1, 1)
+    cr.rectangle(0, 0, 50, 20)
+    cr.fill()
+
+- name: 2d.canvas.context.type.exists
+  desc: The 2D context interface is a property of '{{ root }}'
+  notes: &bindings Defined in "Web IDL" (draft)
+  code: |
+    @assert {{ root }}.{{ context_object }};
+  variants: &get-context-definition
+    - HtmlCanvas:
+        append_variants_to_name: false
+        canvas_types: ['HtmlCanvas']
+        root: window
+        context_object: CanvasRenderingContext2D
+      OffscreenCanvas:
+        append_variants_to_name: false
+        canvas_types: ['OffscreenCanvas']
+        root: window
+        context_object: OffscreenCanvasRenderingContext2D
+      Worker:
+        append_variants_to_name: false
+        canvas_types: ['Worker']
+        root: self
+        context_object: OffscreenCanvasRenderingContext2D
+
+- name: 2d.canvas.context.type.extend
+  desc: Interface methods can be added
+  notes: *bindings
+  code: |
+    {{ root }}.{{ context_object }}.prototype.fillRectGreen = function (x, y, w, h)
+    {
+        this.fillStyle = '#0f0';
+        this.fillRect(x, y, w, h);
+    };
+    ctx.fillStyle = '#f00';
+    ctx.fillRectGreen(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+  variants: *get-context-definition
+
+- name: 2d.canvas.context.type.replace
+  desc: Interface methods can be overridden
+  notes: *bindings
+  code: |
+    var fillRect = {{ root }}.{{ context_object }}.prototype.fillRect;
+    {{ root }}.{{ context_object }}.prototype.fillRect = function (x, y, w, h)
+    {
+        this.fillStyle = '#0f0';
+        fillRect.call(this, x, y, w, h);
+    };
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+  variants: *get-context-definition
+
+- name: 2d.canvas.context.type.prototype
+  desc: window.CanvasRenderingContext2D.prototype are not [[Writable]] and not [[Configurable]],
+    and its methods are [[Configurable]].
+  notes: *bindings
+  code: |
+    @assert {{ root }}.{{ context_object }}.prototype;
+    @assert {{ root }}.{{ context_object }}.prototype.fill;
+    {{ root }}.{{ context_object }}.prototype = null;
+    @assert {{ root }}.{{ context_object }}.prototype;
+    delete {{ root }}.{{ context_object }}.prototype;
+    @assert {{ root }}.{{ context_object }}.prototype;
+    {{ root }}.{{ context_object }}.prototype.fill = 1;
+    @assert {{ root }}.{{ context_object }}.prototype.fill === 1;
+    delete {{ root }}.{{ context_object }}.prototype.fill;
+    @assert {{ root }}.{{ context_object }}.prototype.fill === undefined;
+  variants: *get-context-definition

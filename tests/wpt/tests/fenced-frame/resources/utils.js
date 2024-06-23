@@ -211,7 +211,7 @@ function generateRemoteContextURL(headers, origin) {
   // Transform the headers into the expected format.
   // https://web-platform-tests.org/writing-tests/server-pipes.html#headers
   function escape(s) {
-    return s.replace('(', '\\(').replace(')', '\\)');
+    return s.replace('(', '\\(').replace(')', '\\)').replace(',', '\\,');
   }
   const formatted_headers = headers.map((header) => {
     return `header(${escape(header[0])}, ${escape(header[1])})`;

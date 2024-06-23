@@ -12,6 +12,6 @@ promise_test(async t => {
       assert_throws_js(TypeError, () => builder.triangular(input));
     }
   }
-}, "[triangular] DataError is expected if input's rank is less than 2");
+}, "[triangular] TypeError is expected if input's rank is less than 2");
 
 validateInputFromAnotherBuilder('triangular');

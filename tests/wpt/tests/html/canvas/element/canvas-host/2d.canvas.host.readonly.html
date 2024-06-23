@@ -8,7 +8,7 @@
 <body class="show_output">
 
 <h1>2d.canvas.host.readonly</h1>
-<p class="desc">CanvasRenderingContext2D.canvas is readonly</p>
+<p class="desc">Canvas objects are readonly</p>
 
 
 <p class="output">Actual output:</p>
@@ -16,13 +16,13 @@
 
 <ul id="d"></ul>
 <script>
-var t = async_test("CanvasRenderingContext2D.canvas is readonly");
+var t = async_test("Canvas objects are readonly");
 _addTest(function(canvas, ctx) {
 
-  var c = document.createElement('canvas');
+  var canvas2 = document.createElement('canvas');
   var d = ctx.canvas;
-  _assertDifferent(c, d, "c", "d");
-  ctx.canvas = c;
+  _assertDifferent(canvas2, d, "canvas2", "d");
+  ctx.canvas = canvas2;
   _assertSame(ctx.canvas, d, "ctx.canvas", "d");
 
 });

@@ -8,7 +8,7 @@
 <body class="show_output">
 
 <h1>2d.canvas.host.reference</h1>
-<p class="desc">CanvasRenderingContext2D.canvas refers back to its canvas</p>
+<p class="desc">canvas refers back to its canvas</p>
 
 
 <p class="output">Actual output:</p>
@@ -16,7 +16,7 @@
 
 <ul id="d"></ul>
 <script>
-var t = async_test("CanvasRenderingContext2D.canvas refers back to its canvas");
+var t = async_test("canvas refers back to its canvas");
 _addTest(function(canvas, ctx) {
 
   _assertSame(ctx.canvas, canvas, "ctx.canvas", "canvas");

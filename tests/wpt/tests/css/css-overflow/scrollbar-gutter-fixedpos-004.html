@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: Root element's scrollbar-gutter is accounted for when computing hypothetical box in fixed-pos positioning</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1901652">
+<link rel="match" href="scrollbar-gutter-fixedpos-004-ref.html">
+<style>
+:root {
+  scrollbar-gutter: stable both-edges;
+  writing-mode: vertical-lr;
+}
+body {
+  margin: 0;
+}
+.box {
+  width: 100px;
+  height: 100px;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="box" style="position: fixed; background: green"></div>
+<div class="box" style="background: red"></div>

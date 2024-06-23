@@ -20,12 +20,12 @@ t.step(function() {
   var canvas = new OffscreenCanvas(100, 50);
   var ctx = canvas.getContext('2d');
 
-  _assertDifferent((new OffscreenCanvas(100, 50)).getContext('2d', false, {}, [], 1, "2"), null, "(new OffscreenCanvas(100, 50)).getContext('2d', false, {}, [], 1, \"2\")", "null");
-  _assertDifferent((new OffscreenCanvas(100, 50)).getContext('2d', 123), null, "(new OffscreenCanvas(100, 50)).getContext('2d', 123)", "null");
-  _assertDifferent((new OffscreenCanvas(100, 50)).getContext('2d', "test"), null, "(new OffscreenCanvas(100, 50)).getContext('2d', \"test\")", "null");
-  _assertDifferent((new OffscreenCanvas(100, 50)).getContext('2d', undefined), null, "(new OffscreenCanvas(100, 50)).getContext('2d', undefined)", "null");
-  _assertDifferent((new OffscreenCanvas(100, 50)).getContext('2d', null), null, "(new OffscreenCanvas(100, 50)).getContext('2d', null)", "null");
-  _assertDifferent((new OffscreenCanvas(100, 50)).getContext('2d', Symbol.hasInstance), null, "(new OffscreenCanvas(100, 50)).getContext('2d', Symbol.hasInstance)", "null");
+  _assertDifferent(new OffscreenCanvas(100, 50).getContext('2d', false, {}, [], 1, "2"), null, "new OffscreenCanvas(100, 50).getContext('2d', false, {}, [], 1, \"2\")", "null");
+  _assertDifferent(new OffscreenCanvas(100, 50).getContext('2d', 123), null, "new OffscreenCanvas(100, 50).getContext('2d', 123)", "null");
+  _assertDifferent(new OffscreenCanvas(100, 50).getContext('2d', "test"), null, "new OffscreenCanvas(100, 50).getContext('2d', \"test\")", "null");
+  _assertDifferent(new OffscreenCanvas(100, 50).getContext('2d', undefined), null, "new OffscreenCanvas(100, 50).getContext('2d', undefined)", "null");
+  _assertDifferent(new OffscreenCanvas(100, 50).getContext('2d', null), null, "new OffscreenCanvas(100, 50).getContext('2d', null)", "null");
+  _assertDifferent(new OffscreenCanvas(100, 50).getContext('2d', Symbol.hasInstance), null, "new OffscreenCanvas(100, 50).getContext('2d', Symbol.hasInstance)", "null");
   t.done();
 
 });

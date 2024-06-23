@@ -219,6 +219,7 @@ class WebSocketRequestHandler(CGIHTTPServer.CGIHTTPRequestHandler):
                 self._logger.info('Request basic authentication')
                 return False
 
+        whole_path = self.path
         host, port, resource = http_header_util.parse_uri(self.path)
         if resource is None:
             self._logger.info('Invalid URI: %r', self.path)
@@ -247,7 +248,7 @@ class WebSocketRequestHandler(CGIHTTPServer.CGIHTTPRequestHandler):
             # Fallback to default http handler for request paths for which
             # we don't have request handlers.
             if not self._options.dispatcher.get_handler_suite(self.path):
-                self._logger.info('No handler for resource: %r', self.path)
+                self._logger.info('No handler for resource: %r', whole_path)
                 self._logger.info('Fallback to CGIHTTPRequestHandler')
                 return True
         except dispatch.DispatchException as e:

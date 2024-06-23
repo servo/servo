@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#margin-dimension">
+<meta name="assert" content="Test auto lengths. Max content sizes are smaller than available size. With corners. No center/middle boxes.">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<link rel="match" href="dimensions-004-print-ref.html">
+<style>
+  @page {
+    margin: 4em 5em 8em 7em;
+    width: 20em;
+    height: 15em;
+    font: 16px/1 Ahem;
+    white-space: pre-wrap;
+
+    /* Corners just use all available size, if auto. */
+    @top-left-corner {
+      writing-mode: vertical-rl;
+      text-align: left;
+      vertical-align: bottom;
+      content: "x\ax";
+      border: solid thin;
+    }
+    @top-right-corner {
+      text-align: left;
+      vertical-align: top;
+      content: "xx";
+      border: solid thin;
+    }
+    @bottom-right-corner {
+      text-align: left;
+      vertical-align: top;
+      content: "xxx";
+      border: solid thin;
+    }
+    @bottom-left-corner {
+      text-align: left;
+      vertical-align: top;
+      content: "xxxx";
+      border: solid thin;
+    }
+
+    /* Min/max width for top-left is 1em. For top-right it is 3em.
+       Available space is 20em. Unused space becomes 16em. This will be
+       distributed proportionally based on max widths. Left gets 1/4, right
+       gets 3/4. Final widths become 1em+16em*1/4 = 5em for left, and
+       3em+16em*3/4 = 15em for right. */
+    @top-left {
+      text-align: left;
+      vertical-align: top;
+      margin-bottom: 2em;
+      content: "x";
+      background: hotpink;
+    }
+    @top-right {
+      text-align: left;
+      vertical-align: top;
+      margin-top: 2em;
+      content: "xxx";
+      background: yellow;
+    }
+
+    /* Min/max height for left-top is 3em (three lines). For left-bottom it is
+       2em (two lines). Available space is 15em. Unused space is 10em. This
+       will be distributed proportionally based on max heights. Top gets 3/5,
+       bottom gets 2/5. Final heights become 3em+10em*3/5 = 9em for top, and
+       2em+10em*2/5 = 6em for bottom. */
+    @left-top {
+      text-align: left;
+      vertical-align: top;
+      margin-left: 4em;
+      content: "x\ax\ax\a";
+      background: yellow;
+    }
+    @left-bottom {
+      text-align: left;
+      vertical-align: top;
+      margin-right: 4em;
+      content: "x\ax\a";
+      background: hotpink;
+    }
+
+    /* Min/max height for right-top is 2em (two lines). For right-bottom it is
+       1em (one line). Available space is 15em. Unused space is 12em. This will
+       be distributed proportionally based on max heights. Top gets 2/3, bottom
+       gets 1/3. Final heights become 2em+12em*2/3 = 10em for top, and
+       1em+12em*1/3 = 5em for bottom. */
+    @right-top {
+      text-align: left;
+      vertical-align: top;
+      margin-left: 3em;
+      content: "x\ax\a";
+      background: hotpink;
+    }
+    @right-bottom {
+      text-align: left;
+      vertical-align: top;
+      margin-right: 3em;
+      content: "xxx";
+      background: yellow;
+    }
+
+    /* Min/max width for bottom-left is 7em. For bottom-right it is 1em.
+       Available space is 20em. Unused space becomes 12em. This will be
+       distributed proportionally based on max widths. Left gets 7/8, right
+       gets 1/8. Final widths become 7em+12em*7/8 = 17.5em for left, and
+       1em+12em*1/8 = 2.5em for right. */
+    @bottom-left {
+      text-align: left;
+      vertical-align: top;
+      margin-top: 4em;
+      content: "x x x x";
+      background: yellow;
+    }
+    @bottom-right {
+      text-align: left;
+      vertical-align: top;
+      margin-bottom: 4em;
+      content: "x";
+      background: hotpink;
+    }
+  }
+</style>

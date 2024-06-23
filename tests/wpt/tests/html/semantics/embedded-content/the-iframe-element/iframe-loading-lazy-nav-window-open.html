@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Navigating iframe loading='lazy' before it is loaded: location.replace</title>
+<iframe name="iframe" data-src="support/blank.htm?nav" src="support/blank.htm?src" loading="lazy" hidden></iframe>
+<script>
+const iframe = document.querySelector('iframe');
+const iframeLoaded = new Promise(resolve => {
+  iframe.onload = resolve;
+});
+window.open(iframe.dataset.src, 'iframe');
+iframe.hidden = false;
+</script>
+<!-- Loading testharness.js here is intentional to reproduce a bug in WebKit. -->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({single_test: true});
+iframeLoaded.then(() => {
+  // Need a timeout to detect failure when there are two navigations.
+  step_timeout(() => {
+    assert_equals(iframe.contentWindow.location.href, new URL("support/blank.htm?nav", location.href).href);
+    done();
+  }, 1000);
+});
+</script>

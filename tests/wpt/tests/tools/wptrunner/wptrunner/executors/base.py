@@ -286,13 +286,17 @@ class TestExecutor:
                                  "prefs": {}}
         self.protocol = None  # This must be set in subclasses
 
-    def setup(self, runner):
+    def setup(self, runner, protocol=None):
         """Run steps needed before tests can be started e.g. connecting to
         browser instance
 
-        :param runner: TestRunner instance that is going to run the tests"""
+        :param runner: TestRunner instance that is going to run the tests.
+        :param protocol: protocol connection to reuse if not None"""
         self.runner = runner
-        if self.protocol is not None:
+        if protocol is not None:
+            assert isinstance(protocol, self.protocol_cls)
+            self.protocol = protocol
+        elif self.protocol is not None:
             self.protocol.setup(runner)
 
     def teardown(self):
@@ -630,7 +634,8 @@ class WdspecExecutor(TestExecutor):
         self.binary = binary
         self.binary_args = binary_args
 
-    def setup(self, runner):
+    def setup(self, runner, protocol=None):
+        assert protocol is None, "Switch executor not allowed for wdspec tests."
         self.protocol = self.protocol_cls(self, self.browser)
         super().setup(runner)
 

@@ -38,8 +38,8 @@ class EdgeDriverTestharnessExecutor(WebDriverTestharnessExecutor, _SanitizerMixi
 class EdgeDriverPrintRefTestExecutor(EdgeDriverRefTestExecutor):
     protocol_cls = EdgeDriverProtocol
 
-    def setup(self, runner):
-        super().setup(runner)
+    def setup(self, runner, protocol=None):
+        super().setup(runner, protocol)
         self.protocol.pdf_print.load_runner()
         self.has_window = False
         with open(os.path.join(here, "reftest.js")) as f:

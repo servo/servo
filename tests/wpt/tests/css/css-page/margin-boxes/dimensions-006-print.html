@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#margin-dimension">
+<meta name="assert" content="Test auto lengths. Max content sizes are larger than available size, but their min sizes are not. No center boxes.">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<link rel="match" href="dimensions-006-print-ref.html">
+<style>
+  @page {
+    margin: 6em;
+    width: 20em;
+    height: 15em;
+    font: 16px/1 Ahem;
+
+    /* Left min: 4em
+       Left max: 17em
+       Right min: 2em
+       Right max: 5em
+       Min total: 4em + 2em = 6em
+       Max total: 17em + 5em = 22em
+
+       Max content sizes are larger than available size. Min content sizes are
+       smaller. Start at min size, and distribute extra space proportionally to
+       the difference between max and min.
+
+       Left flex (max - min): 13
+       Right flex (max - min): 3
+       Flex total: 16
+       Available space: 20em
+       Unused space: 20em - 6em = 14em
+
+       Width of left box: 4em + 14em * 13/16 = 15.375em
+       Width of right box: 2em + 14em * 3/16 = 4.625em */
+    @top-left {
+      text-align: left;
+      vertical-align: top;
+      margin-bottom: 3em;
+      content: "xxx xx xx xx xxxx";
+      background: hotpink;
+    }
+    @top-right {
+      text-align: left;
+      vertical-align: top;
+      margin-top: 3em;
+      content: "xx xx";
+      background: yellow;
+    }
+
+    /* Top min: 4em
+       Top max: 13em
+       Bottom min: 2em
+       Bottom max: 5em
+       Min total: 4em + 2em = 6em
+       Max total: 13em + 5em = 18em
+
+       Max content sizes are larger than available size. Min content sizes are
+       smaller. Start at min size, and distribute extra space proportionally to
+       the difference between max and min.
+
+       Top flex (max - min): 9
+       Bottom flex (max - min): 3
+       Flex total: 12
+       Available space: 15em
+       Unused space: 15em - 6em = 9em
+
+       Height of top box: 4em + 9em * 9/12 = 10.75em
+       Height of bottom box: 2em + 9em * 3/12 = 4.25em */
+    @left-top {
+      text-align: left;
+      vertical-align: top;
+      writing-mode: vertical-rl;
+      content: "xxx x xx xxxx";
+      background: yellow;
+    }
+    @left-bottom {
+      text-align: left;
+      vertical-align: top;
+      writing-mode: vertical-rl;
+      content: "xx xx";
+      background: hotpink;
+    }
+
+    /* Top min: 6em
+       Top max: 30em
+       Bottom min: 2em
+       Bottom max: 34em
+       Min total: 6em + 2em = 8em
+       Max total: 30em + 34em = 64em
+
+       Max content sizes are larger than available size. Min content sizes are
+       smaller. Start at min size, and distribute extra space proportionally to
+       the difference between max and min.
+
+       Top flex (max - min): 24
+       Bottom flex (max - min): 32
+       Flex total: 56
+       Available space: 15em
+       Unused space: 15em - 8em = 7em
+
+       Height of top box: 6em + 7em * 24/56 = 9em
+       Height of bottom box: 2em + 7em * 32/56 = 6em */
+    @right-top {
+      text-align: left;
+      vertical-align: top;
+      writing-mode: vertical-rl;
+      content: "x x xxxxxx x x x x x x x x x x";
+      background: hotpink;
+    }
+    @right-bottom {
+      text-align: left;
+      vertical-align: top;
+      writing-mode: vertical-rl;
+      content: "x x x x x x x x x x x x x x x x xx";
+      background: yellow;
+    }
+
+    /* Left min: 6em
+       Left max: 34em
+       Right min: 2em
+       Right max: 38em
+       Min total: 6em + 2em = 8em
+       Max total: 34em + 38em = 72em
+
+       Max content sizes are larger than available size. Min content sizes are
+       smaller. Start at min size, and distribute extra space proportionally to
+       the difference between max and min.
+
+       Left flex (max - min): 28
+       Right flex (max - min): 36
+       Flex total: 64
+       Available space: 20em
+       Unused space: 20em - 8em = 12em
+
+       Width of left box: 6em + 12em * 28/64 = 11.25em
+       Width of right box: 2em + 12em * 36/64 = 8.75em */
+    @bottom-left {
+      text-align: left;
+      vertical-align: top;
+      margin-top: 1em;
+      content: "x x xxxxxx x x x x x x x x x x x x";
+      background: yellow;
+    }
+    @bottom-right {
+      text-align: left;
+      vertical-align: top;
+      content: "x x x x x x x x x x x x x x x x x x xx";
+      background: hotpink;
+    }
+</style>

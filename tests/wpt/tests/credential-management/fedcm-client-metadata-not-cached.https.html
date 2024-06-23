@@ -13,7 +13,7 @@ import {request_options_with_mediation_required,
 
 fedcm_test(async t => {
   // Reset the client_metadata fetch count.
-  const clear_metadata_count_path = `support/fedcm/client_metadata_clear_count.py`;
+  const clear_metadata_count_path = `/fedcm/support/client_metadata_clear_count.py`;
   await fetch(clear_metadata_count_path);
 
   // FedCM flow causes the counter of client metadata to increase by 1.
@@ -22,7 +22,7 @@ fedcm_test(async t => {
 
   await new Promise(resolve => {
     // Fetch the client metadata from a popup window.
-    let popup_window = window.open('support/fedcm/client_metadata.py?skip_checks=1');
+    let popup_window = window.open('/fedcm/support/client_metadata.py?skip_checks=1');
     const popup_window_load_handler = (event) => {
       popup_window.removeEventListener('load', popup_window_load_handler);
       popup_window.close();

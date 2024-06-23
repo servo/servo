@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#populating-margin-boxes">
+<meta name="assert" content="Basic content property test, with just text, and various ways of expressing nothingness.">
+<link rel="match" href="content-001-print-ref.html">
+<style>
+  @page {
+    size: 400px;
+    margin: 100px;
+
+    @top-left-corner {
+      /* No content property here. */
+      width: 50px;
+      height: 50px;
+      background: red;
+    }
+    @top-left {
+      text-align: left;
+      vertical-align: top;
+      content: "PASS";
+      background: hotpink;
+    }
+    @top-right {
+      text-align: left;
+      vertical-align: top;
+      content: "PA" "SS";
+      background: yellow;
+    }
+    @bottom-left {
+      /* An empty string is also content. */
+      content: "";
+      background: yellow;
+    }
+    @bottom-left-corner {
+      width: 50px;
+      height: 50px;
+      content: none; /* This is nothing. */
+      background: red;
+    }
+    @bottom-right-corner {
+      width: 50px;
+      height: 50px;
+      content: normal; /* This also nothing. */
+      background: red;
+    }
+  }
+</style>

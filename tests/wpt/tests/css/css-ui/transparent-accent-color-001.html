@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: transparent accent color</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#widget-accent">
+<link rel="match" href="reference/transparent-accent-color-001-ref.html">
+<meta name="assert" content="If the color supplied is partially or fully transparent, it is precomposed over white when in light mode.">
+<style>
+
+div {
+    border: solid orange;
+    padding: 1ch;
+    margin: 1ch;
+    float: left;
+}
+
+#t1 input { color-scheme: light;}
+#t1 .test { accent-color: #ff000000;}
+#t1 .ref { accent-color: white; }
+
+#t2 input { color-scheme: light;}
+#t2 .test { accent-color: #0000ff80;}
+#t2 .ref { accent-color: #7f7fff; }
+
+#t3 { background: orange;}
+#t3 input { color-scheme: light;}
+#t3 .test { accent-color: #0000ff80;}
+#t3 .ref { accent-color: #7f7fff; }
+
+</style>
+
+<p>Test passes if in each box bellow, you see a pair of identically colored check-boxes.
+
+<div id=t1>
+  <input class=test type=checkbox checked>
+  <input class=ref type=checkbox checked>
+</div>
+
+<div id=t2>
+  <input class=test type=checkbox checked>
+  <input class=ref type=checkbox checked>
+</div>
+
+<div id=t3>
+  <input class=test type=checkbox checked>
+  <input class=ref type=checkbox checked>
+</div>

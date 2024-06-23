@@ -25,7 +25,7 @@ fedcm_test(async t => {
   const cred = await fedcm_get_and_select_first_account(t,
       request_options_with_mediation_required());
   const manifest = `${manifest_origin}/\
-credential-management/support/fedcm/manifest.py`;
+fedcm/support/manifest.py`;
   await promise_rejects_js(t, TypeError, IdentityCredential.disconnect({
     configURL: manifest,
     clientId: '1'

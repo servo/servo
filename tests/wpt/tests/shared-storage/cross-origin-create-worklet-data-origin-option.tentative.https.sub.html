@@ -1,0 +1,35 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/shared-storage/resources/util.js"></script>
+<script src="/shared-storage/resources/util.sub.js"></script>
+<script src="/fenced-frame/resources/utils.js"></script>
+
+<body>
+<script>
+'use strict';
+
+async_test(t => {
+  testCreateWorkletWithDataOption(
+    t, "context-origin", "key0", "value0", /*is_same_origin_script=*/false,
+    /*expect_success=*/true);
+}, 'For cross-origin createWorklet with dataOrigin option "context-origin", '
+   + 'there is no error.');
+
+async_test(t => {
+  testCreateWorkletWithDataOption(
+    t, "script-origin", "key0", "value0", /*is_same_origin_script=*/false,
+    /*expect_success=*/true);
+}, 'For cross-origin createWorklet with dataOrigin option "script-origin", '
+   + 'there is no error.');
+
+async_test(t => {
+  testCreateWorkletWithDataOption(
+    t, "invalid", "key0", "value0", /*is_same_origin_script=*/false,
+    /*expect_success=*/false);
+}, 'For cross-origin createWorklet with dataOrigin option "invalid", '
+   + 'there is a TypeError thrown.');
+
+</script>
+</body>

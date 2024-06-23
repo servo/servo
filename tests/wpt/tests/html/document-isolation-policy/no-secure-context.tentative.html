@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<div id=log></div>
+<script>
+promise_test(async t => {
+  const response = await fetch(get_host_info().HTTPS_REMOTE_ORIGIN+"/html/document-isolation-policy/resources/nothing-no-corp.js", {mode: "no-cors"});
+  assert_equals(response.type, "opaque");
+}, "DIP requires a secure context");
+</script>

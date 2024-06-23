@@ -4,6 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="dictionary-helper.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
 <script src="RTCRtpParameters-helper.js"></script>
 <script>
   'use strict';
@@ -70,4 +71,31 @@
     assert_greater_than(param.headerExtensions.length, 0);
     assert_greater_than(param.codecs.length, 0);
   }, 'getParameters() with simulcast video receiver');
+
+  promise_test(async t => {
+    const stream = await getNoiseStream({video: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    caller.addTrack(track);
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+    callee.addTrack(track);
+    var callerReceiver = caller.getTransceivers()[0].receiver;
+    assert_equals(callerReceiver.getParameters().codecs.length, 0);
+    const offer = await caller.createOffer();
+    await caller.setLocalDescription(offer);
+    await callee.setRemoteDescription(offer);
+    var calleeReceiver = callee.getTransceivers()[0].receiver;
+    assert_equals(calleeReceiver.getParameters().codecs.length, 0);
+    const answer = await callee.createAnswer();
+    await callee.setLocalDescription(answer);
+    assert_greater_than(calleeReceiver.getParameters().codecs.length, 0,
+      "callee codecs after answer");
+    await caller.setRemoteDescription(answer);
+    assert_greater_than(callerReceiver.getParameters().codecs.length, 0,
+      "caller codecs after answer");
+  }, 'getParameters() surfaces codecs on two-way receiver at the right time');
+
 </script>

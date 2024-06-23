@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>History state change for iframe loading='lazy' before it is loaded: history.pushState</title>
+<iframe data-src="about:blank#push" src="support/blank.htm?src" loading="lazy" hidden></iframe>
+<script>
+const iframe = document.querySelector('iframe');
+const iframeLoaded = new Promise(resolve => {
+  iframe.onload = resolve;
+});
+let pushStateSuccess = true;
+try {
+  // Should have no effect on lazy-loading.
+  // Per https://html.spec.whatwg.org/C#can-have-its-url-rewritten
+  // only the fragment can be changed for about: URLs.
+  iframe.contentWindow.history.pushState(null, "", iframe.dataset.src);
+} catch(ex) {
+  pushStateSuccess = false;
+}
+const locationAfterPushState = iframe.contentWindow.location.href;
+iframe.hidden = false;
+</script>
+<!-- Loading testharness.js here is intentional to reproduce a bug in WebKit. -->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({single_test: true});
+assert_true(pushStateSuccess);
+assert_equals(locationAfterPushState, new URL("about:blank#push", location.href).href);
+iframeLoaded.then(() => {
+  // No timeout needed in this test because history.pushState() doesn't navigate.
+  assert_equals(iframe.contentWindow.location.href, new URL("support/blank.htm?src", location.href).href);
+  done();
+});
+</script>
