@@ -19,12 +19,12 @@
 var t = async_test("The 2D context doesn't throw with extra getContext arguments (new context)");
 _addTest(function(canvas, ctx) {
 
-  _assertDifferent(document.createElement("canvas").getContext('2d', false, {}, [], 1, "2"), null, "document.createElement(\"canvas\").getContext('2d', false, {}, [], 1, \"2\")", "null");
-  _assertDifferent(document.createElement("canvas").getContext('2d', 123), null, "document.createElement(\"canvas\").getContext('2d', 123)", "null");
-  _assertDifferent(document.createElement("canvas").getContext('2d', "test"), null, "document.createElement(\"canvas\").getContext('2d', \"test\")", "null");
-  _assertDifferent(document.createElement("canvas").getContext('2d', undefined), null, "document.createElement(\"canvas\").getContext('2d', undefined)", "null");
-  _assertDifferent(document.createElement("canvas").getContext('2d', null), null, "document.createElement(\"canvas\").getContext('2d', null)", "null");
-  _assertDifferent(document.createElement("canvas").getContext('2d', Symbol.hasInstance), null, "document.createElement(\"canvas\").getContext('2d', Symbol.hasInstance)", "null");
+  _assertDifferent(document.createElement('canvas').getContext('2d', false, {}, [], 1, "2"), null, "document.createElement('canvas').getContext('2d', false, {}, [], 1, \"2\")", "null");
+  _assertDifferent(document.createElement('canvas').getContext('2d', 123), null, "document.createElement('canvas').getContext('2d', 123)", "null");
+  _assertDifferent(document.createElement('canvas').getContext('2d', "test"), null, "document.createElement('canvas').getContext('2d', \"test\")", "null");
+  _assertDifferent(document.createElement('canvas').getContext('2d', undefined), null, "document.createElement('canvas').getContext('2d', undefined)", "null");
+  _assertDifferent(document.createElement('canvas').getContext('2d', null), null, "document.createElement('canvas').getContext('2d', null)", "null");
+  _assertDifferent(document.createElement('canvas').getContext('2d', Symbol.hasInstance), null, "document.createElement('canvas').getContext('2d', Symbol.hasInstance)", "null");
 
 });
 </script>

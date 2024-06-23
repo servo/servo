@@ -16,8 +16,7 @@ t.step(function() {
   var canvas = new OffscreenCanvas(100, 50);
   var ctx = canvas.getContext('2d');
 
-  var offscreenCanvas2 = new OffscreenCanvas(100, 50);
-  _assertDifferent(offscreenCanvas2.getContext('2d'), null, "offscreenCanvas2.getContext('2d')", "null");
+  _assertDifferent(canvas.getContext('2d'), null, "canvas.getContext('2d')", "null");
   t.done();
 });
 done();

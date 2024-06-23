@@ -2,6 +2,7 @@ import pytest
 from tests.support.sync import AsyncPoll
 from webdriver.error import TimeoutException
 
+
 pytestmark = pytest.mark.asyncio
 
 USER_PROMPT_OPENED_EVENT = "browsingContext.userPromptOpened"
@@ -35,7 +36,13 @@ async def test_unsubscribe(bidi_session, inline, new_tab):
 
 @pytest.mark.parametrize("prompt_type", ["alert", "confirm", "prompt"])
 async def test_prompt_type(
-    bidi_session, subscribe_events, inline, new_tab, wait_for_event, wait_for_future_safe, prompt_type
+    bidi_session,
+    subscribe_events,
+    inline,
+    new_tab,
+    wait_for_event,
+    wait_for_future_safe,
+    prompt_type,
 ):
     await subscribe_events(events=[USER_PROMPT_OPENED_EVENT])
     on_entry = wait_for_event(USER_PROMPT_OPENED_EVENT)
@@ -53,17 +60,23 @@ async def test_prompt_type(
         "context": new_tab["context"],
         "type": prompt_type,
         "message": text,
-        **({
-            "defaultValue": ""
-        } if prompt_type == 'prompt' else {})
+        **({"defaultValue": ""} if prompt_type == "prompt" else {}),
     }
 
 
 @pytest.mark.parametrize(
-    "default", [None, "", "default"], ids=["undefined", "empty string", "non empty string"]
+    "default",
+    [None, "", "default"],
+    ids=["undefined", "empty string", "non empty string"],
 )
 async def test_prompt_default_value(
-    bidi_session, inline, new_tab, subscribe_events, wait_for_event, wait_for_future_safe, default
+    bidi_session,
+    inline,
+    new_tab,
+    subscribe_events,
+    wait_for_event,
+    wait_for_future_safe,
+    default,
 ):
     await subscribe_events(events=[USER_PROMPT_OPENED_EVENT])
     on_entry = wait_for_event(USER_PROMPT_OPENED_EVENT)
@@ -98,7 +111,12 @@ async def test_prompt_default_value(
 
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
 async def test_subscribe_to_one_context(
-    bidi_session, subscribe_events, inline, wait_for_event, wait_for_future_safe, type_hint
+    bidi_session,
+    subscribe_events,
+    inline,
+    wait_for_event,
+    wait_for_future_safe,
+    type_hint,
 ):
     new_context = await bidi_session.browsing_context.create(type_hint=type_hint)
     await subscribe_events(

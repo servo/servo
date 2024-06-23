@@ -7,7 +7,7 @@ def main(request, response):
   if manifest_url is None or not len(manifest_url):
     port = request.server.config.ports["https"][0]
     hostname = request.url_parts.hostname
-    manifest_url = "https://{0}:{1}/credential-management/support/fedcm/manifest.py".format(
+    manifest_url = "https://{0}:{1}/fedcm/support/manifest.py".format(
         hostname, str(port))
   else:
     try:

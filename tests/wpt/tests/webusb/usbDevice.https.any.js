@@ -1279,28 +1279,60 @@ usb_test(async (t) => {
 }, 'isochronousTransferOut rejects when packet lengths exceed buffer size');
 
 usb_test(async (t) => {
-  const PACKET_COUNT = 2;
-  const PACKET_LENGTH = 8;
-  const {device, fakeDevice} = await getFakeDevice();
+  const {device} = await getFakeDevice();
   await device.open();
   await device.selectConfiguration(2);
   await device.claimInterface(0);
   await device.selectAlternateInterface(0, 1);
-  const packetLengths = [0xffffffff, 1];
+  const packetLengths = [33554432, 1];
   await promise_rejects_dom(
       t, 'DataError', device.isochronousTransferIn(1, packetLengths));
 }, 'isochronousTransferIn rejects when packet lengths exceed maximum size');
 
 usb_test(async (t) => {
-  const PACKET_COUNT = 2;
-  const PACKET_LENGTH = 8;
-  const {device, fakeDevice} = await getFakeDevice();
+  const {device} = await getFakeDevice();
   await device.open();
   await device.selectConfiguration(2);
   await device.claimInterface(0);
   await device.selectAlternateInterface(0, 1);
-  const buffer = new Uint8Array(PACKET_LENGTH * PACKET_COUNT);
-  const packetLengths = [0xffffffff, 1];
+  const buffer = new Uint8Array(33554432 + 1);
+  const packetLengths = [33554432, 1];
   await promise_rejects_dom(
       t, 'DataError', device.isochronousTransferOut(1, buffer, packetLengths));
 }, 'isochronousTransferOut rejects when packet lengths exceed maximum size');
+
+usb_test(async (t) => {
+  const {device} = await getFakeDevice();
+  await device.open();
+  await device.selectConfiguration(2);
+  await device.claimInterface(0);
+  await device.selectAlternateInterface(0, 1);
+  await promise_rejects_dom(
+      t, 'DataError', device.transferIn(1, 33554433));
+}, 'transferIn rejects when packet lengths exceed maximum size');
+
+usb_test(async (t) => {
+  const {device} = await getFakeDevice();
+  await device.open();
+  await device.selectConfiguration(2);
+  await device.claimInterface(0);
+  await device.selectAlternateInterface(0, 1);
+  await promise_rejects_dom(
+      t, 'DataError', device.transferOut(1, new ArrayBuffer(33554433)));
+}, 'transferOut rejects when packet lengths exceed maximum size');
+
+usb_test(async (t) => {
+  const {device} = await getFakeDevice();
+  await device.open();
+  await device.selectConfiguration(2);
+  await device.claimInterface(0);
+  await device.selectAlternateInterface(0, 1);
+  await promise_rejects_dom(
+      t, 'DataError', device.controlTransferOut({
+        requestType: 'vendor',
+        recipient: 'device',
+        request: 0x42,
+        value: 0x1234,
+        index: 0x5678
+      }, new ArrayBuffer(33554433)));
+}, 'controlTransferOut rejects when packet lengths exceed maximum size');

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+  html {
+    font: 16px/1 Ahem;
+  }
+  @page {
+    margin: 0;
+    width: 32em;
+    height: 27em;
+  }
+  body {
+    display: grid;
+    grid-template-columns: 6em auto 6em;
+    grid-template-rows: 6em auto 6em;
+    height: 100vh;
+    margin: 0;
+  }
+  .vertical-edge {
+    display: flex;
+  }
+  .horizontal-edge {
+    display: flex;
+    flex-flow: column;
+  }
+</style>
+<div class="corner"></div>
+<div class="vertical-edge">
+  <div style="width:15.375em; margin-bottom:3em; background:hotpink;">xxx xx xx xx xxxx</div>
+  <div style="width:4.625em; margin-top:3em; background:yellow;">xx xx</div>
+</div>
+<div class="corner"></div>
+<div class="horizontal-edge">
+  <div style="writing-mode:vertical-rl; height:10.75em; background:yellow;">xxx x xx xxxx</div>
+  <div style="writing-mode:vertical-rl; height:4.25em; background:hotpink;">xx xx</div>
+</div>
+<div></div>
+<div class="horizontal-edge">
+  <div style="writing-mode:vertical-rl; height:9em; background:hotpink;">x x xxxxxx x x x x x x x x x x</div>
+  <div style="writing-mode:vertical-rl; height:6em; background:yellow;">x x x x x x x x x x x x x x x x xx</div>
+</div>
+<div class="corner"></div>
+<div class="vertical-edge">
+  <div style="width:11.25em; margin-top:1em; background:yellow;">x x xxxxxx x x x x x x x x x x x x</div>
+  <div style="width:8.75em; background:hotpink;">x x x x x x x x x x x x x x x x x x xx</div>
+</div>
+<div class="corner"></div>

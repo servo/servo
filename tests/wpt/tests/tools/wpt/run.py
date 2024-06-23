@@ -112,7 +112,7 @@ otherwise install OpenSSL and ensure that it's on your $PATH.""")
 
 def check_environ(product):
     if product not in ("android_webview", "chrome", "chrome_android", "chrome_ios",
-                       "content_shell", "edge", "firefox", "firefox_android",
+                       "edge", "firefox", "firefox_android", "headless_shell",
                        "ladybird", "servo", "wktr"):
         config_builder = serve.build_config(os.path.join(wpt_root, "config.json"))
         # Override the ports to avoid looking for free ports
@@ -521,9 +521,9 @@ class Chrome(BrowserSetup):
             kwargs["binary_args"].append("--no-sandbox")
 
 
-class ContentShell(BrowserSetup):
-    name = "content_shell"
-    browser_cls = browser.ContentShell
+class HeadlessShell(BrowserSetup):
+    name = "headless_shell"
+    browser_cls = browser.HeadlessShell
     experimental_channels = ("dev", "canary", "nightly")
 
     def setup_kwargs(self, kwargs):
@@ -533,7 +533,7 @@ class ContentShell(BrowserSetup):
             if binary:
                 kwargs["binary"] = binary
             else:
-                raise WptrunError(f"Unable to locate {self.name.capitalize()} binary")
+                raise WptrunError(f"Unable to locate {self.name!r} binary")
 
         if kwargs["mojojs_path"]:
             kwargs["enable_mojojs"] = True
@@ -544,7 +544,13 @@ class ContentShell(BrowserSetup):
                            "Provide '--mojojs-path' explicitly instead.")
             logger.warning("MojoJS is disabled for this run.")
 
-        kwargs["enable_webtransport_h3"] = True
+        # Never pause after test, since headless shell is not interactive.
+        kwargs["pause_after_test"] = False
+        # Don't add a `--headless` switch.
+        kwargs["headless"] = False
+
+        if kwargs["enable_webtransport_h3"] is None:
+            kwargs["enable_webtransport_h3"] = True
 
 
 class Chromium(Chrome):
@@ -867,8 +873,8 @@ product_setup = {
     "chrome_android": ChromeAndroid,
     "chrome_ios": ChromeiOS,
     "chromium": Chromium,
-    "content_shell": ContentShell,
     "edge": Edge,
+    "headless_shell": HeadlessShell,
     "safari": Safari,
     "servo": Servo,
     "servodriver": ServoWebDriver,

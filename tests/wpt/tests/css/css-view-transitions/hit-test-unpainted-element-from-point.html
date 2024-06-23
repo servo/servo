@@ -63,9 +63,9 @@ async_test(t => {
     target.classList.toggle("before");
     target.classList.toggle("after");
     requestAnimationFrame(async () => {
-      // Check the old location of the element, we should get body.
+      // Check the location of the element, we should get body.
       t.step(() => assert_equals(document.elementFromPoint(20, 20), document.body));
-      // Check the new location of the pseudo element, we should get documentElement,
+      // Check the location of the pseudo element for the old snapshot, we should get documentElement,
       // which is the originating element for the pseudo element.
       t.step(() => assert_equals(document.elementFromPoint(220, 20), document.documentElement));
       // Check the spot that used to be covered by the element but now has

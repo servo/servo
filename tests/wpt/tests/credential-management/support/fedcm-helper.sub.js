@@ -1,7 +1,7 @@
 export const manifest_origin = "https://{{host}}:{{ports[https][0]}}";
 export const alt_manifest_origin = 'https://{{hosts[alt][]}}:{{ports[https][0]}}';
 export const same_site_manifest_origin = 'https://{{hosts[][www1]}}:{{ports[https][0]}}';
-export const default_manifest_path = '/credential-management/support/fedcm/manifest.py';
+export const default_manifest_path = '/fedcm/support/manifest.py';
 
 export function open_and_wait_for_popup(origin, path) {
   return new Promise(resolve => {
@@ -26,6 +26,7 @@ export function open_and_wait_for_popup(origin, path) {
 export function set_fedcm_cookie(host) {
   if (host == undefined) {
     document.cookie = 'cookie=1; SameSite=None; Path=/credential-management/support; Secure';
+    document.cookie = 'cookie=1; SameSite=None; Path=/fedcm/support; Secure';
     return Promise.resolve();
   } else {
     return open_and_wait_for_popup(host, '/credential-management/support/set_cookie');
@@ -52,7 +53,7 @@ export function request_options_with_mediation_required(manifest_filename, origi
     manifest_filename = "manifest.py";
   }
   const manifest_path = `${origin}/\
-credential-management/support/fedcm/${manifest_filename}`;
+fedcm/support/${manifest_filename}`;
   return {
     identity: {
       providers: [{
@@ -87,7 +88,7 @@ export function request_options_with_context(manifest_filename, context) {
     manifest_filename = "manifest.py";
   }
   const manifest_path = `${manifest_origin}/\
-credential-management/support/fedcm/${manifest_filename}`;
+fedcm/support/${manifest_filename}`;
   return {
     identity: {
       providers: [{
@@ -145,7 +146,7 @@ function select_manifest_impl(manifest_url) {
 
   return new Promise(resolve => {
     const img = document.createElement('img');
-    img.src = `/credential-management/support/fedcm/select_manifest_in_root_manifest.py${url_query}`;
+    img.src = `/fedcm/support/select_manifest_in_root_manifest.py${url_query}`;
     img.addEventListener('error', resolve);
     document.body.appendChild(img);
   });
@@ -272,7 +273,7 @@ export function disconnect_options(accountHint, manifest_filename) {
     manifest_filename = "manifest.py";
   }
   const manifest_path = `${manifest_origin}/\
-credential-management/support/fedcm/${manifest_filename}`;
+fedcm/support/${manifest_filename}`;
   return {
       configURL: manifest_path,
       clientId: '1',
@@ -285,7 +286,7 @@ export function alt_disconnect_options(accountHint, manifest_filename) {
     manifest_filename = "manifest.py";
   }
   const manifest_path = `${alt_manifest_origin}/\
-credential-management/support/fedcm/${manifest_filename}`;
+fedcm/support/${manifest_filename}`;
   return {
       configURL: manifest_path,
       clientId: '1',

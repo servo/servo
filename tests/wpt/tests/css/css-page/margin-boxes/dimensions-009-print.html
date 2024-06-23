@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#margin-dimension">
+<meta name="assert" content="Test auto lengths. Min content sizes are larger than available size. With center/middle boxes.">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<link rel="match" href="dimensions-009-print-ref.html">
+<style>
+  @page {
+    margin: 6em;
+    width: 20em;
+    height: 16em;
+    font: 16px/1 Ahem;
+
+    /* Total min content size is larger than available size. Shrink
+       proportionally to min sizes. Note that max content sizes don't affect
+       sizing in this mode.
+
+       Left margin box min: 18em
+       Center margin box min: 12em
+       Right margin box min: 6em
+       Flex will be the same as min.
+
+       First resolve the width of center, by evaluating how much space the
+       double of each side box would take up. Pick the larger (to preserve
+       centering), and subtract that from available space.
+
+       Available space: 20em
+       Center flex: 12 (like min)
+
+       Left double min (and flex factor): 18em * 2 = 36em
+       Total flex left double + center: 36 + 12 = 48
+       Unused space with double left: 20em - 36em - 12em = -28em
+       Width of double left: 36em + (-28em) * 36 / 48 = 15em
+
+       Right double min (and flex factor): 6em * 2 = 12em
+       Total flex right double + center: 12 + 12 = 24
+       Unused space with double right: 20em - 12em - 12em = -4em
+       Width of double right: 12em + (-4em) * 12 / 24 = 10em
+
+       Width of double left (15em) is larger than width of double right
+       (10em). Pick this one and resolve center, by using those flex values.
+       Width of center: 12em + (-28em) * 12 / 48 = 5em.
+       Left and right will share the rest, i.e. 7.5em on each.*/
+
+    @top-left {
+      text-align: left;
+      vertical-align: top;
+      content: "xxxxxxxxxxxxxxxxxx xxxxxxx";
+      margin-bottom: 4em;
+      background: hotpink;
+    }
+    @top-center {
+      text-align: left;
+      vertical-align: top;
+      margin-top: 2em;
+      margin-bottom: 2em;
+      content: "xxxxxxxxxxxx";
+      background: cyan;
+    }
+    @top-right {
+      text-align: left;
+      vertical-align: top;
+      margin-top: 4em;
+      content: "xxxxxx";
+      background: yellow;
+    }
+  }
+</style>

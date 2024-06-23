@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>backdrop-filter: Sampled pixels beyond edge should mirror back into the content.</title>
+<link rel="author" href="mailto:flackr@chromium.org">
+
+<div class="clip">
+  <div class="filter">
+    <div class="border"></div>
+  </div>
+</div>
+<div style="position:absolute;top:100px;will-change:transform;">
+  <p>Expected above: A pure white box with a very small hint of the 1px blue border blurred inside.</p>
+</div>
+
+<style>
+.clip {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  top: 8px;
+  left: 8px;
+  overflow: clip;
+}
+.filter {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  top: 0px;
+  left: 0px;
+  filter: blur(10px);
+}
+.border {
+  position: absolute;
+  width: 302px;
+  height: 302px;
+  top: -101px;
+  left: -101px;
+  background:
+      repeating-linear-gradient(0deg,  blue 0px, blue 2px, transparent 2px, transparent 100px),
+      repeating-linear-gradient(90deg,  blue 0px, blue 2px, transparent 2px, transparent 100px);
+}
+</style>

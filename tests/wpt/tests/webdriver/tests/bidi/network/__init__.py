@@ -318,6 +318,8 @@ HTTP_STATUS_AND_STATUS_TEXT = [
     (505, "HTTP Version Not Supported"),
 ]
 
+PAGE_DATA_URL_HTML = "data:text/html,<div>foo</div>"
+PAGE_DATA_URL_IMAGE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEX/TQBcNTh/AAAAAXRSTlPM0jRW/QAAAApJREFUeJxjYgAAAAYAAzY3fKgAAAAASUVORK5CYII="
 PAGE_EMPTY_HTML = "/webdriver/tests/bidi/network/support/empty.html"
 PAGE_EMPTY_IMAGE = "/webdriver/tests/bidi/network/support/empty.png"
 PAGE_EMPTY_SCRIPT = "/webdriver/tests/bidi/network/support/empty.js"

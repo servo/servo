@@ -751,3 +751,260 @@ test(t => {
   frame.close();
 }, 'Test a VideoFrame constructed from canvas can drop the alpha channel.');
 
+function testAllYUVPixelFormats() {
+  const YUVs = [
+    {
+      init: {
+        format: 'I420',
+        timestamp: 1234,
+        codedWidth: 4,
+        codedHeight: 2
+      },
+      data: new Uint8Array([     // 1 byte per sample
+        1, 2, 3, 4, 5, 6, 7, 8,  // y
+        1, 2,                    // u
+        1, 2,                    // v
+      ])
+    },
+    {
+      init: {
+        format: 'I420P10',
+        timestamp: 1234,
+        codedWidth: 4,
+        codedHeight: 2
+      },
+      data: new Uint8Array([                                    // 2 byte per sample
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // y
+        1, 2, 3, 4,                                             // u
+        1, 2, 3, 4,                                             // v
+      ])
+    },
+    {
+      init: {
+        format: 'I420P12',
+        timestamp: 1234,
+        codedWidth: 4,
+        codedHeight: 2
+      },
+      data: new Uint8Array([                                    // 2 byte per sample
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // y
+        1, 2, 3, 4,                                             // u
+        1, 2, 3, 4,                                             // v
+      ])
+    },
+    {
+      init: {
+        format: 'I420A',
+        timestamp: 1234,
+        codedWidth: 4,
+        codedHeight: 2
+      },
+      data: new Uint8Array([     // 1 byte per sample
+        1, 2, 3, 4, 5, 6, 7, 8,  // y
+        1, 2,                    // u
+        1, 2,                    // v
+        1, 2, 3, 4, 5, 6, 7, 8,  // a
+      ])
+    },
+    {
+      init: {
+        format: 'I420AP10',
+        timestamp: 1234,
+        codedWidth: 4,
+        codedHeight: 2
+      },
+      data: new Uint8Array([                                    // 2 byte per sample
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // y
+        1, 2, 3, 4,                                             // u
+        1, 2, 3, 4,                                             // v
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // a
+      ])
+    },
+    {
+      init: {
+        format: 'I420AP12',
+        timestamp: 1234,
+        codedWidth: 4,
+        codedHeight: 2
+      },
+      data: new Uint8Array([                                    // 2 byte per sample
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // y
+        1, 2, 3, 4,                                             // u
+        1, 2, 3, 4,                                             // v
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // a
+      ])
+    },
+    {
+      init: {
+        format: 'I422',
+        timestamp: 1234,
+        codedWidth: 4,
+        codedHeight: 2
+      },
+      data: new Uint8Array([     // 1 byte per sample
+        1, 2, 3, 4, 5, 6, 7, 8,  // y
+        1, 2, 3, 4,              // u
+        1, 2, 3, 4,              // v
+      ])
+    },
+    {
+      init: {
+        format: 'I422P10',
+        timestamp: 1234,
+        codedWidth: 4,
+        codedHeight: 2
+      },
+      data: new Uint8Array([                                    // 2 byte per sample
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // y
+        1, 2, 3, 4, 5, 6, 7, 8,                                 // u
+        1, 2, 3, 4, 5, 6, 7, 8,                                 // v
+      ])
+    },
+    {
+      init: {
+        format: 'I422P12',
+        timestamp: 1234,
+        codedWidth: 4,
+        codedHeight: 2
+      },
+      data: new Uint8Array([                                    // 2 byte per sample
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // y
+        1, 2, 3, 4, 5, 6, 7, 8,                                 // u
+        1, 2, 3, 4, 5, 6, 7, 8,                                 // v
+      ])
+    },
+    {
+      init: {
+        format: 'I422A',
+        timestamp: 1234,
+        codedWidth: 4,
+        codedHeight: 2
+      },
+      data: new Uint8Array([     // 1 byte per sample
+        1, 2, 3, 4, 5, 6, 7, 8,  // y
+        1, 2, 3, 4,              // u
+        1, 2, 3, 4,              // v
+        1, 2, 3, 4, 5, 6, 7, 8,  // a
+      ])
+    },
+    {
+      init: {
+        format: 'I422AP10',
+        timestamp: 1234,
+        codedWidth: 4,
+        codedHeight: 2
+      },
+      data: new Uint8Array([                                    // 2 byte per sample
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // y
+        1, 2, 3, 4, 5, 6, 7, 8,                                 // u
+        1, 2, 3, 4, 5, 6, 7, 8,                                 // v
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // a
+
+      ])
+    },
+    {
+      init: {
+        format: 'I422AP12',
+        timestamp: 1234,
+        codedWidth: 4,
+        codedHeight: 2
+      },
+      data: new Uint8Array([                                    // 2 byte per sample
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // y
+        1, 2, 3, 4, 5, 6, 7, 8,                                 // u
+        1, 2, 3, 4, 5, 6, 7, 8,                                 // v
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // a
+
+      ])
+    },
+    {
+      init: {
+        format: 'I444',
+        timestamp: 1234,
+        codedWidth: 4,
+        codedHeight: 2
+      },
+      data: new Uint8Array([     // 1 byte per sample
+        1, 2, 3, 4, 5, 6, 7, 8,  // y
+        1, 2, 3, 4, 5, 6, 7, 8,  // u
+        1, 2, 3, 4, 5, 6, 7, 8,  // v
+      ])
+    },
+    {
+      init: {
+        format: 'I444P10',
+        timestamp: 1234,
+        codedWidth: 4,
+        codedHeight: 2
+      },
+      data: new Uint8Array([                                    // 2 byte per sample
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // y
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // u
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // v
+      ])
+    },
+    {
+      init: {
+        format: 'I444P12',
+        timestamp: 1234,
+        codedWidth: 4,
+        codedHeight: 2
+      },
+      data: new Uint8Array([                                    // 2 byte per sample
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // y
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // u
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // v
+      ])
+    },
+    {
+      init: {
+        format: 'I444A',
+        timestamp: 1234,
+        codedWidth: 4,
+        codedHeight: 2
+      },
+      data: new Uint8Array([     // 1 byte per sample
+        1, 2, 3, 4, 5, 6, 7, 8,  // y
+        1, 2, 3, 4, 5, 6, 7, 8,  // u
+        1, 2, 3, 4, 5, 6, 7, 8,  // v
+        1, 2, 3, 4, 5, 6, 7, 8,  // a
+      ])
+    },
+    {
+      init: {
+        format: 'I444AP10',
+        timestamp: 1234,
+        codedWidth: 4,
+        codedHeight: 2
+      },
+      data: new Uint8Array([                                    // 2 byte per sample
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // y
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // u
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // v
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // a
+      ])
+    },
+    {
+      init: {
+        format: 'I444AP12',
+        timestamp: 1234,
+        codedWidth: 4,
+        codedHeight: 2
+      },
+      data: new Uint8Array([                                    // 2 byte per sample
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // y
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // u
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // v
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  // a
+      ])
+    },
+  ];
+
+  for (let yuv of YUVs) {
+    test(t => {
+      const frame = new VideoFrame(yuv.data, yuv.init);
+      frame.close();
+    }, `Test we can construct a ${yuv.init.format} VideoFrame`);
+  }
+}
+testAllYUVPixelFormats();

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name=fuzzy content="maxDifference=0-10;totalPixels=0-10000">
+<title>backdrop-filter: Sampled pixels beyond edge should mirror back into the content.</title>
+<link rel="author" href="mailto:flackr@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#backdrop-filter-operation">
+<link rel="match"  href="backdrop-filter-edge-mirror-ref.html">
+
+<div class="box border"></div>
+<div class="box filter"></div>
+<div style="position:absolute;top:100px;will-change:transform;">
+  <p>Expected above: A pure white box with a very small hint of the 1px blue border blurred inside.</p>
+</div>
+
+<style>
+.box {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  top: 8px;
+  left: 8px;
+  box-sizing: border-box;
+}
+.filter {
+  backdrop-filter: blur(10px);
+}
+.border {
+  border: 1px solid blue;
+}
+</style>

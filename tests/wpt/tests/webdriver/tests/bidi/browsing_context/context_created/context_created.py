@@ -67,6 +67,7 @@ async def test_evaluate_window_open_without_url(bidi_session, subscribe_events, 
         children=None,
         url="about:blank",
         parent=None,
+        original_opener=top_context["context"]
     )
 
 
@@ -89,6 +90,7 @@ async def test_evaluate_window_open_with_url(bidi_session, subscribe_events, wai
         children=None,
         url="about:blank",
         parent=None,
+        original_opener=top_context["context"]
     )
 
 
