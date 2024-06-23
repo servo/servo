@@ -12,8 +12,8 @@ interface HTMLDialogElement : HTMLElement {
   attribute DOMString returnValue;
   // [CEReactions]
   // void show();
-  // [CEReactions]
-  // void showModal();
+  [CEReactions, Throws]
+  undefined showModal();
   [CEReactions]
   undefined close(optional DOMString returnValue);
 };
