@@ -6,7 +6,7 @@ use std::borrow::{Borrow, BorrowMut};
 use std::cell::Cell;
 
 use app_units::Au;
-use atomic_refcell::AtomicRefMut;
+use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use style::properties::longhands::align_content::computed_value::T as AlignContent;
 use style::properties::longhands::align_items::computed_value::T as AlignItems;
 use style::properties::longhands::align_self::computed_value::T as AlignSelf;
@@ -60,13 +60,13 @@ fn resolve_content_size(constraint: taffy::AvailableSpace, content_sizes: Conten
 
 #[inline(always)]
 fn with_independant_formatting_context<T>(
-    item: FlexLevelBoxInner,
+    item: &mut FlexLevelBoxInner,
     cb: impl FnOnce(&mut IndependentFormattingContext) -> T,
 ) -> T {
     match item {
-        FlexLevelBoxInner::FlexItem(context) => cb(&mut context),
-        FlexLevelBoxInner::OutOfFlowAbsolutelyPositionedBox(abspos_box) => {
-            let abspos_box = abspos_box.borrow();
+        FlexLevelBoxInner::FlexItem(ref mut context) => cb(context),
+        FlexLevelBoxInner::OutOfFlowAbsolutelyPositionedBox(ref abspos_box) => {
+            let mut abspos_box = AtomicRefCell::borrow_mut(abspos_box);
             cb(&mut abspos_box.context)
         },
     }
@@ -121,6 +121,7 @@ impl taffy::TraversePartialTree for FlexContext<'_> {
 
 impl taffy::LayoutPartialTree for FlexContext<'_> {
     type CoreContainerStyle<'a> = TaffyStyloStyleRef<'a> where Self: 'a;
+    type CacheMut<'b> = AtomicRefMut<'b, taffy::Cache> where Self: 'b;
 
     fn get_core_container_style(&self, node_id: taffy::NodeId) -> Self::CoreContainerStyle<'_> {
         TaffyStyloStyleRef(self.containing_block.style)
@@ -131,9 +132,10 @@ impl taffy::LayoutPartialTree for FlexContext<'_> {
         (*self.source_child_nodes[id]).borrow_mut().taffy_layout = *layout;
     }
 
-    fn get_cache_mut(&mut self, node_id: taffy::NodeId) -> &mut taffy::Cache {
+    fn get_cache_mut(&mut self, node_id: taffy::NodeId) -> AtomicRefMut<'_, taffy::Cache> {
         let id = usize::from(node_id);
-        &mut (*self.source_child_nodes[id]).get_mut().taffy_layout_cache
+        let mut_ref: AtomicRefMut<'_, _> = (*self.source_child_nodes[id]).borrow_mut();
+        AtomicRefMut::map(mut_ref, |node| &mut node.taffy_layout_cache)
     }
 
     fn compute_child_layout(
@@ -142,10 +144,10 @@ impl taffy::LayoutPartialTree for FlexContext<'_> {
         inputs: taffy::LayoutInput,
     ) -> taffy::LayoutOutput {
         // compute_cached_layout(self, node_id, inputs, |parent, node_id, inputs| {
-        let child = (*self.source_child_nodes[usize::from(node_id)]).borrow();
+        let mut child = (*self.source_child_nodes[usize::from(node_id)]).borrow_mut();
 
         with_independant_formatting_context(
-            child.flex_level_box,
+            &mut child.flex_level_box,
             |independent_context| -> taffy::LayoutOutput {
                 let logical_size = match independent_context {
                     IndependentFormattingContext::Replaced(replaced) => {
@@ -286,7 +288,7 @@ impl FlexContainer {
                     FlexLevelBoxInner::FlexItem(_) => {
                         let item =
                             AtomicRefMut::map(borrowed, |child| match child.flex_level_box {
-                                FlexLevelBoxInner::FlexItem(item) => &mut item,
+                                FlexLevelBoxInner::FlexItem(ref mut item) => item,
                                 _ => unreachable!(),
                             });
                         flex_items.push(item);
