@@ -11,4 +11,5 @@ mod android;
 #[cfg(target_env = "ohos")]
 mod ohos;
 
+mod host_trait;
 mod resources;

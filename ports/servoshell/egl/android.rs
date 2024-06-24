@@ -18,11 +18,12 @@ use jni::{JNIEnv, JavaVM};
 use libc::{dup2, pipe, read};
 use log::{debug, error, info, warn};
 use simpleservo::{
-    Coordinates, DeviceIntRect, EventLoopWaker, HostTrait, InitOptions, InputMethodType,
+    Coordinates, DeviceIntRect, EventLoopWaker, InitOptions, InputMethodType,
     MediaSessionPlaybackState, PromptResult, ServoGlue, SERVO,
 };
 
 use super::gl_glue;
+use super::host_trait::HostTrait;
 
 struct HostCallbacks {
     callbacks: GlobalRef,

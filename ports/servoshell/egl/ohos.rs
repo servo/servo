@@ -22,7 +22,9 @@ use ohos_sys::ace::xcomponent::native_interface_xcomponent::{
 use servo::embedder_traits::PromptResult;
 use servo::euclid::Point2D;
 use servo::style::Zero;
-use simpleservo::{EventLoopWaker, HostTrait, ServoGlue};
+use simpleservo::{EventLoopWaker, ServoGlue};
+
+use super::host_trait::HostTrait;
 
 // Todo: in the future these libraries should be added by Rust sys-crates
 #[link(name = "ace_napi.z")]
