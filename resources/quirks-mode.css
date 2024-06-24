@@ -25,7 +25,7 @@ table {
 /*
  * FIXME(pcwalton): Actually saying `text-align: initial` above breaks `<table>` inside `<center>`
  * in quirks mode. This is because we (following Gecko, WebKit, and Blink) implement the  HTML5
- * align-descendants rules with a special `text-align: -servo-center`. `text-align: initial`, if
+ * align-descendants rules with a special `text-align: -moz-center`. `text-align: initial`, if
  * placed on the `<table>` element per the spec, would break this behavior. So we place it on
  * `<tbody>` instead.
  */
