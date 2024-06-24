@@ -200,7 +200,8 @@ def bootstrap_command_only(topdir):
     try:
         force = '-f' in sys.argv or '--force' in sys.argv
         skip_platform = '--skip-platform' in sys.argv
-        servo.platform.get().bootstrap(force, skip_platform)
+        skip_lints = '--skip-lints' in sys.argv
+        servo.platform.get().bootstrap(force, skip_platform, skip_lints)
     except NotImplementedError as exception:
         print(exception)
         return 1

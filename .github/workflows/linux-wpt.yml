@@ -55,7 +55,7 @@ jobs:
           python3 -m pip install --upgrade pip
           sudo apt update
           sudo apt install -qy --no-install-recommends mesa-vulkan-drivers
-          python3 ./mach bootstrap
+          python3 ./mach bootstrap --skip-lints
       - name: Sync from upstream WPT
         if: ${{ inputs.wpt-sync-from-upstream }}
         run: |
