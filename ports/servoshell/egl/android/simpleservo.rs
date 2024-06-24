@@ -20,13 +20,12 @@ use servo::compositing::windowing::{
 use servo::compositing::CompositeTarget;
 use servo::config::prefs::pref_map;
 pub use servo::config::prefs::{add_user_prefs, PrefValue};
-use servo::embedder_traits::resources::{self, Resource, ResourceReaderMethods};
+use servo::embedder_traits::{
+    resources, EmbedderMsg, EmbedderProxy, MediaSessionEvent, PromptDefinition, PromptOrigin,
+};
 pub use servo::embedder_traits::{
     ContextMenuResult, InputMethodType, MediaSessionPlaybackState, PermissionPrompt,
     PermissionRequest, PromptResult,
-};
-use servo::embedder_traits::{
-    EmbedderMsg, EmbedderProxy, MediaSessionEvent, PromptDefinition, PromptOrigin,
 };
 use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
@@ -41,6 +40,8 @@ use servo::webrender_api::ScrollLocation;
 use servo::webrender_traits::RenderingContext;
 use servo::{self, gl, Servo, TopLevelBrowsingContextId};
 use surfman::{Connection, SurfaceType};
+
+use crate::egl::resources::ResourceReaderInstance;
 
 thread_local! {
     pub static SERVO: RefCell<Option<ServoGlue>> = RefCell::new(None);
@@ -893,55 +894,5 @@ impl WindowMethods for ServoWindowCallbacks {
             screen_avail: coords.viewport.size,
             hidpi_factor: Scale::new(self.density),
         }
-    }
-}
-
-struct ResourceReaderInstance;
-
-impl ResourceReaderInstance {
-    fn new() -> ResourceReaderInstance {
-        ResourceReaderInstance
-    }
-}
-
-impl ResourceReaderMethods for ResourceReaderInstance {
-    fn read(&self, res: Resource) -> Vec<u8> {
-        Vec::from(match res {
-            Resource::Preferences => &include_bytes!("../../../../resources/prefs.json")[..],
-            Resource::HstsPreloadList => {
-                &include_bytes!("../../../../resources/hsts_preload.json")[..]
-            },
-            Resource::BadCertHTML => &include_bytes!("../../../../resources/badcert.html")[..],
-            Resource::NetErrorHTML => &include_bytes!("../../../../resources/neterror.html")[..],
-            Resource::UserAgentCSS => &include_bytes!("../../../../resources/user-agent.css")[..],
-            Resource::ServoCSS => &include_bytes!("../../../../resources/servo.css")[..],
-            Resource::PresentationalHintsCSS => {
-                &include_bytes!("../../../../resources/presentational-hints.css")[..]
-            },
-            Resource::QuirksModeCSS => &include_bytes!("../../../../resources/quirks-mode.css")[..],
-            Resource::RippyPNG => &include_bytes!("../../../../resources/rippy.png")[..],
-            Resource::DomainList => &include_bytes!("../../../../resources/public_domains.txt")[..],
-            Resource::BluetoothBlocklist => {
-                &include_bytes!("../../../../resources/gatt_blocklist.txt")[..]
-            },
-            Resource::MediaControlsCSS => {
-                &include_bytes!("../../../../resources/media-controls.css")[..]
-            },
-            Resource::MediaControlsJS => {
-                &include_bytes!("../../../../resources/media-controls.js")[..]
-            },
-            Resource::CrashHTML => &include_bytes!("../../../../resources/crash.html")[..],
-            Resource::DirectoryListingHTML => {
-                &include_bytes!("../../../../resources/directory-listing.html")[..]
-            },
-        })
-    }
-
-    fn sandbox_access_files(&self) -> Vec<PathBuf> {
-        vec![]
-    }
-
-    fn sandbox_access_files_dirs(&self) -> Vec<PathBuf> {
-        vec![]
     }
 }
