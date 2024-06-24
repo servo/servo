@@ -13,3 +13,4 @@ mod ohos;
 
 mod host_trait;
 mod resources;
+mod servo_glue;

@@ -3,17 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 #![allow(non_snake_case)]
 
-use super::gl_glue;
-mod simpleservo;
-
 use std::mem::MaybeUninit;
 use std::os::raw::c_void;
+use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{mpsc, Once, OnceLock};
 use std::thread;
 
 use log::{debug, error, info, warn, LevelFilter};
 use napi_derive_ohos::{module_exports, napi};
 use napi_ohos::bindgen_prelude::Undefined;
+use napi_ohos::threadsafe_function::{
+    ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode,
+};
 use napi_ohos::{Env, JsFunction, JsObject, JsString, NapiRaw};
 use ohos_sys::ace::xcomponent::native_interface_xcomponent::{
     OH_NativeXComponent, OH_NativeXComponent_Callback, OH_NativeXComponent_GetTouchEvent,
@@ -22,9 +23,13 @@ use ohos_sys::ace::xcomponent::native_interface_xcomponent::{
 use servo::embedder_traits::PromptResult;
 use servo::euclid::Point2D;
 use servo::style::Zero;
-use simpleservo::{EventLoopWaker, ServoGlue};
+use simpleservo::EventLoopWaker;
 
+use super::gl_glue;
 use super::host_trait::HostTrait;
+use super::servo_glue::ServoGlue;
+
+mod simpleservo;
 
 // Todo: in the future these libraries should be added by Rust sys-crates
 #[link(name = "ace_napi.z")]
@@ -47,11 +52,6 @@ fn call(action: ServoAction) -> Result<(), CallError> {
     tx.send(action).map_err(|_| CallError::ChannelDied)?;
     Ok(())
 }
-use std::sync::mpsc::{Receiver, Sender};
-
-use napi_ohos::threadsafe_function::{
-    ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode,
-};
 
 #[repr(transparent)]
 struct XComponentWrapper(*mut OH_NativeXComponent);
