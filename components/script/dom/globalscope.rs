@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::cell::Cell;
+use std::cell::{Cell, OnceCell};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
 use std::ops::Index;
@@ -63,6 +63,7 @@ use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::cell::{DomRefCell, RefMut};
 use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastChannelMethods;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSource_Binding::EventSourceMethods;
+use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapOptions, ImageBitmapSource,
 };
@@ -81,6 +82,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::{entry_global, incumbent_global, AutoEntryScript};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
+use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::bindings::weakref::{DOMTracker, WeakRef};
 use crate::dom::blob::Blob;
@@ -345,6 +347,20 @@ pub struct GlobalScope {
 
     /// Is considered in a secure context
     inherited_secure_context: Option<bool>,
+
+    /// The byte length queuing strategy size function that will be initialized once
+    /// `size` getter of `ByteLengthQueuingStrategy` is called.
+    ///
+    /// <https://streams.spec.whatwg.org/#byte-length-queuing-strategy-size-function>
+    #[ignore_malloc_size_of = "Rc<T> is hard"]
+    byte_length_queuing_strategy_size_function: OnceCell<Rc<Function>>,
+
+    /// The count queuing strategy size function that will be initialized once
+    /// `size` getter of `CountQueuingStrategy` is called.
+    ///
+    /// <https://streams.spec.whatwg.org/#count-queuing-strategy-size-function>
+    #[ignore_malloc_size_of = "Rc<T> is hard"]
+    count_queuing_strategy_size_function: OnceCell<Rc<Function>>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -805,6 +821,8 @@ impl GlobalScope {
             console_count_map: Default::default(),
             dynamic_modules: DomRefCell::new(DynamicModuleList::new()),
             inherited_secure_context,
+            byte_length_queuing_strategy_size_function: OnceCell::new(),
+            count_queuing_strategy_size_function: OnceCell::new(),
         }
     }
 
@@ -3274,6 +3292,33 @@ impl GlobalScope {
 
     pub(crate) fn dynamic_module_list(&self) -> RefMut<DynamicModuleList> {
         self.dynamic_modules.borrow_mut()
+    }
+
+    pub(crate) fn set_byte_length_queuing_strategy_size(&self, function: Rc<Function>) {
+        if let Err(_) = self
+            .byte_length_queuing_strategy_size_function
+            .set(function)
+        {
+            warn!("byte length queuing strategy size function is set twice.");
+        };
+    }
+
+    pub(crate) fn get_byte_length_queuing_strategy_size(&self) -> Option<Rc<Function>> {
+        self.byte_length_queuing_strategy_size_function
+            .get()
+            .map(|s| s.clone())
+    }
+
+    pub(crate) fn set_count_queuing_strategy_size(&self, function: Rc<Function>) {
+        if let Err(_) = self.count_queuing_strategy_size_function.set(function) {
+            warn!("count queuing strategy size function is set twice.");
+        };
+    }
+
+    pub(crate) fn get_count_queuing_strategy_size(&self) -> Option<Rc<Function>> {
+        self.count_queuing_strategy_size_function
+            .get()
+            .map(|s| s.clone())
     }
 }
 
