@@ -70,7 +70,7 @@ itertools = "0.13"
 jemalloc-sys = "0.5.4"
 jemallocator = "0.5.4"
 keyboard-types = "0.7"
-lazy_static = "1.4"
+lazy_static = "1.5"
 libc = "0.2"
 log = "0.4"
 malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2024-05-31", features = ["servo"] }
