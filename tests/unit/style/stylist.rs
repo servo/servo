@@ -18,7 +18,7 @@ use style::servo::media_queries::FontMetricsProvider;
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::StyleRule;
 use style::stylist::{
-    needs_revalidation_for_testing, ContainerConditionId, LayerId, Rule, Stylist,
+    needs_revalidation_for_testing, ContainerConditionId, LayerId, Rule, ScopeConditionId, Stylist,
 };
 use style::thread_state::{self, ThreadState};
 use style::values::computed::Length;
@@ -78,6 +78,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
                             LayerId::root(),
                             ContainerConditionId::none(),
                             /* in_starting_style = */ false,
+                            ScopeConditionId::none(),
                         )
                     })
                     .collect()

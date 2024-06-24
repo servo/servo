@@ -12,6 +12,7 @@ use servo_atoms::Atom;
 use style::invalidation::media_queries::{MediaListKey, ToMediaListKey};
 use style::media_queries::MediaList;
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
+use style::stylesheets::scope_rule::ImplicitScopeRoot;
 use style::stylesheets::{Stylesheet, StylesheetContents};
 
 use super::bindings::trace::HashMapTracedValues;
@@ -64,6 +65,10 @@ impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
 
     fn contents(&self) -> &StylesheetContents {
         self.sheet.contents()
+    }
+
+    fn implicit_scope_root(&self) -> Option<ImplicitScopeRoot> {
+        None
     }
 }
 

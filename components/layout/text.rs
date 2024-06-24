@@ -773,7 +773,7 @@ fn apply_style_transform_if_necessary(
     last_whitespace: bool,
     is_first_run: bool,
 ) {
-    match text_transform.case_ {
+    match text_transform.case() {
         TextTransformCase::None => {},
         TextTransformCase::Uppercase => {
             let original = string[first_character_position..].to_owned();
