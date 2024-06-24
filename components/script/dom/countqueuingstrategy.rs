@@ -26,7 +26,7 @@ pub struct CountQueuingStrategy {
 
 #[allow(non_snake_case)]
 impl CountQueuingStrategy {
-    // https://streams.spec.whatwg.org/#cqs-constructor
+    /// <https://streams.spec.whatwg.org/#cqs-constructor>
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -48,13 +48,13 @@ impl CountQueuingStrategy {
 }
 
 impl CountQueuingStrategyMethods for CountQueuingStrategy {
-    // https://streams.spec.whatwg.org/#cqs-high-water-mark
+    /// <https://streams.spec.whatwg.org/#cqs-high-water-mark>
     fn HighWaterMark(&self) -> f64 {
         self.high_water_mark
     }
 
     #[allow(unsafe_code)]
-    // https://streams.spec.whatwg.org/#cqs-size
+    /// <https://streams.spec.whatwg.org/#cqs-size>
     fn GetSize(&self) -> Fallible<Rc<Function>> {
         let global = self.reflector_.global();
         let cx = GlobalScope::get_cx();
@@ -91,7 +91,7 @@ impl CountQueuingStrategyMethods for CountQueuingStrategy {
     }
 }
 
-// https://streams.spec.whatwg.org/#count-queuing-strategy-size-function
+/// <https://streams.spec.whatwg.org/#count-queuing-strategy-size-function>
 #[allow(unsafe_code)]
 unsafe extern "C" fn count_queuing_strategy_size(
     _cx: *mut JSContext,
@@ -107,7 +107,7 @@ unsafe extern "C" fn count_queuing_strategy_size(
 /// Extract the high water mark from a QueuingStrategy.
 /// If the high water mark is not set, return the default value.
 ///
-/// https://streams.spec.whatwg.org/#validate-and-normalize-high-water-mark
+/// <https://streams.spec.whatwg.org/#validate-and-normalize-high-water-mark>
 pub fn extract_high_water_mark(strategy: &QueuingStrategy, default_hwm: f64) -> Result<f64, Error> {
     if strategy.highWaterMark.is_none() {
         return Ok(default_hwm);
@@ -126,7 +126,7 @@ pub fn extract_high_water_mark(strategy: &QueuingStrategy, default_hwm: f64) -> 
 /// Extract the size algorithm from a QueuingStrategy.
 /// If the size algorithm is not set, return a fallback function which always returns 1.
 ///
-/// https://streams.spec.whatwg.org/#make-size-algorithm-from-size-function
+/// <https://streams.spec.whatwg.org/#make-size-algorithm-from-size-function>
 pub fn extract_size_algorithm(strategy: &QueuingStrategy) -> Rc<QueuingStrategySize> {
     if strategy.size.is_none() {
         #[allow(unsafe_code)]

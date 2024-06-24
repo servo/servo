@@ -29,7 +29,7 @@ pub struct ByteLengthQueuingStrategy {
 
 #[allow(non_snake_case)]
 impl ByteLengthQueuingStrategy {
-    // https://streams.spec.whatwg.org/#blqs-constructor
+    /// <https://streams.spec.whatwg.org/#blqs-constructor>
     pub fn Constructor(
         global: &GlobalScope,
         proto: Option<HandleObject>,
@@ -51,13 +51,13 @@ impl ByteLengthQueuingStrategy {
 }
 
 impl ByteLengthQueuingStrategyMethods for ByteLengthQueuingStrategy {
-    // https://streams.spec.whatwg.org/#blqs-high-water-mark
+    /// <https://streams.spec.whatwg.org/#blqs-high-water-mark>
     fn HighWaterMark(&self) -> f64 {
         self.high_water_mark
     }
 
     #[allow(unsafe_code)]
-    // https://streams.spec.whatwg.org/#blqs-size
+    /// <https://streams.spec.whatwg.org/#blqs-size>
     fn GetSize(&self) -> Fallible<Rc<Function>> {
         let global = self.reflector_.global();
         let cx = GlobalScope::get_cx();
@@ -93,7 +93,7 @@ impl ByteLengthQueuingStrategyMethods for ByteLengthQueuingStrategy {
     }
 }
 
-// https://streams.spec.whatwg.org/#byte-length-queuing-strategy-size-function
+/// <https://streams.spec.whatwg.org/#byte-length-queuing-strategy-size-function>
 #[allow(unsafe_code)]
 unsafe extern "C" fn byte_length_queuing_strategy_size(
     cx: *mut JSContext,
