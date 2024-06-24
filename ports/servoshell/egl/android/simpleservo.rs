@@ -371,20 +371,11 @@ impl ServoGlue {
         Ok(())
     }
 
-    /// Load an URL. If this is not a valid URL, try to "fix" it by adding a scheme or if all else fails,
-    /// interpret the string as a search term.
-    pub fn load_uri(&mut self, request: &str) -> Result<(), &'static str> {
-        info!("load_uri: {}", request);
-        ServoUrl::parse(request)
-            .or_else(|_| {
-                if request.contains('/') || is_reg_domain(request) {
-                    ServoUrl::parse(&format!("https://{}", request))
-                } else {
-                    let search_url = pref!(shell.searchpage).replace("%s", request);
-                    ServoUrl::parse(&search_url)
-                }
-            })
-            .map_err(|_| "Can't parse URL")
+    /// Load an URL.
+    pub fn load_uri(&mut self, url: &str) -> Result<(), &'static str> {
+        info!("load_uri: {}", url);
+        crate::parser::location_bar_input_to_url(url)
+            .ok_or("Can't parse URL")
             .and_then(|url| {
                 let browser_id = self.get_browser_id()?;
                 let event = EmbedderEvent::LoadUrl(browser_id, url);
