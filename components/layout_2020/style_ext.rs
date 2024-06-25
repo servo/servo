@@ -134,6 +134,13 @@ impl PaddingBorderMargin {
             padding_border_sums: LogicalVec2::zero(),
         }
     }
+
+    pub(crate) fn border_padding_start(&self) -> LogicalVec2<Au> {
+        LogicalVec2 {
+            inline: self.border.inline_start + self.padding.inline_start,
+            block: self.border.block_start + self.padding.block_start,
+        }
+    }
 }
 
 pub(crate) trait ComputedValuesExt {

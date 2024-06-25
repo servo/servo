@@ -86,9 +86,23 @@ pub type TableSize = Size2D<usize, UnknownUnit>;
 
 #[derive(Debug, Serialize)]
 pub struct Table {
-    /// The style of this table.
+    /// The style of this table. These are the properties that apply to the "wrapper" ie the element
+    /// that contains both the grid and the captions. Not all properties are actually used on the
+    /// wrapper though, such as background and borders, which apply to the grid.
     #[serde(skip_serializing)]
     style: Arc<ComputedValues>,
+
+    /// The style of this table's grid. This is an anonymous style based on the table's style, but
+    /// eliminating all the properties handled by the "wrapper."
+    #[serde(skip_serializing)]
+    grid_style: Arc<ComputedValues>,
+
+    /// The [`BaseFragmentInfo`] for this table's grid. This is necessary so that when the
+    /// grid has a background image, it can be associated with the table's node.
+    grid_base_fragment_info: BaseFragmentInfo,
+
+    /// The captions for this table.
+    pub captions: Vec<TableCaption>,
 
     /// The column groups for this table.
     pub column_groups: Vec<TableTrackGroup>,
@@ -114,9 +128,16 @@ pub struct Table {
 }
 
 impl Table {
-    pub(crate) fn new(style: Arc<ComputedValues>) -> Self {
+    pub(crate) fn new(
+        style: Arc<ComputedValues>,
+        grid_style: Arc<ComputedValues>,
+        base_fragment_info: BaseFragmentInfo,
+    ) -> Self {
         Self {
             style,
+            grid_style,
+            grid_base_fragment_info: base_fragment_info,
+            captions: Vec::new(),
             column_groups: Vec::new(),
             columns: Vec::new(),
             row_groups: Vec::new(),
@@ -290,4 +311,17 @@ impl TableTrackGroup {
     pub(super) fn is_empty(&self) -> bool {
         self.track_range.is_empty()
     }
+}
+
+#[derive(Debug, Serialize)]
+pub struct TableCaption {
+    /// The contents of this cell, with its own layout.
+    contents: BlockFormattingContext,
+
+    /// The style of this table cell.
+    #[serde(skip_serializing)]
+    style: Arc<ComputedValues>,
+
+    /// The [`BaseFragmentInfo`] of this cell.
+    base_fragment_info: BaseFragmentInfo,
 }
