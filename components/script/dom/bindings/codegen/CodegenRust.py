@@ -957,8 +957,9 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             """
             {
                 use crate::realms::{AlreadyInRealm, InRealm};
+                use crate::dom::readablestream::ReadableStream;
                 let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
-                match dom::readablestream::ReadableStream::from_js(cx, $${val}.get().to_object(), InRealm::Already(&in_realm_proof)) {
+                match ReadableStream::from_js(cx, $${val}.get().to_object(), InRealm::Already(&in_realm_proof)) {
                     Ok(val) => val,
                     Err(()) => {
                     $*{failureCode}

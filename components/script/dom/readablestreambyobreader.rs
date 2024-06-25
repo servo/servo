@@ -17,12 +17,14 @@ use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
 use crate::script_runtime::JSContext as SafeJSContext;
 
+/// <https://streams.spec.whatwg.org/#readablestreambyobreader>
 #[dom_struct]
 pub struct ReadableStreamBYOBReader {
     reflector_: Reflector,
 }
 
 impl ReadableStreamBYOBReader {
+    /// <https://streams.spec.whatwg.org/#byob-reader-constructor>
     #[allow(non_snake_case)]
     pub fn Constructor(
         _global: &GlobalScope,
@@ -45,6 +47,7 @@ impl ReadableStreamBYOBReader {
 }
 
 impl ReadableStreamBYOBReaderMethods for ReadableStreamBYOBReader {
+    /// <https://streams.spec.whatwg.org/#byob-reader-read>
     fn Read(
         &self,
         _view: js::gc::CustomAutoRooterGuard<js::typedarray::ArrayBufferView>,
@@ -53,16 +56,19 @@ impl ReadableStreamBYOBReaderMethods for ReadableStreamBYOBReader {
         Promise::new(&self.reflector_.global())
     }
 
+    /// <https://streams.spec.whatwg.org/#byob-reader-release-lock>
     fn ReleaseLock(&self) -> Fallible<()> {
         // TODO
         Err(Error::NotFound)
     }
 
+    /// <https://streams.spec.whatwg.org/#generic-reader-closed>
     fn Closed(&self) -> Rc<Promise> {
         // TODO
         Promise::new(&self.reflector_.global())
     }
 
+    /// <https://streams.spec.whatwg.org/#generic-reader-cancel>
     fn Cancel(&self, _cx: SafeJSContext, _reason: SafeHandleValue) -> Rc<Promise> {
         // TODO
         Promise::new(&self.reflector_.global())

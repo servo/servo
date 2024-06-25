@@ -17,12 +17,14 @@ use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
 use crate::script_runtime::JSContext as SafeJSContext;
 
+/// <https://streams.spec.whatwg.org/#readablestreamdefaultreader>
 #[dom_struct]
 pub struct ReadableStreamDefaultReader {
     reflector_: Reflector,
 }
 
 impl ReadableStreamDefaultReader {
+    /// <https://streams.spec.whatwg.org/#default-reader-constructor>
     #[allow(non_snake_case)]
     pub fn Constructor(
         _global: &GlobalScope,
@@ -48,21 +50,25 @@ impl ReadableStreamDefaultReader {
 }
 
 impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
+    /// <https://streams.spec.whatwg.org/#default-reader-read>
     fn Read(&self) -> Rc<Promise> {
         // TODO
         Promise::new(&self.reflector_.global())
     }
 
+    /// <https://streams.spec.whatwg.org/#default-reader-release-lock>
     fn ReleaseLock(&self) -> Fallible<()> {
         // TODO
         Err(Error::NotFound)
     }
 
+    /// <https://streams.spec.whatwg.org/#generic-reader-closed>
     fn Closed(&self) -> Rc<Promise> {
         // TODO
         Promise::new(&self.reflector_.global())
     }
 
+    /// <https://streams.spec.whatwg.org/#generic-reader-cancel>
     fn Cancel(&self, _cx: SafeJSContext, _reason: SafeHandleValue) -> Rc<Promise> {
         // TODO
         Promise::new(&self.reflector_.global())
