@@ -10,6 +10,7 @@ use dom_struct::dom_struct;
 use webgpu::wgc::command as wgpu_com;
 use webgpu::{self, wgt, WebGPU, WebGPUComputePass, WebGPURequest};
 
+use super::gpuconvert::convert_label;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCommandBufferDescriptor, GPUCommandEncoderMethods, GPUComputePassDescriptor, GPUExtent3D,
@@ -114,6 +115,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         if let Err(e) = self.channel.0.send(WebGPURequest::BeginComputePass {
             command_encoder_id: self.id().0,
             compute_pass_id,
+            label: convert_label(&descriptor.parent),
         }) {
             warn!("Failed to send WebGPURequest::BeginComputePass {e:?}");
         }

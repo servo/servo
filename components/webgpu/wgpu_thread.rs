@@ -754,68 +754,95 @@ impl WGPU {
                     WebGPURequest::BeginComputePass {
                         command_encoder_id,
                         compute_pass_id,
+                        label,
                     } => {
                         let global = &self.global;
                         let (pass, _) = gfx_select!(
                             command_encoder_id => global.command_encoder_create_compute_pass_dyn(
                                 command_encoder_id,
-                                &ComputePassDescriptor { label: None, timestamp_writes: None }
+                                &ComputePassDescriptor { label, timestamp_writes: None }
                         ));
-                        self.compute_passes.insert(compute_pass_id, pass);
+                        assert!(
+                            self.compute_passes.insert(compute_pass_id, pass).is_none(),
+                            "ComputePass should not exist yet."
+                        );
                     },
                     WebGPURequest::ComputePassSetPipeline {
                         compute_pass_id,
                         pipeline_id,
+                        device_id,
                     } => {
-                        if let Some(pass) = self.compute_passes.get_mut(&compute_pass_id) {
-                            let _ = pass.set_pipeline(&self.global, pipeline_id);
-                        }
+                        let error =
+                            if let Some(pass) = self.compute_passes.get_mut(&compute_pass_id) {
+                                pass.set_pipeline(&self.global, pipeline_id)
+                                    .err()
+                                    .map(|e| Error::from_error(e))
+                            } else {
+                                Some(Error::Validation("pass already ended".to_string()))
+                            };
+                        self.maybe_dispatch_error(device_id, error);
                     },
                     WebGPURequest::ComputePassSetBindGroup {
                         compute_pass_id,
                         index,
                         bind_group_id,
                         offsets,
+                        device_id,
                     } => {
-                        if let Some(pass) = self.compute_passes.get_mut(&compute_pass_id) {
-                            let _ =
-                                pass.set_bind_group(&self.global, index, bind_group_id, &offsets);
-                        }
+                        let error =
+                            if let Some(pass) = self.compute_passes.get_mut(&compute_pass_id) {
+                                pass.set_bind_group(&self.global, index, bind_group_id, &offsets)
+                                    .err()
+                                    .map(|e| Error::from_error(e))
+                            } else {
+                                Some(Error::Validation("pass already ended".to_string()))
+                            };
+                        self.maybe_dispatch_error(device_id, error);
                     },
                     WebGPURequest::ComputePassDispatchWorkgroups {
                         compute_pass_id,
                         x,
                         y,
                         z,
+                        device_id,
                     } => {
-                        if let Some(pass) = self.compute_passes.get_mut(&compute_pass_id) {
-                            let _ = pass.dispatch_workgroups(&self.global, x, y, z);
-                        }
+                        let error =
+                            if let Some(pass) = self.compute_passes.get_mut(&compute_pass_id) {
+                                pass.dispatch_workgroups(&self.global, x, y, z)
+                                    .err()
+                                    .map(|e| Error::from_error(e))
+                            } else {
+                                Some(Error::Validation("pass already ended".to_string()))
+                            };
+                        self.maybe_dispatch_error(device_id, error);
                     },
                     WebGPURequest::ComputePassDispatchWorkgroupsIndirect {
                         compute_pass_id,
                         buffer_id,
                         offset,
+                        device_id,
                     } => {
-                        if let Some(pass) = self.compute_passes.get_mut(&compute_pass_id) {
-                            let _ =
-                                pass.dispatch_workgroups_indirect(&self.global, buffer_id, offset);
-                        }
+                        let error =
+                            if let Some(pass) = self.compute_passes.get_mut(&compute_pass_id) {
+                                pass.dispatch_workgroups_indirect(&self.global, buffer_id, offset)
+                                    .err()
+                                    .map(|e| Error::from_error(e))
+                            } else {
+                                Some(Error::Validation("pass already ended".to_string()))
+                            };
+                        self.maybe_dispatch_error(device_id, error);
                     },
                     WebGPURequest::EndComputePass {
                         compute_pass_id,
                         device_id,
                     } => {
-                        if let Some(mut pass) = self.compute_passes.remove(&compute_pass_id) {
-                            if let Err(e) = pass.end(&self.global) {
-                                self.maybe_dispatch_wgpu_error(device_id, Some(e));
-                            }
-                        } else {
-                            self.dispatch_error(
-                                device_id,
-                                Error::Validation("Compute pass ended twice".to_string()),
-                            );
-                        }
+                        let error =
+                            if let Some(mut pass) = self.compute_passes.remove(&compute_pass_id) {
+                                pass.end(&self.global).err().map(|e| Error::from_error(e))
+                            } else {
+                                Some(Error::Validation("pass already ended".to_string()))
+                            };
+                        self.maybe_dispatch_error(device_id, error);
                     },
                     WebGPURequest::EndRenderPass {
                         render_pass,
@@ -1120,7 +1147,10 @@ impl WGPU {
                         };
                     },
                     WebGPURequest::DropComputePass(id) => {
-                        self.compute_passes.get_mut(&id).take();
+                        assert!(
+                            self.compute_passes.remove(&id).is_some(),
+                            "ComputePass should exist"
+                        );
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeComputePass(id)) {
                             warn!("Unable to send FreeComputePass({:?}) ({:?})", id, e);
                         };

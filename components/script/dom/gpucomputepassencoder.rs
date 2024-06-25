@@ -85,6 +85,7 @@ impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
                 x,
                 y,
                 z,
+                device_id: self.command_encoder.device_id().0,
             })
         {
             warn!("Error sending WebGPURequest::ComputePassDispatchWorkgroups: {e:?}")
@@ -100,6 +101,7 @@ impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
                 compute_pass_id: self.compute_pass.0,
                 buffer_id: buffer.id().0,
                 offset,
+                device_id: self.command_encoder.device_id().0,
             })
         {
             warn!("Error sending WebGPURequest::ComputePassDispatchWorkgroupsIndirect: {e:?}")
@@ -108,13 +110,12 @@ impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-endpass>
     fn End(&self) -> Fallible<()> {
-        self.channel
-            .0
-            .send(WebGPURequest::EndComputePass {
-                compute_pass_id: self.compute_pass.0,
-                device_id: self.command_encoder.device_id().0,
-            })
-            .expect("Failed to send EndComputePass"); //TODO: handle error
+        if let Err(e) = self.channel.0.send(WebGPURequest::EndComputePass {
+            compute_pass_id: self.compute_pass.0,
+            device_id: self.command_encoder.device_id().0,
+        }) {
+            warn!("Failed to send WebGPURequest::EndComputePass: {e:?}");
+        }
         Ok(())
     }
 
@@ -126,6 +127,7 @@ impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
             index,
             bind_group_id: bind_group.id().0,
             offsets,
+            device_id: self.command_encoder.device_id().0,
         }) {
             warn!("Error sending WebGPURequest::ComputePassSetBindGroup: {e:?}")
         }
@@ -136,6 +138,7 @@ impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
         if let Err(e) = self.channel.0.send(WebGPURequest::ComputePassSetPipeline {
             compute_pass_id: self.compute_pass.0,
             pipeline_id: pipeline.id().0,
+            device_id: self.command_encoder.device_id().0,
         }) {
             warn!("Error sending WebGPURequest::ComputePassSetPipeline: {e:?}")
         }

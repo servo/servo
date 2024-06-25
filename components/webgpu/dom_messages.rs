@@ -213,27 +213,32 @@ pub enum WebGPURequest {
     BeginComputePass {
         command_encoder_id: id::CommandEncoderId,
         compute_pass_id: ComputePassId,
+        label: Option<Cow<'static, str>>,
     },
     ComputePassSetPipeline {
         compute_pass_id: ComputePassId,
         pipeline_id: id::ComputePipelineId,
+        device_id: id::DeviceId,
     },
     ComputePassSetBindGroup {
         compute_pass_id: ComputePassId,
         index: u32,
         bind_group_id: id::BindGroupId,
         offsets: Vec<u32>,
+        device_id: id::DeviceId,
     },
     ComputePassDispatchWorkgroups {
         compute_pass_id: ComputePassId,
         x: u32,
         y: u32,
         z: u32,
+        device_id: id::DeviceId,
     },
     ComputePassDispatchWorkgroupsIndirect {
         compute_pass_id: ComputePassId,
         buffer_id: id::BufferId,
         offset: u64,
+        device_id: id::DeviceId,
     },
     EndComputePass {
         compute_pass_id: ComputePassId,
