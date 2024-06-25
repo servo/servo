@@ -7,7 +7,7 @@ use std::os::raw::c_void;
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use log::info;
+use log::{error, info};
 use ohos_sys::ace::xcomponent::native_interface_xcomponent::{
     OH_NativeXComponent, OH_NativeXComponent_GetXComponentSize,
 };
@@ -25,6 +25,7 @@ use servo::{self, gl, Servo};
 use surfman::{Connection, SurfaceType};
 
 use crate::egl::host_trait::HostTrait;
+use crate::egl::ohos::InitOpts;
 use crate::egl::servo_glue::{
     Coordinates, ServoEmbedderCallbacks, ServoGlue, ServoWindowCallbacks,
 };
@@ -32,7 +33,7 @@ use crate::egl::servo_glue::{
 /// Initialize Servo. At that point, we need a valid GL context.
 /// In the future, this will be done in multiple steps.
 pub fn init(
-    // options: InitOptions,
+    options: InitOpts,
     native_window: *mut c_void,
     xcomponent: *mut OH_NativeXComponent,
     gl: Rc<dyn gl::Gl>,
@@ -41,13 +42,6 @@ pub fn init(
 ) -> Result<ServoGlue, &'static str> {
     info!("Entered simpleservo init function");
     resources::set(Box::new(ResourceReaderInstance::new()));
-
-    // file:///data/storage/el1/base/haps/entry/files/index.html
-    // https://m.vmall.com/index.html
-    let pref_url = ServoUrl::parse("https://servo.org").ok();
-    let blank_url = ServoUrl::parse("about:blank").ok();
-
-    let url = pref_url.or(blank_url).unwrap();
 
     gl.clear_color(1.0, 1.0, 1.0, 1.0);
     gl.clear(gl::COLOR_BUFFER_BIT);
@@ -101,8 +95,7 @@ pub fn init(
     let window_callbacks = Rc::new(ServoWindowCallbacks::new(
         callbacks,
         RefCell::new(Coordinates::new(0, 0, width, height, width, height)),
-        // Read from typescript: import display from @ohos.display \n displayClass.densityDP
-        3.5, // init_opts.density,
+        options.display_density as f32,
         rendering_context.clone(),
     ));
 
@@ -118,7 +111,12 @@ pub fn init(
 
     let mut servo_glue = ServoGlue::new(rendering_context, servo.servo, window_callbacks);
 
-    let _ = servo_glue.process_event(EmbedderEvent::NewWebView(url, servo.browser_id));
+    let initial_url = ServoUrl::parse(options.url.as_str())
+        .inspect_err(|e| error!("Invalid initial Servo URL `{}`. Error: {e:?}", options.url))
+        .ok()
+        .unwrap_or_else(|| ServoUrl::parse("about:blank").expect("Infallible"));
+
+    let _ = servo_glue.process_event(EmbedderEvent::NewWebView(initial_url, servo.browser_id));
 
     Ok(servo_glue)
 }

@@ -8,6 +8,8 @@ use std::os::raw::c_void;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{mpsc, Once, OnceLock};
 use std::thread;
+use std::thread::sleep;
+use std::time::Duration;
 
 use log::{debug, error, info, warn, LevelFilter};
 use napi_derive_ohos::{module_exports, napi};
@@ -38,6 +40,15 @@ mod simpleservo;
 #[link(name = "native_window")]
 #[link(name = "clang_rt.builtins", kind = "static")]
 extern "C" {}
+
+#[napi(object)]
+#[derive(Debug)]
+pub struct InitOpts {
+    pub url: String,
+    pub device_type: String,
+    pub os_full_name: String,
+    pub display_density: f64,
+}
 
 #[derive(Debug)]
 enum CallError {
@@ -80,6 +91,7 @@ enum ServoAction {
         y: f32,
         pointer_id: i32,
     },
+    Initialize(Box<InitOpts>),
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -150,6 +162,9 @@ impl ServoAction {
                 y,
                 pointer_id,
             } => Self::dispatch_touch_event(servo, *kind, *x, *y, *pointer_id),
+            Initialize(_init_opts) => {
+                panic!("Received Initialize event, even though servo is already initialized")
+            },
         };
         if let Err(e) = res {
             error!("Failed to do {self:?} with error {e}");
@@ -163,10 +178,6 @@ static SERVO_CHANNEL: OnceLock<Sender<ServoAction>> = OnceLock::new();
 pub extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window: *mut c_void) {
     info!("on_surface_created_cb");
 
-    let (tx_done, rx_done): (
-        Sender<Result<(), &'static str>>,
-        Receiver<Result<(), &'static str>>,
-    ) = mpsc::channel();
     let xc_wrapper = XComponentWrapper(xcomponent);
     let window_wrapper = WindowWrapper(window);
 
@@ -184,12 +195,22 @@ pub extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, wi
         let egl_init = gl_glue::init().expect("egl::init() failed");
         let xc = xc_wrapper;
         let window = window_wrapper;
-        let mut servo = simpleservo::init(window.0, xc.0, egl_init.gl_wrapper, wakeup, callbacks)
-            .expect("Servo initialization failed");
+        let init_opts = if let Ok(ServoAction::Initialize(init_opts)) = rx.recv() {
+            init_opts
+        } else {
+            panic!("Servos GL thread received another event before it was initialized")
+        };
+        let mut servo = simpleservo::init(
+            *init_opts,
+            window.0,
+            xc.0,
+            egl_init.gl_wrapper,
+            wakeup,
+            callbacks,
+        )
+        .expect("Servo initialization failed");
 
         info!("Surface created!");
-        tx_done.send(Ok(())).unwrap();
-        drop(tx_done);
 
         while let Ok(action) = rx.recv() {
             info!("Wakeup message received!");
@@ -199,11 +220,6 @@ pub extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, wi
         info!("Sender disconnected - Terminating main surface thread");
     });
 
-    match rx_done.recv() {
-        Ok(Err(reason)) => error!("Failed to initialize servo with {reason}"),
-        Ok(Ok(())) => {},
-        Err(e) => error!("Channel failure: {e:?}"),
-    }
     info!("Returning from on_surface_created_cb");
 }
 
@@ -431,6 +447,38 @@ pub fn register_url_callback(cb: JsFunction) -> napi_ohos::Result<()> {
     let _ = SET_URL_BAR_CB
         .set(tsfn)
         .inspect_err(|_| warn!("Failed to set URL callback - register_url_callback called twice?"));
+    Ok(())
+}
+
+#[napi]
+pub fn init_servo(init_opts: InitOpts) -> napi_ohos::Result<()> {
+    info!("Servo is being initialised with the following Options: ");
+    info!(
+        "Device Type: {}, DisplayDensity: {}",
+        init_opts.device_type, init_opts.display_density
+    );
+    info!("Initial URL: {}", init_opts.url);
+    let channel = if let Some(channel) = SERVO_CHANNEL.get() {
+        channel
+    } else {
+        warn!("Servo GL thread has not initialized yet. Retrying.....");
+        let mut iter_count = 0;
+        loop {
+            if let Some(channel) = SERVO_CHANNEL.get() {
+                break channel;
+            } else {
+                iter_count += 1;
+                if iter_count > 10 {
+                    error!("Servo GL thread not reachable");
+                    panic!("Servo GL thread not reachable");
+                }
+                sleep(Duration::from_millis(100));
+            }
+        }
+    };
+    channel
+        .send(ServoAction::Initialize(Box::new(init_opts)))
+        .expect("Failed to connect to servo GL thread");
     Ok(())
 }
 
