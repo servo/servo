@@ -624,14 +624,19 @@ fn size_to_length(size: &Size) -> LengthPercentageOrAuto {
 }
 
 pub(crate) trait Clamp: Sized {
+    fn clamp_below_max(self, max: Option<Self>) -> Self;
     fn clamp_between_extremums(self, min: Self, max: Option<Self>) -> Self;
 }
 
 impl Clamp for Au {
-    fn clamp_between_extremums(self, min: Self, max: Option<Self>) -> Self {
+    fn clamp_below_max(self, max: Option<Self>) -> Self {
         match max {
-            Some(max_value) => self.min(max_value).max(min),
-            None => self.max(min),
+            None => self,
+            Some(max) => self.min(max),
         }
+    }
+
+    fn clamp_between_extremums(self, min: Self, max: Option<Self>) -> Self {
+        self.clamp_below_max(max).max(min)
     }
 }

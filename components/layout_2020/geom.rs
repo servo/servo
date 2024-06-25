@@ -22,8 +22,8 @@ pub type PhysicalPoint<U> = euclid::Point2D<U, CSSPixel>;
 pub type PhysicalSize<U> = euclid::Size2D<U, CSSPixel>;
 pub type PhysicalRect<U> = euclid::Rect<U, CSSPixel>;
 pub type PhysicalSides<U> = euclid::SideOffsets2D<U, CSSPixel>;
-pub type LengthOrAuto = AutoOr<Length>;
 pub type AuOrAuto = AutoOr<Au>;
+pub type LengthOrAuto = AutoOr<Length>;
 pub type LengthPercentageOrAuto<'a> = AutoOr<&'a LengthPercentage>;
 
 #[derive(Clone, Copy, Serialize)]
