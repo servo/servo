@@ -346,7 +346,6 @@ impl NetworkEventActor {
     }
 
     pub fn add_request(&mut self, request: DevtoolsHttpRequest) {
-        // self.request.url = request.url.as_str().to_owned();
         request.url.as_str().clone_into(&mut self.request.url);
 
         self.request.method = request.method.clone();
