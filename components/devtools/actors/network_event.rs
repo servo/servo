@@ -191,7 +191,7 @@ impl Actor for NetworkEventActor {
                 let mut headersSize = 0;
                 for (name, value) in self.request.headers.iter() {
                     let value = &value.to_str().unwrap().to_string();
-                    rawHeadersString = rawHeadersString + name.as_str() + ":" + &value + "\r\n";
+                    rawHeadersString = rawHeadersString + name.as_str() + ":" + value + "\r\n";
                     headersSize += name.as_str().len() + value.len();
                     headers.push(Header {
                         name: name.as_str().to_owned(),
@@ -346,7 +346,7 @@ impl NetworkEventActor {
     }
 
     pub fn add_request(&mut self, request: DevtoolsHttpRequest) {
-        self.request.url = request.url.as_str().to_owned();
+        request.url.as_str().clone_into(&mut self.request.url);
 
         self.request.method = request.method.clone();
         self.request.headers = request.headers.clone();
