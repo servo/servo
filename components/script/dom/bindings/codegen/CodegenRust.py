@@ -949,7 +949,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
         if failureCode is None:
             unwrapFailureCode = '''throw_type_error(*cx, "This object is not \
-                    an instance of ReadableStream.");\n'''
+                    an instance of ReadableStream.");\nreturn false;\n'''
         else:
             unwrapFailureCode = failureCode
 
@@ -958,7 +958,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             {
                 use crate::realms::{AlreadyInRealm, InRealm};
                 let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
-                match ReadableStream::from_js(cx, $${val}.get().to_object(), InRealm::Already(&in_realm_proof)) {
+                match dom::readablestream::ReadableStream::from_js(cx, $${val}.get().to_object(), InRealm::Already(&in_realm_proof)) {
                     Ok(val) => val,
                     Err(()) => {
                     $*{failureCode}
@@ -973,7 +973,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         templateBody = wrapObjectTemplate(templateBody, "None",
                                           isDefinitelyObject, type, failureCode)
 
-        declType = CGGeneric("DomRoot<ReadableStream>")
+        declType = CGGeneric("DomRoot<dom::readablestream::ReadableStream>")
 
         return handleOptional(templateBody, declType,
                               handleDefault("None"))
