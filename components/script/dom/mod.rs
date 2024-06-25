@@ -573,6 +573,7 @@ pub mod trackevent;
 pub mod transitionevent;
 pub mod treewalker;
 pub mod uievent;
+pub mod underlyingsource;
 pub mod url;
 pub mod urlhelper;
 pub mod urlsearchparams;

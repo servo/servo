@@ -24,17 +24,25 @@ use js::jsapi::{
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle};
 
-use super::bindings::import::module::Fallible;
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
-use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource;
+use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::{
+    ReadableStreamController, UnderlyingSource,
+};
 use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::import::module::Fallible;
+use crate::dom::bindings::reflector::{
+    reflect_dom_object, reflect_dom_object_with_proto, DomObject, Reflector,
+};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
 use crate::dom::bindings::utils::get_dictionary_property;
+use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::dom::readablebytestreamcontroller::setup_readable_byte_stream_controller_from_underlying_source;
+use crate::dom::readablestreamdefaultcontroller::setup_readable_stream_default_controller_from_underlying_source;
 use crate::js::conversions::FromJSValConvertible;
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::JSContext as SafeJSContext;
@@ -59,22 +67,27 @@ pub struct ReadableStream {
     has_reader: Cell<bool>,
     #[ignore_malloc_size_of = "Rc is hard"]
     external_underlying_source: Option<Rc<ExternalUnderlyingSourceController>>,
+    /// A [ReadableStreamDefaultController] or [ReadableByteStreamController]
+    /// created with the ability to control the state and queue of this stream.
+    controller: DomRefCell<Option<ReadableStreamController>>,
+    /// A enum containing the stream’s current state, used internally
+    state: Cell<StreamState>,
 }
 
 impl ReadableStream {
     #[allow(non_snake_case)]
-    /// <https://streams.spec.whatwg.org/#rs-constructor>
+    // https://streams.spec.whatwg.org/#rs-constructor
     pub fn Constructor(
         cx: SafeJSContext,
-        _global: &GlobalScope,
-        _proto: Option<SafeHandleObject>,
+        global: &GlobalScope,
+        proto: Option<SafeHandleObject>,
         underlying_source: Option<*mut JSObject>,
-        _strategy: &QueuingStrategy,
+        strategy: &QueuingStrategy,
     ) -> Fallible<DomRoot<Self>> {
         // Step 1
         rooted!(in(*cx) let underlying_source_obj = underlying_source.unwrap_or(ptr::null_mut()));
         // Step 2
-        let _underlying_source_dict = if !underlying_source_obj.is_null() {
+        let underlying_source_dict = if !underlying_source_obj.is_null() {
             rooted!(in(*cx) let obj_val = ObjectValue(underlying_source_obj.get()));
             match UnderlyingSource::new(cx, obj_val.handle()) {
                 Ok(ConversionResult::Success(val)) => val,
@@ -88,8 +101,45 @@ impl ReadableStream {
         } else {
             UnderlyingSource::empty()
         };
-        // TODO
-        Err(Error::NotFound)
+
+        // Step 3
+        let readable_stream = ReadableStream::new_with_proto(global, proto);
+
+        // Step 4
+        if underlying_source_dict.type_.is_some() {
+            // Step 4.1
+            if strategy.size.is_some() {
+                return Err(Error::Range("size should not eixst".to_string()));
+            }
+            // Step 4.2
+            let highwatermark = extract_high_water_mark(strategy, 0.0)?;
+            // Step 4.3
+            setup_readable_byte_stream_controller_from_underlying_source(
+                cx,
+                readable_stream.clone(),
+                underlying_source_obj.handle(),
+                underlying_source_dict,
+                highwatermark,
+            )?;
+        } else {
+            // Step 5.1 (implicit in above check)
+            // Step 5.2
+            let size_algorithm = extract_size_algorithm(strategy);
+
+            // Step 5.3
+            let highwatermark = extract_high_water_mark(strategy, 1.0)?;
+
+            // Step 5.4.
+            setup_readable_stream_default_controller_from_underlying_source(
+                cx,
+                readable_stream.clone(),
+                underlying_source_obj.handle(),
+                underlying_source_dict,
+                highwatermark,
+                size_algorithm,
+            )?;
+        }
+        Ok(readable_stream)
     }
 
     fn new_inherited(
@@ -101,6 +151,8 @@ impl ReadableStream {
             js_reader: Heap::default(),
             has_reader: Default::default(),
             external_underlying_source,
+            controller: Default::default(),
+            state: Cell::new(StreamState::Readable),
         }
     }
 
@@ -112,6 +164,13 @@ impl ReadableStream {
             Box::new(ReadableStream::new_inherited(external_underlying_source)),
             global,
         )
+    }
+
+    fn new_with_proto(
+        global: &GlobalScope,
+        proto: Option<SafeHandleObject>,
+    ) -> DomRoot<ReadableStream> {
+        reflect_dom_object_with_proto(Box::new(ReadableStream::new_inherited(None)), global, proto)
     }
 
     /// Used from RustCodegen.py
@@ -318,6 +377,7 @@ impl ReadableStream {
     }
 
     #[allow(unsafe_code)]
+    /// <https://streams.spec.whatwg.org/#is-readable-stream-locked>
     pub fn is_locked(&self) -> bool {
         // If we natively took a reader, we're locked.
         if self.has_reader.get() {
@@ -346,6 +406,42 @@ impl ReadableStream {
         }
 
         locked_or_disturbed
+    }
+
+    pub fn set_controller(&self, controller: ReadableStreamController) {
+        *self.controller.borrow_mut() = Some(controller);
+    }
+
+    pub fn controller(&'_ self) -> std::cell::Ref<'_, Option<ReadableStreamController>> {
+        self.controller.borrow()
+    }
+
+    pub fn state(&self) -> StreamState {
+        self.state.get()
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-get-num-read-requests>
+    pub fn get_num_read_requests(&self) -> usize {
+        // TODO
+        0
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-get-num-read-into-requests>
+    pub fn get_num_read_into_requests(&self) -> usize {
+        // TODO
+        0
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-has-default-reader>
+    pub fn has_default_reader(&self) -> bool {
+        // TODO
+        false
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-has-byob-reader>
+    pub fn has_byob_reader(&self) -> bool {
+        // TODO
+        false
     }
 }
 
@@ -577,4 +673,22 @@ pub fn get_read_promise_bytes(cx: SafeJSContext, v: &SafeHandleValue) -> Result<
             Err(()) => Err(Error::JSFailed),
         }
     }
+}
+
+impl malloc_size_of::MallocSizeOf for ReadableStreamController {
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        match self {
+            ReadableStreamController::ReadableStreamDefaultController(c) => c.size_of(ops),
+            ReadableStreamController::ReadableByteStreamController(c) => c.size_of(ops),
+        }
+    }
+}
+
+/// Stream’s state, used internally;
+#[derive(Clone, Copy, Debug, Default, JSTraceable, MallocSizeOf, PartialEq)]
+pub enum StreamState {
+    #[default]
+    Readable,
+    Closed,
+    Errored,
 }
