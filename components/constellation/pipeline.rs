@@ -11,6 +11,7 @@ use background_hang_monitor::HangMonitorRegister;
 use background_hang_monitor_api::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
 };
+use base::generic_channel::GenericSender;
 use base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, PipelineNamespaceId,
     PipelineNamespaceRequest, TopLevelBrowsingContextId,
@@ -149,7 +150,7 @@ pub struct InitialPipelineState {
     pub devtools_sender: Option<Sender<DevtoolsControlMsg>>,
 
     /// A channel to the bluetooth thread.
-    pub bluetooth_thread: IpcSender<BluetoothRequest>,
+    pub bluetooth_thread: GenericSender<BluetoothRequest>,
 
     /// A channel to the service worker manager thread
     pub swmanager_thread: IpcSender<SWManagerMsg>,
@@ -489,7 +490,7 @@ pub struct UnprivilegedPipelineContent {
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
     devtools_ipc_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-    bluetooth_thread: IpcSender<BluetoothRequest>,
+    bluetooth_thread: GenericSender<BluetoothRequest>,
     swmanager_thread: IpcSender<SWManagerMsg>,
     font_cache_thread: FontCacheThread,
     resource_threads: ResourceThreads,
