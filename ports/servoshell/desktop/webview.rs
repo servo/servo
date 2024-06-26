@@ -342,6 +342,8 @@ where
                         let event = EmbedderEvent::ExitFullScreen(id);
                         self.event_queue.push(event);
                     }
+                } else {
+                    self.platform_handle_key(key_event.clone());
                 }
             })
             .otherwise(|| self.platform_handle_key(key_event));
