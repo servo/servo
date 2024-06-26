@@ -25,7 +25,7 @@ use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext, IndependentLayout};
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
-use crate::geom::{AuOrAuto, LengthOrAuto, LogicalRect, LogicalSides, LogicalVec2};
+use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::sizing::ContentSizes;
 use crate::style_ext::{Clamp, ComputedValuesExt};
@@ -1187,8 +1187,9 @@ impl<'a> FlexItem<'a> {
                             inline: replaced
                                 .style
                                 .content_box_size(flex_context.containing_block, &pbm)
-                                .inline,
-                            block: LengthOrAuto::LengthPercentage(size.into()),
+                                .inline
+                                .map(Au::from),
+                            block: AuOrAuto::LengthPercentage(size),
                         });
                         let size = replaced.contents.used_size_as_if_inline_element(
                             flex_context.containing_block,
