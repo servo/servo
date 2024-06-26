@@ -438,12 +438,14 @@ impl FlexContainer {
                     }
                 }
 
-                fn size_to_logical_rect<T: Default>(size: taffy::Size<T>) -> LogicalRect<T> {
-                    // TODO: determine start_corner
+                fn size_and_pos_to_logical_rect<T: Default>(
+                    position: taffy::Point<T>,
+                    size: taffy::Size<T>,
+                ) -> LogicalRect<T> {
                     LogicalRect {
                         start_corner: LogicalVec2 {
-                            inline: Default::default(),
-                            block: Default::default(),
+                            inline: position.x,
+                            block: position.y,
                         },
                         size: LogicalVec2 {
                             inline: size.width,
@@ -454,9 +456,13 @@ impl FlexContainer {
 
                 let layout = &child.taffy_layout;
 
-                let content_size = size_to_logical_rect(layout.content_size.map(Au::from_f32_px));
+                // TODO: correct for content-box vs border-box?
                 let padding = rect_to_logical_sides(layout.padding.map(Au::from_f32_px));
                 let border = rect_to_logical_sides(layout.border.map(Au::from_f32_px));
+                let content_size = size_and_pos_to_logical_rect(
+                    layout.location.map(Au::from_f32_px),
+                    layout.size.map(Au::from_f32_px),
+                );
 
                 // TODO: propagate margin
                 let margin = rect_to_logical_sides(taffy::Rect::ZERO.map(Au::from_f32_px));
