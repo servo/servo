@@ -13,7 +13,7 @@ use crate::geom::LogicalVec2;
 /// A reference to a Fragment which is shared between `HoistedAbsolutelyPositionedBox`
 /// and its placeholder `AbsoluteOrFixedPositionedFragment` in the original tree position.
 /// This will be used later in order to paint this hoisted box in tree order.
-#[derive(Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub(crate) struct HoistedSharedFragment {
     pub fragment: Option<ArcRefCell<Fragment>>,
     pub box_offsets: LogicalVec2<AbsoluteBoxOffsets>,

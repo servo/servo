@@ -21,6 +21,7 @@ use crate::geom::{
 use crate::style_ext::ComputedValuesExt;
 
 /// Describes how a [`BoxFragment`] paints its background.
+#[derive(Debug, Clone)]
 pub(crate) enum BackgroundMode {
     /// Draw the normal [`BoxFragment`] background as well as the extra backgrounds
     /// based on the style and positioning rectangles in this data structure.
@@ -33,12 +34,13 @@ pub(crate) enum BackgroundMode {
     Normal,
 }
 
+#[derive(Debug, Clone)]
 pub(crate) struct ExtraBackground {
     pub style: ServoArc<ComputedValues>,
     pub rect: LogicalRect<Au>,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub(crate) struct BoxFragment {
     pub base: BaseFragment,
 
