@@ -224,15 +224,6 @@ impl NonReplacedFormattingContext {
             .content_sizes
             .get_or_insert_with(|| contents.inline_content_sizes(layout_context, style))
     }
-
-    pub fn measure(
-        &mut self,
-        layout_context: &LayoutContext,
-        positioning_context: &mut PositioningContext,
-        containing_block_for_children: &ContainingBlock,
-        containing_block: &ContainingBlock,
-    ) {
-    }
 }
 
 impl NonReplacedFormattingContextContents {

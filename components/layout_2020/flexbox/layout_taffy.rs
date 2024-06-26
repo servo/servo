@@ -17,7 +17,7 @@ use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{
     Baselines, IndependentFormattingContext, IndependentLayout,
-    NonReplacedFormattingContextContents, ReplacedFormattingContext,
+    NonReplacedFormattingContextContents,
 };
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::{LogicalRect, LogicalSides, LogicalVec2};
@@ -56,8 +56,6 @@ fn with_independant_formatting_context<T>(
         },
     }
 }
-
-fn measure_replace_box(replaced: &ReplacedFormattingContext, containing_block: &ContainingBlock) {}
 
 /// Layout parameters and intermediate results about a flex container,
 /// grouped to avoid passing around many parameters
