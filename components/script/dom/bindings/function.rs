@@ -31,6 +31,7 @@ impl FunctionBinding {
         flags: u32,
     ) -> *mut JSObject {
         unsafe {
+            assert_eq!(*name.last().unwrap(), b'\0');
             let raw_fun = JS_NewFunction(
                 *cx,
                 Some(call),

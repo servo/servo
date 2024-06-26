@@ -5,6 +5,9 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::gc::{HandleValue, MutableHandleValue};
+use js::jsapi::{CallArgs, JSContext};
+use js::jsval::JSVal;
 use js::rust::HandleObject;
 
 use super::bindings::codegen::Bindings::FunctionBinding::Function;
@@ -14,8 +17,8 @@ use super::bindings::codegen::Bindings::QueuingStrategyBinding::{
 use super::bindings::function::FunctionBinding;
 use super::bindings::import::module::{DomObject, DomRoot, Fallible, Reflector};
 use super::bindings::reflector::reflect_dom_object_with_proto;
-use super::countqueuingstrategy::byte_length_queuing_strategy_size;
 use super::types::GlobalScope;
+use crate::dom::bindings::import::module::get_dictionary_property;
 
 #[dom_struct]
 pub struct ByteLengthQueuingStrategy {
@@ -73,4 +76,23 @@ impl ByteLengthQueuingStrategyMethods for ByteLengthQueuingStrategy {
         global.set_byte_length_queuing_strategy_size(fun.clone());
         Ok(fun)
     }
+}
+
+/// <https://streams.spec.whatwg.org/#byte-length-queuing-strategy-size-function>
+#[allow(unsafe_code)]
+pub unsafe extern "C" fn byte_length_queuing_strategy_size(
+    cx: *mut JSContext,
+    argc: u32,
+    vp: *mut JSVal,
+) -> bool {
+    let args = CallArgs::from_vp(vp, argc);
+    // Step 1.1: Return ? GetV(chunk, "byteLength").
+    rooted!(in(cx) let object = HandleValue::from_raw(args.get(0)).to_object());
+    get_dictionary_property(
+        cx,
+        object.handle(),
+        "byteLength",
+        MutableHandleValue::from_raw(args.rval()),
+    )
+    .unwrap_or(false)
 }

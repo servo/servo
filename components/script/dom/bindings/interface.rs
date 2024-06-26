@@ -328,8 +328,6 @@ pub fn create_named_constructors(
     rooted!(in(*cx) let mut constructor = ptr::null_mut::<JSObject>());
 
     for &(native, name, arity) in named_constructors {
-        assert_eq!(*name.last().unwrap(), b'\0');
-
         let fun_obj = FunctionBinding::new_raw_obj(cx, native, name, arity, JSFUN_CONSTRUCTOR);
 
         constructor.set(fun_obj);
