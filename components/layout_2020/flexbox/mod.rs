@@ -14,7 +14,6 @@ use crate::fragment_tree::Fragment;
 use crate::positioned::AbsolutelyPositionedBox;
 
 mod construct;
-mod geom;
 #[path = "layout_taffy.rs"]
 mod layout;
 
