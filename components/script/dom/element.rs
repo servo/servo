@@ -751,19 +751,18 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             ));
         }
 
-        let font_family = if let Some(this) = self.downcast::<HTMLFontElement>() {
+        let font_face = if let Some(this) = self.downcast::<HTMLFontElement>() {
             this.get_face()
         } else {
             None
         };
 
-        if let Some(font_family) = font_family {
-            // FIXME(emilio): This in Gecko parses a whole family list.
+        if let Some(font_face) = font_face {
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::FontFamily(font_family::SpecifiedValue::Values(
                     computed::font::FontFamilyList {
-                        list: Box::new([computed::font::SingleFontFamily::from_atom(font_family)]),
+                        list: HTMLFontElement::parse_face_attribute(font_face).into_boxed_slice(),
                     },
                 )),
             ));
