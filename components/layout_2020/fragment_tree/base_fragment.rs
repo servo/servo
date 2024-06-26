@@ -13,7 +13,7 @@ use crate::layout_debug::DebugId;
 /// This data structure stores fields that are common to all non-base
 /// Fragment types and should generally be the first member of all
 /// concrete fragments.
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub(crate) struct BaseFragment {
     /// A tag which identifies the DOM node and pseudo element of this
     /// Fragment's content. If this fragment isn't related to any DOM
