@@ -13,6 +13,7 @@ use style::properties::longhands::align_content::computed_value::T as AlignConte
 use style::properties::longhands::align_items::computed_value::T as AlignItems;
 use style::properties::longhands::align_self::computed_value::T as AlignSelf;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
+use style::properties::longhands::flex_direction;
 use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
 use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
 use style::properties::longhands::justify_content::computed_value::T as JustifyContent;
@@ -303,65 +304,47 @@ impl FlexContainer {
         layout_context: &LayoutContext,
         style: &ComputedValues,
     ) -> ContentSizes {
-        let mut positioning_context = PositioningContext::new_for_subtree(true);
-        let content_box_size_override = ContainingBlock {
-            style,
+        let flex_direction = style.get_position().flex_direction;
+        let flex_wrap = style.get_position().flex_wrap;
 
-            // These will be ignored
-            inline_size: Au::from_f32_px(0.0),
-            block_size: AuOrAuto::Auto,
+        let base = ContentSizes {
+            min_content: Au::zero(),
+            max_content: Au::zero(),
         };
 
-        let mut flex_context = FlexContext {
-            layout_context,
-            positioning_context: &mut positioning_context,
-            content_box_size_override: &content_box_size_override,
-            style,
-            source_child_nodes: &self.children,
-        };
+        let child_iter = self.children.iter().filter_map(|child| {
+            let mut child = (**child).borrow_mut();
+            match &mut child.flex_level_box {
+                FlexLevelBoxInner::FlexItem(item) => {
+                    Some(item.inline_content_sizes(layout_context))
+                },
+                FlexLevelBoxInner::OutOfFlowAbsolutelyPositionedBox(_) => None,
+            }
+        });
 
-        let min_content = taffy::compute_flexbox_layout(
-            &mut flex_context,
-            taffy::NodeId::from(usize::MAX),
-            taffy::LayoutInput {
-                run_mode: taffy::RunMode::ComputeSize,
-                sizing_mode: taffy::SizingMode::ContentSize,
-                axis: taffy::RequestedAxis::Horizontal,
-                vertical_margins_are_collapsible: taffy::Line::FALSE,
-
-                known_dimensions: taffy::Size::NONE,
-                parent_size: taffy::Size::NONE,
-                available_space: taffy::Size::MIN_CONTENT,
+        match (flex_direction, flex_wrap) {
+            (FlexDirection::Row | FlexDirection::RowReverse, FlexWrap::Nowrap) => {
+                child_iter.fold(base, |mut acc, child_content_sizes| {
+                    acc.min_content = acc.min_content + child_content_sizes.min_content;
+                    acc.max_content = acc.max_content + child_content_sizes.max_content;
+                    acc
+                })
             },
-        );
-
-        let max_content = taffy::compute_flexbox_layout(
-            &mut flex_context,
-            taffy::NodeId::from(usize::MAX),
-            taffy::LayoutInput {
-                run_mode: taffy::RunMode::ComputeSize,
-                sizing_mode: taffy::SizingMode::ContentSize,
-                axis: taffy::RequestedAxis::Horizontal,
-                vertical_margins_are_collapsible: taffy::Line::FALSE,
-
-                known_dimensions: taffy::Size::NONE,
-                parent_size: taffy::Size::NONE,
-                available_space: taffy::Size::MAX_CONTENT,
+            (
+                FlexDirection::Row | FlexDirection::RowReverse,
+                FlexWrap::Wrap | FlexWrap::WrapReverse,
+            ) => child_iter.fold(base, |mut acc, child_content_sizes| {
+                acc.min_content = acc.min_content.max(child_content_sizes.min_content);
+                acc.max_content = acc.max_content + child_content_sizes.max_content;
+                acc
+            }),
+            (FlexDirection::Column | FlexDirection::ColumnReverse, _) => {
+                child_iter.fold(base, |mut acc, child_content_sizes| {
+                    acc.min_content = acc.min_content.max(child_content_sizes.min_content);
+                    acc.max_content = acc.max_content.max(child_content_sizes.max_content);
+                    acc
+                })
             },
-        );
-
-        // Sizes returned by Taffy are border box sizes, so we adjust by padding + border
-        // (resolved against a containing block size of 0)
-        let padding = style
-            .padding(style.writing_mode)
-            .percentages_relative_to(CSSPixelLength::new(0.0))
-            .map(|val| val.px());
-        let border = style.border_width(style.writing_mode).map(|val| val.px());
-        let inline_pb_sum = padding.inline_sum() + border.inline_sum();
-
-        ContentSizes {
-            min_content: Au::from_f32_px(min_content.size.width - inline_pb_sum),
-            max_content: Au::from_f32_px(max_content.size.width - inline_pb_sum),
         }
     }
 
