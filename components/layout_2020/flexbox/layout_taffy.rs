@@ -109,8 +109,8 @@ impl taffy::LayoutPartialTree for FlexContext<'_> {
     type CoreContainerStyle<'a> = TaffyStyloStyleRef<'a> where Self: 'a;
     type CacheMut<'b> = AtomicRefMut<'b, taffy::Cache> where Self: 'b;
 
-    fn get_core_container_style(&self, node_id: taffy::NodeId) -> Self::CoreContainerStyle<'_> {
-        TaffyStyloStyleRef(self.content_box_size_override.style)
+    fn get_core_container_style(&self, _node_id: taffy::NodeId) -> Self::CoreContainerStyle<'_> {
+        TaffyStyloStyleRef(self.style)
     }
 
     fn set_unrounded_layout(&mut self, node_id: taffy::NodeId, layout: &taffy::Layout) {
@@ -240,7 +240,7 @@ impl taffy::LayoutFlexboxContainer for FlexContext<'_> {
         &self,
         _node_id: taffy::prelude::NodeId,
     ) -> Self::ContainerStyle<'_> {
-        TaffyStyloStyleRef(self.content_box_size_override.style)
+        TaffyStyloStyleRef(self.style)
     }
 
     // TODO: Make a RefCell variant of TaffyStyloStyle to avoid the Arc clone here
