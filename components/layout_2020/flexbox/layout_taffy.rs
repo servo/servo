@@ -2,48 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::{Borrow, BorrowMut};
-use std::cell::Cell;
-
 use app_units::Au;
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
-use servo_arc::Arc;
-use style::logical_geometry::WritingMode;
-use style::properties::longhands::align_content::computed_value::T as AlignContent;
-use style::properties::longhands::align_items::computed_value::T as AlignItems;
-use style::properties::longhands::align_self::computed_value::T as AlignSelf;
-use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
-use style::properties::longhands::flex_direction;
 use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
 use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
-use style::properties::longhands::justify_content::computed_value::T as JustifyContent;
 use style::properties::ComputedValues;
-use style::values::computed::length::Size;
-use style::values::computed::{CSSPixelLength, Length};
-use style::values::generics::flex::GenericFlexBasis as FlexBasis;
 use style::values::generics::length::{GenericLengthPercentageOrAuto, LengthPercentageOrAuto};
-use style::values::specified::LengthPercentage;
-use style::values::CSSFloat;
 use style::Zero;
-use taffy::style_helpers::{TaffyMaxContent, TaffyMinContent};
-use taffy::{CoreStyle, MaybeMath};
+use taffy::MaybeMath;
 use taffy_stylo::{TaffyStyloStyle, TaffyStyloStyleRef};
 
-use super::geom::{
-    FlexAxis, FlexRelativeRect, FlexRelativeSides, FlexRelativeVec2, MainStartCrossStart,
-};
 use super::{FlexContainer, FlexLevelBox, FlexLevelBoxInner};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{
-    Baselines, IndependentFormattingContext, IndependentLayout, NonReplacedFormattingContext,
+    Baselines, IndependentFormattingContext, IndependentLayout,
     NonReplacedFormattingContextContents, ReplacedFormattingContext,
 };
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
-use crate::geom::{AuOrAuto, LengthOrAuto, LogicalRect, LogicalSides, LogicalVec2};
-use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
+use crate::geom::{LogicalRect, LogicalSides, LogicalVec2};
+use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::ContentSizes;
-use crate::style_ext::{Clamp, ComputedValuesExt};
+use crate::style_ext::ComputedValuesExt;
 use crate::ContainingBlock;
 
 // FIMXE: “Flex items […] `z-index` values other than `auto` create a stacking context
@@ -159,7 +139,6 @@ impl taffy::LayoutPartialTree for FlexContext<'_> {
                 let logical_size = match independent_context {
                     IndependentFormattingContext::Replaced(replaced) => {
                         // The containing block of a flex item is the content box of the flex container
-                        // TODO: synthesize from "known_dimensions"
                         let containing_block = &self.content_box_size_override;
 
                         replaced.contents.used_size_as_if_inline_element(
@@ -202,21 +181,6 @@ impl taffy::LayoutPartialTree for FlexContext<'_> {
                         };
 
                         let layout = {
-                            // let layout = match inputs.axis {
-                            //     // Height will be ignored for `RequestedAxis::Horizontal` so we simply return 0.0 as a placeholder value
-                            //     taffy::RequestedAxis::Horizontal => 0.0,
-                            //     // If we actually need a height then we run layout to compute it
-                            //     taffy::RequestedAxis::Vertical | taffy::RequestedAxis::Both => {
-                            // let containing_block_for_children = ContainingBlock {
-                            //     inline_size: Au::from_f32_px(inline_size),
-                            //     block_size: match inputs.known_dimensions.height {
-                            //         None => LengthPercentageOrAuto::Auto,
-                            //         Some(length) => LengthPercentageOrAuto::LengthPercentage(
-                            //             Au::from_f32_px(length),
-                            //         ),
-                            //     },
-                            //     style: &self.content_box_size_override.style,
-                            // };
                             let mut child_positioning_context = PositioningContext::new_for_subtree(
                                 self.positioning_context
                                     .collects_for_nearest_positioned_ancestor(),
@@ -291,13 +255,6 @@ impl taffy::LayoutFlexboxContainer for FlexContext<'_> {
     }
 }
 
-/// Child of a FlexContainer. Can either be absolutely positioned, or not. If not,
-/// a placeholder is used and flex content is stored outside of this enum.
-enum FlexContent {
-    AbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
-    FlexItemPlaceholder,
-}
-
 impl FlexContainer {
     pub fn inline_content_sizes(
         &self,
@@ -362,24 +319,6 @@ impl FlexContainer {
             content_box_size_override,
             style: &content_box_size_override.style,
             source_child_nodes: &self.children,
-            // container_min_cross_size,
-            // container_max_cross_size,
-            // container_is_single_line,
-            // flex_axis,
-            // flex_direction_is_reversed,
-            // flex_wrap_reverse,
-            // align_content,
-            // align_items,
-            // justify_content,
-            // main_start_cross_start_sides_are: MainStartCrossStart::from(
-            //     flex_direction,
-            //     flex_wrap_reverse,
-            // ),
-            // // https://drafts.csswg.org/css-flexbox/#definite-sizes
-            // container_definite_inner_size: flex_axis.vec2_to_flex_relative(LogicalVec2 {
-            //     inline: Some(containing_block.inline_size.into()),
-            //     block: containing_block.block_size.non_auto().map(|t| t.into()),
-            // }),
         };
 
         fn auto_or_to_option<T>(input: GenericLengthPercentageOrAuto<T>) -> Option<T> {
