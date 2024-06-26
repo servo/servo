@@ -436,7 +436,7 @@ impl HoistedAbsolutelyPositionedBox {
         for_nearest_containing_block_for_all_descendants: &mut Vec<HoistedAbsolutelyPositionedBox>,
         containing_block: &DefiniteContainingBlock,
     ) {
-        if layout_context.use_rayon {
+        if false {
             let mut new_fragments = Vec::new();
             let mut new_hoisted_boxes = Vec::new();
 
