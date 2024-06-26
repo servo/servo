@@ -15,10 +15,7 @@ use taffy_stylo::{TaffyStyloStyle, TaffyStyloStyleRef};
 use super::{FlexContainer, FlexLevelBox, FlexLevelBoxInner};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::formatting_contexts::{
-    Baselines, IndependentFormattingContext, IndependentLayout,
-    NonReplacedFormattingContextContents,
-};
+use crate::formatting_contexts::{Baselines, IndependentFormattingContext, IndependentLayout};
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::{LogicalRect, LogicalSides, LogicalVec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
@@ -155,14 +152,9 @@ impl taffy::LayoutPartialTree for FlexContext<'_> {
 
                         // Compute inline size
                         let inline_size = inputs.known_dimensions.width.unwrap_or_else(|| {
-                            match non_replaced.contents {
-                                NonReplacedFormattingContextContents::Flex(_) => f32::INFINITY,
-                                _ => {
-                                    let inline_sizes =
-                                        non_replaced.inline_content_sizes(&self.layout_context);
-                                    resolve_content_size(inputs.available_space.width, inline_sizes)
-                                },
-                            }
+                            let inline_sizes =
+                                non_replaced.inline_content_sizes(&self.layout_context);
+                            resolve_content_size(inputs.available_space.width, inline_sizes)
                         });
 
                         let maybe_block_size = match inputs.known_dimensions.height {
