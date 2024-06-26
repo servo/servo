@@ -74,16 +74,17 @@ pub(crate) struct WGPU {
     // Track invalid adapters https://gpuweb.github.io/gpuweb/#invalid
     _invalid_adapters: Vec<WebGPUAdapter>,
     // TODO: Remove this (https://github.com/gfx-rs/wgpu/issues/867)
-    // This stores first error on command encoder,
-    // because wgpu does not invalidate command encoder object
-    // (this is also reused for invalidation of command buffers)
+    /// This stores first error on command encoder,
+    /// because wgpu does not invalidate command encoder object
+    /// (this is also reused for invalidation of command buffers)
     error_command_encoders: HashMap<id::CommandEncoderId, String>,
     webrender_api: Arc<Mutex<RenderApi>>,
     webrender_document: DocumentId,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     wgpu_image_map: Arc<Mutex<HashMap<u64, PresentationData>>>,
+    /// Provides access to poller thread
     poller: Poller,
-    // We need to store passes here
+    /// Store compute passes (that have not ended yet) and their validness
     compute_passes: HashMap<ComputePassId, (Box<dyn DynComputePass>, bool)>,
     //render_passes: HashMap<RenderPassId, Box<dyn DynRenderPass>>,
 }
