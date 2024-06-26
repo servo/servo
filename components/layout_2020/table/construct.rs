@@ -9,6 +9,7 @@ use std::iter::repeat;
 use log::warn;
 use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
 use servo_arc::Arc;
+use style::properties::style_structs::Font;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 use style::str::char_is_whitespace;
@@ -247,9 +248,11 @@ impl TableBuilder {
     }
 
     pub fn new_for_tests() -> Self {
+        let testing_style =
+            ComputedValues::initial_values_with_font_override(Font::initial_values());
         Self::new(
-            ComputedValues::initial_values().to_arc(),
-            ComputedValues::initial_values().to_arc(),
+            testing_style.clone(),
+            testing_style.clone(),
             BaseFragmentInfo::anonymous(),
         )
     }

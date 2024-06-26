@@ -9,18 +9,14 @@ use base::text::{unicode_plane, UnicodeBlock, UnicodeBlockMethod};
 use dwrote::{Font, FontCollection, FontDescriptor, FontStretch, FontStyle};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{FontStyle as StyleFontStyle, FontWeight as StyleFontWeight};
 use style::values::specified::font::FontStretchKeyword;
 
 use crate::{
-    EmojiPresentationPreference, FallbackFontSelectionOptions, FontTemplate, FontTemplateDescriptor,
+    EmojiPresentationPreference, FallbackFontSelectionOptions, FontTemplate,
+    FontTemplateDescriptor, LowercaseFontFamilyName,
 };
-
-pub static SANS_SERIF_FONT_FAMILY: &str = "Arial";
-
-pub fn system_default_family(_: &str) -> Option<String> {
-    Some("Verdana".to_owned())
-}
 
 pub fn for_each_available_family<F>(mut callback: F)
 where
@@ -376,4 +372,16 @@ impl From<&Font> for FontTemplateDescriptor {
         .compute();
         FontTemplateDescriptor::new(weight, stretch, style)
     }
+}
+
+pub fn default_system_generic_font_family(generic: GenericFontFamily) -> LowercaseFontFamilyName {
+    match generic {
+        GenericFontFamily::None | GenericFontFamily::Serif => "Times New Roman",
+        GenericFontFamily::SansSerif => "Arial",
+        GenericFontFamily::Monospace => "Courier New",
+        GenericFontFamily::Cursive => "Comic Sans MS",
+        GenericFontFamily::Fantasy => "Impact",
+        GenericFontFamily::SystemUi => "Segoe UI",
+    }
+    .into()
 }

@@ -1350,14 +1350,9 @@ impl<'table> TableCellStyleInfo<'table> {
         };
         {
             let cell_flow = &self.cell.block_flow;
-            let initial = ComputedValues::initial_values();
 
             let build_dl = |sty: &ComputedValues, state: &mut &mut DisplayListBuildState| {
                 let background = sty.get_background();
-                // Don't redraw backgrounds that we've already drawn
-                if std::ptr::eq(background, initial.get_background()) {
-                    return;
-                }
                 let background_color = sty.resolve_color(background.background_color.clone());
                 cell_flow.build_display_list_for_background_if_applicable_with_background(
                     state,

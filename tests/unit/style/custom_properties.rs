@@ -14,7 +14,7 @@ use style::custom_properties::{
 use style::font_metrics::FontMetrics;
 use style::media_queries::{Device, MediaType};
 use style::properties::style_structs::Font;
-use style::properties::{CustomDeclaration, CustomDeclarationValue, StyleBuilder};
+use style::properties::{ComputedValues, CustomDeclaration, CustomDeclarationValue, StyleBuilder};
 use style::rule_cache::RuleCacheConditions;
 use style::rule_tree::CascadeLevel;
 use style::servo::media_queries::FontMetricsProvider;
@@ -22,6 +22,7 @@ use style::stylesheets::container_rule::ContainerSizeQuery;
 use style::stylesheets::layer_rule::LayerOrder;
 use style::stylesheets::UrlExtraData;
 use style::stylist::Stylist;
+use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{Context, Length};
 use test::{self, Bencher};
 use url::Url;
@@ -39,6 +40,9 @@ impl FontMetricsProvider for DummyMetricsProvider {
         _retrieve_math_scales: bool,
     ) -> FontMetrics {
         Default::default()
+    }
+    fn base_size_for_generic(&self, _: GenericFontFamily) -> Length {
+        Length::new(16.)
     }
 }
 
@@ -60,12 +64,14 @@ fn cascade(
         })
         .collect::<Vec<_>>();
 
+    let initial_style = ComputedValues::initial_values_with_font_override(Font::initial_values());
     let device = Device::new(
         MediaType::screen(),
         QuirksMode::NoQuirks,
         Size2D::new(800., 600.),
         Scale::new(1.0),
         Box::new(DummyMetricsProvider),
+        initial_style,
     );
     let stylist = Stylist::new(device, QuirksMode::NoQuirks);
     let mut builder = StyleBuilder::new(stylist.device(), Some(&stylist), None, None, None, false);

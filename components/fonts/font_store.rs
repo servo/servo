@@ -14,13 +14,13 @@ use style::values::computed::{FontStyle, FontWeight};
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey};
 
 use crate::font::FontDescriptor;
-use crate::font_cache_thread::{FontIdentifier, FontSource, LowercaseString};
+use crate::font_cache_thread::{FontIdentifier, FontSource, LowercaseFontFamilyName};
 use crate::font_context::WebFontDownloadState;
 use crate::font_template::{FontTemplate, FontTemplateRef, FontTemplateRefMethods, IsOblique};
 
 #[derive(Default)]
 pub struct FontStore {
-    pub(crate) families: HashMap<LowercaseString, FontTemplates>,
+    pub(crate) families: HashMap<LowercaseFontFamilyName, FontTemplates>,
     web_fonts_loading: Vec<(DocumentStyleSheet, usize)>,
 }
 pub(crate) type CrossThreadFontStore = Arc<RwLock<FontStore>>;

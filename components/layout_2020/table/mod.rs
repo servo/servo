@@ -75,6 +75,7 @@ pub use construct::TableBuilder;
 use euclid::{Point2D, Size2D, UnknownUnit, Vector2D};
 use serde::Serialize;
 use servo_arc::Arc;
+use style::properties::style_structs::Font;
 use style::properties::ComputedValues;
 use style_traits::dom::OpaqueNode;
 
@@ -213,7 +214,8 @@ impl TableSlotCell {
             },
             colspan,
             rowspan,
-            style: ComputedValues::initial_values().to_arc(),
+            style: ComputedValues::initial_values_with_font_override(Font::initial_values())
+                .to_arc(),
             base_fragment_info: BaseFragmentInfo::new_for_node(OpaqueNode(id)),
         }
     }
