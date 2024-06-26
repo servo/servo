@@ -40,7 +40,7 @@ pub(crate) struct ExtraBackground {
     pub rect: LogicalRect<Au>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Clone, Serialize)]
 pub(crate) struct BoxFragment {
     pub base: BaseFragment,
 

@@ -24,7 +24,7 @@ use crate::cell::ArcRefCell;
 use crate::geom::{LogicalRect, LogicalSides, PhysicalRect};
 use crate::style_ext::ComputedValuesExt;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Clone, Serialize)]
 pub(crate) enum Fragment {
     Box(BoxFragment),
     /// Floating content. A floated fragment is very similar to a normal
