@@ -37,6 +37,12 @@ pub enum Origin {
     Origin(ImmutableOrigin),
 }
 
+impl Origin {
+    pub fn is_opaque(&self) -> bool {
+        matches!(self, Origin::Origin(ImmutableOrigin::Opaque(_)))
+    }
+}
+
 /// A [referer](https://fetch.spec.whatwg.org/#concept-request-referrer)
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum Referrer {
