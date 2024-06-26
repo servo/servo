@@ -2189,9 +2189,9 @@ dependencies = [
 
 [[package]]
 name = "glib"
-version = "0.19.8"
+version = "0.19.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b664491bc77ab55daa6714a592cdbe1a55e28abec09cb50e87689b90de456ff4"
+checksum = "39650279f135469465018daae0ba53357942a5212137515777d5fdca74984a44"
 dependencies = [
  "bitflags 2.6.0",
  "futures-channel",
@@ -2211,9 +2211,9 @@ dependencies = [
 
 [[package]]
 name = "glib-macros"
-version = "0.19.8"
+version = "0.19.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d405205a405182f95e637710850a8e82f25ba01fdd6baebc82dabeaf0883376"
+checksum = "4429b0277a14ae9751350ad9b658b1be0abb5b54faa5bcdf6e74a3372582fad7"
 dependencies = [
  "heck",
  "proc-macro-crate",
@@ -3551,7 +3551,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e310b3a6b5907f99202fcdb4960ff45b93735d7c7d96b760fcff8db2dc0e103d"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.5",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
