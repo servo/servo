@@ -1166,10 +1166,8 @@ impl WGPU {
                         };
                     },
                     WebGPURequest::DropComputePass(id) => {
-                        assert!(
-                            self.compute_passes.remove(&id).is_some(),
-                            "ComputePass should exist"
-                        );
+                        // Compute pass might already ended
+                        self.compute_passes.remove(&id);
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeComputePass(id)) {
                             warn!("Unable to send FreeComputePass({:?}) ({:?})", id, e);
                         };
