@@ -116,6 +116,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             command_encoder_id: self.id().0,
             compute_pass_id,
             label: convert_label(&descriptor.parent),
+            device_id: self.device.id().0,
         }) {
             warn!("Failed to send WebGPURequest::BeginComputePass {e:?}");
         }

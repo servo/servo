@@ -113,6 +113,7 @@ impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
         if let Err(e) = self.channel.0.send(WebGPURequest::EndComputePass {
             compute_pass_id: self.compute_pass.0,
             device_id: self.command_encoder.device_id().0,
+            command_encoder_id: self.command_encoder.id().0,
         }) {
             warn!("Failed to send WebGPURequest::EndComputePass: {e:?}");
         }

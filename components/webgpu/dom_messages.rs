@@ -214,6 +214,7 @@ pub enum WebGPURequest {
         command_encoder_id: id::CommandEncoderId,
         compute_pass_id: ComputePassId,
         label: Option<Cow<'static, str>>,
+        device_id: id::DeviceId,
     },
     ComputePassSetPipeline {
         compute_pass_id: ComputePassId,
@@ -243,6 +244,7 @@ pub enum WebGPURequest {
     EndComputePass {
         compute_pass_id: ComputePassId,
         device_id: id::DeviceId,
+        command_encoder_id: id::CommandEncoderId,
     },
     EndRenderPass {
         render_pass: Option<RenderPass>,
