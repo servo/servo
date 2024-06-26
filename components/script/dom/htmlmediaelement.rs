@@ -1735,6 +1735,12 @@ impl HTMLMediaElement {
                 // Step 6.
                 self.change_ready_state(ReadyState::HaveMetadata);
 
+                // If we have already reached a succesful `process_response_eof`,
+                // we can move to `ReadyState::HaveEnoughData`
+                if self.network_state.get() == NetworkState::Idle && self.error.get().is_none() {
+                    self.change_ready_state(ReadyState::HaveEnoughData);
+                }
+
                 // Step 7.
                 let mut jumped = false;
 
@@ -2828,12 +2834,12 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         }
 
         if status.is_ok() && self.latest_fetched_content != 0 {
-            if elem.ready_state.get() == ReadyState::HaveNothing {
-                // Make sure that we don't skip the HaveMetadata and HaveCurrentData
-                // states for short streams.
-                elem.change_ready_state(ReadyState::HaveMetadata);
+            // If we have already handled the `PlayerEvent::MetadataUpdated`,
+            // we can move to `ReadyState::HaveEnoughData`.
+            // If not, the `ready_state` will transition when that player event is handled.
+            if elem.ready_state.get() == ReadyState::HaveMetadata {
+                elem.change_ready_state(ReadyState::HaveEnoughData);
             }
-            elem.change_ready_state(ReadyState::HaveEnoughData);
 
             elem.upcast::<EventTarget>().fire_event(atom!("progress"));
 
