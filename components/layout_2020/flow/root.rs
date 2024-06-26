@@ -423,9 +423,9 @@ impl CanvasBackground {
         {
             // “that element’s first HTML `BODY` or XHTML `body` child element”
             if let Some(body) = iter_child_nodes(root_element).find(|child| {
-                child.is_element()
-                    && child.type_id()
-                        == LayoutNodeType::Element(LayoutElementType::HTMLBodyElement)
+                child.is_element() &&
+                    child.type_id() ==
+                        LayoutNodeType::Element(LayoutElementType::HTMLBodyElement)
             }) {
                 style = body.style(context);
                 from_element = body;

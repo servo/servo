@@ -7,6 +7,8 @@ use std::cell::Cell;
 
 use app_units::Au;
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
+use servo_arc::Arc;
+use style::logical_geometry::WritingMode;
 use style::properties::longhands::align_content::computed_value::T as AlignContent;
 use style::properties::longhands::align_items::computed_value::T as AlignItems;
 use style::properties::longhands::align_self::computed_value::T as AlignSelf;
@@ -14,13 +16,17 @@ use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
 use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
 use style::properties::longhands::justify_content::computed_value::T as JustifyContent;
+use style::properties::ComputedValues;
 use style::values::computed::length::Size;
-use style::values::computed::Length;
+use style::values::computed::{CSSPixelLength, Length};
 use style::values::generics::flex::GenericFlexBasis as FlexBasis;
-use style::values::generics::length::LengthPercentageOrAuto;
+use style::values::generics::length::{GenericLengthPercentageOrAuto, LengthPercentageOrAuto};
+use style::values::specified::LengthPercentage;
 use style::values::CSSFloat;
 use style::Zero;
-use taffy::CoreStyle;
+use taffy::style_helpers::{TaffyMaxContent, TaffyMinContent};
+use taffy::{CoreStyle, MaybeMath};
+use taffy_stylo::{TaffyStyloStyle, TaffyStyloStyleRef};
 
 use super::geom::{
     FlexAxis, FlexRelativeRect, FlexRelativeSides, FlexRelativeVec2, MainStartCrossStart,
@@ -29,7 +35,8 @@ use super::{FlexContainer, FlexLevelBox, FlexLevelBoxInner};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{
-    Baselines, IndependentFormattingContext, IndependentLayout, ReplacedFormattingContext,
+    Baselines, IndependentFormattingContext, IndependentLayout, NonReplacedFormattingContext,
+    NonReplacedFormattingContextContents, ReplacedFormattingContext,
 };
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::{AuOrAuto, LengthOrAuto, LogicalRect, LogicalSides, LogicalVec2};
@@ -37,9 +44,6 @@ use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, Positioning
 use crate::sizing::ContentSizes;
 use crate::style_ext::{Clamp, ComputedValuesExt};
 use crate::ContainingBlock;
-
-use servo_arc::Arc;
-use taffy_stylo::{TaffyStyloStyle, TaffyStyloStyleRef};
 
 // FIMXE: “Flex items […] `z-index` values other than `auto` create a stacking context
 // even if `position` is `static` (behaving exactly as if `position` were `relative`).”
@@ -81,7 +85,8 @@ struct FlexContext<'a> {
     layout_context: &'a LayoutContext<'a>,
     positioning_context: &'a mut PositioningContext,
     // For items. Style is on containing_block
-    containing_block: &'a ContainingBlock<'a>,
+    content_box_size_override: &'a ContainingBlock<'a>,
+    style: &'a ComputedValues,
     // container_is_single_line: bool,
     // container_min_cross_size: Length,
     // container_max_cross_size: Option<Length>,
@@ -124,7 +129,7 @@ impl taffy::LayoutPartialTree for FlexContext<'_> {
     type CacheMut<'b> = AtomicRefMut<'b, taffy::Cache> where Self: 'b;
 
     fn get_core_container_style(&self, node_id: taffy::NodeId) -> Self::CoreContainerStyle<'_> {
-        TaffyStyloStyleRef(self.containing_block.style)
+        TaffyStyloStyleRef(self.content_box_size_override.style)
     }
 
     fn set_unrounded_layout(&mut self, node_id: taffy::NodeId, layout: &taffy::Layout) {
@@ -145,51 +150,93 @@ impl taffy::LayoutPartialTree for FlexContext<'_> {
     ) -> taffy::LayoutOutput {
         // compute_cached_layout(self, node_id, inputs, |parent, node_id, inputs| {
         let mut child = (*self.source_child_nodes[usize::from(node_id)]).borrow_mut();
+        let child = &mut *child;
 
         with_independant_formatting_context(
             &mut child.flex_level_box,
             |independent_context| -> taffy::LayoutOutput {
                 let logical_size = match independent_context {
                     IndependentFormattingContext::Replaced(replaced) => {
+                        // The containing block of a flex item is the content box of the flex container
+                        // TODO: synthesize from "known_dimensions"
+                        let containing_block = &self.content_box_size_override;
+
                         replaced.contents.used_size_as_if_inline_element(
-                            &self.containing_block,
+                            &containing_block,
                             &replaced.style,
                             None, //box_size,
-                            &replaced.style.padding_border_margin(&self.containing_block),
+                            &replaced.style.padding_border_margin(&containing_block),
                         )
                     },
 
                     // TODO: better handling of flexbox items (which can't precompute inline sizes)
                     IndependentFormattingContext::NonReplaced(non_replaced) => {
+                        // The containing block of a flex item is the content box of the flex container
+                        // TODO: synthesize from "known_dimensions"
+                        let containing_block = &self.content_box_size_override;
+
                         // Compute inline size
-                        let inline_sizes = non_replaced.inline_content_sizes(&self.layout_context);
-                        let inline_size =
-                            resolve_content_size(inputs.available_space.width, inline_sizes);
+                        let inline_size = inputs.known_dimensions.width.unwrap_or_else(|| {
+                            match non_replaced.contents {
+                                NonReplacedFormattingContextContents::Flex(_) => f32::INFINITY,
+                                _ => {
+                                    let inline_sizes =
+                                        non_replaced.inline_content_sizes(&self.layout_context);
+                                    resolve_content_size(inputs.available_space.width, inline_sizes)
+                                },
+                            }
+                        });
 
-                        let block_size = match inputs.axis {
-                            // Height will be ignored for `RequestedAxis::Horizontal` so we simply return 0.0 as a placeholder value
-                            taffy::RequestedAxis::Horizontal => 0.0,
-                            // If we actually need a height then we run layout to compute it
-                            taffy::RequestedAxis::Vertical | taffy::RequestedAxis::Both => {
-                                let containing_block_for_children = ContainingBlock {
-                                    inline_size: Au::from_f32_px(inline_size),
-                                    block_size: LengthPercentageOrAuto::Auto,
-                                    style: &self.containing_block.style,
-                                };
-                                let mut positioning_context = PositioningContext::new_for_subtree(
-                                    self.positioning_context
-                                        .collects_for_nearest_positioned_ancestor(),
-                                );
-                                let layout = non_replaced.layout(
-                                    &self.layout_context,
-                                    &mut positioning_context,
-                                    &containing_block_for_children,
-                                    &self.containing_block,
-                                );
-
-                                layout.content_block_size.to_f32_px()
+                        let maybe_block_size = match inputs.known_dimensions.height {
+                            None => LengthPercentageOrAuto::Auto,
+                            Some(length) => {
+                                LengthPercentageOrAuto::LengthPercentage(Au::from_f32_px(length))
                             },
                         };
+
+                        let content_box_size_override = ContainingBlock {
+                            inline_size: Au::from_f32_px(inline_size),
+                            block_size: maybe_block_size,
+                            style: &non_replaced.style,
+                        };
+
+                        let layout = {
+                            // let layout = match inputs.axis {
+                            //     // Height will be ignored for `RequestedAxis::Horizontal` so we simply return 0.0 as a placeholder value
+                            //     taffy::RequestedAxis::Horizontal => 0.0,
+                            //     // If we actually need a height then we run layout to compute it
+                            //     taffy::RequestedAxis::Vertical | taffy::RequestedAxis::Both => {
+                            // let containing_block_for_children = ContainingBlock {
+                            //     inline_size: Au::from_f32_px(inline_size),
+                            //     block_size: match inputs.known_dimensions.height {
+                            //         None => LengthPercentageOrAuto::Auto,
+                            //         Some(length) => LengthPercentageOrAuto::LengthPercentage(
+                            //             Au::from_f32_px(length),
+                            //         ),
+                            //     },
+                            //     style: &self.content_box_size_override.style,
+                            // };
+                            let mut child_positioning_context = PositioningContext::new_for_subtree(
+                                self.positioning_context
+                                    .collects_for_nearest_positioned_ancestor(),
+                            );
+                            let layout = non_replaced.layout(
+                                &self.layout_context,
+                                &mut child_positioning_context,
+                                &containing_block,
+                                &content_box_size_override,
+                            );
+
+                            self.positioning_context.append(child_positioning_context);
+
+                            layout
+                            // },
+                        };
+
+                        // TODO: make this work for replaced boxes
+                        child.child_fragments = layout.fragments;
+
+                        let block_size = layout.content_block_size.to_f32_px();
 
                         LogicalVec2 {
                             inline: Au::from_f32_px(inline_size),
@@ -226,9 +273,9 @@ impl taffy::LayoutFlexboxContainer for FlexContext<'_> {
 
     fn get_flexbox_container_style(
         &self,
-        node_id: taffy::prelude::NodeId,
+        _node_id: taffy::prelude::NodeId,
     ) -> Self::ContainerStyle<'_> {
-        TaffyStyloStyleRef(self.containing_block.style)
+        TaffyStyloStyleRef(self.content_box_size_override.style)
     }
 
     // TODO: Make a RefCell variant of TaffyStyloStyle to avoid the Arc clone here
@@ -251,12 +298,71 @@ enum FlexContent {
 }
 
 impl FlexContainer {
-    pub fn inline_content_sizes(&self) -> ContentSizes {
-        // FIXME: implement this. The spec for it is the same as for "normal" layout:
-        // https://drafts.csswg.org/css-flexbox/#layout-algorithm
-        // … except that the parts that say “the flex container is being sized
-        // under a min or max-content constraint” apply.
-        ContentSizes::zero() // Return an incorrect result rather than panic
+    pub fn inline_content_sizes(
+        &self,
+        layout_context: &LayoutContext,
+        style: &ComputedValues,
+    ) -> ContentSizes {
+        let mut positioning_context = PositioningContext::new_for_subtree(true);
+        let content_box_size_override = ContainingBlock {
+            style,
+
+            // These will be ignored
+            inline_size: Au::from_f32_px(0.0),
+            block_size: AuOrAuto::Auto,
+        };
+
+        let mut flex_context = FlexContext {
+            layout_context,
+            positioning_context: &mut positioning_context,
+            content_box_size_override: &content_box_size_override,
+            style,
+            source_child_nodes: &self.children,
+        };
+
+        let min_content = taffy::compute_flexbox_layout(
+            &mut flex_context,
+            taffy::NodeId::from(usize::MAX),
+            taffy::LayoutInput {
+                run_mode: taffy::RunMode::ComputeSize,
+                sizing_mode: taffy::SizingMode::ContentSize,
+                axis: taffy::RequestedAxis::Horizontal,
+                vertical_margins_are_collapsible: taffy::Line::FALSE,
+
+                known_dimensions: taffy::Size::NONE,
+                parent_size: taffy::Size::NONE,
+                available_space: taffy::Size::MIN_CONTENT,
+            },
+        );
+
+        let max_content = taffy::compute_flexbox_layout(
+            &mut flex_context,
+            taffy::NodeId::from(usize::MAX),
+            taffy::LayoutInput {
+                run_mode: taffy::RunMode::ComputeSize,
+                sizing_mode: taffy::SizingMode::ContentSize,
+                axis: taffy::RequestedAxis::Horizontal,
+                vertical_margins_are_collapsible: taffy::Line::FALSE,
+
+                known_dimensions: taffy::Size::NONE,
+                parent_size: taffy::Size::NONE,
+                available_space: taffy::Size::MAX_CONTENT,
+            },
+        );
+
+        // Sizes returned by Taffy are border box sizes, so we adjust by padding + border
+        // (resolved against a containing block size of 0)
+        let padding = style
+            .padding(style.writing_mode)
+            .percentages_relative_to(CSSPixelLength::new(0.0))
+            .map(|val| val.px());
+        let border = style.border_width(style.writing_mode).map(|val| val.px());
+        let inline_pb_sum = padding.inline_sum() + border.inline_sum();
+
+        ContentSizes {
+            min_content: Au::from_f32_px(min_content.size.width - inline_pb_sum),
+            max_content: Au::from_f32_px(max_content.size.width - inline_pb_sum),
+        }
     }
 
     /// <https://drafts.csswg.org/css-flexbox/#layout-algorithm>
@@ -264,46 +370,14 @@ impl FlexContainer {
         &self,
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
+        content_box_size_override: &ContainingBlock,
         containing_block: &ContainingBlock,
     ) -> IndependentLayout {
-        // Actual length may be less, but we guess that usually not by a lot
-        let mut flex_items = Vec::with_capacity(self.children.len());
-
-        // Absolutely-positioned children of the flex container may be interleaved
-        // with flex items. We need to preserve their relative order for correct painting order,
-        // which is the order of `Fragment`s in this function’s return value.
-        //
-        // Example:
-        // absolutely_positioned_items_with_original_order = [Some(item), Some(item), None, Some(item), None]
-        // flex_items                                      =                         [item,             item]
-        let absolutely_positioned_items_with_original_order = self
-            .children
-            .iter()
-            .map(|arcrefcell| {
-                let borrowed = (**arcrefcell).borrow_mut();
-                match borrowed.flex_level_box {
-                    FlexLevelBoxInner::OutOfFlowAbsolutelyPositionedBox(absolutely_positioned) => {
-                        FlexContent::AbsolutelyPositionedBox(absolutely_positioned.clone())
-                    },
-                    FlexLevelBoxInner::FlexItem(_) => {
-                        let item =
-                            AtomicRefMut::map(borrowed, |child| match child.flex_level_box {
-                                FlexLevelBoxInner::FlexItem(ref mut item) => item,
-                                _ => unreachable!(),
-                            });
-                        flex_items.push(item);
-                        FlexContent::FlexItemPlaceholder
-                    },
-                }
-            })
-            .collect::<Vec<_>>();
-
-        let style = containing_block.style;
-
         let mut flex_context = FlexContext {
             layout_context,
             positioning_context,
-            containing_block,
+            content_box_size_override,
+            style: &content_box_size_override.style,
             source_child_nodes: &self.children,
             // container_min_cross_size,
             // container_max_cross_size,
@@ -325,53 +399,126 @@ impl FlexContainer {
             // }),
         };
 
-        taffy::compute_flexbox_layout(
+        fn auto_or_to_option<T>(input: GenericLengthPercentageOrAuto<T>) -> Option<T> {
+            match input {
+                LengthPercentageOrAuto::LengthPercentage(val) => Some(val),
+                LengthPercentageOrAuto::Auto => None,
+            }
+        }
+
+        let pbm = content_box_size_override
+            .style
+            .padding_border_margin(containing_block);
+
+        let known_dimensions = taffy::Size {
+            width: Some(
+                (content_box_size_override.inline_size + pbm.padding_border_sums.inline)
+                    .to_f32_px(),
+            ),
+            height: auto_or_to_option(content_box_size_override.block_size)
+                .map(Au::to_f32_px)
+                .maybe_add(pbm.padding_border_sums.block.to_f32_px()),
+        };
+
+        let taffy_containing_block = taffy::Size {
+            width: Some(containing_block.inline_size.to_f32_px()),
+            height: auto_or_to_option(containing_block.block_size).map(Au::to_f32_px),
+        };
+
+        let output = taffy::compute_flexbox_layout(
             &mut flex_context,
             taffy::NodeId::from(usize::MAX),
             taffy::LayoutInput {
                 run_mode: taffy::RunMode::PerformLayout,
                 sizing_mode: taffy::SizingMode::InherentSize,
-                axis: todo!(),
-                known_dimensions: todo!(),
-                parent_size: todo!(),
-                available_space: todo!(),
-                vertical_margins_are_collapsible: todo!(),
+                axis: taffy::RequestedAxis::Vertical,
+                vertical_margins_are_collapsible: taffy::Line::FALSE,
+
+                known_dimensions,
+                parent_size: taffy_containing_block,
+                available_space: taffy_containing_block.map(taffy::AvailableSpace::from),
             },
         );
 
-        let fragments = absolutely_positioned_items_with_original_order
-            .into_iter()
-            .map(|child_as_abspos| match child_as_abspos {
-                FlexContent::AbsolutelyPositionedBox(absolutely_positioned) => {
-                    let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
-                        absolutely_positioned,
-                        LogicalVec2::zero(),
-                        containing_block,
-                    );
-                    let hoisted_fragment = hoisted_box.fragment.clone();
-                    positioning_context.push(hoisted_box);
-                    Fragment::AbsoluteOrFixedPositioned(hoisted_fragment)
-                },
-                FlexContent::FlexItemPlaceholder => {
-                    // The `flex_item_fragments` iterator yields one fragment
-                    // per flex item, in the original order.
-                    let (box_fragment, mut child_positioning_context) =
-                        flex_item_fragments.next().unwrap();
-                    let fragment = Fragment::Box(box_fragment);
-                    child_positioning_context.adjust_static_position_of_hoisted_fragments(
-                        &fragment,
-                        PositioningContextLength::zero(),
-                    );
-                    positioning_context.append(child_positioning_context);
-                    fragment
-                },
+        // Convert `taffy::Layout` into Servo `Fragment`s
+        let fragments: Vec<Fragment> = self
+            .children
+            .iter()
+            .map(|child| (**child).borrow())
+            .map(|child| {
+                fn rect_to_logical_sides<T>(rect: taffy::Rect<T>) -> LogicalSides<T> {
+                    LogicalSides {
+                        inline_start: rect.left,
+                        inline_end: rect.right,
+                        block_start: rect.top,
+                        block_end: rect.bottom,
+                    }
+                }
+
+                fn size_to_logical_rect<T: Default>(size: taffy::Size<T>) -> LogicalRect<T> {
+                    // TODO: determine start_corner
+                    LogicalRect {
+                        start_corner: LogicalVec2 {
+                            inline: Default::default(),
+                            block: Default::default(),
+                        },
+                        size: LogicalVec2 {
+                            inline: size.width,
+                            block: size.height,
+                        },
+                    }
+                }
+
+                let layout = &child.taffy_layout;
+
+                let content_size = size_to_logical_rect(layout.content_size.map(Au::from_f32_px));
+                let padding = rect_to_logical_sides(layout.padding.map(Au::from_f32_px));
+                let border = rect_to_logical_sides(layout.border.map(Au::from_f32_px));
+
+                // TODO: propagate margin
+                let margin = rect_to_logical_sides(taffy::Rect::ZERO.map(Au::from_f32_px));
+                let collapsed_margin = CollapsedBlockMargins::from_margin(&margin);
+
+                match &child.flex_level_box {
+                    FlexLevelBoxInner::FlexItem(independent_box) => {
+                        // TODO: propagate absolute/fixed boxes from child positioning context
+                        // child_positioning_context.adjust_static_position_of_hoisted_fragments(
+                        //     &fragment,
+                        //     PositioningContextLength::zero(),
+                        // );
+                        // positioning_context.append(child_positioning_context);
+
+                        Fragment::Box(BoxFragment::new(
+                            independent_box.base_fragment_info(),
+                            independent_box.style().clone(),
+                            // TODO: Eliminate clone
+                            child.child_fragments.clone(),
+                            content_size,
+                            padding,
+                            border,
+                            margin,
+                            None, /* clearance */
+                            collapsed_margin,
+                        ))
+                    },
+                    FlexLevelBoxInner::OutOfFlowAbsolutelyPositionedBox(abs_pos_box) => {
+                        let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
+                            abs_pos_box.clone(),
+                            LogicalVec2::zero(),
+                            containing_block,
+                        );
+                        let hoisted_fragment = hoisted_box.fragment.clone();
+                        positioning_context.push(hoisted_box);
+                        Fragment::AbsoluteOrFixedPositioned(hoisted_fragment)
+                    },
+                }
             })
-            .collect::<Vec<_>>();
+            .collect();
 
         IndependentLayout {
             fragments,
-            content_block_size: content_block_size.into(),
-            content_inline_size_for_table: None,
+            content_block_size: Au::from_f32_px(output.size.height),
+            content_inline_size_for_table: Some(Au::from_f32_px(output.size.width)),
             baselines: Baselines::default(),
         }
     }
