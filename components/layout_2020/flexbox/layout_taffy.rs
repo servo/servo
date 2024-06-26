@@ -385,12 +385,29 @@ impl FlexContainer {
 
                 let layout = &child.taffy_layout;
 
-                // TODO: correct for content-box vs border-box?
                 let padding = rect_to_logical_sides(layout.padding.map(Au::from_f32_px));
                 let border = rect_to_logical_sides(layout.border.map(Au::from_f32_px));
+
+                // Compute content box size and position
                 let content_size = size_and_pos_to_logical_rect(
-                    layout.location.map(Au::from_f32_px),
-                    layout.size.map(Au::from_f32_px),
+                    taffy::Point {
+                        x: layout.location.x + layout.padding.left + layout.border.left,
+                        y: layout.location.y + layout.padding.top + layout.border.top,
+                    }
+                    .map(Au::from_f32_px),
+                    taffy::Size {
+                        width: layout.size.width -
+                            layout.padding.left -
+                            layout.padding.right -
+                            layout.border.left -
+                            layout.border.right,
+                        height: layout.size.height -
+                            layout.padding.top -
+                            layout.padding.bottom -
+                            layout.border.top -
+                            layout.border.bottom,
+                    }
+                    .map(Au::from_f32_px),
                 );
 
                 // TODO: propagate margin
