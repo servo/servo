@@ -121,6 +121,7 @@ use crate::dom::element::{
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventDefault, EventStatus};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::focusevent::FocusEvent;
+use crate::dom::fontfaceset::FontFaceSet;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpucanvascontext::{GPUCanvasContext, WebGPUContextId};
 use crate::dom::hashchangeevent::HashChangeEvent;
@@ -466,6 +467,9 @@ pub struct Document {
     /// - <https://bugzilla.mozilla.org/show_bug.cgi?id=1596992>
     /// - <https://github.com/w3c/csswg-drafts/issues/4518>
     resize_observers: DomRefCell<Vec<Dom<ResizeObserver>>>,
+    /// The set of all fonts loaded by this document.
+    /// <https://drafts.csswg.org/css-font-loading/#font-face-source>
+    fonts: MutNullableDom<FontFaceSet>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -3291,6 +3295,7 @@ impl Document {
             pending_compositor_events: Default::default(),
             mouse_move_event_index: Default::default(),
             resize_observers: Default::default(),
+            fonts: Default::default(),
         }
     }
 
@@ -5363,6 +5368,12 @@ impl DocumentMethods for Document {
         } else {
             None
         }
+    }
+
+    // https://drafts.csswg.org/css-font-loading/#font-face-source
+    fn Fonts(&self) -> DomRoot<FontFaceSet> {
+        self.fonts
+            .or_init(|| FontFaceSet::new(&*self.global(), None))
     }
 }
 

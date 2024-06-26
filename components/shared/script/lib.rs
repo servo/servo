@@ -347,7 +347,7 @@ pub enum ConstellationControlMsg {
     TickAllAnimations(PipelineId, AnimationTickType),
     /// Notifies the script thread that a new Web font has been loaded, and thus the page should be
     /// reflowed.
-    WebFontLoaded(PipelineId),
+    WebFontLoaded(PipelineId, bool /* success */),
     /// Cause a `load` event to be dispatched at the appropriate iframe element.
     DispatchIFrameLoadEvent {
         /// The frame that has been marked as loaded.
