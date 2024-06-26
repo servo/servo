@@ -7576,6 +7576,19 @@
       {}
      ]
     ],
+    "font-element-comma-separated.html": [
+     "db7e13f2ca3db0ebd3c610c3c25b052749b85e30",
+     [
+      null,
+      [
+       [
+        "/_mozilla/mozilla/font-element-comma-separated-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "fullscreen": {
      "reftests": {
       "fullscreen-baseline.html": [
@@ -10434,6 +10447,10 @@
     ],
     "duplicated_scroll_ids_ref.html": [
      "6783d72a6629f4938df8126dc5114d936eaaa48f",
+     []
+    ],
+    "font-element-comma-separated-ref.html": [
+     "97efe2b83d5f78bdac0d4aa951b63342fb1fa1cf",
      []
     ],
     "form_submit_about_frame.html": [
