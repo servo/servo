@@ -313,6 +313,7 @@ pub mod filelist;
 pub mod filereader;
 pub mod filereadersync;
 pub mod focusevent;
+pub mod fontfaceset;
 pub mod formdata;
 pub mod formdataevent;
 pub mod gainnode;
