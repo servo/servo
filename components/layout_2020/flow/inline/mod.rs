@@ -885,11 +885,11 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             // the inline start of the line in `calculate_inline_start_for_current_line` so
             // we do not need to include it in the `start_corner` of the line's main Fragment.
             start_corner: LogicalVec2 {
-                inline: inline_start_position,
+                inline: Au::zero(),
                 block: block_start_position,
             },
             size: LogicalVec2 {
-                inline: self.containing_block.inline_size - inline_start_position,
+                inline: self.containing_block.inline_size,
                 block: effective_block_advance.resolve(),
             },
         };

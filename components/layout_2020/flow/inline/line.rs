@@ -111,13 +111,15 @@ impl LineItemLayoutInlineContainerState {
         }
     }
 
-    fn root(baseline_offset: Au) -> Self {
-        Self::new(
+    fn root(starting_inline_advance: Au, baseline_offset: Au) -> Self {
+        let mut state = Self::new(
             None,
             LogicalVec2::zero(),
             baseline_offset,
             Either::Second(PositioningContextLength::zero()),
-        )
+        );
+        state.inline_advance = starting_inline_advance;
+        state
     }
 }
 
@@ -174,7 +176,7 @@ impl<'a> LineItemLayout<'a> {
             state_stack: Vec::new(),
             root_positioning_context: state.positioning_context,
             layout_context: state.layout_context,
-            state: LineItemLayoutInlineContainerState::root(baseline_offset),
+            state: LineItemLayoutInlineContainerState::root(start_position.inline, baseline_offset),
             ifc_containing_block: state.containing_block,
             line_metrics: LineMetrics {
                 block_offset: start_position.block,
@@ -524,7 +526,7 @@ impl<'a> LineItemLayout<'a> {
 
     fn layout_float(&mut self, mut float: FloatLineItem) {
         // The `BoxFragment` for this float is positioned relative to the IFC, so we need
-        // to move it to be positioned relative to our parent InlineBox line item. Floats
+        // to move it to be positioned relative to our parent InlineBox line item. Float
         // fragments are children of these InlineBoxes and not children of the inline
         // formatting context, so that they are parented properly for StackingContext
         // properties such as opacity & filters.
