@@ -19,6 +19,7 @@ use serde_json::{Map, Value};
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::configuration::{TargetConfigurationActor, ThreadConfigurationActor};
+use crate::actors::css_properties::CssPropertiesActor;
 use crate::actors::emulation::EmulationActor;
 use crate::actors::inspector::InspectorActor;
 use crate::actors::performance::PerformanceActor;
@@ -101,6 +102,7 @@ pub struct BrowsingContextActorMsg {
     browsing_context_id: u32,
     is_top_level_target: bool,
     console_actor: String,
+    css_properties_actor: String,
     inspector_actor: String,
     thread_actor: String,
     traits: BrowsingContextTraits,
@@ -114,7 +116,6 @@ pub struct BrowsingContextActorMsg {
     // memory_actor: String,
     // framerate_actor: String,
     // reflow_actor: String,
-    // css_properties_actor: String,
     // animations_actor: String,
     // web_extension_inspected_window_actor: String,
     // accessibility_actor: String,
@@ -122,6 +123,7 @@ pub struct BrowsingContextActorMsg {
     // changes_actor: String,
     // web_socket_actor: String,
     // manifest_actor: String,
+    // TODO: Accesibility actor
 }
 
 /// The browsing context actor encompasses all of the other supporting actors when debugging a web
@@ -134,6 +136,7 @@ pub(crate) struct BrowsingContextActor {
     pub active_pipeline: Cell<PipelineId>,
     pub browsing_context_id: BrowsingContextId,
     pub console: String,
+    pub css_properties: String,
     pub _emulation: String,
     pub inspector: String,
     pub _performance: String,
@@ -189,6 +192,8 @@ impl BrowsingContextActor {
         let name = actors.new_name("target");
         let DevtoolsPageInfo { title, url } = page_info;
 
+        let css_properties = CssPropertiesActor::new(actors.new_name("css-properties"));
+
         let emulation = EmulationActor::new(actors.new_name("emulation"));
 
         let inspector = InspectorActor {
@@ -235,6 +240,7 @@ impl BrowsingContextActor {
             active_pipeline: Cell::new(pipeline),
             browsing_context_id: id,
             console,
+            css_properties: css_properties.name(),
             _emulation: emulation.name(),
             inspector: inspector.name(),
             _performance: performance.name(),
@@ -249,6 +255,7 @@ impl BrowsingContextActor {
             watcher: watcher.name(),
         };
 
+        actors.register(Box::new(css_properties));
         actors.register(Box::new(emulation));
         actors.register(Box::new(inspector));
         actors.register(Box::new(performance));
@@ -278,6 +285,7 @@ impl BrowsingContextActor {
             outer_window_id: self.active_pipeline.get().index.0.get(),
             is_top_level_target: true,
             console_actor: self.console.clone(),
+            css_properties_actor: self.css_properties.clone(),
             inspector_actor: self.inspector.clone(),
             thread_actor: self.thread.clone(),
             // emulation_actor: self.emulation.clone(),
