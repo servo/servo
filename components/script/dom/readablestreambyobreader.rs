@@ -5,7 +5,9 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::gc::CustomAutoRooterGuard;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
+use js::typedarray::ArrayBufferView;
 
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::ReadableStreamBYOBReaderMethods;
 use crate::dom::bindings::error::Error;
@@ -48,10 +50,7 @@ impl ReadableStreamBYOBReader {
 
 impl ReadableStreamBYOBReaderMethods for ReadableStreamBYOBReader {
     /// <https://streams.spec.whatwg.org/#byob-reader-read>
-    fn Read(
-        &self,
-        _view: js::gc::CustomAutoRooterGuard<js::typedarray::ArrayBufferView>,
-    ) -> Rc<Promise> {
+    fn Read(&self, _view: CustomAutoRooterGuard<ArrayBufferView>) -> Rc<Promise> {
         // TODO
         Promise::new(&self.reflector_.global())
     }
