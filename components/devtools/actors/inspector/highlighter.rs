@@ -9,7 +9,7 @@ use serde_json::{self, Map, Value};
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
-use crate::{StreamId};
+use crate::StreamId;
 
 #[derive(Serialize)]
 pub struct HighlighterMsg {

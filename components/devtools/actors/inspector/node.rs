@@ -20,14 +20,14 @@ struct ModifyAttributeReply {
     from: String,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Clone, Serialize)]
 struct AttrMsg {
     namespace: String,
     name: String,
     value: String,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NodeActorMsg {
     actor: String,

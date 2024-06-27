@@ -28,9 +28,10 @@ mod page_style;
 mod walker;
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct GetPageStyleReply {
     from: String,
-    pageStyle: PageStyleMsg,
+    page_style: PageStyleMsg,
 }
 
 #[derive(Serialize)]
@@ -48,7 +49,7 @@ struct GetHighlighterReply {
 pub struct InspectorActor {
     pub name: String,
     pub walker: RefCell<Option<String>>,
-    pub pageStyle: RefCell<Option<String>>,
+    pub page_style: RefCell<Option<String>>,
     pub highlighter: RefCell<Option<String>>,
     pub script_chan: IpcSender<DevtoolScriptControlMsg>,
     pub browsing_context: String,
@@ -103,21 +104,21 @@ impl Actor for InspectorActor {
             },
 
             "getPageStyle" => {
-                if self.pageStyle.borrow().is_none() {
+                if self.page_style.borrow().is_none() {
                     let style = PageStyleActor {
                         name: registry.new_name("pageStyle"),
                         script_chan: self.script_chan.clone(),
                         pipeline,
                     };
-                    let mut pageStyle = self.pageStyle.borrow_mut();
+                    let mut pageStyle = self.page_style.borrow_mut();
                     *pageStyle = Some(style.name());
                     registry.register_later(Box::new(style));
                 }
 
                 let msg = GetPageStyleReply {
                     from: self.name(),
-                    pageStyle: PageStyleMsg {
-                        actor: self.pageStyle.borrow().clone().unwrap(),
+                    page_style: PageStyleMsg {
+                        actor: self.page_style.borrow().clone().unwrap(),
                     },
                 };
                 let _ = stream.write_json_packet(&msg);

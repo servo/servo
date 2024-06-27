@@ -46,9 +46,10 @@ struct ClearPseudoclassesReply {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct ChildrenReply {
-    hasFirst: bool,
-    hasLast: bool,
+    has_first: bool,
+    has_last: bool,
     nodes: Vec<NodeActorMsg>,
     from: String,
 }
@@ -117,8 +118,8 @@ impl Actor for WalkerActor {
                 let children = rx.recv().unwrap().ok_or(())?;
 
                 let msg = ChildrenReply {
-                    hasFirst: true,
-                    hasLast: true,
+                    has_first: true,
+                    has_last: true,
                     nodes: children
                         .into_iter()
                         .map(|child| {
