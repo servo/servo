@@ -7,7 +7,7 @@ use std::os::raw::c_void;
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use log::{error, info};
+use log::{debug, error, info};
 use ohos_sys::ace::xcomponent::native_interface_xcomponent::{
     OH_NativeXComponent, OH_NativeXComponent_GetXComponentSize,
 };
@@ -67,21 +67,8 @@ pub fn init(
     assert_eq!(res, 0, "OH_NativeXComponent_GetXComponentSize failed");
     let width: i32 = width.try_into().expect("Width too large");
     let height: i32 = height.try_into().expect("Height too large");
-    //
-    // let mut offsetX: f64 = 0.0;
-    // let mut offsetY: f64 = 0.0;
-    // // Obtain the offset of the surface held by the <XComponent> relative to the upper left corner of the window.
-    // unsafe {
-    //     let _ = OH_NativeXComponent_GetXComponentOffset(
-    //         xcomponent,
-    //         native_window,
-    //         &mut offsetX as *mut _,
-    //         &mut offsetY as *mut _,
-    //     );
-    // }
-    // info!("OH_NativeXComponent_GetXComponentOffset offsetX = {offsetX}, offsetY = {offsetY}");
-    //
-    // info!("Creating surfman widget with width {width} and height {height}");
+
+    debug!("Creating surfman widget with width {width} and height {height}");
     let native_widget = unsafe {
         connection.create_native_widget_from_ptr(native_window, Size2D::new(width, height))
     };
