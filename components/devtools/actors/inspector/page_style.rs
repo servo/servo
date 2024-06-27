@@ -30,77 +30,67 @@ struct GetComputedReply {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct AppliedEntry {
     rule: String,
-    pseudoElement: Value,
-    isSystem: bool,
-    matchedSelectors: Vec<String>,
+    pseudo_element: Value,
+    is_system: bool,
+    matched_selectors: Vec<String>,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct AppliedRule {
     actor: String,
     #[serde(rename = "type")]
     type_: String,
     href: String,
-    cssText: String,
+    css_text: String,
     line: u32,
     column: u32,
-    parentStyleSheet: String,
+    parent_style_sheet: String,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct AppliedSheet {
     actor: String,
     href: String,
-    nodeHref: String,
+    node_href: String,
     disabled: bool,
     title: String,
     system: bool,
-    styleSheetIndex: isize,
-    ruleCount: usize,
+    style_sheet_index: isize,
+    rule_count: usize,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "kebab-case")]
 struct GetLayoutReply {
     from: String,
 
     display: String,
     position: String,
-    #[serde(rename = "z-index")]
-    zIndex: String,
-    #[serde(rename = "box-sizing")]
-    boxSizing: String,
+    z_index: String,
+    box_sizing: String,
 
     // Would be nice to use a proper struct, blocked by
     // https://github.com/serde-rs/serde/issues/43
-    autoMargins: serde_json::value::Value,
-    #[serde(rename = "margin-top")]
-    marginTop: String,
-    #[serde(rename = "margin-right")]
-    marginRight: String,
-    #[serde(rename = "margin-bottom")]
-    marginBottom: String,
-    #[serde(rename = "margin-left")]
-    marginLeft: String,
+    auto_margins: serde_json::value::Value,
+    margin_top: String,
+    margin_right: String,
+    margin_bottom: String,
+    margin_left: String,
 
-    #[serde(rename = "border-top-width")]
-    borderTopWidth: String,
-    #[serde(rename = "border-right-width")]
-    borderRightWidth: String,
-    #[serde(rename = "border-bottom-width")]
-    borderBottomWidth: String,
-    #[serde(rename = "border-left-width")]
-    borderLeftWidth: String,
+    border_top_width: String,
+    border_right_width: String,
+    border_bottom_width: String,
+    border_left_width: String,
 
-    #[serde(rename = "padding-top")]
-    paddingTop: String,
-    #[serde(rename = "padding-right")]
-    paddingRight: String,
-    #[serde(rename = "padding-bottom")]
-    paddingBottom: String,
-    #[serde(rename = "padding-left")]
-    paddingLeft: String,
+    padding_top: String,
+    padding_right: String,
+    padding_bottom: String,
+    padding_left: String,
 
     width: f32,
     height: f32,
@@ -167,26 +157,26 @@ impl Actor for PageStyleActor {
                 let ComputedNodeLayout {
                     display,
                     position,
-                    zIndex,
-                    boxSizing,
-                    autoMargins,
-                    marginTop,
-                    marginRight,
-                    marginBottom,
-                    marginLeft,
-                    borderTopWidth,
-                    borderRightWidth,
-                    borderBottomWidth,
-                    borderLeftWidth,
-                    paddingTop,
-                    paddingRight,
-                    paddingBottom,
-                    paddingLeft,
+                    z_index,
+                    box_sizing,
+                    auto_margins,
+                    margin_top,
+                    margin_right,
+                    margin_bottom,
+                    margin_left,
+                    border_top_width,
+                    border_right_width,
+                    border_bottom_width,
+                    border_left_width,
+                    padding_top,
+                    padding_right,
+                    padding_bottom,
+                    padding_left,
                     width,
                     height,
                 } = rx.recv().unwrap().ok_or(())?;
 
-                let auto_margins = msg
+                let msg_auto_margins = msg
                     .get("autoMargins")
                     .and_then(Value::as_bool)
                     .unwrap_or(false);
@@ -196,39 +186,39 @@ impl Actor for PageStyleActor {
                     from: self.name(),
                     display,
                     position,
-                    zIndex,
-                    boxSizing,
-                    autoMargins: if auto_margins {
+                    z_index,
+                    box_sizing,
+                    auto_margins: if msg_auto_margins {
                         let mut m = Map::new();
                         let auto = serde_json::value::Value::String("auto".to_owned());
-                        if autoMargins.top {
+                        if auto_margins.top {
                             m.insert("top".to_owned(), auto.clone());
                         }
-                        if autoMargins.right {
+                        if auto_margins.right {
                             m.insert("right".to_owned(), auto.clone());
                         }
-                        if autoMargins.bottom {
+                        if auto_margins.bottom {
                             m.insert("bottom".to_owned(), auto.clone());
                         }
-                        if autoMargins.left {
+                        if auto_margins.left {
                             m.insert("left".to_owned(), auto);
                         }
                         serde_json::value::Value::Object(m)
                     } else {
                         serde_json::value::Value::Null
                     },
-                    marginTop,
-                    marginRight,
-                    marginBottom,
-                    marginLeft,
-                    borderTopWidth,
-                    borderRightWidth,
-                    borderBottomWidth,
-                    borderLeftWidth,
-                    paddingTop,
-                    paddingRight,
-                    paddingBottom,
-                    paddingLeft,
+                    margin_top,
+                    margin_right,
+                    margin_bottom,
+                    margin_left,
+                    border_top_width,
+                    border_right_width,
+                    border_bottom_width,
+                    border_left_width,
+                    padding_top,
+                    padding_right,
+                    padding_bottom,
+                    padding_left,
                     width,
                     height,
                 };

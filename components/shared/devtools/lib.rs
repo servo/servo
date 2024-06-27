@@ -119,24 +119,24 @@ pub struct AttrInfo {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct NodeInfo {
-    pub uniqueId: String,
-    pub baseURI: String,
+    pub unique_id: String,
+    pub base_uri: String,
     pub parent: String,
-    pub nodeType: u16,
-    pub namespaceURI: String,
-    pub nodeName: String,
-    pub numChildren: usize,
+    pub node_type: u16,
+    pub namespace_uri: String,
+    pub node_name: String,
+    pub num_children: usize,
 
     pub name: String,
-    pub publicId: String,
-    pub systemId: String,
+    pub public_id: String,
+    pub system_id: String,
 
     pub attrs: Vec<AttrInfo>,
 
-    pub isDocumentElement: bool,
+    pub is_document_element: bool,
 
-    pub shortValue: String,
-    pub incompleteValue: bool,
+    pub short_value: String,
+    pub incomplete_value: bool,
 }
 
 pub struct StartedTimelineMarker {
@@ -165,24 +165,24 @@ pub enum TimelineMarkerType {
 pub struct ComputedNodeLayout {
     pub display: String,
     pub position: String,
-    pub zIndex: String,
-    pub boxSizing: String,
+    pub z_index: String,
+    pub box_sizing: String,
 
-    pub autoMargins: AutoMargins,
-    pub marginTop: String,
-    pub marginRight: String,
-    pub marginBottom: String,
-    pub marginLeft: String,
+    pub auto_margins: AutoMargins,
+    pub margin_top: String,
+    pub margin_right: String,
+    pub margin_bottom: String,
+    pub margin_left: String,
 
-    pub borderTopWidth: String,
-    pub borderRightWidth: String,
-    pub borderBottomWidth: String,
-    pub borderLeftWidth: String,
+    pub border_top_width: String,
+    pub border_right_width: String,
+    pub border_bottom_width: String,
+    pub border_left_width: String,
 
-    pub paddingTop: String,
-    pub paddingRight: String,
-    pub paddingBottom: String,
-    pub paddingLeft: String,
+    pub padding_top: String,
+    pub padding_right: String,
+    pub padding_bottom: String,
+    pub padding_left: String,
 
     pub width: f32,
     pub height: f32,

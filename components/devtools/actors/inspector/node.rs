@@ -28,35 +28,31 @@ struct AttrMsg {
 }
 
 #[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct NodeActorMsg {
     actor: String,
-    baseURI: String,
+    #[serde(rename = "baseURI")]
+    base_uri: String,
     parent: String,
-    nodeType: u16,
-    namespaceURI: String,
-    nodeName: String,
-    numChildren: usize,
-
+    node_type: u16,
+    #[serde(rename = "namespaceURI")]
+    namespace_uri: String,
+    node_name: String,
+    num_children: usize,
     name: String,
-    publicId: String,
-    systemId: String,
-
+    public_id: String,
+    system_id: String,
     attrs: Vec<AttrMsg>,
-
-    pseudoClassLocks: Vec<String>,
-
-    isDisplayed: bool,
-
-    hasEventListeners: bool,
-
-    isDocumentElement: bool,
-
-    shortValue: String,
-    incompleteValue: bool,
+    pseudo_class_locks: Vec<String>,
+    is_displayed: bool,
+    has_event_listeners: bool,
+    is_document_element: bool,
+    short_value: String,
+    incomplete_value: bool,
 }
 
 pub struct NodeActor {
-    pub name: String,
+    name: String,
     script_chan: IpcSender<DevtoolScriptControlMsg>,
     pipeline: PipelineId,
 }
@@ -120,33 +116,31 @@ impl NodeInfoToProtocol for NodeInfo {
         script_chan: IpcSender<DevtoolScriptControlMsg>,
         pipeline: PipelineId,
     ) -> NodeActorMsg {
-        let actor_name = if !actors.script_actor_registered(self.uniqueId.clone()) {
+        let actor_name = if !actors.script_actor_registered(self.unique_id.clone()) {
             let name = actors.new_name("node");
             let node_actor = NodeActor {
                 name: name.clone(),
                 script_chan,
                 pipeline,
             };
-            actors.register_script_actor(self.uniqueId, name.clone());
+            actors.register_script_actor(self.unique_id, name.clone());
             actors.register_later(Box::new(node_actor));
             name
         } else {
-            actors.script_to_actor(self.uniqueId)
+            actors.script_to_actor(self.unique_id)
         };
 
         NodeActorMsg {
             actor: actor_name,
-            baseURI: self.baseURI,
+            base_uri: self.base_uri,
             parent: actors.script_to_actor(self.parent.clone()),
-            nodeType: self.nodeType,
-            namespaceURI: self.namespaceURI,
-            nodeName: self.nodeName,
-            numChildren: self.numChildren,
-
+            node_type: self.node_type,
+            namespace_uri: self.namespace_uri,
+            node_name: self.node_name,
+            num_children: self.num_children,
             name: self.name,
-            publicId: self.publicId,
-            systemId: self.systemId,
-
+            public_id: self.public_id,
+            system_id: self.system_id,
             attrs: self
                 .attrs
                 .into_iter()
@@ -156,17 +150,12 @@ impl NodeInfoToProtocol for NodeInfo {
                     value: attr.value,
                 })
                 .collect(),
-
-            pseudoClassLocks: vec![], //TODO get this data from script
-
-            isDisplayed: display,
-
-            hasEventListeners: false, //TODO get this data from script
-
-            isDocumentElement: self.isDocumentElement,
-
-            shortValue: self.shortValue,
-            incompleteValue: self.incompleteValue,
+            pseudo_class_locks: vec![], //TODO: get this data from script
+            is_displayed: display,
+            has_event_listeners: false, //TODO: get this data from script
+            is_document_element: self.is_document_element,
+            short_value: self.short_value,
+            incomplete_value: self.incomplete_value,
         }
     }
 }
