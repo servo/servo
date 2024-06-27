@@ -41,7 +41,7 @@ impl ResourceReaderMethods for ResourceReaderInstance {
             },
             Resource::CrashHTML => &include_bytes!("../../../resources/crash.html")[..],
             Resource::DirectoryListingHTML => {
-                &include_bytes!("../../../../resources/directory-listing.html")[..]
+                &include_bytes!("../../../resources/directory-listing.html")[..]
             },
         })
     }
