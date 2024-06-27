@@ -67,7 +67,7 @@ impl SessionContext {
                 ("network-event-stacktrace", false),
                 ("reflow", false),
                 ("stylesheet", false),
-                ("source", false),
+                ("source", true),
                 ("thread-state", false),
                 ("server-sent-event", false),
                 ("websocket", false),
@@ -95,6 +95,13 @@ struct WatchTargetsReply {
     #[serde(rename = "type")]
     type_: String,
     target: BrowsingContextActorMsg,
+}
+
+#[derive(Serialize)]
+struct GetParentBrowsingContextIDReply {
+    from: String,
+    #[serde(rename = "browsingContextID")]
+    browsing_context_id: u32,
 }
 
 #[derive(Serialize)]
@@ -154,18 +161,15 @@ impl Actor for WatcherActor {
         stream: &mut TcpStream,
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
+        let target = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
         Ok(match msg_type {
             "watchTargets" => {
-                let target = registry
-                    .find::<BrowsingContextActor>(&self.browsing_context_actor)
-                    .encodable();
                 let _ = stream.write_json_packet(&WatchTargetsReply {
                     from: self.name(),
                     type_: "target-available-form".into(),
-                    target,
+                    target: target.encodable(),
                 });
 
-                let target = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
                 target.frame_update(stream);
 
                 // Messages that contain a `type` field are used to send event callbacks, but they
@@ -190,11 +194,11 @@ impl Actor for WatcherActor {
                         continue;
                     };
 
-                    let target =
-                        registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
-
-                    if resource == "document-event" {
-                        target.document_event(stream);
+                    match resource {
+                        "document-event" => {
+                            target.document_event(stream);
+                        },
+                        _ => {},
                     }
 
                     let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
@@ -202,8 +206,16 @@ impl Actor for WatcherActor {
 
                 ActorMessageStatus::Processed
             },
+            "getParentBrowsingContextID" => {
+                let browsing_context_id = target.browsing_context_id.index.0.get();
+                let _ = stream.write_json_packet(&GetParentBrowsingContextIDReply {
+                    from: self.name(),
+                    browsing_context_id,
+                });
+
+                ActorMessageStatus::Processed
+            },
             "getTargetConfigurationActor" => {
-                let target = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
                 let target_configuration =
                     registry.find::<TargetConfigurationActor>(&target.target_configuration);
 
@@ -215,7 +227,6 @@ impl Actor for WatcherActor {
                 ActorMessageStatus::Processed
             },
             "getThreadConfigurationActor" => {
-                let target = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
                 let thread_configuration =
                     registry.find::<ThreadConfigurationActor>(&target.thread_configuration);
 

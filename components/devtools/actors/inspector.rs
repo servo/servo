@@ -21,7 +21,7 @@ use serde_json::{self, Map, Value};
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::protocol::JsonPacketStream;
-use crate::StreamId;
+use crate::{EmptyReplyMsg, StreamId};
 
 pub struct InspectorActor {
     pub name: String,
@@ -152,14 +152,14 @@ struct WalkerMsg {
     root: NodeActorMsg,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 struct AttrMsg {
     namespace: String,
     name: String,
     value: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 struct NodeActorMsg {
     actor: String,
     baseURI: String,
@@ -186,6 +186,8 @@ struct NodeActorMsg {
     shortValue: String,
     incompleteValue: bool,
 }
+
+/*{"walker":{"actor":"server1.conn0.process5//domwalker49","root":{"actor":"server1.conn0.process5//domnode48","baseURI":"https://servo.org/","nodeType":9,"nodeName":"#document","nodeValue":null,"displayName":"#document","numChildren":2,"displayType":null,"isScrollable":false,"isTopLevelDocument":true,"causesOverflow":false,"containerType":null,"isMarkerPseudoElement":false,"isBeforePseudoElement":false,"isAfterPseudoElement":false,"isAnonymous":false,"isNativeAnonymous":false,"isShadowRoot":false,"shadowRootMode":null,"isDirectShadowHostChild":null,"mutationBreakpoints":{"subtree":false,"removal":false,"attribute":false},"isDisplayed":true,"isInHTMLDocument":null,"traits":{}},"traits":{}},"from":"server1.conn0.process5//inspectorActor4"}*/
 
 trait NodeInfoToProtocol {
     fn encode(
@@ -256,10 +258,13 @@ impl NodeInfoToProtocol for NodeInfo {
     }
 }
 
+// TODO: Create CSS Propperties actor
+
 struct WalkerActor {
     name: String,
     script_chan: IpcSender<DevtoolScriptControlMsg>,
     pipeline: PipelineId,
+    root_node: NodeActorMsg,
 }
 
 #[derive(Serialize)]
@@ -284,6 +289,14 @@ struct ChildrenReply {
     hasLast: bool,
     nodes: Vec<NodeActorMsg>,
     from: String,
+}
+
+#[derive(Serialize)]
+struct WatchRootNodeReply {
+    #[serde(rename = "type")]
+    type_: String,
+    from: String,
+    node: NodeActorMsg,
 }
 
 impl Actor for WalkerActor {
@@ -353,6 +366,18 @@ impl Actor for WalkerActor {
                     from: self.name(),
                 };
                 let _ = stream.write_json_packet(&msg);
+                ActorMessageStatus::Processed
+            },
+
+            "watchRootNode" => {
+                let _ = stream.write_json_packet(&WatchRootNodeReply {
+                    type_: "root-available".into(),
+                    from: self.name(),
+                    node: self.root_node.clone(),
+                });
+
+                let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
+
                 ActorMessageStatus::Processed
             },
 
@@ -612,28 +637,29 @@ impl Actor for InspectorActor {
         let pipeline = browsing_context.active_pipeline.get();
         Ok(match msg_type {
             "getWalker" => {
+                let (tx, rx) = ipc::channel().unwrap();
+                self.script_chan.send(GetRootNode(pipeline, tx)).unwrap();
+                let root_info = rx.recv().unwrap().ok_or(())?;
+
+                let root = root_info.encode(registry, false, self.script_chan.clone(), pipeline);
+
                 if self.walker.borrow().is_none() {
                     let walker = WalkerActor {
                         name: registry.new_name("walker"),
                         script_chan: self.script_chan.clone(),
                         pipeline,
+                        root_node: root.clone(),
                     };
                     let mut walker_name = self.walker.borrow_mut();
                     *walker_name = Some(walker.name());
                     registry.register_later(Box::new(walker));
                 }
 
-                let (tx, rx) = ipc::channel().unwrap();
-                self.script_chan.send(GetRootNode(pipeline, tx)).unwrap();
-                let root_info = rx.recv().unwrap().ok_or(())?;
-
-                let node = root_info.encode(registry, false, self.script_chan.clone(), pipeline);
-
                 let msg = GetWalkerReply {
                     from: self.name(),
                     walker: WalkerMsg {
                         actor: self.walker.borrow().clone().unwrap(),
-                        root: node,
+                        root,
                     },
                 };
                 let _ = stream.write_json_packet(&msg);
