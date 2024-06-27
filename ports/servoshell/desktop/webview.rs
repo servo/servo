@@ -343,7 +343,7 @@ where
                         self.event_queue.push(event);
                     }
                 } else {
-                    self.event_queue.push(EmbedderEvent::Quit);
+                    self.platform_handle_key(key_event.clone());
                 }
             })
             .otherwise(|| self.platform_handle_key(key_event));

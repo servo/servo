@@ -186,7 +186,8 @@ Run Servo with the command:
 - `Ctrl`+`=` zooms in (`Cmd`+`=` on Mac)
 - `Alt`+`left arrow` goes backwards in the history (`Cmd`+`left arrow` on Mac)
 - `Alt`+`right arrow` goes forwards in the history (`Cmd`+`right arrow` on Mac)
-- `Esc` or `Ctrl`+`Q` exits Servo (`Cmd`+`Q` on Mac)
+- `Ctrl`+`Q` exits Servo (`Cmd`+`Q` on Mac)
+- `Esc` exits fullscreen
 
 ### Runtime dependencies
 
