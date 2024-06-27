@@ -24,11 +24,15 @@ use js::jsapi::{
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle};
 
-use super::bindings::import::module::Fallible;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
+use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
+    ReadableStreamGetReaderOptions, ReadableStreamMethods,
+};
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource;
 use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
 use crate::dom::bindings::error::Error;
+use crate::dom::bindings::import::module::Fallible;
+use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultReaderOrReadableStreamBYOBReader as ReadableStreamReader;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
@@ -346,6 +350,29 @@ impl ReadableStream {
         }
 
         locked_or_disturbed
+    }
+}
+
+impl ReadableStreamMethods for ReadableStream {
+    /// <https://streams.spec.whatwg.org/#rs-locked>
+    fn Locked(&self) -> bool {
+        // TODO
+        false
+    }
+
+    /// <https://streams.spec.whatwg.org/#rs-cancel>
+    fn Cancel(&self, _cx: SafeJSContext, _reason: SafeHandleValue) -> Rc<Promise> {
+        // TODO
+        Promise::new(&self.reflector_.global())
+    }
+
+    /// <https://streams.spec.whatwg.org/#rs-get-reader>
+    fn GetReader(
+        &self,
+        _options: &ReadableStreamGetReaderOptions,
+    ) -> Fallible<ReadableStreamReader> {
+        // TODO
+        Err(Error::NotFound)
     }
 }
 
