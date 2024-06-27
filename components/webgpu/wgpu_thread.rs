@@ -756,7 +756,7 @@ impl WGPU {
                         command_encoder_id,
                         compute_pass_id,
                         label,
-                        device_id,
+                        device_id: _device_id,
                     } => {
                         let global = &self.global;
                         let (pass, error) = gfx_select!(
@@ -770,7 +770,8 @@ impl WGPU {
                                 .is_none(),
                             "ComputePass should not exist yet."
                         );
-                        self.maybe_dispatch_wgpu_error(device_id, error);
+                        // TODO: Command encoder state errors
+                        // self.maybe_dispatch_wgpu_error(device_id, error);
                     },
                     WebGPURequest::ComputePassSetPipeline {
                         compute_pass_id,
@@ -842,26 +843,22 @@ impl WGPU {
                         device_id,
                         command_encoder_id,
                     } => {
-                        let error = if let Some((mut pass, valid)) =
+                        // TODO: Command encoder state error
+                        if let Some((mut pass, valid)) =
                             self.compute_passes.remove(&compute_pass_id)
                         {
-                            // generate validation error and stop
-                            match pass.end(&self.global) {
-                                Ok(_) => {
-                                    if !valid {
-                                        self.encoder_record_error(
-                                            command_encoder_id,
-                                            &Err::<(), _>("Pass is invalid".to_string()),
-                                        );
-                                    }
-                                    None
-                                },
-                                Err(e) => Some(Error::from_error(e)),
+                            if pass.end(&self.global).is_ok() && !valid {
+                                self.encoder_record_error(
+                                    command_encoder_id,
+                                    &Err::<(), _>("Pass is invalid".to_string()),
+                                );
                             }
                         } else {
-                            Some(Error::Validation("pass already ended".to_string()))
+                            self.dispatch_error(
+                                device_id,
+                                Error::Validation("pass already ended".to_string()),
+                            );
                         };
-                        self.maybe_dispatch_error(device_id, error);
                     },
                     WebGPURequest::EndRenderPass {
                         render_pass,
