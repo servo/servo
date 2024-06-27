@@ -240,8 +240,7 @@ impl PositioningContext {
         self.append(new_context);
 
         if style.clone_position() == Position::Relative {
-            new_fragment.content_rect.start_corner +=
-                &relative_adjustement(style, containing_block);
+            new_fragment.content_rect.start_corner += relative_adjustement(style, containing_block);
         }
 
         new_fragment
@@ -690,7 +689,7 @@ impl HoistedAbsolutelyPositionedBox {
                 block_end: block_axis.margin_end,
             };
 
-            let pb = &pbm.padding + &pbm.border;
+            let pb = pbm.padding + pbm.border;
             let inline_start = match inline_axis.anchor {
                 Anchor::Start(start) => start + pb.inline_start + margin.inline_start,
                 Anchor::End(end) => {
