@@ -65,8 +65,8 @@ pub fn init(
         )
     };
     assert_eq!(res, 0, "OH_NativeXComponent_GetXComponentSize failed");
-    let width: i32 = width.try_into().expect("Width to large");
-    let height: i32 = height.try_into().expect("Height to large");
+    let width: i32 = width.try_into().expect("Width too large");
+    let height: i32 = height.try_into().expect("Height too large");
     //
     // let mut offsetX: f64 = 0.0;
     // let mut offsetY: f64 = 0.0;
