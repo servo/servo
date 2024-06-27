@@ -52,6 +52,7 @@ mod actors {
     pub mod browsing_context;
     pub mod configuration;
     pub mod console;
+    pub mod css_properties;
     pub mod device;
     pub mod emulation;
     pub mod framerate;

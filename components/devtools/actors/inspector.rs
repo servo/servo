@@ -57,8 +57,6 @@ pub struct InspectorActor {
     pub browsing_context: String,
 }
 
-// TODO: Create CSS Propperties actor
-
 impl Actor for InspectorActor {
     fn name(&self) -> String {
         self.name.clone()
