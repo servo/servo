@@ -4,7 +4,6 @@
 
 //! Data and main loop of WebGPU thread.
 
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::slice;
 use std::sync::{Arc, Mutex};
@@ -26,14 +25,15 @@ use wgc::instance::parse_backends_from_comma_list;
 use wgc::pipeline::ShaderModuleDescriptor;
 use wgc::resource::{BufferMapCallback, BufferMapOperation};
 use wgc::{gfx_select, id};
+use wgpu_core::command::{ComputePassDescriptor, DynComputePass};
 use wgt::InstanceDescriptor;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
 
 use crate::gpu_error::ErrorScope;
 use crate::poll_thread::Poller;
 use crate::{
-    Error, PopError, PresentationData, Transmute, WebGPU, WebGPUAdapter, WebGPUDevice, WebGPUMsg,
-    WebGPUQueue, WebGPURequest, WebGPUResponse,
+    ComputePassId, Error, PopError, PresentationData, Transmute, WebGPU, WebGPUAdapter,
+    WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
 };
 
 pub const PRESENTATION_BUFFER_COUNT: usize = 10;
@@ -73,13 +73,20 @@ pub(crate) struct WGPU {
     devices: Arc<Mutex<HashMap<DeviceId, DeviceScope>>>,
     // Track invalid adapters https://gpuweb.github.io/gpuweb/#invalid
     _invalid_adapters: Vec<WebGPUAdapter>,
-    //TODO: Remove this (https://github.com/gfx-rs/wgpu/issues/867)
-    error_command_encoders: RefCell<HashMap<id::CommandEncoderId, String>>,
+    // TODO: Remove this (https://github.com/gfx-rs/wgpu/issues/867)
+    /// This stores first error on command encoder,
+    /// because wgpu does not invalidate command encoder object
+    /// (this is also reused for invalidation of command buffers)
+    error_command_encoders: HashMap<id::CommandEncoderId, String>,
     webrender_api: Arc<Mutex<RenderApi>>,
     webrender_document: DocumentId,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     wgpu_image_map: Arc<Mutex<HashMap<u64, PresentationData>>>,
+    /// Provides access to poller thread
     poller: Poller,
+    /// Store compute passes (that have not ended yet) and their validity
+    compute_passes: HashMap<ComputePassId, (Box<dyn DynComputePass>, bool)>,
+    //render_passes: HashMap<RenderPassId, Box<dyn DynRenderPass>>,
 }
 
 impl WGPU {
@@ -118,11 +125,12 @@ impl WGPU {
             adapters: Vec::new(),
             devices: Arc::new(Mutex::new(HashMap::new())),
             _invalid_adapters: Vec::new(),
-            error_command_encoders: RefCell::new(HashMap::new()),
+            error_command_encoders: HashMap::new(),
             webrender_api: Arc::new(Mutex::new(webrender_api_sender.create_api())),
             webrender_document,
             external_images,
             wgpu_image_map,
+            compute_passes: HashMap::new(),
         }
     }
 
@@ -199,13 +207,11 @@ impl WGPU {
                     } => {
                         let global = &self.global;
                         let result = if is_error {
-                            Err(Error::Internal(String::from("Invalid GPUCommandEncoder")))
-                        } else if let Some(err) = self
-                            .error_command_encoders
-                            .borrow()
-                            .get(&command_encoder_id)
+                            Err(Error::Validation(String::from("Invalid GPUCommandEncoder")))
+                        } else if let Some(err) =
+                            self.error_command_encoders.get(&command_encoder_id)
                         {
-                            Err(Error::Internal(err.clone()))
+                            Err(Error::Validation(err.clone()))
                         } else if let Some(error) =
                             gfx_select!(command_encoder_id => global.command_encoder_finish(
                                 command_encoder_id,
@@ -218,7 +224,9 @@ impl WGPU {
                             Ok(())
                         };
 
+                        // invalidate command buffer too
                         self.encoder_record_error(command_encoder_id, &result);
+                        // dispatch validation error
                         self.maybe_dispatch_error(device_id, result.err());
                     },
                     WebGPURequest::CopyBufferToBuffer {
@@ -575,7 +583,6 @@ impl WGPU {
                     },
                     WebGPURequest::DropCommandBuffer(id) => {
                         self.error_command_encoders
-                            .borrow_mut()
                             .remove(&id.into_command_encoder_id());
                         let global = &self.global;
                         gfx_select!(id => global.command_buffer_drop(id));
@@ -745,35 +752,129 @@ impl WGPU {
                             )
                         }
                     },
-                    WebGPURequest::RunComputePass {
+                    WebGPURequest::BeginComputePass {
                         command_encoder_id,
-                        compute_pass,
+                        compute_pass_id,
+                        label,
+                        device_id: _device_id,
                     } => {
                         let global = &self.global;
-                        let result = if let Some(pass) = compute_pass {
-                            gfx_select!(command_encoder_id => global.command_encoder_run_compute_pass(
+                        let (pass, error) = gfx_select!(
+                            command_encoder_id => global.command_encoder_create_compute_pass_dyn(
                                 command_encoder_id,
-                                &pass
-                            )).map_err(|e| format!("{:?}", e))
-                        } else {
-                            Err(String::from("Invalid ComputePass"))
-                        };
-                        self.encoder_record_error(command_encoder_id, &result);
+                                &ComputePassDescriptor { label, timestamp_writes: None }
+                        ));
+                        assert!(
+                            self.compute_passes
+                                .insert(compute_pass_id, (pass, error.is_none()))
+                                .is_none(),
+                            "ComputePass should not exist yet."
+                        );
+                        // TODO: Command encoder state errors
+                        // self.maybe_dispatch_wgpu_error(device_id, error);
                     },
-                    WebGPURequest::RunRenderPass {
-                        command_encoder_id,
-                        render_pass,
+                    WebGPURequest::ComputePassSetPipeline {
+                        compute_pass_id,
+                        pipeline_id,
+                        device_id,
                     } => {
-                        let global = &self.global;
-                        let result = if let Some(pass) = render_pass {
-                            gfx_select!(command_encoder_id => global.command_encoder_run_render_pass(
-                                command_encoder_id,
-                                &pass
-                            )).map_err(|e| format!("{:?}", e))
+                        if let Some((pass, valid)) = self.compute_passes.get_mut(&compute_pass_id) {
+                            *valid &= pass.set_pipeline(&self.global, pipeline_id).is_ok();
                         } else {
-                            Err(String::from("Invalid RenderPass"))
+                            self.maybe_dispatch_error(
+                                device_id,
+                                Some(Error::Validation("pass already ended".to_string())),
+                            );
                         };
-                        self.encoder_record_error(command_encoder_id, &result);
+                    },
+                    WebGPURequest::ComputePassSetBindGroup {
+                        compute_pass_id,
+                        index,
+                        bind_group_id,
+                        offsets,
+                        device_id,
+                    } => {
+                        if let Some((pass, valid)) = self.compute_passes.get_mut(&compute_pass_id) {
+                            *valid &= pass
+                                .set_bind_group(&self.global, index, bind_group_id, &offsets)
+                                .is_ok();
+                        } else {
+                            self.maybe_dispatch_error(
+                                device_id,
+                                Some(Error::Validation("pass already ended".to_string())),
+                            );
+                        };
+                    },
+                    WebGPURequest::ComputePassDispatchWorkgroups {
+                        compute_pass_id,
+                        x,
+                        y,
+                        z,
+                        device_id,
+                    } => {
+                        if let Some((pass, valid)) = self.compute_passes.get_mut(&compute_pass_id) {
+                            *valid &= pass.dispatch_workgroups(&self.global, x, y, z).is_ok();
+                        } else {
+                            self.maybe_dispatch_error(
+                                device_id,
+                                Some(Error::Validation("pass already ended".to_string())),
+                            );
+                        };
+                    },
+                    WebGPURequest::ComputePassDispatchWorkgroupsIndirect {
+                        compute_pass_id,
+                        buffer_id,
+                        offset,
+                        device_id,
+                    } => {
+                        if let Some((pass, valid)) = self.compute_passes.get_mut(&compute_pass_id) {
+                            *valid &= pass
+                                .dispatch_workgroups_indirect(&self.global, buffer_id, offset)
+                                .is_ok();
+                        } else {
+                            self.maybe_dispatch_error(
+                                device_id,
+                                Some(Error::Validation("pass already ended".to_string())),
+                            );
+                        };
+                    },
+                    WebGPURequest::EndComputePass {
+                        compute_pass_id,
+                        device_id,
+                        command_encoder_id,
+                    } => {
+                        // TODO: Command encoder state error
+                        if let Some((mut pass, valid)) =
+                            self.compute_passes.remove(&compute_pass_id)
+                        {
+                            if pass.end(&self.global).is_ok() && !valid {
+                                self.encoder_record_error(
+                                    command_encoder_id,
+                                    &Err::<(), _>("Pass is invalid".to_string()),
+                                );
+                            }
+                        } else {
+                            self.dispatch_error(
+                                device_id,
+                                Error::Validation("pass already ended".to_string()),
+                            );
+                        };
+                    },
+                    WebGPURequest::EndRenderPass {
+                        render_pass,
+                        device_id,
+                    } => {
+                        if let Some(render_pass) = render_pass {
+                            let command_encoder_id = render_pass.parent_id();
+                            let global = &self.global;
+                            let result = gfx_select!(command_encoder_id => global.render_pass_end(&render_pass));
+                            self.maybe_dispatch_wgpu_error(device_id, result.err())
+                        } else {
+                            self.dispatch_error(
+                                device_id,
+                                Error::Validation("Render pass already ended".to_string()),
+                            )
+                        }
                     },
                     WebGPURequest::Submit {
                         queue_id,
@@ -782,11 +883,10 @@ impl WGPU {
                         let global = &self.global;
                         let cmd_id = command_buffers.iter().find(|id| {
                             self.error_command_encoders
-                                .borrow()
                                 .contains_key(&id.into_command_encoder_id())
                         });
                         let result = if cmd_id.is_some() {
-                            Err(Error::Internal(String::from(
+                            Err(Error::Validation(String::from(
                                 "Invalid command buffer submitted",
                             )))
                         } else {
@@ -1026,7 +1126,8 @@ impl WGPU {
                     },
                     WebGPURequest::DropTexture(id) => {
                         let global = &self.global;
-                        gfx_select!(id => global.texture_drop(id, true));
+                        gfx_select!(id => global.texture_drop(id, false));
+                        self.poller.wake();
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeTexture(id)) {
                             warn!("Unable to send FreeTexture({:?}) ({:?})", id, e);
                         };
@@ -1040,7 +1141,8 @@ impl WGPU {
                     },
                     WebGPURequest::DropBuffer(id) => {
                         let global = &self.global;
-                        gfx_select!(id => global.buffer_drop(id, true));
+                        gfx_select!(id => global.buffer_drop(id, false));
+                        self.poller.wake();
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeBuffer(id)) {
                             warn!("Unable to send FreeBuffer({:?}) ({:?})", id, e);
                         };
@@ -1058,6 +1160,13 @@ impl WGPU {
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeComputePipeline(id))
                         {
                             warn!("Unable to send FreeComputePipeline({:?}) ({:?})", id, e);
+                        };
+                    },
+                    WebGPURequest::DropComputePass(id) => {
+                        // Compute pass might have already ended
+                        self.compute_passes.remove(&id);
+                        if let Err(e) = self.script_sender.send(WebGPUMsg::FreeComputePass(id)) {
+                            warn!("Unable to send FreeComputePass({:?}) ({:?})", id, e);
                         };
                     },
                     WebGPURequest::DropRenderPipeline(id) => {
@@ -1084,7 +1193,8 @@ impl WGPU {
                     },
                     WebGPURequest::DropTextureView(id) => {
                         let global = &self.global;
-                        let _result = gfx_select!(id => global.texture_view_drop(id, true));
+                        let _result = gfx_select!(id => global.texture_view_drop(id, false));
+                        self.poller.wake();
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeTextureView(id)) {
                             warn!("Unable to send FreeTextureView({:?}) ({:?})", id, e);
                         };
@@ -1214,13 +1324,12 @@ impl WGPU {
     }
 
     fn encoder_record_error<U, T: std::fmt::Debug>(
-        &self,
+        &mut self,
         encoder_id: id::CommandEncoderId,
         result: &Result<U, T>,
     ) {
         if let Err(ref e) = result {
             self.error_command_encoders
-                .borrow_mut()
                 .entry(encoder_id)
                 .or_insert_with(|| format!("{:?}", e));
         }

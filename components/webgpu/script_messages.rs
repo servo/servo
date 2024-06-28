@@ -10,9 +10,9 @@ use serde::{Deserialize, Serialize};
 use crate::gpu_error::Error;
 use crate::identity::WebGPUDevice;
 use crate::wgc::id::{
-    AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, ComputePipelineId,
-    DeviceId, PipelineLayoutId, QuerySetId, RenderBundleId, RenderPipelineId, SamplerId,
-    ShaderModuleId, StagingBufferId, SurfaceId, TextureId, TextureViewId,
+    AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, ComputePassEncoderId,
+    ComputePipelineId, DeviceId, PipelineLayoutId, QuerySetId, RenderBundleId, RenderPipelineId,
+    SamplerId, ShaderModuleId, StagingBufferId, SurfaceId, TextureId, TextureViewId,
 };
 
 /// <https://gpuweb.github.io/gpuweb/#enumdef-gpudevicelostreason>
@@ -44,6 +44,7 @@ pub enum WebGPUMsg {
     FreeRenderBundle(RenderBundleId),
     FreeStagingBuffer(StagingBufferId),
     FreeQuerySet(QuerySetId),
+    FreeComputePass(ComputePassEncoderId),
     UncapturedError {
         device: WebGPUDevice,
         pipeline_id: PipelineId,

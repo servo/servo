@@ -214,11 +214,11 @@ checksum = "175571dd1d178ced59193a6fc02dde1b972eb0bc56c892cde9beeceac5bf0f6b"
 
 [[package]]
 name = "ash"
-version = "0.37.3+1.3.251"
+version = "0.38.0+1.3.281"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39e9c3835d686b0a6084ab4234fcd1b07dbf6e4767dce60874b12356a25ecd4a"
+checksum = "0bb44936d800fea8f016d7f2311c6a4f97aebd5dc86f09906139ec848cf3a46f"
 dependencies = [
- "libloading 0.7.4",
+ "libloading 0.8.4",
 ]
 
 [[package]]
@@ -1176,10 +1176,10 @@ checksum = "96a6ac251f4a2aca6b3f91340350eab87ae57c3f127ffeb585e92bd336717991"
 [[package]]
 name = "d3d12"
 version = "0.20.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=d0a5e48aa7e84683114c3870051cc414ae92ac03#d0a5e48aa7e84683114c3870051cc414ae92ac03"
+source = "git+https://github.com/gfx-rs/wgpu?rev=1e784c9c0af7a785b62e3b6840ed012a7477520f#1e784c9c0af7a785b62e3b6840ed012a7477520f"
 dependencies = [
  "bitflags 2.6.0",
- "libloading 0.8.4",
+ "libloading 0.7.4",
  "winapi",
 ]
 
@@ -2261,9 +2261,9 @@ dependencies = [
 
 [[package]]
 name = "glutin_wgl_sys"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c8098adac955faa2d31079b65dc48841251f69efd3ac25477903fc424362ead"
+checksum = "0a4e1951bbd9434a81aa496fe59ccc2235af3820d27b85f9314e279609211e2c"
 dependencies = [
  "gl_generator",
 ]
@@ -4003,7 +4003,7 @@ checksum = "956787520e75e9bd233246045d19f42fb73242759cc57fba9611d940ae96d4b0"
 [[package]]
 name = "naga"
 version = "0.20.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=d0a5e48aa7e84683114c3870051cc414ae92ac03#d0a5e48aa7e84683114c3870051cc414ae92ac03"
+source = "git+https://github.com/gfx-rs/wgpu?rev=1e784c9c0af7a785b62e3b6840ed012a7477520f#1e784c9c0af7a785b62e3b6840ed012a7477520f"
 dependencies = [
  "arrayvec",
  "bit-set",
@@ -4012,7 +4012,6 @@ dependencies = [
  "hexf-parse",
  "indexmap",
  "log",
- "num-traits",
  "rustc-hash",
  "serde",
  "spirv",
@@ -7295,7 +7294,7 @@ checksum = "53a85b86a771b1c87058196170769dd264f66c0782acf1ae6cc51bfd64b39082"
 [[package]]
 name = "wgpu-core"
 version = "0.20.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=d0a5e48aa7e84683114c3870051cc414ae92ac03#d0a5e48aa7e84683114c3870051cc414ae92ac03"
+source = "git+https://github.com/gfx-rs/wgpu?rev=1e784c9c0af7a785b62e3b6840ed012a7477520f#1e784c9c0af7a785b62e3b6840ed012a7477520f"
 dependencies = [
  "arrayvec",
  "bit-vec",
@@ -7313,7 +7312,6 @@ dependencies = [
  "serde",
  "smallvec",
  "thiserror",
- "web-sys",
  "wgpu-hal",
  "wgpu-types",
 ]
@@ -7321,7 +7319,7 @@ dependencies = [
 [[package]]
 name = "wgpu-hal"
 version = "0.20.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=d0a5e48aa7e84683114c3870051cc414ae92ac03#d0a5e48aa7e84683114c3870051cc414ae92ac03"
+source = "git+https://github.com/gfx-rs/wgpu?rev=1e784c9c0af7a785b62e3b6840ed012a7477520f#1e784c9c0af7a785b62e3b6840ed012a7477520f"
 dependencies = [
  "android_system_properties",
  "arrayvec",
@@ -7339,7 +7337,7 @@ dependencies = [
  "js-sys",
  "khronos-egl",
  "libc",
- "libloading 0.8.4",
+ "libloading 0.7.4",
  "log",
  "metal 0.28.0",
  "naga",
@@ -7362,7 +7360,7 @@ dependencies = [
 [[package]]
 name = "wgpu-types"
 version = "0.20.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=d0a5e48aa7e84683114c3870051cc414ae92ac03#d0a5e48aa7e84683114c3870051cc414ae92ac03"
+source = "git+https://github.com/gfx-rs/wgpu?rev=1e784c9c0af7a785b62e3b6840ed012a7477520f#1e784c9c0af7a785b62e3b6840ed012a7477520f"
 dependencies = [
  "bitflags 2.6.0",
  "js-sys",

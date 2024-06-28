@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use smallvec::SmallVec;
+use webgpu::identity::{ComputePass, ComputePassId};
 use webgpu::wgc::id::markers::{
     Adapter, BindGroup, BindGroupLayout, Buffer, CommandEncoder, ComputePipeline, Device,
     PipelineLayout, RenderBundle, RenderPipeline, Sampler, ShaderModule, Texture, TextureView,
@@ -31,6 +32,7 @@ pub struct IdentityHub {
     samplers: IdentityManager<Sampler>,
     render_pipelines: IdentityManager<RenderPipeline>,
     render_bundles: IdentityManager<RenderBundle>,
+    compute_passes: IdentityManager<ComputePass>,
 }
 
 impl IdentityHub {
@@ -50,6 +52,7 @@ impl IdentityHub {
             samplers: IdentityManager::new(),
             render_pipelines: IdentityManager::new(),
             render_bundles: IdentityManager::new(),
+            compute_passes: IdentityManager::new(),
         }
     }
 }
@@ -224,6 +227,14 @@ impl Identities {
 
     pub fn kill_render_bundle_id(&mut self, id: RenderBundleId) {
         self.select(id.backend()).render_bundles.free(id);
+    }
+
+    pub fn create_compute_pass_id(&mut self, backend: Backend) -> ComputePassId {
+        self.select(backend).compute_passes.process(backend)
+    }
+
+    pub fn kill_compute_pass_id(&mut self, id: ComputePassId) {
+        self.select(id.backend()).compute_passes.free(id);
     }
 }
 
