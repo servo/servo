@@ -3,12 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::rust::HandleValue as SafeHandleValue;
+use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
 use crate::dom::bindings::codegen::Bindings::ReadableByteStreamControllerBinding::ReadableByteStreamControllerMethods;
+use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource;
 use crate::dom::bindings::import::module::{Error, Fallible};
 use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::readablestream::ReadableStream;
 use crate::script_runtime::JSContext as SafeJSContext;
 
 /// <https://streams.spec.whatwg.org/#readablebytestreamcontroller>
@@ -53,4 +55,16 @@ impl ReadableByteStreamControllerMethods for ReadableByteStreamController {
         // TODO
         Err(Error::NotFound)
     }
+}
+
+/// <https://streams.spec.whatwg.org/#set-up-readable-byte-stream-controller-from-underlying-source>
+pub fn setup_readable_byte_stream_controller_from_underlying_source(
+    _cx: SafeJSContext,
+    _stream: &ReadableStream,
+    _underlying_source_obj: SafeHandleObject,
+    _underlying_source_dict: UnderlyingSource,
+    _highwatermark: f64,
+) -> Fallible<()> {
+    // TODO
+    Err(Error::NotFound)
 }
