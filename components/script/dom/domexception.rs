@@ -132,11 +132,11 @@ impl DOMException {
         )
     }
 
-    fn new_inherited(message_: DOMString, name_: DOMString) -> DOMException {
+    pub fn new_inherited(message: DOMString, name: DOMString) -> DOMException {
         DOMException {
             reflector_: Reflector::new(),
-            message: message_,
-            name: name_,
+            message,
+            name,
         }
     }
 

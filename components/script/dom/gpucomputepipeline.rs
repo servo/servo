@@ -2,20 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::string::String;
-
 use dom_struct::dom_struct;
 use webgpu::{WebGPU, WebGPUBindGroupLayout, WebGPUComputePipeline, WebGPURequest};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUComputePipelineMethods;
-use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
-use crate::dom::gpudevice::GPUDevice;
 
 #[dom_struct]
 pub struct GPUComputePipeline {
@@ -26,9 +23,6 @@ pub struct GPUComputePipeline {
     label: DomRefCell<USVString>,
     #[no_trace]
     compute_pipeline: WebGPUComputePipeline,
-    #[no_trace]
-    bind_group_layouts: Vec<WebGPUBindGroupLayout>,
-    device: Dom<GPUDevice>,
 }
 
 impl GPUComputePipeline {
@@ -36,16 +30,12 @@ impl GPUComputePipeline {
         channel: WebGPU,
         compute_pipeline: WebGPUComputePipeline,
         label: USVString,
-        bgls: Vec<WebGPUBindGroupLayout>,
-        device: &GPUDevice,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
             channel,
             label: DomRefCell::new(label),
             compute_pipeline,
-            bind_group_layouts: bgls,
-            device: Dom::from_ref(device),
         }
     }
 
@@ -54,16 +44,12 @@ impl GPUComputePipeline {
         channel: WebGPU,
         compute_pipeline: WebGPUComputePipeline,
         label: USVString,
-        bgls: Vec<WebGPUBindGroupLayout>,
-        device: &GPUDevice,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUComputePipeline::new_inherited(
                 channel,
                 compute_pipeline,
                 label,
-                bgls,
-                device,
             )),
             global,
         )
@@ -89,13 +75,28 @@ impl GPUComputePipelineMethods for GPUComputePipeline {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpupipelinebase-getbindgrouplayout>
     fn GetBindGroupLayout(&self, index: u32) -> Fallible<DomRoot<GPUBindGroupLayout>> {
-        if index > self.bind_group_layouts.len() as u32 {
-            return Err(Error::Range(String::from("Index out of bounds")));
+        let id = self
+            .global()
+            .wgpu_id_hub()
+            .lock()
+            .create_bind_group_layout_id(self.compute_pipeline.0.backend());
+
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::ComputeGetBindGroupLayout {
+                pipeline_id: self.compute_pipeline.0,
+                index,
+                id,
+            })
+        {
+            warn!("Failed to send WebGPURequest::ComputeGetBindGroupLayout {e:?}");
         }
+
         Ok(GPUBindGroupLayout::new(
             &self.global(),
             self.channel.clone(),
-            self.bind_group_layouts[index as usize],
+            WebGPUBindGroupLayout(id),
             USVString::default(),
         ))
     }

@@ -31,6 +31,12 @@ use crate::identity::*;
 use crate::{Error, ErrorFilter, PopError, WebGPU, PRESENTATION_BUFFER_COUNT};
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct Pipeline<T: std::fmt::Debug + Serialize> {
+    pub id: T,
+    pub label: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 #[allow(clippy::large_enum_variant)]
 pub enum WebGPUResponse {
     RequestAdapter {
@@ -48,6 +54,8 @@ pub enum WebGPUResponse {
     BufferMapAsync(IpcSharedMemory),
     SubmittedWorkDone,
     PoppedErrorScope(Result<Option<Error>, PopError>),
+    RenderPipeline(Result<Pipeline<id::RenderPipelineId>, Error>),
+    ComputePipeline(Result<Pipeline<id::ComputePipelineId>, Error>),
 }
 
 pub type WebGPUResponseResult = Result<WebGPUResponse, String>;
@@ -122,6 +130,8 @@ pub enum WebGPURequest {
         compute_pipeline_id: id::ComputePipelineId,
         descriptor: ComputePipelineDescriptor<'static>,
         implicit_ids: Option<(id::PipelineLayoutId, Vec<id::BindGroupLayoutId>)>,
+        /// present only on ASYNC versions
+        sender: Option<IpcSender<Option<WebGPUResponseResult>>>,
     },
     CreateContext(IpcSender<ExternalImageId>),
     CreatePipelineLayout {
@@ -134,6 +144,8 @@ pub enum WebGPURequest {
         render_pipeline_id: id::RenderPipelineId,
         descriptor: Option<RenderPipelineDescriptor<'static>>,
         implicit_ids: Option<(id::PipelineLayoutId, Vec<id::BindGroupLayoutId>)>,
+        /// present only on ASYNC versions
+        sender: Option<IpcSender<Option<WebGPUResponseResult>>>,
     },
     CreateSampler {
         device_id: id::DeviceId,
@@ -295,5 +307,15 @@ pub enum WebGPURequest {
     PopErrorScope {
         device_id: id::DeviceId,
         sender: IpcSender<Option<WebGPUResponseResult>>,
+    },
+    ComputeGetBindGroupLayout {
+        pipeline_id: id::ComputePipelineId,
+        index: u32,
+        id: id::BindGroupLayoutId,
+    },
+    RenderGetBindGroupLayout {
+        pipeline_id: id::RenderPipelineId,
+        index: u32,
+        id: id::BindGroupLayoutId,
     },
 }
