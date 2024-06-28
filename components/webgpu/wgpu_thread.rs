@@ -84,7 +84,7 @@ pub(crate) struct WGPU {
     wgpu_image_map: Arc<Mutex<HashMap<u64, PresentationData>>>,
     /// Provides access to poller thread
     poller: Poller,
-    /// Store compute passes (that have not ended yet) and their validness
+    /// Store compute passes (that have not ended yet) and their validity
     compute_passes: HashMap<ComputePassId, (Box<dyn DynComputePass>, bool)>,
     //render_passes: HashMap<RenderPassId, Box<dyn DynRenderPass>>,
 }
@@ -1163,7 +1163,7 @@ impl WGPU {
                         };
                     },
                     WebGPURequest::DropComputePass(id) => {
-                        // Compute pass might already ended
+                        // Compute pass might have already ended
                         self.compute_passes.remove(&id);
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeComputePass(id)) {
                             warn!("Unable to send FreeComputePass({:?}) ({:?})", id, e);
