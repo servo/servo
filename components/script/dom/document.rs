@@ -67,7 +67,6 @@ use url::Host;
 use uuid::Uuid;
 use webrender_api::units::DeviceIntRect;
 
-use super::bindings::trace::{HashMapTracedValues, NoTrace};
 use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
 use crate::document_loader::{DocumentLoader, LoadType};
@@ -100,6 +99,7 @@ use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::trace::{HashMapTracedValues, NoTrace};
 use crate::dom::bindings::xmlname::XMLName::InvalidXMLName;
 use crate::dom::bindings::xmlname::{
     namespace_from_domstring, validate_and_extract, xml_name_type,
@@ -153,6 +153,7 @@ use crate::dom::node::{
 use crate::dom::nodeiterator::NodeIterator;
 use crate::dom::nodelist::NodeList;
 use crate::dom::pagetransitionevent::PageTransitionEvent;
+use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::promise::Promise;
 use crate::dom::range::Range;
@@ -167,6 +168,7 @@ use crate::dom::touch::Touch;
 use crate::dom::touchevent::TouchEvent;
 use crate::dom::touchlist::TouchList;
 use crate::dom::treewalker::TreeWalker;
+use crate::dom::types::VisibilityStateEntry;
 use crate::dom::uievent::UIEvent;
 use crate::dom::virtualmethods::vtable_for;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
@@ -726,6 +728,8 @@ impl Document {
                     }
                     // Step 4.6.2
                     document.page_showing.set(true);
+                    // Step 4.6.3
+                    document.update_visibility_state(DocumentVisibilityState::Visible);
                     // Step 4.6.4
                     let event = PageTransitionEvent::new(
                         window,
@@ -2235,7 +2239,8 @@ impl Document {
             let event = event.upcast::<Event>();
             event.set_trusted(true);
             let _ = self.window.dispatch_event_with_target_override(event);
-            // TODO Step 6, document visibility steps.
+            // Step 6
+            self.update_visibility_state(DocumentVisibilityState::Hidden);
         }
         // Step 7
         if !self.fired_unload.get() {
@@ -4094,11 +4099,21 @@ impl Document {
         }
         // Step 2
         self.visibility_state.set(visibility_state);
-        // Step 3
-        // Step 4
-        // Step 5
+        // Step 3 TODO get timestamp
+        let entry = VisibilityStateEntry::new(
+            &self.global(),
+            visibility_state,
+            *self.global().performance().Now(),
+        );
+        self.window
+            .Performance()
+            .queue_entry(entry.upcast::<PerformanceEntry>());
+        // Step 4 TODO ScreenOrientation hasn't implemented yet
+        // Step 5 TODO ScreenOrientation hasn't implemented yet
         // Step 6 ???
         // Step 7
+        self.upcast::<EventTarget>()
+            .fire_bubbling_event(atom!("visibilitychange"));
     }
 }
 
