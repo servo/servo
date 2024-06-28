@@ -714,7 +714,7 @@ fn redirect_stdout_to_logcat() {
 
         let mut cursor = 0_usize;
 
-        let tag = b"servoshell\0".as_ptr() as _;
+        let tag = c"servoshell".as_ptr() as _;
 
         loop {
             let result = {
@@ -735,7 +735,7 @@ fn redirect_stdout_to_logcat() {
                     __android_log_write(
                         3,
                         tag,
-                        b"error in log thread; closing\0".as_ptr() as *const _,
+                        c"error in log thread; closing".as_ptr() as *const _,
                     );
                 }
                 return;
