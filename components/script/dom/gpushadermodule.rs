@@ -7,7 +7,6 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use webgpu::{WebGPU, WebGPURequest, WebGPUShaderModule};
 
-use super::bindings::error::Fallible;
 use super::promise::Promise;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUShaderModuleMethods;
@@ -25,15 +24,23 @@ pub struct GPUShaderModule {
     label: DomRefCell<USVString>,
     #[no_trace]
     shader_module: WebGPUShaderModule,
+    #[ignore_malloc_size_of = "promise"]
+    compilation_info_promise: Rc<Promise>,
 }
 
 impl GPUShaderModule {
-    fn new_inherited(channel: WebGPU, shader_module: WebGPUShaderModule, label: USVString) -> Self {
+    fn new_inherited(
+        channel: WebGPU,
+        shader_module: WebGPUShaderModule,
+        label: USVString,
+        promise: Rc<Promise>,
+    ) -> Self {
         Self {
             reflector_: Reflector::new(),
             channel,
             label: DomRefCell::new(label),
             shader_module,
+            compilation_info_promise: promise,
         }
     }
 
@@ -42,12 +49,14 @@ impl GPUShaderModule {
         channel: WebGPU,
         shader_module: WebGPUShaderModule,
         label: USVString,
+        promise: Rc<Promise>,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUShaderModule::new_inherited(
                 channel,
                 shader_module,
                 label,
+                promise,
             )),
             global,
         )
@@ -72,8 +81,8 @@ impl GPUShaderModuleMethods for GPUShaderModule {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpushadermodule-getcompilationinfo>
-    fn GetCompilationInfo(&self) -> Fallible<Rc<Promise>> {
-        todo!("Missing in wgpu: https://github.com/gfx-rs/wgpu/issues/2170")
+    fn GetCompilationInfo(&self) -> Rc<Promise> {
+        self.compilation_info_promise.clone()
     }
 }
 

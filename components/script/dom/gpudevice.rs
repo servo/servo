@@ -24,7 +24,7 @@ use super::bindings::error::Fallible;
 use super::gpu::AsyncWGPUListener;
 use super::gpudevicelostinfo::GPUDeviceLostInfo;
 use super::gpusupportedlimits::GPUSupportedLimits;
-use super::types::GPUError;
+use super::types::{GPUCompilationInfo, GPUError};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
@@ -539,13 +539,15 @@ impl GPUDeviceMethods for GPUDevice {
     fn CreateShaderModule(
         &self,
         descriptor: RootedTraceableBox<GPUShaderModuleDescriptor>,
+        comp: InRealm,
     ) -> DomRoot<GPUShaderModule> {
         let program_id = self
             .global()
             .wgpu_id_hub()
             .lock()
             .create_shader_module_id(self.device.0.backend());
-
+        let promise = Promise::new_in_current_realm(comp);
+        let sender = response_async(&promise, self);
         self.channel
             .0
             .send(WebGPURequest::CreateShaderModule {
@@ -553,6 +555,7 @@ impl GPUDeviceMethods for GPUDevice {
                 program_id,
                 program: descriptor.code.0.clone(),
                 label: None,
+                sender,
             })
             .expect("Failed to create WebGPU ShaderModule");
 
@@ -562,6 +565,7 @@ impl GPUDeviceMethods for GPUDevice {
             self.channel.clone(),
             shader_module,
             descriptor.parent.label.clone().unwrap_or_default(),
+            promise,
         )
     }
 
@@ -1028,6 +1032,10 @@ impl AsyncWGPUListener for GPUDevice {
                     let error = GPUError::from_error(&self.global(), error);
                     promise.resolve_native(&error);
                 },
+            },
+            Some(Ok(WebGPUResponse::CompilationInfo(info))) => {
+                let info = GPUCompilationInfo::from(&self.global(), info);
+                promise.resolve_native(&info);
             },
             _ => unreachable!("Wrong response recived on AsyncWGPUListener for GPUDevice"),
         }
