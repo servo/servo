@@ -8047,9 +8047,9 @@ dependencies = [
 
 [[package]]
 name = "zerovec"
-version = "0.10.3"
+version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d7fce6acea41ceb5b97f7aee91a5d876d5fbca1f847cb60e13afecd7093cad0"
+checksum = "aa2b893d79df23bfb12d5461018d408ea19dfafe76c2c7ef6d4eba614f8ff079"
 dependencies = [
  "yoke",
  "zerofrom",
