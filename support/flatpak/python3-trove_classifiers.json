@@ -1,0 +1,14 @@
+{
+    "name": "python3-trove_classifiers",
+    "buildsystem": "simple",
+    "build-commands": [
+        "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"trove_classifiers\" --no-build-isolation"
+    ],
+    "sources": [
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/14/c6/35e478a586e857c2a6d31fc7b1586d4ff965f729a290552b5c2eb7b9f807/trove_classifiers-2023.8.7-py3-none-any.whl",
+            "sha256": "a676626a31286130d56de2ea1232484df97c567eb429d56cfcb0637e681ecf09"
+        }
+    ]
+}

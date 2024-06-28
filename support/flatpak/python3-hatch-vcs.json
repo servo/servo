@@ -1,0 +1,54 @@
+{
+    "name": "python3-hatch-vcs",
+    "buildsystem": "simple",
+    "build-commands": [
+        "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"hatch-vcs\" --no-build-isolation"
+    ],
+    "sources": [
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/6b/be/0f2f4a5e8adc114a02b63d92bf8edbfa24db6fc602fca83c885af2479e0e/editables-0.5-py3-none-any.whl",
+            "sha256": "61e5ffa82629e0d8bfe09bc44a07db3c1ab8ed1ce78a6980732870f19b5e7d4c"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/00/b1/90cc7881c2e870333eeafa6afb7b27de53418aad1ba5409ad331c96608a1/hatch_vcs-0.3.0-py3-none-any.whl",
+            "sha256": "60ce59a3fa4664057e4a858b6a96ab0b9dec21bf8f562f836139315bb361be8c"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/76/56/8ccca673e2c896931722f876bf040c0b6a7d8c1a128be60516a8a55bb27a/hatchling-1.18.0-py3-none-any.whl",
+            "sha256": "b66dc254931ec42aa68b5febd1d342c58142cc5267b7ff3b12ba3fa5b4900c93"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/ab/c3/57f0601a2d4fe15de7a553c00adbc901425661bf048f2a22dfc500caf121/packaging-23.1-py3-none-any.whl",
+            "sha256": "994793af429502c4ea2ebf6bf664629d07c1a9fe974af92966e4b8d2df7edc61"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/b4/2a/9b1be29146139ef459188f5e420a66e835dda921208db600b7037093891f/pathspec-0.11.2-py3-none-any.whl",
+            "sha256": "1d6ed233af05e679efb96b1851550ea95bbb64b7c490b0f5aa52996c11e92a20"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/51/32/4a79112b8b87b21450b066e102d6608907f4c885ed7b04c3fdb085d4d6ae/pluggy-1.2.0-py3-none-any.whl",
+            "sha256": "c2fd55a7d7a3863cba1a013e4e2414658b1d07b6bc57b3919e0c63c9abb99849"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/1d/66/8f42c941be949ef2b22fe905d850c794e7c170a526023612aad5f3a121ad/setuptools_scm-7.1.0-py3-none-any.whl",
+            "sha256": "73988b6d848709e2af142aa48c986ea29592bbcfca5375678064708205253d8e"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/14/c6/35e478a586e857c2a6d31fc7b1586d4ff965f729a290552b5c2eb7b9f807/trove_classifiers-2023.8.7-py3-none-any.whl",
+            "sha256": "a676626a31286130d56de2ea1232484df97c567eb429d56cfcb0637e681ecf09"
+        },
+        {
+            "type": "file",
+            "url": "https://files.pythonhosted.org/packages/ec/6b/63cc3df74987c36fe26157ee12e09e8f9db4de771e0f3404263117e75b95/typing_extensions-4.7.1-py3-none-any.whl",
+            "sha256": "440d5dd3af93b060174bf433bccd69b0babc3b15b1a8dca43789fd7f61514b36"
+        }
+    ]
+}
