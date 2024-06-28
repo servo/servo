@@ -428,7 +428,7 @@ impl FlexContainer {
                     },
                 };
                 for (fragment, _) in &mut line.item_fragments {
-                    fragment.content_rect.start_corner += &flow_relative_line_position
+                    fragment.content_rect.start_corner += flow_relative_line_position
                 }
                 line.item_fragments
             });

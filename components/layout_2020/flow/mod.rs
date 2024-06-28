@@ -1086,7 +1086,7 @@ impl NonReplacedFormattingContext {
                 &collapsed_margin_block_start,
                 containing_block,
                 &pbm,
-                &content_size + &pbm.padding_border_sums.into(),
+                content_size + pbm.padding_border_sums.into(),
                 &self.style,
             );
         } else {
@@ -1102,12 +1102,10 @@ impl NonReplacedFormattingContext {
             });
 
             // Create a PlacementAmongFloats using the minimum size in all dimensions as the object size.
-            let minimum_size_of_block = &LogicalVec2 {
-                inline: min_box_size.inline,
-                block: block_size.auto_is(|| min_box_size.block),
-            }
-            .into() +
-                &pbm.padding_border_sums;
+            let minimum_size_of_block = LogicalVec2 {
+                inline: min_box_size.inline.into(),
+                block: block_size.auto_is(|| min_box_size.block).into(),
+            } + pbm.padding_border_sums;
             let mut placement = PlacementAmongFloats::new(
                 &sequential_layout_state.floats,
                 ceiling,
@@ -1291,7 +1289,7 @@ fn layout_in_flow_replaced_block_level(
         //  than defined by section 10.3.3. CSS 2 does not define when a UA may put said
         //  element next to the float or by how much said element may become narrower."
         let collapsed_margin_block_start = CollapsedMargin::new(margin_block_start);
-        let size = &content_size + &pbm.padding_border_sums.clone();
+        let size = content_size + pbm.padding_border_sums;
         (
             clearance,
             (margin_inline_start, margin_inline_end),

@@ -1206,7 +1206,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         );
 
         let mut placement_rect = placement.place();
-        placement_rect.start_corner = &placement_rect.start_corner - &ifc_offset_in_float_container;
+        placement_rect.start_corner -= ifc_offset_in_float_container;
         placement_rect.into()
     }
 
@@ -2026,7 +2026,7 @@ impl IndependentFormattingContext {
         let style = self.style();
         let pbm = style.padding_border_margin(ifc.containing_block);
         let margin = pbm.margin.auto_is(Au::zero);
-        let pbm_sums = &(&pbm.padding + &pbm.border) + &margin.clone();
+        let pbm_sums = pbm.padding + pbm.border + margin;
         let mut child_positioning_context = None;
 
         // We need to know the inline size of the atomic before deciding whether to do the line break.
@@ -2156,7 +2156,7 @@ impl IndependentFormattingContext {
             ifc.process_soft_wrap_opportunity();
         }
 
-        let size = &pbm_sums.sum() + &fragment.content_rect.size;
+        let size = pbm_sums.sum() + fragment.content_rect.size;
         let baseline_offset = self
             .pick_baseline(&fragment.baselines)
             .map(|baseline| pbm_sums.block_start + baseline)
@@ -2171,7 +2171,7 @@ impl IndependentFormattingContext {
         );
         ifc.push_line_item_to_unbreakable_segment(LineItem::Atomic(AtomicLineItem {
             fragment,
-            size: size.into(),
+            size,
             positioning_context: child_positioning_context,
             baseline_offset_in_parent,
             baseline_offset_in_item: baseline_offset,
@@ -2402,7 +2402,7 @@ impl<'a> ContentSizesComputation<'a> {
                     .percentages_relative_to(zero)
                     .auto_is(Length::zero);
 
-                let pbm = &(&margin + &padding) + &border;
+                let pbm = margin + padding + border;
                 if inline_box.is_first_fragment {
                     self.add_length(pbm.inline_start);
                 }
