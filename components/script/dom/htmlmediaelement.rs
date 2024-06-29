@@ -2847,8 +2847,6 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             elem.network_state.set(NetworkState::Idle);
 
             elem.upcast::<EventTarget>().fire_event(atom!("suspend"));
-
-            elem.delay_load_event(false);
         }
         // => "If the connection is interrupted after some media data has been received..."
         else if elem.ready_state.get() != ReadyState::HaveNothing {
