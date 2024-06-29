@@ -115,6 +115,12 @@ impl VideoTrackList {
         track.add_track_list(self);
     }
 
+    pub fn remove(&self, idx: usize) -> DomRoot<VideoTrack> {
+        let track: DomRoot<VideoTrack> = DomRoot::from_ref(&self.tracks.borrow_mut().remove(idx));
+        track.remove_track_list();
+        track
+    }
+
     pub fn clear(&self) {
         self.tracks
             .borrow()

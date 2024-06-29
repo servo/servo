@@ -611,6 +611,11 @@ impl HTMLMediaElement {
         let old_ready_state = self.ready_state.get();
         self.ready_state.set(ready_state);
 
+        debug!(
+            "Changing ready state from {:?} to {:?}",
+            old_ready_state, ready_state
+        );
+
         if self.network_state.get() == NetworkState::Empty {
             return;
         }
@@ -1488,6 +1493,7 @@ impl HTMLMediaElement {
     }
 
     fn handle_player_event(&self, event: &PlayerEvent) {
+        debug!("Handling player event {:?}", event);
         match *event {
             PlayerEvent::EndOfStream => {
                 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
@@ -1538,6 +1544,39 @@ impl HTMLMediaElement {
                                     }),
                                     window.upcast(),
                                 );
+
+                                // If at any time the user agent learns that an audio or video
+                                // track has ended..
+
+                                if let Some(idx) = self.VideoTracks().selected_index() {
+                                    // 1. Remove the track..
+                                    let video_track = self.VideoTracks().remove(idx);
+                                    // 2. Fire an event named removetrack
+                                    let event = TrackEvent::new(
+                                        &self.global(),
+                                        atom!("removetrack"),
+                                        false,
+                                        false,
+                                        &Some(VideoTrackOrAudioTrackOrTextTrack::VideoTrack(
+                                            video_track,
+                                        )),
+                                    );
+                                    event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+                                }
+
+                                if let Some(idx) = self.AudioTracks().enabled_index() {
+                                    let audio_track = self.AudioTracks().remove(idx);
+                                    let event = TrackEvent::new(
+                                        &self.global(),
+                                        atom!("removetrack"),
+                                        false,
+                                        false,
+                                        &Some(VideoTrackOrAudioTrackOrTextTrack::AudioTrack(
+                                            audio_track,
+                                        )),
+                                    );
+                                    event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+                                }
                             }
                         },
 
@@ -1549,6 +1588,39 @@ impl HTMLMediaElement {
                                     .task_manager()
                                     .media_element_task_source()
                                     .queue_simple_event(self.upcast(), atom!("ended"), &window);
+
+                                // If at any time the user agent learns that an audio or video
+                                // track has ended..
+
+                                if let Some(idx) = self.VideoTracks().selected_index() {
+                                    // 1. Remove the track..
+                                    let video_track = self.VideoTracks().remove(idx);
+                                    // 2. Fire an event named removetrack
+                                    let event = TrackEvent::new(
+                                        &self.global(),
+                                        atom!("removetrack"),
+                                        false,
+                                        false,
+                                        &Some(VideoTrackOrAudioTrackOrTextTrack::VideoTrack(
+                                            video_track,
+                                        )),
+                                    );
+                                    event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+                                }
+
+                                if let Some(idx) = self.AudioTracks().enabled_index() {
+                                    let audio_track = self.AudioTracks().remove(idx);
+                                    let event = TrackEvent::new(
+                                        &self.global(),
+                                        atom!("removetrack"),
+                                        false,
+                                        false,
+                                        &Some(VideoTrackOrAudioTrackOrTextTrack::AudioTrack(
+                                            audio_track,
+                                        )),
+                                    );
+                                    event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+                                }
                             }
                         },
                     }
@@ -1857,6 +1929,9 @@ impl HTMLMediaElement {
                         }
                     },
                     PlaybackState::Playing => {
+                        if self.ready_state.get() == ReadyState::HaveMetadata {
+                            self.change_ready_state(ReadyState::HaveEnoughData);
+                        }
                         media_session_playback_state = MediaSessionPlaybackState::Playing;
                     },
                     PlaybackState::Buffering => {
@@ -2663,6 +2738,8 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
     fn process_request_eof(&mut self) {}
 
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
+        debug!("process_response({:?})", metadata);
+
         let elem = self.elem.root();
 
         if elem.generation_id.get() != self.generation_id || elem.player.borrow().is_none() {
@@ -2736,6 +2813,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
     }
 
     fn process_response_chunk(&mut self, payload: Vec<u8>) {
+        debug!("process_response_chunk()");
         let elem = self.elem.root();
         // If an error was received previously or if we triggered a new fetch request,
         // we skip processing the payload.
@@ -2795,6 +2873,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
     // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
     fn process_response_eof(&mut self, status: Result<ResourceFetchTiming, NetworkError>) {
+        debug!("process_response_eof({:?})", status);
         if let Some(seek_lock) = self.seek_lock.take() {
             seek_lock.unlock(/* successful seek */ false);
         }
@@ -2827,14 +2906,8 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             }
         }
 
+        // => "Once the entire media resource has been fetched..."
         if status.is_ok() && self.latest_fetched_content != 0 {
-            if elem.ready_state.get() == ReadyState::HaveNothing {
-                // Make sure that we don't skip the HaveMetadata and HaveCurrentData
-                // states for short streams.
-                elem.change_ready_state(ReadyState::HaveMetadata);
-            }
-            elem.change_ready_state(ReadyState::HaveEnoughData);
-
             elem.upcast::<EventTarget>().fire_event(atom!("progress"));
 
             elem.network_state.set(NetworkState::Idle);
@@ -2868,6 +2941,18 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             // => "If the media data cannot be fetched at all..."
             elem.queue_dedicated_media_source_failure_steps();
         }
+
+        if let Err(e) = elem
+            .player
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .lock()
+            .unwrap()
+            .end_of_stream()
+        {
+            warn!("Could not signal EOS to player {:?}", e);
+        };
     }
 
     fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
