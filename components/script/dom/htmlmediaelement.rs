@@ -2817,23 +2817,25 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             return;
         }
 
+        // There are no more chunks of the response body forthcoming, so we can
+        // go ahead and notify the media backend not to expect any further data.
+        if let Err(e) = elem
+            .player
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .lock()
+            .unwrap()
+            .end_of_stream()
+        {
+            warn!("Could not signal EOS to player {:?}", e);
+        }
+
         // If an error was previously received and no new fetch request was triggered,
-        // we skip processing the payload and notify the media backend that we are done
-        // pushing data.
+        // we skip processing the payload.
         if elem.generation_id.get() == self.generation_id {
             if let Some(ref current_fetch_context) = *elem.current_fetch_context.borrow() {
                 if let Some(CancelReason::Error) = current_fetch_context.cancel_reason() {
-                    if let Err(e) = elem
-                        .player
-                        .borrow()
-                        .as_ref()
-                        .unwrap()
-                        .lock()
-                        .unwrap()
-                        .end_of_stream()
-                    {
-                        warn!("Could not signal EOS to player {:?}", e);
-                    }
                     return;
                 }
             }
