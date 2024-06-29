@@ -2807,13 +2807,14 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
     // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
     fn process_response_eof(&mut self, status: Result<ResourceFetchTiming, NetworkError>) {
+        trace!("process response eof");
         if let Some(seek_lock) = self.seek_lock.take() {
             seek_lock.unlock(/* successful seek */ false);
         }
 
         let elem = self.elem.root();
 
-        if elem.player.borrow().is_none() {
+        if elem.generation_id.get() != self.generation_id || elem.player.borrow().is_none() {
             return;
         }
 
@@ -2831,13 +2832,10 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             warn!("Could not signal EOS to player {:?}", e);
         }
 
-        // If an error was previously received and no new fetch request was triggered,
-        // we skip processing the payload.
-        if elem.generation_id.get() == self.generation_id {
-            if let Some(ref current_fetch_context) = *elem.current_fetch_context.borrow() {
-                if let Some(CancelReason::Error) = current_fetch_context.cancel_reason() {
-                    return;
-                }
+        // If an error was previously received we skip processing the payload.
+        if let Some(ref current_fetch_context) = *elem.current_fetch_context.borrow() {
+            if let Some(CancelReason::Error) = current_fetch_context.cancel_reason() {
+                return;
             }
         }
 
