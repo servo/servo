@@ -2828,13 +2828,6 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         }
 
         if status.is_ok() && self.latest_fetched_content != 0 {
-            if elem.ready_state.get() == ReadyState::HaveNothing {
-                // Make sure that we don't skip the HaveMetadata and HaveCurrentData
-                // states for short streams.
-                elem.change_ready_state(ReadyState::HaveMetadata);
-            }
-            elem.change_ready_state(ReadyState::HaveEnoughData);
-
             elem.upcast::<EventTarget>().fire_event(atom!("progress"));
 
             elem.network_state.set(NetworkState::Idle);
