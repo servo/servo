@@ -1064,6 +1064,10 @@ impl HTMLMediaElement {
         task_source.queue_simple_event(self.upcast(), atom!("ratechange"), &window);
     }
 
+    fn in_error_state(&self) -> bool {
+        self.error.get().is_some()
+    }
+
     // https://html.spec.whatwg.org/multipage/#potentially-playing
     fn is_potentially_playing(&self) -> bool {
         !self.paused.get() &&
@@ -1556,6 +1560,14 @@ impl HTMLMediaElement {
             },
             PlayerEvent::Error(ref error) => {
                 error!("Player error: {:?}", error);
+
+                // If we have already flagged an error condition while processing
+                // the network response, we should silently skip any observable
+                // errors originating while decoding the erroneous response.
+                if self.in_error_state() {
+                    return;
+                }
+
                 // https://html.spec.whatwg.org/multipage/#loading-the-media-resource:media-data-13
                 // 1. The user agent should cancel the fetching process.
                 if let Some(ref mut current_fetch_context) =
@@ -2838,6 +2850,12 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         }
         // => "If the connection is interrupted after some media data has been received..."
         else if elem.ready_state.get() != ReadyState::HaveNothing {
+            // If the media backend has already flagged an error, skip any observable
+            // network-related errors.
+            if elem.in_error_state() {
+                return;
+            }
+
             // Step 1
             if let Some(ref mut current_fetch_context) = *elem.current_fetch_context.borrow_mut() {
                 current_fetch_context.cancel(CancelReason::Error);
