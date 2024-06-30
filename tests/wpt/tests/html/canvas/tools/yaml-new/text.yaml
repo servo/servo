@@ -647,6 +647,31 @@
     ctx.strokeText('ToToToToToToTo', -50, 45);
   expected: green
 
+- name: 2d.text.drawing.style.reset.fontKerning.none
+  desc: >-
+    crbug/338965374, fontKerning still works after setting font for a second
+    time.
+  code: |
+    ctx.font = '100px serif';
+    ctx.fontKerning = "none";
+    const width1 = ctx.measureText("AW").width;
+    ctx.font = '100px serif';
+    @assert ctx.fontKerning === "none";
+    const width2 = ctx.measureText("AW").width;
+    @assert width1 === width2;
+
+- name: 2d.text.drawing.style.reset.fontKerning.none2
+  desc: FontKerning value still applies after font changes.
+  code: |
+    ctx.font = '10px serif';
+    ctx.fontKerning = "none";
+    ctx.font = '20px serif';
+    ctx.fillText("TATATA", 20, 30);
+  reference: |
+    ctx.font = '20px serif';
+    ctx.fontKerning = "none";
+    ctx.fillText("TATATA", 20, 30);
+
 # CanvasTest is:
 #   A = (0, 0) to (1em, 0.75em)       (above baseline)
 #   B = (0, 0) to (1em, -0.25em)      (below baseline)
@@ -1688,10 +1713,19 @@
     ctx.textRendering = "auto";
     @assert ctx.textRendering === "auto";
 
+- name: 2d.text.drawing.style.reset.TextRendering
+  desc: TextRendering stays the same after font change.
+  code: |
+    ctx.font = '20px serif';
+    ctx.textRendering = "optimizeSpeed";
+    @assert ctx.textRendering === "optimizeSpeed";
+    ctx.font = '10px serif';
+    @assert ctx.textRendering === "optimizeSpeed";
+
 - name: 2d.text.drawing.style.fontStretch.settings
   desc: Testing value setting of fontStretch in Canvas
   code: |
-    // Setting textRendering with lower cases
+    // Setting fontStretch with lower cases
     ctx.fontStretch = "ultra-condensed";
     @assert ctx.fontStretch === "ultra-condensed";
 
@@ -1817,6 +1851,23 @@
   reference: |
     ctx.font = "32px serif";
     ctx.fillText("Hello World", 20, 100);
+
+- name: 2d.text.fontVariantCaps.after.reset.font
+  desc: Testing if the fontVariantCaps is reset after font change
+  size: [300, 300]
+  code: |
+    ctx.font = "32px serif";
+    ctx.fontVariantCaps = "small-caps";
+
+    ctx.font = "31px serif";
+    ctx.fillText("Hello World", 20, 40);
+    ctx.fontVariantCaps = "small-caps";
+    ctx.fillText("Hello World", 20, 80);
+  reference: |
+    ctx.font = "31px serif";
+    ctx.fillText("Hello World", 20, 40);
+    ctx.fontVariantCaps = "small-caps";
+    ctx.fillText("Hello World", 20, 80);
 
 - name: 2d.text.setFont.mathFont
   desc: crbug.com/1212190, make sure offscreencanvas doesn't crash with Math Font

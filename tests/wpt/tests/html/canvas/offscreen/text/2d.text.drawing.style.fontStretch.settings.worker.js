@@ -16,7 +16,7 @@ t.step(function() {
   var canvas = new OffscreenCanvas(100, 50);
   var ctx = canvas.getContext('2d');
 
-  // Setting textRendering with lower cases
+  // Setting fontStretch with lower cases
   ctx.fontStretch = "ultra-condensed";
   _assertSame(ctx.fontStretch, "ultra-condensed", "ctx.fontStretch", "\"ultra-condensed\"");
 

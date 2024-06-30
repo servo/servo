@@ -204,8 +204,6 @@ class HTTPWireProtocol:
             ``json.JSONEncoder`` unless specified.
         :param decoder: JSON decoder class, which defaults to
             ``json.JSONDecoder`` unless specified.
-        :param timeout: Optional timeout for the underlying socket. `None` will
-            retain the existing timeout.
         :param codec_kwargs: Surplus arguments passed on to `encoder`
             and `decoder` on construction.
 
@@ -233,7 +231,7 @@ class HTTPWireProtocol:
         # runner thread. We use the boolean below to check for that and restart
         # the connection in that case.
         self._last_request_is_blocked = True
-        response = self._request(method, uri, payload, headers, timeout=timeout)
+        response = self._request(method, uri, payload, headers, timeout=None)
         self._last_request_is_blocked = False
         return Response.from_http(response, decoder=decoder, **codec_kwargs)
 

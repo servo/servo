@@ -33,15 +33,24 @@ function sample1() {
 }
 
 function sample2() {
-  assert_animated_path_equals(path, "M -30 -30 q 52.5 0 52.5 30 t -52.5 30 Z");
+  assert_animated_path_in_array(path, [
+    "M -30 -30 q 52.5 0 52.5 30 t -52.5 30 Z",
+    "M -30 -30 Q 22.5 -30 22.5 0 T -30 30 Z",
+  ]);
 }
 
 function sample3() {
-  assert_animated_path_equals(path, "M -30 -30 q 37.5 0 37.5 30 t -37.5 30 Z");
+  assert_animated_path_in_array(path, [
+    "M -30 -30 q 37.5 0 37.5 30 t -37.5 30 Z",
+    "M -30 -30 Q 7.5 -30 7.5 0 T -30 30 Z",
+  ]);
 }
 
 function sample4() {
-  assert_animated_path_equals(path, "M -30 -30 q 30.0075 0 30.0075 30 t -30.0075 30 Z");
+  assert_animated_path_in_array(path, [
+    "M -30 -30 q 30.0075 0 30.0075 30 t -30.0075 30 Z",
+    "M -30 -30 Q 0.01 -30 0.01 0 T -30 30 Z",
+  ]);
 }
 
 smil_async_test(t => {

@@ -88,6 +88,10 @@
     return new URL(url, location).toString();
   }
 
+  async function fetchText(url) {
+    return fetch(url).then(r => r.text());
+  }
+
   /**
    * Represents a configuration for a remote context executor.
    */
@@ -108,14 +112,22 @@
      *     this value in the "status" parameter to the executor. The default
      *     executor will default to a status code of 200, if the parameter is
      *     not supplied.
+     * @param {string} [options.urlType] Determines what kind of URL is used. Options:
+     *     'origin', the URL will be based on the origin;
+     *      'data' or 'blob', the URL will contains the document content in
+     *      a 'data:' or 'blob:' URL; 'blank', the URL will be blank and the
+     *     document content will be written to the initial empty document using
+     *     `document.open()`, `document.write()`, and `document.close()`. If not
+     *     supplied, the default is 'origin'.
      */
     constructor(
-        {origin, scripts = [], headers = [], startOn, status} = {}) {
+        {origin, scripts = [], headers = [], startOn, status, urlType} = {}) {
       this.origin = origin;
       this.scripts = scripts;
       this.headers = headers;
       this.startOn = startOn;
       this.status = status;
+      this.urlType = urlType;
     }
 
     /**
@@ -152,15 +164,59 @@
       if (extraConfig.status) {
         status = extraConfig.status;
       }
+      let urlType = this.urlType;
+      if (extraConfig.urlType) {
+        urlType = extraConfig.urlType;
+      }
       const headers = this.headers.concat(extraConfig.headers);
       const scripts = this.scripts.concat(extraConfig.scripts);
-      return new RemoteContextConfig({
-        origin,
-        headers,
-        scripts,
-        startOn,
-        status
-      });
+      return new RemoteContextConfig(
+          {origin, headers, scripts, startOn, status, urlType});
+    }
+
+    /**
+     * Creates a URL for an executor based on this config.
+     * @param {string} uuid The unique ID of the executor.
+     * @param {boolean} isWorker If true, the executor will be Worker. If false,
+     * it will be a HTML document.
+     * @returns {string|Blob|undefined}
+     */
+    async createExecutorUrl(uuid, isWorker) {
+      const origin = finalizeOrigin(this.origin);
+      const url = new URL(
+          isWorker ? WORKER_EXECUTOR_PATH : WINDOW_EXECUTOR_PATH, origin);
+
+      // UUID is needed for executor.
+      url.searchParams.append('uuid', uuid);
+
+      if (this.headers) {
+        addHeaders(url, this.headers);
+      }
+      for (const script of this.scripts) {
+        url.searchParams.append('script', makeAbsolute(script));
+      }
+
+      if (this.startOn) {
+        url.searchParams.append('startOn', this.startOn);
+      }
+
+      if (this.status) {
+        url.searchParams.append('status', this.status);
+      }
+
+      const urlType = this.urlType || 'origin';
+      switch (urlType) {
+        case 'origin':
+        case 'blank':
+          return url.href;
+        case 'data':
+          return `data:text/html;base64,${btoa(await fetchText(url.href))}`;
+        case 'blob':
+          return URL.createObjectURL(
+              new Blob([await fetchText(url.href)], {type: 'text/html'}));
+        default:
+          throw TypeError(`Invalid urlType: ${urlType}`);
+      };
     }
   }
 
@@ -211,34 +267,19 @@
       const config =
           this.config.merged(RemoteContextConfig.ensure(extraConfig));
 
-      const origin = finalizeOrigin(config.origin);
-      const url = new URL(
-          isWorker ? WORKER_EXECUTOR_PATH : WINDOW_EXECUTOR_PATH, origin);
-
       // UUID is needed for executor.
       const uuid = token();
-      url.searchParams.append('uuid', uuid);
-
-      if (config.headers) {
-        addHeaders(url, config.headers);
-      }
-      for (const script of config.scripts) {
-        url.searchParams.append('script', makeAbsolute(script));
-      }
-
-      if (config.startOn) {
-        url.searchParams.append('startOn', config.startOn);
-      }
-
-      if (config.status) {
-        url.searchParams.append('status', config.status);
-      }
+      const url = await config.createExecutorUrl(uuid, isWorker);
 
       if (executorCreator) {
-        await executorCreator(url.href);
+        if (config.urlType == 'blank') {
+          await executorCreator(undefined, await fetchText(url));
+        } else {
+          await executorCreator(url, undefined);
+        }
       }
 
-      return new RemoteContextWrapper(new RemoteContext(uuid), this, url.href);
+      return new RemoteContextWrapper(new RemoteContext(uuid), this, url);
     }
 
     /**
@@ -280,30 +321,46 @@
   }
 
   function windowExecutorCreator({target = '_blank', features} = {}) {
-    return url => {
-      window.open(url, target, features);
+    return (url, documentContent) => {
+      if (url && url.substring(0, 5) == 'data:') {
+        throw new TypeError('Windows cannot use data: URLs.');
+      }
+
+      const w = window.open(url, target, features);
+      if (documentContent) {
+        w.document.open();
+        w.document.write(documentContent);
+        w.document.close();
+      }
     };
   }
 
   function elementExecutorCreator(
       remoteContextWrapper, elementName, attributes) {
-    return url => {
+    return (url, documentContent) => {
       return remoteContextWrapper.executeScript(
-          (url, elementName, attributes) => {
+          (url, elementName, attributes, documentContent) => {
             const el = document.createElement(elementName);
             for (const attribute in attributes) {
               el.setAttribute(attribute, attributes[attribute]);
             }
-            if (elementName == 'object') {
-              el.data = url;
-            } else {
-              el.src = url;
+            if (url) {
+              if (elementName == 'object') {
+                el.data = url;
+              } else {
+                el.src = url;
+              }
             }
             const parent =
                 elementName == 'frame' ? findOrCreateFrameset() : document.body;
             parent.appendChild(el);
+            if (documentContent) {
+              el.contentDocument.open();
+              el.contentDocument.write(documentContent);
+              el.contentDocument.close();
+            }
           },
-          [url, elementName, attributes]);
+          [url, elementName, attributes, documentContent]);
     };
   }
 
@@ -312,7 +369,8 @@
       // `url` points to the content needed to run an `Executor` in the frame.
       // So we download the content and pass it via the `srcdoc` attribute,
       // setting the iframe's `src` to `undefined`.
-      attributes['srcdoc'] = await fetch(url).then(r => r.text());
+      attributes['srcdoc'] = await fetchText(url);
+
       elementExecutorCreator(
           remoteContextWrapper, 'iframe', attributes)(undefined);
     };

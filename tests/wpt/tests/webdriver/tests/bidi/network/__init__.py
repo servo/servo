@@ -327,6 +327,9 @@ PAGE_EMPTY_SVG = "/webdriver/tests/bidi/network/support/empty.svg"
 PAGE_EMPTY_TEXT = "/webdriver/tests/bidi/network/support/empty.txt"
 PAGE_INVALID_URL = "https://not_a_valid_url.test/"
 PAGE_OTHER_TEXT = "/webdriver/tests/bidi/network/support/other.txt"
+PAGE_PROVIDE_RESPONSE_HTML = "/webdriver/tests/bidi/network/support/provide_response.html"
+PAGE_PROVIDE_RESPONSE_SCRIPT = "/webdriver/tests/bidi/network/support/provide_response.js"
+PAGE_PROVIDE_RESPONSE_STYLESHEET = "/webdriver/tests/bidi/network/support/provide_response.css"
 PAGE_REDIRECT_HTTP_EQUIV = (
     "/webdriver/tests/bidi/network/support/redirect_http_equiv.html"
 )

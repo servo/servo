@@ -1,0 +1,178 @@
+<!doctype html>
+<html>
+<title> Retrieve resources from CacheStorage with Cross-Origin-Embedder-Policy: require-corp</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script>
+
+/*
+  This document has the header Document-Isolation-Policy: isolate-and-require-corp.
+
+  This test is retrieving same-origin and cross-origin resources from the
+  CacheStorage. The resources are generated from the ServiceWorker or from the
+  network with the header Cross-Origin-Resource-Policy being one of:
+    - 'same-origin'
+    - 'cross-origin'
+    - <undefined>
+*/
+
+promise_test(async (t) => {
+  const SCOPE = new URL(location.href).pathname;
+  const SCRIPT =
+    'resources/sw-store-to-cache-storage.js?' +
+    `pipe=header(service-worker-allowed,${SCOPE})`;
+
+  const reg = await service_worker_unregister_and_register(t, SCRIPT, SCOPE);
+  add_completion_callback(() => reg.unregister());
+  await new Promise(resolve => {
+    navigator.serviceWorker.addEventListener('controllerchange', resolve);
+  });
+}, 'setting up');
+
+function remote(path) {
+  const REMOTE_ORIGIN = get_host_info().HTTPS_REMOTE_ORIGIN;
+  return new URL(path, REMOTE_ORIGIN);
+}
+
+function local(path) {
+  return new URL(path, location.origin);
+}
+
+// Send a message to the currently active ServiceWorker and wait for its
+// response.
+function executeCommandInServiceWorker(command) {
+  return new Promise(resolve => {
+    navigator.serviceWorker.addEventListener('message', e => resolve(e.data));
+    navigator.serviceWorker.controller.postMessage(command);
+  });
+}
+
+// Try loading an image from a |response|. Return a Promise resolving or
+// rejecting depending on the image loading result.
+const loadFailure = {name: "Image.onerror"};
+function readImageFromResponse(response) {
+  return new Promise((resolve, reject) => {
+    const img = document.createElement("img");
+    img.onload = resolve.bind(this, "");
+    img.onerror = reject.bind(this, loadFailure);
+    response.blob().then(blob => {
+      img.src = URL.createObjectURL(blob);
+      document.body.appendChild(img);
+    })
+  })
+}
+
+const image_path = "/images/blue.png?pipe=";
+
+const corp_header = {
+  "":"",
+  "corp-undefined": "",
+  "corp-same-origin": "|header(Cross-Origin-Resource-Policy,same-origin)",
+  "corp-cross-origin": "|header(Cross-Origin-Resource-Policy,cross-origin)",
+}
+
+const cors_header = {
+  "":"",
+  "cors-disabled": "",
+  "cors-enabled": "|header(Access-Control-Allow-Origin,*)",
+}
+
+function test(
+  // Test parameters:
+  request_source, request_origin, request_mode, response_cors, response_corp,
+  // Test expectations:
+  response_stored, response_type) {
+  promise_test(async (t) => {
+    // 0. Start from an empty CacheStorage.
+    await caches.delete("v1");
+
+    // 1. Store a cross-origin no-cors response generated from the SW into the
+    //    CacheStorage.
+    const path = image_path +
+      corp_header[response_corp] +
+      cors_header[response_cors];
+    const url = (request_origin === "same-origin" ? local : remote)(path);
+    const command = {
+      url: url.href,
+      mode: request_mode,
+      source: request_source,
+    };
+
+    assert_equals(await executeCommandInServiceWorker(command), response_stored);
+    if (response_stored === "not-stored") {
+      return;
+    }
+
+    // 2. Retrieve it from the CacheStorage.
+    const cache = await caches.open('v1');
+
+    if (response_type === 'error') {
+      await promise_rejects_js(t, TypeError, cache.match(url));
+      return;
+    }
+
+    const response = await cache.match(url);
+
+    assert_equals(response.type, response_type);
+
+    if (request_source === "service-worker") {
+      assert_equals("foo", await response.text());
+      return;
+    }
+
+    // Opaque response can't be read from the document.
+    if (response_type === "opaque") {
+      await promise_rejects_exactly(t, loadFailure, readImageFromResponse(response));
+      return;
+    }
+
+    await readImageFromResponse(response);
+  }, `Fetch ${request_origin} ${request_mode} ${response_cors} ${response_corp} from ${request_source} and CacheStorage.`)
+}
+
+// Responses generated from the ServiceWorker.
+{
+  test("service-worker", "cross-origin", "cors", "", "", "stored", "default");
+  test("service-worker", "cross-origin", "no-cors", "", "", "stored", "default");
+  test("service-worker", "same-origin", "cors", "", "", "stored", "default");
+  test("service-worker", "same-origin", "no-cors", "", "", "stored", "default");
+}
+
+// Responses generated from a same-origin server.
+{
+  const t = test.bind(this, "network", "same-origin");
+  t("cors", "cors-disabled", "corp-cross-origin", "stored", "basic");
+  t("cors", "cors-disabled", "corp-same-origin", "stored", "basic");
+  t("cors", "cors-disabled", "corp-undefined", "stored", "basic");
+  t("cors", "cors-enabled", "corp-cross-origin", "stored", "basic");
+  t("cors", "cors-enabled", "corp-same-origin", "stored", "basic");
+  t("cors", "cors-enabled", "corp-undefined", "stored", "basic");
+  t("no-cors", "cors-disabled", "corp-cross-origin", "stored", "basic");
+  t("no-cors", "cors-disabled", "corp-same-origin", "stored", "basic");
+  t("no-cors", "cors-disabled", "corp-undefined", "stored", "basic");
+  t("no-cors", "cors-enabled", "corp-cross-origin", "stored", "basic");
+  t("no-cors", "cors-enabled", "corp-same-origin", "stored", "basic");
+  t("no-cors", "cors-enabled", "corp-undefined", "stored", "basic");
+}
+
+// Responses generated from a cross-origin server.
+{
+  const t = test.bind(this, "network", "cross-origin");
+  t("cors", "cors-disabled", "corp-cross-origin", "not-stored");
+  t("cors", "cors-disabled", "corp-same-origin", "not-stored");
+  t("cors", "cors-disabled", "corp-undefined", "not-stored");
+  t("cors", "cors-enabled", "corp-cross-origin", "stored", "cors");
+  t("cors", "cors-enabled", "corp-same-origin", "stored", "cors");
+  t("cors", "cors-enabled", "corp-undefined", "stored", "cors");
+  t("no-cors", "cors-disabled", "corp-cross-origin", "stored", "opaque");
+  t("no-cors", "cors-disabled", "corp-same-origin", "not-stored");
+  t("no-cors", "cors-disabled", "corp-undefined", "stored", "error");
+  t("no-cors", "cors-enabled", "corp-cross-origin", "stored", "opaque");
+  t("no-cors", "cors-enabled", "corp-same-origin", "not-stored");
+  t("no-cors", "cors-enabled", "corp-undefined", "stored", "error");
+}
+
+</script>
+</html>
