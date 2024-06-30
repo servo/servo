@@ -60,6 +60,7 @@ async def test_prompt_type(
         "context": new_tab["context"],
         "type": prompt_type,
         "message": text,
+        "handler": "dismiss",
         **({"defaultValue": ""} if prompt_type == "prompt" else {}),
     }
 
@@ -95,18 +96,13 @@ async def test_prompt_default_value(
 
     event = await wait_for_future_safe(on_entry)
 
-    expected_event = {
+    assert event == {
         "context": new_tab["context"],
         "type": "prompt",
         "message": text,
+        "handler": "dismiss",
+        "defaultValue": default if default is not None else ""
     }
-
-    if default is None:
-        expected_event["defaultValue"] = ""
-    else:
-        expected_event["defaultValue"] = default
-
-    assert event == expected_event
 
 
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
@@ -160,6 +156,7 @@ async def test_subscribe_to_one_context(
     assert event == {
         "context": new_context["context"],
         "type": "alert",
+        "handler": "dismiss",
         "message": "first tab",
     }
 
@@ -202,5 +199,6 @@ async def test_iframe(
     assert event == {
         "context": new_tab["context"],
         "type": "alert",
+        "handler": "dismiss",
         "message": "in iframe",
     }

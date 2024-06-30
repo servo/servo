@@ -1,8 +1,8 @@
 import importlib
 from urllib.parse import urlsplit
 
-# 'import credential-management.support.fedcm.keys' does not work.
-keys = importlib.import_module("credential-management.support.fedcm.keys")
+# 'import fedcm.support.keys' does not work.
+keys = importlib.import_module("fedcm.support.keys")
 
 def main(request, response):
   root_manifest_url = "/.well-known/web-identity"

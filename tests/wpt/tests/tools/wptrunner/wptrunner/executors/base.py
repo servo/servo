@@ -29,7 +29,8 @@ def executor_kwargs(test_type, test_environment, run_info_data, subsuite, **kwar
     executor_kwargs = {"server_config": test_environment.config,
                        "timeout_multiplier": timeout_multiplier,
                        "debug_info": kwargs["debug_info"],
-                       "subsuite": subsuite.name}
+                       "subsuite": subsuite.name,
+                       "target_platform": run_info_data["os"]}
 
     if test_type in ("reftest", "print-reftest"):
         executor_kwargs["screenshot_cache"] = test_environment.cache_manager.dict()
@@ -622,7 +623,7 @@ class WdspecExecutor(TestExecutor):
     protocol_cls: ClassVar[Type[Protocol]] = WdspecProtocol
 
     def __init__(self, logger, browser, server_config, webdriver_binary,
-                 webdriver_args, timeout_multiplier=1, capabilities=None,
+                 webdriver_args, target_platform, timeout_multiplier=1, capabilities=None,
                  debug_info=None, binary=None, binary_args=None, **kwargs):
         super().__init__(logger, browser, server_config,
                          timeout_multiplier=timeout_multiplier,
@@ -633,6 +634,10 @@ class WdspecExecutor(TestExecutor):
         self.capabilities = capabilities
         self.binary = binary
         self.binary_args = binary_args
+
+        # Map OS to WebDriver specific platform names
+        os_map = {"win": "windows"}
+        self.target_platform = os_map.get(target_platform, target_platform)
 
     def setup(self, runner, protocol=None):
         assert protocol is None, "Switch executor not allowed for wdspec tests."
@@ -661,6 +666,7 @@ class WdspecExecutor(TestExecutor):
         session_config = {"host": self.browser.host,
                           "port": self.browser.port,
                           "capabilities": self.capabilities,
+                          "target_platform": self.target_platform,
                           "timeout_multiplier": self.timeout_multiplier,
                           "browser": {
                               "binary": self.binary,

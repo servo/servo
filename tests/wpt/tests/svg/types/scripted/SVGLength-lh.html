@@ -8,7 +8,7 @@
   <text id="lh_test" x="10lh" style="font-family:initial; font-size:20px"></text>
 </svg>
 <script>
-  let ref_width = lh_ref.offsetWidth;
+  let ref_width = lh_ref.getBoundingClientRect().width;
   let lh_length = lh_test.x.baseVal[0];
 
   test(() => {
