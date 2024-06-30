@@ -3187,7 +3187,7 @@ impl GlobalScope {
                 if let Some(window) = global.downcast::<Window>() {
                     let navigator = window.Navigator();
                     let selected_index = navigator.select_gamepad_index();
-                    let gamepad = Gamepad::new(&global, selected_index, name, axis_bounds, button_bounds);
+                    let gamepad = Gamepad::new(&global, selected_index, name, axis_bounds, button_bounds, supported_haptic_effects);
                     navigator.set_gamepad(selected_index as usize, &gamepad);
                 }
             }),
@@ -3279,7 +3279,7 @@ impl GlobalScope {
                     if let Some(window) = global.downcast::<Window>() {
                         if let Some(gamepad) = window.Navigator().get_gamepad(index) {
                             if gamepad.vibration_actuator().has_playing_effect_promise() {
-                                gamepad.vibration_actuator().resolve_playing_effect_promise();
+                                gamepad.vibration_actuator().handle_haptic_effect_completed();
                             }
                         }
                     }
@@ -3298,7 +3298,7 @@ impl GlobalScope {
                     if let Some(window) = global.downcast::<Window>() {
                         if let Some(gamepad) = window.Navigator().get_gamepad(index) {
                             if gamepad.vibration_actuator().has_reset_result_promise() {
-                                gamepad.vibration_actuator().resolve_reset_result_promise();
+                                gamepad.vibration_actuator().handle_haptic_effect_stopped();
                             }
                         }
                     }

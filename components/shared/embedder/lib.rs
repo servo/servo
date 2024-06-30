@@ -396,6 +396,7 @@ pub enum InputMethodType {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+/// <https://w3.org/TR/gamepad/#dom-gamepadhapticeffecttype-dual-rumble>
 pub struct DualRumbleEffectParams {
     pub duration: f64,
     pub start_delay: f64,
@@ -404,6 +405,7 @@ pub struct DualRumbleEffectParams {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+/// <https://w3.org/TR/gamepad/#dom-gamepadhapticeffecttype>
 pub enum GamepadHapticEffectType {
     DualRumble(DualRumbleEffectParams),
 }
