@@ -23,6 +23,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext;
 use crate::task_source::TaskSource;
 
@@ -31,9 +32,9 @@ pub struct GamepadHapticActuator {
     reflector_: Reflector,
     gamepad_index: u32,
     effects: Vec<GamepadHapticEffectType>,
-    #[ignore_malloc_size_of = "promises are hard"]
+    #[ignore_malloc_size_of = "Rc is hard"]
     playing_effect_promise: DomRefCell<Option<Rc<Promise>>>,
-    #[ignore_malloc_size_of = "promises are hard"]
+    #[ignore_malloc_size_of = "Rc is hard"]
     reset_result_promise: DomRefCell<Option<Rc<Promise>>>,
 }
 
@@ -95,7 +96,8 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
         type_: GamepadHapticEffectType,
         params: &GamepadEffectParameters,
     ) -> Rc<Promise> {
-        let playing_effect_promise = Promise::new(&self.global());
+        let in_realm_proof = AlreadyInRealm::assert();
+        let playing_effect_promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
 
         // <https://www.w3.org/TR/gamepad/#dfn-valid-effect>
         match type_ {
@@ -105,29 +107,36 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
                     playing_effect_promise.reject_error(Error::Type(
                         "Strong magnitude value is not within range of 0.0 to 1.0.".to_string(),
                     ));
+                    return playing_effect_promise;
                 } else if *params.weakMagnitude < 0.0 || *params.weakMagnitude > 1.0 {
                     playing_effect_promise.reject_error(Error::Type(
                         "Weak magnitude value is not within range of 0.0 to 1.0.".to_string(),
                     ));
+                    return playing_effect_promise;
                 }
             },
+            // <https://www.w3.org/TR/gamepad/#dfn-valid-trigger-rumble-effect>
             GamepadHapticEffectType::Trigger_rumble => {
                 if *params.strongMagnitude < 0.0 || *params.strongMagnitude > 1.0 {
                     playing_effect_promise.reject_error(Error::Type(
                         "Strong magnitude value is not within range of 0.0 to 1.0.".to_string(),
                     ));
+                    return playing_effect_promise;
                 } else if *params.weakMagnitude < 0.0 || *params.weakMagnitude > 1.0 {
                     playing_effect_promise.reject_error(Error::Type(
                         "Weak magnitude value is not within range of 0.0 to 1.0.".to_string(),
                     ));
+                    return playing_effect_promise;
                 } else if *params.leftTrigger < 0.0 || *params.leftTrigger > 1.0 {
                     playing_effect_promise.reject_error(Error::Type(
                         "Left trigger value is not within range of 0.0 to 1.0.".to_string(),
                     ));
+                    return playing_effect_promise;
                 } else if *params.rightTrigger < 0.0 || *params.rightTrigger > 1.0 {
                     playing_effect_promise.reject_error(Error::Type(
                         "Right trigger value is not within range of 0.0 to 1.0.".to_string(),
                     ));
+                    return playing_effect_promise;
                 }
             },
         }
@@ -179,11 +188,13 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
 
     /// <https://www.w3.org/TR/gamepad/#dom-gamepadhapticactuator-reset>
     fn Reset(&self) -> Rc<Promise> {
-        let reset_result_promise = Promise::new(&self.global());
+        let in_realm_proof = AlreadyInRealm::assert();
+        let reset_result_promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
 
         let document = self.global().as_window().Document();
         if !document.is_fully_active() {
             reset_result_promise.reject_error(Error::InvalidState);
+            return reset_result_promise;
         }
 
         if self.playing_effect_promise.borrow().is_some() {
@@ -205,7 +216,9 @@ impl GamepadHapticActuator {
         self.playing_effect_promise.borrow().is_some()
     }
 
-    pub fn resolve_playing_effect_promise(&self) {
+    /// <https://www.w3.org/TR/gamepad/#dom-gamepadhapticactuator-playeffect>
+    /// We are in the task queued by the "in-parallel" steps.
+    pub fn handle_haptic_effect_completed(&self) {
         let playing_effect_promise = self.playing_effect_promise.borrow().clone();
         if let Some(promise) = playing_effect_promise {
             let message = DOMString::from("complete");
@@ -217,7 +230,7 @@ impl GamepadHapticActuator {
         self.reset_result_promise.borrow().is_some()
     }
 
-    pub fn resolve_reset_result_promise(&self) {
+    pub fn handle_haptic_effect_stopped(&self) {
         let playing_effect_promise = self.playing_effect_promise.borrow().clone();
         let reset_result_promise = self.reset_result_promise.borrow().clone();
 

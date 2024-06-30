@@ -217,9 +217,6 @@ where
                         }
                     },
                     EventType::Connected => {
-                        let len = self.haptic_effects.len();
-                        self.haptic_effects.resize_with(len + 1, Default::default);
-
                         let name = String::from(name);
                         let bounds = GamepadInputBounds {
                             axis_bounds: (-1.0, 1.0),
@@ -230,6 +227,8 @@ where
                             supports_dual_rumble: true,
                             supports_trigger_rumble: false,
                         };
+                        // Append a new slot for haptic effects on this gamepad
+                        self.haptic_effects.push(None);
                         gamepad_event = Some(GamepadEvent::Connected(
                             index,
                             name,
@@ -316,7 +315,7 @@ where
                     .play()
                     .expect("Failed to play haptic effect.");
             } else {
-                println!("Couldn't find connected gamepad to play haptic effect on");
+                debug!("Couldn't find connected gamepad to play haptic effect on");
             }
         }
     }
