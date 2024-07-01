@@ -12,6 +12,7 @@ use serde::Serialize;
 use serde_json::{self, Map, Value};
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actors::inspector::layout::{LayoutInspectorActor, LayoutInspectorActorMsg};
 use crate::actors::inspector::node::{NodeActorMsg, NodeInfoToProtocol};
 use crate::protocol::JsonPacketStream;
 use crate::{EmptyReplyMsg, StreamId};
@@ -51,6 +52,13 @@ struct ChildrenReply {
     has_first: bool,
     has_last: bool,
     nodes: Vec<NodeActorMsg>,
+    from: String,
+}
+
+// {"actor":{"actor":"server1.conn0.process5//layout66"},"from":"server1.conn0.process5//domwalker49"}
+#[derive(Serialize)]
+struct GetLayoutInspectorReply {
+    actor: LayoutInspectorActorMsg,
     from: String,
 }
 
@@ -144,7 +152,20 @@ impl Actor for WalkerActor {
                 ActorMessageStatus::Processed
             },
 
-            // TODO: getLayoutInspector
+            "getLayoutInspector" => {
+                // TODO: Save layout
+                let layout = LayoutInspectorActor::new(registry.new_name("layout"));
+                let actor = layout.encodable();
+                registry.register_later(Box::new(layout));
+
+                let _ = stream.write_json_packet(&GetLayoutInspectorReply {
+                    from: self.name(),
+                    actor,
+                });
+
+                ActorMessageStatus::Processed
+            },
+
             _ => ActorMessageStatus::Ignored,
         })
     }
