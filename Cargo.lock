@@ -218,7 +218,7 @@ version = "0.38.0+1.3.281"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0bb44936d800fea8f016d7f2311c6a4f97aebd5dc86f09906139ec848cf3a46f"
 dependencies = [
- "libloading 0.8.4",
+ "libloading",
 ]
 
 [[package]]
@@ -764,7 +764,7 @@ checksum = "a483f3cbf7cec2e153d424d0e92329d816becc6421389bd494375c6065921b9b"
 dependencies = [
  "glob",
  "libc",
- "libloading 0.8.4",
+ "libloading",
 ]
 
 [[package]]
@@ -1198,7 +1198,7 @@ version = "0.20.0"
 source = "git+https://github.com/gfx-rs/wgpu?rev=1e784c9c0af7a785b62e3b6840ed012a7477520f#1e784c9c0af7a785b62e3b6840ed012a7477520f"
 dependencies = [
  "bitflags 2.6.0",
- "libloading 0.7.4",
+ "libloading",
  "winapi",
 ]
 
@@ -1405,7 +1405,7 @@ version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330c60081dcc4c72131f8eb70510f1ac07223e5d4163db481a04a0befcffa412"
 dependencies = [
- "libloading 0.8.4",
+ "libloading",
 ]
 
 [[package]]
@@ -3323,7 +3323,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6aae1df220ece3c0ada96b8153459b67eebe9ae9212258bb0134ae60416fdf76"
 dependencies = [
  "libc",
- "libloading 0.8.4",
+ "libloading",
  "pkg-config",
 ]
 
@@ -3571,16 +3571,6 @@ dependencies = [
  "libc",
  "libz-sys",
  "pkg-config",
-]
-
-[[package]]
-name = "libloading"
-version = "0.7.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b67380fd3b2fbe7527a606e18729d21c6f3951633d0500574c4dc22d2d638b9f"
-dependencies = [
- "cfg-if",
- "winapi",
 ]
 
 [[package]]
@@ -3934,9 +3924,9 @@ checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 
 [[package]]
 name = "mime_guess"
-version = "2.0.4"
+version = "2.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4192263c238a5f0d0c6bfd21f336a313a4ce1c450542449ca191bb657b4642ef"
+checksum = "f7c44f8e672c00fe5308fa235f821cb4198414e1c77935c1ab6948d3fd78550e"
 dependencies = [
  "mime",
  "unicase",
@@ -4105,7 +4095,7 @@ version = "0.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f101404db01422d034db5afa63eefff6d9c8f66c0894278bc456b4c30954e166"
 dependencies = [
- "libloading 0.8.4",
+ "libloading",
 ]
 
 [[package]]
@@ -5806,7 +5796,7 @@ dependencies = [
  "keyboard-types",
  "lazy_static",
  "libc",
- "libloading 0.8.4",
+ "libloading",
  "libservo",
  "log",
  "napi-derive-ohos",
@@ -7434,7 +7424,7 @@ dependencies = [
  "js-sys",
  "khronos-egl",
  "libc",
- "libloading 0.7.4",
+ "libloading",
  "log",
  "metal 0.28.0",
  "naga",
@@ -7897,7 +7887,7 @@ dependencies = [
  "as-raw-xcb-connection",
  "gethostname",
  "libc",
- "libloading 0.8.4",
+ "libloading",
  "once_cell",
  "rustix",
  "x11rb-protocol",
