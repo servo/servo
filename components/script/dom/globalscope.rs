@@ -51,8 +51,9 @@ use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_tim
 use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
 use script_traits::transferable::MessagePortImpl;
 use script_traits::{
-    BroadcastMsg, GamepadEvent, GamepadUpdateType, MessagePortMsg, MsDuration, PortMessageTask,
-    ScriptMsg, ScriptToConstellationChan, TimerEvent, TimerEventId, TimerSchedulerMsg, TimerSource,
+    BroadcastMsg, GamepadEvent, GamepadSupportedHapticEffects, GamepadUpdateType, MessagePortMsg,
+    MsDuration, PortMessageTask, ScriptMsg, ScriptToConstellationChan, TimerEvent, TimerEventId,
+    TimerSchedulerMsg, TimerSource,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use uuid::Uuid;
@@ -3135,12 +3136,13 @@ impl GlobalScope {
 
     pub fn handle_gamepad_event(&self, gamepad_event: GamepadEvent) {
         match gamepad_event {
-            GamepadEvent::Connected(index, name, bounds) => {
+            GamepadEvent::Connected(index, name, bounds, supported_haptic_effects) => {
                 self.handle_gamepad_connect(
                     index.0,
                     name,
                     bounds.axis_bounds,
                     bounds.button_bounds,
+                    supported_haptic_effects,
                 );
             },
             GamepadEvent::Disconnected(index) => {
@@ -3148,6 +3150,12 @@ impl GlobalScope {
             },
             GamepadEvent::Updated(index, update_type) => {
                 self.receive_new_gamepad_button_or_axis(index.0, update_type);
+            },
+            GamepadEvent::HapticEffectCompleted(index) => {
+                self.handle_gamepad_haptic_effect_completed(index.0);
+            },
+            GamepadEvent::HapticEffectStopped(index) => {
+                self.handle_gamepad_haptic_effect_stopped(index.0);
             },
         };
     }
@@ -3162,6 +3170,7 @@ impl GlobalScope {
         name: String,
         axis_bounds: (f64, f64),
         button_bounds: (f64, f64),
+        supported_haptic_effects: GamepadSupportedHapticEffects,
     ) {
         // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
         //          then abort these steps.
@@ -3173,7 +3182,7 @@ impl GlobalScope {
                 if let Some(window) = global.downcast::<Window>() {
                     let navigator = window.Navigator();
                     let selected_index = navigator.select_gamepad_index();
-                    let gamepad = Gamepad::new(&global, selected_index, name, axis_bounds, button_bounds);
+                    let gamepad = Gamepad::new(&global, selected_index, name, axis_bounds, button_bounds, supported_haptic_effects);
                     navigator.set_gamepad(selected_index as usize, &gamepad);
                 }
             }),
@@ -3254,6 +3263,44 @@ impl GlobalScope {
                 &self.task_canceller(TaskSourceName::Gamepad),
             )
             .expect("Failed to queue update gamepad state task.");
+    }
+
+    pub fn handle_gamepad_haptic_effect_completed(&self, index: usize) {
+        let this = Trusted::new(&*self);
+        self.gamepad_task_source()
+            .queue_with_canceller(
+                task!(gamepad_haptic_effect_completed: move || {
+                    let global = this.root();
+                    if let Some(window) = global.downcast::<Window>() {
+                        if let Some(gamepad) = window.Navigator().get_gamepad(index) {
+                            if gamepad.vibration_actuator().has_playing_effect_promise() {
+                                gamepad.vibration_actuator().handle_haptic_effect_completed();
+                            }
+                        }
+                    }
+                }),
+                &self.task_canceller(TaskSourceName::Gamepad),
+            )
+            .expect("Failed to queue gamepad haptic effect completed task.");
+    }
+
+    pub fn handle_gamepad_haptic_effect_stopped(&self, index: usize) {
+        let this = Trusted::new(&*self);
+        self.gamepad_task_source()
+            .queue_with_canceller(
+                task!(gamepad_haptic_effect_stopped: move || {
+                    let global = this.root();
+                    if let Some(window) = global.downcast::<Window>() {
+                        if let Some(gamepad) = window.Navigator().get_gamepad(index) {
+                            if gamepad.vibration_actuator().has_reset_result_promise() {
+                                gamepad.vibration_actuator().handle_haptic_effect_stopped();
+                            }
+                        }
+                    }
+                }),
+                &self.task_canceller(TaskSourceName::Gamepad),
+            )
+            .expect("Failed to queue gamepad haptic effect stopped task.");
     }
 
     pub(crate) fn current_group_label(&self) -> Option<DOMString> {
