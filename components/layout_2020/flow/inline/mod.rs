@@ -850,7 +850,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             }),
         );
 
-        if self.current_line.has_floats_waiting_to_be_placed {
+        if line_to_layout.has_floats_waiting_to_be_placed {
             place_pending_floats(self, &mut line_to_layout.line_items);
         }
 
