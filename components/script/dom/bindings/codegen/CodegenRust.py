@@ -6113,9 +6113,6 @@ class CGClassTraceHook(CGAbstractClassHook):
 
 
 class CGClassConstructHook(CGAbstractExternMethod):
-    """
-    JS-visible constructor for our objects
-    """
     def __init__(self, descriptor, constructor=None):
         args = [Argument('*mut JSContext', 'cx'), Argument('u32', 'argc'), Argument('*mut JSVal', 'vp')]
         name = CONSTRUCT_HOOK_NAME
@@ -6129,51 +6126,21 @@ class CGClassConstructHook(CGAbstractExternMethod):
         self.exposureSet = descriptor.interface.exposureSet
 
     def definition_body(self):
-        preamble = """let cx = SafeJSContext::from_ptr(cx);
-let args = CallArgs::from_vp(vp, argc);
-let global = GlobalScope::from_object(JS_CALLEE(*cx, vp).to_object());
-"""
-        if len(self.exposureSet) == 1:
-            preamble += """\
-let global = DomRoot::downcast::<dom::types::%s>(global).unwrap();
-""" % list(self.exposureSet)[0]
-        if self.constructor.isHTMLConstructor():
-            signatures = self.constructor.signatures()
-            assert len(signatures) == 1
-            constructorCall = CGGeneric("""dom::bindings::htmlconstructor::call_html_constructor::<dom::types::%s>(
-                cx,
-                &args,
-                &global,
-                PrototypeList::ID::%s,
-                CreateInterfaceObjects,
-            )""" % (self.descriptor.name, MakeNativeName(self.descriptor.name)))
-        else:
-            ctorName = GetConstructorNameForReporting(self.descriptor, self.constructor)
-            preamble += """
-if !callargs_is_constructing(&args) {
-  throw_constructor_without_new(*cx, "%s");
-  return false;
-}
+        preamble = "let cx = SafeJSContext::from_ptr(cx);\n"
+        preamble += "let args = CallArgs::from_vp(vp, argc);\n"
+        preamble += "let global = GlobalScope::from_object(JS_CALLEE(*cx, vp).to_object());\n"
 
-rooted!(in(*cx) let mut desired_proto = ptr::null_mut::<JSObject>());
-let proto_result = get_desired_proto(
-  cx,
-  &args,
-  PrototypeList::ID::%s,
-  CreateInterfaceObjects,
-  desired_proto.handle_mut(),
-);
-assert!(proto_result.is_ok());
-if proto_result.is_err() {
-  return false;
-}
-""" % (ctorName, MakeNativeName(self.descriptor.name))
-            name = self.constructor.identifier.name
-            nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
-            args = ["&global", "Some(desired_proto.handle())"]
-            constructorCall = CGMethodCall(args, nativeName, True,
-                                           self.descriptor, self.constructor)
-        return CGList([CGGeneric(preamble), constructorCall])
+        rust_function_call = ""
+        if len(self.exposureSet) == 1:
+            if self.constructor.isHTMLConstructor():
+                rust_function_call = f"construct_html_custom(&global, cx, &args, \"{self.descriptor.name}\");\n"
+            else:
+                ctorName = GetConstructorNameForReporting(self.descriptor, self.constructor)
+                rust_function_call = f"construct_default_custom(&global, cx, &args, \"{self.descriptor.name}\", \"{ctorName}\");\n"
+        
+        # Assuming CGList and CGGeneric can handle the combination of Rust code and preamble
+        return CGList([CGGeneric(preamble), CGGeneric(rust_function_call)])
+
 
 
 class CGClassFinalizeHook(CGAbstractClassHook):
