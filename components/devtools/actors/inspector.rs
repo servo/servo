@@ -24,10 +24,12 @@ use crate::actors::inspector::walker::{WalkerActor, WalkerMsg};
 use crate::protocol::JsonPacketStream;
 use crate::StreamId;
 
-mod highlighter;
-mod node;
-mod page_style;
-mod walker;
+pub mod accessibility;
+pub mod css_properties;
+pub mod highlighter;
+pub mod node;
+pub mod page_style;
+pub mod walker;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
