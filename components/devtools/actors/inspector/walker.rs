@@ -144,6 +144,7 @@ impl Actor for WalkerActor {
                 ActorMessageStatus::Processed
             },
 
+            // TODO: getLayoutInspector
             _ => ActorMessageStatus::Ignored,
         })
     }

@@ -29,7 +29,7 @@ use devtools_traits::{
 };
 use embedder_traits::{EmbedderMsg, EmbedderProxy, PromptDefinition, PromptOrigin, PromptResult};
 use ipc_channel::ipc::{self, IpcSender};
-use log::{debug, warn};
+use log::{debug, trace, warn};
 use serde::Serialize;
 use servo_rand::RngCore;
 
@@ -600,7 +600,7 @@ fn run_server(
 
     let mut next_id = StreamId(0);
     while let Ok(msg) = receiver.recv() {
-        debug!("{:?}", msg);
+        trace!("{:?}", msg);
         match msg {
             DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::AddClient(stream)) => {
                 let actors = actors.clone();

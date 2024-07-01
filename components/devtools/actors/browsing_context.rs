@@ -20,7 +20,7 @@ use serde_json::{Map, Value};
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::configuration::{TargetConfigurationActor, ThreadConfigurationActor};
 use crate::actors::emulation::EmulationActor;
-use crate::actors::inspector::accesibility::AccesibilityActor;
+use crate::actors::inspector::accessibility::AccessibilityActor;
 use crate::actors::inspector::css_properties::CssPropertiesActor;
 use crate::actors::inspector::InspectorActor;
 use crate::actors::performance::PerformanceActor;
@@ -136,7 +136,7 @@ pub(crate) struct BrowsingContextActor {
     pub url: RefCell<String>,
     pub active_pipeline: Cell<PipelineId>,
     pub browsing_context_id: BrowsingContextId,
-    pub accesibility: String,
+    pub accessibility: String,
     pub console: String,
     pub css_properties: String,
     pub _emulation: String,
@@ -194,7 +194,7 @@ impl BrowsingContextActor {
         let name = actors.new_name("target");
         let DevtoolsPageInfo { title, url } = page_info;
 
-        let accesibility = AccesibilityActor::new(actors.new_name("accesibility"));
+        let accessibility = AccessibilityActor::new(actors.new_name("accessibility"));
 
         let css_properties = CssPropertiesActor::new(actors.new_name("css-properties"));
 
@@ -243,7 +243,7 @@ impl BrowsingContextActor {
             url: RefCell::new(url.into_string()),
             active_pipeline: Cell::new(pipeline),
             browsing_context_id: id,
-            accesibility: accesibility.name(),
+            accessibility: accessibility.name(),
             console,
             css_properties: css_properties.name(),
             _emulation: emulation.name(),
@@ -260,7 +260,7 @@ impl BrowsingContextActor {
             watcher: watcher.name(),
         };
 
-        actors.register(Box::new(accesibility));
+        actors.register(Box::new(accessibility));
         actors.register(Box::new(css_properties));
         actors.register(Box::new(emulation));
         actors.register(Box::new(inspector));
@@ -290,7 +290,7 @@ impl BrowsingContextActor {
             //FIXME: shouldn't ignore pipeline namespace field
             outer_window_id: self.active_pipeline.get().index.0.get(),
             is_top_level_target: true,
-            accessibility_actor: self.accesibility.clone(),
+            accessibility_actor: self.accessibility.clone(),
             console_actor: self.console.clone(),
             css_properties_actor: self.css_properties.clone(),
             inspector_actor: self.inspector.clone(),

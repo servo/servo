@@ -22,7 +22,7 @@ use crate::actors::inspector::walker::{WalkerActor, WalkerMsg};
 use crate::protocol::JsonPacketStream;
 use crate::StreamId;
 
-pub mod accesibility;
+pub mod accessibility;
 pub mod css_properties;
 pub mod highlighter;
 pub mod node;
