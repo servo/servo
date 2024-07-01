@@ -27,6 +27,7 @@ use crate::StreamId;
 pub mod accessibility;
 pub mod css_properties;
 pub mod highlighter;
+pub mod layout;
 pub mod node;
 pub mod page_style;
 pub mod walker;

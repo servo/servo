@@ -154,7 +154,6 @@ pub struct BrowsingContextActorMsg {
     // changes_actor: String,
     // web_socket_actor: String,
     // manifest_actor: String,
-    // TODO: Accesibility actor
 }
 
 /// The browsing context actor encompasses all of the other supporting actors when debugging a web

@@ -66,7 +66,7 @@ impl SessionContext {
                 ("network-event", false),
                 ("network-event-stacktrace", false),
                 ("reflow", false),
-                ("stylesheet", false),
+                ("stylesheet", true),
                 ("source", true),
                 ("thread-state", false),
                 ("server-sent-event", false),
@@ -237,6 +237,7 @@ impl Actor for WatcherActor {
 
                 ActorMessageStatus::Processed
             },
+            // TODO: getNetworkParentActor
             _ => ActorMessageStatus::Ignored,
         })
     }
