@@ -147,17 +147,28 @@ impl taffy::LayoutPartialTree for FlexContext<'_> {
                     // TODO: better handling of flexbox items (which can't precompute inline sizes)
                     IndependentFormattingContext::NonReplaced(non_replaced) => {
                         // The containing block of a flex item is the content box of the flex container
-                        // TODO: synthesize from "known_dimensions"
                         let containing_block = &self.content_box_size_override;
 
+                        // Adjust known_dimensions from border box to content box
+                        let pbm = non_replaced.style.padding_border_margin(containing_block);
+                        let content_box_known_dimensions =
+                            taffy::Size {
+                                width: inputs.known_dimensions.width.map(|width| {
+                                    width - pbm.padding_border_sums.inline.to_f32_px()
+                                }),
+                                height: inputs.known_dimensions.height.map(|height| {
+                                    height - pbm.padding_border_sums.block.to_f32_px()
+                                }),
+                            };
+
                         // Compute inline size
-                        let inline_size = inputs.known_dimensions.width.unwrap_or_else(|| {
+                        let inline_size = content_box_known_dimensions.width.unwrap_or_else(|| {
                             let inline_sizes =
                                 non_replaced.inline_content_sizes(&self.layout_context);
                             resolve_content_size(inputs.available_space.width, inline_sizes)
                         });
 
-                        let maybe_block_size = match inputs.known_dimensions.height {
+                        let maybe_block_size = match content_box_known_dimensions.height {
                             None => LengthPercentageOrAuto::Auto,
                             Some(length) => {
                                 LengthPercentageOrAuto::LengthPercentage(Au::from_f32_px(length))
