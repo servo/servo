@@ -152,6 +152,12 @@ debug-assertions = true
 [profile.production]
 inherits = "release"
 debug-assertions = false
+lto = "thin"
+codegen-units = 1
+
+[profile.production-stripped]
+inherits = "production"
+strip = true
 
 [patch.crates-io]
 # If you need to temporarily test Servo with a local fork of some upstream
