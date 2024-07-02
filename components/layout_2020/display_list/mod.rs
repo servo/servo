@@ -712,7 +712,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         // is used).
         if let BackgroundMode::Extra(ref extra_backgrounds) = self.fragment.background_mode {
             for extra_background in extra_backgrounds {
-                let positioning_area = extra_background.rect.clone();
+                let positioning_area = extra_background.rect;
                 let painter = BackgroundPainter {
                     style: &extra_background.style,
                     painting_area_override: None,

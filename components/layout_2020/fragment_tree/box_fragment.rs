@@ -376,11 +376,6 @@ impl BoxFragment {
             (content_rect.origin.x, cb_width - content_rect.max_x())
         };
 
-        convert_to_length_or_auto(PhysicalSides::new(
-            top.into(),
-            right.into(),
-            bottom.into(),
-            left.into(),
-        ))
+        convert_to_length_or_auto(PhysicalSides::new(top, right, bottom, left))
     }
 }

@@ -632,10 +632,9 @@ impl HoistedAbsolutelyPositionedBox {
 
                         let (block_size, inline_size) =
                             match independent_layout.content_inline_size_for_table {
-                                Some(inline_size) => (
-                                    independent_layout.content_block_size.into(),
-                                    inline_size.into(),
-                                ),
+                                Some(inline_size) => {
+                                    (independent_layout.content_block_size, inline_size)
+                                },
                                 None => (
                                     size.auto_is(|| independent_layout.content_block_size),
                                     inline_size,

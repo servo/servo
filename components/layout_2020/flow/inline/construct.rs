@@ -268,7 +268,7 @@ impl InlineFormattingContextBuilder {
         for identifier in self.inline_box_stack.iter() {
             new_builder.start_inline_box(
                 self.inline_boxes
-                    .get(&identifier)
+                    .get(identifier)
                     .borrow()
                     .split_around_block(),
             );

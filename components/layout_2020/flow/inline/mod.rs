@@ -1738,7 +1738,7 @@ impl InlineFormattingContext {
 
             match item {
                 InlineItem::StartInlineBox(identifier) => {
-                    ifc.start_inline_box(&*self.inline_boxes.get(identifier).borrow());
+                    ifc.start_inline_box(&self.inline_boxes.get(identifier).borrow());
                 },
                 InlineItem::EndInlineBox => ifc.finish_inline_box(),
                 InlineItem::TextRun(run) => run.layout_into_line_items(&mut ifc),
@@ -2369,7 +2369,7 @@ struct ContentSizesComputation<'a> {
 impl<'a> ContentSizesComputation<'a> {
     fn traverse(mut self, inline_formatting_context: &InlineFormattingContext) -> ContentSizes {
         for inline_item in inline_formatting_context.inline_items.iter() {
-            self.process_item(&mut *inline_item.borrow_mut(), inline_formatting_context);
+            self.process_item(&mut inline_item.borrow_mut(), inline_formatting_context);
         }
 
         self.forced_line_break();
