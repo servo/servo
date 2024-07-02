@@ -50,18 +50,22 @@ impl VisibilityStateEntry {
 }
 
 impl VisibilityStateEntryMethods for VisibilityStateEntry {
+    /// <https://html.spec.whatwg.org/multipage/#visibilitystateentry-name>
     fn Name(&self) -> DOMString {
         self.entry.Name()
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#visibilitystateentry-entrytype>
     fn EntryType(&self) -> DOMString {
         self.entry.EntryType()
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#visibilitystateentry-starttime>
     fn StartTime(&self) -> Finite<f64> {
         self.entry.StartTime()
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#visibilitystateentry-duration>
     fn Duration(&self) -> u32 {
         *self.entry.Duration().deref() as u32
     }
