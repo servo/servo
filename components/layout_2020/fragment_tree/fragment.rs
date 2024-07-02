@@ -11,7 +11,6 @@ use fonts::{FontMetrics, GlyphStore};
 use serde::Serialize;
 use servo_arc::Arc as ServoArc;
 use style::properties::ComputedValues;
-use style::values::computed::Length;
 use style::values::specified::text::TextDecorationLine;
 use style::Zero;
 use webrender_api::{FontInstanceKey, ImageKey};
@@ -75,7 +74,7 @@ pub(crate) struct TextFragment {
     pub text_decoration_line: TextDecorationLine,
 
     /// Extra space to add for each justification opportunity.
-    pub justification_adjustment: Length,
+    pub justification_adjustment: Au,
 }
 
 #[derive(Serialize)]
