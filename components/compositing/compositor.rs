@@ -184,9 +184,6 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// Current mouse cursor.
     cursor: Cursor,
 
-    /// Current cursor position.
-    cursor_pos: DevicePoint,
-
     /// Offscreen framebuffer object to render our next frame to.
     /// We use this and `prev_offscreen_framebuffer` for double buffering when compositing to
     /// [`CompositeTarget::Fbo`].
@@ -406,7 +403,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             webxr_main_thread: state.webxr_main_thread,
             pending_paint_metrics: HashMap::new(),
             cursor: Cursor::None,
-            cursor_pos: DevicePoint::new(0.0, 0.0),
             next_offscreen_framebuffer: OnceCell::new(),
             prev_offscreen_framebuffer: None,
             invalidate_prev_offscreen_framebuffer: false,
@@ -621,12 +617,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
 
             CompositorMsg::NewWebRenderFrameReady(recomposite_needed) => {
                 self.pending_frames -= 1;
-
-                if recomposite_needed {
-                    if let Some(result) = self.hit_test_at_point(self.cursor_pos) {
-                        self.update_cursor(result);
-                    }
-                }
 
                 if recomposite_needed || self.animation_callbacks_active() {
                     self.composite_if_necessary(CompositingReason::NewWebRenderFrame)
