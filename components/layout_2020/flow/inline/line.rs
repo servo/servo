@@ -245,7 +245,7 @@ impl TextRunLineItem {
             font_key: self.font_key,
             glyphs: self.text,
             text_decoration_line: self.text_decoration_line,
-            justification_adjustment: state.justification_adjustment,
+            justification_adjustment: state.justification_adjustment.into(),
         })
     }
 }
