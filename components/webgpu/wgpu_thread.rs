@@ -32,7 +32,7 @@ pub use {wgpu_core as wgc, wgpu_types as wgt};
 use crate::gpu_error::ErrorScope;
 use crate::poll_thread::Poller;
 use crate::{
-    ComputePassId, Error, PopError, PresentationData, Transmute, WebGPU, WebGPUAdapter,
+    ComputePassId, Error, Pipeline, PopError, PresentationData, Transmute, WebGPU, WebGPUAdapter,
     WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
 };
 
@@ -346,6 +346,7 @@ impl WGPU {
                         compute_pipeline_id,
                         descriptor,
                         implicit_ids,
+                        sender,
                     } => {
                         let global = &self.global;
                         let bgls = implicit_ids
@@ -367,7 +368,23 @@ impl WGPU {
                                 implicit
                             )
                         );
-                        self.maybe_dispatch_wgpu_error(device_id, error);
+                        if let Some(sender) = sender {
+                            let res = if let Some(e) = error {
+                                Err(Error::from_error(e))
+                            } else {
+                                Ok(Pipeline {
+                                    id: compute_pipeline_id,
+                                    label: descriptor.label.unwrap_or_default().to_string(),
+                                })
+                            };
+                            if let Err(e) =
+                                sender.send(Some(Ok(WebGPUResponse::ComputePipeline(res))))
+                            {
+                                warn!("Failed sending WebGPUResponse::ComputePipeline {e:?}");
+                            }
+                        } else {
+                            self.maybe_dispatch_wgpu_error(device_id, error);
+                        }
                     },
                     WebGPURequest::CreateContext(sender) => {
                         let id = self
@@ -394,6 +411,7 @@ impl WGPU {
                         render_pipeline_id,
                         descriptor,
                         implicit_ids,
+                        sender,
                     } => {
                         let global = &self.global;
                         let bgls = implicit_ids
@@ -416,7 +434,24 @@ impl WGPU {
                                 Some(render_pipeline_id),
                                 implicit)
                             );
-                            self.maybe_dispatch_wgpu_error(device_id, error);
+
+                            if let Some(sender) = sender {
+                                let res = if let Some(e) = error {
+                                    Err(Error::from_error(e))
+                                } else {
+                                    Ok(Pipeline {
+                                        id: render_pipeline_id,
+                                        label: desc.label.unwrap_or_default().to_string(),
+                                    })
+                                };
+                                if let Err(e) =
+                                    sender.send(Some(Ok(WebGPUResponse::RenderPipeline(res))))
+                                {
+                                    warn!("Failed sending WebGPUResponse::RenderPipeline {e:?}");
+                                }
+                            } else {
+                                self.maybe_dispatch_wgpu_error(device_id, error);
+                            }
                         }
                     },
                     WebGPURequest::CreateSampler {
@@ -1272,6 +1307,24 @@ impl WGPU {
                                 warn!("Unable to send PopError::Lost due {e:?}");
                             }
                         }
+                    },
+                    WebGPURequest::ComputeGetBindGroupLayout {
+                        pipeline_id,
+                        index,
+                        id,
+                    } => {
+                        let global = &self.global;
+                        gfx_select!(pipeline_id =>
+                            global.compute_pipeline_get_bind_group_layout(pipeline_id, index, Some(id)));
+                    },
+                    WebGPURequest::RenderGetBindGroupLayout {
+                        pipeline_id,
+                        index,
+                        id,
+                    } => {
+                        let global = &self.global;
+                        gfx_select!(pipeline_id =>
+                            global.render_pipeline_get_bind_group_layout(pipeline_id, index, Some(id)));
                     },
                 }
             }

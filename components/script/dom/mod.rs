@@ -345,6 +345,7 @@ pub mod gpuerror;
 pub mod gpuinternalerror;
 pub mod gpumapmode;
 pub mod gpuoutofmemoryerror;
+pub mod gpupipelineerror;
 pub mod gpupipelinelayout;
 pub mod gpuqueryset;
 pub mod gpuqueue;
