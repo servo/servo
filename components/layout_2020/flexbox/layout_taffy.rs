@@ -178,8 +178,8 @@ impl taffy::LayoutPartialTree for FlexContext<'_> {
                             let layout = non_replaced.layout(
                                 &self.layout_context,
                                 &mut child_positioning_context,
-                                &containing_block,
                                 &content_box_size_override,
+                                &containing_block,
                             );
 
                             self.positioning_context.append(child_positioning_context);
