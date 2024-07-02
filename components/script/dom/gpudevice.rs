@@ -1032,7 +1032,7 @@ impl AsyncWGPUListener for GPUDevice {
                     promise.resolve_native(&error);
                 },
             },
-            _ => unreachable!("Wrong response recived on AsyncWGPUListener for GPUDevice"),
+            _ => unreachable!("Wrong response received on AsyncWGPUListener for GPUDevice"),
         }
     }
 }

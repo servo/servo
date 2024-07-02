@@ -95,7 +95,7 @@ impl AsyncWGPUListener for GPUShaderModule {
                 let info = GPUCompilationInfo::from(&self.global(), info);
                 promise.resolve_native(&info);
             },
-            _ => unreachable!("Wrong response recived on AsyncWGPUListener for GPUDevice"),
+            _ => unreachable!("Wrong response received on AsyncWGPUListener for GPUShaderModule"),
         }
     }
 }
