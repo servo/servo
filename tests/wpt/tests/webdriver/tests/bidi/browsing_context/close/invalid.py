@@ -29,3 +29,9 @@ async def test_child_context(bidi_session, test_page_same_origin_frame, top_cont
 
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.browsing_context.close(context=child_info["context"])
+
+
+@pytest.mark.parametrize("value", ["", 42, {}, []])
+async def test_params_prompt_unload_invalid_type(bidi_session, top_context, value):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browsing_context.close(context=top_context["context"], prompt_unload=value)

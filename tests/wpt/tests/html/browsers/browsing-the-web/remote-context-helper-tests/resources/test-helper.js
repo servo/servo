@@ -46,3 +46,8 @@ async function assertHeaderIsAsExpected(
         return res.headers.get(headerName);
       }, [headerName]), 'header is set');
 }
+
+function getUrlType(location) {
+  const url = new URL(location);
+  return url.searchParams.get('urlType');
+}

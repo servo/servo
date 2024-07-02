@@ -38,6 +38,36 @@ async def test_modify_headers(
     assert_response_event(response_event, expected_request={"headers": headers})
 
 
+async def test_multiple_headers(
+    setup_blocked_request,
+    subscribe_events,
+    wait_for_event,
+    bidi_session,
+):
+    request = await setup_blocked_request("beforeRequestSent")
+    await subscribe_events(events=[RESPONSE_COMPLETED_EVENT])
+
+    headers = []
+    header_name = "multiple_header_name"
+    headers.append(Header(name=header_name, value=NetworkStringValue("value1")))
+    headers.append(Header(name=header_name, value=NetworkStringValue("value2")))
+    headers.append(Header(name=header_name, value=NetworkStringValue("value3")))
+
+    on_response_completed = wait_for_event(RESPONSE_COMPLETED_EVENT)
+    await bidi_session.network.continue_request(request=request, headers=headers)
+    response_event = await on_response_completed
+    assert_response_event(response_event)
+
+    event_headers = response_event["request"]["headers"]
+    a_header = next(h for h in event_headers if h["name"] == header_name)
+
+    # Implementations might handle multiple values with different separators/whitespaces
+    # https://www.rfc-editor.org/rfc/rfc9110.html#section-5.3
+    assert "value1" in a_header["value"]["value"]
+    assert "value2" in a_header["value"]["value"]
+    assert "value3" in a_header["value"]["value"]
+
+
 async def test_override_cookies(
     setup_blocked_request,
     subscribe_events,

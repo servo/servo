@@ -33,15 +33,24 @@ function sample1() {
 }
 
 function sample2() {
-  assert_animated_path_equals(path, "M -15 -15 l 30 15 v 15 h -15 Z");
+  assert_animated_path_in_array(path, [
+    "M -15 -15 l 30 15 v 15 h -15 Z",
+    "M -15 -15 L 15 0 V 15 H 0 Z",
+  ]);
 }
 
 function sample3() {
-  assert_animated_path_equals(path, "M 15 15 l -30 -15 v -15 h 15 Z");
+  assert_animated_path_in_array(path, [
+    "M 15 15 l -30 -15 v -15 h 15 Z",
+    "M 15 15 L -15 0 V -15 H 0 Z",
+  ]);
 }
 
 function sample4() {
-  assert_animated_path_equals(path, "M 29.985 29.985 l -59.97 -29.985 v -29.985 h 29.985 Z");
+  assert_animated_path_in_array(path, [
+    "M 29.985 29.985 l -59.97 -29.985 v -29.985 h 29.985 Z",
+    "M 29.98 29.98 L -29.98 0 V -29.98 H 0 Z",
+  ]);
 }
 
 smil_async_test(t => {

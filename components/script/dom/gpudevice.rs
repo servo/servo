@@ -586,7 +586,9 @@ impl GPUDeviceMethods for GPUDevice {
                 entry_point: Some(Cow::Owned(descriptor.compute.entryPoint.to_string())),
                 constants: Cow::Owned(HashMap::new()),
                 zero_initialize_workgroup_memory: true,
+                vertex_pulling_transform: false,
             },
+            cache: None,
         };
 
         self.channel
@@ -769,6 +771,7 @@ impl GPUDeviceMethods for GPUDevice {
             Some(wgpu_pipe::RenderPipelineDescriptor {
                 label: convert_label(&descriptor.parent.parent),
                 layout,
+                cache: None,
                 vertex: wgpu_pipe::VertexState {
                     stage: wgpu_pipe::ProgrammableStageDescriptor {
                         module: descriptor.vertex.parent.module.id().0,
@@ -777,6 +780,7 @@ impl GPUDeviceMethods for GPUDevice {
                         )),
                         constants: Cow::Owned(HashMap::new()),
                         zero_initialize_workgroup_memory: true,
+                        vertex_pulling_transform: false,
                     },
                     buffers: Cow::Owned(
                         descriptor
@@ -813,6 +817,7 @@ impl GPUDeviceMethods for GPUDevice {
                             entry_point: Some(Cow::Owned(stage.parent.entryPoint.to_string())),
                             constants: Cow::Owned(HashMap::new()),
                             zero_initialize_workgroup_memory: true,
+                            vertex_pulling_transform: false,
                         },
                         targets: Cow::Owned(
                             stage

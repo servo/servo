@@ -15,7 +15,7 @@
   <rect id="rect" x="25rem"/>
 </svg>
 <script>
-  let ref_width = document.getElementById("rem_ref").offsetWidth;
+  let ref_width = document.getElementById("rem_ref").getBoundingClientRect().width;
   let rem_length = document.getElementById("rect").x.baseVal;
 
   test(() => {

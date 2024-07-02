@@ -21,7 +21,11 @@ promise_test(async t => {
   await assertSimplestScriptRuns(iframe);
   await assertFunctionRuns(iframe, () => testFunction(), 'testFunction exists');
 
-  assert_equals(
-      await main.executeScript(() => document.getElementById('test-id').id),
-      'test-id', 'verify id');
+  const [id, src, srcdoc] = await main.executeScript(() => {
+    const iframe = document.getElementById('test-id');
+    return [iframe.id, iframe.src, iframe.srcdoc];
+  });
+  assert_equals(id, 'test-id', 'verify id');
+  assert_equals(src, '', 'verify src');
+  assert_greater_than(srcdoc.length, 0, 'verify srcdoc');
 });

@@ -1,7 +1,7 @@
-# 'import credential-management.support.fedcm.keys' does not work.
+# 'import fedcm.support.keys' does not work.
 import importlib
-keys = importlib.import_module("credential-management.support.fedcm.keys")
-error_checker = importlib.import_module("credential-management.support.fedcm.request-params-check")
+keys = importlib.import_module("fedcm.support.keys")
+error_checker = importlib.import_module("fedcm.support.request-params-check")
 
 def main(request, response):
   request_error = error_checker.clientMetadataCheck(request)

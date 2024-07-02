@@ -3,7 +3,6 @@ import pytest
 
 import webdriver.bidi.error as error
 from webdriver.bidi.modules.script import ContextTarget
-from webdriver.error import TimeoutException
 
 
 pytestmark = pytest.mark.asyncio
@@ -12,6 +11,7 @@ USER_PROMPT_CLOSED_EVENT = "browsingContext.userPromptClosed"
 USER_PROMPT_OPENED_EVENT = "browsingContext.userPromptOpened"
 
 
+@pytest.mark.capabilities({"unhandledPromptBehavior": {'default': 'ignore'}})
 async def test_alert(
     bidi_session, wait_for_event, wait_for_future_safe, new_tab, subscribe_events
 ):
@@ -38,6 +38,7 @@ async def test_alert(
     assert result == {"type": "undefined"}
 
 
+@pytest.mark.capabilities({"unhandledPromptBehavior": {'default': 'ignore'}})
 @pytest.mark.parametrize("accept", [True, False])
 async def test_confirm(
     bidi_session,
@@ -72,6 +73,7 @@ async def test_confirm(
     assert result == {"type": "boolean", "value": accept}
 
 
+@pytest.mark.capabilities({"unhandledPromptBehavior": {'default': 'ignore'}})
 @pytest.mark.parametrize("accept", [True, False])
 async def test_prompt(
     bidi_session,
@@ -110,7 +112,9 @@ async def test_prompt(
         assert result == {"type": "null"}
 
 
-@pytest.mark.parametrize("accept", [True, False])
+@pytest.mark.capabilities({"unhandledPromptBehavior": {'default': 'ignore'}})
+@pytest.mark.parametrize("accept", [False])
+# @pytest.mark.parametrize("accept", [True, False])
 async def test_beforeunload(
     bidi_session,
     subscribe_events,
@@ -138,7 +142,7 @@ async def test_beforeunload(
     )
 
     # Wait for the prompt to open.
-    event = await wait_for_future_safe(on_entry)
+    await wait_for_future_safe(on_entry)
 
     on_prompt_closed = wait_for_event(USER_PROMPT_CLOSED_EVENT)
 
@@ -147,16 +151,18 @@ async def test_beforeunload(
     )
 
     # Wait for the prompt to be closed.
-    event = await wait_for_future_safe(on_prompt_closed)
+    await wait_for_future_safe(on_prompt_closed)
 
     if accept:
         # Check navigation to the target page.
         navigated = await wait_for_future_safe(navigated_future)
         assert navigated["url"] == page_target
     else:
-        # If the beforeunload prompt was dismissed no navigation takes place.
-        with pytest.raises(TimeoutException):
-            await wait_for_future_safe(navigated_future, timeout=0.5)
+        # If the beforeunload prompt was dismissed, the navigation is canceled.
+        # Step 22.2 of the html spec 7.4.2.2 Beginning navigation.
+        # https://html.spec.whatwg.org/multipage/browsing-the-web.html#beginning-navigation
+        with pytest.raises(error.UnknownErrorException):
+            await wait_for_future_safe(navigated_future)
 
         contexts = await bidi_session.browsing_context.get_tree(
             root=new_tab["context"], max_depth=0
@@ -164,6 +170,7 @@ async def test_beforeunload(
         assert contexts[0]["url"] != page_target
 
 
+@pytest.mark.capabilities({"unhandledPromptBehavior": {'default': 'ignore'}})
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
 async def test_two_top_level_contexts(
     bidi_session,
@@ -201,6 +208,7 @@ async def test_two_top_level_contexts(
     await bidi_session.browsing_context.close(context=new_context["context"])
 
 
+@pytest.mark.capabilities({"unhandledPromptBehavior": {'default': 'ignore'}})
 async def test_multiple_frames(
     bidi_session,
     new_tab,

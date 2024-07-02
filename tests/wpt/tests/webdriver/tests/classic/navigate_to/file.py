@@ -1,4 +1,3 @@
-from tests.support import platform_name
 from tests.support.asserts import assert_success
 
 
@@ -8,11 +7,11 @@ def navigate_to(session, url):
         {"url": url})
 
 
-def test_file_protocol(session, server_config):
+def test_file_protocol(session, target_platform, server_config):
     # tests that the browsing context remains the same
     # when navigated privileged documents
     path = server_config["doc_root"]
-    if platform_name == "windows":
+    if target_platform == "windows":
         # Convert the path into the format eg. /c:/foo/bar
         path = "/{}".format(path.replace("\\", "/"))
     url = u"file://{}".format(path)

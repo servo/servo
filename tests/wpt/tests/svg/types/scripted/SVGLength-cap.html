@@ -8,12 +8,12 @@
   <text id="cap_test" x="10cap" style="font-family:initial; font-size:20px"></text>
 </svg>
 <script>
-  let ref_width = cap_ref.offsetWidth;
+  let ref_width = cap_ref.getBoundingClientRect().width;
   let cap_length = cap_test.x.baseVal[0];
 
   test(() => {
     assert_equals(cap_length.unitType, SVGLength.SVG_LENGTHTYPE_UNKNOWN);
-    assert_approx_equals(cap_length.value, ref_width, 0.5);
+    assert_approx_equals(cap_length.value, ref_width, 0.1);
   }, "cap unit in SVGLength");
 
   test(() => {

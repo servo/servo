@@ -12,11 +12,11 @@ CONTEXT_CREATED_EVENT = "browsingContext.contextCreated"
 async def test_original_opener_context_create(bidi_session, wait_for_event, wait_for_future_safe, subscribe_events, type_hint):
 
     await subscribe_events([CONTEXT_CREATED_EVENT])
-    on_entry = wait_for_event(CONTEXT_CREATED_EVENT)
+    on_created = wait_for_event(CONTEXT_CREATED_EVENT)
 
     top_level_context = await bidi_session.browsing_context.create(type_hint=type_hint)
 
-    context_info = await wait_for_future_safe(on_entry)
+    context_info = await wait_for_future_safe(on_created)
 
     assert_browsing_context(
         context_info,
@@ -41,7 +41,7 @@ async def test_original_opener_window_open(bidi_session, wait_for_event, wait_fo
     top_level_context = await bidi_session.browsing_context.create(type_hint=type_hint)
 
     await subscribe_events([CONTEXT_CREATED_EVENT])
-    on_entry = wait_for_event(CONTEXT_CREATED_EVENT)
+    on_created = wait_for_event(CONTEXT_CREATED_EVENT)
 
     url = inline("", domain=domain)
 
@@ -50,7 +50,7 @@ async def test_original_opener_window_open(bidi_session, wait_for_event, wait_fo
         target=ContextTarget(top_level_context["context"]),
         await_promise=False)
 
-    context_info = await wait_for_future_safe(on_entry)
+    context_info = await wait_for_future_safe(on_created)
 
     # We use None here as evaluate not always returns value.
     context = None

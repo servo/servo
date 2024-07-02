@@ -39,7 +39,7 @@ const expected_eligible =
 
 promise_test(async t => {
   // Set mixed-case query params to ensure that they are propagated correctly.
-  await registerAttributionSrc({
+  registerAttributionSrc({
     method: 'variant',
     extraQueryParams: {'aB': 'Cd', 'store-request': 'true'},
   });

@@ -77,7 +77,7 @@ log = "0.4"
 malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2024-05-31", features = ["servo"] }
 malloc_size_of_derive = "0.1"
 mime = "0.3.13"
-mime_guess = "2.0.3"
+mime_guess = "2.0.5"
 mozangle = "0.5.1"
 net_traits = { path = "components/shared/net" }
 num-traits = "0.2"
@@ -136,8 +136,8 @@ webpki-roots = "0.25"
 webrender = { git = "https://github.com/servo/webrender", branch = "0.64", features = ["capture"] }
 webrender_api = { git = "https://github.com/servo/webrender", branch = "0.64" }
 webrender_traits = { path = "components/shared/webrender" }
-wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "d0a5e48aa7e84683114c3870051cc414ae92ac03" }
-wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "d0a5e48aa7e84683114c3870051cc414ae92ac03" }
+wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "1e784c9c0af7a785b62e3b6840ed012a7477520f" }
+wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "1e784c9c0af7a785b62e3b6840ed012a7477520f" }
 windows-sys = "0.52"
 xi-unicode = "0.1.0"
 xml5ever = "0.18"

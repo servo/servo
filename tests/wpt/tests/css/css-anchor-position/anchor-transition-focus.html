@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning Test: Transition with unused position-anchor</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body:has(:focus) {
+    --unused: foo;
+  }
+  #anchored {
+    position: absolute;
+    position-anchor: --foo;
+    top: 0px;
+    transition: top 0.1s steps(2, start);
+  }
+  :focus ~ #anchored {
+    top: 40px;
+  }
+</style>
+<div id="focusable" tabindex="0" focused>Focus me</div>
+<div id="anchored">Anchored</div>
+<script>
+
+  promise_test(async t => {
+    document.body.offsetTop;
+    assert_equals(anchored.offsetTop, 0);
+
+    focusable.focus();
+    assert_equals(anchored.offsetTop, 20);
+
+    const watcher = new EventWatcher(t, anchored, [ "transitionend" ]);
+    await watcher.wait_for("transitionend");
+
+    assert_equals(anchored.offsetTop, 40);
+
+    focusable.blur();
+    assert_equals(anchored.offsetTop, 20);
+
+    await watcher.wait_for("transitionend");
+    assert_equals(anchored.offsetTop, 0);
+  }, "Transition insets with focus()/blur() and unused position-anchor");
+
+</script>

@@ -1,6 +1,6 @@
-# 'import credential-management.support.fedcm.keys' does not work.
+# 'import fedcm.support.keys' does not work.
 import importlib
-keys = importlib.import_module("credential-management.support.fedcm.keys")
+keys = importlib.import_module("fedcm.support.keys")
 
 def main(request, response):
   client_metadata_url = "/fedcm/support/client_metadata.py"

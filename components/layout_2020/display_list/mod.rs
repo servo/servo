@@ -617,7 +617,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
         let radii = inner_radii(
             self.border_radius,
-            (&self.fragment.border + &self.fragment.padding)
+            (self.fragment.border + self.fragment.padding)
                 .to_physical(self.fragment.style.writing_mode)
                 .to_webrender(),
         );

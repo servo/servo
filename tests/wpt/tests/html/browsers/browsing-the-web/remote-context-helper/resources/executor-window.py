@@ -24,8 +24,11 @@ def main(request, response):
   start_on = query.get("startOn")
   start_on_s = f"'{start_on[0]}'" if start_on else "null"
 
+  # This sets a base href so that even if this content e.g. data or blob URLs
+  # document, relative URLs will resolve.
   return (status, [("Content-Type", "text/html")], f"""
 <!DOCTYPE HTML>
+<base href="{html.escape(request.url)}">
 <script src="/common/dispatcher/dispatcher.js"></script>
 <script src="./executor-common.js"></script>
 <script src="./executor-window.js"></script>

@@ -3,14 +3,14 @@
 import pytest
 
 from tests.support.asserts import assert_error, assert_success
-from tests.support import platform_name
 
 
-@pytest.mark.skipif(platform_name is None, reason="Unsupported platform {}".format(platform_name))
-@pytest.mark.parametrize("body", [lambda key, value: {"alwaysMatch": {key: value}},
-                                  lambda key, value: {"firstMatch": [{key: value}]}])
-def test_platform_name(new_session, add_browser_capabilities, body):
-    capabilities = body("platformName", platform_name)
+@pytest.mark.parametrize("body", [
+    lambda key, value: {"alwaysMatch": {key: value}},
+    lambda key, value: {"firstMatch": [{key: value}]}
+], ids=["alwaysMatch", "firstMatch"])
+def test_platform_name(new_session, add_browser_capabilities, body, target_platform):
+    capabilities = body("platformName", target_platform)
     if "alwaysMatch" in capabilities:
         capabilities["alwaysMatch"] = add_browser_capabilities(capabilities["alwaysMatch"])
     else:
@@ -19,7 +19,7 @@ def test_platform_name(new_session, add_browser_capabilities, body):
     response, _ = new_session({"capabilities": capabilities})
     value = assert_success(response)
 
-    assert value["capabilities"]["platformName"] == platform_name
+    assert value["capabilities"]["platformName"] == target_platform
 
 
 invalid_merge = [
@@ -40,26 +40,26 @@ def test_merge_invalid(new_session, add_browser_capabilities, key, value):
     assert_error(response, "invalid argument")
 
 
-@pytest.mark.skipif(platform_name is None, reason="Unsupported platform {}".format(platform_name))
-def test_merge_platformName(new_session, add_browser_capabilities):
+def test_merge_platform_name(new_session, add_browser_capabilities, target_platform):
     response, _ = new_session({"capabilities": {
         "alwaysMatch": add_browser_capabilities({"timeouts": {"script": 10}}),
         "firstMatch": [{
-            "platformName": platform_name.upper(),
+            "platformName": target_platform.upper(),
             "pageLoadStrategy": "none",
         }, {
-            "platformName": platform_name,
+            "platformName": target_platform,
             "pageLoadStrategy": "eager",
         }]}})
 
     value = assert_success(response)
 
-    assert value["capabilities"]["platformName"] == platform_name
+    assert value["capabilities"]["platformName"] == target_platform
     assert value["capabilities"]["pageLoadStrategy"] == "eager"
 
 
 def test_merge_browserName(new_session, add_browser_capabilities):
-    response, session = new_session({"capabilities": {"alwaysMatch": add_browser_capabilities({})}})
+    response, _ = new_session(
+        {"capabilities": {"alwaysMatch": add_browser_capabilities({})}})
     value = assert_success(response)
 
     browser_settings = {

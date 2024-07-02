@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#painting">
+<meta name="assert" content="Test background image">
+<link rel="match" href="background-001-print-ref.html">
+<style>
+  @page {
+    margin: 4em;
+
+    @top-center {
+      content: "";
+      background: url(/images/green.png);
+    }
+  }
+  body {
+    margin: 0;
+  }
+</style>
+The background of the top page margin area should be lime.

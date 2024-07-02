@@ -1079,8 +1079,8 @@ impl<'a> TableLayout<'a> {
 
                         Some(CellLayout {
                             layout,
-                            padding: padding.clone(),
-                            border: border.clone(),
+                            padding,
+                            border,
                             positioning_context,
                         })
                     })
@@ -1666,8 +1666,7 @@ impl<'a> TableLayout<'a> {
             cell.rowspan,
             cell.colspan,
         );
-        row_relative_cell_rect.start_corner =
-            &row_relative_cell_rect.start_corner - &row_rect.start_corner;
+        row_relative_cell_rect.start_corner -= row_rect.start_corner;
         let mut fragment = cell.create_fragment(
             layout,
             row_relative_cell_rect,
@@ -1710,7 +1709,7 @@ impl<'a> TableLayout<'a> {
             })
         }
         if let Some(row) = row {
-            let mut rect = row_rect.clone();
+            let mut rect = *row_rect;
             rect.start_corner = LogicalVec2::zero();
             fragment.add_extra_background(ExtraBackground {
                 style: row.style.clone(),
@@ -1989,12 +1988,12 @@ impl TableAndTrackDimensions {
             inline: column_dimensions.first().map_or_else(Au::zero, |v| v.0),
             block: row_dimensions.first().map_or_else(Au::zero, |v| v.0),
         };
-        let table_size = &LogicalVec2 {
+        let table_size = LogicalVec2 {
             inline: column_dimensions
                 .last()
                 .map_or(fallback_inline_size, |v| v.1),
             block: row_dimensions.last().map_or(fallback_block_size, |v| v.1),
-        } - &table_start_corner;
+        } - table_start_corner;
         let table_cells_rect = LogicalRect {
             start_corner: table_start_corner,
             size: table_size,
@@ -2017,7 +2016,7 @@ impl TableAndTrackDimensions {
     }
 
     fn get_row_rect(&self, row_index: usize) -> LogicalRect<Au> {
-        let mut row_rect = self.table_cells_rect.clone();
+        let mut row_rect = self.table_cells_rect;
         let row_dimensions = self.row_dimensions[row_index];
         row_rect.start_corner.block = row_dimensions.0;
         row_rect.size.block = row_dimensions.1 - row_dimensions.0;
@@ -2025,7 +2024,7 @@ impl TableAndTrackDimensions {
     }
 
     fn get_column_rect(&self, column_index: usize) -> LogicalRect<Au> {
-        let mut row_rect = self.table_cells_rect.clone();
+        let mut row_rect = self.table_cells_rect;
         let column_dimensions = self.column_dimensions[column_index];
         row_rect.start_corner.inline = column_dimensions.0;
         row_rect.size.inline = column_dimensions.1 - column_dimensions.0;
@@ -2037,7 +2036,7 @@ impl TableAndTrackDimensions {
             return LogicalRect::zero();
         }
 
-        let mut row_group_rect = self.table_cells_rect.clone();
+        let mut row_group_rect = self.table_cells_rect;
         let block_start = self.row_dimensions[row_group.track_range.start].0;
         let block_end = self.row_dimensions[row_group.track_range.end - 1].1;
         row_group_rect.start_corner.block = block_start;
@@ -2050,7 +2049,7 @@ impl TableAndTrackDimensions {
             return LogicalRect::zero();
         }
 
-        let mut column_group_rect = self.table_cells_rect.clone();
+        let mut column_group_rect = self.table_cells_rect;
         let inline_start = self.column_dimensions[column_group.track_range.start].0;
         let inline_end = self.column_dimensions[column_group.track_range.end - 1].1;
         column_group_rect.start_corner.inline = inline_start;
@@ -2068,10 +2067,10 @@ impl TableAndTrackDimensions {
             inline: self.column_dimensions[coordinates.x].0,
             block: self.row_dimensions[coordinates.y].0,
         };
-        let size = &LogicalVec2 {
+        let size = LogicalVec2 {
             inline: self.column_dimensions[coordinates.x + colspan - 1].1,
             block: self.row_dimensions[coordinates.y + rowspan - 1].1,
-        } - &start_corner;
+        } - start_corner;
         LogicalRect { start_corner, size }
     }
 }
@@ -2213,7 +2212,7 @@ impl TableSlotCell {
         // This must be scoped to this function because it conflicts with euclid's Zero.
         use style::Zero as StyleZero;
 
-        let cell_content_rect = cell_rect.deflate(&(&layout.padding + &layout.border));
+        let cell_content_rect = cell_rect.deflate(&(layout.padding + layout.border));
         let content_block_size = layout.layout.content_block_size;
         let vertical_align_offset = match self.effective_vertical_align() {
             VerticalAlignKeyword::Top => Au::zero(),
@@ -2237,7 +2236,7 @@ impl TableSlotCell {
         }
 
         // Create an `AnonymousFragment` to move the cell contents to the cell baseline.
-        let mut vertical_align_fragment_rect = cell_content_rect.clone();
+        let mut vertical_align_fragment_rect = cell_content_rect;
         vertical_align_fragment_rect.start_corner = LogicalVec2 {
             inline: Au::zero(),
             block: vertical_align_offset,
@@ -2317,7 +2316,7 @@ fn get_outer_sizes_from_style(
 ) -> (LogicalVec2<Au>, LogicalVec2<Au>, LogicalVec2<Au>) {
     let box_sizing = style.get_position().box_sizing;
     let outer_size = |size: LogicalVec2<Au>| match box_sizing {
-        BoxSizing::ContentBox => &size + padding_border_sums,
+        BoxSizing::ContentBox => size + *padding_border_sums,
         BoxSizing::BorderBox => LogicalVec2 {
             inline: size.inline.max(padding_border_sums.inline),
             block: size.block.max(padding_border_sums.block),

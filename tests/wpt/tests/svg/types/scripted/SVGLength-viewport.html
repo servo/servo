@@ -17,12 +17,12 @@
     const rect = document.getElementById("rect");
     rect.setAttribute("x", `10${unit}`);
 
-    const ref_width = ref.offsetWidth;
+    const ref_width = ref.getBoundingClientRect().width;
     let length = rect.x.baseVal;
 
     test(() => {
       assert_equals(length.unitType, SVGLength.SVG_LENGTHTYPE_UNKNOWN);
-      assert_approx_equals(length.value, ref_width, 0.5);
+      assert_approx_equals(length.value, ref_width, 0.1);
     }, `${unit} unit in SVGLength`);
 
     test(() => {

@@ -1,4 +1,7 @@
 import pytest
+from webdriver.error import TimeoutException
+
+from tests.support.sync import AsyncPoll
 
 pytestmark = pytest.mark.asyncio
 
@@ -6,6 +9,7 @@ USER_PROMPT_CLOSED_EVENT = "browsingContext.userPromptClosed"
 USER_PROMPT_OPENED_EVENT = "browsingContext.userPromptOpened"
 
 
+@pytest.mark.capabilities({"unhandledPromptBehavior": {'default': 'ignore'}})
 @pytest.mark.parametrize("accept", [False, True])
 async def test_beforeunload(
     bidi_session,
@@ -44,4 +48,5 @@ async def test_beforeunload(
     assert event == {
         "context": new_tab["context"],
         "accepted": accept,
+        "type": "beforeunload",
     }

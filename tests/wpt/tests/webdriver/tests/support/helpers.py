@@ -41,7 +41,10 @@ def cleanup_session(session):
         try:
             session.window_handle
         except webdriver.NoSuchWindowException:
-            session.window_handle = session.handles[0]
+            handles = session.handles
+            if handles:
+                # Update only when there is at least one valid window left.
+                session.window_handle = handles[0]
 
     @ignore_exceptions
     def _restore_timeouts(session):

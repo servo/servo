@@ -36,7 +36,7 @@ const searchParams = new URLSearchParams(location.search);
 promise_test(async t => {
   const noreferrer = searchParams.has('noreferrer');
 
-  await registerAttributionSrc({
+  registerAttributionSrc({
     method: 'variant',
     extraQueryParams: {'store-request': 'true'},
     referrerPolicy: noreferrer ? 'no-referrer' : '',

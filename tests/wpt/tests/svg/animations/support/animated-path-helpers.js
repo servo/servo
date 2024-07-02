@@ -56,21 +56,29 @@ function normalizeProperty(path_string) {
   return string;
 }
 
-// Assert that the animated path data of |target| matches that of
-// |expected_path_string|. Numbers will be rounded to 2 decimal places.
-function assert_animated_path_equals(target, expected_path_string) {
+// Assert that the animated path data of |target| matches one of
+// |expected_paths|. Numbers will be rounded to 2 decimal places.
+function assert_animated_path_in_array(target, expected_paths) {
   const kDecimals = 2;
   let expected, actual;
   if ('animatedPathSegList' in target) {
     let probePathElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    probePathElement.setAttribute('d', expected_path_string);
-    expected = serializePathSegList(probePathElement.pathSegList, kDecimals)
+    expected = expected_paths.map(p => {
+      probePathElement.setAttribute('d', p);
+      return serializePathSegList(probePathElement.pathSegList, kDecimals)
+    });
     actual = serializePathSegList(target.animatedPathSegList, kDecimals);
   } else if ('d' in target.style) {
-    expected = normalizeValue(normalizeProperty(expected_path_string), kDecimals);
+    expected = expected_paths.map(p => normalizeValue(normalizeProperty(p), kDecimals));
     actual = normalizeValue(getComputedStyle(target).getPropertyValue('d'), kDecimals);
   } else {
     assert_unreached('no animated path data');
   }
-  assert_equals(actual, expected);
+  assert_in_array(actual, expected);
+}
+
+// Assert that the animated path data of |target| matches that of
+// |expected_path_string|. Numbers will be rounded to 2 decimal places.
+function assert_animated_path_equals(target, expected_path_string) {
+  return assert_animated_path_in_array(target, [expected_path_string]);
 }

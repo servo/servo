@@ -14,13 +14,14 @@ mod backtrace;
 mod crash_handler;
 #[cfg(not(any(target_os = "android", target_env = "ohos")))]
 pub(crate) mod desktop;
+#[cfg(any(target_os = "android", target_env = "ohos"))]
+mod egl;
 #[cfg(not(target_os = "android"))]
 mod panic_hook;
 mod parser;
 mod prefs;
+#[cfg(not(any(target_os = "android", target_env = "ohos")))]
 mod resources;
-
-mod egl;
 
 pub mod platform {
     #[cfg(target_os = "macos")]

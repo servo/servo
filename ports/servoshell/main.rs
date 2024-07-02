@@ -22,12 +22,15 @@
 
 fn main() {
     cfg_if::cfg_if! {
-        if #[cfg(not(target_os = "android"))] {
+        if #[cfg(not(any(target_os = "android", target_env = "ohos")))] {
             servoshell::main()
         } else {
             println!(
-                "Cannot start /ports/servoshell/ on Android. \
-                Use /support/android/apk/ + /ports/jniapi/ instead"
+                "Cannot run the servoshell `bin` executable on platforms such as \
+                 Android or OpenHarmony. On these platforms you need to compile \
+                 the servoshell library as a `cdylib` and integrate it with the \
+                 platform app code into an `apk` (android) or `hap` (OpenHarmony).\
+                 For Android `mach build` will do these steps automatically for you."
             );
         }
     }

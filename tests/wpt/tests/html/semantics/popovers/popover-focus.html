@@ -50,11 +50,11 @@
 </div>
 
 <dialog popover=auto data-test='Opening dialogs as popovers should use dialog initial focus algorithm.'>
-  <button class=should-be-focused>button</button>
+  <button class=should-be-focused tabindex="0">button</button>
 </dialog>
 
 <dialog popover=auto autofocus class=should-be-focused data-test='Opening dialogs as popovers which have autofocus should focus the dialog.'>
-  <button>button</button>
+  <button tabindex="0">button</button>
 </dialog>
 
 <style>

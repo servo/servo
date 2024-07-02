@@ -357,6 +357,8 @@ function validateOptionsAxes(operationName) {
  */
 function validateUnaryOperation(
     operationName, supportedDataTypes, alsoBuildActivation = false) {
+  // TODO: crbug.com/345271830 - use context.opSupportLimits to get supported
+  // data types for current context.
   for (let dataType of supportedDataTypes) {
     for (let dimensions of allWebNNDimensionsArray) {
       promise_test(

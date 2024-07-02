@@ -1,5 +1,5 @@
 import importlib
-keys = importlib.import_module("credential-management.support.fedcm.keys")
+keys = importlib.import_module("fedcm.support.keys")
 
 def main(request, response):
   manifest_url = request.server.stash.take(keys.MANIFEST_URL_IN_MANIFEST_LIST_KEY)

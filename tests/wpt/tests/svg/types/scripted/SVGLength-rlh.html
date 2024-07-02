@@ -16,7 +16,7 @@
   </svg>
 </div>
 <script>
-  let ref_width = rlh_ref.offsetWidth;
+  let ref_width = rlh_ref.getBoundingClientRect().width;
   let rlh_length = rlh_test.x.baseVal[0];
 
   test(() => {

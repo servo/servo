@@ -14,11 +14,11 @@ def assert_browsing_context(
     info,
     context,
     children=None,
+    original_opener=None,
     parent_expected=True,
     parent=None,
     url=None,
     user_context="default",
-    original_opener=None
 ):
     assert "children" in info
     if children is not None:

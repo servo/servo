@@ -16,6 +16,12 @@ function findLocation() {
   if (location.href == 'about:srcdoc') {
     return findLocationFromAncestors(window.parent);
   }
+  if (location.protocol == 'blob:' || location.protocol == 'data:') {
+    // Allows working around blob and data URLs.
+    if (self.document && self.document.baseURI) {
+      return self.document.baseURI;
+    }
+  }
   return location;
 }
 
