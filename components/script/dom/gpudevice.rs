@@ -24,7 +24,7 @@ use super::bindings::error::Fallible;
 use super::gpu::AsyncWGPUListener;
 use super::gpudevicelostinfo::GPUDeviceLostInfo;
 use super::gpusupportedlimits::GPUSupportedLimits;
-use super::types::{GPUCompilationInfo, GPUError};
+use super::types::GPUError;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
@@ -547,7 +547,14 @@ impl GPUDeviceMethods for GPUDevice {
             .lock()
             .create_shader_module_id(self.device.0.backend());
         let promise = Promise::new_in_current_realm(comp);
-        let sender = response_async(&promise, self);
+        let shader_module = GPUShaderModule::new(
+            &self.global(),
+            self.channel.clone(),
+            webgpu::WebGPUShaderModule(program_id),
+            descriptor.parent.label.clone().unwrap_or_default(),
+            promise.clone(),
+        );
+        let sender = response_async(&promise, &*shader_module);
         self.channel
             .0
             .send(WebGPURequest::CreateShaderModule {
@@ -558,15 +565,7 @@ impl GPUDeviceMethods for GPUDevice {
                 sender,
             })
             .expect("Failed to create WebGPU ShaderModule");
-
-        let shader_module = webgpu::WebGPUShaderModule(program_id);
-        GPUShaderModule::new(
-            &self.global(),
-            self.channel.clone(),
-            shader_module,
-            descriptor.parent.label.clone().unwrap_or_default(),
-            promise,
-        )
+        shader_module
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipeline>
@@ -1032,10 +1031,6 @@ impl AsyncWGPUListener for GPUDevice {
                     let error = GPUError::from_error(&self.global(), error);
                     promise.resolve_native(&error);
                 },
-            },
-            Some(Ok(WebGPUResponse::CompilationInfo(info))) => {
-                let info = GPUCompilationInfo::from(&self.global(), info);
-                promise.resolve_native(&info);
             },
             _ => unreachable!("Wrong response recived on AsyncWGPUListener for GPUDevice"),
         }

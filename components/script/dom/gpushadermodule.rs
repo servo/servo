@@ -5,12 +5,14 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use webgpu::{WebGPU, WebGPURequest, WebGPUShaderModule};
+use webgpu::{WebGPU, WebGPURequest, WebGPUResponse, WebGPUResponseResult, WebGPUShaderModule};
 
+use super::gpu::AsyncWGPUListener;
+use super::gpucompilationinfo::GPUCompilationInfo;
 use super::promise::Promise;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUShaderModuleMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
@@ -83,6 +85,18 @@ impl GPUShaderModuleMethods for GPUShaderModule {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpushadermodule-getcompilationinfo>
     fn GetCompilationInfo(&self) -> Rc<Promise> {
         self.compilation_info_promise.clone()
+    }
+}
+
+impl AsyncWGPUListener for GPUShaderModule {
+    fn handle_response(&self, response: Option<WebGPUResponseResult>, promise: &Rc<Promise>) {
+        match response {
+            Some(Ok(WebGPUResponse::CompilationInfo(info))) => {
+                let info = GPUCompilationInfo::from(&self.global(), info);
+                promise.resolve_native(&info);
+            },
+            _ => unreachable!("Wrong response recived on AsyncWGPUListener for GPUDevice"),
+        }
     }
 }
 
