@@ -472,7 +472,7 @@ pub struct Document {
     /// The set of all fonts loaded by this document.
     /// <https://drafts.csswg.org/css-font-loading/#font-face-source>
     fonts: MutNullableDom<FontFaceSet>,
-    /// <https://html.spec.whatwg.org/multipage/interaction.html#visibility-state>
+    /// <https://html.spec.whatwg.org/multipage/#visibility-state>
     visibility_state: Cell<DocumentVisibilityState>,
 }
 
@@ -726,11 +726,12 @@ impl Document {
                     if document.page_showing.get() {
                         return;
                     }
-                    // Step 4.6.2
+                    // Step 4.6.2 Set document's page showing flag to true.
                     document.page_showing.set(true);
-                    // Step 4.6.3
+                    // Step 4.6.3 Update the visibility state of document to "visible".
                     document.update_visibility_state(DocumentVisibilityState::Visible);
-                    // Step 4.6.4
+                    // Step 4.6.4 Fire a page transition event named pageshow at document's relevant
+                    // global object with true.
                     let event = PageTransitionEvent::new(
                         window,
                         atom!("pageshow"),
@@ -2226,9 +2227,12 @@ impl Document {
         // TODO: Step 1, increase the event loop's termination nesting level by 1.
         // Step 2
         self.incr_ignore_opens_during_unload_counter();
-        // Step 3-6
+        // Step 3-6 If oldDocument's page showing is true:
         if self.page_showing.get() {
+            // Set oldDocument's page showing to false.
             self.page_showing.set(false);
+            // Fire a page transition event named pagehide at oldDocument's relevant global object with oldDocument's
+            // salvageable state.
             let event = PageTransitionEvent::new(
                 &self.window,
                 atom!("pagehide"),
@@ -2239,7 +2243,7 @@ impl Document {
             let event = event.upcast::<Event>();
             event.set_trusted(true);
             let _ = self.window.dispatch_event_with_target_override(event);
-            // Step 6
+            // Step 6 Update the visibility state of oldDocument to "hidden".
             self.update_visibility_state(DocumentVisibilityState::Hidden);
         }
         // Step 7
@@ -4091,7 +4095,7 @@ impl Document {
         *self.declarative_refresh.borrow_mut() = Some(refresh);
     }
 
-    /// <https://html.spec.whatwg.org/multipage/interaction.html#visibility-state>
+    /// <https://html.spec.whatwg.org/multipage/#visibility-state>
     fn update_visibility_state(&self, visibility_state: DocumentVisibilityState) {
         // Step 1
         if self.visibility_state.get() == visibility_state {
@@ -5409,12 +5413,12 @@ impl DocumentMethods for Document {
             .or_init(|| FontFaceSet::new(&*self.global(), None))
     }
 
-    /// <https://html.spec.whatwg.org/multipage/interaction.html#dom-document-hidden>
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-hidden>
     fn Hidden(&self) -> bool {
         self.visibility_state.get() == DocumentVisibilityState::Hidden
     }
 
-    /// <https://html.spec.whatwg.org/multipage/interaction.html#dom-document-visibilitystate>
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-visibilitystate>
     fn VisibilityState(&self) -> DocumentVisibilityState {
         self.visibility_state.get()
     }
