@@ -14,6 +14,7 @@ use style::attr::AttrValue;
 use style_traits::dom::ElementState;
 
 use crate::dom::attr::Attr;
+use crate::dom::autofill::AutofillData;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
@@ -222,6 +223,14 @@ impl TextControlElement for HTMLTextAreaElement {
 impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
     // TODO A few of these attributes have default values and additional
     // constraints
+
+    // https://html.spec.whatwg.org/multipage/#dom-fe-autocomplete
+    fn Autocomplete(&self) -> DOMString {
+        AutofillData::from_form_control(self).idl_exposed_value
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-fe-autocomplete
+    make_setter!(SetAutocomplete, "autocomplete");
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-cols
     make_uint_getter!(Cols, "cols", DEFAULT_COLS);

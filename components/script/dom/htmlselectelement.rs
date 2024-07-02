@@ -12,6 +12,7 @@ use style::attr::AttrValue;
 use style_traits::dom::ElementState;
 
 use crate::dom::attr::Attr;
+use crate::dom::autofill::AutofillData;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
@@ -225,6 +226,14 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     ) -> ErrorResult {
         self.Options().Add(element, before)
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-fe-autocomplete
+    fn Autocomplete(&self) -> DOMString {
+        AutofillData::from_form_control(self).idl_exposed_value
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-fe-autocomplete
+    make_setter!(SetAutocomplete, "autocomplete");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
     make_bool_getter!(Disabled, "disabled");

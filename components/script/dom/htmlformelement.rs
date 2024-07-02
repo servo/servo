@@ -24,6 +24,7 @@ use style_traits::dom::ElementState;
 
 use super::bindings::trace::{HashMapTracedValues, NoTrace};
 use crate::body::Extractable;
+use crate::dom::autofill::AutofillMantle;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::Attr_Binding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
@@ -1686,6 +1687,19 @@ pub trait FormControl: DomObject {
             input(self)
         } else {
             self.form_owner().map_or(false, |t| owner(&t))
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#autofill-expectation-mantle
+    fn autofill_mantle(&self) -> AutofillMantle {
+        if self
+            .to_element()
+            .downcast::<HTMLInputElement>()
+            .is_some_and(|e| e.input_type() == InputType::Hidden)
+        {
+            AutofillMantle::Anchor
+        } else {
+            AutofillMantle::Expectation
         }
     }
 
