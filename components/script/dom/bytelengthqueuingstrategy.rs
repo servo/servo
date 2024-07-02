@@ -14,11 +14,11 @@ use super::bindings::codegen::Bindings::FunctionBinding::Function;
 use super::bindings::codegen::Bindings::QueuingStrategyBinding::{
     ByteLengthQueuingStrategyMethods, QueuingStrategyInit,
 };
-use super::bindings::function::FunctionBinding;
 use super::bindings::import::module::{DomObject, DomRoot, Fallible, Reflector};
 use super::bindings::reflector::reflect_dom_object_with_proto;
 use super::types::GlobalScope;
 use crate::dom::bindings::import::module::get_dictionary_property;
+use crate::native_fn;
 
 #[dom_struct]
 pub struct ByteLengthQueuingStrategy {
@@ -56,6 +56,7 @@ impl ByteLengthQueuingStrategyMethods for ByteLengthQueuingStrategy {
     }
 
     /// <https://streams.spec.whatwg.org/#blqs-size>
+    #[allow(unsafe_code)]
     fn GetSize(&self) -> Fallible<Rc<Function>> {
         let global = self.reflector_.global();
         // Return this's relevant global object's byte length queuing strategy
@@ -69,7 +70,7 @@ impl ByteLengthQueuingStrategyMethods for ByteLengthQueuingStrategy {
 
         // Step 2. Let F be !CreateBuiltinFunction(steps, 1, "size", « »,
         // globalObject’s relevant Realm).
-        let fun = FunctionBinding::new_native(byte_length_queuing_strategy_size, b"size\0", 1, 0);
+        let fun = native_fn!(byte_length_queuing_strategy_size, b"size\0", 1, 0);
         // Step 3. Set globalObject’s byte length queuing strategy size function to
         // a Function that represents a reference to F,
         // with callback context equal to globalObject’s relevant settings object.
@@ -80,7 +81,7 @@ impl ByteLengthQueuingStrategyMethods for ByteLengthQueuingStrategy {
 
 /// <https://streams.spec.whatwg.org/#byte-length-queuing-strategy-size-function>
 #[allow(unsafe_code)]
-pub unsafe extern "C" fn byte_length_queuing_strategy_size(
+pub unsafe fn byte_length_queuing_strategy_size(
     cx: *mut JSContext,
     argc: u32,
     vp: *mut JSVal,

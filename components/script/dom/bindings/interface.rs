@@ -15,10 +15,10 @@ use js::jsapi::{
     GetFunctionRealm, GetNonCCWObjectGlobal, GetRealmGlobalOrNull, GetWellKnownSymbol,
     HandleObject as RawHandleObject, IsSharableCompartment, IsSystemCompartment, JSAutoRealm,
     JSClass, JSClassOps, JSContext, JSFunctionSpec, JSObject, JSPropertySpec, JSString, JSTracer,
-    JS_AtomizeAndPinString, JS_GetProperty, JS_IterateCompartments, JS_NewGlobalObject,
-    JS_NewObject, JS_NewPlainObject, JS_NewStringCopyN, JS_SetReservedSlot, JS_WrapObject,
-    ObjectOps, OnNewGlobalHookOption, SymbolCode, TrueHandleValue, Value, JSFUN_CONSTRUCTOR,
-    JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING,
+    JS_AtomizeAndPinString, JS_GetFunctionObject, JS_GetProperty, JS_IterateCompartments,
+    JS_NewFunction, JS_NewGlobalObject, JS_NewObject, JS_NewPlainObject, JS_NewStringCopyN,
+    JS_SetReservedSlot, JS_WrapObject, ObjectOps, OnNewGlobalHookOption, SymbolCode,
+    TrueHandleValue, Value, JSFUN_CONSTRUCTOR, JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING,
 };
 use js::jsval::{JSVal, NullValue, PrivateValue};
 use js::rust::wrappers::{
@@ -36,7 +36,6 @@ use crate::dom::bindings::codegen::InterfaceObjectMap::Globals;
 use crate::dom::bindings::codegen::PrototypeList;
 use crate::dom::bindings::constant::{define_constants, ConstantSpec};
 use crate::dom::bindings::conversions::{get_dom_class, DOM_OBJECT_SLOT};
-use crate::dom::bindings::function::FunctionBinding;
 use crate::dom::bindings::guard::Guard;
 use crate::dom::bindings::principals::ServoJSPrincipals;
 use crate::dom::bindings::utils::{
@@ -328,12 +327,20 @@ pub fn create_named_constructors(
     rooted!(in(*cx) let mut constructor = ptr::null_mut::<JSObject>());
 
     for &(native, name, arity) in named_constructors {
-        let fun_obj = FunctionBinding::new_raw_obj(cx, native, name, arity, JSFUN_CONSTRUCTOR);
-
-        constructor.set(fun_obj);
-        assert!(!constructor.is_null());
+        assert_eq!(*name.last().unwrap(), b'\0');
 
         unsafe {
+            let fun = JS_NewFunction(
+                *cx,
+                Some(native),
+                arity,
+                JSFUN_CONSTRUCTOR,
+                name.as_ptr() as *const libc::c_char,
+            );
+            assert!(!fun.is_null());
+            constructor.set(JS_GetFunctionObject(fun));
+            assert!(!constructor.is_null());
+
             assert!(JS_DefineProperty3(
                 *cx,
                 constructor.handle(),

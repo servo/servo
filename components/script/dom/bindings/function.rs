@@ -4,43 +4,38 @@
 
 #![allow(unsafe_code)]
 
-use std::ffi::c_char;
-use std::rc::Rc;
-
-use js::jsapi::{JSContext, JSObject, JS_GetFunctionObject, JS_NewFunction, Value};
-
-use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use crate::dom::types::GlobalScope;
-
-type NativeFunction = unsafe extern "C" fn(*mut JSContext, u32, *mut Value) -> bool;
-
-pub struct FunctionBinding {}
-
-impl FunctionBinding {
-    pub fn new_native(call: NativeFunction, name: &[u8], nargs: u32, flags: u32) -> Rc<Function> {
-        let cx = GlobalScope::get_cx();
-        let fun_obj = Self::new_raw_obj(cx, call, name, nargs, flags);
+/// Defines a macro `native_fn!` to create a JavaScript function from a Rust function pointer.
+#[macro_export]
+macro_rules! native_fn {
+    ($call:expr, $name:expr, $nargs:expr, $flags:expr) => {{
+        let cx = crate::dom::types::GlobalScope::get_cx();
+        let fun_obj = crate::native_raw_obj_fn!(cx, $call, $name, $nargs, $flags);
         unsafe { Function::new(cx, fun_obj) }
-    }
+    }};
+}
 
-    pub fn new_raw_obj(
-        cx: crate::script_runtime::JSContext,
-        call: NativeFunction,
-        name: &[u8],
-        nargs: u32,
-        flags: u32,
-    ) -> *mut JSObject {
+/// Defines a macro `native_raw_obj!` to create a raw JavaScript function object.
+#[macro_export]
+macro_rules! native_raw_obj_fn {
+    ($cx:expr, $call:expr, $name:expr, $nargs:expr, $flags:expr) => {{
+        unsafe extern "C" fn wrapper(cx: *mut JSContext, argc: u32, vp: *mut JSVal) -> bool {
+            (WRAPPER_FN.unwrap())(cx, argc, vp)
+        }
+
+        static mut WRAPPER_FN: Option<unsafe fn(*mut JSContext, u32, *mut JSVal) -> bool> = None;
+
         unsafe {
-            assert_eq!(*name.last().unwrap(), b'\0');
-            let raw_fun = JS_NewFunction(
-                *cx,
-                Some(call),
-                nargs,
-                flags,
-                name.as_ptr() as *const c_char,
+            WRAPPER_FN = Some($call);
+            assert_eq!(*$name.last().unwrap(), b'\0');
+            let raw_fun = crate::dom::bindings::import::module::jsapi::JS_NewFunction(
+                *$cx,
+                Some(wrapper),
+                $nargs,
+                $flags,
+                $name.as_ptr() as *const std::ffi::c_char,
             );
             assert!(!raw_fun.is_null());
-            JS_GetFunctionObject(raw_fun)
+            crate::dom::bindings::import::module::jsapi::JS_GetFunctionObject(raw_fun)
         }
-    }
+    }};
 }

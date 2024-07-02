@@ -17,7 +17,7 @@ use super::bindings::import::module::{DomObject, DomRoot, Error, Fallible, Refle
 use super::bindings::reflector::reflect_dom_object_with_proto;
 use super::bytelengthqueuingstrategy::byte_length_queuing_strategy_size;
 use super::types::GlobalScope;
-use crate::dom::bindings::function::FunctionBinding;
+use crate::{native_fn, native_raw_obj_fn};
 
 #[dom_struct]
 pub struct CountQueuingStrategy {
@@ -55,6 +55,7 @@ impl CountQueuingStrategyMethods for CountQueuingStrategy {
     }
 
     /// <https://streams.spec.whatwg.org/#cqs-size>
+    #[allow(unsafe_code)]
     fn GetSize(&self) -> Fallible<Rc<Function>> {
         let global = self.reflector_.global();
         // Return this's relevant global object's count queuing strategy
@@ -68,7 +69,7 @@ impl CountQueuingStrategyMethods for CountQueuingStrategy {
 
         // Step 2. Let F be !CreateBuiltinFunction(steps, 1, "size", « »,
         // globalObject’s relevant Realm).
-        let fun = FunctionBinding::new_native(byte_length_queuing_strategy_size, b"size\0", 0, 0);
+        let fun = native_fn!(byte_length_queuing_strategy_size, b"size\0", 0, 0);
         // Step 3. Set globalObject’s count queuing strategy size function to
         // a Function that represents a reference to F,
         // with callback context equal to globalObject’s relevant settings object.
@@ -79,11 +80,7 @@ impl CountQueuingStrategyMethods for CountQueuingStrategy {
 
 /// <https://streams.spec.whatwg.org/#count-queuing-strategy-size-function>
 #[allow(unsafe_code)]
-pub unsafe extern "C" fn count_queuing_strategy_size(
-    _cx: *mut JSContext,
-    argc: u32,
-    vp: *mut JSVal,
-) -> bool {
+pub unsafe fn count_queuing_strategy_size(_cx: *mut JSContext, argc: u32, vp: *mut JSVal) -> bool {
     let args = CallArgs::from_vp(vp, argc);
     // Step 1.1. Return 1.
     args.rval().set(Int32Value(1));
@@ -113,11 +110,11 @@ pub fn extract_high_water_mark(strategy: &QueuingStrategy, default_hwm: f64) -> 
 /// If the size algorithm is not set, return a fallback function which always returns 1.
 ///
 /// <https://streams.spec.whatwg.org/#make-size-algorithm-from-size-function>
+#[allow(unsafe_code)]
 pub fn extract_size_algorithm(strategy: &QueuingStrategy) -> Rc<QueuingStrategySize> {
     if strategy.size.is_none() {
         let cx = GlobalScope::get_cx();
-        let fun_obj =
-            FunctionBinding::new_raw_obj(cx, count_queuing_strategy_size, b"size\0", 0, 0);
+        let fun_obj = native_raw_obj_fn!(cx, count_queuing_strategy_size, b"size\0", 0, 0);
         #[allow(unsafe_code)]
         unsafe {
             QueuingStrategySize::new(cx, fun_obj).clone()
