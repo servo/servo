@@ -16,7 +16,7 @@ use wgc::binding_model::{
     BindGroupDescriptor, BindGroupLayoutDescriptor, PipelineLayoutDescriptor,
 };
 use wgc::command::{
-    ImageCopyBuffer, ImageCopyTexture, RenderBundleDescriptor, RenderBundleEncoder, RenderPass,
+    ImageCopyBuffer, ImageCopyTexture, RenderBundleDescriptor, RenderBundleEncoder,
 };
 use wgc::device::HostMap;
 use wgc::id;
@@ -25,10 +25,12 @@ use wgc::pipeline::{ComputePipelineDescriptor, RenderPipelineDescriptor};
 use wgc::resource::{
     BufferDescriptor, SamplerDescriptor, TextureDescriptor, TextureViewDescriptor,
 };
+use wgpu_core::command::{RenderPassColorAttachment, RenderPassDepthStencilAttachment};
 use wgpu_core::pipeline::CreateShaderModuleError;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
 
 use crate::identity::*;
+use crate::render_commands::RenderCommand;
 use crate::{Error, ErrorFilter, PopError, WebGPU, PRESENTATION_BUFFER_COUNT};
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -236,6 +238,7 @@ pub enum WebGPURequest {
     DropRenderBundle(id::RenderBundleId),
     DropQuerySet(id::QuerySetId),
     DropComputePass(id::ComputePassEncoderId),
+    DropRenderPass(id::RenderPassEncoderId),
     Exit(IpcSender<()>),
     RenderBundleEncoderFinish {
         render_bundle_encoder: RenderBundleEncoder,
@@ -255,6 +258,7 @@ pub enum WebGPURequest {
         device_id: id::DeviceId,
         pipeline_id: PipelineId,
     },
+    // COmpute pass
     BeginComputePass {
         command_encoder_id: id::CommandEncoderId,
         compute_pass_id: ComputePassId,
@@ -291,9 +295,24 @@ pub enum WebGPURequest {
         device_id: id::DeviceId,
         command_encoder_id: id::CommandEncoderId,
     },
-    EndRenderPass {
-        render_pass: Option<RenderPass>,
+    // Render Pass
+    BeginRenderPass {
+        command_encoder_id: id::CommandEncoderId,
+        render_pass_id: RenderPassId,
+        label: Option<Cow<'static, str>>,
+        color_attachments: Vec<Option<RenderPassColorAttachment>>,
+        depth_stencil_attachment: Option<RenderPassDepthStencilAttachment>,
         device_id: id::DeviceId,
+    },
+    RenderPassCommand {
+        render_pass_id: RenderPassId,
+        render_command: RenderCommand,
+        device_id: id::DeviceId,
+    },
+    EndRenderPass {
+        render_pass_id: RenderPassId,
+        device_id: id::DeviceId,
+        command_encoder_id: id::CommandEncoderId,
     },
     Submit {
         queue_id: id::QueueId,

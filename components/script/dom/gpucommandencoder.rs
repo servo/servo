@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
 use std::cell::Cell;
 use std::collections::HashSet;
 
 use dom_struct::dom_struct;
 use webgpu::wgc::command as wgpu_com;
-use webgpu::{self, wgt, WebGPU, WebGPUComputePass, WebGPURequest};
+use webgpu::{self, wgt, WebGPU, WebGPUComputePass, WebGPURenderPass, WebGPURequest};
 
 use super::gpuconvert::convert_label;
 use crate::dom::bindings::cell::DomRefCell;
@@ -134,89 +133,85 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         &self,
         descriptor: &GPURenderPassDescriptor,
     ) -> DomRoot<GPURenderPassEncoder> {
-        let render_pass = if !self.valid.get() {
-            None
-        } else {
-            let depth_stencil = descriptor.depthStencilAttachment.as_ref().map(|depth| {
-                wgpu_com::RenderPassDepthStencilAttachment {
-                    depth: wgpu_com::PassChannel {
-                        load_op: convert_load_op(depth.depthLoadOp),
-                        store_op: convert_store_op(depth.depthStoreOp),
-                        clear_value: *depth.depthClearValue.unwrap_or_default(),
-                        read_only: depth.depthReadOnly,
-                    },
-                    stencil: wgpu_com::PassChannel {
-                        load_op: convert_load_op(depth.stencilLoadOp),
-                        store_op: convert_store_op(depth.stencilStoreOp),
-                        clear_value: depth.stencilClearValue,
-                        read_only: depth.stencilReadOnly,
-                    },
-                    view: depth.view.id().0,
-                }
-            });
+        let depth_stencil_attachment = descriptor.depthStencilAttachment.as_ref().map(|depth| {
+            wgpu_com::RenderPassDepthStencilAttachment {
+                depth: wgpu_com::PassChannel {
+                    load_op: convert_load_op(depth.depthLoadOp),
+                    store_op: convert_store_op(depth.depthStoreOp),
+                    clear_value: *depth.depthClearValue.unwrap_or_default(),
+                    read_only: depth.depthReadOnly,
+                },
+                stencil: wgpu_com::PassChannel {
+                    load_op: convert_load_op(depth.stencilLoadOp),
+                    store_op: convert_store_op(depth.stencilStoreOp),
+                    clear_value: depth.stencilClearValue,
+                    read_only: depth.stencilReadOnly,
+                },
+                view: depth.view.id().0,
+            }
+        });
 
-            let desc = wgpu_com::RenderPassDescriptor {
-                color_attachments: Cow::Owned(
-                    descriptor
-                        .colorAttachments
-                        .iter()
-                        .map(|color| {
-                            let channel = wgpu_com::PassChannel {
-                                load_op: convert_load_op(Some(color.loadOp)),
-                                store_op: convert_store_op(Some(color.storeOp)),
-                                clear_value: if let Some(clear_val) = &color.clearValue {
-                                    match clear_val {
-                                        DoubleSequenceOrGPUColorDict::DoubleSequence(s) => {
-                                            let mut w = s.clone();
-                                            if w.len() < 3 {
-                                                w.resize(3, Finite::wrap(0.0f64));
-                                            }
-                                            w.resize(4, Finite::wrap(1.0f64));
-                                            wgt::Color {
-                                                r: *w[0],
-                                                g: *w[1],
-                                                b: *w[2],
-                                                a: *w[3],
-                                            }
-                                        },
-                                        DoubleSequenceOrGPUColorDict::GPUColorDict(d) => {
-                                            wgt::Color {
-                                                r: *d.r,
-                                                g: *d.g,
-                                                b: *d.b,
-                                                a: *d.a,
-                                            }
-                                        },
-                                    }
-                                } else {
-                                    wgt::Color::TRANSPARENT
-                                },
-                                read_only: false,
-                            };
-                            Some(wgpu_com::RenderPassColorAttachment {
-                                resolve_target: color.resolveTarget.as_ref().map(|t| t.id().0),
-                                channel,
-                                view: color.view.id().0,
-                            })
-                        })
-                        .collect::<Vec<_>>(),
-                ),
-                depth_stencil_attachment: depth_stencil.as_ref(),
-                label: descriptor
-                    .parent
-                    .label
-                    .as_ref()
-                    .map(|l| Cow::Borrowed(&**l)),
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            };
-            Some(wgpu_com::RenderPass::new(self.encoder.0, &desc))
-        };
+        let color_attachments = descriptor
+            .colorAttachments
+            .iter()
+            .map(|color| {
+                let channel = wgpu_com::PassChannel {
+                    load_op: convert_load_op(Some(color.loadOp)),
+                    store_op: convert_store_op(Some(color.storeOp)),
+                    clear_value: if let Some(clear_val) = &color.clearValue {
+                        match clear_val {
+                            DoubleSequenceOrGPUColorDict::DoubleSequence(s) => {
+                                let mut w = s.clone();
+                                if w.len() < 3 {
+                                    w.resize(3, Finite::wrap(0.0f64));
+                                }
+                                w.resize(4, Finite::wrap(1.0f64));
+                                wgt::Color {
+                                    r: *w[0],
+                                    g: *w[1],
+                                    b: *w[2],
+                                    a: *w[3],
+                                }
+                            },
+                            DoubleSequenceOrGPUColorDict::GPUColorDict(d) => wgt::Color {
+                                r: *d.r,
+                                g: *d.g,
+                                b: *d.b,
+                                a: *d.a,
+                            },
+                        }
+                    } else {
+                        wgt::Color::TRANSPARENT
+                    },
+                    read_only: false,
+                };
+                Some(wgpu_com::RenderPassColorAttachment {
+                    resolve_target: color.resolveTarget.as_ref().map(|t| t.id().0),
+                    channel,
+                    view: color.view.id().0,
+                })
+            })
+            .collect::<Vec<_>>();
+        let render_pass_id = self
+            .global()
+            .wgpu_id_hub()
+            .create_render_pass_id(self.device.id().0.backend());
+
+        if let Err(e) = self.channel.0.send(WebGPURequest::BeginRenderPass {
+            command_encoder_id: self.id().0,
+            render_pass_id,
+            label: convert_label(&descriptor.parent),
+            depth_stencil_attachment,
+            color_attachments,
+            device_id: self.device.id().0,
+        }) {
+            warn!("Failed to send WebGPURequest::BeginRenderPass {e:?}");
+        }
 
         GPURenderPassEncoder::new(
             &self.global(),
             self.channel.clone(),
-            render_pass,
+            WebGPURenderPass(render_pass_id),
             self,
             descriptor.parent.label.clone().unwrap_or_default(),
         )

@@ -2444,6 +2444,8 @@ impl ScriptThread {
             WebGPUMsg::FreeRenderPipeline(id) => self.gpu_id_hub.free_render_pipeline_id(id),
             WebGPUMsg::FreeTexture(id) => self.gpu_id_hub.free_texture_id(id),
             WebGPUMsg::FreeTextureView(id) => self.gpu_id_hub.free_texture_view_id(id),
+            WebGPUMsg::FreeComputePass(id) => self.gpu_id_hub.free_compute_pass_id(id),
+            WebGPUMsg::FreeRenderPass(id) => self.gpu_id_hub.free_render_pass_id(id),
             WebGPUMsg::Exit => *self.webgpu_port.borrow_mut() = None,
             WebGPUMsg::DeviceLost {
                 pipeline_id,

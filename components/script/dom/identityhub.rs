@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use smallvec::SmallVec;
-use webgpu::identity::{ComputePass, ComputePassId};
+use webgpu::identity::{ComputePass, ComputePassId, RenderPass, RenderPassId};
 use webgpu::wgc::id::markers::{
     Adapter, BindGroup, BindGroupLayout, Buffer, CommandEncoder, ComputePipeline, Device,
     PipelineLayout, RenderBundle, RenderPipeline, Sampler, ShaderModule, Texture, TextureView,
@@ -33,6 +33,7 @@ pub struct IdentityHub {
     render_pipelines: IdentityManager<RenderPipeline>,
     render_bundles: IdentityManager<RenderBundle>,
     compute_passes: IdentityManager<ComputePass>,
+    render_passes: IdentityManager<RenderPass>,
 }
 
 impl IdentityHub {
@@ -53,6 +54,7 @@ impl IdentityHub {
             render_pipelines: IdentityManager::new(),
             render_bundles: IdentityManager::new(),
             compute_passes: IdentityManager::new(),
+            render_passes: IdentityManager::new(),
         }
     }
 }
@@ -235,6 +237,14 @@ impl Identities {
 
     pub fn free_compute_pass_id(&self, id: ComputePassId) {
         self.select(id.backend()).compute_passes.free(id);
+    }
+
+    pub fn create_render_pass_id(&self, backend: Backend) -> RenderPassId {
+        self.select(backend).render_passes.process(backend)
+    }
+
+    pub fn free_render_pass_id(&self, id: RenderPassId) {
+        self.select(id.backend()).render_passes.free(id);
     }
 }
 

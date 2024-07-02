@@ -18,7 +18,9 @@ use servo_config::pref;
 use webrender::{RenderApi, RenderApiSender, Transaction};
 use webrender_api::{DirtyRect, DocumentId};
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
-use wgc::command::{ImageCopyBuffer, ImageCopyTexture};
+use wgc::command::{
+    ComputePassDescriptor, DynComputePass, DynRenderPass, ImageCopyBuffer, ImageCopyTexture,
+};
 use wgc::device::queue::SubmittedWorkDoneClosure;
 use wgc::device::{DeviceDescriptor, DeviceLostClosure, HostMap, ImplicitPipelineIds};
 use wgc::id::DeviceId;
@@ -26,15 +28,16 @@ use wgc::instance::parse_backends_from_comma_list;
 use wgc::pipeline::ShaderModuleDescriptor;
 use wgc::resource::{BufferMapCallback, BufferMapOperation};
 use wgc::{gfx_select, id};
-use wgpu_core::command::{ComputePassDescriptor, DynComputePass};
+use wgpu_core::command::RenderPassDescriptor;
 use wgt::InstanceDescriptor;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
 
 use crate::gpu_error::ErrorScope;
 use crate::poll_thread::Poller;
+use crate::render_commands::do_render_command;
 use crate::{
-    ComputePassId, Error, PopError, PresentationData, Transmute, WebGPU, WebGPUAdapter,
-    WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
+    ComputePassId, Error, PopError, PresentationData, RenderPassId, Transmute, WebGPU,
+    WebGPUAdapter, WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
 };
 
 pub const PRESENTATION_BUFFER_COUNT: usize = 10;
@@ -85,9 +88,9 @@ pub(crate) struct WGPU {
     wgpu_image_map: Arc<Mutex<HashMap<u64, PresentationData>>>,
     /// Provides access to poller thread
     poller: Poller,
-    /// Store compute passes (that have not ended yet) and their validity
+    /// Store passes (that have not ended yet) and their validity
     compute_passes: HashMap<ComputePassId, (Box<dyn DynComputePass>, bool)>,
-    //render_passes: HashMap<RenderPassId, Box<dyn DynRenderPass>>,
+    render_passes: HashMap<RenderPassId, (Box<dyn DynRenderPass>, bool)>,
 }
 
 impl WGPU {
@@ -132,6 +135,7 @@ impl WGPU {
             external_images,
             wgpu_image_map,
             compute_passes: HashMap::new(),
+            render_passes: HashMap::new(),
         }
     }
 
@@ -868,21 +872,70 @@ impl WGPU {
                             );
                         };
                     },
-                    WebGPURequest::EndRenderPass {
-                        render_pass,
+                    WebGPURequest::BeginRenderPass {
+                        command_encoder_id,
+                        render_pass_id,
+                        label,
+                        color_attachments,
+                        depth_stencil_attachment,
+                        device_id: _device_id,
+                    } => {
+                        let global = &self.global;
+                        let desc = &RenderPassDescriptor {
+                            label,
+                            color_attachments: color_attachments.into(),
+                            depth_stencil_attachment: depth_stencil_attachment.as_ref(),
+                            timestamp_writes: None,
+                            occlusion_query_set: None,
+                        };
+                        let (pass, error) = gfx_select!(
+                            command_encoder_id => global.command_encoder_create_render_pass_dyn(
+                                command_encoder_id,
+                                desc,
+                        ));
+                        assert!(
+                            self.render_passes
+                                .insert(render_pass_id, (pass, error.is_none()))
+                                .is_none(),
+                            "RenderPass should not exist yet."
+                        );
+                        // TODO: Command encoder state errors
+                        // self.maybe_dispatch_wgpu_error(device_id, error);
+                    },
+                    WebGPURequest::RenderPassCommand {
+                        render_pass_id,
+                        render_command,
                         device_id,
                     } => {
-                        if let Some(render_pass) = render_pass {
-                            let command_encoder_id = render_pass.parent_id();
-                            let global = &self.global;
-                            let result = gfx_select!(command_encoder_id => global.render_pass_end(&render_pass));
-                            self.maybe_dispatch_wgpu_error(device_id, result.err())
+                        if let Some((pass, valid)) = self.render_passes.get_mut(&render_pass_id) {
+                            *valid &= do_render_command(&self.global, pass, render_command).is_ok();
+                        } else {
+                            self.maybe_dispatch_error(
+                                device_id,
+                                Some(Error::Validation("pass already ended".to_string())),
+                            );
+                        };
+                    },
+                    WebGPURequest::EndRenderPass {
+                        render_pass_id,
+                        device_id,
+                        command_encoder_id,
+                    } => {
+                        // TODO: Command encoder state error
+                        if let Some((mut pass, valid)) = self.render_passes.remove(&render_pass_id)
+                        {
+                            if pass.end(&self.global).is_ok() && !valid {
+                                self.encoder_record_error(
+                                    command_encoder_id,
+                                    &Err::<(), _>("Pass is invalid".to_string()),
+                                );
+                            }
                         } else {
                             self.dispatch_error(
                                 device_id,
-                                Error::Validation("Render pass already ended".to_string()),
-                            )
-                        }
+                                Error::Validation("pass already ended".to_string()),
+                            );
+                        };
                     },
                     WebGPURequest::Submit {
                         queue_id,
@@ -1171,10 +1224,17 @@ impl WGPU {
                         };
                     },
                     WebGPURequest::DropComputePass(id) => {
-                        // Compute pass might have already ended
+                        // pass might have already ended
                         self.compute_passes.remove(&id);
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeComputePass(id)) {
                             warn!("Unable to send FreeComputePass({:?}) ({:?})", id, e);
+                        };
+                    },
+                    WebGPURequest::DropRenderPass(id) => {
+                        // pass might have already ended
+                        self.render_passes.remove(&id);
+                        if let Err(e) = self.script_sender.send(WebGPUMsg::FreeRenderPass(id)) {
+                            warn!("Unable to send FreeRenderPass({:?}) ({:?})", id, e);
                         };
                     },
                     WebGPURequest::DropRenderPipeline(id) => {
