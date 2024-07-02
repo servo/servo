@@ -539,13 +539,22 @@ impl GPUDeviceMethods for GPUDevice {
     fn CreateShaderModule(
         &self,
         descriptor: RootedTraceableBox<GPUShaderModuleDescriptor>,
+        comp: InRealm,
     ) -> DomRoot<GPUShaderModule> {
         let program_id = self
             .global()
             .wgpu_id_hub()
             .lock()
             .create_shader_module_id(self.device.0.backend());
-
+        let promise = Promise::new_in_current_realm(comp);
+        let shader_module = GPUShaderModule::new(
+            &self.global(),
+            self.channel.clone(),
+            webgpu::WebGPUShaderModule(program_id),
+            descriptor.parent.label.clone().unwrap_or_default(),
+            promise.clone(),
+        );
+        let sender = response_async(&promise, &*shader_module);
         self.channel
             .0
             .send(WebGPURequest::CreateShaderModule {
@@ -553,16 +562,10 @@ impl GPUDeviceMethods for GPUDevice {
                 program_id,
                 program: descriptor.code.0.clone(),
                 label: None,
+                sender,
             })
             .expect("Failed to create WebGPU ShaderModule");
-
-        let shader_module = webgpu::WebGPUShaderModule(program_id);
-        GPUShaderModule::new(
-            &self.global(),
-            self.channel.clone(),
-            shader_module,
-            descriptor.parent.label.clone().unwrap_or_default(),
-        )
+        shader_module
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipeline>
@@ -1029,7 +1032,7 @@ impl AsyncWGPUListener for GPUDevice {
                     promise.resolve_native(&error);
                 },
             },
-            _ => unreachable!("Wrong response recived on AsyncWGPUListener for GPUDevice"),
+            _ => unreachable!("Wrong response received on AsyncWGPUListener for GPUDevice"),
         }
     }
 }

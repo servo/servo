@@ -486,7 +486,6 @@ dictionary GPUPipelineLayoutDescriptor : GPUObjectDescriptorBase {
 
 [Exposed=(Window, DedicatedWorker), Serializable, Pref="dom.webgpu.enabled"]
 interface GPUShaderModule {
-    [Throws]
     Promise<GPUCompilationInfo> getCompilationInfo();
 };
 GPUShaderModule includes GPUObjectBase;
@@ -515,9 +514,8 @@ interface GPUCompilationMessage {
 
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUCompilationInfo {
-    // codegen hates it
-    //[Cached, Frozen, Pure]
-    readonly attribute /*sequence<GPUCompilationMessage>*/ any messages;
+    //readonly attribute FrozenArray<GPUCompilationMessage> messages;
+    readonly attribute any messages;
 };
 
 enum GPUAutoLayoutMode {

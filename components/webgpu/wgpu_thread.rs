@@ -4,6 +4,7 @@
 
 //! Data and main loop of WebGPU thread.
 
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::slice;
 use std::sync::{Arc, Mutex};
@@ -437,17 +438,24 @@ impl WGPU {
                         program_id,
                         program,
                         label,
+                        sender,
                     } => {
                         let global = &self.global;
-                        let source = wgpu_core::pipeline::ShaderModuleSource::Wgsl(
-                            crate::Cow::Owned(program),
-                        );
+                        let source =
+                            wgpu_core::pipeline::ShaderModuleSource::Wgsl(Cow::Borrowed(&program));
                         let desc = ShaderModuleDescriptor {
                             label: label.map(|s| s.into()),
                             shader_bound_checks: wgt::ShaderBoundChecks::default(),
                         };
                         let (_, error) = gfx_select!(program_id =>
                             global.device_create_shader_module(device_id, &desc, source, Some(program_id)));
+                        if let Err(e) = sender.send(Some(Ok(WebGPUResponse::CompilationInfo(
+                            error
+                                .as_ref()
+                                .map(|e| crate::ShaderCompilationInfo::from(e, &program)),
+                        )))) {
+                            warn!("Failed to send WebGPUResponse::CompilationInfo {e:?}");
+                        }
                         self.maybe_dispatch_wgpu_error(device_id, error);
                     },
                     WebGPURequest::CreateSwapChain {
