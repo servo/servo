@@ -1367,9 +1367,9 @@ struct ContainingBlockPaddingAndBorder<'a> {
     max_box_size: LogicalVec2<Option<Length>>,
 }
 
-struct ResolvedMargins {
+pub(crate) struct ResolvedMargins {
     /// Used value for the margin properties, as exposed in getComputedStyle().
-    margin: LogicalSides<Au>,
+    pub margin: LogicalSides<Au>,
 
     /// Distance between the border box and the containing block on the inline-start side.
     /// This is typically the same as the inline-start margin, but can be greater when
@@ -1377,7 +1377,7 @@ struct ResolvedMargins {
     /// The reason we aren't just adjusting the used margin-inline-start is that
     /// this shouldn't be observable via getComputedStyle().
     /// <https://drafts.csswg.org/css-align/#justify-self-property>
-    effective_margin_inline_start: Au,
+    pub effective_margin_inline_start: Au,
 }
 
 /// Given the style for an in-flow box and its containing block, determine the containing
@@ -1440,7 +1440,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
 /// Note that in the presence of floats, this shouldn't be used for a block-level box
 /// that establishes an independent formatting context (or is replaced), since the
 /// margins could then be incorrect.
-fn solve_margins(
+pub(crate) fn solve_margins(
     containing_block: &ContainingBlock<'_>,
     pbm: &PaddingBorderMargin,
     inline_size: Au,

@@ -215,12 +215,16 @@ impl BoxFragment {
         )
     }
 
-    pub fn padding_rect(&self) -> LogicalRect<Au> {
+    pub(crate) fn padding_rect(&self) -> LogicalRect<Au> {
         self.content_rect.inflate(&self.padding)
     }
 
-    pub fn border_rect(&self) -> LogicalRect<Au> {
+    pub(crate) fn border_rect(&self) -> LogicalRect<Au> {
         self.padding_rect().inflate(&self.border)
+    }
+
+    pub(crate) fn margin_rect(&self) -> LogicalRect<Au> {
+        self.border_rect().inflate(&self.margin)
     }
 
     pub fn print(&self, tree: &mut PrintTree) {
