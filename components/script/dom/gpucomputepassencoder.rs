@@ -5,7 +5,6 @@
 use dom_struct::dom_struct;
 use webgpu::{WebGPU, WebGPUComputePass, WebGPURequest};
 
-use super::bindings::error::Fallible;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUComputePassEncoderMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -109,7 +108,7 @@ impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-endpass>
-    fn End(&self) -> Fallible<()> {
+    fn End(&self) {
         if let Err(e) = self.channel.0.send(WebGPURequest::EndComputePass {
             compute_pass_id: self.compute_pass.0,
             device_id: self.command_encoder.device_id().0,
@@ -117,11 +116,9 @@ impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
         }) {
             warn!("Failed to send WebGPURequest::EndComputePass: {e:?}");
         }
-        Ok(())
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuprogrammablepassencoder-setbindgroup>
-    #[allow(unsafe_code)]
     fn SetBindGroup(&self, index: u32, bind_group: &GPUBindGroup, offsets: Vec<u32>) {
         if let Err(e) = self.channel.0.send(WebGPURequest::ComputePassSetBindGroup {
             compute_pass_id: self.compute_pass.0,

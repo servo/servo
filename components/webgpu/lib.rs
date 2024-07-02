@@ -19,6 +19,7 @@ use arrayvec::ArrayVec;
 use euclid::default::Size2D;
 pub use gpu_error::{Error, ErrorFilter, PopError};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+pub use render_commands::RenderCommand;
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use webrender_api::{DocumentId, ImageData, ImageDescriptor, ImageKey};
@@ -29,6 +30,7 @@ use wgc::id;
 
 mod dom_messages;
 mod gpu_error;
+mod render_commands;
 mod script_messages;
 pub use dom_messages::*;
 pub use identity::*;
