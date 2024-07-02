@@ -4097,13 +4097,14 @@ impl Document {
 
     /// <https://html.spec.whatwg.org/multipage/#visibility-state>
     fn update_visibility_state(&self, visibility_state: DocumentVisibilityState) {
-        // Step 1
+        // Step 1 If document's visibility state equals visibilityState, then return.
         if self.visibility_state.get() == visibility_state {
             return;
         }
-        // Step 2
+        // Step 2 Set document's visibility state to visibilityState.
         self.visibility_state.set(visibility_state);
-        // Step 3 TODO get timestamp
+        // Step 3 Queue a new VisibilityStateEntry whose visibility state is visibilityState and whose timestamp is
+        // the current high resolution time given document's relevant global object.
         let entry = VisibilityStateEntry::new(
             &self.global(),
             visibility_state,
@@ -4112,10 +4113,13 @@ impl Document {
         self.window
             .Performance()
             .queue_entry(entry.upcast::<PerformanceEntry>());
-        // Step 4 TODO ScreenOrientation hasn't implemented yet
-        // Step 5 TODO ViewTransition hasn't implemented yet
-        // Step 6 TODO This step is too vague
-        // Step 7
+        // Step 4 Run the screen orientation change steps with document.
+        // TODO ScreenOrientation hasn't implemented yet
+        // Step 5 Run the view transition page visibility change steps with document.
+        // TODO ViewTransition hasn't implemented yet
+        // Step 6 Run any page visibility change steps which may be defined in other specifications, with visibility
+        // state and document. Any other specs' visibility steps will go here.
+        // Step 7 Fire an event named visibilitychange at document, with its bubbles attribute initialized to true.
         self.upcast::<EventTarget>()
             .fire_bubbling_event(atom!("visibilitychange"));
     }
