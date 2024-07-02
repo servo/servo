@@ -1,0 +1,41 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#![allow(unsafe_code)]
+
+/// Defines a macro `native_fn!` to create a JavaScript function from a Rust function pointer.
+#[macro_export]
+macro_rules! native_fn {
+    ($call:expr, $name:expr, $nargs:expr, $flags:expr) => {{
+        let cx = crate::dom::types::GlobalScope::get_cx();
+        let fun_obj = crate::native_raw_obj_fn!(cx, $call, $name, $nargs, $flags);
+        unsafe { Function::new(cx, fun_obj) }
+    }};
+}
+
+/// Defines a macro `native_raw_obj!` to create a raw JavaScript function object.
+#[macro_export]
+macro_rules! native_raw_obj_fn {
+    ($cx:expr, $call:expr, $name:expr, $nargs:expr, $flags:expr) => {{
+        unsafe extern "C" fn wrapper(cx: *mut JSContext, argc: u32, vp: *mut JSVal) -> bool {
+            (WRAPPER_FN.unwrap())(cx, argc, vp)
+        }
+
+        static mut WRAPPER_FN: Option<unsafe fn(*mut JSContext, u32, *mut JSVal) -> bool> = None;
+
+        unsafe {
+            WRAPPER_FN = Some($call);
+            assert_eq!(*$name.last().unwrap(), b'\0');
+            let raw_fun = crate::dom::bindings::import::module::jsapi::JS_NewFunction(
+                *$cx,
+                Some(wrapper),
+                $nargs,
+                $flags,
+                $name.as_ptr() as *const std::ffi::c_char,
+            );
+            assert!(!raw_fun.is_null());
+            crate::dom::bindings::import::module::jsapi::JS_GetFunctionObject(raw_fun)
+        }
+    }};
+}
