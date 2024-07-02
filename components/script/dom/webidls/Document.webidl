@@ -78,6 +78,7 @@ Document includes NonElementParentNode;
 Document includes ParentNode;
 
 enum DocumentReadyState { "loading", "interactive", "complete" };
+enum DocumentVisibilityState { "visible", "hidden" };
 
 dictionary ElementCreationOptions {
   DOMString is;
@@ -144,6 +145,8 @@ partial /*sealed*/ interface Document {
   // boolean queryCommandState(DOMString commandId);
   boolean queryCommandSupported(DOMString commandId);
   // DOMString queryCommandValue(DOMString commandId);
+  readonly attribute boolean hidden;
+  readonly attribute DocumentVisibilityState visibilityState;
 
   // special event handler IDL attributes that only apply to Document objects
   [LegacyLenientThis] attribute EventHandler onreadystatechange;
