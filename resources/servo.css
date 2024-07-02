@@ -112,7 +112,7 @@ td[align="left"]    { text-align: left; }
 td[align="center"]  { text-align: center; }
 td[align="right"]   { text-align: right; }
 
-center { text-align: -servo-center; }
+center { text-align: -moz-center; }
 
 label { cursor: default; }
 

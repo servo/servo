@@ -1478,13 +1478,9 @@ fn justify_self_alignment(containing_block: &ContainingBlock, free_space: Au) ->
     let style = containing_block.style;
     debug_assert!(free_space >= Au::zero());
     match style.clone_text_align() {
-        TextAlignKeyword::ServoCenter => free_space / 2,
-        TextAlignKeyword::ServoLeft if !style.writing_mode.line_left_is_inline_start() => {
-            free_space
-        },
-        TextAlignKeyword::ServoRight if style.writing_mode.line_left_is_inline_start() => {
-            free_space
-        },
+        TextAlignKeyword::MozCenter => free_space / 2,
+        TextAlignKeyword::MozLeft if !style.writing_mode.line_left_is_inline_start() => free_space,
+        TextAlignKeyword::MozRight if style.writing_mode.line_left_is_inline_start() => free_space,
         _ => Au::zero(),
     }
 }

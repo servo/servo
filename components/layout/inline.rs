@@ -1035,13 +1035,13 @@ impl InlineFlow {
         let is_ltr = fragments.fragments[0].style().writing_mode.is_bidi_ltr();
         let line_align = match (line_align, is_ltr) {
             (TextAlign::Left, true) |
-            (TextAlign::ServoLeft, true) |
+            (TextAlign::MozLeft, true) |
             (TextAlign::Right, false) |
-            (TextAlign::ServoRight, false) => TextAlign::Start,
+            (TextAlign::MozRight, false) => TextAlign::Start,
             (TextAlign::Left, false) |
-            (TextAlign::ServoLeft, false) |
+            (TextAlign::MozLeft, false) |
             (TextAlign::Right, true) |
-            (TextAlign::ServoRight, true) => TextAlign::End,
+            (TextAlign::MozRight, true) => TextAlign::End,
             _ => line_align,
         };
 
@@ -1053,11 +1053,11 @@ impl InlineFlow {
                 InlineFlow::justify_inline_fragments(fragments, line, slack_inline_size)
             },
             TextAlign::Justify | TextAlign::Start => {},
-            TextAlign::Center | TextAlign::ServoCenter => {
+            TextAlign::Center | TextAlign::MozCenter => {
                 inline_start_position_for_fragment += slack_inline_size.scale_by(0.5)
             },
             TextAlign::End => inline_start_position_for_fragment += slack_inline_size,
-            TextAlign::Left | TextAlign::ServoLeft | TextAlign::Right | TextAlign::ServoRight => {
+            TextAlign::Left | TextAlign::MozLeft | TextAlign::Right | TextAlign::MozRight => {
                 unreachable!()
             },
         }
