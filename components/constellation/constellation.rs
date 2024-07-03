@@ -881,7 +881,7 @@ where
             .event_loops
             .get(host)
             .ok_or("Trying to get an event-loop from an unknown browsing context group")
-            .map(|event_loop| event_loop.clone())
+            .cloned()
     }
 
     fn set_event_loop(

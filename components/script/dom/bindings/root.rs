@@ -238,7 +238,7 @@ pub struct RootCollection {
     roots: UnsafeCell<Vec<*const dyn JSTraceable>>,
 }
 
-thread_local!(static STACK_ROOTS: Cell<Option<*const RootCollection>> = Cell::new(None));
+thread_local!(static STACK_ROOTS: Cell<Option<*const RootCollection>> = const { Cell::new(None) });
 
 pub struct ThreadLocalStackRoots<'a>(PhantomData<&'a u32>);
 
@@ -339,6 +339,10 @@ impl<T> MallocSizeOf for Dom<T> {
 
 impl<T> Dom<T> {
     /// Returns `LayoutDom<T>` containing the same pointer.
+    ///
+    /// # Safety
+    ///
+    /// The `self` parameter to this method must meet all the requirements of [`ptr::NonNull::as_ref`].
     pub unsafe fn to_layout(&self) -> LayoutDom<T> {
         assert_in_layout();
         LayoutDom {

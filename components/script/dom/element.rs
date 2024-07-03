@@ -87,7 +87,7 @@ use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::xmlname::XMLName::InvalidXMLName;
+use crate::dom::bindings::xmlname::XMLName::Invalid;
 use crate::dom::bindings::xmlname::{
     namespace_from_domstring, validate_and_extract, xml_name_type,
 };
@@ -622,7 +622,7 @@ pub trait LayoutElementHelpers<'dom> {
     fn get_span(self) -> Option<u32>;
     fn get_colspan(self) -> Option<u32>;
     fn get_rowspan(self) -> Option<u32>;
-    fn is_html_element(self) -> bool;
+    fn is_html_element(&self) -> bool;
     fn id_attribute(self) -> *const Option<Atom>;
     fn style_attribute(self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>>;
     fn local_name(self) -> &'dom LocalName;
@@ -658,7 +658,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     #[inline]
     fn has_class_for_layout(self, name: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
         get_attr_for_layout(self, &ns!(), &local_name!("class")).map_or(false, |attr| {
-            attr.as_tokens()
+            attr.to_tokens()
                 .unwrap()
                 .iter()
                 .any(|atom| case_sensitivity.eq_atom(atom, name))
@@ -668,7 +668,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     #[inline]
     fn get_classes_for_layout(self) -> Option<&'dom [Atom]> {
         get_attr_for_layout(self, &ns!(), &local_name!("class"))
-            .map(|attr| attr.as_tokens().unwrap())
+            .map(|attr| attr.to_tokens().unwrap())
     }
 
     fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
@@ -1036,7 +1036,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     }
 
     #[inline]
-    fn is_html_element(self) -> bool {
+    fn is_html_element(&self) -> bool {
         *self.namespace() == ns!(html)
     }
 
@@ -1543,7 +1543,7 @@ impl Element {
     // https://html.spec.whatwg.org/multipage/#attr-data-*
     pub fn set_custom_attribute(&self, name: DOMString, value: DOMString) -> ErrorResult {
         // Step 1.
-        if let InvalidXMLName = xml_name_type(&name) {
+        if let Invalid = xml_name_type(&name) {
             return Err(Error::InvalidCharacter);
         }
 
@@ -2130,7 +2130,7 @@ impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-element-toggleattribute
     fn ToggleAttribute(&self, name: DOMString, force: Option<bool>) -> Fallible<bool> {
         // Step 1.
-        if xml_name_type(&name) == InvalidXMLName {
+        if xml_name_type(&name) == Invalid {
             return Err(Error::InvalidCharacter);
         }
 
@@ -2172,7 +2172,7 @@ impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-element-setattribute
     fn SetAttribute(&self, name: DOMString, value: DOMString) -> ErrorResult {
         // Step 1.
-        if xml_name_type(&name) == InvalidXMLName {
+        if xml_name_type(&name) == Invalid {
             return Err(Error::InvalidCharacter);
         }
 

@@ -79,6 +79,8 @@ struct DecodeResolver {
     pub error_callback: Option<Rc<DecodeErrorCallback>>,
 }
 
+type BoxedSliceOfPromises = Box<[Rc<Promise>]>;
+
 #[dom_struct]
 pub struct BaseAudioContext {
     eventtarget: EventTarget,
@@ -90,7 +92,7 @@ pub struct BaseAudioContext {
     listener: MutNullableDom<AudioListener>,
     /// Resume promises which are soon to be fulfilled by a queued task.
     #[ignore_malloc_size_of = "promises are hard"]
-    in_flight_resume_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
+    in_flight_resume_promises_queue: DomRefCell<VecDeque<(BoxedSliceOfPromises, ErrorResult)>>,
     /// <https://webaudio.github.io/web-audio-api/#pendingresumepromises>
     #[ignore_malloc_size_of = "promises are hard"]
     pending_resume_promises: DomRefCell<Vec<Rc<Promise>>>,

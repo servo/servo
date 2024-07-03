@@ -319,6 +319,7 @@ pub unsafe fn throw_constructor_without_new(cx: *mut JSContext, name: &str) {
 
 impl Error {
     /// Convert this error value to a JS value, consuming it in the process.
+    #[allow(clippy::wrong_self_convention)]
     pub unsafe fn to_jsval(
         self,
         cx: *mut JSContext,

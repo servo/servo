@@ -418,6 +418,10 @@ where
     /// without causing conflicts , unexpected behavior.
     /// <https://github.com/servo/mozjs/blob/main/mozjs-sys/mozjs/js/public/ArrayBuffer.h#L89>
     unsafe extern "C" fn free_func(_contents: *mut c_void, free_user_data: *mut c_void) {
+        // Clippy warns about "creating a `Arc` from a void raw pointer" here, but suggests
+        // the exact same line to fix it. Doing the cast is tricky because of the use of
+        // a generic type in this parameter.
+        #[allow(clippy::from_raw_with_void_ptr)]
         let _ = Arc::from_raw(free_user_data as *const _);
     }
 

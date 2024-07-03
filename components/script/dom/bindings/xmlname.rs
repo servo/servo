@@ -13,7 +13,7 @@ use crate::dom::bindings::str::DOMString;
 pub fn validate_qualified_name(qualified_name: &str) -> ErrorResult {
     // Step 2.
     match xml_name_type(qualified_name) {
-        XMLName::InvalidXMLName => Err(Error::InvalidCharacter),
+        XMLName::Invalid => Err(Error::InvalidCharacter),
         XMLName::Name => Err(Error::InvalidCharacter), // see whatwg/dom#671
         XMLName::QName => Ok(()),
     }
@@ -83,7 +83,7 @@ pub fn validate_and_extract(
 pub enum XMLName {
     QName,
     Name,
-    InvalidXMLName,
+    Invalid,
 }
 
 /// Check if an element name is valid. See <http://www.w3.org/TR/xml/#NT-Name>
@@ -123,10 +123,10 @@ pub fn xml_name_type(name: &str) -> XMLName {
     let mut non_qname_colons = false;
     let mut seen_colon = false;
     let mut last = match iter.next() {
-        None => return XMLName::InvalidXMLName,
+        None => return XMLName::Invalid,
         Some(c) => {
             if !is_valid_start(c) {
-                return XMLName::InvalidXMLName;
+                return XMLName::Invalid;
             }
             if c == ':' {
                 non_qname_colons = true;
@@ -137,7 +137,7 @@ pub fn xml_name_type(name: &str) -> XMLName {
 
     for c in iter {
         if !is_valid_continuation(c) {
-            return XMLName::InvalidXMLName;
+            return XMLName::Invalid;
         }
         if c == ':' {
             if seen_colon {

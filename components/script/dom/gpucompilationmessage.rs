@@ -69,10 +69,10 @@ impl GPUCompilationMessage {
             global,
             info.message.into(),
             GPUCompilationMessageType::Error,
-            info.line_number as u64,
-            info.line_pos as u64,
-            info.offset as u64,
-            info.length as u64,
+            info.line_number,
+            info.line_pos,
+            info.offset,
+            info.length,
         )
     }
 }

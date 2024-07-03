@@ -73,7 +73,7 @@ pub fn build_html_directory_listing(
         if let Ok(mut path_segments) = parent_url.path_segments_mut() {
             path_segments.pop();
         }
-        parent_url_string = parent_url.as_str().to_owned();
+        parent_url.as_str().clone_into(&mut parent_url_string);
     }
 
     page_html.push_str(&read_string(Resource::DirectoryListingHTML));
@@ -126,7 +126,7 @@ fn write_directory_entry(entry: DirEntry, metadata: Metadata, url: &Url, output:
     let file_size = metadata_to_file_size_string(&metadata);
     let last_modified = metadata
         .modified()
-        .map(|time| DateTime::<Local>::from(time))
+        .map(DateTime::<Local>::from)
         .map(|time| time.format("%F %r").to_string())
         .unwrap_or_default();
 
@@ -154,5 +154,5 @@ pub fn metadata_to_file_size_string(metadata: &Metadata) -> String {
         _ => "GB",
     };
 
-    return format!("{:.2} {prefix}", float_size);
+    format!("{:.2} {prefix}", float_size)
 }

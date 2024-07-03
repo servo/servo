@@ -100,7 +100,7 @@ use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::xmlname::XMLName::InvalidXMLName;
+use crate::dom::bindings::xmlname::XMLName::Invalid;
 use crate::dom::bindings::xmlname::{
     namespace_from_domstring, validate_and_extract, xml_name_type,
 };
@@ -3006,7 +3006,7 @@ pub enum DocumentSource {
 
 #[allow(unsafe_code)]
 pub trait LayoutDocumentHelpers<'dom> {
-    fn is_html_document_for_layout(self) -> bool;
+    fn is_html_document_for_layout(&self) -> bool;
     fn needs_paint_from_layout(self);
     fn will_paint(self);
     fn quirks_mode(self) -> QuirksMode;
@@ -3019,7 +3019,7 @@ pub trait LayoutDocumentHelpers<'dom> {
 #[allow(unsafe_code)]
 impl<'dom> LayoutDocumentHelpers<'dom> for LayoutDom<'dom, Document> {
     #[inline]
-    fn is_html_document_for_layout(self) -> bool {
+    fn is_html_document_for_layout(&self) -> bool {
         self.unsafe_get().is_html_document
     }
 
@@ -4297,7 +4297,7 @@ impl DocumentMethods for Document {
         mut local_name: DOMString,
         options: StringOrElementCreationOptions,
     ) -> Fallible<DomRoot<Element>> {
-        if xml_name_type(&local_name) == InvalidXMLName {
+        if xml_name_type(&local_name) == Invalid {
             debug!("Not a valid element name");
             return Err(Error::InvalidCharacter);
         }
@@ -4359,7 +4359,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-createattribute
     fn CreateAttribute(&self, mut local_name: DOMString) -> Fallible<DomRoot<Attr>> {
-        if xml_name_type(&local_name) == InvalidXMLName {
+        if xml_name_type(&local_name) == Invalid {
             debug!("Not a valid element name");
             return Err(Error::InvalidCharacter);
         }
@@ -4438,7 +4438,7 @@ impl DocumentMethods for Document {
         data: DOMString,
     ) -> Fallible<DomRoot<ProcessingInstruction>> {
         // Step 1.
-        if xml_name_type(&target) == InvalidXMLName {
+        if xml_name_type(&target) == Invalid {
             return Err(Error::InvalidCharacter);
         }
 
@@ -5373,7 +5373,7 @@ impl DocumentMethods for Document {
     // https://drafts.csswg.org/css-font-loading/#font-face-source
     fn Fonts(&self) -> DomRoot<FontFaceSet> {
         self.fonts
-            .or_init(|| FontFaceSet::new(&*self.global(), None))
+            .or_init(|| FontFaceSet::new(&self.global(), None))
     }
 }
 

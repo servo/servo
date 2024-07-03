@@ -81,6 +81,8 @@ impl Reflector {
     }
 
     /// Create an uninitialized `Reflector`.
+    // These are used by the bindings and do not need `default()` functions.
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Reflector {
         Reflector {
             object: Heap::default(),

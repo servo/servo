@@ -187,28 +187,25 @@ where
     }
 
     #[inline]
-    pub fn get_mut<Q: ?Sized>(&mut self, k: &Q) -> Option<&mut V>
+    pub fn get_mut<Q: Hash + Eq + ?Sized>(&mut self, k: &Q) -> Option<&mut V>
     where
         K: std::borrow::Borrow<Q>,
-        Q: Hash + Eq,
     {
         self.0.get_mut(k)
     }
 
     #[inline]
-    pub fn contains_key<Q: ?Sized>(&self, k: &Q) -> bool
+    pub fn contains_key<Q: Hash + Eq + ?Sized>(&self, k: &Q) -> bool
     where
         K: std::borrow::Borrow<Q>,
-        Q: Hash + Eq,
     {
         self.0.contains_key(k)
     }
 
     #[inline]
-    pub fn remove<Q: ?Sized>(&mut self, k: &Q) -> Option<V>
+    pub fn remove<Q: Hash + Eq + ?Sized>(&mut self, k: &Q) -> Option<V>
     where
         K: std::borrow::Borrow<Q>,
-        Q: Hash + Eq,
     {
         self.0.remove(k)
     }
