@@ -151,7 +151,6 @@ impl GPUCanvasContext {
         let encoder_id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_command_encoder_id(texture_id.backend());
         if let Err(e) = self.channel.0.send(WebGPURequest::SwapChainPresent {
             external_id: self.context_id.0,
@@ -265,7 +264,6 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
             buffer_ids.push(
                 self.global()
                     .wgpu_id_hub()
-                    .lock()
                     .create_buffer_id(descriptor.device.id().0.backend()),
             );
         }

@@ -19,7 +19,6 @@ use net_traits::request::{
     CredentialsMode, Destination, ParserMetadata, RequestBuilder as NetRequestInit,
 };
 use net_traits::IpcSend;
-use parking_lot::Mutex;
 use script_traits::WorkerGlobalScopeInit;
 use servo_url::{MutableOrigin, ServoUrl};
 use time::precise_time_ns;
@@ -138,7 +137,7 @@ impl WorkerGlobalScope {
         runtime: Runtime,
         from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
         closing: Arc<AtomicBool>,
-        gpu_id_hub: Arc<Mutex<Identities>>,
+        gpu_id_hub: Arc<Identities>,
     ) -> Self {
         // Install a pipeline-namespace in the current thread.
         PipelineNamespace::auto_install();

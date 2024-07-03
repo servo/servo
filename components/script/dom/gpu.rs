@@ -111,7 +111,7 @@ impl GPUMethods for GPU {
             Some(GPUPowerPreference::High_performance) => PowerPreference::HighPerformance,
             None => PowerPreference::default(),
         };
-        let ids = global.wgpu_id_hub().lock().create_adapter_ids();
+        let ids = global.wgpu_id_hub().create_adapter_ids();
 
         let script_to_constellation_chan = global.script_to_constellation_chan();
         if script_to_constellation_chan

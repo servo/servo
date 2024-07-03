@@ -173,7 +173,6 @@ impl GPUTextureMethods for GPUTexture {
         let texture_view_id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_texture_view_id(self.device.id().0.backend());
 
         self.channel

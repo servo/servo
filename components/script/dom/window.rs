@@ -44,7 +44,6 @@ use net_traits::image_cache::{
 use net_traits::storage_thread::StorageType;
 use net_traits::ResourceThreads;
 use num_traits::ToPrimitive;
-use parking_lot::Mutex as ParkMutex;
 use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
@@ -2557,7 +2556,7 @@ impl Window {
         replace_surrogates: bool,
         user_agent: Cow<'static, str>,
         player_context: WindowGLContext,
-        gpu_id_hub: Arc<ParkMutex<Identities>>,
+        gpu_id_hub: Arc<Identities>,
         inherited_secure_context: Option<bool>,
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {
