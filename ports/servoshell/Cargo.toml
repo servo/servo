@@ -94,7 +94,7 @@ ohos-sys = { git = "https://github.com/jschwe/ohos-sys.git" }
 servo_allocator = { path = "../../components/allocator" }
 arboard = { version = "3" }
 egui = { version = "0.26.2" }
-egui_glow = { version = "0.26.2", features = ["winit"] }
+egui_glow = { version = "0.28.0", features = ["winit"] }
 egui-winit = { version = "0.26.2", default-features = false, features = ["clipboard", "wayland"] }
 euclid = { workspace = true }
 gilrs = "0.10.7"
