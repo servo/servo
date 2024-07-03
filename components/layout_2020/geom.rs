@@ -370,6 +370,19 @@ impl<T: Add<Output = T> + Copy> Add<LogicalSides<T>> for LogicalSides<T> {
     }
 }
 
+impl<T: Sub<Output = T> + Copy> Sub<LogicalSides<T>> for LogicalSides<T> {
+    type Output = LogicalSides<T>;
+
+    fn sub(self, other: Self) -> Self::Output {
+        LogicalSides {
+            inline_start: self.inline_start - other.inline_start,
+            inline_end: self.inline_end - other.inline_end,
+            block_start: self.block_start - other.block_start,
+            block_end: self.block_end - other.block_end,
+        }
+    }
+}
+
 impl<T: Neg<Output = T> + Copy> Neg for LogicalSides<T> {
     type Output = LogicalSides<T>;
     fn neg(self) -> Self::Output {
@@ -384,7 +397,7 @@ impl<T: Neg<Output = T> + Copy> Neg for LogicalSides<T> {
 
 impl<T: Zero> LogicalSides<T> {
     pub(crate) fn zero() -> LogicalSides<T> {
-        LogicalSides {
+        Self {
             inline_start: T::zero(),
             inline_end: T::zero(),
             block_start: T::zero(),
@@ -395,7 +408,7 @@ impl<T: Zero> LogicalSides<T> {
 
 impl From<LogicalSides<CSSPixelLength>> for LogicalSides<Au> {
     fn from(value: LogicalSides<CSSPixelLength>) -> Self {
-        LogicalSides {
+        Self {
             inline_start: value.inline_start.into(),
             inline_end: value.inline_end.into(),
             block_start: value.block_start.into(),
@@ -406,7 +419,7 @@ impl From<LogicalSides<CSSPixelLength>> for LogicalSides<Au> {
 
 impl From<LogicalSides<Au>> for LogicalSides<CSSPixelLength> {
     fn from(value: LogicalSides<Au>) -> Self {
-        LogicalSides {
+        Self {
             inline_start: value.inline_start.into(),
             inline_end: value.inline_end.into(),
             block_start: value.block_start.into(),
@@ -435,7 +448,7 @@ impl<T> LogicalRect<T> {
         T: Add<Output = T> + Copy,
         T: Sub<Output = T> + Copy,
     {
-        LogicalRect {
+        Self {
             start_corner: LogicalVec2 {
                 inline: self.start_corner.inline - sides.inline_start,
                 block: self.start_corner.block - sides.block_start,

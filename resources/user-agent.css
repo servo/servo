@@ -204,7 +204,10 @@ dir, menu, ul { list-style-type: disc; }
 
 
 table { display: table; }
-caption { display: table-caption; }
+caption {
+  display: table-caption;
+  text-align: center;
+}
 colgroup, colgroup[hidden] { display: table-column-group; }
 col, col[hidden] { display: table-column; }
 thead, thead[hidden] { display: table-header-group; }
