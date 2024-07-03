@@ -605,11 +605,7 @@ where
         if self.next_character.is_none() {
             self.next_character = self.iterator.next();
         }
-
-        let Some(character) = self.next_character else {
-            return None;
-        };
-
+        let character = self.next_character?;
         self.next_character = self.iterator.next();
         Some((character, self.next_character))
     }

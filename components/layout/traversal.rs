@@ -187,8 +187,12 @@ where
     fn process(&mut self, node: &ConcreteThreadSafeLayoutNode);
 }
 
-#[allow(unsafe_code)]
+/// # Safety
+///
+/// This function modifies the DOM node represented by the `node` argument, so it is imperitive
+/// that no other thread is modifying the node at the same time.
 #[inline]
+#[allow(unsafe_code)]
 pub unsafe fn construct_flows_at_ancestors<'dom>(
     context: &LayoutContext,
     mut node: impl LayoutNode<'dom>,

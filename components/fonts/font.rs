@@ -329,8 +329,7 @@ impl Font {
             }
         }
 
-        let is_single_preserved_newline = text.len() == 1 && text.chars().next() == Some('\n');
-
+        let is_single_preserved_newline = text.len() == 1 && text.starts_with('\n');
         let start_time = Instant::now();
         let mut glyphs = GlyphStore::new(
             text.len(),

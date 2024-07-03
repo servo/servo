@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::cmp::Ordering;
 
 use app_units::Au;
 use atomic_refcell::AtomicRefMut;
@@ -1111,40 +1112,44 @@ impl FlexLine<'_> {
 
             // “Freeze over-flexed items.”
             let total_violation: Au = unfrozen_items().map(violation).sum();
-            if total_violation == Au::zero() {
-                // “Freeze all items.”
-                // Return instead, as that’s what the next loop iteration would do.
-                let remaining_free_space =
-                    container_main_size - target_main_sizes_vec.iter().cloned().sum();
-                return (target_main_sizes_vec, remaining_free_space);
-            } else if total_violation > Au::zero() {
-                // “Freeze all the items with min violations.”
-                // “If the item’s target main size was made larger by [clamping],
-                //  it’s a min violation.”
-                for (item_and_target_main_size, frozen) in items() {
-                    if violation(item_and_target_main_size) > Au::zero() {
-                        let (item, target_main_size) = item_and_target_main_size;
-                        target_main_size.set(item.content_min_size.main);
-                        frozen_count.set(frozen_count.get() + 1);
-                        frozen.set(true);
+            match total_violation.cmp(&Au::zero()) {
+                Ordering::Equal => {
+                    // “Freeze all items.”
+                    // Return instead, as that’s what the next loop iteration would do.
+                    let remaining_free_space =
+                        container_main_size - target_main_sizes_vec.iter().cloned().sum();
+                    return (target_main_sizes_vec, remaining_free_space);
+                },
+                Ordering::Greater => {
+                    // “Freeze all the items with min violations.”
+                    // “If the item’s target main size was made larger by [clamping],
+                    //  it’s a min violation.”
+                    for (item_and_target_main_size, frozen) in items() {
+                        if violation(item_and_target_main_size) > Au::zero() {
+                            let (item, target_main_size) = item_and_target_main_size;
+                            target_main_size.set(item.content_min_size.main);
+                            frozen_count.set(frozen_count.get() + 1);
+                            frozen.set(true);
+                        }
                     }
-                }
-            } else {
-                // Negative total violation
-                // “Freeze all the items with max violations.”
-                // “If the item’s target main size was made smaller by [clamping],
-                //  it’s a max violation.”
-                for (item_and_target_main_size, frozen) in items() {
-                    if violation(item_and_target_main_size) < Au::zero() {
-                        let (item, target_main_size) = item_and_target_main_size;
-                        let Some(max_size) = item.content_max_size.main else {
-                            unreachable!()
-                        };
-                        target_main_size.set(max_size);
-                        frozen_count.set(frozen_count.get() + 1);
-                        frozen.set(true);
+                },
+                Ordering::Less => {
+                    // Negative total violation
+                    // “Freeze all the items with max violations.”
+                    // “If the item’s target main size was made smaller by [clamping],
+                    //  it’s a max violation.”
+                    for (item_and_target_main_size, frozen) in items() {
+                        if violation(item_and_target_main_size) < Au::zero() {
+                            let (item, target_main_size) = item_and_target_main_size;
+                            let Some(max_size) = item.content_max_size.main else {
+                                unreachable!()
+                            };
+                            target_main_size.set(max_size);
+                            frozen_count.set(frozen_count.get() + 1);
+                            frozen.set(true);
+                        }
                     }
-                }
+                },
             }
         }
     }
