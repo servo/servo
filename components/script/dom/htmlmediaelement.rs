@@ -1546,6 +1546,9 @@ impl HTMLMediaElement {
                                     }),
                                     window.upcast(),
                                 );
+
+                                // https://html.spec.whatwg.org/multipage/#dom-media-have_current_data
+                                self.change_ready_state(ReadyState::HaveCurrentData);
                             }
                         },
 
