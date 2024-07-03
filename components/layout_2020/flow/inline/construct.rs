@@ -165,12 +165,15 @@ impl InlineFormattingContextBuilder {
     }
 
     fn end_inline_box_internal(&mut self) -> InlineBoxIdentifier {
-        self.inline_boxes.end_inline_box();
+        let identifier = self
+            .inline_box_stack
+            .pop()
+            .expect("Ended non-existent inline box");
         self.inline_items
             .push(ArcRefCell::new(InlineItem::EndInlineBox));
-        self.inline_box_stack
-            .pop()
-            .expect("Ended non-existent inline box")
+
+        self.inline_boxes.end_inline_box(identifier);
+        identifier
     }
 
     pub(crate) fn push_text<'dom, Node: NodeExt<'dom>>(
