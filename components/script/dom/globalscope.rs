@@ -3187,7 +3187,9 @@ impl GlobalScope {
                 if let Some(window) = global.downcast::<Window>() {
                     let navigator = window.Navigator();
                     let selected_index = navigator.select_gamepad_index();
-                    let gamepad = Gamepad::new(&global, selected_index, name, axis_bounds, button_bounds, supported_haptic_effects);
+                    let gamepad = Gamepad::new(
+                        &global, selected_index, name, axis_bounds, button_bounds, supported_haptic_effects
+                    );
                     navigator.set_gamepad(selected_index as usize, &gamepad);
                 }
             }),

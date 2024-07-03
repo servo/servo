@@ -24,8 +24,8 @@ use servo::embedder_traits::{
     PromptResult,
 };
 use servo::script_traits::{
-    GamepadEvent, GamepadIndex, GamepadInputBounds, GamepadUpdateType, TouchEventType,
-    TraversalDirection, GamepadSupportedHapticEffects,
+    GamepadEvent, GamepadIndex, GamepadInputBounds, GamepadSupportedHapticEffects,
+    GamepadUpdateType, TouchEventType, TraversalDirection,
 };
 use servo::servo_config::opts;
 use servo::servo_url::ServoUrl;

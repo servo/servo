@@ -97,7 +97,8 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
         params: &GamepadEffectParameters,
     ) -> Rc<Promise> {
         let in_realm_proof = AlreadyInRealm::assert();
-        let playing_effect_promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
+        let playing_effect_promise =
+            Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
 
         // <https://www.w3.org/TR/gamepad/#dfn-valid-effect>
         match type_ {
