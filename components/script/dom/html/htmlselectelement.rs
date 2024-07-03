@@ -13,6 +13,7 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
+use script_bindings::error::Error;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::document_embedder_controls::ControlElement;
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed};
@@ -497,6 +498,35 @@ impl HTMLSelectElement {
             .filter_map(DomRoot::downcast::<Element>)
             .find(|element| element.local_name() == &local_name!("selectedcontent"))
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#show-the-picker,-if-applicable>
+    fn show_the_picker_if_applicable(&self) {
+        // Step 1. If element's relevant global object does not have transient activation, then return.
+        if !self.owner_document().window().has_transient_activation() {
+            return;
+        }
+
+        // Step 2. If element is not mutable, then return.
+        if self.Disabled() {
+            return;
+        }
+
+        // Step 3. Consume user activation given element's relevant global object.
+        self.owner_document().window().consume_user_activation();
+
+        // Step 4. If element does not support a picker, then return.
+        //
+        // Not relevant until we have listbox select.
+
+        // Step 5. If element is an input element and element's type attribute is in the File Upload
+        // state, then run these steps in parallel:
+        //
+        // Not relevant to select.
+
+        // Step 6. Otherwise, the user agent should show the relevant user interface for selecting a
+        // value for element,in the way it normally would when the user interacts with the control.
+        self.show_menu();
+    }
 }
 
 impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
@@ -718,6 +748,33 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
     fn SetCustomValidity(&self, error: DOMString, can_gc: CanGc) {
         self.validity_state(can_gc).set_custom_error_message(error);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-select-showpicker>
+    fn ShowPicker(&self) -> ErrorResult {
+        // Step 1. If this is not mutable, then throw an "InvalidStateError" DOMException.
+        if self.Disabled() {
+            return Err(Error::InvalidState(None));
+        }
+
+        // TODO Step 2. If this's relevant settings object's origin is not same origin with this's
+        // relevant settings object's top-level origin, and this is a select element, or this's
+        // type attribute is not in the File Upload state or Color state,
+        // then throw a "SecurityError" DOMException.
+
+        // Step 3. If this's relevant global object does not have transient activation, then throw
+        // a "NotAllowedError" DOMException.
+        if !self.owner_document().window().has_transient_activation() {
+            return Err(Error::NotAllowed(None));
+        }
+
+        // TODO Step 4. If this is a select element, and this is not being rendered, then throw a
+        // "NotSupportedError" DOMException.
+
+        // Step 5. Show the picker, if applicable, for this.
+        self.show_the_picker_if_applicable();
+
+        Ok(())
     }
 }
 

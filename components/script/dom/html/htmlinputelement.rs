@@ -2127,6 +2127,35 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     fn SetCustomValidity(&self, error: DOMString, can_gc: CanGc) {
         self.validity_state(can_gc).set_custom_error_message(error);
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-showpicker>
+    fn ShowPicker(&self) -> ErrorResult {
+        // Step 1. If this is not mutable, then throw an "InvalidStateError" DOMException.
+        if !self.is_mutable() {
+            return Err(Error::InvalidState(None));
+        }
+
+        // TODO Step 2. If this's relevant settings object's origin is not same origin with this's
+        // relevant settings object's top-level origin, and this is a select element, or this's
+        // type attribute is not in the File Upload state or Color state,
+        // then throw a "SecurityError" DOMException.
+
+        // Step 3. If this's relevant global object does not have transient activation, then throw
+        // a "NotAllowedError" DOMException.
+        if !self.owner_document().window().has_transient_activation() {
+            return Err(Error::NotAllowed(None));
+        }
+
+        // Step 4. If this is a select element, and this is not being rendered, then throw a
+        // "NotSupportedError" DOMException.
+        //
+        // Not relevant to input.
+
+        // Step 5. Show the picker, if applicable, for this.
+        self.show_the_picker_if_applicable();
+
+        Ok(())
+    }
 }
 
 fn radio_group_iter<'a>(
@@ -2897,16 +2926,44 @@ impl HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#show-the-picker,-if-applicable>
     fn show_the_picker_if_applicable(&self) {
-        // FIXME: Implement most of this algorithm
+        // Step 1. If element's relevant global object does not have transient activation, then return.
+        if !self.owner_document().window().has_transient_activation() {
+            return;
+        }
 
         // Step 2. If element is not mutable, then return.
         if !self.is_mutable() {
             return;
         }
 
-        // Step 6. Otherwise, the user agent should show the relevant user interface for selecting a value for element,
-        // in the way it normally would when the user interacts with the control.
-        if self.input_type() == InputType::Color {
+        // Step 3. Consume user activation given element's relevant global object.
+        self.owner_document().window().consume_user_activation();
+
+        // Step 4. If element does not support a picker, then return.
+        // Step 5. If element is an input element and element's type attribute is in the File Upload
+        // state, then run these steps in parallel:
+        if self.input_type() == InputType::File {
+            // Step 5.1. Optionally, wait until any prior execution of this algorithm has terminated.
+            // TODO Step 5.2. Let dismissed be the result of WebDriver BiDi file dialog opened with element.
+            // TODO Step 5.3. If dismissed is false:
+
+            // Step 5.3.1. Display a prompt to the user requesting that the user specify some files. If
+            // the multiple attribute is not set on element, there must be no more than one file
+            // selected; otherwise, any number may be selected. Files can be from the filesystem or
+            // created on the fly, e.g., a picture taken from a camera connected to the user's device.
+
+            // Step 5.3.2. Wait for the user to have made their selection.
+
+            // TODO Step 5.4. If dismissed is true or if the user dismissed the prompt without changing their
+            // selection, then queue an element task on the user interaction task source given element
+            // to fire an event named cancel at element, with the bubbles attribute initialized to true.
+
+            // Step 5.5 Otherwise, update the file selection for element.
+            self.select_files(None);
+        }
+        // Step 6. Otherwise, the user agent should show the relevant user interface for selecting a
+        // value for element,in the way it normally would when the user interacts with the control.
+        else if self.input_type() == InputType::Color {
             let document = self.owner_document();
             let current_value = self.Value();
             let current_color = parse_color_value(
