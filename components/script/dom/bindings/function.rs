@@ -5,6 +5,10 @@
 #![allow(unsafe_code)]
 
 /// Defines a macro `native_fn!` to create a JavaScript function from a Rust function pointer.
+/// # Example
+/// ```
+/// let js_function: Rc<Function> = native_fn!(my_rust_function, b"myFunction\0", 2, 0);
+/// ```
 #[macro_export]
 macro_rules! native_fn {
     ($call:expr, $name:expr, $nargs:expr, $flags:expr) => {{
@@ -14,7 +18,11 @@ macro_rules! native_fn {
     }};
 }
 
-/// Defines a macro `native_raw_obj!` to create a raw JavaScript function object.
+/// Defines a macro `native_raw_obj_fn!` to create a raw JavaScript function object.
+/// # Example
+/// ```
+/// let raw_function_obj: *mut JSObject = native_raw_obj_fn!(cx, my_rust_function, b"myFunction\0", 2, 0);
+/// ```
 #[macro_export]
 macro_rules! native_raw_obj_fn {
     ($cx:expr, $call:expr, $name:expr, $nargs:expr, $flags:expr) => {{
