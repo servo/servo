@@ -961,7 +961,7 @@ fn rgba(color: AbsoluteColor) -> wr::ColorF {
 fn glyphs(
     glyph_runs: &[Arc<GlyphStore>],
     mut baseline_origin: PhysicalPoint<Au>,
-    justification_adjustment: Length,
+    justification_adjustment: Au,
 ) -> Vec<wr::GlyphInstance> {
     use fonts_traits::ByteIndex;
     use range::Range;
@@ -983,7 +983,7 @@ fn glyphs(
             }
 
             if glyph.char_is_word_separator() {
-                baseline_origin.x += justification_adjustment.into();
+                baseline_origin.x += justification_adjustment;
             }
             baseline_origin.x += glyph.advance();
         }
