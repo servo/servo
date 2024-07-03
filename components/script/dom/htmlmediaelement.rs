@@ -1822,6 +1822,8 @@ impl HTMLMediaElement {
                 }
             },
             PlayerEvent::EnoughData => {
+                self.change_ready_state(ReadyState::HaveEnoughData);
+
                 // The player has enough data and it is asking us to stop pushing
                 // bytes, so we cancel the ongoing fetch request iff we are able
                 // to restart it from where we left. Otherwise, we continue the
