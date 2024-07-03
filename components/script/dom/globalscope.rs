@@ -46,7 +46,6 @@ use net_traits::image_cache::ImageCache;
 use net_traits::request::Referrer;
 use net_traits::response::HttpsState;
 use net_traits::{CoreResourceMsg, CoreResourceThread, IpcSend, ResourceThreads};
-use parking_lot::Mutex;
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
 use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
 use script_traits::transferable::MessagePortImpl;
@@ -319,7 +318,7 @@ pub struct GlobalScope {
     /// Identity Manager for WebGPU resources
     #[ignore_malloc_size_of = "defined in wgpu"]
     #[no_trace]
-    gpu_id_hub: Arc<Mutex<Identities>>,
+    gpu_id_hub: Arc<Identities>,
 
     /// WebGPU devices
     gpu_devices: DomRefCell<HashMapTracedValues<WebGPUDevice, WeakRef<GPUDevice>>>,
@@ -762,7 +761,7 @@ impl GlobalScope {
         microtask_queue: Rc<MicrotaskQueue>,
         is_headless: bool,
         user_agent: Cow<'static, str>,
-        gpu_id_hub: Arc<Mutex<Identities>>,
+        gpu_id_hub: Arc<Identities>,
         inherited_secure_context: Option<bool>,
     ) -> Self {
         Self {
@@ -3084,7 +3083,7 @@ impl GlobalScope {
         None
     }
 
-    pub fn wgpu_id_hub(&self) -> Arc<Mutex<Identities>> {
+    pub fn wgpu_id_hub(&self) -> Arc<Identities> {
         self.gpu_id_hub.clone()
     }
 

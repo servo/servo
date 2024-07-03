@@ -109,7 +109,6 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         let compute_pass_id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_compute_pass_id(self.device.id().0.backend());
 
         if let Err(e) = self.channel.0.send(WebGPURequest::BeginComputePass {

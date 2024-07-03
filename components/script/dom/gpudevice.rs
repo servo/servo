@@ -198,7 +198,6 @@ impl GPUDevice {
             let layout_id = self
                 .global()
                 .wgpu_id_hub()
-                .lock()
                 .create_pipeline_layout_id(self.device.0.backend());
             let max_bind_grps = self.limits.MaxBindGroups();
             let mut bgls = Vec::with_capacity(max_bind_grps as usize);
@@ -207,7 +206,6 @@ impl GPUDevice {
                 let bgl = self
                     .global()
                     .wgpu_id_hub()
-                    .lock()
                     .create_bind_group_layout_id(self.device.0.backend());
                 bgls.push(webgpu::WebGPUBindGroupLayout(bgl));
                 bgl_ids.push(bgl);
@@ -268,7 +266,6 @@ impl GPUDeviceMethods for GPUDevice {
         let id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_buffer_id(self.device.0.backend());
 
         if desc.is_none() {
@@ -411,7 +408,6 @@ impl GPUDeviceMethods for GPUDevice {
         let bind_group_layout_id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_bind_group_layout_id(self.device.0.backend());
         self.channel
             .0
@@ -452,7 +448,6 @@ impl GPUDeviceMethods for GPUDevice {
         let pipeline_layout_id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_pipeline_layout_id(self.device.0.backend());
         self.channel
             .0
@@ -512,7 +507,6 @@ impl GPUDeviceMethods for GPUDevice {
         let bind_group_id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_bind_group_id(self.device.0.backend());
         self.channel
             .0
@@ -544,7 +538,6 @@ impl GPUDeviceMethods for GPUDevice {
         let program_id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_shader_module_id(self.device.0.backend());
         let promise = Promise::new_in_current_realm(comp);
         let shader_module = GPUShaderModule::new(
@@ -576,7 +569,6 @@ impl GPUDeviceMethods for GPUDevice {
         let compute_pipeline_id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_compute_pipeline_id(self.device.0.backend());
 
         let (layout, implicit_ids, bgls) = self.get_pipeline_layout_data(&descriptor.parent.layout);
@@ -634,7 +626,6 @@ impl GPUDeviceMethods for GPUDevice {
         let command_encoder_id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_command_encoder_id(self.device.0.backend());
         self.channel
             .0
@@ -683,7 +674,6 @@ impl GPUDeviceMethods for GPUDevice {
         let texture_id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_texture_id(self.device.0.backend());
 
         if desc.is_none() {
@@ -720,7 +710,6 @@ impl GPUDeviceMethods for GPUDevice {
         let sampler_id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_sampler_id(self.device.0.backend());
         let compare_enable = descriptor.compare.is_some();
         let desc = wgpu_res::SamplerDescriptor {
@@ -895,7 +884,6 @@ impl GPUDeviceMethods for GPUDevice {
         let render_pipeline_id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_render_pipeline_id(self.device.0.backend());
 
         self.channel

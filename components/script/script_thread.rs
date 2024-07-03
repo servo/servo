@@ -69,7 +69,6 @@ use net_traits::{
     FetchMetadata, FetchResponseListener, FetchResponseMsg, Metadata, NetworkError, ReferrerPolicy,
     ResourceFetchTiming, ResourceThreads, ResourceTimingType,
 };
-use parking_lot::Mutex;
 use percent_encoding::percent_decode;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
@@ -721,7 +720,7 @@ pub struct ScriptThread {
 
     /// Identity manager for WebGPU resources
     #[no_trace]
-    gpu_id_hub: Arc<Mutex<Identities>>,
+    gpu_id_hub: Arc<Identities>,
 
     /// Receiver to receive commands from optional WebGPU server.
     #[no_trace]
@@ -1419,7 +1418,7 @@ impl ScriptThread {
 
             node_ids: Default::default(),
             is_user_interacting: Cell::new(false),
-            gpu_id_hub: Arc::new(Mutex::new(Identities::new())),
+            gpu_id_hub: Arc::new(Identities::new()),
             webgpu_port: RefCell::new(None),
             inherited_secure_context: state.inherited_secure_context,
             layout_factory,
@@ -1582,7 +1581,7 @@ impl ScriptThread {
                 CompositorEvent::MouseMoveEvent(point, node_address, pressed_mouse_buttons) => {
                     self.process_mouse_move_event(
                         &document,
-                        &window,
+                        window,
                         point,
                         node_address,
                         pressed_mouse_buttons,
@@ -2422,35 +2421,29 @@ impl ScriptThread {
 
     fn handle_msg_from_webgpu_server(&self, msg: WebGPUMsg) {
         match msg {
-            WebGPUMsg::FreeAdapter(id) => self.gpu_id_hub.lock().kill_adapter_id(id),
+            WebGPUMsg::FreeAdapter(id) => self.gpu_id_hub.kill_adapter_id(id),
             WebGPUMsg::FreeDevice {
                 device_id,
                 pipeline_id,
             } => {
-                self.gpu_id_hub.lock().kill_device_id(device_id);
+                self.gpu_id_hub.kill_device_id(device_id);
                 let global = self.documents.borrow().find_global(pipeline_id).unwrap();
                 global.remove_gpu_device(WebGPUDevice(device_id));
             },
-            WebGPUMsg::FreeBuffer(id) => self.gpu_id_hub.lock().kill_buffer_id(id),
-            WebGPUMsg::FreePipelineLayout(id) => self.gpu_id_hub.lock().kill_pipeline_layout_id(id),
-            WebGPUMsg::FreeComputePipeline(id) => {
-                self.gpu_id_hub.lock().kill_compute_pipeline_id(id)
-            },
-            WebGPUMsg::FreeBindGroup(id) => self.gpu_id_hub.lock().kill_bind_group_id(id),
-            WebGPUMsg::FreeBindGroupLayout(id) => {
-                self.gpu_id_hub.lock().kill_bind_group_layout_id(id)
-            },
+            WebGPUMsg::FreeBuffer(id) => self.gpu_id_hub.kill_buffer_id(id),
+            WebGPUMsg::FreePipelineLayout(id) => self.gpu_id_hub.kill_pipeline_layout_id(id),
+            WebGPUMsg::FreeComputePipeline(id) => self.gpu_id_hub.kill_compute_pipeline_id(id),
+            WebGPUMsg::FreeBindGroup(id) => self.gpu_id_hub.kill_bind_group_id(id),
+            WebGPUMsg::FreeBindGroupLayout(id) => self.gpu_id_hub.kill_bind_group_layout_id(id),
             WebGPUMsg::FreeCommandBuffer(id) => self
                 .gpu_id_hub
-                .lock()
                 .kill_command_buffer_id(id.into_command_encoder_id()),
-            WebGPUMsg::FreeSampler(id) => self.gpu_id_hub.lock().kill_sampler_id(id),
-            WebGPUMsg::FreeShaderModule(id) => self.gpu_id_hub.lock().kill_shader_module_id(id),
-            WebGPUMsg::FreeRenderBundle(id) => self.gpu_id_hub.lock().kill_render_bundle_id(id),
-            WebGPUMsg::FreeRenderPipeline(id) => self.gpu_id_hub.lock().kill_render_pipeline_id(id),
-            WebGPUMsg::FreeTexture(id) => self.gpu_id_hub.lock().kill_texture_id(id),
-            WebGPUMsg::FreeTextureView(id) => self.gpu_id_hub.lock().kill_texture_view_id(id),
-            WebGPUMsg::FreeComputePass(id) => self.gpu_id_hub.lock().kill_compute_pass_id(id),
+            WebGPUMsg::FreeSampler(id) => self.gpu_id_hub.kill_sampler_id(id),
+            WebGPUMsg::FreeShaderModule(id) => self.gpu_id_hub.kill_shader_module_id(id),
+            WebGPUMsg::FreeRenderBundle(id) => self.gpu_id_hub.kill_render_bundle_id(id),
+            WebGPUMsg::FreeRenderPipeline(id) => self.gpu_id_hub.kill_render_pipeline_id(id),
+            WebGPUMsg::FreeTexture(id) => self.gpu_id_hub.kill_texture_id(id),
+            WebGPUMsg::FreeTextureView(id) => self.gpu_id_hub.kill_texture_view_id(id),
             WebGPUMsg::Exit => *self.webgpu_port.borrow_mut() = None,
             WebGPUMsg::DeviceLost {
                 pipeline_id,

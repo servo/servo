@@ -14,7 +14,6 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use net_traits::image_cache::ImageCache;
 use net_traits::ResourceThreads;
-use parking_lot::Mutex;
 use profile_traits::{mem, time};
 use script_traits::{Painter, ScriptMsg, ScriptToConstellationChan, TimerSchedulerMsg};
 use servo_atoms::Atom;
@@ -165,7 +164,7 @@ pub struct WorkletGlobalScopeInit {
     /// An optional string allowing the user agent to be set for testing
     pub user_agent: Cow<'static, str>,
     /// Identity manager for WebGPU resources
-    pub gpu_id_hub: Arc<Mutex<Identities>>,
+    pub gpu_id_hub: Arc<Identities>,
     /// Is considered secure
     pub inherited_secure_context: Option<bool>,
 }
