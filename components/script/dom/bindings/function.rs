@@ -19,13 +19,10 @@ macro_rules! native_fn {
 macro_rules! native_raw_obj_fn {
     ($cx:expr, $call:expr, $name:expr, $nargs:expr, $flags:expr) => {{
         unsafe extern "C" fn wrapper(cx: *mut JSContext, argc: u32, vp: *mut JSVal) -> bool {
-            (WRAPPER_FN.unwrap())(cx, argc, vp)
+            $call(cx, argc, vp)
         }
 
-        static mut WRAPPER_FN: Option<unsafe fn(*mut JSContext, u32, *mut JSVal) -> bool> = None;
-
         unsafe {
-            WRAPPER_FN = Some($call);
             assert_eq!(*$name.last().unwrap(), b'\0');
             let raw_fun = crate::dom::bindings::import::module::jsapi::JS_NewFunction(
                 *$cx,
