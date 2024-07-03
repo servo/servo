@@ -615,6 +615,10 @@ impl HTMLMediaElement {
             return;
         }
 
+        if old_ready_state == ready_state {
+            return;
+        }
+
         let window = window_from_node(self);
         let task_source = window.task_manager().media_element_task_source();
 
