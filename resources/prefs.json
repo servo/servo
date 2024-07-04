@@ -103,6 +103,7 @@
   "layout.columns.enabled": false,
   "layout.css.transition-behavior.enabled": true,
   "layout.flexbox.enabled": true,
+  "layout.grid.enabled": false,
   "layout.legacy_layout": false,
   "layout.threads": 3,
   "layout.writing-mode.enabled": false,
