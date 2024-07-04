@@ -104,8 +104,12 @@ use style::values::specified::box_::BaselineSource;
 use style::values::specified::text::{TextAlignKeyword, TextDecorationLine};
 use style::values::specified::{TextAlignLast, TextJustify};
 use style::Zero;
-use text_run::{add_or_get_font, get_font_for_first_font_for_style, TextRun};
+use text_run::{
+    add_or_get_font, get_font_for_first_font_for_style, TextRun, XI_LINE_BREAKING_CLASS_GL,
+    XI_LINE_BREAKING_CLASS_WJ, XI_LINE_BREAKING_CLASS_ZWJ,
+};
 use webrender_api::FontInstanceKey;
+use xi_unicode::linebreak_property;
 
 use super::float::PlacementAmongFloats;
 use crate::cell::ArcRefCell;
@@ -176,7 +180,10 @@ pub(crate) enum InlineItem {
     TextRun(TextRun),
     OutOfFlowAbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
     OutOfFlowFloatBox(FloatBox),
-    Atomic(IndependentFormattingContext),
+    Atomic(
+        IndependentFormattingContext,
+        usize, /* offset_in_text */
+    ),
 }
 
 /// Information about the current line under construction for a particular
@@ -612,12 +619,6 @@ pub(super) struct InlineFormattingContextState<'a, 'b> {
     /// queued after replaced content and they are processed when the next text content
     /// is encountered.
     pub have_deferred_soft_wrap_opportunity: bool,
-
-    /// Whether or not a soft wrap opportunity should be prevented before the next atomic
-    /// element encountered in the inline formatting context. See
-    /// `char_prevents_soft_wrap_opportunity_when_before_or_after_atomic` for more
-    /// details.
-    pub prevent_soft_wrap_opportunity_before_next_atomic: bool,
 
     /// Whether or not this InlineFormattingContext has processed any in flow content at all.
     had_inflow_content: bool,
@@ -1202,15 +1203,11 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
     }
 
     pub(super) fn defer_forced_line_break(&mut self) {
-        // If this hard line break happens in the middle of an unbreakable segment, there are two
-        // scenarios:
-        //    1. The current portion of the unbreakable segment fits on the current line in which
-        //       case we commit it.
-        //    2. The current portion of the unbreakable segment does not fit in which case we
-        //       need to put it on a new line *before* actually triggering the hard line break.
-        //
-        // `process_soft_wrap_opportunity` handles both of these cases.
-        self.process_soft_wrap_opportunity();
+        // If the current portion of the unbreakable segment does not fit on the current line
+        // we need to put it on a new line *before* actually triggering the hard line break.
+        if !self.unbreakable_segment_fits_on_line() {
+            self.process_line_break(false /* forced_line_break */);
+        }
 
         // Defer the actual line break until we've cleared all ending inline boxes.
         self.linebreak_before_new_content = true;
@@ -1369,6 +1366,20 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
     fn process_line_break(&mut self, forced_line_break: bool) {
         self.current_line_segment.trim_leading_whitespace();
         self.finish_current_line_and_reset(forced_line_break);
+    }
+
+    pub(super) fn unbreakable_segment_fits_on_line(&mut self) -> bool {
+        let potential_line_size = LogicalVec2 {
+            inline: self.current_line.inline_position + self.current_line_segment.inline_size -
+                self.current_line_segment.trailing_whitespace_size,
+            block: self
+                .current_line_max_block_size_including_nested_containers()
+                .max(&self.current_line_segment.max_block_size)
+                .resolve()
+                .into(),
+        };
+
+        !self.new_potential_line_size_causes_line_break(&potential_line_size)
     }
 
     /// Process a soft wrap opportunity. This will either commit the current unbreakble
@@ -1633,7 +1644,6 @@ impl InlineFormattingContext {
             linebreak_before_new_content: false,
             deferred_br_clear: Clear::None,
             have_deferred_soft_wrap_opportunity: false,
-            prevent_soft_wrap_opportunity_before_next_atomic: false,
             had_inflow_content: false,
             white_space_collapse: style_text.white_space_collapse,
             text_wrap_mode: style_text.text_wrap_mode,
@@ -1662,8 +1672,13 @@ impl InlineFormattingContext {
                 },
                 InlineItem::EndInlineBox => ifc.finish_inline_box(),
                 InlineItem::TextRun(run) => run.layout_into_line_items(&mut ifc),
-                InlineItem::Atomic(atomic_formatting_context) => {
-                    atomic_formatting_context.layout_into_line_items(layout_context, &mut ifc);
+                InlineItem::Atomic(atomic_formatting_context, offset_in_text) => {
+                    atomic_formatting_context.layout_into_line_items(
+                        layout_context,
+                        self,
+                        &mut ifc,
+                        *offset_in_text,
+                    );
                 },
                 InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
                     ifc.push_line_item_to_unbreakable_segment(LineItem::AbsolutelyPositioned(
@@ -1693,6 +1708,20 @@ impl InlineFormattingContext {
             collapsible_margins_in_children,
             baselines: ifc.baselines,
         }
+    }
+
+    fn next_character_prevents_soft_wrap_opportunity(&self, index: usize) -> bool {
+        let Some(character) = self.text_content[index..].chars().skip(1).next() else {
+            return false;
+        };
+        char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character)
+    }
+
+    fn previous_character_prevents_soft_wrap_opportunity(&self, index: usize) -> bool {
+        let Some(character) = self.text_content[0..index].chars().rev().next() else {
+            return false;
+        };
+        char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character)
     }
 }
 
@@ -1894,10 +1923,12 @@ impl IndependentFormattingContext {
     fn layout_into_line_items(
         &mut self,
         layout_context: &LayoutContext,
-        ifc: &mut InlineFormattingContextState,
+        inline_formatting_context: &InlineFormattingContext,
+        inline_formatting_context_state: &mut InlineFormattingContextState,
+        offset_in_text: usize,
     ) {
         let style = self.style();
-        let pbm = style.padding_border_margin(ifc.containing_block);
+        let pbm = style.padding_border_margin(inline_formatting_context_state.containing_block);
         let margin = pbm.margin.auto_is(Au::zero);
         let pbm_sums = pbm.padding + pbm.border + margin;
         let mut child_positioning_context = None;
@@ -1906,7 +1937,7 @@ impl IndependentFormattingContext {
         let fragment = match self {
             IndependentFormattingContext::Replaced(replaced) => {
                 let size = replaced.contents.used_size_as_if_inline_element(
-                    ifc.containing_block,
+                    inline_formatting_context_state.containing_block,
                     &replaced.style,
                     None,
                     &pbm,
@@ -1932,18 +1963,20 @@ impl IndependentFormattingContext {
             IndependentFormattingContext::NonReplaced(non_replaced) => {
                 let box_size = non_replaced
                     .style
-                    .content_box_size(ifc.containing_block, &pbm);
+                    .content_box_size(inline_formatting_context_state.containing_block, &pbm);
                 let max_box_size = non_replaced
                     .style
-                    .content_max_box_size(ifc.containing_block, &pbm);
+                    .content_max_box_size(inline_formatting_context_state.containing_block, &pbm);
                 let min_box_size = non_replaced
                     .style
-                    .content_min_box_size(ifc.containing_block, &pbm)
+                    .content_min_box_size(inline_formatting_context_state.containing_block, &pbm)
                     .auto_is(Length::zero);
 
                 // https://drafts.csswg.org/css2/visudet.html#inlineblock-width
                 let tentative_inline_size = box_size.inline.auto_is(|| {
-                    let available_size = ifc.containing_block.inline_size - pbm_sums.inline_sum();
+                    let available_size =
+                        inline_formatting_context_state.containing_block.inline_size -
+                            pbm_sums.inline_sum();
                     non_replaced
                         .inline_content_sizes(layout_context)
                         .shrink_to_fit(available_size)
@@ -1962,7 +1995,10 @@ impl IndependentFormattingContext {
                     style: &non_replaced.style,
                 };
                 assert_eq!(
-                    ifc.containing_block.style.writing_mode,
+                    inline_formatting_context_state
+                        .containing_block
+                        .style
+                        .writing_mode,
                     containing_block_for_children.style.writing_mode,
                     "Mixed writing modes are not supported yet"
                 );
@@ -1977,7 +2013,7 @@ impl IndependentFormattingContext {
                     layout_context,
                     child_positioning_context.as_mut().unwrap(),
                     &containing_block_for_children,
-                    ifc.containing_block,
+                    inline_formatting_context_state.containing_block,
                 );
                 let (inline_size, block_size) =
                     match independent_layout.content_inline_size_for_table {
@@ -2021,12 +2057,11 @@ impl IndependentFormattingContext {
             },
         };
 
-        let soft_wrap_opportunity_prevented = mem::replace(
-            &mut ifc.prevent_soft_wrap_opportunity_before_next_atomic,
-            false,
-        );
-        if ifc.text_wrap_mode == TextWrapMode::Wrap && !soft_wrap_opportunity_prevented {
-            ifc.process_soft_wrap_opportunity();
+        if inline_formatting_context_state.text_wrap_mode == TextWrapMode::Wrap &&
+            !inline_formatting_context
+                .previous_character_prevents_soft_wrap_opportunity(offset_in_text)
+        {
+            inline_formatting_context_state.process_soft_wrap_opportunity();
         }
 
         let size = pbm_sums.sum() + fragment.content_rect.size;
@@ -2035,15 +2070,18 @@ impl IndependentFormattingContext {
             .map(|baseline| pbm_sums.block_start + baseline)
             .unwrap_or(size.block);
 
-        let (block_sizes, baseline_offset_in_parent) =
-            self.get_block_sizes_and_baseline_offset(ifc, size.block.into(), baseline_offset);
-        ifc.update_unbreakable_segment_for_new_content(
+        let (block_sizes, baseline_offset_in_parent) = self.get_block_sizes_and_baseline_offset(
+            inline_formatting_context_state,
+            size.block.into(),
+            baseline_offset,
+        );
+        inline_formatting_context_state.update_unbreakable_segment_for_new_content(
             &block_sizes,
             size.inline.into(),
             SegmentContentFlags::empty(),
         );
-        ifc.push_line_item_to_unbreakable_segment(LineItem::Atomic(
-            ifc.current_inline_box_identifier(),
+        inline_formatting_context_state.push_line_item_to_unbreakable_segment(LineItem::Atomic(
+            inline_formatting_context_state.current_inline_box_identifier(),
             AtomicLineItem {
                 fragment,
                 size,
@@ -2053,8 +2091,12 @@ impl IndependentFormattingContext {
             },
         ));
 
-        // Defer a soft wrap opportunity for when we next process text content.
-        ifc.have_deferred_soft_wrap_opportunity = true;
+        // If there's a soft wrap opportunity following this atomic, defer a soft wrap opportunity
+        // for when we next process text content.
+        if !inline_formatting_context.next_character_prevents_soft_wrap_opportunity(offset_in_text)
+        {
+            inline_formatting_context_state.have_deferred_soft_wrap_opportunity = true;
+        }
     }
 
     /// Picks either the first or the last baseline, depending on `baseline-source`.
@@ -2345,11 +2387,24 @@ impl<'a> ContentSizesComputation<'a> {
                     }
                 }
             },
-            InlineItem::Atomic(atomic) => {
+            InlineItem::Atomic(atomic, offset_in_text) => {
+                // TODO: need to handle TextWrapMode::Nowrap.
+                if !inline_formatting_context
+                    .previous_character_prevents_soft_wrap_opportunity(*offset_in_text)
+                {
+                    self.line_break_opportunity();
+                }
+
                 let outer = atomic.outer_inline_content_sizes(
                     self.layout_context,
                     self.containing_block_writing_mode,
                 );
+
+                if !inline_formatting_context
+                    .next_character_prevents_soft_wrap_opportunity(*offset_in_text)
+                {
+                    self.line_break_opportunity();
+                }
 
                 self.commit_pending_whitespace();
                 self.current_line += outer;
@@ -2403,4 +2458,25 @@ impl<'a> ContentSizesComputation<'a> {
         }
         .traverse(inline_formatting_context)
     }
+}
+
+/// Whether or not this character will rpevent a soft wrap opportunity when it
+/// comes before or after an atomic inline element.
+///
+/// From <https://www.w3.org/TR/css-text-3/#line-break-details>:
+///
+/// > For Web-compatibility there is a soft wrap opportunity before and after each
+/// > replaced element or other atomic inline, even when adjacent to a character that
+/// > would normally suppress them, including U+00A0 NO-BREAK SPACE. However, with
+/// > the exception of U+00A0 NO-BREAK SPACE, there must be no soft wrap opportunity
+/// > between atomic inlines and adjacent characters belonging to the Unicode GL, WJ,
+/// > or ZWJ line breaking classes.
+fn char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character: char) -> bool {
+    if character == '\u{00A0}' {
+        return false;
+    }
+    let class = linebreak_property(character);
+    class == XI_LINE_BREAKING_CLASS_GL ||
+        class == XI_LINE_BREAKING_CLASS_WJ ||
+        class == XI_LINE_BREAKING_CLASS_ZWJ
 }
