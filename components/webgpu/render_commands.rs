@@ -11,7 +11,7 @@ use wgpu_core::global::Global;
 use crate::wgc::id;
 use crate::wgt;
 
-// https://github.com/gfx-rs/wgpu/blob/f25e07b984ab391628d9568296d5970981d79d8b/wgpu-core/src/command/render_command.rs#L17
+/// <https://github.com/gfx-rs/wgpu/blob/f25e07b984ab391628d9568296d5970981d79d8b/wgpu-core/src/command/render_command.rs#L17>
 #[derive(Debug, Deserialize, Serialize)]
 pub enum RenderCommand {
     SetPipeline(id::RenderPipelineId),
@@ -72,7 +72,7 @@ pub enum RenderCommand {
     ExecuteBundles(Vec<id::RenderBundleId>),
 }
 
-pub fn do_render_command(
+pub fn apply_render_command(
     context: &Global,
     pass: &mut Box<dyn DynRenderPass>,
     command: RenderCommand,

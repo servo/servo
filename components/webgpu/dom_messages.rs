@@ -258,7 +258,7 @@ pub enum WebGPURequest {
         device_id: id::DeviceId,
         pipeline_id: PipelineId,
     },
-    // COmpute pass
+    // Compute Pass
     BeginComputePass {
         command_encoder_id: id::CommandEncoderId,
         compute_pass_id: ComputePassId,

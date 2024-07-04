@@ -34,7 +34,7 @@ pub use {wgpu_core as wgc, wgpu_types as wgt};
 
 use crate::gpu_error::ErrorScope;
 use crate::poll_thread::Poller;
-use crate::render_commands::do_render_command;
+use crate::render_commands::apply_render_command;
 use crate::{
     ComputePassId, Error, PopError, PresentationData, RenderPassId, Transmute, WebGPU,
     WebGPUAdapter, WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
@@ -908,7 +908,8 @@ impl WGPU {
                         device_id,
                     } => {
                         if let Some((pass, valid)) = self.render_passes.get_mut(&render_pass_id) {
-                            *valid &= do_render_command(&self.global, pass, render_command).is_ok();
+                            *valid &=
+                                apply_render_command(&self.global, pass, render_command).is_ok();
                         } else {
                             self.maybe_dispatch_error(
                                 device_id,
@@ -1224,14 +1225,14 @@ impl WGPU {
                         };
                     },
                     WebGPURequest::DropComputePass(id) => {
-                        // pass might have already ended
+                        // Pass might have already ended.
                         self.compute_passes.remove(&id);
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeComputePass(id)) {
                             warn!("Unable to send FreeComputePass({:?}) ({:?})", id, e);
                         };
                     },
                     WebGPURequest::DropRenderPass(id) => {
-                        // pass might have already ended
+                        // Pass might have already ended.
                         self.render_passes.remove(&id);
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeRenderPass(id)) {
                             warn!("Unable to send FreeRenderPass({:?}) ({:?})", id, e);
