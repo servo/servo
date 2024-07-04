@@ -18,7 +18,9 @@ use servo_config::pref;
 use webrender::{RenderApi, RenderApiSender, Transaction};
 use webrender_api::{DirtyRect, DocumentId};
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
-use wgc::command::{ImageCopyBuffer, ImageCopyTexture};
+use wgc::command::{
+    ComputePassDescriptor, DynComputePass, DynRenderPass, ImageCopyBuffer, ImageCopyTexture,
+};
 use wgc::device::queue::SubmittedWorkDoneClosure;
 use wgc::device::{DeviceDescriptor, DeviceLostClosure, HostMap, ImplicitPipelineIds};
 use wgc::id::DeviceId;
@@ -26,15 +28,16 @@ use wgc::instance::parse_backends_from_comma_list;
 use wgc::pipeline::ShaderModuleDescriptor;
 use wgc::resource::{BufferMapCallback, BufferMapOperation};
 use wgc::{gfx_select, id};
-use wgpu_core::command::{ComputePassDescriptor, DynComputePass};
+use wgpu_core::command::RenderPassDescriptor;
 use wgt::InstanceDescriptor;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
 
 use crate::gpu_error::ErrorScope;
 use crate::poll_thread::Poller;
+use crate::render_commands::apply_render_command;
 use crate::{
-    ComputePassId, Error, PopError, PresentationData, Transmute, WebGPU, WebGPUAdapter,
-    WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
+    ComputePassId, Error, PopError, PresentationData, RenderPassId, Transmute, WebGPU,
+    WebGPUAdapter, WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
 };
 
 pub const PRESENTATION_BUFFER_COUNT: usize = 10;
@@ -64,6 +67,34 @@ impl DeviceScope {
     }
 }
 
+/// This roughly matches <https://www.w3.org/TR/2024/WD-webgpu-20240703/#encoder-state>
+#[derive(Debug, Default, Eq, PartialEq)]
+enum Pass<P: ?Sized> {
+    /// Pass is open (not ended)
+    Open {
+        /// Actual pass
+        pass: Box<P>,
+        /// we need to store valid field
+        /// because wgpu does not invalidate pass on error
+        valid: bool,
+    },
+    /// When pass is ended we need to drop it so we replace it with this
+    #[default]
+    Ended,
+}
+
+impl<P: ?Sized> Pass<P> {
+    /// Creates new open pass
+    fn new(pass: Box<P>, valid: bool) -> Self {
+        Self::Open { pass, valid }
+    }
+
+    /// Replaces pass with ended
+    fn take(&mut self) -> Self {
+        std::mem::take(self)
+    }
+}
+
 #[allow(clippy::upper_case_acronyms)] // Name of the library
 pub(crate) struct WGPU {
     receiver: IpcReceiver<WebGPURequest>,
@@ -85,9 +116,10 @@ pub(crate) struct WGPU {
     wgpu_image_map: Arc<Mutex<HashMap<u64, PresentationData>>>,
     /// Provides access to poller thread
     poller: Poller,
-    /// Store compute passes (that have not ended yet) and their validity
-    compute_passes: HashMap<ComputePassId, (Box<dyn DynComputePass>, bool)>,
-    //render_passes: HashMap<RenderPassId, Box<dyn DynRenderPass>>,
+    /// Store compute passes
+    compute_passes: HashMap<ComputePassId, Pass<dyn DynComputePass>>,
+    /// Store render passes
+    render_passes: HashMap<RenderPassId, Pass<dyn DynRenderPass>>,
 }
 
 impl WGPU {
@@ -132,6 +164,7 @@ impl WGPU {
             external_images,
             wgpu_image_map,
             compute_passes: HashMap::new(),
+            render_passes: HashMap::new(),
         }
     }
 
@@ -774,7 +807,7 @@ impl WGPU {
                         ));
                         assert!(
                             self.compute_passes
-                                .insert(compute_pass_id, (pass, error.is_none()))
+                                .insert(compute_pass_id, Pass::new(pass, error.is_none()))
                                 .is_none(),
                             "ComputePass should not exist yet."
                         );
@@ -786,7 +819,11 @@ impl WGPU {
                         pipeline_id,
                         device_id,
                     } => {
-                        if let Some((pass, valid)) = self.compute_passes.get_mut(&compute_pass_id) {
+                        let pass = self
+                            .compute_passes
+                            .get_mut(&compute_pass_id)
+                            .expect("ComputePass should exists");
+                        if let Pass::Open { pass, valid } = pass {
                             *valid &= pass.set_pipeline(&self.global, pipeline_id).is_ok();
                         } else {
                             self.maybe_dispatch_error(
@@ -802,7 +839,11 @@ impl WGPU {
                         offsets,
                         device_id,
                     } => {
-                        if let Some((pass, valid)) = self.compute_passes.get_mut(&compute_pass_id) {
+                        let pass = self
+                            .compute_passes
+                            .get_mut(&compute_pass_id)
+                            .expect("ComputePass should exists");
+                        if let Pass::Open { pass, valid } = pass {
                             *valid &= pass
                                 .set_bind_group(&self.global, index, bind_group_id, &offsets)
                                 .is_ok();
@@ -820,7 +861,11 @@ impl WGPU {
                         z,
                         device_id,
                     } => {
-                        if let Some((pass, valid)) = self.compute_passes.get_mut(&compute_pass_id) {
+                        let pass = self
+                            .compute_passes
+                            .get_mut(&compute_pass_id)
+                            .expect("ComputePass should exists");
+                        if let Pass::Open { pass, valid } = pass {
                             *valid &= pass.dispatch_workgroups(&self.global, x, y, z).is_ok();
                         } else {
                             self.maybe_dispatch_error(
@@ -835,7 +880,11 @@ impl WGPU {
                         offset,
                         device_id,
                     } => {
-                        if let Some((pass, valid)) = self.compute_passes.get_mut(&compute_pass_id) {
+                        let pass = self
+                            .compute_passes
+                            .get_mut(&compute_pass_id)
+                            .expect("ComputePass should exists");
+                        if let Pass::Open { pass, valid } = pass {
                             *valid &= pass
                                 .dispatch_workgroups_indirect(&self.global, buffer_id, offset)
                                 .is_ok();
@@ -851,10 +900,15 @@ impl WGPU {
                         device_id,
                         command_encoder_id,
                     } => {
+                        // https://www.w3.org/TR/2024/WD-webgpu-20240703/#dom-gpucomputepassencoder-end
+                        let pass = self
+                            .compute_passes
+                            .get_mut(&compute_pass_id)
+                            .expect("ComputePass should exists");
                         // TODO: Command encoder state error
-                        if let Some((mut pass, valid)) =
-                            self.compute_passes.remove(&compute_pass_id)
-                        {
+                        if let Pass::Open { mut pass, valid } = pass.take() {
+                            // `pass.end` does step 1-4
+                            // and if it returns ok we check the validity of the pass at step 5
                             if pass.end(&self.global).is_ok() && !valid {
                                 self.encoder_record_error(
                                     command_encoder_id,
@@ -868,21 +922,81 @@ impl WGPU {
                             );
                         };
                     },
-                    WebGPURequest::EndRenderPass {
-                        render_pass,
+                    WebGPURequest::BeginRenderPass {
+                        command_encoder_id,
+                        render_pass_id,
+                        label,
+                        color_attachments,
+                        depth_stencil_attachment,
+                        device_id: _device_id,
+                    } => {
+                        let global = &self.global;
+                        let desc = &RenderPassDescriptor {
+                            label,
+                            color_attachments: color_attachments.into(),
+                            depth_stencil_attachment: depth_stencil_attachment.as_ref(),
+                            timestamp_writes: None,
+                            occlusion_query_set: None,
+                        };
+                        let (pass, error) = gfx_select!(
+                            command_encoder_id => global.command_encoder_create_render_pass_dyn(
+                                command_encoder_id,
+                                desc,
+                        ));
+                        assert!(
+                            self.render_passes
+                                .insert(render_pass_id, Pass::new(pass, error.is_none()))
+                                .is_none(),
+                            "RenderPass should not exist yet."
+                        );
+                        // TODO: Command encoder state errors
+                        // self.maybe_dispatch_wgpu_error(device_id, error);
+                    },
+                    WebGPURequest::RenderPassCommand {
+                        render_pass_id,
+                        render_command,
                         device_id,
                     } => {
-                        if let Some(render_pass) = render_pass {
-                            let command_encoder_id = render_pass.parent_id();
-                            let global = &self.global;
-                            let result = gfx_select!(command_encoder_id => global.render_pass_end(&render_pass));
-                            self.maybe_dispatch_wgpu_error(device_id, result.err())
+                        let pass = self
+                            .render_passes
+                            .get_mut(&render_pass_id)
+                            .expect("RenderPass should exists");
+                        if let Pass::Open { pass, valid } = pass {
+                            *valid &=
+                                apply_render_command(&self.global, pass, render_command).is_ok();
+                        } else {
+                            self.maybe_dispatch_error(
+                                device_id,
+                                Some(Error::Validation("pass already ended".to_string())),
+                            );
+                        };
+                    },
+                    WebGPURequest::EndRenderPass {
+                        render_pass_id,
+                        device_id,
+                        command_encoder_id,
+                    } => {
+                        // https://www.w3.org/TR/2024/WD-webgpu-20240703/#dom-gpurenderpassencoder-end
+                        let pass = self
+                            .render_passes
+                            .get_mut(&render_pass_id)
+                            .expect("RenderPass should exists");
+                        // TODO: Command encoder state error
+                        if let Pass::Open { mut pass, valid } = pass.take() {
+                            // `pass.end` does step 1-4
+                            // and if it returns ok we check the validity of the pass at step 5
+                            if pass.end(&self.global).is_ok() && !valid {
+                                self.encoder_record_error(
+                                    command_encoder_id,
+                                    &Err::<(), _>("Pass is invalid".to_string()),
+                                );
+                            }
                         } else {
                             self.dispatch_error(
                                 device_id,
-                                Error::Validation("Render pass already ended".to_string()),
-                            )
-                        }
+                                Error::Validation("Pass already ended".to_string()),
+                            );
+                        };
                     },
                     WebGPURequest::Submit {
                         queue_id,
@@ -1171,10 +1285,18 @@ impl WGPU {
                         };
                     },
                     WebGPURequest::DropComputePass(id) => {
-                        // Compute pass might have already ended
+                        // Pass might have already ended.
                         self.compute_passes.remove(&id);
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeComputePass(id)) {
                             warn!("Unable to send FreeComputePass({:?}) ({:?})", id, e);
+                        };
+                    },
+                    WebGPURequest::DropRenderPass(id) => {
+                        self.render_passes
+                            .remove(&id)
+                            .expect("RenderPass should exists");
+                        if let Err(e) = self.script_sender.send(WebGPUMsg::FreeRenderPass(id)) {
+                            warn!("Unable to send FreeRenderPass({:?}) ({:?})", id, e);
                         };
                     },
                     WebGPURequest::DropRenderPipeline(id) => {
