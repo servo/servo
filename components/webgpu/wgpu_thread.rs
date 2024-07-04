@@ -928,6 +928,8 @@ impl WGPU {
                         // TODO: Command encoder state error
                         if let Some((mut pass, valid)) = self.render_passes.remove(&render_pass_id)
                         {
+                            // We want to do steps 1-4 and only if we reached far enough (end returns ok)
+                            // we actually check valid (step 5 in per spec: https://www.w3.org/TR/2024/WD-webgpu-20240703/#dom-gpurenderpassencoder-end).
                             if pass.end(&self.global).is_ok() && !valid {
                                 self.encoder_record_error(
                                     command_encoder_id,
