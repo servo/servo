@@ -116,9 +116,8 @@ pub(crate) struct WGPU {
     wgpu_image_map: Arc<Mutex<HashMap<u64, PresentationData>>>,
     /// Provides access to poller thread
     poller: Poller,
-    /// Store compute passes (that have not ended yet) and their validity
-    // we need to store valid field, because wgpu does not invalidate pass on error
-    compute_passes: HashMap<ComputePassId, (Box<dyn DynComputePass>, bool)>,
+    /// Store compute passes
+    compute_passes: HashMap<ComputePassId, Pass<dyn DynComputePass>>,
     /// Store render passes
     render_passes: HashMap<RenderPassId, Pass<dyn DynRenderPass>>,
 }
@@ -808,7 +807,7 @@ impl WGPU {
                         ));
                         assert!(
                             self.compute_passes
-                                .insert(compute_pass_id, (pass, error.is_none()))
+                                .insert(compute_pass_id, Pass::new(pass, error.is_none()))
                                 .is_none(),
                             "ComputePass should not exist yet."
                         );
@@ -820,7 +819,11 @@ impl WGPU {
                         pipeline_id,
                         device_id,
                     } => {
-                        if let Some((pass, valid)) = self.compute_passes.get_mut(&compute_pass_id) {
+                        let pass = self
+                            .compute_passes
+                            .get_mut(&compute_pass_id)
+                            .expect("ComputePass should exists");
+                        if let Pass::Open { pass, valid } = pass {
                             *valid &= pass.set_pipeline(&self.global, pipeline_id).is_ok();
                         } else {
                             self.maybe_dispatch_error(
@@ -836,7 +839,11 @@ impl WGPU {
                         offsets,
                         device_id,
                     } => {
-                        if let Some((pass, valid)) = self.compute_passes.get_mut(&compute_pass_id) {
+                        let pass = self
+                            .compute_passes
+                            .get_mut(&compute_pass_id)
+                            .expect("ComputePass should exists");
+                        if let Pass::Open { pass, valid } = pass {
                             *valid &= pass
                                 .set_bind_group(&self.global, index, bind_group_id, &offsets)
                                 .is_ok();
@@ -854,7 +861,11 @@ impl WGPU {
                         z,
                         device_id,
                     } => {
-                        if let Some((pass, valid)) = self.compute_passes.get_mut(&compute_pass_id) {
+                        let pass = self
+                            .compute_passes
+                            .get_mut(&compute_pass_id)
+                            .expect("ComputePass should exists");
+                        if let Pass::Open { pass, valid } = pass {
                             *valid &= pass.dispatch_workgroups(&self.global, x, y, z).is_ok();
                         } else {
                             self.maybe_dispatch_error(
@@ -869,7 +880,11 @@ impl WGPU {
                         offset,
                         device_id,
                     } => {
-                        if let Some((pass, valid)) = self.compute_passes.get_mut(&compute_pass_id) {
+                        let pass = self
+                            .compute_passes
+                            .get_mut(&compute_pass_id)
+                            .expect("ComputePass should exists");
+                        if let Pass::Open { pass, valid } = pass {
                             *valid &= pass
                                 .dispatch_workgroups_indirect(&self.global, buffer_id, offset)
                                 .is_ok();
@@ -885,10 +900,14 @@ impl WGPU {
                         device_id,
                         command_encoder_id,
                     } => {
+                        let pass = self
+                            .compute_passes
+                            .get_mut(&compute_pass_id)
+                            .expect("ComputePass should exists");
                         // TODO: Command encoder state error
-                        if let Some((mut pass, valid)) =
-                            self.compute_passes.remove(&compute_pass_id)
-                        {
+                        if let Pass::Open { mut pass, valid } = pass.take() {
+                            // We want to do steps 1-4 and only if we reached far enough (end returns ok)
+                            // we actually check valid (step 5 in per spec: https://www.w3.org/TR/2024/WD-webgpu-20240703/#dom-gpurenderpassencoder-end).
                             if pass.end(&self.global).is_ok() && !valid {
                                 self.encoder_record_error(
                                     command_encoder_id,
