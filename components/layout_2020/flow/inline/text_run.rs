@@ -56,7 +56,7 @@ pub(crate) struct TextRun {
     /// Whether or not to prevent a soft wrap opportunity at the end of this [`TextRun`].
     /// This depends on the whether the last character in the run prevents a soft wrap
     /// opportunity.
-    prevent_soft_wrap_opportunity_at_end: bool,
+    pub(crate) prevent_soft_wrap_opportunity_at_end: bool,
 }
 
 // There are two reasons why we might want to break at the start:

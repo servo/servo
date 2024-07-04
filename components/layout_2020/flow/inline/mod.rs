@@ -2243,6 +2243,10 @@ struct ContentSizesComputation<'a> {
     /// Stack of ending padding, margin, and border to add to the length
     /// when an inline box finishes.
     ending_inline_pbm_stack: Vec<Length>,
+    /// Whether or not the previous item was an atomic inline.
+    previous_item_was_atomic_inline: bool,
+    /// Whether or not the previous item prevented a soft wrap opportunity before the next atomic.
+    prevent_soft_wrap_opportunity_before_next_atomic: bool,
 }
 
 impl<'a> ContentSizesComputation<'a> {
@@ -2344,8 +2348,21 @@ impl<'a> ContentSizesComputation<'a> {
                         self.had_content_yet = true;
                     }
                 }
+
+                self.prevent_soft_wrap_opportunity_before_next_atomic =
+                    text_run.prevent_soft_wrap_opportunity_at_end;
             },
             InlineItem::Atomic(atomic) => {
+                let soft_wrap_opportunity_prevented = mem::replace(
+                    &mut self.prevent_soft_wrap_opportunity_before_next_atomic,
+                    false,
+                );
+
+                // TODO: need to handle TextWrapMode::Nowrap.
+                if self.previous_item_was_atomic_inline && soft_wrap_opportunity_prevented {
+                    self.line_break_opportunity();
+                }
+
                 let outer = atomic.outer_inline_content_sizes(
                     self.layout_context,
                     self.containing_block_writing_mode,
@@ -2357,6 +2374,8 @@ impl<'a> ContentSizesComputation<'a> {
             },
             _ => {},
         }
+
+        self.previous_item_was_atomic_inline = matches!(inline_item, InlineItem::Atomic(_));
     }
 
     fn add_length(&mut self, l: Length) {
@@ -2400,6 +2419,8 @@ impl<'a> ContentSizesComputation<'a> {
             pending_whitespace: Au::zero(),
             had_content_yet: false,
             ending_inline_pbm_stack: Vec::new(),
+            previous_item_was_atomic_inline: false,
+            prevent_soft_wrap_opportunity_before_next_atomic: false,
         }
         .traverse(inline_formatting_context)
     }
