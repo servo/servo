@@ -24,7 +24,7 @@ use style::font_face::{FontFaceSourceFormat, FontFaceSourceFormatKeyword, Source
 use style::media_queries::Device;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::shared_lock::SharedRwLockReadGuard;
-use style::stylesheets::{DocumentStyleSheet, StylesheetInDocument};
+use style::stylesheets::{CssRule, DocumentStyleSheet, FontFaceRule, StylesheetInDocument};
 use style::Atom;
 use url::Url;
 use webrender_api::{FontInstanceKey, FontKey};
@@ -275,10 +275,14 @@ impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontConte
         };
 
         let mut number_loading = 0;
-        stylesheet.effective_font_face_rules(device, guard, |rule| {
-            let font_face = match rule.font_face() {
-                Some(font_face) => font_face,
-                None => return,
+        for rule in stylesheet.effective_rules(device, guard) {
+            let CssRule::FontFace(ref lock) = *rule else {
+                continue;
+            };
+
+            let rule: &FontFaceRule = lock.read_with(guard);
+            let Some(font_face) = rule.font_face() else {
+                continue;
             };
 
             let sources: Vec<Source> = font_face
@@ -290,7 +294,7 @@ impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontConte
                 .cloned()
                 .collect();
             if sources.is_empty() {
-                return;
+                continue;
             }
 
             // Fetch all local fonts first, beacause if we try to fetch them later on during the process of
@@ -334,7 +338,7 @@ impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontConte
             if let Some(ref synchronous_receiver) = synchronous_receiver {
                 synchronous_receiver.recv().unwrap();
             }
-        });
+        }
 
         number_loading
     }
