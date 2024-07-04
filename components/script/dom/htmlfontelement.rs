@@ -57,8 +57,7 @@ impl HTMLFontElement {
 
     pub(crate) fn parse_face_attribute(face_value: Atom) -> Vec<SingleFontFamily> {
         face_value
-            .to_string()
-            .split(",")
+            .split(',')
             .map(|string| Self::parse_single_face_value_from_string(string.trim()))
             .collect()
     }

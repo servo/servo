@@ -80,7 +80,7 @@ impl From<ErrorFilter> for GPUErrorFilter {
 }
 
 impl GPUErrorFilter {
-    pub fn to_webgpu(&self) -> ErrorFilter {
+    pub fn as_webgpu(&self) -> ErrorFilter {
         match self {
             GPUErrorFilter::Validation => ErrorFilter::Validation,
             GPUErrorFilter::Out_of_memory => ErrorFilter::OutOfMemory,

@@ -591,10 +591,11 @@ impl EventTarget {
     }
 
     #[allow(unsafe_code)]
-    pub fn set_event_handler_common<T: CallbackContainer>(&self, ty: &str, listener: Option<Rc<T>>)
-    where
-        T: CallbackContainer,
-    {
+    pub fn set_event_handler_common<T: CallbackContainer>(
+        &self,
+        ty: &str,
+        listener: Option<Rc<T>>,
+    ) {
         let cx = GlobalScope::get_cx();
 
         let event_listener = listener.map(|listener| {
@@ -606,10 +607,7 @@ impl EventTarget {
     }
 
     #[allow(unsafe_code)]
-    pub fn set_error_event_handler<T: CallbackContainer>(&self, ty: &str, listener: Option<Rc<T>>)
-    where
-        T: CallbackContainer,
-    {
+    pub fn set_error_event_handler<T: CallbackContainer>(&self, ty: &str, listener: Option<Rc<T>>) {
         let cx = GlobalScope::get_cx();
 
         let event_listener = listener.map(|listener| {
@@ -625,9 +623,7 @@ impl EventTarget {
         &self,
         ty: &str,
         listener: Option<Rc<T>>,
-    ) where
-        T: CallbackContainer,
-    {
+    ) {
         let cx = GlobalScope::get_cx();
 
         let event_listener = listener.map(|listener| {

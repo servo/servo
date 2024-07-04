@@ -216,7 +216,7 @@ impl GPUDevice {
 
     /// <https://gpuweb.github.io/gpuweb/#lose-the-device>
     pub fn lose(&self, reason: GPUDeviceLostReason, msg: String) {
-        let ref lost_promise = *self.lost_promise.borrow();
+        let lost_promise = &(*self.lost_promise.borrow());
         let global = &self.global();
         let lost = GPUDeviceLostInfo::new(global, msg.into(), reason);
         lost_promise.resolve_native(&*lost);
@@ -964,7 +964,7 @@ impl GPUDeviceMethods for GPUDevice {
             .0
             .send(WebGPURequest::PushErrorScope {
                 device_id: self.device.0,
-                filter: filter.to_webgpu(),
+                filter: filter.as_webgpu(),
             })
             .is_err()
         {

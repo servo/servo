@@ -25,26 +25,26 @@ pub struct ConstantSpec {
 #[allow(dead_code)]
 pub enum ConstantVal {
     /// `long` constant.
-    IntVal(i32),
+    Int(i32),
     /// `unsigned long` constant.
-    UintVal(u32),
+    Uint(u32),
     /// `double` constant.
-    DoubleVal(f64),
+    Double(f64),
     /// `boolean` constant.
-    BoolVal(bool),
+    Bool(bool),
     /// `null` constant.
-    NullVal,
+    Null,
 }
 
 impl ConstantSpec {
     /// Returns a `JSVal` that represents the value of this `ConstantSpec`.
     pub fn get_value(&self) -> JSVal {
         match self.value {
-            ConstantVal::NullVal => NullValue(),
-            ConstantVal::IntVal(i) => Int32Value(i),
-            ConstantVal::UintVal(u) => UInt32Value(u),
-            ConstantVal::DoubleVal(d) => DoubleValue(d),
-            ConstantVal::BoolVal(b) => BooleanValue(b),
+            ConstantVal::Null => NullValue(),
+            ConstantVal::Int(i) => Int32Value(i),
+            ConstantVal::Uint(u) => UInt32Value(u),
+            ConstantVal::Double(d) => DoubleValue(d),
+            ConstantVal::Bool(b) => BooleanValue(b),
         }
     }
 }

@@ -917,14 +917,14 @@ impl HTMLFormElement {
 
                 url.query().unwrap_or("").to_string().into_bytes()
             },
-            FormEncType::FormDataEncoded => {
+            FormEncType::MultipartFormData => {
                 let mime: Mime = format!("multipart/form-data; boundary={}", boundary)
                     .parse()
                     .unwrap();
                 load_data.headers.typed_insert(ContentType::from(mime));
                 encode_multipart_form_data(form_data, boundary, encoding)
             },
-            FormEncType::TextPlainEncoded => {
+            FormEncType::TextPlain => {
                 load_data
                     .headers
                     .typed_insert(ContentType::from(mime::TEXT_PLAIN));
@@ -1366,9 +1366,9 @@ impl FormDatum {
 
 #[derive(Clone, Copy, MallocSizeOf)]
 pub enum FormEncType {
-    TextPlainEncoded,
+    TextPlain,
     UrlEncoded,
-    FormDataEncoded,
+    MultipartFormData,
 }
 
 #[derive(Clone, Copy, MallocSizeOf)]
@@ -1420,8 +1420,8 @@ impl<'a> FormSubmitter<'a> {
             ),
         };
         match &*attr {
-            "multipart/form-data" => FormEncType::FormDataEncoded,
-            "text/plain" => FormEncType::TextPlainEncoded,
+            "multipart/form-data" => FormEncType::MultipartFormData,
+            "text/plain" => FormEncType::TextPlain,
             // https://html.spec.whatwg.org/multipage/#attr-fs-enctype
             // urlencoded is the default
             _ => FormEncType::UrlEncoded,

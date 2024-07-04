@@ -241,7 +241,7 @@ impl Attr {
 pub trait AttrHelpersForLayout<'dom> {
     fn value(self) -> &'dom AttrValue;
     fn as_str(&self) -> &'dom str;
-    fn as_tokens(self) -> Option<&'dom [Atom]>;
+    fn to_tokens(self) -> Option<&'dom [Atom]>;
     fn local_name(self) -> &'dom LocalName;
     fn namespace(self) -> &'dom Namespace;
 }
@@ -259,7 +259,7 @@ impl<'dom> AttrHelpersForLayout<'dom> for LayoutDom<'dom, Attr> {
     }
 
     #[inline]
-    fn as_tokens(self) -> Option<&'dom [Atom]> {
+    fn to_tokens(self) -> Option<&'dom [Atom]> {
         match *self.value() {
             AttrValue::TokenList(_, ref tokens) => Some(tokens),
             _ => None,

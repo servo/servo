@@ -565,14 +565,14 @@ impl MIMEChecker for GroupedClassifier {
 }
 
 enum Match {
+    None,
     Start,
-    DidNotMatch,
     StartAndEnd,
 }
 
 impl Match {
     fn chain<F: FnOnce() -> Match>(self, f: F) -> Match {
-        if let Match::DidNotMatch = self {
+        if let Match::None = self {
             return f();
         }
         self
@@ -584,7 +584,7 @@ where
     T: Iterator<Item = &'a u8> + Clone,
 {
     if !matcher.matches(start) {
-        Match::DidNotMatch
+        Match::None
     } else if end.len() == 1 {
         if matcher.any(|&x| x == end[0]) {
             Match::StartAndEnd
@@ -630,7 +630,7 @@ impl FeedsClassifier {
                 .chain(|| eats_until(&mut matcher, b"!", b">"))
             {
                 Match::StartAndEnd => continue,
-                Match::DidNotMatch => {},
+                Match::None => {},
                 Match::Start => return None,
             }
 
@@ -658,7 +658,7 @@ impl FeedsClassifier {
                         )
                     }) {
                         Match::StartAndEnd => return Some("application/rss+xml".parse().unwrap()),
-                        Match::DidNotMatch => {},
+                        Match::None => {},
                         Match::Start => return None,
                     }
                 }
