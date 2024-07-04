@@ -116,7 +116,11 @@ impl IndependentFormattingContext {
                             ),
                         )
                     },
-                    DisplayInside::Flex => {
+                    // FIXME: Actual CSS Grid support.
+                    //
+                    // Note that while this value is always unconditionally present in the stylo DisplayInside enum,
+                    // it will only ever actually be parsed/instatiated if Servo's runtime CSS Grid flag is enabled.
+                    DisplayInside::Flex | DisplayInside::Grid => {
                         NonReplacedFormattingContextContents::Flex(FlexContainer::construct(
                             context,
                             node_and_style_info,
