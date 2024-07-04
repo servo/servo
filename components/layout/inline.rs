@@ -1771,10 +1771,7 @@ impl Flow for InlineFlow {
                         first_fragment.style.logical_border_width())
                     .start;
                     containing_block_positions.push(
-                        // TODO(servo#30577) revert once underlying bug is fixed
-                        // padding_box_origin.to_physical(self.base.writing_mode, container_size),
-                        padding_box_origin
-                            .to_physical_or_warn(self.base.writing_mode, container_size),
+                        padding_box_origin.to_physical(self.base.writing_mode, container_size),
                     );
                 },
                 SpecificFragmentInfo::InlineBlock(_) if fragment.is_positioned() => {
