@@ -102,6 +102,7 @@
   "layout.animations.test.enabled": false,
   "layout.columns.enabled": false,
   "layout.flexbox.enabled": false,
+  "layout.grid.enabled": false,
   "layout.legacy_layout": false,
   "layout.threads": 3,
   "layout.writing-mode.enabled": false,
