@@ -900,14 +900,15 @@ impl WGPU {
                         device_id,
                         command_encoder_id,
                     } => {
+                        // https://www.w3.org/TR/2024/WD-webgpu-20240703/#dom-gpucomputepassencoder-end
                         let pass = self
                             .compute_passes
                             .get_mut(&compute_pass_id)
                             .expect("ComputePass should exists");
                         // TODO: Command encoder state error
                         if let Pass::Open { mut pass, valid } = pass.take() {
-                            // We want to do steps 1-4 and only if we reached far enough (end returns ok)
-                            // we actually check valid (step 5 in per spec: https://www.w3.org/TR/2024/WD-webgpu-20240703/#dom-gpurenderpassencoder-end).
+                            // `pass.end` does step 1-4
+                            // and if it returns ok we check the validity of the pass at step 5
                             if pass.end(&self.global).is_ok() && !valid {
                                 self.encoder_record_error(
                                     command_encoder_id,
@@ -975,14 +976,15 @@ impl WGPU {
                         device_id,
                         command_encoder_id,
                     } => {
+                        // https://www.w3.org/TR/2024/WD-webgpu-20240703/#dom-gpurenderpassencoder-end
                         let pass = self
                             .render_passes
                             .get_mut(&render_pass_id)
                             .expect("RenderPass should exists");
                         // TODO: Command encoder state error
                         if let Pass::Open { mut pass, valid } = pass.take() {
-                            // We want to do steps 1-4 and only if we reached far enough (end returns ok)
-                            // we actually check valid (step 5 in per spec: https://www.w3.org/TR/2024/WD-webgpu-20240703/#dom-gpurenderpassencoder-end).
+                            // `pass.end` does step 1-4
+                            // and if it returns ok we check the validity of the pass at step 5
                             if pass.end(&self.global).is_ok() && !valid {
                                 self.encoder_record_error(
                                     command_encoder_id,
