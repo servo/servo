@@ -3,7 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 fn main() {
-    cc::Build::new()
-        .file("src/task_info.c")
-        .compile("libtask_info.a");
+    let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap();
+
+    if target_os == "macos" {
+        cc::Build::new()
+            .file("src/task_info.c")
+            .compile("libtask_info.a");
+    }
 }
