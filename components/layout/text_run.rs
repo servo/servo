@@ -21,7 +21,7 @@ use xi_unicode::LineBreakLeafIter;
 
 thread_local! {
     static INDEX_OF_FIRST_GLYPH_RUN_CACHE: Cell<Option<(*const TextRun, ByteIndex, usize)>> =
-        Cell::new(None)
+        const { Cell::new(None) }
 }
 
 /// A single "paragraph" of text in one font size and style.

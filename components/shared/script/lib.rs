@@ -79,7 +79,7 @@ unsafe impl Send for UntrustedNodeAddress {}
 
 impl From<WebRenderUntrustedNodeAddress> for UntrustedNodeAddress {
     fn from(o: WebRenderUntrustedNodeAddress) -> Self {
-        UntrustedNodeAddress(o.0 as *const c_void)
+        UntrustedNodeAddress(o.0)
     }
 }
 

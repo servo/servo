@@ -833,6 +833,7 @@ fn is_specific(script: Script) -> bool {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[allow(clippy::enum_variant_names)]
 pub enum CompressionMode {
     CompressNone,
     CompressWhitespace,

@@ -74,8 +74,11 @@ use crate::table_wrapper::TableWrapperFlow;
 /// This marker trait indicates that a type is a struct with `#[repr(C)]` whose first field
 /// is of type `BaseFlow` or some type that also implements this trait.
 ///
-/// In other words, the memory representation of `BaseFlow` must be a prefix
-/// of the memory representation of types implementing `HasBaseFlow`.
+/// # Safety
+///
+/// The memory representation of `BaseFlow` must be a prefix of the memory representation of types
+/// implementing `HasBaseFlow`. If this isn't the case, calling [`GetBaseFlow::base`] or
+/// [`GetBaseFlow::mut_base`] could lead to memory errors.
 #[allow(unsafe_code)]
 pub unsafe trait HasBaseFlow {}
 

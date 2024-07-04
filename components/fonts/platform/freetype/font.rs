@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::convert::TryInto;
 use std::os::raw::c_long;
 use std::sync::Arc;
 use std::{mem, ptr};
@@ -106,12 +105,11 @@ fn create_face(data: Arc<Vec<u8>>, face_index: u32) -> Result<FT_Face, &'static 
         let library = FreeTypeLibraryHandle::get().lock();
 
         // This is to support 32bit Android where FT_Long is defined as i32.
-        let face_index = face_index.try_into().unwrap();
         let result = FT_New_Memory_Face(
             library.freetype_library,
             data.as_ptr(),
             data.len() as FT_Long,
-            face_index,
+            face_index as FT_Long,
             &mut face,
         );
 

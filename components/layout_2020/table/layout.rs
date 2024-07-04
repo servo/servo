@@ -2061,10 +2061,7 @@ impl<'a> TableLayout<'a> {
         cell: &TableSlotCell,
         coordinates: TableSlotCoordinates,
     ) -> Option<LogicalSides<Length>> {
-        let Some(ref collapsed_borders) = self.collapsed_borders else {
-            return None;
-        };
-
+        let collapsed_borders = self.collapsed_borders.as_ref()?;
         let end_x = coordinates.x + cell.colspan;
         let end_y = coordinates.y + cell.rowspan;
         let mut result: LogicalSides<Length> = LogicalSides {

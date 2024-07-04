@@ -176,13 +176,11 @@ where
         if self.type_id() != ScriptLayoutNodeType::Element(LayoutElementType::HTMLObjectElement) {
             return None;
         }
-        let Some(element) = self.to_threadsafe().as_element() else {
-            return None;
-        };
 
         // TODO: This is the what the legacy layout system does, but really if Servo
         // supports any `<object>` that's an image, it should support those with URLs
         // and `type` attributes with image mime types.
+        let element = self.to_threadsafe().as_element()?;
         if element.get_attr(&ns!(), &local_name!("type")).is_some() {
             return None;
         }

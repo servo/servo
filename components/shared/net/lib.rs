@@ -4,6 +4,7 @@
 
 #![deny(unsafe_code)]
 
+use std::fmt::Display;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use base::id::HistoryStateId;
@@ -118,9 +119,9 @@ pub enum ReferrerPolicy {
     StrictOriginWhenCrossOrigin,
 }
 
-impl ToString for ReferrerPolicy {
-    fn to_string(&self) -> String {
-        match self {
+impl Display for ReferrerPolicy {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let string = match self {
             ReferrerPolicy::NoReferrer => "no-referrer",
             ReferrerPolicy::NoReferrerWhenDowngrade => "no-referrer-when-downgrade",
             ReferrerPolicy::Origin => "origin",
@@ -129,8 +130,8 @@ impl ToString for ReferrerPolicy {
             ReferrerPolicy::UnsafeUrl => "unsafe-url",
             ReferrerPolicy::StrictOrigin => "strict-origin",
             ReferrerPolicy::StrictOriginWhenCrossOrigin => "strict-origin-when-cross-origin",
-        }
-        .to_string()
+        };
+        write!(formatter, "{string}")
     }
 }
 

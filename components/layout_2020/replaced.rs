@@ -575,10 +575,7 @@ fn try_to_parse_image_data_url(string: &str) -> Option<Url> {
     if !string.starts_with("data:") {
         return None;
     }
-    let Some(data_url) = DataUrl::process(string).ok() else {
-        return None;
-    };
-
+    let data_url = DataUrl::process(string).ok()?;
     let mime_type = data_url.mime_type();
     if mime_type.type_ != "image" {
         return None;
