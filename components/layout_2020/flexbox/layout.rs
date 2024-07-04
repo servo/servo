@@ -137,7 +137,7 @@ impl FlexContext<'_> {
     fn align_for(&self, align_self: &AlignSelf) -> AlignItems {
         let value = align_self.0 .0.value();
         let mapped_value = match value {
-            AlignFlags::AUTO => self.align_items.0,
+            AlignFlags::AUTO | AlignFlags::NORMAL => self.align_items.0,
             _ => value,
         };
         AlignItems(mapped_value)
@@ -227,7 +227,10 @@ impl FlexContainer {
             FlexWrap::WrapReverse => true,
         };
         let align_content = containing_block.style.clone_align_content();
-        let align_items = containing_block.style.clone_align_items();
+        let align_items = AlignItems(match containing_block.style.clone_align_items().0 {
+            AlignFlags::AUTO | AlignFlags::NORMAL => AlignFlags::STRETCH,
+            _ => containing_block.style.clone_align_items().0,
+        });
         let justify_content = containing_block.style.clone_justify_content();
 
         let mut flex_context = FlexContext {
