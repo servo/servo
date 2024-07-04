@@ -610,10 +610,8 @@ impl FlexFlow {
             // TODO(stshine): if this flex line contain children that have
             // property visibility:collapse, exclude them and resolve again.
 
-            let item_count = items.len() as i32;
-            let mut cur_i = inline_start_content_edge;
-            let item_interval = if line.free_space >= Au(0) && line.auto_margin_count == 0 {
-                match self
+            let justify_content = {
+                let justify_content = self
                     .block_flow
                     .fragment
                     .style()
@@ -621,8 +619,18 @@ impl FlexFlow {
                     .justify_content
                     .0
                     .primary()
-                    .value()
-                {
+                    .value();
+
+                match justify_content {
+                    AlignFlags::AUTO | AlignFlags::NORMAL => AlignFlags::STRETCH,
+                    _ => justify_content,
+                }
+            };
+
+            let item_count = items.len() as i32;
+            let mut cur_i = inline_start_content_edge;
+            let item_interval = if line.free_space >= Au(0) && line.auto_margin_count == 0 {
+                match justify_content {
                     AlignFlags::SPACE_BETWEEN => {
                         if item_count == 1 {
                             Au(0)
@@ -637,16 +645,7 @@ impl FlexFlow {
                 Au(0)
             };
 
-            match self
-                .block_flow
-                .fragment
-                .style()
-                .get_position()
-                .justify_content
-                .0
-                .primary()
-                .value()
-            {
+            match justify_content {
                 // Overflow equally in both ends of line.
                 AlignFlags::CENTER | AlignFlags::SPACE_AROUND => {
                     cur_i += (line.free_space - item_interval * (item_count - 1)) / 2;
@@ -725,15 +724,22 @@ impl FlexFlow {
         let _scope = layout_debug_scope!("flex::inline_mode_assign_block_size");
 
         let line_count = self.lines.len() as i32;
-        let line_align = self
-            .block_flow
-            .fragment
-            .style()
-            .get_position()
-            .align_content
-            .0
-            .primary()
-            .value();
+        let line_align = {
+            let line_align = self
+                .block_flow
+                .fragment
+                .style()
+                .get_position()
+                .align_content
+                .0
+                .primary()
+                .value();
+
+            match line_align {
+                AlignFlags::AUTO | AlignFlags::NORMAL => AlignFlags::STRETCH,
+                _ => line_align,
+            }
+        };
         let mut cur_b = self.block_flow.fragment.border_padding.block_start;
         let mut total_cross_size = Au(0);
         let mut line_interval = Au(0);
@@ -804,6 +810,21 @@ impl FlexFlow {
             }
         }
 
+        let align_items = {
+            let align_items = self
+                .block_flow
+                .fragment
+                .style()
+                .clone_align_items()
+                .0
+                .value();
+
+            match align_items {
+                AlignFlags::AUTO | AlignFlags::NORMAL => AlignFlags::STRETCH,
+                _ => align_items,
+            }
+        };
+
         let mut children = self.block_flow.base.children.random_access_mut();
         for line in &self.lines {
             for item in self.items[line.range.clone()].iter_mut() {
@@ -833,14 +854,22 @@ impl FlexFlow {
                     free_space = Au(0);
                 }
 
-                let self_align = block
-                    .fragment
-                    .style()
-                    .get_position()
-                    .align_self
-                    .0
-                     .0
-                    .value();
+                let self_align = {
+                    let self_align = block
+                        .fragment
+                        .style()
+                        .get_position()
+                        .align_self
+                        .0
+                         .0
+                        .value();
+
+                    match self_align {
+                        AlignFlags::AUTO | AlignFlags::NORMAL => align_items,
+                        _ => self_align,
+                    }
+                };
+
                 if self_align == AlignFlags::STRETCH &&
                     block.fragment.style().content_block_size().is_auto()
                 {
