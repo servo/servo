@@ -11,16 +11,14 @@ use app_units::{Au, MAX_AU};
 use euclid::default::Point2D;
 use log::debug;
 use serde::Serialize;
-use style::computed_values::align_content::T as AlignContent;
-use style::computed_values::align_self::T as AlignSelf;
 use style::computed_values::flex_direction::T as FlexDirection;
 use style::computed_values::flex_wrap::T as FlexWrap;
-use style::computed_values::justify_content::T as JustifyContent;
 use style::logical_geometry::{Direction, LogicalSize};
 use style::properties::ComputedValues;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::flex::FlexBasis;
 use style::values::computed::{MaxSize, Size};
+use style::values::specified::align::AlignFlags;
 
 use crate::block::{AbsoluteAssignBSizesTraversal, BlockFlow, MarginsMayCollapseFlag};
 use crate::context::LayoutContext;
@@ -621,15 +619,18 @@ impl FlexFlow {
                     .style()
                     .get_position()
                     .justify_content
+                    .0
+                    .primary()
+                    .value()
                 {
-                    JustifyContent::SpaceBetween => {
+                    AlignFlags::SPACE_BETWEEN => {
                         if item_count == 1 {
                             Au(0)
                         } else {
                             line.free_space / (item_count - 1)
                         }
                     },
-                    JustifyContent::SpaceAround => line.free_space / item_count,
+                    AlignFlags::SPACE_AROUND => line.free_space / item_count,
                     _ => Au(0),
                 }
             } else {
@@ -642,12 +643,15 @@ impl FlexFlow {
                 .style()
                 .get_position()
                 .justify_content
+                .0
+                .primary()
+                .value()
             {
                 // Overflow equally in both ends of line.
-                JustifyContent::Center | JustifyContent::SpaceAround => {
+                AlignFlags::CENTER | AlignFlags::SPACE_AROUND => {
                     cur_i += (line.free_space - item_interval * (item_count - 1)) / 2;
                 },
-                JustifyContent::FlexEnd => {
+                AlignFlags::FLEX_END => {
                     cur_i += line.free_space;
                 },
                 _ => {},
@@ -726,7 +730,10 @@ impl FlexFlow {
             .fragment
             .style()
             .get_position()
-            .align_content;
+            .align_content
+            .0
+            .primary()
+            .value();
         let mut cur_b = self.block_flow.fragment.border_padding.block_start;
         let mut total_cross_size = Au(0);
         let mut line_interval = Au(0);
@@ -762,21 +769,21 @@ impl FlexFlow {
             let free_space = container_block_size - total_cross_size;
             total_cross_size = container_block_size;
 
-            if line_align == AlignContent::Stretch && free_space > Au(0) {
+            if line_align == AlignFlags::STRETCH && free_space > Au(0) {
                 for line in self.lines.iter_mut() {
                     line.cross_size += free_space / line_count;
                 }
             }
 
             line_interval = match line_align {
-                AlignContent::SpaceBetween => {
+                AlignFlags::SPACE_BETWEEN => {
                     if line_count <= 1 {
                         Au(0)
                     } else {
                         free_space / (line_count - 1)
                     }
                 },
-                AlignContent::SpaceAround => {
+                AlignFlags::SPACE_AROUND => {
                     if line_count == 0 {
                         Au(0)
                     } else {
@@ -787,10 +794,10 @@ impl FlexFlow {
             };
 
             match line_align {
-                AlignContent::Center | AlignContent::SpaceAround => {
+                AlignFlags::CENTER | AlignFlags::SPACE_AROUND => {
                     cur_b += (free_space - line_interval * (line_count - 1)) / 2;
                 },
-                AlignContent::FlexEnd => {
+                AlignFlags::FLEX_END => {
                     cur_b += free_space;
                 },
                 _ => {},
@@ -826,8 +833,15 @@ impl FlexFlow {
                     free_space = Au(0);
                 }
 
-                let self_align = block.fragment.style().get_position().align_self;
-                if self_align == AlignSelf::Stretch &&
+                let self_align = block
+                    .fragment
+                    .style()
+                    .get_position()
+                    .align_self
+                    .0
+                     .0
+                    .value();
+                if self_align == AlignFlags::STRETCH &&
                     block.fragment.style().content_block_size().is_auto()
                 {
                     free_space = Au(0);
@@ -850,8 +864,8 @@ impl FlexFlow {
                 // TODO(stshine): support baseline alignment.
                 if free_space != Au(0) {
                     let flex_cross = match self_align {
-                        AlignSelf::FlexEnd => free_space,
-                        AlignSelf::Center => free_space / 2,
+                        AlignFlags::FLEX_END => free_space,
+                        AlignFlags::CENTER => free_space / 2,
                         _ => Au(0),
                     };
                     block.base.position.start.b += if !self.cross_reverse {

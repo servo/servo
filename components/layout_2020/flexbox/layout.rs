@@ -16,6 +16,7 @@ use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
 use style::properties::longhands::justify_content::computed_value::T as JustifyContent;
 use style::values::computed::length::Size;
 use style::values::generics::flex::GenericFlexBasis as FlexBasis;
+use style::values::specified::align::AlignFlags;
 use style::Zero;
 
 use super::geom::{
@@ -134,14 +135,12 @@ impl FlexContext<'_> {
     }
 
     fn align_for(&self, align_self: &AlignSelf) -> AlignItems {
-        match align_self {
-            AlignSelf::Auto => self.align_items,
-            AlignSelf::Stretch => AlignItems::Stretch,
-            AlignSelf::FlexStart => AlignItems::FlexStart,
-            AlignSelf::FlexEnd => AlignItems::FlexEnd,
-            AlignSelf::Center => AlignItems::Center,
-            AlignSelf::Baseline => AlignItems::Baseline,
-        }
+        let value = align_self.0 .0.value();
+        let mapped_value = match value {
+            AlignFlags::AUTO => self.align_items.0,
+            _ => value,
+        };
+        AlignItems(mapped_value)
     }
 }
 
@@ -311,10 +310,12 @@ impl FlexContainer {
             //
             // In addition to the spec at https://www.w3.org/TR/css-align-3/ this implementation follows
             // the resolution of https://github.com/w3c/csswg-drafts/issues/10154
-            let resolved_align_content: AlignContent = {
+            let resolved_align_content: AlignFlags = {
+                let align_content_style = flex_context.align_content.0.primary();
+
                 // Inital values from the style system
-                let mut resolved_align_content = flex_context.align_content;
-                let mut is_safe = false; // FIXME: retrieve from style system
+                let mut resolved_align_content = align_content_style.value();
+                let mut is_safe = align_content_style.flags() == AlignFlags::SAFE;
 
                 // Fallback occurs in two cases:
 
@@ -322,17 +323,17 @@ impl FlexContainer {
                 //    https://www.w3.org/TR/css-align-3/#distribution-values
                 if line_count <= 1 || free_space <= Au::zero() {
                     (resolved_align_content, is_safe) = match resolved_align_content {
-                        AlignContent::Stretch => (AlignContent::FlexStart, true),
-                        AlignContent::SpaceBetween => (AlignContent::FlexStart, true),
-                        AlignContent::SpaceAround => (AlignContent::Center, true),
-                        AlignContent::SpaceEvenly => (AlignContent::Center, true),
+                        AlignFlags::STRETCH => (AlignFlags::FLEX_START, true),
+                        AlignFlags::SPACE_BETWEEN => (AlignFlags::FLEX_START, true),
+                        AlignFlags::SPACE_AROUND => (AlignFlags::CENTER, true),
+                        AlignFlags::SPACE_EVENLY => (AlignFlags::CENTER, true),
                         _ => (resolved_align_content, is_safe),
                     }
                 };
 
                 // 2. If free space is negative the "safe" alignment variants all fallback to Start alignment
                 if free_space <= Au::zero() && is_safe {
-                    resolved_align_content = AlignContent::Start;
+                    resolved_align_content = AlignFlags::START;
                 }
 
                 resolved_align_content
@@ -340,40 +341,46 @@ impl FlexContainer {
 
             // Implement "unsafe" alignment. "safe" alignment is handled by the fallback process above.
             cross_start_position_cursor = match resolved_align_content {
-                AlignContent::Start => Au::zero(),
-                AlignContent::FlexStart => {
+                AlignFlags::START => Au::zero(),
+                AlignFlags::FLEX_START => {
                     if layout_is_flex_reversed {
                         free_space
                     } else {
                         Au::zero()
                     }
                 },
-                AlignContent::End => free_space,
-                AlignContent::FlexEnd => {
+                AlignFlags::END => free_space,
+                AlignFlags::FLEX_END => {
                     if layout_is_flex_reversed {
                         Au::zero()
                     } else {
                         free_space
                     }
                 },
-                AlignContent::Center => free_space / 2,
-                AlignContent::Stretch => Au::zero(),
-                AlignContent::SpaceBetween => Au::zero(),
-                AlignContent::SpaceAround => free_space / line_count as i32 / 2,
-                AlignContent::SpaceEvenly => free_space / (line_count + 1) as i32,
+                AlignFlags::CENTER => free_space / 2,
+                AlignFlags::STRETCH => Au::zero(),
+                AlignFlags::SPACE_BETWEEN => Au::zero(),
+                AlignFlags::SPACE_AROUND => free_space / line_count as i32 / 2,
+                AlignFlags::SPACE_EVENLY => free_space / (line_count + 1) as i32,
+
+                // TODO: Implement all alignments. Note: not all alignment values are valid for content distribution
+                _ => Au::zero(),
             };
 
             // TODO: Implement gap property
             line_interval = /*gap + */ match resolved_align_content {
-                AlignContent::Start => Au::zero(),
-                AlignContent::FlexStart => Au::zero(),
-                AlignContent::End => Au::zero(),
-                AlignContent::FlexEnd => Au::zero(),
-                AlignContent::Center => Au::zero(),
-                AlignContent::Stretch => Au::zero(),
-                AlignContent::SpaceBetween => free_space / (line_count - 1) as i32,
-                AlignContent::SpaceAround => free_space / line_count as i32,
-                AlignContent::SpaceEvenly => free_space / (line_count + 1) as i32,
+                AlignFlags::START => Au::zero(),
+                AlignFlags::FLEX_START => Au::zero(),
+                AlignFlags::END => Au::zero(),
+                AlignFlags::FLEX_END => Au::zero(),
+                AlignFlags::CENTER => Au::zero(),
+                AlignFlags::STRETCH => Au::zero(),
+                AlignFlags::SPACE_BETWEEN => free_space / (line_count - 1) as i32,
+                AlignFlags::SPACE_AROUND => free_space / line_count as i32,
+                AlignFlags::SPACE_EVENLY => free_space / (line_count + 1) as i32,
+
+                // TODO: Implement all alignments. Note: not all alignment values are valid for content distribution
+                _ => Au::zero(),
             };
         };
 
@@ -799,7 +806,7 @@ impl FlexLine<'_> {
             .zip(item_layout_results)
             .zip(&item_used_main_sizes)
             .map(|((item, mut item_result), &used_main_size)| {
-                let has_stretch = item.align_self == AlignItems::Stretch;
+                let has_stretch = item.align_self.0.value() == AlignFlags::STRETCH;
                 let cross_size = if has_stretch &&
                     item.content_box_size.cross.is_auto() &&
                     !(item.margin.cross_start.is_auto() || item.margin.cross_end.is_auto())
@@ -837,10 +844,12 @@ impl FlexLine<'_> {
         //
         // In addition to the spec at https://www.w3.org/TR/css-align-3/ this implementation follows
         // the resolution of https://github.com/w3c/csswg-drafts/issues/10154
-        let resolved_justify_content: JustifyContent = {
+        let resolved_justify_content: AlignFlags = {
+            let justify_content_style = flex_context.justify_content.0.primary();
+
             // Inital values from the style system
-            let mut resolved_justify_content = flex_context.justify_content;
-            let mut is_safe = false; // FIXME: retrieve from style system
+            let mut resolved_justify_content = justify_content_style.value();
+            let mut is_safe = justify_content_style.flags() == AlignFlags::SAFE;
 
             // Fallback occurs in two cases:
 
@@ -848,17 +857,17 @@ impl FlexLine<'_> {
             //    https://www.w3.org/TR/css-align-3/#distribution-values
             if item_count <= 1 || free_space <= Au::zero() {
                 (resolved_justify_content, is_safe) = match resolved_justify_content {
-                    JustifyContent::Stretch => (JustifyContent::FlexStart, true),
-                    JustifyContent::SpaceBetween => (JustifyContent::FlexStart, true),
-                    JustifyContent::SpaceAround => (JustifyContent::Center, true),
-                    JustifyContent::SpaceEvenly => (JustifyContent::Center, true),
+                    AlignFlags::STRETCH => (AlignFlags::FLEX_START, true),
+                    AlignFlags::SPACE_BETWEEN => (AlignFlags::FLEX_START, true),
+                    AlignFlags::SPACE_AROUND => (AlignFlags::CENTER, true),
+                    AlignFlags::SPACE_EVENLY => (AlignFlags::CENTER, true),
                     _ => (resolved_justify_content, is_safe),
                 }
             };
 
             // 2. If free space is negative the "safe" alignment variants all fallback to Start alignment
             if free_space <= Au::zero() && is_safe {
-                resolved_justify_content = JustifyContent::Start;
+                resolved_justify_content = AlignFlags::START;
             }
 
             resolved_justify_content
@@ -866,40 +875,46 @@ impl FlexLine<'_> {
 
         // Implement "unsafe" alignment. "safe" alignment is handled by the fallback process above.
         let main_start_position = match resolved_justify_content {
-            JustifyContent::Start => Au::zero(),
-            JustifyContent::FlexStart => {
+            AlignFlags::START => Au::zero(),
+            AlignFlags::FLEX_START => {
                 if layout_is_flex_reversed {
                     free_space
                 } else {
                     Au::zero()
                 }
             },
-            JustifyContent::End => free_space,
-            JustifyContent::FlexEnd => {
+            AlignFlags::END => free_space,
+            AlignFlags::FLEX_END => {
                 if layout_is_flex_reversed {
                     Au::zero()
                 } else {
                     free_space
                 }
             },
-            JustifyContent::Center => free_space / 2,
-            JustifyContent::Stretch => Au::zero(),
-            JustifyContent::SpaceBetween => Au::zero(),
-            JustifyContent::SpaceAround => (free_space / item_count as i32) / 2,
-            JustifyContent::SpaceEvenly => free_space / (item_count + 1) as i32,
+            AlignFlags::CENTER => free_space / 2,
+            AlignFlags::STRETCH => Au::zero(),
+            AlignFlags::SPACE_BETWEEN => Au::zero(),
+            AlignFlags::SPACE_AROUND => (free_space / item_count as i32) / 2,
+            AlignFlags::SPACE_EVENLY => free_space / (item_count + 1) as i32,
+
+            // TODO: Implement all alignments. Note: not all alignment values are valid for content distribution
+            _ => Au::zero(),
         };
 
         // TODO: Implement gap property
         let item_main_interval = /*gap + */ match resolved_justify_content {
-            JustifyContent::Start => Au::zero(),
-            JustifyContent::FlexStart => Au::zero(),
-            JustifyContent::End => Au::zero(),
-            JustifyContent::FlexEnd => Au::zero(),
-            JustifyContent::Center => Au::zero(),
-            JustifyContent::Stretch => Au::zero(),
-            JustifyContent::SpaceBetween => free_space / (item_count - 1) as i32,
-            JustifyContent::SpaceAround => free_space / item_count as i32,
-            JustifyContent::SpaceEvenly => free_space / (item_count + 1) as i32,
+            AlignFlags::START => Au::zero(),
+            AlignFlags::FLEX_START => Au::zero(),
+            AlignFlags::END => Au::zero(),
+            AlignFlags::FLEX_END => Au::zero(),
+            AlignFlags::CENTER => Au::zero(),
+            AlignFlags::STRETCH => Au::zero(),
+            AlignFlags::SPACE_BETWEEN => free_space / (item_count - 1) as i32,
+            AlignFlags::SPACE_AROUND => free_space / item_count as i32,
+            AlignFlags::SPACE_EVENLY => free_space / (item_count + 1) as i32,
+
+            // TODO: Implement all alignments. Note: not all alignment values are valid for content distribution
+            _ => Au::zero(),
         };
 
         // https://drafts.csswg.org/css-flexbox/#algo-cross-margins
@@ -1420,18 +1435,18 @@ impl FlexItem<'_> {
             if self.margin.cross_start.is_auto() || self.margin.cross_end.is_auto() {
                 Au::zero()
             } else {
-                match self.align_self {
-                    AlignItems::Stretch | AlignItems::FlexStart => Au::zero(),
-                    AlignItems::FlexEnd => {
+                match self.align_self.0.value() {
+                    AlignFlags::STRETCH | AlignFlags::FLEX_START => Au::zero(),
+                    AlignFlags::FLEX_END => {
                         let margin_box_cross = *content_size + self.pbm_auto_is_zero.cross;
                         line_cross_size - margin_box_cross
                     },
-                    AlignItems::Center => {
+                    AlignFlags::CENTER => {
                         let margin_box_cross = *content_size + self.pbm_auto_is_zero.cross;
                         (line_cross_size - margin_box_cross) / 2
                     },
-                    // FIXME: handle baseline alignment
-                    AlignItems::Baseline => Au::zero(),
+                    // FIXME: handle other alignments (note: not all AlignFlags values are valid for self alignment)
+                    _ => Au::zero(),
                 }
             };
         outer_cross_start + margin.cross_start + self.border.cross_start + self.padding.cross_start
