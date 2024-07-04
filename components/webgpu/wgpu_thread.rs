@@ -67,6 +67,34 @@ impl DeviceScope {
     }
 }
 
+/// This roughly matches <https://www.w3.org/TR/2024/WD-webgpu-20240703/#encoder-state>
+#[derive(Debug, Default, Eq, PartialEq)]
+enum Pass<P: ?Sized> {
+    /// Pass is open (not ended)
+    Open {
+        /// Actual pass
+        pass: Box<P>,
+        /// we need to store valid field
+        /// because wgpu does not invalidate pass on error
+        valid: bool,
+    },
+    /// When pass is ended we need to drop it so we replace it with this
+    #[default]
+    Ended,
+}
+
+impl<P: ?Sized> Pass<P> {
+    /// Creates new open pass
+    fn new(pass: Box<P>, valid: bool) -> Self {
+        Self::Open { pass, valid }
+    }
+
+    /// Replaces pass with ended
+    fn take(&mut self) -> Self {
+        std::mem::take(self)
+    }
+}
+
 #[allow(clippy::upper_case_acronyms)] // Name of the library
 pub(crate) struct WGPU {
     receiver: IpcReceiver<WebGPURequest>,
@@ -91,9 +119,8 @@ pub(crate) struct WGPU {
     /// Store compute passes (that have not ended yet) and their validity
     // we need to store valid field, because wgpu does not invalidate pass on error
     compute_passes: HashMap<ComputePassId, (Box<dyn DynComputePass>, bool)>,
-    /// Store compute passes (that have not ended yet) and their validity
-    // we need to store valid field, because wgpu does not invalidate pass on error
-    render_passes: HashMap<RenderPassId, (Box<dyn DynRenderPass>, bool)>,
+    /// Store render passes
+    render_passes: HashMap<RenderPassId, Pass<dyn DynRenderPass>>,
 }
 
 impl WGPU {
@@ -898,7 +925,7 @@ impl WGPU {
                         ));
                         assert!(
                             self.render_passes
-                                .insert(render_pass_id, (pass, error.is_none()))
+                                .insert(render_pass_id, Pass::new(pass, error.is_none()))
                                 .is_none(),
                             "RenderPass should not exist yet."
                         );
@@ -910,7 +937,11 @@ impl WGPU {
                         render_command,
                         device_id,
                     } => {
-                        if let Some((pass, valid)) = self.render_passes.get_mut(&render_pass_id) {
+                        let pass = self
+                            .render_passes
+                            .get_mut(&render_pass_id)
+                            .expect("RenderPass should exists");
+                        if let Pass::Open { pass, valid } = pass {
                             *valid &=
                                 apply_render_command(&self.global, pass, render_command).is_ok();
                         } else {
@@ -925,9 +956,12 @@ impl WGPU {
                         device_id,
                         command_encoder_id,
                     } => {
+                        let pass = self
+                            .render_passes
+                            .get_mut(&render_pass_id)
+                            .expect("RenderPass should exists");
                         // TODO: Command encoder state error
-                        if let Some((mut pass, valid)) = self.render_passes.remove(&render_pass_id)
-                        {
+                        if let Pass::Open { mut pass, valid } = pass.take() {
                             // We want to do steps 1-4 and only if we reached far enough (end returns ok)
                             // we actually check valid (step 5 in per spec: https://www.w3.org/TR/2024/WD-webgpu-20240703/#dom-gpurenderpassencoder-end).
                             if pass.end(&self.global).is_ok() && !valid {
@@ -939,7 +973,7 @@ impl WGPU {
                         } else {
                             self.dispatch_error(
                                 device_id,
-                                Error::Validation("pass already ended".to_string()),
+                                Error::Validation("Pass already ended".to_string()),
                             );
                         };
                     },
@@ -1237,8 +1271,9 @@ impl WGPU {
                         };
                     },
                     WebGPURequest::DropRenderPass(id) => {
-                        // Pass might have already ended.
-                        self.render_passes.remove(&id);
+                        self.render_passes
+                            .remove(&id)
+                            .expect("RenderPass should exists");
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeRenderPass(id)) {
                             warn!("Unable to send FreeRenderPass({:?}) ({:?})", id, e);
                         };
