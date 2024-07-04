@@ -88,8 +88,11 @@ pub(crate) struct WGPU {
     wgpu_image_map: Arc<Mutex<HashMap<u64, PresentationData>>>,
     /// Provides access to poller thread
     poller: Poller,
-    /// Store passes (that have not ended yet) and their validity
+    /// Store compute passes (that have not ended yet) and their validity
+    // we need to store valid field, because wgpu does not invalidate pass on error
     compute_passes: HashMap<ComputePassId, (Box<dyn DynComputePass>, bool)>,
+    /// Store compute passes (that have not ended yet) and their validity
+    // we need to store valid field, because wgpu does not invalidate pass on error
     render_passes: HashMap<RenderPassId, (Box<dyn DynRenderPass>, bool)>,
 }
 
