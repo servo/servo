@@ -117,7 +117,7 @@ impl Identities {
         self.select(backend).devices.process(backend)
     }
 
-    pub fn kill_device_id(&self, id: DeviceId) {
+    pub fn free_device_id(&self, id: DeviceId) {
         self.select(id.backend()).devices.free(id);
     }
 
@@ -129,7 +129,7 @@ impl Identities {
         ids
     }
 
-    pub fn kill_adapter_id(&self, id: AdapterId) {
+    pub fn free_adapter_id(&self, id: AdapterId) {
         self.select(id.backend()).adapters.free(id);
     }
 
@@ -137,7 +137,7 @@ impl Identities {
         self.select(backend).buffers.process(backend)
     }
 
-    pub fn kill_buffer_id(&self, id: BufferId) {
+    pub fn free_buffer_id(&self, id: BufferId) {
         self.select(id.backend()).buffers.free(id);
     }
 
@@ -145,7 +145,7 @@ impl Identities {
         self.select(backend).bind_groups.process(backend)
     }
 
-    pub fn kill_bind_group_id(&self, id: BindGroupId) {
+    pub fn free_bind_group_id(&self, id: BindGroupId) {
         self.select(id.backend()).bind_groups.free(id);
     }
 
@@ -153,7 +153,7 @@ impl Identities {
         self.select(backend).bind_group_layouts.process(backend)
     }
 
-    pub fn kill_bind_group_layout_id(&self, id: BindGroupLayoutId) {
+    pub fn free_bind_group_layout_id(&self, id: BindGroupLayoutId) {
         self.select(id.backend()).bind_group_layouts.free(id);
     }
 
@@ -161,7 +161,7 @@ impl Identities {
         self.select(backend).compute_pipelines.process(backend)
     }
 
-    pub fn kill_compute_pipeline_id(&self, id: ComputePipelineId) {
+    pub fn free_compute_pipeline_id(&self, id: ComputePipelineId) {
         self.select(id.backend()).compute_pipelines.free(id);
     }
 
@@ -169,7 +169,7 @@ impl Identities {
         self.select(backend).pipeline_layouts.process(backend)
     }
 
-    pub fn kill_pipeline_layout_id(&self, id: PipelineLayoutId) {
+    pub fn free_pipeline_layout_id(&self, id: PipelineLayoutId) {
         self.select(id.backend()).pipeline_layouts.free(id);
     }
 
@@ -177,7 +177,7 @@ impl Identities {
         self.select(backend).shader_modules.process(backend)
     }
 
-    pub fn kill_shader_module_id(&self, id: ShaderModuleId) {
+    pub fn free_shader_module_id(&self, id: ShaderModuleId) {
         self.select(id.backend()).shader_modules.free(id);
     }
 
@@ -185,7 +185,7 @@ impl Identities {
         self.select(backend).command_encoders.process(backend)
     }
 
-    pub fn kill_command_buffer_id(&self, id: CommandEncoderId) {
+    pub fn free_command_buffer_id(&self, id: CommandEncoderId) {
         self.select(id.backend()).command_encoders.free(id);
     }
 
@@ -193,7 +193,7 @@ impl Identities {
         self.select(backend).samplers.process(backend)
     }
 
-    pub fn kill_sampler_id(&self, id: SamplerId) {
+    pub fn free_sampler_id(&self, id: SamplerId) {
         self.select(id.backend()).samplers.free(id);
     }
 
@@ -201,7 +201,7 @@ impl Identities {
         self.select(backend).render_pipelines.process(backend)
     }
 
-    pub fn kill_render_pipeline_id(&self, id: RenderPipelineId) {
+    pub fn free_render_pipeline_id(&self, id: RenderPipelineId) {
         self.select(id.backend()).render_pipelines.free(id);
     }
 
@@ -209,7 +209,7 @@ impl Identities {
         self.select(backend).textures.process(backend)
     }
 
-    pub fn kill_texture_id(&self, id: TextureId) {
+    pub fn free_texture_id(&self, id: TextureId) {
         self.select(id.backend()).textures.free(id);
     }
 
@@ -217,7 +217,7 @@ impl Identities {
         self.select(backend).texture_views.process(backend)
     }
 
-    pub fn kill_texture_view_id(&self, id: TextureViewId) {
+    pub fn free_texture_view_id(&self, id: TextureViewId) {
         self.select(id.backend()).texture_views.free(id);
     }
 
@@ -225,7 +225,7 @@ impl Identities {
         self.select(backend).render_bundles.process(backend)
     }
 
-    pub fn kill_render_bundle_id(&self, id: RenderBundleId) {
+    pub fn free_render_bundle_id(&self, id: RenderBundleId) {
         self.select(id.backend()).render_bundles.free(id);
     }
 
@@ -233,7 +233,7 @@ impl Identities {
         self.select(backend).compute_passes.process(backend)
     }
 
-    pub fn kill_compute_pass_id(&self, id: ComputePassId) {
+    pub fn free_compute_pass_id(&self, id: ComputePassId) {
         self.select(id.backend()).compute_passes.free(id);
     }
 }

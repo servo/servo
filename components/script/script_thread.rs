@@ -2421,29 +2421,29 @@ impl ScriptThread {
 
     fn handle_msg_from_webgpu_server(&self, msg: WebGPUMsg) {
         match msg {
-            WebGPUMsg::FreeAdapter(id) => self.gpu_id_hub.kill_adapter_id(id),
+            WebGPUMsg::FreeAdapter(id) => self.gpu_id_hub.free_adapter_id(id),
             WebGPUMsg::FreeDevice {
                 device_id,
                 pipeline_id,
             } => {
-                self.gpu_id_hub.kill_device_id(device_id);
+                self.gpu_id_hub.free_device_id(device_id);
                 let global = self.documents.borrow().find_global(pipeline_id).unwrap();
                 global.remove_gpu_device(WebGPUDevice(device_id));
             },
-            WebGPUMsg::FreeBuffer(id) => self.gpu_id_hub.kill_buffer_id(id),
-            WebGPUMsg::FreePipelineLayout(id) => self.gpu_id_hub.kill_pipeline_layout_id(id),
-            WebGPUMsg::FreeComputePipeline(id) => self.gpu_id_hub.kill_compute_pipeline_id(id),
-            WebGPUMsg::FreeBindGroup(id) => self.gpu_id_hub.kill_bind_group_id(id),
-            WebGPUMsg::FreeBindGroupLayout(id) => self.gpu_id_hub.kill_bind_group_layout_id(id),
+            WebGPUMsg::FreeBuffer(id) => self.gpu_id_hub.free_buffer_id(id),
+            WebGPUMsg::FreePipelineLayout(id) => self.gpu_id_hub.free_pipeline_layout_id(id),
+            WebGPUMsg::FreeComputePipeline(id) => self.gpu_id_hub.free_compute_pipeline_id(id),
+            WebGPUMsg::FreeBindGroup(id) => self.gpu_id_hub.free_bind_group_id(id),
+            WebGPUMsg::FreeBindGroupLayout(id) => self.gpu_id_hub.free_bind_group_layout_id(id),
             WebGPUMsg::FreeCommandBuffer(id) => self
                 .gpu_id_hub
-                .kill_command_buffer_id(id.into_command_encoder_id()),
-            WebGPUMsg::FreeSampler(id) => self.gpu_id_hub.kill_sampler_id(id),
-            WebGPUMsg::FreeShaderModule(id) => self.gpu_id_hub.kill_shader_module_id(id),
-            WebGPUMsg::FreeRenderBundle(id) => self.gpu_id_hub.kill_render_bundle_id(id),
-            WebGPUMsg::FreeRenderPipeline(id) => self.gpu_id_hub.kill_render_pipeline_id(id),
-            WebGPUMsg::FreeTexture(id) => self.gpu_id_hub.kill_texture_id(id),
-            WebGPUMsg::FreeTextureView(id) => self.gpu_id_hub.kill_texture_view_id(id),
+                .free_command_buffer_id(id.into_command_encoder_id()),
+            WebGPUMsg::FreeSampler(id) => self.gpu_id_hub.free_sampler_id(id),
+            WebGPUMsg::FreeShaderModule(id) => self.gpu_id_hub.free_shader_module_id(id),
+            WebGPUMsg::FreeRenderBundle(id) => self.gpu_id_hub.free_render_bundle_id(id),
+            WebGPUMsg::FreeRenderPipeline(id) => self.gpu_id_hub.free_render_pipeline_id(id),
+            WebGPUMsg::FreeTexture(id) => self.gpu_id_hub.free_texture_id(id),
+            WebGPUMsg::FreeTextureView(id) => self.gpu_id_hub.free_texture_view_id(id),
             WebGPUMsg::Exit => *self.webgpu_port.borrow_mut() = None,
             WebGPUMsg::DeviceLost {
                 pipeline_id,
