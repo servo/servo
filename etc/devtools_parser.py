@@ -6,16 +6,26 @@
 
 # This is a script designed to easily debug devtools messages
 # It takes the content of a pcap wireshark capture (or creates a new
-# one when using --scan) and pretty prints the JSON payloads
+# one when using --scan) and pretty prints the JSON payloads.
+#
+# Wireshark (more specifically its cli tool tshark) needs to be installed
+# for this script to work. Go to https://tshark.dev/setup/install for a
+# comprehensive guide on how to install it. In short:
+#
+# Linux (Debian based):       apt install tshark
+# Linux (Arch based):         pacman -Sy wireshark-cli
+# MacOS (With homebrew):      brew install --cask wireshark
+# Windows (With chocolatey):  choco install wireshark
+#
 # To use it, launch either Servo or a Firefox debugging instance in
 # devtools mode:
 #
 # Servo: ./mach run --devtools=1234
 # Firefox: firefox --new-instance --start-debugger-server 1234 --profile PROFILE
 #
-# Then run this tool in capture mode:
+# Then run this tool in capture mode and specify the same port as before:
 #
-# ./devtools_parser.py -s cap.pcap
+# ./devtools_parser.py --scan cap.pcap --port 1234
 #
 # Finally, open another instance of Firefox and go to about:debugging
 # and connect to localhost:1234. Messages should start popping up. The
@@ -25,7 +35,7 @@
 # You can also review the results of a saved scan, and filter by words
 # or by message range:
 #
-# ./devtools_parser.py -u cap.pcap -f watcher -r 10:30
+# ./devtools_parser.py --use cap.pcap --port 1234 --filter watcher --range 10:30
 
 import json
 import re
