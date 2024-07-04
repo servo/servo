@@ -66,6 +66,16 @@ impl GPURenderPassEncoder {
             global,
         )
     }
+
+    fn send_render_command(&self, render_command: RenderCommand) {
+        if let Err(e) = self.channel.0.send(WebGPURequest::RenderPassCommand {
+            render_pass_id: self.render_pass.0,
+            render_command,
+            device_id: self.command_encoder.device_id().0,
+        }) {
+            warn!("Error sending WebGPURequest::RenderPassCommand: {e:?}")
+        }
+    }
 }
 
 impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
@@ -81,17 +91,11 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuprogrammablepassencoder-setbindgroup>
     fn SetBindGroup(&self, index: u32, bind_group: &GPUBindGroup, offsets: Vec<u32>) {
-        if let Err(e) = self.channel.0.send(WebGPURequest::RenderPassCommand {
-            render_pass_id: self.render_pass.0,
-            render_command: RenderCommand::SetBindGroup {
-                index,
-                bind_group_id: bind_group.id().0,
-                offsets,
-            },
-            device_id: self.command_encoder.device_id().0,
-        }) {
-            warn!("Error sending WebGPURequest::RenderPassCommand: {e:?}")
-        }
+        self.send_render_command(RenderCommand::SetBindGroup {
+            index,
+            bind_group_id: bind_group.id().0,
+            offsets,
+        })
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setviewport>
@@ -104,36 +108,24 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         min_depth: Finite<f32>,
         max_depth: Finite<f32>,
     ) {
-        if let Err(e) = self.channel.0.send(WebGPURequest::RenderPassCommand {
-            render_pass_id: self.render_pass.0,
-            render_command: RenderCommand::SetViewport {
-                x: *x,
-                y: *y,
-                width: *width,
-                height: *height,
-                min_depth: *min_depth,
-                max_depth: *max_depth,
-            },
-            device_id: self.command_encoder.device_id().0,
-        }) {
-            warn!("Error sending WebGPURequest::RenderPassCommand: {e:?}")
-        }
+        self.send_render_command(RenderCommand::SetViewport {
+            x: *x,
+            y: *y,
+            width: *width,
+            height: *height,
+            min_depth: *min_depth,
+            max_depth: *max_depth,
+        })
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setscissorrect>
     fn SetScissorRect(&self, x: u32, y: u32, width: u32, height: u32) {
-        if let Err(e) = self.channel.0.send(WebGPURequest::RenderPassCommand {
-            render_pass_id: self.render_pass.0,
-            render_command: RenderCommand::SetScissorRect {
-                x,
-                y,
-                width,
-                height,
-            },
-            device_id: self.command_encoder.device_id().0,
-        }) {
-            warn!("Error sending WebGPURequest::RenderPassCommand: {e:?}")
-        }
+        self.send_render_command(RenderCommand::SetScissorRect {
+            x,
+            y,
+            width,
+            height,
+        })
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setblendcolor>
@@ -158,24 +150,12 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
                 }
             },
         };
-        if let Err(e) = self.channel.0.send(WebGPURequest::RenderPassCommand {
-            render_pass_id: self.render_pass.0,
-            render_command: RenderCommand::SetBlendConstant(color),
-            device_id: self.command_encoder.device_id().0,
-        }) {
-            warn!("Error sending WebGPURequest::RenderPassCommand: {e:?}")
-        }
+        self.send_render_command(RenderCommand::SetBlendConstant(color))
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setstencilreference>
     fn SetStencilReference(&self, reference: u32) {
-        if let Err(e) = self.channel.0.send(WebGPURequest::RenderPassCommand {
-            render_pass_id: self.render_pass.0,
-            render_command: RenderCommand::SetStencilReference(reference),
-            device_id: self.command_encoder.device_id().0,
-        }) {
-            warn!("Error sending WebGPURequest::RenderPassCommand: {e:?}")
-        }
+        self.send_render_command(RenderCommand::SetStencilReference(reference))
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-end>
@@ -191,13 +171,7 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setpipeline>
     fn SetPipeline(&self, pipeline: &GPURenderPipeline) {
-        if let Err(e) = self.channel.0.send(WebGPURequest::RenderPassCommand {
-            render_pass_id: self.render_pass.0,
-            render_command: RenderCommand::SetPipeline(pipeline.id().0),
-            device_id: self.command_encoder.device_id().0,
-        }) {
-            warn!("Error sending WebGPURequest::RenderPassCommand: {e:?}")
-        }
+        self.send_render_command(RenderCommand::SetPipeline(pipeline.id().0))
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurendercommandsmixin-setindexbuffer>
@@ -208,53 +182,35 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         offset: u64,
         size: u64,
     ) {
-        if let Err(e) = self.channel.0.send(WebGPURequest::RenderPassCommand {
-            render_pass_id: self.render_pass.0,
-            render_command: RenderCommand::SetIndexBuffer {
-                buffer_id: buffer.id().0,
-                index_format: match index_format {
-                    GPUIndexFormat::Uint16 => wgt::IndexFormat::Uint16,
-                    GPUIndexFormat::Uint32 => wgt::IndexFormat::Uint32,
-                },
-                offset,
-                size: wgt::BufferSize::new(size),
+        self.send_render_command(RenderCommand::SetIndexBuffer {
+            buffer_id: buffer.id().0,
+            index_format: match index_format {
+                GPUIndexFormat::Uint16 => wgt::IndexFormat::Uint16,
+                GPUIndexFormat::Uint32 => wgt::IndexFormat::Uint32,
             },
-            device_id: self.command_encoder.device_id().0,
-        }) {
-            warn!("Error sending WebGPURequest::RenderPassCommand: {e:?}")
-        }
+            offset,
+            size: wgt::BufferSize::new(size),
+        })
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setvertexbuffer>
     fn SetVertexBuffer(&self, slot: u32, buffer: &GPUBuffer, offset: u64, size: u64) {
-        if let Err(e) = self.channel.0.send(WebGPURequest::RenderPassCommand {
-            render_pass_id: self.render_pass.0,
-            render_command: RenderCommand::SetVertexBuffer {
-                slot,
-                buffer_id: buffer.id().0,
-                offset,
-                size: wgt::BufferSize::new(size),
-            },
-            device_id: self.command_encoder.device_id().0,
-        }) {
-            warn!("Error sending WebGPURequest::RenderPassCommand: {e:?}")
-        }
+        self.send_render_command(RenderCommand::SetVertexBuffer {
+            slot,
+            buffer_id: buffer.id().0,
+            offset,
+            size: wgt::BufferSize::new(size),
+        })
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-draw>
     fn Draw(&self, vertex_count: u32, instance_count: u32, first_vertex: u32, first_instance: u32) {
-        if let Err(e) = self.channel.0.send(WebGPURequest::RenderPassCommand {
-            render_pass_id: self.render_pass.0,
-            render_command: RenderCommand::Draw {
-                vertex_count,
-                instance_count,
-                first_vertex,
-                first_instance,
-            },
-            device_id: self.command_encoder.device_id().0,
-        }) {
-            warn!("Error sending WebGPURequest::RenderPassCommand: {e:?}")
-        }
+        self.send_render_command(RenderCommand::Draw {
+            vertex_count,
+            instance_count,
+            first_vertex,
+            first_instance,
+        })
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindexed>
@@ -266,60 +222,36 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         base_vertex: i32,
         first_instance: u32,
     ) {
-        if let Err(e) = self.channel.0.send(WebGPURequest::RenderPassCommand {
-            render_pass_id: self.render_pass.0,
-            render_command: RenderCommand::DrawIndexed {
-                index_count,
-                instance_count,
-                first_index,
-                base_vertex,
-                first_instance,
-            },
-            device_id: self.command_encoder.device_id().0,
-        }) {
-            warn!("Error sending WebGPURequest::RenderPassCommand: {e:?}")
-        }
+        self.send_render_command(RenderCommand::DrawIndexed {
+            index_count,
+            instance_count,
+            first_index,
+            base_vertex,
+            first_instance,
+        })
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindirect>
     fn DrawIndirect(&self, buffer: &GPUBuffer, offset: u64) {
-        if let Err(e) = self.channel.0.send(WebGPURequest::RenderPassCommand {
-            render_pass_id: self.render_pass.0,
-            render_command: RenderCommand::DrawIndirect {
-                buffer_id: buffer.id().0,
-                offset,
-            },
-            device_id: self.command_encoder.device_id().0,
-        }) {
-            warn!("Error sending WebGPURequest::RenderPassCommand: {e:?}")
-        }
+        self.send_render_command(RenderCommand::DrawIndirect {
+            buffer_id: buffer.id().0,
+            offset,
+        })
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindexedindirect>
     fn DrawIndexedIndirect(&self, buffer: &GPUBuffer, offset: u64) {
-        if let Err(e) = self.channel.0.send(WebGPURequest::RenderPassCommand {
-            render_pass_id: self.render_pass.0,
-            render_command: RenderCommand::DrawIndexedIndirect {
-                buffer_id: buffer.id().0,
-                offset,
-            },
-            device_id: self.command_encoder.device_id().0,
-        }) {
-            warn!("Error sending WebGPURequest::RenderPassCommand: {e:?}")
-        }
+        self.send_render_command(RenderCommand::DrawIndexedIndirect {
+            buffer_id: buffer.id().0,
+            offset,
+        })
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-executebundles>
     #[allow(unsafe_code)]
     fn ExecuteBundles(&self, bundles: Vec<DomRoot<GPURenderBundle>>) {
         let bundle_ids: Vec<_> = bundles.iter().map(|b| b.id().0).collect();
-        if let Err(e) = self.channel.0.send(WebGPURequest::RenderPassCommand {
-            render_pass_id: self.render_pass.0,
-            render_command: RenderCommand::ExecuteBundles(bundle_ids),
-            device_id: self.command_encoder.device_id().0,
-        }) {
-            warn!("Error sending WebGPURequest::RenderPassCommand: {e:?}")
-        }
+        self.send_render_command(RenderCommand::ExecuteBundles(bundle_ids))
     }
 }
 
