@@ -7,15 +7,16 @@ use std::sync::Arc;
 
 use app_units::Au;
 use canvas_traits::canvas::*;
-use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
+use euclid::default::{Box2D, Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::point2;
 use fonts::{
-    FontCacheThread, FontContext, FontMetrics, FontRef, GlyphStore, ShapingFlags, ShapingOptions,
-    LAST_RESORT_GLYPH_ADVANCE,
+    ByteIndex, FontBaseline, FontCacheThread, FontContext, FontGroup, FontMetrics, FontRef,
+    GlyphInfo, GlyphStore, ShapingFlags, ShapingOptions, LAST_RESORT_GLYPH_ADVANCE,
 };
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use log::{debug, warn};
 use num_traits::ToPrimitive;
+use range::Range;
 use servo_arc::Arc as ServoArc;
 use style::color::AbsoluteColor;
 use style::properties::style_structs::Font as FontStyleStruct;
@@ -277,6 +278,29 @@ pub struct TextRun {
     pub glyphs: Arc<GlyphStore>,
 }
 
+impl TextRun {
+    fn bounding_box(&self) -> Rect<f32> {
+        let mut bounding_box = None;
+        let mut bounds_offset: f32 = 0.;
+        let glyph_ids = self
+            .glyphs
+            .iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), self.glyphs.len()))
+            .map(GlyphInfo::id);
+        for glyph_id in glyph_ids {
+            let bounds = self.font.typographic_bounds(glyph_id);
+            let amount = Vector2D::new(bounds_offset, 0.);
+            let bounds = bounds.translate(amount);
+            let initiated_bbox = bounding_box.get_or_insert_with(|| {
+                let origin = Point2D::new(bounds.min_x(), 0.);
+                Box2D::new(origin, origin).to_rect()
+            });
+            bounding_box = Some(initiated_bbox.union(&bounds));
+            bounds_offset = bounds.max_x();
+        }
+        bounding_box.unwrap_or_default()
+    }
+}
+
 // This defines required methods for a DrawTarget (currently only implemented for raqote).  The
 // prototypes are derived from the now-removed Azure backend's methods.
 pub trait GenericDrawTarget {
@@ -523,33 +547,7 @@ impl<'a> CanvasData<'a> {
             return;
         };
 
-        let mut runs = Vec::new();
-        let mut current_text_run = UnshapedTextRun::default();
-        let mut current_text_run_start_index = 0;
-        for (index, character) in text.char_indices() {
-            // TODO: This should ultimately handle emoji variation selectors, but raqote does not yet
-            // have support for color glyphs.
-            let script = Script::from(character);
-            let font = font_group.find_by_codepoint(&self.font_context, character, None);
-
-            if !current_text_run.script_and_font_compatible(script, &font) {
-                let previous_text_run = mem::replace(
-                    &mut current_text_run,
-                    UnshapedTextRun {
-                        font: font.clone(),
-                        script,
-                        ..Default::default()
-                    },
-                );
-                current_text_run_start_index = index;
-                runs.push(previous_text_run)
-            }
-
-            current_text_run.string =
-                &text[current_text_run_start_index..index + character.len_utf8()];
-        }
-        runs.push(current_text_run);
-
+        let runs = self.build_unshaped_text_runs(&text, &mut font_group);
         // TODO: This doesn't do any kind of line layout at all. In particular, there needs
         // to be some alignment along a baseline and also support for bidi text.
         let shaped_runs: Vec<_> = runs
@@ -615,6 +613,123 @@ impl<'a> CanvasData<'a> {
 
         let size = font_style.font_size.computed_size();
         self.fill_text_with_size(text, x, y, max_width, is_rtl, size.px() as f64);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#text-preparation-algorithm>
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-measuretext>
+    pub fn measure_text(&mut self, text: String) -> TextMetrics {
+        // > Step 2: Replace all ASCII whitespace in text with U+0020 SPACE characters.
+        let text = replace_ascii_whitespace(text);
+        let Some(ref font_style) = self.state.font_style else {
+            return TextMetrics::default();
+        };
+
+        let font_group = self.font_context.font_group(font_style.clone());
+        let mut font_group = font_group.write();
+        let font = font_group
+            .first(&self.font_context)
+            .expect("couldn't find font");
+        let ascent = font.metrics.ascent.to_f32_px();
+        let descent = font.metrics.descent.to_f32_px();
+        let runs = self.build_unshaped_text_runs(&text, &mut font_group);
+
+        let shaped_runs: Vec<_> = runs
+            .into_iter()
+            .filter_map(UnshapedTextRun::to_shaped_text_run)
+            .collect();
+        let total_advance = shaped_runs
+            .iter()
+            .map(|run| run.glyphs.total_advance())
+            .sum::<Au>()
+            .to_f32_px();
+        let bounding_box = shaped_runs
+            .iter()
+            .map(TextRun::bounding_box)
+            .reduce(|a, b| {
+                let amount = Vector2D::new(a.max_x(), 0.);
+                let bounding_box = b.translate(amount);
+                a.union(&bounding_box)
+            })
+            .unwrap_or_default();
+
+        let FontBaseline {
+            ideographic_baseline,
+            alphabetic_baseline,
+            hanging_baseline,
+        } = match font.get_baseline() {
+            Some(baseline) => baseline,
+            None => FontBaseline {
+                hanging_baseline: ascent * HANGING_BASELINE_DEFAULT,
+                ideographic_baseline: -descent * IDEOGRAPHIC_BASELINE_DEFAULT,
+                alphabetic_baseline: 0.,
+            },
+        };
+
+        let anchor_x = match self.state.text_align {
+            TextAlign::End => total_advance,
+            TextAlign::Center => total_advance / 2.,
+            TextAlign::Right => total_advance,
+            _ => 0.,
+        };
+        let anchor_y = match self.state.text_baseline {
+            TextBaseline::Top => ascent,
+            TextBaseline::Hanging => hanging_baseline,
+            TextBaseline::Ideographic => ideographic_baseline,
+            TextBaseline::Middle => (ascent - descent) / 2.,
+            TextBaseline::Alphabetic => alphabetic_baseline,
+            TextBaseline::Bottom => -descent,
+        };
+
+        TextMetrics {
+            width: total_advance,
+            actual_boundingbox_left: anchor_x - bounding_box.min_x(),
+            actual_boundingbox_right: bounding_box.max_x() - anchor_x,
+            actual_boundingbox_ascent: bounding_box.max_y() - anchor_y,
+            actual_boundingbox_descent: anchor_y - bounding_box.min_y(),
+            font_boundingbox_ascent: ascent - anchor_y,
+            font_boundingbox_descent: descent + anchor_y,
+            em_height_ascent: ascent - anchor_y,
+            em_height_descent: descent + anchor_y,
+            hanging_baseline: hanging_baseline - anchor_y,
+            alphabetic_baseline: alphabetic_baseline - anchor_y,
+            ideographic_baseline: ideographic_baseline - anchor_y,
+        }
+    }
+
+    fn build_unshaped_text_runs<'b>(
+        &self,
+        text: &'b str,
+        font_group: &mut FontGroup,
+    ) -> Vec<UnshapedTextRun<'b>> {
+        let mut runs = Vec::new();
+        let mut current_text_run = UnshapedTextRun::default();
+        let mut current_text_run_start_index = 0;
+
+        for (index, character) in text.char_indices() {
+            // TODO: This should ultimately handle emoji variation selectors, but raqote does not yet
+            // have support for color glyphs.
+            let script = Script::from(character);
+            let font = font_group.find_by_codepoint(&self.font_context, character, None);
+
+            if !current_text_run.script_and_font_compatible(script, &font) {
+                let previous_text_run = mem::replace(
+                    &mut current_text_run,
+                    UnshapedTextRun {
+                        font: font.clone(),
+                        script,
+                        ..Default::default()
+                    },
+                );
+                current_text_run_start_index = index;
+                runs.push(previous_text_run)
+            }
+
+            current_text_run.string =
+                &text[current_text_run_start_index..index + character.len_utf8()];
+        }
+
+        runs.push(current_text_run);
+        runs
     }
 
     /// Find the *anchor_point* for the given parameters of a line of text.

@@ -10,7 +10,7 @@ use std::sync::Arc;
 use canvas_traits::canvas::{
     Canvas2dMsg, CanvasId, CanvasMsg, CompositionOrBlending, Direction, FillOrStrokeStyle,
     FillRule, LineCapStyle, LineJoinStyle, LinearGradientStyle, RadialGradientStyle,
-    RepetitionStyle, TextAlign, TextBaseline,
+    RepetitionStyle, TextAlign, TextBaseline, TextMetrics as CanvasTextMetrics,
 };
 use cssparser::color::clamp_unit_f32;
 use cssparser::{Parser, ParserInput};
@@ -1030,11 +1030,34 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#textmetrics
-    pub fn measure_text(&self, global: &GlobalScope, _text: DOMString) -> DomRoot<TextMetrics> {
-        // FIXME: for now faking the implementation of MeasureText().
-        // See https://github.com/servo/servo/issues/5411#issuecomment-533776291
+    pub fn measure_text(
+        &self,
+        global: &GlobalScope,
+        canvas: Option<&HTMLCanvasElement>,
+        text: DOMString,
+    ) -> DomRoot<TextMetrics> {
+        if self.state.borrow().font_style.is_none() {
+            self.set_font(canvas, CanvasContextState::DEFAULT_FONT_STYLE.into());
+        }
+
+        let (sender, receiver) = ipc::channel::<CanvasTextMetrics>().unwrap();
+        self.send_canvas_2d_msg(Canvas2dMsg::MeasureText(text.into(), sender));
+        let metrics = receiver.recv().unwrap();
+
         TextMetrics::new(
-            global, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+            global,
+            metrics.width.into(),
+            metrics.actual_boundingbox_left.into(),
+            metrics.actual_boundingbox_right.into(),
+            metrics.font_boundingbox_ascent.into(),
+            metrics.font_boundingbox_descent.into(),
+            metrics.actual_boundingbox_ascent.into(),
+            metrics.actual_boundingbox_descent.into(),
+            metrics.em_height_ascent.into(),
+            metrics.em_height_descent.into(),
+            metrics.hanging_baseline.into(),
+            metrics.alphabetic_baseline.into(),
+            metrics.ideographic_baseline.into(),
         )
     }
 
