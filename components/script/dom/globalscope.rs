@@ -3299,9 +3299,7 @@ impl GlobalScope {
                     let global = this.root();
                     if let Some(window) = global.downcast::<Window>() {
                         if let Some(gamepad) = window.Navigator().get_gamepad(index) {
-                            if gamepad.vibration_actuator().has_reset_result_promise() {
-                                gamepad.vibration_actuator().handle_haptic_effect_stopped();
-                            }
+                            gamepad.vibration_actuator().handle_haptic_effect_stopped();
                         }
                     }
                 }),

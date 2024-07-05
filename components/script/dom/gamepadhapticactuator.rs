@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Cell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
@@ -34,8 +35,9 @@ pub struct GamepadHapticActuator {
     effects: Vec<GamepadHapticEffectType>,
     #[ignore_malloc_size_of = "Rc is hard"]
     playing_effect_promise: DomRefCell<Option<Rc<Promise>>>,
-    #[ignore_malloc_size_of = "Rc is hard"]
-    reset_result_promise: DomRefCell<Option<Rc<Promise>>>,
+    sequence_id: Cell<u32>,
+    effect_sequence_id: Cell<u32>,
+    reset_sequence_id: Cell<u32>,
 }
 
 impl GamepadHapticActuator {
@@ -55,7 +57,9 @@ impl GamepadHapticActuator {
             gamepad_index: gamepad_index.into(),
             effects,
             playing_effect_promise: DomRefCell::new(None),
-            reset_result_promise: DomRefCell::new(None),
+            sequence_id: Cell::new(0),
+            effect_sequence_id: Cell::new(0),
+            reset_sequence_id: Cell::new(0),
         }
     }
 
@@ -147,6 +151,8 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
             playing_effect_promise.reject_error(Error::InvalidState);
         }
 
+        self.sequence_id.set(self.sequence_id.get().wrapping_add(1));
+
         if self.playing_effect_promise.borrow().is_some() {
             let trusted_promise = TrustedPromise::new(
                 self.playing_effect_promise
@@ -169,7 +175,10 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
             playing_effect_promise.reject_error(Error::NotSupported);
         }
 
+        assert!(self.playing_effect_promise.borrow().is_none());
+
         *self.playing_effect_promise.borrow_mut() = Some(playing_effect_promise.clone());
+        self.effect_sequence_id.set(self.sequence_id.get());
         let play_effect_timestamp = self.global().performance().Now();
 
         let params = DualRumbleEffectParams {
@@ -190,25 +199,43 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
     /// <https://www.w3.org/TR/gamepad/#dom-gamepadhapticactuator-reset>
     fn Reset(&self) -> Rc<Promise> {
         let in_realm_proof = AlreadyInRealm::assert();
-        let reset_result_promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
+        let promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
 
         let document = self.global().as_window().Document();
         if !document.is_fully_active() {
-            reset_result_promise.reject_error(Error::InvalidState);
-            return reset_result_promise;
+            promise.reject_error(Error::InvalidState);
+            return promise;
         }
+
+        self.sequence_id.set(self.sequence_id.get().wrapping_add(1));
 
         if self.playing_effect_promise.borrow().is_some() {
-            *self.reset_result_promise.borrow_mut() = Some(reset_result_promise.clone());
-
-            let event = EmbedderMsg::StopGamepadHapticEffect(self.gamepad_index as usize);
-            self.global().as_window().send_to_embedder(event);
-        } else {
-            let message = DOMString::from("complete");
-            reset_result_promise.resolve_native(&message);
+            let trusted_promise = TrustedPromise::new(
+                self.playing_effect_promise
+                    .borrow()
+                    .clone()
+                    .expect("Promise is null!"),
+            );
+            *self.playing_effect_promise.borrow_mut() = None;
+            let _ = self.global().gamepad_task_source().queue(
+                task!(preempt_promise: move || {
+                    let promise = trusted_promise.root();
+                    let message = DOMString::from("preempted");
+                    promise.resolve_native(&message);
+                }),
+                &self.global(),
+            );
         }
 
-        reset_result_promise
+        assert!(self.playing_effect_promise.borrow().is_none());
+
+        *self.playing_effect_promise.borrow_mut() = Some(promise.clone());
+
+        self.reset_sequence_id.set(self.sequence_id.get());
+        let event = EmbedderMsg::StopGamepadHapticEffect(self.gamepad_index as usize);
+        self.global().as_window().send_to_embedder(event);
+
+        self.playing_effect_promise.borrow().clone().unwrap()
     }
 }
 
@@ -220,20 +247,19 @@ impl GamepadHapticActuator {
     /// <https://www.w3.org/TR/gamepad/#dom-gamepadhapticactuator-playeffect>
     /// We are in the task queued by the "in-parallel" steps.
     pub fn handle_haptic_effect_completed(&self) {
+        if self.effect_sequence_id.get() != self.sequence_id.get() {
+            return;
+        }
         let playing_effect_promise = self.playing_effect_promise.borrow().clone();
         if let Some(promise) = playing_effect_promise {
             let message = DOMString::from("complete");
             promise.resolve_native(&message);
+            *self.playing_effect_promise.borrow_mut() = None;
         }
-    }
-
-    pub fn has_reset_result_promise(&self) -> bool {
-        self.reset_result_promise.borrow().is_some()
     }
 
     pub fn handle_haptic_effect_stopped(&self) {
         let playing_effect_promise = self.playing_effect_promise.borrow().clone();
-        let reset_result_promise = self.reset_result_promise.borrow().clone();
 
         if playing_effect_promise.is_some() {
             let trusted_promise = TrustedPromise::new(
@@ -242,20 +268,20 @@ impl GamepadHapticActuator {
                     .clone()
                     .expect("Promise is null!"),
             );
+            let sequence_id = self.effect_sequence_id.get();
+            let reset_sequence_id = self.reset_sequence_id.get();
             let _ = self.global().gamepad_task_source().queue(
-                task!(preempt_promise: move || {
+                task!(complete_promise: move || {
+                    if sequence_id != reset_sequence_id {
+                        return;
+                    }
                     let promise = trusted_promise.root();
-                    let message = DOMString::from("preempted");
+                    let message = DOMString::from("complete");
                     promise.resolve_native(&message);
                 }),
                 &self.global(),
             );
             *self.playing_effect_promise.borrow_mut() = None;
-        }
-
-        if let Some(promise) = reset_result_promise {
-            let message = DOMString::from("complete");
-            promise.resolve_native(&message);
         }
     }
 
