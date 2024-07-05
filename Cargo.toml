@@ -185,3 +185,6 @@ strip = true
 #
 # [patch."https://github.com/servo/<repository>"]
 # <crate> = { path = "/path/to/local/checkout" }
+
+[patch."https://github.com/servo/mozjs"]
+mozjs = { git = "https://github.com/sagudev/mozjs", branch = "no-errorstackclone-patch" }

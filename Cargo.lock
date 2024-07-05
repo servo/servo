@@ -4000,7 +4000,7 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.14.1"
-source = "git+https://github.com/servo/mozjs#369f2902e6481b8f237cca1652f56e61f508a0ad"
+source = "git+https://github.com/sagudev/mozjs?branch=no-errorstackclone-patch#c931ec31475d7c567db2377882281d343ba8624f"
 dependencies = [
  "bindgen",
  "cc",
@@ -4013,8 +4013,8 @@ dependencies = [
 
 [[package]]
 name = "mozjs_sys"
-version = "0.115.13-0"
-source = "git+https://github.com/servo/mozjs#369f2902e6481b8f237cca1652f56e61f508a0ad"
+version = "0.115.13-1"
+source = "git+https://github.com/sagudev/mozjs?branch=no-errorstackclone-patch#c931ec31475d7c567db2377882281d343ba8624f"
 dependencies = [
  "bindgen",
  "cc",
@@ -5204,6 +5204,7 @@ dependencies = [
  "backtrace",
  "base",
  "base64",
+ "bincode",
  "bitflags 2.6.0",
  "bluetooth_traits",
  "canvas_traits",
