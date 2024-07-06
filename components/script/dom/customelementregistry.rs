@@ -4,6 +4,7 @@
 
 use std::cell::Cell;
 use std::collections::VecDeque;
+use std::ffi::CStr;
 use std::rc::Rc;
 use std::{mem, ptr};
 
@@ -143,7 +144,7 @@ impl CustomElementRegistry {
             if !JS_GetProperty(
                 *GlobalScope::get_cx(),
                 constructor,
-                b"prototype\0".as_ptr() as *const _,
+                c"prototype".as_ptr(),
                 prototype,
             ) {
                 return Err(Error::JSFailed);
@@ -208,7 +209,7 @@ impl CustomElementRegistry {
             !JS_GetProperty(
                 *cx,
                 constructor,
-                b"observedAttributes\0".as_ptr() as *const _,
+                c"observedAttributes".as_ptr(),
                 observed_attributes.handle_mut(),
             )
         } {
@@ -243,7 +244,7 @@ impl CustomElementRegistry {
             !JS_GetProperty(
                 *cx,
                 constructor,
-                b"formAssociated\0".as_ptr() as *const _,
+                c"formAssociated".as_ptr(),
                 form_associated_value.handle_mut(),
             )
         } {
@@ -273,7 +274,7 @@ impl CustomElementRegistry {
             !JS_GetProperty(
                 *cx,
                 constructor,
-                b"disabledFeatures\0".as_ptr() as *const _,
+                c"disabledFeatures".as_ptr(),
                 disabled_features.handle_mut(),
             )
         } {
@@ -305,7 +306,7 @@ impl CustomElementRegistry {
 fn get_callback(
     cx: JSContext,
     prototype: HandleObject,
-    name: &[u8],
+    name: &CStr,
 ) -> Fallible<Option<Rc<Function>>> {
     rooted!(in(*cx) let mut callback = UndefinedValue());
     unsafe {

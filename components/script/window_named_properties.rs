@@ -215,13 +215,13 @@ unsafe extern "C" fn is_extensible(
 
 #[allow(unsafe_code)]
 unsafe extern "C" fn class_name(_cx: *mut JSContext, _proxy: HandleObject) -> *const libc::c_char {
-    &b"WindowProperties\0" as *const _ as *const _
+    c"WindowProperties".as_ptr()
 }
 
 // Maybe this should be a DOMJSClass. See https://bugzilla.mozilla.org/show_bug.cgi?id=787070
 #[allow(unsafe_code)]
 static CLASS: JSClass = JSClass {
-    name: b"WindowProperties\0" as *const u8 as *const libc::c_char,
+    name: c"WindowProperties".as_ptr(),
     flags: JSClass_NON_NATIVE |
         JSCLASS_IS_PROXY |
         JSCLASS_DELAY_METADATA_BUILDER |

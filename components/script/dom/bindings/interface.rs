@@ -69,7 +69,7 @@ impl NonCallbackInterfaceObjectClass {
     ) -> NonCallbackInterfaceObjectClass {
         NonCallbackInterfaceObjectClass {
             class: JSClass {
-                name: b"Function\0" as *const _ as *const libc::c_char,
+                name: c"Function".as_ptr(),
                 flags: 0,
                 cOps: &constructor_behavior.0,
                 spec: 0 as *const _,
@@ -344,7 +344,7 @@ pub fn create_named_constructors(
             assert!(JS_DefineProperty3(
                 *cx,
                 constructor.handle(),
-                b"prototype\0".as_ptr() as *const libc::c_char,
+                c"prototype".as_ptr(),
                 interface_prototype_object,
                 (JSPROP_PERMANENT | JSPROP_READONLY) as u32
             ));
@@ -504,7 +504,7 @@ fn define_name(cx: SafeJSContext, obj: HandleObject, name: &[u8]) {
         assert!(JS_DefineProperty4(
             *cx,
             obj,
-            b"name\0".as_ptr() as *const libc::c_char,
+            c"name".as_ptr(),
             name.handle(),
             JSPROP_READONLY as u32
         ));
@@ -516,7 +516,7 @@ fn define_length(cx: SafeJSContext, obj: HandleObject, length: i32) {
         assert!(JS_DefineProperty5(
             *cx,
             obj,
-            b"length\0".as_ptr() as *const libc::c_char,
+            c"length".as_ptr(),
             length,
             JSPROP_READONLY as u32
         ));
@@ -666,7 +666,7 @@ pub fn get_desired_proto(
         if !JS_GetProperty(
             *cx,
             original_new_target.handle().into(),
-            b"prototype\0".as_ptr() as *const libc::c_char,
+            c"prototype".as_ptr(),
             proto_val.handle_mut().into(),
         ) {
             return Err(());
