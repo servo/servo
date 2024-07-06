@@ -34,7 +34,6 @@ use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
-use crate::dom::bindings::utils::AsCCharPtrPtr;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::PromiseNativeHandler;
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
@@ -67,7 +66,7 @@ impl PromiseHelper for Rc<Promise> {
             assert!(AddRawValueRoot(
                 *cx,
                 self.permanent_js_root.get_unsafe(),
-                b"Promise::root\0".as_c_char_ptr()
+                c"Promise::root".as_ptr(),
             ));
         }
     }
