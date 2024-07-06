@@ -18,9 +18,12 @@ updates:
   groups:
     egui-related:
        patterns:
+         - "ecolor"
          - "egui"
-         - "egui_glow"
          - "egui-winit"
+         - "egui_glow"
+         - "emath"
+         - "epaint"
   ignore:
   # Ignore all stylo crates as their upgrades are coordinated via companion PRs.
   - dependency-name: servo_atoms
