@@ -44,11 +44,12 @@ use crate::script_runtime::JSContext as SafeJSContext;
 // NOTE: Current values found at https://dxr.mozilla.org/mozilla-central/
 // rev/ff04d410e74b69acfab17ef7e73e7397602d5a68/js/public/StructuredClone.h#323
 #[repr(u32)]
-enum StructuredCloneTags {
+pub(super) enum StructuredCloneTags {
     /// To support additional types, add new tags with values incremented from the last one before Max.
     Min = 0xFFFF8000,
     DomBlob = 0xFFFF8001,
     MessagePort = 0xFFFF8002,
+    Principals = 0xFFFF8003,
     Max = 0xFFFFFFFF,
 }
 
