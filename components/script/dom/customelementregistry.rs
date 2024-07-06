@@ -168,10 +168,10 @@ impl CustomElementRegistry {
 
         // Step 4
         Ok(LifecycleCallbacks {
-            connected_callback: get_callback(cx, prototype, b"connectedCallback\0")?,
-            disconnected_callback: get_callback(cx, prototype, b"disconnectedCallback\0")?,
-            adopted_callback: get_callback(cx, prototype, b"adoptedCallback\0")?,
-            attribute_changed_callback: get_callback(cx, prototype, b"attributeChangedCallback\0")?,
+            connected_callback: get_callback(cx, prototype, c"connectedCallback")?,
+            disconnected_callback: get_callback(cx, prototype, c"disconnectedCallback")?,
+            adopted_callback: get_callback(cx, prototype, c"adoptedCallback")?,
+            attribute_changed_callback: get_callback(cx, prototype, c"attributeChangedCallback")?,
 
             form_associated_callback: None,
             form_disabled_callback: None,
@@ -191,11 +191,11 @@ impl CustomElementRegistry {
         let cx = self.window.get_cx();
 
         callbacks.form_associated_callback =
-            get_callback(cx, prototype, b"formAssociatedCallback\0")?;
-        callbacks.form_reset_callback = get_callback(cx, prototype, b"formResetCallback\0")?;
-        callbacks.form_disabled_callback = get_callback(cx, prototype, b"formDisabledCallback\0")?;
+            get_callback(cx, prototype, c"formAssociatedCallback")?;
+        callbacks.form_reset_callback = get_callback(cx, prototype, c"formResetCallback")?;
+        callbacks.form_disabled_callback = get_callback(cx, prototype, c"formDisabledCallback")?;
         callbacks.form_state_restore_callback =
-            get_callback(cx, prototype, b"formStateRestoreCallback\0")?;
+            get_callback(cx, prototype, c"formStateRestoreCallback")?;
 
         Ok(())
     }
