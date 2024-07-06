@@ -250,24 +250,18 @@ impl GamepadHapticActuator {
         if self.effect_sequence_id.get() != self.sequence_id.get() {
             return;
         }
-        let playing_effect_promise = self.playing_effect_promise.borrow().clone();
+        let playing_effect_promise = self.playing_effect_promise.borrow_mut().take();
         if let Some(promise) = playing_effect_promise {
             let message = DOMString::from("complete");
             promise.resolve_native(&message);
-            *self.playing_effect_promise.borrow_mut() = None;
         }
     }
 
     pub fn handle_haptic_effect_stopped(&self) {
-        let playing_effect_promise = self.playing_effect_promise.borrow().clone();
+        let playing_effect_promise = self.playing_effect_promise.borrow_mut().take();
 
-        if playing_effect_promise.is_some() {
-            let trusted_promise = TrustedPromise::new(
-                self.playing_effect_promise
-                    .borrow()
-                    .clone()
-                    .expect("Promise is null!"),
-            );
+        if let Some(promise) = playing_effect_promise {
+            let trusted_promise = TrustedPromise::new(promise);
             let sequence_id = self.effect_sequence_id.get();
             let reset_sequence_id = self.reset_sequence_id.get();
             let _ = self.global().gamepad_task_source().queue(
@@ -281,7 +275,6 @@ impl GamepadHapticActuator {
                 }),
                 &self.global(),
             );
-            *self.playing_effect_promise.borrow_mut() = None;
         }
     }
 
