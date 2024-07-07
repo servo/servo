@@ -710,8 +710,8 @@ impl FileListener {
                 },
             },
             Err(_) => match self.state.take() {
-                Some(FileListenerState::Receiving(_, callback, target))
-                | Some(FileListenerState::Empty(callback, target)) => {
+                Some(FileListenerState::Receiving(_, callback, target)) |
+                Some(FileListenerState::Empty(callback, target)) => {
                     let error = Err(Error::Network);
 
                     match target {
