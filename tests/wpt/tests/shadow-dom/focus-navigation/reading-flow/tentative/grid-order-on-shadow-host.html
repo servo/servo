@@ -18,9 +18,9 @@
 }
 </style>
 
-<div class="test-case" data-expect="root/B,root/A"
+<div class="test-case" data-expect="host/B,host/A"
       data-description="Grid items in shadow host with delegatesFocus">
-  <div id="root" class="wrapper" tabindex="0">
+  <div id="host" class="wrapper" tabindex="0">
     <template shadowrootmode="open" shadowrootdelegatesfocus>
       <button id="A" style="order: 2">A</button>
       <button id="B" style="order: 1">B</button>
@@ -28,9 +28,9 @@
   </div>
 </div>
 
-<div class="test-case" data-expect="root2,root2/B,root2/A"
+<div class="test-case" data-expect="host2,host2/B,host2/A"
       data-description="Grid items in shadow host without delegatesFocus">
-  <div id="root2" class="wrapper" tabindex="0">
+  <div id="host2" class="wrapper" tabindex="0">
     <template shadowrootmode="open">
       <button id="A" style="order: 2">A</button>
       <button id="B" style="order: 1">B</button>

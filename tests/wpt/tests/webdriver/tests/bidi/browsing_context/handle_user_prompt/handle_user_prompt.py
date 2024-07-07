@@ -113,8 +113,7 @@ async def test_prompt(
 
 
 @pytest.mark.capabilities({"unhandledPromptBehavior": {'default': 'ignore'}})
-@pytest.mark.parametrize("accept", [False])
-# @pytest.mark.parametrize("accept", [True, False])
+@pytest.mark.parametrize("accept", [True, False])
 async def test_beforeunload(
     bidi_session,
     subscribe_events,

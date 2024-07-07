@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<title>Animating the "transform" property with a non-invertible matrix should not yield an animation</title>
+<link rel="help" href="https://drafts.csswg.org/css-transforms/">
+<link rel="match" href="transform-non-invertible-discrete-interpolation-ref.html">
+<script src="../../../common/reftest-wait.js"></script>
+<style>
+
+div {
+    width: 100px;
+    height: 100px;
+    background-color: black;
+    animation: anim 100s linear forwards;
+}
+
+@keyframes anim {
+    from { transform: matrix3d(2,0,0,0, 0,2,0,0, 0,0,0,0, 0,0,0,1) }
+}
+
+</style>
+</head>
+<body>
+<div></div>
+<script>
+(async function() {
+    await Promise.all(document.getAnimations().map(animation => animation.ready));
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    takeScreenshot();
+})();
+</script>
+</body>
+</html>

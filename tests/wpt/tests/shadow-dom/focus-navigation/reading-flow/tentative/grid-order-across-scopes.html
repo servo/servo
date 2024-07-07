@@ -18,15 +18,17 @@
 }
 </style>
 
+<!-- Since C is a direct reading flow item, it is visited first. -->
+<!-- Since B,A are inside a display: contents, they are visited after. -->
 <div class="test-case" data-expect="C,B,A"
-      data-description="Grid items in shadow root that is a display contents grid item">
-  <div class=wrapper id="root">
+      data-description="Grid items in shadow host that is a display contents grid item">
+  <div class=wrapper>
     <div style="display: contents">
       <template shadowrootmode=open>
         <slot></slot>
       </template>
-      <button id="A2" style="order: 2">A</button>
-      <button id="B2" style="order: 1">B</button>
+      <button id="A" style="order: 2">A</button>
+      <button id="B" style="order: 1">B</button>
     </div>
     <button id="C" style="order: 3">C</button>
   </div>

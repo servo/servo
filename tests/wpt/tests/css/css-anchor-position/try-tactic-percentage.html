@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <title>CSS Anchor Positioning: try-tactic, percentage</title>
-<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#typedef-position-try-options-try-tactic">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#typedef-position-try-fallbacks-try-tactic">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style>
@@ -50,14 +50,14 @@ function test_anchor_flip(try_tactic, untransformed, transformed) {
         ${untransformed}
       }
       #target {
-        position-try-options: --pf ${try_tactic};
+        position-try-fallbacks: --pf ${try_tactic};
       }
       @position-try --ref {
         inset: auto;
         ${transformed}
       }
       #ref {
-        position-try-options: --ref;
+        position-try-fallbacks: --ref;
       }
     `;
     assert_equals(target.offsetLeft, ref.offsetLeft, 'offsetLeft');

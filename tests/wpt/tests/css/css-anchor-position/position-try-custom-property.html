@@ -26,7 +26,7 @@
 }
 .target {
   position: absolute;
-  position-try-options: --fallback1;
+  position-try-fallbacks: --fallback1;
   width: 40px;
   height: 15px;
   margin: 5px;
@@ -35,10 +35,10 @@
   --top: anchor(--a1 top);
 }
 .fallback1 {
-  position-try-options: --fallback1;
+  position-try-fallbacks: --fallback1;
 }
 .fallback2 {
-  position-try-options: --fallback2;
+  position-try-fallbacks: --fallback2;
 }
 @position-try --fallback1 {
   /* Position to the right of the anchor. */

@@ -1,6 +1,7 @@
 import asyncio
 
 import pytest
+from webdriver.bidi.modules.script import ContextTarget
 
 from . import navigate_and_assert
 from ... import any_string
@@ -86,3 +87,23 @@ async def test_relative_url(bidi_session, new_tab, url):
 
     url_after = url_before.replace("empty.html", "other.html")
     await navigate_and_assert(bidi_session, new_tab, url_after, "interactive")
+
+
+async def test_same_document_navigation_in_before_unload(bidi_session, new_tab, url):
+    url_before = url(
+        "/webdriver/tests/bidi/browsing_context/support/empty.html"
+    )
+
+    await navigate_and_assert(bidi_session, new_tab, url_before, "complete")
+
+    await bidi_session.script.evaluate(
+        expression="""window.addEventListener(
+          'beforeunload',
+          () => history.replaceState(null, 'initial', window.location.href),
+          false
+        );""",
+        target=ContextTarget(new_tab["context"]),
+        await_promise=False)
+
+    url_after = url_before.replace("empty.html", "other.html")
+    await navigate_and_assert(bidi_session, new_tab, url_after, "complete")

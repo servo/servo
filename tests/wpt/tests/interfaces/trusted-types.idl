@@ -58,9 +58,6 @@ callback CreateHTMLCallback = DOMString? (DOMString input, any... arguments);
 callback CreateScriptCallback = DOMString? (DOMString input, any... arguments);
 callback CreateScriptURLCallback = USVString? (DOMString input, any... arguments);
 
-typedef [StringContext=TrustedHTML] DOMString HTMLString;
-typedef [StringContext=TrustedScript] DOMString ScriptString;
-typedef [StringContext=TrustedScriptURL] USVString ScriptURLString;
 typedef (TrustedHTML or TrustedScript or TrustedScriptURL) TrustedType;
 
 partial interface mixin WindowOrWorkerGlobalScope {

@@ -53,6 +53,24 @@ const tests = [
 function runElementWiseBinaryTests(operatorName, tests) {
   tests.forEach(test => {
     promise_test(async t => {
+      if (!context.opSupportLimits().input.dataTypes.includes(
+              test.a.dataType)) {
+        assert_throws_js(
+            TypeError,
+            () => builder.input(
+                'a',
+                {dataType: test.a.dataType, dimensions: test.a.dimensions}));
+        return;
+      }
+      if (!context.opSupportLimits().input.dataTypes.includes(
+              test.b.dataType)) {
+        assert_throws_js(
+            TypeError,
+            () => builder.input(
+                'b',
+                {dataType: test.b.dataType, dimensions: test.b.dimensions}));
+        return;
+      }
       const a = builder.input(
           'a', {dataType: test.a.dataType, dimensions: test.a.dimensions});
       const b = builder.input(

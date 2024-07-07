@@ -12,5 +12,7 @@ def main(request, response):
 
   account = request.POST.get(b"account_id").decode("utf-8")
   nonce = request.POST.get(b"nonce").decode("utf-8")
+  if nonce == "token":
+    return "{\"token\": \"account=%s\"}" % (account)
   return "{\"continue_on\": \"resolve.html?selected=%s&%s\"}" % (account, nonce)
 

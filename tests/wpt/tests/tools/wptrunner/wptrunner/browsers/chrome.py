@@ -119,6 +119,8 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data, subsuite
     # flag is no-op. Required to avoid flakiness in tests, as the infobar
     # changes the viewport, which can happen during the test run.
     chrome_options["args"].append("--disable-infobars")
+    # For WebNN tests.
+    chrome_options["args"].append("--enable-features=WebMachineLearningNeuralNetwork")
 
     # Classify `http-private`, `http-public` and https variants in the
     # appropriate IP address spaces.

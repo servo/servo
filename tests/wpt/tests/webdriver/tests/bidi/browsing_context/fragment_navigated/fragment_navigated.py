@@ -9,7 +9,7 @@ from .. import assert_navigation_info
 
 pytestmark = pytest.mark.asyncio
 
-EMPTY_PAGE = "/webdriver/tests/bidi/support/empty.html"
+EMPTY_PAGE = "/webdriver/tests/bidi/browsing_context/support/empty.html"
 FRAGMENT_NAVIGATED_EVENT = "browsingContext.fragmentNavigated"
 
 
@@ -88,7 +88,7 @@ async def test_navigation_id(
 
     await subscribe_events([FRAGMENT_NAVIGATED_EVENT])
 
-    on_frame_navigated = wait_for_event(FRAGMENT_NAVIGATED_EVENT)
+    on_fragment_navigated = wait_for_event(FRAGMENT_NAVIGATED_EVENT)
 
     target_url = url(EMPTY_PAGE + '#foo')
     result = await bidi_session.browsing_context.navigate(
@@ -101,7 +101,7 @@ async def test_navigation_id(
             'timestamp': any_int,
             'url': target_url
         },
-        await wait_for_future_safe(on_frame_navigated),
+        await wait_for_future_safe(on_fragment_navigated),
     )
 
 
@@ -111,7 +111,7 @@ async def test_url_with_base_tag(bidi_session, subscribe_events, inline, new_tab
 
     await subscribe_events(events=[FRAGMENT_NAVIGATED_EVENT])
 
-    on_frame_navigated = wait_for_event(FRAGMENT_NAVIGATED_EVENT)
+    on_fragment_navigated = wait_for_event(FRAGMENT_NAVIGATED_EVENT)
 
     target_url = url + '#foo'
     await bidi_session.browsing_context.navigate(context=new_tab["context"], url=target_url, wait="complete")
@@ -121,7 +121,7 @@ async def test_url_with_base_tag(bidi_session, subscribe_events, inline, new_tab
             'context': new_tab["context"],
             'url': target_url
         },
-        await wait_for_future_safe(on_frame_navigated),
+        await wait_for_future_safe(on_fragment_navigated),
     )
 
 
@@ -143,7 +143,7 @@ async def test_iframe(
 
     await subscribe_events([FRAGMENT_NAVIGATED_EVENT])
 
-    on_frame_navigated = wait_for_event(FRAGMENT_NAVIGATED_EVENT)
+    on_fragment_navigated = wait_for_event(FRAGMENT_NAVIGATED_EVENT)
 
     target_url = url(EMPTY_PAGE + '#bar')
     await bidi_session.browsing_context.navigate(
@@ -155,7 +155,7 @@ async def test_iframe(
             'timestamp': any_int,
             'url': target_url
         },
-        await wait_for_future_safe(on_frame_navigated),
+        await wait_for_future_safe(on_fragment_navigated),
     )
 
 
@@ -178,7 +178,7 @@ async def test_document_location(
 
     await subscribe_events([FRAGMENT_NAVIGATED_EVENT])
 
-    on_frame_navigated = wait_for_event(FRAGMENT_NAVIGATED_EVENT)
+    on_fragment_navigated = wait_for_event(FRAGMENT_NAVIGATED_EVENT)
 
     target_url = url(EMPTY_PAGE + hash_after)
 
@@ -200,7 +200,7 @@ async def test_document_location(
             'timestamp': any_int,
             'url': target_url
         },
-        await wait_for_future_safe(on_frame_navigated),
+        await wait_for_future_safe(on_fragment_navigated),
     )
 
 
@@ -223,7 +223,7 @@ async def test_browsing_context_navigate(
 
     await subscribe_events([FRAGMENT_NAVIGATED_EVENT])
 
-    on_frame_navigated = wait_for_event(FRAGMENT_NAVIGATED_EVENT)
+    on_fragment_navigated = wait_for_event(FRAGMENT_NAVIGATED_EVENT)
 
     target_url = url(EMPTY_PAGE + hash_after)
 
@@ -236,7 +236,7 @@ async def test_browsing_context_navigate(
             'timestamp': any_int,
             'url': target_url
         },
-        await wait_for_future_safe(on_frame_navigated),
+        await wait_for_future_safe(on_fragment_navigated),
     )
 
 

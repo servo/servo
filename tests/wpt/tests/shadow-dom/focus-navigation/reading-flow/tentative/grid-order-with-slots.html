@@ -19,7 +19,7 @@
 }
 </style>
 
-<span id="root1" class="test-case" data-expect="b1,a1,c1"
+<span id="host1" class="test-case" data-expect="b1,a1,c1"
       data-description="Slot assigned element is a grid with reading-flow.">
   <template shadowrootmode="open">
     <style>
@@ -38,7 +38,7 @@
 </span>
 <br>
 
-<span id="root2" class="test-case" data-expect="b2,a2,c2"
+<span id="host2" class="test-case" data-expect="b2,a2,c2"
       data-description="Slot is a grid with reading-flow.">
   <template shadowrootmode="open">
     <style>
@@ -55,7 +55,7 @@
 </span>
 <br>
 
-<span id="root3" class="test-case" data-expect="root3/o2,root3/o4,o1,o3,o5"
+<span id="host3" class="test-case" data-expect="host3/o2,host3/o4,o1,o3,o5"
       data-description="Slot is inside a grid container with reading-flow.">
   <template shadowrootmode="open">
     <style>
@@ -70,14 +70,14 @@
       <button style="order: 2" id="o2">Order 2</button>
     </div>
   </template>
-  <button style="order: 5" id="o5">Order 5</button>
-  <button style="order: 1" id="o1">Order 1</button>
-  <button style="order: 3" id="o3">Order 3</button>
+  <button style="order: 5" id="o5">Slotted 5</button>
+  <button style="order: 1" id="o1">Slotted 1</button>
+  <button style="order: 3" id="o3">Slotted 3</button>
 </span>
 <br>
 
-<span id="root4" class="test-case"
-      data-expect="root4/after,root4/before,b4,a4,d42,d41,d43,c4"
+<span id="host4" class="test-case"
+      data-expect="host4/after,host4/before,b4,a4,d42,d41,d43,c4"
       data-description="Slot is a grid with reading-flow inside a grid container with reading-flow.">
   <template shadowrootmode="open">
     <style>
@@ -103,8 +103,8 @@
 </span>
 <br>
 
-<span id="root5" class="test-case" data-expect="b51,a51,c51,b52,a52,c52"
-      data-description="Slot is not inside a shadow root.">
+<span id="host5" class="test-case" data-expect="b51,a51,c51,b52,a52,c52"
+      data-description="Slot is not inside a shadow host.">
   <div class="wrapper">
     <slot name=slot1>
       <button style="order: 2" id="a51">Item A</button>
@@ -120,7 +120,7 @@
 </span>
 <br>
 
-<span id="root6" class="test-case" data-expect="root6/after,root6/before,b6,a6"
+<span id="host6" class="test-case" data-expect="host6/after,host6/before,b6,a6"
       data-description="Slot is a display contents inside a grid container.">
   <template shadowrootmode="open">
     <style>
@@ -140,7 +140,7 @@
 </span>
 <br>
 
-<span id="root7" class="test-case" data-expect="a7,b7,root7/after,root7/before"
+<span id="host7" class="test-case" data-expect="a7,b7,host7/after,host7/before"
       data-description="Slot is a display block inside a grid container.">
   <template shadowrootmode="open">
     <style>

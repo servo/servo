@@ -23,22 +23,22 @@
 
   test_shorthand_value("position-try", "flip-inline", {
     "position-try-order": "normal",
-    "position-try-options": "flip-inline",
+    "position-try-fallbacks": "flip-inline",
   });
   test_shorthand_value("position-try", "most-width none", {
     "position-try-order": "most-width",
-    "position-try-options": "none",
+    "position-try-fallbacks": "none",
   });
   test_shorthand_value("position-try", "--foo, --bar", {
     "position-try-order": "normal",
-    "position-try-options": "--foo, --bar",
+    "position-try-fallbacks": "--foo, --bar",
   });
   test_shorthand_value("position-try", "most-inline-size --foo, flip-inline", {
     "position-try-order": "most-inline-size",
-    "position-try-options": "--foo, flip-inline",
+    "position-try-fallbacks": "--foo, flip-inline",
   });
   test_shorthand_value("position-try", "most-inline-size flip-inline flip-block, --foo, --bar", {
     "position-try-order": "most-inline-size",
-    "position-try-options": "flip-inline flip-block, --foo, --bar",
+    "position-try-fallbacks": "flip-inline flip-block, --foo, --bar",
   });
 </script>

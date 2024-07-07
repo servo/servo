@@ -17,22 +17,8 @@ const host = get_host_info();
 const basePath = window.location.pathname.replace(/\/[^\/]*$/, '/');
 const remoteBaseURL = host.HTTPS_REMOTE_ORIGIN + basePath;
 
-async function createIframeAndWaitForMessage(test, iframeUrl) {
-    const messageWatcher = new EventWatcher(test, window, "message");
-    var iframe = document.createElement("iframe");
-    iframe.src = iframeUrl;
-    document.body.appendChild(iframe);
-    const message = await messageWatcher.wait_for("message");
-    return message.data;
-}
-
 // Requires browser to have mode where OS-presented digital-identity-prompt is
 // bypassed in favour of returning "fake_test_token" directly.
-promise_test(async t=>{
-  assert_false(navigator.userActivation.isActive);
-  let request = buildValidNavigatorIdentityRequest();
-  await promise_rejects_dom(t, "NetworkError", navigator.identity.get(request));
-}, "navigator.identity.get() fails if the page doesn't have user activation");
 
 promise_test(async t => {
   let request = buildValidNavigatorIdentityRequest();
@@ -45,11 +31,4 @@ promise_test(async t => {
   request.digital.providers = [];
   await promise_rejects_js(t, TypeError, requestIdentityWithActivation(test_driver, request));
 }, "navigator.identity.get() API fails if there are no providers.");
-
-promise_test(async t=> {
-  const message = await createIframeAndWaitForMessage(
-      t, remoteBaseURL + "support/iframe.html");
-  assert_equals(message.result, "Fail");
-  assert_equals(message.errorType, "NotAllowedError");
-}, "navigator.identity.get() fails in cross-origin iframe");
 </script>

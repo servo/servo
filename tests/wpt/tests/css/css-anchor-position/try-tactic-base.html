@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <title>CSS Anchor Positioning: try-tactic, base values</title>
-<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#typedef-position-try-options-try-tactic">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#typedef-position-try-fallbacks-try-tactic">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style>
@@ -27,7 +27,7 @@
     assert_equals(cs.width, '150px');
     assert_equals(cs.height, '300px');
 
-    target.style.positionTryOptions = 'flip-start';
+    target.style.positionTryFallbacks = 'flip-start';
 
     assert_equals(cs.width, '300px');
     assert_equals(cs.height, '150px');

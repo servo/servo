@@ -241,3 +241,14 @@ class Network(BidiModule):
     def remove_intercept(self, intercept: str) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = {"intercept": intercept}
         return params
+
+    @command
+    def set_cache_bypass(
+        self, bypass: bool, contexts: Optional[List[str]] = None
+    ) -> Mapping[str, Any]:
+        params: MutableMapping[str, Any] = {"bypass": bypass}
+
+        if contexts is not None:
+            params["contexts"] = contexts
+
+        return params

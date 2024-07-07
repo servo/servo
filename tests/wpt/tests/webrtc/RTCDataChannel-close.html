@@ -45,6 +45,40 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
     assert_true(closingSeen, 'Closing event was seen');
   }, `Close ${mode} causes closing and close event to be called`);
 
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    const mainChannel1 = pc1.createDataChannel('not-counted', options);
+    exchangeIceCandidates(pc1, pc2);
+    await exchangeOfferAnswer(pc1, pc2);
+    if (!options.negotiated) {
+      await new Promise(r => pc2.ondatachannel = r);
+    }
+
+    for (let i = 1; i <= 10; i++) {
+      if ('id' in options) {
+        options.id = i;
+      }
+      const sender = pc1.createDataChannel(`dc ${i}`, options);
+      const senderOpen = new Promise(r => sender.onopen = r);
+      let receiver;
+      if (options.negotiated) {
+        receiver = pc2.createDataChannel(`dc ${i}`, options);
+      } else {
+        receiver = (await new Promise(r => pc2.ondatachannel = r)).channel;
+      }
+      receiver.onmessage = ({data}) => receiver.send(data);
+      await senderOpen;
+      sender.send(`ping ${i}`);
+      const {data} = await new Promise(r => sender.onmessage = r);
+      assert_equals(data, `ping ${i}`);
+      sender.close();
+      await new Promise(r => receiver.onclose = r);
+    }
+  }, `Repeated open/send/echo/close ${mode} works`);
+
    promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());

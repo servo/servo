@@ -345,11 +345,8 @@ dictionary RTCRtpCodecParameters : RTCRtpCodec {
 };
 
 dictionary RTCRtpCapabilities {
-  required sequence<RTCRtpCodecCapability> codecs;
+  required sequence<RTCRtpCodec> codecs;
   required sequence<RTCRtpHeaderExtensionCapability> headerExtensions;
-};
-
-dictionary RTCRtpCodecCapability : RTCRtpCodec {
 };
 
 dictionary RTCRtpHeaderExtensionCapability {
