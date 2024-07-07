@@ -14,9 +14,10 @@ use serde::Serialize;
 use serde_json::{self, Value};
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ActorDescription {
     pub category: &'static str,
-    pub typeName: &'static str,
+    pub type_name: &'static str,
     pub methods: Vec<Method>,
 }
 

@@ -18,7 +18,6 @@ pub struct FramerateActor {
     name: String,
     pipeline: PipelineId,
     script_sender: IpcSender<DevtoolScriptControlMsg>,
-
     is_recording: bool,
     ticks: Vec<HighResolutionStamp>,
 }
@@ -41,7 +40,7 @@ impl Actor for FramerateActor {
 }
 
 impl FramerateActor {
-    /// return name of actor
+    /// Return name of actor
     pub fn create(
         registry: &ActorRegistry,
         pipeline_id: PipelineId,
