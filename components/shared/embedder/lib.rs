@@ -172,7 +172,7 @@ pub enum EmbedderMsg {
     GetClipboardContents(IpcSender<String>),
     /// Sets system clipboard contents
     SetClipboardContents(String),
-    /// Changes the cursor.
+    /// Changes the cursor. This is triggered by `EmbedderEvent::MouseWindowMoveEventClass` event.
     SetCursor(Cursor),
     /// A favicon was detected
     NewFavicon(ServoUrl),

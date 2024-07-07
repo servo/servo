@@ -59,7 +59,7 @@ pub enum EmbedderEvent {
     LoadUrl(TopLevelBrowsingContextId, ServoUrl),
     /// Sent when a mouse hit test is to be performed.
     MouseWindowEventClass(MouseWindowEvent),
-    /// Sent when a mouse move.
+    /// Sent when a mouse move. This will send back a `EmbedderMsg::SetCursor` message.
     MouseWindowMoveEventClass(DevicePoint),
     /// Touch event: type, identifier, point
     Touch(TouchEventType, TouchId, DevicePoint),
