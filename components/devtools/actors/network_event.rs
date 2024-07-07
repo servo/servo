@@ -363,8 +363,8 @@ impl NetworkEventActor {
         self.request.method = request.method.clone();
         self.request.headers = request.headers.clone();
         self.request.body = request.body;
-        self.request.started_date_time = request.startedDateTime;
-        self.request.time_stamp = request.timeStamp;
+        self.request.started_date_time = request.started_date_time;
+        self.request.time_stamp = request.time_stamp;
         self.request.connect_time = request.connect_time;
         self.request.send_time = request.send_time;
         self.is_xhr = request.is_xhr;

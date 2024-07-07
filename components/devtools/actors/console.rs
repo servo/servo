@@ -254,6 +254,13 @@ impl ConsoleActor {
         std::result::Result::Ok(reply)
     }
 
+    // TODO: This no longer has this form, it is sent as a resource event message
+    // "from": "...",
+    // "resources": [{
+    //      "pageError": { ... },
+    //      "resourceType": "error-message"
+    // }],
+    // "type": "resource-available-form"
     pub(crate) fn handle_page_error(
         &self,
         page_error: PageError,
@@ -277,13 +284,14 @@ impl ConsoleActor {
         }
     }
 
+    // TODO: This may be outdated
     pub(crate) fn handle_console_api(
         &self,
         console_message: ConsoleMessage,
         id: UniqueId,
         registry: &ActorRegistry,
     ) {
-        let level = match console_message.logLevel {
+        let level = match console_message.log_level {
             LogLevel::Debug => "debug",
             LogLevel::Info => "info",
             LogLevel::Warn => "warn",
@@ -300,9 +308,9 @@ impl ConsoleActor {
                 type_: "ConsoleAPI".to_owned(),
                 level: level.clone(),
                 filename: console_message.filename.clone(),
-                lineNumber: console_message.lineNumber as u32,
-                functionName: "".to_string(), //TODO
-                timeStamp: SystemTime::now()
+                line_number: console_message.line_number as u32,
+                function_name: "".to_string(), //TODO
+                time_stamp: SystemTime::now()
                     .duration_since(UNIX_EPOCH)
                     .unwrap_or_default()
                     .as_nanos() as u64,
@@ -321,8 +329,8 @@ impl ConsoleActor {
                         .as_nanos() as u64,
                     arguments: vec![console_message.message],
                     filename: console_message.filename,
-                    line_number: console_message.lineNumber,
-                    column_number: console_message.columnNumber,
+                    line_number: console_message.line_number,
+                    column_number: console_message.column_number,
                 },
             };
             self.streams_mut(registry, |stream| {

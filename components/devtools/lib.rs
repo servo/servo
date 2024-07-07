@@ -677,10 +677,10 @@ fn run_server(
             )) => {
                 let console_message = ConsoleMessage {
                     message: css_error.msg,
-                    logLevel: LogLevel::Warn,
+                    log_level: LogLevel::Warn,
                     filename: css_error.filename,
-                    lineNumber: css_error.line as usize,
-                    columnNumber: css_error.column as usize,
+                    line_number: css_error.line as usize,
+                    column_number: css_error.column as usize,
                 };
                 handle_console_message(
                     actors.clone(),
