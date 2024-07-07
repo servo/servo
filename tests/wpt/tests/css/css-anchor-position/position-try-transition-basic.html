@@ -20,7 +20,7 @@
     width: 50px;
     height: 50px;
     background: skyblue;
-    position-try-options: --200;
+    position-try-fallbacks: --200;
   }
   #target.anim {
     transition: left 1000s steps(2, start);
@@ -43,7 +43,7 @@
     assert_equals(target.offsetLeft, 300);
     cb.classList.add('shrink');
     target.classList.add('anim');
-    // Now we take the --200 option:
+    // Now we take the --200 fallback:
     assert_equals(target.offsetLeft, 250);
   }, 'Transition when @position-try is applied');
 

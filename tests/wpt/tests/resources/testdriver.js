@@ -1100,6 +1100,14 @@
             throw new Error("get_named_cookie() is not implemented by testdriver-vendor.js");
         },
 
+        async get_computed_role(element) {
+            throw new Error("get_computed_role is a testdriver.js function which cannot be run in this context.");
+        },
+
+        async get_computed_name(element) {
+            throw new Error("get_computed_name is a testdriver.js function which cannot be run in this context.");
+        },
+
         async send_keys(element, keys) {
             if (this.in_automation) {
                 throw new Error("send_keys() is not implemented by testdriver-vendor.js");

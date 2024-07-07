@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <title>CSS Anchor Positioning: try-tactic under different writing modes</title>
-<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#typedef-position-try-options-try-tactic">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#typedef-position-try-fallbacks-try-tactic">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style>
@@ -28,7 +28,7 @@
 <script>
 
   function test_try_tactic_wm(try_tactic, writing_mode, direction, expected_offsets) {
-    target.style.positionTryOptions = `--pf ${try_tactic}`;
+    target.style.positionTryFallbacks = `--pf ${try_tactic}`;
     target.style.writingMode = writing_mode;
     target.style.direction = direction;
     test(() => {

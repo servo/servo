@@ -558,7 +558,7 @@ def fetch(bidi_session, top_context, configuration):
 
         body_arg = ""
         if post_data is not None:
-            body_arg = f"body: {post_data},"
+            body_arg = f"body: {json.dumps(post_data)},"
 
         timeout_in_seconds = timeout_in_seconds * configuration["timeout_multiplier"]
         # Wait for fetch() to resolve a response and for response.text() to

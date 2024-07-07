@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <title>CSS Anchor Positioning: try-tactic (margin)</title>
-<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#typedef-position-try-options-try-tactic">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#typedef-position-try-fallbacks-try-tactic">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style>
@@ -28,13 +28,13 @@
 </div>
 <script>
   function test_try_tactic(try_tactic, expected_offsets) {
-    target.style.positionTryOptions = `--pf ${try_tactic}`;
+    target.style.positionTryFallbacks = `--pf ${try_tactic}`;
     test(() => {
       assert_equals(target.offsetLeft, expected_offsets.left, 'offsetLeft');
       assert_equals(target.offsetTop, expected_offsets.top, 'offsetTop');
       assert_equals(target.offsetWidth, expected_offsets.width, 'offsetWidth');
       assert_equals(target.offsetHeight, expected_offsets.height, 'offsetHeight');
-    }, target.style.positionTryOptions);
+    }, target.style.positionTryFallbacks);
   }
 
   let w = 30;

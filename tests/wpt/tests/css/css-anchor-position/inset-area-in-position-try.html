@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <title>CSS Anchor Positioning: inset-area in @position-try</title>
-<link rel="help" href='https://drafts.csswg.org/css-anchor-position-1/#position-try-options'>
+<link rel="help" href='https://drafts.csswg.org/css-anchor-position-1/#position-try-fallbacks'>
 <script src='/resources/testharness.js'></script>
 <script src='/resources/testharnessreport.js'></script>
 <style>
@@ -56,14 +56,14 @@ function test_inset_area_ref(inset_area) {
         inset-area: ${inset_area};
       }
       #target {
-        position-try-options: --pt;
+        position-try-fallbacks: --pt;
       }
       #ref {
         inset-area: ${inset_area};
       }
     `;
     assert_true(CSS.supports('inset-area', 'top left'));
-    assert_true(CSS.supports('position-try-options', '--x'));
+    assert_true(CSS.supports('position-try-fallbacks', '--x'));
     assert_equals(target.offsetLeft, ref.offsetLeft, 'offsetLeft');
     assert_equals(target.offsetTop, ref.offsetTop, 'offsetTop');
   }, `${inset_area}`);
@@ -138,11 +138,11 @@ test_inset_area_ref('span-bottom span-all');
 </style>
 <script>
 
-// Test that an element with the specified position-try-options is placed
+// Test that an element with the specified position-try-fallbacks is placed
 // at the same position as a reference element with inset-area:`expected`.
 // This test uses #target/#ref size of 60x60px, which causes overflow if
 // if we attempt the --right and --bottom positions.
-function test_inset_area_placement(position_try_options, expected) {
+function test_inset_area_placement(position_try_fallbacks, expected) {
   test((t) => {
     style.textContent = `
       #target, #ref {
@@ -150,17 +150,17 @@ function test_inset_area_placement(position_try_options, expected) {
         height: 60px;
       }
       #target {
-        position-try-options: ${position_try_options};
+        position-try-fallbacks: ${position_try_fallbacks};
       }
       #ref {
         inset-area: ${expected};
       }
     `;
     assert_true(CSS.supports('inset-area', 'top left'));
-    assert_true(CSS.supports('position-try-options', '--x'));
+    assert_true(CSS.supports('position-try-fallbacks', '--x'));
     assert_equals(target.offsetLeft, ref.offsetLeft, 'offsetLeft');
     assert_equals(target.offsetTop, ref.offsetTop, 'offsetTop');
-  }, `Placement: ${position_try_options}`);
+  }, `Placement: ${position_try_fallbacks}`);
 }
 
 test_inset_area_placement('--top', 'top');

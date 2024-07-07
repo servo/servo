@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <title>CSS Anchor Positioning: try-tactic, sizing properties</title>
-<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#typedef-position-try-options-try-tactic">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#typedef-position-try-fallbacks-try-tactic">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style>
@@ -32,7 +32,7 @@
 </div>
 <script>
   test(() => {
-    target.style.positionTryOptions = '--pf flip-block';
+    target.style.positionTryFallbacks = '--pf flip-block';
     let cs = getComputedStyle(target);
     assert_equals(cs.width, '30px');
     assert_equals(cs.height, '40px');
@@ -43,7 +43,7 @@
   }, 'flip-block does not affect sizing');
 
   test(() => {
-    target.style.positionTryOptions = '--pf flip-inline';
+    target.style.positionTryFallbacks = '--pf flip-inline';
     let cs = getComputedStyle(target);
     assert_equals(cs.width, '30px');
     assert_equals(cs.height, '40px');
@@ -54,7 +54,7 @@
   }, 'flip-inline does not affect sizing');
 
   test(() => {
-    target.style.positionTryOptions = '--pf flip-start';
+    target.style.positionTryFallbacks = '--pf flip-start';
     let cs = getComputedStyle(target);
     assert_equals(cs.width, '40px');
     assert_equals(cs.height, '30px');

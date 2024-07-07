@@ -21,6 +21,7 @@ partial interface HTMLIFrameElement {
 
 [Exposed=Window]
 interface PermissionsPolicyViolationReportBody : ReportBody {
+  [Default] object toJSON();
   readonly attribute DOMString featureId;
   readonly attribute DOMString? sourceFile;
   readonly attribute long? lineNumber;

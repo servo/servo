@@ -128,6 +128,45 @@ promise_test(async function() {
 
 promise_test(async function () {
     this.add_cleanup(resetRich);
+    rich.innerHTML = '<p>Preexisting <i id="caret">C</i>ontent</p>';
+
+    const expectedResult = [
+        // Pressing 'a', 'b'
+        'insertText',
+        'insertText',
+        // Delete twice
+        'deleteContentForward',
+        'deleteContentForward',
+        // Pressing 'c', 'd'
+        'insertText',
+        'insertText',
+        // Backspace
+        'deleteContentBackward'
+    ];
+    const result = [];
+
+    rich.addEventListener("input", (inputEvent) => {
+      result.push(inputEvent.inputType);
+    });
+
+    await test_driver.click(document.querySelector('#caret')); // Preexisting |Content
+    await test_driver.send_keys(rich, "a"); // Preexisting a|Content
+    await test_driver.send_keys(rich, "b"); // Preexisting ab|Content
+    // Delete
+    await test_driver.send_keys(rich, "\uE017"); // Preexisting ab|ontent
+    // Delete
+    await test_driver.send_keys(rich, "\uE017"); // Preexisting ab|ntent
+    await test_driver.send_keys(rich, "c"); // Preexisting abc|ntent
+    await test_driver.send_keys(rich, "d"); // Preexisting abcd|ntent
+    // Backspace
+    await test_driver.send_keys(rich, "\uE003"); // Preexisting abc|ntent
+
+    assert_equals(result.length, expectedResult.length);
+    expectedResult.forEach((er, index) => assert_equals(result[index], er));
+}, 'Input events have correct inputType updated when different inputs are typed');
+
+promise_test(async function () {
+    this.add_cleanup(resetRich);
     rich.innerHTML = '<p>Preexisting <i id="caret">c</i>ontent</p>';
 
     const expectedResult = [
@@ -169,8 +208,8 @@ promise_test(async function () {
     // Delete
     await test_driver.send_keys(rich, "\uE017"); // |
 
-    assert_equals(expectedResult.length, result.length);
-    expectedResult.forEach((er, index) => assert_equals(er, result[index]));
+    assert_equals(result.length, expectedResult.length);
+    expectedResult.forEach((er, index) => assert_equals(result[index], er));
 }, 'Input events have correct inputType when selected text is removed with Backspace or Delete');
 
 promise_test(async function() {
@@ -326,7 +365,7 @@ promise_test(async function() {
         .keyUp('\uE008')
         .send();
 
-    assert_equals(expectedResult.length, result.length);
-    expectedResult.forEach((er, index) => assert_equals(er, result[index]));
+    assert_equals(result.length, expectedResult.length);
+    expectedResult.forEach((er, index) => assert_equals(result[index], er));
 }, 'InputEvents have correct data/order when typing on textarea and contenteditable');
 </script>

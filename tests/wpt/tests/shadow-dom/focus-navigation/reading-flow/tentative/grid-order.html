@@ -73,6 +73,20 @@
   </div>
 </div>
 
+<div class="test-case" data-expect="order1B,order2B,order3B,order4B,div1B,div2B"
+     data-description="Items in display contents are sorted in same grid container, with focusable display contents divs at the end of the focus sequence.">
+  <div class="wrapper">
+    <div id="div1B" style="display: contents" tabindex="0">
+      <button id="order3B" style="order: 3">Order 3</button>
+      <button id="order1B" style="order: 1">Order 1</button>
+      <div id="div2B" style="display: contents" tabindex="0">
+        <button id="order4B" style="order: 4">Order 4</button>
+        <button id="order2B" style="order: 2">Order 2</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="test-case" data-expect="d4,b4,c4,a4"
       data-description="Items in display block are not in parent grid container.">
   <div class="wrapper">

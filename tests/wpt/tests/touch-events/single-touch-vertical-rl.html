@@ -12,28 +12,44 @@
   <script>
     setup({explicit_done: true});
 
+    function onEvent(target, eventName, validator) {
+      return new Promise((resolve) => {
+        const listener = (event) => {
+          validator(event);
+          resolve();
+        };
+        target.addEventListener(eventName, listener, { once: true });
+      });
+    }
+
     async function run() {
-      document.documentElement.addEventListener("touchstart", function onTouchStart(event) {
-        test(function() {
-          assert_equals(event.changedTouches[0].clientX, 10, "clientX");
-          assert_equals(event.changedTouches[0].clientY, 20, "clientY");
-        }, "touchstart client coordinates are correct in vertical-rl");
-      });
+      promise_test(async () => {
+        const touchstart_promise = onEvent(document.documentElement,
+                                           "touchstart", (event) => {
+          assert_equals(event.changedTouches[0].clientX, 10,
+            "touchstart clientX coordinates are correct in vertical-rl");
+          assert_equals(event.changedTouches[0].clientY, 20,
+            "touchstart clientX coordinates are correct in vertical-rl");
+        });
 
-      document.documentElement.addEventListener("click", function onClick(event) {
-        test(function() {
-          assert_equals(event.clientX, 10, "clientX");
-          assert_equals(event.clientY, 20, "clientY");
-        }, "click client coordinates are correct in vertical-rl");
-        done();
-      });
+        const click_promise = onEvent(document.documentElement,
+                                      "click", (event) => {
+          assert_equals(event.clientX, 10,
+            "click clientX coordinates are correct in vertical-rl");
+          assert_equals(event.clientY, 20,
+            "click clientY coordinates are correct in vertical-rl");
+        });
 
-      let actions = new test_driver.Actions()
+        const actions = new test_driver.Actions()
           .addPointer("touchPointer1", "touch")
           .pointerMove(10, 20)
           .pointerDown()
           .pointerUp();
-      await actions.send();
+
+        const actions_promise = actions.send();
+        await Promise.all([actions_promise, click_promise, touchstart_promise]);
+        done();
+      }, "touch & click events in vertical-rl mode have correct coordinates");
     }
   </script>
   <style>

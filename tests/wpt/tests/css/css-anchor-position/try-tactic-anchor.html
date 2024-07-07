@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <title>CSS Anchor Positioning: try-tactic, anchor()</title>
-<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#typedef-position-try-options-try-tactic">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#typedef-position-try-fallbacks-try-tactic">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style>
@@ -53,14 +53,14 @@ function test_anchor_flip(try_tactic, untransformed, transformed) {
         ${untransformed}
       }
       #target {
-        position-try-options: --pf ${try_tactic};
+        position-try-fallbacks: --pf ${try_tactic};
       }
       @position-try --ref {
         inset: auto;
         ${transformed}
       }
       #ref {
-        position-try-options: --ref;
+        position-try-fallbacks: --ref;
       }
     `;
     assert_equals(target.offsetLeft, ref.offsetLeft, 'offsetLeft');
@@ -197,7 +197,7 @@ function test_anchor_size_flip(try_tactic, flip_expected) {
         height: anchor-size(height);
       }
       #target {
-        position-try-options: --pf ${try_tactic};
+        position-try-fallbacks: --pf ${try_tactic};
       }
     `;
 
@@ -242,7 +242,7 @@ test((t) => {
       right: var(--anchor-left);
     }
     #target {
-      position-try-options: --pf;
+      position-try-fallbacks: --pf;
     }
   `;
   // Initially positioned to the left of the anchor.
@@ -251,7 +251,7 @@ test((t) => {
   // Now positioned to the right of the anchor.
   style.textContent += `
     #target {
-      position-try-options: --pf flip-inline;
+      position-try-fallbacks: --pf flip-inline;
     }
   `;
   assert_equals(target.offsetLeft, 210, 'offsetLeft');

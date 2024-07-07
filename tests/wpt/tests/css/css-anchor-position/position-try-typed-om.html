@@ -30,7 +30,7 @@
     background: skyblue;
     position-anchor: --a;
     left: 9999px; /* force overflow */
-    position-try-options: --pt;
+    position-try-fallbacks: --pt;
   }
 </style>
 
@@ -51,5 +51,5 @@
     assert_unit_value(target.computedStyleMap().get('top'), CSS.px(50));
     assert_unit_value(target.computedStyleMap().get('width'), CSS.px(20));
     assert_unit_value(target.computedStyleMap().get('height'), CSS.px(40));
-  }, 'Effects of position-try-options are visible in the computed values');
+  }, 'Effects of position-try-fallbacks are visible in the computed values');
 </script>

@@ -213,6 +213,13 @@ function validateTwoInputsBroadcastable(operationName) {
   }
   promise_test(async t => {
     for (let dataType of allWebNNOperandDataTypes) {
+      if (!context.opSupportLimits().input.dataTypes.includes(dataType)) {
+        assert_throws_js(
+            TypeError,
+            () => builder.input(
+                `inputA${++inputAIndex}`, {dataType, dimensions1D}));
+        continue;
+      }
       for (let dimensions of allWebNNDimensionsArray) {
         if (dimensions.length > 0) {
           const inputA = builder.input(`inputA${++inputAIndex}`, {dataType, dimensions});
@@ -245,9 +252,24 @@ function validateTwoInputsOfSameDataType(operationName) {
   for (let subOperationName of operationNameArray) {
     promise_test(async t => {
       for (let dataType of allWebNNOperandDataTypes) {
+        if (!context.opSupportLimits().input.dataTypes.includes(dataType)) {
+          assert_throws_js(
+              TypeError,
+              () => builder.input(
+                  `inputA${++inputAIndex}`, {dataType, dimensions1D}));
+          continue;
+        }
         for (let dimensions of allWebNNDimensionsArray) {
           const inputA = builder.input(`inputA${++inputAIndex}`, {dataType, dimensions});
           for (let dataTypeB of allWebNNOperandDataTypes) {
+            if (!context.opSupportLimits().input.dataTypes.includes(
+                    dataTypeB)) {
+              assert_throws_js(
+                  TypeError,
+                  () => builder.input(
+                      `inputB${++inputBIndex}`, {dataTypeB, dimensions1D}));
+              continue;
+            }
             if (dataType !== dataTypeB) {
               const inputB = builder.input(`inputB${++inputBIndex}`, {dataType: dataTypeB, dimensions});
               assert_throws_js(
@@ -283,6 +305,13 @@ function validateOptionsAxes(operationName) {
     // TypeError is expected if any of options.axes elements is not an unsigned long interger
     promise_test(async t => {
       for (let dataType of allWebNNOperandDataTypes) {
+        if (!context.opSupportLimits().input.dataTypes.includes(dataType)) {
+          assert_throws_js(
+              TypeError,
+              () => builder.input(
+                  `inputA${++inputAIndex}`, {dataType, dimensions1D}));
+          continue;
+        }
         for (let dimensions of allWebNNDimensionsArray) {
           const rank = getRank(dimensions);
           if (rank >= 1) {
@@ -310,6 +339,13 @@ function validateOptionsAxes(operationName) {
     // to the size of input
     promise_test(async t => {
       for (let dataType of allWebNNOperandDataTypes) {
+        if (!context.opSupportLimits().input.dataTypes.includes(dataType)) {
+          assert_throws_js(
+              TypeError,
+              () => builder.input(
+                  `inputA${++inputAIndex}`, {dataType, dimensions1D}));
+          continue;
+        }
         for (let dimensions of allWebNNDimensionsArray) {
           const rank = getRank(dimensions);
           if (rank >= 1) {
@@ -329,6 +365,13 @@ function validateOptionsAxes(operationName) {
     // TypeError is expected if two or more values are same in the axes sequence
     promise_test(async t => {
       for (let dataType of allWebNNOperandDataTypes) {
+        if (!context.opSupportLimits().input.dataTypes.includes(dataType)) {
+          assert_throws_js(
+              TypeError,
+              () => builder.input(
+                  `inputA${++inputAIndex}`, {dataType, dimensions1D}));
+          continue;
+        }
         for (let dimensions of allWebNNDimensionsArray) {
           const rank = getRank(dimensions);
           if (rank >= 2) {
@@ -357,35 +400,41 @@ function validateOptionsAxes(operationName) {
  */
 function validateUnaryOperation(
     operationName, supportedDataTypes, alsoBuildActivation = false) {
-  // TODO: crbug.com/345271830 - use context.opSupportLimits to get supported
-  // data types for current context.
-  for (let dataType of supportedDataTypes) {
-    for (let dimensions of allWebNNDimensionsArray) {
-      promise_test(
-          async t => {
-            const input = builder.input(`input`, {dataType, dimensions});
-            const output = builder[operationName](input);
-            assert_equals(output.dataType(), dataType);
-            assert_array_equals(output.shape(), dimensions);
-          },
-          `[${operationName}] Test building an operator, dataType = ${
-              dataType}, dimensions = [${dimensions}]`);
+  promise_test(async t => {
+    for (let dataType of supportedDataTypes) {
+      if (!context.opSupportLimits().input.dataTypes.includes(dataType)) {
+        assert_throws_js(
+            TypeError,
+            () => builder.input(
+                `inputA${++inputAIndex}`, {dataType, dimensions1D}));
+        continue;
+      }
+      for (let dimensions of allWebNNDimensionsArray) {
+        const input = builder.input(`input`, {dataType, dimensions});
+        const output = builder[operationName](input);
+        assert_equals(output.dataType(), dataType);
+        assert_array_equals(output.shape(), dimensions);
+      }
     }
-  }
+  }, `[${operationName}] Test building an unary operator with supported type.`);
 
   const unsupportedDataTypes =
       new Set(allWebNNOperandDataTypes).difference(new Set(supportedDataTypes));
-  for (let dataType of unsupportedDataTypes) {
-    for (let dimensions of allWebNNDimensionsArray) {
-      promise_test(
-          async t => {
-            const input = builder.input(`input`, {dataType, dimensions});
-            assert_throws_js(TypeError, () => builder[operationName](input));
-          },
-          `[${operationName}] Throw if the dataType is not supported, dataType = ${
-              dataType}, dimensions = [${dimensions}]`);
+  promise_test(async t => {
+    for (let dataType of unsupportedDataTypes) {
+      if (!context.opSupportLimits().input.dataTypes.includes(dataType)) {
+        assert_throws_js(
+            TypeError,
+            () => builder.input(
+                `inputA${++inputAIndex}`, {dataType, dimensions1D}));
+        continue;
+      }
+      for (let dimensions of allWebNNDimensionsArray) {
+        const input = builder.input(`input`, {dataType, dimensions});
+        assert_throws_js(TypeError, () => builder[operationName](input));
+      }
     }
-  }
+  }, `[${operationName}] Throw if the dataType is not supported for an unary operator.`);
 
   if (alsoBuildActivation) {
     promise_test(async t => {
