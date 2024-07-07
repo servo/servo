@@ -14,6 +14,8 @@ interface CustomElementRegistry {
 
   any get(DOMString name);
 
+  DOMString? getName(CustomElementConstructor constructor);
+
   Promise<CustomElementConstructor> whenDefined(DOMString name);
 
   [CEReactions] undefined upgrade(Node root);

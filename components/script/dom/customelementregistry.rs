@@ -561,6 +561,16 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-getname>
+    fn GetName(&self, constructor: Rc<CustomElementConstructor>) -> Option<DOMString> {
+        self.definitions
+            .borrow()
+            .0
+            .values()
+            .find(|definition| definition.constructor == constructor)
+            .map(|definition| DOMString::from(definition.name.to_string()))
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-whendefined>
     #[allow(unsafe_code)]
     fn WhenDefined(&self, name: DOMString, comp: InRealm) -> Rc<Promise> {
