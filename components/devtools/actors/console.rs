@@ -119,40 +119,6 @@ struct SetPreferencesReply {
     updated: Vec<String>,
 }
 
-#[derive(Serialize)]
-struct ConsoleAPICall {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-    message: ConsoleMsg,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct ConsoleMsg {
-    level: String,
-    timestamp: u64,
-    arguments: Vec<String>,
-    filename: String,
-    line_number: usize,
-    column_number: usize,
-}
-
-#[derive(Serialize)]
-struct PageErrorMsg {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-    resources: Vec<PageErrorResource>,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct PageErrorResource {
-    page_error: PageError,
-    resource_type: String,
-}
-
 pub(crate) enum Root {
     BrowsingContext(String),
     DedicatedWorker(String),
@@ -172,23 +138,6 @@ impl ConsoleActor {
         match &self.root {
             Root::BrowsingContext(bc) => &registry.find::<BrowsingContextActor>(bc).script_chan,
             Root::DedicatedWorker(worker) => &registry.find::<WorkerActor>(worker).script_chan,
-        }
-    }
-
-    fn streams_mut(&self, registry: &ActorRegistry, cb: impl Fn(&mut TcpStream)) {
-        match &self.root {
-            Root::BrowsingContext(bc) => registry
-                .find::<BrowsingContextActor>(bc)
-                .streams
-                .borrow_mut()
-                .values_mut()
-                .for_each(cb),
-            Root::DedicatedWorker(worker) => registry
-                .find::<WorkerActor>(worker)
-                .streams
-                .borrow_mut()
-                .values_mut()
-                .for_each(cb),
         }
     }
 
@@ -288,7 +237,6 @@ impl ConsoleActor {
         std::result::Result::Ok(reply)
     }
 
-    // TODO: Now I am getting Error: Unexpected packet console4
     pub(crate) fn handle_page_error(
         &self,
         page_error: PageError,
@@ -297,28 +245,18 @@ impl ConsoleActor {
     ) {
         log::warn!("page error! {:?}", page_error);
 
-        let from = match &self.root {
-            Root::BrowsingContext(bc) => registry.find::<BrowsingContextActor>(bc).name(),
-            Root::DedicatedWorker(_) => "".into(),
-        };
-
         self.cached_events
             .borrow_mut()
             .entry(id.clone())
             .or_default()
             .push(CachedConsoleMessage::PageError(page_error.clone()));
         if id == self.current_unique_id(registry) {
-                from,
-                type_: "resource-available-form".into(),
-                resources: vec![PageErrorResource {
-                    page_error,
-                    resource_type: "error-message".into(),
-                }],
+            match &self.root {
+                Root::BrowsingContext(bc) => registry
+                    .find::<BrowsingContextActor>(bc)
+                    .page_error(page_error),
+                Root::DedicatedWorker(_) => (),
             };
-            self.streams_mut(registry, |stream| {
-                // TODO: This is not writing anything!!!
-                let _ = stream.write_json_packet(&msg);
-            });
         }
     }
 
@@ -338,42 +276,33 @@ impl ConsoleActor {
         }
         .to_owned();
         log::info!("message! {:?}", console_message);
+
+        let console_api = ConsoleAPI {
+            type_: "ConsoleAPI".to_owned(),
+            level: level.clone(),
+            filename: console_message.filename.clone(),
+            line_number: console_message.line_number as u32,
+            function_name: "".to_string(), //TODO
+            time_stamp: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos() as u64,
+            private: false,
+            arguments: vec![console_message.message.clone()],
+        };
+
         self.cached_events
             .borrow_mut()
             .entry(id.clone())
             .or_default()
-            .push(CachedConsoleMessage::ConsoleAPI(ConsoleAPI {
-                type_: "ConsoleAPI".to_owned(),
-                level: level.clone(),
-                filename: console_message.filename.clone(),
-                line_number: console_message.line_number as u32,
-                function_name: "".to_string(), //TODO
-                time_stamp: SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_nanos() as u64,
-                private: false,
-                arguments: vec![console_message.message.clone()],
-            }));
+            .push(CachedConsoleMessage::ConsoleAPI(console_api.clone()));
         if id == self.current_unique_id(registry) {
-            let msg = ConsoleAPICall {
-                from: self.name(),
-                type_: "consoleAPICall".to_owned(),
-                message: ConsoleMsg {
-                    level,
-                    timestamp: SystemTime::now()
-                        .duration_since(UNIX_EPOCH)
-                        .unwrap_or_default()
-                        .as_nanos() as u64,
-                    arguments: vec![console_message.message],
-                    filename: console_message.filename,
-                    line_number: console_message.line_number,
-                    column_number: console_message.column_number,
-                },
+            match &self.root {
+                Root::BrowsingContext(bc) => registry
+                    .find::<BrowsingContextActor>(bc)
+                    .console_message(console_api),
+                Root::DedicatedWorker(_) => (),
             };
-            self.streams_mut(registry, |stream| {
-                let _ = stream.write_json_packet(&msg);
-            });
         }
     }
 }

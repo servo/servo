@@ -12,7 +12,7 @@ use std::net::TcpStream;
 
 use base::id::{BrowsingContextId, PipelineId};
 use devtools_traits::DevtoolScriptControlMsg::{self, WantsLiveNotifications};
-use devtools_traits::{DevtoolsPageInfo, NavigationState};
+use devtools_traits::{ConsoleAPI, DevtoolsPageInfo, NavigationState, PageError};
 use ipc_channel::ipc::IpcSender;
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -68,6 +68,37 @@ struct ResourceAvailableMsg {
     time: u64,
     title: Option<String>,
     url: Option<String>,
+}
+
+// TODO: Its wrong
+#[derive(Serialize)]
+struct ConsoleMsg {
+    from: String,
+    #[serde(rename = "type")]
+    type_: String,
+    resources: Vec<ConsoleMessageResource>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ConsoleMessageResource {
+    message: ConsoleAPI,
+    resource_type: String,
+}
+
+#[derive(Serialize)]
+struct PageErrorMsg {
+    from: String,
+    #[serde(rename = "type")]
+    type_: String,
+    resources: Vec<PageErrorResource>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PageErrorResource {
+    page_error: PageError,
+    resource_type: String,
 }
 
 #[derive(Serialize)]
@@ -358,6 +389,36 @@ impl BrowsingContextActor {
                     url: Some(self.url.borrow().clone()),
                 }],
             });
+        }
+    }
+
+    pub(crate) fn console_message(&self, message: ConsoleAPI) {
+        let msg = ConsoleMsg {
+            from: self.name(),
+            type_: "resource-available-form".into(),
+            resources: vec![ConsoleMessageResource {
+                message,
+                resource_type: "console-message".into(),
+            }],
+        };
+
+        for stream in self.streams.borrow_mut().values_mut() {
+            let _ = stream.write_json_packet(&msg);
+        }
+    }
+
+    pub(crate) fn page_error(&self, page_error: PageError) {
+        let msg = PageErrorMsg {
+            from: self.name(),
+            type_: "resource-available-form".into(),
+            resources: vec![PageErrorResource {
+                page_error,
+                resource_type: "error-message".into(),
+            }],
+        };
+
+        for stream in self.streams.borrow_mut().values_mut() {
+            let _ = stream.write_json_packet(&msg);
         }
     }
 }

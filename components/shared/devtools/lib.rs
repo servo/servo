@@ -282,7 +282,7 @@ pub struct PageError {
     pub private: bool,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ConsoleAPI {
     #[serde(rename = "_type")]
     pub type_: String,
