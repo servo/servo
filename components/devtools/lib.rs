@@ -334,6 +334,7 @@ fn run_server(
                         page_info,
                         pipeline,
                         script_sender,
+                        // TODO: PASS STREAMS HERE
                         &mut actors,
                     );
                     let name = browsing_context_actor.name();
@@ -610,6 +611,14 @@ fn run_server(
                 let id = next_id;
                 next_id = StreamId(id.0 + 1);
                 accepted_connections.push(stream.try_clone().unwrap());
+                // TODO: Is this ok?
+                // What about when a new page is opened after the connection is there?
+                for (_, name) in &browsing_contexts {
+                    let actors = actors.lock().unwrap();
+                    let browsing_context = actors.find::<BrowsingContextActor>(name);
+                    let mut streams = browsing_context.streams.borrow_mut();
+                    streams.insert(id, stream.try_clone().unwrap());
+                }
                 thread::Builder::new()
                     .name("DevtoolsClientHandler".to_owned())
                     .spawn(move || handle_client(actors, stream.try_clone().unwrap(), id))

@@ -349,7 +349,7 @@ impl BrowsingContextActor {
                 from: self.name(),
                 type_: "resource-available-form".into(),
                 resources: vec![ResourceAvailableMsg {
-                    has_native_console_api: None,
+                    has_native_console_api: Some(true),
                     name: name.into(),
                     new_uri: None,
                     resource_type: "document-event".into(),
