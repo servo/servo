@@ -191,7 +191,7 @@ fn run_server(
 
     let actors = registry.create_shareable();
 
-    let mut accepted_connections: Vec<TcpStream> = Vec::new();
+    let mut accepted_connections: HashMap<StreamId, TcpStream> = HashMap::new();
 
     let mut browsing_contexts: HashMap<BrowsingContextId, String> = HashMap::new();
     let mut pipelines: HashMap<PipelineId, BrowsingContextId> = HashMap::new();
@@ -289,6 +289,7 @@ fn run_server(
         pipelines: &mut HashMap<PipelineId, BrowsingContextId>,
         actor_workers: &mut HashMap<WorkerId, String>,
         page_info: DevtoolsPageInfo,
+        connections: &HashMap<StreamId, TcpStream>,
     ) {
         let mut actors = actors.lock().unwrap();
 
@@ -324,25 +325,31 @@ fn run_server(
             Root::DedicatedWorker(worker_name)
         } else {
             pipelines.insert(pipeline, browsing_context);
-            Root::BrowsingContext(
-                if let Some(actor) = browsing_contexts.get(&browsing_context) {
-                    actor.to_owned()
-                } else {
-                    let browsing_context_actor = BrowsingContextActor::new(
-                        console_name.clone(),
-                        browsing_context,
-                        page_info,
-                        pipeline,
-                        script_sender,
-                        // TODO: PASS STREAMS HERE
-                        &mut actors,
-                    );
-                    let name = browsing_context_actor.name();
-                    browsing_contexts.insert(browsing_context, name.clone());
-                    actors.register(Box::new(browsing_context_actor));
-                    name
-                },
-            )
+            let name = if let Some(actor) = browsing_contexts.get(&browsing_context) {
+                actor.to_owned()
+            } else {
+                let browsing_context_actor = BrowsingContextActor::new(
+                    console_name.clone(),
+                    browsing_context,
+                    page_info,
+                    pipeline,
+                    script_sender,
+                    &mut actors,
+                );
+                let name = browsing_context_actor.name();
+                browsing_contexts.insert(browsing_context, name.clone());
+                actors.register(Box::new(browsing_context_actor));
+                name
+            };
+
+            // Add existing streams to the new browsing context
+            let browsing_context = actors.find::<BrowsingContextActor>(&name);
+            let mut streams = browsing_context.streams.borrow_mut();
+            for (id, stream) in connections {
+                streams.insert(*id, stream.try_clone().unwrap());
+            }
+
+            Root::BrowsingContext(name)
         };
 
         let console = ConsoleActor {
@@ -610,9 +617,9 @@ fn run_server(
                 let actors = actors.clone();
                 let id = next_id;
                 next_id = StreamId(id.0 + 1);
-                accepted_connections.push(stream.try_clone().unwrap());
-                // TODO: Is this ok?
-                // What about when a new page is opened after the connection is there?
+                accepted_connections.insert(id, stream.try_clone().unwrap());
+
+                // Inform every browsing context of the new stream
                 for (_, name) in &browsing_contexts {
                     let actors = actors.lock().unwrap();
                     let browsing_context = actors.find::<BrowsingContextActor>(name);
@@ -650,6 +657,7 @@ fn run_server(
                 &mut pipelines,
                 &mut actor_workers,
                 pageinfo,
+                &accepted_connections,
             ),
             DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::Navigate(
                 browsing_context,
@@ -707,7 +715,7 @@ fn run_server(
             )) => {
                 // copy the accepted_connections vector
                 let mut connections = Vec::<TcpStream>::new();
-                for stream in &accepted_connections {
+                for (_, stream) in &accepted_connections {
                     connections.push(stream.try_clone().unwrap());
                 }
 
@@ -730,7 +738,7 @@ fn run_server(
             DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg) => break,
         }
     }
-    for connection in &mut accepted_connections {
+    for (_, connection) in &mut accepted_connections {
         let _ = connection.shutdown(Shutdown::Both);
     }
 }

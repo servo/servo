@@ -12,7 +12,7 @@ use std::net::TcpStream;
 
 use base::id::{BrowsingContextId, PipelineId};
 use devtools_traits::DevtoolScriptControlMsg::{self, WantsLiveNotifications};
-use devtools_traits::{ConsoleAPI, DevtoolsPageInfo, NavigationState, PageError};
+use devtools_traits::{ConsoleLog, DevtoolsPageInfo, NavigationState, PageError};
 use ipc_channel::ipc::IpcSender;
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -70,7 +70,6 @@ struct ResourceAvailableMsg {
     url: Option<String>,
 }
 
-// TODO: Its wrong
 #[derive(Serialize)]
 struct ConsoleMsg {
     from: String,
@@ -82,7 +81,7 @@ struct ConsoleMsg {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ConsoleMessageResource {
-    message: ConsoleAPI,
+    message: ConsoleLog,
     resource_type: String,
 }
 
@@ -392,7 +391,7 @@ impl BrowsingContextActor {
         }
     }
 
-    pub(crate) fn console_message(&self, message: ConsoleAPI) {
+    pub(crate) fn console_message(&self, message: ConsoleLog) {
         let msg = ConsoleMsg {
             from: self.name(),
             type_: "resource-available-form".into(),

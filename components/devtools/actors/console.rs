@@ -16,7 +16,7 @@ use devtools_traits::EvaluateJSReply::{
     ActorValue, BooleanValue, NullValue, NumberValue, StringValue, VoidValue,
 };
 use devtools_traits::{
-    CachedConsoleMessage, CachedConsoleMessageTypes, ConsoleAPI, ConsoleMessage,
+    CachedConsoleMessage, CachedConsoleMessageTypes, ConsoleLog, ConsoleMessage,
     DevtoolScriptControlMsg, LogLevel, PageError,
 };
 use ipc_channel::ipc::{self, IpcSender};
@@ -40,7 +40,7 @@ impl EncodableConsoleMessage for CachedConsoleMessage {
     fn encode(&self) -> serde_json::Result<String> {
         match *self {
             CachedConsoleMessage::PageError(ref a) => serde_json::to_string(a),
-            CachedConsoleMessage::ConsoleAPI(ref a) => serde_json::to_string(a),
+            CachedConsoleMessage::ConsoleLog(ref a) => serde_json::to_string(a),
         }
     }
 }
@@ -160,7 +160,7 @@ impl ConsoleActor {
     ) -> Result<EvaluateJSReply, ()> {
         let input = msg.get("text").unwrap().as_str().unwrap().to_owned();
         let (chan, port) = ipc::channel().unwrap();
-        // FIXME: redesign messages so we don't have to fake pipeline ids when
+        // FIXME: Redesign messages so we don't have to fake pipeline ids when
         //        communicating with workers.
         let pipeline = match self.current_unique_id(registry) {
             UniqueId::Pipeline(p) => p,
@@ -174,7 +174,7 @@ impl ConsoleActor {
             ))
             .unwrap();
 
-        //TODO: extract conversion into protocol module or some other useful place
+        // TODO: Extract conversion into protocol module or some other useful place
         let result = match port.recv().map_err(|_| ())? {
             VoidValue => {
                 let mut m = Map::new();
@@ -210,7 +210,7 @@ impl ConsoleActor {
             },
             StringValue(s) => Value::String(s),
             ActorValue { class, uuid } => {
-                //TODO: make initial ActorValue message include these properties?
+                // TODO: Make initial ActorValue message include these properties?
                 let mut m = Map::new();
                 let actor = ObjectActor::register(registry, uuid);
 
@@ -224,7 +224,7 @@ impl ConsoleActor {
             },
         };
 
-        //TODO: catch and return exception values from JS evaluation
+        // TODO: Catch and return exception values from JS evaluation
         let reply = EvaluateJSReply {
             from: self.name(),
             input,
@@ -277,17 +277,15 @@ impl ConsoleActor {
         }
         .to_owned();
 
-        let console_api = ConsoleAPI {
-            type_: "ConsoleAPI".to_owned(),
+        let console_api = ConsoleLog {
             level: level.clone(),
             filename: console_message.filename.clone(),
             line_number: console_message.line_number as u32,
-            function_name: "".to_string(), //TODO
+            column_number: console_message.column_number as u32,
             time_stamp: SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_millis() as u64,
-            private: false,
             arguments: vec![console_message.message.clone()],
         };
 
@@ -295,7 +293,7 @@ impl ConsoleActor {
             .borrow_mut()
             .entry(id.clone())
             .or_default()
-            .push(CachedConsoleMessage::ConsoleAPI(console_api.clone()));
+            .push(CachedConsoleMessage::ConsoleLog(console_api.clone()));
         if id == self.current_unique_id(registry) {
             match &self.root {
                 Root::BrowsingContext(bc) => registry
@@ -360,7 +358,7 @@ impl Actor for ConsoleActor {
                         {
                             true
                         },
-                        CachedConsoleMessage::ConsoleAPI(_)
+                        CachedConsoleMessage::ConsoleLog(_)
                             if message_types.contains(CachedConsoleMessageTypes::CONSOLE_API) =>
                         {
                             true
