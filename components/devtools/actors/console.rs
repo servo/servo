@@ -229,7 +229,10 @@ impl ConsoleActor {
             from: self.name(),
             input,
             result,
-            timestamp: 0,
+            timestamp: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis() as u64,
             exception: Value::Null,
             exception_message: Value::Null,
             helper_result: Value::Null,
@@ -243,8 +246,6 @@ impl ConsoleActor {
         id: UniqueId,
         registry: &ActorRegistry,
     ) {
-        log::warn!("page error! {:?}", page_error);
-
         self.cached_events
             .borrow_mut()
             .entry(id.clone())
@@ -275,7 +276,6 @@ impl ConsoleActor {
             _ => "log",
         }
         .to_owned();
-        log::info!("message! {:?}", console_message);
 
         let console_api = ConsoleAPI {
             type_: "ConsoleAPI".to_owned(),
@@ -286,7 +286,7 @@ impl ConsoleActor {
             time_stamp: SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap_or_default()
-                .as_nanos() as u64,
+                .as_millis() as u64,
             private: false,
             arguments: vec![console_message.message.clone()],
         };
