@@ -9,7 +9,6 @@
 
 #![crate_name = "devtools"]
 #![crate_type = "rlib"]
-#![allow(non_snake_case)]
 #![deny(unsafe_code)]
 
 use std::borrow::ToOwned;
@@ -81,24 +80,27 @@ enum UniqueId {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct NetworkEventMsg {
     from: String,
     #[serde(rename = "type")]
     type_: String,
-    eventActor: EventActor,
+    event_actor: EventActor,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct NetworkEventUpdateMsg {
     from: String,
     #[serde(rename = "type")]
     type_: String,
-    updateType: String,
+    update_type: String,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct EventTimingsUpdateMsg {
-    totalTime: u64,
+    total_time: u64,
 }
 
 #[derive(Serialize)]
@@ -107,11 +109,12 @@ struct SecurityInfoUpdateMsg {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct ResponseStartUpdateMsg {
     from: String,
     #[serde(rename = "type")]
     type_: String,
-    updateType: String,
+    update_type: String,
     response: ResponseStartMsg,
 }
 
@@ -463,7 +466,7 @@ fn run_server(
                 let msg = NetworkEventMsg {
                     from: console_actor_name,
                     type_: "networkEvent".to_owned(),
-                    eventActor: actor.event_actor(),
+                    event_actor: actor.event_actor(),
                 };
                 for stream in &mut connections {
                     let _ = stream.write_json_packet(&msg);
@@ -476,7 +479,7 @@ fn run_server(
                 let msg = NetworkEventUpdateMsg {
                     from: netevent_actor_name.clone(),
                     type_: "networkEventUpdate".to_owned(),
-                    updateType: "requestHeaders".to_owned(),
+                    update_type: "requestHeaders".to_owned(),
                 };
                 for stream in &mut connections {
                     let _ = stream.write_merged_json_packet(&msg, &actor.request_headers());
@@ -485,7 +488,7 @@ fn run_server(
                 let msg = NetworkEventUpdateMsg {
                     from: netevent_actor_name.clone(),
                     type_: "networkEventUpdate".to_owned(),
-                    updateType: "requestCookies".to_owned(),
+                    update_type: "requestCookies".to_owned(),
                 };
                 for stream in &mut connections {
                     let _ = stream.write_merged_json_packet(&msg, &actor.request_cookies());
@@ -495,7 +498,7 @@ fn run_server(
                 let msg = ResponseStartUpdateMsg {
                     from: netevent_actor_name.clone(),
                     type_: "networkEventUpdate".to_owned(),
-                    updateType: "responseStart".to_owned(),
+                    update_type: "responseStart".to_owned(),
                     response: actor.response_start(),
                 };
 
@@ -505,10 +508,10 @@ fn run_server(
                 let msg = NetworkEventUpdateMsg {
                     from: netevent_actor_name.clone(),
                     type_: "networkEventUpdate".to_owned(),
-                    updateType: "eventTimings".to_owned(),
+                    update_type: "eventTimings".to_owned(),
                 };
                 let extra = EventTimingsUpdateMsg {
-                    totalTime: actor.total_time(),
+                    total_time: actor.total_time(),
                 };
                 for stream in &mut connections {
                     let _ = stream.write_merged_json_packet(&msg, &extra);
@@ -517,7 +520,7 @@ fn run_server(
                 let msg = NetworkEventUpdateMsg {
                     from: netevent_actor_name.clone(),
                     type_: "networkEventUpdate".to_owned(),
-                    updateType: "securityInfo".to_owned(),
+                    update_type: "securityInfo".to_owned(),
                 };
                 let extra = SecurityInfoUpdateMsg {
                     state: "insecure".to_owned(),
@@ -529,7 +532,7 @@ fn run_server(
                 let msg = NetworkEventUpdateMsg {
                     from: netevent_actor_name.clone(),
                     type_: "networkEventUpdate".to_owned(),
-                    updateType: "responseContent".to_owned(),
+                    update_type: "responseContent".to_owned(),
                 };
                 for stream in &mut connections {
                     let _ = stream.write_merged_json_packet(&msg, &actor.response_content());
@@ -538,7 +541,7 @@ fn run_server(
                 let msg = NetworkEventUpdateMsg {
                     from: netevent_actor_name.clone(),
                     type_: "networkEventUpdate".to_owned(),
-                    updateType: "responseCookies".to_owned(),
+                    update_type: "responseCookies".to_owned(),
                 };
                 for stream in &mut connections {
                     let _ = stream.write_merged_json_packet(&msg, &actor.response_cookies());
@@ -547,7 +550,7 @@ fn run_server(
                 let msg = NetworkEventUpdateMsg {
                     from: netevent_actor_name,
                     type_: "networkEventUpdate".to_owned(),
-                    updateType: "responseHeaders".to_owned(),
+                    update_type: "responseHeaders".to_owned(),
                 };
                 for stream in &mut connections {
                     let _ = stream.write_merged_json_packet(&msg, &actor.response_headers());
@@ -674,10 +677,10 @@ fn run_server(
             )) => {
                 let console_message = ConsoleMessage {
                     message: css_error.msg,
-                    logLevel: LogLevel::Warn,
+                    log_level: LogLevel::Warn,
                     filename: css_error.filename,
-                    lineNumber: css_error.line as usize,
-                    columnNumber: css_error.column as usize,
+                    line_number: css_error.line as usize,
+                    column_number: css_error.column as usize,
                 };
                 handle_console_message(
                     actors.clone(),

@@ -49,10 +49,11 @@ impl EncodableConsoleMessage for CachedConsoleMessage {
 struct StartedListenersTraits;
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct StartedListenersReply {
     from: String,
-    nativeConsoleAPI: bool,
-    startedListeners: Vec<String>,
+    native_console_api: bool,
+    started_listeners: Vec<String>,
     traits: StartedListenersTraits,
 }
 
@@ -63,46 +64,53 @@ struct GetCachedMessagesReply {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct StopListenersReply {
     from: String,
-    stoppedListeners: Vec<String>,
+    stopped_listeners: Vec<String>,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct AutocompleteReply {
     from: String,
     matches: Vec<String>,
-    matchProp: String,
+    match_prop: String,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct EvaluateJSReply {
     from: String,
     input: String,
     result: Value,
     timestamp: u64,
     exception: Value,
-    exceptionMessage: Value,
-    helperResult: Value,
+    exception_message: Value,
+    helper_result: Value,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct EvaluateJSEvent {
     from: String,
-    r#type: String,
+    #[serde(rename = "type")]
+    type_: String,
     input: String,
     result: Value,
     timestamp: u64,
-    resultID: String,
+    #[serde(rename = "resultID")]
+    result_id: String,
     exception: Value,
-    exceptionMessage: Value,
-    helperResult: Value,
+    exception_message: Value,
+    helper_result: Value,
 }
 
 #[derive(Serialize)]
 struct EvaluateJSAsyncReply {
     from: String,
-    resultID: String,
+    #[serde(rename = "resultID")]
+    result_id: String,
 }
 
 #[derive(Serialize)]
@@ -162,7 +170,7 @@ impl ConsoleActor {
         }
     }
 
-    fn evaluateJS(
+    fn evaluate_js(
         &self,
         registry: &ActorRegistry,
         msg: &Map<String, Value>,
@@ -240,8 +248,8 @@ impl ConsoleActor {
             result,
             timestamp: 0,
             exception: Value::Null,
-            exceptionMessage: Value::Null,
-            helperResult: Value::Null,
+            exception_message: Value::Null,
+            helper_result: Value::Null,
         };
         std::result::Result::Ok(reply)
     }
@@ -261,7 +269,7 @@ impl ConsoleActor {
             let msg = PageErrorMsg {
                 from: self.name(),
                 type_: "pageError".to_owned(),
-                pageError: page_error,
+                page_error,
             };
             self.streams_mut(registry, |stream| {
                 let _ = stream.write_json_packet(&msg);
@@ -275,7 +283,7 @@ impl ConsoleActor {
         id: UniqueId,
         registry: &ActorRegistry,
     ) {
-        let level = match console_message.logLevel {
+        let level = match console_message.log_level {
             LogLevel::Debug => "debug",
             LogLevel::Info => "info",
             LogLevel::Warn => "warn",
@@ -292,9 +300,9 @@ impl ConsoleActor {
                 type_: "ConsoleAPI".to_owned(),
                 level: level.clone(),
                 filename: console_message.filename.clone(),
-                lineNumber: console_message.lineNumber as u32,
-                functionName: "".to_string(), //TODO
-                timeStamp: SystemTime::now()
+                line_number: console_message.line_number as u32,
+                function_name: "".to_string(), //TODO
+                time_stamp: SystemTime::now()
                     .duration_since(UNIX_EPOCH)
                     .unwrap_or_default()
                     .as_nanos() as u64,
@@ -307,14 +315,14 @@ impl ConsoleActor {
                 type_: "consoleAPICall".to_owned(),
                 message: ConsoleMsg {
                     level,
-                    timeStamp: SystemTime::now()
+                    timestamp: SystemTime::now()
                         .duration_since(UNIX_EPOCH)
                         .unwrap_or_default()
                         .as_nanos() as u64,
                     arguments: vec![console_message.message],
                     filename: console_message.filename,
-                    lineNumber: console_message.lineNumber,
-                    columnNumber: console_message.columnNumber,
+                    line_number: console_message.line_number,
+                    column_number: console_message.column_number,
                 },
             };
             self.streams_mut(registry, |stream| {
@@ -404,8 +412,8 @@ impl Actor for ConsoleActor {
                 let listeners = msg.get("listeners").unwrap().as_array().unwrap().to_owned();
                 let msg = StartedListenersReply {
                     from: self.name(),
-                    nativeConsoleAPI: true,
-                    startedListeners: listeners
+                    native_console_api: true,
+                    started_listeners: listeners
                         .into_iter()
                         .map(|s| s.as_str().unwrap().to_owned())
                         .collect(),
@@ -419,7 +427,7 @@ impl Actor for ConsoleActor {
                 //TODO: actually implement listener filters that support starting/stopping
                 let msg = StopListenersReply {
                     from: self.name(),
-                    stoppedListeners: msg
+                    stopped_listeners: msg
                         .get("listeners")
                         .unwrap()
                         .as_array()
@@ -438,23 +446,23 @@ impl Actor for ConsoleActor {
                 let msg = AutocompleteReply {
                     from: self.name(),
                     matches: vec![],
-                    matchProp: "".to_owned(),
+                    match_prop: "".to_owned(),
                 };
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
             "evaluateJS" => {
-                let msg = self.evaluateJS(registry, msg);
+                let msg = self.evaluate_js(registry, msg);
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
             "evaluateJSAsync" => {
-                let resultID = Uuid::new_v4().to_string();
+                let result_id = Uuid::new_v4().to_string();
                 let early_reply = EvaluateJSAsyncReply {
                     from: self.name(),
-                    resultID: resultID.clone(),
+                    result_id: result_id.clone(),
                 };
                 // Emit an eager reply so that the client starts listening
                 // for an async event with the resultID
@@ -468,17 +476,17 @@ impl Actor for ConsoleActor {
                     return Ok(ActorMessageStatus::Processed);
                 }
 
-                let reply = self.evaluateJS(registry, msg).unwrap();
+                let reply = self.evaluate_js(registry, msg).unwrap();
                 let msg = EvaluateJSEvent {
                     from: self.name(),
-                    r#type: "evaluationResult".to_owned(),
+                    type_: "evaluationResult".to_owned(),
                     input: reply.input,
                     result: reply.result,
                     timestamp: reply.timestamp,
-                    resultID,
+                    result_id,
                     exception: reply.exception,
-                    exceptionMessage: reply.exceptionMessage,
-                    helperResult: reply.helperResult,
+                    exception_message: reply.exception_message,
+                    helper_result: reply.helper_result,
                 };
                 // Send the data from evaluateJS along with a resultID
                 let _ = stream.write_json_packet(&msg);
@@ -508,19 +516,21 @@ struct ConsoleAPICall {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct ConsoleMsg {
     level: String,
-    timeStamp: u64,
+    timestamp: u64,
     arguments: Vec<String>,
     filename: String,
-    lineNumber: usize,
-    columnNumber: usize,
+    line_number: usize,
+    column_number: usize,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct PageErrorMsg {
     from: String,
     #[serde(rename = "type")]
     type_: String,
-    pageError: PageError,
+    page_error: PageError,
 }

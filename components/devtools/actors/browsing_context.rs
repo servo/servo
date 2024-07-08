@@ -194,7 +194,7 @@ impl BrowsingContextActor {
         let inspector = InspectorActor {
             name: actors.new_name("inspector"),
             walker: RefCell::new(None),
-            pageStyle: RefCell::new(None),
+            page_style: RefCell::new(None),
             highlighter: RefCell::new(None),
             script_chan: script_sender.clone(),
             browsing_context: name.clone(),

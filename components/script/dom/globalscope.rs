@@ -2299,13 +2299,13 @@ impl GlobalScope {
                 self.pipeline_id,
                 PageError {
                     type_: "PageError".to_string(),
-                    errorMessage: warning.to_string(),
-                    sourceName: self.get_url().to_string(),
-                    lineText: "".to_string(),
-                    lineNumber: 0,
-                    columnNumber: 0,
+                    error_message: warning.to_string(),
+                    source_name: self.get_url().to_string(),
+                    line_text: "".to_string(),
+                    line_number: 0,
+                    column_number: 0,
                     category: "script".to_string(),
-                    timeStamp: 0, //TODO
+                    time_stamp: 0, //TODO
                     error: false,
                     warning: true,
                     exception: true,
@@ -2487,13 +2487,13 @@ impl GlobalScope {
                         self.pipeline_id,
                         PageError {
                             type_: "PageError".to_string(),
-                            errorMessage: error_info.message.clone(),
-                            sourceName: error_info.filename.clone(),
-                            lineText: "".to_string(), //TODO
-                            lineNumber: error_info.lineno,
-                            columnNumber: error_info.column,
+                            error_message: error_info.message.clone(),
+                            source_name: error_info.filename.clone(),
+                            line_text: "".to_string(), //TODO
+                            line_number: error_info.lineno,
+                            column_number: error_info.column,
                             category: "script".to_string(),
-                            timeStamp: 0, //TODO
+                            time_stamp: 0, //TODO
                             error: true,
                             warning: false,
                             exception: true,

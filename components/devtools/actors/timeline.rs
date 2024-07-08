@@ -63,21 +63,23 @@ struct StopReply {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct TimelineMarkerReply {
     name: String,
     start: HighResolutionStamp,
     end: HighResolutionStamp,
     stack: Option<Vec<()>>,
-    endStack: Option<Vec<()>>,
+    end_stack: Option<Vec<()>>,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct MarkersEmitterReply {
     #[serde(rename = "type")]
     type_: String,
     markers: Vec<TimelineMarkerReply>,
     from: String,
-    endTime: HighResolutionStamp,
+    end_time: HighResolutionStamp,
 }
 
 #[derive(Serialize)]
@@ -312,7 +314,7 @@ impl Emitter {
             start: HighResolutionStamp::new(self.start_stamp, payload.start_time),
             end: HighResolutionStamp::new(self.start_stamp, payload.end_time),
             stack: payload.start_stack,
-            endStack: payload.end_stack,
+            end_stack: payload.end_stack,
         }
     }
 
@@ -322,7 +324,7 @@ impl Emitter {
             type_: "markers".to_owned(),
             markers,
             from: self.from.clone(),
-            endTime: HighResolutionStamp::new(self.start_stamp, end_time),
+            end_time: HighResolutionStamp::new(self.start_stamp, end_time),
         };
         self.stream.write_json_packet(&reply)?;
 
@@ -330,25 +332,25 @@ impl Emitter {
             let mut lock = self.registry.lock();
             let registry = lock.as_mut().unwrap();
             let framerate_actor = registry.find_mut::<FramerateActor>(actor_name);
-            let framerateReply = FramerateEmitterReply {
+            let framerate_reply = FramerateEmitterReply {
                 type_: "framerate".to_owned(),
                 from: framerate_actor.name(),
                 delta: HighResolutionStamp::new(self.start_stamp, end_time),
                 timestamps: framerate_actor.take_pending_ticks(),
             };
-            self.stream.write_json_packet(&framerateReply)?;
+            self.stream.write_json_packet(&framerate_reply)?;
         }
 
         if let Some(ref actor_name) = self.memory_actor {
             let registry = self.registry.lock().unwrap();
             let memory_actor = registry.find::<MemoryActor>(actor_name);
-            let memoryReply = MemoryEmitterReply {
+            let memory_reply = MemoryEmitterReply {
                 type_: "memory".to_owned(),
                 from: memory_actor.name(),
                 delta: HighResolutionStamp::new(self.start_stamp, end_time),
                 measurement: memory_actor.measure(),
             };
-            self.stream.write_json_packet(&memoryReply)?;
+            self.stream.write_json_packet(&memory_reply)?;
         }
 
         Ok(())

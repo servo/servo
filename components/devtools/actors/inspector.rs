@@ -4,6 +4,8 @@
 
 //! Liberally derived from the [Firefox JS implementation](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/inspector.js).
 
+#![allow(non_snake_case)] // NOTE: To be removed on the inspector specific pr
+
 use std::cell::RefCell;
 use std::net::TcpStream;
 
@@ -24,7 +26,7 @@ use crate::StreamId;
 pub struct InspectorActor {
     pub name: String,
     pub walker: RefCell<Option<String>>,
-    pub pageStyle: RefCell<Option<String>>,
+    pub page_style: RefCell<Option<String>>,
     pub highlighter: RefCell<Option<String>>,
     pub script_chan: IpcSender<DevtoolScriptControlMsg>,
     pub browsing_context: String,
@@ -203,32 +205,32 @@ impl NodeInfoToProtocol for NodeInfo {
         script_chan: IpcSender<DevtoolScriptControlMsg>,
         pipeline: PipelineId,
     ) -> NodeActorMsg {
-        let actor_name = if !actors.script_actor_registered(self.uniqueId.clone()) {
+        let actor_name = if !actors.script_actor_registered(self.unique_id.clone()) {
             let name = actors.new_name("node");
             let node_actor = NodeActor {
                 name: name.clone(),
                 script_chan,
                 pipeline,
             };
-            actors.register_script_actor(self.uniqueId, name.clone());
+            actors.register_script_actor(self.unique_id, name.clone());
             actors.register_later(Box::new(node_actor));
             name
         } else {
-            actors.script_to_actor(self.uniqueId)
+            actors.script_to_actor(self.unique_id)
         };
 
         NodeActorMsg {
             actor: actor_name,
-            baseURI: self.baseURI,
+            baseURI: self.base_uri,
             parent: actors.script_to_actor(self.parent.clone()),
-            nodeType: self.nodeType,
-            namespaceURI: self.namespaceURI,
-            nodeName: self.nodeName,
-            numChildren: self.numChildren,
+            nodeType: self.node_type,
+            namespaceURI: self.namespace_uri,
+            nodeName: self.node_name,
+            numChildren: self.num_children,
 
             name: self.name,
-            publicId: self.publicId,
-            systemId: self.systemId,
+            publicId: self.public_id,
+            systemId: self.system_id,
 
             attrs: self
                 .attrs
@@ -246,10 +248,10 @@ impl NodeInfoToProtocol for NodeInfo {
 
             hasEventListeners: false, //TODO get this data from script
 
-            isDocumentElement: self.isDocumentElement,
+            isDocumentElement: self.is_document_element,
 
-            shortValue: self.shortValue,
-            incompleteValue: self.incompleteValue,
+            shortValue: self.short_value,
+            incompleteValue: self.incomplete_value,
         }
     }
 }
@@ -517,21 +519,21 @@ impl Actor for PageStyleActor {
                 let ComputedNodeLayout {
                     display,
                     position,
-                    zIndex,
-                    boxSizing,
-                    autoMargins,
-                    marginTop,
-                    marginRight,
-                    marginBottom,
-                    marginLeft,
-                    borderTopWidth,
-                    borderRightWidth,
-                    borderBottomWidth,
-                    borderLeftWidth,
-                    paddingTop,
-                    paddingRight,
-                    paddingBottom,
-                    paddingLeft,
+                    z_index: zIndex,
+                    box_sizing: boxSizing,
+                    auto_margins: autoMargins,
+                    margin_top: marginTop,
+                    margin_right: marginRight,
+                    margin_bottom: marginBottom,
+                    margin_left: marginLeft,
+                    border_top_width: borderTopWidth,
+                    border_right_width: borderRightWidth,
+                    border_bottom_width: borderBottomWidth,
+                    border_left_width: borderLeftWidth,
+                    padding_top: paddingTop,
+                    padding_right: paddingRight,
+                    padding_bottom: paddingBottom,
+                    padding_left: paddingLeft,
                     width,
                     height,
                 } = rx.recv().unwrap().ok_or(())?;
@@ -639,13 +641,13 @@ impl Actor for InspectorActor {
             },
 
             "getPageStyle" => {
-                if self.pageStyle.borrow().is_none() {
+                if self.page_style.borrow().is_none() {
                     let style = PageStyleActor {
                         name: registry.new_name("pageStyle"),
                         script_chan: self.script_chan.clone(),
                         pipeline,
                     };
-                    let mut pageStyle = self.pageStyle.borrow_mut();
+                    let mut pageStyle = self.page_style.borrow_mut();
                     *pageStyle = Some(style.name());
                     registry.register_later(Box::new(style));
                 }
@@ -653,7 +655,7 @@ impl Actor for InspectorActor {
                 let msg = GetPageStyleReply {
                     from: self.name(),
                     pageStyle: PageStyleMsg {
-                        actor: self.pageStyle.borrow().clone().unwrap(),
+                        actor: self.page_style.borrow().clone().unwrap(),
                     },
                 };
                 let _ = stream.write_json_packet(&msg);

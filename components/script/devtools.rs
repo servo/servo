@@ -160,21 +160,21 @@ pub fn handle_get_layout(
         .send(Some(ComputedNodeLayout {
             display: String::from(computed_style.Display()),
             position: String::from(computed_style.Position()),
-            zIndex: String::from(computed_style.ZIndex()),
-            boxSizing: String::from(computed_style.BoxSizing()),
-            autoMargins: determine_auto_margins(&node),
-            marginTop: String::from(computed_style.MarginTop()),
-            marginRight: String::from(computed_style.MarginRight()),
-            marginBottom: String::from(computed_style.MarginBottom()),
-            marginLeft: String::from(computed_style.MarginLeft()),
-            borderTopWidth: String::from(computed_style.BorderTopWidth()),
-            borderRightWidth: String::from(computed_style.BorderRightWidth()),
-            borderBottomWidth: String::from(computed_style.BorderBottomWidth()),
-            borderLeftWidth: String::from(computed_style.BorderLeftWidth()),
-            paddingTop: String::from(computed_style.PaddingTop()),
-            paddingRight: String::from(computed_style.PaddingRight()),
-            paddingBottom: String::from(computed_style.PaddingBottom()),
-            paddingLeft: String::from(computed_style.PaddingLeft()),
+            z_index: String::from(computed_style.ZIndex()),
+            box_sizing: String::from(computed_style.BoxSizing()),
+            auto_margins: determine_auto_margins(&node),
+            margin_top: String::from(computed_style.MarginTop()),
+            margin_right: String::from(computed_style.MarginRight()),
+            margin_bottom: String::from(computed_style.MarginBottom()),
+            margin_left: String::from(computed_style.MarginLeft()),
+            border_top_width: String::from(computed_style.BorderTopWidth()),
+            border_right_width: String::from(computed_style.BorderRightWidth()),
+            border_bottom_width: String::from(computed_style.BorderBottomWidth()),
+            border_left_width: String::from(computed_style.BorderLeftWidth()),
+            padding_top: String::from(computed_style.PaddingTop()),
+            padding_right: String::from(computed_style.PaddingRight()),
+            padding_bottom: String::from(computed_style.PaddingBottom()),
+            padding_left: String::from(computed_style.PaddingLeft()),
             width,
             height,
         }))
@@ -213,14 +213,14 @@ pub fn handle_modify_attribute(
         .expect("should be getting layout of element");
 
     for modification in modifications {
-        match modification.newValue {
+        match modification.new_value {
             Some(string) => {
                 let _ = elem.SetAttribute(
-                    DOMString::from(modification.attributeName),
+                    DOMString::from(modification.attribute_name),
                     DOMString::from(string),
                 );
             },
-            None => elem.RemoveAttribute(DOMString::from(modification.attributeName)),
+            None => elem.RemoveAttribute(DOMString::from(modification.attribute_name)),
         }
     }
 }
