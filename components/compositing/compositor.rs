@@ -1550,6 +1550,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             None => return,
         };
 
+        self.cursor_pos = cursor;
         let event = MouseMoveEvent(result.point_in_viewport, Some(result.node.into()), 0);
         let msg = ConstellationMsg::ForwardEvent(result.pipeline_id, event);
         if let Err(e) = self.constellation_chan.send(msg) {
