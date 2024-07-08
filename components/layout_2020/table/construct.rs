@@ -18,6 +18,7 @@ use super::{
     Table, TableCaption, TableSlot, TableSlotCell, TableSlotCoordinates, TableSlotOffset,
     TableTrack, TableTrackGroup, TableTrackGroupType,
 };
+use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, NodeExt};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents, TraversalHandler};
@@ -842,23 +843,31 @@ where
                 DisplayLayoutInternal::TableCaption => {
                     let contents = match contents.try_into() {
                         Ok(non_replaced_contents) => {
-                            BlockFormattingContext::construct(
-                                self.context,
-                                info,
-                                non_replaced_contents,
-                                self.current_text_decoration_line,
-                                false, /* is_list_item */
+                            NonReplacedFormattingContextContents::Flow(
+                                BlockFormattingContext::construct(
+                                    self.context,
+                                    info,
+                                    non_replaced_contents,
+                                    self.current_text_decoration_line,
+                                    false, /* is_list_item */
+                                ),
                             )
                         },
                         Err(_replaced) => {
                             unreachable!("Replaced should not have a LayoutInternal display type.");
                         },
                     };
-                    self.builder.table.captions.push(TableCaption {
-                        contents,
-                        style: info.style.clone(),
-                        base_fragment_info: info.into(),
-                    });
+
+                    let caption = TableCaption {
+                        context: ArcRefCell::new(NonReplacedFormattingContext {
+                            style: info.style.clone(),
+                            base_fragment_info: info.into(),
+                            content_sizes: None,
+                            contents,
+                        }),
+                    };
+
+                    self.builder.table.captions.push(caption);
 
                     // We are doing this until we have actually set a Box for this `BoxSlot`.
                     ::std::mem::forget(box_slot)

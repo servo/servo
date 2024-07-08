@@ -926,7 +926,7 @@ impl NonReplacedFormattingContext {
     ///
     /// - <https://drafts.csswg.org/css2/visudet.html#blockwidth>
     /// - <https://drafts.csswg.org/css2/visudet.html#normal-block>
-    fn layout_in_flow_block_level(
+    pub(crate) fn layout_in_flow_block_level(
         &self,
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
@@ -1367,7 +1367,7 @@ struct ContainingBlockPaddingAndBorder<'a> {
     max_box_size: LogicalVec2<Option<Length>>,
 }
 
-pub(crate) struct ResolvedMargins {
+struct ResolvedMargins {
     /// Used value for the margin properties, as exposed in getComputedStyle().
     pub margin: LogicalSides<Au>,
 
@@ -1440,7 +1440,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
 /// Note that in the presence of floats, this shouldn't be used for a block-level box
 /// that establishes an independent formatting context (or is replaced), since the
 /// margins could then be incorrect.
-pub(crate) fn solve_margins(
+fn solve_margins(
     containing_block: &ContainingBlock<'_>,
     pbm: &PaddingBorderMargin,
     inline_size: Au,

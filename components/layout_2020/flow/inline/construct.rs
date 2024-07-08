@@ -103,7 +103,7 @@ impl InlineFormattingContextBuilder {
                 InlineItem::TextRun(_) => true,
                 InlineItem::OutOfFlowAbsolutelyPositionedBox(_) => false,
                 InlineItem::OutOfFlowFloatBox(_) => false,
-                InlineItem::Atomic(_) => false,
+                InlineItem::Atomic(..) => false,
             }
         }
 
@@ -116,7 +116,10 @@ impl InlineFormattingContextBuilder {
         &mut self,
         independent_formatting_context: IndependentFormattingContext,
     ) -> ArcRefCell<InlineItem> {
-        let inline_level_box = ArcRefCell::new(InlineItem::Atomic(independent_formatting_context));
+        let inline_level_box = ArcRefCell::new(InlineItem::Atomic(
+            independent_formatting_context,
+            self.current_text_offset,
+        ));
         self.inline_items.push(inline_level_box.clone());
 
         // Push an object replacement character for this atomic, which will ensure that the line breaker
