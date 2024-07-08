@@ -10,6 +10,7 @@ use base::text::{unicode_plane, UnicodeBlock, UnicodeBlockMethod};
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use style::values::computed::font::GenericFontFamily;
 use style::Atom;
 use unicode_script::Script;
 use webrender_api::NativeFontHandle;
@@ -17,7 +18,8 @@ use webrender_api::NativeFontHandle;
 use crate::platform::add_noto_fallback_families;
 use crate::platform::font::CoreTextFontTraitsMapping;
 use crate::{
-    EmojiPresentationPreference, FallbackFontSelectionOptions, FontTemplate, FontTemplateDescriptor,
+    EmojiPresentationPreference, FallbackFontSelectionOptions, FontTemplate,
+    FontTemplateDescriptor, LowercaseFontFamilyName,
 };
 
 /// An identifier for a local font on a MacOS system. These values comes from the CoreText
@@ -87,10 +89,6 @@ where
             }
         }
     }
-}
-
-pub fn system_default_family(_generic_name: &str) -> Option<String> {
-    None
 }
 
 /// Get the list of fallback fonts given an optional codepoint. This is
@@ -210,4 +208,14 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
     families
 }
 
-pub static SANS_SERIF_FONT_FAMILY: &str = "Helvetica";
+pub fn default_system_generic_font_family(generic: GenericFontFamily) -> LowercaseFontFamilyName {
+    match generic {
+        GenericFontFamily::None | GenericFontFamily::Serif => "Times",
+        GenericFontFamily::SansSerif => "Helvetica",
+        GenericFontFamily::Monospace => "Menlo",
+        GenericFontFamily::Cursive => "Apple Chancery",
+        GenericFontFamily::Fantasy => "Papyrus",
+        GenericFontFamily::SystemUi => "Menlo",
+    }
+    .into()
+}

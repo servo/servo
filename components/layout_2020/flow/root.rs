@@ -301,7 +301,11 @@ impl BoxTree {
         layout_context: &LayoutContext,
         viewport: euclid::Size2D<f32, CSSPixel>,
     ) -> FragmentTree {
-        let style = ComputedValues::initial_values();
+        let style = layout_context
+            .style_context
+            .stylist
+            .device()
+            .default_computed_values();
 
         // FIXME: use the document’s mode:
         // https://drafts.csswg.org/css-writing-modes/#principal-flow

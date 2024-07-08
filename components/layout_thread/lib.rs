@@ -73,6 +73,7 @@ use script_traits::{
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_config::opts::{self, DebugOptions};
+use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::animation::{AnimationSetKey, DocumentAnimationSet, ElementAnimationSet};
 use style::context::{
@@ -86,7 +87,7 @@ use style::invalidation::element::restyle_hints::RestyleHint;
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::properties::style_structs::Font;
-use style::properties::PropertyId;
+use style::properties::{ComputedValues, PropertyId};
 use style::selector_parser::{PseudoElement, SnapshotMap};
 use style::servo::media_queries::FontMetricsProvider;
 use style::servo::restyle_damage::ServoRestyleDamage;
@@ -98,6 +99,9 @@ use style::stylesheets::{
 use style::stylist::Stylist;
 use style::traversal::DomTraversal;
 use style::traversal_flags::TraversalFlags;
+use style::values::computed::font::GenericFontFamily;
+use style::values::computed::{FontSize, Length, NonNegativeLength};
+use style::values::specified::font::KeywordInfo;
 use style_traits::{CSSPixel, DevicePixel, SpeculativePainter};
 use url::Url;
 use webrender_api::{units, ColorF, HitTestFlags};
@@ -579,6 +583,14 @@ impl LayoutThread {
         // Let webrender know about this pipeline by sending an empty display list.
         webrender_api.send_initial_transaction(id.into());
 
+        let mut font = Font::initial_values();
+        let default_font_size = pref!(fonts.default_size);
+        font.font_size = FontSize {
+            computed_size: NonNegativeLength::new(default_font_size as f32),
+            used_size: NonNegativeLength::new(default_font_size as f32),
+            keyword_info: KeywordInfo::medium(),
+        };
+
         let font_context = Arc::new(FontContext::new(font_cache_thread, resource_threads));
         let device = Device::new(
             MediaType::screen(),
@@ -586,6 +598,7 @@ impl LayoutThread {
             window_size.initial_viewport,
             window_size.device_pixel_ratio,
             Box::new(LayoutFontMetricsProvider),
+            ComputedValues::initial_values_with_font_override(font),
         );
 
         LayoutThread {
@@ -1409,6 +1422,7 @@ impl LayoutThread {
             window_size_data.initial_viewport,
             window_size_data.device_pixel_ratio,
             Box::new(LayoutFontMetricsProvider),
+            self.stylist.device().default_computed_values().to_arc(),
         );
 
         // Preserve any previously computed root font size.
@@ -1630,5 +1644,13 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
         _retrieve_math_scales: bool,
     ) -> style::font_metrics::FontMetrics {
         Default::default()
+    }
+
+    fn base_size_for_generic(&self, generic: GenericFontFamily) -> Length {
+        Length::new(match generic {
+            GenericFontFamily::Monospace => pref!(fonts.default_monospace_size),
+            _ => pref!(fonts.default_size),
+        } as f32)
+        .max(Length::new(0.0))
     }
 }
