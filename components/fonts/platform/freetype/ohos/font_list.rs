@@ -46,6 +46,15 @@ impl LocalFontIdentifier {
     }
 }
 
+/// When testing the ohos font code on linux, we can pass the fonts directory of the SDK
+/// via an environment variable.
+#[cfg(ohos_mock)]
+static OHOS_FONTS_DIR: &'static str = env!("OHOS_SDK_FONTS_DIR");
+
+/// On OpenHarmony devices the fonts are always located here.
+#[cfg(not(ohos_mock))]
+static OHOS_FONTS_DIR: &'static str = "/system/fonts";
+
 struct Font {
     filename: String,
     weight: Option<i32>,
@@ -101,12 +110,11 @@ impl FontList {
             .collect()
     }
 
-    // OHOS fonts are located in /system/fonts
     fn font_absolute_path(filename: &str) -> String {
         if filename.starts_with("/") {
             String::from(filename)
         } else {
-            format!("/system/fonts/{}", filename)
+            format!("{OHOS_FONTS_DIR}/{filename}")
         }
     }
 
