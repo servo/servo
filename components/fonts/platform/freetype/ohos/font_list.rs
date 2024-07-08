@@ -108,11 +108,15 @@ impl FontList {
     }
 
     fn find_family(&self, name: &str) -> Option<&FontFamily> {
-        self.families.iter().find(|f| f.name == name)
+        self.families
+            .iter()
+            .find(|family| family.name.eq_ignore_ascii_case(name))
     }
 
     fn find_alias(&self, name: &str) -> Option<&FontAlias> {
-        self.aliases.iter().find(|f| f.from == name)
+        self.aliases
+            .iter()
+            .find(|family| family.from.eq_ignore_ascii_case(name))
     }
 }
 
