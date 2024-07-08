@@ -70,7 +70,7 @@ impl ByteLengthQueuingStrategyMethods for ByteLengthQueuingStrategy {
 
         // Step 2. Let F be !CreateBuiltinFunction(steps, 1, "size", « »,
         // globalObject’s relevant Realm).
-        let fun = native_fn!(byte_length_queuing_strategy_size, b"size\0", 1, 0);
+        let fun = native_fn!(byte_length_queuing_strategy_size, c"size", 1, 0);
         // Step 3. Set globalObject’s byte length queuing strategy size function to
         // a Function that represents a reference to F,
         // with callback context equal to globalObject’s relevant settings object.

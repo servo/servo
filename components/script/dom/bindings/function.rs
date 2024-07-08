@@ -7,7 +7,7 @@
 /// Defines a macro `native_fn!` to create a JavaScript function from a Rust function pointer.
 /// # Example
 /// ```
-/// let js_function: Rc<Function> = native_fn!(my_rust_function, b"myFunction\0", 2, 0);
+/// let js_function: Rc<Function> = native_fn!(my_rust_function, c"myFunction", 2, 0);
 /// ```
 #[macro_export]
 macro_rules! native_fn {
@@ -21,7 +21,7 @@ macro_rules! native_fn {
 /// Defines a macro `native_raw_obj_fn!` to create a raw JavaScript function object.
 /// # Example
 /// ```
-/// let raw_function_obj: *mut JSObject = native_raw_obj_fn!(cx, my_rust_function, b"myFunction\0", 2, 0);
+/// let raw_function_obj: *mut JSObject = native_raw_obj_fn!(cx, my_rust_function, c"myFunction", 2, 0);
 /// ```
 #[macro_export]
 macro_rules! native_raw_obj_fn {
@@ -31,7 +31,6 @@ macro_rules! native_raw_obj_fn {
         }
 
         unsafe {
-            assert_eq!(*$name.last().unwrap(), b'\0');
             let raw_fun = crate::dom::bindings::import::module::jsapi::JS_NewFunction(
                 *$cx,
                 Some(wrapper),
