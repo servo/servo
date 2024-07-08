@@ -1469,7 +1469,7 @@ unsafe extern "C" fn HostPopulateImportMeta(
     JS_DefineProperty4(
         cx,
         meta_object,
-        "url\0".as_ptr() as *const _,
+        c"url".as_ptr(),
         url_string.handle().into_handle(),
         JSPROP_ENUMERATE.into(),
     )
