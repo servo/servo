@@ -181,19 +181,6 @@ impl<T: Zero> LogicalRect<T> {
     }
 }
 
-impl fmt::Debug for LogicalRect<Length> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "Rect(i{}×b{} @ (i{},b{}))",
-            self.size.inline.px(),
-            self.size.block.px(),
-            self.start_corner.inline.px(),
-            self.start_corner.block.px(),
-        )
-    }
-}
-
 impl fmt::Debug for LogicalRect<Au> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
