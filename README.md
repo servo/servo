@@ -38,13 +38,15 @@ manually, try the [manual build setup][manual-build].
 - Ensure that the version showed by `python --version` is >= 3.10:
 - Install [Xcode](https://developer.apple.com/xcode/)
 - Install [Homebrew](https://brew.sh/)
-- Run `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+- Run `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`. Ensure that `rust`
+  and `cargo` are available commands &mdash; you may need to restart your shell.
 - Run `./mach bootstrap`<br/>
   *Note: This will install the recommended version of GStreamer globally on your system.*
 
 ### Linux
 
-- Run `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+- Run `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`. Ensure that `rust`
+  and `cargo` are available commands &mdash; you may need to restart your shell.
 - Install Python (version >= 3.10):
     - **Debian-like:** Run `sudo apt install python3-pip python3-venv`
     - **Fedora:** Run `sudo dnf install python3 python3-pip python3-devel`
