@@ -4,7 +4,7 @@
 
 //! Liberally derived from the [Firefox JS implementation](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/inspector.js).
 
-#![allow(non_snake_case)] // NOTE: Removed on the inspector specific pr
+#![allow(non_snake_case)] // NOTE: To be removed on the inspector specific pr
 
 use std::cell::RefCell;
 use std::net::TcpStream;

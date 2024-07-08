@@ -254,13 +254,6 @@ impl ConsoleActor {
         std::result::Result::Ok(reply)
     }
 
-    // TODO: This no longer has this form, it is sent as a resource event message
-    // "from": "...",
-    // "resources": [{
-    //      "pageError": { ... },
-    //      "resourceType": "error-message"
-    // }],
-    // "type": "resource-available-form"
     pub(crate) fn handle_page_error(
         &self,
         page_error: PageError,
@@ -284,7 +277,6 @@ impl ConsoleActor {
         }
     }
 
-    // TODO: This may be outdated
     pub(crate) fn handle_console_api(
         &self,
         console_message: ConsoleMessage,
