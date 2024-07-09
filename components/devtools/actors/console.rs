@@ -252,11 +252,10 @@ impl ConsoleActor {
             .or_default()
             .push(CachedConsoleMessage::PageError(page_error.clone()));
         if id == self.current_unique_id(registry) {
-            match &self.root {
-                Root::BrowsingContext(bc) => registry
+            if let Root::BrowsingContext(bc) = &self.root {
+                registry
                     .find::<BrowsingContextActor>(bc)
-                    .page_error(page_error),
-                Root::DedicatedWorker(_) => (),
+                    .page_error(page_error)
             };
         }
     }
@@ -295,11 +294,10 @@ impl ConsoleActor {
             .or_default()
             .push(CachedConsoleMessage::ConsoleLog(console_api.clone()));
         if id == self.current_unique_id(registry) {
-            match &self.root {
-                Root::BrowsingContext(bc) => registry
+            if let Root::BrowsingContext(bc) = &self.root {
+                registry
                     .find::<BrowsingContextActor>(bc)
-                    .console_message(console_api),
-                Root::DedicatedWorker(_) => (),
+                    .console_message(console_api)
             };
         }
     }

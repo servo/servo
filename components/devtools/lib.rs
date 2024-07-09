@@ -191,13 +191,11 @@ fn run_server(
 
     let actors = registry.create_shareable();
 
-    let mut accepted_connections: HashMap<StreamId, TcpStream> = HashMap::new();
-
-    let mut browsing_contexts: HashMap<BrowsingContextId, String> = HashMap::new();
-    let mut pipelines: HashMap<PipelineId, BrowsingContextId> = HashMap::new();
-    let mut actor_requests: HashMap<String, String> = HashMap::new();
-
-    let mut actor_workers: HashMap<WorkerId, String> = HashMap::new();
+    let mut accepted_connections = HashMap::new();
+    let mut browsing_contexts: HashMap<_, String> = HashMap::new();
+    let mut pipelines = HashMap::new();
+    let mut actor_requests = HashMap::new();
+    let mut actor_workers = HashMap::new();
 
     /// Process the input from a single devtools client until EOF.
     fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream, id: StreamId) {
@@ -325,22 +323,21 @@ fn run_server(
             Root::DedicatedWorker(worker_name)
         } else {
             pipelines.insert(pipeline, browsing_context);
-            let name = if let Some(actor) = browsing_contexts.get(&browsing_context) {
-                actor.to_owned()
-            } else {
-                let browsing_context_actor = BrowsingContextActor::new(
-                    console_name.clone(),
-                    browsing_context,
-                    page_info,
-                    pipeline,
-                    script_sender,
-                    &mut actors,
-                );
-                let name = browsing_context_actor.name();
-                browsing_contexts.insert(browsing_context, name.clone());
-                actors.register(Box::new(browsing_context_actor));
-                name
-            };
+            let name = browsing_contexts
+                .entry(browsing_context)
+                .or_insert_with(|| {
+                    let browsing_context_actor = BrowsingContextActor::new(
+                        console_name.clone(),
+                        browsing_context,
+                        page_info,
+                        pipeline,
+                        script_sender,
+                        &mut actors,
+                    );
+                    let name = browsing_context_actor.name();
+                    actors.register(Box::new(browsing_context_actor));
+                    name
+                });
 
             // Add existing streams to the new browsing context
             let browsing_context = actors.find::<BrowsingContextActor>(&name);
@@ -349,7 +346,7 @@ fn run_server(
                 streams.insert(*id, stream.try_clone().unwrap());
             }
 
-            Root::BrowsingContext(name)
+            Root::BrowsingContext(name.clone())
         };
 
         let console = ConsoleActor {
@@ -620,7 +617,7 @@ fn run_server(
                 accepted_connections.insert(id, stream.try_clone().unwrap());
 
                 // Inform every browsing context of the new stream
-                for (_, name) in &browsing_contexts {
+                for name in browsing_contexts.values() {
                     let actors = actors.lock().unwrap();
                     let browsing_context = actors.find::<BrowsingContextActor>(name);
                     let mut streams = browsing_context.streams.borrow_mut();
@@ -715,7 +712,7 @@ fn run_server(
             )) => {
                 // copy the accepted_connections vector
                 let mut connections = Vec::<TcpStream>::new();
-                for (_, stream) in &accepted_connections {
+                for stream in accepted_connections.values() {
                     connections.push(stream.try_clone().unwrap());
                 }
 
@@ -738,7 +735,7 @@ fn run_server(
             DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg) => break,
         }
     }
-    for (_, connection) in &mut accepted_connections {
+    for connection in accepted_connections.values_mut() {
         let _ = connection.shutdown(Shutdown::Both);
     }
 }
