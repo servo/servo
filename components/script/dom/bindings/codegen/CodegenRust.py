@@ -1862,7 +1862,7 @@ class MethodDefiner(PropertyDefiner):
             if flags != "0":
                 flags = f"({flags}) as u16"
             if "selfHostedName" in m:
-                selfHostedName = '%s as *const u8 as *const libc::c_char' % str_to_const_array(m["selfHostedName"])
+                selfHostedName = str_to_cstr_ptr(m["selfHostedName"])
                 assert not m.get("methodInfo", True)
                 accessor = "None"
                 jitinfo = "ptr::null()"
@@ -1883,8 +1883,8 @@ class MethodDefiner(PropertyDefiner):
                 assert not self.crossorigin
                 name = 'JSPropertySpec_Name { symbol_: SymbolCode::%s as usize + 1 }' % m["name"][2:]
             else:
-                name = ('JSPropertySpec_Name { string_: %s as *const u8 as *const libc::c_char }'
-                        % str_to_const_array(m["name"]))
+                name = ('JSPropertySpec_Name { string_: %s }'
+                        % str_to_cstr_ptr(m["name"]))
             return (name, accessor, jitinfo, m["length"], flags, selfHostedName)
 
         specTemplate = (
@@ -2013,12 +2013,12 @@ class AttrDefiner(PropertyDefiner):
         def specData(attr):
             if attr["name"] == "@@toStringTag":
                 return (attr["name"][2:], attr["flags"], attr["kind"],
-                        str_to_const_array(self.descriptor.interface.getClassName()))
+                        str_to_cstr_ptr(self.descriptor.interface.getClassName()))
 
             flags = attr["flags"]
             if self.unforgeable:
                 flags += " | JSPROP_PERMANENT"
-            return (str_to_const_array(attr["attr"].identifier.name), flags, attr["kind"], getter(attr),
+            return (str_to_cstr_ptr(attr["attr"].identifier.name), flags, attr["kind"], getter(attr),
                     setter(attr))
 
         def template(m):
@@ -2031,14 +2031,14 @@ class AttrDefiner(PropertyDefiner):
                         value: JSPropertySpec_ValueWrapper {
                             type_: JSPropertySpec_ValueWrapper_Type::String,
                             __bindgen_anon_1: JSPropertySpec_ValueWrapper__bindgen_ty_1 {
-                                string: %s as *const u8 as *const libc::c_char,
+                                string: %s,
                             }
                         }
                     }
                 }
 """
             return """    JSPropertySpec {
-                    name: JSPropertySpec_Name { string_: %s as *const u8 as *const libc::c_char },
+                    name: JSPropertySpec_Name { string_: %s },
                     attributes_: (%s),
                     kind_: (%s),
                     u: JSPropertySpec_AccessorsOrValue {
@@ -2084,7 +2084,7 @@ class ConstDefiner(PropertyDefiner):
             return ""
 
         def specData(const):
-            return (str_to_const_array(const.identifier.name),
+            return (str_to_byte_slice(const.identifier.name),
                     convertConstIDLValueToJSVal(const.value))
 
         return self.generateGuardedArray(
@@ -2379,7 +2379,7 @@ class CGDOMJSClass(CGThing):
             "enumerateHook": "None",
             "finalizeHook": FINALIZE_HOOK_NAME,
             "flags": "JSCLASS_FOREGROUND_FINALIZE",
-            "name": str_to_const_array(self.descriptor.interface.identifier.name),
+            "name": str_to_cstr_ptr(self.descriptor.interface.identifier.name),
             "resolveHook": "None",
             "slots": "1",
             "traceHook": TRACE_HOOK_NAME,
@@ -2409,7 +2409,7 @@ static CLASS_OPS: JSClassOps = JSClassOps {
 
 static Class: DOMJSClass = DOMJSClass {
     base: JSClass {
-        name: %(name)s as *const u8 as *const libc::c_char,
+        name: %(name)s,
         flags: JSCLASS_IS_DOMJSCLASS | %(flags)s |
                (((%(slots)s) & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT)
                /* JSCLASS_HAS_RESERVED_SLOTS(%(slots)s) */,
@@ -2466,8 +2466,12 @@ impl %(selfName)s {
 """ % args
 
 
-def str_to_const_array(s):
-    return "b\"%s\\0\"" % s
+def str_to_cstr_ptr(s):
+    return "c\"%s\".as_ptr()" % s
+
+
+def str_to_byte_slice(s):
+    return "c\"%s\".to_bytes_with_nul()" % s
 
 
 class CGPrototypeJSClass(CGThing):
@@ -2476,13 +2480,13 @@ class CGPrototypeJSClass(CGThing):
         self.descriptor = descriptor
 
     def define(self):
-        name = str_to_const_array(self.descriptor.interface.identifier.name + "Prototype")
+        name = str_to_cstr_ptr(self.descriptor.interface.identifier.name + "Prototype")
         slotCount = 0
         if self.descriptor.hasLegacyUnforgeableMembers:
             slotCount += 1
         return """\
 static PrototypeClass: JSClass = JSClass {
-    name: %(name)s as *const u8 as *const libc::c_char,
+    name: %(name)s,
     flags:
         // JSCLASS_HAS_RESERVED_SLOTS(%(slotCount)s)
         (%(slotCount)s ) << JSCLASS_RESERVED_SLOTS_SHIFT,
@@ -2511,7 +2515,7 @@ class CGInterfaceObjectJSClass(CGThing):
 static NAMESPACE_OBJECT_CLASS: NamespaceObjectClass = unsafe {
     NamespaceObjectClass::new(%s)
 };
-""" % str_to_const_array(classString)
+""" % str_to_byte_slice(classString)
         if self.descriptor.interface.ctor():
             constructorBehavior = "InterfaceConstructorBehavior::call(%s)" % CONSTRUCT_HOOK_NAME
         else:
@@ -3245,13 +3249,13 @@ let global = incumbent_global.reflector().get_jsobject();\n"""
                         return false;
                       }
                       if !JS_DefineProperty(cx, result.handle(),
-                                            ${nameAsArray} as *const u8 as *const libc::c_char,
+                                            ${nameAsArray},
                                             temp.handle(), JSPROP_ENUMERATE as u32) {
                         return false;
                       }
                     }
                     """,
-                    name=name, nameAsArray=str_to_const_array(name), conditions=ret_conditions)
+                    name=name, nameAsArray=str_to_cstr_ptr(name), conditions=ret_conditions)
         ret += 'true\n'
         return CGGeneric(ret)
 
@@ -3292,7 +3296,7 @@ rooted!(in(*cx) let proto = {proto});
 assert!(!proto.is_null());
 rooted!(in(*cx) let mut namespace = ptr::null_mut::<JSObject>());
 create_namespace_object(cx, global, proto.handle(), &NAMESPACE_OBJECT_CLASS,
-                        {methods}, {constants}, {str_to_const_array(name)}, namespace.handle_mut());
+                        {methods}, {constants}, {str_to_byte_slice(name)}, namespace.handle_mut());
 assert!(!namespace.is_null());
 assert!((*cache)[PrototypeList::Constructor::{id} as usize].is_null());
 (*cache)[PrototypeList::Constructor::{id} as usize] = namespace.get();
@@ -3311,7 +3315,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
 <*mut JSObject>::post_barrier((*cache).as_mut_ptr().offset(PrototypeList::Constructor::%(id)s as isize),
                               ptr::null_mut(),
                               interface.get());
-""" % {"id": name, "name": str_to_const_array(name)})
+""" % {"id": name, "name": str_to_byte_slice(name)})
 
         parentName = self.descriptor.getParentName()
         if not parentName:
@@ -3382,7 +3386,7 @@ assert!((*cache)[PrototypeList::ID::%(id)s as usize].is_null());
 """ % proto_properties))
 
         if self.descriptor.interface.hasInterfaceObject():
-            properties["name"] = str_to_const_array(name)
+            properties["name"] = str_to_byte_slice(name)
             if self.descriptor.interface.ctor():
                 properties["length"] = methodLength(self.descriptor.interface.ctor())
             else:
@@ -3463,7 +3467,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                                                ${prop} as *const u8 as *const _,
                                                aliasedVal.handle_mut()));
                         """,
-                        prop=str_to_const_array(m.identifier.name)))
+                        prop=str_to_cstr_ptr(m.identifier.name)))
                 ] + [defineAlias(alias) for alias in sorted(m.aliases)])
 
             defineAliases = CGList([
@@ -3481,7 +3485,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
             specs = []
             for constructor in constructors:
                 hook = CONSTRUCT_HOOK_NAME + "_" + constructor.identifier.name
-                name = str_to_const_array(constructor.identifier.name)
+                name = str_to_byte_slice(constructor.identifier.name)
                 length = methodLength(constructor)
                 specs.append(CGGeneric("(%s as ConstructorClassHook, %s, %d)" % (hook, name, length)))
             values = CGIndenter(CGList(specs, "\n"), 4)
@@ -4225,7 +4229,7 @@ class CGSpecializedForwardingSetter(CGSpecializedSetter):
         return CGGeneric("""\
 let cx = SafeJSContext::from_ptr(cx);
 rooted!(in(*cx) let mut v = UndefinedValue());
-if !JS_GetProperty(*cx, HandleObject::from_raw(obj), %s as *const u8 as *const libc::c_char, v.handle_mut()) {
+if !JS_GetProperty(*cx, HandleObject::from_raw(obj), %s, v.handle_mut()) {
     return false;
 }
 if !v.is_object() {
@@ -4233,8 +4237,8 @@ if !v.is_object() {
     return false;
 }
 rooted!(in(*cx) let target_obj = v.to_object());
-JS_SetProperty(*cx, target_obj.handle(), %s as *const u8 as *const libc::c_char, HandleValue::from_raw(args.get(0)))
-""" % (str_to_const_array(attrName), attrName, str_to_const_array(forwardToAttrName)))
+JS_SetProperty(*cx, target_obj.handle(), %s, HandleValue::from_raw(args.get(0)))
+""" % (str_to_cstr_ptr(attrName), attrName, str_to_cstr_ptr(forwardToAttrName)))
 
 
 class CGSpecializedReplaceableSetter(CGSpecializedSetter):
@@ -4246,11 +4250,11 @@ class CGSpecializedReplaceableSetter(CGSpecializedSetter):
 
     def definition_body(self):
         assert self.attr.readonly
-        name = str_to_const_array(self.attr.identifier.name)
+        name = str_to_cstr_ptr(self.attr.identifier.name)
         # JS_DefineProperty can only deal with ASCII.
         assert all(ord(c) < 128 for c in name)
         return CGGeneric("""\
-JS_DefineProperty(cx, HandleObject::from_raw(obj), %s as *const u8 as *const libc::c_char,
+JS_DefineProperty(cx, HandleObject::from_raw(obj), %s,
                   HandleValue::from_raw(args.get(0)), JSPROP_ENUMERATE as u32)""" % name)
 
 
@@ -6055,7 +6059,7 @@ class CGDOMJSProxyHandler_className(CGAbstractExternMethod):
         self.descriptor = descriptor
 
     def getBody(self):
-        return '%s as *const u8 as *const libc::c_char' % str_to_const_array(self.descriptor.name)
+        return str_to_cstr_ptr(self.descriptor.name)
 
     def definition_body(self):
         return CGGeneric(self.getBody())
@@ -6457,7 +6461,7 @@ class CGDescriptor(CGThing):
                 haveUnscopables = True
                 cgThings.append(
                     CGList([CGGeneric("const unscopable_names: &[&[u8]] = &["),
-                            CGIndenter(CGList([CGGeneric(str_to_const_array(name)) for
+                            CGIndenter(CGList([CGGeneric(str_to_byte_slice(name)) for
                                                name in unscopableNames], ",\n")),
                             CGGeneric("];\n")], "\n"))
             if descriptor.concrete or descriptor.hasDescendants():
@@ -6476,7 +6480,7 @@ class CGDescriptor(CGThing):
         if haveLegacyWindowAliases:
             cgThings.append(
                 CGList([CGGeneric("const legacy_window_aliases: &[&[u8]] = &["),
-                        CGIndenter(CGList([CGGeneric(str_to_const_array(name)) for
+                        CGIndenter(CGList([CGGeneric(str_to_byte_slice(name)) for
                                            name in legacyWindowAliases], ",\n")),
                         CGGeneric("];\n")], "\n"))
 
