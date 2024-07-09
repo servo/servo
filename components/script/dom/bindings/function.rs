@@ -31,12 +31,13 @@ macro_rules! native_raw_obj_fn {
         }
 
         unsafe {
+            let name: &std::ffi::CStr = $name;
             let raw_fun = crate::dom::bindings::import::module::jsapi::JS_NewFunction(
                 *$cx,
                 Some(wrapper),
                 $nargs,
                 $flags,
-                $name.as_ptr() as *const std::ffi::c_char,
+                name.as_ptr() as *const std::ffi::c_char,
             );
             assert!(!raw_fun.is_null());
             crate::dom::bindings::import::module::jsapi::JS_GetFunctionObject(raw_fun)
