@@ -188,6 +188,12 @@ svg > * {
     all: inherit;
 }
 
+*|*::-servo-anonymous-box {
+  unicode-bidi: inherit;
+  direction: inherit;
+  writing-mode: inherit;
+}
+
 /* style for text node. */
 *|*::-servo-legacy-text {
     text-overflow: inherit;

@@ -130,14 +130,82 @@ wbr { display-outside: break-opportunity; } /* this also has bidi implications *
 nobr wbr { white-space: normal; }
 
 
-[dir]:dir(ltr), bdi:dir(ltr), input[type=tel]:dir(ltr) { direction: ltr; }
-[dir]:dir(rtl), bdi:dir(rtl) { direction: rtl; }
+/* Eventually we will want the following, but currently Servo does not
+   properly parse the :dir pseudo-selector.
+[dir=ltr i], bdi:dir(ltr), input[type=tel]:dir(ltr) { direction: ltr; }
+*/
+[dir=ltr i] { direction: ltr; }
+[dir=rtl i] { direction: rtl; }
+[dir=ltr i], [dir=rtl i], [dir=auto i] { unicode-bidi: isolate; }
 
-address, blockquote, center, div, figure, figcaption, footer, form, header, hr,
-legend, listing, main, p, plaintext, pre, summary, xmp, article, aside, h1, h2,
-h3, h4, h5, h6, hgroup, nav, section, table, caption, colgroup, col, thead,
-tbody, tfoot, tr, td, th, dir, dd, dl, dt, menu, ol, ul, li, bdi, output,
-[dir=ltr i], [dir=rtl i], [dir=auto i] {
+/* To ensure http://www.w3.org/TR/REC-html40/struct/dirlang.html#style-bidi:
+ *
+ * "When a block element that does not have a dir attribute is transformed to
+ * the style of an inline element by a style sheet, the resulting presentation
+ * should be equivalent, in terms of bidirectional formatting, to the
+ * formatting obtained by explicitly adding a dir attribute (assigned the
+ * inherited value) to the transformed element."
+ *
+ * and the rules in http://dev.w3.org/html5/spec/rendering.html#rendering
+ */
+address,
+article,
+aside,
+blockquote,
+body,
+caption,
+center,
+col,
+colgroup,
+dd,
+dir,
+div,
+dl,
+dt,
+fieldset,
+figcaption,
+figure,
+footer,
+form,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+header,
+hgroup,
+hr,
+html,
+legend,
+li,
+listing,
+main,
+marquee,
+menu,
+nav,
+noframes,
+ol,
+p,
+plaintext,
+pre,
+search,
+section,
+summary,
+table,
+tbody,
+td,
+tfoot,
+th,
+thead,
+tr,
+ul,
+xmp
+{
+  unicode-bidi: isolate;
+}
+
+bdi, output {
   unicode-bidi: isolate;
 }
 

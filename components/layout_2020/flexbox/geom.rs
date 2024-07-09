@@ -15,7 +15,7 @@ pub(super) struct FlexRelativeVec2<T> {
     pub cross: T,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub(super) struct FlexRelativeSides<T> {
     pub cross_start: T,
     pub main_start: T,

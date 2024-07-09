@@ -161,6 +161,7 @@ where
                         self.text_decoration_line,
                         true,  /* has_first_formatted_line */
                         false, /* is_single_line_text_box */
+                        self.info.style.writing_mode.to_bidi_level(),
                     )?;
 
                     let block_formatting_context = BlockFormattingContext::from_block_container(
