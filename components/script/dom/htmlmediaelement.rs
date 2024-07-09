@@ -780,7 +780,7 @@ impl HTMLMediaElement {
             // Step 9.obj.
             Mode::Object => {
                 // Step 9.obj.1.
-                *self.current_src.borrow_mut() = "".to_owned();
+                "".clone_into(&mut self.current_src.borrow_mut());
 
                 // Step 9.obj.2.
                 // FIXME(nox): The rest of the steps should be ran in parallel.

@@ -157,14 +157,12 @@ impl Actor for BrowsingContextActor {
     fn handle_message(
         &self,
         _registry: &ActorRegistry,
-        msg_type: &str,
+        _msg_type: &str,
         _msg: &Map<String, Value>,
         _stream: &mut TcpStream,
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
-        Ok(match msg_type {
-            _ => ActorMessageStatus::Ignored,
-        })
+        Ok(ActorMessageStatus::Ignored)
     }
 
     fn cleanup(&self, id: StreamId) {

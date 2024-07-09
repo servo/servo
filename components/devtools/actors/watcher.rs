@@ -193,11 +193,8 @@ impl Actor for WatcherActor {
                     let target =
                         registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
 
-                    match resource {
-                        "document-event" => {
-                            target.document_event(stream);
-                        },
-                        _ => {},
+                    if resource == "document-event" {
+                        target.document_event(stream);
                     }
 
                     let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });

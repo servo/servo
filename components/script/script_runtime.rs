@@ -748,8 +748,8 @@ pub unsafe fn get_reports(cx: *mut RawJSContext, path_seg: String) -> Vec<Report
     reports
 }
 
-thread_local!(static GC_CYCLE_START: Cell<Option<Instant>> = Cell::new(None));
-thread_local!(static GC_SLICE_START: Cell<Option<Instant>> = Cell::new(None));
+thread_local!(static GC_CYCLE_START: Cell<Option<Instant>> = const { Cell::new(None) });
+thread_local!(static GC_SLICE_START: Cell<Option<Instant>> = const { Cell::new(None) });
 
 #[allow(unsafe_code)]
 unsafe extern "C" fn gc_slice_callback(
@@ -803,7 +803,7 @@ unsafe extern "C" fn debug_gc_callback(
 }
 
 thread_local!(
-    static THREAD_ACTIVE: Cell<bool> = Cell::new(true);
+    static THREAD_ACTIVE: Cell<bool> = const { Cell::new(true) };
 );
 
 pub(crate) fn runtime_is_alive() -> bool {

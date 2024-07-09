@@ -206,10 +206,10 @@ impl RTCPeerConnection {
         let signaller = this.make_signaller();
         *this.controller.borrow_mut() = Some(ServoMedia::get().unwrap().create_webrtc(signaller));
         if let Some(ref servers) = config.iceServers {
-            if let Some(server) = servers.get(0) {
+            if let Some(server) = servers.first() {
                 let server = match server.urls {
                     StringOrStringSequence::String(ref s) => Some(s.clone()),
-                    StringOrStringSequence::StringSequence(ref s) => s.get(0).cloned(),
+                    StringOrStringSequence::StringSequence(ref s) => s.first().cloned(),
                 };
                 if let Some(server) = server {
                     let policy = match config.bundlePolicy {

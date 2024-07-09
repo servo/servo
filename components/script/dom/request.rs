@@ -529,7 +529,7 @@ impl RequestMethods for Request {
     // https://fetch.spec.whatwg.org/#dom-request-url
     fn Url(&self) -> USVString {
         let r = self.request.borrow();
-        USVString(r.url_list.get(0).map_or("", |u| u.as_str()).into())
+        USVString(r.url_list.first().map_or("", |u| u.as_str()).into())
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-headers

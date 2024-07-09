@@ -9,7 +9,7 @@
 // crate. Issue a warning if `crown` is not being used to compile, but not when
 // building rustdoc or running clippy.
 #![register_tool(crown)]
-#![cfg_attr(any(doc, clippy, feature = "cargo-clippy"), allow(unknown_lints))]
+#![cfg_attr(any(doc, clippy), allow(unknown_lints))]
 #![deny(crown_is_not_used)]
 
 // These are used a lot so let's keep them for now
