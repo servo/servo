@@ -78,7 +78,7 @@ use std::cell::{OnceCell, RefCell};
 use std::mem;
 use std::rc::Rc;
 
-use app_units::Au;
+use app_units::{Au, MAX_AU};
 use bitflags::bitflags;
 use construct::InlineFormattingContextBuilder;
 use fonts::{FontMetrics, GlyphStore};
@@ -195,11 +195,11 @@ pub(crate) enum InlineItem {
 struct LineUnderConstruction {
     /// The position where this line will start once it is laid out. This includes any
     /// offset from `text-indent`.
-    start_position: LogicalVec2<Length>,
+    start_position: LogicalVec2<Au>,
 
     /// The current inline position in the line being laid out into [`LineItem`]s in this
     /// [`InlineFormattingContext`] independent of the depth in the nesting level.
-    inline_position: Length,
+    inline_position: Au,
 
     /// The maximum block size of all boxes that ended and are in progress in this line.
     /// This uses [`LineBlockSizes`] instead of a simple value, because the final block size
@@ -219,7 +219,7 @@ struct LineUnderConstruction {
     /// context boundaries) where we can fit the line box without overlapping floats.
     /// Note that when this is not empty, its start corner takes precedence over
     /// [`LineUnderConstruction::start_position`].
-    placement_among_floats: OnceCell<LogicalRect<Length>>,
+    placement_among_floats: OnceCell<LogicalRect<Au>>,
 
     /// The LineItems for the current line under construction that have already
     /// been committed to this line.
@@ -227,7 +227,7 @@ struct LineUnderConstruction {
 }
 
 impl LineUnderConstruction {
-    fn new(start_position: LogicalVec2<Length>) -> Self {
+    fn new(start_position: LogicalVec2<Au>) -> Self {
         Self {
             inline_position: start_position.inline,
             start_position,
@@ -241,23 +241,23 @@ impl LineUnderConstruction {
 
     fn line_block_start_considering_placement_among_floats(&self) -> Au {
         match self.placement_among_floats.get() {
-            Some(placement_among_floats) => placement_among_floats.start_corner.block.into(),
-            None => self.start_position.block.into(),
+            Some(placement_among_floats) => placement_among_floats.start_corner.block,
+            None => self.start_position.block,
         }
     }
 
-    fn replace_placement_among_floats(&mut self, new_placement: LogicalRect<Length>) {
+    fn replace_placement_among_floats(&mut self, new_placement: LogicalRect<Au>) {
         self.placement_among_floats.take();
         let _ = self.placement_among_floats.set(new_placement);
     }
 
     /// Trim the trailing whitespace in this line and return the width of the whitespace trimmed.
-    fn trim_trailing_whitespace(&mut self) -> Length {
+    fn trim_trailing_whitespace(&mut self) -> Au {
         // From <https://www.w3.org/TR/css-text-3/#white-space-phase-2>:
         // > 3. A sequence of collapsible spaces at the end of a line is removed,
         // >    as well as any trailing U+1680   OGHAM SPACE MARK whose white-space
         // >    property is normal, nowrap, or pre-line.
-        let mut whitespace_trimmed = Length::zero();
+        let mut whitespace_trimmed = Au::zero();
         for item in self.line_items.iter_mut().rev() {
             if !item.trim_whitespace_at_end(&mut whitespace_trimmed) {
                 break;
@@ -339,7 +339,7 @@ impl BaselineRelativeSize {
 
 #[derive(Clone, Debug)]
 struct LineBlockSizes {
-    line_height: Length,
+    line_height: Au,
     baseline_relative_size_for_line_height: Option<BaselineRelativeSize>,
     size_for_baseline_positioning: BaselineRelativeSize,
 }
@@ -347,7 +347,7 @@ struct LineBlockSizes {
 impl LineBlockSizes {
     fn zero() -> Self {
         LineBlockSizes {
-            line_height: Length::zero(),
+            line_height: Au::zero(),
             baseline_relative_size_for_line_height: None,
             size_for_baseline_positioning: BaselineRelativeSize::zero(),
         }
@@ -359,7 +359,7 @@ impl LineBlockSizes {
             .as_ref()
             .map(|size| (size.ascent + size.descent).abs())
             .unwrap_or_else(Au::zero);
-        Au::from(self.line_height).max(height_from_ascent_and_descent)
+        self.line_height.max(height_from_ascent_and_descent)
     }
 
     fn max(&self, other: &LineBlockSizes) -> LineBlockSizes {
@@ -417,7 +417,7 @@ impl LineBlockSizes {
 /// of inline content or we reach the end of the formatting context.
 struct UnbreakableSegmentUnderConstruction {
     /// The size of this unbreakable segment in both dimension.
-    inline_size: Length,
+    inline_size: Au,
 
     /// The maximum block size that this segment has. This uses [`LineBlockSizes`] instead of a
     /// simple value, because the final block size depends on vertical alignment.
@@ -436,33 +436,33 @@ struct UnbreakableSegmentUnderConstruction {
     has_content: bool,
 
     /// The inline size of any trailing whitespace in this segment.
-    trailing_whitespace_size: Length,
+    trailing_whitespace_size: Au,
 }
 
 impl UnbreakableSegmentUnderConstruction {
     fn new() -> Self {
         Self {
-            inline_size: Length::zero(),
+            inline_size: Au::zero(),
             max_block_size: LineBlockSizes {
-                line_height: Length::zero(),
+                line_height: Au::zero(),
                 baseline_relative_size_for_line_height: None,
                 size_for_baseline_positioning: BaselineRelativeSize::zero(),
             },
             line_items: Vec::new(),
             inline_box_hierarchy_depth: None,
             has_content: false,
-            trailing_whitespace_size: Length::zero(),
+            trailing_whitespace_size: Au::zero(),
         }
     }
 
     /// Reset this segment after its contents have been committed to a line.
     fn reset(&mut self) {
         assert!(self.line_items.is_empty()); // Preserve allocated memory.
-        self.inline_size = Length::zero();
+        self.inline_size = Au::zero();
         self.max_block_size = LineBlockSizes::zero();
         self.inline_box_hierarchy_depth = None;
         self.has_content = false;
-        self.trailing_whitespace_size = Length::zero();
+        self.trailing_whitespace_size = Au::zero();
     }
 
     /// Push a single line item to this segment. In addition, record the inline box
@@ -487,7 +487,7 @@ impl UnbreakableSegmentUnderConstruction {
     ///
     /// This prevents whitespace from being added to the beginning of a line.
     fn trim_leading_whitespace(&mut self) {
-        let mut whitespace_trimmed = Length::zero();
+        let mut whitespace_trimmed = Au::zero();
         for item in self.line_items.iter_mut() {
             if !item.trim_whitespace_at_start(&mut whitespace_trimmed) {
                 break;
@@ -711,15 +711,9 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         }
 
         if inline_box.is_first_fragment {
-            self.current_line_segment.inline_size += Length::from(
-                inline_box_state.pbm.padding.inline_start +
-                    inline_box_state.pbm.border.inline_start,
-            ) + inline_box_state
-                .pbm
-                .margin
-                .inline_start
-                .auto_is(Au::zero)
-                .into();
+            self.current_line_segment.inline_size += inline_box_state.pbm.padding.inline_start +
+                inline_box_state.pbm.border.inline_start +
+                inline_box_state.pbm.margin.inline_start.auto_is(Au::zero);
             self.current_line_segment
                 .line_items
                 .push(LineItem::StartInlineBoxPaddingBorderMargin(
@@ -762,14 +756,9 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         }
 
         if inline_box_state.is_last_fragment {
-            let pbm_end = Length::from(
-                inline_box_state.pbm.padding.inline_end + inline_box_state.pbm.border.inline_end,
-            ) + inline_box_state
-                .pbm
-                .margin
-                .inline_end
-                .auto_is(Au::zero)
-                .into();
+            let pbm_end = inline_box_state.pbm.padding.inline_end +
+                inline_box_state.pbm.border.inline_end +
+                inline_box_state.pbm.margin.inline_end.auto_is(Au::zero);
             self.current_line_segment.inline_size += pbm_end;
             self.current_line_segment
                 .line_items
@@ -827,7 +816,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         if let Some(sequential_layout_state) = self.sequential_layout_state.as_mut() {
             // This amount includes both the block size of the line and any extra space
             // added to move the line down in order to avoid overlapping floats.
-            let increment = block_end_position - self.current_line.start_position.block.into();
+            let increment = block_end_position - self.current_line.start_position.block;
             sequential_layout_state.advance_block_position(increment);
 
             // This newline may have been triggered by a `<br>` with clearance, in which case we
@@ -846,8 +835,8 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         let mut line_to_layout = std::mem::replace(
             &mut self.current_line,
             LineUnderConstruction::new(LogicalVec2 {
-                inline: Length::zero(),
-                block: block_end_position.into(),
+                inline: Au::zero(),
+                block: block_end_position,
             }),
         );
 
@@ -915,7 +904,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
     /// to account for `text-align: justify`.
     fn calculate_current_line_inline_start_and_justification_adjustment(
         &self,
-        whitespace_trimmed: Length,
+        whitespace_trimmed: Au,
         last_line_or_forced_line_break: bool,
     ) -> (Au, Au) {
         enum TextAlign {
@@ -967,7 +956,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 placement_among_floats.start_corner.inline,
                 placement_among_floats.size.inline,
             ),
-            None => (Length::zero(), self.containing_block.inline_size.into()),
+            None => (Au::zero(), self.containing_block.inline_size),
         };
 
         // Properly handling text-indent requires that we do not align the text
@@ -982,9 +971,9 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             match text_align {
                 TextAlign::Start => text_indent,
                 TextAlign::End => (available_space - line_length).max(text_indent),
-                TextAlign::Center => {
-                    ((available_space - line_length + text_indent) / 2.).max(text_indent)
-                },
+                TextAlign::Center => (available_space - line_length + text_indent)
+                    .scale_by(0.5)
+                    .max(text_indent),
             };
 
         // Calculate the justification adjustment. This is simply the remaining space on the line,
@@ -994,24 +983,24 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         let justification_adjustment = match (text_align_keyword, text_justify) {
             // `text-justify: none` should disable text justification.
             // TODO: Handle more `text-justify` values.
-            (TextAlignKeyword::Justify, TextJustify::None) => Length::zero(),
+            (TextAlignKeyword::Justify, TextJustify::None) => Au::zero(),
             (TextAlignKeyword::Justify, _) => {
                 match self.current_line.count_justification_opportunities() {
-                    0 => Length::zero(),
+                    0 => Au::zero(),
                     num_justification_opportunities => {
-                        (available_space - text_indent - line_length) /
-                            (num_justification_opportunities as f32)
+                        (available_space - text_indent - line_length)
+                            .scale_by(1. / num_justification_opportunities as f32)
                     },
                 }
             },
-            _ => Length::zero(),
+            _ => Au::zero(),
         };
 
         // If the content overflows the line, then justification adjustment will become negative. In
         // that case, do not make any adjustment for justification.
-        let justification_adjustment = justification_adjustment.max(Length::zero());
+        let justification_adjustment = justification_adjustment.max(Au::zero());
 
-        (adjusted_line_start.into(), justification_adjustment.into())
+        (adjusted_line_start, justification_adjustment)
     }
 
     fn place_float_fragment(&mut self, fragment: &mut BoxFragment) {
@@ -1041,7 +1030,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
     fn place_float_line_item_for_commit_to_line(
         &mut self,
         float_item: &mut FloatLineItem,
-        line_inline_size_without_trailing_whitespace: Length,
+        line_inline_size_without_trailing_whitespace: Au,
     ) {
         let margin_box = float_item
             .fragment
@@ -1051,7 +1040,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
 
         let available_inline_size = match self.current_line.placement_among_floats.get() {
             Some(placement_among_floats) => placement_among_floats.size.inline,
-            None => self.containing_block.inline_size.into(),
+            None => self.containing_block.inline_size,
         } - line_inline_size_without_trailing_whitespace;
 
         // If this float doesn't fit on the current line or a previous float didn't fit on
@@ -1060,7 +1049,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         // parenting in their stacking contexts). Once all the line content is gathered we
         // will place them later.
         let has_content = self.current_line.has_content || self.current_line_segment.has_content;
-        let fits_on_line = !has_content || inline_size <= available_inline_size.into();
+        let fits_on_line = !has_content || inline_size <= available_inline_size;
         let needs_placement_later =
             self.current_line.has_floats_waiting_to_be_placed || !fits_on_line;
 
@@ -1077,7 +1066,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         // start position.
         let new_placement = self.place_line_among_floats(&LogicalVec2 {
             inline: line_inline_size_without_trailing_whitespace,
-            block: self.current_line.max_block_size.resolve().into(),
+            block: self.current_line.max_block_size.resolve(),
         });
         self.current_line
             .replace_placement_among_floats(new_placement);
@@ -1087,10 +1076,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
     /// This tells us whether or not the new potential line will fit in the current block position
     /// or need to be moved. In addition, the placement rect determines the inline start and end
     /// of the line if it's used as the final placement among floats.
-    fn place_line_among_floats(
-        &self,
-        potential_line_size: &LogicalVec2<Length>,
-    ) -> LogicalRect<Length> {
+    fn place_line_among_floats(&self, potential_line_size: &LogicalVec2<Au>) -> LogicalRect<Au> {
         let sequential_layout_state = self
             .sequential_layout_state
             .as_ref()
@@ -1111,15 +1097,15 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             &sequential_layout_state.floats,
             ceiling + ifc_offset_in_float_container.block,
             LogicalVec2 {
-                inline: potential_line_size.inline.into(),
-                block: potential_line_size.block.into(),
+                inline: potential_line_size.inline,
+                block: potential_line_size.block,
             },
             &PaddingBorderMargin::zero(),
         );
 
         let mut placement_rect = placement.place();
         placement_rect.start_corner -= ifc_offset_in_float_container;
-        placement_rect.into()
+        placement_rect
     }
 
     /// Returns true if a new potential line size for the current line would require a line
@@ -1130,7 +1116,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
     /// line or the next.
     fn new_potential_line_size_causes_line_break(
         &mut self,
-        potential_line_size: &LogicalVec2<Length>,
+        potential_line_size: &LogicalVec2<Au>,
     ) -> bool {
         let available_line_space = if self.sequential_layout_state.is_some() {
             self.current_line
@@ -1139,8 +1125,8 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 .size
         } else {
             LogicalVec2 {
-                inline: self.containing_block.inline_size.into(),
-                block: Length::new(f32::INFINITY),
+                inline: self.containing_block.inline_size,
+                block: MAX_AU,
             }
         };
 
@@ -1172,7 +1158,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
 
         // If the potential line is larger than the containing block we do not even need to consider
         // floats. We definitely have to do a linebreak.
-        if potential_line_size.inline > self.containing_block.inline_size.into() {
+        if potential_line_size.inline > self.containing_block.inline_size {
             return true;
         }
 
@@ -1186,7 +1172,6 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             if new_placement.start_corner.block !=
                 self.current_line
                     .line_block_start_considering_placement_among_floats()
-                    .into()
             {
                 return true;
             } else {
@@ -1228,7 +1213,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
                 .clone();
             self.update_unbreakable_segment_for_new_content(
                 &strut_size,
-                Length::zero(),
+                Au::zero(),
                 SegmentContentFlags::empty(),
             );
         }
@@ -1257,7 +1242,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         text_run: &TextRun,
         font_index: usize,
     ) {
-        let inline_advance = Length::from(glyph_store.total_advance());
+        let inline_advance = glyph_store.total_advance();
         let flags = if glyph_store.is_whitespace() {
             SegmentContentFlags::from(text_run.parent_style.get_inherited_text())
         } else {
@@ -1328,13 +1313,13 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
     fn update_unbreakable_segment_for_new_content(
         &mut self,
         block_sizes_of_content: &LineBlockSizes,
-        inline_size: Length,
+        inline_size: Au,
         flags: SegmentContentFlags,
     ) {
         if flags.is_collapsible_whitespace() || flags.is_wrappable_and_hangable() {
             self.current_line_segment.trailing_whitespace_size = inline_size;
         } else {
-            self.current_line_segment.trailing_whitespace_size = Length::zero();
+            self.current_line_segment.trailing_whitespace_size = Au::zero();
         }
         if !flags.is_collapsible_whitespace() {
             self.current_line_segment.has_content = true;
@@ -1399,8 +1384,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             block: self
                 .current_line_max_block_size_including_nested_containers()
                 .max(&self.current_line_segment.max_block_size)
-                .resolve()
-                .into(),
+                .resolve(),
         };
 
         if self.new_potential_line_size_causes_line_break(&potential_line_size) {
@@ -1448,7 +1432,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
         if self.current_line.line_items.is_empty() {
             let will_break = self.new_potential_line_size_causes_line_break(&LogicalVec2 {
                 inline: line_inline_size_without_trailing_whitespace,
-                block: self.current_line_segment.max_block_size.resolve().into(),
+                block: self.current_line_segment.max_block_size.resolve(),
             });
             assert!(!will_break);
         }
@@ -1596,9 +1580,8 @@ impl InlineFormattingContext {
                 .text_indent
                 .length
                 .to_used_value(containing_block.inline_size)
-                .into()
         } else {
-            Length::zero()
+            Au::zero()
         };
 
         let style = containing_block.style;
@@ -1629,7 +1612,7 @@ impl InlineFormattingContext {
             fragments: Vec::new(),
             current_line: LineUnderConstruction::new(LogicalVec2 {
                 inline: first_line_inline_start,
-                block: Length::zero(),
+                block: Au::zero(),
             }),
             root_nesting_level: InlineContainerState::new(
                 style.to_arc(),
@@ -1699,12 +1682,12 @@ impl InlineFormattingContext {
         let mut collapsible_margins_in_children = CollapsedBlockMargins::zero();
         let content_block_size = ifc.current_line.start_position.block;
         collapsible_margins_in_children.collapsed_through = !ifc.had_inflow_content &&
-            content_block_size == Length::zero() &&
+            content_block_size == Au::zero() &&
             collapsible_with_parent_start_margin.0;
 
         FlowLayout {
             fragments: ifc.fragments,
-            content_block_size,
+            content_block_size: content_block_size.into(),
             collapsible_margins_in_children,
             baselines: ifc.baselines,
         }
@@ -1783,7 +1766,7 @@ impl InlineContainerState {
         style: &ComputedValues,
         font_metrics: &FontMetrics,
         font_metrics_of_first_font: &FontMetrics,
-        line_height: Length,
+        line_height: Au,
     ) -> LineBlockSizes {
         if !is_baseline_relative(vertical_align) {
             return LineBlockSizes {
@@ -1833,8 +1816,7 @@ impl InlineContainerState {
         if style.get_font().line_height != LineHeight::Normal {
             ascent = font_metrics_of_first_font.ascent;
             descent = font_metrics_of_first_font.descent;
-            let half_leading =
-                (Au::from_f32_px(line_height.px()) - (ascent + descent)).scale_by(0.5);
+            let half_leading = (line_height - (ascent + descent)).scale_by(0.5);
             ascent += half_leading;
             descent += half_leading;
         }
@@ -1913,7 +1895,7 @@ impl InlineContainerState {
                         child_block_size.size_for_baseline_positioning.descent
                 },
                 VerticalAlign::Length(length_percentage) => {
-                    Au::from_f32_px(-length_percentage.resolve(child_block_size.line_height).px())
+                    (-length_percentage.resolve(child_block_size.line_height.into())).into()
                 },
             }
     }
@@ -2077,7 +2059,7 @@ impl IndependentFormattingContext {
         );
         inline_formatting_context_state.update_unbreakable_segment_for_new_content(
             &block_sizes,
-            size.inline.into(),
+            size.inline,
             SegmentContentFlags::empty(),
         );
         inline_formatting_context_state.push_line_item_to_unbreakable_segment(LineItem::Atomic(
@@ -2119,7 +2101,7 @@ impl IndependentFormattingContext {
     fn get_block_sizes_and_baseline_offset(
         &self,
         ifc: &InlineFormattingContextState,
-        block_size: Length,
+        block_size: Au,
         baseline_offset_in_content_area: Au,
     ) -> (LineBlockSizes, Au) {
         let mut contribution = if !is_baseline_relative(self.style().clone_vertical_align()) {
@@ -2131,7 +2113,7 @@ impl IndependentFormattingContext {
         } else {
             let baseline_relative_size = BaselineRelativeSize {
                 ascent: baseline_offset_in_content_area,
-                descent: Au::from_f32_px(block_size.px()) - baseline_offset_in_content_area,
+                descent: block_size - baseline_offset_in_content_area,
             };
             LineBlockSizes {
                 line_height: block_size,
@@ -2187,19 +2169,19 @@ fn line_height(
     parent_style: &ComputedValues,
     font_metrics: &FontMetrics,
     is_single_line_text_input: bool,
-) -> Length {
+) -> Au {
     let font = parent_style.get_font();
     let font_size = font.font_size.computed_size();
     let mut line_height = match font.line_height {
-        LineHeight::Normal => Length::from(font_metrics.line_gap),
-        LineHeight::Number(number) => font_size * number.0,
-        LineHeight::Length(length) => length.0,
+        LineHeight::Normal => font_metrics.line_gap,
+        LineHeight::Number(number) => (font_size * number.0).into(),
+        LineHeight::Length(length) => length.0.into(),
     };
 
     // Single line text inputs line height is clamped to the size of `normal`. See
     // <https://github.com/whatwg/html/pull/5462>.
     if is_single_line_text_input {
-        line_height.max_assign(font_metrics.line_gap.into());
+        line_height.max_assign(font_metrics.line_gap);
     }
 
     line_height
@@ -2284,7 +2266,7 @@ struct ContentSizesComputation<'a> {
     had_content_yet: bool,
     /// Stack of ending padding, margin, and border to add to the length
     /// when an inline box finishes.
-    ending_inline_pbm_stack: Vec<Length>,
+    ending_inline_pbm_stack: Vec<Au>,
 }
 
 impl<'a> ContentSizesComputation<'a> {
@@ -2325,20 +2307,17 @@ impl<'a> ContentSizesComputation<'a> {
 
                 let pbm = margin + padding + border;
                 if inline_box.is_first_fragment {
-                    self.add_length(pbm.inline_start);
+                    self.add_inline_size(pbm.inline_start.into());
                 }
                 if inline_box.is_last_fragment {
-                    self.ending_inline_pbm_stack.push(pbm.inline_end);
+                    self.ending_inline_pbm_stack.push(pbm.inline_end.into());
                 } else {
-                    self.ending_inline_pbm_stack.push(Length::zero());
+                    self.ending_inline_pbm_stack.push(Au::zero());
                 }
             },
             InlineItem::EndInlineBox => {
-                let length = self
-                    .ending_inline_pbm_stack
-                    .pop()
-                    .unwrap_or_else(Length::zero);
-                self.add_length(length);
+                let length = self.ending_inline_pbm_stack.pop().unwrap_or_else(Au::zero);
+                self.add_inline_size(length);
             },
             InlineItem::TextRun(text_run) => {
                 for segment in text_run.shaped_text.iter() {
@@ -2382,7 +2361,7 @@ impl<'a> ContentSizesComputation<'a> {
                         }
 
                         self.commit_pending_whitespace();
-                        self.add_length(advance.into());
+                        self.add_inline_size(advance);
                         self.had_content_yet = true;
                     }
                 }
@@ -2414,9 +2393,9 @@ impl<'a> ContentSizesComputation<'a> {
         }
     }
 
-    fn add_length(&mut self, l: Length) {
-        self.current_line.min_content += l.into();
-        self.current_line.max_content += l.into();
+    fn add_inline_size(&mut self, l: Au) {
+        self.current_line.min_content += l;
+        self.current_line.max_content += l;
     }
 
     fn line_break_opportunity(&mut self) {
