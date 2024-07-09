@@ -11,7 +11,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread::JoinHandle;
-use std::time::Instant;
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use std::{mem, ptr};
 
 use base::id::{
@@ -2305,7 +2305,10 @@ impl GlobalScope {
                     line_number: 0,
                     column_number: 0,
                     category: "script".to_string(),
-                    time_stamp: 0, //TODO
+                    time_stamp: SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_millis() as u64,
                     error: false,
                     warning: true,
                     exception: true,
@@ -2493,7 +2496,10 @@ impl GlobalScope {
                             line_number: error_info.lineno,
                             column_number: error_info.column,
                             category: "script".to_string(),
-                            time_stamp: 0, //TODO
+                            time_stamp: SystemTime::now()
+                                .duration_since(UNIX_EPOCH)
+                                .unwrap_or_default()
+                                .as_millis() as u64,
                             error: true,
                             warning: false,
                             exception: true,

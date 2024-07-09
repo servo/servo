@@ -26,6 +26,7 @@ impl Actor for ObjectActor {
         _: &mut TcpStream,
         _: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
+        // TODO: Handle enumSymbols for console object inspection
         Ok(ActorMessageStatus::Ignored)
     }
 }

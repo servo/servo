@@ -282,23 +282,21 @@ pub struct PageError {
     pub private: bool,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct ConsoleAPI {
-    #[serde(rename = "_type")]
-    pub type_: String,
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ConsoleLog {
     pub level: String,
     pub filename: String,
     pub line_number: u32,
-    pub function_name: String,
+    pub column_number: u32,
     pub time_stamp: u64,
-    pub private: bool,
     pub arguments: Vec<String>,
+    // pub stacktrace: Vec<...>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum CachedConsoleMessage {
     PageError(PageError),
-    ConsoleAPI(ConsoleAPI),
+    ConsoleLog(ConsoleLog),
 }
 
 #[derive(Debug, PartialEq)]

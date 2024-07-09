@@ -12,7 +12,7 @@ use std::net::TcpStream;
 
 use base::id::{BrowsingContextId, PipelineId};
 use devtools_traits::DevtoolScriptControlMsg::{self, WantsLiveNotifications};
-use devtools_traits::{DevtoolsPageInfo, NavigationState};
+use devtools_traits::{ConsoleLog, DevtoolsPageInfo, NavigationState, PageError};
 use ipc_channel::ipc::IpcSender;
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -68,6 +68,36 @@ struct ResourceAvailableMsg {
     time: u64,
     title: Option<String>,
     url: Option<String>,
+}
+
+#[derive(Serialize)]
+struct ConsoleMsg {
+    from: String,
+    #[serde(rename = "type")]
+    type_: String,
+    resources: Vec<ConsoleMessageResource>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ConsoleMessageResource {
+    message: ConsoleLog,
+    resource_type: String,
+}
+
+#[derive(Serialize)]
+struct PageErrorMsg {
+    from: String,
+    #[serde(rename = "type")]
+    type_: String,
+    resources: Vec<PageErrorResource>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PageErrorResource {
+    page_error: PageError,
+    resource_type: String,
 }
 
 #[derive(Serialize)]
@@ -347,7 +377,7 @@ impl BrowsingContextActor {
                 from: self.name(),
                 type_: "resource-available-form".into(),
                 resources: vec![ResourceAvailableMsg {
-                    has_native_console_api: None,
+                    has_native_console_api: Some(true),
                     name: name.into(),
                     new_uri: None,
                     resource_type: "document-event".into(),
@@ -356,6 +386,36 @@ impl BrowsingContextActor {
                     url: Some(self.url.borrow().clone()),
                 }],
             });
+        }
+    }
+
+    pub(crate) fn console_message(&self, message: ConsoleLog) {
+        let msg = ConsoleMsg {
+            from: self.name(),
+            type_: "resource-available-form".into(),
+            resources: vec![ConsoleMessageResource {
+                message,
+                resource_type: "console-message".into(),
+            }],
+        };
+
+        for stream in self.streams.borrow_mut().values_mut() {
+            let _ = stream.write_json_packet(&msg);
+        }
+    }
+
+    pub(crate) fn page_error(&self, page_error: PageError) {
+        let msg = PageErrorMsg {
+            from: self.name(),
+            type_: "resource-available-form".into(),
+            resources: vec![PageErrorResource {
+                page_error,
+                resource_type: "error-message".into(),
+            }],
+        };
+
+        for stream in self.streams.borrow_mut().values_mut() {
+            let _ = stream.write_json_packet(&msg);
         }
     }
 }
