@@ -603,7 +603,7 @@ impl LineItem {
         }
     }
 
-    pub(super) fn trim_whitespace_at_end(&mut self, whitespace_trimmed: &mut Length) -> bool {
+    pub(super) fn trim_whitespace_at_end(&mut self, whitespace_trimmed: &mut Au) -> bool {
         match self {
             LineItem::StartInlineBoxPaddingBorderMargin(_) => true,
             LineItem::EndInlineBoxPaddingBorderMargin(_) => true,
@@ -614,7 +614,7 @@ impl LineItem {
         }
     }
 
-    pub(super) fn trim_whitespace_at_start(&mut self, whitespace_trimmed: &mut Length) -> bool {
+    pub(super) fn trim_whitespace_at_start(&mut self, whitespace_trimmed: &mut Au) -> bool {
         match self {
             LineItem::StartInlineBoxPaddingBorderMargin(_) => true,
             LineItem::EndInlineBoxPaddingBorderMargin(_) => true,
@@ -636,7 +636,7 @@ pub(super) struct TextRunLineItem {
 }
 
 impl TextRunLineItem {
-    fn trim_whitespace_at_end(&mut self, whitespace_trimmed: &mut Length) -> bool {
+    fn trim_whitespace_at_end(&mut self, whitespace_trimmed: &mut Au) -> bool {
         if matches!(
             self.parent_style.get_inherited_text().white_space_collapse,
             WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces
@@ -655,14 +655,14 @@ impl TextRunLineItem {
         *whitespace_trimmed += self
             .text
             .drain(first_whitespace_index..)
-            .map(|glyph| Length::from(glyph.total_advance()))
+            .map(|glyph| glyph.total_advance())
             .sum();
 
         // Only keep going if we only encountered whitespace.
         index_of_last_non_whitespace.is_none()
     }
 
-    fn trim_whitespace_at_start(&mut self, whitespace_trimmed: &mut Length) -> bool {
+    fn trim_whitespace_at_start(&mut self, whitespace_trimmed: &mut Au) -> bool {
         if matches!(
             self.parent_style.get_inherited_text().white_space_collapse,
             WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces
@@ -679,7 +679,7 @@ impl TextRunLineItem {
         *whitespace_trimmed += self
             .text
             .drain(0..index_of_first_non_whitespace)
-            .map(|glyph| Length::from(glyph.total_advance()))
+            .map(|glyph| glyph.total_advance())
             .sum();
 
         // Only keep going if we only encountered whitespace.
