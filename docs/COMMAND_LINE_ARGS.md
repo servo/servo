@@ -1,4 +1,4 @@
-# Command Line Arguments
+# Command line arguments
 
 Moved to the Servo book:
 
