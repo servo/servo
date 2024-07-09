@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! IPC massages that are send to script thread (global scope).
+//! IPC messages that are send to script thread.
 
 use base::id::PipelineId;
 use serde::{Deserialize, Serialize};

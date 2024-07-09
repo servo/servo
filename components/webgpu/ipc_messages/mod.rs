@@ -3,5 +3,5 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 pub mod recv;
-pub mod send_dom;
-pub mod send_script;
+pub mod to_dom;
+pub mod to_script;

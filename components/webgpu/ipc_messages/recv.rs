@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! IPC massages that are received from GPU DOM objects.
+//! IPC messages that are received in wgpu thread
+//! (usually from script thread more specifically from dom objects)
 
 use std::borrow::Cow;
 
