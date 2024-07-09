@@ -2987,9 +2987,10 @@ impl Document {
     /// <https://drafts.csswg.org/resize-observer/#deliver-resize-loop-error-notification>
     pub(crate) fn deliver_resize_loop_error_notification(&self) {
         let global_scope = self.window.upcast::<GlobalScope>();
-        let mut error_info: ErrorInfo = Default::default();
-        error_info.message =
-            "ResizeObserver loop completed with undelivered notifications.".to_string();
+        let error_info: ErrorInfo = crate::dom::bindings::error::ErrorInfo {
+            message: "ResizeObserver loop completed with undelivered notifications.".to_string(),
+            ..Default::default()
+        };
         global_scope.report_an_error(error_info, HandleValue::null());
     }
 }

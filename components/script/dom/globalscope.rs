@@ -3107,7 +3107,7 @@ impl GlobalScope {
             DeviceLostReason::Unknown => GPUDeviceLostReason::Unknown,
             DeviceLostReason::Destroyed => GPUDeviceLostReason::Destroyed,
         };
-        let _ac = enter_realm(&*self);
+        let _ac = enter_realm(self);
         if let Some(device) = self
             .gpu_devices
             .borrow_mut()

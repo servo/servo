@@ -1711,14 +1711,14 @@ impl InlineFormattingContext {
     }
 
     fn next_character_prevents_soft_wrap_opportunity(&self, index: usize) -> bool {
-        let Some(character) = self.text_content[index..].chars().skip(1).next() else {
+        let Some(character) = self.text_content[index..].chars().nth(1) else {
             return false;
         };
         char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character)
     }
 
     fn previous_character_prevents_soft_wrap_opportunity(&self, index: usize) -> bool {
-        let Some(character) = self.text_content[0..index].chars().rev().next() else {
+        let Some(character) = self.text_content[0..index].chars().next_back() else {
             return false;
         };
         char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character)

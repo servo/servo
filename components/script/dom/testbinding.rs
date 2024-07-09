@@ -622,8 +622,8 @@ impl TestBindingMethods for TestBinding {
         arg.type_.as_ref().map(|s| s == "success").unwrap_or(false) &&
             arg.nonRequiredNullable.is_none() &&
             arg.nonRequiredNullable2 == Some(None) &&
-            arg.noCallbackImport == None &&
-            arg.noCallbackImport2 == None
+            arg.noCallbackImport.is_none() &&
+            arg.noCallbackImport2.is_none()
     }
 
     fn PassBoolean(&self, _: bool) {}

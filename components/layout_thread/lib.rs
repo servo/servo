@@ -306,9 +306,7 @@ impl Layout for LayoutThread {
     }
 
     fn query_content_box(&self, node: OpaqueNode) -> Option<UntypedRect<Au>> {
-        let Some(mut root_flow) = self.root_flow_for_query() else {
-            return None;
-        };
+        let mut root_flow = self.root_flow_for_query()?;
 
         let root_flow_ref = FlowRef::deref_mut(&mut root_flow);
         process_content_box_request(node, root_flow_ref)
@@ -1010,7 +1008,7 @@ impl LayoutThread {
             for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
                 self.stylist
                     .append_stylesheet(stylesheet.clone(), &ua_or_user_guard);
-                self.load_all_web_fonts_from_stylesheet_with_guard(&stylesheet, &ua_or_user_guard);
+                self.load_all_web_fonts_from_stylesheet_with_guard(stylesheet, &ua_or_user_guard);
             }
 
             if self.stylist.quirks_mode() != QuirksMode::NoQuirks {

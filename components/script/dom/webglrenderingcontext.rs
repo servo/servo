@@ -4292,16 +4292,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         let unpacking_alignment = self.texture_unpacking_alignment.get();
 
-        let expected_byte_length = match {
-            self.validate_tex_image_2d_data(
-                width,
-                height,
-                format,
-                data_type,
-                unpacking_alignment,
-                pixels.as_ref(),
-            )
-        } {
+        let expected_byte_length = match self.validate_tex_image_2d_data(
+            width,
+            height,
+            format,
+            data_type,
+            unpacking_alignment,
+            pixels.as_ref(),
+        ) {
             Ok(byte_length) => byte_length,
             Err(()) => return Ok(()),
         };
@@ -4479,16 +4477,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         let unpacking_alignment = self.texture_unpacking_alignment.get();
 
-        let expected_byte_length = match {
-            self.validate_tex_image_2d_data(
-                width,
-                height,
-                format,
-                data_type,
-                unpacking_alignment,
-                pixels.as_ref(),
-            )
-        } {
+        let expected_byte_length = match self.validate_tex_image_2d_data(
+            width,
+            height,
+            format,
+            data_type,
+            unpacking_alignment,
+            pixels.as_ref(),
+        ) {
             Ok(byte_length) => byte_length,
             Err(()) => return Ok(()),
         };

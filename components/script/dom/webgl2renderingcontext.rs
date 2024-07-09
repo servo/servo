@@ -3134,16 +3134,14 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
         let buff = IpcSharedMemory::from_bytes(unsafe { &src_data.as_slice()[src_byte_offset..] });
 
-        let expected_byte_length = match {
-            self.base.validate_tex_image_2d_data(
-                width,
-                height,
-                format,
-                data_type,
-                unpacking_alignment,
-                Some(&*src_data),
-            )
-        } {
+        let expected_byte_length = match self.base.validate_tex_image_2d_data(
+            width,
+            height,
+            format,
+            data_type,
+            unpacking_alignment,
+            Some(&*src_data),
+        ) {
             Ok(byte_length) => byte_length,
             Err(()) => return Ok(()),
         };
@@ -3968,7 +3966,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             buffer.map(|b| b.id()),
         ));
 
-        for slot in &[&generic_slot, &indexed_binding.buffer] {
+        for slot in &[generic_slot, &indexed_binding.buffer] {
             if let Some(old) = slot.get() {
                 old.decrement_attached_counter(Operation::Infallible);
             }
@@ -4046,7 +4044,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             size,
         ));
 
-        for slot in &[&generic_slot, &indexed_binding.buffer] {
+        for slot in &[generic_slot, &indexed_binding.buffer] {
             if let Some(old) = slot.get() {
                 old.decrement_attached_counter(Operation::Infallible);
             }

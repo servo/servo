@@ -118,11 +118,11 @@ impl ResizeObserver {
             let height = box_size.height().to_f64_px();
             let size_impl = ResizeObserverSizeImpl::new(width, height);
             let window = window_from_node(&**target);
-            let observer_size = ResizeObserverSize::new(&*window, size_impl);
+            let observer_size = ResizeObserverSize::new(&window, size_impl);
 
             // Note: content rect is built from content box size.
             let content_rect = DOMRectReadOnly::new(
-                &*window.upcast(),
+                window.upcast(),
                 None,
                 box_size.origin.x.to_f64_px(),
                 box_size.origin.y.to_f64_px(),
@@ -130,9 +130,9 @@ impl ResizeObserver {
                 height,
             );
             let entry = ResizeObserverEntry::new(
-                &*window,
+                &window,
                 target,
-                &*content_rect,
+                &content_rect,
                 &[],
                 &[&*observer_size],
                 &[],

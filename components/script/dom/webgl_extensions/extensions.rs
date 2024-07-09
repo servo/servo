@@ -279,11 +279,11 @@ impl WebGLExtensions {
     }
 
     pub fn is_tex_type_enabled(&self, data_type: GLenum) -> bool {
-        self.features
+        !self
+            .features
             .borrow()
             .disabled_tex_types
-            .get(&data_type)
-            .is_none()
+            .contains(&data_type)
     }
 
     pub fn add_effective_tex_internal_format(
@@ -321,11 +321,11 @@ impl WebGLExtensions {
     }
 
     pub fn is_filterable(&self, text_data_type: u32) -> bool {
-        self.features
+        !self
+            .features
             .borrow()
             .not_filterable_tex_types
-            .get(&text_data_type)
-            .is_none()
+            .contains(&text_data_type)
     }
 
     pub fn enable_hint_target(&self, name: GLenum) {
