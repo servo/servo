@@ -28,8 +28,20 @@ pub enum UnderlyingSource {
     Blob(usize),
     /// A fetch response as underlying source.
     FetchResponse,
-
+    /// A JS object as underlying source.
     Js(JsUnderlyingSource),
+}
+
+impl UnderlyingSource {
+    /// Is the stream backed by a Rust native source?
+    pub fn is_native(&self) -> bool {
+        !matches!(self, UnderlyingSource::Js(_))
+    }
+
+    /// Does the stream have all data in memory?
+    pub fn in_memory(&self) -> bool {
+        matches!(self, UnderlyingSource::Memory(_))
+    }
 }
 
 /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller>
@@ -37,8 +49,7 @@ pub enum UnderlyingSource {
 pub struct ReadableStreamDefaultController {
     reflector_: Reflector,
 
-    /// Loosely matches the underlying queue,
-    /// <https://streams.spec.whatwg.org/#internal-queues>
+    /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-queue>
     buffer: RefCell<Vec<u8>>,
 
     #[ignore_malloc_size_of = "Rc is hard"]
@@ -87,6 +98,27 @@ impl ReadableStreamDefaultController {
         let mut buffer = self.buffer.borrow_mut();
         chunk.append(&mut buffer);
         *buffer = chunk;
+    }
+
+    /// Does the stream have all data in memory?
+    pub fn in_memory(&self) -> bool {
+        self.underlying_source.in_memory()
+    }
+
+    /// Return bytes synchronously if the stream has all data in memory.
+    pub fn get_in_memory_bytes(&self) -> Option<Vec<u8>> {
+        if self.underlying_source.in_memory() {
+            return Some(self.buffer.borrow().clone());
+        }
+        None
+    }
+
+    pub fn close(&self) {
+        todo!()
+    }
+
+    pub fn error(&self) {
+        todo!()
     }
 }
 

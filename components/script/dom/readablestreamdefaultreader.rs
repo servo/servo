@@ -38,6 +38,7 @@ pub struct ReadableStreamDefaultReader {
     reflector_: Reflector,
 
     /// <https://streams.spec.whatwg.org/#readablestreamgenericreader-stream>
+    /// TODO: use MutNullableDom
     stream: Dom<ReadableStream>,
 
     #[ignore_malloc_size_of = "Rc is hard"]
@@ -72,12 +73,20 @@ impl ReadableStreamDefaultReader {
         }
     }
 
-    fn new(global: &GlobalScope, stream: &ReadableStream) -> DomRoot<ReadableStreamDefaultReader> {
+    /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-initialize>
+    pub fn new(
+        global: &GlobalScope,
+        stream: &ReadableStream,
+    ) -> DomRoot<ReadableStreamDefaultReader> {
+        let promise = Promise::new(global);
+        if stream.is_closed() {
+            promise.resolve_native(&());
+        }
+        if stream.is_errored() {
+            promise.reject_native(&());
+        }
         reflect_dom_object(
-            Box::new(ReadableStreamDefaultReader::new_inherited(
-                stream,
-                Promise::new(global),
-            )),
+            Box::new(ReadableStreamDefaultReader::new_inherited(stream, promise)),
             global,
         )
     }
@@ -99,7 +108,6 @@ impl ReadableStreamDefaultReader {
 impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#default-reader-read>
     fn Read(&self) -> Rc<Promise> {
-        // TODO
         let promise = Promise::new(&self.reflector_.global());
 
         self.stream.perform_pull_steps(ReadRequest {
@@ -111,8 +119,18 @@ impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
 
     /// <https://streams.spec.whatwg.org/#default-reader-release-lock>
     fn ReleaseLock(&self) -> Fallible<()> {
-        // TODO
-        Err(Error::NotFound)
+        if self.stream.is_readable() {
+            self.closed_promise.reject_native(&());
+        }
+
+        // Note: release steps are a no-op for a default controller.
+
+        // <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreadererrorreadrequests>
+        for request in self.read_requests.borrow_mut().drain(0..) {
+            request.promise.reject_native(&());
+        }
+
+        Ok(())
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-closed>
