@@ -6,18 +6,55 @@ use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::rust::HandleValue as SafeHandleValue;
+use js::jsval::UndefinedValue;
+use js::rust::{HandleValue as SafeHandleValue, HandleValue};
 
+use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
+use crate::dom::bindings::import::module::UnionTypes::{
+    ReadableStreamDefaultControllerOrReadableByteStreamController as Controller,
+    ReadableStreamDefaultReaderOrReadableStreamBYOBReader as ReadableStreamReader,
+};
 use crate::dom::bindings::import::module::{Error, Fallible};
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::promise::Promise;
+use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::ReadableStream;
 use crate::dom::readablestreamdefaultreader::ReadRequest;
-use crate::script_runtime::JSContext as SafeJSContext;
+use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
+use crate::script_runtime::{JSContext, JSContext as SafeJSContext};
+
+/// The fulfillment handler for
+/// <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+struct PullAlgorithmFulfillmentHandler {
+    controller: DomRoot<ReadableStreamDefaultController>,
+}
+
+impl Callback for PullAlgorithmFulfillmentHandler {
+    /// Handle fufillment of pull algo promise.
+    fn callback(&self, cx: JSContext, v: HandleValue, _realm: InRealm) {
+        todo!();
+    }
+}
+
+/// The rejection handler for
+/// <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+struct PullAlgorithmRejectionHandler {
+    controller: DomRoot<ReadableStreamDefaultController>,
+}
+
+impl Callback for PullAlgorithmRejectionHandler {
+    /// Handle rejection of pull algo promise.
+    fn callback(&self, cx: JSContext, v: HandleValue, _realm: InRealm) {
+        todo!();
+    }
+}
 
 #[derive(JSTraceable)]
 pub enum UnderlyingSource {
@@ -83,15 +120,67 @@ impl ReadableStreamDefaultController {
         self.stream.set(Some(stream))
     }
 
+    fn get_chunk_with_length(&self, length: usize) -> Vec<u8> {
+        let mut buffer = self.buffer.borrow_mut();
+        let buffer_len = buffer.len();
+        assert!(buffer_len >= length);
+        buffer.split_off(buffer_len - length)
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
+    fn call_pull_if_needed(&self) {
+        // Note: native sources have no pull algorithms for now.
+        if let UnderlyingSource::Js(source) = self.underlying_source.as_ref() {
+            let global = self.global();
+            let promise = if let Some(pull) = source.pull.as_ref() {
+                // TODO: use Call_ with source as this(requires DomObject).
+                pull.Call__(
+                    Controller::ReadableStreamDefaultController(DomRoot::from_ref(self)),
+                    ExceptionHandling::Report,
+                )
+                .unwrap()
+            } else {
+                let promise = Promise::new(&*global);
+                promise.resolve_native(&());
+                promise
+            };
+
+            let fulfillment_handler = Box::new(PullAlgorithmFulfillmentHandler {
+                controller: DomRoot::from_ref(self),
+            });
+            let rejection_handler = Box::new(PullAlgorithmRejectionHandler {
+                controller: DomRoot::from_ref(self),
+            });
+            let handler = PromiseNativeHandler::new(
+                &global,
+                Some(fulfillment_handler),
+                Some(rejection_handler),
+            );
+
+            let realm = enter_realm(&*global);
+            let comp = InRealm::Entered(&realm);
+            promise.append_native_handler(&handler, comp);
+        }
+    }
+
     /// <https://streams.spec.whatwg.org/#ref-for-abstract-opdef-readablestreamcontroller-pullsteps>
     pub fn perform_pull_steps(&self, read_request: ReadRequest) {
         // if buffer contains bytes, perform chunk steps.
-        // <https://streams.spec.whatwg.org/#read-request-chunk-steps>
+        if !self.buffer.borrow().is_empty() {
+            // TODO: use <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-strategysizealgorithm>
+            let chunk = self.get_chunk_with_length(self.buffer.borrow().len());
 
-        // Call into underlying source if necessary.
+            // TODO: handle close requested.
+
+            self.call_pull_if_needed();
+
+            read_request.chunk_steps(chunk);
+        }
+        // <https://streams.spec.whatwg.org/#read-request-chunk-steps>
 
         // else, append read request to reader.
         self.stream.get().unwrap().add_read_request(read_request);
+        self.call_pull_if_needed();
     }
 
     pub fn enqueue_chunk(&self, mut chunk: Vec<u8>) {

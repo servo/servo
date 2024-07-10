@@ -214,8 +214,6 @@ impl ReadableStream {
                 "Enqueueing chunk to a stream from Rust on other than default controller"
             ),
         }
-
-        // TODO: check for read requests that can be fulfilled.
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
@@ -253,11 +251,7 @@ impl ReadableStream {
         }
     }
 
-    /// Native call to
     /// <https://streams.spec.whatwg.org/#acquire-readable-stream-reader>
-    ///
-    /// Note: this, and `read_a_chunk` and `stop_reading` could be replaced 
-    /// by returning a reader to the Rust code(closing on drop?)
     pub fn acquire_reader(&self) -> Result<(), ()> {
         if self.is_locked() {
             return Err(());
@@ -268,7 +262,6 @@ impl ReadableStream {
         Ok(())
     }
 
-    /// Native call to
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
     pub fn read_a_chunk(&self) -> Rc<Promise> {
         let Some(reader) = self.reader.get() else {
@@ -278,7 +271,6 @@ impl ReadableStream {
         reader.Read()
     }
 
-    /// Native call to
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-release>
     pub fn stop_reading(&self) {
         let Some(reader) = self.reader.get() else {
