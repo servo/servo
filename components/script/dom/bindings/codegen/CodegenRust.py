@@ -2084,7 +2084,7 @@ class ConstDefiner(PropertyDefiner):
             return ""
 
         def specData(const):
-            return (str_to_byte_slice(const.identifier.name),
+            return (str_to_cstr(const.identifier.name),
                     convertConstIDLValueToJSVal(const.value))
 
         return self.generateGuardedArray(
@@ -2466,12 +2466,12 @@ impl %(selfName)s {
 """ % args
 
 
+def str_to_cstr(s):
+    return "c\"%s\"" % s
+
+
 def str_to_cstr_ptr(s):
     return "c\"%s\".as_ptr()" % s
-
-
-def str_to_byte_slice(s):
-    return "c\"%s\".to_bytes_with_nul()" % s
 
 
 class CGPrototypeJSClass(CGThing):
@@ -2515,7 +2515,7 @@ class CGInterfaceObjectJSClass(CGThing):
 static NAMESPACE_OBJECT_CLASS: NamespaceObjectClass = unsafe {
     NamespaceObjectClass::new(%s)
 };
-""" % str_to_byte_slice(classString)
+""" % str_to_cstr(classString)
         if self.descriptor.interface.ctor():
             constructorBehavior = "InterfaceConstructorBehavior::call(%s)" % CONSTRUCT_HOOK_NAME
         else:
@@ -3296,7 +3296,7 @@ rooted!(in(*cx) let proto = {proto});
 assert!(!proto.is_null());
 rooted!(in(*cx) let mut namespace = ptr::null_mut::<JSObject>());
 create_namespace_object(cx, global, proto.handle(), &NAMESPACE_OBJECT_CLASS,
-                        {methods}, {constants}, {str_to_byte_slice(name)}, namespace.handle_mut());
+                        {methods}, {constants}, {str_to_cstr(name)}, namespace.handle_mut());
 assert!(!namespace.is_null());
 assert!((*cache)[PrototypeList::Constructor::{id} as usize].is_null());
 (*cache)[PrototypeList::Constructor::{id} as usize] = namespace.get();
@@ -3315,7 +3315,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
 <*mut JSObject>::post_barrier((*cache).as_mut_ptr().offset(PrototypeList::Constructor::%(id)s as isize),
                               ptr::null_mut(),
                               interface.get());
-""" % {"id": name, "name": str_to_byte_slice(name)})
+""" % {"id": name, "name": str_to_cstr(name)})
 
         parentName = self.descriptor.getParentName()
         if not parentName:
@@ -3386,7 +3386,7 @@ assert!((*cache)[PrototypeList::ID::%(id)s as usize].is_null());
 """ % proto_properties))
 
         if self.descriptor.interface.hasInterfaceObject():
-            properties["name"] = str_to_byte_slice(name)
+            properties["name"] = str_to_cstr(name)
             if self.descriptor.interface.ctor():
                 properties["length"] = methodLength(self.descriptor.interface.ctor())
             else:
@@ -3481,11 +3481,11 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
 
         constructors = self.descriptor.interface.legacyFactoryFunctions
         if constructors:
-            decl = "let named_constructors: [(ConstructorClassHook, &[u8], u32); %d]" % len(constructors)
+            decl = "let named_constructors: [(ConstructorClassHook, &std::ffi::CStr, u32); %d]" % len(constructors)
             specs = []
             for constructor in constructors:
                 hook = CONSTRUCT_HOOK_NAME + "_" + constructor.identifier.name
-                name = str_to_byte_slice(constructor.identifier.name)
+                name = str_to_cstr(constructor.identifier.name)
                 length = methodLength(constructor)
                 specs.append(CGGeneric("(%s as ConstructorClassHook, %s, %d)" % (hook, name, length)))
             values = CGIndenter(CGList(specs, "\n"), 4)
@@ -6460,8 +6460,8 @@ class CGDescriptor(CGThing):
             if unscopableNames:
                 haveUnscopables = True
                 cgThings.append(
-                    CGList([CGGeneric("const unscopable_names: &[&[u8]] = &["),
-                            CGIndenter(CGList([CGGeneric(str_to_byte_slice(name)) for
+                    CGList([CGGeneric("const unscopable_names: &[&std::ffi::CStr] = &["),
+                            CGIndenter(CGList([CGGeneric(str_to_cstr(name)) for
                                                name in unscopableNames], ",\n")),
                             CGGeneric("];\n")], "\n"))
             if descriptor.concrete or descriptor.hasDescendants():
@@ -6479,8 +6479,8 @@ class CGDescriptor(CGThing):
         haveLegacyWindowAliases = len(legacyWindowAliases) != 0
         if haveLegacyWindowAliases:
             cgThings.append(
-                CGList([CGGeneric("const legacy_window_aliases: &[&[u8]] = &["),
-                        CGIndenter(CGList([CGGeneric(str_to_byte_slice(name)) for
+                CGList([CGGeneric("const legacy_window_aliases: &[&std::ffi::CStr] = &["),
+                        CGIndenter(CGList([CGGeneric(str_to_cstr(name)) for
                                            name in legacyWindowAliases], ",\n")),
                         CGGeneric("];\n")], "\n"))
 

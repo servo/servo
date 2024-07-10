@@ -4,6 +4,7 @@
 
 //! Machinery to initialise namespace objects.
 
+use std::ffi::CStr;
 use std::ptr;
 
 use js::jsapi::{JSClass, JSFunctionSpec};
@@ -22,9 +23,9 @@ unsafe impl Sync for NamespaceObjectClass {}
 
 impl NamespaceObjectClass {
     /// Create a new `NamespaceObjectClass` structure.
-    pub const unsafe fn new(name: &'static [u8]) -> Self {
+    pub const unsafe fn new(name: &'static CStr) -> Self {
         NamespaceObjectClass(JSClass {
-            name: name as *const _ as *const libc::c_char,
+            name: name.as_ptr(),
             flags: 0,
             cOps: 0 as *mut _,
             spec: ptr::null(),
@@ -43,7 +44,7 @@ pub fn create_namespace_object(
     class: &'static NamespaceObjectClass,
     methods: &[Guard<&'static [JSFunctionSpec]>],
     constants: &[Guard<&'static [ConstantSpec]>],
-    name: &[u8],
+    name: &CStr,
     rval: MutableHandleObject,
 ) {
     create_object(cx, global, proto, &class.0, methods, &[], constants, rval);
