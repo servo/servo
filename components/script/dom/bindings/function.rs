@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![allow(unsafe_code)]
-
 /// Defines a macro `native_fn!` to create a JavaScript function from a Rust function pointer.
 /// # Example
 /// ```
@@ -14,7 +12,10 @@ macro_rules! native_fn {
     ($call:expr, $name:expr, $nargs:expr, $flags:expr) => {{
         let cx = crate::dom::types::GlobalScope::get_cx();
         let fun_obj = crate::native_raw_obj_fn!(cx, $call, $name, $nargs, $flags);
-        unsafe { Function::new(cx, fun_obj) }
+        #[allow(unsafe_code)]
+        unsafe {
+            Function::new(cx, fun_obj)
+        }
     }};
 }
 
@@ -26,10 +27,11 @@ macro_rules! native_fn {
 #[macro_export]
 macro_rules! native_raw_obj_fn {
     ($cx:expr, $call:expr, $name:expr, $nargs:expr, $flags:expr) => {{
+        #[allow(unsafe_code)]
         unsafe extern "C" fn wrapper(cx: *mut JSContext, argc: u32, vp: *mut JSVal) -> bool {
             $call(cx, argc, vp)
         }
-
+        #[allow(unsafe_code)]
         unsafe {
             let name: &std::ffi::CStr = $name;
             let raw_fun = crate::dom::bindings::import::module::jsapi::JS_NewFunction(

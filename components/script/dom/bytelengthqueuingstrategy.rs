@@ -56,7 +56,6 @@ impl ByteLengthQueuingStrategyMethods for ByteLengthQueuingStrategy {
     }
 
     /// <https://streams.spec.whatwg.org/#blqs-size>
-    #[allow(unsafe_code)]
     fn GetSize(&self) -> Fallible<Rc<Function>> {
         let global = self.reflector_.global();
         // Return this's relevant global object's byte length queuing strategy

@@ -55,7 +55,6 @@ impl CountQueuingStrategyMethods for CountQueuingStrategy {
     }
 
     /// <https://streams.spec.whatwg.org/#cqs-size>
-    #[allow(unsafe_code)]
     fn GetSize(&self) -> Fallible<Rc<Function>> {
         let global = self.reflector_.global();
         // Return this's relevant global object's count queuing strategy
@@ -110,7 +109,6 @@ pub fn extract_high_water_mark(strategy: &QueuingStrategy, default_hwm: f64) -> 
 /// If the size algorithm is not set, return a fallback function which always returns 1.
 ///
 /// <https://streams.spec.whatwg.org/#make-size-algorithm-from-size-function>
-#[allow(unsafe_code)]
 pub fn extract_size_algorithm(strategy: &QueuingStrategy) -> Rc<QueuingStrategySize> {
     if strategy.size.is_none() {
         let cx = GlobalScope::get_cx();
