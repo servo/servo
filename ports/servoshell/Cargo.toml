@@ -21,7 +21,7 @@ bench = false
 # since build-scripts can't detect the cargo target os at build-time, we
 # must unconditionally add these dependencies. See https://github.com/rust-lang/cargo/issues/4932
 [build-dependencies]
-vergen = { version = "8.3.1", features = ["git", "git2"] }
+vergen = { version = "8.3.2", features = ["git", "git2"] }
 # Android and OpenHarmony
 gl_generator = "0.14"
 # MacOS only
