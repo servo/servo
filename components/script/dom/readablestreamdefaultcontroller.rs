@@ -51,6 +51,7 @@ impl Callback for PullAlgorithmRejectionHandler {
     }
 }
 
+/// <https://streams.spec.whatwg.org/#underlying-source-api>
 #[derive(JSTraceable)]
 pub enum UnderlyingSource {
     /// Facilitate partial integration with sources
@@ -67,7 +68,12 @@ pub enum UnderlyingSource {
 impl UnderlyingSource {
     /// Is the stream backed by a Rust native source?
     pub fn is_native(&self) -> bool {
-        !matches!(self, UnderlyingSource::Js(_))
+        match self {
+            UnderlyingSource::Memory(_) |
+            UnderlyingSource::Blob(_) |
+            UnderlyingSource::FetchResponse => true,
+            _ => false,
+        }
     }
 
     /// Does the stream have all data in memory?
