@@ -480,9 +480,7 @@ pub struct FontGroup {
 }
 
 impl FontGroup {
-    pub fn new(style: &FontStyleStruct) -> FontGroup {
-        let descriptor = FontDescriptor::from(style);
-
+    pub fn new(style: &FontStyleStruct, descriptor: FontDescriptor) -> FontGroup {
         let families: SmallVec<[FontGroupFamily; 8]> = style
             .font_family
             .families
