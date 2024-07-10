@@ -18,17 +18,12 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::actors::configuration::{TargetConfigurationActor, ThreadConfigurationActor};
-use crate::actors::emulation::EmulationActor;
 use crate::actors::inspector::accessibility::AccessibilityActor;
 use crate::actors::inspector::css_properties::CssPropertiesActor;
 use crate::actors::inspector::InspectorActor;
-use crate::actors::performance::PerformanceActor;
-use crate::actors::profiler::ProfilerActor;
 use crate::actors::stylesheets::StyleSheetsActor;
 use crate::actors::tab::TabDescriptorActor;
 use crate::actors::thread::ThreadActor;
-use crate::actors::timeline::TimelineActor;
 use crate::actors::watcher::{SessionContext, SessionContextType, WatcherActor};
 use crate::protocol::JsonPacketStream;
 use crate::StreamId;
@@ -132,28 +127,29 @@ pub struct BrowsingContextActorMsg {
     #[serde(rename = "browsingContextID")]
     browsing_context_id: u32,
     is_top_level_target: bool,
+    traits: BrowsingContextTraits,
+    // Implemented actors
     accessibility_actor: String,
     console_actor: String,
     css_properties_actor: String,
     inspector_actor: String,
     thread_actor: String,
-    traits: BrowsingContextTraits,
+    style_sheets_actor: String,
     // Part of the official protocol, but not yet implemented.
-    // emulation_actor: String,
-    // timeline_actor: String,
-    // profiler_actor: String,
-    // performance_actor: String,
-    // style_sheets_actor: String,
-    // storage_actor: String,
-    // memory_actor: String,
-    // framerate_actor: String,
-    // reflow_actor: String,
     // animations_actor: String,
-    // web_extension_inspected_window_actor: String,
-    // screenshot_actor: String,
     // changes_actor: String,
-    // web_socket_actor: String,
+    // framerate_actor: String,
     // manifest_actor: String,
+    // memory_actor: String,
+    // network_content_actor: String,
+    // objects_manager: String,
+    // performance_actor: String,
+    // reflow_actor: String,
+    // resonsive_actor: String,
+    // storage_actor: String,
+    // tracer_actor: String,
+    // web_extension_inspected_window_actor: String,
+    // web_socket_actor: String,
 }
 
 /// The browsing context actor encompasses all of the other supporting actors when debugging a web
@@ -168,15 +164,9 @@ pub(crate) struct BrowsingContextActor {
     pub accessibility: String,
     pub console: String,
     pub css_properties: String,
-    pub _emulation: String,
     pub inspector: String,
-    pub _performance: String,
-    pub _profiler: String,
-    pub _style_sheets: String,
-    pub target_configuration: String,
-    pub thread_configuration: String,
+    pub style_sheets: String,
     pub thread: String,
-    pub _timeline: String,
     pub _tab: String,
     pub script_chan: IpcSender<DevtoolScriptControlMsg>,
     pub streams: RefCell<HashMap<StreamId, TcpStream>>,
@@ -225,8 +215,6 @@ impl BrowsingContextActor {
 
         let css_properties = CssPropertiesActor::new(actors.new_name("css-properties"));
 
-        let emulation = EmulationActor::new(actors.new_name("emulation"));
-
         let inspector = InspectorActor {
             name: actors.new_name("inspector"),
             walker: RefCell::new(None),
@@ -236,29 +224,14 @@ impl BrowsingContextActor {
             browsing_context: name.clone(),
         };
 
-        let performance = PerformanceActor::new(actors.new_name("performance"));
-
-        let profiler = ProfilerActor::new(actors.new_name("profiler"));
-
-        // the strange switch between styleSheets and stylesheets is due
-        // to an inconsistency in devtools. See Bug #1498893 in bugzilla
         let style_sheets = StyleSheetsActor::new(actors.new_name("stylesheets"));
 
         let tabdesc = TabDescriptorActor::new(actors, name.clone());
 
-        let target_configuration =
-            TargetConfigurationActor::new(actors.new_name("target-configuration"));
-
-        let thread_configuration =
-            ThreadConfigurationActor::new(actors.new_name("thread-configuration"));
-
-        let thread = ThreadActor::new(actors.new_name("context"));
-
-        let timeline =
-            TimelineActor::new(actors.new_name("timeline"), pipeline, script_sender.clone());
+        let thread = ThreadActor::new(actors.new_name("thread"));
 
         let watcher = WatcherActor::new(
-            actors.new_name("watcher"),
+            actors,
             name.clone(),
             SessionContext::new(SessionContextType::BrowserElement),
         );
@@ -273,32 +246,20 @@ impl BrowsingContextActor {
             accessibility: accessibility.name(),
             console,
             css_properties: css_properties.name(),
-            _emulation: emulation.name(),
             inspector: inspector.name(),
-            _performance: performance.name(),
-            _profiler: profiler.name(),
             streams: RefCell::new(HashMap::new()),
-            _style_sheets: style_sheets.name(),
+            style_sheets: style_sheets.name(),
             _tab: tabdesc.name(),
-            target_configuration: target_configuration.name(),
-            thread_configuration: thread_configuration.name(),
             thread: thread.name(),
-            _timeline: timeline.name(),
             watcher: watcher.name(),
         };
 
         actors.register(Box::new(accessibility));
         actors.register(Box::new(css_properties));
-        actors.register(Box::new(emulation));
         actors.register(Box::new(inspector));
-        actors.register(Box::new(performance));
-        actors.register(Box::new(profiler));
         actors.register(Box::new(style_sheets));
         actors.register(Box::new(tabdesc));
-        actors.register(Box::new(target_configuration));
-        actors.register(Box::new(thread_configuration));
         actors.register(Box::new(thread));
-        actors.register(Box::new(timeline));
         actors.register(Box::new(watcher));
 
         target
@@ -322,11 +283,7 @@ impl BrowsingContextActor {
             css_properties_actor: self.css_properties.clone(),
             inspector_actor: self.inspector.clone(),
             thread_actor: self.thread.clone(),
-            // emulation_actor: self.emulation.clone(),
-            // performance_actor: self.performance.clone(),
-            // profiler_actor: self.profiler.clone(),
-            // style_sheets_actor: self.style_sheets.clone(),
-            // timeline_actor: self.timeline.clone(),
+            style_sheets_actor: self.style_sheets.clone(),
         }
     }
 

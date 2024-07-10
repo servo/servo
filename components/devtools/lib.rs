@@ -50,10 +50,8 @@ mod actor;
 /// <https://searchfox.org/mozilla-central/source/devtools/server/actors>
 mod actors {
     pub mod browsing_context;
-    pub mod configuration;
     pub mod console;
     pub mod device;
-    pub mod emulation;
     pub mod framerate;
     pub mod inspector;
     pub mod memory;
@@ -62,7 +60,6 @@ mod actors {
     pub mod performance;
     pub mod preference;
     pub mod process;
-    pub mod profiler;
     pub mod root;
     pub mod stylesheets;
     pub mod tab;

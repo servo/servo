@@ -124,7 +124,7 @@ impl TabDescriptorActor {
         actors: &mut ActorRegistry,
         browsing_context_actor: String,
     ) -> TabDescriptorActor {
-        let name = actors.new_name("tabDescription");
+        let name = actors.new_name("tab-description");
         let root = actors.find_mut::<RootActor>("root");
         root.tabs.push(name.clone());
         TabDescriptorActor {

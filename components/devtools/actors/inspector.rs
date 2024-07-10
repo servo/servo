@@ -4,8 +4,6 @@
 
 //! Liberally derived from the [Firefox JS implementation](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/inspector.js).
 
-#![allow(non_snake_case)] // NOTE: To be removed on the inspector specific pr
-
 use std::cell::RefCell;
 use std::net::TcpStream;
 
@@ -109,12 +107,12 @@ impl Actor for InspectorActor {
             "getPageStyle" => {
                 if self.page_style.borrow().is_none() {
                     let style = PageStyleActor {
-                        name: registry.new_name("pageStyle"),
+                        name: registry.new_name("page-style"),
                         script_chan: self.script_chan.clone(),
                         pipeline,
                     };
-                    let mut pageStyle = self.page_style.borrow_mut();
-                    *pageStyle = Some(style.name());
+                    let mut page_style = self.page_style.borrow_mut();
+                    *page_style = Some(style.name());
                     registry.register_later(Box::new(style));
                 }
 

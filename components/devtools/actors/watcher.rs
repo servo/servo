@@ -14,14 +14,21 @@ use std::net::TcpStream;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
+use self::network_parent::{NetworkParentActor, NetworkParentActorMsg};
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
-use crate::actors::configuration::{
-    TargetConfigurationActor, TargetConfigurationActorMsg, ThreadConfigurationActor,
-    ThreadConfigurationActorMsg,
+use crate::actors::watcher::target_configuration::{
+    TargetConfigurationActor, TargetConfigurationActorMsg,
+};
+use crate::actors::watcher::thread_configuration::{
+    ThreadConfigurationActor, ThreadConfigurationActorMsg,
 };
 use crate::protocol::JsonPacketStream;
 use crate::{EmptyReplyMsg, StreamId};
+
+pub mod network_parent;
+pub mod target_configuration;
+pub mod thread_configuration;
 
 /// Describes the debugged context. It informs the server of which objects can be debugged.
 /// <https://searchfox.org/mozilla-central/source/devtools/server/actors/watcher/session-context.js>
@@ -105,6 +112,12 @@ struct GetParentBrowsingContextIDReply {
 }
 
 #[derive(Serialize)]
+struct GetNetworkParentActorReply {
+    from: String,
+    network: NetworkParentActorMsg,
+}
+
+#[derive(Serialize)]
 struct GetTargetConfigurationActorReply {
     from: String,
     configuration: TargetConfigurationActorMsg,
@@ -132,6 +145,9 @@ pub struct WatcherActorMsg {
 pub struct WatcherActor {
     name: String,
     browsing_context_actor: String,
+    network_parent: String,
+    target_configuration: String,
+    thread_configuration: String,
     session_context: SessionContext,
 }
 
@@ -148,6 +164,9 @@ impl Actor for WatcherActor {
     ///
     /// - `watchResources`: Start watching certain resource types. This sends
     /// `resource-available-form` events.
+    ///
+    /// - `getNetworkParentActor`: Returns the network parent actor, it doesn't seem to do much at
+    /// the moment
     ///
     /// - `getTargetConfigurationActor`: Returns the configuration actor for a specific target, so
     /// that the server can update its settings.
@@ -215,9 +234,19 @@ impl Actor for WatcherActor {
 
                 ActorMessageStatus::Processed
             },
+            "getNetworkParentActor" => {
+                let network_parent = registry.find::<NetworkParentActor>(&self.network_parent);
+
+                let _ = stream.write_json_packet(&GetNetworkParentActorReply {
+                    from: self.name(),
+                    network: network_parent.encodable(),
+                });
+
+                ActorMessageStatus::Processed
+            },
             "getTargetConfigurationActor" => {
                 let target_configuration =
-                    registry.find::<TargetConfigurationActor>(&target.target_configuration);
+                    registry.find::<TargetConfigurationActor>(&self.target_configuration);
 
                 let _ = stream.write_json_packet(&GetTargetConfigurationActorReply {
                     from: self.name(),
@@ -228,7 +257,7 @@ impl Actor for WatcherActor {
             },
             "getThreadConfigurationActor" => {
                 let thread_configuration =
-                    registry.find::<ThreadConfigurationActor>(&target.thread_configuration);
+                    registry.find::<ThreadConfigurationActor>(&self.thread_configuration);
 
                 let _ = stream.write_json_packet(&GetThreadConfigurationActorReply {
                     from: self.name(),
@@ -237,7 +266,6 @@ impl Actor for WatcherActor {
 
                 ActorMessageStatus::Processed
             },
-            // TODO: getNetworkParentActor
             _ => ActorMessageStatus::Ignored,
         })
     }
@@ -245,15 +273,30 @@ impl Actor for WatcherActor {
 
 impl WatcherActor {
     pub fn new(
-        name: String,
+        actors: &mut ActorRegistry,
         browsing_context_actor: String,
         session_context: SessionContext,
     ) -> Self {
-        Self {
-            name,
+        let network_parent = NetworkParentActor::new(actors.new_name("network-parent"));
+        let target_configuration =
+            TargetConfigurationActor::new(actors.new_name("target-configuration"));
+        let thread_configuration =
+            ThreadConfigurationActor::new(actors.new_name("thread-configuration"));
+
+        let watcher = Self {
+            name: actors.new_name("watcher"),
             browsing_context_actor,
+            network_parent: network_parent.name(),
+            target_configuration: target_configuration.name(),
+            thread_configuration: thread_configuration.name(),
             session_context,
-        }
+        };
+
+        actors.register(Box::new(network_parent));
+        actors.register(Box::new(target_configuration));
+        actors.register(Box::new(thread_configuration));
+
+        watcher
     }
 
     pub fn encodable(&self) -> WatcherActorMsg {
