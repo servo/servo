@@ -11,7 +11,6 @@ name = "canvas"
 path = "lib.rs"
 
 [features]
-no-wgl = ["surfman/sm-no-wgl"]
 webgl_backtrace = ["canvas_traits/webgl_backtrace"]
 xr-profile = ["webxr-api/profile", "time"]
 

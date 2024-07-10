@@ -20,7 +20,7 @@ max_log_level = ["log/release_max_level_info"]
 media-gstreamer = ["servo-media-gstreamer", "gstreamer"]
 multiview = ["compositing/multiview", "constellation/multiview"]
 native-bluetooth = ["bluetooth/native-bluetooth"]
-no-wgl = ["canvas/no-wgl"]
+no-wgl = ["mozangle/egl", "mozangle/build_dlls", "surfman/sm-angle-default"]
 dynamic_freetype = ["webrender/dynamic_freetype"]
 profilemozjs = ["script/profilemozjs"]
 refcell_backtrace = ["script/refcell_backtrace"]
@@ -86,6 +86,3 @@ webxr-api = { git = "https://github.com/servo/webxr" }
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android"), not(target_arch = "arm"), not(target_arch = "aarch64")))'.dependencies]
 gaol = "0.2.1"
-
-[target.'cfg(target_os = "windows")'.dependencies]
-mozangle = { workspace = true, features = ["egl", "build_dlls"] }

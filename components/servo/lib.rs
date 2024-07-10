@@ -525,10 +525,16 @@ where
     fn get_native_media_display_and_gl_context(
         rendering_context: &RenderingContext,
     ) -> Option<(NativeDisplay, GlContext)> {
-        let gl_context = GlContext::Egl(rendering_context.native_context().egl_context as usize);
-        let native_display =
-            NativeDisplay::Egl(rendering_context.native_device().egl_display as usize);
-        Some((native_display, gl_context))
+        #[cfg(feature = "no-wgl")]
+        {
+            let gl_context =
+                GlContext::Egl(rendering_context.native_context().egl_context as usize);
+            let native_display =
+                NativeDisplay::Egl(rendering_context.native_device().egl_display as usize);
+            Some((native_display, gl_context))
+        }
+        #[cfg(not(feature = "no-wgl"))]
+        None
     }
 
     #[cfg(not(any(
