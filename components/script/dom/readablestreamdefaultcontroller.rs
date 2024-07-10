@@ -2,21 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsval::UndefinedValue;
 use js::rust::{HandleValue as SafeHandleValue, HandleValue};
 
 use crate::dom::bindings::callback::ExceptionHandling;
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
-use crate::dom::bindings::import::module::UnionTypes::{
-    ReadableStreamDefaultControllerOrReadableByteStreamController as Controller,
-    ReadableStreamDefaultReaderOrReadableStreamBYOBReader as ReadableStreamReader,
-};
+use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
 use crate::dom::bindings::import::module::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -25,7 +20,7 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::ReadableStream;
 use crate::dom::readablestreamdefaultreader::ReadRequest;
-use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
+use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{JSContext, JSContext as SafeJSContext};
 
 /// The fulfillment handler for
@@ -37,7 +32,7 @@ struct PullAlgorithmFulfillmentHandler {
 
 impl Callback for PullAlgorithmFulfillmentHandler {
     /// Handle fufillment of pull algo promise.
-    fn callback(&self, cx: JSContext, v: HandleValue, _realm: InRealm) {
+    fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm) {
         todo!();
     }
 }
@@ -51,7 +46,7 @@ struct PullAlgorithmRejectionHandler {
 
 impl Callback for PullAlgorithmRejectionHandler {
     /// Handle rejection of pull algo promise.
-    fn callback(&self, cx: JSContext, v: HandleValue, _realm: InRealm) {
+    fn callback(&self, _cx: JSContext, _v: HandleValue, _realm: InRealm) {
         todo!();
     }
 }
@@ -179,21 +174,31 @@ impl ReadableStreamDefaultController {
         // <https://streams.spec.whatwg.org/#read-request-chunk-steps>
 
         // else, append read request to reader.
-        self.stream.get().unwrap().add_read_request(read_request);
+        self.stream
+            .get()
+            .expect("Controller must have a stream when pull steps are called into.")
+            .add_read_request(read_request);
         self.call_pull_if_needed();
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
     pub fn enqueue_chunk(&self, mut chunk: Vec<u8>) {
-        // TODO: First, potentially run chunk steps for pending read request.
-        
+        let stream = self
+            .stream
+            .get()
+            .expect("Controller must have a stream when a chunk is enqueued.");
+        if stream.is_locked() && stream.get_num_read_requests() > 0 {
+            stream.fulfill_read_request(chunk, false);
+            return;
+        }
+
         // TODO: strategy size algo.
-        
+
         // <https://streams.spec.whatwg.org/#enqueue-value-with-size>
         let mut buffer = self.buffer.borrow_mut();
         chunk.append(&mut buffer);
         *buffer = chunk;
-        
+
         self.call_pull_if_needed();
     }
 
@@ -210,10 +215,12 @@ impl ReadableStreamDefaultController {
         None
     }
 
+    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-close>
     pub fn close(&self) {
         todo!()
     }
 
+    /// <https://streams.spec.whatwg.org/#ref-for-readable-stream-error>
     pub fn error(&self) {
         todo!()
     }

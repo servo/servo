@@ -96,12 +96,25 @@ impl ReadableStreamDefaultReader {
         self.read_requests.borrow_mut().push_back(read_request);
     }
 
+    /// <https://streams.spec.whatwg.org/#readable-stream-get-num-read-requests>
+    pub fn get_num_read_requests(&self) -> usize {
+        self.read_requests.borrow().len()
+    }
+
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
     pub fn error(&self, _error: Error) {
         self.closed_promise.reject_native(&());
         for _request in self.read_requests.borrow_mut().drain(0..) {
             // https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreadererrorreadrequests
         }
+    }
+
+    /// The removal steps of <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-request>
+    pub fn remove_read_request(&self) -> ReadRequest {
+        self.read_requests
+            .borrow_mut()
+            .pop_front()
+            .expect("Reader must have read request when remove is called into.")
     }
 }
 
@@ -118,19 +131,18 @@ impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
     }
 
     /// <https://streams.spec.whatwg.org/#default-reader-release-lock>
-    fn ReleaseLock(&self) -> Fallible<()> {
+    fn ReleaseLock(&self) {
         if self.stream.is_readable() {
             self.closed_promise.reject_native(&());
         }
 
-        // Note: release steps are a no-op for a default controller.
+        // TODO: https://streams.spec.whatwg.org/#readable-stream-reader-generic-release
 
+        // TODO: use TypeError.
         // <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreadererrorreadrequests>
         for request in self.read_requests.borrow_mut().drain(0..) {
             request.promise.reject_native(&());
         }
-
-        Ok(())
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-closed>

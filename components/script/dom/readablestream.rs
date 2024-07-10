@@ -2,27 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
-use std::os::raw::c_void;
+use std::cell::Cell;
 use std::ptr::{self, NonNull};
 use std::rc::Rc;
-use std::slice;
 
 use dom_struct::dom_struct;
-use js::glue::{
-    CreateReadableStreamUnderlyingSource, DeleteReadableStreamUnderlyingSource,
-    ReadableStreamUnderlyingSourceTraps,
-};
-use js::jsapi::{
-    AutoRequireNoGC, HandleObject, HandleValue, Heap, IsReadableStream, JSContext, JSObject,
-    JS_GetArrayBufferViewData, NewReadableExternalSourceStreamObject, ReadableStreamClose,
-    ReadableStreamDefaultReaderRead, ReadableStreamError, ReadableStreamGetReader,
-    ReadableStreamIsDisturbed, ReadableStreamIsLocked, ReadableStreamIsReadable,
-    ReadableStreamReaderMode, ReadableStreamReaderReleaseLock, ReadableStreamUnderlyingSource,
-    ReadableStreamUpdateDataAvailableFromSource, UnwrapReadableStream,
-};
-use js::jsval::{JSVal, ObjectValue, UndefinedValue};
-use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle};
+use js::jsapi::JSObject;
+use js::jsval::{ObjectValue, UndefinedValue};
+use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
@@ -30,9 +17,7 @@ use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
     ReadableStreamGetReaderOptions, ReadableStreamMethods,
 };
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamDefaultReaderMethods;
-use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::{
-    ReadableStreamController, UnderlyingSource as JsUnderlyingSource,
-};
+use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
 use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::Fallible;
@@ -42,7 +27,6 @@ use crate::dom::bindings::import::module::UnionTypes::{
 };
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
 use crate::dom::bindings::utils::get_dictionary_property;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -52,7 +36,7 @@ use crate::dom::readablestreamdefaultcontroller::{
 };
 use crate::dom::readablestreamdefaultreader::{ReadRequest, ReadableStreamDefaultReader};
 use crate::js::conversions::FromJSValConvertible;
-use crate::realms::{enter_realm, InRealm};
+use crate::realms::InRealm;
 use crate::script_runtime::JSContext as SafeJSContext;
 
 /// <https://streams.spec.whatwg.org/#readablestream-state>
@@ -98,7 +82,7 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#rs-constructor>
     pub fn Constructor(
         cx: SafeJSContext,
-        global: &GlobalScope,
+        _global: &GlobalScope,
         _proto: Option<SafeHandleObject>,
         underlying_source: Option<*mut JSObject>,
         _strategy: &QueuingStrategy,
@@ -150,9 +134,9 @@ impl ReadableStream {
     /// TODO: remove here and from codegen, to be replaced by Constructor.
     #[allow(unsafe_code)]
     pub unsafe fn from_js(
-        cx: SafeJSContext,
-        obj: *mut JSObject,
-        realm: InRealm,
+        _cx: SafeJSContext,
+        _obj: *mut JSObject,
+        _realm: InRealm,
     ) -> Result<DomRoot<ReadableStream>, ()> {
         Err(())
     }
@@ -217,7 +201,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
-    pub fn error_native(&self, error: Error) {
+    pub fn error_native(&self, _error: Error) {
         *self.state.borrow_mut() = ReadableStreamState::Errored;
         match self.controller {
             ControllerType::Default(ref controller) => controller.error(),
@@ -300,6 +284,40 @@ impl ReadableStream {
 
     pub fn is_readable(&self) -> bool {
         matches!(*self.state.borrow(), ReadableStreamState::Readable)
+    }
+
+    pub fn has_default_reader(&self) -> bool {
+        if let Some(_reader) = self.reader.get() {
+            false
+        } else {
+            // TODO: check type of reader.
+            true
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-get-num-read-requests>
+    pub fn get_num_read_requests(&self) -> usize {
+        assert!(self.has_default_reader());
+        let reader = self
+            .reader
+            .get()
+            .expect("Stream must have a reader when get num read requests is called into.");
+        reader.get_num_read_requests()
+    }
+
+    /// <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-request>
+    pub fn fulfill_read_request(&self, chunk: Vec<u8>, done: bool) {
+        assert!(self.has_default_reader());
+        let reader = self
+            .reader
+            .get()
+            .expect("Stream must have a reader when a read request is fulfilled.");
+        let request = reader.remove_read_request();
+
+        if done {
+            request.chunk_steps(chunk);
+        }
+        // TODO: else, close steps.
     }
 }
 
