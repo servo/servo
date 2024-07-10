@@ -31,6 +31,7 @@ use crate::dom::bindings::utils::get_dictionary_property;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablebytestreamcontroller::ReadableByteStreamController;
+use crate::dom::readablestreambyobreader::ReadableStreamBYOBReader;
 use crate::dom::readablestreamdefaultcontroller::{
     ReadableStreamDefaultController, UnderlyingSource,
 };
@@ -52,8 +53,20 @@ pub enum ReadableStreamState {
 /// <https://streams.spec.whatwg.org/#readablestream-controller>
 #[crown::unrooted_must_root_lint::must_root]
 pub enum ControllerType {
+    /// <https://streams.spec.whatwg.org/#readablebytestreamcontroller>
     Byte(Dom<ReadableByteStreamController>),
+    /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller>
     Default(Dom<ReadableStreamDefaultController>),
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+/// <https://streams.spec.whatwg.org/#readablestream-readerr>
+#[crown::unrooted_must_root_lint::must_root]
+pub enum ReaderType {
+    /// <https://streams.spec.whatwg.org/#readablestreambyobreader>
+    BYOB(MutNullableDom<ReadableStreamBYOBReader>),
+    /// <https://streams.spec.whatwg.org/#readablestreamdefaultreader>
+    Default(MutNullableDom<ReadableStreamDefaultReader>),
 }
 
 #[dom_struct]
@@ -70,8 +83,7 @@ pub struct ReadableStream {
     disturbed: Cell<bool>,
 
     /// <https://streams.spec.whatwg.org/#readablestream-reader>
-    /// TODO: ReadableStreamBYOBReader
-    reader: MutNullableDom<ReadableStreamDefaultReader>,
+    reader: ReaderType,
 
     /// <https://streams.spec.whatwg.org/#readablestream-state>
     state: DomRefCell<ReadableStreamState>,
@@ -108,7 +120,16 @@ impl ReadableStream {
         Err(Error::NotFound)
     }
 
+    #[allow(crown::unrooted_must_root)]
     fn new_inherited(controller: Controller) -> ReadableStream {
+        let reader = match &controller {
+            Controller::ReadableStreamDefaultController(_) => {
+                ReaderType::Default(MutNullableDom::new(None))
+            },
+            Controller::ReadableByteStreamController(_) => {
+                ReaderType::BYOB(MutNullableDom::new(None))
+            },
+        };
         ReadableStream {
             reflector_: Reflector::new(),
             controller: match controller {
@@ -121,7 +142,7 @@ impl ReadableStream {
             },
             stored_error: DomRefCell::new(None),
             disturbed: Default::default(),
-            reader: MutNullableDom::new(None),
+            reader: reader,
             state: DomRefCell::new(ReadableStreamState::Readable),
         }
     }
@@ -182,7 +203,15 @@ impl ReadableStream {
 
     /// <https://streams.spec.whatwg.org/#readable-stream-add-read-request>
     pub fn add_read_request(&self, read_request: ReadRequest) {
-        self.reader.get().unwrap().add_read_request(read_request);
+        match self.reader {
+            ReaderType::Default(ref reader) => {
+                let Some(reader) = reader.get() else {
+                    panic!("Attempt to read stream chunk without having acquired a reader.");
+                };
+                reader.add_read_request(read_request);
+            },
+            _ => unreachable!("Adding a read request can only be done on a default reader."),
+        }
     }
 
     /// Get a pointer to the underlying JS object.
@@ -235,39 +264,54 @@ impl ReadableStream {
         }
     }
 
+    /// Native call to
     /// <https://streams.spec.whatwg.org/#acquire-readable-stream-reader>
-    pub fn acquire_reader(&self) -> Result<(), ()> {
+    pub fn start_reading(&self) -> Result<(), ()> {
         if self.is_locked() {
             return Err(());
         }
         let global = self.global();
-        self.reader
-            .set(Some(&*ReadableStreamDefaultReader::new(&*global, self)));
+        match self.reader {
+            ReaderType::Default(ref reader) => {
+                reader.set(Some(&*ReadableStreamDefaultReader::new(&*global, self)))
+            },
+            _ => unreachable!("Native start reading can only be done on a default reader."),
+        }
         Ok(())
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
     pub fn read_a_chunk(&self) -> Rc<Promise> {
-        let Some(reader) = self.reader.get() else {
-            panic!("Attempt to read stream chunk without having acquired a reader.");
-        };
-
-        reader.Read()
+        match self.reader {
+            ReaderType::Default(ref reader) => {
+                let Some(reader) = reader.get() else {
+                    panic!("Attempt to read stream chunk without having acquired a reader.");
+                };
+                reader.Read()
+            },
+            _ => unreachable!("Native reading a chunk can only be done on a default reader."),
+        }
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-release>
     pub fn stop_reading(&self) {
-        let Some(reader) = self.reader.get() else {
-            panic!("Attempt to read stream chunk without having acquired a reader.");
-        };
-
-        reader.ReleaseLock();
-
-        self.reader.set(None);
+        match self.reader {
+            ReaderType::Default(ref reader) => {
+                let Some(rooted_reader) = reader.get() else {
+                    panic!("Attempt to read stream chunk without having acquired a reader.");
+                };
+                rooted_reader.ReleaseLock();
+                reader.set(None);
+            },
+            _ => unreachable!("Native stop reading a chunk can only be done on a default reader."),
+        }
     }
 
     pub fn is_locked(&self) -> bool {
-        self.reader.get().is_some()
+        match self.reader {
+            ReaderType::Default(ref reader) => reader.get().is_some(),
+            ReaderType::BYOB(ref reader) => reader.get().is_some(),
+        }
     }
 
     pub fn is_disturbed(&self) -> bool {
@@ -287,37 +331,47 @@ impl ReadableStream {
     }
 
     pub fn has_default_reader(&self) -> bool {
-        if let Some(_reader) = self.reader.get() {
-            false
-        } else {
-            // TODO: check type of reader.
-            true
+        match self.reader {
+            ReaderType::Default(ref reader) => reader.get().is_some(),
+            ReaderType::BYOB(_) => false,
         }
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-get-num-read-requests>
     pub fn get_num_read_requests(&self) -> usize {
         assert!(self.has_default_reader());
-        let reader = self
-            .reader
-            .get()
-            .expect("Stream must have a reader when get num read requests is called into.");
-        reader.get_num_read_requests()
+        match self.reader {
+            ReaderType::Default(ref reader) => {
+                let reader = reader
+                    .get()
+                    .expect("Stream must have a reader when get num read requests is called into.");
+                reader.get_num_read_requests()
+            },
+            _ => unreachable!(
+                "Stream must have a default reader when get num read requests is called into."
+            ),
+        }
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-fulfill-read-request>
     pub fn fulfill_read_request(&self, chunk: Vec<u8>, done: bool) {
         assert!(self.has_default_reader());
-        let reader = self
-            .reader
-            .get()
-            .expect("Stream must have a reader when a read request is fulfilled.");
-        let request = reader.remove_read_request();
-
-        if done {
-            request.chunk_steps(chunk);
+        match self.reader {
+            ReaderType::Default(ref reader) => {
+                let reader = reader
+                    .get()
+                    .expect("Stream must have a reader when a read request is fulfilled.");
+                let request = reader.remove_read_request();
+                if done {
+                    request.chunk_steps(chunk);
+                } else {
+                    request.close_steps();
+                }
+            },
+            _ => unreachable!(
+                "Stream must have a default reader when fulfill read requests is called into."
+            ),
         }
-        // TODO: else, close steps.
     }
 }
 

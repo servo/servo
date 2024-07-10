@@ -20,15 +20,36 @@ use crate::dom::readablestream::ReadableStream;
 use crate::script_runtime::JSContext as SafeJSContext;
 
 /// <https://streams.spec.whatwg.org/#read-request>
+/// For now only one variant: the one matching a `read` call.
 #[derive(JSTraceable)]
-pub struct ReadRequest {
-    promise: Rc<Promise>,
+pub enum ReadRequest {
+    /// <https://streams.spec.whatwg.org/#default-reader-read>
+    Read(Rc<Promise>),
 }
 
 impl ReadRequest {
     /// <https://streams.spec.whatwg.org/#read-request-chunk-steps>
     pub fn chunk_steps(&self, chunk: Vec<u8>) {
-        self.promise.resolve_native(&chunk);
+        match self {
+            // TODO: [chunk, false]
+            ReadRequest::Read(promise) => promise.resolve_native(&chunk),
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#ref-for-read-request-close-step>
+    pub fn close_steps(&self) {
+        match self {
+            // TODO: [undefined, true]
+            ReadRequest::Read(promise) => promise.resolve_native(&()),
+        }
+    }
+
+    /// <https://streams.spec.whatwg.org/#ref-for-read-request-close-step>
+    pub fn error_steps(&self) {
+        match self {
+            // TODO: pass error type.
+            ReadRequest::Read(promise) => promise.reject_native(&()),
+        }
     }
 }
 
@@ -104,8 +125,8 @@ impl ReadableStreamDefaultReader {
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
     pub fn error(&self, _error: Error) {
         self.closed_promise.reject_native(&());
-        for _request in self.read_requests.borrow_mut().drain(0..) {
-            // https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreadererrorreadrequests
+        for request in self.read_requests.borrow_mut().drain(0..) {
+            request.error_steps();
         }
     }
 
@@ -123,9 +144,8 @@ impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
     fn Read(&self) -> Rc<Promise> {
         let promise = Promise::new(&self.reflector_.global());
 
-        self.stream.perform_pull_steps(ReadRequest {
-            promise: promise.clone(),
-        });
+        self.stream
+            .perform_pull_steps(ReadRequest::Read(promise.clone()));
 
         promise
     }
@@ -141,7 +161,7 @@ impl ReadableStreamDefaultReaderMethods for ReadableStreamDefaultReader {
         // TODO: use TypeError.
         // <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreadererrorreadrequests>
         for request in self.read_requests.borrow_mut().drain(0..) {
-            request.promise.reject_native(&());
+            request.error_steps();
         }
     }
 
