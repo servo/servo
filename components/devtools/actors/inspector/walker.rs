@@ -85,6 +85,7 @@ impl Actor for WalkerActor {
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "querySelector" => {
+                // TODO: This also has newParents and node
                 let msg = QuerySelectorReply { from: self.name() };
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed

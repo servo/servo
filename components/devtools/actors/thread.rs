@@ -74,6 +74,7 @@ pub struct ThreadActor {
 
 impl ThreadActor {
     pub fn new(name: String) -> ThreadActor {
+        log::warn!("CREATING THREAD");
         ThreadActor { name }
     }
 }
@@ -91,6 +92,7 @@ impl Actor for ThreadActor {
         stream: &mut TcpStream,
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
+        log::warn!("THREAD MSG {:?}", msg_type);
         Ok(match msg_type {
             "attach" => {
                 let msg = ThreadAttached {

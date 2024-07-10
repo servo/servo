@@ -113,7 +113,12 @@ struct TabNavigated {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct BrowsingContextTraits {
+    frames: bool,
     is_browsing_context: bool,
+    log_in_page: bool,
+    navigation: bool,
+    supports_top_level_target_flag: bool,
+    watchpoints: bool,
 }
 
 #[derive(Serialize)]
@@ -270,6 +275,11 @@ impl BrowsingContextActor {
             actor: self.name(),
             traits: BrowsingContextTraits {
                 is_browsing_context: true,
+                frames: false,
+                log_in_page: false,
+                navigation: true,
+                supports_top_level_target_flag: true,
+                watchpoints: false,
             },
             title: self.title.borrow().clone(),
             url: self.url.borrow().clone(),

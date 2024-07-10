@@ -79,7 +79,7 @@ impl Actor for InspectorActor {
                 self.script_chan.send(GetRootNode(pipeline, tx)).unwrap();
                 let root_info = rx.recv().unwrap().ok_or(())?;
 
-                let root = root_info.encode(registry, false, self.script_chan.clone(), pipeline);
+                let root = root_info.encode(registry, true, self.script_chan.clone(), pipeline);
 
                 if self.walker.borrow().is_none() {
                     let walker = WalkerActor {

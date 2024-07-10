@@ -58,9 +58,9 @@ impl SessionContext {
             // working propperly
             supported_resources: HashMap::from([
                 ("console-message", true),
-                ("css-change", false),
+                ("css-change", true),
                 ("css-message", false),
-                ("css-registered-properties", false),
+                ("css-registered-properties", true),
                 ("document-event", true),
                 ("Cache", false),
                 ("cookies", false),
@@ -75,7 +75,7 @@ impl SessionContext {
                 ("reflow", false),
                 ("stylesheet", true),
                 ("source", true),
-                ("thread-state", false),
+                ("thread-state", true),
                 ("server-sent-event", false),
                 ("websocket", false),
                 ("jstracer-trace", false),

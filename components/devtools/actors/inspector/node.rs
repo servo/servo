@@ -33,24 +33,20 @@ pub struct NodeActorMsg {
     actor: String,
     #[serde(rename = "baseURI")]
     base_uri: String,
-    #[serde(rename = "namespaceURI")]
-    namespace_uri: String,
-    parent: String,
-    node_name: String,
-    node_type: u16,
+    causes_overflow: bool,
+    container_type: Option<()>,
     display_name: String,
     display_type: u16,
-    num_children: usize,
-    name: String,
-    public_id: String,
-    system_id: String,
-    attrs: Vec<AttrMsg>,
-    pseudo_class_locks: Vec<String>,
+    is_anonymous: bool,
     is_displayed: bool,
-    has_event_listeners: bool,
-    is_document_element: bool,
-    short_value: String,
-    incomplete_value: bool,
+    is_in_html_document: Option<()>,
+    is_native_anonymous: bool,
+    is_scrollable: bool,
+    is_top_level_document: bool,
+    node_name: String,
+    node_type: u16,
+    node_value: Option<()>,
+    num_children: usize,
 }
 
 pub struct NodeActor {
@@ -135,31 +131,40 @@ impl NodeInfoToProtocol for NodeInfo {
         NodeActorMsg {
             actor: actor_name,
             base_uri: self.base_uri,
-            parent: actors.script_to_actor(self.parent.clone()),
-            node_name: self.node_name.clone(),
-            node_type: self.node_type.clone(),
-            display_name: self.node_name,
-            display_type: self.node_type,
-            namespace_uri: self.namespace_uri,
-            num_children: self.num_children,
-            name: self.name,
-            public_id: self.public_id,
-            system_id: self.system_id,
-            attrs: self
-                .attrs
-                .into_iter()
-                .map(|attr| AttrMsg {
-                    namespace: attr.namespace,
-                    name: attr.name,
-                    value: attr.value,
-                })
-                .collect(),
-            pseudo_class_locks: vec![], //TODO: get this data from script
+            display_name: self.node_name.clone(),
+            display_type: self.node_type.clone(),
             is_displayed: display,
-            has_event_listeners: false, //TODO: get this data from script
-            is_document_element: self.is_document_element,
-            short_value: self.short_value,
-            incomplete_value: self.incomplete_value,
+            node_name: self.node_name,
+            node_type: self.node_type,
+            num_children: self.num_children,
+            // TODO: Review these
+            causes_overflow: false,
+            container_type: None,
+            is_anonymous: false,
+            is_in_html_document: None,
+            is_native_anonymous: false,
+            is_scrollable: false,
+            is_top_level_document: true,
+            node_value: None,
+            // parent: actors.script_to_actor(self.parent.clone()),
+            // namespace_uri: self.namespace_uri,
+            // name: self.name,
+            // public_id: self.public_id,
+            // system_id: self.system_id,
+            // attrs: self
+            //     .attrs
+            //     .into_iter()
+            //     .map(|attr| AttrMsg {
+            //         namespace: attr.namespace,
+            //         name: attr.name,
+            //         value: attr.value,
+            //     })
+            //     .collect(),
+            // pseudo_class_locks: vec![], //TODO: get this data from script
+            // has_event_listeners: false, //TODO: get this data from script
+            // is_document_element: self.is_document_element,
+            // short_value: self.short_value,
+            // incomplete_value: self.incomplete_value,
         }
     }
 }
