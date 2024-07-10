@@ -862,7 +862,6 @@ class CommandBase(object):
                     action='store_true',
                     help='Build with frame pointer enabled, used by the background hang monitor.',
                 ),
-                CommandArgument('--without-wgl', group="Feature Selection", default=None, action='store_true'),
                 CommandArgument(
                     '--use-crown',
                     default=False,
@@ -982,7 +981,7 @@ class CommandBase(object):
         self, command: str, cargo_args: List[str],
         env=None, verbose=False,
         debug_mozjs=False, with_debug_assertions=False,
-        with_frame_pointer=False, without_wgl=False,
+        with_frame_pointer=False,
         use_crown=False,
         target_override: Optional[str] = None,
         **_kwargs
@@ -1042,8 +1041,6 @@ class CommandBase(object):
             if with_frame_pointer:
                 env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C force-frame-pointers=yes"
                 features.append("profilemozjs")
-            if without_wgl:
-                features.append("no-wgl")
             if self.config["build"]["webgl-backtrace"]:
                 features.append("webgl-backtrace")
             if self.config["build"]["dom-backtrace"]:

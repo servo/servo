@@ -45,7 +45,6 @@ max_log_level = ["log/release_max_level_info"]
 media-gstreamer = ["libservo/media-gstreamer"]
 multiview = ["libservo/multiview"]
 native-bluetooth = ["libservo/native-bluetooth"]
-no-wgl = ["libservo/no-wgl"]
 profilemozjs = ["libservo/profilemozjs"]
 refcell_backtrace = ["libservo/refcell_backtrace"]
 webdriver = ["libservo/webdriver"]
@@ -116,3 +115,4 @@ sig = "1.0"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows-sys = { workspace = true, features = ["Win32_Graphics_Gdi"] }
+libservo = { path = "../../components/servo", features = ["no-wgl"] }
