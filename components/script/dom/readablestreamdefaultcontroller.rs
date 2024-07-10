@@ -183,10 +183,18 @@ impl ReadableStreamDefaultController {
         self.call_pull_if_needed();
     }
 
+    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue>
     pub fn enqueue_chunk(&self, mut chunk: Vec<u8>) {
+        // TODO: First, potentially run chunk steps for pending read request.
+        
+        // TODO: strategy size algo.
+        
+        // <https://streams.spec.whatwg.org/#enqueue-value-with-size>
         let mut buffer = self.buffer.borrow_mut();
         chunk.append(&mut buffer);
         *buffer = chunk;
+        
+        self.call_pull_if_needed();
     }
 
     /// Does the stream have all data in memory?
