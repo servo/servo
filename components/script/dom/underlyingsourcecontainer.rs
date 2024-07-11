@@ -2,11 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::ptr;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsapi::{HandleObject, JSObject, Value};
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::JS_GetProperty;
 
@@ -55,14 +53,14 @@ impl UnderlyingSourceType {
 pub struct UnderlyingSourceContainer {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "Rc is hard"]
-    underlying_source_type: Rc<UnderlyingSourceType>,
+    underlying_source_type: UnderlyingSourceType,
 }
 
 impl UnderlyingSourceContainer {
     fn new_inherited(underlying_source_type: UnderlyingSourceType) -> UnderlyingSourceContainer {
         UnderlyingSourceContainer {
             reflector_: Reflector::new(),
-            underlying_source_type: Rc::new(underlying_source_type),
+            underlying_source_type: underlying_source_type,
         }
     }
 
@@ -111,9 +109,9 @@ impl UnderlyingSourceContainer {
         &self,
         controller: &ReadableStreamDefaultController,
     ) -> Option<Rc<Promise>> {
-        if let UnderlyingSourceType::Js(source) = self.underlying_source_type.as_ref() {
+        if let UnderlyingSourceType::Js(source) = &self.underlying_source_type {
             let global = self.global();
-            let promise = if let Some(pull) = source.pull.as_ref() {
+            let promise = if let Some(pull) = &source.pull {
                 // Note: this calls the pull callback with self as "this".
                 // Should we find a way to pass the JsUnderlyingSource as "this"?
                 pull.Call_(
