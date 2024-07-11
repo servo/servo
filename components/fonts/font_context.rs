@@ -681,7 +681,11 @@ impl<FCT: FontSource> CachingFontSource<FCT> {
         if let Some(font_group) = self.resolved_font_groups.read().get(&cache_key) {
             return font_group.clone();
         }
-        let font_group = Arc::new(RwLock::new(FontGroup::new(&cache_key.style)));
+
+        let mut descriptor = FontDescriptor::from(&*cache_key.style);
+        descriptor.pt_size = size;
+
+        let font_group = Arc::new(RwLock::new(FontGroup::new(&cache_key.style, descriptor)));
         self.resolved_font_groups
             .write()
             .insert(cache_key, font_group.clone());

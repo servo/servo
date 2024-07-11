@@ -626,6 +626,7 @@ dependencies = [
 name = "canvas"
 version = "0.0.1"
 dependencies = [
+ "app_units",
  "bitflags 2.6.0",
  "byteorder",
  "canvas_traits",
@@ -641,8 +642,10 @@ dependencies = [
  "lyon_geom",
  "net_traits",
  "num-traits",
+ "parking_lot",
  "pathfinder_geometry",
  "pixels",
+ "range",
  "raqote",
  "servo_arc",
  "sparkle",
@@ -650,6 +653,7 @@ dependencies = [
  "style_traits",
  "surfman",
  "time 0.1.45",
+ "unicode-script",
  "webrender",
  "webrender_api",
  "webrender_traits",
