@@ -38,9 +38,10 @@ ProductName = "Servo"
 
 [features]
 debugmozjs = ["libservo/debugmozjs"]
-default = ["max_log_level", "webdriver"]
+default = ["layout_2013", "max_log_level", "webdriver"]
 jitspew = ["libservo/jitspew"]
 js_backtrace = ["libservo/js_backtrace"]
+layout_2013 = ["libservo/layout_2013"]
 max_log_level = ["log/release_max_level_info"]
 media-gstreamer = ["libservo/media-gstreamer"]
 multiview = ["libservo/multiview"]
