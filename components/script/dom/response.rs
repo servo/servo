@@ -31,7 +31,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::{is_obs_text, is_vchar, Guard, Headers};
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
-use crate::dom::readablestreamdefaultcontroller::UnderlyingSource;
+use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::script_runtime::{JSContext as SafeJSContext, StreamConsumer};
 
 #[dom_struct]
@@ -60,7 +60,7 @@ impl Response {
     pub fn new_inherited(global: &GlobalScope) -> Response {
         let stream = ReadableStream::new_with_external_underlying_source(
             global,
-            UnderlyingSource::FetchResponse,
+            UnderlyingSourceType::FetchResponse,
         );
         Response {
             reflector_: Reflector::new(),

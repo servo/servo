@@ -32,10 +32,9 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablebytestreamcontroller::ReadableByteStreamController;
 use crate::dom::readablestreambyobreader::ReadableStreamBYOBReader;
-use crate::dom::readablestreamdefaultcontroller::{
-    ReadableStreamDefaultController, UnderlyingSource,
-};
+use crate::dom::readablestreamdefaultcontroller::ReadableStreamDefaultController;
 use crate::dom::readablestreamdefaultreader::{ReadRequest, ReadableStreamDefaultReader};
+use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::js::conversions::FromJSValConvertible;
 use crate::realms::InRealm;
 use crate::script_runtime::JSContext as SafeJSContext;
@@ -166,7 +165,7 @@ impl ReadableStream {
     pub fn new_from_bytes(global: &GlobalScope, bytes: Vec<u8>) -> DomRoot<ReadableStream> {
         let stream = ReadableStream::new_with_external_underlying_source(
             global,
-            UnderlyingSource::Memory(bytes.len()),
+            UnderlyingSourceType::Memory(bytes.len()),
         );
         stream.enqueue_native(bytes);
         stream.close_native();
@@ -178,10 +177,10 @@ impl ReadableStream {
     #[allow(unsafe_code)]
     pub fn new_with_external_underlying_source(
         global: &GlobalScope,
-        source: UnderlyingSource,
+        source: UnderlyingSourceType,
     ) -> DomRoot<ReadableStream> {
         assert!(source.is_native());
-        let controller = ReadableStreamDefaultController::new(global, Rc::new(source));
+        let controller = ReadableStreamDefaultController::new(global, source);
         let stream = ReadableStream::new(
             global,
             Controller::ReadableStreamDefaultController(controller.clone()),

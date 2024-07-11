@@ -109,9 +109,9 @@ use crate::dom::performance::Performance;
 use crate::dom::performanceobserver::VALID_ENTRY_TYPES;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
-use crate::dom::readablestreamdefaultcontroller::UnderlyingSource;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
+use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
@@ -2022,8 +2022,10 @@ impl GlobalScope {
             BlobResult::File(id, size) => (id, size),
         };
 
-        let stream =
-            ReadableStream::new_with_external_underlying_source(self, UnderlyingSource::Blob(size));
+        let stream = ReadableStream::new_with_external_underlying_source(
+            self,
+            UnderlyingSourceType::Blob(size),
+        );
 
         let recv = self.send_msg(file_id);
 

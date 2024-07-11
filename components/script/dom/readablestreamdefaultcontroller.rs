@@ -3,23 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::rust::{HandleValue as SafeHandleValue, HandleValue};
 
-use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultControllerMethods;
-use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
-use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
 use crate::dom::bindings::import::module::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::ReadableStream;
 use crate::dom::readablestreamdefaultreader::ReadRequest;
+use crate::dom::underlyingsourcecontainer::{UnderlyingSourceContainer, UnderlyingSourceType};
 use crate::realms::{enter_realm, InRealm};
 use crate::script_runtime::{JSContext, JSContext as SafeJSContext};
 
@@ -51,37 +47,6 @@ impl Callback for PullAlgorithmRejectionHandler {
     }
 }
 
-/// <https://streams.spec.whatwg.org/#underlying-source-api>
-#[derive(JSTraceable)]
-pub enum UnderlyingSource {
-    /// Facilitate partial integration with sources
-    /// that are currently read into memory.
-    Memory(usize),
-    /// A blob as underlying source, with a known total size.
-    Blob(usize),
-    /// A fetch response as underlying source.
-    FetchResponse,
-    /// A JS object as underlying source.
-    Js(JsUnderlyingSource),
-}
-
-impl UnderlyingSource {
-    /// Is the stream backed by a Rust native source?
-    pub fn is_native(&self) -> bool {
-        match self {
-            UnderlyingSource::Memory(_) |
-            UnderlyingSource::Blob(_) |
-            UnderlyingSource::FetchResponse => true,
-            _ => false,
-        }
-    }
-
-    /// Does the stream have all data in memory?
-    pub fn in_memory(&self) -> bool {
-        matches!(self, UnderlyingSource::Memory(_))
-    }
-}
-
 /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller>
 #[dom_struct]
 pub struct ReadableStreamDefaultController {
@@ -90,27 +55,33 @@ pub struct ReadableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-queue>
     buffer: RefCell<Vec<u8>>,
 
-    #[ignore_malloc_size_of = "Rc is hard"]
-    underlying_source: Rc<UnderlyingSource>,
+    underlying_source: Dom<UnderlyingSourceContainer>,
 
     stream: MutNullableDom<ReadableStream>,
 }
 
 impl ReadableStreamDefaultController {
-    fn new_inherited(underlying_source: Rc<UnderlyingSource>) -> ReadableStreamDefaultController {
+    fn new_inherited(
+        global: &GlobalScope,
+        underlying_source_type: UnderlyingSourceType,
+    ) -> ReadableStreamDefaultController {
         ReadableStreamDefaultController {
             reflector_: Reflector::new(),
             buffer: RefCell::new(vec![]),
             stream: MutNullableDom::new(None),
-            underlying_source,
+            underlying_source: Dom::from_ref(&*UnderlyingSourceContainer::new(
+                global,
+                underlying_source_type,
+            )),
         }
     }
     pub fn new(
         global: &GlobalScope,
-        underlying_source: Rc<UnderlyingSource>,
+        underlying_source: UnderlyingSourceType,
     ) -> DomRoot<ReadableStreamDefaultController> {
         reflect_dom_object(
             Box::new(ReadableStreamDefaultController::new_inherited(
+                global,
                 underlying_source,
             )),
             global,
@@ -140,22 +111,8 @@ impl ReadableStreamDefaultController {
             return;
         }
 
-        // Note: native sources have no pull algorithms for now.
-        if let UnderlyingSource::Js(source) = self.underlying_source.as_ref() {
-            let global = self.global();
-            let promise = if let Some(pull) = source.pull.as_ref() {
-                // TODO: use Call_ with source as this(requires DomObject).
-                pull.Call__(
-                    Controller::ReadableStreamDefaultController(DomRoot::from_ref(self)),
-                    ExceptionHandling::Report,
-                )
-                .unwrap()
-            } else {
-                let promise = Promise::new(&*global);
-                promise.resolve_native(&());
-                promise
-            };
-
+        let global = self.global();
+        if let Some(promise) = self.underlying_source.call_pull_algorithm(self) {
             let fulfillment_handler = Box::new(PullAlgorithmFulfillmentHandler {
                 controller: DomRoot::from_ref(self),
             });
