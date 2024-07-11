@@ -93,7 +93,7 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#rs-constructor>
     pub fn Constructor(
         cx: SafeJSContext,
-        _global: &GlobalScope,
+        global: &GlobalScope,
         _proto: Option<SafeHandleObject>,
         underlying_source: Option<*mut JSObject>,
         _strategy: &QueuingStrategy,
@@ -101,7 +101,7 @@ impl ReadableStream {
         // Step 1
         rooted!(in(*cx) let underlying_source_obj = underlying_source.unwrap_or(ptr::null_mut()));
         // Step 2
-        let _underlying_source_dict = if !underlying_source_obj.is_null() {
+        let underlying_source_dict = if !underlying_source_obj.is_null() {
             rooted!(in(*cx) let obj_val = ObjectValue(underlying_source_obj.get()));
             match JsUnderlyingSource::new(cx, obj_val.handle()) {
                 Ok(ConversionResult::Success(val)) => val,
@@ -115,8 +115,20 @@ impl ReadableStream {
         } else {
             JsUnderlyingSource::empty()
         };
-        // TODO
-        Err(Error::NotFound)
+
+        let controller = if underlying_source_dict.type_.is_some() {
+            // TODO: byte controller.
+            todo!()
+        } else {
+            ReadableStreamDefaultController::new(
+                global,
+                UnderlyingSourceType::Js(underlying_source_dict),
+            )
+        };
+        Ok(ReadableStream::new(
+            global,
+            Controller::ReadableStreamDefaultController(controller),
+        ))
     }
 
     #[allow(crown::unrooted_must_root)]
