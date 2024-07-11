@@ -4,6 +4,8 @@
 
 //! WebIDL constants.
 
+use std::ffi::CStr;
+
 use js::jsapi::{JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UInt32Value};
 use js::rust::wrappers::JS_DefineProperty;
@@ -15,7 +17,7 @@ use crate::script_runtime::JSContext;
 #[derive(Clone)]
 pub struct ConstantSpec {
     /// name of the constant.
-    pub name: &'static [u8],
+    pub name: &'static CStr,
     /// value of the constant.
     pub value: ConstantVal,
 }
@@ -58,7 +60,7 @@ pub fn define_constants(cx: JSContext, obj: HandleObject, constants: &[ConstantS
             assert!(JS_DefineProperty(
                 *cx,
                 obj,
-                spec.name.as_ptr() as *const libc::c_char,
+                spec.name.as_ptr(),
                 value.handle(),
                 (JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT) as u32
             ));

@@ -732,7 +732,7 @@ impl WindowMethods for Window {
             assert!(JS_DefineProperty(
                 *cx,
                 obj,
-                "opener\0".as_ptr() as *const libc::c_char,
+                c"opener".as_ptr(),
                 value,
                 JSPROP_ENUMERATE as u32
             ));
