@@ -43,8 +43,10 @@ impl VisibilityStateEntry {
         state: DocumentVisibilityState,
         timestamp: f64,
     ) -> DomRoot<VisibilityStateEntry> {
-        let entry = VisibilityStateEntry::new_inherited(state, timestamp);
-        reflect_dom_object(Box::new(entry), global)
+        reflect_dom_object(
+            Box::new(VisibilityStateEntry::new_inherited(state, timestamp)),
+            global,
+        )
     }
 }
 
