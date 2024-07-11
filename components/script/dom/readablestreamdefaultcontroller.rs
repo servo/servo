@@ -128,8 +128,18 @@ impl ReadableStreamDefaultController {
         buffer.split_off(buffer_len - length)
     }
 
+    /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-should-call-pull>
+    fn should_pull(&self) -> bool {
+        // TODO: implement the algo.
+        true
+    }
+
     /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
     fn call_pull_if_needed(&self) {
+        if !self.should_pull() {
+            return;
+        }
+
         // Note: native sources have no pull algorithms for now.
         if let UnderlyingSource::Js(source) = self.underlying_source.as_ref() {
             let global = self.global();
@@ -177,13 +187,13 @@ impl ReadableStreamDefaultController {
 
             read_request.chunk_steps(chunk);
         }
-        // <https://streams.spec.whatwg.org/#read-request-chunk-steps>
 
         // else, append read request to reader.
         self.stream
             .get()
             .expect("Controller must have a stream when pull steps are called into.")
             .add_read_request(read_request);
+
         self.call_pull_if_needed();
     }
 
