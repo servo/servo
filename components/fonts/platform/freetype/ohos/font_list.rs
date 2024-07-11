@@ -260,29 +260,6 @@ fn parse_font_filenames(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
         Some((family_name, font))
     });
 
-    let hmos_emoji_fonts = font_files.iter().filter_map(|file_path| {
-        let hm_emojis_base_name_components = ["HMOS", "Color", "Emoji"];
-        let base_file_stem = hm_emojis_base_name_components.join("");
-        let stem = file_path.file_stem()?.to_str()?;
-        let stem_no_prefix = stem.strip_prefix(base_file_stem.as_str())?;
-        let family_variant = match stem_no_prefix {
-            "Compat" => "",
-            "Flags" => "Flags",
-            variant => {
-                warn!("Encountered unknown font variant `HMOS Color Emoji {variant}`");
-                variant
-            },
-        };
-        let mut name_components = hm_emojis_base_name_components.to_vec();
-        name_components.push(family_variant);
-        let family_name = name_components.join(" ");
-        let font = Font {
-            filepath: file_path.to_str()?.to_string(),
-            ..Default::default()
-        };
-        Some((family_name, font))
-    });
-
     let noto_fonts = font_files.iter().filter_map(|file_path| {
         let stem = file_path.file_stem()?.to_str()?;
         // Filter out non-noto fonts
@@ -324,7 +301,7 @@ fn parse_font_filenames(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
         Some((family_name, font))
     });
 
-    let all_families = harmony_os_fonts.chain(hmos_emoji_fonts).chain(noto_fonts);
+    let all_families = harmony_os_fonts.chain(noto_fonts);
 
     for (family_name, font) in all_families {
         if let Some(font_list) = families.get_mut(&family_name) {
@@ -351,10 +328,49 @@ impl FontList {
 
     /// Detect available fonts or fallback to a hardcoded list
     fn detect_installed_font_families() -> Vec<FontFamily> {
-        enumerate_font_files()
+        let mut families = enumerate_font_files()
             .inspect_err(|e| error!("Failed to enumerate font files due to `{e:?}`"))
             .and_then(|font_files| Ok(parse_font_filenames(font_files)))
-            .unwrap_or_else(|_| FontList::fallback_font_families())
+            .unwrap_or_else(|_| FontList::fallback_font_families());
+        families.extend(Self::hardcoded_font_families());
+        families
+    }
+
+    /// A List of hardcoded fonts, added in addition to both detected and fallback font families.
+    ///
+    /// There are only two emoji fonts, and their filenames are stable, so we just hardcode
+    /// their paths, instead of attempting to parse the family name from the filepaths.
+    fn hardcoded_font_families() -> Vec<FontFamily> {
+        let hardcoded_fonts = vec![
+            FontFamily {
+                name: "HMOS Color Emoji".to_string(),
+                fonts: vec![Font {
+                    filepath: FontList::font_absolute_path("HMOSColorEmojiCompat.ttf".into()),
+                    ..Default::default()
+                }],
+            },
+            FontFamily {
+                name: "HMOS Color Emoji Flags".to_string(),
+                fonts: vec![Font {
+                    filepath: FontList::font_absolute_path("HMOSColorEmojiFlags.ttf".into()),
+                    ..Default::default()
+                }],
+            },
+        ];
+        if log::log_enabled!(log::Level::Warn) {
+            for family in hardcoded_fonts.iter() {
+                for font in &family.fonts {
+                    let path = Path::new(&font.filepath);
+                    if !path.exists() {
+                        warn!(
+                            "Hardcoded Emoji Font {} was not found at `{}`",
+                            family.name, font.filepath
+                        )
+                    }
+                }
+            }
+        }
+        hardcoded_fonts
     }
 
     fn fallback_font_families() -> Vec<FontFamily> {
@@ -362,7 +378,6 @@ impl FontList {
         let alternatives = [
             ("HarmonyOS Sans", "HarmonyOS_Sans.ttf"),
             ("HarmonyOS Sans SC", "HarmonyOS_Sans_SC.ttf"),
-            ("sans-serif", "HarmonyOS_Sans.ttf"),
             ("serif", "NotoSerif[wdth,wght].ttf"),
         ];
 
@@ -609,7 +624,6 @@ mod test {
         let families = parse_font_filenames(vec![
             PathBuf::from("NotoSerifGeorgian[wdth,wght].ttf"),
             PathBuf::from("HarmonyOS_Sans_Naskh_Arabic_UI.ttf"),
-            PathBuf::from("HMOSColorEmojiCompat.ttf"),
             PathBuf::from("HarmonyOS_Sans_Condensed.ttf"),
             PathBuf::from("HarmonyOS_Sans_Condensed_Italic.ttf"),
             PathBuf::from("NotoSansDevanagariUI-Bold.ttf"),
@@ -617,7 +631,7 @@ mod test {
             PathBuf::from("NotoSansDevanagariUI-Regular.ttf"),
             PathBuf::from("NotoSansDevanagariUI-SemiBold.ttf"),
         ]);
-        assert_eq!(families.len(), 5);
+        assert_eq!(families.len(), 4);
     }
 
     #[test]
