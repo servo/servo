@@ -69,39 +69,23 @@ impl UnderlyingSourceContainer {
         global: &GlobalScope,
         underlying_source_type: UnderlyingSourceType,
     ) -> DomRoot<UnderlyingSourceContainer> {
-        // Setting the prototype of the underlying source dict on the
-        // `UnderlyingSourceContainer` for later use in Call_.
+        // Setting the underlying source dict as the prototype of the
+        // `UnderlyingSourceContainer`, as it is later used as the "this" in Call_.
         // TODO: is this a good idea?
         let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut constructor = UndefinedValue());
-        rooted!(in(*cx) let mut prototype = UndefinedValue());
-        rooted!(in(*cx) let mut constructor_obj = constructor.to_object());
-        rooted!(in(*cx) let mut prototype_obj = prototype.to_object());
-        let prototype = if let UnderlyingSourceType::Js(ref js_source) = underlying_source_type {
+        rooted!(in(*cx) let mut underlying_source_dict = UndefinedValue());
+        if let UnderlyingSourceType::Js(ref js_source) = underlying_source_type {
             unsafe {
-                js_source.to_jsval(*cx, constructor.handle_mut());
-                if !JS_GetProperty(
-                    *GlobalScope::get_cx(),
-                    constructor_obj.handle(),
-                    b"prototype\0".as_ptr() as *const _,
-                    prototype.handle_mut(),
-                ) {
-                    None
-                } else if !prototype.get().is_object() {
-                    None
-                } else {
-                    Some(prototype_obj.handle())
-                }
+                js_source.to_jsval(*cx, underlying_source_dict.handle_mut());
             }
-        } else {
-            None
-        };
+        }
+        rooted!(in(*cx) let mut underlying_source_dict_obj = underlying_source_dict.to_object());
         reflect_dom_object_with_proto(
             Box::new(UnderlyingSourceContainer::new_inherited(
                 underlying_source_type,
             )),
             global,
-            prototype,
+            Some(underlying_source_dict_obj.handle()),
         )
     }
 
