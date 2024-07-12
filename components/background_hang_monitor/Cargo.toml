@@ -29,5 +29,5 @@ lazy_static = { workspace = true }
 mach2 = "0.4"
 
 [target.'cfg(all(target_os = "linux", not(any(target_arch = "arm", target_arch = "aarch64"))))'.dependencies]
-nix = { version = "0.27", features = ["signal"] }
+nix = { version = "0.29", features = ["signal"] }
 unwind-sys = "0.1.4"
