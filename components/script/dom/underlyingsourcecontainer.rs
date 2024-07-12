@@ -72,24 +72,15 @@ impl UnderlyingSourceContainer {
         global: &GlobalScope,
         underlying_source_type: UnderlyingSourceType,
     ) -> DomRoot<UnderlyingSourceContainer> {
-        // Setting the underlying source dict as the prototype of the
+        // TODO: setting the underlying source dict as the prototype of the
         // `UnderlyingSourceContainer`, as it is later used as the "this" in Call_.
-        // TODO: is this a good idea?
-        let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let mut underlying_source_dict = UndefinedValue());
-        if let UnderlyingSourceType::Js(ref js_source) = underlying_source_type {
-            #[allow(unsafe_code)]
-            unsafe {
-                js_source.to_jsval(*cx, underlying_source_dict.handle_mut());
-            }
-        }
-        rooted!(in(*cx) let mut underlying_source_dict_obj = underlying_source_dict.to_object());
+        // Is this a good idea?
         reflect_dom_object_with_proto(
             Box::new(UnderlyingSourceContainer::new_inherited(
                 underlying_source_type,
             )),
             global,
-            Some(underlying_source_dict_obj.handle()),
+            None,
         )
     }
 
