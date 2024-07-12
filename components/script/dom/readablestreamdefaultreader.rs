@@ -4,20 +4,25 @@
 
 use std::collections::VecDeque;
 use std::rc::Rc;
+use std::ptr;
 
 use dom_struct::dom_struct;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
-
+use js::jsval::UndefinedValue;
+use js::jsapi::Heap;
+use js::conversions::ToJSValConvertible;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamDefaultReaderMethods;
+use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::{ReadableStreamReadResult, ReadableStreamDefaultReaderMethods};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::utils::set_dictionary_property;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
 use crate::script_runtime::JSContext as SafeJSContext;
+use crate::dom::bindings::trace::RootedTraceableBox;
 
 /// <https://streams.spec.whatwg.org/#read-request>
 /// For now only one variant: the one matching a `read` call.
@@ -29,18 +34,47 @@ pub enum ReadRequest {
 
 impl ReadRequest {
     /// <https://streams.spec.whatwg.org/#read-request-chunk-steps>
+    #[allow(unsafe_code)]
+    #[allow(crown::unrooted_must_root)]
     pub fn chunk_steps(&self, chunk: Vec<u8>) {
         match self {
-            // TODO: [chunk, false]
-            ReadRequest::Read(promise) => promise.resolve_native(&chunk),
+            ReadRequest::Read(promise) => {
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                let result = RootedTraceableBox::new(Heap::default());
+                unsafe {
+                    chunk.to_jsval(*cx, rval.handle_mut());
+                    result.set(*rval);
+                }
+                let result = ReadableStreamReadResult {
+                    done: Some(false),
+                    value: result,
+                };
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                unsafe {
+                    result.to_jsval(*cx, rval.handle_mut());
+                }
+                promise.resolve(cx, rval.handle());
+            },
         }
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-close-step>
+    #[allow(unsafe_code)]
+    #[allow(crown::unrooted_must_root)]
     pub fn close_steps(&self) {
         match self {
-            // TODO: [undefined, true]
-            ReadRequest::Read(promise) => promise.resolve_native(&()),
+            ReadRequest::Read(promise) => {
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut rval = UndefinedValue());
+                let result = RootedTraceableBox::new(Heap::default());
+                result.set(*rval);
+                let result = ReadableStreamReadResult {
+                    done: Some(true),
+                    value: result,
+                };
+                promise.resolve(cx, rval.handle());
+            },
         }
     }
 

@@ -387,7 +387,7 @@ impl ReadableStream {
                     .get()
                     .expect("Stream must have a reader when a read request is fulfilled.");
                 let request = reader.remove_read_request();
-                if done {
+                if !done {
                     request.chunk_steps(chunk);
                 } else {
                     request.close_steps();
@@ -418,8 +418,16 @@ impl ReadableStreamMethods for ReadableStream {
         &self,
         _options: &ReadableStreamGetReaderOptions,
     ) -> Fallible<ReadableStreamReader> {
-        // TODO
-        Err(Error::NotFound)
+        if self.is_locked() {
+            return Err(Error::Type("Stream is locked".to_string()))
+        }
+        match self.reader {
+            ReaderType::Default(ref reader) => {
+                reader.set(Some(&*ReadableStreamDefaultReader::new(&*self.global(), self)));
+                return Ok(ReadableStreamReader::ReadableStreamDefaultReader(reader.get().unwrap()));
+            },
+            _ => todo!(),
+        }
     }
 }
 
