@@ -8,6 +8,7 @@ use dom_struct::dom_struct;
 use js::rust::{HandleValue as SafeHandleValue, HandleValue};
 
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultControllerMethods;
+use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
 use crate::dom::bindings::import::module::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
@@ -112,7 +113,8 @@ impl ReadableStreamDefaultController {
         }
 
         let global = self.global();
-        if let Some(promise) = self.underlying_source.call_pull_algorithm(self) {
+        let controller = Controller::ReadableStreamDefaultController(DomRoot::from_ref(self));
+        if let Some(promise) = self.underlying_source.call_pull_algorithm(controller) {
             let fulfillment_handler = Box::new(PullAlgorithmFulfillmentHandler {
                 controller: DomRoot::from_ref(self),
             });

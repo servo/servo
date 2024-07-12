@@ -48,8 +48,8 @@ pub enum ReadableStreamState {
     Errored,
 }
 
-#[derive(JSTraceable, MallocSizeOf)]
 /// <https://streams.spec.whatwg.org/#readablestream-controller>
+#[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
 pub enum ControllerType {
     /// <https://streams.spec.whatwg.org/#readablebytestreamcontroller>
@@ -58,8 +58,8 @@ pub enum ControllerType {
     Default(Dom<ReadableStreamDefaultController>),
 }
 
-#[derive(JSTraceable, MallocSizeOf)]
 /// <https://streams.spec.whatwg.org/#readablestream-readerr>
+#[derive(JSTraceable, MallocSizeOf)]
 #[crown::unrooted_must_root_lint::must_root]
 pub enum ReaderType {
     /// <https://streams.spec.whatwg.org/#readablestreambyobreader>
@@ -68,6 +68,7 @@ pub enum ReaderType {
     Default(MutNullableDom<ReadableStreamDefaultReader>),
 }
 
+/// <https://streams.spec.whatwg.org/#rs-class>
 #[dom_struct]
 pub struct ReadableStream {
     reflector_: Reflector,
@@ -89,8 +90,8 @@ pub struct ReadableStream {
 }
 
 impl ReadableStream {
-    #[allow(non_snake_case)]
     /// <https://streams.spec.whatwg.org/#rs-constructor>
+    #[allow(non_snake_case)]
     pub fn Constructor(
         cx: SafeJSContext,
         global: &GlobalScope,
@@ -163,7 +164,7 @@ impl ReadableStream {
     }
 
     /// Used from RustCodegen.py
-    /// TODO: remove here and from codegen, to be replaced by Constructor.
+    /// TODO: remove here and its use in codegen.
     #[allow(unsafe_code)]
     pub unsafe fn from_js(
         _cx: SafeJSContext,
@@ -185,7 +186,7 @@ impl ReadableStream {
     }
 
     /// Build a stream backed by a Rust underlying source.
-    /// Note: external sources are always paired with a default controller for now.
+    /// Note: external sources are always paired with a default controller.
     #[allow(unsafe_code)]
     pub fn new_with_external_underlying_source(
         global: &GlobalScope,
@@ -226,11 +227,15 @@ impl ReadableStream {
     }
 
     /// Get a pointer to the underlying JS object.
+    /// TODO: remove,
+    /// by using at call point the `ReadableStream` directly instead of a JSObject.
     pub fn get_js_stream(&self) -> NonNull<JSObject> {
         NonNull::new(*self.reflector().get_jsobject())
             .expect("Couldn't get a non-null pointer to JS stream object.")
     }
 
+    /// Endpoint to enqueue chunks directly from Rust.
+    /// Note: in other use cases this call happens via the controller.
     pub fn enqueue_native(&self, bytes: Vec<u8>) {
         match self.controller {
             ControllerType::Default(ref controller) => controller.enqueue_chunk(bytes),
@@ -241,6 +246,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
+    /// Note: in other use cases this call happens via the controller.
     pub fn error_native(&self, _error: Error) {
         *self.state.borrow_mut() = ReadableStreamState::Errored;
         match self.controller {
@@ -250,6 +256,7 @@ impl ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-close>
+    /// Note: in other use cases this call happens via the controller.
     pub fn close_native(&self) {
         match self.controller {
             ControllerType::Default(ref controller) => controller.close(),
@@ -257,7 +264,8 @@ impl ReadableStream {
         }
     }
 
-    /// Does the stream have all data in memory?
+    /// Returns a boolean reflecting whether the stream has all data in memory.
+    /// Useful for native source integration only.
     pub fn in_memory(&self) -> bool {
         match self.controller {
             ControllerType::Default(ref controller) => controller.in_memory(),
@@ -268,6 +276,7 @@ impl ReadableStream {
     }
 
     /// Return bytes for synchronous use, if the stream has all data in memory.
+    /// Useful for native source integration only.
     pub fn get_in_memory_bytes(&self) -> Option<Vec<u8>> {
         match self.controller {
             ControllerType::Default(ref controller) => controller.get_in_memory_bytes(),
@@ -277,6 +286,7 @@ impl ReadableStream {
 
     /// Native call to
     /// <https://streams.spec.whatwg.org/#acquire-readable-stream-reader>
+    /// TODO: restructure this on related methods so the caller gets a reader?
     pub fn start_reading(&self) -> Result<(), ()> {
         if self.is_locked() {
             return Err(());
@@ -291,7 +301,9 @@ impl ReadableStream {
         Ok(())
     }
 
+    /// Native call to
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
+    /// TODO: restructure this on related methods so the caller reads from a reader?
     pub fn read_a_chunk(&self) -> Rc<Promise> {
         match self.reader {
             ReaderType::Default(ref reader) => {
@@ -304,7 +316,9 @@ impl ReadableStream {
         }
     }
 
-    /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-release>
+    /// Native call to
+    /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreaderrelease>
+    /// TODO: restructure this on related methods so the caller releases a reader?
     pub fn stop_reading(&self) {
         match self.reader {
             ReaderType::Default(ref reader) => {

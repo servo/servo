@@ -6,7 +6,6 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsval::UndefinedValue;
-use js::rust::wrappers::JS_GetProperty;
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::UnderlyingSource as JsUnderlyingSource;
@@ -19,6 +18,9 @@ use crate::dom::readablestreamdefaultcontroller::ReadableStreamDefaultController
 use crate::js::conversions::ToJSValConvertible;
 
 /// <https://streams.spec.whatwg.org/#underlying-source-api>
+/// The `Js` variant corresponds to
+/// the JavaScript object representing the underlying source.
+/// The other variants are native sources in Rust.
 #[derive(JSTraceable)]
 pub enum UnderlyingSourceType {
     /// Facilitate partial integration with sources
@@ -49,10 +51,12 @@ impl UnderlyingSourceType {
     }
 }
 
+/// Wrapper around the underlying source.
+/// Useful because `Call_` requires the "this object" to impl DomObject.
 #[dom_struct]
 pub struct UnderlyingSourceContainer {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[ignore_malloc_size_of = "JsUnderlyingSource implemented in SM."]
     underlying_source_type: UnderlyingSourceType,
 }
 
@@ -64,7 +68,6 @@ impl UnderlyingSourceContainer {
         }
     }
 
-    #[allow(unsafe_code)]
     pub fn new(
         global: &GlobalScope,
         underlying_source_type: UnderlyingSourceType,
@@ -75,6 +78,7 @@ impl UnderlyingSourceContainer {
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut underlying_source_dict = UndefinedValue());
         if let UnderlyingSourceType::Js(ref js_source) = underlying_source_type {
+            #[allow(unsafe_code)]
             unsafe {
                 js_source.to_jsval(*cx, underlying_source_dict.handle_mut());
             }
@@ -89,21 +93,13 @@ impl UnderlyingSourceContainer {
         )
     }
 
-    pub fn call_pull_algorithm(
-        &self,
-        controller: &ReadableStreamDefaultController,
-    ) -> Option<Rc<Promise>> {
+    /// <https://streams.spec.whatwg.org/#dom-underlyingsource-pull>
+    pub fn call_pull_algorithm(&self, controller: Controller) -> Option<Rc<Promise>> {
         if let UnderlyingSourceType::Js(source) = &self.underlying_source_type {
             let global = self.global();
             let promise = if let Some(pull) = &source.pull {
-                // Note: this calls the pull callback with self as "this".
-                // Should we find a way to pass the JsUnderlyingSource as "this"?
-                pull.Call_(
-                    &*self,
-                    Controller::ReadableStreamDefaultController(DomRoot::from_ref(controller)),
-                    ExceptionHandling::Report,
-                )
-                .expect("Pull algorithm call failed")
+                pull.Call_(&*self, controller, ExceptionHandling::Report)
+                    .expect("Pull algorithm call failed")
             } else {
                 let promise = Promise::new(&*global);
                 promise.resolve_native(&());
