@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-
+#![allow(unused_imports)]
 use core::ffi::c_void;
 use std::cell::Cell;
 use std::fs::{create_dir_all, read_to_string, File};
@@ -19,12 +19,8 @@ use encoding_rs::Encoding;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use js::jsapi::{CanCompileOffThread, CompileToStencilOffThread1, OffThreadToken};
 use js::jsval::UndefinedValue;
-use js::rust::{
-    transform_str_to_source_text, CompileOptionsWrapper, FinishOffThreadStencil, HandleObject,
-    Stencil,
-};
+use js::rust::{transform_str_to_source_text, CompileOptionsWrapper, HandleObject, Stencil};
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, ParserMetadata, RequestBuilder,
 };
@@ -74,7 +70,8 @@ use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::{TaskSource, TaskSourceName};
 
-pub struct OffThreadCompilationContext {
+// TODO Implement offthread compilation in mozjs
+/*pub struct OffThreadCompilationContext {
     script_element: Trusted<HTMLScriptElement>,
     script_kind: ExternalScriptKind,
     final_url: ServoUrl,
@@ -84,14 +81,6 @@ pub struct OffThreadCompilationContext {
     script_text: String,
     fetch_options: ScriptFetchOptions,
 }
-
-/// A wrapper to mark OffThreadToken as Send,
-/// which should be safe according to
-/// mozjs/js/public/OffThreadScriptCompilation.h
-struct OffThreadCompilationToken(*mut OffThreadToken);
-
-#[allow(unsafe_code)]
-unsafe impl Send for OffThreadCompilationToken {}
 
 #[allow(unsafe_code)]
 unsafe extern "C" fn off_thread_compilation_callback(
@@ -146,7 +135,7 @@ unsafe extern "C" fn off_thread_compilation_callback(
         }),
         &context.canceller,
     );
-}
+}*/
 
 /// An unique id for script element.
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
@@ -428,9 +417,10 @@ impl FetchResponseListener for ClassicContext {
 
         let elem = self.elem.root();
         let global = elem.global();
-        let cx = GlobalScope::get_cx();
+        //let cx = GlobalScope::get_cx();
         let _ar = enter_realm(&*global);
 
+        /*
         let options = unsafe { CompileOptionsWrapper::new(*cx, final_url.as_str(), 1) };
 
         let can_compile_off_thread = pref!(dom.script.asynch) &&
@@ -460,15 +450,15 @@ impl FetchResponseListener for ClassicContext {
                 )
                 .is_null());
             }
-        } else {
-            let load = ScriptOrigin::external(
-                Rc::new(DOMString::from(source_text)),
-                final_url.clone(),
-                self.fetch_options.clone(),
-                ScriptType::Classic,
-            );
-            finish_fetching_a_classic_script(&elem, self.kind, self.url.clone(), Ok(load));
-        }
+        } else {*/
+        let load = ScriptOrigin::external(
+            Rc::new(DOMString::from(source_text)),
+            final_url.clone(),
+            self.fetch_options.clone(),
+            ScriptType::Classic,
+        );
+        finish_fetching_a_classic_script(&elem, self.kind, self.url.clone(), Ok(load));
+        //}
     }
 
     fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
