@@ -174,6 +174,7 @@ fn detect_hos_font_width(font_modifiers: &[&str]) -> FontWidth {
 /// Split a Noto font filename into the family name with spaces
 ///
 /// E.g. `NotoSansTeluguUI` -> `Noto Sans Telugu UI`
+/// Or for older OH 4.1 fonts: `NotoSans_JP_Bold` -> `Noto Sans JP Bold`
 fn split_noto_font_name(name: &str) -> Vec<String> {
     let mut name_components = vec![];
     let mut current_word = String::new();
@@ -190,14 +191,16 @@ fn split_noto_font_name(name: &str) -> Vec<String> {
                     current_word = String::new();
                 }
                 previous_char_was_uppercase = true;
+                current_word.push(c)
+            } else if c == '_' {
+                name_components.push(current_word.clone());
+                current_word = String::new();
+                previous_char_was_uppercase = true;
+                // Skip the underscore itself
             } else {
-                previous_char_was_uppercase = false
+                previous_char_was_uppercase = false;
+                current_word.push(c)
             }
-            debug_assert!(
-                !c.is_whitespace(),
-                "split_noto_font_name() assumes the font filename does not contain whitespace"
-            );
-            current_word.push(c)
         }
     }
     if current_word.len() > 0 {
@@ -208,10 +211,9 @@ fn split_noto_font_name(name: &str) -> Vec<String> {
 
 /// Parse the font file names to determine the available FontFamilies
 ///
-/// In principle the `fontconfig.json` should provide information on the available fonts,
-/// but on some devices the `font_file_map` member is missing, and in general the family name to
-/// file name mapping seems to not be accurate, so we instead infer the family name from the
-/// file names of the installed fonts.
+/// Note: For OH 5.0+ this function is intended to only be a fallback path, if parsing the
+/// `fontconfig.json` fails for some reason. Beta 1 of OH 5.0 still has a bug in the fontconfig.json
+/// though, so the "normal path" is currently unimplemented.
 fn parse_font_filenames(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
     let harmonyos_prefix = "HarmonyOS_Sans";
 
@@ -225,7 +227,10 @@ fn parse_font_filenames(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
         .into_iter()
         .filter(|file_path| {
             if let Some(extension) = file_path.extension() {
-                if extension == OsStr::new("ttf") || extension == OsStr::new("ttc") {
+                // whitelist of extensions we expect to be fonts
+                let valid_font_extensions =
+                    [OsStr::new("ttf"), OsStr::new("ttc"), OsStr::new("otf")];
+                if valid_font_extensions.contains(&extension) {
                     return true;
                 }
             }
@@ -266,11 +271,13 @@ fn parse_font_filenames(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
         if !stem.starts_with("Noto") {
             return None;
         }
-        // Strip the weight alias from the filename, e.g. `-Regular`.
+        // Strip the weight alias from the filename, e.g. `-Regular` or `_Regular`.
         // We use `rsplit_once()`, since there is e.g. `NotoSansPhags-Pa-Regular.ttf`, where the
         // Pa is part of the font family name and not a modifier.
         // There seem to be no more than one modifier at once per font filename.
-        let (base, weight) = if let Some((stripped_base, weight_suffix)) = stem.rsplit_once("-") {
+        let (base, weight) = if let Some((stripped_base, weight_suffix)) =
+            stem.rsplit_once("-").or_else(|| stem.rsplit_once("_"))
+        {
             (stripped_base, noto_weight_alias(weight_suffix))
         } else {
             (stem, None)
@@ -641,6 +648,25 @@ mod test {
         let families = parse_font_filenames(vec![PathBuf::from("NotoSansPhags-Pa-Regular.ttf")]);
         let family = families.first().unwrap();
         assert_eq!(family.name, "Noto Sans Phags Pa");
+    }
+
+    #[test]
+    fn test_old_noto_sans() {
+        use super::parse_font_filenames;
+
+        let families = parse_font_filenames(vec![
+            PathBuf::from("NotoSans_JP_Regular.otf"),
+            PathBuf::from("NotoSans_KR_Regular.otf"),
+            PathBuf::from("NotoSans_JP_Bold.otf"),
+        ]);
+        assert_eq!(families.len(), 2, "actual families: {families:?}");
+        let first_family = families.first().unwrap();
+        let second_family = families.last().unwrap();
+        // We don't have a requirement on the order of the family names,
+        // we just want to test existence.
+        let names = [first_family.name.as_str(), second_family.name.as_str()];
+        assert!(names.contains(&"Noto Sans JP"));
+        assert!(names.contains(&"Noto Sans KR"));
     }
 
     #[test]
