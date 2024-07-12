@@ -11,7 +11,7 @@ use std::ptr;
 use std::sync::{Arc, Mutex};
 
 use js::jsapi::{
-    Heap, JSObject, JS_GetArrayBufferViewBuffer, JS_IsArrayBufferViewObject, NewExternalArrayBuffer,
+    Heap, JSObject, JS_GetArrayBufferViewBuffer, JS_IsArrayBufferViewObject, glue::NewExternalArrayBuffer,
 };
 use js::rust::wrappers::DetachArrayBuffer;
 use js::rust::{CustomAutoRooterGuard, Handle, MutableHandleObject};
