@@ -3,26 +3,29 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::collections::VecDeque;
-use std::rc::Rc;
 use std::ptr;
+use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
-use js::jsval::UndefinedValue;
-use js::jsapi::Heap;
 use js::conversions::ToJSValConvertible;
+use js::jsapi::Heap;
+use js::jsval::UndefinedValue;
+use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
+
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::{ReadableStreamReadResult, ReadableStreamDefaultReaderMethods};
+use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::{
+    ReadableStreamDefaultReaderMethods, ReadableStreamReadResult,
+};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::import::module::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::utils::set_dictionary_property;
 use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::bindings::utils::set_dictionary_property;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
 use crate::script_runtime::JSContext as SafeJSContext;
-use crate::dom::bindings::trace::RootedTraceableBox;
 
 /// <https://streams.spec.whatwg.org/#read-request>
 /// For now only one variant: the one matching a `read` call.

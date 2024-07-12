@@ -419,12 +419,17 @@ impl ReadableStreamMethods for ReadableStream {
         _options: &ReadableStreamGetReaderOptions,
     ) -> Fallible<ReadableStreamReader> {
         if self.is_locked() {
-            return Err(Error::Type("Stream is locked".to_string()))
+            return Err(Error::Type("Stream is locked".to_string()));
         }
         match self.reader {
             ReaderType::Default(ref reader) => {
-                reader.set(Some(&*ReadableStreamDefaultReader::new(&*self.global(), self)));
-                return Ok(ReadableStreamReader::ReadableStreamDefaultReader(reader.get().unwrap()));
+                reader.set(Some(&*ReadableStreamDefaultReader::new(
+                    &*self.global(),
+                    self,
+                )));
+                return Ok(ReadableStreamReader::ReadableStreamDefaultReader(
+                    reader.get().unwrap(),
+                ));
             },
             _ => todo!(),
         }
