@@ -5794,6 +5794,7 @@ dependencies = [
  "egui",
  "egui-winit",
  "egui_glow",
+ "env_filter",
  "euclid",
  "getopts",
  "gilrs",

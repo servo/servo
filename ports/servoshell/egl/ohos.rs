@@ -325,6 +325,23 @@ fn initialize_logging_once() {
     static ONCE: Once = Once::new();
     ONCE.call_once(|| {
         let mut builder = hilog::Builder::new();
+        let filters = [
+            "fonts",
+            "servo",
+            "servoshell",
+            "servoshell::egl:gl_glue",
+            // Show JS errors by default.
+            "script::dom::bindings::error",
+            // Show GL errors by default.
+            "canvas::webgl_thread",
+            "compositing::compositor",
+            "constellation::constellation",
+        ];
+        let mut filter_builder = env_filter::Builder::new();
+        for &module in &filters {
+            filter_builder.filter_module(module, log::LevelFilter::Debug);
+        }
+
         builder.filter_level(LevelFilter::Debug).init();
 
         info!("Servo Register callback called!");
