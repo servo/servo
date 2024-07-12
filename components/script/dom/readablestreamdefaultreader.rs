@@ -53,17 +53,12 @@ impl ReadRequest {
                     done: Some(false),
                     value: result,
                 };
-                rooted!(in(*cx) let mut rval = UndefinedValue());
-                unsafe {
-                    result.to_jsval(*cx, rval.handle_mut());
-                }
-                promise.resolve(cx, rval.handle());
+                promise.resolve_native(&result);
             },
         }
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-close-step>
-    #[allow(unsafe_code)]
     #[allow(crown::unrooted_must_root)]
     pub fn close_steps(&self) {
         match self {
@@ -76,7 +71,7 @@ impl ReadRequest {
                     done: Some(true),
                     value: result,
                 };
-                promise.resolve(cx, rval.handle());
+                promise.resolve_native(&result);
             },
         }
     }
