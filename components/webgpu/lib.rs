@@ -28,13 +28,13 @@ use webrender_traits::{
 };
 use wgc::id;
 
-mod dom_messages;
 mod gpu_error;
+mod ipc_messages;
 mod render_commands;
-mod script_messages;
-pub use dom_messages::*;
 pub use identity::*;
-pub use script_messages::*;
+pub use ipc_messages::recv::*;
+pub use ipc_messages::to_dom::*;
+pub use ipc_messages::to_script::*;
 pub use wgpu_thread::PRESENTATION_BUFFER_COUNT;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
