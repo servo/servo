@@ -580,6 +580,7 @@ pub mod vertexarrayobject;
 pub mod videotrack;
 pub mod videotracklist;
 pub mod virtualmethods;
+pub mod visibilitystateentry;
 pub mod vttcue;
 pub mod vttregion;
 pub mod webgl2renderingcontext;
