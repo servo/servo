@@ -576,8 +576,8 @@ class CommandBase(object):
             sys.exit(1)
         with open(path.join(env["ANDROID_NDK_ROOT"], 'source.properties'), encoding="utf8") as ndk_properties:
             lines = ndk_properties.readlines()
-            if lines[1].split(' = ')[1].split('.')[0] != '25':
-                print("Servo currently only supports NDK r25c.")
+            if lines[1].split(' = ')[1].split('.')[0] != '26':
+                print("Servo currently only supports NDK r26c.")
                 sys.exit(1)
 
         # Android builds also require having the gcc bits on the PATH and various INCLUDE

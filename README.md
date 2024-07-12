@@ -45,6 +45,8 @@ For more detailed build instructions, see the Servo book under [Setting up your 
 
 ### Android
 
+TODO: NDK 26c
+
 - Ensure that the following environment variables are set:
   - `ANDROID_SDK_ROOT`
   - `ANDROID_NDK_ROOT`: `$ANDROID_SDK_ROOT/ndk/25.2.9519653/`
