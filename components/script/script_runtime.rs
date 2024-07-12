@@ -25,17 +25,18 @@ use js::glue::{
     StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd, StreamConsumerStreamError,
 };
 use js::jsapi::{
-    BuildIdCharVector, ContextOptionsRef, DisableIncrementalGC, Dispatchable as JSRunnable,
-    Dispatchable_MaybeShuttingDown, GCDescription, GCOptions, GCProgress, GCReason,
-    GetPromiseUserInputEventHandlingState, HandleObject, Heap, InitConsumeStreamCallback,
-    InitDispatchToEventLoop, JSContext as RawJSContext, JSGCParamKey, JSGCStatus,
-    JSJitCompilerOption, JSObject, JSSecurityCallbacks, JSTracer, JS_AddExtraGCRootsTracer,
-    JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback, JS_RequestInterruptCallback,
-    JS_SetGCCallback, JS_SetGCParameter, JS_SetGlobalJitCompilerOption,
-    JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled, JS_SetSecurityCallbacks,
-    JobQueue, MimeType, PromiseRejectionHandlingState, PromiseUserInputEventHandlingState,
-    SetDOMCallbacks, SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks,
-    SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback, StreamConsumer as JSStreamConsumer,
+    AsmJSOption, BuildIdCharVector, ContextOptionsRef, DisableIncrementalGC,
+    Dispatchable as JSRunnable, Dispatchable_MaybeShuttingDown, GCDescription, GCOptions,
+    GCProgress, GCReason, GetPromiseUserInputEventHandlingState, HandleObject, Heap,
+    InitConsumeStreamCallback, InitDispatchToEventLoop, JSContext as RawJSContext, JSGCParamKey,
+    JSGCStatus, JSJitCompilerOption, JSObject, JSSecurityCallbacks, JSTracer,
+    JS_AddExtraGCRootsTracer, JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback,
+    JS_RequestInterruptCallback, JS_SetGCCallback, JS_SetGCParameter,
+    JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled,
+    JS_SetParallelParsingEnabled, JS_SetSecurityCallbacks, JobQueue, MimeType,
+    PromiseRejectionHandlingState, PromiseUserInputEventHandlingState, SetDOMCallbacks,
+    SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks, SetProcessBuildIdOp,
+    SetPromiseRejectionTrackerCallback, StreamConsumer as JSStreamConsumer,
 };
 use js::jsval::UndefinedValue;
 use js::panic::wrap_panic;
@@ -546,7 +547,11 @@ unsafe fn new_rt_and_cx_with_parent(
         JSJitCompilerOption::JSJITCOMPILER_ION_ENABLE,
         pref!(js.ion.enabled) as u32,
     );
-    cx_opts.set_asmJS_(pref!(js.asmjs.enabled));
+    cx_opts.compileOptions_.asmJSOption_ = if pref!(js.asmjs.enabled) {
+        AsmJSOption::Enabled
+    } else {
+        AsmJSOption::DisabledByAsmJSPref
+    };
     let wasm_enabled = pref!(js.wasm.enabled);
     cx_opts.set_wasm_(wasm_enabled);
     if wasm_enabled {
