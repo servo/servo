@@ -511,12 +511,6 @@ mod gen {
                 shared_memory: {
                     enabled: bool,
                 },
-                strict: {
-                    debug: {
-                        enabled: bool,
-                    },
-                    enabled: bool,
-                },
                 throw_on_asmjs_validation_failure: {
                     enabled: bool,
                 },

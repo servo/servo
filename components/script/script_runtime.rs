@@ -557,8 +557,6 @@ unsafe fn new_rt_and_cx_with_parent(
     }
     cx_opts.set_wasmBaseline_(pref!(js.wasm.baseline.enabled));
     cx_opts.set_wasmIon_(pref!(js.wasm.ion.enabled));
-    cx_opts.set_strictMode_(pref!(js.strict.enabled));
-    // TODO: handle js.strict.debug.enabled
     // TODO: handle js.throw_on_asmjs_validation_failure (needs new Spidermonkey)
     JS_SetGlobalJitCompilerOption(
         cx,
