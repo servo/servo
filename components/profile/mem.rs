@@ -394,7 +394,7 @@ mod system_reporter {
     #[cfg(not(any(target_os = "windows", target_env = "ohos")))]
     use std::ptr::null_mut;
 
-    #[cfg(target_os = "linux")]
+    #[cfg(all(target_os = "linux", target_env = "gnu"))]
     use libc::c_int;
     #[cfg(not(any(target_os = "windows", target_env = "ohos")))]
     use libc::{c_void, size_t};
@@ -455,12 +455,12 @@ mod system_reporter {
         request.reports_channel.send(reports);
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(all(target_os = "linux", target_env = "gnu"))]
     extern "C" {
         fn mallinfo() -> struct_mallinfo;
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(all(target_os = "linux", target_env = "gnu"))]
     #[repr(C)]
     pub struct struct_mallinfo {
         arena: c_int,
@@ -475,7 +475,7 @@ mod system_reporter {
         keepcost: c_int,
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(all(target_os = "linux", target_env = "gnu"))]
     fn system_heap_allocated() -> Option<usize> {
         let info: struct_mallinfo = unsafe { mallinfo() };
 
@@ -494,7 +494,7 @@ mod system_reporter {
         }
     }
 
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(not(all(target_os = "linux", target_env = "gnu")))]
     fn system_heap_allocated() -> Option<usize> {
         None
     }
