@@ -104,7 +104,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
-use crate::dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
+use crate::dom::bindings::utils::GlobalStaticData;
 use crate::dom::bindings::weakref::DOMTracker;
 use crate::dom::bluetooth::BluetoothExtraPermissionData;
 use crate::dom::crypto::Crypto;
@@ -133,7 +133,7 @@ use crate::dom::selection::Selection;
 use crate::dom::storage::Storage;
 use crate::dom::testrunner::TestRunner;
 use crate::dom::webglrenderingcontext::WebGLCommandSender;
-use crate::dom::windowproxy::WindowProxy;
+use crate::dom::windowproxy::{WindowProxy, WindowProxyHandler};
 use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::layout_image::fetch_image_for_layout;
@@ -2321,8 +2321,8 @@ impl Window {
         self.Document().url()
     }
 
-    pub fn windowproxy_handler(&self) -> WindowProxyHandler {
-        WindowProxyHandler(self.dom_static.windowproxy_handler.0)
+    pub fn windowproxy_handler(&self) -> Rc<WindowProxyHandler> {
+        Rc::clone(&self.dom_static.windowproxy_handler)
     }
 
     pub fn get_pending_reflow_count(&self) -> u32 {

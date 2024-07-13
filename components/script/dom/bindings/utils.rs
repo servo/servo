@@ -6,6 +6,7 @@
 
 use std::ffi::CString;
 use std::os::raw::{c_char, c_void};
+use std::rc::Rc;
 use std::{ptr, slice, str};
 
 use js::conversions::ToJSValConvertible;
@@ -42,31 +43,22 @@ use crate::dom::bindings::error::throw_invalid_this;
 use crate::dom::bindings::inheritance::TopTypeId;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::trace_object;
-use crate::dom::windowproxy;
+use crate::dom::windowproxy::{WindowProxyHandler, PROXY_HANDLER};
 use crate::script_runtime::JSContext as SafeJSContext;
-
-/// Proxy handler for a WindowProxy.
-pub struct WindowProxyHandler(pub *const libc::c_void);
-
-impl MallocSizeOf for WindowProxyHandler {
-    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
-        // FIXME(#6907) this is a pointer to memory allocated by `new` in NewProxyHandler in rust-mozjs.
-        0
-    }
-}
 
 #[derive(JSTraceable, MallocSizeOf)]
 /// Static data associated with a global object.
 pub struct GlobalStaticData {
+    #[ignore_malloc_size_of = "Rc and WindowProxyHandler does not properly implement it anyway"]
     /// The WindowProxy proxy handler for this global.
-    pub windowproxy_handler: WindowProxyHandler,
+    pub windowproxy_handler: Rc<WindowProxyHandler>,
 }
 
 impl GlobalStaticData {
     /// Creates a new GlobalStaticData.
     pub fn new() -> GlobalStaticData {
         GlobalStaticData {
-            windowproxy_handler: windowproxy::new_window_proxy_handler(),
+            windowproxy_handler: Rc::new(WindowProxyHandler::new(&PROXY_HANDLER)),
         }
     }
 }

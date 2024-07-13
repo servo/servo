@@ -4,6 +4,7 @@
 
 use std::cell::Cell;
 use std::ptr;
+use std::rc::Rc;
 
 use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use dom_struct::dom_struct;
@@ -12,8 +13,8 @@ use html5ever::local_name;
 use indexmap::map::IndexMap;
 use ipc_channel::ipc;
 use js::glue::{
-    CreateWrapperProxyHandler, GetProxyPrivate, GetProxyReservedSlot, ProxyTraps,
-    SetProxyReservedSlot,
+    CreateWrapperProxyHandler, DeleteWrapperProxyHandler, GetProxyPrivate, GetProxyReservedSlot,
+    ProxyTraps, SetProxyReservedSlot,
 };
 use js::jsapi::{
     GCContext, Handle as RawHandle, HandleId as RawHandleId, HandleObject as RawHandleObject,
@@ -28,6 +29,7 @@ use js::jsval::{JSVal, NullValue, PrivateValue, UndefinedValue};
 use js::rust::wrappers::{JS_TransplantObject, NewWindowProxy, SetWindowProxy};
 use js::rust::{get_object_class, Handle, MutableHandle};
 use js::JSCLASS_IS_GLOBAL;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::request::Referrer;
 use script_traits::{
     AuxiliaryBrowsingContextLoadInfo, HistoryEntryReplacement, LoadData, LoadOrigin, NewLayoutInfo,
@@ -46,7 +48,7 @@ use crate::dom::bindings::reflector::{DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::JSTraceable;
-use crate::dom::bindings::utils::{get_array_index_from_id, AsVoidPtr, WindowProxyHandler};
+use crate::dom::bindings::utils::{get_array_index_from_id, AsVoidPtr};
 use crate::dom::dissimilaroriginwindow::DissimilarOriginWindow;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
@@ -123,10 +125,14 @@ pub struct WindowProxy {
     /// The creator browsing context's origin.
     #[no_trace]
     creator_origin: Option<ImmutableOrigin>,
+
+    /// Only a member because the pointer within WindowProxyHandler is used in C++ and must live as long as this struct.
+    #[ignore_malloc_size_of = "Rc"]
+    _proxy_handler: Rc<WindowProxyHandler>,
 }
 
 impl WindowProxy {
-    pub fn new_inherited(
+    fn new_inherited(
         browsing_context_id: BrowsingContextId,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         currently_active: Option<PipelineId>,
@@ -134,6 +140,7 @@ impl WindowProxy {
         parent: Option<&WindowProxy>,
         opener: Option<BrowsingContextId>,
         creator: CreatorBrowsingContextInfo,
+        window_proxy_handler: Rc<WindowProxyHandler>,
     ) -> WindowProxy {
         let name = frame_element.map_or(DOMString::new(), |e| {
             e.get_string_attribute(&local_name!("name"))
@@ -154,6 +161,7 @@ impl WindowProxy {
             creator_base_url: creator.base_url,
             creator_url: creator.url,
             creator_origin: creator.origin,
+            _proxy_handler: window_proxy_handler,
         }
     }
 
@@ -168,8 +176,7 @@ impl WindowProxy {
         creator: CreatorBrowsingContextInfo,
     ) -> DomRoot<WindowProxy> {
         unsafe {
-            let WindowProxyHandler(handler) = window.windowproxy_handler();
-            assert!(!handler.is_null());
+            let handler = window.windowproxy_handler();
 
             let cx = GlobalScope::get_cx();
             let window_jsobject = window.reflector().get_jsobject();
@@ -181,7 +188,7 @@ impl WindowProxy {
             let _ac = JSAutoRealm::new(*cx, window_jsobject.get());
 
             // Create a new window proxy.
-            rooted!(in(*cx) let js_proxy = NewWindowProxy(*cx, window_jsobject, handler));
+            rooted!(in(*cx) let js_proxy = handler.new_window_proxy(&cx, window_jsobject));
             assert!(!js_proxy.is_null());
 
             // Create a new browsing context.
@@ -194,6 +201,7 @@ impl WindowProxy {
                 parent,
                 opener,
                 creator,
+                handler,
             ));
 
             // The window proxy owns the browsing context.
@@ -228,8 +236,7 @@ impl WindowProxy {
         creator: CreatorBrowsingContextInfo,
     ) -> DomRoot<WindowProxy> {
         unsafe {
-            let handler = CreateWrapperProxyHandler(&XORIGIN_PROXY_HANDLER);
-            assert!(!handler.is_null());
+            let handler = Rc::new(WindowProxyHandler::new(&XORIGIN_PROXY_HANDLER));
 
             let cx = GlobalScope::get_cx();
 
@@ -242,6 +249,7 @@ impl WindowProxy {
                 parent,
                 opener,
                 creator,
+                Rc::clone(&handler),
             ));
 
             // Create a new dissimilar-origin window.
@@ -255,7 +263,7 @@ impl WindowProxy {
             let _ac = JSAutoRealm::new(*cx, window_jsobject.get());
 
             // Create a new window proxy.
-            rooted!(in(*cx) let js_proxy = NewWindowProxy(*cx, window_jsobject, handler));
+            rooted!(in(*cx) let js_proxy = handler.new_window_proxy(&cx, window_jsobject));
             assert!(!js_proxy.is_null());
 
             // The window proxy owns the browsing context.
@@ -1039,7 +1047,7 @@ unsafe extern "C" fn get_prototype_if_ordinary(
     true
 }
 
-static PROXY_HANDLER: ProxyTraps = ProxyTraps {
+pub(super) static PROXY_HANDLER: ProxyTraps = ProxyTraps {
     // TODO: These traps should change their behavior depending on
     //       `IsPlatformObjectSameOrigin(this.[[Window]])`
     enter: None,
@@ -1074,9 +1082,48 @@ static PROXY_HANDLER: ProxyTraps = ProxyTraps {
     isConstructor: None,
 };
 
+/// Proxy handler for a WindowProxy.
+/// Has ownership of the inner pointer and deallocates it when it is no longer needed.
+pub struct WindowProxyHandler(*const libc::c_void);
+
+impl MallocSizeOf for WindowProxyHandler {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        // FIXME(#6907) this is a pointer to memory allocated by `new` in NewProxyHandler in rust-mozjs.
+        0
+    }
+}
+
 #[allow(unsafe_code)]
-pub fn new_window_proxy_handler() -> WindowProxyHandler {
-    unsafe { WindowProxyHandler(CreateWrapperProxyHandler(&PROXY_HANDLER)) }
+impl WindowProxyHandler {
+    pub fn new(traps: &ProxyTraps) -> Self {
+        // Safety: Foreign function generated by bindgen. Pointer is freed in drop to prevent memory leak.
+        let ptr = unsafe { CreateWrapperProxyHandler(traps) };
+        assert!(!ptr.is_null());
+        Self(ptr)
+    }
+
+    /// Creates a new WindowProxy object on the C++ side and returns the pointer to it.
+    /// The pointer should be owned by the GC.
+    pub fn new_window_proxy(
+        &self,
+        cx: &crate::script_runtime::JSContext,
+        window_jsobject: js::gc::HandleObject,
+    ) -> *mut JSObject {
+        let obj = unsafe { NewWindowProxy(**cx, window_jsobject, self.0) };
+        assert!(!obj.is_null());
+        obj
+    }
+}
+
+#[allow(unsafe_code)]
+impl Drop for WindowProxyHandler {
+    fn drop(&mut self) {
+        // Safety: Pointer is allocated by corresponding C++ function, owned by this
+        // struct and not accessible from outside.
+        unsafe {
+            DeleteWrapperProxyHandler(self.0);
+        }
+    }
 }
 
 // The proxy traps for cross-origin windows.
