@@ -2,20 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::BorrowMut;
 use std::sync::{Arc, Mutex};
 
 use base::id::PipelineId;
 use content_security_policy::{self as csp, CspList};
-use http::header::{HeaderName, HeaderValue, AUTHORIZATION, UPGRADE_INSECURE_REQUESTS};
+use http::header::{HeaderName, AUTHORIZATION};
 use http::{HeaderMap, Method};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use serde::{Deserialize, Serialize};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 
-use crate::pub_domains::reg_host;
 use crate::response::HttpsState;
 use crate::{ReferrerPolicy, ResourceTimingType};
 
@@ -40,8 +39,83 @@ pub enum Origin {
 }
 
 impl Origin {
+    /// <https://html.spec.whatwg.org/multipage/#concept-origin-opaque>
     pub fn is_opaque(&self) -> bool {
         matches!(self, Origin::Origin(ImmutableOrigin::Opaque(_)))
+    }
+
+    /// https://w3c.github.io/webappsec-secure-contexts/#potentially-trustworthy-origin
+    pub fn is_potentially_trustworthy(&self) -> bool {
+        // 1: If origin is an opaque origin, return "Not Trustworthy".
+        if self.is_opaque() {
+            return false;
+        }
+
+        // 2: Assert: origin is a tuple origin.
+        assert!(self.is_tuple());
+
+        // 3: If origin’s scheme is either "https" or "wss", return "Potentially Trustworthy".
+        // 6: If origin’s scheme is "file", return "Potentially Trustworthy".
+        if let Some(scheme) = self.scheme() {
+            if matches!(scheme, "https" | "wss" | "file") {
+                return true;
+            }
+        }
+
+        // 4: If origin’s host matches one of the CIDR notations 127.0.0.0/8 or ::1/128 [RFC4632],
+        // return "Potentially Trustworthy".
+        if let Some(host) = self.host() {
+            let stringified_host = host.to_string();
+
+            warn!("stringified_host: {:?}", stringified_host);
+
+            if matches!(stringified_host.as_str(), "127.0.0.0/8" | "::1/128") {
+                return true;
+            }
+        }
+
+        // 5: If the user agent conforms to the name resolution rules in [let-localhost-be-localhost]
+        // and one of the following is true:
+        // 5.1: origin’s host is "localhost" or "localhost."
+
+        // 5.2: origin’s host ends with ".localhost" or ".localhost."
+
+        // 7: If origin’s scheme component is one which the user agent considers to be authenticated,
+        // return "Potentially Trustworthy".
+
+        // 8: If origin has been configured as a trustworthy origin, return "Potentially Trustworthy".
+
+        // 9: Return "Not Trustworthy".
+        false
+    }
+
+    fn is_client(&self) -> bool {
+        matches!(self, Origin::Client)
+    }
+
+    fn is_tuple(&self) -> bool {
+        match self {
+            Origin::Origin(origin) if origin.is_tuple() => true,
+            _ => false,
+        }
+    }
+
+    fn host(&self) -> Option<&Host> {
+        if self.is_opaque() || self.is_client() {
+            return None;
+        }
+
+        match self {
+            Origin::Origin(origin) if origin.is_tuple() => origin.host(),
+            _ => None,
+        }
+    }
+
+    fn scheme(&self) -> Option<&str> {
+        match self {
+            Origin::Origin(origin) if origin.is_tuple() => origin.scheme(),
+            _ => None,
+        }
     }
 }
 
@@ -169,6 +243,37 @@ pub enum BodyChunkRequest {
     Error,
 }
 
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct Environment {
+    id: String,
+    creation_url: ServoUrl,
+    settings: EnvironmentSettingsObject,
+}
+
+impl Environment {
+    pub fn new(
+        creation_url: ServoUrl,
+        api_base_url: ServoUrl,
+        origin: ImmutableOrigin,
+    ) -> Environment {
+        Environment {
+            id: String::from(""),
+            creation_url,
+            settings: EnvironmentSettingsObject {
+                api_base_url,
+                origin: Origin::Origin(origin),
+            },
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+/// <https://html.spec.whatwg.org/multipage/#environment-settings-object>
+pub struct EnvironmentSettingsObject {
+    api_base_url: ServoUrl,
+    origin: Origin,
+}
+
 /// The net component's view into <https://fetch.spec.whatwg.org/#bodies>
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct RequestBody {
@@ -236,6 +341,7 @@ pub struct RequestBuilder {
     )]
     #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
+    pub client: Option<Environment>,
     pub unsafe_request: bool,
     pub body: Option<RequestBody>,
     pub service_workers_mode: ServiceWorkersMode,
@@ -277,6 +383,7 @@ impl RequestBuilder {
             headers: HeaderMap::new(),
             unsafe_request: false,
             body: None,
+            client: None,
             service_workers_mode: ServiceWorkersMode::All,
             destination: Destination::None,
             synchronous: false,
@@ -303,6 +410,11 @@ impl RequestBuilder {
 
     pub fn initiator(mut self, initiator: Initiator) -> RequestBuilder {
         self.initiator = initiator;
+        self
+    }
+
+    pub fn client(mut self, environment: Environment) -> RequestBuilder {
+        self.client = Some(environment);
         self
     }
 
@@ -457,7 +569,9 @@ pub struct Request {
     pub unsafe_request: bool,
     /// <https://fetch.spec.whatwg.org/#concept-request-body>
     pub body: Option<RequestBody>,
-    // TODO: client object
+    /// <https://fetch.spec.whatwg.org/#concept-request-client>
+    pub client: Option<Environment>,
+    /// <https://fetch.spec.whatwg.org/#concept-request-window>
     pub window: Window,
     // TODO: target browsing context
     /// <https://fetch.spec.whatwg.org/#request-keepalive-flag>
@@ -521,6 +635,7 @@ impl Request {
         https_state: HttpsState,
     ) -> Request {
         Request {
+            client: None,
             method: Method::GET,
             local_urls_only: false,
             sandboxed_storage_area_urls: false,
@@ -599,96 +714,23 @@ impl Request {
         }
     }
 
-    /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-request>
-    pub fn upgrade_to_potentially_trustworthy_url(&mut self) {
-        // TODO do this in HSTS
-
-        if self.current_url().is_secure_scheme() {
-            return;
-        }
-
-        // Step 1: If request is a navigation request, append a header named
-        // Upgrade-Insecure-Requests with a value of 1 to request’s header list if any of the
-        // following criteria are met:
-        if self.is_navigation_request() {
-            // 1.1: request’s URL is not a potentially trustworthy URL
-            if !self.current_url().is_potentially_trustworthy() {
-                self.headers
-                    .borrow_mut()
-                    .append(UPGRADE_INSECURE_REQUESTS, HeaderValue::from_static("1"));
+    /// <https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object>
+    pub fn does_settings_prohibit_mixed_security_contexts(&self) -> bool {
+        if let Some(environment) = &self.client {
+            // 1: If settings’ origin is a potentially trustworthy origin, then return
+            // "Prohibits Mixed Security Contexts".
+            if environment.settings.origin.is_potentially_trustworthy() {
+                return true;
             }
+
+            // if let Some(host) = environment.settings.origin.host() {
+            //     return true;
+            // }
+        } else {
+            warn!("does_settings_prohibit_mixed_security_contexts: No Environment to check")
         }
 
-        // Step 2: If request is a navigation request, then:
-
-        // Step 3: Let tuple be a tuple of request’s URL's host and port.
-
-        // Step 4: If tuple is contained in client's upgrade insecure navigations set, then skip the
-        // remaining substeps, and continue upgrading request.
-
-        // Step 5: If request’s URL's scheme is "http", set request’s URL's scheme to "https",
-        // and return.
-    }
-
-    /// <https://w3c.github.io/webappsec-mixed-content/#upgrade-algorithm>
-    pub fn upgrade_mixed_content_request_to_potentially_trustworthy_url(&mut self) {
-        // Step 1: If one or more of the following conditions is met, return without modifying
-        // request:
-
-        let url = self.current_url();
-
-        // 1.1: request’s URL is a potentially trustworthy URL.
-        if url.is_potentially_trustworthy() {
-            log::warn!("Not Upgrading: URL is not potentially trustworthy");
-
-            return;
-        }
-
-        // 1.2: request’s URL’s host is an IP address.
-        if let Some(host) = reg_host(&url) {
-            match host {
-                Host::Ipv4(_) | Host::Ipv6(_) => {
-                    log::warn!("Not Upgrading: URL is an IP address");
-
-                    return;
-                },
-                _ => {},
-            }
-        }
-
-        // 1.3: § 4.3 Does settings prohibit mixed security contexts? returns
-        // "Does Not Restrict Mixed Security Contents" when applied to request’s client
-        // TODO: We currently don't have request.client
-
-        // 1.4: request’s destination is not "image", "audio", or "video".
-        // 1.5: request’s destination is "image" and request’s initiator is "imageset".
-        match self.destination {
-            Destination::Image => {
-                if self.initiator == Initiator::ImageSet {
-                    log::warn!("Not Upgrading: Img with incorrect destination");
-
-                    return;
-                }
-            },
-            Destination::Audio | Destination::Video => {},
-            _ => {
-                log::warn!("Not Upgrading: Invalid destination");
-
-                return;
-            },
-        }
-
-        // Step 2: If request’s URL’s scheme is http, set request’s URL’s scheme to https, and
-        // return.
-        let upgraded_scheme = match url.scheme() {
-            "ws" => "wss",
-            _ => "https",
-        };
-
-        self.current_url()
-            .as_mut_url()
-            .set_scheme(upgraded_scheme)
-            .unwrap();
+        return false;
     }
 }
 

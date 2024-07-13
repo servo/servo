@@ -203,21 +203,4 @@ impl HstsList {
             }
         }
     }
-
-    /// <https://w3c.github.io/webappsec-upgrade-insecure-requests/#preloadable-hsts-host>
-    pub fn is_preloadable_host(&self, url: &ServoUrl, headers: &HeaderMap) -> bool {
-        if url.scheme() != "https" && url.scheme() != "wss" {
-            return false;
-        }
-
-        // A host is a preloadable HSTS host if, when performing Known HSTS Host Domain Name
-        // Matching, host is a superdomain match for a Known HSTS Host which asserts both the
-        // includeSubDomains directive and the preload directive, or host is a congruent match for a
-        // Known HSTS Host which asserts the preload directive.
-
-        // Note: This is a long way of saying "any host the user agent has pinned with a
-        // Strict-Transport-Security header that contained a preload directive".
-
-        false
-    }
 }

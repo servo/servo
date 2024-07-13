@@ -153,6 +153,33 @@ pub async fn fetch_with_cors_cache(
     main_fetch(request, cache, false, false, target, &mut None, context).await;
 }
 
+/// <https://w3c.github.io/webappsec-mixed-content/#should-block-fetch>
+pub fn should_request_be_blocked_as_mixed_content(request: &Request) -> bool {
+    // 1.1: <Does settings prohibit mixed security contexts?> returns "Does Not Restrict Mixed
+    // Security Contexts" when applied to request’s client.
+    if request.does_settings_prohibit_mixed_security_contexts() {
+        return false;
+    }
+
+    // 1.2: request’s URL is a potentially trustworthy URL.
+    if request.current_url().is_potentially_trustworthy() {
+        return false;
+    }
+
+    // 1.3: TODO: The user agent has been instructed to allow mixed content, as described in
+    // https://w3c.github.io/webappsec-mixed-content/#requirements-user-controls
+
+    // 1.4: request’s destination is "document", and request’s target browsing context has no parent
+    // browsing context.
+    if request.destination == Destination::Document {
+        return false;
+    }
+
+    warn!("request will be blocked as mixed content");
+
+    true
+}
+
 /// <https://www.w3.org/TR/CSP/#should-block-request>
 pub fn should_request_be_blocked_by_csp(request: &Request) -> csp::CheckResult {
     let origin = match &request.origin {
@@ -208,8 +235,6 @@ pub async fn main_fetch(
     // Step 4: Run report Content Security Policy violations for request.
     // TODO: Report violations.
 
-    // Step 2.4.
-
     // Step 3.
     // TODO: handle request abort.
 
@@ -220,14 +245,6 @@ pub async fn main_fetch(
     //     .read()
     //     .unwrap();
 
-    // We perform the HSTS `is_preloadable_host` check here to prevent re-initialising elsewhere
-    // if hsts_list.is_preloadable_host(&request.current_url(), &request.headers) {
-    //     request.upgrade_to_potentially_trustworthy_url();
-    // }
-
-    // Step 7: Upgrade a mixed content request to a potentially trustworthy URL, if appropriate.
-    request.upgrade_mixed_content_request_to_potentially_trustworthy_url();
-
     // Step 7: If should request be blocked due to a bad port, should fetching request be blocked as
     // mixed content, or should request be blocked by Content Security Policy returns blocked,
     // then set response to a network error.
@@ -237,10 +254,18 @@ pub async fn main_fetch(
         )));
     }
 
-    // TODO: handle blocking as mixed content.
+    let request_is_blocked_as_mixed_content = should_request_be_blocked_as_mixed_content(request);
 
-    if should_request_be_blocked_by_csp(request) == csp::CheckResult::Blocked {
-        warn!("Request blocked by CSP");
+    if request_is_blocked_as_mixed_content {
+        response = Some(Response::network_error(NetworkError::Internal(
+            "Blocked as mixed content".into(),
+        )))
+    }
+
+    let request_is_blocked_by_csp =
+        should_request_be_blocked_by_csp(request) == csp::CheckResult::Blocked;
+
+    if request_is_blocked_by_csp {
         response = Some(Response::network_error(NetworkError::Internal(
             "Blocked by Content-Security-Policy".into(),
         )))
@@ -360,22 +385,26 @@ pub async fn main_fetch(
         },
     };
 
-    // Step 13.
+    // Step 13: If recursive is true, then return response.
     if recursive_flag {
         return response;
     }
 
-    // Step 14.
+    // Step 14: If response is not a network error and response is not a filtered response, then:
     let mut response = if !response.is_network_error() && response.internal_response.is_none() {
-        // Substep 1.
+        // 14.1: If request’s response tainting is "cors", then:
         if request.response_tainting == ResponseTainting::CorsTainting {
-            // Subsubstep 1.
+            // 14.1.1: Let headerNames be the result of extracting header list values given
+            // `Access-Control-Expose-Headers` and response’s header list.
             let header_names: Option<Vec<HeaderName>> = response
                 .headers
                 .typed_get::<AccessControlExposeHeaders>()
                 .map(|v| v.iter().collect());
+
+            // 14.1.2: If request’s credentials mode is not "include" and headerNames contains `*`,
+            // then set response’s CORS-exposed header-name list to all unique header names in
+            // response’s header list.
             match header_names {
-                // Subsubstep 2.
                 Some(ref list)
                     if request.credentials_mode != CredentialsMode::Include &&
                         list.iter().any(|header| header == "*") =>
@@ -386,7 +415,8 @@ pub async fn main_fetch(
                         .map(|(name, _)| name.as_str().to_owned())
                         .collect();
                 },
-                // Subsubstep 3.
+                // 14.1.3: Otherwise, if headerNames is non-null or failure, then set response’s
+                // CORS-exposed header-name list to headerNames.
                 Some(list) => {
                     response.cors_exposed_header_name_list =
                         list.iter().map(|h| h.as_str().to_owned()).collect();
@@ -395,12 +425,14 @@ pub async fn main_fetch(
             }
         }
 
-        // Substep 2.
+        // 14.2: Set response to the following filtered response with response as its internal
+        // response, depending on request’s response tainting:
         let response_type = match request.response_tainting {
             ResponseTainting::Basic => ResponseType::Basic,
             ResponseTainting::CorsTainting => ResponseType::Cors,
             ResponseTainting::Opaque => ResponseType::Opaque,
         };
+
         response.to_filtered(response_type)
     } else {
         response
@@ -408,17 +440,27 @@ pub async fn main_fetch(
 
     let internal_error = {
         // Tests for steps 17 and 18, before step 15 for borrowing concerns.
+
+        // Step 17: If request has a redirect-tainted origin, then set internalResponse’s
+        // has-cross-origin-redirects to true.
         let response_is_network_error = response.is_network_error();
+
         let should_replace_with_nosniff_error = !response_is_network_error &&
             should_be_blocked_due_to_nosniff(request.destination, &response.headers);
+
         let should_replace_with_mime_type_error = !response_is_network_error &&
             should_be_blocked_due_to_mime_type(request.destination, &response.headers);
 
-        // Step 15.
+        let should_replace_with_mixed_content_blocked_error =
+            !response_is_network_error && request_is_blocked_as_mixed_content;
+
         let mut network_error_response = response
             .get_network_error()
             .cloned()
             .map(Response::network_error);
+
+        // Step 15: Let internalResponse be response, if response is a network error; otherwise
+        // response’s internal response.
         let internal_response = if let Some(error_response) = network_error_response.as_mut() {
             error_response
         } else {
@@ -431,14 +473,17 @@ pub async fn main_fetch(
             internal_response.url_list.clone_from(&request.url_list)
         }
 
-        // Step 17.
-        // TODO: handle blocking as mixed content.
+        // Step 19: If response is not a network error and any of the following returns blocked:
         // TODO: handle blocking by content security policy.
         let blocked_error_response;
         let internal_response = if should_replace_with_nosniff_error {
             // Defer rebinding result
             blocked_error_response =
                 Response::network_error(NetworkError::Internal("Blocked by nosniff".into()));
+            &blocked_error_response
+        } else if should_replace_with_mixed_content_blocked_error {
+            blocked_error_response =
+                Response::network_error(NetworkError::Internal("Blocked as mixed content".into()));
             &blocked_error_response
         } else if should_replace_with_mime_type_error {
             // Defer rebinding result

@@ -530,13 +530,15 @@ fn fetch_a_classic_script(
     let doc = document_from_node(script);
 
     // Step 1, 2.
-    let request = script_fetch_request(
+    let mut request = script_fetch_request(
         url.clone(),
         cors_setting,
         doc.origin().immutable().clone(),
         script.global().pipeline_id(),
         options.clone(),
     );
+
+    request.client = Some(doc.settings_object());
 
     // TODO: Step 3, Add custom steps to perform fetch
 
