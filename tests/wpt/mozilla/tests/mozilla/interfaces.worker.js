@@ -33,6 +33,7 @@ test_interfaces([
   "FileList",
   "FileReader",
   "FileReaderSync",
+  "FinalizationRegistry",
   "FontFaceSet",
   "FormData",
   "Headers",

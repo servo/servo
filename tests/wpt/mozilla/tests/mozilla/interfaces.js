@@ -18,6 +18,7 @@ function test_interfaces(interfaceNamesInGlobalScope) {
       "Date",
       "Error",
       "EvalError",
+      "FinalizationRegistry",
       "Float32Array",
       "Float64Array",
       "Function",
