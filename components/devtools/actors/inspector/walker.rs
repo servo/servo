@@ -31,8 +31,11 @@ pub struct WalkerActor {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct QuerySelectorReply {
     from: String,
+    node: NodeActorMsg,
+    new_parents: Vec<NodeActorMsg>,
 }
 
 #[derive(Serialize)]
@@ -55,7 +58,6 @@ struct ChildrenReply {
     from: String,
 }
 
-// {"actor":{"actor":"server1.conn0.process5//layout66"},"from":"server1.conn0.process5//domwalker49"}
 #[derive(Serialize)]
 struct GetLayoutInspectorReply {
     actor: LayoutInspectorActorMsg,
@@ -85,8 +87,28 @@ impl Actor for WalkerActor {
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "querySelector" => {
-                // TODO: This also has newParents and node
-                let msg = QuerySelectorReply { from: self.name() };
+                let selector = msg.get("selector").unwrap().as_str().unwrap();
+
+                let node = msg.get("node").unwrap().as_str().unwrap();
+                let mut hierarchy = vec![];
+                find_child(
+                    &self.script_chan,
+                    self.pipeline,
+                    registry,
+                    selector,
+                    node,
+                    &mut hierarchy,
+                )
+                .ok_or(())?;
+
+                hierarchy.reverse();
+                let node = hierarchy.pop().unwrap();
+
+                let msg = QuerySelectorReply {
+                    from: self.name(),
+                    node,
+                    new_parents: hierarchy,
+                };
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
@@ -170,4 +192,43 @@ impl Actor for WalkerActor {
             _ => ActorMessageStatus::Ignored,
         })
     }
+}
+
+fn find_child(
+    script_chan: &IpcSender<DevtoolScriptControlMsg>,
+    pipeline: PipelineId,
+    registry: &ActorRegistry,
+    selector: &str,
+    node: &str,
+    hierarchy: &mut Vec<NodeActorMsg>,
+) -> Option<()> {
+    let (tx, rx) = ipc::channel().unwrap();
+    script_chan
+        .send(GetChildren(
+            pipeline,
+            registry.actor_to_script(node.into()),
+            tx,
+        ))
+        .unwrap();
+    let children = rx.recv().unwrap()?;
+
+    for child in children {
+        let msg = child.encode(registry, true, script_chan.clone(), pipeline);
+        if msg.display_name == selector ||
+            (msg.num_children > 0 &&
+                find_child(
+                    script_chan,
+                    pipeline,
+                    registry,
+                    selector,
+                    &msg.actor,
+                    hierarchy,
+                )
+                .is_some())
+        {
+            hierarchy.push(msg);
+            return Some(());
+        };
+    }
+    None
 }

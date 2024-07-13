@@ -26,6 +26,12 @@ pub struct GetGridsReply {
     grids: Vec<String>,
 }
 
+#[derive(Serialize)]
+pub struct GetCurrentFlexboxReply {
+    from: String,
+    flexbox: Option<()>,
+}
+
 impl Actor for LayoutInspectorActor {
     fn name(&self) -> String {
         self.name.clone()
@@ -44,11 +50,19 @@ impl Actor for LayoutInspectorActor {
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "getGrids" => {
-                let _ = stream.write_json_packet(&GetGridsReply {
+                let msg = GetGridsReply {
                     from: self.name(),
                     grids: vec![],
-                });
-
+                };
+                let _ = stream.write_json_packet(&msg);
+                ActorMessageStatus::Processed
+            },
+            "getCurrentFlexbox" => {
+                let msg = GetCurrentFlexboxReply {
+                    from: self.name(),
+                    flexbox: None,
+                };
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
             _ => ActorMessageStatus::Ignored,

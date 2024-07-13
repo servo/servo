@@ -44,9 +44,15 @@ struct GetWalkerReply {
 }
 
 #[derive(Serialize)]
+struct SupportsHighlightersReply {
+    from: String,
+    value: bool,
+}
+
+#[derive(Serialize)]
 struct GetHighlighterReply {
     from: String,
-    highligter: HighlighterMsg, // sic.
+    highlighter: HighlighterMsg,
 }
 
 pub struct InspectorActor {
@@ -79,7 +85,7 @@ impl Actor for InspectorActor {
                 self.script_chan.send(GetRootNode(pipeline, tx)).unwrap();
                 let root_info = rx.recv().unwrap().ok_or(())?;
 
-                let root = root_info.encode(registry, true, self.script_chan.clone(), pipeline);
+                let root = root_info.encode(registry, false, self.script_chan.clone(), pipeline);
 
                 if self.walker.borrow().is_none() {
                     let walker = WalkerActor {
@@ -126,10 +132,16 @@ impl Actor for InspectorActor {
                 ActorMessageStatus::Processed
             },
 
-            //TODO: this is an old message; try adding highlightable to the root traits instead
-            //      and support getHighlighter instead
-            //"highlight" => {}
-            "getHighlighter" => {
+            "supportsHighlighters" => {
+                let msg = SupportsHighlightersReply {
+                    from: self.name(),
+                    value: true,
+                };
+                let _ = stream.write_json_packet(&msg);
+                ActorMessageStatus::Processed
+            },
+
+            "getHighlighterByType" => {
                 if self.highlighter.borrow().is_none() {
                     let highlighter_actor = HighlighterActor {
                         name: registry.new_name("highlighter"),
@@ -141,7 +153,7 @@ impl Actor for InspectorActor {
 
                 let msg = GetHighlighterReply {
                     from: self.name(),
-                    highligter: HighlighterMsg {
+                    highlighter: HighlighterMsg {
                         actor: self.highlighter.borrow().clone().unwrap(),
                     },
                 };

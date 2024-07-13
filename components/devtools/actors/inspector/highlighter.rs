@@ -21,12 +21,13 @@ pub struct HighlighterActor {
 }
 
 #[derive(Serialize)]
-struct ShowBoxModelReply {
+struct ShowReply {
     from: String,
+    value: bool,
 }
 
 #[derive(Serialize)]
-struct HideBoxModelReply {
+struct HideReply {
     from: String,
 }
 
@@ -44,14 +45,17 @@ impl Actor for HighlighterActor {
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
-            "showBoxModel" => {
-                let msg = ShowBoxModelReply { from: self.name() };
+            "show" => {
+                let msg = ShowReply {
+                    from: self.name(),
+                    value: true,
+                };
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
-            "hideBoxModel" => {
-                let msg = HideBoxModelReply { from: self.name() };
+            "hide" => {
+                let msg = HideReply { from: self.name() };
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },

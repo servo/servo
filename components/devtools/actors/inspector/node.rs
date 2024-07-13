@@ -5,9 +5,9 @@
 use std::net::TcpStream;
 
 use base::id::PipelineId;
-use devtools_traits::DevtoolScriptControlMsg::ModifyAttribute;
+use devtools_traits::DevtoolScriptControlMsg::{GetDocumentElement, ModifyAttribute};
 use devtools_traits::{DevtoolScriptControlMsg, NodeInfo};
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
@@ -20,33 +20,32 @@ struct ModifyAttributeReply {
     from: String,
 }
 
-#[derive(Clone, Serialize)]
-struct AttrMsg {
-    namespace: String,
-    name: String,
+#[derive(Serialize)]
+struct GetUniqueSelectorReply {
+    from: String,
     value: String,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NodeActorMsg {
-    actor: String,
+    pub actor: String,
     #[serde(rename = "baseURI")]
     base_uri: String,
     causes_overflow: bool,
     container_type: Option<()>,
-    display_name: String,
+    pub display_name: String,
     display_type: u16,
     is_anonymous: bool,
     is_displayed: bool,
-    is_in_html_document: Option<()>,
+    is_in_html_document: Option<bool>,
     is_native_anonymous: bool,
     is_scrollable: bool,
     is_top_level_document: bool,
     node_name: String,
     node_type: u16,
     node_value: Option<()>,
-    num_children: usize,
+    pub num_children: usize,
 }
 
 pub struct NodeActor {
@@ -91,6 +90,23 @@ impl Actor for NodeActor {
                 ActorMessageStatus::Processed
             },
 
+            "getUniqueSelector" => {
+                let (tx, rx) = ipc::channel().unwrap();
+                self.script_chan
+                    .send(GetDocumentElement(self.pipeline, tx))
+                    .unwrap();
+                let doc_elem_info = rx.recv().unwrap().ok_or(())?;
+                let node =
+                    doc_elem_info.encode(registry, true, self.script_chan.clone(), self.pipeline);
+
+                let msg = GetUniqueSelectorReply {
+                    from: self.name(),
+                    value: node.display_name,
+                };
+                let _ = stream.write_json_packet(&msg);
+                ActorMessageStatus::Processed
+            },
+
             _ => ActorMessageStatus::Ignored,
         })
     }
@@ -131,9 +147,10 @@ impl NodeInfoToProtocol for NodeInfo {
         NodeActorMsg {
             actor: actor_name,
             base_uri: self.base_uri,
-            display_name: self.node_name.clone(),
+            display_name: self.node_name.clone().to_lowercase(),
             display_type: self.node_type.clone(),
             is_displayed: display,
+            is_top_level_document: self.node_name == "#document", // TODO:
             node_name: self.node_name,
             node_type: self.node_type,
             num_children: self.num_children,
@@ -141,10 +158,9 @@ impl NodeInfoToProtocol for NodeInfo {
             causes_overflow: false,
             container_type: None,
             is_anonymous: false,
-            is_in_html_document: None,
+            is_in_html_document: Some(true),
             is_native_anonymous: false,
             is_scrollable: false,
-            is_top_level_document: true,
             node_value: None,
             // parent: actors.script_to_actor(self.parent.clone()),
             // namespace_uri: self.namespace_uri,
