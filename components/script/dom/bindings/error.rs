@@ -197,7 +197,7 @@ impl ErrorInfo {
         };
 
         let lineno = (*report)._base.lineno;
-        let column = (*report)._base.column._base - 1;
+        let column = (*report)._base.column._base;
 
         let message = {
             let message = (*report)._base.message_.data_ as *const u8;
