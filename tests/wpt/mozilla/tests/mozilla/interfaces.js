@@ -55,6 +55,7 @@ function test_interfaces(interfaceNamesInGlobalScope) {
       "Uint8Array",
       "Uint8ClampedArray",
       "WeakMap",
+      "WeakRef",
       "WeakSet",
       "WebAssembly",
     ];

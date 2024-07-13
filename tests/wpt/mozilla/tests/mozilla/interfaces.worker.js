@@ -60,6 +60,7 @@ test_interfaces([
   "URL",
   "URLSearchParams",
   "WebSocket",
+  "WeakRef",
   "Worker",
   "WorkerGlobalScope",
   "WorkerLocation",
