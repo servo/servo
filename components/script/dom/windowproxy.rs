@@ -128,7 +128,8 @@ pub struct WindowProxy {
 
     /// Only a member because the pointer within WindowProxyHandler is used in C++ and must live as long as this struct.
     #[ignore_malloc_size_of = "Rc"]
-    _proxy_handler: Rc<WindowProxyHandler>,
+    #[no_trace]
+    proxy_handler: Cell<Rc<WindowProxyHandler>>,
 }
 
 impl WindowProxy {
@@ -161,7 +162,7 @@ impl WindowProxy {
             creator_base_url: creator.base_url,
             creator_url: creator.url,
             creator_origin: creator.origin,
-            _proxy_handler: window_proxy_handler,
+            proxy_handler: Cell::new(window_proxy_handler),
         }
     }
 
@@ -633,8 +634,7 @@ impl WindowProxy {
     fn set_window(&self, window: &GlobalScope, traps: &ProxyTraps) {
         unsafe {
             debug!("Setting window of {:p}.", self);
-            let handler = CreateWrapperProxyHandler(traps);
-            assert!(!handler.is_null());
+            let handler = Rc::new(WindowProxyHandler::new(traps));
 
             let cx = GlobalScope::get_cx();
             let window_jsobject = window.reflector().get_jsobject();
@@ -654,7 +654,7 @@ impl WindowProxy {
             // that's not what we are doing here. We need to do this just
             // because we want to replace the wrapper's `ProxyTraps`, but we
             // don't want to update its identity.
-            rooted!(in(*cx) let new_js_proxy = NewWindowProxy(*cx, window_jsobject, handler));
+            rooted!(in(*cx) let new_js_proxy = handler.new_window_proxy(&cx, window_jsobject));
             debug!(
                 "Transplanting proxy from {:p} to {:p}.",
                 old_js_proxy.get(),
@@ -669,6 +669,7 @@ impl WindowProxy {
             // Notify the JS engine about the new window proxy binding.
             SetWindowProxy(*cx, window_jsobject, new_js_proxy.handle());
 
+            self.proxy_handler.set(handler);
             // Update the reflector.
             debug!(
                 "Setting reflector of {:p} to {:p}.",
