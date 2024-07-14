@@ -2428,14 +2428,18 @@ impl GlobalScope {
 
             // Substep 3.1.3
             while url.as_str() == "about:srcdoc" {
-                document = document
-                    .browsing_context()
-                    .expect("iframe should have browsing context")
-                    .parent()
-                    .expect("iframes browsing_context should have parent")
-                    .document()
-                    .expect("iframes parent should have document");
-
+                // Return early if we cannot get a parent document. This might happen if
+                // this iframe was already removed from the parent page.
+                let Some(parent_document) =
+                    document.browsing_context().and_then(|browsing_context| {
+                        browsing_context
+                            .parent()
+                            .and_then(|parent| parent.document())
+                    })
+                else {
+                    return Referrer::NoReferrer;
+                };
+                document = parent_document;
                 url = document.url();
             }
 
