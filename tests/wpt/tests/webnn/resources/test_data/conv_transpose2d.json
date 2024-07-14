@@ -297,6 +297,55 @@
       }
     },
     {
+      "name": "convTranspose2d options.padding is the same upper padding",
+      "inputs": {
+        "input": {
+          "shape": [1, 3, 3, 1],
+          "data": [
+            0.5, 0.5, 0.5,
+            0.5, 0.5, 0.5,
+            0.5, 0.5, 0.5
+          ],
+          "type": "float32"
+        },
+        "filter": {
+          "shape": [2, 3, 3, 1],
+          "data": [
+            1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+            1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0
+          ],
+          "type": "float32",
+          "constant": true
+        }
+      },
+      "options": {
+        "outputSizes": [6, 6],
+        "groups": 1,
+        "strides": [2, 2],
+        "dilations": [1, 1],
+        "padding": [0, 1, 0, 1],
+        "filterLayout": "ohwi",
+        "inputLayout": "nhwc"
+      },
+      "expected": {
+        "shape": [1, 6, 6, 2],
+        "data": [
+          0.5, 0.5, 0.5, 0.5, 1.0, 1.0, 0.5,
+          0.5, 1.0, 1.0, 0.5, 0.5, 0.5, 0.5,
+          0.5, 0.5, 1.0, 1.0, 0.5, 0.5, 1.0,
+          1.0, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0,
+          2.0, 2.0, 1.0, 1.0, 2.0, 2.0, 1.0,
+          1.0, 0.5, 0.5, 0.5, 0.5, 1.0, 1.0,
+          0.5, 0.5, 1.0, 1.0, 0.5, 0.5, 1.0,
+          1.0, 1.0, 1.0, 2.0, 2.0, 1.0, 1.0,
+          2.0, 2.0, 1.0, 1.0, 0.5, 0.5, 0.5,
+          0.5, 1.0, 1.0, 0.5, 0.5, 1.0, 1.0,
+          0.5, 0.5
+        ],
+        "type": "float32"
+      }
+    },
+    {
       "name": "convTranspose2d float32 4D input and filter tensors options.strides",
       "inputs": {
         "input": {

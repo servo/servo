@@ -446,6 +446,26 @@ const tests = [
     },
   },
   {
+    name:
+        '[convTranspose2d] Throw if outputSizes[0] is not greater than 0.',
+    input: {dataType: 'float32', dimensions: [1, 1, 3, 3]},
+    filter: {dataType: 'float32', dimensions: [1, 2, 3, 3]},
+    options: {
+      strides: [3, 2],
+      outputSizes: [0, 7],
+    },
+  },
+  {
+    name:
+        '[convTranspose2d] Throw if outputSizes[1] is not greater than 0.',
+    input: {dataType: 'float32', dimensions: [1, 1, 3, 3]},
+    filter: {dataType: 'float32', dimensions: [1, 2, 3, 3]},
+    options: {
+      strides: [3, 2],
+      outputSizes: [9, 0],
+    },
+  },
+  {
     name: '[convTranspose2d] Throw if the padding height is too large.',
     input: {dataType: 'float32', dimensions: [1, 1, 2, 2]},
     filter: {dataType: 'float32', dimensions: [1, 1, 3, 3]},

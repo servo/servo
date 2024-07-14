@@ -162,6 +162,26 @@ const tests = [
     },
   },
   {
+    name: 'Throw if outputSizes[0] is not greater than 0.',
+    input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
+    options: {
+      windowDimensions: [2, 2],
+      padding: [2, 2, 2, 2],
+      strides: [2, 2],
+      outputSizes: [0, 4],
+    },
+  },
+  {
+    name: 'Throw if outputSizes[1] is not greater than 0.',
+    input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
+    options: {
+      windowDimensions: [2, 2],
+      padding: [2, 2, 2, 2],
+      strides: [2, 2],
+      outputSizes: [4, 0],
+    },
+  },
+  {
     name: 'Throw if the length of window dimensions is not 2.',
     input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
     options: {

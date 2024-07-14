@@ -560,7 +560,7 @@ tests.forEach(
           });
         }
         if (test.options.recurrentBias) {
-          options.bias = builder.input('recurrentBias', {
+          options.recurrentBias = builder.input('recurrentBias', {
             dataType: test.options.recurrentBias.dataType,
             dimensions: test.options.recurrentBias.dimensions
           });

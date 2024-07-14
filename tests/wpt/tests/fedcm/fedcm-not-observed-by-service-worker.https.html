@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API network request tests.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+
+<body>
+
+<script type="module">
+import {fedcm_test,
+        request_options_with_mediation_required,
+        set_fedcm_cookie,
+        fedcm_get_and_select_first_account} from './support/fedcm-helper.sub.js';
+
+function loadUrlInIframe(url) {
+  let iframe = document.createElement("iframe");
+  return new Promise(resolve => {
+    iframe.src = url;
+    iframe.onload = function() { resolve(iframe); };
+    document.body.appendChild(iframe);
+  });
+}
+
+fedcm_test(async t => {
+  const service_worker_url = 'support/fedcm/intercept_service_worker.js';
+  const sw_scope_url = '/fedcm/support/fedcm/';
+  // URL for querying number of page loads observed by service worker.
+  const query_sw_intercepts_url = 'support/fedcm/query_service_worker_intercepts.html';
+  const page_in_sw_scope_url = 'support/fedcm/simple.html';
+
+  const sw_registration = await service_worker_unregister_and_register(
+      t, service_worker_url, sw_scope_url);
+  t.add_cleanup(() => service_worker_unregister(t, sw_scope_url));
+  await wait_for_state(t, sw_registration.installing, 'activated');
+
+  // Verify that service worker works.
+  await loadUrlInIframe(page_in_sw_scope_url);
+  let query_sw_iframe = await loadUrlInIframe(query_sw_intercepts_url);
+  assert_equals(query_sw_iframe.contentDocument.body.textContent, "1");
+
+  await set_fedcm_cookie();
+  const cred = await fedcm_get_and_select_first_account(t, request_options_with_mediation_required());
+  assert_equals(cred.token, "token");
+
+  // Use cache buster query parameter to avoid cached response.
+  let query_sw_iframe2 = await loadUrlInIframe(query_sw_intercepts_url + "?2");
+  assert_equals(query_sw_iframe2.contentDocument.body.textContent, "1");
+}, 'Test that service worker cannot observe fetches performed by FedCM API');
+
+</script>

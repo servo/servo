@@ -149,7 +149,10 @@ async function runFullCycleTest(t, options) {
   const encoder_init = {
     output(chunk, metadata) {
       let config = metadata.decoderConfig;
-      if (config) {
+      // Issue a configure if there's a new config, or on the
+      // first chunk if testing rate control
+      if (!options.rateControl && config ||
+          options.rateControl && chunk.timestamp == 0) {
         config.hardwareAcceleration = encoder_config.hardwareAcceleration;
         encoder_color_space = config.colorSpace;
 
@@ -185,6 +188,11 @@ async function runFullCycleTest(t, options) {
 
     let keyframe = (i % 5 == 0);
     encoder.encode(frame, { keyFrame: keyframe });
+    if (i % 3 == 0 && options.rateControl) {
+      // reconfigure with a different rate
+      encoder_config.bitrate = encoder_config.bitrate * 0.9;
+      encoder.configure(encoder_config);
+    }
     frame.close();
   }
   await encoder.flush();
@@ -211,3 +219,7 @@ promise_test(async t => {
   if (ENCODER_CONFIG.hasEmbeddedColorSpace)
     return runFullCycleTest(t, {stripDecoderConfigColorSpace: true});
 }, 'Encoding and decoding cycle w/ stripped color space');
+
+promise_test(async t => {
+  return runFullCycleTest(t, {rateControl: true});
+}, 'Encoding and decoding cycle w/ rate control');

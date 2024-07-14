@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset=utf-8>
+<link rel=match href="content-visibility-auto-svg-image-ref.html">
+<link rel=help href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=1894546">
+<body>
+
+<script>
+const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="400" height="100">
+        <foreignObject width="100%" height="100%">
+          <div xmlns="http://www.w3.org/1999/xhtml" style="content-visibility: auto;">
+            <p style="font: 50px sans-serif;">Hello World</p>
+          </div>
+        </foreignObject>
+    </svg>`;
+
+const data = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+const svgImage = new Image();
+svgImage.src = data;
+
+document.body.appendChild(svgImage);
+</script>
+
+</body>

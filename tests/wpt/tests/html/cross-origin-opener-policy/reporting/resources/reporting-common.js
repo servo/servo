@@ -378,6 +378,8 @@ const coopHeaders = function (uuid) {
         getHeader(uuid, "same-origin-allow-popups", is_report_only = true),
     coopReportOnlyRestrictPropertiesHeader:
         getHeader(uuid, "restrict-properties", is_report_only = true),
+    coopReportOnlyNoopenerAllowPopupsHeader:
+        getHeader(uuid, "noopener-allow-popups", is_report_only = true),
   };
 }
 

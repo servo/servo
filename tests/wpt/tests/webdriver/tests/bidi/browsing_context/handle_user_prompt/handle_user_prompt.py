@@ -112,7 +112,7 @@ async def test_prompt(
         assert result == {"type": "null"}
 
 
-@pytest.mark.capabilities({"unhandledPromptBehavior": {'default': 'ignore'}})
+@pytest.mark.capabilities({"unhandledPromptBehavior": {'beforeUnload': 'ignore'}})
 @pytest.mark.parametrize("accept", [True, False])
 async def test_beforeunload(
     bidi_session,

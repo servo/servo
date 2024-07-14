@@ -179,10 +179,10 @@ promise_test(async t => {
   assert_array_equals(results, [
     "notifier subscribed",
     "source subscribed",
-    "notifier teardown",
     "notifier signal abort",
-    "source teardown",
+    "notifier teardown",
     "source signal abort",
+    "source teardown",
     "complete callback",
   ]);
 }, "takeUntil: notifier next() unsubscribes from notifier & source observable");
@@ -235,10 +235,10 @@ promise_test(async t => {
   assert_array_equals(results, [
     "notifier subscribed",
     "source subscribed",
-    "notifier teardown",
     "notifier signal abort",
+    "notifier teardown",
+    "source signal abort",
     "source teardown",
-    "source signal abort"
   ]);
 }, "takeUntil()'s AbortSignal unsubscribes from notifier & source observable");
 

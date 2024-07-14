@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reference</title>
+<style>
+.clamp {
+  display: flow-root;
+  font: 16px / 32px serif;
+  background-color: orange;
+}
+.inner {
+  white-space: pre;
+  margin: 5px;
+  background-color: yellow;
+}
+.collapse-through {
+  margin: 5px;
+}
+.abspos {
+  position: absolute;
+  right: 0;
+  height: 100px;
+  width: 100px;
+  background-color: skyblue;
+}
+</style>
+
+<div class="clamp">
+<div class="inner">Line 1
+Line 2
+Line 3
+Line 4…</div>
+<div class="collapse-through"></div>
+<div class="abspos"></div>
+</div>

@@ -94,8 +94,8 @@ promise_test(async () => {
     "calling first",
     "source subscribe",
     "before source next 1",
-    "source teardown",
     "source abort",
+    "source teardown",
     "after source next 1"
   ], "Array values after first() is called");
 
@@ -106,8 +106,8 @@ promise_test(async () => {
     "calling first",
     "source subscribe",
     "before source next 1",
-    "source teardown",
     "source abort",
+    "source teardown",
     "after source next 1",
     "first resolved with: 1",
   ], "Array values after Promise is awaited");

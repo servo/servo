@@ -1,15 +1,15 @@
 interface mixin InvokerElement {
-  [CEReactions,Reflect=invoketarget] attribute Element? invokeTargetElement;
-  [CEReactions,Reflect=invokeaction] attribute DOMString invokeAction;
+  [CEReactions,Reflect=invoketarget] attribute Element? commandForElement;
+  [CEReactions,Reflect=invokeaction] attribute DOMString command;
 };
 
-interface InvokeEvent : Event {
-    constructor(DOMString type, optional InvokeEventInit eventInitDict = {});
+interface CommandEvent : Event {
+    constructor(DOMString type, optional CommandEventInit eventInitDict = {});
     readonly attribute Element? invoker;
-    readonly attribute DOMString action;
+    readonly attribute DOMString command;
 };
 
-dictionary InvokeEventInit : EventInit {
+dictionary CommandEventInit : EventInit {
     Element? invoker = null;
-    DOMString action = "";
+    DOMString command = "";
 };

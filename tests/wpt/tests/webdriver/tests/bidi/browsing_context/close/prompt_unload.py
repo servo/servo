@@ -51,7 +51,7 @@ async def test_prompt_unload_not_triggering_dialog(
     remove_listener()
 
 
-@pytest.mark.capabilities({"unhandledPromptBehavior": {'default': 'ignore'}})
+@pytest.mark.capabilities({"unhandledPromptBehavior": {'beforeUnload': 'ignore'}})
 @pytest.mark.parametrize("type_hint", ["window", "tab"])
 async def test_prompt_unload_triggering_dialog(
     bidi_session,

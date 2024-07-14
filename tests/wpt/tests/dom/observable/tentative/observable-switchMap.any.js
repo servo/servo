@@ -212,10 +212,10 @@ test(() => {
 
   ac.abort();
   assert_array_equals(results, [
-    "source teardown",
     "source onabort",
-    "inner teardown",
+    "source teardown",
     "inner onabort",
+    "inner teardown",
   ], "Unsubscription order is correct");
 }, "switchMap(): should unsubscribe in the correct order when user aborts " +
    "the subscription");

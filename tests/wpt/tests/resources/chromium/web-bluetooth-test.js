@@ -603,7 +603,7 @@ async function initializeChromiumResources() {
   content.mojom = await import(
       '/gen/content/web_test/common/fake_bluetooth_chooser.mojom.m.js');
   bluetooth.mojom = await import(
-      '/gen/device/bluetooth/public/mojom/test/fake_bluetooth.mojom.m.js');
+      '/gen/device/bluetooth/public/mojom/emulation/fake_bluetooth.mojom.m.js');
 
   const map = MOJO_CHOOSER_EVENT_TYPE_MAP;
   const types = content.mojom.ChooserEventType;

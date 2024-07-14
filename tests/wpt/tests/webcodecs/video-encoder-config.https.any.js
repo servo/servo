@@ -51,6 +51,15 @@ const invalidConfigs = [
       height: 480,
     },
   },
+  {
+    comment: 'bitrate is present but zero',
+    config: {
+      codec: 'vp8',
+      width: 640,
+      height: 480,
+      bitrate: 0
+    },
+  },
 ];
 
 invalidConfigs.forEach(entry => {
