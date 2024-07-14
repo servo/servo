@@ -202,3 +202,69 @@ async def test_iframe(
         "handler": "dismiss",
         "message": "in iframe",
     }
+
+
+@pytest.mark.parametrize("type_hint", ["tab", "window"])
+async def test_two_prompts(
+    bidi_session,
+    subscribe_events,
+    inline,
+    wait_for_event,
+    wait_for_future_safe,
+    type_hint,
+):
+    new_context = await bidi_session.browsing_context.create(type_hint=type_hint)
+    await subscribe_events(
+        events=[USER_PROMPT_OPENED_EVENT]
+    )
+    # Track all received browsingContext.userPromptOpened events in the events array
+    events = []
+
+    async def on_event(method, data):
+        events.append(data)
+
+    remove_listener = bidi_session.add_event_listener(
+        USER_PROMPT_OPENED_EVENT, on_event
+    )
+
+    on_first_event = wait_for_event(USER_PROMPT_OPENED_EVENT)
+
+    another_new_context = await bidi_session.browsing_context.create(
+        type_hint=type_hint
+    )
+
+    # Open a prompt in the first context.
+    await bidi_session.browsing_context.navigate(
+        context=new_context["context"],
+        url=inline("<script>window.alert('first tab')</script>"),
+    )
+
+    await wait_for_future_safe(on_first_event)
+
+    # Open a prompt in the second context.
+    await bidi_session.browsing_context.navigate(
+        context=another_new_context["context"],
+        url=inline("<script>window.confirm('second tab')</script>"),
+    )
+
+    on_second_event = wait_for_event(USER_PROMPT_OPENED_EVENT)
+
+    await wait_for_future_safe(on_second_event)
+
+    assert len(events) == 2
+
+    assert events == [{
+        "context": new_context["context"],
+        "type": "alert",
+        "handler": "dismiss",
+        "message": "first tab",
+    }, {
+        "context": another_new_context["context"],
+        "type": "confirm",
+        "handler": "dismiss",
+        "message": "second tab",
+    }]
+
+    remove_listener()
+    await bidi_session.browsing_context.close(context=new_context["context"])
+    await bidi_session.browsing_context.close(context=another_new_context["context"])

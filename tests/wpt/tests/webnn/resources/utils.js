@@ -1288,22 +1288,6 @@ const testWriteWebNNBuffer = (testName) => {
   }, `${testName} / destroy`);
 
   promise_test(async () => {
-    const descriptor = {dataType: 'int32', dimensions: [2, 2]};
-    let ml_buffer = createBuffer(ml_context, descriptor);
-
-    // MLBuffer was unsupported for the deviceType.
-    if (ml_buffer === undefined) {
-      return;
-    }
-
-    const array_buffer = new ArrayBuffer(sizeOfDescriptor(descriptor));
-    const detached_buffer = array_buffer.transfer();
-    assert_true(array_buffer.detached, 'array buffer should be detached.');
-
-    ml_context.writeBuffer(ml_buffer, array_buffer);
-  }, `${testName} / detached`);
-
-  promise_test(async () => {
     const bufferDescriptor = {dataType: 'int32', dimensions: [2, 3]};
     let ml_buffer = createBuffer(ml_context, bufferDescriptor);
 
@@ -1396,26 +1380,6 @@ const testReadWebNNBuffer = (testName) => {
     await assert_buffer_data_equals(
         ml_context, ml_buffer, Uint8Array.from([0xBB, 0xBB, 0xAA, 0xAA]));
   }, `${testName} / src_offset_only`);
-
-  promise_test(async () => {
-    let ml_buffer =
-        createBuffer(ml_context, {dataType: 'int32', dimensions: [1]});
-
-    // MLBuffer was unsupported for the deviceType.
-    if (ml_buffer === undefined) {
-      return;
-    }
-
-    // Initialize the buffer.
-    const input_data = [0xAA, 0xAA, 0xAA, 0xAA];
-    ml_context.writeBuffer(ml_buffer, Uint8Array.from(input_data));
-
-    // Writing zero bytes at the end of the buffer.
-    ml_context.writeBuffer(
-        ml_buffer, Uint32Array.from([0xBBBBBBBB]), /*srcOffset=*/ 1);
-    await assert_buffer_data_equals(
-        ml_context, ml_buffer, Uint8Array.from(input_data));
-  }, `${testName} / zero_write`);
 
   promise_test(async () => {
     let ml_buffer =

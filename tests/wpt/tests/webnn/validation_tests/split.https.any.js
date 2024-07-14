@@ -52,8 +52,16 @@ const tests = [
     input: {dataType: 'float32', dimensions: [2, 6]},
     splits: [0],
     options: {
-      axis: 2,
+      axis: 0,
     }
+  },
+  {
+    name: '[split] Throw if splits (scalar) is equal to 0.',
+    input: {dataType: 'float32', dimensions: [2, 6]},
+    splits: 0,
+    options: {
+      axis: 0,
+    },
   },
   {
     name:
@@ -63,6 +71,15 @@ const tests = [
     options: {
       axis: 1,
     }
+  },
+  {
+    name:
+        '[split] Throw if splits (scalar) can not evenly divide the dimension size of input along options.axis.',
+    input: {dataType: 'float32', dimensions: [2, 5]},
+    splits: 2,
+    options: {
+      axis: 1,
+    },
   },
   {
     name:

@@ -7,6 +7,7 @@ def main(request, response):
     return request_error
   if request.cookies.get(b"same_site_strict") == b"1":
     return (546, [], "Should not send SameSite=Strict cookies")
+  # TODO(crbug.com/350944661): We want to send these cookies.
   if request.cookies.get(b"same_site_lax") == b"1":
     return (547, [], "Should not send SameSite=Lax cookies")
   if request.headers.get(b"Sec-Fetch-Site") != b"cross-site":

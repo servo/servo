@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-break/#break-decoration">
+<meta name="assert" content="Cloned box decorations, including margins.">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; column-fill:auto; gap:0; width:100px; height:100px; background:red;">
+  <div style="display:flow-root; background:green;">
+    <div style="box-decoration-break:clone; margin:10px 0; padding:10px 0;">
+      <div style="height:100px;"></div>
+    </div>
+    <div style="height:40px;"></div>
+  </div>
+</div>

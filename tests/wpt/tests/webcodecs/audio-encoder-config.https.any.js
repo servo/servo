@@ -57,6 +57,15 @@ const invalidConfigs = [
     },
   },
   {
+    comment: 'Bit rate present but equal to zero',
+    config: {
+      codec: 'opus',
+      sampleRate: 8000,
+      numberOfChannels: 2,
+      bitrate: 0,
+    },
+  },
+  {
     comment: 'Opus complexity too big',
     config: {
       codec: 'opus',

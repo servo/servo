@@ -3,7 +3,7 @@
 <body>
 <meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
 <meta name="assert" content="Selection's direction should return none, forwad, or backward">
-<link rel="help" href="https://w3c.github.io/selection-api/#dom-selection-getcomposedrange">
+<link rel="help" href="https://w3c.github.io/selection-api/#dom-selection-direction">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -61,63 +61,6 @@ test(() => {
     assert_equals(getSelection().direction, 'backward');
 }, 'direction returns "backward" when there is a forward selection that crosses shadow boundaries');
 
-promise_test(async () => {
-    container.innerHTML = 'hello, world';
-    const doubleClick = new test_driver.Actions()
-      .pointerMove(0, 0, container.firstChild)
-      .pointerDown()
-      .pointerUp()
-      .pointerDown()
-      .pointerUp()
-      .send();
-    await doubleClick;
-
-    const sel = getSelection();
-    assert_equals(sel.anchorNode, container.firstChild);
-    assert_equals(sel.anchorOffset, 0);
-    assert_equals(sel.focusNode, container.firstChild);
-    assert_equals(sel.focusOffset, 5); // hello
-    assert_equals(sel.direction, 'none');
-}, 'direction returns "none" when there is a double click selection(directionless)');
-
-promise_test(async () => {
-    container.innerHTML = 'hello, world';
-    const tripleClick = new test_driver.Actions()
-      .pointerMove(0, 0, container.firstChild)
-      .pointerDown()
-      .pointerUp()
-      .pointerDown()
-      .pointerUp()
-      .pointerDown()
-      .pointerUp()
-      .send();
-    await tripleClick;
-
-    const sel = getSelection();
-    assert_equals(sel.anchorNode, container);
-    assert_equals(sel.anchorOffset, 0);
-    assert_equals(sel.focusNode, container);
-    assert_equals(sel.focusOffset, 1);
-    assert_equals(sel.direction, 'none');
-}, 'direction returns "none" when there is a triple click selection(directionless)');
-
-promise_test(async () => {
-    container.innerHTML = 'hello, world';
-    const click = new test_driver.Actions()
-      .pointerMove(0, 0, container.firstChild)
-      .pointerDown()
-      .pointerUp()
-      .send();
-    await click;
-
-    const sel = getSelection();
-    assert_equals(sel.anchorNode, container.firstChild);
-    assert_equals(sel.anchorOffset, 0);
-    assert_equals(sel.focusNode, container.firstChild);
-    assert_equals(sel.focusOffset, 0);
-    assert_true(sel.isCollapsed);
-    assert_equals(sel.direction, 'none');
-}, 'direction returns "none" when the selection is collapsed');
 </script>
 </body>
 </html>

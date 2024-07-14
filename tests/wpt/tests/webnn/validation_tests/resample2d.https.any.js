@@ -88,6 +88,16 @@ const tests = [
     options: {sizes: [1, 1, 4, 6]},
   },
   {
+    name: '[resample2d] Throw if sizes[0] is not a valid dimension',
+    input: {dataType: 'float32', dimensions: [1, 1, 2, 4]},
+    options: {sizes: [0, 1]},
+  },
+  {
+    name: '[resample2d] Throw if sizes[1] is not a valid dimension',
+    input: {dataType: 'float32', dimensions: [1, 1, 2, 4]},
+    options: {sizes: [1, 0]},
+  },
+  {
     name: '[resample2d] Throw if input data type is not floating type',
     input: {dataType: 'int32', dimensions: [1, 1, 2, 4]},
     options: {sizes: [1, 1, 4, 6]},

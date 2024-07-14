@@ -118,7 +118,7 @@ async def test_fetch(
     # Navigate away from about:blank to make sure document.cookies can be used.
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"],
-        url=url("/webdriver/tests/bidi/support/empty.html"),
+        url=url("/webdriver/tests/bidi/network/support/empty.html"),
         wait="complete"
     )
 

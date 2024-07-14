@@ -234,6 +234,31 @@ window.onload = () => {
   },`Changing the popover type in a "beforetoggle" event handler should throw an exception (during showPopover())`);
 
   test((t) => {
+    const other_popover = createPopover(t);
+    other_popover.setAttribute('popover','auto');
+    other_popover.showPopover();
+    const popover = createPopover(t);
+    popover.setAttribute('popover','auto');
+    other_popover.addEventListener('beforetoggle', (e) => {
+      if (e.newState !== "closed")
+        return;
+      popover.setAttribute('popover','manual');
+    },{once: true});
+    assert_true(other_popover.matches(':popover-open'));
+    assert_false(popover.matches(':popover-open'));
+
+    popover.id = 'type-change-test';
+    const invoker = document.createElement('button');
+    document.body.appendChild(invoker);
+    t.add_cleanup(() => invoker.remove());
+    invoker.setAttribute('popovertarget', 'type-change-test');
+    invoker.click();
+
+    assert_false(other_popover.matches(':popover-open'),'unrelated popover is hidden');
+    assert_false(popover.matches(':popover-open'),'popover is not shown if its type changed during show');
+  },`Changing the popover type in a "beforetoggle" event handler should not show the popover (during popovertarget invoking)`);
+
+  test((t) => {
     const popover = createPopover(t);
     popover.setAttribute('popover','auto');
     const other_popover = createPopover(t);

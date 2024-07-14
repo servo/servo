@@ -11,6 +11,7 @@ attribution_reporting_promise_test(async t => {
   registerAttributionSrcByImg(createRedirectChain([
     {
       trigger: {
+        event_trigger_data: [{}],
         aggregatable_debug_reporting: {
           key_piece: '0x5',
           debug_data: [

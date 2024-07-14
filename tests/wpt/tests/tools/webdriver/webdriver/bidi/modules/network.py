@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Union
 
 from ._module import BidiModule, command
@@ -6,6 +7,11 @@ from ._module import BidiModule, command
 class AuthCredentials(Dict[str, Any]):
     def __init__(self, username: str, password: str):
         dict.__init__(self, type="password", username=username, password=password)
+
+
+class CacheBehavior(Enum):
+    BYPASS = "bypass"
+    DEFAULT = "default"
 
 
 class NetworkBase64Value(Dict[str, Any]):
@@ -243,10 +249,11 @@ class Network(BidiModule):
         return params
 
     @command
-    def set_cache_bypass(
-        self, bypass: bool, contexts: Optional[List[str]] = None
-    ) -> Mapping[str, Any]:
-        params: MutableMapping[str, Any] = {"bypass": bypass}
+    def set_cache_behavior(
+            self,
+            cache_behavior: CacheBehavior,
+            contexts: Optional[List[str]] = None) -> Mapping[str, Any]:
+        params: MutableMapping[str, Any] = {"cacheBehavior": cache_behavior}
 
         if contexts is not None:
             params["contexts"] = contexts

@@ -2,6 +2,19 @@
 // META: script=/webcodecs/videoFrame-utils.js
 // META: script=/webcodecs/video-encoder-utils.js
 
+const smpte170m = {
+  matrix: 'smpte170m',
+  primaries: 'smpte170m',
+  transfer: 'smpte170m',
+  fullRange: false
+};
+const bt709 = {
+  matrix: 'bt709',
+  primaries: 'bt709',
+  transfer: 'bt709',
+  fullRange: false
+};
+
 function compareColors(actual, expected, tolerance, msg) {
   let channel = ['R', 'G', 'B', 'A'];
   for (let i = 0; i < 4; i++) {
@@ -24,7 +37,7 @@ function rgb2yuv(r, g, b) {
   }
 }
 
-function makeI420Frames() {
+function makeI420Frames(colorSpace) {
   const kYellow = {r: 0xFF, g: 0xFF, b: 0x00};
   const kRed = {r: 0xFF, g: 0x00, b: 0x00};
   const kBlue = {r: 0x00, g: 0x00, b: 0xFF};
@@ -33,68 +46,39 @@ function makeI420Frames() {
   const kMagenta = {r: 0xFF, g: 0x00, b: 0xFF};
   const kBlack = {r: 0x00, g: 0x00, b: 0x00};
   const kWhite = {r: 0xFF, g: 0xFF, b: 0xFF};
-  const smpte170m = {
-    matrix: 'smpte170m',
-    primaries: 'smpte170m',
-    transfer: 'smpte170m',
-    fullRange: false
-  };
-  const bt709 = {
-    matrix: 'bt709',
-    primaries: 'bt709',
-    transfer: 'bt709',
-    fullRange: false
-  };
 
   const result = [];
   const init = {format: 'I420', timestamp: 0, codedWidth: 4, codedHeight: 4};
   const colors =
       [kYellow, kRed, kBlue, kGreen, kMagenta, kBlack, kWhite, kPink];
   const data = new Uint8Array(24);
-  for (let colorSpace of [null, smpte170m, bt709]) {
-    init.colorSpace = colorSpace;
+  init.colorSpace = colorSpace;
+  for (let color of colors) {
+    color = rgb2yuv(color.r, color.g, color.b);
+    data.fill(color.y, 0, 16);
+    data.fill(color.u, 16, 20);
+    data.fill(color.v, 20, 24);
     result.push(new VideoFrame(data, init));
-    for (let color of colors) {
-      color = rgb2yuv(color.r, color.g, color.b);
-      data.fill(color.y, 0, 16);
-      data.fill(color.u, 16, 20);
-      data.fill(color.v, 20, 24);
-      result.push(new VideoFrame(data, init));
-    }
   }
   return result;
 }
 
-function makeRGBXFrames() {
+function makeRGBXFrames(colorSpace) {
   const kYellow = 0xFFFF00;
   const kRed = 0xFF0000;
   const kBlue = 0x0000FF;
   const kGreen = 0x00FF00;
   const kBlack = 0x000000;
   const kWhite = 0xFFFFFF;
-  const smpte170m = {
-    matrix: 'smpte170m',
-    primaries: 'smpte170m',
-    transfer: 'smpte170m',
-    fullRange: false
-  };
-  const bt709 = {
-    matrix: 'bt709',
-    primaries: 'bt709',
-    transfer: 'bt709',
-    fullRange: false
-  };
 
   const result = [];
   const init = {format: 'RGBX', timestamp: 0, codedWidth: 4, codedHeight: 4};
   const colors = [kYellow, kRed, kBlue, kGreen, kBlack, kWhite];
   const data = new Uint32Array(16);
-  for (let colorSpace of [null, smpte170m, bt709]) {
-    init.colorSpace = colorSpace;
-    for (let color of colors) {
-      data.fill(color, 0, 16);
-      result.push(new VideoFrame(data, init));
-    }
+  init.colorSpace = colorSpace;
+  for (let color of colors) {
+    data.fill(color, 0, 16);
+    result.push(new VideoFrame(data, init));
   }
   return result;
 }
@@ -156,12 +140,15 @@ async function testFrame(frame, colorSpace, pixelFormat) {
 function test_4x4_I420_frames() {
   for (let colorSpace of ['srgb', 'display-p3']) {
     for (let pixelFormat of ['RGBA', 'RGBX', 'BGRA', 'BGRX']) {
-      promise_test(async t => {
-        for (let frame of makeI420Frames()) {
-          await testFrame(frame, colorSpace, pixelFormat);
-          frame.close();
-        }
-      }, `Convert 4x4 I420 frames to ${pixelFormat} / ${colorSpace}`);
+      for (let frameColorSpace of [null, smpte170m, bt709]) {
+        const frameColorSpaceName = frameColorSpace? frameColorSpace.primaries : "null";
+        promise_test(async t => {
+          for (let frame of makeI420Frames(frameColorSpace)) {
+            await testFrame(frame, colorSpace, pixelFormat);
+            frame.close();
+          }
+        }, `Convert 4x4 ${frameColorSpaceName} I420 frames to ${pixelFormat} / ${colorSpace}`);
+      }
     }
   }
 }
@@ -170,12 +157,15 @@ test_4x4_I420_frames();
 function test_4x4_RGB_frames() {
   for (let colorSpace of ['srgb', 'display-p3']) {
     for (let pixelFormat of ['RGBA', 'RGBX', 'BGRA', 'BGRX']) {
-      promise_test(async t => {
-        for (let frame of makeRGBXFrames()) {
-          await testFrame(frame, colorSpace, pixelFormat);
-          frame.close();
-        }
-      }, `Convert 4x4 RGBX frames to ${pixelFormat} / ${colorSpace}`);
+      for (let frameColorSpace of [null, smpte170m, bt709]) {
+        const frameColorSpaceName = frameColorSpace? frameColorSpace.primaries : "null";
+        promise_test(async t => {
+          for (let frame of makeRGBXFrames(frameColorSpace)) {
+            await testFrame(frame, colorSpace, pixelFormat);
+            frame.close();
+          }
+        }, `Convert 4x4 ${frameColorSpaceName} RGBX frames to ${pixelFormat} / ${colorSpace}`);
+      }
     }
   }
 }

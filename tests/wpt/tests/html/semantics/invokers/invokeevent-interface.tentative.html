@@ -14,112 +14,112 @@
 
 <script>
   test(function () {
-    const event = new InvokeEvent("test");
-    assert_equals(event.action, "");
-    assert_readonly(event, "action", "readonly attribute value");
-  }, "action is a readonly defaulting to ''");
+    const event = new CommandEvent("test");
+    assert_equals(event.command, "");
+    assert_readonly(event, "command", "readonly attribute value");
+  }, "command is a readonly defaulting to ''");
 
   test(function () {
-    const event = new InvokeEvent("test");
+    const event = new CommandEvent("test");
     assert_equals(event.invoker, null);
     assert_readonly(event, "invoker", "readonly attribute value");
   }, "invoker is readonly defaulting to null");
 
   test(function () {
-    const event = new InvokeEvent("test", { action: "sAmPle" });
-    assert_equals(event.action, "sAmPle");
-  }, "action reflects initialized attribute");
+    const event = new CommandEvent("test", { command: "sAmPle" });
+    assert_equals(event.command, "sAmPle");
+  }, "command reflects initialized attribute");
 
   test(function () {
-    const event = new InvokeEvent("test", { action: undefined });
-    assert_equals(event.action, "");
-  }, "action set to undefined");
+    const event = new CommandEvent("test", { command: undefined });
+    assert_equals(event.command, "");
+  }, "command set to undefined");
 
   test(function () {
-    const event = new InvokeEvent("test", { action: null });
-    assert_equals(event.action, "null");
-  }, "action set to null");
+    const event = new CommandEvent("test", { command: null });
+    assert_equals(event.command, "null");
+  }, "command set to null");
 
   test(function () {
-    const event = new InvokeEvent("test", { action: false });
-    assert_equals(event.action, "false");
-  }, "action set to false");
+    const event = new CommandEvent("test", { command: false });
+    assert_equals(event.command, "false");
+  }, "command set to false");
 
   test(function () {
-    const event = new InvokeEvent("test", { action: "" });
-    assert_equals(event.action, "");
-  }, "action explicitly set to empty string");
+    const event = new CommandEvent("test", { command: "" });
+    assert_equals(event.command, "");
+  }, "command explicitly set to empty string");
 
   test(function () {
-    const event = new InvokeEvent("test", { action: true });
-    assert_equals(event.action, "true");
-  }, "action set to true");
+    const event = new CommandEvent("test", { command: true });
+    assert_equals(event.command, "true");
+  }, "command set to true");
 
   test(function () {
-    const event = new InvokeEvent("test", { action: 0.5 });
-    assert_equals(event.action, "0.5");
-  }, "action set to a number");
+    const event = new CommandEvent("test", { command: 0.5 });
+    assert_equals(event.command, "0.5");
+  }, "command set to a number");
 
   test(function () {
-    const event = new InvokeEvent("test", { action: [] });
-    assert_equals(event.action, "");
-  }, "action set to []");
+    const event = new CommandEvent("test", { command: [] });
+    assert_equals(event.command, "");
+  }, "command set to []");
 
   test(function () {
-    const event = new InvokeEvent("test", { action: [1, 2, 3] });
-    assert_equals(event.action, "1,2,3");
-  }, "action set to [1, 2, 3]");
+    const event = new CommandEvent("test", { command: [1, 2, 3] });
+    assert_equals(event.command, "1,2,3");
+  }, "command set to [1, 2, 3]");
 
   test(function () {
-    const event = new InvokeEvent("test", { action: { sample: 0.5 } });
-    assert_equals(event.action, "[object Object]");
-  }, "action set to an object");
+    const event = new CommandEvent("test", { command: { sample: 0.5 } });
+    assert_equals(event.command, "[object Object]");
+  }, "command set to an object");
 
   test(function () {
-    const event = new InvokeEvent("test", {
-      action: {
+    const event = new CommandEvent("test", {
+      command: {
         toString() {
           return "sample";
         },
       },
     });
-    assert_equals(event.action, "sample");
-  }, "action set to an object with a toString function");
+    assert_equals(event.command, "sample");
+  }, "command set to an object with a toString function");
 
   test(function () {
-    const eventInit = { action: "sample", invoker: document.body };
-    const event = new InvokeEvent("test", eventInit);
-    assert_equals(event.action, "sample");
+    const eventInit = { command: "sample", invoker: document.body };
+    const event = new CommandEvent("test", eventInit);
+    assert_equals(event.command, "sample");
     assert_equals(event.invoker, document.body);
-  }, "InvokeEventInit properties set value");
+  }, "CommandEventInit properties set value");
 
   test(function () {
     const eventInit = {
-      action: "open",
+      command: "open",
       invoker: document.getElementById("div"),
     };
-    const event = new InvokeEvent("beforetoggle", eventInit);
-    assert_equals(event.action, "open");
+    const event = new CommandEvent("beforetoggle", eventInit);
+    assert_equals(event.command, "open");
     assert_equals(event.invoker, document.getElementById("div"));
-  }, "InvokeEventInit properties set value 2");
+  }, "CommandEventInit properties set value 2");
 
   test(function () {
     const eventInit = {
-      action: "closed",
+      command: "closed",
       invoker: document.getElementById("button"),
     };
-    const event = new InvokeEvent("toggle", eventInit);
-    assert_equals(event.action, "closed");
+    const event = new CommandEvent("toggle", eventInit);
+    assert_equals(event.command, "closed");
     assert_equals(event.invoker, document.getElementById("button"));
-  }, "InvokeEventInit properties set value 3");
+  }, "CommandEventInit properties set value 3");
 
   test(function () {
-    const event = new InvokeEvent("test", { invoker: undefined });
+    const event = new CommandEvent("test", { invoker: undefined });
     assert_equals(event.invoker, null);
   }, "invoker set to undefined");
 
   test(function () {
-    const event = new InvokeEvent("test", { invoker: null });
+    const event = new CommandEvent("test", { invoker: null });
     assert_equals(event.invoker, null);
   }, "invoker set to null");
 
@@ -127,7 +127,7 @@
     assert_throws_js(
       TypeError,
       function () {
-        new InvokeEvent("test", { invoker: false });
+        new CommandEvent("test", { invoker: false });
       },
       "invoker is not an object",
     );
@@ -137,7 +137,7 @@
     assert_throws_js(
       TypeError,
       function () {
-        const event = new InvokeEvent("test", { invoker: true });
+        const event = new CommandEvent("test", { invoker: true });
       },
       "invoker is not an object",
     );
@@ -147,7 +147,7 @@
     assert_throws_js(
       TypeError,
       function () {
-        const event = new InvokeEvent("test", { invoker: {} });
+        const event = new CommandEvent("test", { invoker: {} });
       },
       "invoker is not an object",
     );
@@ -157,8 +157,8 @@
     assert_throws_js(
       TypeError,
       function () {
-        const eventInit = { action: "closed", invoker: new XMLHttpRequest() };
-        const event = new InvokeEvent("toggle", eventInit);
+        const eventInit = { command: "closed", invoker: new XMLHttpRequest() };
+        const event = new CommandEvent("toggle", eventInit);
       },
       "invoker is not an Element",
     );

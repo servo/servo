@@ -13,7 +13,7 @@ window.addEventListener("message", async (e) => {
   const type = (new URLSearchParams(window.location.search)).get("type");
   const id = (new URLSearchParams(window.location.search)).get("id");
   let message = "";
-  // Step 4 (storage-access-api/storage-access-beyond-cookies.{}.tentative.sub.https.html)
+  // Step 4 (storage-access-api/storage-access-beyond-cookies.{}.sub.https.html)
   try {
     await MaybeSetStorageAccess("*", "*", "blocked");
     if (type == "cookies") {
@@ -153,7 +153,7 @@ window.addEventListener("message", async (e) => {
     window.top.postMessage({type: "result", message: message}, "*");
     return;
   }
-  // Step 5 (storage-access-api/storage-access-beyond-cookies.{}.tentative.sub.https.html)
+  // Step 5 (storage-access-api/storage-access-beyond-cookies.{}.sub.https.html)
   let iframe = document.createElement("iframe");
   iframe.src = "https://{{hosts[][]}}:{{ports[https][0]}}/storage-access-api/resources/storage-access-beyond-cookies-iframe-iframe.html?type=" + type + "&id=" + id;
   document.body.appendChild(iframe);

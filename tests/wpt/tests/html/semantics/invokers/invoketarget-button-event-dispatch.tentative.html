@@ -11,79 +11,90 @@
 <script src="resources/invoker-utils.js"></script>
 
 <div id="invokee"></div>
-<button id="invokerbutton" invoketarget="invokee"></button>
+<button id="invokerbutton" commandfor="invokee" command="custom-command"></button>
+<form id="aform"></form>
 
 <script>
+  aform.addEventListener('submit', (e) => (e.preventDefault()));
+
+  function resetState() {
+    invokerbutton.setAttribute("commandfor", "invokee");
+    invokerbutton.setAttribute("command", "custom-command");
+    invokerbutton.removeAttribute("disabled");
+    invokerbutton.removeAttribute("form");
+    invokerbutton.removeAttribute("type");
+  }
+
   promise_test(async function (t) {
     let event = null;
-    invokee.addEventListener("invoke", (e) => (event = e), { once: true });
+    invokee.addEventListener("command", (e) => (event = e), { once: true });
     await clickOn(invokerbutton);
-    assert_true(event instanceof InvokeEvent, "event is InvokeEvent");
-    assert_equals(event.type, "invoke", "type");
+    assert_true(event instanceof CommandEvent, "event is CommandEvent");
+    assert_equals(event.type, "command", "type");
     assert_equals(event.bubbles, false, "bubbles");
     assert_equals(event.composed, true, "composed");
     assert_equals(event.isTrusted, true, "isTrusted");
-    assert_equals(event.action, "", "action");
+    assert_equals(event.command, "custom-command", "command");
     assert_equals(event.target, invokee, "target");
     assert_equals(event.invoker, invokerbutton, "invoker");
   }, "event dispatches on click");
 
   // valid custom invokeactions
   ["-foo", "foo-", "cAsE-cArRiEs", "-", "-a-", "a-b", "---", "show-picker"].forEach(
-    (action) => {
+    (command) => {
       promise_test(async function (t) {
-        t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
+        t.add_cleanup(resetState);
         let event = null;
-        invokee.addEventListener("invoke", (e) => (event = e), { once: true });
-        invokerbutton.invokeAction = action;
+        invokee.addEventListener("command", (e) => (event = e), { once: true });
+        invokerbutton.command = command;
         await clickOn(invokerbutton);
-        assert_true(event instanceof InvokeEvent, "event is InvokeEvent");
-        assert_equals(event.type, "invoke", "type");
+        assert_true(event instanceof CommandEvent, "event is CommandEvent");
+        assert_equals(event.type, "command", "type");
         assert_equals(event.bubbles, false, "bubbles");
         assert_equals(event.composed, true, "composed");
         assert_equals(event.isTrusted, true, "isTrusted");
-        assert_equals(event.action, action, "action");
+        assert_equals(event.command, command, "command");
         assert_equals(event.target, invokee, "target");
         assert_equals(event.invoker, invokerbutton, "invoker");
-      }, `setting custom invokeAction property to ${action} (must include dash) sets event action`);
+      }, `setting custom command property to ${command} (must include dash) sets event command`);
 
       promise_test(async function (t) {
-        t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
+        t.add_cleanup(resetState);
         let event = null;
-        invokee.addEventListener("invoke", (e) => (event = e), { once: true });
-        invokerbutton.setAttribute("invokeaction", action);
+        invokee.addEventListener("command", (e) => (event = e), { once: true });
+        invokerbutton.setAttribute("command", command);
         await clickOn(invokerbutton);
-        assert_true(event instanceof InvokeEvent, "event is InvokeEvent");
-        assert_equals(event.type, "invoke", "type");
+        assert_true(event instanceof CommandEvent, "event is CommandEvent");
+        assert_equals(event.type, "command", "type");
         assert_equals(event.bubbles, false, "bubbles");
         assert_equals(event.composed, true, "composed");
         assert_equals(event.isTrusted, true, "isTrusted");
-        assert_equals(event.action, action, "action");
+        assert_equals(event.command, command, "command");
         assert_equals(event.target, invokee, "target");
         assert_equals(event.invoker, invokerbutton, "invoker");
-      }, `setting custom invokeaction attribute to ${action} (must include dash) sets event action`);
+      }, `setting custom command attribute to ${command} (must include dash) sets event command`);
     },
   );
 
   // invalid custom invokeactions
-  ["foo", "foobar", "foo bar", "em—dash", "hidedocument"].forEach((action) => {
+  ["foo", "foobar", "foo bar", "em—dash", "hidedocument"].forEach((command) => {
     promise_test(async function (t) {
-      t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
+      t.add_cleanup(resetState);
       let event = null;
-      invokee.addEventListener("invoke", (e) => (event = e), { once: true });
-      invokerbutton.invokeAction = action;
+      invokee.addEventListener("command", (e) => (event = e), { once: true });
+      invokerbutton.command = command;
       await clickOn(invokerbutton);
       assert_equals(event, null, "event should not have fired");
-    }, `setting custom invokeAction property to ${action} (no dash) did not dispatch an event`);
+    }, `setting custom command property to ${command} (no dash) did not dispatch an event`);
 
     promise_test(async function (t) {
-      t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
+      t.add_cleanup(resetState);
       let event = null;
-      invokee.addEventListener("invoke", (e) => (event = e), { once: true });
-      invokerbutton.setAttribute("invokeaction", action);
+      invokee.addEventListener("command", (e) => (event = e), { once: true });
+      invokerbutton.setAttribute("command", command);
       await clickOn(invokerbutton);
       assert_equals(event, null, "event should not have fired");
-    }, `setting custom invokeaction attribute to ${action} (no dash) did not dispatch an event`);
+    }, `setting custom command attribute to ${command} (no dash) did not dispatch an event`);
   });
 
   promise_test(async function (t) {
@@ -96,7 +107,7 @@
       { once: true },
     );
     invokee.addEventListener(
-      "invoke",
+      "command",
       (event) => {
         called = true;
       },
@@ -107,52 +118,49 @@
   }, "event does not dispatch if click:preventDefault is called");
 
   promise_test(async function (t) {
-    t.add_cleanup(() => invokerbutton.removeAttribute("disabled"));
+    t.add_cleanup(resetState);
     let called = false;
-    invokee.addEventListener(
-      "invoke",
-      (event) => {
-        called = true;
-      },
-      { once: true },
-    );
+    invokee.addEventListener("command", (e) => (called = true), { once: true });
     invokerbutton.setAttribute("disabled", "");
     await clickOn(invokerbutton);
     assert_false(called, "event was not called");
   }, "event does not dispatch if invoker is disabled");
 
   promise_test(async function (t) {
-    svgInvokee = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    t.add_cleanup(() => {
-      invokerbutton.invokeTargetElement = invokee;
-      svgInvokee.remove();
-    });
-    document.body.append(svgInvokee);
+    t.add_cleanup(resetState);
     let called = false;
+    invokee.addEventListener("command", (e) => (called = true), { once: true });
+    invokerbutton.setAttribute("form", "aform");
+    await clickOn(invokerbutton);
+    assert_false(called, "event was not called");
+  }, "event does not dispatch if invoker is form associated without `type`");
+
+  promise_test(async function (t) {
+    t.add_cleanup(resetState);
+    let called = false;
+    invokee.addEventListener("command", (e) => (called = true), { once: true });
+    invokerbutton.setAttribute("form", "aform");
+    invokerbutton.setAttribute("type", "button");
+    await clickOn(invokerbutton);
+    assert_true(called, "event was not called");
+  }, "event dispatches if invoker is form associated with `type=button`");
+
+  promise_test(async function (t) {
+    svgInvokee = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svgInvokee.setAttribute("id", "svg-invokee");
+    t.add_cleanup(resetState);
+    document.body.append(svgInvokee);
     assert_false(svgInvokee instanceof HTMLElement);
     assert_true(svgInvokee instanceof Element);
-    let eventInvoker = null;
-    svgInvokee.addEventListener(
-      "invoke",
-      (event) => {
-        eventInvoker = event.invoker;
-        eventTarget = event.target;
-        called = true;
-      },
-      { once: true },
-    );
-    invokerbutton.invokeTargetElement = svgInvokee;
+    let event = null;
+    svgInvokee.addEventListener("command", (e) => (event = e), { once: true });
+    invokerbutton.setAttribute("commandfor", "svg-invokee");
+    invokerbutton.setAttribute("command", "custom-command");
+    assert_equals(invokerbutton.commandForElement, svgInvokee);
     await clickOn(invokerbutton);
-    assert_true(called, "event was called");
-    assert_equals(
-      eventInvoker,
-      invokerbutton,
-      "event.invoker is set to right element",
-    );
-    assert_equals(
-      eventTarget,
-      svgInvokee,
-      "event.target is set to right element",
-    );
+    assert_not_equals(event, null, "event was called");
+    assert_true(event instanceof CommandEvent, "event is CommandEvent");
+    assert_equals(event.invoker, invokerbutton, "event.invoker is set to right element");
+    assert_equals(event.target, svgInvokee, "event.target is set to right element");
   }, "event dispatches if invokee is non-HTML Element");
 </script>

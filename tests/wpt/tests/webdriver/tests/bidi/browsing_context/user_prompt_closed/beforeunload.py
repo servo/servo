@@ -9,7 +9,7 @@ USER_PROMPT_CLOSED_EVENT = "browsingContext.userPromptClosed"
 USER_PROMPT_OPENED_EVENT = "browsingContext.userPromptOpened"
 
 
-@pytest.mark.capabilities({"unhandledPromptBehavior": {'default': 'ignore'}})
+@pytest.mark.capabilities({"unhandledPromptBehavior": {'beforeUnload': 'ignore'}})
 @pytest.mark.parametrize("accept", [False, True])
 async def test_beforeunload(
     bidi_session,

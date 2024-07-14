@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/intersection-observer-test-utils.js"></script>
+
+<style>
+body, html {
+  margin: 0;
+}
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+#reflect {
+  width: 100px;
+  height: 100px;
+  background-color: hotpink;
+  -webkit-box-reflect: below 10px;
+  margin: 10px 0;
+}
+</style>
+
+<div id="reflect"></div>
+<div id="target">Hello, world!</div>
+
+<script>
+var delay = 100;
+var entries = [];
+var target;
+var supported = CSS.supports("-webkit-box-reflect", "below 10px");
+
+runTestCycle(function() {
+  target = document.getElementById("target");
+  assert_true(!!target, "target exists");
+  let observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes)
+  }, {trackVisibility: true, delay: delay});
+  observer.observe(target);
+  entries = entries.concat(observer.takeRecords());
+  assert_equals(entries.length, 0, "No initial notifications.");
+  runTestCycle(step0, "First rAF.", delay);
+}, "IntersectionObserverV2 detects occlusion from -webkit-box-reflect (if supported).", delay);
+
+function step0() {
+  assert_equals(entries.length, 1, "Initial notification.");
+  assert_equals(entries[0].isVisible, !supported, "Occluded if -webkit-box-reflect is supported.");
+}
+</script>

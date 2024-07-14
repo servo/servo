@@ -15,86 +15,103 @@ const kExampleInputDescriptor = {
 
 const tests = [
   {
-    name:
-        '[where] Throw if the condition data type is not uint8.',
+    name: '[where] Throw if the condition data type is not uint8.',
     condition: {dataType: 'float32', dimensions: [2, 4]},
-    input: {dataType: 'float32', dimensions: [2, 4]},
-    other: {dataType: 'float32', dimensions: [2, 4]},
+    trueValue: {dataType: 'float32', dimensions: [2, 4]},
+    falseValue: {dataType: 'float32', dimensions: [2, 4]},
   },
   {
     name:
-        '[where] Throw if the data types of input and other do not match',
+        '[where] Throw if the data types of trueValue and falseValue do not match',
     condition: {dataType: 'uint8', dimensions: [2, 4]},
-    input: {dataType: 'float16', dimensions: [2, 4]},
-    other: {dataType: 'float32', dimensions: [2, 4]},
+    trueValue: {dataType: 'float16', dimensions: [2, 4]},
+    falseValue: {dataType: 'float32', dimensions: [2, 4]},
   },
   {
     name:
-        '[where] Throw if the shapes of input and other are not broadcastable',
+        '[where] Throw if the shapes of trueValue and falseValue are not broadcastable',
     condition: {dataType: 'uint8', dimensions: [2, 4]},
-    input: {dataType: 'float32', dimensions: [2, 4]},
-    other: {dataType: 'float32', dimensions: [2, 3]},
+    trueValue: {dataType: 'float32', dimensions: [2, 4]},
+    falseValue: {dataType: 'float32', dimensions: [2, 3]},
   },
   {
-    name:
-        '[where] Throw if the condition shape is not broadcastable',
+    name: '[where] Throw if the condition shape is not broadcastable',
     condition: {dataType: 'uint8', dimensions: [2, 4]},
-    input: {dataType: 'float32', dimensions: [2, 3]},
-    other: {dataType: 'float32', dimensions: [2, 1]},
+    trueValue: {dataType: 'float32', dimensions: [2, 3]},
+    falseValue: {dataType: 'float32', dimensions: [2, 1]},
   },
   {
     name:
-        '[where] Test building where with 2-D condition, 2-D input and 2-D other using broadcast',
+        '[where] Test building where with 2-D condition, 2-D trueValue and 2-D falseValue using broadcast',
     condition: {dataType: 'uint8', dimensions: [2, 1]},
-    input: {dataType: 'float32', dimensions: [2, 4]},
-    other: {dataType: 'float32', dimensions: [2, 4]},
+    trueValue: {dataType: 'float32', dimensions: [2, 4]},
+    falseValue: {dataType: 'float32', dimensions: [2, 4]},
     output: {dataType: 'float32', dimensions: [2, 4]},
   },
   {
     name:
-        '[where] Test building where with 2-D condition, 2-D input and 3-D other using broadcast',
+        '[where] Test building where with 2-D condition, 2-D trueValue and 3-D falseValue using broadcast',
     condition: {dataType: 'uint8', dimensions: [1, 4]},
-    input: {dataType: 'float32', dimensions: [3, 4]},
-    other: {dataType: 'float32', dimensions: [2, 3, 4]},
-    output: {dataType: 'float32', dimensions: [2, 3, 4]},
+    trueValue: {dataType: 'float16', dimensions: [3, 4]},
+    falseValue: {dataType: 'float16', dimensions: [2, 3, 4]},
+    output: {dataType: 'float16', dimensions: [2, 3, 4]},
   },
   {
     name:
-        '[where] Test building where with 3-D condition, 3-D input and 2-D other using broadcast',
+        '[where] Test building where with 3-D condition, 3-D trueValue and 2-D falseValue using broadcast',
     condition: {dataType: 'uint8', dimensions: [2, 1, 4]},
-    input: {dataType: 'float32', dimensions: [2, 3, 4]},
-    other: {dataType: 'float32', dimensions: [1, 4]},
-    output: {dataType: 'float32', dimensions: [2, 3, 4]},
+    trueValue: {dataType: 'int32', dimensions: [2, 3, 4]},
+    falseValue: {dataType: 'int32', dimensions: [1, 4]},
+    output: {dataType: 'int32', dimensions: [2, 3, 4]},
   },
   {
     name:
-        '[where] Test building where with 4-D condition, 3-D input and 2-D other using broadcast',
+        '[where] Test building where with 4-D condition, 3-D trueValue and 2-D falseValue using broadcast',
     condition: {dataType: 'uint8', dimensions: [2, 3, 4, 5]},
-    input: {dataType: 'float32', dimensions: [3, 4, 5]},
-    other: {dataType: 'float32', dimensions: [4, 5]},
-    output: {dataType: 'float32', dimensions: [2, 3, 4, 5]},
+    trueValue: {dataType: 'uint32', dimensions: [3, 4, 5]},
+    falseValue: {dataType: 'uint32', dimensions: [4, 5]},
+    output: {dataType: 'uint32', dimensions: [2, 3, 4, 5]},
   }
 ];
 
 tests.forEach(
     test => promise_test(async t => {
+      for (let operand of [test.condition, test.trueValue, test.falseValue]) {
+        if (!context.opSupportLimits().input.dataTypes.includes(
+                operand.dataType)) {
+          assert_throws_js(TypeError, () => builder.input('input', {
+            dataType: operand.dataType,
+            dimensions: operand.dimensions
+          }));
+          return;
+        }
+      }
+
       const condition = builder.input('condition', {
         dataType: test.condition.dataType,
         dimensions: test.condition.dimensions
       });
-      const input = builder.input(
-          'input',
-          {dataType: test.input.dataType, dimensions: test.input.dimensions});
-      const other = builder.input(
-          'other',
-          {dataType: test.other.dataType, dimensions: test.other.dimensions});
-      if (test.output) {
-        const output = builder.where(condition, input, other);
+      const trueValue = builder.input('trueValue', {
+        dataType: test.trueValue.dataType,
+        dimensions: test.trueValue.dimensions
+      });
+      const falseValue = builder.input('falseValue', {
+        dataType: test.falseValue.dataType,
+        dimensions: test.falseValue.dimensions
+      });
+      if (test.output &&
+          context.opSupportLimits().where.condition.dataTypes.includes(
+              test.condition.dataType) &&
+          context.opSupportLimits().where.trueValue.dataTypes.includes(
+              test.trueValue.dataType) &&
+          context.opSupportLimits().where.falseValue.dataTypes.includes(
+              test.falseValue.dataType)) {
+        const output = builder.where(condition, trueValue, falseValue);
         assert_equals(output.dataType(), test.output.dataType);
         assert_array_equals(output.shape(), test.output.dimensions);
       } else {
         assert_throws_js(
-            TypeError, () => builder.where(condition, input, other));
+            TypeError, () => builder.where(condition, trueValue, falseValue));
       }
     }, test.name));
 
@@ -102,28 +119,31 @@ multi_builder_test(async (t, builder, otherBuilder) => {
   const conditionFromOtherBuilder =
       otherBuilder.input('condition', kExampleConditionDescriptor);
 
-  const input = builder.input('input', kExampleInputDescriptor);
-  const other = builder.input('other', kExampleInputDescriptor);
+  const trueValue = builder.input('trueValue', kExampleInputDescriptor);
+  const falseValue = builder.input('falseValue', kExampleInputDescriptor);
   assert_throws_js(
-      TypeError, () => builder.where(conditionFromOtherBuilder, input, other));
+      TypeError,
+      () => builder.where(conditionFromOtherBuilder, trueValue, falseValue));
 }, '[where] throw if condition is from another builder');
 
 multi_builder_test(async (t, builder, otherBuilder) => {
-  const inputFromOtherBuilder =
-      otherBuilder.input('input', kExampleInputDescriptor);
+  const trueValueFromOtherBuilder =
+      otherBuilder.input('trueValue', kExampleInputDescriptor);
 
   const condition = builder.input('condition', kExampleConditionDescriptor);
-  const other = builder.input('other', kExampleInputDescriptor);
+  const falseValue = builder.input('falseValue', kExampleInputDescriptor);
   assert_throws_js(
-      TypeError, () => builder.where(condition, inputFromOtherBuilder, other));
-}, '[where] throw if input is from another builder');
+      TypeError,
+      () => builder.where(condition, trueValueFromOtherBuilder, falseValue));
+}, '[where] throw if trueValue is from another builder');
 
 multi_builder_test(async (t, builder, otherBuilder) => {
-  const otherFromOtherBuilder =
-      otherBuilder.input('other', kExampleInputDescriptor);
+  const falseValueFromOtherBuilder =
+      otherBuilder.input('falseValue', kExampleInputDescriptor);
 
   const condition = builder.input('condition', kExampleConditionDescriptor);
-  const input = builder.input('input', kExampleInputDescriptor);
+  const trueValue = builder.input('trueValue', kExampleInputDescriptor);
   assert_throws_js(
-      TypeError, () => builder.where(condition, input, otherFromOtherBuilder));
-}, '[where] throw if other is from another builder');
+      TypeError,
+      () => builder.where(condition, trueValue, falseValueFromOtherBuilder));
+}, '[where] throw if falseValue is from another builder');
