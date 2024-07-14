@@ -35,7 +35,7 @@ use metrics::{
 };
 use mime::{self, Mime};
 use net_traits::pub_domains::is_pub_domain;
-use net_traits::request::{Environment, RequestBuilder};
+use net_traits::request::RequestBuilder;
 use net_traits::response::HttpsState;
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
@@ -2090,23 +2090,13 @@ impl Document {
         }
     }
 
-    pub fn settings_object(&self) -> Environment {
-        let global_scope = self.window.upcast::<GlobalScope>();
-
-        Environment::new(
-            global_scope.get_url(),
-            self.base_url(),
-            global_scope.origin().immutable().clone(),
-        )
-    }
-
     pub fn fetch_async(
         &self,
         load: LoadType,
         mut request: RequestBuilder,
         fetch_target: IpcSender<FetchResponseMsg>,
     ) {
-        request.client = Some(self.settings_object());
+        request.client = Some(self.global().environment_settings_object());
         request.csp_list = self.get_csp_list().map(|x| x.clone());
 
         request.https_state = self.https_state.get();

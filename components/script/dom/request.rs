@@ -152,7 +152,7 @@ impl Request {
         request.headers = temporary_request.headers.clone();
         request.unsafe_request = true;
         request.window = window;
-        // TODO: `entry settings object` is not implemented in Servo yet.
+        request.client = Some(global.environment_settings_object());
         request.origin = Origin::Client;
         request.referrer = temporary_request.referrer;
         request.referrer_policy = temporary_request.referrer_policy;

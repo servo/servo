@@ -25,7 +25,9 @@ use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, PendingImageId,
     PendingImageResponse, UsePlaceholder,
 };
-use net_traits::request::{CorsSettings, Destination, Initiator, Referrer, RequestBuilder};
+use net_traits::request::{
+    CorsSettings, Destination, EnvironmentSettingsObject, Initiator, Referrer, RequestBuilder,
+};
 use net_traits::{
     FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError, ReferrerPolicy,
     ResourceFetchTiming, ResourceTimingType,
@@ -319,15 +321,22 @@ pub(crate) fn image_fetch_request(
     cors_setting: Option<CorsSettings>,
     referrer_policy: Option<ReferrerPolicy>,
     from_picture_or_srcset: FromPictureOrSrcSet,
+    environment_settings_object: Option<EnvironmentSettingsObject>,
 ) -> RequestBuilder {
     let mut request =
         create_a_potential_cors_request(img_url, Destination::Image, cors_setting, None, referrer)
             .origin(origin)
             .pipeline_id(Some(pipeline_id))
             .referrer_policy(referrer_policy);
+
+    // Step 20: Set request's client to the element's node document's relevant settings object.
+    request.client = environment_settings_object;
+
+    // Step 21: If the element uses srcset or picture, set request's initiator to "imageset".
     if from_picture_or_srcset == FromPictureOrSrcSet::Yes {
         request = request.initiator(Initiator::ImageSet);
     }
+
     request
 }
 
@@ -410,6 +419,7 @@ impl HTMLImageElement {
             } else {
                 FromPictureOrSrcSet::No
             },
+            Some(document.global().environment_settings_object()),
         );
 
         // This is a background load because the load blocker already fulfills the

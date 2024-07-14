@@ -132,6 +132,7 @@ impl TokenSink for PrefetchSink {
                         self.get_cors_settings(tag, local_name!("crossorigin")),
                         self.get_referrer_policy(tag, local_name!("referrerpolicy")),
                         FromPictureOrSrcSet::No,
+                        None,
                     );
                     let _ = self
                         .resource_threads

@@ -22,7 +22,8 @@ use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
 use js::rust::{transform_str_to_source_text, CompileOptionsWrapper, HandleObject, Stencil};
 use net_traits::request::{
-    CorsSettings, CredentialsMode, Destination, ParserMetadata, RequestBuilder,
+    CorsSettings, CredentialsMode, Destination, EnvironmentSettingsObject, ParserMetadata,
+    RequestBuilder,
 };
 use net_traits::{
     FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
@@ -526,6 +527,7 @@ fn fetch_a_classic_script(
     cors_setting: Option<CorsSettings>,
     options: ScriptFetchOptions,
     character_encoding: &'static Encoding,
+    environment_settings_object: EnvironmentSettingsObject,
 ) {
     let doc = document_from_node(script);
 
@@ -538,7 +540,8 @@ fn fetch_a_classic_script(
         options.clone(),
     );
 
-    request.client = Some(doc.settings_object());
+    // Step 2: Set request's client to settingsObject.
+    request.client = Some(environment_settings_object);
 
     // TODO: Step 3, Add custom steps to perform fetch
 
@@ -721,7 +724,8 @@ impl HTMLScriptElement {
             credentials_mode: module_credentials_mode,
         };
 
-        // TODO: Step 23: environment settings object.
+        // Step 30. Let settings object be el's node document's relevant settings object.
+        let environment_settings_object = doc.global().environment_settings_object();
 
         let base_url = doc.base_url();
         if let Some(src) = element.get_attribute(&ns!(), &local_name!("src")) {
@@ -770,7 +774,15 @@ impl HTMLScriptElement {
                     };
 
                     // Step 24.6.
-                    fetch_a_classic_script(self, kind, url, cors_setting, options, encoding);
+                    fetch_a_classic_script(
+                        self,
+                        kind,
+                        url,
+                        cors_setting,
+                        options,
+                        encoding,
+                        environment_settings_object,
+                    );
 
                     // Step 23.
                     match kind {

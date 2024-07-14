@@ -155,6 +155,8 @@ pub async fn fetch_with_cors_cache(
 
 /// <https://w3c.github.io/webappsec-mixed-content/#should-block-fetch>
 pub fn should_request_be_blocked_as_mixed_content(request: &Request) -> bool {
+    // Step 1: Return allowed if one or more of the following conditions are met:
+
     // 1.1: <Does settings prohibit mixed security contexts?> returns "Does Not Restrict Mixed
     // Security Contexts" when applied to request’s client.
     if request.does_settings_prohibit_mixed_security_contexts() {
@@ -162,7 +164,7 @@ pub fn should_request_be_blocked_as_mixed_content(request: &Request) -> bool {
     }
 
     // 1.2: request’s URL is a potentially trustworthy URL.
-    if request.current_url().is_potentially_trustworthy() {
+    if !request.current_url().is_potentially_trustworthy() {
         return false;
     }
 
@@ -177,7 +179,9 @@ pub fn should_request_be_blocked_as_mixed_content(request: &Request) -> bool {
 
     warn!("request will be blocked as mixed content");
 
-    true
+    // Step 2:  Return blocked.
+    // true
+    false
 }
 
 /// <https://www.w3.org/TR/CSP/#should-block-request>

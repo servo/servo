@@ -44,6 +44,9 @@ impl Origin {
         matches!(self, Origin::Origin(ImmutableOrigin::Opaque(_)))
     }
 
+    /// Returns false when the origin is considered "Not Trustworthy", and true when the origin is
+    /// evaluated as "Potentially Trustworthy" according to the spec:
+    ///
     /// https://w3c.github.io/webappsec-secure-contexts/#potentially-trustworthy-origin
     pub fn is_potentially_trustworthy(&self) -> bool {
         // 1: If origin is an opaque origin, return "Not Trustworthy".
@@ -64,26 +67,26 @@ impl Origin {
 
         // 4: If origin’s host matches one of the CIDR notations 127.0.0.0/8 or ::1/128 [RFC4632],
         // return "Potentially Trustworthy".
-        if let Some(host) = self.host() {
-            let stringified_host = host.to_string();
-
-            warn!("stringified_host: {:?}", stringified_host);
-
-            if matches!(stringified_host.as_str(), "127.0.0.0/8" | "::1/128") {
-                return true;
-            }
+        if self.host_is_loopback() {
+            return true;
         }
 
         // 5: If the user agent conforms to the name resolution rules in [let-localhost-be-localhost]
         // and one of the following is true:
         // 5.1: origin’s host is "localhost" or "localhost."
-
         // 5.2: origin’s host ends with ".localhost" or ".localhost."
+        if self.host_is_localhost() {
+            return true;
+        }
 
         // 7: If origin’s scheme component is one which the user agent considers to be authenticated,
         // return "Potentially Trustworthy".
+        // Unimplemented: This refers to 'app:'-type schemes, see
+        // https://w3c.github.io/webappsec-secure-contexts/#packaged-applications
 
         // 8: If origin has been configured as a trustworthy origin, return "Potentially Trustworthy".
+        // Unimplemented: This refers to users configuring specific domains as trustworthy. See
+        // https://w3c.github.io/webappsec-secure-contexts/#development-environments
 
         // 9: Return "Not Trustworthy".
         false
@@ -109,6 +112,27 @@ impl Origin {
             Origin::Origin(origin) if origin.is_tuple() => origin.host(),
             _ => None,
         }
+    }
+
+    fn host_is_loopback(&self) -> bool {
+        match self.host() {
+            Some(Host::Ipv4(address)) => address.is_loopback(),
+            Some(Host::Ipv6(address)) => address.is_loopback(),
+            _ => false,
+        }
+    }
+
+    fn host_is_localhost(&self) -> bool {
+        self.host().map_or(false, |host| match host {
+            Host::Domain(domain) => {
+                let stringified_domain = domain.as_str();
+
+                return matches!(stringified_domain, "localhost" | "localhost.") ||
+                    stringified_domain.ends_with(".localhost") ||
+                    stringified_domain.ends_with(".localhost.");
+            },
+            _ => false,
+        })
     }
 
     fn scheme(&self) -> Option<&str> {
@@ -243,35 +267,22 @@ pub enum BodyChunkRequest {
     Error,
 }
 
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
-pub struct Environment {
-    id: String,
-    creation_url: ServoUrl,
-    settings: EnvironmentSettingsObject,
-}
-
-impl Environment {
-    pub fn new(
-        creation_url: ServoUrl,
-        api_base_url: ServoUrl,
-        origin: ImmutableOrigin,
-    ) -> Environment {
-        Environment {
-            id: String::from(""),
-            creation_url,
-            settings: EnvironmentSettingsObject {
-                api_base_url,
-                origin: Origin::Origin(origin),
-            },
-        }
-    }
-}
-
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+/// Note: This is only a partial implementation of of the environment settings object. There
+/// are additional properties provided directly to the request which are candidates to be
+/// moved into this struct, in addition to other properties which are yet to be implemented.
+///
 /// <https://html.spec.whatwg.org/multipage/#environment-settings-object>
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub struct EnvironmentSettingsObject {
-    api_base_url: ServoUrl,
+    /// An origin used in security checks. This should correspond to the origin of the global object
+    /// that initiates assocaiated request.
     origin: Origin,
+}
+
+impl EnvironmentSettingsObject {
+    pub fn new(origin: Origin) -> EnvironmentSettingsObject {
+        EnvironmentSettingsObject { origin }
+    }
 }
 
 /// The net component's view into <https://fetch.spec.whatwg.org/#bodies>
@@ -341,7 +352,7 @@ pub struct RequestBuilder {
     )]
     #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
-    pub client: Option<Environment>,
+    pub client: Option<EnvironmentSettingsObject>,
     pub unsafe_request: bool,
     pub body: Option<RequestBody>,
     pub service_workers_mode: ServiceWorkersMode,
@@ -413,7 +424,7 @@ impl RequestBuilder {
         self
     }
 
-    pub fn client(mut self, environment: Environment) -> RequestBuilder {
+    pub fn client(mut self, environment: EnvironmentSettingsObject) -> RequestBuilder {
         self.client = Some(environment);
         self
     }
@@ -570,7 +581,7 @@ pub struct Request {
     /// <https://fetch.spec.whatwg.org/#concept-request-body>
     pub body: Option<RequestBody>,
     /// <https://fetch.spec.whatwg.org/#concept-request-client>
-    pub client: Option<Environment>,
+    pub client: Option<EnvironmentSettingsObject>,
     /// <https://fetch.spec.whatwg.org/#concept-request-window>
     pub window: Window,
     // TODO: target browsing context
@@ -719,18 +730,21 @@ impl Request {
         if let Some(environment) = &self.client {
             // 1: If settings’ origin is a potentially trustworthy origin, then return
             // "Prohibits Mixed Security Contexts".
-            if environment.settings.origin.is_potentially_trustworthy() {
+            if environment.origin.is_potentially_trustworthy() {
                 return true;
             }
 
-            // if let Some(host) = environment.settings.origin.host() {
-            //     return true;
-            // }
+            // 2: If settings’ global object is a window, then:
+            // 2.1: Set document to settings’ global object's associated Document.
+            // 2.2: For each navigable navigable in document’s ancestor navigables:
+            // 2.2.1: If navigable’s active document's origin is a potentially trustworthy origin,
+            // then return "Prohibits Mixed Security Contexts".
+            // TODO
         } else {
             warn!("does_settings_prohibit_mixed_security_contexts: No Environment to check")
         }
 
-        return false;
+        false
     }
 }
 

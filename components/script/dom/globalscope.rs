@@ -45,7 +45,7 @@ use net_traits::filemanager_thread::{
     FileManagerResult, FileManagerThreadMsg, ReadFileProgress, RelativePos,
 };
 use net_traits::image_cache::ImageCache;
-use net_traits::request::Referrer;
+use net_traits::request::{EnvironmentSettingsObject, Origin, Referrer};
 use net_traits::response::HttpsState;
 use net_traits::{CoreResourceMsg, CoreResourceThread, IpcSend, ResourceThreads};
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
@@ -350,6 +350,16 @@ pub struct GlobalScope {
 
     /// Is considered in a secure context
     inherited_secure_context: Option<bool>,
+
+    /// The environment settings object, which is accessed when making requests to perform certain
+    /// security checks.
+    ///
+    /// There is always a 1-to-1-to-1 mapping between realms, global objects, and environment
+    /// settings objects
+    ///
+    /// <https://html.spec.whatwg.org/multipage/#environment-settings-object>
+    #[no_trace]
+    environment_settings_object: EnvironmentSettingsObject,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -792,7 +802,7 @@ impl GlobalScope {
             resource_threads,
             timers: OneshotTimers::new(scheduler_chan),
             init_timers: Default::default(),
-            origin,
+            origin: origin.clone(),
             creation_url,
             permission_state_invocation_results: Default::default(),
             microtask_queue,
@@ -810,6 +820,9 @@ impl GlobalScope {
             console_count_map: Default::default(),
             dynamic_modules: DomRefCell::new(DynamicModuleList::new()),
             inherited_secure_context,
+            environment_settings_object: EnvironmentSettingsObject::new(Origin::Origin(
+                origin.immutable().clone(),
+            )),
         }
     }
 
@@ -3318,6 +3331,10 @@ impl GlobalScope {
                 &self.task_canceller(TaskSourceName::Gamepad),
             )
             .expect("Failed to queue update gamepad state task.");
+    }
+
+    pub fn environment_settings_object(&self) -> EnvironmentSettingsObject {
+        self.environment_settings_object.clone()
     }
 
     pub(crate) fn current_group_label(&self) -> Option<DOMString> {
