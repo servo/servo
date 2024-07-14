@@ -320,20 +320,25 @@ where
         }
     }
 
-    fn stop_haptic_effect(&mut self, index: usize) {
+    fn stop_haptic_effect(&mut self, index: usize) -> bool {
         let Some(ref effect) = self.haptic_effects[index] else {
-            return;
+            return false;
         };
 
-        effect.stop().expect("Failed to stop haptic effect.");
+        let stopped_successfully = match effect.stop() {
+            Ok(()) => true,
+            Err(e) => {
+                debug!("Failed to stop haptic effect: {:?}", e);
+                false
+            },
+        };
         self.haptic_effects.as_mut_slice()[index] = None;
 
         if self.haptic_effects.iter().all(Option::is_none) {
             self.haptic_effects.clear();
         }
 
-        let event = GamepadEvent::HapticEffectStopped(GamepadIndex(index));
-        self.event_queue.push(EmbedderEvent::Gamepad(event));
+        stopped_successfully
     }
 
     pub fn shutdown_requested(&self) -> bool {
@@ -827,7 +832,12 @@ where
                         self.play_haptic_effect(index, params)
                     },
                 },
-                EmbedderMsg::StopGamepadHapticEffect(index) => self.stop_haptic_effect(index),
+                EmbedderMsg::StopGamepadHapticEffect(index, haptic_stop_sender) => {
+                    let stopped_successfully = self.stop_haptic_effect(index);
+                    haptic_stop_sender
+                        .send(stopped_successfully)
+                        .expect("Failed to send haptic stop result");
+                },
             }
         }
 

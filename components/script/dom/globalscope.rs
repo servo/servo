@@ -3159,9 +3159,6 @@ impl GlobalScope {
             GamepadEvent::HapticEffectCompleted(index) => {
                 self.handle_gamepad_haptic_effect_completed(index.0);
             },
-            GamepadEvent::HapticEffectStopped(index) => {
-                self.handle_gamepad_haptic_effect_stopped(index.0);
-            },
         };
     }
 
@@ -3289,23 +3286,6 @@ impl GlobalScope {
                 &self.task_canceller(TaskSourceName::Gamepad),
             )
             .expect("Failed to queue gamepad haptic effect completed task.");
-    }
-
-    pub fn handle_gamepad_haptic_effect_stopped(&self, index: usize) {
-        let this = Trusted::new(&*self);
-        self.gamepad_task_source()
-            .queue_with_canceller(
-                task!(gamepad_haptic_effect_stopped: move || {
-                    let global = this.root();
-                    if let Some(window) = global.downcast::<Window>() {
-                        if let Some(gamepad) = window.Navigator().get_gamepad(index) {
-                            gamepad.vibration_actuator().handle_haptic_effect_stopped();
-                        }
-                    }
-                }),
-                &self.task_canceller(TaskSourceName::Gamepad),
-            )
-            .expect("Failed to queue gamepad haptic effect stopped task.");
     }
 
     pub(crate) fn current_group_label(&self) -> Option<DOMString> {

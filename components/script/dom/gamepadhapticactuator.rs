@@ -5,10 +5,13 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
+use base::id::GamepadRouterId;
 use dom_struct::dom_struct;
 use embedder_traits::{DualRumbleEffectParams, EmbedderMsg};
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
 use js::jsval::JSVal;
-use script_traits::GamepadSupportedHapticEffects;
+use script_traits::{GamepadSupportedHapticEffects, ScriptMsg};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GamepadHapticActuatorBinding::{
@@ -26,7 +29,29 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_runtime::JSContext;
-use crate::task_source::TaskSource;
+use crate::task::TaskCanceller;
+use crate::task_source::gamepad::GamepadTaskSource;
+use crate::task_source::{TaskSource, TaskSourceName};
+
+struct HapticEffectStopListener {
+    canceller: TaskCanceller,
+    task_source: GamepadTaskSource,
+    context: Trusted<GamepadHapticActuator>,
+}
+
+impl HapticEffectStopListener {
+    fn handle(&self, stopped_successfully: bool) {
+        let context = self.context.clone();
+
+        let _ = self.task_source.queue_with_canceller(
+            task!(handle_haptic_effect_stopped: move || {
+                let actuator = context.root();
+                actuator.handle_haptic_effect_stopped(stopped_successfully);
+            }),
+            &self.canceller,
+        );
+    }
+}
 
 #[dom_struct]
 pub struct GamepadHapticActuator {
@@ -179,7 +204,9 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
 
         *self.playing_effect_promise.borrow_mut() = Some(playing_effect_promise.clone());
         self.effect_sequence_id.set(self.sequence_id.get());
-        let play_effect_timestamp = self.global().performance().Now();
+
+        // XXX The spec says we SHOULD also pass a playEffectTimestamp for more precise playback timing
+        // when start_delay is non-zero, but this is left more as a footnote without much elaboration.
 
         let params = DualRumbleEffectParams {
             duration: params.duration as f64,
@@ -232,7 +259,43 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
         *self.playing_effect_promise.borrow_mut() = Some(promise.clone());
 
         self.reset_sequence_id.set(self.sequence_id.get());
-        let event = EmbedderMsg::StopGamepadHapticEffect(self.gamepad_index as usize);
+
+        let context = Trusted::new(self);
+        let (effect_stop_sender, effect_stop_receiver) =
+            ipc::channel().expect("ipc channel failure");
+        let (task_source, canceller) = (
+            self.global().gamepad_task_source(),
+            self.global().task_canceller(TaskSourceName::Gamepad),
+        );
+        let listener = HapticEffectStopListener {
+            canceller,
+            task_source,
+            context,
+        };
+
+        ROUTER.add_route(
+            effect_stop_receiver.to_opaque(),
+            Box::new(move |message| {
+                let msg = message.to::<bool>();
+                match msg {
+                    Ok(msg) => listener.handle(msg),
+                    Err(err) => warn!("Error receiving a GamepadMsg: {:?}", err),
+                }
+            }),
+        );
+
+        let router_id = GamepadRouterId::new();
+        let _ = self
+            .global()
+            .script_to_constellation_chan()
+            .send(ScriptMsg::NewGamepadRouter(
+                router_id,
+                effect_stop_sender.clone(),
+                self.global().origin().immutable().clone(),
+            ));
+
+        let event =
+            EmbedderMsg::StopGamepadHapticEffect(self.gamepad_index as usize, effect_stop_sender);
         self.global().as_window().send_to_embedder(event);
 
         self.playing_effect_promise.borrow().clone().unwrap()
@@ -257,16 +320,21 @@ impl GamepadHapticActuator {
         }
     }
 
-    pub fn handle_haptic_effect_stopped(&self) {
+    pub fn handle_haptic_effect_stopped(&self, stopped_successfully: bool) {
+        if !stopped_successfully {
+            return;
+        }
+
         let playing_effect_promise = self.playing_effect_promise.borrow_mut().take();
 
         if let Some(promise) = playing_effect_promise {
             let trusted_promise = TrustedPromise::new(promise);
-            let sequence_id = self.effect_sequence_id.get();
+            let sequence_id = self.sequence_id.get();
             let reset_sequence_id = self.reset_sequence_id.get();
             let _ = self.global().gamepad_task_source().queue(
                 task!(complete_promise: move || {
                     if sequence_id != reset_sequence_id {
+                        println!("Mismatched sequence/reset sequence ids: {} != {}", sequence_id, reset_sequence_id);
                         return;
                     }
                     let promise = trusted_promise.root();
@@ -305,7 +373,9 @@ impl GamepadHapticActuator {
             &self.global(),
         );
 
-        let event = EmbedderMsg::StopGamepadHapticEffect(self.gamepad_index as usize);
+        let (send, _rcv) = ipc::channel().expect("ipc channel failure");
+
+        let event = EmbedderMsg::StopGamepadHapticEffect(self.gamepad_index as usize, send);
         self.global().as_window().send_to_embedder(event);
     }
 }

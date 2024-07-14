@@ -188,6 +188,7 @@ mod from_script {
                 Self::RequestAdapter(..) => target!("RequestAdapter"),
                 Self::GetWebGPUChan(..) => target!("GetWebGPUChan"),
                 Self::TitleChanged(..) => target!("TitleChanged"),
+                Self::NewGamepadRouter(..) => target!("NewGamepadRouter"),
             }
         }
     }

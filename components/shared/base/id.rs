@@ -191,6 +191,7 @@ impl PipelineNamespace {
     namespace_id_method! {next_service_worker_registration_id, ServiceWorkerRegistrationId,
     self, ServiceWorkerRegistrationIndex}
     namespace_id_method! {next_blob_id, BlobId, self, BlobIndex}
+    namespace_id_method! {next_gamepad_router_id, GamepadRouterId, self, GamepadRouterIndex}
 }
 
 thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = const { Cell::new(None) });
@@ -417,6 +418,19 @@ impl HistoryStateId {
             let next_history_state_id = namespace.next_history_state_id();
             tls.set(Some(namespace));
             next_history_state_id
+        })
+    }
+}
+
+namespace_id! {GamepadRouterId, GamepadRouterIndex, "GamepadRouter"}
+
+impl GamepadRouterId {
+    pub fn new() -> GamepadRouterId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let next_gamepad_router_id = namespace.next_gamepad_router_id();
+            tls.set(Some(namespace));
+            next_gamepad_router_id
         })
     }
 }

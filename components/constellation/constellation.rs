@@ -98,9 +98,9 @@ use background_hang_monitor_api::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
 };
 use base::id::{
-    BroadcastChannelRouterId, BrowsingContextGroupId, BrowsingContextId, HistoryStateId,
-    MessagePortId, MessagePortRouterId, PipelineId, PipelineNamespace, PipelineNamespaceId,
-    PipelineNamespaceRequest, TopLevelBrowsingContextId, WebViewId,
+    BroadcastChannelRouterId, BrowsingContextGroupId, BrowsingContextId, GamepadRouterId,
+    HistoryStateId, MessagePortId, MessagePortRouterId, PipelineId, PipelineNamespace,
+    PipelineNamespaceId, PipelineNamespaceRequest, TopLevelBrowsingContextId, WebViewId,
 };
 use base::Epoch;
 use bluetooth_traits::BluetoothRequest;
@@ -497,6 +497,9 @@ pub struct Constellation<STF, SWF> {
 
     /// User agent string to report in network requests.
     user_agent: Cow<'static, str>,
+
+    /// A map of gamepads to their IPC sender.
+    gamepads: HashMap<GamepadRouterId, IpcSender<bool>>,
 }
 
 /// State needed to construct a constellation.
@@ -809,6 +812,7 @@ where
                     player_context: state.player_context,
                     active_media_session: None,
                     user_agent: state.user_agent,
+                    gamepads: HashMap::new(),
                 };
 
                 constellation.run();
@@ -1856,6 +1860,14 @@ where
                 if let Some(pipeline) = self.pipelines.get_mut(&pipeline) {
                     pipeline.title = title;
                 }
+            },
+            FromScriptMsg::NewGamepadRouter(router_id, response_sender, origin) => {
+                self.handle_new_gamepad_router(
+                    source_pipeline_id,
+                    router_id,
+                    response_sender,
+                    origin,
+                );
             },
         }
     }
@@ -5230,6 +5242,29 @@ where
         if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
             let msg = ConstellationControlMsg::UnloadDocument(pipeline_id);
             let _ = pipeline.event_loop.send(msg);
+        }
+    }
+
+    /// Add a new gamepad router.
+    fn handle_new_gamepad_router(
+        &mut self,
+        pipeline_id: PipelineId,
+        router_id: GamepadRouterId,
+        gamepad_ipc_sender: IpcSender<bool>,
+        origin: ImmutableOrigin,
+    ) {
+        if self
+            .check_origin_against_pipeline(&pipeline_id, &origin)
+            .is_err()
+        {
+            return warn!("Attempt to add gamepad router from an unexpected origin.");
+        }
+        if self
+            .gamepads
+            .insert(router_id, gamepad_ipc_sender)
+            .is_some()
+        {
+            warn!("Multple attempt to add gamepad router.");
         }
     }
 
