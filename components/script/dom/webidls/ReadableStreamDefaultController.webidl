@@ -15,9 +15,3 @@ interface ReadableStreamDefaultController {
   [Throws]
   undefined error(optional any e);
 };
-
-dictionary ValueWithSize {
- any value;
- long size;
-};
-

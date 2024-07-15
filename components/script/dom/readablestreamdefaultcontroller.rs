@@ -7,12 +7,10 @@ use std::collections::VecDeque;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::jsapi::Heap;
+use js::jsapi::{Heap, JSObject};
 use js::rust::{HandleValue as SafeHandleValue, HandleValue};
 
-use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::{
-    ReadableStreamDefaultControllerMethods, ValueWithSize,
-};
+use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
 use crate::dom::bindings::import::module::{Error, Fallible};
 use crate::dom::bindings::refcounted::Trusted;
@@ -58,6 +56,14 @@ impl Callback for PullAlgorithmRejectionHandler {
 
 /// <https://streams.spec.whatwg.org/#value-with-size>
 #[derive(JSTraceable)]
+pub struct ValueWithSize {
+    // TODO: check how to properly do this one.
+    value: Heap<*mut JSObject>,
+    size: Heap<*mut JSObject>,
+}
+
+/// <https://streams.spec.whatwg.org/#value-with-size>
+#[derive(JSTraceable)]
 #[allow(crown::unrooted_must_root)]
 pub enum EnqueuedValue {
     /// A value enqueued from Rust.
@@ -70,7 +76,7 @@ pub enum EnqueuedValue {
 #[derive(Default, JSTraceable, MallocSizeOf)]
 pub struct QueueWithSizes {
     total_size: usize,
-    #[ignore_malloc_size_of = "Rc is hard"]
+    #[ignore_malloc_size_of = "EnqueuedValue::Js"]
     queue: VecDeque<EnqueuedValue>,
 }
 
