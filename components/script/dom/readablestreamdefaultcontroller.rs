@@ -15,6 +15,7 @@ use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBind
 };
 use crate::dom::bindings::import::module::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
 use crate::dom::bindings::import::module::{Error, Fallible};
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
@@ -28,8 +29,9 @@ use crate::script_runtime::{JSContext, JSContext as SafeJSContext};
 /// The fulfillment handler for
 /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[allow(crown::unrooted_must_root)]
 struct PullAlgorithmFulfillmentHandler {
-    controller: DomRoot<ReadableStreamDefaultController>,
+    controller: Dom<ReadableStreamDefaultController>,
 }
 
 impl Callback for PullAlgorithmFulfillmentHandler {
@@ -42,8 +44,9 @@ impl Callback for PullAlgorithmFulfillmentHandler {
 /// The rejection handler for
 /// <https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed>
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[allow(crown::unrooted_must_root)]
 struct PullAlgorithmRejectionHandler {
-    controller: DomRoot<ReadableStreamDefaultController>,
+    controller: Dom<ReadableStreamDefaultController>,
 }
 
 impl Callback for PullAlgorithmRejectionHandler {
@@ -171,10 +174,10 @@ impl ReadableStreamDefaultController {
         let controller = Controller::ReadableStreamDefaultController(DomRoot::from_ref(self));
         if let Some(promise) = self.underlying_source.call_pull_algorithm(controller) {
             let fulfillment_handler = Box::new(PullAlgorithmFulfillmentHandler {
-                controller: DomRoot::from_ref(self),
+                controller: Dom::from_ref(self),
             });
             let rejection_handler = Box::new(PullAlgorithmRejectionHandler {
-                controller: DomRoot::from_ref(self),
+                controller: Dom::from_ref(self),
             });
             let handler = PromiseNativeHandler::new(
                 &global,
