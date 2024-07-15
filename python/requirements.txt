@@ -5,7 +5,7 @@ blessings == 1.7
 distro == 1.4
 mozinfo == 1.2.3
 mozlog == 8.0.0
-setuptools == 68.2.2
+setuptools == 70.0.0
 toml == 0.9.2
 
 # For Python linting
