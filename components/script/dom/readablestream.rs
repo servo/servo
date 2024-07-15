@@ -40,7 +40,7 @@ use crate::realms::InRealm;
 use crate::script_runtime::JSContext as SafeJSContext;
 
 /// <https://streams.spec.whatwg.org/#readablestream-state>
-#[derive(Clone, Copy, PartialEq, Default, JSTraceable, MallocSizeOf)]
+#[derive(Clone, Copy, Default, JSTraceable, MallocSizeOf, PartialEq)]
 pub enum ReadableStreamState {
     #[default]
     Readable,
