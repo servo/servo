@@ -210,20 +210,24 @@ pub trait ThisReflector {
     fn jsobject(&self) -> *mut JSObject;
 }
 
-impl <T: DomObject> ThisReflector for T {
+impl<T: DomObject> ThisReflector for T {
     fn jsobject(&self) -> *mut JSObject {
         self.reflector().get_jsobject().get()
     }
 }
 
-impl <'a> ThisReflector for HandleObject<'a> {
+impl<'a> ThisReflector for HandleObject<'a> {
     fn jsobject(&self) -> *mut JSObject {
         self.get()
-    }    
+    }
 }
 
 /// Wraps the reflector for `p` into the realm of `cx`.
-pub fn wrap_call_this_object<T: ThisReflector>(cx: JSContext, p: &T, mut rval: MutableHandleObject) {
+pub fn wrap_call_this_object<T: ThisReflector>(
+    cx: JSContext,
+    p: &T,
+    mut rval: MutableHandleObject,
+) {
     rval.set(p.jsobject());
     assert!(!rval.get().is_null());
 
