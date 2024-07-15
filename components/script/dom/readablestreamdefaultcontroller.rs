@@ -29,6 +29,7 @@ use crate::script_runtime::{JSContext, JSContext as SafeJSContext};
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[allow(crown::unrooted_must_root)]
 struct PullAlgorithmFulfillmentHandler {
+    // TODO: check the validity of using Dom here.
     controller: Dom<ReadableStreamDefaultController>,
 }
 
@@ -44,6 +45,7 @@ impl Callback for PullAlgorithmFulfillmentHandler {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[allow(crown::unrooted_must_root)]
 struct PullAlgorithmRejectionHandler {
+    // TODO: check the validity of using Dom here.
     controller: Dom<ReadableStreamDefaultController>,
 }
 

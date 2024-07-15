@@ -39,7 +39,6 @@ pub enum ReadRequest {
 impl ReadRequest {
     /// <https://streams.spec.whatwg.org/#read-request-chunk-steps>
     #[allow(unsafe_code)]
-    #[allow(crown::unrooted_must_root)]
     pub fn chunk_steps(&self, chunk: Vec<u8>) {
         match self {
             ReadRequest::Read(promise) => {
@@ -50,17 +49,15 @@ impl ReadRequest {
                     chunk.to_jsval(*cx, rval.handle_mut());
                     result.set(*rval);
                 }
-                let result = ReadableStreamReadResult {
+                promise.resolve_native(&ReadableStreamReadResult {
                     done: Some(false),
                     value: result,
-                };
-                promise.resolve_native(&result);
+                });
             },
         }
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-close-step>
-    #[allow(crown::unrooted_must_root)]
     pub fn close_steps(&self) {
         match self {
             ReadRequest::Read(promise) => {
@@ -68,11 +65,10 @@ impl ReadRequest {
                 rooted!(in(*cx) let mut rval = UndefinedValue());
                 let result = RootedTraceableBox::new(Heap::default());
                 result.set(*rval);
-                let result = ReadableStreamReadResult {
+                promise.resolve_native(&ReadableStreamReadResult {
                     done: Some(true),
                     value: result,
-                };
-                promise.resolve_native(&result);
+                });
             },
         }
     }
