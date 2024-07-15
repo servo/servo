@@ -16,6 +16,8 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestreamdefaultcontroller::ReadableStreamDefaultController;
 use crate::js::conversions::ToJSValConvertible;
+use js::jsapi::JSObject;
+use std::ptr;
 
 /// <https://streams.spec.whatwg.org/#underlying-source-api>
 /// The `Js` variant corresponds to
@@ -85,11 +87,18 @@ impl UnderlyingSourceContainer {
     }
 
     /// <https://streams.spec.whatwg.org/#dom-underlyingsource-pull>
+    #[allow(unsafe_code)]
     pub fn call_pull_algorithm(&self, controller: Controller) -> Option<Rc<Promise>> {
         if let UnderlyingSourceType::Js(source) = &self.underlying_source_type {
             let global = self.global();
             let promise = if let Some(pull) = &source.pull {
-                pull.Call_(&*self, controller, ExceptionHandling::Report)
+                let cx = GlobalScope::get_cx();
+                rooted!(in(*cx) let mut this_object = ptr::null_mut::<JSObject>());
+                unsafe {
+                    source.to_jsobject(*cx, this_object.handle_mut());
+                }
+                let this_handle = this_object.handle();
+                pull.Call_(&this_handle, controller, ExceptionHandling::Report)
                     .expect("Pull algorithm call failed")
             } else {
                 let promise = Promise::new(&*global);

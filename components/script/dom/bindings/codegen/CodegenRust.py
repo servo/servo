@@ -7212,7 +7212,7 @@ class CGCallback(CGClass):
               })
         return [ClassMethod(method.name + '_', method.returnType, args,
                             bodyInHeader=True,
-                            templateArgs=["T: DomObject"],
+                            templateArgs=["T: ThisReflector"],
                             body=bodyWithThis,
                             visibility='pub'),
                 ClassMethod(method.name + '__', method.returnType, argsWithoutThis,
