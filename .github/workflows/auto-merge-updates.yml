@@ -1,4 +1,4 @@
-name: Approve & merge successful update PRs
+name: Automerge Dependabot & WPT Updates
 on: pull_request
 
 permissions:
