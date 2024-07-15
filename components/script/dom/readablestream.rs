@@ -40,7 +40,7 @@ use crate::realms::InRealm;
 use crate::script_runtime::JSContext as SafeJSContext;
 
 /// <https://streams.spec.whatwg.org/#readablestream-state>
-#[derive(Default, JSTraceable, MallocSizeOf)]
+#[derive(Clone, Copy, PartialEq, Default, JSTraceable, MallocSizeOf)]
 pub enum ReadableStreamState {
     #[default]
     Readable,
@@ -86,7 +86,7 @@ pub struct ReadableStream {
     reader: ReaderType,
 
     /// <https://streams.spec.whatwg.org/#readablestream-state>
-    state: DomRefCell<ReadableStreamState>,
+    state: Cell<ReadableStreamState>,
 }
 
 impl ReadableStream {
@@ -155,7 +155,7 @@ impl ReadableStream {
             stored_error: DomRefCell::new(None),
             disturbed: Default::default(),
             reader: reader,
-            state: DomRefCell::new(ReadableStreamState::Readable),
+            state: Cell::new(ReadableStreamState::Readable),
         }
     }
 
@@ -248,7 +248,7 @@ impl ReadableStream {
     /// <https://streams.spec.whatwg.org/#readable-stream-error>
     /// Note: in other use cases this call happens via the controller.
     pub fn error_native(&self, _error: Error) {
-        *self.state.borrow_mut() = ReadableStreamState::Errored;
+        self.state.set(ReadableStreamState::Errored);
         match self.controller {
             ControllerType::Default(ref controller) => controller.error(),
             _ => unreachable!("Native closing a stream with a non-default controller"),
@@ -344,15 +344,15 @@ impl ReadableStream {
     }
 
     pub fn is_closed(&self) -> bool {
-        matches!(*self.state.borrow(), ReadableStreamState::Closed)
+        self.state.get() == ReadableStreamState::Closed
     }
 
     pub fn is_errored(&self) -> bool {
-        matches!(*self.state.borrow(), ReadableStreamState::Errored)
+        self.state.get() == ReadableStreamState::Errored
     }
 
     pub fn is_readable(&self) -> bool {
-        matches!(*self.state.borrow(), ReadableStreamState::Readable)
+        self.state.get() == ReadableStreamState::Readable
     }
 
     pub fn has_default_reader(&self) -> bool {
