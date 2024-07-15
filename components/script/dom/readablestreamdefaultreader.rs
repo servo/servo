@@ -25,6 +25,7 @@ use crate::dom::bindings::utils::set_dictionary_property;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::ReadableStream;
+use crate::dom::readablestreamdefaultcontroller::EnqueuedValue;
 use crate::script_runtime::JSContext as SafeJSContext;
 
 /// <https://streams.spec.whatwg.org/#read-request>

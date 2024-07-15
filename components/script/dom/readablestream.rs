@@ -238,7 +238,7 @@ impl ReadableStream {
     /// Note: in other use cases this call happens via the controller.
     pub fn enqueue_native(&self, bytes: Vec<u8>) {
         match self.controller {
-            ControllerType::Default(ref controller) => controller.enqueue_chunk(bytes),
+            ControllerType::Default(ref controller) => controller.enqueue_native(bytes),
             _ => unreachable!(
                 "Enqueueing chunk to a stream from Rust on other than default controller"
             ),
