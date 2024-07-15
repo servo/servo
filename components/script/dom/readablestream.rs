@@ -218,7 +218,7 @@ impl ReadableStream {
         match self.reader {
             ReaderType::Default(ref reader) => {
                 let Some(reader) = reader.get() else {
-                    panic!("Attempt to read stream chunk without having acquired a reader.");
+                    panic!("Attempt to add a read request without having first acquired a reader.");
                 };
                 reader.add_read_request(read_request);
             },
@@ -308,11 +308,11 @@ impl ReadableStream {
         match self.reader {
             ReaderType::Default(ref reader) => {
                 let Some(reader) = reader.get() else {
-                    panic!("Attempt to read stream chunk without having acquired a reader.");
+                    panic!("Attempt to read stream chunk without having first acquired a reader.");
                 };
                 reader.Read()
             },
-            _ => unreachable!("Native reading a chunk can only be done on a default reader."),
+            _ => unreachable!("Native reading of a chunk can only be done with a default reader."),
         }
     }
 
@@ -323,12 +323,12 @@ impl ReadableStream {
         match self.reader {
             ReaderType::Default(ref reader) => {
                 let Some(rooted_reader) = reader.get() else {
-                    panic!("Attempt to read stream chunk without having acquired a reader.");
+                    panic!("Attempt to stop reading without having first acquired a reader.");
                 };
                 rooted_reader.ReleaseLock();
                 reader.set(None);
             },
-            _ => unreachable!("Native stop reading a chunk can only be done on a default reader."),
+            _ => unreachable!("Native stop reading can only be done with a default reader."),
         }
     }
 
