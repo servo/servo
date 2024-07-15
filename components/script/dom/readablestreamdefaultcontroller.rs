@@ -179,13 +179,15 @@ impl ReadableStreamDefaultController {
         }
 
         let global = self.global();
-        let controller = Controller::ReadableStreamDefaultController(DomRoot::from_ref(self));
+        let rooted_default_controller = DomRoot::from_ref(self);
+        let controller =
+            Controller::ReadableStreamDefaultController(rooted_default_controller.clone());
         if let Some(promise) = self.underlying_source.call_pull_algorithm(controller) {
             let fulfillment_handler = Box::new(PullAlgorithmFulfillmentHandler {
-                controller: Dom::from_ref(self),
+                controller: Dom::from_ref(&*rooted_default_controller),
             });
             let rejection_handler = Box::new(PullAlgorithmRejectionHandler {
-                controller: Dom::from_ref(self),
+                controller: Dom::from_ref(&*rooted_default_controller),
             });
             let handler = PromiseNativeHandler::new(
                 &global,
