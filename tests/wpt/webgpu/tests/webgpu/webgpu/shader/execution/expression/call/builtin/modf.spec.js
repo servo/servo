@@ -3,13 +3,13 @@
 **/export const description = `
 Execution tests for the 'modf' builtin function
 
-T is f32 or f16 or AbstractFloat
+T is f32 or f16 or Type.abstractFloat
 @const fn modf(e:T) -> result_struct
 Splits |e| into fractional and whole number parts.
 The whole part is (|e| % 1.0), and the fractional part is |e| minus the whole part.
 Returns the result_struct for the given type.
 
-S is f32 or f16 or AbstractFloat
+S is f32 or f16 or Type.abstractFloat
 T is vecN<S>
 @const fn modf(e:T) -> result_struct
 Splits the components of |e| into fractional and whole number parts.
@@ -18,7 +18,7 @@ Returns the result_struct for the given type.
 
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
-import { TypeAbstractFloat, TypeF16, TypeF32, TypeVec } from '../../../../../util/conversion.js';
+import { Type } from '../../../../../util/conversion.js';
 import {
   abstractFloatShaderBuilder,
   allInputSources,
@@ -67,7 +67,7 @@ struct __modf_result_f32 {
 params((u) => u.combine('inputSource', allInputSources)).
 fn(async (t) => {
   const cases = await d.get('f32_fract');
-  await run(t, fractBuilder(), [TypeF32], TypeF32, t.params, cases);
+  await run(t, fractBuilder(), [Type.f32], Type.f32, t.params, cases);
 });
 
 g.test('f32_whole').
@@ -85,7 +85,7 @@ struct __modf_result_f32 {
 params((u) => u.combine('inputSource', allInputSources)).
 fn(async (t) => {
   const cases = await d.get('f32_whole');
-  await run(t, wholeBuilder(), [TypeF32], TypeF32, t.params, cases);
+  await run(t, wholeBuilder(), [Type.f32], Type.f32, t.params, cases);
 });
 
 g.test('f32_vec2_fract').
@@ -103,7 +103,7 @@ struct __modf_result_vec2_f32 {
 params((u) => u.combine('inputSource', allInputSources)).
 fn(async (t) => {
   const cases = await d.get('f32_vec2_fract');
-  await run(t, fractBuilder(), [TypeVec(2, TypeF32)], TypeVec(2, TypeF32), t.params, cases);
+  await run(t, fractBuilder(), [Type.vec2f], Type.vec2f, t.params, cases);
 });
 
 g.test('f32_vec2_whole').
@@ -121,7 +121,7 @@ struct __modf_result_vec2_f32 {
 params((u) => u.combine('inputSource', allInputSources)).
 fn(async (t) => {
   const cases = await d.get('f32_vec2_whole');
-  await run(t, wholeBuilder(), [TypeVec(2, TypeF32)], TypeVec(2, TypeF32), t.params, cases);
+  await run(t, wholeBuilder(), [Type.vec2f], Type.vec2f, t.params, cases);
 });
 
 g.test('f32_vec3_fract').
@@ -139,7 +139,7 @@ struct __modf_result_vec3_f32 {
 params((u) => u.combine('inputSource', allInputSources)).
 fn(async (t) => {
   const cases = await d.get('f32_vec3_fract');
-  await run(t, fractBuilder(), [TypeVec(3, TypeF32)], TypeVec(3, TypeF32), t.params, cases);
+  await run(t, fractBuilder(), [Type.vec3f], Type.vec3f, t.params, cases);
 });
 
 g.test('f32_vec3_whole').
@@ -157,7 +157,7 @@ struct __modf_result_vec3_f32 {
 params((u) => u.combine('inputSource', allInputSources)).
 fn(async (t) => {
   const cases = await d.get('f32_vec3_whole');
-  await run(t, wholeBuilder(), [TypeVec(3, TypeF32)], TypeVec(3, TypeF32), t.params, cases);
+  await run(t, wholeBuilder(), [Type.vec3f], Type.vec3f, t.params, cases);
 });
 
 g.test('f32_vec4_fract').
@@ -175,7 +175,7 @@ struct __modf_result_vec4_f32 {
 params((u) => u.combine('inputSource', allInputSources)).
 fn(async (t) => {
   const cases = await d.get('f32_vec4_fract');
-  await run(t, fractBuilder(), [TypeVec(4, TypeF32)], TypeVec(4, TypeF32), t.params, cases);
+  await run(t, fractBuilder(), [Type.vec4f], Type.vec4f, t.params, cases);
 });
 
 g.test('f32_vec4_whole').
@@ -193,7 +193,7 @@ struct __modf_result_vec4_f32 {
 params((u) => u.combine('inputSource', allInputSources)).
 fn(async (t) => {
   const cases = await d.get('f32_vec4_whole');
-  await run(t, wholeBuilder(), [TypeVec(4, TypeF32)], TypeVec(4, TypeF32), t.params, cases);
+  await run(t, wholeBuilder(), [Type.vec4f], Type.vec4f, t.params, cases);
 });
 
 g.test('f16_fract').
@@ -214,7 +214,7 @@ beforeAllSubcases((t) => {
 }).
 fn(async (t) => {
   const cases = await d.get('f16_fract');
-  await run(t, fractBuilder(), [TypeF16], TypeF16, t.params, cases);
+  await run(t, fractBuilder(), [Type.f16], Type.f16, t.params, cases);
 });
 
 g.test('f16_whole').
@@ -235,7 +235,7 @@ beforeAllSubcases((t) => {
 }).
 fn(async (t) => {
   const cases = await d.get('f16_whole');
-  await run(t, wholeBuilder(), [TypeF16], TypeF16, t.params, cases);
+  await run(t, wholeBuilder(), [Type.f16], Type.f16, t.params, cases);
 });
 
 g.test('f16_vec2_fract').
@@ -256,7 +256,7 @@ beforeAllSubcases((t) => {
 }).
 fn(async (t) => {
   const cases = await d.get('f16_vec2_fract');
-  await run(t, fractBuilder(), [TypeVec(2, TypeF16)], TypeVec(2, TypeF16), t.params, cases);
+  await run(t, fractBuilder(), [Type.vec2h], Type.vec2h, t.params, cases);
 });
 
 g.test('f16_vec2_whole').
@@ -277,7 +277,7 @@ beforeAllSubcases((t) => {
 }).
 fn(async (t) => {
   const cases = await d.get('f16_vec2_whole');
-  await run(t, wholeBuilder(), [TypeVec(2, TypeF16)], TypeVec(2, TypeF16), t.params, cases);
+  await run(t, wholeBuilder(), [Type.vec2h], Type.vec2h, t.params, cases);
 });
 
 g.test('f16_vec3_fract').
@@ -298,7 +298,7 @@ beforeAllSubcases((t) => {
 }).
 fn(async (t) => {
   const cases = await d.get('f16_vec3_fract');
-  await run(t, fractBuilder(), [TypeVec(3, TypeF16)], TypeVec(3, TypeF16), t.params, cases);
+  await run(t, fractBuilder(), [Type.vec3h], Type.vec3h, t.params, cases);
 });
 
 g.test('f16_vec3_whole').
@@ -319,7 +319,7 @@ beforeAllSubcases((t) => {
 }).
 fn(async (t) => {
   const cases = await d.get('f16_vec3_whole');
-  await run(t, wholeBuilder(), [TypeVec(3, TypeF16)], TypeVec(3, TypeF16), t.params, cases);
+  await run(t, wholeBuilder(), [Type.vec3h], Type.vec3h, t.params, cases);
 });
 
 g.test('f16_vec4_fract').
@@ -340,7 +340,7 @@ beforeAllSubcases((t) => {
 }).
 fn(async (t) => {
   const cases = await d.get('f16_vec4_fract');
-  await run(t, fractBuilder(), [TypeVec(4, TypeF16)], TypeVec(4, TypeF16), t.params, cases);
+  await run(t, fractBuilder(), [Type.vec4h], Type.vec4h, t.params, cases);
 });
 
 g.test('f16_vec4_whole').
@@ -361,43 +361,43 @@ beforeAllSubcases((t) => {
 }).
 fn(async (t) => {
   const cases = await d.get('f16_vec4_whole');
-  await run(t, wholeBuilder(), [TypeVec(4, TypeF16)], TypeVec(4, TypeF16), t.params, cases);
+  await run(t, wholeBuilder(), [Type.vec4h], Type.vec4h, t.params, cases);
 });
 
 g.test('abstract_fract').
 specURL('https://www.w3.org/TR/WGSL/#float-builtin-functions').
 desc(
   `
-T is AbstractFloat
+T is abstract-float
 
 struct __modf_result_abstract {
-  fract : AbstractFloat, // fractional part
-  whole : AbstractFloat  // whole part
+  fract : Type.abstractFloat, // fractional part
+  whole : Type.abstractFloat  // whole part
 }
 `
 ).
 params((u) => u.combine('inputSource', onlyConstInputSource)).
 fn(async (t) => {
   const cases = await d.get('abstract_fract');
-  await run(t, abstractFractBuilder(), [TypeAbstractFloat], TypeAbstractFloat, t.params, cases);
+  await run(t, abstractFractBuilder(), [Type.abstractFloat], Type.abstractFloat, t.params, cases);
 });
 
 g.test('abstract_whole').
 specURL('https://www.w3.org/TR/WGSL/#float-builtin-functions').
 desc(
   `
-T is AbstractFloat
+T is abstract-float
 
 struct __modf_result_abstract {
-  fract : AbstractFloat, // fractional part
-  whole : AbstractFloat  // whole part
+  fract : Type.abstractFloat, // fractional part
+  whole : Type.abstractFloat  // whole part
 }
 `
 ).
 params((u) => u.combine('inputSource', onlyConstInputSource)).
 fn(async (t) => {
   const cases = await d.get('abstract_whole');
-  await run(t, abstractWholeBuilder(), [TypeAbstractFloat], TypeAbstractFloat, t.params, cases);
+  await run(t, abstractWholeBuilder(), [Type.abstractFloat], Type.abstractFloat, t.params, cases);
 });
 
 g.test('abstract_vec2_fract').
@@ -418,8 +418,8 @@ fn(async (t) => {
   await run(
     t,
     abstractFractBuilder(),
-    [TypeVec(2, TypeAbstractFloat)],
-    TypeVec(2, TypeAbstractFloat),
+    [Type.vec(2, Type.abstractFloat)],
+    Type.vec(2, Type.abstractFloat),
     t.params,
     cases
   );
@@ -443,8 +443,8 @@ fn(async (t) => {
   await run(
     t,
     abstractWholeBuilder(),
-    [TypeVec(2, TypeAbstractFloat)],
-    TypeVec(2, TypeAbstractFloat),
+    [Type.vec(2, Type.abstractFloat)],
+    Type.vec(2, Type.abstractFloat),
     t.params,
     cases
   );
@@ -468,8 +468,8 @@ fn(async (t) => {
   await run(
     t,
     abstractFractBuilder(),
-    [TypeVec(3, TypeAbstractFloat)],
-    TypeVec(3, TypeAbstractFloat),
+    [Type.vec(3, Type.abstractFloat)],
+    Type.vec(3, Type.abstractFloat),
     t.params,
     cases
   );
@@ -493,8 +493,8 @@ fn(async (t) => {
   await run(
     t,
     abstractWholeBuilder(),
-    [TypeVec(3, TypeAbstractFloat)],
-    TypeVec(3, TypeAbstractFloat),
+    [Type.vec(3, Type.abstractFloat)],
+    Type.vec(3, Type.abstractFloat),
     t.params,
     cases
   );
@@ -518,8 +518,8 @@ fn(async (t) => {
   await run(
     t,
     abstractFractBuilder(),
-    [TypeVec(4, TypeAbstractFloat)],
-    TypeVec(4, TypeAbstractFloat),
+    [Type.vec(4, Type.abstractFloat)],
+    Type.vec(4, Type.abstractFloat),
     t.params,
     cases
   );
@@ -543,8 +543,8 @@ fn(async (t) => {
   await run(
     t,
     abstractWholeBuilder(),
-    [TypeVec(4, TypeAbstractFloat)],
-    TypeVec(4, TypeAbstractFloat),
+    [Type.vec(4, Type.abstractFloat)],
+    Type.vec(4, Type.abstractFloat),
     t.params,
     cases
   );

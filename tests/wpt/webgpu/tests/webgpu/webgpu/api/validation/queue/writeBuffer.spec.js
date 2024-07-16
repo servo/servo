@@ -60,7 +60,7 @@ fn((t) => {
   function runTest(arrayType, testBuffer) {
     const elementSize = arrayType.BYTES_PER_ELEMENT;
     const bufferSize = 16 * elementSize;
-    const buffer = t.device.createBuffer({
+    const buffer = t.createBufferTracked({
       size: bufferSize,
       usage: GPUBufferUsage.COPY_DST
     });
@@ -168,7 +168,7 @@ paramsSubcasesOnly([
 ]).
 fn((t) => {
   const { usage, _valid } = t.params;
-  const buffer = t.device.createBuffer({ size: 16, usage });
+  const buffer = t.createBufferTracked({ size: 16, usage });
   const data = new Uint8Array(16);
 
   t.expectValidationError(() => {
@@ -186,11 +186,12 @@ fn((t) => {
   const { mismatched } = t.params;
   const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
 
-  const buffer = sourceDevice.createBuffer({
-    size: 16,
-    usage: GPUBufferUsage.COPY_DST
-  });
-  t.trackForCleanup(buffer);
+  const buffer = t.trackForCleanup(
+    sourceDevice.createBuffer({
+      size: 16,
+      usage: GPUBufferUsage.COPY_DST
+    })
+  );
 
   const data = new Uint8Array(16);
 

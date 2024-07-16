@@ -1,10 +1,10 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/export const description = `
-Execution Tests for the AbstractFloat comparison operations
+Execution Tests for the abstract-float comparison operations
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../gpu_test.js';
-import { TypeAbstractFloat, TypeBool } from '../../../../util/conversion.js';
+import { Type } from '../../../../util/conversion.js';
 import { allInputSources, run } from '../expression.js';
 
 import { d } from './af_comparison.cache.js';
@@ -27,7 +27,14 @@ combine('vectorize', [undefined, 2, 3, 4])
 ).
 fn(async (t) => {
   const cases = await d.get('equals');
-  await run(t, binary('=='), [TypeAbstractFloat, TypeAbstractFloat], TypeBool, t.params, cases);
+  await run(
+    t,
+    binary('=='),
+    [Type.abstractFloat, Type.abstractFloat],
+    Type.bool,
+    t.params,
+    cases
+  );
 });
 
 g.test('not_equals').
@@ -45,7 +52,14 @@ combine('vectorize', [undefined, 2, 3, 4])
 ).
 fn(async (t) => {
   const cases = await d.get('not_equals');
-  await run(t, binary('!='), [TypeAbstractFloat, TypeAbstractFloat], TypeBool, t.params, cases);
+  await run(
+    t,
+    binary('!='),
+    [Type.abstractFloat, Type.abstractFloat],
+    Type.bool,
+    t.params,
+    cases
+  );
 });
 
 g.test('less_than').
@@ -63,7 +77,7 @@ combine('vectorize', [undefined, 2, 3, 4])
 ).
 fn(async (t) => {
   const cases = await d.get('less_than');
-  await run(t, binary('<'), [TypeAbstractFloat, TypeAbstractFloat], TypeBool, t.params, cases);
+  await run(t, binary('<'), [Type.abstractFloat, Type.abstractFloat], Type.bool, t.params, cases);
 });
 
 g.test('less_equals').
@@ -81,7 +95,14 @@ combine('vectorize', [undefined, 2, 3, 4])
 ).
 fn(async (t) => {
   const cases = await d.get('less_equals');
-  await run(t, binary('<='), [TypeAbstractFloat, TypeAbstractFloat], TypeBool, t.params, cases);
+  await run(
+    t,
+    binary('<='),
+    [Type.abstractFloat, Type.abstractFloat],
+    Type.bool,
+    t.params,
+    cases
+  );
 });
 
 g.test('greater_than').
@@ -99,7 +120,7 @@ combine('vectorize', [undefined, 2, 3, 4])
 ).
 fn(async (t) => {
   const cases = await d.get('greater_than');
-  await run(t, binary('>'), [TypeAbstractFloat, TypeAbstractFloat], TypeBool, t.params, cases);
+  await run(t, binary('>'), [Type.abstractFloat, Type.abstractFloat], Type.bool, t.params, cases);
 });
 
 g.test('greater_equals').
@@ -117,5 +138,12 @@ combine('vectorize', [undefined, 2, 3, 4])
 ).
 fn(async (t) => {
   const cases = await d.get('greater_equals');
-  await run(t, binary('>='), [TypeAbstractFloat, TypeAbstractFloat], TypeBool, t.params, cases);
+  await run(
+    t,
+    binary('>='),
+    [Type.abstractFloat, Type.abstractFloat],
+    Type.bool,
+    t.params,
+    cases
+  );
 });

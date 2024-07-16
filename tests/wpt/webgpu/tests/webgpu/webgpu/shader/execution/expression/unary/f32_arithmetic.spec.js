@@ -4,7 +4,7 @@
 Execution Tests for the f32 arithmetic unary expression operations
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../gpu_test.js';
-import { TypeF32 } from '../../../../util/conversion.js';
+import { Type } from '../../../../util/conversion.js';
 import { allInputSources, run } from '../expression.js';
 
 import { d } from './f32_arithmetic.cache.js';
@@ -25,5 +25,5 @@ u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3,
 ).
 fn(async (t) => {
   const cases = await d.get('negation');
-  await run(t, unary('-'), [TypeF32], TypeF32, t.params, cases);
+  await run(t, unary('-'), [Type.f32], Type.f32, t.params, cases);
 });

@@ -58,7 +58,7 @@ fn((t) => {
 
   // Allocate a buffer to hold the output structure.
   const bufferNumElements = 32;
-  const outputBuffer = t.device.createBuffer({
+  const outputBuffer = t.createBufferTracked({
     size: bufferNumElements * Uint32Array.BYTES_PER_ELEMENT,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
   });
@@ -167,7 +167,7 @@ fn((t) => {
   });
 
   // Draw a red triangle.
-  const renderTarget = t.device.createTexture({
+  const renderTarget = t.createTextureTracked({
     size,
     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
     format: 'rgba8unorm'
@@ -292,7 +292,7 @@ fn((t) => {
     new Float32Array([1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0]),
     GPUBufferUsage.VERTEX
   );
-  const renderTarget = t.device.createTexture({
+  const renderTarget = t.createTextureTracked({
     size: [31, 31],
     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
     format: 'rgba8unorm'

@@ -1,6 +1,7 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { FP } from '../../../../../util/floating_point.js';import { makeCaseCache } from '../../case_cache.js';
+**/import { FP } from '../../../../../util/floating_point.js';import { selectNCases } from '../../case.js';import { makeCaseCache } from '../../case_cache.js';
+
 // Cases: [f32|f16|abstract]_[non_]const
 // abstract_non_const is empty and unused
 const scalar_cases = ['f32', 'f16', 'abstract'].
@@ -10,13 +11,15 @@ flatMap((trait) =>
     if (trait === 'abstract' && nonConst) {
       return [];
     }
-    return FP[trait].generateScalarTripleToIntervalCases(
+    const cases = FP[trait].generateScalarTripleToIntervalCases(
       FP[trait].sparseScalarRange(),
       FP[trait].sparseScalarRange(),
       FP[trait].sparseScalarRange(),
       nonConst ? 'unfiltered' : 'finite',
-      ...FP[trait].mixIntervals
+      // mix has an inherited accuracy, so abstract is only expected to be as accurate as f32
+      ...FP[trait !== 'abstract' ? trait : 'f32'].mixIntervals
     );
+    return selectNCases('mix_scalar', trait === 'abstract' ? 50 : cases.length, cases);
   }
 }))
 ).
@@ -32,13 +35,15 @@ flatMap((trait) =>
     if (trait === 'abstract' && nonConst) {
       return [];
     }
-    return FP[trait].generateVectorPairScalarToVectorComponentWiseCase(
+    const cases = FP[trait].generateVectorPairScalarToVectorComponentWiseCase(
       FP[trait].sparseVectorRange(dim),
       FP[trait].sparseVectorRange(dim),
       FP[trait].sparseScalarRange(),
       nonConst ? 'unfiltered' : 'finite',
-      ...FP[trait].mixIntervals
+      // mix has an inherited accuracy, so abstract is only expected to be as accurate as f32
+      ...FP[trait !== 'abstract' ? trait : 'f32'].mixIntervals
     );
+    return selectNCases('mix_vector', trait === 'abstract' ? 50 : cases.length, cases);
   }
 }))
 )

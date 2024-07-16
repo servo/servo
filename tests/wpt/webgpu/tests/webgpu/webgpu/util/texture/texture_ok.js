@@ -175,11 +175,10 @@ copySize,
     aspect: source.aspect
   });
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
     size: byteLength
   });
-  t.trackForCleanup(buffer);
 
   const cmd = t.device.createCommandEncoder();
   cmd.copyTextureToBuffer(source, { buffer, bytesPerRow, rowsPerImage }, copySize);
@@ -223,9 +222,13 @@ coords)
 
   const info = kTextureFormatInfo[format];
   const repr = kTexelRepresentationInfo[format];
-  const numericToString = numericToStringBuilder(
-    info.sampleType === 'uint' || info.sampleType === 'sint'
-  );
+  // MAINTENANCE_TODO: Print depth-stencil formats as float+int instead of float+float.
+  const printAsInteger = info.color ?
+  // For color, pick the type based on the format type
+  ['uint', 'sint'].includes(info.color.type) :
+  // Print depth as "float", depth-stencil as "float,float", stencil as "int".
+  !info.depth;
+  const numericToString = numericToStringBuilder(printAsInteger);
 
   const componentOrderStr = repr.componentOrder.join(',') + ':';
 

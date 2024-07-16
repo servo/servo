@@ -33,17 +33,7 @@ Other bits of the result are the same as bit c-1 of the result.
 Component-wise when T is a vector.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
-import {
-  i32Bits,
-  TypeI32,
-  u32,
-  TypeU32,
-  u32Bits,
-  vec2,
-  vec3,
-  vec4,
-  TypeVec } from
-'../../../../../util/conversion.js';
+import { i32Bits, Type, u32, u32Bits, vec2, vec3, vec4 } from '../../../../../util/conversion.js';
 import { allInputSources, run } from '../../expression.js';
 
 import { builtin } from './builtin.js';
@@ -57,7 +47,7 @@ params((u) => u.combine('inputSource', allInputSources).combine('width', [1, 2, 
 fn(async (t) => {
   const cfg = t.params;
 
-  const T = t.params.width === 1 ? TypeU32 : TypeVec(t.params.width, TypeU32);
+  const T = t.params.width === 1 ? Type.u32 : Type.vec(t.params.width, Type.u32);
 
   const V = (x, y, z, w) => {
     y = y === undefined ? x : y;
@@ -193,7 +183,7 @@ fn(async (t) => {
     );
   }
 
-  await run(t, builtin('extractBits'), [T, TypeU32, TypeU32], T, cfg, cases);
+  await run(t, builtin('extractBits'), [T, Type.u32, Type.u32], T, cfg, cases);
 });
 
 g.test('i32').
@@ -203,7 +193,7 @@ params((u) => u.combine('inputSource', allInputSources).combine('width', [1, 2, 
 fn(async (t) => {
   const cfg = t.params;
 
-  const T = t.params.width === 1 ? TypeI32 : TypeVec(t.params.width, TypeI32);
+  const T = t.params.width === 1 ? Type.i32 : Type.vec(t.params.width, Type.i32);
 
   const V = (x, y, z, w) => {
     y = y === undefined ? x : y;
@@ -333,5 +323,5 @@ fn(async (t) => {
     );
   }
 
-  await run(t, builtin('extractBits'), [T, TypeU32, TypeU32], T, cfg, cases);
+  await run(t, builtin('extractBits'), [T, Type.u32, Type.u32], T, cfg, cases);
 });

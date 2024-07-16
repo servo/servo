@@ -16,6 +16,7 @@
 
 export function loadMetadataForSuite(suiteDir) {
   assert(typeof require !== 'undefined', 'loadMetadataForSuite is only implemented on Node');
+
   const fs = require('fs');
 
   const metadataFile = `${suiteDir}/listing_meta.json`;

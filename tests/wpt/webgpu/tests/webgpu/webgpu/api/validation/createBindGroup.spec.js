@@ -187,7 +187,7 @@ fn((t) => {
     usage: appliedUsage,
     sampleCount: info.resource === 'sampledTexMS' ? 4 : 1
   };
-  const resource = t.device.createTexture(descriptor).createView();
+  const resource = t.createTextureTracked(descriptor).createView();
 
   const shouldError = (usage & info.usage) === 0;
   t.expectValidationError(() => {
@@ -241,7 +241,7 @@ fn((t) => {
     entries: [
     {
       binding: 0,
-      resource: t.device.createTexture(goodDescriptor).createView()
+      resource: t.createTextureTracked(goodDescriptor).createView()
     }],
 
     layout: bindGroupLayout
@@ -266,7 +266,7 @@ fn((t) => {
 
     t.expectValidationError(() => {
       t.device.createBindGroup({
-        entries: [{ binding: 0, resource: t.device.createTexture(badDescriptor).createView() }],
+        entries: [{ binding: 0, resource: t.createTextureTracked(badDescriptor).createView() }],
         layout: bindGroupLayout
       });
     });
@@ -322,7 +322,7 @@ fn((t) => {
     depthOrArrayLayers = 1;
   }
 
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size: { width: 16, height, depthOrArrayLayers },
     format: 'rgba8unorm',
     usage,
@@ -380,7 +380,7 @@ fn((t) => {
 
   });
 
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size: { width: 16, height: 16, depthOrArrayLayers: 1 },
     format: 'rgba8unorm',
     usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
@@ -438,7 +438,7 @@ fn((t) => {
     entries: [{ binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'storage' } }]
   });
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     size: 1024,
     usage: GPUBufferUsage.STORAGE
   });
@@ -491,7 +491,7 @@ fn((t) => {
 
   });
 
-  const storageBuffer = t.device.createBuffer({
+  const storageBuffer = t.createBufferTracked({
     size,
     usage: GPUBufferUsage.STORAGE
   });
@@ -742,7 +742,7 @@ fn((t) => {
 
   });
 
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size: { width: 16, height: 16, depthOrArrayLayers: 1 },
     format: 'rgba8unorm',
     usage
@@ -786,7 +786,7 @@ fn((t) => {
   });
 
   const MIP_LEVEL_COUNT = 4;
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size: { width: 16, height: 16, depthOrArrayLayers: 1 },
     format: 'rgba8unorm',
     usage: GPUTextureUsage.STORAGE_BINDING,
@@ -832,7 +832,7 @@ fn((t) => {
 
   });
 
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size: { width: 16, height: 16, depthOrArrayLayers: 1 },
     format: resourceFormat,
     usage: GPUTextureUsage.STORAGE_BINDING
@@ -885,7 +885,7 @@ fn((t) => {
 
   });
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     size: 4,
     usage
   });
@@ -945,7 +945,7 @@ fn((t) => {
   const usage = type === 'uniform' ? GPUBufferUsage.UNIFORM : GPUBufferUsage.STORAGE;
   const isValid = offset % minAlignment === 0;
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     size: 1024,
     usage
   });
@@ -1004,7 +1004,7 @@ fn((t) => {
   const isValid = bindingSize <= maxBindingSize;
 
   // MAINTENANCE_TODO: Allocating the max size seems likely to fail. Refactor test.
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     size: maxBindingSize,
     usage
   });
@@ -1061,7 +1061,7 @@ fn((t) => {
     isValid = effectiveBindingSize % 4 === 0;
   }
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     size: bufferSize,
     usage
   });

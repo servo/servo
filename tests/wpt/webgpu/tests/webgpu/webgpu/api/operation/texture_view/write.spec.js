@@ -136,13 +136,11 @@ sampleCount)
         // The size of which equals that of format texture we are testing,
         // so that we have the same number of fragments and texels.
         const kPlaceholderTextureFormat = 'rgba8unorm';
-        const placeholderTexture = t.trackForCleanup(
-          t.device.createTexture({
-            format: kPlaceholderTextureFormat,
-            size: [kTextureSize, kTextureSize],
-            usage: GPUTextureUsage.RENDER_ATTACHMENT
-          })
-        );
+        const placeholderTexture = t.createTextureTracked({
+          format: kPlaceholderTextureFormat,
+          size: [kTextureSize, kTextureSize],
+          usage: GPUTextureUsage.RENDER_ATTACHMENT
+        });
 
         const pipeline = t.device.createRenderPipeline({
           layout: 'auto',
@@ -210,14 +208,12 @@ sampleCount)
         method === 'render-pass-store' ?
         view :
         t.
-        trackForCleanup(
-          t.device.createTexture({
-            format,
-            size: [kTextureSize, kTextureSize],
-            usage: GPUTextureUsage.RENDER_ATTACHMENT,
-            sampleCount: 4
-          })
-        ).
+        createTextureTracked({
+          format,
+          size: [kTextureSize, kTextureSize],
+          usage: GPUTextureUsage.RENDER_ATTACHMENT,
+          sampleCount: 4
+        }).
         createView();
         const resolveView = method === 'render-pass-store' ? undefined : view;
         const multisampleCount = method === 'render-pass-store' ? sampleCount : 4;
@@ -344,14 +340,12 @@ fn((t) => {
   GPUTextureUsage.STORAGE_BINDING :
   GPUTextureUsage.RENDER_ATTACHMENT);
 
-  const texture = t.trackForCleanup(
-    t.device.createTexture({
-      format,
-      usage,
-      size: [kTextureSize, kTextureSize],
-      sampleCount
-    })
-  );
+  const texture = t.createTextureTracked({
+    format,
+    usage,
+    size: [kTextureSize, kTextureSize],
+    sampleCount
+  });
 
   const view = texture.createView();
   const expectedTexelView = writeTextureAndGetExpectedTexelView(

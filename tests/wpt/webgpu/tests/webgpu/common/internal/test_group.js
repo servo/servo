@@ -34,7 +34,7 @@ import { validQueryPart } from '../internal/query/validQueryPart.js';
 
 import { assert, unreachable } from '../util/util.js';
 
-import { logToWebsocket } from './websocket_logger.js';
+import { logToWebSocket } from './websocket_logger.js';
 
 
 
@@ -294,9 +294,11 @@ class TestBuilder {
     (this.description ? this.description + '\n\n' : '') + 'TODO: .unimplemented()';
     this.isUnimplemented = true;
 
-    this.testFn = () => {
+    // Use the beforeFn to skip the test, so we don't have to iterate the subcases.
+    this.beforeFn = () => {
       throw new SkipTestCase('test unimplemented');
     };
+    this.testFn = () => {};
   }
 
   /** Perform various validation/"lint" chenks. */
@@ -350,7 +352,7 @@ class TestBuilder {
         const testcaseStringUnique = stringifyPublicParamsUniquely(params);
         assert(
           !seen.has(testcaseStringUnique),
-          `Duplicate public test case+subcase params for test ${testPathString}: ${testcaseString}`
+          `Duplicate public test case+subcase params for test ${testPathString}: ${testcaseString} (${caseQuery})`
         );
         seen.add(testcaseStringUnique);
       }
@@ -737,7 +739,7 @@ class RunCaseSpecific {
         timems: rec.result.timems,
         nonskippedSubcaseCount: rec.nonskippedSubcaseCount
       };
-      logToWebsocket(JSON.stringify(msg));
+      logToWebSocket(JSON.stringify(msg));
     }
   }
 }

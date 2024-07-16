@@ -115,6 +115,14 @@ const initializedStateAsStencil = {
   [InitializedState.Canary]: 42
 };
 
+function allAspectsCopyDst(info) {
+  return (
+    (!info.color || info.color.copyDst) && (
+    !info.depth || info.depth.copyDst) && (
+    !info.stencil || info.stencil.copyDst));
+
+}
+
 export function getRequiredTextureUsage(
 format,
 sampleCount,
@@ -159,10 +167,11 @@ readMethod)
     usage |= GPUConst.TextureUsage.RENDER_ATTACHMENT;
   }
 
-  if (!kTextureFormatInfo[format].copyDst) {
+  const info = kTextureFormatInfo[format];
+  if (!allAspectsCopyDst(info)) {
     // Copies are not possible. We need OutputAttachment to initialize
     // canary data.
-    assert(kTextureFormatInfo[format].renderable);
+    if (info.color) assert(!!info.colorRender, 'not implemented for non-renderable color');
     usage |= GPUConst.TextureUsage.RENDER_ATTACHMENT;
   }
 
@@ -299,9 +308,9 @@ export class TextureZeroInitTest extends GPUTest {
           colorAttachments: [
           {
             view: texture.createView(viewDescriptor),
-            storeOp: 'store',
             clearValue: initializedStateAsColor(state, this.p.format),
-            loadOp: 'clear'
+            loadOp: 'clear',
+            storeOp: 'store'
           }]
 
         }).
@@ -344,17 +353,18 @@ export class TextureZeroInitTest extends GPUTest {
     const firstSubresource = subresourceRange.each().next().value;
     assert(typeof firstSubresource !== 'undefined');
 
+    const textureSize = [this.textureWidth, this.textureHeight, this.textureDepth];
     const [largestWidth, largestHeight, largestDepth] = virtualMipSize(
       this.p.dimension,
-      [this.textureWidth, this.textureHeight, this.textureDepth],
+      textureSize,
       firstSubresource.level
     );
 
     const rep = kTexelRepresentationInfo[format];
     const texelData = new Uint8Array(rep.pack(rep.encode(this.stateToTexelComponents[state])));
     const { buffer, bytesPerRow, rowsPerImage } = createTextureUploadBuffer(
+      this,
       texelData,
-      this.device,
       format,
       this.p.dimension,
       [largestWidth, largestHeight, largestDepth]
@@ -363,11 +373,7 @@ export class TextureZeroInitTest extends GPUTest {
     const commandEncoder = this.device.createCommandEncoder();
 
     for (const { level, layer } of subresourceRange.each()) {
-      const [width, height, depth] = virtualMipSize(
-        this.p.dimension,
-        [this.textureWidth, this.textureHeight, this.textureDepth],
-        level
-      );
+      const [width, height, depth] = virtualMipSize(this.p.dimension, textureSize, level);
 
       commandEncoder.copyBufferToTexture(
         {
@@ -388,10 +394,11 @@ export class TextureZeroInitTest extends GPUTest {
   state,
   subresourceRange)
   {
-    if (this.p.sampleCount > 1 || !kTextureFormatInfo[this.p.format].copyDst) {
+    const info = kTextureFormatInfo[this.p.format];
+    if (this.p.sampleCount > 1 || !allAspectsCopyDst(info)) {
       // Copies to multisampled textures not yet specified.
       // Use a storeOp for now.
-      assert(kTextureFormatInfo[this.p.format].renderable);
+      if (info.color) assert(!!info.colorRender, 'not implemented for non-renderable color');
       this.initializeWithStoreOp(state, texture, subresourceRange);
     } else {
       this.initializeWithCopy(texture, state, subresourceRange);
@@ -409,8 +416,8 @@ export class TextureZeroInitTest extends GPUTest {
           colorAttachments: [
           {
             view: texture.createView(desc),
-            storeOp: 'discard',
-            loadOp: 'load'
+            loadOp: 'load',
+            storeOp: 'discard'
           }]
 
         }).
@@ -517,17 +524,12 @@ unless(({ format, sampleCount, uninitializeMethod, readMethod }) => {
   const info = kTextureFormatInfo[format];
 
   return (
-    (usage & GPUConst.TextureUsage.RENDER_ATTACHMENT) !== 0 && !info.renderable ||
+    (usage & GPUConst.TextureUsage.RENDER_ATTACHMENT) !== 0 &&
+    info.color &&
+    !info.colorRender ||
     (usage & GPUConst.TextureUsage.STORAGE_BINDING) !== 0 && !info.color?.storage ||
     sampleCount > 1 && !info.multisample);
 
 }).
 combine('nonPowerOfTwo', [false, true]).
-combine('canaryOnCreation', [false, true]).
-filter(({ canaryOnCreation, format }) => {
-  // We can only initialize the texture if it's encodable or renderable.
-  const canInitialize = format in kTextureFormatInfo || kTextureFormatInfo[format].renderable;
-
-  // Filter out cases where we want canary values but can't initialize.
-  return !canaryOnCreation || canInitialize;
-});
+combine('canaryOnCreation', [false, true]);

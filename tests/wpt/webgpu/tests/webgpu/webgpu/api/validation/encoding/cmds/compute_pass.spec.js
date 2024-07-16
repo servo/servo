@@ -31,7 +31,7 @@ class F extends ValidationTest {
     }
 
     this.device.pushErrorScope('validation');
-    const buffer = this.device.createBuffer(descriptor);
+    const buffer = this.createBufferTracked(descriptor);
     void this.device.popErrorScope();
 
     if (state === 'valid') {
@@ -203,11 +203,12 @@ fn((t) => {
 
   const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
 
-  const buffer = sourceDevice.createBuffer({
-    size: 16,
-    usage: GPUBufferUsage.INDIRECT
-  });
-  t.trackForCleanup(buffer);
+  const buffer = t.trackForCleanup(
+    sourceDevice.createBuffer({
+      size: 16,
+      usage: GPUBufferUsage.INDIRECT
+    })
+  );
 
   const { encoder, validateFinish } = t.createEncoder('compute pass');
   encoder.setPipeline(pipeline);
@@ -243,11 +244,10 @@ fn((t) => {
   const layout = t.device.createPipelineLayout({ bindGroupLayouts: [] });
   const pipeline = t.createNoOpComputePipeline(layout);
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     size: 16,
     usage: bufferUsage
   });
-  t.trackForCleanup(buffer);
 
   const success = (GPUBufferUsage.INDIRECT & bufferUsage) !== 0;
 

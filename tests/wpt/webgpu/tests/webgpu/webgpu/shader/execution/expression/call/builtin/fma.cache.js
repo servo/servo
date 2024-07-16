@@ -15,7 +15,8 @@ flatMap((trait) =>
       FP[trait].sparseScalarRange(),
       FP[trait].sparseScalarRange(),
       nonConst ? 'unfiltered' : 'finite',
-      FP[trait].fmaInterval
+      // fma has an inherited accuracy, so abstract is only expected to be as accurate as f32
+      FP[trait !== 'abstract' ? trait : 'f32'].fmaInterval
     );
   }
 }))

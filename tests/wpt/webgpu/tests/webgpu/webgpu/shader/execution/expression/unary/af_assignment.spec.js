@@ -4,7 +4,7 @@
 Execution Tests for assignment of AbstractFloats
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../gpu_test.js';
-import { TypeAbstractFloat, TypeF16, TypeF32 } from '../../../../util/conversion.js';
+import { Type } from '../../../../util/conversion.js';
 import {
 
   abstractFloatShaderBuilder,
@@ -35,7 +35,15 @@ testing that extracting abstract floats works
 params((u) => u.combine('inputSource', onlyConstInputSource)).
 fn(async (t) => {
   const cases = await d.get('abstract');
-  await run(t, abstract_assignment(), [TypeAbstractFloat], TypeAbstractFloat, t.params, cases, 1);
+  await run(
+    t,
+    abstract_assignment(),
+    [Type.abstractFloat],
+    Type.abstractFloat,
+    t.params,
+    cases,
+    1
+  );
 });
 
 g.test('f32').
@@ -48,7 +56,7 @@ concretizing to f32
 params((u) => u.combine('inputSource', onlyConstInputSource)).
 fn(async (t) => {
   const cases = await d.get('f32');
-  await run(t, concrete_assignment(), [TypeAbstractFloat], TypeF32, t.params, cases);
+  await run(t, concrete_assignment(), [Type.abstractFloat], Type.f32, t.params, cases);
 });
 
 g.test('f16').
@@ -64,5 +72,5 @@ beforeAllSubcases((t) => {
 params((u) => u.combine('inputSource', onlyConstInputSource)).
 fn(async (t) => {
   const cases = await d.get('f16');
-  await run(t, concrete_assignment(), [TypeAbstractFloat], TypeF16, t.params, cases);
+  await run(t, concrete_assignment(), [Type.abstractFloat], Type.f16, t.params, cases);
 });

@@ -7,8 +7,9 @@ map((trait) => ({
   [`${trait}`]: () => {
     return FP[trait].generateScalarToIntervalCases(
       FP[trait].scalarRange(),
-      'unfiltered',
-      FP[trait].radiansInterval
+      trait !== 'abstract' ? 'unfiltered' : 'finite',
+      // radians has an inherited accuracy, so abstract is only expected to be as accurate as f32
+      FP[trait !== 'abstract' ? trait : 'f32'].radiansInterval
     );
   }
 })).

@@ -1,17 +1,10 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { bool, f16, i32, u32 } from '../../../../util/conversion.js';import { FP, FPInterval } from '../../../../util/floating_point.js';import {
-  fullI32Range,
-  fullU32Range,
-  scalarF16Range,
-  scalarF32Range,
-  sparseMatrixF16Range,
-  sparseMatrixF32Range } from
-'../../../../util/math.js';
+**/import { abstractInt, bool, f16, i32, u32 } from '../../../../util/conversion.js';import { FP, FPInterval } from '../../../../util/floating_point.js';import { fullI32Range, fullI64Range, fullU32Range } from '../../../../util/math.js';
 import { makeCaseCache } from '../case_cache.js';
 
 const f16FiniteRangeInterval = new FPInterval(
-  'f32',
+  'f16',
   FP.f16.constants().negative.min,
   FP.f16.constants().positive.max
 );
@@ -24,7 +17,7 @@ flatMap((cols) =>
 [true, false].map((nonConst) => ({
   [`f32_mat${cols}x${rows}_${nonConst ? 'non_const' : 'const'}`]: () => {
     return FP.f32.generateMatrixToMatrixCases(
-      sparseMatrixF32Range(cols, rows),
+      FP.f32.sparseMatrixRange(cols, rows),
       nonConst ? 'unfiltered' : 'finite',
       FP.f16.correctlyRoundedMatrix
     );
@@ -42,13 +35,30 @@ flatMap((cols) =>
   [`f16_mat${cols}x${rows}_${nonConst ? 'non_const' : 'const'}`]: () => {
     // Input matrix is of f16 types, use f16.generateMatrixToMatrixCases.
     return FP.f16.generateMatrixToMatrixCases(
-      sparseMatrixF16Range(cols, rows),
+      FP.f16.sparseMatrixRange(cols, rows),
       nonConst ? 'unfiltered' : 'finite',
       FP.f16.correctlyRoundedMatrix
     );
   }
 }))
 )
+).
+reduce((a, b) => ({ ...a, ...b }), {});
+
+// Cases: abstract_float_matCxR
+// Note that abstract float values may be not exactly representable in f16
+// and/or out of range.
+const abstract_float_mat_cases = [2, 3, 4].
+flatMap((cols) =>
+[2, 3, 4].map((rows) => ({
+  [`abstract_float_mat${cols}x${rows}`]: () => {
+    return FP.abstract.generateMatrixToMatrixCases(
+      FP.abstract.sparseMatrixRange(cols, rows),
+      'finite',
+      FP.f16.correctlyRoundedMatrix
+    );
+  }
+}))
 ).
 reduce((a, b) => ({ ...a, ...b }), {});
 
@@ -83,27 +93,43 @@ export const d = makeCaseCache('unary/f16_conversion', {
       return { input: i32(i), expected: FP.f16.correctlyRoundedInterval(i) };
     });
   },
+  abstract_int: () => {
+    return [...fullI64Range(), 65504n, -65504n].
+    filter((v) => f16FiniteRangeInterval.contains(Number(v))).
+    map((i) => {
+      return { input: abstractInt(i), expected: FP.f16.correctlyRoundedInterval(Number(i)) };
+    });
+  },
   // Note that f32 values may be not exactly representable in f16 and/or out of range.
   f32_non_const: () => {
     return FP.f32.generateScalarToIntervalCases(
-      [...scalarF32Range(), 65535.996, -65535.996],
+      [...FP.f32.scalarRange(), 65535.996, -65535.996],
       'unfiltered',
       FP.f16.correctlyRoundedInterval
     );
   },
   f32_const: () => {
     return FP.f32.generateScalarToIntervalCases(
-      [...scalarF32Range(), 65535.996, -65535.996],
+      [...FP.f32.scalarRange(), 65535.996, -65535.996],
+      'finite',
+      FP.f16.correctlyRoundedInterval
+    );
+  },
+  // Note that abstract float values may be not exactly representable in f16.
+  abstract_float: () => {
+    return FP.abstract.generateScalarToIntervalCases(
+      [...FP.abstract.scalarRange(), 65535.996, -65535.996],
       'finite',
       FP.f16.correctlyRoundedInterval
     );
   },
   // All f16 values are exactly representable in f16.
   f16: () => {
-    return scalarF16Range().map((f) => {
+    return FP.f16.scalarRange().map((f) => {
       return { input: f16(f), expected: FP.f16.correctlyRoundedInterval(f) };
     });
   },
   ...f32_mat_cases,
-  ...f16_mat_cases
+  ...f16_mat_cases,
+  ...abstract_float_mat_cases
 });

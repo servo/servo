@@ -27,13 +27,13 @@ const makeCase = (trait, edge, x) => {
   };
 };
 
-// Cases: [f32|f16]
-const cases = ['f32', 'f16'].
+// Cases: [f32|f16|abstract]
+const cases = ['f32', 'f16', 'abstract'].
 map((trait) => ({
   [`${trait}`]: () => {
     return FP[trait].
-    scalarRange().
-    flatMap((edge) => FP[trait].scalarRange().map((x) => makeCase(trait, edge, x)));
+    sparseScalarRange().
+    flatMap((edge) => FP[trait].sparseScalarRange().map((x) => makeCase(trait, edge, x)));
   }
 })).
 reduce((a, b) => ({ ...a, ...b }), {});

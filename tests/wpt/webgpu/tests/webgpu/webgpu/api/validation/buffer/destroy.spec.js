@@ -17,7 +17,7 @@ u //
 ).
 fn((t) => {
   const { usage } = t.params;
-  const buf = t.device.createBuffer({
+  const buf = t.createBufferTracked({
     size: 4,
     usage
   });
@@ -48,7 +48,7 @@ combineWithParams([
 )
 ).
 fn((t) => {
-  const buf = t.device.createBuffer(t.params);
+  const buf = t.createBufferTracked(t.params);
 
   buf.destroy();
   buf.destroy();
@@ -81,7 +81,7 @@ unless((p) => p.mappedAtCreation === false && p.mapMode === undefined)
 ).
 fn(async (t) => {
   const { usage, mapMode, mappedAtCreation, unmapBeforeDestroy } = t.params;
-  const buf = t.device.createBuffer({
+  const buf = t.createBufferTracked({
     size: 4,
     usage,
     mappedAtCreation

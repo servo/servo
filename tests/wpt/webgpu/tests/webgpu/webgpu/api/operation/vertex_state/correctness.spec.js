@@ -202,7 +202,7 @@ ${vsChecks}
 }
 
 struct VSOutputs {
-  @location(0) @interpolate(flat) result : i32,
+  @location(0) @interpolate(flat, either) result : i32,
   @builtin(position) position : vec4<f32>,
 };
 
@@ -221,7 +221,7 @@ struct VSOutputs {
   return output;
 }
 
-@fragment fn fsMain(@location(0) @interpolate(flat) result : i32)
+@fragment fn fsMain(@location(0) @interpolate(flat, either) result : i32)
   -> @location(0) i32 {
   return result;
 }
@@ -282,7 +282,7 @@ struct VSOutputs {
   vertexCount,
   instanceCount)
   {
-    const testTexture = this.device.createTexture({
+    const testTexture = this.createTextureTracked({
       format: 'r32sint',
       size: [vertexCount, instanceCount],
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC

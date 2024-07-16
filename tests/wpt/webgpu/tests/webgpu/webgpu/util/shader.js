@@ -178,6 +178,8 @@ fragDepth = null)
     }`;
 }
 
+export const kValidShaderStages = ['compute', 'vertex', 'fragment'];
+
 
 
 /**

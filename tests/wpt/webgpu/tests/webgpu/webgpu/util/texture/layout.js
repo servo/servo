@@ -5,6 +5,7 @@ resolvePerAspectFormat } from
 
 
 '../../format_info.js';
+
 import { align } from '../math.js';
 import { reifyExtent3D } from '../unions.js';
 
@@ -195,8 +196,8 @@ options = kDefaultLayoutOptions)
  * texture where every texel has the byte value `texelValue`.
  */
 export function createTextureUploadBuffer(
+t,
 texelValue,
-device,
 format,
 dimension,
 size,
@@ -213,7 +214,7 @@ options = kDefaultLayoutOptions)
     options
   );
 
-  const buffer = device.createBuffer({
+  const buffer = t.createBufferTracked({
     mappedAtCreation: true,
     size: byteLength,
     usage: GPUBufferUsage.COPY_SRC

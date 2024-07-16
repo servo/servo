@@ -42,7 +42,7 @@ fn((t) => {
   const submit = state !== 'invalid';
   const success = state === 'valid';
 
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size: { width: 2, height: 2, depthOrArrayLayers: 1 },
     format: 'rgba8unorm',
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
@@ -69,13 +69,14 @@ fn((t) => {
   const { method, mismatched } = t.params;
   const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
 
-  const buffer = sourceDevice.createBuffer({
-    size: 16,
-    usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
-  });
-  t.trackForCleanup(buffer);
+  const buffer = t.trackForCleanup(
+    sourceDevice.createBuffer({
+      size: 16,
+      usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
+    })
+  );
 
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size: { width: 2, height: 2, depthOrArrayLayers: 1 },
     format: 'rgba8unorm',
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
@@ -116,7 +117,7 @@ GPUConst.BufferUsage.COPY_SRC | GPUConst.BufferUsage.COPY_DST]
 fn((t) => {
   const { method, usage } = t.params;
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     size: 16,
     usage
   });
@@ -126,7 +127,7 @@ fn((t) => {
   (usage & GPUBufferUsage.COPY_SRC) !== 0 :
   (usage & GPUBufferUsage.COPY_DST) !== 0;
 
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size: { width: 2, height: 2, depthOrArrayLayers: 1 },
     format: 'rgba8unorm',
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
@@ -193,7 +194,7 @@ fn((t) => {
 
   const info = kTextureFormatInfo[format];
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     size: 512 * 8 * 16,
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
   });
@@ -207,7 +208,7 @@ fn((t) => {
   if (bytesPerRow !== undefined && bytesPerRow > 0 && bytesPerRow % 256 === 0) success = true;
 
   const size = [info.blockWidth, _textureHeightInBlocks * info.blockHeight, 1];
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size,
     dimension,
     format,

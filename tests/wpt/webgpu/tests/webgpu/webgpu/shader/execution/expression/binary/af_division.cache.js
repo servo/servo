@@ -3,11 +3,13 @@
 **/import { FP } from '../../../../util/floating_point.js';import { sparseScalarF64Range, sparseVectorF64Range } from '../../../../util/math.js';import { makeCaseCache } from '../case_cache.js';
 
 const divisionVectorScalarInterval = (v, s) => {
-  return FP.abstract.toVector(v.map((e) => FP.abstract.divisionInterval(e, s)));
+  // division has an ulp accuracy, so abstract is only expected to be as accurate as f32
+  return FP.abstract.toVector(v.map((e) => FP.f32.divisionInterval(e, s)));
 };
 
 const divisionScalarVectorInterval = (s, v) => {
-  return FP.abstract.toVector(v.map((e) => FP.abstract.divisionInterval(s, e)));
+  // division has an ulp accuracy, so abstract is only expected to be as accurate as f32
+  return FP.abstract.toVector(v.map((e) => FP.f32.divisionInterval(s, e)));
 };
 
 const scalar_cases = {
@@ -16,7 +18,8 @@ const scalar_cases = {
       sparseScalarF64Range(),
       sparseScalarF64Range(),
       'finite',
-      FP.abstract.divisionInterval
+      // division has an ulp accuracy, so abstract is only expected to be as accurate as f32
+      FP.f32.divisionInterval
     );
   }
 };

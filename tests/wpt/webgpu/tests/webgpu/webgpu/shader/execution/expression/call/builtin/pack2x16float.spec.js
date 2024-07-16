@@ -6,7 +6,7 @@ Component e[i] of the input is converted to a IEEE-754 binary16 value,
 which is then placed in bits 16 × i through 16 × i + 15 of the result.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
-import { TypeF32, TypeU32, TypeVec } from '../../../../../util/conversion.js';
+import { Type } from '../../../../../util/conversion.js';
 import { allInputSources, run } from '../../expression.js';
 
 import { builtin } from './builtin.js';
@@ -24,5 +24,5 @@ desc(
 params((u) => u.combine('inputSource', allInputSources)).
 fn(async (t) => {
   const cases = await d.get(t.params.inputSource === 'const' ? 'f32_const' : 'f32_non_const');
-  await run(t, builtin('pack2x16float'), [TypeVec(2, TypeF32)], TypeU32, t.params, cases);
+  await run(t, builtin('pack2x16float'), [Type.vec2f], Type.u32, t.params, cases);
 });

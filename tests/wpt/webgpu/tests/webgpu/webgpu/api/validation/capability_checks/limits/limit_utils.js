@@ -355,12 +355,12 @@ export class LimitTestsImpl extends GPUTestBase {
   requiredFeatures)
   {
     if (shouldReject) {
-      this.shouldReject('OperationError', adapter.requestDevice({ requiredLimits }), {
+      this.shouldReject('OperationError', this.requestDeviceTracked(adapter, { requiredLimits }), {
         allowMissingStack: true
       });
       return undefined;
     } else {
-      return await adapter.requestDevice({ requiredLimits, requiredFeatures });
+      return this.requestDeviceTracked(adapter, { requiredLimits, requiredFeatures });
     }
   }
 
@@ -718,11 +718,19 @@ export class LimitTestsImpl extends GPUTestBase {
   }
 
   _createRenderPipelineDescriptor(module) {
+    const { device } = this;
     return {
       layout: 'auto',
       vertex: {
         module,
         entryPoint: 'mainVS'
+      },
+      // Specify a color attachment so we have at least one render target.
+      fragment: {
+        targets: [{ format: 'rgba8unorm' }],
+        module: device.createShaderModule({
+          code: `@fragment fn main() -> @location(0) vec4f { return vec4f(0); }`
+        })
       }
     };
   }
@@ -879,25 +887,21 @@ export class LimitTestsImpl extends GPUTestBase {
   /**
    * Creates an GPURenderCommandsMixin setup with some initial state.
    */
-  _getGPURenderCommandsMixin(encoderType) {
+  #getGPURenderCommandsMixin(encoderType) {
     const { device } = this;
 
     switch (encoderType) {
       case 'render':{
-          const buffer = this.trackForCleanup(
-            device.createBuffer({
-              size: 16,
-              usage: GPUBufferUsage.UNIFORM
-            })
-          );
+          const buffer = this.createBufferTracked({
+            size: 16,
+            usage: GPUBufferUsage.UNIFORM
+          });
 
-          const texture = this.trackForCleanup(
-            device.createTexture({
-              size: [1, 1],
-              format: 'rgba8unorm',
-              usage: GPUTextureUsage.RENDER_ATTACHMENT
-            })
-          );
+          const texture = this.createTextureTracked({
+            size: [1, 1],
+            format: 'rgba8unorm',
+            usage: GPUTextureUsage.RENDER_ATTACHMENT
+          });
 
           const layout = device.createBindGroupLayout({
             entries: [
@@ -920,7 +924,7 @@ export class LimitTestsImpl extends GPUTestBase {
           });
 
           const encoder = device.createCommandEncoder();
-          const mixin = encoder.beginRenderPass({
+          const passEncoder = encoder.beginRenderPass({
             colorAttachments: [
             {
               view: texture.createView(),
@@ -931,10 +935,10 @@ export class LimitTestsImpl extends GPUTestBase {
           });
 
           return {
-            mixin,
+            passEncoder,
             bindGroup,
             prep() {
-              mixin.end();
+              passEncoder.end();
             },
             test() {
               encoder.finish();
@@ -944,12 +948,10 @@ export class LimitTestsImpl extends GPUTestBase {
         }
 
       case 'renderBundle':{
-          const buffer = this.trackForCleanup(
-            device.createBuffer({
-              size: 16,
-              usage: GPUBufferUsage.UNIFORM
-            })
-          );
+          const buffer = this.createBufferTracked({
+            size: 16,
+            usage: GPUBufferUsage.UNIFORM
+          });
 
           const layout = device.createBindGroupLayout({
             entries: [
@@ -971,16 +973,16 @@ export class LimitTestsImpl extends GPUTestBase {
 
           });
 
-          const mixin = device.createRenderBundleEncoder({
+          const passEncoder = device.createRenderBundleEncoder({
             colorFormats: ['rgba8unorm']
           });
 
           return {
-            mixin,
+            passEncoder,
             bindGroup,
             prep() {},
             test() {
-              mixin.finish();
+              passEncoder.finish();
             }
           };
           break;
@@ -989,17 +991,23 @@ export class LimitTestsImpl extends GPUTestBase {
   }
 
   /**
-   * Tests a method on GPURenderCommandsMixin
-   * The function will be called with the mixin.
+   * Test a method on GPURenderCommandsMixin or GPUBindingCommandsMixin
+   * The function will be called with the passEncoder.
    */
-  async testGPURenderCommandsMixin(
+  async testGPURenderAndBindingCommandsMixin(
   encoderType,
   fn,
+
+
+
+
+
+
   shouldError,
   msg = '')
   {
-    const { mixin, prep, test } = this._getGPURenderCommandsMixin(encoderType);
-    fn({ mixin });
+    const { passEncoder, prep, test, bindGroup } = this.#getGPURenderCommandsMixin(encoderType);
+    fn({ passEncoder, bindGroup });
     prep();
 
     await this.expectValidationError(test, shouldError, msg);
@@ -1008,17 +1016,15 @@ export class LimitTestsImpl extends GPUTestBase {
   /**
    * Creates GPUBindingCommandsMixin setup with some initial state.
    */
-  _getGPUBindingCommandsMixin(encoderType) {
+  #getGPUBindingCommandsMixin(encoderType) {
     const { device } = this;
 
     switch (encoderType) {
       case 'compute':{
-          const buffer = this.trackForCleanup(
-            device.createBuffer({
-              size: 16,
-              usage: GPUBufferUsage.UNIFORM
-            })
-          );
+          const buffer = this.createBufferTracked({
+            size: 16,
+            usage: GPUBufferUsage.UNIFORM
+          });
 
           const layout = device.createBindGroupLayout({
             entries: [
@@ -1041,12 +1047,12 @@ export class LimitTestsImpl extends GPUTestBase {
           });
 
           const encoder = device.createCommandEncoder();
-          const mixin = encoder.beginComputePass();
+          const passEncoder = encoder.beginComputePass();
           return {
-            mixin,
+            passEncoder,
             bindGroup,
             prep() {
-              mixin.end();
+              passEncoder.end();
             },
             test() {
               encoder.finish();
@@ -1055,15 +1061,15 @@ export class LimitTestsImpl extends GPUTestBase {
           break;
         }
       case 'render':
-        return this._getGPURenderCommandsMixin('render');
+        return this.#getGPURenderCommandsMixin('render');
       case 'renderBundle':
-        return this._getGPURenderCommandsMixin('renderBundle');
+        return this.#getGPURenderCommandsMixin('renderBundle');
     }
   }
 
   /**
    * Tests a method on GPUBindingCommandsMixin
-   * The function pass will be called with the mixin and a bindGroup
+   * The function pass will be called with the passEncoder and a bindGroup
    */
   async testGPUBindingCommandsMixin(
   encoderType,
@@ -1071,8 +1077,8 @@ export class LimitTestsImpl extends GPUTestBase {
   shouldError,
   msg = '')
   {
-    const { mixin, bindGroup, prep, test } = this._getGPUBindingCommandsMixin(encoderType);
-    fn({ mixin, bindGroup });
+    const { passEncoder, bindGroup, prep, test } = this.#getGPUBindingCommandsMixin(encoderType);
+    fn({ passEncoder, bindGroup });
     prep();
 
     await this.expectValidationError(test, shouldError, msg);

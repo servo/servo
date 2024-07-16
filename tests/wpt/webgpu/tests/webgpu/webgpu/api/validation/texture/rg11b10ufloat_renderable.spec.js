@@ -28,7 +28,7 @@ fn((t) => {
     sampleCount,
     usage: GPUConst.TextureUsage.RENDER_ATTACHMENT
   };
-  t.device.createTexture(descriptor);
+  t.createTextureTracked(descriptor);
 });
 
 g.test('begin_render_pass_single_sampled').
@@ -42,7 +42,7 @@ beforeAllSubcases((t) => {
   t.selectDeviceOrSkipTestCase('rg11b10ufloat-renderable');
 }).
 fn((t) => {
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size: [1, 1, 1],
     format: 'rg11b10ufloat',
     sampleCount: 1,
@@ -74,13 +74,13 @@ beforeAllSubcases((t) => {
   t.selectDeviceOrSkipTestCase('rg11b10ufloat-renderable');
 }).
 fn((t) => {
-  const renderTexture = t.device.createTexture({
+  const renderTexture = t.createTextureTracked({
     size: [1, 1, 1],
     format: 'rg11b10ufloat',
     sampleCount: 4,
     usage: GPUConst.TextureUsage.RENDER_ATTACHMENT
   });
-  const resolveTexture = t.device.createTexture({
+  const resolveTexture = t.createTextureTracked({
     size: [1, 1, 1],
     format: 'rg11b10ufloat',
     sampleCount: 1,

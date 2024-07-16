@@ -13,7 +13,7 @@ const kIndirectDrawTestParams = kRenderEncodeTypeParams.combine('indexed', [true
 
 class F extends ValidationTest {
   makeIndexBuffer() {
-    return this.device.createBuffer({
+    return this.createBufferTracked({
       size: 16,
       usage: GPUBufferUsage.INDEX
     });
@@ -63,11 +63,12 @@ fn((t) => {
 
   const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
 
-  const indirectBuffer = sourceDevice.createBuffer({
-    size: 256,
-    usage: GPUBufferUsage.INDIRECT
-  });
-  t.trackForCleanup(indirectBuffer);
+  const indirectBuffer = t.trackForCleanup(
+    sourceDevice.createBuffer({
+      size: 256,
+      usage: GPUBufferUsage.INDIRECT
+    })
+  );
 
   const { encoder, validateFinish } = t.createEncoder(encoderType);
   encoder.setPipeline(t.createNoOpRenderPipeline());
@@ -96,7 +97,7 @@ paramsSubcasesOnly(
 ).
 fn((t) => {
   const { encoderType, indexed, usage } = t.params;
-  const indirectBuffer = t.device.createBuffer({
+  const indirectBuffer = t.createBufferTracked({
     size: 256,
     usage
   });
@@ -123,7 +124,7 @@ paramsSubcasesOnly(kIndirectDrawTestParams.combine('indirectOffset', [0, 2, 4]))
 fn((t) => {
   const { encoderType, indexed, indirectOffset } = t.params;
   const pipeline = t.createNoOpRenderPipeline();
-  const indirectBuffer = t.device.createBuffer({
+  const indirectBuffer = t.createBufferTracked({
     size: 256,
     usage: GPUBufferUsage.INDIRECT
   });
@@ -183,7 +184,7 @@ paramsSubcasesOnly(
 fn((t) => {
   const { encoderType, indexed, indirectOffset, bufferSize, _valid } = t.params;
   const pipeline = t.createNoOpRenderPipeline();
-  const indirectBuffer = t.device.createBuffer({
+  const indirectBuffer = t.createBufferTracked({
     size: bufferSize,
     usage: GPUBufferUsage.INDIRECT
   });

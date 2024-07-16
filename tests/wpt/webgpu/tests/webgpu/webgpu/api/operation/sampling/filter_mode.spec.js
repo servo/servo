@@ -41,7 +41,7 @@ class FilterModeTest extends TextureTestMixin(GPUTest) {
         usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
       }
     );
-    const renderTexture = this.device.createTexture({
+    const renderTexture = this.createTextureTracked({
       format,
       size: renderSize,
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
@@ -1000,7 +1000,7 @@ fn((t) => {
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
     }
   );
-  const renderTexture = t.device.createTexture({
+  const renderTexture = t.createTextureTracked({
     format,
     size: [kRenderSize, 1],
     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC

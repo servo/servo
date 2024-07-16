@@ -5,9 +5,16 @@ createComputePipeline and createComputePipelineAsync validation tests.
 
 Note: entry point matching tests are in shader_module/entry_point.spec.ts
 `;import { makeTestGroup } from '../../../common/framework/test_group.js';
+import { keysOf } from '../../../common/util/data_tables.js';
 import { kValue } from '../../util/constants.js';
 import { getShaderWithEntryPoint } from '../../util/shader.js';
 
+import {
+  kAPIResources,
+  getWGSLShaderForResource,
+  getAPIBindGroupLayoutForResource,
+  doResourcesMatch } from
+'./utils.js';
 import { ValidationTest } from './validation_test.js';
 
 class F extends ValidationTest {
@@ -689,4 +696,47 @@ fn((t) => {
   testFn(1, 1, true);
   testFn(maxVec4Count + 1, 0, false);
   testFn(0, maxMat4Count + 1, false);
+});
+
+g.test('resource_compatibility').
+desc(
+  'Tests validation of resource (bind group) compatibility between pipeline layout and WGSL shader'
+).
+params((u) =>
+u //
+.combine('apiResource', keysOf(kAPIResources)).
+beginSubcases().
+combine('isAsync', [true, false]).
+combine('wgslResource', keysOf(kAPIResources))
+).
+fn((t) => {
+  const apiResource = kAPIResources[t.params.apiResource];
+  const wgslResource = kAPIResources[t.params.wgslResource];
+  t.skipIf(
+    wgslResource.storageTexture !== undefined &&
+    wgslResource.storageTexture.access !== 'write-only' &&
+    !t.hasLanguageFeature('readonly_and_readwrite_storage_textures'),
+    'Storage textures require language feature'
+  );
+
+  const layout = t.device.createPipelineLayout({
+    bindGroupLayouts: [
+    getAPIBindGroupLayoutForResource(t.device, GPUShaderStage.COMPUTE, apiResource)]
+
+  });
+
+  const descriptor = {
+    layout,
+    compute: {
+      module: t.device.createShaderModule({
+        code: getWGSLShaderForResource('compute', wgslResource)
+      }),
+      entryPoint: 'main'
+    }
+  };
+  t.doCreateComputePipelineTest(
+    t.params.isAsync,
+    doResourcesMatch(apiResource, wgslResource),
+    descriptor
+  );
 });

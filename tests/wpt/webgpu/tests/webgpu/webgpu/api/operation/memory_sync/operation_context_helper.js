@@ -168,13 +168,11 @@ export class OperationContextHelper {
   }
 
   makeDummyAttachment() {
-    const texture = this.t.trackForCleanup(
-      this.device.createTexture({
-        format: this.kTextureFormat,
-        size: this.kTextureSize,
-        usage: GPUTextureUsage.RENDER_ATTACHMENT
-      })
-    );
+    const texture = this.t.createTextureTracked({
+      format: this.kTextureFormat,
+      size: this.kTextureSize,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT
+    });
     return {
       view: texture.createView(),
       loadOp: 'load',

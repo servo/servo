@@ -31,11 +31,11 @@ export class ValidationTest extends GPUTest {
 
     switch (state) {
       case 'valid':
-        return this.trackForCleanup(this.device.createTexture(descriptor));
+        return this.createTextureTracked(descriptor);
       case 'invalid':
         return this.getErrorTexture();
       case 'destroyed':{
-          const texture = this.device.createTexture(descriptor);
+          const texture = this.createTextureTracked(descriptor);
           texture.destroy();
           return texture;
         }
@@ -57,13 +57,13 @@ export class ValidationTest extends GPUTest {
 
     switch (state) {
       case 'valid':
-        return this.trackForCleanup(this.device.createBuffer(descriptor));
+        return this.createBufferTracked(descriptor);
 
       case 'invalid':{
           // Make the buffer invalid because of an invalid combination of usages but keep the
           // descriptor passed as much as possible (for mappedAtCreation and friends).
           this.device.pushErrorScope('validation');
-          const buffer = this.device.createBuffer({
+          const buffer = this.createBufferTracked({
             ...descriptor,
             usage: descriptor.usage | GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_SRC
           });
@@ -71,7 +71,7 @@ export class ValidationTest extends GPUTest {
           return buffer;
         }
       case 'destroyed':{
-          const buffer = this.device.createBuffer(descriptor);
+          const buffer = this.createBufferTracked(descriptor);
           buffer.destroy();
           return buffer;
         }
@@ -90,14 +90,14 @@ export class ValidationTest extends GPUTest {
 
     switch (state) {
       case 'valid':
-        return this.trackForCleanup(this.device.createQuerySet(descriptor));
+        return this.createQuerySetTracked(descriptor);
       case 'invalid':{
           // Make the queryset invalid because of the count out of bounds.
           descriptor.count = kMaxQueryCount + 1;
-          return this.expectGPUError('validation', () => this.device.createQuerySet(descriptor));
+          return this.expectGPUError('validation', () => this.createQuerySetTracked(descriptor));
         }
       case 'destroyed':{
-          const queryset = this.device.createQuerySet(descriptor);
+          const queryset = this.createQuerySetTracked(descriptor);
           queryset.destroy();
           return queryset;
         }
@@ -106,16 +106,12 @@ export class ValidationTest extends GPUTest {
 
   /** Create an arbitrarily-sized GPUBuffer with the STORAGE usage. */
   getStorageBuffer() {
-    return this.trackForCleanup(
-      this.device.createBuffer({ size: 1024, usage: GPUBufferUsage.STORAGE })
-    );
+    return this.createBufferTracked({ size: 1024, usage: GPUBufferUsage.STORAGE });
   }
 
   /** Create an arbitrarily-sized GPUBuffer with the UNIFORM usage. */
   getUniformBuffer() {
-    return this.trackForCleanup(
-      this.device.createBuffer({ size: 1024, usage: GPUBufferUsage.UNIFORM })
-    );
+    return this.createBufferTracked({ size: 1024, usage: GPUBufferUsage.UNIFORM });
   }
 
   /** Return an invalid GPUBuffer. */
@@ -141,43 +137,37 @@ export class ValidationTest extends GPUTest {
     sampleCount > 1 ?
     GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT :
     GPUTextureUsage.TEXTURE_BINDING;
-    return this.trackForCleanup(
-      this.device.createTexture({
-        size: { width: 16, height: 16, depthOrArrayLayers: 1 },
-        format: 'rgba8unorm',
-        usage,
-        sampleCount
-      })
-    );
+    return this.createTextureTracked({
+      size: { width: 16, height: 16, depthOrArrayLayers: 1 },
+      format: 'rgba8unorm',
+      usage,
+      sampleCount
+    });
   }
 
   /** Return an arbitrarily-configured GPUTexture with the `STORAGE_BINDING` usage. */
   getStorageTexture(format) {
-    return this.trackForCleanup(
-      this.device.createTexture({
-        size: { width: 16, height: 16, depthOrArrayLayers: 1 },
-        format,
-        usage: GPUTextureUsage.STORAGE_BINDING
-      })
-    );
+    return this.createTextureTracked({
+      size: { width: 16, height: 16, depthOrArrayLayers: 1 },
+      format,
+      usage: GPUTextureUsage.STORAGE_BINDING
+    });
   }
 
   /** Return an arbitrarily-configured GPUTexture with the `RENDER_ATTACHMENT` usage. */
   getRenderTexture(sampleCount = 1) {
-    return this.trackForCleanup(
-      this.device.createTexture({
-        size: { width: 16, height: 16, depthOrArrayLayers: 1 },
-        format: 'rgba8unorm',
-        usage: GPUTextureUsage.RENDER_ATTACHMENT,
-        sampleCount
-      })
-    );
+    return this.createTextureTracked({
+      size: { width: 16, height: 16, depthOrArrayLayers: 1 },
+      format: 'rgba8unorm',
+      usage: GPUTextureUsage.RENDER_ATTACHMENT,
+      sampleCount
+    });
   }
 
   /** Return an invalid GPUTexture. */
   getErrorTexture() {
     this.device.pushErrorScope('validation');
-    const texture = this.device.createTexture({
+    const texture = this.createTextureTracked({
       size: { width: 0, height: 0, depthOrArrayLayers: 0 },
       format: 'rgba8unorm',
       usage: GPUTextureUsage.TEXTURE_BINDING
@@ -278,9 +268,9 @@ export class ValidationTest extends GPUTest {
   getDeviceMismatchedBindingResource(bindingType) {
     switch (bindingType) {
       case 'uniformBuf':
-        return { buffer: this.getDeviceMismatchedStorageBuffer() };
-      case 'storageBuf':
         return { buffer: this.getDeviceMismatchedUniformBuffer() };
+      case 'storageBuf':
+        return { buffer: this.getDeviceMismatchedStorageBuffer() };
       case 'filtSamp':
         return this.mismatchedDevice.createSampler({ minFilter: 'linear' });
       case 'nonFiltSamp':

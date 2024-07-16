@@ -9,14 +9,22 @@ Partial derivative of e with respect to window y coordinates.
 The result is the same as either dpdyFine(e) or dpdyCoarse(e).
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
-import { allInputSources } from '../../expression.js';
+
+import { d } from './derivatives.cache.js';
+import { runDerivativeTest } from './derivatives.js';
 
 export const g = makeTestGroup(GPUTest);
 
+const builtin = 'dpdy';
+
 g.test('f32').
 specURL('https://www.w3.org/TR/WGSL/#derivative-builtin-functions').
-desc(`f32 tests`).
 params((u) =>
-u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4])
+u.
+combine('vectorize', [undefined, 2, 3, 4]).
+combine('non_uniform_discard', [false, true])
 ).
-unimplemented();
+fn(async (t) => {
+  const cases = await d.get('scalar');
+  runDerivativeTest(t, cases, builtin, t.params.non_uniform_discard, t.params.vectorize);
+});

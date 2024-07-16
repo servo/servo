@@ -6,7 +6,7 @@ import { assert, makeValueTestVariant } from '../../../common/util/util.js';
 import { kTextureDimensions, kTextureUsages } from '../../capability_info.js';
 import { GPUConst } from '../../constants.js';
 import {
-  kTextureFormats,
+  kAllTextureFormats,
   kTextureFormatInfo,
   kCompressedTextureFormats,
   kUncompressedTextureFormats,
@@ -95,7 +95,7 @@ fn((t) => {
   const success = zeroArgument === 'none';
 
   t.expectValidationError(() => {
-    t.device.createTexture(descriptor);
+    t.createTextureTracked(descriptor);
   }, !success);
 });
 
@@ -104,7 +104,9 @@ desc(
   `Test every dimension type on every format. Note that compressed formats and depth/stencil formats are not valid for 1D/3D dimension types.`
 ).
 params((u) =>
-u.combine('dimension', [undefined, ...kTextureDimensions]).combine('format', kTextureFormats)
+u //
+.combine('dimension', [undefined, ...kTextureDimensions]).
+combine('format', kAllTextureFormats)
 ).
 beforeAllSubcases((t) => {
   const { format } = t.params;
@@ -124,7 +126,7 @@ fn((t) => {
   };
 
   t.expectValidationError(() => {
-    t.device.createTexture(descriptor);
+    t.createTextureTracked(descriptor);
   }, !textureDimensionAndFormatCompatible(dimension, format));
 });
 
@@ -136,7 +138,7 @@ desc(
 params((u) =>
 u.
 combine('dimension', [undefined, ...kTextureDimensions]).
-combine('format', kTextureFormats).
+combine('format', kAllTextureFormats).
 beginSubcases().
 combine('mipLevelCount', [1, 2, 3, 6, 7])
 // Filter out incompatible dimension type and format combinations.
@@ -183,7 +185,7 @@ fn((t) => {
   const success = mipLevelCount <= maxMipLevelCount(descriptor);
 
   t.expectValidationError(() => {
-    t.device.createTexture(descriptor);
+    t.createTextureTracked(descriptor);
   }, !success);
 });
 
@@ -241,11 +243,11 @@ fn((t) => {
 
   const mipLevelCount = maxMipLevelCount(descriptor);
   descriptor.mipLevelCount = mipLevelCount;
-  t.device.createTexture(descriptor);
+  t.createTextureTracked(descriptor);
 
   descriptor.mipLevelCount = mipLevelCount + 1;
   t.expectValidationError(() => {
-    t.device.createTexture(descriptor);
+    t.createTextureTracked(descriptor);
   });
 });
 
@@ -260,7 +262,7 @@ fn((t) => {
   };
 
   t.expectValidationError(() => {
-    t.device.createTexture(descriptor);
+    t.createTextureTracked(descriptor);
   });
 });
 
@@ -271,7 +273,7 @@ desc(
 params((u) =>
 u.
 combine('dimension', [undefined, '2d']).
-combine('format', kTextureFormats).
+combine('format', kAllTextureFormats).
 beginSubcases().
 combine('sampleCount', [0, 1, 2, 4, 8, 16, 32, 256])
 ).
@@ -297,10 +299,10 @@ fn((t) => {
     usage
   };
 
-  const success = sampleCount === 1 || sampleCount === 4 && info.multisample && info.renderable;
+  const success = sampleCount === 1 || sampleCount === 4 && info.multisample;
 
   t.expectValidationError(() => {
-    t.device.createTexture(descriptor);
+    t.createTextureTracked(descriptor);
   }, !success);
 });
 
@@ -318,7 +320,7 @@ desc(
 params((u) =>
 u.
 combine('dimension', [undefined, ...kTextureDimensions]).
-combine('format', kTextureFormats).
+combine('format', kAllTextureFormats).
 beginSubcases().
 combine('sampleCount', [1, 4]).
 combine('arrayLayerCount', [1, 2]).
@@ -388,7 +390,7 @@ fn((t) => {
   (usage & GPUConst.TextureUsage.STORAGE_BINDING) === 0;
 
   t.expectValidationError(() => {
-    t.device.createTexture(descriptor);
+    t.createTextureTracked(descriptor);
   }, !success);
 });
 
@@ -407,7 +409,7 @@ fn((t) => {
   const { dimension, size, shouldError } = t.params;
 
   t.expectValidationError(() => {
-    t.device.createTexture({
+    t.createTextureTracked({
       size,
       dimension,
       sampleCount: 4,
@@ -447,7 +449,7 @@ fn((t) => {
     usage: GPUTextureUsage.TEXTURE_BINDING
   };
 
-  t.device.createTexture(descriptor);
+  t.createTextureTracked(descriptor);
 });
 
 g.test('texture_size,default_value_and_smallest_size,compressed_format').
@@ -489,7 +491,7 @@ fn((t) => {
   };
 
   t.expectValidationError(() => {
-    t.device.createTexture(descriptor);
+    t.createTextureTracked(descriptor);
   }, !_success);
 });
 
@@ -529,7 +531,7 @@ fn((t) => {
   width <= t.device.limits.maxTextureDimension1D && height === 1 && depthOrArrayLayers === 1;
 
   t.expectValidationError(() => {
-    t.device.createTexture(descriptor);
+    t.createTextureTracked(descriptor);
   }, !success);
 });
 
@@ -584,7 +586,7 @@ fn((t) => {
   size[2] <= t.device.limits.maxTextureArrayLayers;
 
   t.expectValidationError(() => {
-    t.device.createTexture(descriptor);
+    t.createTextureTracked(descriptor);
   }, !success);
 });
 
@@ -773,7 +775,7 @@ fn((t) => {
   size[2] <= t.device.limits.maxTextureArrayLayers;
 
   t.expectValidationError(() => {
-    t.device.createTexture(descriptor);
+    t.createTextureTracked(descriptor);
   }, !success);
 });
 
@@ -827,7 +829,7 @@ fn((t) => {
   size[2] <= maxTextureDimension3D;
 
   t.expectValidationError(() => {
-    t.device.createTexture(descriptor);
+    t.createTextureTracked(descriptor);
   }, !success);
 });
 
@@ -1021,7 +1023,7 @@ fn((t) => {
   size[2] <= maxTextureDimension3D;
 
   t.expectValidationError(() => {
-    t.device.createTexture(descriptor);
+    t.createTextureTracked(descriptor);
   }, !success);
 });
 
@@ -1032,7 +1034,7 @@ desc(
 params((u) =>
 u.
 combine('dimension', [undefined, ...kTextureDimensions]).
-combine('format', kTextureFormats).
+combine('format', kAllTextureFormats).
 beginSubcases()
 // If usage0 and usage1 are the same, then the usage being test is a single usage. Otherwise, it is a combined usage.
 .combine('usage0', kTextureUsages).
@@ -1064,19 +1066,16 @@ fn((t) => {
   // Note that we unconditionally test copy usages for all formats. We don't check copySrc/copyDst in kTextureFormatInfo in capability_info.js
   // if (!info.copySrc && (usage & GPUTextureUsage.COPY_SRC) !== 0) success = false;
   // if (!info.copyDst && (usage & GPUTextureUsage.COPY_DST) !== 0) success = false;
-  if (
-  (usage & GPUTextureUsage.STORAGE_BINDING) !== 0 &&
-  !isTextureFormatUsableAsStorageFormat(format, t.isCompatibility))
-
-  success = false;
-  if (
-  (!info.renderable || appliedDimension !== '2d' && appliedDimension !== '3d') &&
-  (usage & GPUTextureUsage.RENDER_ATTACHMENT) !== 0)
-
-  success = false;
+  if (usage & GPUTextureUsage.STORAGE_BINDING) {
+    if (!isTextureFormatUsableAsStorageFormat(format, t.isCompatibility)) success = false;
+  }
+  if (usage & GPUTextureUsage.RENDER_ATTACHMENT) {
+    if (appliedDimension === '1d') success = false;
+    if (info.color && !info.colorRender) success = false;
+  }
 
   t.expectValidationError(() => {
-    t.device.createTexture(descriptor);
+    t.createTextureTracked(descriptor);
   }, !success);
 });
 
@@ -1090,10 +1089,10 @@ combine('formatFeature', kFeaturesForFormats).
 combine('viewFormatFeature', kFeaturesForFormats).
 beginSubcases().
 expand('format', ({ formatFeature }) =>
-filterFormatsByFeature(formatFeature, kTextureFormats)
+filterFormatsByFeature(formatFeature, kAllTextureFormats)
 ).
 expand('viewFormat', ({ viewFormatFeature }) =>
-filterFormatsByFeature(viewFormatFeature, kTextureFormats)
+filterFormatsByFeature(viewFormatFeature, kAllTextureFormats)
 )
 ).
 beforeAllSubcases((t) => {
@@ -1110,7 +1109,7 @@ fn((t) => {
 
   // Test the viewFormat in the list.
   t.expectValidationError(() => {
-    t.device.createTexture({
+    t.createTextureTracked({
       format,
       size: [blockWidth, blockHeight],
       usage: GPUTextureUsage.TEXTURE_BINDING,
@@ -1120,7 +1119,7 @@ fn((t) => {
 
   // Test the viewFormat and the texture format in the list.
   t.expectValidationError(() => {
-    t.device.createTexture({
+    t.createTextureTracked({
       format,
       size: [blockWidth, blockHeight],
       usage: GPUTextureUsage.TEXTURE_BINDING,
@@ -1130,7 +1129,7 @@ fn((t) => {
 
   // Test the viewFormat multiple times in the list.
   t.expectValidationError(() => {
-    t.device.createTexture({
+    t.createTextureTracked({
       format,
       size: [blockWidth, blockHeight],
       usage: GPUTextureUsage.TEXTURE_BINDING,

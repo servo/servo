@@ -8,7 +8,7 @@ import { ValidationTest } from '../../../validation_test.js';
 
 class F extends ValidationTest {
   getVertexBuffer() {
-    return this.device.createBuffer({
+    return this.createBufferTracked({
       size: 256,
       usage: GPUBufferUsage.VERTEX
     });
@@ -55,7 +55,7 @@ class F extends ValidationTest {
   }
 
   beginRenderPass(commandEncoder) {
-    const attachmentTexture = this.device.createTexture({
+    const attachmentTexture = this.createTextureTracked({
       format: 'rgba8unorm',
       size: { width: 16, height: 16, depthOrArrayLayers: 1 },
       usage: GPUTextureUsage.RENDER_ATTACHMENT

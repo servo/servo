@@ -163,7 +163,7 @@ fn((t) => {
   }
 
   code += generateShader({
-    attribute: '@location(0) @interpolate(flat)',
+    attribute: '@location(0) @interpolate(flat, either)',
     type: t.params.type,
     stage: 'fragment',
     io: 'in',
@@ -344,6 +344,10 @@ const kValidationTests = {
   vec: {
     src: `@location(vec2(1,1))`,
     pass: false
+  },
+  duplicate: {
+    src: `@location(0) @location(0)`,
+    pass: false
   }
 };
 g.test('validation').
@@ -379,4 +383,153 @@ fn((t) => {
   return vec4f();
 }`;
   t.expectCompileResult(t.params.ext === '', code);
+});
+
+
+
+
+
+
+
+
+
+const kOutOfOrderCases = {
+  reverse_params: {
+    params: `@location(2) p1 : f32, @location(1) p2 : f32, @location(0) p3 : f32`,
+    valid: true
+  },
+  no_zero_params: {
+    params: `@location(2) p1 : f32, @location(1) p2 : f32`,
+    valid: true
+  },
+  reverse_overlap: {
+    params: `@location(2) p1 : f32, @location(1) p2 : f32, @location(1) p3 : f32`,
+    valid: false
+  },
+  struct: {
+    params: `p1 : S`,
+    decls: `struct S {
+      @location(1) x : f32,
+      @location(0) y : f32,
+    }`,
+    valid: true
+  },
+  struct_override: {
+    params: `@location(0) p1 : S`,
+    decls: `struct S {
+      @location(1) x : f32,
+      @location(0) y : f32,
+    }`,
+    valid: false
+  },
+  struct_random: {
+    params: `p1 : S, p2 : T`,
+    decls: `struct S {
+      @location(16) x : f32,
+      @location(4) y : f32,
+    }
+    struct T {
+      @location(13) x : f32,
+      @location(7) y : f32,
+    }`,
+    valid: true
+  },
+  struct_random_overlap: {
+    params: `p1 : S, p2 : T`,
+    decls: `struct S {
+      @location(16) x : f32,
+      @location(4) y : f32,
+    }
+    struct T {
+      @location(13) x : f32,
+      @location(4) y : f32,
+    }`,
+    valid: false
+  },
+  mixed_locations1: {
+    params: `@location(12) p1 : f32, p2 : S`,
+    decls: `struct S {
+      @location(2) x : f32,
+    }`,
+    valid: true
+  },
+  mixed_locations2: {
+    params: `p1 : S, @location(2) p2 : f32`,
+    decls: `struct S {
+      @location(12) x : f32,
+    }`,
+    valid: true
+  },
+  mixed_overlap: {
+    params: `p1 : S, @location(12) p2 : f32`,
+    decls: `struct S {
+      @location(12) x : f32,
+    }`,
+    valid: false
+  },
+  with_param_builtin: {
+    params: `p : S`,
+    decls: `struct S {
+      @location(12) x : f32,
+      @builtin(position) pos : vec4f,
+      @location(0) y : f32,
+    }`,
+    valid: true
+  },
+  non_zero_return: {
+    returnType: `@location(1) vec4f`,
+    returnValue: `vec4f()`,
+    valid: true
+  },
+  reverse_return: {
+    returnType: `S`,
+    returnValue: `S()`,
+    decls: `struct S {
+      @location(2) x : f32,
+      @location(1) y : f32,
+      @location(0) z : f32,
+    }`,
+    valid: true
+  },
+  gap_return: {
+    returnType: `S`,
+    returnValue: `S()`,
+    decls: `struct S {
+      @location(13) x : f32,
+      @location(7) y : f32,
+      @location(2) z : f32,
+    }`,
+    valid: true
+  },
+  with_return_builtin: {
+    returnType: `S`,
+    returnValue: `S()`,
+    decls: `struct S {
+      @location(11) x : f32,
+      @builtin(frag_depth) d : f32,
+      @location(10) y : f32,
+    }`,
+    valid: true
+  }
+};
+
+g.test('out_of_order').
+desc(`Test validation of out of order locations`).
+params((u) => u.combine('case', keysOf(kOutOfOrderCases))).
+fn((t) => {
+  const testcase = kOutOfOrderCases[t.params.case];
+  const decls = testcase.decls !== undefined ? testcase.decls : ``;
+  const params = testcase.params !== undefined ? testcase.params : ``;
+  const returnType = testcase.returnType !== undefined ? `-> ${testcase.returnType}` : ``;
+  const returnValue = testcase.returnValue !== undefined ? `return ${testcase.returnValue};` : ``;
+  const code = `
+${decls}
+
+@fragment
+fn main(${params}) ${returnType} {
+  ${returnValue}
+}
+`;
+
+  t.expectCompileResult(testcase.valid, code);
 });

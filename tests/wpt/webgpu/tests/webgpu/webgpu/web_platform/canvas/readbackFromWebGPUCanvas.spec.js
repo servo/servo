@@ -31,7 +31,8 @@ import {
   kAllCanvasTypes,
 
   createCanvas,
-  createOnscreenCanvas } from
+  createOnscreenCanvas,
+  createOffscreenCanvas } from
 '../../util/create_elements.js';
 import { TexelView } from '../../util/texture/texel_view.js';
 import { findFailedPixels } from '../../util/texture/texture_ok.js';
@@ -108,7 +109,7 @@ canvasType)
   });
 
   const canvasTexture = ctx.getCurrentTexture();
-  const tempTexture = t.device.createTexture({
+  const tempTexture = t.createTextureTracked({
     size: { width: 1, height: 1, depthOrArrayLayers: 1 },
     format,
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
@@ -146,7 +147,7 @@ t,
 image,
 colorSpace)
 {
-  const canvas = createOnscreenCanvas(t, 2, 2);
+  const canvas = createOffscreenCanvas(t, 2, 2);
   const ctx = canvas.getContext('2d', { colorSpace });
   assert(ctx !== null);
   ctx.drawImage(image, 0, 0);
@@ -339,11 +340,7 @@ fn(async (t) => {
           return;
         }
         const blob = await offscreenCanvas.convertToBlob();
-        const url = URL.createObjectURL(blob);
-        const img = new Image(offscreenCanvas.width, offscreenCanvas.height);
-        img.src = url;
-        await raceWithRejectOnTimeout(img.decode(), 5000, 'load image timeout');
-        snapshot = img;
+        snapshot = await createImageBitmap(blob);
         break;
       }
     case 'transferToImageBitmap':{
@@ -390,6 +387,7 @@ fn((t) => {
   if (gl === null) {
     return;
   }
+
 
   const texture = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -492,18 +490,19 @@ g.test('transferToImageBitmap_unconfigured_nonzero_size').
 desc(
   `Regression test for a crash when calling transferImageBitmap on an unconfigured. Case where the canvas is not empty`
 ).
+params((u) => u.combine('readbackCanvasType', ['onscreen', 'offscreen'])).
 fn((t) => {
-  const canvas = createCanvas(t, 'offscreen', 2, 3);
+  const kWidth = 2;
+  const kHeight = 3;
+  const canvas = createCanvas(t, 'offscreen', kWidth, kHeight);
   canvas.getContext('webgpu');
 
   // Transferring gives an ImageBitmap of the correct size filled with transparent black.
   const ib = canvas.transferToImageBitmap();
-  t.expect(ib.width === canvas.width);
-  t.expect(ib.height === canvas.height);
+  t.expect(ib.width === kWidth);
+  t.expect(ib.height === kHeight);
 
-  const readbackCanvas = document.createElement('canvas');
-  readbackCanvas.width = canvas.width;
-  readbackCanvas.height = canvas.height;
+  const readbackCanvas = createCanvas(t, t.params.readbackCanvasType, kWidth, kHeight);
   const readbackContext = readbackCanvas.getContext('2d', {
     alpha: true
   });
@@ -513,7 +512,7 @@ fn((t) => {
   }
 
   // Since there isn't a configuration we expect the ImageBitmap to have the default alphaMode of "opaque".
-  const expected = new Uint8ClampedArray(canvas.width * canvas.height * 4);
+  const expected = new Uint8ClampedArray(kWidth * kHeight * 4);
   for (let i = 0; i < expected.byteLength; i += 4) {
     expected[i + 0] = 0;
     expected[i + 1] = 0;

@@ -14,7 +14,7 @@ import { raceWithRejectOnTimeout, unreachable, assert } from '../../../../../com
 import { kTextureUsages } from '../../../../capability_info.js';
 import {
   kTextureFormatInfo,
-  kTextureFormats,
+  kAllTextureFormats,
   kValidTextureFormatsForCopyE2T } from
 '../../../../format_info.js';
 import { kResourceStates } from '../../../../gpu_test.js';
@@ -296,7 +296,7 @@ fn(async (t) => {
       unreachable();
   }
 
-  const dstTexture = t.device.createTexture({
+  const dstTexture = t.createTextureTracked({
     size: { width: 1, height: 1, depthOrArrayLayers: 1 },
     format: 'bgra8unorm',
     usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
@@ -335,7 +335,7 @@ combine('copySize', [
 fn(async (t) => {
   const { closed, copySize } = t.params;
   const imageBitmap = await t.createImageBitmap(t.getImageData(1, 1));
-  const dstTexture = t.device.createTexture({
+  const dstTexture = t.createTextureTracked({
     size: { width: 1, height: 1, depthOrArrayLayers: 1 },
     format: 'bgra8unorm',
     usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
@@ -390,7 +390,7 @@ fn((t) => {
     return;
   }
 
-  const dstTexture = t.device.createTexture({
+  const dstTexture = t.createTextureTracked({
     size: { width: 1, height: 1, depthOrArrayLayers: 1 },
     format: 'bgra8unorm',
     usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
@@ -460,7 +460,7 @@ combine('copySize', [
 fn(async (t) => {
   const { state, copySize } = t.params;
   const offscreenCanvas = createOffscreenCanvas(t, 1, 1);
-  const dstTexture = t.device.createTexture({
+  const dstTexture = t.createTextureTracked({
     size: { width: 1, height: 1, depthOrArrayLayers: 1 },
     format: 'bgra8unorm',
     usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
@@ -549,11 +549,13 @@ fn(async (t) => {
   const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
   const copySize = { width: 1, height: 1, depthOrArrayLayers: 1 };
 
-  const texture = sourceDevice.createTexture({
-    size: copySize,
-    format: 'rgba8unorm',
-    usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
-  });
+  const texture = t.trackForCleanup(
+    sourceDevice.createTexture({
+      size: copySize,
+      format: 'rgba8unorm',
+      usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+    })
+  );
 
   const imageBitmap = await t.createImageBitmap(t.getImageData(1, 1));
 
@@ -580,7 +582,7 @@ combine('copySize', [
 fn(async (t) => {
   const { usage, copySize } = t.params;
   const imageBitmap = await t.createImageBitmap(t.getImageData(1, 1));
-  const dstTexture = t.device.createTexture({
+  const dstTexture = t.createTextureTracked({
     size: { width: 1, height: 1, depthOrArrayLayers: 1 },
     format: 'rgba8unorm',
     usage
@@ -614,7 +616,7 @@ combine('copySize', [
 fn(async (t) => {
   const { sampleCount, copySize } = t.params;
   const imageBitmap = await t.createImageBitmap(t.getImageData(1, 1));
-  const dstTexture = t.device.createTexture({
+  const dstTexture = t.createTextureTracked({
     size: { width: 1, height: 1, depthOrArrayLayers: 1 },
     sampleCount,
     format: 'bgra8unorm',
@@ -644,7 +646,7 @@ combine('copySize', [
 fn(async (t) => {
   const { mipLevel, copySize } = t.params;
   const imageBitmap = await t.createImageBitmap(t.getImageData(1, 1));
-  const dstTexture = t.device.createTexture({
+  const dstTexture = t.createTextureTracked({
     size: { width: kDefaultWidth, height: kDefaultHeight, depthOrArrayLayers: kDefaultDepth },
     mipLevelCount: kDefaultMipLevelCount,
     format: 'bgra8unorm',
@@ -669,7 +671,7 @@ desc(
 ).
 params((u) =>
 u.
-combine('format', kTextureFormats).
+combine('format', kAllTextureFormats).
 beginSubcases().
 combine('copySize', [
 { width: 0, height: 0, depthOrArrayLayers: 0 },
@@ -689,7 +691,7 @@ fn(async (t) => {
   // createTexture with all possible texture format may have validation error when using
   // compressed texture format.
   t.device.pushErrorScope('validation');
-  const dstTexture = t.device.createTexture({
+  const dstTexture = t.createTextureTracked({
     size: { width: 1, height: 1, depthOrArrayLayers: 1 },
     format,
     usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
@@ -724,7 +726,7 @@ expand('copySize', generateCopySizeForSrcOOB)
 fn(async (t) => {
   const { srcOrigin, copySize } = t.params;
   const imageBitmap = await t.createImageBitmap(t.getImageData(kDefaultWidth, kDefaultHeight));
-  const dstTexture = t.device.createTexture({
+  const dstTexture = t.createTextureTracked({
     size: {
       width: kDefaultWidth + 1,
       height: kDefaultHeight + 1,
@@ -775,7 +777,7 @@ fn(async (t) => {
   const imageBitmap = await t.createImageBitmap(
     t.getImageData(kDefaultWidth + 1, kDefaultHeight + 1)
   );
-  const dstTexture = t.device.createTexture({
+  const dstTexture = t.createTextureTracked({
     size: {
       width: kDefaultWidth,
       height: kDefaultHeight,

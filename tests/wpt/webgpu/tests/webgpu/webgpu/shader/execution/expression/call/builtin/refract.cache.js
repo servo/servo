@@ -1,7 +1,7 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/import { toVector } from '../../../../../util/conversion.js';import { FP } from '../../../../../util/floating_point.js';
-
+import { selectNCases } from '../../case.js';
 import { makeCaseCache } from '../../case_cache.js';
 
 
@@ -11,45 +11,51 @@ import { makeCaseCache } from '../../case_cache.js';
 
 /**
  * @returns a Case for `refract`
- * @param kind what type of floating point numbers to operate on
+ * @param argumentKind what kind of floating point numbers being operated on
+ * @param parameterKind what kind of floating point operation should be performed,
+ *                should be the same as argumentKind, except for abstract
  * @param i the `i` param for the case
  * @param s the `s` param for the case
  * @param r the `r` param for the case
  * @param check what interval checking to apply
  * */
 function makeCase(
-kind,
+argumentKind,
+parameterKind,
 i,
 s,
 r,
 check)
 {
-  const fp = FP[kind];
+  const fp = FP[argumentKind];
   i = i.map(fp.quantize);
   s = s.map(fp.quantize);
   r = fp.quantize(r);
 
-  const vectors = fp.refractInterval(i, s, r);
+  const vectors = FP[parameterKind].refractInterval(i, s, r);
   if (check === 'finite' && vectors.some((e) => !e.isFinite())) {
     return undefined;
   }
 
   return {
     input: [toVector(i, fp.scalarBuilder), toVector(s, fp.scalarBuilder), fp.scalarBuilder(r)],
-    expected: fp.refractInterval(i, s, r)
+    expected: vectors
   };
 }
 
 /**
  * @returns an array of Cases for `refract`
- * @param kind what type of floating point numbers to operate on
+ * @param argumentKind what kind of floating point numbers being operated on
+ * @param parameterKind what kind of floating point operation should be performed,
+ *                should be the same as argumentKind, except for abstract
  * @param param_is array of inputs to try for the `i` param
  * @param param_ss array of inputs to try for the `s` param
  * @param param_rs array of inputs to try for the `r` param
  * @param check what interval checking to apply
  */
 function generateCases(
-kind,
+argumentKind,
+parameterKind,
 param_is,
 param_ss,
 param_rs,
@@ -60,26 +66,47 @@ check)
   flatMap((i) => {
     return param_ss.flatMap((s) => {
       return param_rs.map((r) => {
-        return makeCase(kind, i, s, r, check);
+        return makeCase(argumentKind, parameterKind, i, s, r, check);
       });
     });
   }).
   filter((c) => c !== undefined);
 }
 
-// Cases: [f32|f16]_vecN_[non_]const
-const cases = ['f32', 'f16'].
+// Cases: [f32|f16|abstract]_vecN_[non_]const
+const cases = ['f32', 'f16', 'abstract'].
 flatMap((trait) =>
 [2, 3, 4].flatMap((dim) =>
 [true, false].map((nonConst) => ({
   [`${trait}_vec${dim}_${nonConst ? 'non_const' : 'const'}`]: () => {
-    return generateCases(
-      trait,
-      FP[trait].sparseVectorRange(dim),
-      FP[trait].sparseVectorRange(dim),
-      FP[trait].sparseScalarRange(),
-      nonConst ? 'unfiltered' : 'finite'
-    );
+    if (trait === 'abstract' && nonConst) {
+      return [];
+    }
+    if (trait !== 'abstract') {
+      return generateCases(
+        trait,
+        trait,
+        FP[trait].sparseVectorRange(dim),
+        FP[trait].sparseVectorRange(dim),
+        FP[trait].sparseScalarRange(),
+        nonConst ? 'unfiltered' : 'finite'
+      );
+    } else {
+      // Restricting the number of cases, because a vector of abstract floats needs to be returned, which is costly.
+      return selectNCases(
+        'faceForward',
+        20,
+        generateCases(
+          trait,
+          // refract has an inherited accuracy, so is only expected to be as accurate as f32
+          'f32',
+          FP[trait].sparseVectorRange(dim),
+          FP[trait].sparseVectorRange(dim),
+          FP[trait].sparseScalarRange(),
+          nonConst ? 'unfiltered' : 'finite'
+        )
+      );
+    }
   }
 }))
 )

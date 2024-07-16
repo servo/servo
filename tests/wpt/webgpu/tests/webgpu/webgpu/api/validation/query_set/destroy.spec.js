@@ -8,7 +8,7 @@ import { ValidationTest } from '../validation_test.js';
 export const g = makeTestGroup(ValidationTest);
 
 g.test('twice').fn((t) => {
-  const qset = t.device.createQuerySet({ type: 'occlusion', count: 1 });
+  const qset = t.createQuerySetTracked({ type: 'occlusion', count: 1 });
 
   qset.destroy();
   qset.destroy();
@@ -19,7 +19,7 @@ desc('Test that invalid querysets may be destroyed without generating validation
 fn(async (t) => {
   t.device.pushErrorScope('validation');
 
-  const invalidQuerySet = t.device.createQuerySet({
+  const invalidQuerySet = t.createQuerySetTracked({
     type: 'occlusion',
     count: 4097 // 4096 is the limit
   });

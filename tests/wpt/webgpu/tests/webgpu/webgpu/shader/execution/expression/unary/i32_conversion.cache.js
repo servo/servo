@@ -1,12 +1,21 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { kValue } from '../../../../util/constants.js';import { bool, f16, f32, i32, u32 } from '../../../../util/conversion.js';import {
+**/import { kValue } from '../../../../util/constants.js';import { abstractFloat,
+abstractInt,
+bool,
+f16,
+f32,
+i32,
+u32 } from
+'../../../../util/conversion.js';
+import {
   fullI32Range,
   fullU32Range,
   quantizeToF16,
   quantizeToF32,
   scalarF16Range,
-  scalarF32Range } from
+  scalarF32Range,
+  scalarF64Range } from
 '../../../../util/math.js';
 import { reinterpretU32AsI32 } from '../../../../util/reinterpret.js';
 import { makeCaseCache } from '../case_cache.js';
@@ -18,6 +27,11 @@ export const d = makeCaseCache('unary/i32_conversion', {
     { input: bool(false), expected: i32(0) }];
 
   },
+  abstractInt: () => {
+    return fullI32Range().map((i) => {
+      return { input: abstractInt(BigInt(i)), expected: i32(i) };
+    });
+  },
   u32: () => {
     return fullU32Range().map((u) => {
       return { input: u32(u), expected: i32(reinterpretU32AsI32(u)) };
@@ -26,6 +40,27 @@ export const d = makeCaseCache('unary/i32_conversion', {
   i32: () => {
     return fullI32Range().map((i) => {
       return { input: i32(i), expected: i32(i) };
+    });
+  },
+  abstractFloat: () => {
+    return scalarF64Range().map((f) => {
+      // Handles zeros and subnormals
+      if (Math.abs(f) < 1.0) {
+        return { input: abstractFloat(f), expected: i32(0) };
+      }
+
+      if (f <= kValue.i32.negative.min) {
+        return { input: abstractFloat(f), expected: i32(kValue.i32.negative.min) };
+      }
+
+      if (f >= kValue.i32.positive.max) {
+        return { input: abstractFloat(f), expected: i32(kValue.i32.positive.max) };
+      }
+
+      // All i32s are representable as f64, and both AbstractFloat and number
+      // are f64 internally, so there is no need for special casing like f32 and
+      // f16 below.
+      return { input: abstractFloat(f), expected: i32(Math.trunc(f)) };
     });
   },
   f32: () => {
