@@ -14,7 +14,9 @@ use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
 use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
 use style::properties::longhands::justify_content::computed_value::T as JustifyContent;
+use style::properties::ComputedValues;
 use style::values::computed::length::Size;
+use style::values::computed::Length;
 use style::values::generics::flex::GenericFlexBasis as FlexBasis;
 use style::Zero;
 
@@ -160,6 +162,7 @@ impl FlexContainer {
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
+        containing_block_for_container: &ContainingBlock,
     ) -> IndependentLayout {
         // Actual length may be less, but we guess that usually not by a lot
         let mut flex_items = Vec::with_capacity(self.children.len());
@@ -192,33 +195,28 @@ impl FlexContainer {
             })
             .collect::<Vec<_>>();
 
-        let flex_item_boxes = flex_items.iter_mut().map(|child| &mut **child);
-
-        // FIXME: get actual min/max cross size for the flex container.
-        // We have access to style for the flex container in `containing_block.style`,
-        // but resolving percentages there requires access
-        // to the flex container’s own containing block which we don’t have.
-        // For now, use incorrect values instead of panicking:
-        let container_min_cross_size = Au::zero();
-        let container_max_cross_size = None;
-
-        let flex_container_position_style = containing_block.style.get_position();
-        let flex_wrap = flex_container_position_style.flex_wrap;
-        let flex_direction = flex_container_position_style.flex_direction;
-
         // Column flex containers are not fully implemented yet,
         // so give a different layout instead of panicking.
         // FIXME: implement `todo!`s for FlexAxis::Column below, and remove this
-        let flex_direction = match flex_direction {
+        let container_style = containing_block.style;
+        let flex_direction = match container_style.clone_flex_direction() {
             FlexDirection::Row | FlexDirection::Column => FlexDirection::Row,
             FlexDirection::RowReverse | FlexDirection::ColumnReverse => FlexDirection::RowReverse,
         };
 
-        let container_is_single_line = match containing_block.style.get_position().flex_wrap {
+        let flex_axis = FlexAxis::from(flex_direction);
+        let (container_min_cross_size, container_max_cross_size) = self
+            .available_cross_space_for_flex_items(
+                container_style,
+                flex_axis,
+                containing_block_for_container,
+            );
+
+        let flex_wrap = container_style.get_position().flex_wrap;
+        let container_is_single_line = match flex_wrap {
             FlexWrap::Nowrap => true,
             FlexWrap::Wrap | FlexWrap::WrapReverse => false,
         };
-        let flex_axis = FlexAxis::from(flex_direction);
         let flex_direction_is_reversed = match flex_direction {
             FlexDirection::Row | FlexDirection::Column => false,
             FlexDirection::RowReverse | FlexDirection::ColumnReverse => true,
@@ -227,9 +225,9 @@ impl FlexContainer {
             FlexWrap::Nowrap | FlexWrap::Wrap => false,
             FlexWrap::WrapReverse => true,
         };
-        let align_content = containing_block.style.clone_align_content();
-        let align_items = containing_block.style.clone_align_items();
-        let justify_content = containing_block.style.clone_justify_content();
+        let align_content = container_style.clone_align_content();
+        let align_items = container_style.clone_align_items();
+        let justify_content = container_style.clone_justify_content();
 
         let mut flex_context = FlexContext {
             layout_context,
@@ -255,6 +253,7 @@ impl FlexContainer {
             }),
         };
 
+        let flex_item_boxes = flex_items.iter_mut().map(|child| &mut **child);
         let mut flex_items = flex_item_boxes
             .map(|box_| FlexItem::new(&flex_context, box_))
             .collect::<Vec<_>>();
@@ -472,6 +471,27 @@ impl FlexContainer {
             content_inline_size_for_table: None,
             baselines: Baselines::default(),
         }
+    }
+
+    fn available_cross_space_for_flex_items(
+        &self,
+        style: &ComputedValues,
+        flex_axis: FlexAxis,
+        containing_block_for_container: &ContainingBlock,
+    ) -> (Au, Option<Au>) {
+        let pbm = style.padding_border_margin(containing_block_for_container);
+        let max_box_size = style.content_max_box_size(containing_block_for_container, &pbm);
+        let min_box_size = style
+            .content_min_box_size(containing_block_for_container, &pbm)
+            .auto_is(Length::zero);
+
+        let max_box_size = flex_axis.vec2_to_flex_relative(max_box_size);
+        let min_box_size = flex_axis.vec2_to_flex_relative(min_box_size);
+
+        (
+            min_box_size.cross.into(),
+            max_box_size.cross.map(Into::into),
+        )
     }
 }
 
