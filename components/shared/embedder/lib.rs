@@ -215,7 +215,7 @@ pub enum EmbedderMsg {
     /// The given event was delivered to a pipeline in the given browser.
     EventDelivered(CompositorEventVariant),
     /// Request to play a haptic effect on a connected gamepad.
-    PlayGamepadHapticEffect(usize, GamepadHapticEffectType),
+    PlayGamepadHapticEffect(usize, GamepadHapticEffectType, IpcSender<bool>),
     /// Request to stop a haptic effect on a connected gamepad.
     StopGamepadHapticEffect(usize, IpcSender<bool>),
 }

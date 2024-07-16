@@ -1118,8 +1118,6 @@ pub enum GamepadEvent {
     /// An existing gamepad has been updated
     /// <https://www.w3.org/TR/gamepad/#receiving-inputs>
     Updated(GamepadIndex, GamepadUpdateType),
-    /// A gamepad haptic effect has completed
-    HapticEffectCompleted(GamepadIndex),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

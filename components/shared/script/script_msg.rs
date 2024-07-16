@@ -6,7 +6,7 @@ use std::collections::{HashMap, VecDeque};
 use std::fmt;
 
 use base::id::{
-    BroadcastChannelRouterId, BrowsingContextId, GamepadRouterId, HistoryStateId, MessagePortId,
+    BroadcastChannelRouterId, BrowsingContextId, HistoryStateId, MessagePortId,
     MessagePortRouterId, PipelineId, ServiceWorkerId, ServiceWorkerRegistrationId,
     TopLevelBrowsingContextId,
 };
@@ -265,8 +265,6 @@ pub enum ScriptMsg {
     GetWebGPUChan(IpcSender<Option<WebGPU>>),
     /// Notify the constellation of a pipeline's document's title.
     TitleChanged(PipelineId, String),
-    /// A global has started managing broadcast-channels.
-    NewGamepadRouter(GamepadRouterId, IpcSender<bool>, ImmutableOrigin),
 }
 
 impl fmt::Debug for ScriptMsg {
@@ -328,7 +326,6 @@ impl fmt::Debug for ScriptMsg {
             RequestAdapter(..) => "RequestAdapter",
             GetWebGPUChan(..) => "GetWebGPUChan",
             TitleChanged(..) => "TitleChanged",
-            NewGamepadRouter(..) => "NewGamepadRouter",
         };
         write!(formatter, "ScriptMsg::{}", variant)
     }

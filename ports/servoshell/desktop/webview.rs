@@ -23,6 +23,7 @@ use servo::embedder_traits::{
     GamepadHapticEffectType, PermissionPrompt, PermissionRequest, PromptDefinition, PromptOrigin,
     PromptResult,
 };
+use servo::ipc_channel::ipc::IpcSender;
 use servo::script_traits::{
     GamepadEvent, GamepadIndex, GamepadInputBounds, GamepadSupportedHapticEffects,
     GamepadUpdateType, TouchEventType, TraversalDirection,
@@ -61,7 +62,7 @@ pub struct WebViewManager<Window: WindowPortsMethods + ?Sized> {
     event_queue: Vec<EmbedderEvent>,
     clipboard: Option<Clipboard>,
     gamepad: Option<Gilrs>,
-    haptic_effects: Vec<Option<Effect>>,
+    haptic_effects: HashMap<usize, HapticEffect>,
     shutdown_requested: bool,
     load_status: LoadStatus,
 }
@@ -81,6 +82,11 @@ pub enum LoadStatus {
     HeadParsed,
     LoadStart,
     LoadComplete,
+}
+
+pub struct HapticEffect {
+    pub effect: Effect,
+    pub sender: IpcSender<bool>,
 }
 
 impl<Window> WebViewManager<Window>
@@ -111,7 +117,8 @@ where
                     None
                 },
             },
-            haptic_effects: vec![],
+            haptic_effects: HashMap::default(),
+
             event_queue: Vec::new(),
             shutdown_requested: false,
             load_status: LoadStatus::LoadComplete,
@@ -227,8 +234,6 @@ where
                             supports_dual_rumble: true,
                             supports_trigger_rumble: false,
                         };
-                        // Append a new slot for haptic effects on this gamepad
-                        self.haptic_effects.push(None);
                         gamepad_event = Some(GamepadEvent::Connected(
                             index,
                             name,
@@ -240,7 +245,10 @@ where
                         gamepad_event = Some(GamepadEvent::Disconnected(index));
                     },
                     EventType::ForceFeedbackEffectCompleted => {
-                        gamepad_event = Some(GamepadEvent::HapticEffectCompleted(index));
+                        self.haptic_effects[&event.id.into()]
+                            .sender
+                            .send(true)
+                            .expect("Failed to send haptic effect completion.");
                     },
                     _ => {},
                 }
@@ -277,66 +285,75 @@ where
         }
     }
 
-    fn play_haptic_effect(&mut self, index: usize, params: DualRumbleEffectParams) {
-        if let Some(ref mut gilrs) = self.gamepad {
-            if let Some(connected_gamepad) = gilrs
-                .gamepads()
-                .find(|gamepad| usize::from(gamepad.0) == index)
-            {
-                let start_delay = Ticks::from_ms(params.start_delay as u32);
-                let duration = Ticks::from_ms(params.duration as u32);
-                let strong_magnitude = (params.strong_magnitude * u16::MAX as f64).round() as u16;
-                let weak_magnitude = (params.weak_magnitude * u16::MAX as f64).round() as u16;
+    fn play_haptic_effect(
+        &mut self,
+        index: usize,
+        params: DualRumbleEffectParams,
+        effect_complete_sender: IpcSender<bool>,
+    ) {
+        let Some(ref mut gilrs) = self.gamepad else {
+            debug!("Unable to get gilrs instance!");
+            return;
+        };
 
-                let scheduling = Replay {
-                    after: start_delay,
-                    play_for: duration,
-                    with_delay: Ticks::from_ms(0),
-                };
-                let effect = EffectBuilder::new()
-                    .add_effect(BaseEffect {
-                        kind: BaseEffectType::Strong { magnitude: strong_magnitude },
-                        scheduling,
-                        envelope: Default::default(),
-                    })
-                    .add_effect(BaseEffect {
-                        kind: BaseEffectType::Weak { magnitude: weak_magnitude },
-                        scheduling,
-                        envelope: Default::default(),
-                    })
-                    .repeat(Repeat::For(start_delay + duration))
-                    .add_gamepad(&connected_gamepad.1)
-                    .finish(gilrs)
-                    .expect("Failed to create haptic effect, ensure connected gamepad supports force feedback.");
-                self.haptic_effects.as_mut_slice()[index] = Some(effect);
-                self.haptic_effects[index]
-                    .as_ref()
-                    .expect("No haptic effect found")
-                    .play()
-                    .expect("Failed to play haptic effect.");
-            } else {
-                debug!("Couldn't find connected gamepad to play haptic effect on");
-            }
+        if let Some(connected_gamepad) = gilrs
+            .gamepads()
+            .find(|gamepad| usize::from(gamepad.0) == index)
+        {
+            let start_delay = Ticks::from_ms(params.start_delay as u32);
+            let duration = Ticks::from_ms(params.duration as u32);
+            let strong_magnitude = (params.strong_magnitude * u16::MAX as f64).round() as u16;
+            let weak_magnitude = (params.weak_magnitude * u16::MAX as f64).round() as u16;
+
+            let scheduling = Replay {
+                after: start_delay,
+                play_for: duration,
+                with_delay: Ticks::from_ms(0),
+            };
+            let effect = EffectBuilder::new()
+                .add_effect(BaseEffect {
+                    kind: BaseEffectType::Strong { magnitude: strong_magnitude },
+                    scheduling,
+                    envelope: Default::default(),
+                })
+                .add_effect(BaseEffect {
+                    kind: BaseEffectType::Weak { magnitude: weak_magnitude },
+                    scheduling,
+                    envelope: Default::default(),
+                })
+                .repeat(Repeat::For(start_delay + duration))
+                .add_gamepad(&connected_gamepad.1)
+                .finish(gilrs)
+                .expect("Failed to create haptic effect, ensure connected gamepad supports force feedback.");
+            self.haptic_effects.insert(
+                index,
+                HapticEffect {
+                    effect,
+                    sender: effect_complete_sender,
+                },
+            );
+            self.haptic_effects[&index]
+                .effect
+                .play()
+                .expect("Failed to play haptic effect.");
+        } else {
+            debug!("Couldn't find connected gamepad to play haptic effect on");
         }
     }
 
     fn stop_haptic_effect(&mut self, index: usize) -> bool {
-        let Some(ref effect) = self.haptic_effects[index] else {
+        let Some(haptic_effect) = self.haptic_effects.get(&index) else {
             return false;
         };
 
-        let stopped_successfully = match effect.stop() {
+        let stopped_successfully = match haptic_effect.effect.stop() {
             Ok(()) => true,
             Err(e) => {
                 debug!("Failed to stop haptic effect: {:?}", e);
                 false
             },
         };
-        self.haptic_effects.as_mut_slice()[index] = None;
-
-        if self.haptic_effects.iter().all(Option::is_none) {
-            self.haptic_effects.clear();
-        }
+        self.haptic_effects.remove(&index);
 
         stopped_successfully
     }
@@ -827,10 +844,12 @@ where
                             .push(EmbedderEvent::FocusWebView(webview_id));
                     }
                 },
-                EmbedderMsg::PlayGamepadHapticEffect(index, effect) => match effect {
-                    GamepadHapticEffectType::DualRumble(params) => {
-                        self.play_haptic_effect(index, params)
-                    },
+                EmbedderMsg::PlayGamepadHapticEffect(index, effect, effect_complete_sender) => {
+                    match effect {
+                        GamepadHapticEffectType::DualRumble(params) => {
+                            self.play_haptic_effect(index, params, effect_complete_sender);
+                        },
+                    }
                 },
                 EmbedderMsg::StopGamepadHapticEffect(index, haptic_stop_sender) => {
                     let stopped_successfully = self.stop_haptic_effect(index);
