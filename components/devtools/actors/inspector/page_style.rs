@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
 use std::net::TcpStream;
 
 use base::id::PipelineId;
@@ -99,6 +100,7 @@ struct GetLayoutReply {
 #[derive(Serialize)]
 pub struct PageStyleMsg {
     pub actor: String,
+    pub traits: HashMap<String, bool>,
 }
 
 pub struct PageStyleActor {

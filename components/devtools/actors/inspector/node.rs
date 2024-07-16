@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
 use std::net::TcpStream;
 
 use base::id::PipelineId;
@@ -35,17 +36,26 @@ pub struct NodeActorMsg {
     causes_overflow: bool,
     container_type: Option<()>,
     pub display_name: String,
-    display_type: u16,
+    display_type: Option<String>,
+    is_after_pseudo_element: bool,
     is_anonymous: bool,
+    is_before_pseudo_element: bool,
+    is_direct_shadow_host_child: Option<bool>,
     is_displayed: bool,
+    #[serde(rename = "isInHTMLDocument")]
     is_in_html_document: Option<bool>,
+    is_marker_pseudo_element: bool,
     is_native_anonymous: bool,
     is_scrollable: bool,
+    is_shadow_root: bool,
     is_top_level_document: bool,
     node_name: String,
     node_type: u16,
     node_value: Option<()>,
     pub num_children: usize,
+    pub parent: Option<String>,
+    shadow_root_mode: Option<()>,
+    traits: HashMap<String, ()>,
 }
 
 pub struct NodeActor {
@@ -144,24 +154,34 @@ impl NodeInfoToProtocol for NodeInfo {
             actors.script_to_actor(self.unique_id)
         };
 
+        let is_top_level_document = self.node_name == "#document"; // TODO
+
         NodeActorMsg {
             actor: actor_name,
             base_uri: self.base_uri,
             display_name: self.node_name.clone().to_lowercase(),
-            display_type: self.node_type.clone(),
-            is_displayed: display,
-            is_top_level_document: self.node_name == "#document", // TODO:
+            display_type: Some("block".into()),
+            is_displayed: true, // display,
+            is_top_level_document,
             node_name: self.node_name,
             node_type: self.node_type,
             num_children: self.num_children,
             // TODO: Review these
             causes_overflow: false,
             container_type: None,
+            is_after_pseudo_element: false,
             is_anonymous: false,
+            is_before_pseudo_element: false,
+            is_direct_shadow_host_child: None,
             is_in_html_document: Some(true),
+            is_marker_pseudo_element: false,
             is_native_anonymous: false,
             is_scrollable: false,
+            is_shadow_root: false,
             node_value: None,
+            shadow_root_mode: None,
+            parent: None,
+            traits: HashMap::new(),
             // parent: actors.script_to_actor(self.parent.clone()),
             // namespace_uri: self.namespace_uri,
             // name: self.name,

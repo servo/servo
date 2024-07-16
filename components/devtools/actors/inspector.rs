@@ -5,6 +5,7 @@
 //! Liberally derived from the [Firefox JS implementation](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/inspector.js).
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::net::TcpStream;
 
 use devtools_traits::DevtoolScriptControlMsg;
@@ -126,6 +127,12 @@ impl Actor for InspectorActor {
                     from: self.name(),
                     page_style: PageStyleMsg {
                         actor: self.page_style.borrow().clone().unwrap(),
+                        traits: HashMap::from([
+                            ("fontStretchLevel4".into(), true),
+                            ("fontStyleLevel4".into(), true),
+                            ("fontVariations".into(), true),
+                            ("fontWeightLevel4".into(), true),
+                        ]),
                     },
                 };
                 let _ = stream.write_json_packet(&msg);

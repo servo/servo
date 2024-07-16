@@ -142,7 +142,7 @@ impl Actor for WalkerActor {
                 self.script_chan
                     .send(GetChildren(
                         self.pipeline,
-                        registry.actor_to_script(target.to_owned()),
+                        registry.actor_to_script(target.into()),
                         tx,
                     ))
                     .unwrap();
@@ -154,7 +154,14 @@ impl Actor for WalkerActor {
                     nodes: children
                         .into_iter()
                         .map(|child| {
-                            child.encode(registry, true, self.script_chan.clone(), self.pipeline)
+                            let mut msg = child.encode(
+                                registry,
+                                true,
+                                self.script_chan.clone(),
+                                self.pipeline,
+                            );
+                            msg.parent = Some(target.into());
+                            msg
                         })
                         .collect(),
                     from: self.name(),
@@ -214,21 +221,29 @@ fn find_child(
 
     for child in children {
         let msg = child.encode(registry, true, script_chan.clone(), pipeline);
-        if msg.display_name == selector ||
-            (msg.num_children > 0 &&
-                find_child(
-                    script_chan,
-                    pipeline,
-                    registry,
-                    selector,
-                    &msg.actor,
-                    hierarchy,
-                )
-                .is_some())
-        {
+        if msg.display_name == selector {
             hierarchy.push(msg);
             return Some(());
         };
+
+        if msg.num_children == 0 {
+            continue;
+        }
+
+        if find_child(
+            script_chan,
+            pipeline,
+            registry,
+            selector,
+            &msg.actor,
+            hierarchy,
+        )
+        .is_some()
+        {
+            hierarchy.last_mut().unwrap().parent = Some(msg.actor.clone());
+            hierarchy.push(msg);
+            return Some(());
+        }
     }
     None
 }

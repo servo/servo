@@ -9,6 +9,7 @@
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::net::TcpStream;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use base::id::{BrowsingContextId, PipelineId};
 use devtools_traits::DevtoolScriptControlMsg::{self, WantsLiveNotifications};
@@ -21,6 +22,7 @@ use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::inspector::accessibility::AccessibilityActor;
 use crate::actors::inspector::css_properties::CssPropertiesActor;
 use crate::actors::inspector::InspectorActor;
+use crate::actors::reflow::ReflowActor;
 use crate::actors::stylesheets::StyleSheetsActor;
 use crate::actors::tab::TabDescriptorActor;
 use crate::actors::thread::ThreadActor;
@@ -138,8 +140,9 @@ pub struct BrowsingContextActorMsg {
     console_actor: String,
     css_properties_actor: String,
     inspector_actor: String,
-    thread_actor: String,
+    reflow_actor: String,
     style_sheets_actor: String,
+    thread_actor: String,
     // Part of the official protocol, but not yet implemented.
     // animations_actor: String,
     // changes_actor: String,
@@ -149,7 +152,6 @@ pub struct BrowsingContextActorMsg {
     // network_content_actor: String,
     // objects_manager: String,
     // performance_actor: String,
-    // reflow_actor: String,
     // resonsive_actor: String,
     // storage_actor: String,
     // tracer_actor: String,
@@ -170,6 +172,7 @@ pub(crate) struct BrowsingContextActor {
     pub console: String,
     pub css_properties: String,
     pub inspector: String,
+    pub reflow: String,
     pub style_sheets: String,
     pub thread: String,
     pub _tab: String,
@@ -229,6 +232,8 @@ impl BrowsingContextActor {
             browsing_context: name.clone(),
         };
 
+        let reflow = ReflowActor::new(actors.new_name("reflow"));
+
         let style_sheets = StyleSheetsActor::new(actors.new_name("stylesheets"));
 
         let tabdesc = TabDescriptorActor::new(actors, name.clone());
@@ -252,6 +257,7 @@ impl BrowsingContextActor {
             console,
             css_properties: css_properties.name(),
             inspector: inspector.name(),
+            reflow: reflow.name(),
             streams: RefCell::new(HashMap::new()),
             style_sheets: style_sheets.name(),
             _tab: tabdesc.name(),
@@ -262,6 +268,7 @@ impl BrowsingContextActor {
         actors.register(Box::new(accessibility));
         actors.register(Box::new(css_properties));
         actors.register(Box::new(inspector));
+        actors.register(Box::new(reflow));
         actors.register(Box::new(style_sheets));
         actors.register(Box::new(tabdesc));
         actors.register(Box::new(thread));
@@ -275,11 +282,11 @@ impl BrowsingContextActor {
             actor: self.name(),
             traits: BrowsingContextTraits {
                 is_browsing_context: true,
-                frames: false,
+                frames: true,
                 log_in_page: false,
                 navigation: true,
                 supports_top_level_target_flag: true,
-                watchpoints: false,
+                watchpoints: true,
             },
             title: self.title.borrow().clone(),
             url: self.url.borrow().clone(),
@@ -292,8 +299,9 @@ impl BrowsingContextActor {
             console_actor: self.console.clone(),
             css_properties_actor: self.css_properties.clone(),
             inspector_actor: self.inspector.clone(),
-            thread_actor: self.thread.clone(),
+            reflow_actor: self.reflow.clone(),
             style_sheets_actor: self.style_sheets.clone(),
+            thread_actor: self.thread.clone(),
         }
     }
 
@@ -350,10 +358,7 @@ impl BrowsingContextActor {
     pub(crate) fn document_event(&self, stream: &mut TcpStream) {
         // TODO: This is a hacky way of sending the 3 messages
         //       Figure out if there needs work to be done here, ensure the page is loaded
-        for (i, &name) in ["dom-loading", "dom-interactive", "dom-complete"]
-            .iter()
-            .enumerate()
-        {
+        for &name in ["dom-loading", "dom-interactive", "dom-complete"].iter() {
             let _ = stream.write_json_packet(&ResourceAvailableReply {
                 from: self.name(),
                 type_: "resource-available-form".into(),
@@ -362,7 +367,10 @@ impl BrowsingContextActor {
                     name: name.into(),
                     new_uri: None,
                     resource_type: "document-event".into(),
-                    time: i as u64,
+                    time: SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_millis() as u64,
                     title: Some(self.title.borrow().clone()),
                     url: Some(self.url.borrow().clone()),
                 }],
