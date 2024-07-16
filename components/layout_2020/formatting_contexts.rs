@@ -228,6 +228,7 @@ impl NonReplacedFormattingContext {
                 layout_context,
                 positioning_context,
                 containing_block_for_children,
+                containing_block,
             ),
             NonReplacedFormattingContextContents::Table(table) => table.layout(
                 layout_context,
