@@ -2083,7 +2083,7 @@ impl IndependentFormattingContext {
 
     /// Picks either the first or the last baseline, depending on `baseline-source`.
     /// <https://drafts.csswg.org/css-inline/#baseline-source>
-    fn pick_baseline(&self, baselines: &Baselines) -> Option<Au> {
+    pub fn pick_baseline(&self, baselines: &Baselines) -> Option<Au> {
         match self.style().clone_baseline_source() {
             BaselineSource::First => baselines.first,
             BaselineSource::Last => baselines.last,
