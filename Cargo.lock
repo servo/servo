@@ -4005,7 +4005,7 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.14.1"
-source = "git+https://github.com/servo/mozjs#fb8225ed5eb87c0d6d0b4d6126c11f5bc98687ce"
+source = "git+https://github.com/servo/mozjs#6e4e55a002f493739c8dbe0f2d2b29b0017d5dd2"
 dependencies = [
  "bindgen",
  "cc",
