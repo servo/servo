@@ -4,34 +4,12 @@
 Execution tests for the 'textureSampleBias' builtin function
 
 Samples a texture with a bias to the mip level.
-Must only be used in a fragment shader stage.
-Must only be invoked in uniform control flow.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
 
 import { generateCoordBoundaries, generateOffsets } from './utils.js';
 
 export const g = makeTestGroup(GPUTest);
-
-g.test('stage').
-specURL('https://www.w3.org/TR/WGSL/#texturesamplebias').
-desc(
-  `
-Tests that 'textureSampleBias' can only be called in 'fragment' shaders.
-`
-).
-params((u) => u.combine('stage', ['fragment', 'vertex', 'compute'])).
-unimplemented();
-
-g.test('control_flow').
-specURL('https://www.w3.org/TR/WGSL/#texturesamplebias').
-desc(
-  `
-Tests that 'textureSampleBias' can only be called in uniform control flow.
-`
-).
-params((u) => u.combine('stage', ['fragment', 'vertex', 'compute'])).
-unimplemented();
 
 g.test('sampled_2d_coords').
 specURL('https://www.w3.org/TR/WGSL/#texturesamplebias').

@@ -20,7 +20,7 @@ class GPUExternalTextureExpireTest extends ValidationTest {
     const kWidth = 16;
     const kFormat = 'rgba8unorm';
 
-    const colorAttachment = this.device.createTexture({
+    const colorAttachment = this.createTextureTracked({
       format: kFormat,
       size: { width: kWidth, height: kHeight, depthOrArrayLayers: 1 },
       usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT

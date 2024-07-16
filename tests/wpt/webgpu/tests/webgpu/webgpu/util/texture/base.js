@@ -76,13 +76,19 @@ level)
           () =>
           `level (${level}) too large for base size (${baseSize.width}x${baseSize.height}x${baseSize.depthOrArrayLayers})`
         );
-        assert(
-          kTextureFormatInfo[format].blockWidth === 1 && kTextureFormatInfo[format].blockHeight === 1,
-          'not implemented for 3d block formats'
+        const virtualWidthAtLevel = Math.max(baseSize.width >> level, 1);
+        const virtualHeightAtLevel = Math.max(baseSize.height >> level, 1);
+        const physicalWidthAtLevel = align(
+          virtualWidthAtLevel,
+          kTextureFormatInfo[format].blockWidth
+        );
+        const physicalHeightAtLevel = align(
+          virtualHeightAtLevel,
+          kTextureFormatInfo[format].blockHeight
         );
         return {
-          width: Math.max(baseSize.width >> level, 1),
-          height: Math.max(baseSize.height >> level, 1),
+          width: physicalWidthAtLevel,
+          height: physicalHeightAtLevel,
           depthOrArrayLayers: Math.max(baseSize.depthOrArrayLayers >> level, 1)
         };
       }
@@ -104,22 +110,22 @@ mipLevel)
 /**
  * Compute the "virtual size" of a mip level of a texture (not accounting for texel block rounding).
  *
- * MAINTENANCE_TODO: Change input/output to Required<GPUExtent3DDict> for consistency.
+ * MAINTENANCE_TODO: Change output to Required<GPUExtent3DDict> for consistency.
  */
 export function virtualMipSize(
 dimension,
 size,
 mipLevel)
 {
+  const { width, height, depthOrArrayLayers } = reifyExtent3D(size);
   const shiftMinOne = (n) => Math.max(1, n >> mipLevel);
   switch (dimension) {
     case '1d':
-      assert(size[2] === 1);
-      return [shiftMinOne(size[0]), size[1], size[2]];
+      return [shiftMinOne(width), height, depthOrArrayLayers];
     case '2d':
-      return [shiftMinOne(size[0]), shiftMinOne(size[1]), size[2]];
+      return [shiftMinOne(width), shiftMinOne(height), depthOrArrayLayers];
     case '3d':
-      return [shiftMinOne(size[0]), shiftMinOne(size[1]), shiftMinOne(size[2])];
+      return [shiftMinOne(width), shiftMinOne(height), shiftMinOne(depthOrArrayLayers)];
     default:
       unreachable();
   }

@@ -4,7 +4,7 @@
 Execution Tests for the boolean unary logical expression operations
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../gpu_test.js';
-import { bool, TypeBool } from '../../../../util/conversion.js';
+import { bool, Type } from '../../../../util/conversion.js';
 import { allInputSources, run } from '../expression.js';
 
 import { unary } from './unary.js';
@@ -29,5 +29,5 @@ fn(async (t) => {
   { input: bool(false), expected: bool(true) }];
 
 
-  await run(t, unary('!'), [TypeBool], TypeBool, t.params, cases);
+  await run(t, unary('!'), [Type.bool], Type.bool, t.params, cases);
 });

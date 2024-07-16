@@ -6,20 +6,25 @@ import { ShaderValidationTest } from '../../../shader_validation_test.js';
 
 const kFeature = 'packed_4x8_integer_dot_product';
 const kFn = 'dot4I8Packed';
-const kGoodArgs = '(1u,2u)';
-const kBadArgs = {
-  '0args': '()',
-  '1args': '(1u)',
-  '3args': '(1u,2u,3u)',
-  '0i32': '(1i,2u)',
-  '0f32': '(1f,2u)',
-  '0bool': '(false,2u)',
-  '0vec2u': '(vec2u(),2u)',
-  '1i32': '(1u,2i)',
-  '1f32': '(1u,2f)',
-  '1bool': '(1u,true)',
-  '1vec2u': '(1u,vec2u())'
+const kArgCases = {
+  good: '(1u,2u)',
+  bad_0args: '()',
+  bad_1args: '(1u)',
+  bad_3args: '(1u,2u,3u)',
+  bad_0i32: '(1i,2u)',
+  bad_0f32: '(1f,2u)',
+  bad_0bool: '(false,2u)',
+  bad_0vec2u: '(vec2u(),2u)',
+  bad_1i32: '(1u,2i)',
+  bad_1f32: '(1u,2f)',
+  bad_1bool: '(1u,true)',
+  bad_1vec2u: '(1u,vec2u())',
+  bad_bool_bool: '(false,true)',
+  bad_bool2_bool2: '(vec2<bool>(),vec2(false,true))',
+  bad_0array: '(array(1))',
+  bad_0struct: '(modf(1.1))'
 };
+const kGoodArgs = kArgCases['good'];
 
 export const g = makeTestGroup(ShaderValidationTest);
 
@@ -43,17 +48,19 @@ fn((t) => {
   t.expectCompileResult(true, code);
 });
 
-g.test('bad_args').
-desc(`Test compilation failure of ${kFn} with bad arguments`).
-params((u) => u.combine('arg', keysOf(kBadArgs))).
+g.test('args').
+desc(`Test compilation failure of ${kFn} with various numbers of and types of arguments`).
+params((u) => u.combine('arg', keysOf(kArgCases))).
 fn((t) => {
   t.skipIfLanguageFeatureNotSupported(kFeature);
-  t.expectCompileResult(false, `const c = ${kFn}${kBadArgs[t.params.arg]};`);
+  t.expectCompileResult(t.params.arg === 'good', `const c = ${kFn}${kArgCases[t.params.arg]};`);
 });
 
 g.test('must_use').
 desc(`Result of ${kFn} must be used`).
+params((u) => u.combine('use', [true, false])).
 fn((t) => {
   t.skipIfLanguageFeatureNotSupported(kFeature);
-  t.expectCompileResult(false, `fn f() { ${kFn}${kGoodArgs}; }`);
+  const use_it = t.params.use ? '_ = ' : '';
+  t.expectCompileResult(t.params.use, `fn f() { ${use_it}${kFn}${kGoodArgs}; }`);
 });

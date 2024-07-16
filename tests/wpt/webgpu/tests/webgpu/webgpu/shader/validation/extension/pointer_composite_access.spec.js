@@ -23,8 +23,8 @@ const kCases = {
   array_index_access_via_identifier: {
     module: '',
     init_expr: 'array<i32, 3>()',
-    via_deref: '(*(&a))[0];',
-    via_pointer: '(&a)[0];'
+    via_deref: '(*(&a))[0]',
+    via_pointer: '(&a)[0]'
   },
   vector_index_access_via_identifier: {
     module: '',
@@ -35,8 +35,8 @@ const kCases = {
   vector_member_access_via_identifier: {
     module: '',
     init_expr: 'vec3<i32>()',
-    via_deref: '(*(&a)).x;',
-    via_pointer: '(&a).x;'
+    via_deref: '(*(&a)).x',
+    via_pointer: '(&a).x'
   },
   matrix_index_access_via_identifier: {
     module: '',
@@ -47,8 +47,8 @@ const kCases = {
   struct_member_access_via_identifier: {
     module: 'struct S { a : i32, }',
     init_expr: 'S()',
-    via_deref: '(*(&a)).a;',
-    via_pointer: '(&a).a;'
+    via_deref: '(*(&a)).a',
+    via_pointer: '(&a).a'
   },
   builtin_struct_modf_via_identifier: {
     module: '',
@@ -67,8 +67,8 @@ const kCases = {
   array_index_access_via_pointer: {
     module: '',
     init_expr: 'array<i32, 3>()',
-    via_deref: '(*p)[0];',
-    via_pointer: 'p[0];'
+    via_deref: '(*p)[0]',
+    via_pointer: 'p[0]'
   },
   vector_index_access_via_pointer: {
     module: '',
@@ -79,8 +79,8 @@ const kCases = {
   vector_member_access_via_pointer: {
     module: '',
     init_expr: 'vec3<i32>()',
-    via_deref: '(*p).x;',
-    via_pointer: 'p.x;'
+    via_deref: '(*p).x',
+    via_pointer: 'p.x'
   },
   matrix_index_access_via_pointer: {
     module: '',
@@ -91,8 +91,8 @@ const kCases = {
   struct_member_access_via_pointer: {
     module: 'struct S { a : i32, }',
     init_expr: 'S()',
-    via_deref: '(*p).a;',
-    via_pointer: 'p.a;'
+    via_deref: '(*p).a',
+    via_pointer: 'p.a'
   },
   builtin_struct_modf_via_pointer: {
     module: '',

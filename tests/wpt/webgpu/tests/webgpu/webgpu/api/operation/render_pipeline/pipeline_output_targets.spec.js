@@ -79,7 +79,7 @@ fn((t) => {
   attachmentsFloatWriteValues;
 
   const renderTargets = range(attachmentCount, () =>
-  t.device.createTexture({
+  t.createTextureTracked({
     format,
     size: { width: 1, height: 1, depthOrArrayLayers: 1 },
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
@@ -125,9 +125,9 @@ fn((t) => {
     null :
     {
       view: renderTargets[i].createView(),
-      storeOp: 'store',
       clearValue: { r: 0.5, g: 0.5, b: 0.5, a: 0.5 },
-      loadOp: 'clear'
+      loadOp: 'clear',
+      storeOp: 'store'
     }
     )
   });
@@ -170,7 +170,7 @@ fn((t) => {
   // extra channels are discarded
   const values = [0, 1, 0, 1];
 
-  const renderTarget = t.device.createTexture({
+  const renderTarget = t.createTextureTracked({
     format,
     size: { width: 1, height: 1, depthOrArrayLayers: 1 },
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
@@ -205,9 +205,9 @@ fn((t) => {
     colorAttachments: [
     {
       view: renderTarget.createView(),
-      storeOp: 'store',
       clearValue: { r: 1.0, g: 0.0, b: 0.0, a: 1.0 },
-      loadOp: 'clear'
+      loadOp: 'clear',
+      storeOp: 'store'
     }]
 
   });
@@ -381,7 +381,7 @@ fn((t) => {
   const componentCount = output.length;
   const info = kTextureFormatInfo[format];
 
-  const renderTarget = t.device.createTexture({
+  const renderTarget = t.createTextureTracked({
     format,
     size: { width: 1, height: 1, depthOrArrayLayers: 1 },
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
@@ -432,9 +432,9 @@ fn((t) => {
     colorAttachments: [
     {
       view: renderTarget.createView(),
-      storeOp: 'store',
       clearValue: { r: 1.0, g: 0.0, b: 0.0, a: 1.0 },
-      loadOp: 'clear'
+      loadOp: 'clear',
+      storeOp: 'store'
     }]
 
   });

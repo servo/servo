@@ -96,6 +96,9 @@ combine('stage', ['vertex', 'fragment', 'compute']).
 combine('a_kind', kResourceKindsA).
 combine('b_kind', kResourceKindsB).
 combine('usage', ['direct', 'transitive']).
+filter((t) => {
+  return !(t.stage === 'vertex' && t.b_kind === 'texture_storage_1d');
+}).
 beginSubcases().
 combine('a_group', [0, 3]).
 combine('b_group', [0, 3]).
@@ -140,6 +143,9 @@ combine('b_stage', ['vertex', 'fragment', 'compute']).
 combine('a_kind', kResourceKindsA).
 combine('b_kind', kResourceKindsB).
 combine('usage', ['direct', 'transitive']).
+filter((t) => {
+  return !(t.b_stage === 'vertex' && t.b_kind === 'texture_storage_1d');
+}).
 beginSubcases()
 ).
 fn((t) => {

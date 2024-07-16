@@ -7,14 +7,13 @@ import { makeTestGroup } from '../../../../../../common/framework/test_group.js'
 import { keysOf, objectsToRecord } from '../../../../../../common/util/data_tables.js';
 import {
 
-  TypeF16,
-  TypeF32,
-  elementType,
-  kAllFloatScalars,
-  kAllFloatVector2,
-  kAllFloatVector3,
-  kAllFloatVector4,
-  kAllIntegerScalarsAndVectors } from
+  Type,
+  kConcreteIntegerScalarsAndVectors,
+  kConvertableToFloatScalar,
+  kConvertableToFloatVec2,
+  kConvertableToFloatVec3,
+  kConvertableToFloatVec4,
+  scalarTypeOf } from
 '../../../../../util/conversion.js';
 import { isRepresentable } from '../../../../../util/floating_point.js';
 import { ShaderValidationTest } from '../../../shader_validation_test.js';
@@ -49,16 +48,25 @@ type)
 
 
 {
-  const squareSum = vec.reduce((prev, curr) => prev + curr * curr, 0);
+  const vec_number = vec.map((e) => Number(e));
+  const squareSum = vec_number.reduce((prev, curr) => prev + Number(curr) * Number(curr), 0);
   const result = Math.sqrt(squareSum);
   return {
-    isIntermediateRepresentable: isRepresentable(squareSum, type),
-    isResultRepresentable: isRepresentable(result, type),
+    isIntermediateRepresentable: isRepresentable(
+      squareSum,
+      // AbstractInt is converted to AbstractFloat before calling into the builtin
+      scalarTypeOf(type).kind === 'abstract-int' ? Type.abstractFloat : scalarTypeOf(type)
+    ),
+    isResultRepresentable: isRepresentable(
+      result,
+      // AbstractInt is converted to AbstractFloat before calling into the builtin
+      scalarTypeOf(type).kind === 'abstract-int' ? Type.abstractFloat : scalarTypeOf(type)
+    ),
     result
   };
 }
 
-const kScalarTypes = objectsToRecord(kAllFloatScalars);
+const kScalarTypes = objectsToRecord(kConvertableToFloatScalar);
 
 g.test('scalar').
 desc(
@@ -76,7 +84,7 @@ beginSubcases().
 expand('value', (u) => fullRangeForType(kScalarTypes[u.type]))
 ).
 beforeAllSubcases((t) => {
-  if (elementType(kScalarTypes[t.params.type]) === TypeF16) {
+  if (scalarTypeOf(kScalarTypes[t.params.type]) === Type.f16) {
     t.selectDeviceOrSkipTestCase('shader-f16');
   }
 }).
@@ -92,7 +100,7 @@ fn((t) => {
   );
 });
 
-const kVec2Types = objectsToRecord(kAllFloatVector2);
+const kVec2Types = objectsToRecord(kConvertableToFloatVec2);
 
 g.test('vec2').
 desc(
@@ -108,11 +116,11 @@ filter((u) => stageSupportsType(u.stage, kVec2Types[u.type])).
 beginSubcases().
 expand('x', (u) => fullRangeForType(kVec2Types[u.type], 5)).
 expand('y', (u) => fullRangeForType(kVec2Types[u.type], 5)).
-expand('_result', (u) => [calculate([u.x, u.y], elementType(kVec2Types[u.type]))]).
+expand('_result', (u) => [calculate([u.x, u.y], scalarTypeOf(kVec2Types[u.type]))]).
 filter((u) => u._result.isResultRepresentable === u._result.isIntermediateRepresentable)
 ).
 beforeAllSubcases((t) => {
-  if (elementType(kVec2Types[t.params.type]) === TypeF16) {
+  if (scalarTypeOf(kVec2Types[t.params.type]) === Type.f16) {
     t.selectDeviceOrSkipTestCase('shader-f16');
   }
 }).
@@ -127,7 +135,7 @@ fn((t) => {
   );
 });
 
-const kVec3Types = objectsToRecord(kAllFloatVector3);
+const kVec3Types = objectsToRecord(kConvertableToFloatVec3);
 
 g.test('vec3').
 desc(
@@ -144,11 +152,11 @@ beginSubcases().
 expand('x', (u) => fullRangeForType(kVec3Types[u.type], 4)).
 expand('y', (u) => fullRangeForType(kVec3Types[u.type], 4)).
 expand('z', (u) => fullRangeForType(kVec3Types[u.type], 4)).
-expand('_result', (u) => [calculate([u.x, u.y, u.z], elementType(kVec3Types[u.type]))]).
+expand('_result', (u) => [calculate([u.x, u.y, u.z], scalarTypeOf(kVec3Types[u.type]))]).
 filter((u) => u._result.isResultRepresentable === u._result.isIntermediateRepresentable)
 ).
 beforeAllSubcases((t) => {
-  if (elementType(kVec3Types[t.params.type]) === TypeF16) {
+  if (scalarTypeOf(kVec3Types[t.params.type]) === Type.f16) {
     t.selectDeviceOrSkipTestCase('shader-f16');
   }
 }).
@@ -163,7 +171,7 @@ fn((t) => {
   );
 });
 
-const kVec4Types = objectsToRecord(kAllFloatVector4);
+const kVec4Types = objectsToRecord(kConvertableToFloatVec4);
 
 g.test('vec4').
 desc(
@@ -181,11 +189,11 @@ expand('x', (u) => fullRangeForType(kVec4Types[u.type], 3)).
 expand('y', (u) => fullRangeForType(kVec4Types[u.type], 3)).
 expand('z', (u) => fullRangeForType(kVec4Types[u.type], 3)).
 expand('w', (u) => fullRangeForType(kVec4Types[u.type], 3)).
-expand('_result', (u) => [calculate([u.x, u.y, u.z, u.w], elementType(kVec4Types[u.type]))]).
+expand('_result', (u) => [calculate([u.x, u.y, u.z, u.w], scalarTypeOf(kVec4Types[u.type]))]).
 filter((u) => u._result.isResultRepresentable === u._result.isIntermediateRepresentable)
 ).
 beforeAllSubcases((t) => {
-  if (elementType(kVec4Types[t.params.type]) === TypeF16) {
+  if (scalarTypeOf(kVec4Types[t.params.type]) === Type.f16) {
     t.selectDeviceOrSkipTestCase('shader-f16');
   }
 }).
@@ -200,7 +208,7 @@ fn((t) => {
   );
 });
 
-const kIntegerArgumentTypes = objectsToRecord([TypeF32, ...kAllIntegerScalarsAndVectors]);
+const kIntegerArgumentTypes = objectsToRecord([Type.f32, ...kConcreteIntegerScalarsAndVectors]);
 
 g.test('integer_argument').
 desc(
@@ -214,8 +222,42 @@ fn((t) => {
   validateConstOrOverrideBuiltinEval(
     t,
     builtin,
-    /* expectedResult */type === TypeF32,
+    /* expectedResult */type === Type.f32,
     [type.create(1)],
     'constant'
   );
+});
+
+const kArgCases = {
+  good: '(1.1)',
+  bad_no_parens: '',
+  // Bad number of args
+  bad_0args: '()',
+  bad_2args: '(1.0,2.0)',
+  // Bad value type for arg 0
+  bad_0i32: '(1i)',
+  bad_0u32: '(1u)',
+  bad_0bool: '(false)',
+  bad_0vec2u: '(vec2u())',
+  bad_0mat: '(mat2x2f())',
+  bad_0array: '(array(1.1,2.2))',
+  bad_0struct: '(modf(2.2))'
+};
+
+g.test('args').
+desc(`Test compilation failure of ${builtin} with variously shaped and typed arguments`).
+params((u) => u.combine('arg', keysOf(kArgCases))).
+fn((t) => {
+  t.expectCompileResult(
+    t.params.arg === 'good',
+    `const c = ${builtin}${kArgCases[t.params.arg]};`
+  );
+});
+
+g.test('must_use').
+desc(`Result of ${builtin} must be used`).
+params((u) => u.combine('use', [true, false])).
+fn((t) => {
+  const use_it = t.params.use ? '_ = ' : '';
+  t.expectCompileResult(t.params.use, `fn f() { ${use_it}${builtin}${kArgCases['good']}; }`);
 });

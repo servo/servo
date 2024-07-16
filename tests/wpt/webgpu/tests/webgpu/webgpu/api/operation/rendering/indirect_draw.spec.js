@@ -204,7 +204,7 @@ fn((t) => {
     }
   });
 
-  const renderTarget = t.device.createTexture({
+  const renderTarget = t.createTextureTracked({
     size: [4, 4],
     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
     format: kRenderTargetFormat

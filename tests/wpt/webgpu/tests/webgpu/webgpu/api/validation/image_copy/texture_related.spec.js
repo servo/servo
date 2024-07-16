@@ -77,11 +77,13 @@ fn((t) => {
   const { method, mismatched } = t.params;
   const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
 
-  const texture = sourceDevice.createTexture({
-    size: { width: 4, height: 4, depthOrArrayLayers: 1 },
-    format: 'rgba8unorm',
-    usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
-  });
+  const texture = t.trackForCleanup(
+    sourceDevice.createTexture({
+      size: { width: 4, height: 4, depthOrArrayLayers: 1 },
+      format: 'rgba8unorm',
+      usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
+    })
+  );
 
   t.testRun(
     { texture },
@@ -125,7 +127,7 @@ fn((t) => {
   const { usage0, usage1, method, size, dimension } = t.params;
 
   const usage = usage0 | usage1;
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size,
     dimension,
     format: 'rgba8unorm',
@@ -164,7 +166,7 @@ combine('sampleCount', [1, 4])
 fn((t) => {
   const { sampleCount, method } = t.params;
 
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size: { width: 4, height: 4, depthOrArrayLayers: 1 },
     sampleCount,
     format: 'rgba8unorm',
@@ -211,7 +213,7 @@ combine('mipLevel', [0, 1, 3, 4])
 fn((t) => {
   const { mipLevelCount, mipLevel, method, size, dimension } = t.params;
 
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size,
     dimension,
     mipLevelCount,
@@ -287,7 +289,7 @@ fn((t) => {
     size.height = 1;
   }
 
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size,
     dimension,
     format,
@@ -303,11 +305,7 @@ fn((t) => {
     success = false;
   }
 
-  const levelSize = virtualMipSize(
-    dimension,
-    [size.width, size.height, size.depthOrArrayLayers],
-    mipLevel
-  );
+  const levelSize = virtualMipSize(dimension, size, mipLevel);
   const copySize = [
   levelSize[0] + copyWidthModifier * info.blockWidth,
   levelSize[1] + copyHeightModifier * info.blockHeight,
@@ -440,7 +438,7 @@ fn((t) => {
   const texture = t.createAlignedTexture(format, size, origin, dimension);
 
   const bytesPerRow = align(
-    Math.max(1, Math.ceil(size.width / info.blockWidth)) * info.bytesPerBlock,
+    Math.max(1, Math.ceil(size.width / info.blockWidth)) * info.color.bytes,
     256
   );
   const rowsPerImage = Math.ceil(size.height / info.blockHeight);
@@ -514,7 +512,7 @@ fn((t) => {
       }
   }
 
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size: textureSize,
     dimension,
     mipLevelCount: dimension === '1d' ? 1 : 3,

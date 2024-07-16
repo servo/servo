@@ -13,7 +13,7 @@ class F extends GPUTest {
   constants,
   code)
   {
-    const dst = this.device.createBuffer({
+    const dst = this.createBufferTracked({
       size: expected.byteLength,
       usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE
     });
@@ -146,6 +146,74 @@ fn(async (t) => {
   );
 });
 
+g.test('computed').
+desc(`Test that computed overrides work correctly`).
+fn(async (t) => {
+  const module = t.device.createShaderModule({
+    code: `
+      override c0: f32 = 0.;
+      override c1: f32 = 0.;
+      override c2: f32 = c0 * c1;
+
+      struct Buf {
+          data : array<u32, 3>,
+      }
+
+      @group(0) @binding(0) var<storage, read_write> buf : Buf;
+
+      @compute @workgroup_size(1) fn main() {
+          buf.data[0] = u32(c0);
+          buf.data[1] = u32(c1);
+          buf.data[2] = u32(c2);
+      }
+    `
+  });
+
+  const expected = new Uint32Array([2, 4, 8]);
+
+  const buffer = t.createBufferTracked({
+    size: 3 * Uint32Array.BYTES_PER_ELEMENT,
+    usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE
+  });
+
+  const descriptors = [
+  {
+    layout: 'auto',
+    compute: {
+      module,
+      entryPoint: 'main',
+      constants: {
+        c0: 2,
+        c1: 4
+      }
+    }
+  }];
+
+
+  const pipeline = await t.device.createComputePipelineAsync(descriptors[0]);
+  const bindGroups = [
+  t.device.createBindGroup({
+    entries: [
+    {
+      binding: 0,
+      resource: { buffer, offset: 0, size: 3 * Uint32Array.BYTES_PER_ELEMENT }
+    }],
+
+    layout: pipeline.getBindGroupLayout(0)
+  })];
+
+
+  const encoder = t.device.createCommandEncoder();
+  const pass = encoder.beginComputePass();
+  pass.setPipeline(pipeline);
+  pass.setBindGroup(0, bindGroups[0]);
+  pass.dispatchWorkgroups(1);
+  pass.end();
+  t.device.queue.submit([encoder.finish()]);
+
+  t.expectGPUBufferValuesEqual(buffer, expected);
+});
+
 g.test('precision').
 desc(
   `Test that float number precision is preserved for constants as they are used for compute shader output of the storage buffer.`
@@ -243,11 +311,11 @@ fn(async (t) => {
 
   const expects = [new Uint32Array([1]), new Uint32Array([2])];
   const buffers = [
-  t.device.createBuffer({
+  t.createBufferTracked({
     size: Uint32Array.BYTES_PER_ELEMENT,
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE
   }),
-  t.device.createBuffer({
+  t.createBufferTracked({
     size: Uint32Array.BYTES_PER_ELEMENT,
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE
   })];
@@ -362,19 +430,19 @@ fn(async (t) => {
 
 
   const buffers = [
-  t.device.createBuffer({
+  t.createBufferTracked({
     size: Uint32Array.BYTES_PER_ELEMENT,
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE
   }),
-  t.device.createBuffer({
+  t.createBufferTracked({
     size: Uint32Array.BYTES_PER_ELEMENT,
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE
   }),
-  t.device.createBuffer({
+  t.createBufferTracked({
     size: Uint32Array.BYTES_PER_ELEMENT,
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE
   }),
-  t.device.createBuffer({
+  t.createBufferTracked({
     size: Uint32Array.BYTES_PER_ELEMENT,
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE
   })];

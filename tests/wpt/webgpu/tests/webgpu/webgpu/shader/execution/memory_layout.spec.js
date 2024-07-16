@@ -784,6 +784,137 @@ const kLayoutCases = {
     read_assign: `out = in[2].x`,
     write_assign: `out[2].x = in`,
     offset: 32
+  },
+  array_mat2x2f_stride: {
+    type: `array<mat2x2f, 4>`,
+    read_assign: `out = u32(in[1][0][0])`,
+    write_assign: `out[1][0][0] = f32(in)`,
+    offset: 16,
+    f32: true
+  },
+  array_mat2x2h_stride: {
+    type: `array<mat2x2h, 2>`,
+    read_assign: `out = u32(in[1][0][0])`,
+    write_assign: `out[1][0][0] = f16(in)`,
+    offset: 8,
+    f16: true,
+    skip_uniform: true
+  },
+  array_mat3x2f_stride: {
+    type: `array<mat3x2f, 3>`,
+    read_assign: `out = u32(in[2][0][0])`,
+    write_assign: `out[2][0][0] = f32(in)`,
+    offset: 48,
+    f32: true,
+    skip_uniform: true
+  },
+  array_mat3x2h_stride: {
+    type: `array<mat3x2h, 2>`,
+    read_assign: `out = u32(in[1][0][0])`,
+    write_assign: `out[1][0][0] = f16(in)`,
+    offset: 12,
+    f16: true,
+    skip_uniform: true
+  },
+  array_mat4x2f_stride: {
+    type: `array<mat4x2f, 4>`,
+    read_assign: `out = u32(in[1][0][0])`,
+    write_assign: `out[1][0][0] = f32(in)`,
+    offset: 32,
+    f32: true
+  },
+  array_mat4x2h_stride: {
+    type: `array<mat4x2h, 2>`,
+    read_assign: `out = u32(in[1][0][0])`,
+    write_assign: `out[1][0][0] = f16(in)`,
+    offset: 16,
+    f16: true
+  },
+  array_mat2x3f_stride: {
+    type: `array<mat2x3f, 4>`,
+    read_assign: `out = u32(in[1][0][0])`,
+    write_assign: `out[1][0][0] = f32(in)`,
+    offset: 32,
+    f32: true
+  },
+  array_mat2x3h_stride: {
+    type: `array<mat2x3h, 2>`,
+    read_assign: `out = u32(in[1][0][0])`,
+    write_assign: `out[1][0][0] = f16(in)`,
+    offset: 16,
+    f16: true
+  },
+  array_mat3x3f_stride: {
+    type: `array<mat3x3f, 3>`,
+    read_assign: `out = u32(in[2][0][0])`,
+    write_assign: `out[2][0][0] = f32(in)`,
+    offset: 96,
+    f32: true
+  },
+  array_mat3x3h_stride: {
+    type: `array<mat3x3h, 2>`,
+    read_assign: `out = u32(in[1][0][0])`,
+    write_assign: `out[1][0][0] = f16(in)`,
+    offset: 24,
+    f16: true,
+    skip_uniform: true
+  },
+  array_mat4x3f_stride: {
+    type: `array<mat4x3f, 4>`,
+    read_assign: `out = u32(in[1][0][0])`,
+    write_assign: `out[1][0][0] = f32(in)`,
+    offset: 64,
+    f32: true
+  },
+  array_mat4x3h_stride: {
+    type: `array<mat4x3h, 2>`,
+    read_assign: `out = u32(in[1][0][0])`,
+    write_assign: `out[1][0][0] = f16(in)`,
+    offset: 32,
+    f16: true
+  },
+  array_mat2x4f_stride: {
+    type: `array<mat2x4f, 4>`,
+    read_assign: `out = u32(in[1][0][0])`,
+    write_assign: `out[1][0][0] = f32(in)`,
+    offset: 32,
+    f32: true
+  },
+  array_mat2x4h_stride: {
+    type: `array<mat2x4h, 2>`,
+    read_assign: `out = u32(in[1][0][0])`,
+    write_assign: `out[1][0][0] = f16(in)`,
+    offset: 16,
+    f16: true
+  },
+  array_mat3x4f_stride: {
+    type: `array<mat3x4f, 3>`,
+    read_assign: `out = u32(in[2][0][0])`,
+    write_assign: `out[2][0][0] = f32(in)`,
+    offset: 96,
+    f32: true
+  },
+  array_mat3x4h_stride: {
+    type: `array<mat3x4h, 2>`,
+    read_assign: `out = u32(in[1][0][0])`,
+    write_assign: `out[1][0][0] = f16(in)`,
+    offset: 24,
+    f16: true,
+    skip_uniform: true
+  },
+  array_mat4x4f_stride: {
+    type: `array<mat4x4f, 4>`,
+    read_assign: `out = u32(in[1][0][0])`,
+    write_assign: `out[1][0][0] = f32(in)`,
+    offset: 64,
+    f32: true
+  },
+  array_mat4x4h_stride: {
+    type: `array<mat4x4h, 2>`,
+    read_assign: `out = u32(in[1][0][0])`,
+    write_assign: `out[1][0][0] = f16(in)`,
+    offset: 32,
+    f16: true
   }
 };
 
@@ -815,7 +946,7 @@ fn((t) => {
   const testcase = kLayoutCases[t.params.case];
   let code = `
 ${testcase.f16 ? 'enable f16;' : ''}
-${testcase.decl}
+${testcase.decl ?? ''}
 
 @group(0) @binding(1)
 var<storage, read_write> out : u32;
@@ -882,13 +1013,11 @@ fn main() {
     ),
     usage
   );
-  t.trackForCleanup(in_buffer);
 
   const out_buffer = t.makeBufferWithContents(
     new Uint32Array([...iterRange(1, (x) => 0)]),
     GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
   );
-  t.trackForCleanup(out_buffer);
 
   const pipeline = t.device.createComputePipeline({
     layout: 'auto',
@@ -952,7 +1081,7 @@ fn((t) => {
   const testcase = kLayoutCases[t.params.case];
   let code = `
 ${testcase.f16 ? 'enable f16;' : ''}
-${testcase.decl}
+${testcase.decl ?? ''}
 
 @group(0) @binding(0)
 var<storage> in : u32;
@@ -999,13 +1128,11 @@ fn main() {
     new Uint32Array([42]),
     GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE
   );
-  t.trackForCleanup(in_buffer);
 
   const out_buffer = t.makeBufferWithContents(
     new Uint32Array([...iterRange(128, (x) => 0)]),
     GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
   );
-  t.trackForCleanup(out_buffer);
 
   const pipeline = t.device.createComputePipeline({
     layout: 'auto',

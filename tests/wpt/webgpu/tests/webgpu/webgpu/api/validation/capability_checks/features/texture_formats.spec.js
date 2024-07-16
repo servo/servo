@@ -38,7 +38,7 @@ fn((t) => {
 
   const formatInfo = kTextureFormatInfo[format];
   t.shouldThrow(enable_required_feature ? false : 'TypeError', () => {
-    t.device.createTexture({
+    t.createTextureTracked({
       format,
       size: [formatInfo.blockWidth, formatInfo.blockHeight, 1],
       usage: GPUTextureUsage.TEXTURE_BINDING
@@ -69,7 +69,7 @@ fn((t) => {
 
   const formatInfo = kTextureFormatInfo[format];
   t.shouldThrow(enable_required_feature ? false : 'TypeError', () => {
-    t.device.createTexture({
+    t.createTextureTracked({
       format,
       size: [formatInfo.blockWidth, formatInfo.blockHeight, 1],
       usage: GPUTextureUsage.TEXTURE_BINDING,
@@ -107,7 +107,7 @@ fn((t) => {
   const textureFormat = enable_required_feature ? format : 'rgba8unorm';
 
   const formatInfo = kTextureFormatInfo[format];
-  const testTexture = t.device.createTexture({
+  const testTexture = t.createTextureTracked({
     format: textureFormat,
     size: [formatInfo.blockWidth, formatInfo.blockHeight, 1],
     usage: GPUTextureUsage.TEXTURE_BINDING

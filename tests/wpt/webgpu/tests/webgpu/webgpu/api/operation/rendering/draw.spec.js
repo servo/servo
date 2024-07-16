@@ -61,7 +61,7 @@ class DrawTest extends TextureTestMixin(GPUTest) {
     1.0, 1.0];
 
 
-    const renderTarget = this.device.createTexture({
+    const renderTarget = this.createTextureTracked({
       size: renderTargetSize,
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
       format: 'rgba8unorm'
@@ -136,7 +136,7 @@ struct Output {
       }
     });
 
-    const resultBuffer = this.device.createBuffer({
+    const resultBuffer = this.createBufferTracked({
       size: Uint32Array.BYTES_PER_ELEMENT,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
     });
@@ -579,14 +579,14 @@ fn((t) => {
   // The remaining 3 vertex attributes
   if (numAttributes === 16) {
     accumulateVariableDeclarationsInVertexShader = `
-        @location(13) @interpolate(flat) outAttrib13 : vec4<${wgslFormat}>,
+        @location(13) @interpolate(flat, either) outAttrib13 : vec4<${wgslFormat}>,
       `;
     accumulateVariableAssignmentsInVertexShader = `
       output.outAttrib13 =
           vec4<${wgslFormat}>(input.attrib12, input.attrib13, input.attrib14, input.attrib15);
       `;
     accumulateVariableDeclarationsInFragmentShader = `
-      @location(13) @interpolate(flat) attrib13 : vec4<${wgslFormat}>,
+      @location(13) @interpolate(flat, either) attrib13 : vec4<${wgslFormat}>,
       `;
     accumulateVariableAssignmentsInFragmentShader = `
       outBuffer.primitives[input.primitiveId].attrib12 = input.attrib13.x;
@@ -596,14 +596,14 @@ fn((t) => {
       `;
   } else if (numAttributes === 14) {
     accumulateVariableDeclarationsInVertexShader = `
-        @location(13) @interpolate(flat) outAttrib13 : vec4<${wgslFormat}>,
+        @location(13) @interpolate(flat, either) outAttrib13 : vec4<${wgslFormat}>,
       `;
     accumulateVariableAssignmentsInVertexShader = `
       output.outAttrib13 =
           vec4<${wgslFormat}>(input.attrib12, input.attrib13, 0, 0);
       `;
     accumulateVariableDeclarationsInFragmentShader = `
-      @location(13) @interpolate(flat) attrib13 : vec4<${wgslFormat}>,
+      @location(13) @interpolate(flat, either) attrib13 : vec4<${wgslFormat}>,
       `;
     accumulateVariableAssignmentsInFragmentShader = `
       outBuffer.primitives[input.primitiveId].attrib12 = input.attrib13.x;
@@ -625,9 +625,9 @@ ${vertexInputShaderLocations.map((i) => `  @location(${i}) attrib${i} : ${wgslFo
 struct Outputs {
   @builtin(position) Position : vec4<f32>,
 ${interStageScalarShaderLocations.
-        map((i) => `  @location(${i}) @interpolate(flat) outAttrib${i} : ${wgslFormat},`).
+        map((i) => `  @location(${i}) @interpolate(flat, either) outAttrib${i} : ${wgslFormat},`).
         join('\n')}
-  @location(${interStageScalarShaderLocations.length}) @interpolate(flat) primitiveId : u32,
+  @location(${interStageScalarShaderLocations.length}) @interpolate(flat, either) primitiveId : u32,
 ${accumulateVariableDeclarationsInVertexShader}
 };
 
@@ -650,9 +650,9 @@ ${accumulateVariableAssignmentsInVertexShader}
         code: `
 struct Inputs {
 ${interStageScalarShaderLocations.
-        map((i) => `  @location(${i}) @interpolate(flat) attrib${i} : ${wgslFormat},`).
+        map((i) => `  @location(${i}) @interpolate(flat, either) attrib${i} : ${wgslFormat},`).
         join('\n')}
-  @location(${interStageScalarShaderLocations.length}) @interpolate(flat) primitiveId : u32,
+  @location(${interStageScalarShaderLocations.length}) @interpolate(flat, either) primitiveId : u32,
 ${accumulateVariableDeclarationsInFragmentShader}
 };
 
@@ -685,7 +685,7 @@ ${accumulateVariableAssignmentsInFragmentShader}
     }
   });
 
-  const resultBuffer = t.device.createBuffer({
+  const resultBuffer = t.createBufferTracked({
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
     size: vertexCount * instanceCount * vertexInputShaderLocations.length * 4
   });
@@ -708,8 +708,8 @@ ${accumulateVariableAssignmentsInFragmentShader}
     {
       // Dummy render attachment - not used (WebGPU doesn't allow using a render pass with no
       // attachments)
-      view: t.device.
-      createTexture({
+      view: t.
+      createTextureTracked({
         usage: GPUTextureUsage.RENDER_ATTACHMENT,
         size: [1],
         format: 'rgba8unorm'

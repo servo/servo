@@ -5,7 +5,7 @@ t,
 type,
 count)
 {
-  return t.device.createQuerySet({
+  return t.createQuerySetTracked({
     type,
     count
   });
@@ -16,8 +16,8 @@ t,
 encoder,
 querySet)
 {
-  const view = t.device.
-  createTexture({
+  const view = t.
+  createTextureTracked({
     format: 'rgba8unorm',
     size: { width: 16, height: 16, depthOrArrayLayers: 1 },
     usage: GPUTextureUsage.RENDER_ATTACHMENT

@@ -178,7 +178,7 @@ ${main_wgsl.extra}
   const inputBuffer = t.makeBufferWithContents(new Uint32Array(inputData), GPUBufferUsage.STORAGE);
 
   const maxOutputValues = 1000;
-  const outputBuffer = t.device.createBuffer({
+  const outputBuffer = t.createBufferTracked({
     size: 4 * (1 + maxOutputValues),
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
   });

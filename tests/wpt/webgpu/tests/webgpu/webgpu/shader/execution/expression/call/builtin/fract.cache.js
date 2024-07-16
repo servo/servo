@@ -1,6 +1,8 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { FP } from '../../../../../util/floating_point.js';import { makeCaseCache } from '../../case_cache.js';
+**/import { assert } from '../../../../../../common/util/util.js';import { FP } from '../../../../../util/floating_point.js';import { kFractTable } from '../../binary/af_data.js';
+import { makeCaseCache } from '../../case_cache.js';
+
 const kCommonValues = [
 0.5, // 0.5 -> 0.5
 0.9, // ~0.9 -> ~0.9
@@ -29,8 +31,8 @@ const kTraitSpecificValues = {
   ]
 };
 
-// Cases: [f32|f16]
-const cases = ['f32', 'f16'].
+// Cases: [f32|f16|abstract]
+const concrete_cases = ['f32', 'f16'].
 map((trait) => ({
   [`${trait}`]: () => {
     return FP[trait].generateScalarToIntervalCases(
@@ -42,4 +44,19 @@ map((trait) => ({
 })).
 reduce((a, b) => ({ ...a, ...b }), {});
 
-export const d = makeCaseCache('fract', cases);
+// Cases: [abstract]
+const abstract_cases = () => {
+  return FP.abstract.generateScalarToIntervalCases(
+    [...kFractTable.keys()],
+    'finite',
+    (x) => {
+      assert(kFractTable.has(x));
+      return kFractTable.get(x);
+    }
+  );
+};
+
+export const d = makeCaseCache('fract', {
+  abstract: abstract_cases,
+  ...concrete_cases
+});

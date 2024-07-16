@@ -268,6 +268,12 @@ const kFragmentBuiltinValues = [
 g.test('fragment_builtin_values').
 desc(`Test uniformity of fragment built-in values`).
 params((u) => u.combineWithParams(kFragmentBuiltinValues).beginSubcases()).
+beforeAllSubcases((t) => {
+  t.skipIf(
+    t.isCompatibility && ['sample_index', 'sample_mask'].includes(t.params.builtin),
+    'compatibility mode does not support sample_index or sample_mask'
+  );
+}).
 fn((t) => {
   let cond = ``;
   switch (t.params.type) {

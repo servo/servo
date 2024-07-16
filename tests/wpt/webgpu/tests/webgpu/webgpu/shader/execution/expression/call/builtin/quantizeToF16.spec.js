@@ -10,7 +10,7 @@ binary16 value, and then converted back to a IEEE 754 binary32 value.
 Component-wise when T is a vector.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
-import { TypeF32 } from '../../../../../util/conversion.js';
+import { Type } from '../../../../../util/conversion.js';
 import { allInputSources, run } from '../../expression.js';
 
 import { builtin } from './builtin.js';
@@ -26,5 +26,5 @@ u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3,
 ).
 fn(async (t) => {
   const cases = await d.get(t.params.inputSource === 'const' ? 'f32_const' : 'f32_non_const');
-  await run(t, builtin('quantizeToF16'), [TypeF32], TypeF32, t.params, cases);
+  await run(t, builtin('quantizeToF16'), [Type.f32], Type.f32, t.params, cases);
 });

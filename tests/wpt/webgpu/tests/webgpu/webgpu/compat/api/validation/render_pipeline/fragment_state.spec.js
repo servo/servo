@@ -120,7 +120,7 @@ fn((t) => {
     }
   };
   const isValid = cases[caseName](targets);
-  t.expectGPUError(
+  t.expectGPUErrorInCompatibilityMode(
     'validation',
     () => t.device.createRenderPipeline(pipelineDescriptor),
     !isValid

@@ -150,10 +150,12 @@ fn((t) => {
   const { encoderType, useU32Array, mismatched } = t.params;
   const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
 
-  const buffer = sourceDevice.createBuffer({
-    size: 4,
-    usage: GPUBufferUsage.STORAGE
-  });
+  const buffer = t.trackForCleanup(
+    sourceDevice.createBuffer({
+      size: 4,
+      usage: GPUBufferUsage.STORAGE
+    })
+  );
 
   const layout = sourceDevice.createBindGroupLayout({
     entries: [
@@ -247,12 +249,12 @@ fn((t) => {
 
   });
 
-  const uniformBuffer = t.device.createBuffer({
+  const uniformBuffer = t.createBufferTracked({
     size: 2 * kMinDynamicBufferOffsetAlignment + 8,
     usage: GPUBufferUsage.UNIFORM
   });
 
-  const storageBuffer = t.device.createBuffer({
+  const storageBuffer = t.createBufferTracked({
     size: 2 * kMinDynamicBufferOffsetAlignment + 8,
     usage: GPUBufferUsage.STORAGE
   });
@@ -419,7 +421,7 @@ fn((t) => {
   const usage = type === 'uniform' ? GPUBufferUsage.UNIFORM : GPUBufferUsage.STORAGE;
   const isValid = dynamicOffset % minAlignment === 0;
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     size: 3 * kMinDynamicBufferOffsetAlignment,
     usage
   });

@@ -161,12 +161,14 @@ fn((t) => {
   t.expectCompileResult(t.params.s1 === t.params.s2, code);
 });
 
-g.test('conflicting_attribute_same_location').
+g.test('duplicate_attribute_same_location').
 specURL('https://gpuweb.github.io/gpuweb/wgsl/#diagnostics').
-desc(`Tests conflicts between attributes`).
+desc(`Tests duplicate diagnostics at the same location must be on different rules`).
 params((u) =>
 u.
 combine('loc', keysOf(kValidLocations)).
+combine('same_rule', [true, false]).
+beginSubcases().
 combine('s1', kSpecDiagnosticSeverities).
 combine('s2', kSpecDiagnosticSeverities).
 filter((u) => {
@@ -174,11 +176,12 @@ filter((u) => {
 })
 ).
 fn((t) => {
-  const d1 = generateDiagnostic('attribute', t.params.s1, 'derivative_uniformity');
-  const d2 = generateDiagnostic('attribute', t.params.s2, 'derivative_uniformity');
-  const diag = d1 + ' ' + d2;
-  const code = `${kValidLocations[t.params.loc](diag)}`;
-  t.expectCompileResult(t.params.s1 === t.params.s2, code);
+  const rule1 = 'derivative_uniformity';
+  const rule2 = 'another_diagnostic_rule';
+  const d1 = generateDiagnostic('attribute', t.params.s1, rule1);
+  const d2 = generateDiagnostic('attribute', t.params.s2, t.params.same_rule ? rule1 : rule2);
+  const code = `${kValidLocations[t.params.loc](`${d1} ${d2}`)}`;
+  t.expectCompileResult(!t.params.same_rule, code);
 });
 
 g.test('conflicting_attribute_different_location').
@@ -219,4 +222,243 @@ fn((t) => {
   let code = `${t.params.directive};`;
   code += generateDiagnostic('directive', 'info', 'derivative_uniformity') + ';';
   t.expectCompileResult(true, code);
+});
+
+
+
+
+
+
+function scopeCode(body) {
+  return `
+@group(0) @binding(0) var t : texture_1d<f32>;
+@group(0) @binding(1) var s : sampler;
+var<private> non_uniform_cond : bool;
+var<private> non_uniform_coord : f32;
+var<private> non_uniform_val : u32;
+@fragment fn main() {
+  ${body}
+}
+`;
+}
+
+const kScopeCases = {
+  override_global_off: {
+    code: `
+    ${generateDiagnostic('directive', 'error', 'derivative_uniformity')};
+    ${scopeCode(`
+      ${generateDiagnostic('', 'off', 'derivative_uniformity')}
+      if non_uniform_cond {
+        _ = textureSample(t,s,0.0);
+      }`)};
+    `,
+    result: true
+  },
+  override_global_on: {
+    code: `
+    ${generateDiagnostic('directive', 'off', 'derivative_uniformity')};
+    ${scopeCode(`
+      ${generateDiagnostic('', 'error', 'derivative_uniformity')}
+      if non_uniform_cond {
+        _ = textureSample(t,s,0.0);
+      }`)}
+    `,
+    result: false
+  },
+  override_global_warn: {
+    code: `
+    ${generateDiagnostic('directive', 'error', 'derivative_uniformity')};
+    ${scopeCode(`
+      ${generateDiagnostic('', 'warning', 'derivative_uniformity')}
+      if non_uniform_cond {
+        _ = textureSample(t,s,0.0);
+      }`)}
+    `,
+    result: 'warn'
+  },
+  global_if_nothing_else_warn: {
+    code: `
+    ${generateDiagnostic('directive', 'warning', 'derivative_uniformity')};
+    ${scopeCode(`
+      if non_uniform_cond {
+        _ = textureSample(t,s,0.0);
+      }`)}
+    `,
+    result: 'warn'
+  },
+  deepest_nesting_warn: {
+    code: scopeCode(`
+      ${generateDiagnostic('', 'error', 'derivative_uniformity')}
+      if non_uniform_cond {
+        ${generateDiagnostic('', 'warning', 'derivative_uniformity')}
+        if non_uniform_cond {
+          _ = textureSample(t,s,0.0);
+        }
+      }`),
+    result: 'warn'
+  },
+  deepest_nesting_off: {
+    code: scopeCode(`
+      ${generateDiagnostic('', 'error', 'derivative_uniformity')}
+      if non_uniform_cond {
+        ${generateDiagnostic('', 'off', 'derivative_uniformity')}
+        if non_uniform_cond {
+          _ = textureSample(t,s,0.0);
+        }
+      }`),
+    result: true
+  },
+  deepest_nesting_error: {
+    code: scopeCode(`
+      ${generateDiagnostic('', 'off', 'derivative_uniformity')}
+      if non_uniform_cond {
+        ${generateDiagnostic('', 'error', 'derivative_uniformity')}
+        if non_uniform_cond {
+          _ = textureSample(t,s,0.0);
+        }
+      }`),
+    result: false
+  },
+  other_nest_unaffected: {
+    code: `
+    ${generateDiagnostic('directive', 'warning', 'derivative_uniformity')};
+    ${scopeCode(`
+      ${generateDiagnostic('', 'off', 'derivative_uniformity')}
+      if non_uniform_cond {
+        _ = textureSample(t,s,0.0);
+      }
+      if non_uniform_cond {
+        _ = textureSample(t,s,0.0);
+      }`)}
+    `,
+    result: 'warn'
+  },
+  deeper_nest_no_effect: {
+    code: `
+    ${generateDiagnostic('directive', 'error', 'derivative_uniformity')};
+    ${scopeCode(`
+      if non_uniform_cond {
+        ${generateDiagnostic('', 'off', 'derivative_uniformity')}
+        if non_uniform_cond {
+        }
+        _ = textureSample(t,s,0.0);
+      }`)}
+    `,
+    result: false
+  },
+  call_unaffected_error: {
+    code: `
+    ${generateDiagnostic('directive', 'error', 'derivative_uniformity')};
+    fn foo() { _ = textureSample(t,s,0.0); }
+    ${scopeCode(`
+      ${generateDiagnostic('', 'off', 'derivative_uniformity')}
+      if non_uniform_cond {
+        foo();
+      }`)}
+    `,
+    result: false
+  },
+  call_unaffected_warn: {
+    code: `
+    ${generateDiagnostic('directive', 'warning', 'derivative_uniformity')};
+    fn foo() { _ = textureSample(t,s,0.0); }
+    ${scopeCode(`
+      ${generateDiagnostic('', 'off', 'derivative_uniformity')}
+      if non_uniform_cond {
+        foo();
+      }`)}
+    `,
+    result: 'warn'
+  },
+  call_unaffected_off: {
+    code: `
+    ${generateDiagnostic('directive', 'off', 'derivative_uniformity')};
+    fn foo() { _ = textureSample(t,s,0.0); }
+    ${scopeCode(`
+      ${generateDiagnostic('', 'error', 'derivative_uniformity')}
+      if non_uniform_cond {
+        foo();
+      }`)}
+    `,
+    result: true
+  },
+  if_condition_error: {
+    code: scopeCode(`
+      if (non_uniform_cond) {
+        ${generateDiagnostic('', 'error', 'derivative_uniformity')}
+        if textureSample(t,s,non_uniform_coord).x > 0.0
+          ${generateDiagnostic('', 'off', 'derivative_uniformity')} {
+        }
+      }`),
+    result: false
+  },
+  if_condition_warn: {
+    code: scopeCode(`
+      if non_uniform_cond {
+        ${generateDiagnostic('', 'warning', 'derivative_uniformity')}
+        if textureSample(t,s,non_uniform_coord).x > 0.0
+          ${generateDiagnostic('', 'error', 'derivative_uniformity')} {
+        }
+      }`),
+    result: 'warn'
+  },
+  if_condition_off: {
+    code: scopeCode(`
+      if non_uniform_cond {
+        ${generateDiagnostic('', 'off', 'derivative_uniformity')}
+        if textureSample(t,s,non_uniform_coord).x > 0.0
+          ${generateDiagnostic('', 'error', 'derivative_uniformity')} {
+        }
+      }`),
+    result: true
+  },
+  switch_error: {
+    code: scopeCode(`
+        ${generateDiagnostic('', 'error', 'derivative_uniformity')}
+        switch non_uniform_val {
+          case 0 ${generateDiagnostic('', 'off', 'derivative_uniformity')} {
+          }
+          default {
+            _ = textureSample(t,s,0.0);
+          }
+        }`),
+    result: false
+  },
+  switch_warn: {
+    code: scopeCode(`
+        ${generateDiagnostic('', 'warning', 'derivative_uniformity')}
+        switch non_uniform_val {
+          case 0 ${generateDiagnostic('', 'off', 'derivative_uniformity')} {
+          }
+          default {
+            _ = textureSample(t,s,0.0);
+          }
+        }`),
+    result: 'warn'
+  },
+  switch_off: {
+    code: scopeCode(`
+        ${generateDiagnostic('', 'off', 'derivative_uniformity')}
+        switch non_uniform_val {
+          case 0 ${generateDiagnostic('', 'error', 'derivative_uniformity')}{
+          }
+          default {
+            _ = textureSample(t,s,0.0);
+          }
+        }`),
+    result: true
+  }
+};
+
+g.test('diagnostic_scoping').
+specURL('https://gpuweb.github.io/gpuweb/wgsl/#diagnostics').
+desc('Tests that innermost scope controls the diagnostic').
+params((u) => u.combine('case', keysOf(kScopeCases))).
+fn((t) => {
+  const testcase = kScopeCases[t.params.case];
+  if (testcase.result === 'warn') {
+    t.expectCompileWarning(true, testcase.code);
+  } else {
+    t.expectCompileResult(testcase.result, testcase.code);
+  }
 });

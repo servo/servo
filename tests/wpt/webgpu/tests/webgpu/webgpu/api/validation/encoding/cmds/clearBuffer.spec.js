@@ -65,11 +65,12 @@ fn((t) => {
   const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
   const size = 8;
 
-  const buffer = sourceDevice.createBuffer({
-    size,
-    usage: GPUBufferUsage.COPY_DST
-  });
-  t.trackForCleanup(buffer);
+  const buffer = t.trackForCleanup(
+    sourceDevice.createBuffer({
+      size,
+      usage: GPUBufferUsage.COPY_DST
+    })
+  );
 
   t.TestClearBuffer({
     buffer,
@@ -89,7 +90,7 @@ paramsSubcasesOnly([
 fn((t) => {
   const { offset, size } = t.params;
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     size: 16,
     usage: GPUBufferUsage.COPY_DST
   });
@@ -111,7 +112,7 @@ u //
 fn((t) => {
   const { usage } = t.params;
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     size: 16,
     usage
   });
@@ -146,7 +147,7 @@ paramsSubcasesOnly([
 fn((t) => {
   const { size, _isSuccess: isSuccess } = t.params;
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     size: 16,
     usage: GPUBufferUsage.COPY_DST
   });
@@ -180,7 +181,7 @@ paramsSubcasesOnly([
 fn((t) => {
   const { offset, _isSuccess: isSuccess } = t.params;
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     size: 16,
     usage: GPUBufferUsage.COPY_DST
   });
@@ -204,7 +205,7 @@ paramsSubcasesOnly([
 fn((t) => {
   const { offset, size } = t.params;
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     size: 16,
     usage: GPUBufferUsage.COPY_DST
   });
@@ -232,7 +233,7 @@ paramsSubcasesOnly([
 fn((t) => {
   const { offset, size, _isSuccess = false } = t.params;
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     size: 32,
     usage: GPUBufferUsage.COPY_DST
   });

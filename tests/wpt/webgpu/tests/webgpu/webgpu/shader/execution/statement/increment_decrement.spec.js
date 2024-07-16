@@ -22,7 +22,8 @@ export function runStatementTest(
 t,
 fmt,
 values,
-wgsl_main)
+wgsl_main,
+extras = {})
 {
   const wgsl = `
 struct Outputs {
@@ -36,6 +37,8 @@ fn push_output(value : ${fmt}) {
   outputs.data[count] = value;
   count += 1;
 }
+
+${extras.global_decl ?? ''}
 
 @compute @workgroup_size(1)
 fn main() {
@@ -53,7 +56,7 @@ fn main() {
   });
 
   const maxOutputValues = 1000;
-  const outputBuffer = t.device.createBuffer({
+  const outputBuffer = t.createBufferTracked({
     size: 4 * (1 + maxOutputValues),
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
   });
@@ -377,5 +380,69 @@ fn((t) => {
     a.exp++;
     push_output(a.exp);
 `
+  );
+});
+
+g.test('single_eval_increment').
+desc('Tests the left-hand-side reference of an increment is computed only once.').
+fn((t) => {
+  runStatementTest(
+    t,
+    'i32',
+    new Int32Array([999, 0, 1, 2, 11, 21, 31]),
+    `
+    var a: array<i32,3> = array(10, 20, 30);
+
+    push_output(999);
+    a[bump()]++;
+    a[bump()]++;
+    a[bump()]++;
+    push_output(a[0]);
+    push_output(a[1]);
+    push_output(a[2]);
+`,
+    {
+      global_decl: `
+  var<private> index_counter: i32 = 0;
+  fn bump() -> i32 {
+    let result = index_counter;
+    push_output(result);
+    index_counter = index_counter + 1;
+    return result;
+  }
+  `
+    }
+  );
+});
+
+g.test('single_eval_decrement').
+desc('Tests the left-hand-side reference of a decrement is computed only once.').
+fn((t) => {
+  runStatementTest(
+    t,
+    'i32',
+    new Int32Array([999, 0, 1, 2, 9, 19, 29]),
+    `
+    var a: array<i32,3> = array(10, 20, 30);
+
+    push_output(999);
+    a[bump()]--;
+    a[bump()]--;
+    a[bump()]--;
+    push_output(a[0]);
+    push_output(a[1]);
+    push_output(a[2]);
+`,
+    {
+      global_decl: `
+  var<private> index_counter: i32 = 0;
+  fn bump() -> i32 {
+    let result = index_counter;
+    push_output(result);
+    index_counter = index_counter + 1;
+    return result;
+  }
+  `
+    }
   );
 });

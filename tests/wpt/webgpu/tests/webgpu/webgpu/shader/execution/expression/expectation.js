@@ -1,6 +1,12 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { compare } from '../../../util/compare.js';import { Matrix, Scalar, Vector } from '../../../util/conversion.js';
+**/import { compare } from '../../../util/compare.js';import {
+  ArrayValue,
+  MatrixValue,
+
+  VectorValue,
+  isScalarValue } from
+'../../../util/conversion.js';
 import { FPInterval } from '../../../util/floating_point.js';
 
 
@@ -14,9 +20,10 @@ import { FPInterval } from '../../../util/floating_point.js';
 export function isComparator(e) {
   return !(
   e instanceof FPInterval ||
-  e instanceof Scalar ||
-  e instanceof Vector ||
-  e instanceof Matrix ||
+  isScalarValue(e) ||
+  e instanceof VectorValue ||
+  e instanceof MatrixValue ||
+  e instanceof ArrayValue ||
   e instanceof Array);
 
 }

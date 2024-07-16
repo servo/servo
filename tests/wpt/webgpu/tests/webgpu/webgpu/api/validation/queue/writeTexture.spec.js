@@ -43,7 +43,7 @@ paramsSubcasesOnly([
 ).
 fn((t) => {
   const { usage } = t.params;
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size: { width: 16, height: 16 },
     usage,
     format: 'rgba8unorm'
@@ -67,7 +67,7 @@ desc(
 params((u) => u.combine('sampleCount', [1, 4])).
 fn((t) => {
   const { sampleCount } = t.params;
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size: { width: 16, height: 16 },
     sampleCount,
     format: 'bgra8unorm',
@@ -94,12 +94,13 @@ fn((t) => {
   const { mismatched } = t.params;
   const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
 
-  const texture = sourceDevice.createTexture({
-    size: { width: 16, height: 16 },
-    format: 'bgra8unorm',
-    usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
-  });
-  t.trackForCleanup(texture);
+  const texture = t.trackForCleanup(
+    sourceDevice.createTexture({
+      size: { width: 16, height: 16 },
+      format: 'bgra8unorm',
+      usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+    })
+  );
 
   const data = new Uint8Array(16);
   const size = [1, 1];

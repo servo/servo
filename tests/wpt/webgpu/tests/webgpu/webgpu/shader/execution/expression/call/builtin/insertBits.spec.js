@@ -18,17 +18,7 @@ Other bits of the result are copied from e.
 Component-wise when T is a vector.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
-import {
-  i32Bits,
-  TypeI32,
-  u32,
-  TypeU32,
-  u32Bits,
-  vec2,
-  vec3,
-  vec4,
-  TypeVec } from
-'../../../../../util/conversion.js';
+import { i32Bits, Type, u32, u32Bits, vec2, vec3, vec4 } from '../../../../../util/conversion.js';
 import { allInputSources, run } from '../../expression.js';
 
 import { builtin } from './builtin.js';
@@ -46,8 +36,8 @@ combine('width', [1, 2, 3, 4])
 ).
 fn(async (t) => {
   const cfg = t.params;
-  const scalarType = t.params.signed ? TypeI32 : TypeU32;
-  const T = t.params.width === 1 ? scalarType : TypeVec(t.params.width, scalarType);
+  const scalarType = t.params.signed ? Type.i32 : Type.u32;
+  const T = t.params.width === 1 ? scalarType : Type.vec(t.params.width, scalarType);
 
   const V = (x, y, z, w) => {
     y = y === undefined ? x : y;
@@ -382,5 +372,5 @@ fn(async (t) => {
     );
   }
 
-  await run(t, builtin('insertBits'), [T, T, TypeU32, TypeU32], T, cfg, cases);
+  await run(t, builtin('insertBits'), [T, T, Type.u32, Type.u32], T, cfg, cases);
 });

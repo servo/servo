@@ -166,9 +166,13 @@ export class TexelView {
     const info = kTextureFormatInfo[this.format];
     const repr = kTexelRepresentationInfo[this.format];
 
-    const numericToString = numericToStringBuilder(
-      info.sampleType === 'uint' || info.sampleType === 'sint'
-    );
+    // MAINTENANCE_TODO: Print depth-stencil formats as float+int instead of float+float.
+    const printAsInteger = info.color ?
+    // For color, pick the type based on the format type
+    ['uint', 'sint'].includes(info.color.type) :
+    // Print depth as "float", depth-stencil as "float,float", stencil as "int".
+    !info.depth;
+    const numericToString = numericToStringBuilder(printAsInteger);
 
     const componentOrderStr = repr.componentOrder.join(',') + ':';
     const subrectCoords = [...fullSubrectCoordinates(subrectOrigin, subrectSize)];

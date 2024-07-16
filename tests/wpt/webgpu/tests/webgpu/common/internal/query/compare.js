@@ -58,7 +58,10 @@ function compareOneLevel(ordering, aIsBig, bIsBig) {
   return Ordering.Unordered;
 }
 
-function comparePaths(a, b) {
+/**
+ * Compare two file paths, or file-local test paths, returning an Ordering between the two.
+ */
+export function comparePaths(a, b) {
   const shorter = Math.min(a.length, b.length);
 
   for (let i = 0; i < shorter; ++i) {

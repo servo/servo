@@ -30,9 +30,12 @@ export class ShaderValidationTest extends GPUTest {
       const compilationInfo = await shaderModule.getCompilationInfo();
 
       // MAINTENANCE_TODO: Pretty-print error messages with source context.
-      const messagesLog = compilationInfo.messages.
+      const messagesLog =
+      compilationInfo.messages.
       map((m) => `${m.lineNum}:${m.linePos}: ${m.type}: ${m.message}`).
-      join('\n');
+      join('\n') +
+      '\n\n---- shader ----\n' +
+      code;
       error.extra.compilationInfo = compilationInfo;
 
       if (compilationInfo.messages.some((m) => m.type === 'error')) {

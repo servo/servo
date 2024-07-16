@@ -63,6 +63,17 @@ const kInvalidShaderSources = [
         // Expected Error: unknown function 'unknown'
         return unknown(0.0, 0.0, 0.0, 1.0);
       }`
+},
+{
+  valid: false,
+  name: 'unicode-multi-byte-characters',
+  _errorLine: 1,
+  // This shader is simplistic enough to always result in the same error position.
+  // Generally, various backends may choose to report the error at different positions within the
+  // line, so it's difficult to meaningfully validate them.
+  _errorLinePos: 19,
+  _code: `/*🐈🐈🐈🐈🐈🐈🐈*/?
+// Expected Error: invalid character found`
 }];
 
 
@@ -174,7 +185,7 @@ beginSubcases().
 combine('sourceMapName', kSourceMapsKeys)
 ).
 fn(async (t) => {
-  const { _code, _errorLine, sourceMapName } = t.params;
+  const { _code, _errorLine, _errorLinePos, sourceMapName } = t.params;
 
   const shaderModule = t.expectGPUError('validation', () => {
     const sourceMap = kSourceMaps[sourceMapName];
@@ -191,14 +202,22 @@ fn(async (t) => {
       // If a line is reported, it should point at the correct line (1-based).
       t.expect(
         message.lineNum === 0 === (message.linePos === 0),
-        "GPUCompilationMessages that don't report a line number should not report a line position."
+        `Got message.lineNum ${message.lineNum}, .linePos ${message.linePos}, but GPUCompilationMessage should specify both or neither`
       );
 
-      if (message.lineNum === 0 || message.lineNum === _errorLine) {
+      if (message.lineNum === 0) {
         foundAppropriateError = true;
+        break;
+      }
 
-        // Various backends may choose to report the error at different positions within the line,
-        // so it's difficult to meaningfully validate them.
+      if (message.lineNum === _errorLine) {
+        foundAppropriateError = true;
+        if (_errorLinePos !== undefined) {
+          t.expect(
+            message.linePos === _errorLinePos,
+            `Got message.linePos ${message.linePos}, expected ${_errorLinePos}`
+          );
+        }
         break;
       }
     }
@@ -239,10 +258,9 @@ fn(async (t) => {
 
   for (const message of info.messages) {
     // Any offsets and lengths should reference valid spans of the shader code.
-    t.expect(message.offset <= _code.length, 'Message offset should be within the shader source');
     t.expect(
-      message.offset + message.length <= _code.length,
-      'Message offset and length should be within the shader source'
+      message.offset <= _code.length && message.offset + message.length <= _code.length,
+      'message.offset and .length should be within the shader source'
     );
 
     // If a valid line number and position are given, the offset should point the the same
@@ -255,9 +273,10 @@ fn(async (t) => {
         lineOffset += 1;
       }
 
+      const expectedOffset = lineOffset + message.linePos - 1;
       t.expect(
-        message.offset === lineOffset + message.linePos - 1,
-        'lineNum and linePos should point to the same location as offset'
+        message.offset === expectedOffset,
+        `message.lineNum (${message.lineNum}) and .linePos (${message.linePos}) point to a different offset (${lineOffset} + ${message.linePos} - 1 = ${expectedOffset}) than .offset (${message.offset})`
       );
     }
   }

@@ -8,14 +8,22 @@ fn fwidth(e:T) ->T
 Returns abs(dpdx(e)) + abs(dpdy(e)).
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
-import { allInputSources } from '../../expression.js';
+
+import { d } from './fwidth.cache.js';
+import { runFWidthTest } from './fwidth.js';
 
 export const g = makeTestGroup(GPUTest);
 
+const builtin = 'fwidth';
+
 g.test('f32').
 specURL('https://www.w3.org/TR/WGSL/#derivative-builtin-functions').
-desc(`f32 tests`).
 params((u) =>
-u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3, 4])
+u.
+combine('vectorize', [undefined, 2, 3, 4]).
+combine('non_uniform_discard', [false, true])
 ).
-unimplemented();
+fn(async (t) => {
+  const cases = await d.get('scalar');
+  runFWidthTest(t, cases, builtin, t.params.non_uniform_discard, t.params.vectorize);
+});

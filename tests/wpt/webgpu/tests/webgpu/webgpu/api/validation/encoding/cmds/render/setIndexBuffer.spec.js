@@ -40,11 +40,12 @@ fn((t) => {
   const { encoderType, mismatched } = t.params;
   const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
 
-  const indexBuffer = sourceDevice.createBuffer({
-    size: 16,
-    usage: GPUBufferUsage.INDEX
-  });
-  t.trackForCleanup(indexBuffer);
+  const indexBuffer = t.trackForCleanup(
+    sourceDevice.createBuffer({
+      size: 16,
+      usage: GPUBufferUsage.INDEX
+    })
+  );
 
   const { encoder, validateFinish } = t.createEncoder(encoderType);
   encoder.setIndexBuffer(indexBuffer, 'uint32');
@@ -66,7 +67,7 @@ paramsSubcasesOnly(
 ).
 fn((t) => {
   const { encoderType, usage } = t.params;
-  const indexBuffer = t.device.createBuffer({
+  const indexBuffer = t.createBufferTracked({
     size: 16,
     usage
   });
@@ -91,7 +92,7 @@ paramsSubcasesOnly(
 ).
 fn((t) => {
   const { encoderType, indexFormat, offset } = t.params;
-  const indexBuffer = t.device.createBuffer({
+  const indexBuffer = t.createBufferTracked({
     size: 16,
     usage: GPUBufferUsage.INDEX
   });
@@ -113,7 +114,7 @@ Tests offset and size cannot be larger than index buffer size.
 paramsSubcasesOnly(buildBufferOffsetAndSizeOOBTestParams(4, 256)).
 fn((t) => {
   const { encoderType, offset, size, _valid } = t.params;
-  const indexBuffer = t.device.createBuffer({
+  const indexBuffer = t.createBufferTracked({
     size: 256,
     usage: GPUBufferUsage.INDEX
   });

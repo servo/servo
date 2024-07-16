@@ -33,8 +33,8 @@ class F extends ValidationTest {
     const mapMode = usage & GPUBufferUsage.MAP_READ ? GPUMapMode.READ : GPUMapMode.WRITE;
 
     // Create a mappable buffer, and one that will remain unmapped for comparison.
-    const mappableBuffer = this.device.createBuffer(bufferDesc);
-    const unmappedBuffer = this.device.createBuffer(bufferDesc);
+    const mappableBuffer = this.createBufferTracked(bufferDesc);
+    const unmappedBuffer = this.createBufferTracked(bufferDesc);
 
     // Run the given operation before the buffer is mapped. Should succeed.
     callback(mappableBuffer);
@@ -72,7 +72,7 @@ class F extends ValidationTest {
 
     // Create a buffer that's mappedAtCreation.
     bufferDesc.mappedAtCreation = true;
-    const mappedBuffer = this.device.createBuffer(bufferDesc);
+    const mappedBuffer = this.createBufferTracked(bufferDesc);
 
     // Run the operation with the mappedAtCreation buffer. Should fail.
     this.expectValidationError(() => {
@@ -110,12 +110,12 @@ desc(
   both when used as the source and destination.`
 ).
 fn(async (t) => {
-  const sourceBuffer = t.device.createBuffer({
+  const sourceBuffer = t.createBufferTracked({
     size: 8,
     usage: GPUBufferUsage.COPY_SRC
   });
 
-  const destBuffer = t.device.createBuffer({
+  const destBuffer = t.createBufferTracked({
     size: 8,
     usage: GPUBufferUsage.COPY_DST
   });
@@ -146,7 +146,7 @@ desc(
 fn(async (t) => {
   const size = { width: 1, height: 1 };
 
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size,
     format: 'rgba8unorm',
     usage: GPUTextureUsage.COPY_DST
@@ -169,7 +169,7 @@ desc(
 fn(async (t) => {
   const size = { width: 1, height: 1 };
 
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size,
     format: 'rgba8unorm',
     usage: GPUTextureUsage.COPY_SRC
@@ -240,13 +240,13 @@ paramsSubcasesOnly([
 fn(async (t) => {
   const { order, mappedAtCreation, _shouldError: shouldError } = t.params;
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     size: 4,
     usage: GPUBufferUsage.MAP_WRITE | GPUBufferUsage.COPY_SRC,
     mappedAtCreation
   });
 
-  const targetBuffer = t.device.createBuffer({
+  const targetBuffer = t.createBufferTracked({
     size: 4,
     usage: GPUBufferUsage.COPY_DST
   });

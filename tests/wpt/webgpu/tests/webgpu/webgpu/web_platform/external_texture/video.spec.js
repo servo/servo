@@ -10,6 +10,7 @@ TODO: consider whether external_texture and copyToTexture video tests should be 
 TODO(#3193): Test video in BT.2020 color space
 `;import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { GPUTest, TextureTestMixin } from '../../gpu_test.js';
+import { createCanvas } from '../../util/create_elements.js';
 import {
   startPlayingAndWaitForVideo,
   getVideoFrameFromVideoElement,
@@ -27,7 +28,10 @@ const kFormat = 'rgba8unorm';
 
 export const g = makeTestGroup(TextureTestMixin(GPUTest));
 
-function createExternalTextureSamplingTestPipeline(t) {
+function createExternalTextureSamplingTestPipeline(
+t,
+colorAttachmentFormat = kFormat)
+{
   const pipeline = t.device.createRenderPipeline({
     layout: 'auto',
     vertex: {
@@ -63,7 +67,7 @@ function createExternalTextureSamplingTestPipeline(t) {
       entryPoint: 'main',
       targets: [
       {
-        format: kFormat
+        format: colorAttachmentFormat
       }]
 
     },
@@ -163,7 +167,7 @@ fn(async (t) => {
     await getVideoFrameFromVideoElement(t, videoElement) :
     videoElement;
 
-    const colorAttachment = t.device.createTexture({
+    const colorAttachment = t.createTextureTracked({
       format: kFormat,
       size: { width: kWidth, height: kHeight, depthOrArrayLayers: 1 },
       usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
@@ -226,6 +230,131 @@ fn(async (t) => {
     }]
     );
   });
+});
+
+g.test('importExternalTexture,sample_non_YUV_video_frame').
+desc(
+  `
+Tests that we can import an VideoFrame with non-YUV pixel format into a GPUExternalTexture and sample it.
+`
+).
+params((u) =>
+u //
+.combine('videoFrameFormat', ['RGBA', 'RGBX', 'BGRA', 'BGRX'])
+).
+fn((t) => {
+  const { videoFrameFormat } = t.params;
+
+  if (typeof VideoFrame === 'undefined') {
+    t.skip('WebCodec is not supported');
+  }
+
+  const canvas = createCanvas(t, 'onscreen', kWidth, kHeight);
+
+  const canvasContext = canvas.getContext('2d');
+
+  if (canvasContext === null) {
+    t.skip(' onscreen canvas 2d context not available');
+  }
+
+  const ctx = canvasContext;
+
+  const rectWidth = Math.floor(kWidth / 2);
+  const rectHeight = Math.floor(kHeight / 2);
+
+  // Red
+  ctx.fillStyle = `rgba(255, 0, 0, 1.0)`;
+  ctx.fillRect(0, 0, rectWidth, rectHeight);
+  // Lime
+  ctx.fillStyle = `rgba(0, 255, 0, 1.0)`;
+  ctx.fillRect(rectWidth, 0, kWidth - rectWidth, rectHeight);
+  // Blue
+  ctx.fillStyle = `rgba(0, 0, 255, 1.0)`;
+  ctx.fillRect(0, rectHeight, rectWidth, kHeight - rectHeight);
+  // Fuchsia
+  ctx.fillStyle = `rgba(255, 0, 255, 1.0)`;
+  ctx.fillRect(rectWidth, rectHeight, kWidth - rectWidth, kHeight - rectHeight);
+
+  const imageData = ctx.getImageData(0, 0, kWidth, kHeight);
+
+  // Create video frame with default color space 'srgb'
+  const frameInit = {
+    format: videoFrameFormat,
+    codedWidth: kWidth,
+    codedHeight: kHeight,
+    timestamp: 0
+  };
+
+  const frame = new VideoFrame(imageData.data.buffer, frameInit);
+  let textureFormat = 'rgba8unorm';
+
+  if (videoFrameFormat === 'BGRA' || videoFrameFormat === 'BGRX') {
+    textureFormat = 'bgra8unorm';
+  }
+
+  const colorAttachment = t.createTextureTracked({
+    format: textureFormat,
+    size: { width: kWidth, height: kHeight, depthOrArrayLayers: 1 },
+    usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
+  });
+
+  const pipeline = createExternalTextureSamplingTestPipeline(t, textureFormat);
+  const bindGroup = createExternalTextureSamplingTestBindGroup(
+    t,
+    undefined /* checkNonStandardIsZeroCopy */,
+    frame,
+    pipeline,
+    'srgb'
+  );
+
+  const commandEncoder = t.device.createCommandEncoder();
+  const passEncoder = commandEncoder.beginRenderPass({
+    colorAttachments: [
+    {
+      view: colorAttachment.createView(),
+      clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+      loadOp: 'clear',
+      storeOp: 'store'
+    }]
+
+  });
+  passEncoder.setPipeline(pipeline);
+  passEncoder.setBindGroup(0, bindGroup);
+  passEncoder.draw(6);
+  passEncoder.end();
+  t.device.queue.submit([commandEncoder.finish()]);
+
+  const expected = {
+    topLeft: new Uint8Array([255, 0, 0, 255]),
+    topRight: new Uint8Array([0, 255, 0, 255]),
+    bottomLeft: new Uint8Array([0, 0, 255, 255]),
+    bottomRight: new Uint8Array([255, 0, 255, 255])
+  };
+
+  // For validation, we sample a few pixels away from the edges to avoid compression
+  // artifacts.
+  t.expectSinglePixelComparisonsAreOkInTexture({ texture: colorAttachment }, [
+  // Top-left.
+  {
+    coord: { x: kWidth * 0.25, y: kHeight * 0.25 },
+    exp: expected.topLeft
+  },
+  // Top-right.
+  {
+    coord: { x: kWidth * 0.75, y: kHeight * 0.25 },
+    exp: expected.topRight
+  },
+  // Bottom-left.
+  {
+    coord: { x: kWidth * 0.25, y: kHeight * 0.75 },
+    exp: expected.bottomLeft
+  },
+  // Bottom-right.
+  {
+    coord: { x: kWidth * 0.75, y: kHeight * 0.75 },
+    exp: expected.bottomRight
+  }]
+  );
 });
 
 g.test('importExternalTexture,sampleWithVideoFrameWithVisibleRectParam').
@@ -304,7 +433,7 @@ fn(async (t) => {
     for (const cropParam of cropParams) {
       const subRect = new VideoFrame(source, { visibleRect: cropParam.subRect });
 
-      const colorAttachment = t.device.createTexture({
+      const colorAttachment = t.createTextureTracked({
         format: kFormat,
         size: { width: kWidth, height: kHeight, depthOrArrayLayers: 1 },
         usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
@@ -386,7 +515,7 @@ fn(async (t) => {
     if (t.params.checkNonStandardIsZeroCopy) {
       expectZeroCopyNonStandard(t, externalTexture);
     }
-    const outputTexture = t.device.createTexture({
+    const outputTexture = t.createTextureTracked({
       format: 'rgba8unorm',
       size: [2, 2, 1],
       usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.STORAGE_BINDING

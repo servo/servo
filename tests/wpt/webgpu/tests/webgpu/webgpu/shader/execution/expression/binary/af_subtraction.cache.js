@@ -1,31 +1,22 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { FP } from '../../../../util/floating_point.js';import { sparseScalarF64Range, sparseVectorF64Range } from '../../../../util/math.js';import { makeCaseCache } from '../case_cache.js';
+**/import { FP } from '../../../../util/floating_point.js';import { sparseScalarF64Range } from '../../../../util/math.js';import { makeCaseCache } from '../case_cache.js';
 
-const subtractionVectorScalarInterval = (v, s) => {
-  return FP.abstract.toVector(v.map((e) => FP.abstract.subtractionInterval(e, s)));
+import { getSubtractionAFInterval, kSparseVectorAFValues } from './af_data.js';
+
+const subtractionVectorScalarInterval = (vec, s) => {
+  return FP.abstract.toVector(vec.map((v) => getSubtractionAFInterval(v, s)));
 };
 
-const subtractionScalarVectorInterval = (s, v) => {
-  return FP.abstract.toVector(v.map((e) => FP.abstract.subtractionInterval(s, e)));
-};
-
-const scalar_cases = {
-  ['scalar']: () => {
-    return FP.abstract.generateScalarPairToIntervalCases(
-      sparseScalarF64Range(),
-      sparseScalarF64Range(),
-      'finite',
-      FP.abstract.subtractionInterval
-    );
-  }
+const subtractionScalarVectorInterval = (s, vec) => {
+  return FP.abstract.toVector(vec.map((v) => getSubtractionAFInterval(s, v)));
 };
 
 const vector_scalar_cases = [2, 3, 4].
 map((dim) => ({
   [`vec${dim}_scalar`]: () => {
     return FP.abstract.generateVectorScalarToVectorCases(
-      sparseVectorF64Range(dim),
+      kSparseVectorAFValues[dim],
       sparseScalarF64Range(),
       'finite',
       subtractionVectorScalarInterval
@@ -39,7 +30,7 @@ map((dim) => ({
   [`scalar_vec${dim}`]: () => {
     return FP.abstract.generateScalarVectorToVectorCases(
       sparseScalarF64Range(),
-      sparseVectorF64Range(dim),
+      kSparseVectorAFValues[dim],
       'finite',
       subtractionScalarVectorInterval
     );
@@ -48,7 +39,14 @@ map((dim) => ({
 reduce((a, b) => ({ ...a, ...b }), {});
 
 export const d = makeCaseCache('binary/af_subtraction', {
-  ...scalar_cases,
+  ['scalar']: () => {
+    return FP.abstract.generateScalarPairToIntervalCases(
+      sparseScalarF64Range(),
+      sparseScalarF64Range(),
+      'finite',
+      getSubtractionAFInterval
+    );
+  },
   ...vector_scalar_cases,
   ...scalar_vector_cases
 });

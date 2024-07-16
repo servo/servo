@@ -17,12 +17,10 @@ Tests that using a destroyed buffer in writeBuffer fails.
 paramsSubcasesOnly((u) => u.combine('destroyed', [false, true])).
 fn((t) => {
   const { destroyed } = t.params;
-  const buffer = t.trackForCleanup(
-    t.device.createBuffer({
-      size: 4,
-      usage: GPUBufferUsage.COPY_DST
-    })
-  );
+  const buffer = t.createBufferTracked({
+    size: 4,
+    usage: GPUBufferUsage.COPY_DST
+  });
 
   if (destroyed) {
     buffer.destroy();
@@ -40,12 +38,8 @@ Tests that using a destroyed buffer in copyBufferToBuffer fails.
 ).
 paramsSubcasesOnly((u) => u.combine('destroyed', ['none', 'src', 'dst', 'both'])).
 fn((t) => {
-  const src = t.trackForCleanup(
-    t.device.createBuffer({ size: 4, usage: GPUBufferUsage.COPY_SRC })
-  );
-  const dst = t.trackForCleanup(
-    t.device.createBuffer({ size: 4, usage: GPUBufferUsage.COPY_DST })
-  );
+  const src = t.createBufferTracked({ size: 4, usage: GPUBufferUsage.COPY_SRC });
+  const dst = t.createBufferTracked({ size: 4, usage: GPUBufferUsage.COPY_DST });
 
   const encoder = t.device.createCommandEncoder();
   encoder.copyBufferToBuffer(src, 0, dst, 0, dst.size);
@@ -83,16 +77,12 @@ Tests that using a destroyed buffer in copyBufferToTexture fails.
 paramsSubcasesOnly((u) => u.combine('destroyed', [false, true])).
 fn((t) => {
   const { destroyed } = t.params;
-  const buffer = t.trackForCleanup(
-    t.device.createBuffer({ size: 4, usage: GPUBufferUsage.COPY_SRC })
-  );
-  const texture = t.trackForCleanup(
-    t.device.createTexture({
-      size: [1, 1, 1],
-      format: 'rgba8unorm',
-      usage: GPUTextureUsage.COPY_DST
-    })
-  );
+  const buffer = t.createBufferTracked({ size: 4, usage: GPUBufferUsage.COPY_SRC });
+  const texture = t.createTextureTracked({
+    size: [1, 1, 1],
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.COPY_DST
+  });
 
   const encoder = t.device.createCommandEncoder();
   encoder.copyBufferToTexture({ buffer }, { texture }, [1, 1, 1]);
@@ -117,16 +107,12 @@ Tests that using a destroyed buffer in copyTextureToBuffer fails.
 paramsSubcasesOnly((u) => u.combine('destroyed', [false, true])).
 fn((t) => {
   const { destroyed } = t.params;
-  const texture = t.trackForCleanup(
-    t.device.createTexture({
-      size: [1, 1, 1],
-      format: 'rgba8unorm',
-      usage: GPUTextureUsage.COPY_SRC
-    })
-  );
-  const buffer = t.trackForCleanup(
-    t.device.createBuffer({ size: 4, usage: GPUBufferUsage.COPY_DST })
-  );
+  const texture = t.createTextureTracked({
+    size: [1, 1, 1],
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.COPY_SRC
+  });
+  const buffer = t.createBufferTracked({ size: 4, usage: GPUBufferUsage.COPY_DST });
 
   const encoder = t.device.createCommandEncoder();
   encoder.copyTextureToBuffer({ texture }, { buffer }, [1, 1, 1]);
@@ -156,12 +142,10 @@ combine('encoderType', ['compute pass', 'render pass', 'render bundle'])
 fn((t) => {
   const { destroyed, encoderType } = t.params;
   const { device } = t;
-  const buffer = t.trackForCleanup(
-    t.device.createBuffer({
-      size: 4,
-      usage: GPUBufferUsage.UNIFORM
-    })
-  );
+  const buffer = t.createBufferTracked({
+    size: 4,
+    usage: GPUBufferUsage.UNIFORM
+  });
 
   const layout = device.createBindGroupLayout({
     entries: [
@@ -205,12 +189,10 @@ combine('encoderType', ['render pass', 'render bundle'])
 ).
 fn((t) => {
   const { destroyed, encoderType } = t.params;
-  const vertexBuffer = t.trackForCleanup(
-    t.device.createBuffer({
-      size: 4,
-      usage: GPUBufferUsage.VERTEX
-    })
-  );
+  const vertexBuffer = t.createBufferTracked({
+    size: 4,
+    usage: GPUBufferUsage.VERTEX
+  });
 
   const { encoder, finish } = t.createEncoder(encoderType);
   encoder.setVertexBuffer(0, vertexBuffer);
@@ -239,12 +221,10 @@ combine('encoderType', ['render pass', 'render bundle'])
 ).
 fn((t) => {
   const { destroyed, encoderType } = t.params;
-  const indexBuffer = t.trackForCleanup(
-    t.device.createBuffer({
-      size: 4,
-      usage: GPUBufferUsage.INDEX
-    })
-  );
+  const indexBuffer = t.createBufferTracked({
+    size: 4,
+    usage: GPUBufferUsage.INDEX
+  });
 
   const { encoder, finish } = t.createEncoder(encoderType);
   encoder.setIndexBuffer(indexBuffer, 'uint16');
@@ -269,18 +249,14 @@ Tests that using a destroyed buffer referenced via resolveQuerySet fails
 paramsSubcasesOnly((u) => u.combine('destroyed', [false, true])).
 fn((t) => {
   const { destroyed } = t.params;
-  const querySet = t.trackForCleanup(
-    t.device.createQuerySet({
-      type: 'occlusion',
-      count: 1
-    })
-  );
-  const querySetBuffer = t.trackForCleanup(
-    t.device.createBuffer({
-      size: 8,
-      usage: GPUBufferUsage.QUERY_RESOLVE
-    })
-  );
+  const querySet = t.createQuerySetTracked({
+    type: 'occlusion',
+    count: 1
+  });
+  const querySetBuffer = t.createBufferTracked({
+    size: 8,
+    usage: GPUBufferUsage.QUERY_RESOLVE
+  });
 
   const encoder = t.device.createCommandEncoder();
   encoder.resolveQuerySet(querySet, 0, 1, querySetBuffer, 0);

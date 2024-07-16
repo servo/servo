@@ -13,7 +13,7 @@ g.test('memcpy').fn((t) => {
 
   const src = t.makeBufferWithContents(data, GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE);
 
-  const dst = t.device.createBuffer({
+  const dst = t.createBufferTracked({
     size: 4,
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE
   });
@@ -92,7 +92,7 @@ fn((t) => {
   t.params.dispatchSize;
   const bufferLength = dispatchSize * wgSize;
   const bufferByteSize = Uint32Array.BYTES_PER_ELEMENT * bufferLength;
-  const dst = t.device.createBuffer({
+  const dst = t.createBufferTracked({
     size: bufferByteSize,
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE
   });

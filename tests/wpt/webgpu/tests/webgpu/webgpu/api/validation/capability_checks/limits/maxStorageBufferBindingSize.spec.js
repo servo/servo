@@ -110,12 +110,10 @@ fn(async (t) => {
       }
 
       device.pushErrorScope('out-of-memory');
-      const storageBuffer = t.trackForCleanup(
-        device.createBuffer({
-          usage: GPUBufferUsage.STORAGE,
-          size
-        })
-      );
+      const storageBuffer = t.createBufferTracked({
+        usage: GPUBufferUsage.STORAGE,
+        size
+      });
       const outOfMemoryError = await device.popErrorScope();
 
       if (!outOfMemoryError) {

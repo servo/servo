@@ -8,7 +8,7 @@ Pack the lower 8 bits of each component of e into a u32 value and drop all the u
 Component e[i] of the input is mapped to bits (8 * i) through (8 * (i + 7)) of the result.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
-import { TypeI32, TypeU32, TypeVec, u32, toVector, i32 } from '../../../../../util/conversion.js';
+import { u32, toVector, i32, Type } from '../../../../../util/conversion.js';
 
 import { allInputSources, run } from '../../expression.js';
 
@@ -65,5 +65,5 @@ fn(async (t) => {
     return [makeCase(v)];
   });
 
-  await run(t, builtin('pack4xI8'), [TypeVec(4, TypeI32)], TypeU32, cfg, cases);
+  await run(t, builtin('pack4xI8'), [Type.vec4i], Type.u32, cfg, cases);
 });

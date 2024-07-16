@@ -1,8 +1,6 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/ /// <reference types="@webgpu/types" />
-
-import { ErrorWithExtra, assert, objectEquals } from './util.js';
+**/import { ErrorWithExtra, assert, objectEquals } from './util.js';
 
 /**
  * Finds and returns the `navigator.gpu` object (or equivalent, for non-browser implementations).
@@ -72,7 +70,8 @@ export function getGPU(recorder) {
       if (recorder) {
         void promise.then(async (adapter) => {
           if (adapter) {
-            const info = await adapter.requestAdapterInfo();
+            // MAINTENANCE_TODO: Remove requestAdapterInfo when info is implemented.
+            const info = adapter.info || (await adapter.requestAdapterInfo());
             const infoString = `Adapter: ${info.vendor} / ${info.architecture} / ${info.device}`;
             recorder.debug(new ErrorWithExtra(infoString, () => ({ adapterInfo: info })));
           }

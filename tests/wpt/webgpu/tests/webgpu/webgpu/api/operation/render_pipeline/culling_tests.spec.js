@@ -140,7 +140,7 @@ fn((t) => {
   const size = 4;
   const format = 'rgba8unorm';
 
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size: { width: size, height: size, depthOrArrayLayers: 1 },
     format,
     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
@@ -151,7 +151,7 @@ fn((t) => {
   let depthStencilAttachment = undefined;
   let depthStencil = undefined;
   if (depthStencilFormat) {
-    depthTexture = t.device.createTexture({
+    depthTexture = t.createTextureTracked({
       size: { width: size, height: size, depthOrArrayLayers: 1 },
       format: depthStencilFormat,
       usage: GPUTextureUsage.RENDER_ATTACHMENT

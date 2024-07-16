@@ -34,7 +34,9 @@ fn((t) => {
   const numAttribs = t.device.limits.maxVertexAttributes - numAttribsToReserve;
 
   const numBuiltinsUsed = (useVertexIndex ? 1 : 0) + (useInstanceIndex ? 1 : 0);
-  const isValid = numAttribs + numBuiltinsUsed <= t.device.limits.maxVertexAttributes;
+  const isValidInCompat = numAttribs + numBuiltinsUsed <= t.device.limits.maxVertexAttributes;
+  const isValidInCore = numAttribs <= t.device.limits.maxVertexAttributes;
+  const isValid = t.isCompatibility ? isValidInCompat : isValidInCore;
 
   const inputs = range(numAttribs, (i) => `@location(${i}) v${i}: vec4f`);
   const outputs = range(numAttribs, (i) => `v${i}`);

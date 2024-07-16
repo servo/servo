@@ -198,8 +198,8 @@ fn(async (t) => {
       const lastIndex = testValue - 1;
       await t.testGPUBindingCommandsMixin(
         encoderType,
-        ({ mixin, bindGroup }) => {
-          mixin.setBindGroup(lastIndex, bindGroup);
+        ({ passEncoder, bindGroup }) => {
+          passEncoder.setBindGroup(lastIndex, bindGroup);
         },
         shouldError,
         `shouldError: ${shouldError}, actualLimit: ${actualLimit}, testValue: ${lastIndex}`

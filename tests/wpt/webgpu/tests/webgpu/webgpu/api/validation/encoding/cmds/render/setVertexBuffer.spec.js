@@ -69,11 +69,12 @@ fn((t) => {
   const { encoderType, mismatched } = t.params;
   const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
 
-  const vertexBuffer = sourceDevice.createBuffer({
-    size: 16,
-    usage: GPUBufferUsage.VERTEX
-  });
-  t.trackForCleanup(vertexBuffer);
+  const vertexBuffer = t.trackForCleanup(
+    sourceDevice.createBuffer({
+      size: 16,
+      usage: GPUBufferUsage.VERTEX
+    })
+  );
 
   const { encoder, validateFinish } = t.createEncoder(encoderType);
   encoder.setVertexBuffer(0, vertexBuffer);
@@ -95,7 +96,7 @@ paramsSubcasesOnly(
 ).
 fn((t) => {
   const { encoderType, usage } = t.params;
-  const vertexBuffer = t.device.createBuffer({
+  const vertexBuffer = t.createBufferTracked({
     size: 16,
     usage
   });
@@ -114,7 +115,7 @@ Tests offset must be a multiple of 4.
 paramsSubcasesOnly(kRenderEncodeTypeParams.combine('offset', [0, 2, 4])).
 fn((t) => {
   const { encoderType, offset } = t.params;
-  const vertexBuffer = t.device.createBuffer({
+  const vertexBuffer = t.createBufferTracked({
     size: 16,
     usage: GPUBufferUsage.VERTEX
   });
@@ -133,7 +134,7 @@ Tests offset and size cannot be larger than vertex buffer size.
 paramsSubcasesOnly(buildBufferOffsetAndSizeOOBTestParams(4, 256)).
 fn((t) => {
   const { encoderType, offset, size, _valid } = t.params;
-  const vertexBuffer = t.device.createBuffer({
+  const vertexBuffer = t.createBufferTracked({
     size: 256,
     usage: GPUBufferUsage.VERTEX
   });

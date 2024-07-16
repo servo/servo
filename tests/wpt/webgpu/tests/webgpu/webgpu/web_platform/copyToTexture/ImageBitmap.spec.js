@@ -98,7 +98,7 @@ fn(async (t) => {
     colorSpaceConversion
   });
 
-  const dst = t.device.createTexture({
+  const dst = t.createTextureTracked({
     size: { width, height },
     format: dstFormat,
     usage:
@@ -245,7 +245,7 @@ fn(async (t) => {
     colorSpaceConversion
   });
 
-  const dst = t.device.createTexture({
+  const dst = t.createTextureTracked({
     size: { width, height },
     format: dstFormat,
     usage:
@@ -363,7 +363,7 @@ fn(async (t) => {
     colorSpaceConversion
   });
 
-  const dst = t.device.createTexture({
+  const dst = t.createTextureTracked({
     size: dstSize,
     format: kColorFormat,
     usage:
@@ -502,7 +502,7 @@ fn(async (t) => {
     colorSpaceConversion
   });
 
-  const dst = t.device.createTexture({
+  const dst = t.createTextureTracked({
     size: dstSize,
     format: kColorFormat,
     usage:
