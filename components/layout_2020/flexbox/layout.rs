@@ -1307,6 +1307,10 @@ impl<'a> FlexItem<'a> {
                                 self.content_max_size.cross,
                             );
 
+                        // FIXME: css/css-flexbox/align-items-baseline-overflow-non-visible.html
+                        // we need to pick first always, unless ‘align-self’ is ‘last baseline’.
+                        // do not use pick_baseline, which uses the ‘baseline-source’ logic for inline layout.
+                        // see also: https://github.com/w3c/csswg-drafts/issues/7638
                         // TODO: synthesize baseline if None?
                         // https://drafts.csswg.org/css-align-3/#synthesize-baseline
                         let propagated_baseline = self.box_.pick_baseline(&baselines);
