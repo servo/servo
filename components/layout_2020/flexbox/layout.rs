@@ -100,7 +100,7 @@ struct FlexItemLayoutResult {
     hypothetical_cross_size: Au,
     fragments: Vec<Fragment>,
     positioning_context: PositioningContext,
-    propagated_baseline: Option<Au>,
+    baselines: Baselines,
 }
 
 /// Return type of `FlexLine::layout`
@@ -978,9 +978,8 @@ impl FlexLine<'_> {
             .iter()
             .zip(&item_used_cross_sizes)
             .map(|(layout_result, used_cross_size)| {
-                layout_result
-                    .propagated_baseline
-                    .unwrap_or(*used_cross_size)
+                // TODO: implement ‘align-self: last baseline’
+                layout_result.baselines.first.unwrap_or(*used_cross_size)
             })
             .collect::<Vec<_>>();
         let max_propagated_baseline = item_propagated_baselines
@@ -1272,7 +1271,7 @@ impl<'a> FlexItem<'a> {
                             fragments,
                             positioning_context,
                             // TODO: ascent of cross_size, descent of 0?
-                            propagated_baseline: None,
+                            baselines: Baselines::default(),
                         }
                     },
                     IndependentFormattingContext::NonReplaced(non_replaced) => {
@@ -1307,19 +1306,11 @@ impl<'a> FlexItem<'a> {
                                 self.content_max_size.cross,
                             );
 
-                        // FIXME: css/css-flexbox/align-items-baseline-overflow-non-visible.html
-                        // we need to pick first always, unless ‘align-self’ is ‘last baseline’.
-                        // do not use pick_baseline, which uses the ‘baseline-source’ logic for inline layout.
-                        // see also: https://github.com/w3c/csswg-drafts/issues/7638
-                        // TODO: synthesize baseline if None?
-                        // https://drafts.csswg.org/css-align-3/#synthesize-baseline
-                        let propagated_baseline = self.box_.pick_baseline(&baselines);
-
                         FlexItemLayoutResult {
                             hypothetical_cross_size,
                             fragments,
                             positioning_context,
-                            propagated_baseline,
+                            baselines,
                         }
                     },
                 }
@@ -1351,10 +1342,12 @@ impl<'items> FlexLine<'items> {
         let mut max_outer_hypothetical_cross_size = Au::zero();
         for (item_result, item) in item_layout_results.iter().zip(&*self.items) {
             if item.align_self == AlignItems::Baseline {
+                // TODO: implement ‘align-self: last baseline’
                 // TODO: synthesize baseline if None?
                 // https://drafts.csswg.org/css-align-3/#synthesize-baseline
                 let baseline = item_result
-                    .propagated_baseline
+                    .baselines
+                    .first
                     .unwrap_or(item_result.hypothetical_cross_size);
                 max_ascent = max_ascent.max(baseline);
                 max_descent = max_descent.max(item_result.hypothetical_cross_size - baseline);
