@@ -350,29 +350,27 @@ impl GPUBufferMethods for GPUBuffer {
 }
 
 impl AsyncWGPUListener for GPUBuffer {
-    fn handle_response(&self, response: Option<WebGPUResponseResult>, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: WebGPUResponseResult, promise: &Rc<Promise>) {
         match response {
-            Some(response) => match response {
-                Ok(WebGPUResponse::BufferMapAsync(bytes)) => {
-                    *self
-                        .map_info
-                        .borrow_mut()
-                        .as_mut()
-                        .unwrap()
-                        .mapping
-                        .lock()
-                        .unwrap()
-                        .as_mut() = bytes.to_vec();
-                    promise.resolve_native(&());
-                    self.state.set(GPUBufferState::Mapped);
-                },
-                Err(e) => {
-                    warn!("Could not map buffer({:?})", e);
-                    promise.reject_error(Error::Abort);
-                },
-                Ok(_) => unreachable!("GPUBuffer received wrong WebGPUResponse"),
+            Ok(WebGPUResponse::BufferMapAsync(bytes)) => {
+                *self
+                    .map_info
+                    .borrow_mut()
+                    .as_mut()
+                    .unwrap()
+                    .mapping
+                    .lock()
+                    .unwrap()
+                    .as_mut() = bytes.to_vec();
+                promise.resolve_native(&());
+                self.state.set(GPUBufferState::Mapped);
             },
-            None => unreachable!("Failed to get a response for BufferMapAsync"),
+            Ok(WebGPUResponse::None) => unreachable!("Failed to get a response for BufferMapAsync"),
+            Err(e) => {
+                warn!("Could not map buffer({:?})", e);
+                promise.reject_error(Error::Abort);
+            },
+            Ok(_) => unreachable!("GPUBuffer received wrong WebGPUResponse"),
         }
         *self.map_promise.borrow_mut() = None;
     }

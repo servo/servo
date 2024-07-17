@@ -57,6 +57,8 @@ impl ShaderCompilationInfo {
 #[derive(Debug, Deserialize, Serialize)]
 #[allow(clippy::large_enum_variant)]
 pub enum WebGPUResponse {
+    /// WebGPU is disabled
+    None,
     RequestAdapter {
         adapter_info: wgt::AdapterInfo,
         adapter_id: WebGPUAdapter,

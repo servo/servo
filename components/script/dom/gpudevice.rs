@@ -1010,9 +1010,9 @@ impl GPUDeviceMethods for GPUDevice {
 }
 
 impl AsyncWGPUListener for GPUDevice {
-    fn handle_response(&self, response: Option<WebGPUResponseResult>, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: WebGPUResponseResult, promise: &Rc<Promise>) {
         match response {
-            Some(Ok(WebGPUResponse::PoppedErrorScope(result))) => match result {
+            Ok(WebGPUResponse::PoppedErrorScope(result)) => match result {
                 Ok(None) | Err(PopError::Lost) => promise.resolve_native(&None::<Option<GPUError>>),
                 Err(PopError::Empty) => promise.reject_error(Error::Operation),
                 Ok(Some(error)) => {

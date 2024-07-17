@@ -36,7 +36,7 @@ use crate::{Error, ErrorFilter, WebGPUResponseResult, PRESENTATION_BUFFER_COUNT}
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebGPURequest {
     BufferMapAsync {
-        sender: IpcSender<Option<WebGPUResponseResult>>,
+        sender: IpcSender<WebGPUResponseResult>,
         buffer_id: id::BufferId,
         device_id: id::DeviceId,
         host_map: HostMap,
@@ -126,7 +126,7 @@ pub enum WebGPURequest {
         program_id: id::ShaderModuleId,
         program: String,
         label: Option<String>,
-        sender: IpcSender<Option<WebGPUResponseResult>>,
+        sender: IpcSender<WebGPUResponseResult>,
     },
     CreateSwapChain {
         device_id: id::DeviceId,
@@ -182,12 +182,12 @@ pub enum WebGPURequest {
         device_id: id::DeviceId,
     },
     RequestAdapter {
-        sender: IpcSender<Option<WebGPUResponseResult>>,
+        sender: IpcSender<WebGPUResponseResult>,
         options: RequestAdapterOptions,
         ids: SmallVec<[id::AdapterId; 4]>,
     },
     RequestDevice {
-        sender: IpcSender<Option<WebGPUResponseResult>>,
+        sender: IpcSender<WebGPUResponseResult>,
         adapter_id: WebGPUAdapter,
         descriptor: wgt::DeviceDescriptor<Option<String>>,
         device_id: id::DeviceId,
@@ -280,7 +280,7 @@ pub enum WebGPURequest {
         data: IpcSharedMemory,
     },
     QueueOnSubmittedWorkDone {
-        sender: IpcSender<Option<WebGPUResponseResult>>,
+        sender: IpcSender<WebGPUResponseResult>,
         queue_id: id::QueueId,
     },
     PushErrorScope {
@@ -293,6 +293,6 @@ pub enum WebGPURequest {
     },
     PopErrorScope {
         device_id: id::DeviceId,
-        sender: IpcSender<Option<WebGPUResponseResult>>,
+        sender: IpcSender<WebGPUResponseResult>,
     },
 }

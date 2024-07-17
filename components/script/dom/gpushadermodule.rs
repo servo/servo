@@ -89,9 +89,9 @@ impl GPUShaderModuleMethods for GPUShaderModule {
 }
 
 impl AsyncWGPUListener for GPUShaderModule {
-    fn handle_response(&self, response: Option<WebGPUResponseResult>, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: WebGPUResponseResult, promise: &Rc<Promise>) {
         match response {
-            Some(Ok(WebGPUResponse::CompilationInfo(info))) => {
+            Ok(WebGPUResponse::CompilationInfo(info)) => {
                 let info = GPUCompilationInfo::from(&self.global(), info);
                 promise.resolve_native(&info);
             },
