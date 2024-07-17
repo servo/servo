@@ -16,6 +16,8 @@ use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
 use crate::StreamId;
 
+// TODO: Inline nodes
+
 #[derive(Serialize)]
 struct ModifyAttributeReply {
     from: String,

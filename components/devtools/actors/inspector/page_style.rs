@@ -98,6 +98,12 @@ struct GetLayoutReply {
 }
 
 #[derive(Serialize)]
+pub struct IsPositionEditableReply {
+    pub from: String,
+    pub value: bool,
+}
+
+#[derive(Serialize)]
 pub struct PageStyleMsg {
     pub actor: String,
     pub traits: HashMap<String, bool>,
@@ -226,6 +232,15 @@ impl Actor for PageStyleActor {
                 };
                 let msg = serde_json::to_string(&msg).unwrap();
                 let msg = serde_json::from_str::<Value>(&msg).unwrap();
+                let _ = stream.write_json_packet(&msg);
+                ActorMessageStatus::Processed
+            },
+
+            "isPositionEditable" => {
+                let msg = IsPositionEditableReply {
+                    from: self.name(),
+                    value: false,
+                };
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },

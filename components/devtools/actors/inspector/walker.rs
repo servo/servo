@@ -72,6 +72,12 @@ struct WatchRootNodeReply {
     node: NodeActorMsg,
 }
 
+#[derive(Serialize)]
+struct GetOffsetParentReply {
+    from: String,
+    node: Option<()>,
+}
+
 impl Actor for WalkerActor {
     fn name(&self) -> String {
         self.name.clone()
@@ -197,6 +203,15 @@ impl Actor for WalkerActor {
                     actor,
                 });
 
+                ActorMessageStatus::Processed
+            },
+
+            "getOffsetParent" => {
+                let msg = GetOffsetParentReply {
+                    from: self.name(),
+                    node: None,
+                };
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
