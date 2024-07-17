@@ -100,7 +100,9 @@ struct FlexItemLayoutResult {
     hypothetical_cross_size: Au,
     fragments: Vec<Fragment>,
     positioning_context: PositioningContext,
-    baselines_relative_to_margin_box: Baselines,
+
+    // Either the first or the last baseline, depending on ‘align-self’.
+    baseline_relative_to_margin_box: Option<Au>,
 }
 
 /// Return type of `FlexLine::layout`
@@ -979,10 +981,8 @@ impl FlexLine<'_> {
             .zip(&item_used_cross_sizes)
             .zip(self.items.iter())
             .map(|((layout_result, used_cross_size), item)| {
-                // TODO: implement ‘align-self: last baseline’
                 layout_result
-                    .baselines_relative_to_margin_box
-                    .first
+                    .baseline_relative_to_margin_box
                     .unwrap_or_else(|| {
                         item.synthesized_baselines_relative_to_margin_box(*used_cross_size)
                     })
@@ -1277,10 +1277,10 @@ impl<'a> FlexItem<'a> {
                             fragments,
                             positioning_context,
 
-                            // We will need to synthesize the baselines, but since the used cross
+                            // We will need to synthesize the baseline, but since the used cross
                             // size can differ from the hypothetical cross size, we should defer
                             // synthesizing until needed.
-                            baselines_relative_to_margin_box: Baselines::default(),
+                            baseline_relative_to_margin_box: None,
                         }
                     },
                     IndependentFormattingContext::NonReplaced(non_replaced) => {
@@ -1309,6 +1309,13 @@ impl<'a> FlexItem<'a> {
                         let baselines_relative_to_margin_box =
                             self.layout_baselines_relative_to_margin_box(&content_box_baselines);
 
+                        let baseline_relative_to_margin_box = match self.align_self.0.value() {
+                            // ‘baseline’ computes to ‘first baseline’.
+                            AlignFlags::BASELINE => baselines_relative_to_margin_box.first,
+                            AlignFlags::LAST_BASELINE => baselines_relative_to_margin_box.last,
+                            _ => None,
+                        };
+
                         let hypothetical_cross_size = self
                             .content_box_size
                             .cross
@@ -1322,7 +1329,7 @@ impl<'a> FlexItem<'a> {
                             hypothetical_cross_size,
                             fragments,
                             positioning_context,
-                            baselines_relative_to_margin_box,
+                            baseline_relative_to_margin_box,
                         }
                     },
                 }
@@ -1377,11 +1384,12 @@ impl<'items> FlexLine<'items> {
         let mut max_outer_hypothetical_cross_size = Au::zero();
         for (item_result, item) in item_layout_results.iter().zip(&*self.items) {
             // TODO: check inline-axis is parallel to main axis, check no auto cross margins
-            if item.align_self.0.value() == AlignFlags::BASELINE {
-                // TODO: implement ‘align-self: last baseline’
+            if matches!(
+                item.align_self.0.value(),
+                AlignFlags::BASELINE | AlignFlags::LAST_BASELINE
+            ) {
                 let baseline = item_result
-                    .baselines_relative_to_margin_box
-                    .first
+                    .baseline_relative_to_margin_box
                     .unwrap_or_else(|| {
                         item.synthesized_baselines_relative_to_margin_box(
                             item_result.hypothetical_cross_size,
@@ -1552,8 +1560,9 @@ impl FlexItem<'_> {
                         let margin_box_cross = *used_cross_size + self.pbm_auto_is_zero.cross;
                         (line_cross_size - margin_box_cross) / 2
                     },
-                    AlignFlags::BASELINE => max_propagated_baseline - propagated_baseline,
-                    // FIXME: handle ‘align-self: last baseline’
+                    AlignFlags::BASELINE | AlignFlags::LAST_BASELINE => {
+                        max_propagated_baseline - propagated_baseline
+                    },
                     _ => Au::zero(),
                 }
             };
