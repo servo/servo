@@ -333,6 +333,7 @@ impl RangeMethods for Range {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-setstart>
+    #[allow(clippy::neg_cmp_op_on_partial_ord)]
     fn SetStart(&self, node: &Node, offset: u32) -> ErrorResult {
         if node.is_doctype() {
             // Step 1.
@@ -352,6 +353,7 @@ impl RangeMethods for Range {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-setend>
+    #[allow(clippy::neg_cmp_op_on_partial_ord)]
     fn SetEnd(&self, node: &Node, offset: u32) -> ErrorResult {
         if node.is_doctype() {
             // Step 1.

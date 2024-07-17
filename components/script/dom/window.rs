@@ -1131,10 +1131,11 @@ impl WindowMethods for Window {
         pseudo: Option<DOMString>,
     ) -> DomRoot<CSSStyleDeclaration> {
         // Steps 1-4.
-        let pseudo = match pseudo.map(|mut s| {
+        let pseudo = pseudo.map(|mut s| {
             s.make_ascii_lowercase();
             s
-        }) {
+        });
+        let pseudo = match pseudo {
             Some(ref pseudo) if pseudo == ":before" || pseudo == "::before" => {
                 Some(PseudoElement::Before)
             },

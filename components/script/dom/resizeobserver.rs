@@ -272,7 +272,7 @@ fn calculate_box_size(target: &Element, observed_box: &ResizeObserverBoxOptions)
                 .upcast::<Node>()
                 .content_boxes()
                 .pop()
-                .unwrap_or_else(|| Rect::zero())
+                .unwrap_or_else(Rect::zero)
         },
         // TODO(#31182): add support for border box, and device pixel size, calculations.
         _ => Rect::zero(),
