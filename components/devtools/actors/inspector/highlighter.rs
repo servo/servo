@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+//! Handles highlighting selected DOM nodes in the inspector. At the moment it only replies and
+//! changes nothing on Servo's side.
+
 use std::net::TcpStream;
 
 use serde::Serialize;
@@ -36,6 +39,11 @@ impl Actor for HighlighterActor {
         self.name.clone()
     }
 
+    /// The highligher actor can handle the following messages:
+    ///
+    /// - `show`: Enables highlighting for the selected node
+    ///
+    /// - `hide`: Disables highlighting for the selected node
     fn handle_message(
         &self,
         _registry: &ActorRegistry,

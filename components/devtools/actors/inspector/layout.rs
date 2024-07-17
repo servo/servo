@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+//! The layout actor informs the DevTools client of the layout properties of the document, such as
+//! grids or flexboxes. It acts as a placeholder for now.
+
 use std::net::TcpStream;
 
 use serde::Serialize;
@@ -39,7 +42,9 @@ impl Actor for LayoutInspectorActor {
 
     /// The layout inspector actor can handle the following messages:
     ///
-    /// -
+    /// - `getGrids`: Returns a list of CSS grids, non functional at the moment
+    ///
+    /// - `getCurrentFlexbox`: Returns the active flexbox, non functional at the moment
     fn handle_message(
         &self,
         _registry: &ActorRegistry,
@@ -52,6 +57,7 @@ impl Actor for LayoutInspectorActor {
             "getGrids" => {
                 let msg = GetGridsReply {
                     from: self.name(),
+                    // TODO: Actually create a list of grids
                     grids: vec![],
                 };
                 let _ = stream.write_json_packet(&msg);
@@ -60,6 +66,7 @@ impl Actor for LayoutInspectorActor {
             "getCurrentFlexbox" => {
                 let msg = GetCurrentFlexboxReply {
                     from: self.name(),
+                    // TODO: Create and return the current flexbox object
                     flexbox: None,
                 };
                 let _ = stream.write_json_packet(&msg);

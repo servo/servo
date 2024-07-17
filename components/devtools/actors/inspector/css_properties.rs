@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+//! This actor holds a database of available css properties, their supported values and
+//! alternative names
+
 use std::collections::HashMap;
 use std::net::TcpStream;
 
@@ -38,7 +41,8 @@ impl Actor for CssPropertiesActor {
 
     /// The css properties actor can handle the following messages:
     ///
-    /// -
+    /// - `getCSSDatabase`: Returns a big list of every supported css property so that the
+    /// inspector can show the available options
     fn handle_message(
         &self,
         _registry: &ActorRegistry,
@@ -51,7 +55,7 @@ impl Actor for CssPropertiesActor {
             "getCSSDatabase" => {
                 let _ = stream.write_json_packet(&GetCssDatabaseReply {
                     from: self.name(),
-                    // TODO: Add other properties
+                    // TODO: Fill this programatically with other properties
                     properties: HashMap::from([(
                         "color",
                         CssDatabaseProperty {

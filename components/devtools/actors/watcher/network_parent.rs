@@ -27,7 +27,7 @@ impl Actor for NetworkParentActor {
 
     /// The network parent actor can handle the following messages:
     ///
-    /// - `setSaveRequestAndResponseBodies`: ...
+    /// - `setSaveRequestAndResponseBodies`: Doesn't do anything yet
     fn handle_message(
         &self,
         _registry: &ActorRegistry,
@@ -39,7 +39,6 @@ impl Actor for NetworkParentActor {
         Ok(match msg_type {
             "setSaveRequestAndResponseBodies" => {
                 let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
-
                 ActorMessageStatus::Processed
             },
             _ => ActorMessageStatus::Ignored,

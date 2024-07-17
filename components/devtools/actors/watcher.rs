@@ -11,6 +11,7 @@
 use std::collections::HashMap;
 use std::net::TcpStream;
 
+use log::warn;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -74,7 +75,7 @@ impl SessionContext {
                 ("network-event-stacktrace", false),
                 ("reflow", false),
                 ("stylesheet", false),
-                ("source", true),
+                ("source", false),
                 ("thread-state", false),
                 ("server-sent-event", false),
                 ("websocket", false),
@@ -217,7 +218,8 @@ impl Actor for WatcherActor {
                         "document-event" => {
                             target.document_event(stream);
                         },
-                        _ => {},
+                        "console-message" | "error-message" => {},
+                        _ => warn!("resource {} not handled yet", resource),
                     }
 
                     let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });

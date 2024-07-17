@@ -28,7 +28,7 @@ use crate::actors::tab::TabDescriptorActor;
 use crate::actors::thread::ThreadActor;
 use crate::actors::watcher::{SessionContext, SessionContextType, WatcherActor};
 use crate::protocol::JsonPacketStream;
-use crate::StreamId;
+use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
 struct FrameUpdateReply {
@@ -189,12 +189,19 @@ impl Actor for BrowsingContextActor {
     fn handle_message(
         &self,
         _registry: &ActorRegistry,
-        _msg_type: &str,
+        msg_type: &str,
         _msg: &Map<String, Value>,
-        _stream: &mut TcpStream,
+        stream: &mut TcpStream,
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
-        Ok(ActorMessageStatus::Ignored)
+        Ok(match msg_type {
+            "listFrames" => {
+                // TODO: Find out what needs to be listed here
+                let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
+                ActorMessageStatus::Processed
+            },
+            _ => ActorMessageStatus::Ignored,
+        })
     }
 
     fn cleanup(&self, id: StreamId) {

@@ -138,7 +138,7 @@ impl Actor for ThreadActor {
             "sources" => {
                 let msg = SourcesReply {
                     from: self.name(),
-                    sources: vec![], // TODO: Add sources here
+                    sources: vec![], // TODO: Add sources for the debugger here
                 };
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed

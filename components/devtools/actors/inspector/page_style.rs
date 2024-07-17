@@ -151,8 +151,8 @@ impl Actor for PageStyleActor {
                 ActorMessageStatus::Processed
             },
 
-            //TODO: query script for box layout properties of node (msg.node)
             "getLayout" => {
+                //TODO: query script for box layout properties of node (msg.node)
                 let target = msg.get("node").unwrap().as_str().unwrap();
                 let (tx, rx) = ipc::channel().unwrap();
                 self.script_chan

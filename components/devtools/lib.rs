@@ -277,6 +277,7 @@ fn run_server(
     // We need separate actor representations for each script global that exists;
     // clients can theoretically connect to multiple globals simultaneously.
     // TODO: move this into the root or target modules?
+    #[allow(clippy::too_many_arguments)]
     fn handle_new_global(
         actors: Arc<Mutex<ActorRegistry>>,
         ids: (BrowsingContextId, PipelineId, Option<WorkerId>),
@@ -338,7 +339,7 @@ fn run_server(
                 });
 
             // Add existing streams to the new browsing context
-            let browsing_context = actors.find::<BrowsingContextActor>(&name);
+            let browsing_context = actors.find::<BrowsingContextActor>(name);
             let mut streams = browsing_context.streams.borrow_mut();
             for (id, stream) in connections {
                 streams.insert(*id, stream.try_clone().unwrap());
