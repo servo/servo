@@ -981,16 +981,26 @@ impl FlexLine<'_> {
             .zip(&item_used_cross_sizes)
             .zip(self.items.iter())
             .map(|((layout_result, used_cross_size), item)| {
-                layout_result
-                    .baseline_relative_to_margin_box
-                    .unwrap_or_else(|| {
-                        item.synthesized_baselines_relative_to_margin_box(*used_cross_size)
-                    })
+                if matches!(
+                    item.align_self.0.value(),
+                    AlignFlags::BASELINE | AlignFlags::LAST_BASELINE
+                ) {
+                    Some(
+                        layout_result
+                            .baseline_relative_to_margin_box
+                            .unwrap_or_else(|| {
+                                item.synthesized_baselines_relative_to_margin_box(*used_cross_size)
+                            }),
+                    )
+                } else {
+                    None
+                }
             })
             .collect::<Vec<_>>();
         let max_propagated_baseline = item_propagated_baselines
             .iter()
             .copied()
+            .filter_map(|baseline| baseline)
             .max()
             .unwrap_or(Au::zero());
         let item_content_cross_start_posititons = self
@@ -1004,7 +1014,7 @@ impl FlexLine<'_> {
                     margin,
                     size,
                     line_cross_size,
-                    *propagated_baseline,
+                    propagated_baseline.unwrap_or_default(),
                     max_propagated_baseline,
                 )
             });
