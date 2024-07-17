@@ -59,7 +59,7 @@ use crate::dom::htmldatalistelement::HTMLDataListElement;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::htmlformelement::{
-    FormControl, FormDatum, FormDatumValue, FormSubmitter, HTMLFormElement, ResetFrom,
+    FormControl, FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement, ResetFrom,
     SubmittedFrom,
 };
 use crate::dom::keyboardevent::KeyboardEvent;
@@ -1679,7 +1679,7 @@ impl HTMLInputElement {
     /// Steps range from 5.1 to 5.10 (specific to HTMLInputElement)
     pub fn form_datums(
         &self,
-        submitter: Option<FormSubmitter>,
+        submitter: Option<FormSubmitterElement>,
         encoding: Option<&'static Encoding>,
     ) -> Vec<FormDatum> {
         // 3.1: disabled state check is in get_unclean_dataset
@@ -1690,7 +1690,7 @@ impl HTMLInputElement {
         // Step 5.4
         let name = self.Name();
         let is_submitter = match submitter {
-            Some(FormSubmitter::InputElement(s)) => self == s,
+            Some(FormSubmitterElement::Input(s)) => self == s,
             _ => false,
         };
 
@@ -2107,7 +2107,7 @@ impl HTMLInputElement {
                     // lazily test for > 1 submission-blocking inputs
                     return;
                 }
-                form.submit(SubmittedFrom::NotFromForm, FormSubmitter::FormElement(form));
+                form.submit(SubmittedFrom::NotFromForm, FormSubmitterElement::Form(form));
             },
         }
     }
@@ -2821,7 +2821,7 @@ impl Activatable for HTMLInputElement {
                 if let Some(o) = self.form_owner() {
                     o.submit(
                         SubmittedFrom::NotFromForm,
-                        FormSubmitter::InputElement(self),
+                        FormSubmitterElement::Input(self),
                     )
                 }
             },
