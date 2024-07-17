@@ -144,9 +144,9 @@ impl HTMLFormElement {
                 RadioListMode::ControlsExceptImageInputs => {
                     if child
                         .downcast::<HTMLElement>()
-                        .map_or(false, |c| c.is_listed_element()) &&
-                        (child.get_id().map_or(false, |i| i == *name) ||
-                            child.get_name().map_or(false, |n| n == *name))
+                        .map_or(false, |c| c.is_listed_element())
+                        && (child.get_id().map_or(false, |i| i == *name)
+                            || child.get_name().map_or(false, |n| n == *name))
                     {
                         if let Some(inp) = child.downcast::<HTMLInputElement>() {
                             // input, only return it if it's not image-button state
@@ -159,9 +159,9 @@ impl HTMLFormElement {
                     return false;
                 },
                 RadioListMode::Images => {
-                    return child.is::<HTMLImageElement>() &&
-                        (child.get_id().map_or(false, |i| i == *name) ||
-                            child.get_name().map_or(false, |n| n == *name));
+                    return child.is::<HTMLImageElement>()
+                        && (child.get_id().map_or(false, |i| i == *name)
+                            || child.get_name().map_or(false, |n| n == *name));
                 },
             }
         }
@@ -260,12 +260,12 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
     // https://html.spec.whatwg.org/multipage/#the-form-element:concept-form-submit
     fn Submit(&self) {
-        self.submit(SubmittedFrom::FromForm, FormSubmitter::FormElement(self));
+        self.submit(SubmittedFrom::FromForm, FormSubmitterElement::Form(self));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-form-requestsubmit
     fn RequestSubmit(&self, submitter: Option<&HTMLElement>) -> Fallible<()> {
-        let submitter: FormSubmitter = match submitter {
+        let submitter: FormSubmitterElement = match submitter {
             Some(submitter_element) => {
                 // Step 1.1
                 let error_not_a_submit_button =
@@ -279,12 +279,12 @@ impl HTMLFormElementMethods for HTMLFormElement {
                 };
 
                 let submit_button = match element {
-                    HTMLElementTypeId::HTMLInputElement => FormSubmitter::InputElement(
+                    HTMLElementTypeId::HTMLInputElement => FormSubmitterElement::Input(
                         submitter_element
                             .downcast::<HTMLInputElement>()
                             .expect("Failed to downcast submitter elem to HTMLInputElement."),
                     ),
-                    HTMLElementTypeId::HTMLButtonElement => FormSubmitter::ButtonElement(
+                    HTMLElementTypeId::HTMLButtonElement => FormSubmitterElement::Button(
                         submitter_element
                             .downcast::<HTMLButtonElement>()
                             .expect("Failed to downcast submitter elem to HTMLButtonElement."),
@@ -316,7 +316,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
             },
             None => {
                 // Step 2
-                FormSubmitter::FormElement(self)
+                FormSubmitterElement::Form(self)
             },
         };
         // Step 3
@@ -579,8 +579,8 @@ impl HTMLFormElementMethods for HTMLFormElement {
         sourced_names_vec.sort_by(|a, b| {
             if a.element
                 .upcast::<Node>()
-                .CompareDocumentPosition(b.element.upcast::<Node>()) ==
-                0
+                .CompareDocumentPosition(b.element.upcast::<Node>())
+                == 0
             {
                 if a.source.is_past() && b.source.is_past() {
                     b.source.cmp(&a.source)
@@ -590,9 +590,9 @@ impl HTMLFormElementMethods for HTMLFormElement {
             } else if a
                 .element
                 .upcast::<Node>()
-                .CompareDocumentPosition(b.element.upcast::<Node>()) &
-                NodeConstants::DOCUMENT_POSITION_FOLLOWING ==
-                NodeConstants::DOCUMENT_POSITION_FOLLOWING
+                .CompareDocumentPosition(b.element.upcast::<Node>())
+                & NodeConstants::DOCUMENT_POSITION_FOLLOWING
+                == NodeConstants::DOCUMENT_POSITION_FOLLOWING
             {
                 std::cmp::Ordering::Less
             } else {
@@ -691,7 +691,7 @@ impl HTMLFormElement {
     }
 
     /// [Form submission](https://html.spec.whatwg.org/multipage/#concept-form-submit)
-    pub fn submit(&self, submit_method_flag: SubmittedFrom, submitter: FormSubmitter) {
+    pub fn submit(&self, submit_method_flag: SubmittedFrom, submitter: FormSubmitterElement) {
         // Step 1
         if self.upcast::<Element>().cannot_navigate() {
             return;
@@ -722,15 +722,15 @@ impl HTMLFormElement {
             // spec calls this "submitterButton" but it doesn't have to be a button,
             // just not be the form itself
             let submitter_button = match submitter {
-                FormSubmitter::FormElement(f) => {
+                FormSubmitterElement::Form(f) => {
                     if f == self {
                         None
                     } else {
                         Some(f.upcast::<HTMLElement>())
                     }
                 },
-                FormSubmitter::InputElement(i) => Some(i.upcast::<HTMLElement>()),
-                FormSubmitter::ButtonElement(b) => Some(b.upcast::<HTMLElement>()),
+                FormSubmitterElement::Input(i) => Some(i.upcast::<HTMLElement>()),
+                FormSubmitterElement::Button(b) => Some(b.upcast::<HTMLElement>()),
             };
 
             // Step 6.5
@@ -851,11 +851,11 @@ impl HTMLFormElement {
                 );
             },
             // https://html.spec.whatwg.org/multipage/#submit-get-action
-            ("file", _) |
-            ("about", _) |
-            ("data", FormMethod::Post) |
-            ("ftp", _) |
-            ("javascript", _) => {
+            ("file", _)
+            | ("about", _)
+            | ("data", FormMethod::Post)
+            | ("ftp", _)
+            | ("javascript", _) => {
                 self.plan_to_navigate(load_data, target_window);
             },
             ("mailto", FormMethod::Post) => {
@@ -1081,7 +1081,7 @@ impl HTMLFormElement {
     /// 5.x substeps are mostly handled inside element-specific methods
     fn get_unclean_dataset(
         &self,
-        submitter: Option<FormSubmitter>,
+        submitter: Option<FormSubmitterElement>,
         encoding: Option<&'static Encoding>,
     ) -> Vec<FormDatum> {
         let controls = self.controls.borrow();
@@ -1151,8 +1151,8 @@ impl HTMLFormElement {
                 child_element
                     .downcast::<HTMLInputElement>()
                     .map_or(false, |input| {
-                        input.input_type() == InputType::Text ||
-                            input.input_type() == InputType::Search
+                        input.input_type() == InputType::Text
+                            || input.input_type() == InputType::Search
                     });
             let textarea_matches = child_element.is::<HTMLTextAreaElement>();
             let dirname = child_element.get_string_attribute(&local_name!("dirname"));
@@ -1171,7 +1171,7 @@ impl HTMLFormElement {
     /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
     pub fn get_form_dataset(
         &self,
-        submitter: Option<FormSubmitter>,
+        submitter: Option<FormSubmitterElement>,
         encoding: Option<&'static Encoding>,
     ) -> Option<Vec<FormDatum>> {
         fn clean_crlf(s: &str) -> DOMString {
@@ -1380,24 +1380,24 @@ pub enum FormMethod {
 
 /// <https://html.spec.whatwg.org/multipage/#form-associated-element>
 #[derive(Clone, Copy, MallocSizeOf)]
-pub enum FormSubmitter<'a> {
-    FormElement(&'a HTMLFormElement),
-    InputElement(&'a HTMLInputElement),
-    ButtonElement(&'a HTMLButtonElement),
+pub enum FormSubmitterElement<'a> {
+    Form(&'a HTMLFormElement),
+    Input(&'a HTMLInputElement),
+    Button(&'a HTMLButtonElement),
     // TODO: implement other types of form associated elements
     // (including custom elements) that can be passed as submitter.
 }
 
-impl<'a> FormSubmitter<'a> {
+impl<'a> FormSubmitterElement<'a> {
     fn action(&self) -> DOMString {
         match *self {
-            FormSubmitter::FormElement(form) => form.Action(),
-            FormSubmitter::InputElement(input_element) => input_element.get_form_attribute(
+            FormSubmitterElement::Form(form) => form.Action(),
+            FormSubmitterElement::Input(input_element) => input_element.get_form_attribute(
                 &local_name!("formaction"),
                 |i| i.FormAction(),
                 |f| f.Action(),
             ),
-            FormSubmitter::ButtonElement(button_element) => button_element.get_form_attribute(
+            FormSubmitterElement::Button(button_element) => button_element.get_form_attribute(
                 &local_name!("formaction"),
                 |i| i.FormAction(),
                 |f| f.Action(),
@@ -1407,13 +1407,13 @@ impl<'a> FormSubmitter<'a> {
 
     fn enctype(&self) -> FormEncType {
         let attr = match *self {
-            FormSubmitter::FormElement(form) => form.Enctype(),
-            FormSubmitter::InputElement(input_element) => input_element.get_form_attribute(
+            FormSubmitterElement::Form(form) => form.Enctype(),
+            FormSubmitterElement::Input(input_element) => input_element.get_form_attribute(
                 &local_name!("formenctype"),
                 |i| i.FormEnctype(),
                 |f| f.Enctype(),
             ),
-            FormSubmitter::ButtonElement(button_element) => button_element.get_form_attribute(
+            FormSubmitterElement::Button(button_element) => button_element.get_form_attribute(
                 &local_name!("formenctype"),
                 |i| i.FormEnctype(),
                 |f| f.Enctype(),
@@ -1430,13 +1430,13 @@ impl<'a> FormSubmitter<'a> {
 
     fn method(&self) -> FormMethod {
         let attr = match *self {
-            FormSubmitter::FormElement(form) => form.Method(),
-            FormSubmitter::InputElement(input_element) => input_element.get_form_attribute(
+            FormSubmitterElement::Form(form) => form.Method(),
+            FormSubmitterElement::Input(input_element) => input_element.get_form_attribute(
                 &local_name!("formmethod"),
                 |i| i.FormMethod(),
                 |f| f.Method(),
             ),
-            FormSubmitter::ButtonElement(button_element) => button_element.get_form_attribute(
+            FormSubmitterElement::Button(button_element) => button_element.get_form_attribute(
                 &local_name!("formmethod"),
                 |i| i.FormMethod(),
                 |f| f.Method(),
@@ -1451,13 +1451,13 @@ impl<'a> FormSubmitter<'a> {
 
     fn target(&self) -> DOMString {
         match *self {
-            FormSubmitter::FormElement(form) => form.Target(),
-            FormSubmitter::InputElement(input_element) => input_element.get_form_attribute(
+            FormSubmitterElement::Form(form) => form.Target(),
+            FormSubmitterElement::Input(input_element) => input_element.get_form_attribute(
                 &local_name!("formtarget"),
                 |i| i.FormTarget(),
                 |f| f.Target(),
             ),
-            FormSubmitter::ButtonElement(button_element) => button_element.get_form_attribute(
+            FormSubmitterElement::Button(button_element) => button_element.get_form_attribute(
                 &local_name!("formtarget"),
                 |i| i.FormTarget(),
                 |f| f.Target(),
@@ -1467,13 +1467,13 @@ impl<'a> FormSubmitter<'a> {
 
     fn no_validate(&self, _form_owner: &HTMLFormElement) -> bool {
         match *self {
-            FormSubmitter::FormElement(form) => form.NoValidate(),
-            FormSubmitter::InputElement(input_element) => input_element.get_form_boolean_attribute(
+            FormSubmitterElement::Form(form) => form.NoValidate(),
+            FormSubmitterElement::Input(input_element) => input_element.get_form_boolean_attribute(
                 &local_name!("formnovalidate"),
                 |i| i.FormNoValidate(),
                 |f| f.NoValidate(),
             ),
-            FormSubmitter::ButtonElement(button_element) => button_element
+            FormSubmitterElement::Button(button_element) => button_element
                 .get_form_boolean_attribute(
                     &local_name!("formnovalidate"),
                     |i| i.FormNoValidate(),
@@ -1487,9 +1487,9 @@ impl<'a> FormSubmitter<'a> {
         match *self {
             // https://html.spec.whatwg.org/multipage/#image-button-state-(type=image)
             // https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit)
-            FormSubmitter::InputElement(input_element) => input_element.is_submit_button(),
+            FormSubmitterElement::Input(input_element) => input_element.is_submit_button(),
             // https://html.spec.whatwg.org/multipage/#attr-button-type-submit-state
-            FormSubmitter::ButtonElement(button_element) => button_element.is_submit_button(),
+            FormSubmitterElement::Button(button_element) => button_element.is_submit_button(),
             _ => false,
         }
     }
@@ -1497,8 +1497,8 @@ impl<'a> FormSubmitter<'a> {
     // https://html.spec.whatwg.org/multipage/#form-owner
     fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
         match *self {
-            FormSubmitter::ButtonElement(button_el) => button_el.form_owner(),
-            FormSubmitter::InputElement(input_el) => input_el.form_owner(),
+            FormSubmitterElement::Button(button_el) => button_el.form_owner(),
+            FormSubmitterElement::Input(input_el) => input_el.form_owner(),
             _ => None,
         }
     }
@@ -1539,9 +1539,9 @@ pub trait FormControl: DomObject {
             .next();
 
         // Step 1
-        if old_owner.is_some() &&
-            !(self.is_listed() && has_form_id) &&
-            nearest_form_ancestor == old_owner
+        if old_owner.is_some()
+            && !(self.is_listed() && has_form_id)
+            && nearest_form_ancestor == old_owner
         {
             return;
         }

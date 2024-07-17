@@ -23,7 +23,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::htmlformelement::{
-    FormControl, FormDatum, FormDatumValue, FormSubmitter, HTMLFormElement, ResetFrom,
+    FormControl, FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement, ResetFrom,
     SubmittedFrom,
 };
 use crate::dom::node::{window_from_node, BindContext, Node, UnbindContext};
@@ -192,11 +192,11 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
 impl HTMLButtonElement {
     /// <https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set>
     /// Steps range from 3.1 to 3.7 (specific to HTMLButtonElement)
-    pub fn form_datum(&self, submitter: Option<FormSubmitter>) -> Option<FormDatum> {
+    pub fn form_datum(&self, submitter: Option<FormSubmitterElement>) -> Option<FormDatum> {
         // Step 3.1: disabled state check is in get_unclean_dataset
 
         // Step 3.1: only run steps if this is the submitter
-        if let Some(FormSubmitter::ButtonElement(submitter)) = submitter {
+        if let Some(FormSubmitterElement::Button(submitter)) = submitter {
             if submitter != self {
                 return None;
             }
@@ -325,9 +325,9 @@ impl Validatable for HTMLButtonElement {
         // https://html.spec.whatwg.org/multipage/#the-button-element%3Abarred-from-constraint-validation
         // https://html.spec.whatwg.org/multipage/#enabling-and-disabling-form-controls%3A-the-disabled-attribute%3Abarred-from-constraint-validation
         // https://html.spec.whatwg.org/multipage/#the-datalist-element%3Abarred-from-constraint-validation
-        self.button_type.get() == ButtonType::Submit &&
-            !self.upcast::<Element>().disabled_state() &&
-            !is_barred_by_datalist_ancestor(self.upcast())
+        self.button_type.get() == ButtonType::Submit
+            && !self.upcast::<Element>().disabled_state()
+            && !is_barred_by_datalist_ancestor(self.upcast())
     }
 }
 
@@ -351,7 +351,7 @@ impl Activatable for HTMLButtonElement {
                 if let Some(owner) = self.form_owner() {
                     owner.submit(
                         SubmittedFrom::NotFromForm,
-                        FormSubmitter::ButtonElement(self),
+                        FormSubmitterElement::Button(self),
                     );
                 }
             },
