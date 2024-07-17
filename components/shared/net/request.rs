@@ -276,12 +276,12 @@ pub enum BodyChunkRequest {
 pub struct EnvironmentSettingsObject {
     /// An origin used in security checks
     ///
-    /// <https://html.spec.whatwg.org/multipage/webappapis.html#concept-settings-object-origin>
+    /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-origin>
     origin: Origin,
     /// A URL that represents the location of the resource with which this environment is
     /// associated.
     ///
-    /// <https://html.spec.whatwg.org/multipage/webappapis.html#concept-environment-creation-url>
+    /// <https://html.spec.whatwg.org/multipage/#concept-environment-creation-url>
     creation_url: Option<ServoUrl>,
 }
 

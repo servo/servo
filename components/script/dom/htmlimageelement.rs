@@ -291,7 +291,7 @@ impl FetchResponseListener for ImageContext {
     fn submit_resource_timing(&mut self) {
         if !matches!(
             self.status,
-                Err(NetworkError::BlockedDueToMixedContent) |
+            Err(NetworkError::BlockedDueToMixedContent) |
                 Err(NetworkError::BlockedByContentSecurityPolicy)
         ) {
             network_listener::submit_timing(self);
