@@ -144,9 +144,9 @@ impl HTMLFormElement {
                 RadioListMode::ControlsExceptImageInputs => {
                     if child
                         .downcast::<HTMLElement>()
-                        .map_or(false, |c| c.is_listed_element())
-                        && (child.get_id().map_or(false, |i| i == *name)
-                            || child.get_name().map_or(false, |n| n == *name))
+                        .map_or(false, |c| c.is_listed_element()) &&
+                        (child.get_id().map_or(false, |i| i == *name) ||
+                            child.get_name().map_or(false, |n| n == *name))
                     {
                         if let Some(inp) = child.downcast::<HTMLInputElement>() {
                             // input, only return it if it's not image-button state
@@ -159,9 +159,9 @@ impl HTMLFormElement {
                     return false;
                 },
                 RadioListMode::Images => {
-                    return child.is::<HTMLImageElement>()
-                        && (child.get_id().map_or(false, |i| i == *name)
-                            || child.get_name().map_or(false, |n| n == *name));
+                    return child.is::<HTMLImageElement>() &&
+                        (child.get_id().map_or(false, |i| i == *name) ||
+                            child.get_name().map_or(false, |n| n == *name));
                 },
             }
         }
@@ -579,8 +579,8 @@ impl HTMLFormElementMethods for HTMLFormElement {
         sourced_names_vec.sort_by(|a, b| {
             if a.element
                 .upcast::<Node>()
-                .CompareDocumentPosition(b.element.upcast::<Node>())
-                == 0
+                .CompareDocumentPosition(b.element.upcast::<Node>()) ==
+                0
             {
                 if a.source.is_past() && b.source.is_past() {
                     b.source.cmp(&a.source)
@@ -590,9 +590,9 @@ impl HTMLFormElementMethods for HTMLFormElement {
             } else if a
                 .element
                 .upcast::<Node>()
-                .CompareDocumentPosition(b.element.upcast::<Node>())
-                & NodeConstants::DOCUMENT_POSITION_FOLLOWING
-                == NodeConstants::DOCUMENT_POSITION_FOLLOWING
+                .CompareDocumentPosition(b.element.upcast::<Node>()) &
+                NodeConstants::DOCUMENT_POSITION_FOLLOWING ==
+                NodeConstants::DOCUMENT_POSITION_FOLLOWING
             {
                 std::cmp::Ordering::Less
             } else {
@@ -851,11 +851,11 @@ impl HTMLFormElement {
                 );
             },
             // https://html.spec.whatwg.org/multipage/#submit-get-action
-            ("file", _)
-            | ("about", _)
-            | ("data", FormMethod::Post)
-            | ("ftp", _)
-            | ("javascript", _) => {
+            ("file", _) |
+            ("about", _) |
+            ("data", FormMethod::Post) |
+            ("ftp", _) |
+            ("javascript", _) => {
                 self.plan_to_navigate(load_data, target_window);
             },
             ("mailto", FormMethod::Post) => {
@@ -1151,8 +1151,8 @@ impl HTMLFormElement {
                 child_element
                     .downcast::<HTMLInputElement>()
                     .map_or(false, |input| {
-                        input.input_type() == InputType::Text
-                            || input.input_type() == InputType::Search
+                        input.input_type() == InputType::Text ||
+                            input.input_type() == InputType::Search
                     });
             let textarea_matches = child_element.is::<HTMLTextAreaElement>();
             let dirname = child_element.get_string_attribute(&local_name!("dirname"));
@@ -1539,9 +1539,9 @@ pub trait FormControl: DomObject {
             .next();
 
         // Step 1
-        if old_owner.is_some()
-            && !(self.is_listed() && has_form_id)
-            && nearest_form_ancestor == old_owner
+        if old_owner.is_some() &&
+            !(self.is_listed() && has_form_id) &&
+            nearest_form_ancestor == old_owner
         {
             return;
         }
