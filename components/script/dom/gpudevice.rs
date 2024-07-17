@@ -17,7 +17,7 @@ use webgpu::wgc::id::{BindGroupLayoutId, PipelineLayoutId};
 use webgpu::wgc::{
     binding_model as wgpu_bind, command as wgpu_com, pipeline as wgpu_pipe, resource as wgpu_res,
 };
-use webgpu::{self, wgt, PopError, WebGPU, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
+use webgpu::{self, wgt, PopError, WebGPU, WebGPURequest, WebGPUResponse};
 
 use super::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
 use super::bindings::error::Fallible;
@@ -1010,9 +1010,9 @@ impl GPUDeviceMethods for GPUDevice {
 }
 
 impl AsyncWGPUListener for GPUDevice {
-    fn handle_response(&self, response: Option<WebGPUResponseResult>, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>) {
         match response {
-            Some(Ok(WebGPUResponse::PoppedErrorScope(result))) => match result {
+            WebGPUResponse::PoppedErrorScope(result) => match result {
                 Ok(None) | Err(PopError::Lost) => promise.resolve_native(&None::<Option<GPUError>>),
                 Err(PopError::Empty) => promise.reject_error(Error::Operation),
                 Ok(Some(error)) => {

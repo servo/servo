@@ -7,7 +7,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
-use webgpu::{wgt, WebGPU, WebGPUAdapter, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
+use webgpu::{wgt, WebGPU, WebGPUAdapter, WebGPURequest, WebGPUResponse};
 
 use super::gpusupportedfeatures::GPUSupportedFeatures;
 use super::types::{GPUAdapterInfo, GPUSupportedLimits};
@@ -263,35 +263,30 @@ impl GPUAdapterMethods for GPUAdapter {
 }
 
 impl AsyncWGPUListener for GPUAdapter {
-    fn handle_response(&self, response: Option<WebGPUResponseResult>, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>) {
         match response {
-            Some(response) => match response {
-                Ok(WebGPUResponse::RequestDevice {
-                    device_id,
-                    queue_id,
-                    descriptor,
-                }) => {
-                    let device = GPUDevice::new(
-                        &self.global(),
-                        self.channel.clone(),
-                        self,
-                        Heap::default(),
-                        descriptor.required_features,
-                        descriptor.required_limits,
-                        device_id,
-                        queue_id,
-                        descriptor.label.unwrap_or_default(),
-                    );
-                    self.global().add_gpu_device(&device);
-                    promise.resolve_native(&device);
-                },
-                Err(e) => {
-                    warn!("Could not get GPUDevice({:?})", e);
-                    promise.reject_error(Error::Operation);
-                },
-                Ok(_) => unreachable!("GPUAdapter received wrong WebGPUResponse"),
+            WebGPUResponse::Device(Ok(device)) => {
+                let descriptor = device.descriptor;
+                let device = GPUDevice::new(
+                    &self.global(),
+                    self.channel.clone(),
+                    self,
+                    Heap::default(),
+                    descriptor.required_features,
+                    descriptor.required_limits,
+                    device.device_id,
+                    device.queue_id,
+                    descriptor.label.unwrap_or_default(),
+                );
+                self.global().add_gpu_device(&device);
+                promise.resolve_native(&device);
             },
-            None => unreachable!("Failed to get a response for RequestDevice"),
+            WebGPUResponse::Device(Err(e)) => {
+                warn!("Could not get GPUDevice({:?})", e);
+                promise.reject_error(Error::Operation);
+            },
+            WebGPUResponse::None => unreachable!("Failed to get a response for RequestDevice"),
+            _ => unreachable!("GPUAdapter received wrong WebGPUResponse"),
         }
     }
 }

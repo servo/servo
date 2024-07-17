@@ -10,7 +10,7 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::Heap;
 use script_traits::ScriptMsg;
 use webgpu::wgt::PowerPreference;
-use webgpu::{wgc, WebGPUResponse, WebGPUResponseResult};
+use webgpu::{wgc, WebGPUResponse};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::GPUTextureFormat;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -45,7 +45,7 @@ impl GPU {
 }
 
 pub trait AsyncWGPUListener {
-    fn handle_response(&self, response: Option<WebGPUResponseResult>, promise: &Rc<Promise>);
+    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>);
 }
 
 struct WGPUResponse<T: AsyncWGPUListener + DomObject> {
@@ -55,7 +55,7 @@ struct WGPUResponse<T: AsyncWGPUListener + DomObject> {
 
 impl<T: AsyncWGPUListener + DomObject> WGPUResponse<T> {
     #[allow(crown::unrooted_must_root)]
-    fn response(self, response: Option<WebGPUResponseResult>) {
+    fn response(self, response: WebGPUResponse) {
         let promise = self.trusted.root();
         self.receiver.root().handle_response(response, &promise);
     }
@@ -64,7 +64,7 @@ impl<T: AsyncWGPUListener + DomObject> WGPUResponse<T> {
 pub fn response_async<T: AsyncWGPUListener + DomObject + 'static>(
     promise: &Rc<Promise>,
     receiver: &T,
-) -> IpcSender<Option<WebGPUResponseResult>> {
+) -> IpcSender<WebGPUResponse> {
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     let task_source = receiver.global().dom_manipulation_task_source();
     let canceller = receiver
@@ -139,42 +139,34 @@ impl GPUMethods for GPU {
 }
 
 impl AsyncWGPUListener for GPU {
-    fn handle_response(&self, response: Option<WebGPUResponseResult>, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>) {
         match response {
-            Some(response) => match response {
-                Ok(WebGPUResponse::RequestAdapter {
-                    adapter_info,
-                    adapter_id,
-                    features,
-                    limits,
-                    channel,
-                }) => {
-                    let adapter = GPUAdapter::new(
-                        &self.global(),
-                        channel,
-                        DOMString::from(format!(
-                            "{} ({:?})",
-                            adapter_info.name,
-                            adapter_id.0.backend()
-                        )),
-                        Heap::default(),
-                        features,
-                        limits,
-                        adapter_info,
-                        adapter_id,
-                    );
-                    promise.resolve_native(&adapter);
-                },
-                Err(e) => {
-                    warn!("Could not get GPUAdapter ({:?})", e);
-                    promise.resolve_native(&None::<GPUAdapter>);
-                },
-                Ok(_) => unreachable!("GPU received wrong WebGPUResponse"),
+            WebGPUResponse::Adapter(Ok(adapter)) => {
+                let adapter = GPUAdapter::new(
+                    &self.global(),
+                    adapter.channel,
+                    DOMString::from(format!(
+                        "{} ({:?})",
+                        adapter.adapter_info.name,
+                        adapter.adapter_id.0.backend()
+                    )),
+                    Heap::default(),
+                    adapter.features,
+                    adapter.limits,
+                    adapter.adapter_info,
+                    adapter.adapter_id,
+                );
+                promise.resolve_native(&adapter);
             },
-            None => {
+            WebGPUResponse::Adapter(Err(e)) => {
+                warn!("Could not get GPUAdapter ({:?})", e);
+                promise.resolve_native(&None::<GPUAdapter>);
+            },
+            WebGPUResponse::None => {
                 warn!("Couldn't get a response, because WebGPU is disabled");
                 promise.resolve_native(&None::<GPUAdapter>);
             },
+            _ => unreachable!("GPU received wrong WebGPUResponse"),
         }
     }
 }

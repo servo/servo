@@ -152,7 +152,7 @@ use servo_config::{opts, pref};
 use servo_rand::{random, Rng, ServoRng, SliceRandom};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use style_traits::CSSPixel;
-use webgpu::{self, WebGPU, WebGPURequest};
+use webgpu::{self, WebGPU, WebGPURequest, WebGPUResponse};
 use webrender::{RenderApi, RenderApiSender};
 use webrender_api::DocumentId;
 use webrender_traits::{WebRenderNetApi, WebRenderScriptApi, WebrenderExternalImageRegistry};
@@ -2069,7 +2069,7 @@ where
         match request {
             FromScriptMsg::RequestAdapter(response_sender, options, ids) => match webgpu_chan {
                 None => {
-                    if let Err(e) = response_sender.send(None) {
+                    if let Err(e) = response_sender.send(WebGPUResponse::None) {
                         warn!("Failed to send request adapter message: {}", e)
                     }
                 },

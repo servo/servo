@@ -29,6 +29,7 @@ use wgc::pipeline::ShaderModuleDescriptor;
 use wgc::resource::{BufferMapCallback, BufferMapOperation};
 use wgc::{gfx_select, id};
 use wgpu_core::command::RenderPassDescriptor;
+use wgpu_core::resource::BufferAccessResult;
 use wgt::InstanceDescriptor;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
 
@@ -36,8 +37,8 @@ use crate::gpu_error::ErrorScope;
 use crate::poll_thread::Poller;
 use crate::render_commands::apply_render_command;
 use crate::{
-    ComputePassId, Error, PopError, PresentationData, RenderPassId, Transmute, WebGPU,
-    WebGPUAdapter, WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
+    Adapter, ComputePassId, Device, Error, PopError, PresentationData, RenderPassId, Transmute,
+    WebGPU, WebGPUAdapter, WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
 };
 
 pub const PRESENTATION_BUFFER_COUNT: usize = 10;
@@ -183,37 +184,33 @@ impl WGPU {
                         let glob = Arc::clone(&self.global);
                         let resp_sender = sender.clone();
                         let token = self.poller.token();
-                        let callback = BufferMapCallback::from_rust(Box::from(move |result| {
-                            drop(token);
-                            match result {
-                                Ok(()) => {
-                                    let global = &glob;
-                                    let (slice_pointer, range_size) = gfx_select!(buffer_id =>
-                                                global.buffer_get_mapped_range(buffer_id, 0, None))
-                                    .unwrap();
-                                    // SAFETY: guarantee to be safe from wgpu
-                                    let data = unsafe {
-                                        slice::from_raw_parts(slice_pointer, range_size as usize)
-                                    };
+                        let callback = BufferMapCallback::from_rust(Box::from(
+                            move |result: BufferAccessResult| {
+                                drop(token);
+                                let response = result
+                                    .and_then(|_| {
+                                        let global = &glob;
+                                        let (slice_pointer, range_size) = gfx_select!(buffer_id =>
+                                            global.buffer_get_mapped_range(buffer_id, 0, None))
+                                        .unwrap();
+                                        // SAFETY: guarantee to be safe from wgpu
+                                        let data = unsafe {
+                                            slice::from_raw_parts(
+                                                slice_pointer,
+                                                range_size as usize,
+                                            )
+                                        };
 
-                                    if let Err(e) =
-                                        resp_sender.send(Some(Ok(WebGPUResponse::BufferMapAsync(
-                                            IpcSharedMemory::from_bytes(data),
-                                        ))))
-                                    {
-                                        warn!("Could not send BufferMapAsync Response ({})", e);
-                                    }
-                                },
-                                Err(_) => {
-                                    warn!("Could not map buffer({:?})", buffer_id);
-                                    if let Err(e) = resp_sender
-                                        .send(Some(Err(String::from("Failed to map Buffer"))))
-                                    {
-                                        warn!("Could not send BufferMapAsync Response ({})", e);
-                                    }
-                                },
-                            };
-                        }));
+                                        Ok(IpcSharedMemory::from_bytes(data))
+                                    })
+                                    .map_err(|e| e.to_string());
+                                if let Err(e) =
+                                    resp_sender.send(WebGPUResponse::BufferMapAsync(response))
+                                {
+                                    warn!("Could not send BufferMapAsync Response ({})", e);
+                                }
+                            },
+                        ));
 
                         let operation = BufferMapOperation {
                             host: host_map,
@@ -228,7 +225,9 @@ impl WGPU {
                         ));
                         self.poller.wake();
                         if let Err(ref e) = result {
-                            if let Err(w) = sender.send(Some(Err(format!("{:?}", e)))) {
+                            if let Err(w) =
+                                sender.send(WebGPUResponse::BufferMapAsync(Err(e.to_string())))
+                            {
                                 warn!("Failed to send BufferMapAsync Response ({:?})", w);
                             }
                         }
@@ -482,11 +481,11 @@ impl WGPU {
                         };
                         let (_, error) = gfx_select!(program_id =>
                             global.device_create_shader_module(device_id, &desc, source, Some(program_id)));
-                        if let Err(e) = sender.send(Some(Ok(WebGPUResponse::CompilationInfo(
+                        if let Err(e) = sender.send(WebGPUResponse::CompilationInfo(
                             error
                                 .as_ref()
                                 .map(|e| crate::ShaderCompilationInfo::from(e, &program)),
-                        )))) {
+                        )) {
                             warn!("Failed to send WebGPUResponse::CompilationInfo {e:?}");
                         }
                         self.maybe_dispatch_wgpu_error(device_id, error);
@@ -668,38 +667,38 @@ impl WGPU {
                         options,
                         ids,
                     } => {
-                        let adapter_id = match self
+                        let global = &self.global;
+                        let response = self
                             .global
                             .request_adapter(&options, wgc::instance::AdapterInputs::IdSet(&ids))
-                        {
-                            Ok(id) => id,
-                            Err(w) => {
-                                if let Err(e) = sender.send(Some(Err(format!("{:?}", w)))) {
-                                    warn!(
-                                    "Failed to send response to WebGPURequest::RequestAdapter ({})",
-                                    e
-                                )
-                                }
-                                break;
-                            },
-                        };
-                        let adapter = WebGPUAdapter(adapter_id);
-                        self.adapters.push(adapter);
-                        let global = &self.global;
-                        // TODO: can we do this lazily
-                        let info =
-                            gfx_select!(adapter_id => global.adapter_get_info(adapter_id)).unwrap();
-                        let limits =
-                            gfx_select!(adapter_id => global.adapter_limits(adapter_id)).unwrap();
-                        let features =
-                            gfx_select!(adapter_id => global.adapter_features(adapter_id)).unwrap();
-                        if let Err(e) = sender.send(Some(Ok(WebGPUResponse::RequestAdapter {
-                            adapter_info: info,
-                            adapter_id: adapter,
-                            features,
-                            limits,
-                            channel: WebGPU(self.sender.clone()),
-                        }))) {
+                            .and_then(|adapter_id| {
+                                let adapter = WebGPUAdapter(adapter_id);
+                                self.adapters.push(adapter);
+                                // TODO: can we do this lazily
+                                let info =
+                                    gfx_select!(adapter_id => global.adapter_get_info(adapter_id))
+                                        .unwrap();
+                                let limits =
+                                    gfx_select!(adapter_id => global.adapter_limits(adapter_id))
+                                        .unwrap();
+                                let features =
+                                    gfx_select!(adapter_id => global.adapter_features(adapter_id))
+                                        .unwrap();
+                                Ok(Adapter {
+                                    adapter_info: info,
+                                    adapter_id: adapter,
+                                    features,
+                                    limits,
+                                    channel: WebGPU(self.sender.clone()),
+                                })
+                            })
+                            .map_err(|e| e.to_string());
+
+                        if response.is_err() {
+                            break;
+                        }
+
+                        if let Err(e) = sender.send(WebGPUResponse::Adapter(response)) {
                             warn!(
                                 "Failed to send response to WebGPURequest::RequestAdapter ({})",
                                 e
@@ -719,24 +718,23 @@ impl WGPU {
                             required_limits: descriptor.required_limits.clone(),
                         };
                         let global = &self.global;
-                        let (device_id, queue_id) = match gfx_select!(device_id => global.adapter_request_device(
+                        let (device_id, queue_id, error) = gfx_select!(device_id => global.adapter_request_device(
                             adapter_id.0,
                             &desc,
                             None,
                             Some(device_id),
                             Some(device_id.transmute()),
-                        )) {
-                            (_, _, Some(e)) => {
-                                if let Err(w) = sender.send(Some(Err(format!("{:?}", e)))) {
-                                    warn!(
+                        ));
+                        if let Some(e) = error {
+                            if let Err(e) = sender.send(WebGPUResponse::Device(Err(e.to_string())))
+                            {
+                                warn!(
                                     "Failed to send response to WebGPURequest::RequestDevice ({})",
-                                    w
+                                    e
                                 )
-                                }
-                                break;
-                            },
-                            (device_id, queue_id, None) => (device_id, queue_id),
-                        };
+                            }
+                            break;
+                        }
                         let device = WebGPUDevice(device_id);
                         let queue = WebGPUQueue(queue_id);
                         {
@@ -782,7 +780,7 @@ impl WGPU {
                                 }
                             }));
                         gfx_select!(device_id => global.device_set_device_lost_closure(device_id, callback));
-                        if let Err(e) = sender.send(Some(Ok(WebGPUResponse::RequestDevice {
+                        if let Err(e) = sender.send(WebGPUResponse::Device(Ok(Device {
                             device_id: device,
                             queue_id: queue,
                             descriptor,
@@ -1237,8 +1235,7 @@ impl WGPU {
                         let token = self.poller.token();
                         let callback = SubmittedWorkDoneClosure::from_rust(Box::from(move || {
                             drop(token);
-                            if let Err(e) = sender.send(Some(Ok(WebGPUResponse::SubmittedWorkDone)))
-                            {
+                            if let Err(e) = sender.send(WebGPUResponse::SubmittedWorkDone) {
                                 warn!("Could not send SubmittedWorkDone Response ({})", e);
                             }
                         }));
@@ -1378,27 +1375,25 @@ impl WGPU {
                             .expect("Device should not be dropped by this point");
                         if let Some(error_scope_stack) = &mut device_scope.error_scope_stack {
                             if let Some(error_scope) = error_scope_stack.pop() {
-                                if let Err(e) =
-                                    sender.send(Some(Ok(WebGPUResponse::PoppedErrorScope(Ok(
-                                        // TODO: Do actual selection instead of selecting first error
-                                        error_scope.errors.first().cloned(),
-                                    )))))
-                                {
+                                if let Err(e) = sender.send(WebGPUResponse::PoppedErrorScope(Ok(
+                                    // TODO: Do actual selection instead of selecting first error
+                                    error_scope.errors.first().cloned(),
+                                ))) {
                                     warn!(
                                         "Unable to send {:?} to poperrorscope: {e:?}",
                                         error_scope.errors
                                     );
                                 }
-                            } else if let Err(e) = sender.send(Some(Ok(
-                                WebGPUResponse::PoppedErrorScope(Err(PopError::Empty)),
-                            ))) {
+                            } else if let Err(e) =
+                                sender.send(WebGPUResponse::PoppedErrorScope(Err(PopError::Empty)))
+                            {
                                 warn!("Unable to send PopError::Empty: {e:?}");
                             }
                         } else {
                             // device lost
-                            if let Err(e) = sender.send(Some(Ok(WebGPUResponse::PoppedErrorScope(
-                                Err(PopError::Lost),
-                            )))) {
+                            if let Err(e) =
+                                sender.send(WebGPUResponse::PoppedErrorScope(Err(PopError::Lost)))
+                            {
                                 warn!("Unable to send PopError::Lost due {e:?}");
                             }
                         }
