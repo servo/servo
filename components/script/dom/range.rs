@@ -343,7 +343,7 @@ impl RangeMethods for Range {
         } else {
             // Step 3.
             self.set_start(node, offset);
-            if !(self.start() <= self.end()) {
+            if self.start() > self.end() {
                 // Step 4.
                 self.set_end(node, offset);
             }
@@ -362,7 +362,7 @@ impl RangeMethods for Range {
         } else {
             // Step 3.
             self.set_end(node, offset);
-            if !(self.end() >= self.start()) {
+            if self.end() < self.start() {
                 // Step 4.
                 self.set_start(node, offset);
             }
