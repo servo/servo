@@ -6,7 +6,7 @@ use app_units::Au;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
-use style::logical_geometry::WritingMode;
+use style::logical_geometry::{Direction, WritingMode};
 use style::properties::longhands::backface_visibility::computed_value::T as BackfaceVisiblity;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::column_span::computed_value::T as ColumnSpan;
@@ -15,7 +15,9 @@ use style::values::computed::image::Image as ComputedImageLayer;
 use style::values::computed::{Length, LengthPercentage, NonNegativeLengthPercentage, Size};
 use style::values::generics::box_::Perspective;
 use style::values::generics::length::MaxSize;
+use style::values::generics::position::{GenericAspectRatio, PreferredRatio};
 use style::values::specified::{box_ as stylo, Overflow};
+use style::values::CSSFloat;
 use style::Zero;
 use webrender_api as wr;
 
@@ -143,6 +145,43 @@ impl PaddingBorderMargin {
     }
 }
 
+/// Resolved `aspect-ratio` property with respect to a specific element. Depends
+/// on that element's `box-sizing` (and padding and border, if that `box-sizing`
+/// is `border-box`).
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct AspectRatio {
+    /// If the element that this aspect ratio belongs to uses box-sizing:
+    /// border-box, and the aspect-ratio property does not contain "auto", then
+    /// the aspect ratio is in respect to the border box. This will then contain
+    /// the summed sizes of the padding and border. Otherwise, it's 0.
+    box_sizing_adjustment: LogicalVec2<Au>,
+    /// The ratio itself (inline over block).
+    i_over_b: CSSFloat,
+}
+
+impl AspectRatio {
+    /// Given one side length, compute the other one.
+    pub(crate) fn compute_dependent_size(
+        &self,
+        ratio_dependent_axis: Direction,
+        ratio_determining_size: Au,
+    ) -> Au {
+        match ratio_dependent_axis {
+            // Calculate the inline size from the block size
+            Direction::Inline => {
+                (ratio_determining_size + self.box_sizing_adjustment.block).scale_by(self.i_over_b) -
+                    self.box_sizing_adjustment.inline
+            },
+            // Calculate the block size from the inline size
+            Direction::Block => {
+                (ratio_determining_size + self.box_sizing_adjustment.inline)
+                    .scale_by(1.0 / self.i_over_b) -
+                    self.box_sizing_adjustment.block
+            },
+        }
+    }
+}
+
 pub(crate) trait ComputedValuesExt {
     fn box_offsets(
         &self,
@@ -198,6 +237,11 @@ pub(crate) trait ComputedValuesExt {
         &self,
         fragment_flags: FragmentFlags,
     ) -> bool;
+    fn preferred_aspect_ratio(
+        &self,
+        natural_aspect_ratio: Option<CSSFloat>,
+        containing_block: &ContainingBlock,
+    ) -> Option<AspectRatio>;
     fn background_is_transparent(&self) -> bool;
     fn get_webrender_primitive_flags(&self) -> wr::PrimitiveFlags;
 }
@@ -533,6 +577,75 @@ impl ComputedValuesExt for ComputedValues {
 
         // TODO: We need to handle CSS Contain here.
         false
+    }
+
+    /// Resolve the preferred aspect ratio according to the given natural aspect
+    /// ratio and the `aspect-ratio` property.
+    /// See <https://drafts.csswg.org/css-sizing-4/#aspect-ratio>.
+    fn preferred_aspect_ratio(
+        &self,
+        natural_aspect_ratio: Option<CSSFloat>,
+        containing_block: &ContainingBlock,
+    ) -> Option<AspectRatio> {
+        let GenericAspectRatio {
+            auto,
+            ratio: mut preferred_ratio,
+        } = self.clone_aspect_ratio();
+
+        // For all cases where a ratio is specified:
+        // "If the <ratio> is degenerate, the property instead behaves as auto."
+        if matches!(preferred_ratio, PreferredRatio::Ratio(ratio) if ratio.is_degenerate()) {
+            preferred_ratio = PreferredRatio::None;
+        }
+
+        match (auto, preferred_ratio) {
+            // The value `auto`. Either the ratio was not specified, or was
+            // degenerate and set to PreferredRatio::None above.
+            //
+            // "Replaced elements with a natural aspect ratio use that aspect
+            // ratio; otherwise the box has no preferred aspect ratio. Size
+            // calculations involving the aspect ratio work with the content box
+            // dimensions always."
+            (_, PreferredRatio::None) => natural_aspect_ratio.map(|natural_ratio| AspectRatio {
+                i_over_b: natural_ratio,
+                box_sizing_adjustment: LogicalVec2::zero(),
+            }),
+            // "If both auto and a <ratio> are specified together, the preferred
+            // aspect ratio is the specified ratio of width / height unless it
+            // is a replaced element with a natural aspect ratio, in which case
+            // that aspect ratio is used instead. In all cases, size
+            // calculations involving the aspect ratio work with the content box
+            // dimensions always."
+            (true, PreferredRatio::Ratio(preferred_ratio)) => match natural_aspect_ratio {
+                Some(natural_ratio) => Some(AspectRatio {
+                    i_over_b: natural_ratio,
+                    box_sizing_adjustment: LogicalVec2::zero(),
+                }),
+                None => Some(AspectRatio {
+                    i_over_b: (preferred_ratio.0).0 / (preferred_ratio.1).0,
+                    box_sizing_adjustment: LogicalVec2::zero(),
+                }),
+            },
+
+            // "The box’s preferred aspect ratio is the specified ratio of width
+            // / height. Size calculations involving the aspect ratio work with
+            // the dimensions of the box specified by box-sizing."
+            (false, PreferredRatio::Ratio(preferred_ratio)) => {
+                // If the `box-sizing` is `border-box`, use the padding and
+                // border when calculating the aspect ratio.
+                let box_sizing_adjustment = match self.clone_box_sizing() {
+                    BoxSizing::ContentBox => LogicalVec2::zero(),
+                    BoxSizing::BorderBox => {
+                        self.padding_border_margin(containing_block)
+                            .padding_border_sums
+                    },
+                };
+                Some(AspectRatio {
+                    i_over_b: (preferred_ratio.0).0 / (preferred_ratio.1).0,
+                    box_sizing_adjustment,
+                })
+            },
+        }
     }
 
     /// Whether or not this style specifies a non-transparent background.
