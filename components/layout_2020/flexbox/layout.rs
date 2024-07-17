@@ -100,7 +100,7 @@ struct FlexItemLayoutResult {
     hypothetical_cross_size: Au,
     fragments: Vec<Fragment>,
     positioning_context: PositioningContext,
-    baselines: Baselines,
+    baselines_relative_to_margin_box: Baselines,
 }
 
 /// Return type of `FlexLine::layout`
@@ -977,9 +977,11 @@ impl FlexLine<'_> {
         let item_propagated_baselines = item_results
             .iter()
             .zip(&item_used_cross_sizes)
-            .map(|(layout_result, used_cross_size)| {
+            .zip(self.items.iter())
+            .map(|((layout_result, used_cross_size), item)| {
                 // TODO: implement ‘align-self: last baseline’
-                layout_result.baselines.first.unwrap_or(*used_cross_size)
+                layout_result.baselines_relative_to_margin_box.first.unwrap_or_else(
+                    || item.synthesized_baselines_relative_to_margin_box(*used_cross_size))
             })
             .collect::<Vec<_>>();
         let max_propagated_baseline = item_propagated_baselines
@@ -1266,12 +1268,16 @@ impl<'a> FlexItem<'a> {
                         );
                         let cross_size = flex_context.vec2_to_flex_relative(size).cross;
                         let fragments = replaced.contents.make_fragments(&replaced.style, size);
+
                         FlexItemLayoutResult {
                             hypothetical_cross_size: cross_size,
                             fragments,
                             positioning_context,
-                            // TODO: ascent of cross_size, descent of 0?
-                            baselines: Baselines::default(),
+
+                            // We will need to synthesize the baselines, but since the used cross
+                            // size can differ from the hypothetical cross size, we should defer
+                            // synthesizing until needed.
+                            baselines_relative_to_margin_box: Baselines::default(),
                         }
                     },
                     IndependentFormattingContext::NonReplaced(non_replaced) => {
@@ -1288,7 +1294,7 @@ impl<'a> FlexItem<'a> {
                         let IndependentLayout {
                             fragments,
                             content_block_size,
-                            baselines,
+                            baselines: content_box_baselines,
                             ..
                         } = non_replaced.layout(
                             flex_context.layout_context,
@@ -1296,6 +1302,8 @@ impl<'a> FlexItem<'a> {
                             &item_as_containing_block,
                             flex_context.containing_block,
                         );
+
+                        let baselines_relative_to_margin_box = self.layout_baselines_relative_to_margin_box(&content_box_baselines);
 
                         let hypothetical_cross_size = self
                             .content_box_size
@@ -1310,7 +1318,7 @@ impl<'a> FlexItem<'a> {
                             hypothetical_cross_size,
                             fragments,
                             positioning_context,
-                            baselines,
+                            baselines_relative_to_margin_box,
                         }
                     },
                 }
@@ -1321,6 +1329,26 @@ impl<'a> FlexItem<'a> {
                 // forces `FlexAxis::Row`.
             },
         }
+    }
+
+    fn layout_baselines_relative_to_margin_box(&self, baselines_relative_to_content_box: &Baselines) -> Baselines {
+        baselines_relative_to_content_box.offset(
+            self.margin.cross_start.auto_is(Au::zero) +
+            self.padding.cross_start +
+            self.border.cross_start
+        )
+    }
+
+    fn synthesized_baselines_relative_to_margin_box(&self, content_size: Au) -> Au {
+        // If the item does not have a baseline in the necessary axis,
+        // then one is synthesized from the flex item’s border box.
+        // https://drafts.csswg.org/css-flexbox/#valdef-align-items-baseline
+        content_size +
+            self.margin.cross_start.auto_is(Au::zero) +
+            self.padding.cross_start +
+            self.border.cross_start +
+            self.border.cross_end +
+            self.padding.cross_end
     }
 }
 
@@ -1341,16 +1369,16 @@ impl<'items> FlexLine<'items> {
         let mut max_descent = Au::zero();
         let mut max_outer_hypothetical_cross_size = Au::zero();
         for (item_result, item) in item_layout_results.iter().zip(&*self.items) {
+            // TODO: check inline-axis is parallel to main axis, check no auto cross margins
             if item.align_self == AlignItems::Baseline {
                 // TODO: implement ‘align-self: last baseline’
-                // TODO: synthesize baseline if None?
-                // https://drafts.csswg.org/css-align-3/#synthesize-baseline
                 let baseline = item_result
-                    .baselines
+                    .baselines_relative_to_margin_box
                     .first
-                    .unwrap_or(item_result.hypothetical_cross_size);
+                    .unwrap_or_else(|| item.synthesized_baselines_relative_to_margin_box(item_result.hypothetical_cross_size));
+                let hypothetical_margin_box_cross_size = item_result.hypothetical_cross_size + item.pbm_auto_is_zero.cross;
                 max_ascent = max_ascent.max(baseline);
-                max_descent = max_descent.max(item_result.hypothetical_cross_size - baseline);
+                max_descent = max_descent.max(hypothetical_margin_box_cross_size - baseline);
             } else {
                 max_outer_hypothetical_cross_size = max_outer_hypothetical_cross_size
                     .max(item_result.hypothetical_cross_size + item.pbm_auto_is_zero.cross);
@@ -1493,7 +1521,7 @@ impl FlexItem<'_> {
     fn align_along_cross_axis(
         &self,
         margin: &FlexRelativeSides<Au>,
-        content_size: &Au,
+        used_cross_size: &Au,
         line_cross_size: Au,
         propagated_baseline: Au,
         max_propagated_baseline: Au,
@@ -1505,15 +1533,15 @@ impl FlexItem<'_> {
                 match self.align_self.0.value() {
                     AlignFlags::STRETCH | AlignFlags::FLEX_START => Au::zero(),
                     AlignFlags::FLEX_END => {
-                        let margin_box_cross = *content_size + self.pbm_auto_is_zero.cross;
+                        let margin_box_cross = *used_cross_size + self.pbm_auto_is_zero.cross;
                         line_cross_size - margin_box_cross
                     },
                     AlignFlags::CENTER => {
-                        let margin_box_cross = *content_size + self.pbm_auto_is_zero.cross;
+                        let margin_box_cross = *used_cross_size + self.pbm_auto_is_zero.cross;
                         (line_cross_size - margin_box_cross) / 2
                     },
                     AlignFlags::BASELINE => {
-                        max_propagated_baseline - propagated_baseline + margin.cross_start
+                        max_propagated_baseline - propagated_baseline
                     },
                     // FIXME: handle ‘align-self: last baseline’
                     _ => Au::zero(),
