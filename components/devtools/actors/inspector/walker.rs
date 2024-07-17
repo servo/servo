@@ -119,8 +119,13 @@ impl Actor for WalkerActor {
                     .send(GetDocumentElement(self.pipeline, tx))
                     .unwrap();
                 let doc_elem_info = rx.recv().unwrap().ok_or(())?;
-                let node =
-                    doc_elem_info.encode(registry, true, self.script_chan.clone(), self.pipeline);
+                let node = doc_elem_info.encode(
+                    registry,
+                    true,
+                    self.script_chan.clone(),
+                    self.pipeline,
+                    "".into(),
+                );
 
                 let msg = DocumentElementReply {
                     from: self.name(),
@@ -154,14 +159,13 @@ impl Actor for WalkerActor {
                     nodes: children
                         .into_iter()
                         .map(|child| {
-                            let mut msg = child.encode(
+                            child.encode(
                                 registry,
                                 true,
                                 self.script_chan.clone(),
                                 self.pipeline,
-                            );
-                            msg.parent = Some(target.into());
-                            msg
+                                target.into(),
+                            )
                         })
                         .collect(),
                     from: self.name(),
@@ -220,30 +224,22 @@ fn find_child(
     let children = rx.recv().unwrap()?;
 
     for child in children {
-        let msg = child.encode(registry, true, script_chan.clone(), pipeline);
-        if msg.display_name == selector {
+        let msg = child.encode(registry, true, script_chan.clone(), pipeline, node.into());
+        if msg.display_name == selector ||
+            (msg.num_children > 0 &&
+                find_child(
+                    script_chan,
+                    pipeline,
+                    registry,
+                    selector,
+                    &msg.actor,
+                    hierarchy,
+                )
+                .is_some())
+        {
             hierarchy.push(msg);
             return Some(());
         };
-
-        if msg.num_children == 0 {
-            continue;
-        }
-
-        if find_child(
-            script_chan,
-            pipeline,
-            registry,
-            selector,
-            &msg.actor,
-            hierarchy,
-        )
-        .is_some()
-        {
-            hierarchy.last_mut().unwrap().parent = Some(msg.actor.clone());
-            hierarchy.push(msg);
-            return Some(());
-        }
     }
     None
 }

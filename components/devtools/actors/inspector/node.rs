@@ -53,7 +53,7 @@ pub struct NodeActorMsg {
     node_type: u16,
     node_value: Option<()>,
     pub num_children: usize,
-    pub parent: Option<String>,
+    pub parent: String,
     shadow_root_mode: Option<()>,
     traits: HashMap<String, ()>,
 }
@@ -106,8 +106,13 @@ impl Actor for NodeActor {
                     .send(GetDocumentElement(self.pipeline, tx))
                     .unwrap();
                 let doc_elem_info = rx.recv().unwrap().ok_or(())?;
-                let node =
-                    doc_elem_info.encode(registry, true, self.script_chan.clone(), self.pipeline);
+                let node = doc_elem_info.encode(
+                    registry,
+                    true,
+                    self.script_chan.clone(),
+                    self.pipeline,
+                    "".into(), // This should already be registered
+                );
 
                 let msg = GetUniqueSelectorReply {
                     from: self.name(),
@@ -129,6 +134,7 @@ pub trait NodeInfoToProtocol {
         display: bool,
         script_chan: IpcSender<DevtoolScriptControlMsg>,
         pipeline: PipelineId,
+        parent: String,
     ) -> NodeActorMsg;
 }
 
@@ -139,8 +145,9 @@ impl NodeInfoToProtocol for NodeInfo {
         display: bool,
         script_chan: IpcSender<DevtoolScriptControlMsg>,
         pipeline: PipelineId,
+        parent: String,
     ) -> NodeActorMsg {
-        let actor_name = if !actors.script_actor_registered(self.unique_id.clone()) {
+        let actor = if !actors.script_actor_registered(self.unique_id.clone()) {
             let name = actors.new_name("node");
             let node_actor = NodeActor {
                 name: name.clone(),
@@ -157,7 +164,7 @@ impl NodeInfoToProtocol for NodeInfo {
         let is_top_level_document = self.node_name == "#document"; // TODO
 
         NodeActorMsg {
-            actor: actor_name,
+            actor,
             base_uri: self.base_uri,
             display_name: self.node_name.clone().to_lowercase(),
             display_type: Some("block".into()),
@@ -180,7 +187,7 @@ impl NodeInfoToProtocol for NodeInfo {
             is_shadow_root: false,
             node_value: None,
             shadow_root_mode: None,
-            parent: None,
+            parent,
             traits: HashMap::new(),
             // parent: actors.script_to_actor(self.parent.clone()),
             // namespace_uri: self.namespace_uri,
