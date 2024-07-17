@@ -49,6 +49,7 @@ pub const KERN: u32 = ot_tag!('k', 'e', 'r', 'n');
 pub const SBIX: u32 = ot_tag!('s', 'b', 'i', 'x');
 pub const CBDT: u32 = ot_tag!('C', 'B', 'D', 'T');
 pub const COLR: u32 = ot_tag!('C', 'O', 'L', 'R');
+pub const BASE: u32 = ot_tag!('B', 'A', 'S', 'E');
 
 pub const LAST_RESORT_GLYPH_ADVANCE: FractionalPixel = 10.0;
 
@@ -89,6 +90,7 @@ pub trait PlatformFontMethods: Sized {
     fn can_do_fast_shaping(&self) -> bool;
     fn metrics(&self) -> FontMetrics;
     fn table_for_tag(&self, _: FontTableTag) -> Option<FontTable>;
+    fn typographic_bounds(&self, _: GlyphId) -> Rect<f32>;
 
     /// Get the necessary [`FontInstanceFlags`]` for this font.
     fn webrender_font_instance_flags(&self) -> FontInstanceFlags;
@@ -464,6 +466,16 @@ impl Font {
         cache.glyph_advances.insert(glyph_id, new_width);
         new_width
     }
+
+    pub fn typographic_bounds(&self, glyph_id: GlyphId) -> Rect<f32> {
+        self.handle.typographic_bounds(glyph_id)
+    }
+
+    #[allow(unsafe_code)]
+    pub fn get_baseline(&self) -> Option<FontBaseline> {
+        let this = self as *const Font;
+        unsafe { self.shaper.get_or_init(|| Shaper::new(this)).get_baseline() }
+    }
 }
 
 pub type FontRef = Arc<Font>;
@@ -803,6 +815,12 @@ impl FontFamilyDescriptor {
             scope: FontSearchScope::Local,
         }
     }
+}
+
+pub struct FontBaseline {
+    pub ideographic_baseline: f32,
+    pub alphabetic_baseline: f32,
+    pub hanging_baseline: f32,
 }
 
 /// Given a mapping array `mapping` and a value, map that value onto

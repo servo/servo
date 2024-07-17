@@ -292,7 +292,8 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#textmetrics
     fn MeasureText(&self, text: DOMString) -> DomRoot<TextMetrics> {
-        self.canvas_state.measure_text(&self.global(), text)
+        self.canvas_state
+            .measure_text(&self.global(), self.canvas.as_deref(), text)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
