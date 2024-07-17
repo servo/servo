@@ -2069,7 +2069,7 @@ where
         match request {
             FromScriptMsg::RequestAdapter(response_sender, options, ids) => match webgpu_chan {
                 None => {
-                    if let Err(e) = response_sender.send(Ok(WebGPUResponse::None)) {
+                    if let Err(e) = response_sender.send(WebGPUResponse::None) {
                         warn!("Failed to send request adapter message: {}", e)
                     }
                 },

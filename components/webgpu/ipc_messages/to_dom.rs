@@ -55,26 +55,31 @@ impl ShaderCompilationInfo {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct Adapter {
+    pub adapter_info: wgt::AdapterInfo,
+    pub adapter_id: WebGPUAdapter,
+    pub features: wgt::Features,
+    pub limits: wgt::Limits,
+    pub channel: WebGPU,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Device {
+    pub device_id: WebGPUDevice,
+    pub queue_id: WebGPUQueue,
+    pub descriptor: wgt::DeviceDescriptor<Option<String>>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 #[allow(clippy::large_enum_variant)]
 pub enum WebGPUResponse {
     /// WebGPU is disabled
     None,
-    RequestAdapter {
-        adapter_info: wgt::AdapterInfo,
-        adapter_id: WebGPUAdapter,
-        features: wgt::Features,
-        limits: wgt::Limits,
-        channel: WebGPU,
-    },
-    RequestDevice {
-        device_id: WebGPUDevice,
-        queue_id: WebGPUQueue,
-        descriptor: wgt::DeviceDescriptor<Option<String>>,
-    },
-    BufferMapAsync(IpcSharedMemory),
+    // TODO: use wgpu errors
+    Adapter(Result<Adapter, String>),
+    Device(Result<Device, String>),
+    BufferMapAsync(Result<IpcSharedMemory, String>),
     SubmittedWorkDone,
     PoppedErrorScope(Result<Option<Error>, PopError>),
     CompilationInfo(Option<ShaderCompilationInfo>),
 }
-
-pub type WebGPUResponseResult = Result<WebGPUResponse, String>;

@@ -206,13 +206,9 @@ impl GPUQueueMethods for GPUQueue {
 }
 
 impl AsyncWGPUListener for GPUQueue {
-    fn handle_response(
-        &self,
-        response: Result<webgpu::WebGPUResponse, String>,
-        promise: &Rc<Promise>,
-    ) {
+    fn handle_response(&self, response: webgpu::WebGPUResponse, promise: &Rc<Promise>) {
         match response {
-            Ok(WebGPUResponse::SubmittedWorkDone) => {
+            WebGPUResponse::SubmittedWorkDone => {
                 promise.resolve_native(&());
             },
             _ => {
