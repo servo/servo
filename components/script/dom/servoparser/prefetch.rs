@@ -12,7 +12,9 @@ use html5ever::tokenizer::{
 };
 use html5ever::{local_name, Attribute, LocalName};
 use js::jsapi::JSTracer;
-use net_traits::request::{CorsSettings, CredentialsMode, ParserMetadata, Referrer};
+use net_traits::request::{
+    CorsSettings, CredentialsMode, EnvironmentSettingsObject, ParserMetadata, Referrer,
+};
 use net_traits::{CoreResourceMsg, FetchChannels, IpcSend, ReferrerPolicy, ResourceThreads};
 use servo_url::{ImmutableOrigin, ServoUrl};
 
@@ -52,6 +54,7 @@ impl Tokenizer {
             // true after the first script tag, since that is what will
             // block the main parser.
             prefetching: Cell::new(false),
+            environment_settings_object: document.global().environment_settings_object(),
         };
         let options = Default::default();
         let inner = HtmlTokenizer::new(sink, options);
@@ -80,6 +83,8 @@ struct PrefetchSink {
     #[no_trace]
     resource_threads: ResourceThreads,
     prefetching: Cell<bool>,
+    #[no_trace]
+    environment_settings_object: EnvironmentSettingsObject,
 }
 
 /// The prefetch tokenizer produces trivial results
@@ -132,7 +137,7 @@ impl TokenSink for PrefetchSink {
                         self.get_cors_settings(tag, local_name!("crossorigin")),
                         self.get_referrer_policy(tag, local_name!("referrerpolicy")),
                         FromPictureOrSrcSet::No,
-                        None,
+                        self.environment_settings_object.clone(),
                     );
                     let _ = self
                         .resource_threads

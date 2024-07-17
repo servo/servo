@@ -281,8 +281,21 @@ impl FetchResponseListener for ImageContext {
         &self.resource_timing
     }
 
+    /// Submit resource timing if the image was not blocked due to certain networking errors.
+    ///
+    /// "If a resource fetch is aborted because it failed a fetch precondition (e.g. mixed content,
+    /// CORS restriction, CSP policy, etc), then this resource will not be included as a
+    /// PerformanceResourceTiming object in the Performance Timeline."
+    ///
+    /// <https://w3c.github.io/resource-timing/#resources-included-in-the-performanceresourcetiming-interface>
     fn submit_resource_timing(&mut self) {
-        network_listener::submit_timing(self)
+        if !matches!(
+            self.status,
+                Err(NetworkError::BlockedDueToMixedContent) |
+                Err(NetworkError::BlockedByContentSecurityPolicy)
+        ) {
+            network_listener::submit_timing(self);
+        }
     }
 }
 
@@ -321,16 +334,21 @@ pub(crate) fn image_fetch_request(
     cors_setting: Option<CorsSettings>,
     referrer_policy: Option<ReferrerPolicy>,
     from_picture_or_srcset: FromPictureOrSrcSet,
-    environment_settings_object: Option<EnvironmentSettingsObject>,
+    environment_settings_object: EnvironmentSettingsObject,
 ) -> RequestBuilder {
+    warn!(
+        "image_fetch_request: URL: {:?} settings: {:?}",
+        img_url.clone(),
+        environment_settings_object.clone()
+    );
+
     let mut request =
         create_a_potential_cors_request(img_url, Destination::Image, cors_setting, None, referrer)
             .origin(origin)
             .pipeline_id(Some(pipeline_id))
-            .referrer_policy(referrer_policy);
-
-    // Step 20: Set request's client to the element's node document's relevant settings object.
-    request.client = environment_settings_object;
+            .referrer_policy(referrer_policy)
+            // Step 20: Set request's client to the element's node document's relevant settings object.
+            .client(environment_settings_object);
 
     // Step 21: If the element uses srcset or picture, set request's initiator to "imageset".
     if from_picture_or_srcset == FromPictureOrSrcSet::Yes {
@@ -419,7 +437,7 @@ impl HTMLImageElement {
             } else {
                 FromPictureOrSrcSet::No
             },
-            Some(document.global().environment_settings_object()),
+            document.global().environment_settings_object(),
         );
 
         // This is a background load because the load blocker already fulfills the

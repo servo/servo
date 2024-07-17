@@ -274,14 +274,23 @@ pub enum BodyChunkRequest {
 /// <https://html.spec.whatwg.org/multipage/#environment-settings-object>
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub struct EnvironmentSettingsObject {
-    /// An origin used in security checks. This should correspond to the origin of the global object
-    /// that initiates assocaiated request.
+    /// An origin used in security checks
+    ///
+    /// <https://html.spec.whatwg.org/multipage/webappapis.html#concept-settings-object-origin>
     origin: Origin,
+    /// A URL that represents the location of the resource with which this environment is
+    /// associated.
+    ///
+    /// <https://html.spec.whatwg.org/multipage/webappapis.html#concept-environment-creation-url>
+    creation_url: Option<ServoUrl>,
 }
 
 impl EnvironmentSettingsObject {
-    pub fn new(origin: Origin) -> EnvironmentSettingsObject {
-        EnvironmentSettingsObject { origin }
+    pub fn new(origin: Origin, creation_url: Option<ServoUrl>) -> EnvironmentSettingsObject {
+        EnvironmentSettingsObject {
+            origin,
+            creation_url,
+        }
     }
 }
 
@@ -356,7 +365,6 @@ pub struct RequestBuilder {
     pub unsafe_request: bool,
     pub body: Option<RequestBody>,
     pub service_workers_mode: ServiceWorkersMode,
-    // TODO: client object
     pub destination: Destination,
     pub synchronous: bool,
     pub mode: RequestMode,
@@ -537,6 +545,7 @@ impl RequestBuilder {
         request.headers = self.headers;
         request.unsafe_request = self.unsafe_request;
         request.body = self.body;
+        request.client = self.client;
         request.service_workers_mode = self.service_workers_mode;
         request.destination = self.destination;
         request.synchronous = self.synchronous;
@@ -725,12 +734,19 @@ impl Request {
         }
     }
 
+    /// Returns true when the result evaluates to "Prohibits Mixed Security Contexts" and false
+    /// for "Does Not Prohibit Mixed Security Contexts"
+    ///
     /// <https://w3c.github.io/webappsec-mixed-content/#categorize-settings-object>
     pub fn does_settings_prohibit_mixed_security_contexts(&self) -> bool {
-        if let Some(environment) = &self.client {
+        if self.client.is_none() {
+            warn!("No Client Object: {:?}", self.current_url().clone());
+        }
+
+        self.client.as_ref().map_or(false, |settings| {
             // 1: If settings’ origin is a potentially trustworthy origin, then return
             // "Prohibits Mixed Security Contexts".
-            if environment.origin.is_potentially_trustworthy() {
+            if settings.origin.is_potentially_trustworthy() {
                 return true;
             }
 
@@ -740,11 +756,9 @@ impl Request {
             // 2.2.1: If navigable’s active document's origin is a potentially trustworthy origin,
             // then return "Prohibits Mixed Security Contexts".
             // TODO
-        } else {
-            warn!("does_settings_prohibit_mixed_security_contexts: No Environment to check")
-        }
 
-        false
+            false
+        })
     }
 }
 

@@ -116,6 +116,7 @@ pub fn fetch_image_for_layout(
     let request = FetchRequestInit::new(url, document.global().get_referrer())
         .origin(document.origin().immutable().clone())
         .destination(Destination::Image)
+        .client(document.global().environment_settings_object())
         .pipeline_id(Some(document.global().pipeline_id()));
 
     // Layout image loads do not delay the document load event.

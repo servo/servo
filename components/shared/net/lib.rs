@@ -748,6 +748,8 @@ pub enum CookieSource {
 pub enum NetworkError {
     /// Could be any of the internal errors, like unsupported scheme, connection errors, etc.
     Internal(String),
+    BlockedDueToMixedContent,
+    BlockedByContentSecurityPolicy,
     LoadCancelled,
     /// SSL validation error, to be converted to Resource::BadCertHTML in the HTML parser.
     SslValidation(String, Vec<u8>),

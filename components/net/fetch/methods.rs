@@ -159,12 +159,12 @@ pub fn should_request_be_blocked_as_mixed_content(request: &Request) -> bool {
 
     // 1.1: <Does settings prohibit mixed security contexts?> returns "Does Not Restrict Mixed
     // Security Contexts" when applied to request’s client.
-    if request.does_settings_prohibit_mixed_security_contexts() {
+    if !request.does_settings_prohibit_mixed_security_contexts() {
         return false;
     }
 
     // 1.2: request’s URL is a potentially trustworthy URL.
-    if !request.current_url().is_potentially_trustworthy() {
+    if request.current_url().is_potentially_trustworthy() {
         return false;
     }
 
@@ -180,8 +180,7 @@ pub fn should_request_be_blocked_as_mixed_content(request: &Request) -> bool {
     warn!("request will be blocked as mixed content");
 
     // Step 2:  Return blocked.
-    // true
-    false
+    true
 }
 
 /// <https://www.w3.org/TR/CSP/#should-block-request>
@@ -261,18 +260,18 @@ pub async fn main_fetch(
     let request_is_blocked_as_mixed_content = should_request_be_blocked_as_mixed_content(request);
 
     if request_is_blocked_as_mixed_content {
-        response = Some(Response::network_error(NetworkError::Internal(
-            "Blocked as mixed content".into(),
-        )))
+        response = Some(Response::network_error(
+            NetworkError::BlockedDueToMixedContent,
+        ))
     }
 
     let request_is_blocked_by_csp =
         should_request_be_blocked_by_csp(request) == csp::CheckResult::Blocked;
 
     if request_is_blocked_by_csp {
-        response = Some(Response::network_error(NetworkError::Internal(
-            "Blocked by Content-Security-Policy".into(),
-        )))
+        response = Some(Response::network_error(
+            NetworkError::BlockedByContentSecurityPolicy,
+        ))
     }
 
     // Step 8: If request’s referrer policy is the empty string, then set request’s referrer policy

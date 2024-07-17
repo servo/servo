@@ -803,7 +803,7 @@ impl GlobalScope {
             timers: OneshotTimers::new(scheduler_chan),
             init_timers: Default::default(),
             origin: origin.clone(),
-            creation_url,
+            creation_url: creation_url.clone(),
             permission_state_invocation_results: Default::default(),
             microtask_queue,
             list_auto_close_worker: Default::default(),
@@ -820,9 +820,10 @@ impl GlobalScope {
             console_count_map: Default::default(),
             dynamic_modules: DomRefCell::new(DynamicModuleList::new()),
             inherited_secure_context,
-            environment_settings_object: EnvironmentSettingsObject::new(Origin::Origin(
-                origin.immutable().clone(),
-            )),
+            environment_settings_object: EnvironmentSettingsObject::new(
+                Origin::Origin(origin.immutable().clone()),
+                creation_url,
+            ),
         }
     }
 
