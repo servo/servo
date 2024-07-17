@@ -989,7 +989,7 @@ impl FlexLine<'_> {
                         layout_result
                             .baseline_relative_to_margin_box
                             .unwrap_or_else(|| {
-                                item.synthesized_baselines_relative_to_margin_box(*used_cross_size)
+                                item.synthesized_baseline_relative_to_margin_box(*used_cross_size)
                             }),
                     )
                 } else {
@@ -1363,7 +1363,7 @@ impl<'a> FlexItem<'a> {
         )
     }
 
-    fn synthesized_baselines_relative_to_margin_box(&self, content_size: Au) -> Au {
+    fn synthesized_baseline_relative_to_margin_box(&self, content_size: Au) -> Au {
         // If the item does not have a baseline in the necessary axis,
         // then one is synthesized from the flex item’s border box.
         // https://drafts.csswg.org/css-flexbox/#valdef-align-items-baseline
@@ -1401,7 +1401,7 @@ impl<'items> FlexLine<'items> {
                 let baseline = item_result
                     .baseline_relative_to_margin_box
                     .unwrap_or_else(|| {
-                        item.synthesized_baselines_relative_to_margin_box(
+                        item.synthesized_baseline_relative_to_margin_box(
                             item_result.hypothetical_cross_size,
                         )
                     });
