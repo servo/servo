@@ -4438,9 +4438,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ohos-drawing-sys"
+version = "0.1.1"
+source = "git+https://github.com/jschwe/ohos-sys.git#0a849f101f65ffa7dbd5b223eba1e08ac9b60865"
+
+[[package]]
 name = "ohos-sys"
-version = "0.1.0"
-source = "git+https://github.com/jschwe/ohos-sys.git#bf0625fc7ea8035c2991626fb0a593e06c9c8c21"
+version = "0.2.0"
+source = "git+https://github.com/jschwe/ohos-sys.git#0a849f101f65ffa7dbd5b223eba1e08ac9b60865"
+dependencies = [
+ "ohos-drawing-sys",
+]
 
 [[package]]
 name = "once_cell"
