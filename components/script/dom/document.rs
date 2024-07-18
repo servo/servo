@@ -4124,6 +4124,8 @@ impl Document {
 
         // Step 6 Run any page visibility change steps which may be defined in other specifications, with visibility
         // state and document. Any other specs' visibility steps will go here.
+
+        // <https://www.w3.org/TR/gamepad/#handling-visibility-change>
         self.window
             .Navigator()
             .GetGamepads()

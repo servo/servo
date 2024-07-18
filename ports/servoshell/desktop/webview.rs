@@ -245,10 +245,15 @@ where
                         gamepad_event = Some(GamepadEvent::Disconnected(index));
                     },
                     EventType::ForceFeedbackEffectCompleted => {
-                        self.haptic_effects[&event.id.into()]
+                        let Some(effect) = self.haptic_effects.get(&event.id.into()) else {
+                            warn!("Failed to find haptic effect for id {}", event.id);
+                            return;
+                        };
+                        effect
                             .sender
                             .send(true)
                             .expect("Failed to send haptic effect completion.");
+                        self.haptic_effects.remove(&event.id.into());
                     },
                     _ => {},
                 }

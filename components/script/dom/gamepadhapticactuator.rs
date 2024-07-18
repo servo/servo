@@ -10,7 +10,7 @@ use embedder_traits::{DualRumbleEffectParams, EmbedderMsg};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::JSVal;
-use script_traits::{GamepadSupportedHapticEffects, ScriptMsg};
+use script_traits::GamepadSupportedHapticEffects;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GamepadHapticActuatorBinding::{
