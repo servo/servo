@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+//! The page style actor is responsible of informing the DevTools client of the different style
+//! properties applied, including the attributes and layout of each element.
+
 use std::collections::HashMap;
 use std::net::TcpStream;
 
@@ -120,6 +123,15 @@ impl Actor for PageStyleActor {
         self.name.clone()
     }
 
+    /// The page style actor can handle the following messages:
+    ///
+    /// - `getApplied`: Returns the applied styles for a node, placeholder
+    ///
+    /// - `getComputed`: Returns the computed styles for a node, placeholder
+    ///
+    /// - `getLayout`: Returns the box layout properties for a node, placeholder
+    ///
+    /// - `isPositionEditable`: Informs whether you can change a style property in the inspector
     fn handle_message(
         &self,
         registry: &ActorRegistry,
@@ -130,7 +142,7 @@ impl Actor for PageStyleActor {
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "getApplied" => {
-                //TODO: query script for relevant applied styles to node (msg.node)
+                // TODO: Query script for relevant applied styles to node (msg.node)
                 let msg = GetAppliedReply {
                     entries: vec![],
                     rules: vec![],
@@ -142,7 +154,7 @@ impl Actor for PageStyleActor {
             },
 
             "getComputed" => {
-                //TODO: query script for relevant computed styles on node (msg.node)
+                // TODO: Query script for relevant computed styles on node (msg.node)
                 let msg = GetComputedReply {
                     computed: vec![],
                     from: self.name(),
@@ -152,9 +164,9 @@ impl Actor for PageStyleActor {
             },
 
             "getLayout" => {
-                //TODO: query script for box layout properties of node (msg.node)
-                let target = msg.get("node").unwrap().as_str().unwrap();
-                let (tx, rx) = ipc::channel().unwrap();
+                // TODO: Query script for box layout properties of node (msg.node)
+                let target = msg.get("node").ok_or(())?.as_str().ok_or(())?;
+                let (tx, rx) = ipc::channel().map_err(|_| ())?;
                 self.script_chan
                     .send(GetLayout(
                         self.pipeline,
@@ -182,14 +194,14 @@ impl Actor for PageStyleActor {
                     padding_left,
                     width,
                     height,
-                } = rx.recv().unwrap().ok_or(())?;
+                } = rx.recv().map_err(|_| ())?.ok_or(())?;
 
                 let msg_auto_margins = msg
                     .get("autoMargins")
                     .and_then(Value::as_bool)
                     .unwrap_or(false);
 
-                // http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/styles.js
+                // https://searchfox.org/mozilla-central/source/devtools/server/actors/page-style.js
                 let msg = GetLayoutReply {
                     from: self.name(),
                     display,
@@ -230,8 +242,8 @@ impl Actor for PageStyleActor {
                     width,
                     height,
                 };
-                let msg = serde_json::to_string(&msg).unwrap();
-                let msg = serde_json::from_str::<Value>(&msg).unwrap();
+                let msg = serde_json::to_string(&msg).map_err(|_| ())?;
+                let msg = serde_json::from_str::<Value>(&msg).map_err(|_| ())?;
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },

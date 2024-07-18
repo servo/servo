@@ -184,11 +184,12 @@ impl Actor for WatcherActor {
         let target = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
         Ok(match msg_type {
             "watchTargets" => {
-                let _ = stream.write_json_packet(&WatchTargetsReply {
+                let msg = WatchTargetsReply {
                     from: self.name(),
                     type_: "target-available-form".into(),
                     target: target.encodable(),
-                });
+                };
+                let _ = stream.write_json_packet(&msg);
 
                 target.frame_update(stream);
 
@@ -196,15 +197,14 @@ impl Actor for WatcherActor {
                 // don't count as a reply. Since every message needs to be responded, we send an
                 // extra empty packet to the devtools host to inform that we successfully received
                 // and processed the message so that it can continue
-                let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
-
+                let msg = EmptyReplyMsg { from: self.name() };
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
             "watchResources" => {
                 let Some(resource_types) = msg.get("resourceTypes") else {
                     return Ok(ActorMessageStatus::Ignored);
                 };
-
                 let Some(resource_types) = resource_types.as_array() else {
                     return Ok(ActorMessageStatus::Ignored);
                 };
@@ -213,7 +213,6 @@ impl Actor for WatcherActor {
                     let Some(resource) = resource.as_str() else {
                         continue;
                     };
-
                     match resource {
                         "document-event" => {
                             target.document_event(stream);
@@ -222,50 +221,47 @@ impl Actor for WatcherActor {
                         _ => warn!("resource {} not handled yet", resource),
                     }
 
-                    let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
+                    let msg = EmptyReplyMsg { from: self.name() };
+                    let _ = stream.write_json_packet(&msg);
                 }
-
                 ActorMessageStatus::Processed
             },
             "getParentBrowsingContextID" => {
                 let browsing_context_id = target.browsing_context_id.index.0.get();
-                let _ = stream.write_json_packet(&GetParentBrowsingContextIDReply {
+                let msg = GetParentBrowsingContextIDReply {
                     from: self.name(),
                     browsing_context_id,
-                });
-
+                };
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
             "getNetworkParentActor" => {
                 let network_parent = registry.find::<NetworkParentActor>(&self.network_parent);
-
-                let _ = stream.write_json_packet(&GetNetworkParentActorReply {
+                let msg = GetNetworkParentActorReply {
                     from: self.name(),
                     network: network_parent.encodable(),
-                });
-
+                };
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
             "getTargetConfigurationActor" => {
                 let target_configuration =
                     registry.find::<TargetConfigurationActor>(&self.target_configuration);
-
-                let _ = stream.write_json_packet(&GetTargetConfigurationActorReply {
+                let msg = GetTargetConfigurationActorReply {
                     from: self.name(),
                     configuration: target_configuration.encodable(),
-                });
-
+                };
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
             "getThreadConfigurationActor" => {
                 let thread_configuration =
                     registry.find::<ThreadConfigurationActor>(&self.thread_configuration);
-
-                let _ = stream.write_json_packet(&GetThreadConfigurationActorReply {
+                let msg = GetThreadConfigurationActorReply {
                     from: self.name(),
                     configuration: thread_configuration.encodable(),
-                });
-
+                };
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
             _ => ActorMessageStatus::Ignored,

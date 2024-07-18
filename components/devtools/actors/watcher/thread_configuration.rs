@@ -44,8 +44,8 @@ impl Actor for ThreadConfigurationActor {
         Ok(match msg_type {
             "updateConfiguration" => {
                 // TODO: Actually update configuration
-                let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
-
+                let msg = EmptyReplyMsg { from: self.name() };
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
             _ => ActorMessageStatus::Ignored,

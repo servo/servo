@@ -12,7 +12,7 @@ use serde_json::{self, Map, Value};
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
-use crate::StreamId;
+use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
 pub struct HighlighterMsg {
@@ -27,11 +27,6 @@ pub struct HighlighterActor {
 struct ShowReply {
     from: String,
     value: bool,
-}
-
-#[derive(Serialize)]
-struct HideReply {
-    from: String,
 }
 
 impl Actor for HighlighterActor {
@@ -63,7 +58,7 @@ impl Actor for HighlighterActor {
             },
 
             "hide" => {
-                let msg = HideReply { from: self.name() };
+                let msg = EmptyReplyMsg { from: self.name() };
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },

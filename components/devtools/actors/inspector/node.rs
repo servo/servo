@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+//! This actor represents one DOM node. It is created by the Walker actor when it is traversing the
+//! document tree.
+
 use std::collections::HashMap;
 use std::net::TcpStream;
 
@@ -14,14 +17,7 @@ use serde_json::{self, Map, Value};
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
-use crate::StreamId;
-
-// TODO: Inline nodes
-
-#[derive(Serialize)]
-struct ModifyAttributeReply {
-    from: String,
-}
+use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
 struct GetUniqueSelectorReply {
@@ -55,9 +51,11 @@ pub struct NodeActorMsg {
     node_type: u16,
     node_value: Option<()>,
     pub num_children: usize,
-    pub parent: String,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    parent: String,
     shadow_root_mode: Option<()>,
     traits: HashMap<String, ()>,
+    // TODO: Allow inline nodes
 }
 
 pub struct NodeActor {
@@ -71,6 +69,12 @@ impl Actor for NodeActor {
         self.name.clone()
     }
 
+    /// The node actor can handle the following messages:
+    ///
+    /// - `modifyAttributes`: Asks the script to change a value in the attribute of the
+    /// corresponding node
+    ///
+    /// - `getUniqueSelector`: Returns the display name of this node
     fn handle_message(
         &self,
         registry: &ActorRegistry,
@@ -81,23 +85,23 @@ impl Actor for NodeActor {
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "modifyAttributes" => {
-                let target = msg.get("to").unwrap().as_str().unwrap();
-                let mods = msg.get("modifications").unwrap().as_array().unwrap();
+                let target = msg.get("to").ok_or(())?.as_str().ok_or(())?;
+                let mods = msg.get("modifications").ok_or(())?.as_array().ok_or(())?;
                 let modifications = mods
                     .iter()
-                    .map(|json_mod| {
-                        serde_json::from_str(&serde_json::to_string(json_mod).unwrap()).unwrap()
+                    .filter_map(|json_mod| {
+                        serde_json::from_str(&serde_json::to_string(json_mod).ok()?).ok()
                     })
                     .collect();
-
                 self.script_chan
                     .send(ModifyAttribute(
                         self.pipeline,
                         registry.actor_to_script(target.to_owned()),
                         modifications,
                     ))
-                    .unwrap();
-                let reply = ModifyAttributeReply { from: self.name() };
+                    .map_err(|_| ())?;
+
+                let reply = EmptyReplyMsg { from: self.name() };
                 let _ = stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed
             },
@@ -107,14 +111,9 @@ impl Actor for NodeActor {
                 self.script_chan
                     .send(GetDocumentElement(self.pipeline, tx))
                     .unwrap();
-                let doc_elem_info = rx.recv().unwrap().ok_or(())?;
-                let node = doc_elem_info.encode(
-                    registry,
-                    true,
-                    self.script_chan.clone(),
-                    self.pipeline,
-                    "".into(), // This should already be registered
-                );
+                let doc_elem_info = rx.recv().map_err(|_| ())?.ok_or(())?;
+                let node =
+                    doc_elem_info.encode(registry, true, self.script_chan.clone(), self.pipeline);
 
                 let msg = GetUniqueSelectorReply {
                     from: self.name(),
@@ -136,7 +135,6 @@ pub trait NodeInfoToProtocol {
         display: bool,
         script_chan: IpcSender<DevtoolScriptControlMsg>,
         pipeline: PipelineId,
-        parent: String,
     ) -> NodeActorMsg;
 }
 
@@ -147,7 +145,6 @@ impl NodeInfoToProtocol for NodeInfo {
         display: bool,
         script_chan: IpcSender<DevtoolScriptControlMsg>,
         pipeline: PipelineId,
-        parent: String,
     ) -> NodeActorMsg {
         let actor = if !actors.script_actor_registered(self.unique_id.clone()) {
             let name = actors.new_name("node");
@@ -163,53 +160,31 @@ impl NodeInfoToProtocol for NodeInfo {
             actors.script_to_actor(self.unique_id)
         };
 
-        let is_top_level_document = self.node_name == "#document"; // TODO
-
         NodeActorMsg {
             actor,
             base_uri: self.base_uri,
-            display_name: self.node_name.clone().to_lowercase(),
-            display_type: Some("block".into()),
-            is_displayed: true, // display,
-            is_top_level_document,
-            node_name: self.node_name,
-            node_type: self.node_type,
-            num_children: self.num_children,
-            // TODO: Review these
             causes_overflow: false,
             container_type: None,
+            display_name: self.node_name.clone().to_lowercase(),
+            display_type: Some("block".into()),
             is_after_pseudo_element: false,
             is_anonymous: false,
             is_before_pseudo_element: false,
             is_direct_shadow_host_child: None,
+            is_displayed: display,
             is_in_html_document: Some(true),
             is_marker_pseudo_element: false,
             is_native_anonymous: false,
             is_scrollable: false,
             is_shadow_root: false,
+            is_top_level_document: self.is_top_level_document,
+            node_name: self.node_name,
+            node_type: self.node_type,
             node_value: None,
+            num_children: self.num_children,
+            parent: actors.script_to_actor(self.parent.clone()),
             shadow_root_mode: None,
-            parent,
             traits: HashMap::new(),
-            // parent: actors.script_to_actor(self.parent.clone()),
-            // namespace_uri: self.namespace_uri,
-            // name: self.name,
-            // public_id: self.public_id,
-            // system_id: self.system_id,
-            // attrs: self
-            //     .attrs
-            //     .into_iter()
-            //     .map(|attr| AttrMsg {
-            //         namespace: attr.namespace,
-            //         name: attr.name,
-            //         value: attr.value,
-            //     })
-            //     .collect(),
-            // pseudo_class_locks: vec![], //TODO: get this data from script
-            // has_event_listeners: false, //TODO: get this data from script
-            // is_document_element: self.is_document_element,
-            // short_value: self.short_value,
-            // incomplete_value: self.incomplete_value,
         }
     }
 }

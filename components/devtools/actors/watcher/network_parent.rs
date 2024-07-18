@@ -38,7 +38,8 @@ impl Actor for NetworkParentActor {
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "setSaveRequestAndResponseBodies" => {
-                let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
+                let msg = EmptyReplyMsg { from: self.name() };
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
             _ => ActorMessageStatus::Ignored,

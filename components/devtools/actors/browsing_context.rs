@@ -197,7 +197,8 @@ impl Actor for BrowsingContextActor {
         Ok(match msg_type {
             "listFrames" => {
                 // TODO: Find out what needs to be listed here
-                let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
+                let msg = EmptyReplyMsg { from: self.name() };
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
             _ => ActorMessageStatus::Ignored,
