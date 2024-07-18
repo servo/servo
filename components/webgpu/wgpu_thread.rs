@@ -694,10 +694,6 @@ impl WGPU {
                             })
                             .map_err(|e| e.to_string());
 
-                        if response.is_err() {
-                            break;
-                        }
-
                         if let Err(e) = sender.send(WebGPUResponse::Adapter(response)) {
                             warn!(
                                 "Failed to send response to WebGPURequest::RequestAdapter ({})",
@@ -733,7 +729,7 @@ impl WGPU {
                                     e
                                 )
                             }
-                            break;
+                            continue;
                         }
                         let device = WebGPUDevice(device_id);
                         let queue = WebGPUQueue(queue_id);
