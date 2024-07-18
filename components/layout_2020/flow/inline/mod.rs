@@ -2082,6 +2082,7 @@ impl IndependentFormattingContext {
     }
 
     /// Picks either the first or the last baseline, depending on `baseline-source`.
+    /// TODO: clarify that this is not to be used for box alignment in flex/grid
     /// <https://drafts.csswg.org/css-inline/#baseline-source>
     fn pick_baseline(&self, baselines: &Baselines) -> Option<Au> {
         match self.style().clone_baseline_source() {
