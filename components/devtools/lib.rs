@@ -340,7 +340,7 @@ fn run_server(
                 });
 
             // Add existing streams to the new browsing context
-            let browsing_context = actors.find::<BrowsingContextActor>(&name);
+            let browsing_context = actors.find::<BrowsingContextActor>(name);
             let mut streams = browsing_context.streams.borrow_mut();
             for (id, stream) in connections {
                 streams.insert(*id, stream.try_clone().unwrap());
