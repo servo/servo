@@ -3406,6 +3406,7 @@ dependencies = [
  "html5ever",
  "icu_segmenter",
  "ipc-channel",
+ "itertools 0.13.0",
  "lazy_static",
  "log",
  "net_traits",
