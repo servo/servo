@@ -575,6 +575,7 @@ pub mod trackevent;
 pub mod transitionevent;
 pub mod treewalker;
 pub mod uievent;
+pub mod underlyingsourcecontainer;
 pub mod url;
 pub mod urlhelper;
 pub mod urlsearchparams;
