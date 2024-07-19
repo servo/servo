@@ -612,9 +612,7 @@ impl Shaper {
     }
 
     pub unsafe fn get_baseline(&self) -> Option<FontBaseline> {
-        if (*self.font).table_for_tag(BASE).is_none() {
-            return None;
-        }
+        (*self.font).table_for_tag(BASE)?;
 
         let mut hanging_baseline = 0;
         let mut alphabetic_baseline = 0;

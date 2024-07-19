@@ -567,7 +567,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
                 };
 
                 self.draw_glyphs(
-                    &font,
+                    font,
                     run.font.descriptor.pt_size.to_f32_px(),
                     &ids,
                     &positions,

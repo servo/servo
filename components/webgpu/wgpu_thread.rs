@@ -188,7 +188,7 @@ impl WGPU {
                             move |result: BufferAccessResult| {
                                 drop(token);
                                 let response = result
-                                    .and_then(|_| {
+                                    .map(|_| {
                                         let global = &glob;
                                         let (slice_pointer, range_size) = gfx_select!(buffer_id =>
                                             global.buffer_get_mapped_range(buffer_id, 0, None))
@@ -201,7 +201,7 @@ impl WGPU {
                                             )
                                         };
 
-                                        Ok(IpcSharedMemory::from_bytes(data))
+                                        IpcSharedMemory::from_bytes(data)
                                     })
                                     .map_err(|e| e.to_string());
                                 if let Err(e) =
@@ -671,7 +671,7 @@ impl WGPU {
                         let response = self
                             .global
                             .request_adapter(&options, wgc::instance::AdapterInputs::IdSet(&ids))
-                            .and_then(|adapter_id| {
+                            .map(|adapter_id| {
                                 let adapter = WebGPUAdapter(adapter_id);
                                 self.adapters.push(adapter);
                                 // TODO: can we do this lazily
@@ -684,13 +684,13 @@ impl WGPU {
                                 let features =
                                     gfx_select!(adapter_id => global.adapter_features(adapter_id))
                                         .unwrap();
-                                Ok(Adapter {
+                                Adapter {
                                     adapter_info: info,
                                     adapter_id: adapter,
                                     features,
                                     limits,
                                     channel: WebGPU(self.sender.clone()),
-                                })
+                                }
                             })
                             .map_err(|e| e.to_string());
 
