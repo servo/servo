@@ -1000,7 +1000,7 @@ impl FlexLine<'_> {
         let max_propagated_baseline = item_propagated_baselines
             .iter()
             .copied()
-            .filter_map(|baseline| baseline)
+            .flatten()
             .max()
             .unwrap_or(Au::zero());
         let item_content_cross_start_posititons = self

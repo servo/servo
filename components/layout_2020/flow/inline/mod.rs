@@ -1360,8 +1360,7 @@ impl<'a, 'b> InlineFormattingContextState<'a, 'b> {
             block: self
                 .current_line_max_block_size_including_nested_containers()
                 .max(&self.current_line_segment.max_block_size)
-                .resolve()
-                .into(),
+                .resolve(),
         };
 
         !self.new_potential_line_size_causes_line_break(&potential_line_size)
@@ -2054,7 +2053,7 @@ impl IndependentFormattingContext {
 
         let (block_sizes, baseline_offset_in_parent) = self.get_block_sizes_and_baseline_offset(
             inline_formatting_context_state,
-            size.block.into(),
+            size.block,
             baseline_offset,
         );
         inline_formatting_context_state.update_unbreakable_segment_for_new_content(

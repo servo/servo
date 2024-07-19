@@ -589,10 +589,10 @@ impl ReplacedContent {
         let size_from_maybe_clamped =
             |(clamped_inline, clamped_block): (Option<Au>, Option<Au>)| {
                 let clamped_inline = clamped_inline
-                    .map(|size| GenericLengthPercentageOrAuto::LengthPercentage(size))
+                    .map(GenericLengthPercentageOrAuto::LengthPercentage)
                     .unwrap_or(box_size.inline);
                 let clamped_block = clamped_block
-                    .map(|size| GenericLengthPercentageOrAuto::LengthPercentage(size))
+                    .map(GenericLengthPercentageOrAuto::LengthPercentage)
                     .unwrap_or(box_size.block);
                 LogicalVec2 {
                     inline: clamped_inline,
