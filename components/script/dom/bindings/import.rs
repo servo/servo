@@ -19,7 +19,7 @@ pub mod base {
 
     pub use crate::dom::bindings::callback::{
         wrap_call_this_object, CallSetup, CallbackContainer, CallbackFunction, CallbackInterface,
-        CallbackObject, ExceptionHandling,
+        CallbackObject, ExceptionHandling, ThisReflector,
     };
     pub use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
         ChannelCountMode, ChannelCountModeValues, ChannelInterpretation,

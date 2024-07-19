@@ -22,7 +22,6 @@ interface ReadableStreamDefaultReader {
   [NewObject]
   Promise<ReadableStreamReadResult> read();
 
-  [Throws]
   undefined releaseLock();
 };
 ReadableStreamDefaultReader includes ReadableStreamGenericReader;
