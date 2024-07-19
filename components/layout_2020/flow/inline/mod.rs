@@ -117,7 +117,8 @@ use crate::context::LayoutContext;
 use crate::flow::float::{FloatBox, SequentialLayoutState};
 use crate::flow::{CollapsibleWithParentStartMargin, FlowLayout};
 use crate::formatting_contexts::{
-    Baselines, IndependentFormattingContext, NonReplacedFormattingContextContents,
+    Baselines, IndependentFormattingContext, IndependentFormattingContextContents,
+    NonReplacedFormattingContextContents,
 };
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, CollapsedMargin, Fragment, FragmentFlags,
@@ -1915,23 +1916,24 @@ impl IndependentFormattingContext {
         let mut child_positioning_context = None;
 
         // We need to know the inline size of the atomic before deciding whether to do the line break.
-        let fragment = match self {
-            IndependentFormattingContext::Replaced(replaced) => {
-                let size = replaced.contents.used_size_as_if_inline_element(
+        // TODO(valadaptive): See if this should be replaced with "has preferred aspect ratio"
+        let fragment = match &self.contents {
+            IndependentFormattingContextContents::Replaced(contents) => {
+                let size = contents.used_size_as_if_inline_element(
                     inline_formatting_context_state.containing_block,
-                    &replaced.style,
+                    &self.style,
                     None,
                     &pbm,
                 );
-                let fragments = replaced.contents.make_fragments(&replaced.style, size);
+                let fragments = contents.make_fragments(&self.style, size);
                 let content_rect = LogicalRect {
                     start_corner: pbm_sums.start_offset(),
                     size,
                 };
 
                 BoxFragment::new(
-                    replaced.base_fragment_info,
-                    replaced.style.clone(),
+                    self.base_fragment_info,
+                    self.style.clone(),
                     fragments,
                     content_rect,
                     pbm.padding,
@@ -1941,14 +1943,14 @@ impl IndependentFormattingContext {
                     CollapsedBlockMargins::zero(),
                 )
             },
-            IndependentFormattingContext::NonReplaced(non_replaced) => {
-                let box_size = non_replaced
+            IndependentFormattingContextContents::NonReplaced(contents) => {
+                let box_size = self
                     .style
                     .content_box_size(inline_formatting_context_state.containing_block, &pbm);
-                let max_box_size = non_replaced
+                let max_box_size = self
                     .style
                     .content_max_box_size(inline_formatting_context_state.containing_block, &pbm);
-                let min_box_size = non_replaced
+                let min_box_size = self
                     .style
                     .content_min_box_size(inline_formatting_context_state.containing_block, &pbm)
                     .auto_is(Length::zero);
@@ -1958,8 +1960,7 @@ impl IndependentFormattingContext {
                     let available_size =
                         inline_formatting_context_state.containing_block.inline_size -
                             pbm_sums.inline_sum();
-                    non_replaced
-                        .inline_content_sizes(layout_context)
+                    self.inline_content_sizes(layout_context)
                         .shrink_to_fit(available_size)
                         .into()
                 });
@@ -1973,7 +1974,7 @@ impl IndependentFormattingContext {
                 let containing_block_for_children = ContainingBlock {
                     inline_size: inline_size.into(),
                     block_size: box_size.block.map(|t| t.into()),
-                    style: &non_replaced.style,
+                    style: &self.style,
                 };
                 assert_eq!(
                     inline_formatting_context_state
@@ -1990,7 +1991,7 @@ impl IndependentFormattingContext {
                 child_positioning_context = Some(PositioningContext::new_for_subtree(
                     true, /* collects_for_nearest_positioned_ancestor */
                 ));
-                let independent_layout = non_replaced.layout(
+                let independent_layout = contents.layout(
                     layout_context,
                     child_positioning_context.as_mut().unwrap(),
                     &containing_block_for_children,
@@ -2024,8 +2025,8 @@ impl IndependentFormattingContext {
                 };
 
                 BoxFragment::new(
-                    non_replaced.base_fragment_info,
-                    non_replaced.style.clone(),
+                    self.base_fragment_info,
+                    self.style.clone(),
                     independent_layout.fragments,
                     content_rect,
                     pbm.padding,
@@ -2088,8 +2089,10 @@ impl IndependentFormattingContext {
             BaselineSource::First => baselines.first,
             BaselineSource::Last => baselines.last,
             BaselineSource::Auto => {
-                if let Self::NonReplaced(non_replaced) = self {
-                    if let NonReplacedFormattingContextContents::Flow(_) = non_replaced.contents {
+                // TODO(valadaptive): See if this should be replaced with "has preferred aspect ratio"
+                if let IndependentFormattingContextContents::NonReplaced(contents) = &self.contents
+                {
+                    if let NonReplacedFormattingContextContents::Flow(_) = contents {
                         return baselines.last;
                     }
                 }

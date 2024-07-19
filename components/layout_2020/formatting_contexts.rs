@@ -10,6 +10,7 @@ use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 use style::values::specified::text::TextDecorationLine;
 
+use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
@@ -25,27 +26,23 @@ use crate::ContainingBlock;
 
 /// <https://drafts.csswg.org/css-display/#independent-formatting-context>
 #[derive(Debug, Serialize)]
-pub(crate) enum IndependentFormattingContext {
-    NonReplaced(NonReplacedFormattingContext),
-    Replaced(ReplacedFormattingContext),
-}
-
-#[derive(Debug, Serialize)]
-pub(crate) struct NonReplacedFormattingContext {
+pub(crate) struct IndependentFormattingContext {
     pub base_fragment_info: BaseFragmentInfo,
     #[serde(skip_serializing)]
     pub style: Arc<ComputedValues>,
     /// If it was requested during construction
-    pub content_sizes: Option<ContentSizes>,
-    pub contents: NonReplacedFormattingContextContents,
+    ///
+    /// TODO(valadaptive): try to stop using ArcRefCell here. We also don't need
+    /// the Arc part, but AtomicRefCell doesn't have the serde feature enabled
+    /// and I don't want to mess with that if further refactorings fix this
+    content_sizes: ArcRefCell<Option<ContentSizes>>,
+    pub contents: IndependentFormattingContextContents,
 }
 
 #[derive(Debug, Serialize)]
-pub(crate) struct ReplacedFormattingContext {
-    pub base_fragment_info: BaseFragmentInfo,
-    #[serde(skip_serializing)]
-    pub style: Arc<ComputedValues>,
-    pub contents: ReplacedContent,
+pub(crate) enum IndependentFormattingContextContents {
+    NonReplaced(NonReplacedFormattingContextContents),
+    Replaced(ReplacedContent),
 }
 
 // Private so that code outside of this module cannot match variants.
@@ -93,6 +90,19 @@ pub(crate) struct IndependentLayout {
 }
 
 impl IndependentFormattingContext {
+    pub fn new_non_replaced(
+        base_fragment_info: BaseFragmentInfo,
+        style: Arc<ComputedValues>,
+        contents: NonReplacedFormattingContextContents,
+    ) -> Self {
+        Self {
+            base_fragment_info,
+            style,
+            content_sizes: ArcRefCell::new(None),
+            contents: IndependentFormattingContextContents::NonReplaced(contents),
+        }
+    }
+
     pub fn construct<'dom, Node: NodeExt<'dom>>(
         context: &LayoutContext,
         node_and_style_info: &NodeAndStyleInfo<Node>,
@@ -143,74 +153,62 @@ impl IndependentFormattingContext {
                         ))
                     },
                 };
-                Self::NonReplaced(NonReplacedFormattingContext {
+                Self {
                     style: Arc::clone(&node_and_style_info.style),
                     base_fragment_info,
-                    content_sizes: None,
-                    contents,
-                })
+                    content_sizes: ArcRefCell::new(None),
+                    contents: IndependentFormattingContextContents::NonReplaced(contents),
+                }
             },
             Contents::Replaced(contents) => {
                 let mut base_fragment_info: BaseFragmentInfo = node_and_style_info.into();
                 base_fragment_info.flags.insert(FragmentFlags::IS_REPLACED);
-                Self::Replaced(ReplacedFormattingContext {
+                Self {
                     base_fragment_info,
                     style: Arc::clone(&node_and_style_info.style),
-                    contents,
-                })
+                    content_sizes: ArcRefCell::new(None),
+                    contents: IndependentFormattingContextContents::Replaced(contents),
+                }
             },
         }
     }
 
+    // TODO(valadaptive): remove this since we no longer have to retrieve this from the "inner" struct?
     pub fn style(&self) -> &Arc<ComputedValues> {
-        match self {
-            Self::NonReplaced(inner) => &inner.style,
-            Self::Replaced(inner) => &inner.style,
-        }
+        &self.style
     }
 
+    // TODO(valadaptive): remove this since we no longer have to retrieve this from the "inner" struct?
     pub fn base_fragment_info(&self) -> BaseFragmentInfo {
-        match self {
-            Self::NonReplaced(inner) => inner.base_fragment_info,
-            Self::Replaced(inner) => inner.base_fragment_info,
-        }
+        self.base_fragment_info
     }
 
-    pub fn inline_content_sizes(&mut self, layout_context: &LayoutContext) -> ContentSizes {
-        match self {
-            Self::NonReplaced(inner) => inner
-                .contents
-                .inline_content_sizes(layout_context, inner.style.writing_mode),
-            Self::Replaced(inner) => inner.contents.inline_content_sizes(&inner.style),
+    pub fn inline_content_sizes(&self, layout_context: &LayoutContext) -> ContentSizes {
+        match &self.contents {
+            IndependentFormattingContextContents::NonReplaced(inner) => {
+                *self.content_sizes.borrow_mut().get_or_insert_with(|| {
+                    inner.inline_content_sizes(layout_context, self.style.writing_mode)
+                })
+            },
+            IndependentFormattingContextContents::Replaced(inner) => {
+                // TODO(valadaptive): Can we cache replaced content sizes too?
+                inner.inline_content_sizes(&self.style)
+            },
         }
     }
 
     pub fn outer_inline_content_sizes(
-        &mut self,
+        &self,
         layout_context: &LayoutContext,
         containing_block_writing_mode: WritingMode,
     ) -> ContentSizes {
-        match self {
-            Self::NonReplaced(non_replaced) => {
-                let style = &non_replaced.style;
-                let content_sizes = &mut non_replaced.content_sizes;
-                let contents = &mut non_replaced.contents;
-                sizing::outer_inline(style, containing_block_writing_mode, || {
-                    *content_sizes.get_or_insert_with(|| {
-                        contents.inline_content_sizes(layout_context, style.writing_mode)
-                    })
-                })
-            },
-            Self::Replaced(replaced) => {
-                sizing::outer_inline(&replaced.style, containing_block_writing_mode, || {
-                    replaced.contents.inline_content_sizes(&replaced.style)
-                })
-            },
-        }
+        sizing::outer_inline(&self.style, containing_block_writing_mode, || {
+            self.inline_content_sizes(layout_context)
+        })
     }
 }
 
-impl NonReplacedFormattingContext {
+impl NonReplacedFormattingContextContents {
     pub fn layout(
         &self,
         layout_context: &LayoutContext,
@@ -218,7 +216,7 @@ impl NonReplacedFormattingContext {
         containing_block_for_children: &ContainingBlock,
         containing_block: &ContainingBlock,
     ) -> IndependentLayout {
-        match &self.contents {
+        match &self {
             NonReplacedFormattingContextContents::Flow(bfc) => bfc.layout(
                 layout_context,
                 positioning_context,
@@ -239,18 +237,8 @@ impl NonReplacedFormattingContext {
         }
     }
 
-    pub fn inline_content_sizes(&mut self, layout_context: &LayoutContext) -> ContentSizes {
-        let writing_mode = self.style.writing_mode;
-        let contents = &mut self.contents;
-        *self
-            .content_sizes
-            .get_or_insert_with(|| contents.inline_content_sizes(layout_context, writing_mode))
-    }
-}
-
-impl NonReplacedFormattingContextContents {
     pub fn inline_content_sizes(
-        &mut self,
+        &self,
         layout_context: &LayoutContext,
         writing_mode: WritingMode,
     ) -> ContentSizes {

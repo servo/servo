@@ -25,8 +25,7 @@ use crate::dom::{BoxSlot, NodeExt};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents, TraversalHandler};
 use crate::flow::{BlockContainerBuilder, BlockFormattingContext};
 use crate::formatting_contexts::{
-    IndependentFormattingContext, NonReplacedFormattingContext,
-    NonReplacedFormattingContextContents,
+    IndependentFormattingContext, NonReplacedFormattingContextContents,
 };
 use crate::fragment_tree::BaseFragmentInfo;
 use crate::style_ext::{DisplayGeneratingBox, DisplayLayoutInternal};
@@ -134,12 +133,11 @@ impl Table {
         let mut table = table_builder.finish();
         table.anonymous = true;
 
-        IndependentFormattingContext::NonReplaced(NonReplacedFormattingContext {
-            base_fragment_info: (&anonymous_info).into(),
-            style: grid_and_wrapper_style,
-            content_sizes: None,
-            contents: NonReplacedFormattingContextContents::Table(table),
-        })
+        IndependentFormattingContext::new_non_replaced(
+            (&anonymous_info).into(),
+            grid_and_wrapper_style,
+            NonReplacedFormattingContextContents::Table(table),
+        )
     }
 
     /// Push a new slot into the last row of this table.
@@ -862,12 +860,11 @@ where
                     };
 
                     let caption = TableCaption {
-                        context: ArcRefCell::new(NonReplacedFormattingContext {
-                            style: info.style.clone(),
-                            base_fragment_info: info.into(),
-                            content_sizes: None,
+                        context: ArcRefCell::new(IndependentFormattingContext::new_non_replaced(
+                            info.into(),
+                            info.style.clone(),
                             contents,
-                        }),
+                        )),
                     };
 
                     self.builder.table.captions.push(caption);

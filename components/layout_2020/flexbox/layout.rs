@@ -28,7 +28,10 @@ use super::geom::{
 use super::{FlexContainer, FlexLevelBox};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::formatting_contexts::{Baselines, IndependentFormattingContext, IndependentLayout};
+use crate::formatting_contexts::{
+    Baselines, IndependentFormattingContext, IndependentFormattingContextContents,
+    IndependentLayout,
+};
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
@@ -552,12 +555,12 @@ impl<'a> FlexItem<'a> {
             if cross_axis_is_item_block_axis {
                 let specified_size_suggestion = content_box_size.inline;
 
-                let transferred_size_suggestion = match box_ {
-                    IndependentFormattingContext::NonReplaced(_) => None,
-                    IndependentFormattingContext::Replaced(ref bfc) => {
+                // TODO(valadaptive): See if this should be replaced with "has preferred aspect ratio"
+                let transferred_size_suggestion = match box_.contents {
+                    IndependentFormattingContextContents::NonReplaced(_) => None,
+                    IndependentFormattingContextContents::Replaced(ref contents) => {
                         match (
-                            bfc.contents
-                                .inline_size_over_block_size_intrinsic_ratio(box_.style()),
+                            contents.inline_size_over_block_size_intrinsic_ratio(box_.style()),
                             content_box_size.block,
                         ) {
                             (Some(ratio), AuOrAuto::LengthPercentage(block_size)) => {
@@ -575,12 +578,12 @@ impl<'a> FlexItem<'a> {
                 let inline_content_size = box_
                     .inline_content_sizes(flex_context.layout_context)
                     .min_content;
-                let content_size_suggestion = match box_ {
-                    IndependentFormattingContext::NonReplaced(_) => inline_content_size,
-                    IndependentFormattingContext::Replaced(ref replaced) => {
-                        if let Some(ratio) = replaced
-                            .contents
-                            .inline_size_over_block_size_intrinsic_ratio(box_.style())
+                // TODO(valadaptive): See if this should be replaced with "has preferred aspect ratio"
+                let content_size_suggestion = match box_.contents {
+                    IndependentFormattingContextContents::NonReplaced(_) => inline_content_size,
+                    IndependentFormattingContextContents::Replaced(ref contents) => {
+                        if let Some(ratio) =
+                            contents.inline_size_over_block_size_intrinsic_ratio(box_.style())
                         {
                             inline_content_size.clamp_between_extremums(
                                 min_size.block.auto_is(Au::zero).scale_by(ratio),
@@ -1255,27 +1258,26 @@ impl<'a> FlexItem<'a> {
                 );
                 // … and also the item’s inline axis.
 
-                match self.box_ {
-                    IndependentFormattingContext::Replaced(replaced) => {
-                        let pbm = replaced
-                            .style
-                            .padding_border_margin(flex_context.containing_block);
+                let style = &self.box_.style;
+                // TODO(valadaptive): See if this should be replaced with "has preferred aspect ratio"
+                match &self.box_.contents {
+                    IndependentFormattingContextContents::Replaced(contents) => {
+                        let pbm = style.padding_border_margin(flex_context.containing_block);
                         let box_size = used_cross_size_override.map(|size| LogicalVec2 {
-                            inline: replaced
-                                .style
+                            inline: style
                                 .content_box_size(flex_context.containing_block, &pbm)
                                 .inline
                                 .map(Au::from),
                             block: AuOrAuto::LengthPercentage(size),
                         });
-                        let size = replaced.contents.used_size_as_if_inline_element(
+                        let size = contents.used_size_as_if_inline_element(
                             flex_context.containing_block,
-                            &replaced.style,
+                            style,
                             box_size,
                             &pbm,
                         );
                         let cross_size = flex_context.vec2_to_flex_relative(size).cross;
-                        let fragments = replaced.contents.make_fragments(&replaced.style, size);
+                        let fragments = contents.make_fragments(style, size);
 
                         FlexItemLayoutResult {
                             hypothetical_cross_size: cross_size,
@@ -1288,7 +1290,7 @@ impl<'a> FlexItem<'a> {
                             baseline_relative_to_margin_box: None,
                         }
                     },
-                    IndependentFormattingContext::NonReplaced(non_replaced) => {
+                    IndependentFormattingContextContents::NonReplaced(contents) => {
                         let block_size = match used_cross_size_override {
                             Some(s) => AuOrAuto::LengthPercentage(s),
                             None => self.content_box_size.cross.map(|t| t),
@@ -1297,14 +1299,14 @@ impl<'a> FlexItem<'a> {
                         let item_as_containing_block = ContainingBlock {
                             inline_size: used_main_size,
                             block_size,
-                            style: &non_replaced.style,
+                            style: style,
                         };
                         let IndependentLayout {
                             fragments,
                             content_block_size,
                             baselines: content_box_baselines,
                             ..
-                        } = non_replaced.layout(
+                        } = contents.layout(
                             flex_context.layout_context,
                             &mut positioning_context,
                             &item_as_containing_block,

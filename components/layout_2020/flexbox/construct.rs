@@ -15,8 +15,7 @@ use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents, Trav
 use crate::flow::inline::construct::InlineFormattingContextBuilder;
 use crate::flow::{BlockContainer, BlockFormattingContext};
 use crate::formatting_contexts::{
-    IndependentFormattingContext, NonReplacedFormattingContext,
-    NonReplacedFormattingContextContents,
+    IndependentFormattingContext, NonReplacedFormattingContextContents,
 };
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::style_ext::DisplayGeneratingBox;
@@ -167,18 +166,13 @@ where
                         BlockContainer::InlineFormattingContext(inline_formatting_context),
                     );
                     let info = &self.info.new_anonymous(anonymous_style.clone().unwrap());
-                    let non_replaced = NonReplacedFormattingContext {
-                        base_fragment_info: info.into(),
-                        style: info.style.clone(),
-                        content_sizes: None,
-                        contents: NonReplacedFormattingContextContents::Flow(
-                            block_formatting_context,
-                        ),
-                    };
+                    let non_replaced = IndependentFormattingContext::new_non_replaced(
+                        info.into(),
+                        info.style.clone(),
+                        NonReplacedFormattingContextContents::Flow(block_formatting_context),
+                    );
 
-                    Some(ArcRefCell::new(FlexLevelBox::FlexItem(
-                        IndependentFormattingContext::NonReplaced(non_replaced),
-                    )))
+                    Some(ArcRefCell::new(FlexLevelBox::FlexItem(non_replaced)))
                 },
                 FlexLevelJob::Element {
                     info,

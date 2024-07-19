@@ -16,7 +16,9 @@ use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
-use crate::formatting_contexts::IndependentFormattingContext;
+use crate::formatting_contexts::{
+    IndependentFormattingContext, IndependentFormattingContextContents,
+};
 use crate::fragment_tree::{
     AbsoluteBoxOffsets, BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags,
     HoistedSharedFragment,
@@ -484,13 +486,14 @@ impl HoistedAbsolutelyPositionedBox {
             .style()
             .padding_border_margin(&containing_block.into());
 
-        let computed_size = match &absolutely_positioned_box.context {
-            IndependentFormattingContext::Replaced(replaced) => {
+        // TODO(valadaptive): See if this should be replaced with "has preferred aspect ratio"
+        let computed_size = match &absolutely_positioned_box.context.contents {
+            IndependentFormattingContextContents::Replaced(contents) => {
                 // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
                 // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
-                let used_size = replaced.contents.used_size_as_if_inline_element(
+                let used_size = contents.used_size_as_if_inline_element(
                     &containing_block.into(),
-                    &replaced.style,
+                    &absolutely_positioned_box.context.style,
                     None,
                     &pbm,
                 );
@@ -499,7 +502,8 @@ impl HoistedAbsolutelyPositionedBox {
                     block: LengthOrAuto::LengthPercentage(used_size.block.into()),
                 }
             },
-            IndependentFormattingContext::NonReplaced(non_replaced) => non_replaced
+            IndependentFormattingContextContents::NonReplaced(_) => absolutely_positioned_box
+                .context
                 .style
                 .content_box_size(&containing_block.into(), &pbm),
         };
@@ -537,22 +541,24 @@ impl HoistedAbsolutelyPositionedBox {
         let mut new_fragment = {
             let content_size: LogicalVec2<Au>;
             let fragments;
-            match &mut absolutely_positioned_box.context {
-                IndependentFormattingContext::Replaced(replaced) => {
+            let formatting_context = &mut absolutely_positioned_box.context;
+            // TODO(valadaptive): See if this should be replaced with "has preferred aspect ratio"
+            match &formatting_context.contents {
+                IndependentFormattingContextContents::Replaced(contents) => {
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
-                    let style = &replaced.style;
+                    let style = &formatting_context.style;
                     content_size = computed_size.auto_is(|| unreachable!()).into();
-                    fragments = replaced.contents.make_fragments(style, content_size);
+                    fragments = contents.make_fragments(style, content_size);
                 },
-                IndependentFormattingContext::NonReplaced(non_replaced) => {
+                IndependentFormattingContextContents::NonReplaced(contents) => {
                     // https://drafts.csswg.org/css2/#min-max-widths
                     // https://drafts.csswg.org/css2/#min-max-heights
-                    let min_size = non_replaced
+                    let min_size = formatting_context
                         .style
                         .content_min_box_size(&containing_block.into(), &pbm)
                         .map(|t| t.map(Au::from).auto_is(Au::zero));
-                    let max_size = non_replaced
+                    let max_size = formatting_context
                         .style
                         .content_max_box_size(&containing_block.into(), &pbm)
                         .map(|t| t.map(Au::from));
@@ -567,7 +573,7 @@ impl HoistedAbsolutelyPositionedBox {
                         let margin_sum = inline_axis.margin_start + inline_axis.margin_end;
                         let available_size =
                             cbis - anchor - pbm.padding_border_sums.inline - margin_sum;
-                        non_replaced
+                        formatting_context
                             .inline_content_sizes(layout_context)
                             .shrink_to_fit(available_size)
                     });
@@ -608,7 +614,7 @@ impl HoistedAbsolutelyPositionedBox {
                         let containing_block_for_children = ContainingBlock {
                             inline_size,
                             block_size: size,
-                            style: &non_replaced.style,
+                            style: &formatting_context.style,
                         };
                         // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
                         assert_eq!(
@@ -623,7 +629,7 @@ impl HoistedAbsolutelyPositionedBox {
                         // errors.
                         positioning_context.clear();
 
-                        let independent_layout = non_replaced.layout(
+                        let independent_layout = contents.layout(
                             layout_context,
                             &mut positioning_context,
                             &containing_block_for_children,

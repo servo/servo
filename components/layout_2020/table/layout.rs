@@ -2364,7 +2364,7 @@ impl Table {
     }
 
     pub(crate) fn inline_content_sizes(
-        &mut self,
+        &self,
         layout_context: &LayoutContext,
         writing_mode: WritingMode,
     ) -> ContentSizes {

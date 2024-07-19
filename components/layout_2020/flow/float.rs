@@ -23,7 +23,9 @@ use style::values::specified::text::TextDecorationLine;
 use crate::context::LayoutContext;
 use crate::dom::NodeExt;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
-use crate::formatting_contexts::IndependentFormattingContext;
+use crate::formatting_contexts::{
+    IndependentFormattingContext, IndependentFormattingContextContents,
+};
 use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, CollapsedMargin};
 use crate::geom::{LogicalRect, LogicalVec2};
 use crate::positioned::PositioningContext;
@@ -900,23 +902,22 @@ impl FloatBox {
                 let pbm_sums = pbm.padding + pbm.border + margin;
 
                 let (content_size, children);
-                match self.contents {
-                    IndependentFormattingContext::NonReplaced(ref mut non_replaced) => {
+                let style = &self.contents.style;
+                // TODO(valadaptive): See if this should be replaced with "has preferred aspect ratio"
+                match &self.contents.contents {
+                    IndependentFormattingContextContents::NonReplaced(non_replaced) => {
                         // Calculate inline size.
                         // https://drafts.csswg.org/css2/#float-width
-                        let box_size = non_replaced.style.content_box_size(containing_block, &pbm);
-                        let max_box_size = non_replaced
-                            .style
-                            .content_max_box_size(containing_block, &pbm);
-                        let min_box_size = non_replaced
-                            .style
+                        let box_size = style.content_box_size(containing_block, &pbm);
+                        let max_box_size = style.content_max_box_size(containing_block, &pbm);
+                        let min_box_size = style
                             .content_min_box_size(containing_block, &pbm)
                             .auto_is(Length::zero);
 
                         let tentative_inline_size = box_size.inline.auto_is(|| {
                             let available_size =
                                 containing_block.inline_size - pbm_sums.inline_sum();
-                            non_replaced
+                            self.contents
                                 .inline_content_sizes(layout_context)
                                 .shrink_to_fit(available_size)
                                 .into()
@@ -933,7 +934,7 @@ impl FloatBox {
                         let containing_block_for_children = ContainingBlock {
                             inline_size: inline_size.into(),
                             block_size: block_size.map(|t| t.into()),
-                            style: &non_replaced.style,
+                            style: &style,
                         };
                         let independent_layout = non_replaced.layout(
                             layout_context,
@@ -964,21 +965,13 @@ impl FloatBox {
                         };
                         children = independent_layout.fragments;
                     },
-                    IndependentFormattingContext::Replaced(ref replaced) => {
+                    IndependentFormattingContextContents::Replaced(replaced) => {
                         // https://drafts.csswg.org/css2/#float-replaced-width
                         // https://drafts.csswg.org/css2/#inline-replaced-height
                         content_size = replaced
-                            .contents
-                            .used_size_as_if_inline_element(
-                                containing_block,
-                                &replaced.style,
-                                None,
-                                &pbm,
-                            )
+                            .used_size_as_if_inline_element(containing_block, &style, None, &pbm)
                             .into();
-                        children = replaced
-                            .contents
-                            .make_fragments(&replaced.style, content_size.into());
+                        children = replaced.make_fragments(&style, content_size.into());
                     },
                 };
 
