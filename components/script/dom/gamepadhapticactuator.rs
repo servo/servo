@@ -13,6 +13,7 @@ use js::jsval::JSVal;
 use script_traits::GamepadSupportedHapticEffects;
 
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::GamepadHapticActuatorBinding::{
     GamepadEffectParameters, GamepadHapticActuatorMethods, GamepadHapticEffectType,
 };
@@ -49,12 +50,12 @@ impl HapticEffectListener {
         );
     }
 
-    fn handle_completed(&self) {
+    fn handle_completed(&self, completed_successfully: bool) {
         let context = self.context.clone();
         let _ = self.task_source.queue_with_canceller(
             task!(handle_haptic_effect_completed: move || {
                 let actuator = context.root();
-                actuator.handle_haptic_effect_completed();
+                actuator.handle_haptic_effect_completed(completed_successfully);
             }),
             &self.canceller,
         );
@@ -141,10 +142,9 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
         &self,
         type_: GamepadHapticEffectType,
         params: &GamepadEffectParameters,
+        comp: InRealm,
     ) -> Rc<Promise> {
-        let in_realm_proof = AlreadyInRealm::assert();
-        let playing_effect_promise =
-            Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
+        let playing_effect_promise = Promise::new_in_current_realm(comp);
 
         // <https://www.w3.org/TR/gamepad/#dfn-valid-effect>
         match type_ {
@@ -233,7 +233,7 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
             Box::new(move |message| {
                 let msg = message.to::<bool>();
                 match msg {
-                    Ok(msg) => listener.handle_completed(),
+                    Ok(msg) => listener.handle_completed(msg),
                     Err(err) => warn!("Error receiving a GamepadMsg: {:?}", err),
                 }
             }),
@@ -260,9 +260,8 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
     }
 
     /// <https://www.w3.org/TR/gamepad/#dom-gamepadhapticactuator-reset>
-    fn Reset(&self) -> Rc<Promise> {
-        let in_realm_proof = AlreadyInRealm::assert();
-        let promise = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof));
+    fn Reset(&self, comp: InRealm) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(comp);
 
         let document = self.global().as_window().Document();
         if !document.is_fully_active() {
@@ -321,14 +320,10 @@ impl GamepadHapticActuatorMethods for GamepadHapticActuator {
 }
 
 impl GamepadHapticActuator {
-    pub fn has_playing_effect_promise(&self) -> bool {
-        self.playing_effect_promise.borrow().is_some()
-    }
-
     /// <https://www.w3.org/TR/gamepad/#dom-gamepadhapticactuator-playeffect>
     /// We are in the task queued by the "in-parallel" steps.
-    pub fn handle_haptic_effect_completed(&self) {
-        if self.effect_sequence_id.get() != self.sequence_id.get() {
+    pub fn handle_haptic_effect_completed(&self, completed_successfully: bool) {
+        if self.effect_sequence_id.get() != self.sequence_id.get() || !completed_successfully {
             return;
         }
         let playing_effect_promise = self.playing_effect_promise.borrow_mut().take();
@@ -338,6 +333,8 @@ impl GamepadHapticActuator {
         }
     }
 
+    /// <https://www.w3.org/TR/gamepad/#dom-gamepadhapticactuator-reset>
+    /// We are in the task queued by the "in-parallel" steps.
     pub fn handle_haptic_effect_stopped(&self, stopped_successfully: bool) {
         if !stopped_successfully {
             return;
@@ -370,22 +367,15 @@ impl GamepadHapticActuator {
             return;
         }
 
-        let trusted_promise = TrustedPromise::new(
-            self.playing_effect_promise
-                .borrow()
-                .clone()
-                .expect("Promise is null!"),
-        );
-
         let this = Trusted::new(&*self);
-
         let _ = self.global().gamepad_task_source().queue(
             task!(stop_playing_effect: move || {
-                let promise = trusted_promise.root();
                 let actuator = this.root();
+                let Some(promise) = actuator.playing_effect_promise.borrow_mut().take() else {
+                    return;
+                };
                 let message = DOMString::from("preempted");
                 promise.resolve_native(&message);
-                *actuator.playing_effect_promise.borrow_mut() = None;
             }),
             &self.global(),
         );

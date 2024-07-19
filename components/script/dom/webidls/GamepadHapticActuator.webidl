@@ -6,10 +6,12 @@
 [Exposed=Window, Pref="dom.gamepad.enabled"]
 interface GamepadHapticActuator {
   /* [SameObject] */ readonly attribute /* FrozenArray<GamepadHapticEffectType> */ any effects;
+  [NewObject]
   Promise<GamepadHapticsResult> playEffect(
     GamepadHapticEffectType type,
     optional GamepadEffectParameters params = {}
   );
+  [NewObject]
   Promise<GamepadHapticsResult> reset();
 };
 
