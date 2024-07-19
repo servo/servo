@@ -27,6 +27,7 @@ fonts_traits = { workspace = true }
 html5ever = { workspace = true }
 icu_segmenter = { workspace = true }
 ipc-channel = { workspace = true }
+itertools = { workspace = true }
 log = { workspace = true }
 net_traits = { workspace = true }
 parking_lot = { workspace = true }

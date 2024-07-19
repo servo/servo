@@ -7,6 +7,7 @@ use std::cmp::Ordering;
 
 use app_units::Au;
 use atomic_refcell::AtomicRefMut;
+use itertools::izip;
 use style::properties::longhands::align_content::computed_value::T as AlignContent;
 use style::properties::longhands::align_items::computed_value::T as AlignItems;
 use style::properties::longhands::align_self::computed_value::T as AlignSelf;
@@ -804,7 +805,7 @@ impl FlexLine<'_> {
             self.resolve_flexible_lengths(container_main_size);
 
         // https://drafts.csswg.org/css-flexbox/#algo-cross-item
-        let item_layout_results = self
+        let mut item_layout_results = self
             .items
             .iter_mut()
             .zip(&item_used_main_sizes)
@@ -828,33 +829,60 @@ impl FlexLine<'_> {
 
         // Determine the used cross size of each flex item
         // https://drafts.csswg.org/css-flexbox/#algo-stretch
-        let (item_used_cross_sizes, item_results): (Vec<_>, Vec<_>) = self
-            .items
-            .iter_mut()
-            .zip(item_layout_results)
-            .zip(&item_used_main_sizes)
-            .map(|((item, mut item_result), &used_main_size)| {
-                let has_stretch = item.align_self.0.value() == AlignFlags::STRETCH;
-                let cross_size = if has_stretch &&
-                    item.content_box_size.cross.is_auto() &&
-                    !(item.margin.cross_start.is_auto() || item.margin.cross_end.is_auto())
-                {
-                    (line_cross_size - item.pbm_auto_is_zero.cross).clamp_between_extremums(
-                        item.content_min_size.cross,
-                        item.content_max_size.cross,
-                    )
-                } else {
-                    item_result.hypothetical_cross_size
-                };
-                if has_stretch {
-                    // “If the flex item has `align-self: stretch`, redo layout for its contents,
-                    //  treating this used size as its definite cross size
-                    //  so that percentage-sized children can be resolved.”
-                    item_result = item.layout(used_main_size, flex_context, Some(cross_size));
-                }
-                (cross_size, item_result)
-            })
-            .unzip();
+        let item_count = self.items.len();
+        let mut max_baseline = None;
+        let mut item_used_cross_sizes = Vec::with_capacity(item_count);
+        let mut item_cross_margins = Vec::with_capacity(item_count);
+        for (item, item_layout_result, used_main_size) in izip!(
+            self.items.iter_mut(),
+            item_layout_results.iter_mut(),
+            &item_used_main_sizes
+        ) {
+            let has_stretch = item.align_self.0.value() == AlignFlags::STRETCH;
+            let used_cross_size = if has_stretch &&
+                item.content_box_size.cross.is_auto() &&
+                !(item.margin.cross_start.is_auto() || item.margin.cross_end.is_auto())
+            {
+                (line_cross_size - item.pbm_auto_is_zero.cross).clamp_between_extremums(
+                    item.content_min_size.cross,
+                    item.content_max_size.cross,
+                )
+            } else {
+                item_layout_result.hypothetical_cross_size
+            };
+            item_used_cross_sizes.push(used_cross_size);
+
+            if has_stretch {
+                // “If the flex item has `align-self: stretch`, redo layout for its contents,
+                //  treating this used size as its definite cross size
+                //  so that percentage-sized children can be resolved.”
+                *item_layout_result =
+                    item.layout(*used_main_size, flex_context, Some(used_cross_size));
+            }
+
+            item_layout_result.baseline_relative_to_margin_box = match item.align_self.0.value() {
+                AlignFlags::BASELINE | AlignFlags::LAST_BASELINE => {
+                    let baseline = item_layout_result
+                        .baseline_relative_to_margin_box
+                        .unwrap_or_else(|| {
+                            item.synthesized_baseline_relative_to_margin_box(used_cross_size)
+                        });
+                    max_baseline = Some(max_baseline.unwrap_or(baseline).max(baseline));
+                    Some(baseline)
+                },
+                _ => None,
+            };
+
+            // https://drafts.csswg.org/css-flexbox/#algo-cross-margins
+            item_cross_margins.push(item.resolve_auto_cross_margins(
+                flex_context,
+                line_cross_size,
+                used_cross_size,
+            ));
+        }
+
+        // Layout of items is over. These should no longer be mutable.
+        let item_layout_results = item_layout_results;
 
         // Distribute any remaining free space
         // https://drafts.csswg.org/css-flexbox/#algo-main-align
@@ -865,7 +893,6 @@ impl FlexLine<'_> {
         }
 
         // Align the items along the main-axis per justify-content.
-        let item_count = self.items.len();
         let layout_is_flex_reversed = flex_context.flex_direction_is_reversed;
 
         // Implement fallback alignment.
@@ -945,107 +972,73 @@ impl FlexLine<'_> {
             _ => Au::zero(),
         };
 
-        // https://drafts.csswg.org/css-flexbox/#algo-cross-margins
-        let item_cross_margins = self.items.iter().zip(&item_used_cross_sizes).map(
-            |(item, &item_cross_content_size)| {
-                item.resolve_auto_cross_margins(
-                    flex_context,
-                    line_cross_size,
-                    item_cross_content_size,
-                )
-            },
-        );
-
-        let item_margins = item_main_margins
-            .zip(item_cross_margins)
-            .map(
-                |((main_start, main_end), (cross_start, cross_end))| FlexRelativeSides {
-                    main_start,
-                    main_end,
-                    cross_start,
-                    cross_end,
-                },
-            )
-            .collect::<Vec<_>>();
-        // https://drafts.csswg.org/css-flexbox/#algo-main-align
-        let items_content_main_start_positions = self.align_along_main_axis(
+        let mut main_position_cursor = main_start_position;
+        let item_fragments = izip!(
+            self.items.iter(),
+            item_main_margins,
+            item_cross_margins,
             &item_used_main_sizes,
-            &item_margins,
-            main_start_position,
-            item_main_interval,
-        );
+            &item_used_cross_sizes,
+            item_layout_results.into_iter()
+        )
+        .map(
+            |(
+                item,
+                item_main_margins,
+                item_cross_margins,
+                item_used_main_size,
+                item_used_cross_size,
+                item_layout_result,
+            )| {
+                let item_margin = FlexRelativeSides {
+                    main_start: item_main_margins.0,
+                    main_end: item_main_margins.1,
+                    cross_start: item_cross_margins.0,
+                    cross_end: item_cross_margins.1,
+                };
 
-        // https://drafts.csswg.org/css-flexbox/#algo-cross-align
-        let item_propagated_baselines = item_results
-            .iter()
-            .zip(&item_used_cross_sizes)
-            .zip(self.items.iter())
-            .map(|((layout_result, used_cross_size), item)| {
-                if matches!(
-                    item.align_self.0.value(),
-                    AlignFlags::BASELINE | AlignFlags::LAST_BASELINE
-                ) {
-                    Some(
-                        layout_result
-                            .baseline_relative_to_margin_box
-                            .unwrap_or_else(|| {
-                                item.synthesized_baseline_relative_to_margin_box(*used_cross_size)
-                            }),
-                    )
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
-        let max_propagated_baseline = item_propagated_baselines
-            .iter()
-            .copied()
-            .flatten()
-            .max()
-            .unwrap_or(Au::zero());
-        let item_content_cross_start_posititons = self
-            .items
-            .iter()
-            .zip(&item_margins)
-            .zip(&item_used_cross_sizes)
-            .zip(&item_propagated_baselines)
-            .map(|(((item, margin), size), propagated_baseline)| {
-                item.align_along_cross_axis(
-                    margin,
-                    size,
+                // https://drafts.csswg.org/css-flexbox/#algo-main-align
+                // “Align the items along the main-axis”
+                main_position_cursor +=
+                    item_margin.main_start + item.border.main_start + item.padding.main_start;
+                let item_content_main_start_position = main_position_cursor;
+                main_position_cursor += *item_used_main_size +
+                    item.padding.main_end +
+                    item.border.main_end +
+                    item_margin.main_end +
+                    item_main_interval;
+
+                // https://drafts.csswg.org/css-flexbox/#algo-cross-align
+                let item_content_cross_start_position = item.align_along_cross_axis(
+                    &item_margin,
+                    item_used_cross_size,
                     line_cross_size,
-                    propagated_baseline.unwrap_or_default(),
-                    max_propagated_baseline,
-                )
-            });
+                    item_layout_result
+                        .baseline_relative_to_margin_box
+                        .unwrap_or_default(),
+                    max_baseline.unwrap_or_default(),
+                );
 
-        let item_fragments = self
-            .items
-            .iter()
-            .zip(item_results)
-            .zip(
-                item_used_main_sizes
-                    .iter()
-                    .zip(&item_used_cross_sizes)
-                    .map(|(&main, &cross)| FlexRelativeVec2 { main, cross })
-                    .zip(
-                        items_content_main_start_positions
-                            .zip(item_content_cross_start_posititons)
-                            .map(|(main, cross)| FlexRelativeVec2 { main, cross }),
-                    )
-                    .map(|(size, start_corner)| FlexRelativeRect { size, start_corner }),
-            )
-            .zip(&item_margins)
-            .map(|(((item, item_result), content_rect), margin)| {
-                let content_rect = flex_context.rect_to_flow_relative(line_size, content_rect);
-                let margin = flex_context.sides_to_flow_relative(*margin);
+                let start_corner = FlexRelativeVec2 {
+                    main: item_content_main_start_position,
+                    cross: item_content_cross_start_position,
+                };
+                let size = FlexRelativeVec2 {
+                    main: *item_used_main_size,
+                    cross: *item_used_cross_size,
+                };
+
+                let content_rect = flex_context
+                    .rect_to_flow_relative(line_size, FlexRelativeRect { start_corner, size });
+                let margin = flex_context.sides_to_flow_relative(item_margin);
                 let collapsed_margin = CollapsedBlockMargins::from_margin(&margin);
+
+                // TODO: We should likely propagate baselines from `display: flex`.
                 (
-                    // TODO: We should likely propagate baselines from `display: flex`.
                     BoxFragment::new(
                         item.box_.base_fragment_info(),
                         item.box_.style().clone(),
-                        item_result.fragments,
+                        item_layout_result.fragments,
                         content_rect,
                         flex_context.sides_to_flow_relative(item.padding),
                         flex_context.sides_to_flow_relative(item.border),
@@ -1053,10 +1046,12 @@ impl FlexLine<'_> {
                         None, /* clearance */
                         collapsed_margin,
                     ),
-                    item_result.positioning_context,
+                    item_layout_result.positioning_context,
                 )
-            })
-            .collect();
+            },
+        )
+        .collect();
+
         FlexLineLayoutResult {
             cross_size: line_cross_size,
             item_fragments,
@@ -1461,33 +1456,6 @@ impl<'items> FlexLine<'items> {
             }),
             each_auto_margin > Au::zero(),
         )
-    }
-
-    /// Return the coordinate of the main-start side of the content area of each item
-    fn align_along_main_axis<'a>(
-        &'a self,
-        item_used_main_sizes: &'a [Au],
-        item_margins: &'a [FlexRelativeSides<Au>],
-        main_start_position: Au,
-        item_main_interval: Au,
-    ) -> impl Iterator<Item = Au> + 'a {
-        // “Align the items along the main-axis”
-        let mut main_position_cursor = main_start_position;
-        self.items
-            .iter()
-            .zip(item_used_main_sizes)
-            .zip(item_margins)
-            .map(move |((item, &main_content_size), margin)| {
-                main_position_cursor +=
-                    margin.main_start + item.border.main_start + item.padding.main_start;
-                let content_main_start_position = main_position_cursor;
-                main_position_cursor += main_content_size +
-                    item.padding.main_end +
-                    item.border.main_end +
-                    margin.main_end +
-                    item_main_interval;
-                content_main_start_position
-            })
     }
 }
 
