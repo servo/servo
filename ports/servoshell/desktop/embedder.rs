@@ -8,10 +8,12 @@ use servo::compositing::windowing::EmbedderMethods;
 use servo::embedder_traits::{EmbedderProxy, EventLoopWaker};
 use servo::servo_config::pref;
 use webxr::glwindow::GlWindowDiscovery;
+#[cfg(target_os = "windows")]
 use webxr::openxr::OpenXrDiscovery;
 
 pub enum XrDiscovery {
     GlWindow(GlWindowDiscovery),
+    #[cfg(target_os = "windows")]
     OpenXr(OpenXrDiscovery),
 }
 
@@ -47,6 +49,7 @@ impl EmbedderMethods for EmbedderCallbacks {
         } else if let Some(xr_discovery) = self.xr_discovery.take() {
             match xr_discovery {
                 XrDiscovery::GlWindow(discovery) => xr.register(discovery),
+                #[cfg(target_os = "windows")]
                 XrDiscovery::OpenXr(discovery) => xr.register(discovery),
             }
         }
