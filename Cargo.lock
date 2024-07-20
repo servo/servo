@@ -1300,7 +1300,7 @@ dependencies = [
 [[package]]
 name = "derive_common"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-07-16#33c26645a906afbe35821ba567c7c92d96a3ba14"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#947990669824c192736f63f982e38b7e62150688"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -1468,7 +1468,7 @@ dependencies = [
 [[package]]
 name = "dom"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-07-16#33c26645a906afbe35821ba567c7c92d96a3ba14"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#947990669824c192736f63f982e38b7e62150688"
 dependencies = [
  "bitflags 2.6.0",
 ]
@@ -2852,9 +2852,9 @@ dependencies = [
 
 [[package]]
 name = "html5ever"
-version = "0.27.0"
+version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c13771afe0e6e846f1e67d038d4cb29998a6779f93c809212e4e9c32efd244d4"
+checksum = "0ff6858c1f7e2a470c5403091866fa95b36fe0dbac5d771f932c15e5ff1ee501"
 dependencies = [
  "log",
  "mac",
@@ -4073,7 +4073,7 @@ dependencies = [
 [[package]]
 name = "malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-07-16#33c26645a906afbe35821ba567c7c92d96a3ba14"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#947990669824c192736f63f982e38b7e62150688"
 dependencies = [
  "accountable-refcell",
  "app_units",
@@ -4123,9 +4123,9 @@ dependencies = [
 
 [[package]]
 name = "markup5ever"
-version = "0.12.1"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "16ce3abbeba692c8b8441d036ef91aea6df8da2c6b6e21c7e14d3c18e526be45"
+checksum = "d581ff8be69d08a2efa23a959d81aa22b739073f749f067348bd4f4ba4b69195"
 dependencies = [
  "log",
  "phf 0.11.2",
@@ -5756,7 +5756,7 @@ checksum = "0495e4577c672de8254beb68d01a9b62d0e8a13c099edecdbedccce3223cd29f"
 [[package]]
 name = "selectors"
 version = "0.24.0"
-source = "git+https://github.com/servo/stylo?branch=2024-07-16#33c26645a906afbe35821ba567c7c92d96a3ba14"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#947990669824c192736f63f982e38b7e62150688"
 dependencies = [
  "bitflags 2.6.0",
  "cssparser",
@@ -6070,7 +6070,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.2.0"
-source = "git+https://github.com/servo/stylo?branch=2024-07-16#33c26645a906afbe35821ba567c7c92d96a3ba14"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#947990669824c192736f63f982e38b7e62150688"
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -6079,7 +6079,7 @@ dependencies = [
 [[package]]
 name = "servo_atoms"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-07-16#33c26645a906afbe35821ba567c7c92d96a3ba14"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#947990669824c192736f63f982e38b7e62150688"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -6277,7 +6277,7 @@ checksum = "38b58827f4464d87d377d175e90bf58eb00fd8716ff0a62f80356b5e61555d0d"
 [[package]]
 name = "size_of_test"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-07-16#33c26645a906afbe35821ba567c7c92d96a3ba14"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#947990669824c192736f63f982e38b7e62150688"
 dependencies = [
  "static_assertions",
 ]
@@ -6418,7 +6418,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "static_prefs"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2024-07-16#33c26645a906afbe35821ba567c7c92d96a3ba14"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#947990669824c192736f63f982e38b7e62150688"
 
 [[package]]
 name = "strck"
@@ -6471,7 +6471,7 @@ dependencies = [
 [[package]]
 name = "style"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-07-16#33c26645a906afbe35821ba567c7c92d96a3ba14"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#947990669824c192736f63f982e38b7e62150688"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -6530,7 +6530,7 @@ dependencies = [
 [[package]]
 name = "style_config"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-07-16#33c26645a906afbe35821ba567c7c92d96a3ba14"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#947990669824c192736f63f982e38b7e62150688"
 dependencies = [
  "lazy_static",
 ]
@@ -6538,7 +6538,7 @@ dependencies = [
 [[package]]
 name = "style_derive"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-07-16#33c26645a906afbe35821ba567c7c92d96a3ba14"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#947990669824c192736f63f982e38b7e62150688"
 dependencies = [
  "darling",
  "derive_common",
@@ -6569,7 +6569,7 @@ dependencies = [
 [[package]]
 name = "style_traits"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-07-16#33c26645a906afbe35821ba567c7c92d96a3ba14"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#947990669824c192736f63f982e38b7e62150688"
 dependencies = [
  "app_units",
  "bitflags 2.6.0",
@@ -6918,7 +6918,7 @@ dependencies = [
 [[package]]
 name = "to_shmem"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-07-16#33c26645a906afbe35821ba567c7c92d96a3ba14"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#947990669824c192736f63f982e38b7e62150688"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -6931,7 +6931,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-07-16#33c26645a906afbe35821ba567c7c92d96a3ba14"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#947990669824c192736f63f982e38b7e62150688"
 dependencies = [
  "darling",
  "derive_common",
@@ -8431,9 +8431,9 @@ checksum = "539a77ee7c0de333dcc6da69b177380a0b81e0dacfa4f7344c465a36871ee601"
 
 [[package]]
 name = "xml5ever"
-version = "0.18.1"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9bbb26405d8e919bc1547a5aa9abc95cbfa438f04844f5fdd9dc7596b748bf69"
+checksum = "d7b906d34d867d216b2d79fb0e9470aaa7f4948ea86b44c27846efedd596076c"
 dependencies = [
  "log",
  "mac",
