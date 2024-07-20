@@ -4125,6 +4125,19 @@ impl Document {
         // Step 6 Run any page visibility change steps which may be defined in other specifications, with visibility
         // state and document. Any other specs' visibility steps will go here.
 
+        // <https://www.w3.org/TR/gamepad/#handling-visibility-change>
+        if visibility_state == DocumentVisibilityState::Hidden {
+            self.window
+                .Navigator()
+                .GetGamepads()
+                .iter_mut()
+                .for_each(|gamepad| {
+                    if let Some(g) = gamepad {
+                        g.vibration_actuator().handle_visibility_change();
+                    }
+                });
+        }
+
         // Step 7 Fire an event named visibilitychange at document, with its bubbles attribute initialized to true.
         self.upcast::<EventTarget>()
             .fire_bubbling_event(atom!("visibilitychange"));

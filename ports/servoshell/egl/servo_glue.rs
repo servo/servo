@@ -623,7 +623,9 @@ impl ServoGlue {
                 EmbedderMsg::HeadParsed |
                 EmbedderMsg::SetFullscreenState(..) |
                 EmbedderMsg::ReportProfile(..) |
-                EmbedderMsg::EventDelivered(..) => {},
+                EmbedderMsg::EventDelivered(..) |
+                EmbedderMsg::PlayGamepadHapticEffect(..) |
+                EmbedderMsg::StopGamepadHapticEffect(..) => {},
             }
         }
 
