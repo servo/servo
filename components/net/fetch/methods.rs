@@ -113,43 +113,53 @@ pub async fn fetch(request: &mut Request, target: Target<'_>, context: &FetchCon
     fetch_with_cors_cache(request, &mut CorsCache::default(), target, context).await;
 }
 
+/// Steps 9
+///
+/// <https://fetch.spec.whatwg.org/#concept-fetch>
 pub async fn fetch_with_cors_cache(
     request: &mut Request,
     cache: &mut CorsCache,
     target: Target<'_>,
     context: &FetchContext,
 ) {
-    // Step 1.
+    // Step 9: If request’s window is "client", then set request’s window to request’s client,
+    // if request’s client’s global object is a Window object; otherwise "no-window".
     if request.window == Window::Client {
         // TODO: Set window to request's client object if client is a Window object
     } else {
         request.window = Window::NoWindow;
     }
 
-    // Step 2.
+    // Step 10: If request’s origin is "client", then set request’s origin to request’s client’s
+    // origin.
     if request.origin == Origin::Client {
-        // TODO: set request's origin to request's client's origin
-        unimplemented!()
+        if let Some(ref settings_object) = request.client {
+            request.origin = settings_object.origin.clone();
+        }
     }
 
-    // Step 3.
-    set_default_accept(request.destination, &mut request.headers);
+    // Step 13.
+    set_default_accept(request.initiator, request.destination, &mut request.headers);
 
-    // Step 4.
+    // Step 14.
     set_default_accept_language(&mut request.headers);
 
-    // Step 5.
+    // Step 15: If request’s internal priority is null, then use request’s priority, initiator,
+    // destination, and render-blocking in an implementation-defined manner to set request’s
+    //internal priority to an implementation-defined object.
     // TODO: figure out what a Priority object is.
 
-    // Step 6.
-    // TODO: handle client hints headers.
-
-    // Step 7.
+    // Step 16: If request is a subresource request, then:
     if request.is_subresource_request() {
-        // TODO: handle client hints headers.
+        // TODO: Requires implementation of fetch groups: https://fetch.spec.whatwg.org/#fetch-groups
+
+        // 16.1: Let record be a new fetch record whose request is request and controller is
+        // fetchParams’s controller.
+
+        // 16.2: Append record to request’s client’s fetch group list of fetch records.
     }
 
-    // Step 8.
+    // Step 17, 18: Run main fetch given fetchParams. Return fetchParams’s controller.
     main_fetch(request, cache, false, false, target, &mut None, context).await;
 }
 
@@ -242,11 +252,10 @@ pub async fn main_fetch(
     // TODO: handle request abort.
 
     // Step 5: Upgrade request to a potentially trustworthy URL, if appropriate.
-    // let hsts_list = context
-    //     .state
-    //     .hsts_list
-    //     .read()
-    //     .unwrap();
+    // TODO: Request upgrades via HSTS
+
+    // Step 6: Upgrade a mixed content request to a potentially trustworthy URL, if appropriate.
+    // TODO: Request upgrades for mixed-content
 
     // Step 7: If should request be blocked due to a bad port, should fetching request be blocked as
     // mixed content, or should request be blocked by Content Security Policy returns blocked,

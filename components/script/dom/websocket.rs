@@ -209,6 +209,7 @@ impl WebSocket {
         // Step 8.
         let request = RequestBuilder::new(url_record, Referrer::NoReferrer)
             .origin(global.origin().immutable().clone())
+            .client(global.environment_settings_object())
             .mode(RequestMode::WebSocket { protocols });
 
         let channels = FetchChannels::WebSocket {

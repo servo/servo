@@ -39,8 +39,8 @@ use net_traits::request::Origin::Origin as SpecificOrigin;
 use net_traits::request::{
     get_cors_unsafe_header_names, is_cors_non_wildcard_request_header_name,
     is_cors_safelisted_method, is_cors_safelisted_request_header, BodyChunkRequest,
-    BodyChunkResponse, CacheMode, CredentialsMode, Destination, Origin, RedirectMode, Referrer,
-    Request, RequestBuilder, RequestMode, ResponseTainting, ServiceWorkersMode,
+    BodyChunkResponse, CacheMode, CredentialsMode, Destination, Initiator, Origin, RedirectMode,
+    Referrer, Request, RequestBuilder, RequestMode, ResponseTainting, ServiceWorkersMode,
 };
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{
@@ -120,14 +120,17 @@ fn precise_time_ms() -> u64 {
     time::precise_time_ns() / (1000 * 1000)
 }
 
-// Step 3 of https://fetch.spec.whatwg.org/#concept-fetch.
-pub fn set_default_accept(destination: Destination, headers: &mut HeaderMap) {
+// Step 13 of https://fetch.spec.whatwg.org/#concept-fetch.
+pub fn set_default_accept(initiator: Initiator, destination: Destination, headers: &mut HeaderMap) {
+    // If request’s header list does not contain `Accept`, then:
     if headers.contains_key(header::ACCEPT) {
         return;
     }
-    let value = match destination {
-        // Step 3.2.
-        Destination::Document => vec![
+
+    // Step 13.2: If request’s initiator is "prefetch", then set value to the document `Accept`
+    // header value (https://fetch.spec.whatwg.org/#document-accept-header-value).
+    let value = if initiator == Initiator::Prefetch {
+        vec![
             QualityItem::new(mime::TEXT_HTML, Quality::from_u16(1000)),
             QualityItem::new(
                 "application/xhtml+xml".parse().unwrap(),
@@ -135,24 +138,38 @@ pub fn set_default_accept(destination: Destination, headers: &mut HeaderMap) {
             ),
             QualityItem::new("application/xml".parse().unwrap(), Quality::from_u16(900)),
             QualityItem::new(mime::STAR_STAR, Quality::from_u16(800)),
-        ],
-        // Step 3.3.
-        Destination::Image => vec![
-            QualityItem::new(mime::IMAGE_PNG, Quality::from_u16(1000)),
-            QualityItem::new(mime::IMAGE_SVG, Quality::from_u16(1000)),
-            QualityItem::new(mime::IMAGE_STAR, Quality::from_u16(800)),
-            QualityItem::new(mime::STAR_STAR, Quality::from_u16(500)),
-        ],
-        // Step 3.3.
-        Destination::Style => vec![
-            QualityItem::new(mime::TEXT_CSS, Quality::from_u16(1000)),
-            QualityItem::new(mime::STAR_STAR, Quality::from_u16(100)),
-        ],
-        // Step 3.1.
-        _ => vec![QualityItem::new(mime::STAR_STAR, Quality::from_u16(1000))],
+        ]
+    } else {
+        // Step 13.3
+        match destination {
+            // TODO: Destination::JSON when released:
+            // https://github.com/rust-ammonia/rust-content-security-policy/pull/39/files
+            Destination::Document => vec![
+                // TODO: Include Destination::IFrame | Destination::Frame
+                QualityItem::new(mime::TEXT_HTML, Quality::from_u16(1000)),
+                QualityItem::new(
+                    "application/xhtml+xml".parse().unwrap(),
+                    Quality::from_u16(1000),
+                ),
+                QualityItem::new("application/xml".parse().unwrap(), Quality::from_u16(900)),
+                QualityItem::new(mime::STAR_STAR, Quality::from_u16(800)),
+            ],
+            Destination::Image => vec![
+                QualityItem::new(mime::IMAGE_PNG, Quality::from_u16(1000)),
+                QualityItem::new(mime::IMAGE_SVG, Quality::from_u16(1000)),
+                QualityItem::new(mime::IMAGE_STAR, Quality::from_u16(800)),
+                QualityItem::new(mime::STAR_STAR, Quality::from_u16(500)),
+            ],
+            Destination::Style => vec![
+                QualityItem::new(mime::TEXT_CSS, Quality::from_u16(1000)),
+                QualityItem::new(mime::STAR_STAR, Quality::from_u16(100)),
+            ],
+            // 13.1: Let value be `*/*`.
+            _ => vec![QualityItem::new(mime::STAR_STAR, Quality::from_u16(1000))],
+        }
     };
 
-    // Step 3.4.
+    // Step 13.4: Append (`Accept`, value) to request’s header list.
     // TODO(eijebong): Change this once typed headers are done
     headers.insert(header::ACCEPT, quality_to_value(value));
 }

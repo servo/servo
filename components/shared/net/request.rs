@@ -25,6 +25,7 @@ pub enum Initiator {
     Download,
     ImageSet,
     Manifest,
+    Prefetch,
     XSLT,
 }
 
@@ -277,12 +278,12 @@ pub struct EnvironmentSettingsObject {
     /// An origin used in security checks
     ///
     /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-origin>
-    origin: Origin,
+    pub origin: Origin,
     /// A URL that represents the location of the resource with which this environment is
     /// associated.
     ///
     /// <https://html.spec.whatwg.org/multipage/#concept-environment-creation-url>
-    creation_url: Option<ServoUrl>,
+    pub creation_url: Option<ServoUrl>,
 }
 
 impl EnvironmentSettingsObject {

@@ -66,7 +66,11 @@ impl NetworkListener {
                 None,
             ),
             None => {
-                set_default_accept(Destination::Document, &mut listener.request_builder.headers);
+                set_default_accept(
+                    self.request_builder.initiator,
+                    Destination::Document,
+                    &mut listener.request_builder.headers,
+                );
                 set_default_accept_language(&mut listener.request_builder.headers);
 
                 CoreResourceMsg::Fetch(

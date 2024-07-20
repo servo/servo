@@ -1653,6 +1653,7 @@ fn fetch_single_module_script(
         .origin(global.origin().immutable().clone())
         .parser_metadata(options.parser_metadata)
         .integrity_metadata(options.integrity_metadata.clone())
+        .client(global.environment_settings_object())
         .credentials_mode(options.credentials_mode)
         .mode(mode);
 
