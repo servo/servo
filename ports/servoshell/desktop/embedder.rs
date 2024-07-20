@@ -8,16 +8,24 @@ use servo::compositing::windowing::EmbedderMethods;
 use servo::embedder_traits::{EmbedderProxy, EventLoopWaker};
 use servo::servo_config::pref;
 use webxr::glwindow::GlWindowDiscovery;
+#[cfg(target_os = "windows")]
+use webxr::openxr::OpenXrDiscovery;
+
+pub enum XrDiscovery {
+    GlWindow(GlWindowDiscovery),
+    #[cfg(target_os = "windows")]
+    OpenXr(OpenXrDiscovery),
+}
 
 pub struct EmbedderCallbacks {
     event_loop_waker: Box<dyn EventLoopWaker>,
-    xr_discovery: Option<GlWindowDiscovery>,
+    xr_discovery: Option<XrDiscovery>,
 }
 
 impl EmbedderCallbacks {
     pub fn new(
         event_loop_waker: Box<dyn EventLoopWaker>,
-        xr_discovery: Option<GlWindowDiscovery>,
+        xr_discovery: Option<XrDiscovery>,
     ) -> EmbedderCallbacks {
         EmbedderCallbacks {
             event_loop_waker,
@@ -39,7 +47,11 @@ impl EmbedderMethods for EmbedderCallbacks {
         if pref!(dom.webxr.test) {
             xr.register_mock(webxr::headless::HeadlessMockDiscovery::new());
         } else if let Some(xr_discovery) = self.xr_discovery.take() {
-            xr.register(xr_discovery);
+            match xr_discovery {
+                XrDiscovery::GlWindow(discovery) => xr.register(discovery),
+                #[cfg(target_os = "windows")]
+                XrDiscovery::OpenXr(discovery) => xr.register(discovery),
+            }
         }
     }
 }
