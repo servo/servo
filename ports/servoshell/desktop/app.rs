@@ -19,6 +19,7 @@ use servo::servo_config::pref;
 use servo::Servo;
 use surfman::GLApi;
 use webxr::glwindow::GlWindowDiscovery;
+use webxr::openxr::OpenXrDiscovery;
 use winit::event::WindowEvent;
 use winit::event_loop::EventLoopWindowTarget;
 use winit::window::WindowId;
@@ -27,7 +28,7 @@ use super::events_loop::{EventsLoop, WakerEvent};
 use super::minibrowser::Minibrowser;
 use super::webview::WebViewManager;
 use super::{headed_window, headless_window};
-use crate::desktop::embedder::EmbedderCallbacks;
+use crate::desktop::embedder::{EmbedderCallbacks, XrDiscovery};
 use crate::desktop::tracing::trace_winit_event;
 use crate::desktop::window_trait::WindowPortsMethods;
 use crate::parser::get_default_url;
@@ -153,12 +154,17 @@ impl App {
                         >(w.unwrap())
                     };
                     let factory = Box::new(move || Ok(window.new_glwindow(w)));
-                    Some(GlWindowDiscovery::new(
+                    Some(XrDiscovery::GlWindow(GlWindowDiscovery::new(
                         surfman.connection(),
                         surfman.adapter(),
                         surfman.context_attributes(),
                         factory,
-                    ))
+                    )))
+                } else if pref!(dom.webxr.openxr.enabled) &&
+                    !opts::get().headless &&
+                    cfg!(target_os = "windows")
+                {
+                    Some(XrDiscovery::OpenXr(OpenXrDiscovery::new(None)))
                 } else {
                     None
                 };

@@ -49,6 +49,7 @@
   "dom.webxr.glwindow.spherical": false,
   "dom.webxr.hands.enabled": false,
   "dom.webxr.layers.enabled": false,
+  "dom.webxr.openxr.enabled": false,
   "dom.webxr.sessionavailable": false,
   "dom.webxr.test": false,
   "dom.webxr.unsafe-assume-user-intent": false,
