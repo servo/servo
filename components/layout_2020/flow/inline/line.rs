@@ -522,7 +522,7 @@ impl<'a> LineItemLayout<'a> {
 
     fn layout_absolute(&mut self, absolute: AbsolutelyPositionedLineItem) {
         let absolutely_positioned_box = (*absolute.absolutely_positioned_box).borrow();
-        let style = absolutely_positioned_box.context.style();
+        let style = &absolutely_positioned_box.context.style;
 
         // From https://drafts.csswg.org/css2/#abs-non-replaced-width
         // > The static-position containing block is the containing block of a

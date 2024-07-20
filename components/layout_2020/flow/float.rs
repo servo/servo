@@ -889,7 +889,7 @@ impl FloatBox {
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
     ) -> BoxFragment {
-        let style = self.contents.style().clone();
+        let style = self.contents.style.clone();
         positioning_context.layout_maybe_position_relative_fragment(
             layout_context,
             containing_block,
@@ -981,7 +981,7 @@ impl FloatBox {
                 };
 
                 BoxFragment::new(
-                    self.contents.base_fragment_info(),
+                    self.contents.base_fragment_info,
                     style.clone(),
                     children,
                     content_rect.into(),

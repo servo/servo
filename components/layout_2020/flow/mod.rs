@@ -107,7 +107,7 @@ impl BlockLevelBox {
             BlockLevelBox::Independent(ref context) => {
                 // FIXME: If the element doesn't fit next to floats, it will get clearance.
                 // In that case this should be returning false.
-                context.style()
+                &context.style
             },
         };
 
@@ -360,7 +360,7 @@ fn calculate_inline_content_size_for_block_level_boxes(
                     .contents
                     .outer_inline_content_sizes(layout_context, writing_mode)
                     .max(ContentSizes::zero());
-                let style_box = &float_box.contents.style().get_box();
+                let style_box = &float_box.contents.style.get_box();
                 Some((size, style_box.float, style_box.clear))
             },
             BlockLevelBox::SameFormattingContextBlock {
@@ -379,7 +379,7 @@ fn calculate_inline_content_size_for_block_level_boxes(
                 let size = independent
                     .outer_inline_content_sizes(layout_context, writing_mode)
                     .max(ContentSizes::zero());
-                Some((size, Float::None, independent.style().get_box().clear))
+                Some((size, Float::None, independent.style.get_box().clear))
             },
         }
     };

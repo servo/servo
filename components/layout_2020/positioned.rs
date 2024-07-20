@@ -98,7 +98,7 @@ impl AbsolutelyPositionedBox {
 
         let box_offsets = {
             let box_ = self_.borrow();
-            let box_offsets = box_.context.style().box_offsets(containing_block);
+            let box_offsets = box_.context.style.box_offsets(containing_block);
             LogicalVec2 {
                 inline: absolute_box_offsets(
                     initial_start_corner.inline,
@@ -298,7 +298,7 @@ impl PositioningContext {
                 .absolutely_positioned_box
                 .borrow()
                 .context
-                .style()
+                .style
                 .clone_position();
             match position {
                 Position::Fixed => {}, // fall through
@@ -483,7 +483,7 @@ impl HoistedAbsolutelyPositionedBox {
         let mut absolutely_positioned_box = self.absolutely_positioned_box.borrow_mut();
         let pbm = absolutely_positioned_box
             .context
-            .style()
+            .style
             .padding_border_margin(&containing_block.into());
 
         // TODO(valadaptive): See if this should be replaced with "has preferred aspect ratio"
@@ -537,7 +537,7 @@ impl HoistedAbsolutelyPositionedBox {
             block_axis_solver.solve_for_size(computed_size.block.map(|t| t.into()));
 
         let mut positioning_context =
-            PositioningContext::new_for_style(absolutely_positioned_box.context.style()).unwrap();
+            PositioningContext::new_for_style(&absolutely_positioned_box.context.style).unwrap();
         let mut new_fragment = {
             let content_size: LogicalVec2<Au>;
             let fragments;
@@ -720,8 +720,8 @@ impl HoistedAbsolutelyPositionedBox {
                 overconstrained.to_physical(containing_block.style.writing_mode);
 
             BoxFragment::new_with_overconstrained(
-                absolutely_positioned_box.context.base_fragment_info(),
-                absolutely_positioned_box.context.style().clone(),
+                absolutely_positioned_box.context.base_fragment_info,
+                absolutely_positioned_box.context.style.clone(),
                 fragments,
                 content_rect,
                 pbm.padding,

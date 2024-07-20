@@ -520,35 +520,34 @@ impl<'a> FlexItem<'a> {
 
         // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
         assert_eq!(
-            containing_block.style.writing_mode,
-            box_.style().writing_mode,
+            containing_block.style.writing_mode, box_.style.writing_mode,
             "Mixed writing modes are not supported yet"
         );
 
         let container_is_horizontal = containing_block.style.writing_mode.is_horizontal();
-        let item_is_horizontal = box_.style().writing_mode.is_horizontal();
+        let item_is_horizontal = box_.style.writing_mode.is_horizontal();
         let item_is_orthogonal = item_is_horizontal != container_is_horizontal;
         let container_is_row = flex_context.flex_axis == FlexAxis::Row;
         let cross_axis_is_item_block_axis = container_is_row ^ item_is_orthogonal;
 
-        let pbm = box_.style().padding_border_margin(containing_block);
+        let pbm = box_.style.padding_border_margin(containing_block);
         let content_box_size = box_
-            .style()
+            .style
             .content_box_size(containing_block, &pbm)
             .map(|v| v.map(Au::from));
         let max_size = box_
-            .style()
+            .style
             .content_max_box_size(containing_block, &pbm)
             .map(|v| v.map(Au::from));
         let min_size = box_
-            .style()
+            .style
             .content_min_box_size(containing_block, &pbm)
             .map(|v| v.map(Au::from));
 
         // https://drafts.csswg.org/css-flexbox/#min-size-auto
         let automatic_min_size = || {
             // FIXME(stshine): Consider more situations when auto min size is not needed.
-            if box_.style().get_box().overflow_x.is_scrollable() {
+            if box_.style.get_box().overflow_x.is_scrollable() {
                 return Au::zero();
             }
 
@@ -560,7 +559,7 @@ impl<'a> FlexItem<'a> {
                     IndependentFormattingContextContents::NonReplaced(_) => None,
                     IndependentFormattingContextContents::Replaced(ref contents) => {
                         match (
-                            contents.inline_size_over_block_size_intrinsic_ratio(box_.style()),
+                            contents.inline_size_over_block_size_intrinsic_ratio(&box_.style),
                             content_box_size.block,
                         ) {
                             (Some(ratio), AuOrAuto::LengthPercentage(block_size)) => {
@@ -583,7 +582,7 @@ impl<'a> FlexItem<'a> {
                     IndependentFormattingContextContents::NonReplaced(_) => inline_content_size,
                     IndependentFormattingContextContents::Replaced(ref contents) => {
                         if let Some(ratio) =
-                            contents.inline_size_over_block_size_intrinsic_ratio(box_.style())
+                            contents.inline_size_over_block_size_intrinsic_ratio(&box_.style)
                         {
                             inline_content_size.clamp_between_extremums(
                                 min_size.block.auto_is(Au::zero).scale_by(ratio),
@@ -630,7 +629,7 @@ impl<'a> FlexItem<'a> {
             cross: padding_border.cross,
         } + margin_auto_is_zero.sum_by_axis();
 
-        let align_self = flex_context.align_for(&box_.style().clone_align_self());
+        let align_self = flex_context.align_for(&box_.style.clone_align_self());
 
         let flex_base_size = flex_base_size(
             flex_context,
@@ -668,11 +667,11 @@ fn flex_base_size(
     content_box_size: FlexRelativeVec2<AuOrAuto>,
     padding_border_sums: FlexRelativeVec2<Au>,
 ) -> Au {
-    let used_flex_basis = match &flex_item.style().get_position().flex_basis {
+    let used_flex_basis = match &flex_item.style.get_position().flex_basis {
         FlexBasis::Content => FlexBasis::Content,
         FlexBasis::Size(Size::LengthPercentage(length_percentage)) => {
             let apply_box_sizing = |length: Au| {
-                match flex_item.style().get_position().box_sizing {
+                match flex_item.style.get_position().box_sizing {
                     BoxSizing::ContentBox => length,
                     BoxSizing::BorderBox => {
                         // This may make `length` negative,
@@ -1039,8 +1038,8 @@ impl FlexLine<'_> {
                 // TODO: We should likely propagate baselines from `display: flex`.
                 (
                     BoxFragment::new(
-                        item.box_.base_fragment_info(),
-                        item.box_.style().clone(),
+                        item.box_.base_fragment_info,
+                        item.box_.style.clone(),
                         item_layout_result.fragments,
                         content_rect,
                         flex_context.sides_to_flow_relative(item.padding),
@@ -1078,7 +1077,7 @@ impl FlexLine<'_> {
 
         let grow = self.outer_hypothetical_main_sizes_sum < container_main_size;
         let flex_factor = |item: &FlexItem| {
-            let position_style = item.box_.style().get_position();
+            let position_style = item.box_.style.get_position();
             if grow {
                 position_style.flex_grow.0
             } else {
@@ -1149,7 +1148,7 @@ impl FlexLine<'_> {
             if remaining_free_space != Au::zero() {
                 if grow {
                     for (item, target_main_size) in unfrozen_items() {
-                        let grow_factor = item.box_.style().get_position().flex_grow.0;
+                        let grow_factor = item.box_.style.get_position().flex_grow.0;
                         let ratio = grow_factor / unfrozen_items_flex_factor_sum;
                         target_main_size
                             .set(item.flex_base_size + remaining_free_space.scale_by(ratio));
@@ -1157,7 +1156,7 @@ impl FlexLine<'_> {
                 } else {
                     // https://drafts.csswg.org/css-flexbox/#scaled-flex-shrink-factor
                     let scaled_shrink_factor = |item: &FlexItem| {
-                        let shrink_factor = item.box_.style().get_position().flex_shrink.0;
+                        let shrink_factor = item.box_.style.get_position().flex_shrink.0;
                         item.flex_base_size.scale_by(shrink_factor)
                     };
                     let scaled_shrink_factors_sum: Au = unfrozen_items()
@@ -1252,8 +1251,7 @@ impl<'a> FlexItem<'a> {
 
                 // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
                 assert_eq!(
-                    flex_context.containing_block.style.writing_mode,
-                    self.box_.style().writing_mode,
+                    flex_context.containing_block.style.writing_mode, self.box_.style.writing_mode,
                     "Mixed writing modes are not supported yet"
                 );
                 // … and also the item’s inline axis.

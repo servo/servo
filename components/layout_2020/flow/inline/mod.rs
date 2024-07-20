@@ -1909,8 +1909,9 @@ impl IndependentFormattingContext {
         inline_formatting_context_state: &mut InlineFormattingContextState,
         offset_in_text: usize,
     ) {
-        let style = self.style();
-        let pbm = style.padding_border_margin(inline_formatting_context_state.containing_block);
+        let pbm = self
+            .style
+            .padding_border_margin(inline_formatting_context_state.containing_block);
         let margin = pbm.margin.auto_is(Au::zero);
         let pbm_sums = pbm.padding + pbm.border + margin;
         let mut child_positioning_context = None;
@@ -2085,7 +2086,7 @@ impl IndependentFormattingContext {
     /// TODO: clarify that this is not to be used for box alignment in flex/grid
     /// <https://drafts.csswg.org/css-inline/#baseline-source>
     fn pick_baseline(&self, baselines: &Baselines) -> Option<Au> {
-        match self.style().clone_baseline_source() {
+        match self.style.clone_baseline_source() {
             BaselineSource::First => baselines.first,
             BaselineSource::Last => baselines.last,
             BaselineSource::Auto => {
@@ -2107,7 +2108,7 @@ impl IndependentFormattingContext {
         block_size: Au,
         baseline_offset_in_content_area: Au,
     ) -> (LineBlockSizes, Au) {
-        let mut contribution = if !is_baseline_relative(self.style().clone_vertical_align()) {
+        let mut contribution = if !is_baseline_relative(self.style.clone_vertical_align()) {
             LineBlockSizes {
                 line_height: block_size,
                 baseline_relative_size_for_line_height: None,
@@ -2128,7 +2129,7 @@ impl IndependentFormattingContext {
         let baseline_offset = ifc
             .current_inline_container_state()
             .get_cumulative_baseline_offset_for_child(
-                self.style().clone_vertical_align(),
+                self.style.clone_vertical_align(),
                 &contribution,
             );
         contribution.adjust_for_baseline_offset(baseline_offset);

@@ -173,16 +173,6 @@ impl IndependentFormattingContext {
         }
     }
 
-    // TODO(valadaptive): remove this since we no longer have to retrieve this from the "inner" struct?
-    pub fn style(&self) -> &Arc<ComputedValues> {
-        &self.style
-    }
-
-    // TODO(valadaptive): remove this since we no longer have to retrieve this from the "inner" struct?
-    pub fn base_fragment_info(&self) -> BaseFragmentInfo {
-        self.base_fragment_info
-    }
-
     pub fn inline_content_sizes(&self, layout_context: &LayoutContext) -> ContentSizes {
         match &self.contents {
             IndependentFormattingContextContents::NonReplaced(inner) => {

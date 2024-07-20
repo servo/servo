@@ -287,7 +287,7 @@ where
         if inline_table {
             self.inline_formatting_context_builder.push_atomic(ifc);
         } else {
-            let anonymous_info = self.info.new_anonymous(ifc.style().clone());
+            let anonymous_info = self.info.new_anonymous(ifc.style.clone());
             let table_block = ArcRefCell::new(BlockLevelBox::Independent(ifc));
             self.end_ongoing_inline_formatting_context();
             self.block_level_boxes.push(BlockLevelJob {
