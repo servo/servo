@@ -108,6 +108,7 @@ async function testFrame(frame, colorSpace, pixelFormat) {
       format: pixelFormat,
       colorSpace: colorSpace
     };
+    assert_equals(frame.allocationSize(options), copy_to_buf.byteLength);
     layout = await frame.copyTo(copy_to_buf, options);
   } catch (e) {
     assert_unreached(`copyTo() failure: ${e}`);

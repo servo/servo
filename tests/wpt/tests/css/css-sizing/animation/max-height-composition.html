@@ -74,5 +74,18 @@ test_composition({
   {at: 1, expect: 'none'},
   {at: 1.5, expect: 'none'},
 ]);
+
+test_composition({
+  property: 'max-height',
+  underlying: '100px',
+  addFrom: 'min-content',
+  addTo: '100px',
+}, [
+  {at: -0.3, expect: 'min-content'},
+  {at: 0, expect: 'min-content'},
+  {at: 0.5, expect: '200px'},
+  {at: 1, expect: '200px'},
+  {at: 1.5, expect: '200px'},
+]);
 </script>
 </body>

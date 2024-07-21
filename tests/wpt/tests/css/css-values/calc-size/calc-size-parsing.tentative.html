@@ -21,6 +21,19 @@ test_invalid_value("min-width",  "calc-size(none, size)");
 test_invalid_value("max-height", "calc-size(none, size)");
 test_invalid_value("max-width",  "calc-size(none, size)");
 
+test_valid_value("width",           "calc-size(max-content, size)");
+test_valid_value("height",          "calc-size(max-content, size)");
+test_valid_value("max-width",       "calc-size(max-content, size)");
+test_valid_value("max-height",      "calc-size(max-content, size)");
+test_valid_value("min-width",       "calc-size(max-content, size)");
+test_valid_value("min-height",      "calc-size(max-content, size)");
+test_valid_value("block-size",      "calc-size(max-content, size)");
+test_valid_value("inline-size",     "calc-size(max-content, size)");
+test_valid_value("max-block-size",  "calc-size(max-content, size)");
+test_valid_value("max-inline-size", "calc-size(max-content, size)");
+test_valid_value("min-block-size",  "calc-size(max-content, size)");
+test_valid_value("min-inline-size", "calc-size(max-content, size)");
+
 test_valid_value("width",      "calc-size(fit-content, size)");
 test_valid_value("height",     "calc-size(min-content, size * 2)");
 test_valid_value("max-width",  "calc-size(max-content, size / 2)");

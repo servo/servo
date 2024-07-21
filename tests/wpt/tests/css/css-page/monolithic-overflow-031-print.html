@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/40415661">
+<link rel="match" href="monolithic-overflow-031-print-ref.html">
+<style>
+  body {
+    margin: 0;
+  }
+  @page {
+    size: 400px 300px;
+    margin: 0;
+  }
+</style>
+<div style="box-decoration-break:clone; height:675px; border:solid black; border-width:50px 0; border-bottom-color:gray;">
+  <div style="contain:size; width:50%; height:1450px; background:yellow;">
+    <div style="width:350px;">
+      There should be 5 pages. The yellow box should go all the way to the
+      bottom of the fifth page. There should be a black top border at the top of
+      the first page, and a gray bottom border around halfway down on the third
+      page. The yellow box should be on the top of the gray border.
+    </div>
+  </div>
+</div>

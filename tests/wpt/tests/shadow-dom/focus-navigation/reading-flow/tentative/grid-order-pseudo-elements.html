@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Display: reading-flow with value grid-order and pseudo elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='../../resources/shadow-dom.js'></script>
+<script src="../../resources/focus-utils.js"></script>
+
+<style>
+.wrapper {
+  display: grid;
+  reading-flow: grid-order;
+}
+.wrapper::before {
+  content: "A";
+  order: 4;
+}
+.wrapper::after {
+  content: "Z";
+  order: 2;
+}
+</style>
+
+<div class="test-case" data-expect="o1,o3"
+      data-description="Grid pseudo items are not focusable">
+  <div class="wrapper" id="wrapper">
+    <button id="o3" style="order: 3">Item 3</button>
+    <button id="o1" style="order: 1">Item 1</button>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

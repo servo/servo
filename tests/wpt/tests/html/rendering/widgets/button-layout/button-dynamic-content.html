@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="help" href="https://issues.chromium.org/issues/353898969">
+<link rel="match" href="button-dynamic-content-ref.html">
+<button style="width: 100px; height: 100px;">
+  text text text text text text text text
+  <span id="target"></span>
+</button>
+<script>
+document.body.offsetTop;
+document.getElementById('target').innerText = "text";
+</script>

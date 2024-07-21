@@ -1679,6 +1679,7 @@
                         () => tm.getActualBoundingBox(0, text.length + 1) );
       assert_throws_dom("IndexSizeError",
                         () => tm.getActualBoundingBox(text.length, text.length + 1) );
+    }
 
 - name: 2d.text.measure.caret-position.tentative
   desc: >-

@@ -13,7 +13,7 @@ const tests = [
   {
     name: '[argMin/Max] Test with default options.',
     input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
-    output: {dataType: 'float32', dimensions: []}
+    output: {dimensions: []}
   },
   {
     name: '[argMin/Max] Test with axes=[].',
@@ -21,7 +21,7 @@ const tests = [
     options: {
       axes: [],
     },
-    output: {dataType: 'float32', dimensions: [1, 2, 3, 4]}
+    output: {dimensions: [1, 2, 3, 4]}
   },
   {
     name: '[argMin/Max] Test scalar input with empty axes.',
@@ -29,7 +29,7 @@ const tests = [
     options: {
       axes: [],
     },
-    output: {dataType: 'float32', dimensions: []}
+    output: {dimensions: []}
   },
   {
     name: '[argMin/Max] Test with axes=[1].',
@@ -37,7 +37,7 @@ const tests = [
     options: {
       axes: [1],
     },
-    output: {dataType: 'float32', dimensions: [1, 3, 4]}
+    output: {dimensions: [1, 3, 4]}
   },
   {
     name: '[argMin/Max] Test with axes=[1, 3] and keepDimensions=true.',
@@ -46,7 +46,7 @@ const tests = [
       axes: [1, 3],
       keepDimensions: true,
     },
-    output: {dataType: 'float32', dimensions: [1, 1, 3, 1]}
+    output: {dimensions: [1, 1, 3, 1]}
   },
   {
     name: '[argMin/Max] Test with axes=[1, 3] and keepDimensions=false.',
@@ -55,7 +55,7 @@ const tests = [
       axes: [1, 3],
       keepDimensions: false,
     },
-    output: {dataType: 'float32', dimensions: [1, 3]}
+    output: {dimensions: [1, 3]}
   },
   {
     name: '[argMin/Max] Test with axes=[1] and selectLastIndex=true.',
@@ -64,7 +64,7 @@ const tests = [
       axes: [1],
       selectLastIndex: true,
     },
-    output: {dataType: 'float32', dimensions: [1, 3, 4]}
+    output: {dimensions: [1, 3, 4]}
   },
   {
     name: '[argMin/Max] Test with axes=[1] and selectLastIndex=false.',
@@ -73,7 +73,7 @@ const tests = [
       axes: [1],
       selectLastIndex: false,
     },
-    output: {dataType: 'float32', dimensions: [1, 3, 4]}
+    output: {dimensions: [1, 3, 4]}
   },
   {
     name:
@@ -98,6 +98,24 @@ const tests = [
       axes: [1],
     },
   },
+  {
+    name: '[argMin/Max] Test with outputDataType=int32',
+    input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
+    options: {
+      axes: [1],
+      outputDataType: 'int32',
+    },
+    output: {dimensions: [1, 3, 4]}
+  },
+  {
+    name: '[argMin/Max] Test with outputDataType=int64',
+    input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
+    options: {
+      axes: [1],
+      outputDataType: 'int64',
+    },
+    output: {dimensions: [1, 3, 4]}
+  },
 ];
 
 function runTests(operatorName, tests) {
@@ -106,10 +124,21 @@ function runTests(operatorName, tests) {
       const input = builder.input(
           'input',
           {dataType: test.input.dataType, dimensions: test.input.dimensions});
-
+      if (test.options && test.options.outputDataType !== undefined) {
+        if (context.opSupportLimits()[operatorName].output.dataTypes.includes(
+                test.options.outputDataType)) {
+          const output = builder[operatorName](input, test.options);
+          assert_equals(output.dataType(), test.options.outputDataType);
+          assert_array_equals(output.shape(), test.output.dimensions);
+        } else {
+          assert_throws_js(
+              TypeError, () => builder[operatorName](input, test.options));
+        }
+        return;
+      }
       if (test.output) {
         const output = builder[operatorName](input, test.options);
-        assert_equals(output.dataType(), 'int64');
+        assert_equals(output.dataType(), 'int32');
         assert_array_equals(output.shape(), test.output.dimensions);
       } else {
         assert_throws_js(
