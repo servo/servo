@@ -1197,8 +1197,8 @@ checksum = "96a6ac251f4a2aca6b3f91340350eab87ae57c3f127ffeb585e92bd336717991"
 
 [[package]]
 name = "d3d12"
-version = "0.20.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=f25e07b984ab391628d9568296d5970981d79d8b#f25e07b984ab391628d9568296d5970981d79d8b"
+version = "22.0.0"
+source = "git+https://github.com/gfx-rs/wgpu?rev=c0e7c1ef945a7dd61c81fb951ea554213811aee0#c0e7c1ef945a7dd61c81fb951ea554213811aee0"
 dependencies = [
  "bitflags 2.6.0",
  "libloading",
@@ -3882,9 +3882,9 @@ dependencies = [
 
 [[package]]
 name = "metal"
-version = "0.28.0"
+version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5637e166ea14be6063a3f8ba5ccb9a4159df7d8f6d61c02fc3d480b1f90dcfcb"
+checksum = "7ecfd3296f8c56b7c1f6fbac3c71cefa9d78ce009850c45000015f206dc7fa21"
 dependencies = [
  "bitflags 2.6.0",
  "block",
@@ -4039,12 +4039,13 @@ checksum = "956787520e75e9bd233246045d19f42fb73242759cc57fba9611d940ae96d4b0"
 
 [[package]]
 name = "naga"
-version = "0.20.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=f25e07b984ab391628d9568296d5970981d79d8b#f25e07b984ab391628d9568296d5970981d79d8b"
+version = "22.0.0"
+source = "git+https://github.com/gfx-rs/wgpu?rev=c0e7c1ef945a7dd61c81fb951ea554213811aee0#c0e7c1ef945a7dd61c81fb951ea554213811aee0"
 dependencies = [
  "arrayvec",
  "bit-set",
  "bitflags 2.6.0",
+ "cfg_aliases 0.1.1",
  "codespan-reporting",
  "hexf-parse",
  "indexmap",
@@ -7403,8 +7404,8 @@ checksum = "53a85b86a771b1c87058196170769dd264f66c0782acf1ae6cc51bfd64b39082"
 
 [[package]]
 name = "wgpu-core"
-version = "0.20.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=f25e07b984ab391628d9568296d5970981d79d8b#f25e07b984ab391628d9568296d5970981d79d8b"
+version = "22.0.0"
+source = "git+https://github.com/gfx-rs/wgpu?rev=c0e7c1ef945a7dd61c81fb951ea554213811aee0#c0e7c1ef945a7dd61c81fb951ea554213811aee0"
 dependencies = [
  "arrayvec",
  "bit-vec",
@@ -7428,8 +7429,8 @@ dependencies = [
 
 [[package]]
 name = "wgpu-hal"
-version = "0.20.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=f25e07b984ab391628d9568296d5970981d79d8b#f25e07b984ab391628d9568296d5970981d79d8b"
+version = "22.0.0"
+source = "git+https://github.com/gfx-rs/wgpu?rev=c0e7c1ef945a7dd61c81fb951ea554213811aee0#c0e7c1ef945a7dd61c81fb951ea554213811aee0"
 dependencies = [
  "android_system_properties",
  "arrayvec",
@@ -7449,7 +7450,7 @@ dependencies = [
  "libc",
  "libloading",
  "log",
- "metal 0.28.0",
+ "metal 0.29.0",
  "naga",
  "ndk-sys",
  "objc",
@@ -7469,8 +7470,8 @@ dependencies = [
 
 [[package]]
 name = "wgpu-types"
-version = "0.20.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=f25e07b984ab391628d9568296d5970981d79d8b#f25e07b984ab391628d9568296d5970981d79d8b"
+version = "22.0.0"
+source = "git+https://github.com/gfx-rs/wgpu?rev=c0e7c1ef945a7dd61c81fb951ea554213811aee0#c0e7c1ef945a7dd61c81fb951ea554213811aee0"
 dependencies = [
  "bitflags 2.6.0",
  "js-sys",
