@@ -330,21 +330,21 @@ struct TestData {
     let index = (${indexToTest})${exprIndexAddon};`;
         const exprZeroElement = `${_kTypeInfo.elementBaseType}()`;
         const exprElement = `s.data[index]`;
-
+        const suffices = _kTypeInfo.accessSuffixes ?? [''];
         switch (access) {
           case 'read':
             {
-              let exprLoadElement = isAtomic ? `atomicLoad(&${exprElement})` : exprElement;
-              if (addressSpace === 'uniform' && containerType === 'array') {
-                // Scalar types will be wrapped in a vec4 to satisfy array element size
-                // requirements for the uniform address space, so we need an additional index
-                // accessor expression.
-                exprLoadElement += '[0]';
+              const exprLoadElement = isAtomic ? `atomicLoad(&${exprElement})` : exprElement;
+              let conditions = suffices.map((x) => `${exprLoadElement}${x} != ${exprZeroElement}`);
+              if (containerType === 'matrix') {
+                // The comparison is a vector bool result.
+                // Convert that to a scalar bool.
+                conditions = conditions.map((c) => `any(${c})`);
               }
-              let condition = `${exprLoadElement} != ${exprZeroElement}`;
-              if (containerType === 'matrix') condition = `any(${condition})`;
-              testFunctionSource += `
-    if (${condition}) { return ${nextErrorReturnValue()}; }`;
+              conditions.forEach((c) => {
+                testFunctionSource += `
+    if (${c}) { return ${nextErrorReturnValue()}; }`;
+              });
             }
             break;
 
@@ -353,8 +353,10 @@ struct TestData {
               testFunctionSource += `
     atomicStore(&s.data[index], ${exprZeroElement});`;
             } else {
-              testFunctionSource += `
-    s.data[index] = ${exprZeroElement};`;
+              suffices.forEach((x) => {
+                testFunctionSource += `
+    s.data[index]${x} = ${exprZeroElement};`;
+              });
             }
             break;
         }
