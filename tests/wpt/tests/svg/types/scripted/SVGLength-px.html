@@ -24,11 +24,11 @@ setup(function() {
 });
 
 function valueInPx(valueAndUnits) {
-  let div = document.createElement("div");
-  div.style.height = valueAndUnits;
-  document.documentElement.appendChild(div);
-  let pxValue = parseFloat(getComputedStyle(div).getPropertyValue("height"));
-  document.documentElement.removeChild(div);
+  let span = document.createElement("span");
+  span.style.height = valueAndUnits;
+  document.documentElement.appendChild(span);
+  let pxValue = parseFloat(getComputedStyle(span).getPropertyValue("height"));
+  document.documentElement.removeChild(span);
   return pxValue;
 }
 

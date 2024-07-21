@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<title>@scope - Sibling Style Sharing</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scope-atrule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<main id=main></main>
+
+<template id=test_1>
+  <style>
+    @scope (.scope-start) to (.sibling + .sibling) {
+      .foo {
+        z-index: 1;
+      }
+    }
+  </style>
+  <div class="scope-start">
+    <div id="first" class="sibling foo"></div>
+    <div id="second" class="sibling foo"></div>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_1.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(first).zIndex, '1');
+  assert_equals(getComputedStyle(second).zIndex, 'auto');
+}, '@scope with sibling style sharing, second sibling exits scope');
+</script>
+
+<template id=test_2>
+  <style>
+    @scope (.scope-start) to (.sibling:not(.sibling + div)) {
+      .foo {
+        z-index: 1;
+      }
+    }
+  </style>
+  <div class="scope-start">
+    <div id="first" class="sibling foo"></div>
+    <div id="second" class="sibling foo"></div>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_2.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(first).zIndex, 'auto');
+  assert_equals(getComputedStyle(second).zIndex, '1');
+}, '@scope with sibling style sharing, first sibling matches scope');
+</script>
+
+<template id=test_3>
+  <style>
+    @scope (.sibling:not(.sibling + div)) {
+      :scope {
+        z-index: 1;
+      }
+    }
+  </style>
+  <div id="first" class="sibling"></div>
+  <div id="second" class="sibling"></div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_3.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(first).zIndex, '1');
+  assert_equals(getComputedStyle(second).zIndex, 'auto');
+}, '@scope with sibling style sharing, first sibling enters scope');
+</script>
+
+<template id=test_4>
+  <style>
+    @scope (.sibling + .sibling) {
+      :scope {
+        z-index: 1;
+      }
+    }
+  </style>
+  <div id="first" class="sibling"></div>
+  <div id="second" class="sibling"></div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_4.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(first).zIndex, 'auto');
+  assert_equals(getComputedStyle(second).zIndex, '1');
+}, '@scope with sibling style sharing, second sibling enters scope');
+</script>
+
+<template id=test_5>
+  <div id="first" class="sibling">
+    <style>
+      @scope {
+        :scope {
+          z-index: 1;
+        }
+      }
+    </style>
+  </div>
+  <div id="second" class="sibling">
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_5.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(first).zIndex, '1');
+  assert_equals(getComputedStyle(second).zIndex, 'auto');
+}, '@scope with sibling style sharing, first sibling has implicit scope');
+</script>
+
+<template id=test_6>
+  <div id="first" class="sibling">
+  </div>
+  <div id="second" class="sibling">
+    <style>
+      @scope {
+        :scope {
+          z-index: 1;
+        }
+      }
+    </style>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_6.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(first).zIndex, 'auto');
+  assert_equals(getComputedStyle(second).zIndex, '1');
+}, '@scope with sibling style sharing, second sibling has implicit scope');
+</script>
+
+<template id=test_7>
+  <style>
+    @scope to (.sibling + .sibling) {
+      .foo {
+        z-index: 1;
+      }
+    }
+  </style>
+  <div id="first" class="sibling foo"></div>
+  <div id="second" class="sibling foo"></div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_7.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(first).zIndex, '1');
+  assert_equals(getComputedStyle(second).zIndex, 'auto');
+}, '@scope with sibling style sharing, second sibling exits implicit scope');
+</script>
+
+<template id=test_8>
+  <style>
+    @scope to (.sibling:not(.sibling + div)) {
+      .foo {
+        z-index: 1;
+      }
+    }
+  </style>
+  <div id="first" class="sibling foo"></div>
+  <div id="second" class="sibling foo"></div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_8.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(first).zIndex, 'auto');
+  assert_equals(getComputedStyle(second).zIndex, '1');
+}, '@scope with sibling style sharing, first sibling exits implicit scope');
+</script>
+
+<template id=test_9>
+  <style>
+    @scope (.sibling:has(> .foo)) {
+      :scope {
+        z-index: 1;
+      }
+    }
+  </style>
+  <div id="first" class="sibling"><div class="foo"></div></div>
+  <div id="second" class="sibling"></div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_9.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(first).zIndex, '1');
+  assert_equals(getComputedStyle(second).zIndex, 'auto');
+}, '@scope with sibling style sharing, first sibling enters scope with :has');
+</script>
+
+<template id=test_10>
+  <style>
+    @scope (.sibling:has(> .foo)) {
+      :scope {
+        z-index: 1;
+      }
+    }
+  </style>
+  <div id="first" class="sibling"></div>
+  <div id="second" class="sibling"><div class="foo"></div></div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_10.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(first).zIndex, 'auto');
+  assert_equals(getComputedStyle(second).zIndex, '1');
+}, '@scope with sibling style sharing, second sibling enters scope with :has');
+</script>
+
+<template id=test_11>
+  <style>
+    @scope (#first) {
+      :scope {
+        z-index: 1;
+      }
+    }
+  </style>
+  <div id="first" class="sibling"></div>
+  <div id="second" class="sibling"></div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_11.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(first).zIndex, '1');
+  assert_equals(getComputedStyle(second).zIndex, 'auto');
+}, '@scope with sibling style sharing, first sibling enters scope with ID selector');
+</script>
+
+<template id=test_12>
+  <style>
+    @scope (#second) {
+      :scope {
+        z-index: 1;
+      }
+    }
+  </style>
+  <div id="first" class="sibling"></div>
+  <div id="second" class="sibling"></div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_12.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(first).zIndex, 'auto');
+  assert_equals(getComputedStyle(second).zIndex, '1');
+}, '@scope with sibling style sharing, second sibling enters scope with ID selector');
+</script>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test mrow fallback for some MathML elements (preferred logical widths)</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#script-and-limit-schemata">
+<meta name="assert" content="Verify that invalid markup fallbacks to mrow behaviour when computing preferred logical widths.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
+<script src="/mathml/support/fonts.js"></script>
+<script src="/mathml/support/layout-comparison.js"></script>
+<script src="/mathml/support/mathml-fragments.js"></script>
+<script src="/mathml/support/invalid-markup.js"></script>
+<style>
+  /* Revert style specified in the UA style sheet that changes box size. */
+  mfrac { padding-inline: 0; }
+</style>
+<script>
+  setup({ explicit_done: true });
+  window.addEventListener("load", () => { loadAllFonts().then(runTests); });
+
+  function wrapShrink(el) {
+    let wrapper = document.createElement("div");
+    let math = FragmentHelper.createElement("math");
+    wrapper.style.display = "inline-block";
+    math.appendChild(el);
+    wrapper.appendChild(math);
+    return wrapper;
+  }
+
+  function runTests() {
+    let container = document.getElementById("container");
+    let invalidMarkup = generateInvalidMarkup();
+    const epsilon = 1;
+
+    for (let math of invalidMarkup.children) {
+      let element = math.firstElementChild;
+      let reference = element.nextElementSibling;
+      let description = element.dataset.description;
+
+      // generateInvalidMarkup() puts both the element and the reference in the same <math>.
+      // To test preferred logical widths, we need to separate them out under different divs.
+      let elementWrapper = wrapShrink(element);
+      let referenceWrapper = wrapShrink(reference);
+      container.append(elementWrapper, referenceWrapper);
+      test(function() {
+        assert_approx_equals(elementWrapper.getBoundingClientRect().width, referenceWrapper.getBoundingClientRect().width, epsilon);
+      }, `Invalid <${element.tagName}> should fallback to mrow behaviour when computing preferred logical widths (${description})`);
+    }
+
+    done();
+  }
+</script>
+</head>
+<body>
+  <div id="log"></div>
+  <div id="container"></div>
+</body>
+</html>

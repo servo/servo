@@ -9,16 +9,27 @@ body {
     margin: 0;
     padding: 0;
 }
+iframe {
+    border: 0;
+    width: 400px;
+    height: 400px;
+}
 </style>
 </head>
 <body>
-    <iframe id="iframe" width=400 height=400 frameBorder=0 src="font-size-adjust-reload-ref.html"></iframe>
+    <script>
+        let loadCount = 0;
+        const iframe = document.createElement("iframe");
+        iframe.addEventListener("load", function() {
+            if (loadCount == 2) {
+                document.documentElement.classList.remove("reftest-wait");
+                return;
+            }
+            iframe.contentWindow.location.reload();
+            loadCount++;
+        });
+        iframe.src = "font-size-adjust-reload-ref.html";
+        document.body.append(iframe);
+    </script>
 </body>
-<script>
-    const iframe = document.getElementById('iframe');
-    iframe.contentWindow.location.reload();
-    iframe.contentWindow.onload = function(){
-        document.documentElement.classList.remove("reftest-wait");
-    };
-</script>
 </html>

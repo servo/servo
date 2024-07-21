@@ -497,16 +497,6 @@ class TestLoader:
         self.tests = tests_enabled
         self.disabled_tests = tests_disabled
 
-    def groups(self, test_types, chunk_type="none", total_chunks=1, chunk_number=1):
-        groups = set()
-
-        for test_type in test_types:
-            for test in self.tests[test_type]:
-                group = test.url.split("/")[1]
-                groups.add(group)
-
-        return groups
-
 
 
 def get_test_queue_builder(**kwargs: Any) -> Tuple[TestQueueBuilder, Mapping[str, Any]]:

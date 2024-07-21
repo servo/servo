@@ -25,14 +25,18 @@ def test_make_hosts_file_nix():
                        not_subdomains={"x, y"}) as c:
         hosts = serve.make_hosts_file(c, "192.168.42.42")
         lines = hosts.split("\n")
-        assert set(lines) == {"",
-                              "192.168.42.42\tfoo.bar",
-                              "192.168.42.42\tfoo2.bar",
-                              "192.168.42.42\ta.foo.bar",
-                              "192.168.42.42\ta.foo2.bar",
-                              "192.168.42.42\tb.foo.bar",
-                              "192.168.42.42\tb.foo2.bar"}
-        assert lines[-1] == ""
+        assert lines == [
+            "# Start web-platform-tests hosts",
+            "192.168.42.42\tfoo.bar",
+            "192.168.42.42\ta.foo.bar",
+            "192.168.42.42\tb.foo.bar",
+            "192.168.42.42\tfoo2.bar",
+            "192.168.42.42\ta.foo2.bar",
+            "192.168.42.42\tb.foo2.bar",
+            "# End web-platform-tests hosts",
+            "",
+        ]
+
 
 @pytest.mark.skipif(platform.uname()[0] != "Windows",
                     reason="Expected contents are platform-dependent")
@@ -45,18 +49,21 @@ def test_make_hosts_file_windows():
                        not_subdomains={"x", "y"}) as c:
         hosts = serve.make_hosts_file(c, "192.168.42.42")
         lines = hosts.split("\n")
-        assert set(lines) == {"",
-                              "0.0.0.0\tx.foo.bar",
-                              "0.0.0.0\tx.foo2.bar",
-                              "0.0.0.0\ty.foo.bar",
-                              "0.0.0.0\ty.foo2.bar",
-                              "192.168.42.42\tfoo.bar",
-                              "192.168.42.42\tfoo2.bar",
-                              "192.168.42.42\ta.foo.bar",
-                              "192.168.42.42\ta.foo2.bar",
-                              "192.168.42.42\tb.foo.bar",
-                              "192.168.42.42\tb.foo2.bar"}
-        assert lines[-1] == ""
+        assert lines == [
+            "# Start web-platform-tests hosts",
+            "192.168.42.42\tfoo.bar",
+            "192.168.42.42\ta.foo.bar",
+            "192.168.42.42\tb.foo.bar",
+            "192.168.42.42\tfoo2.bar",
+            "192.168.42.42\ta.foo2.bar",
+            "192.168.42.42\tb.foo2.bar",
+            "0.0.0.0\tx.foo.bar",
+            "0.0.0.0\ty.foo.bar",
+            "0.0.0.0\tx.foo2.bar",
+            "0.0.0.0\ty.foo2.bar",
+            "# End web-platform-tests hosts",
+            "",
+        ]
 
 
 def test_ws_doc_root_default():

@@ -128,11 +128,15 @@ def get_loader(test_paths: wptcommandline.TestPaths,
 def list_test_groups(test_paths, product, **kwargs):
     env.do_delayed_imports(logger, test_paths)
 
-    _, test_loader = get_loader(test_paths,
-                                product,
-                                **kwargs)
+    test_queue_builder, test_loader = get_loader(test_paths,
+                                                 product,
+                                                 **kwargs)
 
-    for item in sorted(test_loader.groups(kwargs["test_types"])):
+    tests_by_type = {(subsuite_name, test_type): tests
+                     for subsuite_name, subsuite_tests in test_loader.tests.items()
+                     for test_type, tests in subsuite_tests.items()}
+
+    for item in sorted(test_queue_builder.tests_by_group(tests_by_type)):
         print(item)
 
 

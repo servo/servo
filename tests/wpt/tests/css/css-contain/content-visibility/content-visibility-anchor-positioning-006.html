@@ -1,0 +1,90 @@
+<!doctype HTML>
+<meta charset=utf8>
+<title>CSS Content Visibility: auto not skipped, but skipped after positioned-element becomes display:none</title>
+<link rel="author" title="Chris Harrelson" href="mailto:chrishtr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-relevance">
+<script src="/web-animations/testcommon.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+#anchor, #positioned {
+  width: 200px;
+  height: 200px;
+}
+
+#lock {
+  height: 400px;
+  width: 400px;
+  content-visibility: auto;
+  border: 1px solid black;
+}
+
+pre {
+  position: relative;
+  top: 200px;
+}
+
+#container {
+  position:relative;
+  height: 10000px;
+}
+
+#anchor {
+  anchor-name: --anchor;
+  background-color: lightblue;
+}
+
+#anchor2 {
+  anchor-name: --anchor2;
+}
+
+#positioned {
+  position: absolute;
+  background-color: lightgreen;
+  left: anchor(right);
+  top: anchor( --anchor2 top);
+}
+</style>
+<div id=container>
+  <div id=lock>
+    <div id=anchor></div>
+    <div>
+      <div id=anchor2></div>
+    </div>
+  </div>
+  <div id=positioned></div>
+</div>
+
+<pre id=output>
+</pre>
+<script>
+"use strict";
+
+let skipped = false;
+lock.addEventListener("contentvisibilityautostatechange",
+  (e) => {
+    skipped = e.skipped;
+  });
+
+promise_test(async t => {
+
+  positioned.style.positionAnchor = "--anchor";
+  await waitForAnimationFrames(2);
+
+  assert_equals(positioned.getBoundingClientRect().left, 209,
+    '#positioned should be anchored because #anchor is on-screen.');
+
+  window.scrollTo(0, 10000);
+  await waitForAnimationFrames(2);
+
+  assert_equals(positioned.getBoundingClientRect().left, 209,
+    '#positioned should be anchored because it was anchored to #anchor before #anchor was scrolled offscreen, so #anchor does not become skipped.');
+  assert_false(skipped, "The content-visibility subtree is not skipped despite being offscreen.");
+
+  positioned.style.display = "none";
+  await waitForAnimationFrames(2);
+  assert_true(skipped, "The content-visibility subtree is now skipped.");
+});
+
+</script>

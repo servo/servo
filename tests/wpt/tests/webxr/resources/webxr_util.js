@@ -26,16 +26,19 @@ function xr_promise_test(name, func, properties, glContextType, glContextPropert
 
     // Only set up once.
     if (!navigator.xr.test) {
-      // Load test-only API helpers.
-      const script = document.createElement('script');
-      script.src = '/resources/test-only-api.js';
-      script.async = false;
-      const p = new Promise((resolve, reject) => {
-        script.onload = () => { resolve(); };
-        script.onerror = e => { reject(e); };
-      })
-      document.head.appendChild(script);
-      await p;
+
+      if (typeof isChromiumBased === 'undefined' || typeof isWebKitBased === 'undefined') {
+        // Load test-only API helpers.
+        const script = document.createElement('script');
+        script.src = '/resources/test-only-api.js';
+        script.async = false;
+        const p = new Promise((resolve, reject) => {
+          script.onload = () => { resolve(); };
+          script.onerror = e => { reject(e); };
+        });
+        document.head.appendChild(script);
+        await p;
+      }
 
       if (isChromiumBased) {
         // Chrome setup

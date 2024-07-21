@@ -31,4 +31,15 @@ fedcm_test(async t => {
   });
 }, "Test that the button mode succeeds with user activation.");
 
+fedcm_test(async t => {
+  let test_options = request_options_with_mediation_required("manifest_with_rp_mode.json");
+  test_options.identity.mode = "button";
+  test_options.mediation = "silent";
+
+  return test_driver.bless('initiate FedCM request', async function() {
+      let cred = fedcm_get_and_select_first_account(t, test_options);
+      let rej = promise_rejects_dom(t, 'NotSupportedError', cred);
+      await rej;
+  });
+}, "Test that the mediation:silent is not supported in button mode.");
 </script>

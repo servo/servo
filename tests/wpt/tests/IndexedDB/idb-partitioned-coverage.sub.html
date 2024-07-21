@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>IndexedDB: partitioned storage test</title>
+<meta name=help href="https://privacycg.github.io/storage-partitioning/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<iframe id="iframe" src="http://{{hosts[alt][]}}:{{ports[http][0]}}/IndexedDB/resources/idb-partitioned-coverage-iframe.html"></iframe>
+<script>
+fetch_tests_from_window(document.getElementById("iframe").contentWindow);
+</script>
+</body>

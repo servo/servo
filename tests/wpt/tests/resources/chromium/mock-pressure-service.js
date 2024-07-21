@@ -1,4 +1,4 @@
-import {PressureStatus} from '/gen/services/device/public/mojom/pressure_manager.mojom.m.js'
+import {PressureClientRemote, PressureManagerAddClientError} from "/gen/services/device/public/mojom/pressure_manager.mojom.m.js";
 import {PressureSource, PressureState} from '/gen/services/device/public/mojom/pressure_update.mojom.m.js'
 import {WebPressureManager, WebPressureManagerReceiver} from '/gen/third_party/blink/public/mojom/compute_pressure/web_pressure_manager.mojom.m.js'
 
@@ -37,26 +37,29 @@ class MockWebPressureService {
     this.observers_ = [];
     this.pressureUpdate_ = null;
     this.pressureServiceReadingTimerId_ = null;
-    this.pressureStatus_ = PressureStatus.kOk;
+    this.addClientError_ = null;
     this.updatesDelivered_ = 0;
   }
 
-  async addClient(observer, source) {
-    if (this.observers_.indexOf(observer) >= 0)
-      throw new Error('addClient() has already been called');
-
+  async addClient(source) {
     // TODO(crbug.com/1342184): Consider other sources.
     // For now, "cpu" is the only source.
     if (source !== PressureSource.kCpu)
       throw new Error('Call addClient() with a wrong PressureSource');
 
-    observer.onConnectionError.addListener(() => {
-      // Remove this observer from observer array.
-      this.observers_.splice(this.observers_.indexOf(observer), 1);
-    });
-    this.observers_.push(observer);
+    if (this.addClientError_ !== null) {
+      return {result: {error: this.addClientError_}};
+    }
 
-    return {status: this.pressureStatus_};
+    const pressureClientRemote = new PressureClientRemote();
+    pressureClientRemote.onConnectionError.addListener(() => {
+      // Remove this observer from observer array.
+      this.observers_.splice(this.observers_.indexOf(pressureClientRemote), 1);
+    });
+    const pendingReceiver = pressureClientRemote.$.bindNewPipeAndPassReceiver();
+    this.observers_.push(pressureClientRemote);
+
+    return {result: {pressureClient: pendingReceiver}};
   }
 
   startPlatformCollector(sampleInterval) {
@@ -117,7 +120,7 @@ class MockWebPressureService {
         expectedException instanceof DOMException,
         'setExpectedFailure() expects a DOMException instance');
     if (expectedException.name === 'NotSupportedError') {
-      this.pressureStatus_ = PressureStatus.kNotSupported;
+      this.addClientError_ = PressureManagerAddClientError.kNotSupported;
     } else {
       throw new TypeError(
           `Unexpected DOMException '${expectedException.name}'`);

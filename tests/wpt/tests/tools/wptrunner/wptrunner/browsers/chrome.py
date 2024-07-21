@@ -151,7 +151,7 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data, subsuite
 
     if kwargs["enable_swiftshader"]:
         # https://chromium.googlesource.com/chromium/src/+/HEAD/docs/gpu/swiftshader.md
-        chrome_options["args"].extend(["--use-gl=angle", "--use-angle=swiftshader"])
+        chrome_options["args"].extend(["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
 
     if kwargs["enable_experimental"]:
         chrome_options["args"].extend(["--enable-experimental-web-platform-features"])

@@ -900,6 +900,29 @@
         "data": 166.57718752610668,
         "type": "float32"
       }
+    },
+    {
+      "name": "add float32 with special character names",
+      "inputs": {
+        "12-L#!.☺": {
+          "shape": [1],
+          "data": [89.32998288116718],
+          "type": "float32",
+          "constant": true
+        },
+        "🤦🏼‍♂️124DS#!F": {
+          "shape": [1],
+          "data": [77.2472046449394945],
+          "type": "float32",
+          "constant": false
+        }
+      },
+      "expected": {
+        "name": "output",
+        "shape": [1],
+        "data": [166.57718752610668],
+        "type": "float32"
+      }
     }
   ]
 }

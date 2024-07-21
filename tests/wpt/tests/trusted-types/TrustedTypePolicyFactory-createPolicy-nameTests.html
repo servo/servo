@@ -20,21 +20,4 @@
     });
   }, "duplicate policy name attempt throws");
 
-  // Check error messages.
-  test(t => {
-    try {
-      trustedTypes.createPolicy("unknown name", {});
-    } catch (e) {
-      assert_true(e.toString().includes("disallowed"));
-      assert_false(e.toString().includes("already exists"));
-    }
-
-    try {
-      trustedTypes.createPolicy("SomeName", {});
-    } catch (e) {
-      assert_false(e.toString().includes("disallowed"));
-      assert_true(e.toString().includes("already exists"));
-    }
-  }, "Error messages for duplicates and unlisted policies should be different");
-
 </script>

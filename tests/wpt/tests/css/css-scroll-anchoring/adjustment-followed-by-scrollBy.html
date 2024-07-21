@@ -29,7 +29,7 @@ promise_test(async t => {
   assert_equals(window.scrollY, 0);
 
   // Center an element.
-  center.scrollIntoView({ block: "center" }, { behavior: "instant" });
+  center.scrollIntoView({ block: "center", behavior: "instant" });
   await new Promise(resolve => window.addEventListener("scroll", resolve));
 
   const originalPosition = center.getBoundingClientRect().top;
@@ -50,7 +50,7 @@ promise_test(async t => {
 
   // Now try to scrollIntoView({ block: "center" }) and make sure the position
   // is unchanged.
-  center.scrollIntoView({ block: "center" }, { behavior: "instant" });
+  center.scrollIntoView({ block: "center", behavior: "instant" });
 
   // Wait two frames to be able to scroll if it's possible.
   await new Promise(resolve => requestAnimationFrame(resolve));
