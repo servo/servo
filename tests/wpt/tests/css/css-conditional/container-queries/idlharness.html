@@ -1,0 +1,29 @@
+<!doctype html>
+<title>CSS Container Queries: CSSContainer Rule IDL tests</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<!-- used to provide objects -->
+<style>
+  @container cont (width = 100px) {
+    @container (inline-size > 200em) {
+      #id { color: lime }
+    }
+    #id { color: green }
+  }
+</style>
+<script>
+  idl_test(
+      ['css-conditional-5'],
+      ['css-conditional', 'cssom', 'dom'],
+      idl_array => {
+        idl_array.add_objects({
+          CSSContainerRule: ['sheet.cssRules[0]',
+                             'sheet.cssRules[0].cssRules[0]'],
+        });
+        self.sheet = document.styleSheets[0];
+      }
+    );
+</script>

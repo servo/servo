@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>CSS Display: parsing reading-flow with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<body>
+<script>
+test_valid_value('reading-flow', 'normal');
+test_valid_value('reading-flow', 'flex-visual');
+test_valid_value('reading-flow', 'flex-flow');
+test_valid_value('reading-flow', 'grid-rows');
+test_valid_value('reading-flow', 'grid-columns');
+test_valid_value('reading-flow', 'grid-order');
+</script>
+</body>

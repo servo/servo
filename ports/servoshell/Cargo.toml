@@ -21,13 +21,11 @@ bench = false
 # since build-scripts can't detect the cargo target os at build-time, we
 # must unconditionally add these dependencies. See https://github.com/rust-lang/cargo/issues/4932
 [build-dependencies]
-vergen = { version = "8.3.1", features = ["git", "git2"] }
+vergen = { version = "8.3.2", features = ["git", "git2"] }
 # Android and OpenHarmony
 gl_generator = "0.14"
-# Android only
-serde_json = { workspace = true }
 # MacOS only
-cc = "1.0"
+cc = "1.1"
 
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1"
@@ -40,14 +38,14 @@ ProductName = "Servo"
 
 [features]
 debugmozjs = ["libservo/debugmozjs"]
-default = ["max_log_level", "webdriver"]
+default = ["layout_2013", "max_log_level", "webdriver"]
 jitspew = ["libservo/jitspew"]
 js_backtrace = ["libservo/js_backtrace"]
+layout_2013 = ["libservo/layout_2013"]
 max_log_level = ["log/release_max_level_info"]
 media-gstreamer = ["libservo/media-gstreamer"]
 multiview = ["libservo/multiview"]
 native-bluetooth = ["libservo/native-bluetooth"]
-no-wgl = ["libservo/no-wgl"]
 profilemozjs = ["libservo/profilemozjs"]
 refcell_backtrace = ["libservo/refcell_backtrace"]
 webdriver = ["libservo/webdriver"]
@@ -62,6 +60,8 @@ log = { workspace = true }
 lazy_static = { workspace = true }
 getopts = { workspace = true }
 url = { workspace = true }
+servo-media = { workspace = true }
+
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.14"
@@ -69,7 +69,6 @@ ipc-channel = { workspace = true }
 jni = "0.21.1"
 libloading = "0.8"
 serde_json = { workspace = true }
-servo-media = { workspace = true }
 surfman = { workspace = true, features = ["sm-angle-default"] }
 webxr = { git = "https://github.com/servo/webxr" }
 
@@ -78,25 +77,32 @@ webxr = { git = "https://github.com/servo/webxr" }
 backtrace = { workspace = true }
 
 [target.'cfg(target_env = "ohos")'.dependencies]
+env_filter = "0.1.0"
 # force inprocess, until libc-rs 0.2.156 is released containing
 # https://github.com/rust-lang/libc/commit/9e248e212c5602cb4e98676e4c21ea0382663a12
 ipc-channel = { workspace = true, features = ["force-inprocess"] }
+hilog = "0.1.0"
+napi-derive-ohos = "0.0.9"
+napi-ohos = "0.1"
+serde_json = { workspace = true }
+surfman = { workspace = true, features = ["sm-angle-default"] }
+webxr = { git = "https://github.com/servo/webxr" }
+ohos-sys = { git = "https://github.com/jschwe/ohos-sys.git" }
 
 
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
 # For optional feature servo_allocator/use-system-allocator
 servo_allocator = { path = "../../components/allocator" }
 arboard = { version = "3" }
-egui = { version = "0.26.2" }
-egui_glow = { version = "0.26.2", features = ["winit"] }
-egui-winit = { version = "0.26.2", default-features = false, features = ["clipboard", "wayland"] }
+egui = { version = "0.28.1" }
+egui_glow = { version = "0.28.1", features = ["winit"] }
+egui-winit = { version = "0.28.1", default-features = false, features = ["clipboard", "wayland"] }
 euclid = { workspace = true }
-gilrs = "0.10.7"
+gilrs = { git = "https://gitlab.com/gilrs-project/gilrs", rev = "eafb7f2ef488874188c5d75adce9aef486be9d4e" }
 gleam = { workspace = true }
 glow = "0.13.1"
 keyboard-types = { workspace = true }
 raw-window-handle = "0.6"
-servo-media = { workspace = true }
 shellwords = "1.0.0"
 surfman = { workspace = true, features = ["sm-x11", "sm-raw-window-handle-06"] }
 tinyfiledialogs = "3.0"
@@ -110,4 +116,6 @@ image = { workspace = true }
 sig = "1.0"
 
 [target.'cfg(target_os = "windows")'.dependencies]
+webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow", "headless", "openxr-api"] }
 windows-sys = { workspace = true, features = ["Win32_Graphics_Gdi"] }
+libservo = { path = "../../components/servo", features = ["no-wgl"] }

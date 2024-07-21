@@ -4,7 +4,7 @@
 
 use std::convert::From;
 use std::fmt;
-use std::ops::{Add, AddAssign, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 
 use app_units::Au;
 use serde::Serialize;
@@ -22,8 +22,8 @@ pub type PhysicalPoint<U> = euclid::Point2D<U, CSSPixel>;
 pub type PhysicalSize<U> = euclid::Size2D<U, CSSPixel>;
 pub type PhysicalRect<U> = euclid::Rect<U, CSSPixel>;
 pub type PhysicalSides<U> = euclid::SideOffsets2D<U, CSSPixel>;
-pub type LengthOrAuto = AutoOr<Length>;
 pub type AuOrAuto = AutoOr<Au>;
+pub type LengthOrAuto = AutoOr<Length>;
 pub type LengthPercentageOrAuto<'a> = AutoOr<&'a LengthPercentage>;
 
 #[derive(Clone, Copy, Serialize)]
@@ -32,13 +32,13 @@ pub struct LogicalVec2<T> {
     pub block: T,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Copy, Serialize)]
 pub struct LogicalRect<T> {
     pub start_corner: LogicalVec2<T>,
     pub size: LogicalVec2<T>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Copy, Debug, Serialize)]
 pub struct LogicalSides<T> {
     pub inline_start: T,
     pub inline_end: T,
@@ -79,13 +79,9 @@ impl<T: Clone> LogicalVec2<T> {
     }
 }
 
-impl<T> Add<&'_ LogicalVec2<T>> for &'_ LogicalVec2<T>
-where
-    T: Add<Output = T> + Copy,
-{
+impl<T: Add<Output = T> + Copy> Add<LogicalVec2<T>> for LogicalVec2<T> {
     type Output = LogicalVec2<T>;
-
-    fn add(self, other: &'_ LogicalVec2<T>) -> Self::Output {
+    fn add(self, other: Self) -> Self::Output {
         LogicalVec2 {
             inline: self.inline + other.inline,
             block: self.block + other.block,
@@ -93,13 +89,9 @@ where
     }
 }
 
-impl<T> Sub<&'_ LogicalVec2<T>> for &'_ LogicalVec2<T>
-where
-    T: Sub<Output = T> + Copy,
-{
+impl<T: Sub<Output = T> + Copy> Sub<LogicalVec2<T>> for LogicalVec2<T> {
     type Output = LogicalVec2<T>;
-
-    fn sub(self, other: &'_ LogicalVec2<T>) -> Self::Output {
+    fn sub(self, other: Self) -> Self::Output {
         LogicalVec2 {
             inline: self.inline - other.inline,
             block: self.block - other.block,
@@ -107,41 +99,27 @@ where
     }
 }
 
-impl<T> AddAssign<&'_ LogicalVec2<T>> for LogicalVec2<T>
-where
-    T: AddAssign<T> + Copy,
-{
-    fn add_assign(&mut self, other: &'_ LogicalVec2<T>) {
+impl<T: AddAssign<T> + Copy> AddAssign<LogicalVec2<T>> for LogicalVec2<T> {
+    fn add_assign(&mut self, other: LogicalVec2<T>) {
         self.inline += other.inline;
         self.block += other.block;
     }
 }
 
-impl<T> AddAssign<LogicalVec2<T>> for LogicalVec2<T>
-where
-    T: AddAssign<T> + Copy,
-{
-    fn add_assign(&mut self, other: LogicalVec2<T>) {
-        self.add_assign(&other);
-    }
-}
-
-impl<T> SubAssign<&'_ LogicalVec2<T>> for LogicalVec2<T>
-where
-    T: SubAssign<T> + Copy,
-{
-    fn sub_assign(&mut self, other: &'_ LogicalVec2<T>) {
+impl<T: SubAssign<T> + Copy> SubAssign<LogicalVec2<T>> for LogicalVec2<T> {
+    fn sub_assign(&mut self, other: LogicalVec2<T>) {
         self.inline -= other.inline;
         self.block -= other.block;
     }
 }
 
-impl<T> SubAssign<LogicalVec2<T>> for LogicalVec2<T>
-where
-    T: SubAssign<T> + Copy,
-{
-    fn sub_assign(&mut self, other: LogicalVec2<T>) {
-        self.sub_assign(&other);
+impl<T: Neg<Output = T> + Copy> Neg for LogicalVec2<T> {
+    type Output = LogicalVec2<T>;
+    fn neg(self) -> Self::Output {
+        Self {
+            inline: -self.inline,
+            block: -self.block,
+        }
     }
 }
 
@@ -203,15 +181,15 @@ impl<T: Zero> LogicalRect<T> {
     }
 }
 
-impl fmt::Debug for LogicalRect<Length> {
+impl fmt::Debug for LogicalRect<Au> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
             "Rect(i{}×b{} @ (i{},b{}))",
-            self.size.inline.px(),
-            self.size.block.px(),
-            self.start_corner.inline.px(),
-            self.start_corner.block.px(),
+            self.size.inline.to_px(),
+            self.size.block.to_px(),
+            self.start_corner.inline.to_px(),
+            self.start_corner.block.to_px(),
         )
     }
 }
@@ -339,10 +317,7 @@ impl<T> LogicalSides<T> {
     }
 }
 
-impl<T> LogicalSides<T>
-where
-    T: Copy,
-{
+impl<T: Copy> LogicalSides<T> {
     pub fn start_offset(&self) -> LogicalVec2<T> {
         LogicalVec2 {
             inline: self.inline_start,
@@ -369,13 +344,10 @@ impl<T: Clone> LogicalSides<AutoOr<T>> {
     }
 }
 
-impl<T> Add<&'_ LogicalSides<T>> for &'_ LogicalSides<T>
-where
-    T: Add<Output = T> + Copy,
-{
+impl<T: Add<Output = T> + Copy> Add<LogicalSides<T>> for LogicalSides<T> {
     type Output = LogicalSides<T>;
 
-    fn add(self, other: &'_ LogicalSides<T>) -> Self::Output {
+    fn add(self, other: Self) -> Self::Output {
         LogicalSides {
             inline_start: self.inline_start + other.inline_start,
             inline_end: self.inline_end + other.inline_end,
@@ -385,9 +357,34 @@ where
     }
 }
 
+impl<T: Sub<Output = T> + Copy> Sub<LogicalSides<T>> for LogicalSides<T> {
+    type Output = LogicalSides<T>;
+
+    fn sub(self, other: Self) -> Self::Output {
+        LogicalSides {
+            inline_start: self.inline_start - other.inline_start,
+            inline_end: self.inline_end - other.inline_end,
+            block_start: self.block_start - other.block_start,
+            block_end: self.block_end - other.block_end,
+        }
+    }
+}
+
+impl<T: Neg<Output = T> + Copy> Neg for LogicalSides<T> {
+    type Output = LogicalSides<T>;
+    fn neg(self) -> Self::Output {
+        Self {
+            inline_start: -self.inline_start,
+            inline_end: -self.inline_end,
+            block_start: -self.block_start,
+            block_end: -self.block_end,
+        }
+    }
+}
+
 impl<T: Zero> LogicalSides<T> {
     pub(crate) fn zero() -> LogicalSides<T> {
-        LogicalSides {
+        Self {
             inline_start: T::zero(),
             inline_end: T::zero(),
             block_start: T::zero(),
@@ -398,7 +395,7 @@ impl<T: Zero> LogicalSides<T> {
 
 impl From<LogicalSides<CSSPixelLength>> for LogicalSides<Au> {
     fn from(value: LogicalSides<CSSPixelLength>) -> Self {
-        LogicalSides {
+        Self {
             inline_start: value.inline_start.into(),
             inline_end: value.inline_end.into(),
             block_start: value.block_start.into(),
@@ -409,7 +406,7 @@ impl From<LogicalSides<CSSPixelLength>> for LogicalSides<Au> {
 
 impl From<LogicalSides<Au>> for LogicalSides<CSSPixelLength> {
     fn from(value: LogicalSides<Au>) -> Self {
-        LogicalSides {
+        Self {
             inline_start: value.inline_start.into(),
             inline_end: value.inline_end.into(),
             block_start: value.block_start.into(),
@@ -438,7 +435,7 @@ impl<T> LogicalRect<T> {
         T: Add<Output = T> + Copy,
         T: Sub<Output = T> + Copy,
     {
-        LogicalRect {
+        Self {
             start_corner: LogicalVec2 {
                 inline: self.start_corner.inline - sides.inline_start,
                 block: self.start_corner.block - sides.block_start,
@@ -524,18 +521,4 @@ impl From<LogicalRect<CSSPixelLength>> for LogicalRect<Au> {
             size: value.size.into(),
         }
     }
-}
-
-/// Convert a `PhysicalRect<Length>` (one that uses CSSPixel as the unit) to an untyped `Rect<Au>`.
-pub fn physical_rect_to_au_rect(rect: PhysicalRect<Length>) -> euclid::default::Rect<Au> {
-    euclid::default::Rect::new(
-        euclid::default::Point2D::new(
-            Au::from_f32_px(rect.origin.x.px()),
-            Au::from_f32_px(rect.origin.y.px()),
-        ),
-        euclid::default::Size2D::new(
-            Au::from_f32_px(rect.size.width.px()),
-            Au::from_f32_px(rect.size.height.px()),
-        ),
-    )
 }

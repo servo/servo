@@ -1,0 +1,59 @@
+<!doctype html>
+<title>CSS Container Queries Test: @container-dependent elements respond to viewport unit changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  iframe {
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<iframe id="iframe" srcdoc="
+  <style>
+    #vw, #vh {
+      container-type: inline-size;
+      width: 100px;
+    }
+
+    @container (min-width: 50vw) {
+      #vw span { color: green }
+    }
+    @container (min-width: 100vw) {
+      #vw span { color: red }
+    }
+    @container (min-width: 50vh) {
+      #vh span { color: green }
+    }
+    @container (min-width: 100vh) {
+      #vh span { color: red }
+    }
+  </style>
+  <div id=vw><span>Green</span></div>
+  <div id=vh><span>Green</span></div>
+"></iframe>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  function waitForLoad(w) {
+    return new Promise(resolve => w.addEventListener('load', resolve));
+  }
+
+  promise_test(async () => {
+    await waitForLoad(window);
+    const vw_child = iframe.contentDocument.querySelector("#vw > span");
+    const vh_child = iframe.contentDocument.querySelector("#vh > span");
+
+    assert_equals(getComputedStyle(vw_child).color, "rgb(255, 0, 0)", "vw before resize");
+    assert_equals(getComputedStyle(vh_child).color, "rgb(255, 0, 0)", "vh before resize");
+
+    iframe.style.width = "200px";
+    assert_equals(getComputedStyle(vw_child).color, "rgb(0, 128, 0)", "vw after width resize");
+    assert_equals(getComputedStyle(vh_child).color, "rgb(255, 0, 0)", "vh after width resize");
+
+    iframe.style.height = "200px";
+    assert_equals(getComputedStyle(vw_child).color, "rgb(0, 128, 0)", "vw after height resize");
+    assert_equals(getComputedStyle(vh_child).color, "rgb(0, 128, 0)", "vh after height resize");
+  });
+</script>

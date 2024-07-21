@@ -234,6 +234,10 @@ impl<'a> CanvasPaintThread<'a> {
             Canvas2dMsg::Ellipse(ref center, radius_x, radius_y, rotation, start, end, ccw) => self
                 .canvas(canvas_id)
                 .ellipse(center, radius_x, radius_y, rotation, start, end, ccw),
+            Canvas2dMsg::MeasureText(text, sender) => {
+                let metrics = self.canvas(canvas_id).measure_text(text);
+                sender.send(metrics).unwrap();
+            },
             Canvas2dMsg::RestoreContext => self.canvas(canvas_id).restore_context_state(),
             Canvas2dMsg::SaveContext => self.canvas(canvas_id).save_context_state(),
             Canvas2dMsg::SetLineWidth(width) => self.canvas(canvas_id).set_line_width(width),

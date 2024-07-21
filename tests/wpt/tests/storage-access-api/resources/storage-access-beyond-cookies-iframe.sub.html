@@ -13,15 +13,27 @@ window.addEventListener("message", async (e) => {
   const type = (new URLSearchParams(window.location.search)).get("type");
   const id = (new URLSearchParams(window.location.search)).get("id");
   let message = "";
-  // Step 4 (storage-access-api/storage-access-beyond-cookies.{}.tentative.sub.https.html)
+  // Step 4 (storage-access-api/storage-access-beyond-cookies.{}.sub.https.html)
   try {
     await MaybeSetStorageAccess("*", "*", "blocked");
-    await test_driver.set_permission({ name: 'storage-access' }, 'granted');
     if (type == "cookies") {
+      await test_driver.set_permission({ name: 'storage-access' }, 'denied');
+      let didSeeError = false;
+      try {
+        await document.requestStorageAccess({cookies: true});
+      } catch (e) {
+        didSeeError = true;
+      }
+      if (!didSeeError) {
+        message = "First-party cookies should not be readable if storage access is denied.";
+      }
+      await test_driver.set_permission({ name: 'storage-access' }, 'granted');
       let hasUnpartitionedCookieAccess = await document.hasUnpartitionedCookieAccess();
       if (hasUnpartitionedCookieAccess) {
         message = "First-party cookies should not be readable before handle is loaded.";
       }
+    } else {
+      await test_driver.set_permission({ name: 'storage-access' }, 'granted');
     }
     const handle = await test_driver.bless("fake user interaction", () => document.requestStorageAccess({all: true}));
     if (type == "cookies") {
@@ -121,6 +133,12 @@ window.addEventListener("message", async (e) => {
         shared_worker.port.postMessage("Cross-origin handle access");
         break;
       }
+      case "unpartitioned": {
+        const channel = handle.BroadcastChannel(id);
+        channel.postMessage("Cross-origin handle access");
+        channel.close();
+        break;
+      }
       default: {
         message = "Unexpected type " + type;
         break;
@@ -135,7 +153,7 @@ window.addEventListener("message", async (e) => {
     window.top.postMessage({type: "result", message: message}, "*");
     return;
   }
-  // Step 5 (storage-access-api/storage-access-beyond-cookies.{}.tentative.sub.https.html)
+  // Step 5 (storage-access-api/storage-access-beyond-cookies.{}.sub.https.html)
   let iframe = document.createElement("iframe");
   iframe.src = "https://{{hosts[][]}}:{{ports[https][0]}}/storage-access-api/resources/storage-access-beyond-cookies-iframe-iframe.html?type=" + type + "&id=" + id;
   document.body.appendChild(iframe);

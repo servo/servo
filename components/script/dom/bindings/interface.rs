@@ -5,6 +5,7 @@
 //! Machinery to initialise interface prototype objects and interface objects.
 
 use std::convert::TryFrom;
+use std::ffi::CStr;
 use std::ptr;
 
 use js::error::throw_type_error;
@@ -69,7 +70,7 @@ impl NonCallbackInterfaceObjectClass {
     ) -> NonCallbackInterfaceObjectClass {
         NonCallbackInterfaceObjectClass {
             class: JSClass {
-                name: b"Function\0" as *const _ as *const libc::c_char,
+                name: c"Function".as_ptr(),
                 flags: 0,
                 cOps: &constructor_behavior.0,
                 spec: 0 as *const _,
@@ -215,7 +216,7 @@ pub fn create_callback_interface_object(
     cx: SafeJSContext,
     global: HandleObject,
     constants: &[Guard<&[ConstantSpec]>],
-    name: &[u8],
+    name: &CStr,
     mut rval: MutableHandleObject,
 ) {
     assert!(!constants.is_empty());
@@ -238,7 +239,7 @@ pub fn create_interface_prototype_object(
     regular_methods: &[Guard<&'static [JSFunctionSpec]>],
     regular_properties: &[Guard<&'static [JSPropertySpec]>],
     constants: &[Guard<&[ConstantSpec]>],
-    unscopable_names: &[&[u8]],
+    unscopable_names: &[&CStr],
     rval: MutableHandleObject,
 ) {
     create_object(
@@ -284,9 +285,9 @@ pub fn create_noncallback_interface_object(
     static_properties: &[Guard<&'static [JSPropertySpec]>],
     constants: &[Guard<&[ConstantSpec]>],
     interface_prototype_object: HandleObject,
-    name: &[u8],
+    name: &CStr,
     length: u32,
-    legacy_window_alias_names: &[&[u8]],
+    legacy_window_alias_names: &[&CStr],
     rval: MutableHandleObject,
 ) {
     create_object(
@@ -321,22 +322,14 @@ pub fn create_noncallback_interface_object(
 pub fn create_named_constructors(
     cx: SafeJSContext,
     global: HandleObject,
-    named_constructors: &[(ConstructorClassHook, &[u8], u32)],
+    named_constructors: &[(ConstructorClassHook, &CStr, u32)],
     interface_prototype_object: HandleObject,
 ) {
     rooted!(in(*cx) let mut constructor = ptr::null_mut::<JSObject>());
 
     for &(native, name, arity) in named_constructors {
-        assert_eq!(*name.last().unwrap(), b'\0');
-
         unsafe {
-            let fun = JS_NewFunction(
-                *cx,
-                Some(native),
-                arity,
-                JSFUN_CONSTRUCTOR,
-                name.as_ptr() as *const libc::c_char,
-            );
+            let fun = JS_NewFunction(*cx, Some(native), arity, JSFUN_CONSTRUCTOR, name.as_ptr());
             assert!(!fun.is_null());
             constructor.set(JS_GetFunctionObject(fun));
             assert!(!constructor.is_null());
@@ -344,7 +337,7 @@ pub fn create_named_constructors(
             assert!(JS_DefineProperty3(
                 *cx,
                 constructor.handle(),
-                b"prototype\0".as_ptr() as *const libc::c_char,
+                c"prototype".as_ptr(),
                 interface_prototype_object,
                 (JSPROP_PERMANENT | JSPROP_READONLY) as u32
             ));
@@ -436,15 +429,14 @@ pub fn is_exposed_in(object: HandleObject, globals: Globals) -> bool {
 pub fn define_on_global_object(
     cx: SafeJSContext,
     global: HandleObject,
-    name: &[u8],
+    name: &CStr,
     obj: HandleObject,
 ) {
-    assert_eq!(*name.last().unwrap(), b'\0');
     unsafe {
         assert!(JS_DefineProperty3(
             *cx,
             global,
-            name.as_ptr() as *const libc::c_char,
+            name.as_ptr(),
             obj,
             JSPROP_RESOLVING
         ));
@@ -477,18 +469,17 @@ unsafe extern "C" fn fun_to_string_hook(
     ret
 }
 
-fn create_unscopable_object(cx: SafeJSContext, names: &[&[u8]], mut rval: MutableHandleObject) {
+fn create_unscopable_object(cx: SafeJSContext, names: &[&CStr], mut rval: MutableHandleObject) {
     assert!(!names.is_empty());
     assert!(rval.is_null());
     unsafe {
         rval.set(JS_NewPlainObject(*cx));
         assert!(!rval.is_null());
         for &name in names {
-            assert_eq!(*name.last().unwrap(), b'\0');
             assert!(JS_DefineProperty(
                 *cx,
                 rval.handle(),
-                name.as_ptr() as *const libc::c_char,
+                name.as_ptr(),
                 HandleValue::from_raw(TrueHandleValue),
                 JSPROP_READONLY as u32,
             ));
@@ -496,15 +487,14 @@ fn create_unscopable_object(cx: SafeJSContext, names: &[&[u8]], mut rval: Mutabl
     }
 }
 
-fn define_name(cx: SafeJSContext, obj: HandleObject, name: &[u8]) {
-    assert_eq!(*name.last().unwrap(), b'\0');
+fn define_name(cx: SafeJSContext, obj: HandleObject, name: &CStr) {
     unsafe {
-        rooted!(in(*cx) let name = JS_AtomizeAndPinString(*cx, name.as_ptr() as *const libc::c_char));
+        rooted!(in(*cx) let name = JS_AtomizeAndPinString(*cx, name.as_ptr()));
         assert!(!name.is_null());
         assert!(JS_DefineProperty4(
             *cx,
             obj,
-            b"name\0".as_ptr() as *const libc::c_char,
+            c"name".as_ptr(),
             name.handle(),
             JSPROP_READONLY as u32
         ));
@@ -516,7 +506,7 @@ fn define_length(cx: SafeJSContext, obj: HandleObject, length: i32) {
         assert!(JS_DefineProperty5(
             *cx,
             obj,
-            b"length\0".as_ptr() as *const libc::c_char,
+            c"length".as_ptr(),
             length,
             JSPROP_READONLY as u32
         ));
@@ -666,7 +656,7 @@ pub fn get_desired_proto(
         if !JS_GetProperty(
             *cx,
             original_new_target.handle().into(),
-            b"prototype\0".as_ptr() as *const libc::c_char,
+            c"prototype".as_ptr(),
             proto_val.handle_mut().into(),
         ) {
             return Err(());

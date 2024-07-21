@@ -1,0 +1,38 @@
+<!doctype html>
+<title>CSS Container Queries Test: query of inline-size container in vertical-rl</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  #ancestry { writing-mode: vertical-rl; }
+  #keg { container-type: inline-size; }
+  @container (max-height: 200px) {
+    #target { width: 400px; }
+  }
+  @container (min-height: 400px) {
+    #target { width: 20px; }
+  }
+</style>
+<div id="ancestry">
+  <div id="keg">
+    <div id="target">
+      <div style="width:50px;"></div>
+    </div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  test(()=> {
+    ancestry.style.height = "100px";
+    assert_equals(keg.offsetWidth, 400);
+
+    ancestry.style.height = "300px";
+    assert_equals(keg.offsetWidth, 50);
+
+    ancestry.style.height = "500px";
+    assert_equals(keg.offsetWidth, 20);
+  }, "inline-size containment only");
+</script>

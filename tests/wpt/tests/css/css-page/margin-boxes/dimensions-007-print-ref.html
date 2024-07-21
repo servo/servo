@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+  html {
+    font: 16px/1 Ahem;
+  }
+  @page {
+    margin: 0;
+    width: 32em;
+    height: 27em;
+  }
+  body {
+    display: grid;
+    grid-template-columns: 6em auto 6em;
+    grid-template-rows: 12em auto 12em;
+    height: 100vh;
+    margin: 0;
+  }
+  .vertical-edge {
+    display: flex;
+  }
+</style>
+<div class="corner"></div>
+<div class="vertical-edge">
+  <div style="width:5.25em; height:10em; background:hotpink;">
+    x x x x x
+  </div>
+  <div style="width:9.5em; margin-top:1em; height:10em; background:cyan;">
+    x x x x x x x x x
+  </div>
+  <div style="width:5.25em; margin-top:2em; height:10em; background:yellow;">
+    x x
+  </div>
+</div>
+<div class="corner"></div>
+<div class="horizontal-edge"></div>
+<div></div>
+<div></div>
+<div class="corner"></div>
+<div class="vertical-edge">
+  <div style="width:7.5em; margin-top:2em; height:10em; background:yellow;">
+    x xx x xxx xx xx xx xx xx xx xx x xx xx xx xx xxx x
+  </div>
+  <div style="width:5em; margin-top:1em; height:10em; background:cyan;">
+    x x xxxx xxxx xxxx xx x x xxx xx xxx
+  </div>
+  <div style="width:7.5em; height:10em; background:hotpink;">
+    x x x x x xxxxxxx x x x
+  </div>
+</div>
+<div class="corner"></div>

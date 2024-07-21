@@ -12,8 +12,8 @@ use std::rc::Rc;
 use app_units::Au;
 use fonts::{
     fallback_font_families, CSSFontFaceDescriptors, FallbackFontSelectionOptions, FontContext,
-    FontDescriptor, FontFamilyDescriptor, FontFamilyName, FontIdentifier, FontSearchScope,
-    FontSource, FontTemplate, FontTemplateRef, FontTemplates,
+    FontDescriptor, FontFamilyDescriptor, FontIdentifier, FontSearchScope, FontSource,
+    FontTemplate, FontTemplateRef, FontTemplates,
 };
 use ipc_channel::ipc;
 use net_traits::ResourceThreads;
@@ -97,12 +97,16 @@ impl FontSource for MockFontCacheThread {
     fn find_matching_font_templates(
         &self,
         descriptor_to_match: Option<&FontDescriptor>,
-        font_family_name: &FontFamilyName,
+        font_family: &SingleFontFamily,
     ) -> Vec<FontTemplateRef> {
         self.find_font_count.set(self.find_font_count.get() + 1);
+        let SingleFontFamily::FamilyName(family_name) = font_family else {
+            return Vec::new();
+        };
+
         self.families
             .borrow_mut()
-            .get_mut(font_family_name.name())
+            .get_mut(&*family_name.name)
             .map(|family| family.find_for_descriptor(descriptor_to_match))
             .unwrap_or_default()
     }
@@ -295,8 +299,11 @@ fn test_font_template_is_cached() {
         pt_size: Au(10),
     };
 
-    let family_descriptor =
-        FontFamilyDescriptor::new(FontFamilyName::from("CSSTest Basic"), FontSearchScope::Any);
+    let family = SingleFontFamily::FamilyName(FamilyName {
+        name: "CSSTest Basic".into(),
+        syntax: FontFamilyNameSyntax::Quoted,
+    });
+    let family_descriptor = FontFamilyDescriptor::new(family, FontSearchScope::Any);
 
     let font_template = context.matching_templates(&font_descriptor, &family_descriptor)[0].clone();
 

@@ -1,0 +1,31 @@
+<!doctype html>
+<title>CSS Container Queries Test: Query multicol container</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #multicol {
+    container-type: inline-size;
+    width: 400px;
+    column-count: 2;
+    column-gap: 0;
+  }
+  @container (width = 400px) {
+    #first-child { color: green; }
+    #second-child { color: green; }
+  }
+</style>
+<div id="multicol">
+  <div id="first-child">First</div>
+  <div id="second-child">Second</div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  test(() => {
+    const green = "rgb(0, 128, 0)";
+    assert_equals(getComputedStyle(document.querySelector("#first-child")).color, green);
+    assert_equals(getComputedStyle(document.querySelector("#second-child")).color, green);
+  }, "Children of multicol inline-size container should match inline-size of the container");
+</script>

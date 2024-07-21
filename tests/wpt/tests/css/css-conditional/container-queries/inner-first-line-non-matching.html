@@ -1,0 +1,13 @@
+<!doctype html>
+<title>CSS Container Queries Test: Non-matching ::first-line in @container</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-queries">
+<link rel="match" href="inner-first-line-non-matching-ref.html">
+<style>
+  #outer::first-line { color: green }
+  @container (width > 99999px) {
+    #inner::first-line { color: red }
+  }
+</style>
+<div id="outer">
+  <div id="inner">This text should be green.</div>
+</div>

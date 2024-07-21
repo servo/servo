@@ -5,6 +5,7 @@
 use std::cell::{OnceCell, RefCell};
 use std::sync::Arc;
 
+use app_units::Au;
 use base::id::BrowsingContextId;
 use base::WebRenderEpochToU16;
 use embedder_traits::Cursor;
@@ -34,7 +35,7 @@ use crate::display_list::stacking_context::StackingContextSection;
 use crate::fragment_tree::{
     BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentTree, Tag, TextFragment,
 };
-use crate::geom::{LogicalRect, PhysicalPoint, PhysicalRect};
+use crate::geom::{PhysicalPoint, PhysicalRect};
 use crate::replaced::IntrinsicSizes;
 use crate::style_ext::ComputedValuesExt;
 
@@ -230,7 +231,7 @@ impl Fragment {
     pub(crate) fn build_display_list(
         &self,
         builder: &mut DisplayListBuilder,
-        containing_block: &PhysicalRect<Length>,
+        containing_block: &PhysicalRect<Au>,
         section: StackingContextSection,
     ) {
         match self {
@@ -288,7 +289,7 @@ impl Fragment {
 
                     builder.iframe_sizes.insert(
                         iframe.browsing_context_id,
-                        Size2D::new(rect.size.width.px(), rect.size.height.px()),
+                        Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px()),
                     );
 
                     let common = builder.common_properties(rect.to_webrender(), &iframe.style);
@@ -321,7 +322,7 @@ impl Fragment {
         builder: &mut DisplayListBuilder,
         style: &ComputedValues,
         tag: Option<Tag>,
-        rect: PhysicalRect<Length>,
+        rect: PhysicalRect<Au>,
         cursor: Cursor,
     ) {
         let hit_info = builder.hit_info(style, tag, cursor);
@@ -345,7 +346,7 @@ impl Fragment {
         &self,
         fragment: &TextFragment,
         builder: &mut DisplayListBuilder,
-        containing_block: &PhysicalRect<Length>,
+        containing_block: &PhysicalRect<Au>,
     ) {
         // NB: The order of painting text components (CSS Text Decoration Module Level 3) is:
         // shadows, underline, overline, text, text-emphasis, and then line-through.
@@ -357,7 +358,7 @@ impl Fragment {
             .to_physical(fragment.parent_style.writing_mode, containing_block)
             .translate(containing_block.origin.to_vector());
         let mut baseline_origin = rect.origin;
-        baseline_origin.y += Length::from(fragment.font_metrics.ascent);
+        baseline_origin.y += fragment.font_metrics.ascent;
         let glyphs = glyphs(
             &fragment.glyphs,
             baseline_origin,
@@ -404,8 +405,8 @@ impl Fragment {
             .contains(TextDecorationLine::UNDERLINE)
         {
             let mut rect = rect;
-            rect.origin.y += Length::from(font_metrics.ascent - font_metrics.underline_offset);
-            rect.size.height = Length::new(font_metrics.underline_size.to_nearest_pixel(dppx));
+            rect.origin.y += font_metrics.ascent - font_metrics.underline_offset;
+            rect.size.height = Au::from_f32_px(font_metrics.underline_size.to_nearest_pixel(dppx));
             self.build_display_list_for_text_decoration(fragment, builder, &rect, &color);
         }
 
@@ -415,7 +416,7 @@ impl Fragment {
             .contains(TextDecorationLine::OVERLINE)
         {
             let mut rect = rect;
-            rect.size.height = Length::new(font_metrics.underline_size.to_nearest_pixel(dppx));
+            rect.size.height = Au::from_f32_px(font_metrics.underline_size.to_nearest_pixel(dppx));
             self.build_display_list_for_text_decoration(fragment, builder, &rect, &color);
         }
 
@@ -435,8 +436,8 @@ impl Fragment {
             .contains(TextDecorationLine::LINE_THROUGH)
         {
             let mut rect = rect;
-            rect.origin.y += Length::from(font_metrics.ascent - font_metrics.strikeout_offset);
-            rect.size.height = Length::new(font_metrics.strikeout_size.to_nearest_pixel(dppx));
+            rect.origin.y += font_metrics.ascent - font_metrics.strikeout_offset;
+            rect.size.height = Au::from_f32_px(font_metrics.strikeout_size.to_nearest_pixel(dppx));
             self.build_display_list_for_text_decoration(fragment, builder, &rect, &color);
         }
 
@@ -449,7 +450,7 @@ impl Fragment {
         &self,
         fragment: &TextFragment,
         builder: &mut DisplayListBuilder,
-        rect: &PhysicalRect<Length>,
+        rect: &PhysicalRect<Au>,
         color: &AbsoluteColor,
     ) {
         let rect = rect.to_webrender();
@@ -476,7 +477,7 @@ impl Fragment {
 
 struct BuilderForBoxFragment<'a> {
     fragment: &'a BoxFragment,
-    containing_block: &'a PhysicalRect<Length>,
+    containing_block: &'a PhysicalRect<Au>,
     border_rect: units::LayoutRect,
     padding_rect: OnceCell<units::LayoutRect>,
     content_rect: OnceCell<units::LayoutRect>,
@@ -487,7 +488,7 @@ struct BuilderForBoxFragment<'a> {
 }
 
 impl<'a> BuilderForBoxFragment<'a> {
-    fn new(fragment: &'a BoxFragment, containing_block: &'a PhysicalRect<Length>) -> Self {
+    fn new(fragment: &'a BoxFragment, containing_block: &'a PhysicalRect<Au>) -> Self {
         let border_rect: units::LayoutRect = fragment
             .border_rect()
             .to_physical(fragment.style.writing_mode, containing_block)
@@ -616,7 +617,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
         let radii = inner_radii(
             self.border_radius,
-            (&self.fragment.border + &self.fragment.padding)
+            (self.fragment.border + self.fragment.padding)
                 .to_physical(self.fragment.style.writing_mode)
                 .to_webrender(),
         );
@@ -711,7 +712,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         // is used).
         if let BackgroundMode::Extra(ref extra_backgrounds) = self.fragment.background_mode {
             for extra_background in extra_backgrounds {
-                let positioning_area: LogicalRect<Length> = extra_background.rect.clone().into();
+                let positioning_area = extra_background.rect;
                 let painter = BackgroundPainter {
                     style: &extra_background.style,
                     painting_area_override: None,
@@ -959,8 +960,8 @@ fn rgba(color: AbsoluteColor) -> wr::ColorF {
 
 fn glyphs(
     glyph_runs: &[Arc<GlyphStore>],
-    mut baseline_origin: PhysicalPoint<Length>,
-    justification_adjustment: Length,
+    mut baseline_origin: PhysicalPoint<Au>,
+    justification_adjustment: Au,
 ) -> Vec<wr::GlyphInstance> {
     use fonts_traits::ByteIndex;
     use range::Range;
@@ -971,8 +972,8 @@ fn glyphs(
             if !run.is_whitespace() {
                 let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
                 let point = units::LayoutPoint::new(
-                    baseline_origin.x.px() + glyph_offset.x.to_f32_px(),
-                    baseline_origin.y.px() + glyph_offset.y.to_f32_px(),
+                    baseline_origin.x.to_f32_px() + glyph_offset.x.to_f32_px(),
+                    baseline_origin.y.to_f32_px() + glyph_offset.y.to_f32_px(),
                 );
                 let glyph = wr::GlyphInstance {
                     index: glyph.id(),
@@ -984,7 +985,7 @@ fn glyphs(
             if glyph.char_is_word_separator() {
                 baseline_origin.x += justification_adjustment;
             }
-            baseline_origin.x += Length::from(glyph.advance());
+            baseline_origin.x += glyph.advance();
         }
     }
     glyphs

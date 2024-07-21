@@ -1,0 +1,74 @@
+<!doctype html>
+<title>CSS Container Queries: @container serialization</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-queries">
+<link rel="help" href="https://drafts.csswg.org/cssom/#serialize-a-css-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style id="testSheet">
+  @container (width=100px) {
+    @container \!-name (inline-size > 200px    ) {
+      #id { color: lime }
+    }
+    #id { color: green }
+  }
+  @container (  wiDTh  ) { }
+  @container (width:100px) { }
+  @container (min-width:  100px) { }
+  @container (   MAX-WIDTH:100px  ) { }
+  @container (width > 100px) { }
+  @container (width < 100px) { }
+  @container (widTH >= 100px) { }
+  @container (width <= 100px) { }
+  @container (10px < width < 100px) { }
+  @container (10px <=  width  <=  100px) { }
+  @container (100px>WIDTH>10px) { }
+  @container (  100px >= width >= 10px  ) { }
+  @container (calc(1em + 1px) >= width >= max(10em, 10px)) { }
+</style>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  let rules = testSheet.sheet.cssRules;
+
+  test(() => {
+    assert_equals(rules.length, 14);
+    assert_equals(rules[0].cssRules.length, 2);
+
+    assert_equals(rules[0].conditionText, "(width = 100px)");
+    assert_equals(rules[0].cssRules[0].conditionText, "\\!-name (inline-size > 200px)");
+  }, "Serialization of conditionText");
+
+  test(() => {
+    assert_equals(rules[0].cssRules[0].cssText, "@container \\!-name (inline-size > 200px) {\n  #id { color: lime; }\n}");
+  }, "Serialization of inner @container rule");
+
+  test(() => {
+    assert_equals(rules[0].cssText, "@container (width = 100px) {\n  @container \\!-name (inline-size > 200px) {\n  #id { color: lime; }\n}\n  #id { color: green; }\n}");
+  }, "Serialization of nested @container rule");
+
+  test(() => {
+    assert_equals(rules[1].conditionText, "(width)");
+  }, "Serialization of boolean condition syntax");
+
+  test(() => {
+    assert_equals(rules[2].conditionText, "(width: 100px)");
+    assert_equals(rules[3].conditionText, "(min-width: 100px)");
+    assert_equals(rules[4].conditionText, "(max-width: 100px)");
+  }, "Serialization of colon condition syntax");
+
+  test(() => {
+    assert_equals(rules[5].conditionText, "(width > 100px)");
+    assert_equals(rules[6].conditionText, "(width < 100px)");
+    assert_equals(rules[7].conditionText, "(width >= 100px)");
+    assert_equals(rules[8].conditionText, "(width <= 100px)");
+    assert_equals(rules[9].conditionText, "(10px < width < 100px)");
+    assert_equals(rules[10].conditionText, "(10px <= width <= 100px)");
+    assert_equals(rules[11].conditionText, "(100px > width > 10px)");
+    assert_equals(rules[12].conditionText, "(100px >= width >= 10px)");
+  }, "Serialization of range condition syntax");
+
+  test(() => {
+    assert_equals(rules[13].conditionText, "(calc(1em + 1px) >= width >= max(10em, 10px))");
+  }, "Serialization of calc()");
+</script>

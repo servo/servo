@@ -1,0 +1,66 @@
+<!doctype html>
+<title>CSS Container Queries Test: @container queries affecting height affecting percentage padding</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-queries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #vertical {
+    width: 500px;
+    writing-mode: vertical-lr;
+  }
+
+  #padded {
+    width: 100%;
+    box-sizing: border-box;
+    padding-right: 100%;
+    background-color: orange;
+  }
+
+  #horizontal {
+    writing-mode: horizontal-tb;
+    width: 100%;
+  }
+
+  #container {
+    width: 100%;
+    container-type: inline-size;
+    background-color: green;
+  }
+
+  #first, #second { height: 50px; }
+
+  @container (width <= 400px) {
+    #second { display: none; }
+  }
+</style>
+<div id="vertical">
+  <div id="padded">
+    <div id="horizontal">
+      <div id="container">
+        <div id="first"></div>
+        <div id="second"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  test(() => assert_equals(padded.offsetHeight, 100),
+       "#container height measured with 500px width. Both container children visible");
+  test(() => assert_equals(container.offsetWidth, 400),
+       "#container width 400px after padding is applied.");
+  test(() => assert_equals(container.offsetHeight, 50),
+       "#container width 400px after padding is applied. #second is removed from the rendering");
+
+  // Reduce width by 1px to test that a re-layout is not stateful.
+  vertical.style.width = "499px";
+
+  test(() => assert_equals(padded.offsetHeight, 100),
+       "#container height measured with 499px width. Both container children visible");
+  test(() => assert_equals(container.offsetWidth, 399),
+       "#container width 399px after padding is applied. #second is removed from the rendering");
+  test(() => assert_equals(container.offsetHeight, 50),
+       "#container width 399x after padding is applied. #second is removed from the rendering");
+</script>

@@ -28,9 +28,13 @@ pub struct DomRefCell<T> {
 // ===================================================
 
 impl<T> DomRefCell<T> {
-    /// Return a reference to the contents.
+    /// Return a reference to the contents.  For use in layout only.
     ///
-    /// For use in layout only.
+    /// # Safety
+    ///
+    /// Unlike RefCell::borrow, this method is unsafe because it does not return a Ref, thus leaving
+    /// the borrow flag untouched. Mutably borrowing the RefCell while the reference returned by
+    /// this method is alive is undefined behaviour.
     #[allow(unsafe_code)]
     pub unsafe fn borrow_for_layout(&self) -> &T {
         assert_in_layout();
@@ -41,6 +45,11 @@ impl<T> DomRefCell<T> {
 
     /// Borrow the contents for the purpose of script deallocation.
     ///
+    /// # Safety
+    ///
+    /// Unlike RefCell::borrow, this method is unsafe because it does not return a Ref, thus leaving
+    /// the borrow flag untouched. Mutably borrowing the RefCell while the reference returned by
+    /// this method is alive is undefined behaviour.
     #[allow(unsafe_code, clippy::mut_from_ref)]
     pub unsafe fn borrow_for_script_deallocation(&self) -> &mut T {
         assert_in_script();
@@ -49,6 +58,12 @@ impl<T> DomRefCell<T> {
 
     /// Mutably borrow a cell for layout. Ideally this would use
     /// `RefCell::try_borrow_mut_unguarded` but that doesn't exist yet.
+    ///
+    /// # Safety
+    ///
+    /// Unlike RefCell::borrow, this method is unsafe because it does not return a Ref, thus leaving
+    /// the borrow flag untouched. Mutably borrowing the RefCell while the reference returned by
+    /// this method is alive is undefined behaviour.
     #[allow(unsafe_code, clippy::mut_from_ref)]
     pub unsafe fn borrow_mut_for_layout(&self) -> &mut T {
         assert_in_layout();

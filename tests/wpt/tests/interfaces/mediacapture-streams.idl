@@ -61,6 +61,7 @@ dictionary MediaTrackSupportedConstraints {
   boolean channelCount = true;
   boolean deviceId = true;
   boolean groupId = true;
+  boolean backgroundBlur = true;
 };
 
 dictionary MediaTrackCapabilities {
@@ -79,6 +80,7 @@ dictionary MediaTrackCapabilities {
   ULongRange channelCount;
   DOMString deviceId;
   DOMString groupId;
+  sequence<boolean> backgroundBlur;
 };
 
 dictionary MediaTrackConstraints : MediaTrackConstraintSet {
@@ -101,6 +103,7 @@ dictionary MediaTrackConstraintSet {
   ConstrainULong channelCount;
   ConstrainDOMString deviceId;
   ConstrainDOMString groupId;
+  ConstrainBoolean backgroundBlur;
 };
 
 dictionary MediaTrackSettings {
@@ -119,6 +122,7 @@ dictionary MediaTrackSettings {
   unsigned long channelCount;
   DOMString deviceId;
   DOMString groupId;
+  boolean backgroundBlur;
 };
 
 enum VideoFacingModeEnum {
@@ -183,6 +187,7 @@ interface InputDeviceInfo : MediaDeviceInfo {
 interface DeviceChangeEvent : Event {
   constructor(DOMString type, optional DeviceChangeEventInit eventInitDict = {});
   [SameObject] readonly attribute FrozenArray<MediaDeviceInfo> devices;
+  [SameObject] readonly attribute FrozenArray<MediaDeviceInfo> userInsertedDevices;
 };
 
 dictionary DeviceChangeEventInit : EventInit {

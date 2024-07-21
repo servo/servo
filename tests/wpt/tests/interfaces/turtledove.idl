@@ -64,6 +64,7 @@ partial interface Navigator {
 [SecureContext]
 partial interface Navigator {
   Promise<(USVString or FencedFrameConfig)?> runAdAuction(AuctionAdConfig config);
+  readonly attribute boolean deprecatedRunAdAuctionEnforcesKAnonymity;
 };
 
 dictionary AuctionAdConfig {
@@ -97,6 +98,11 @@ dictionary AuctionAdConfig {
   sequence<AuctionAdConfig> componentAuctions = [];
   AbortSignal? signal;
   Promise<boolean> resolveToConfig;
+};
+
+[SecureContext]
+partial interface Navigator {
+  boolean canLoadAdAuctionFencedFrame();
 };
 
 [SecureContext]

@@ -25,11 +25,13 @@ background_hang_monitor_api = { path = "components/shared/background_hang_monito
 backtrace = "0.3"
 base = { path = "components/shared/base" }
 base64 = "0.21.7"
-bitflags = "2.5"
+bincode = "1"
+bitflags = "2.6"
 bluetooth_traits = { path = "components/shared/bluetooth" }
 byteorder = "1.5"
 canvas_traits = { path = "components/shared/canvas" }
 cfg-if = "1.0.0"
+chrono = "0.4"
 compositing_traits = { path = "components/shared/compositing" }
 content-security-policy = { version = "0.5", features = ["serde"] }
 cookie = "0.12"
@@ -70,13 +72,13 @@ itertools = "0.13"
 jemalloc-sys = "0.5.4"
 jemallocator = "0.5.4"
 keyboard-types = "0.7"
-lazy_static = "1.4"
+lazy_static = "1.5"
 libc = "0.2"
 log = "0.4"
-malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2024-05-15", features = ["servo"] }
+malloc_size_of = { git = "https://github.com/servo/stylo", branch = "2024-05-31", features = ["servo"] }
 malloc_size_of_derive = "0.1"
 mime = "0.3.13"
-mime_guess = "2.0.3"
+mime_guess = "2.0.5"
 mozangle = "0.5.1"
 net_traits = { path = "components/shared/net" }
 num-traits = "0.2"
@@ -95,31 +97,30 @@ rustls = { version = "0.21.12", features = ["dangerous_configuration"] }
 rustls-pemfile = "1.0.4"
 script_layout_interface = { path = "components/shared/script_layout" }
 script_traits = { path = "components/shared/script" }
-selectors = { git = "https://github.com/servo/stylo", branch = "2024-05-15" }
-serde = "1.0.203"
+selectors = { git = "https://github.com/servo/stylo", branch = "2024-05-31" }
+serde = "1.0.204"
 serde_bytes = "0.11"
 serde_json = "1.0"
 servo-media = { git = "https://github.com/servo/media" }
 servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media" }
-servo_arc = { git = "https://github.com/servo/stylo", branch = "2024-05-15" }
-servo_atoms = { git = "https://github.com/servo/stylo", branch = "2024-05-15" }
-size_of_test = { git = "https://github.com/servo/stylo", branch = "2024-05-15" }
+servo_arc = { git = "https://github.com/servo/stylo", branch = "2024-05-31" }
+servo_atoms = { git = "https://github.com/servo/stylo", branch = "2024-05-31" }
+size_of_test = { git = "https://github.com/servo/stylo", branch = "2024-05-31" }
 smallbitvec = "2.5.3"
 smallvec = "1.13"
 sparkle = "0.1.26"
 string_cache = "0.8"
 string_cache_codegen = "0.5"
-style = { git = "https://github.com/servo/stylo", branch = "2024-05-15", features = ["servo"] }
-style_config = { git = "https://github.com/servo/stylo", branch = "2024-05-15" }
-style_traits = { git = "https://github.com/servo/stylo", branch = "2024-05-15", features = ["servo"] }
-# NOTE: the sm-angle feature only enables ANGLE on Windows, not other platforms!
-surfman = { version = "0.9", features = ["chains", "sm-angle", "sm-angle-default"] }
+style = { git = "https://github.com/servo/stylo", branch = "2024-05-31", features = ["servo"] }
+style_config = { git = "https://github.com/servo/stylo", branch = "2024-05-31" }
+style_traits = { git = "https://github.com/servo/stylo", branch = "2024-05-31", features = ["servo"] }
+surfman = { version = "0.9", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 thin-vec = "0.2.13"
 time = "0.1.41"
-to_shmem = { git = "https://github.com/servo/stylo", branch = "2024-05-15" }
+to_shmem = { git = "https://github.com/servo/stylo", branch = "2024-05-31" }
 tokio = "1"
 tokio-rustls = "0.24"
 tungstenite = "0.20"
@@ -129,14 +130,14 @@ unicode-properties = { version = "0.1.1", features = ["emoji"] }
 unicode-script = "0.5"
 unicode-segmentation = "1.1.0"
 url = "2.5"
-uuid = { version = "1.8.0", features = ["v4"] }
+uuid = { version = "1.10.0", features = ["v4"] }
 webdriver = "0.49.0"
 webpki-roots = "0.25"
 webrender = { git = "https://github.com/servo/webrender", branch = "0.64", features = ["capture"] }
 webrender_api = { git = "https://github.com/servo/webrender", branch = "0.64" }
 webrender_traits = { path = "components/shared/webrender" }
-wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "d0a5e48aa7e84683114c3870051cc414ae92ac03" }
-wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "d0a5e48aa7e84683114c3870051cc414ae92ac03" }
+wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "f25e07b984ab391628d9568296d5970981d79d8b" }
+wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "f25e07b984ab391628d9568296d5970981d79d8b" }
 windows-sys = "0.52"
 xi-unicode = "0.1.0"
 xml5ever = "0.18"
@@ -151,6 +152,12 @@ debug-assertions = true
 [profile.production]
 inherits = "release"
 debug-assertions = false
+lto = "thin"
+codegen-units = 1
+
+[profile.production-stripped]
+inherits = "production"
+strip = true
 
 [patch.crates-io]
 # If you need to temporarily test Servo with a local fork of some upstream

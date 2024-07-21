@@ -553,13 +553,14 @@ class TestQueueBuilder:
         processes = self.process_count(self.kwargs["processes"], len(groups))
         if processes > 1:
             groups.sort(key=lambda group: (
-                # Place groups of the same test type together to minimize
-                # browser restarts.
+                # Place groups of the same subsuite, test type together to
+                # minimize browser restarts.
+                group.subsuite,
                 group.test_type,
                 # Next, run larger groups first to avoid straggler runners. Use
                 # timeout to give slow tests greater relative weight.
-                -sum(test.timeout for test in group.group),
-            ))
+                sum(test.timeout for test in group.group),
+            ), reverse=True)
         for item in groups:
             test_queue.put(item)
 

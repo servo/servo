@@ -3,10 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::wgc::command::{compute_commands as wgpu_comp, ComputePass};
-use webgpu::{WebGPU, WebGPURequest};
+use webgpu::{WebGPU, WebGPUComputePass, WebGPURequest};
 
-use super::bindings::error::Fallible;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUComputePassEncoderMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -15,7 +13,7 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubindgroup::GPUBindGroup;
 use crate::dom::gpubuffer::GPUBuffer;
-use crate::dom::gpucommandencoder::{GPUCommandEncoder, GPUCommandEncoderState};
+use crate::dom::gpucommandencoder::GPUCommandEncoder;
 use crate::dom::gpucomputepipeline::GPUComputePipeline;
 
 #[dom_struct]
@@ -25,9 +23,8 @@ pub struct GPUComputePassEncoder {
     #[no_trace]
     channel: WebGPU,
     label: DomRefCell<USVString>,
-    #[ignore_malloc_size_of = "defined in wgpu-core"]
     #[no_trace]
-    compute_pass: DomRefCell<Option<ComputePass>>,
+    compute_pass: WebGPUComputePass,
     command_encoder: Dom<GPUCommandEncoder>,
 }
 
@@ -35,14 +32,14 @@ impl GPUComputePassEncoder {
     fn new_inherited(
         channel: WebGPU,
         parent: &GPUCommandEncoder,
-        compute_pass: Option<ComputePass>,
+        compute_pass: WebGPUComputePass,
         label: USVString,
     ) -> Self {
         Self {
             channel,
             reflector_: Reflector::new(),
             label: DomRefCell::new(label),
-            compute_pass: DomRefCell::new(compute_pass),
+            compute_pass,
             command_encoder: Dom::from_ref(parent),
         }
     }
@@ -51,7 +48,7 @@ impl GPUComputePassEncoder {
         global: &GlobalScope,
         channel: WebGPU,
         parent: &GPUCommandEncoder,
-        compute_pass: Option<ComputePass>,
+        compute_pass: WebGPUComputePass,
         label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object(
@@ -79,57 +76,81 @@ impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucomputepassencoder-dispatchworkgroups>
     fn DispatchWorkgroups(&self, x: u32, y: u32, z: u32) {
-        if let Some(compute_pass) = self.compute_pass.borrow_mut().as_mut() {
-            wgpu_comp::wgpu_compute_pass_dispatch_workgroups(compute_pass, x, y, z);
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::ComputePassDispatchWorkgroups {
+                compute_pass_id: self.compute_pass.0,
+                x,
+                y,
+                z,
+                device_id: self.command_encoder.device_id().0,
+            })
+        {
+            warn!("Error sending WebGPURequest::ComputePassDispatchWorkgroups: {e:?}")
         }
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucomputepassencoder-dispatchworkgroupsindirect>
-    fn DispatchWorkgroupsIndirect(&self, indirect_buffer: &GPUBuffer, indirect_offset: u64) {
-        if let Some(compute_pass) = self.compute_pass.borrow_mut().as_mut() {
-            wgpu_comp::wgpu_compute_pass_dispatch_workgroups_indirect(
-                compute_pass,
-                indirect_buffer.id().0,
-                indirect_offset,
-            );
+    fn DispatchWorkgroupsIndirect(&self, buffer: &GPUBuffer, offset: u64) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::ComputePassDispatchWorkgroupsIndirect {
+                compute_pass_id: self.compute_pass.0,
+                buffer_id: buffer.id().0,
+                offset,
+                device_id: self.command_encoder.device_id().0,
+            })
+        {
+            warn!("Error sending WebGPURequest::ComputePassDispatchWorkgroupsIndirect: {e:?}")
         }
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-endpass>
-    fn End(&self) -> Fallible<()> {
-        let compute_pass = self.compute_pass.borrow_mut().take();
-        self.channel
-            .0
-            .send(WebGPURequest::RunComputePass {
-                command_encoder_id: self.command_encoder.id().0,
-                compute_pass,
-            })
-            .expect("Failed to send RunComputePass"); //TODO: handle error
-
-        self.command_encoder.set_state(
-            GPUCommandEncoderState::Open,
-            GPUCommandEncoderState::EncodingComputePass,
-        );
-        Ok(())
+    fn End(&self) {
+        if let Err(e) = self.channel.0.send(WebGPURequest::EndComputePass {
+            compute_pass_id: self.compute_pass.0,
+            device_id: self.command_encoder.device_id().0,
+            command_encoder_id: self.command_encoder.id().0,
+        }) {
+            warn!("Failed to send WebGPURequest::EndComputePass: {e:?}");
+        }
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuprogrammablepassencoder-setbindgroup>
-    #[allow(unsafe_code)]
-    fn SetBindGroup(&self, index: u32, bind_group: &GPUBindGroup, dynamic_offsets: Vec<u32>) {
-        if let Some(compute_pass) = self.compute_pass.borrow_mut().as_mut() {
-            wgpu_comp::wgpu_compute_pass_set_bind_group(
-                compute_pass,
-                index,
-                bind_group.id().0,
-                &dynamic_offsets,
-            )
+    fn SetBindGroup(&self, index: u32, bind_group: &GPUBindGroup, offsets: Vec<u32>) {
+        if let Err(e) = self.channel.0.send(WebGPURequest::ComputePassSetBindGroup {
+            compute_pass_id: self.compute_pass.0,
+            index,
+            bind_group_id: bind_group.id().0,
+            offsets,
+            device_id: self.command_encoder.device_id().0,
+        }) {
+            warn!("Error sending WebGPURequest::ComputePassSetBindGroup: {e:?}")
         }
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucomputepassencoder-setpipeline>
     fn SetPipeline(&self, pipeline: &GPUComputePipeline) {
-        if let Some(compute_pass) = self.compute_pass.borrow_mut().as_mut() {
-            wgpu_comp::wgpu_compute_pass_set_pipeline(compute_pass, pipeline.id().0);
+        if let Err(e) = self.channel.0.send(WebGPURequest::ComputePassSetPipeline {
+            compute_pass_id: self.compute_pass.0,
+            pipeline_id: pipeline.id().0,
+            device_id: self.command_encoder.device_id().0,
+        }) {
+            warn!("Error sending WebGPURequest::ComputePassSetPipeline: {e:?}")
+        }
+    }
+}
+
+impl Drop for GPUComputePassEncoder {
+    fn drop(&mut self) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DropComputePass(self.compute_pass.0))
+        {
+            warn!("Failed to send WebGPURequest::DropComputePass with {e:?}");
         }
     }
 }

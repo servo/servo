@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#margin-dimension">
+<meta name="assert" content="Test auto lengths. Max content sizes are larger than available size, but their min sizes are not. With center boxes.">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<link rel="match" href="dimensions-007-print-ref.html">
+<style>
+  @page {
+    margin: 12em 6em;
+    width: 20em;
+    height: 3em;
+    font: 16px/1 Ahem;
+
+    /* Left min: 1em
+       Left max: 9em
+       Center min: 1em
+       Center max: 17em
+       Right min: 1em
+       Right max: 3em
+       Min total: 1em + 1em + 1em = 3em
+       Max total: 9em + 17em + 3em = 29em
+
+       Max content sizes are larger than available size. Min content sizes are
+       smaller. Start at min size, and distribute extra space proportionally to
+       the difference between max and min.
+
+       First resolve the width of center, by evaluating how much space the
+       double of each side box would take up. Pick the larger (to preserve
+       centering), and subtract that from available space.
+
+       Available space: 20em
+       Center flex: 17em - 1em = 16
+
+       Left double min: 1em * 2 = 2em
+       Left double flex (max - min): (9em-1em)*2 = 16
+       Total flex left double + center: 16 + 16 = 32
+       Unused space with double left: 20em - (2em + 1em) = 17em
+       Width of double left: 2em + 17em * 16 / 32 = 10.5em
+
+       Right double min: 1em * 2 = 2em
+       Right double flex (max - min): (3em-1em)*2 = 4
+       Total flex right double + center: 4 + 16 = 20
+       Unused space with double right: 20em - (2em + 1em) = 17em
+       Width of double right: 2em + 17em * 4 / 20 = 5.4em
+
+       Width of double left (10.5em) is larger than width of double right
+       (5.4em). Pick this one and resolve center, by using those flex values.
+       Width of center: 1em + 17em * 16/32 = 9.5em.
+
+       Now give the rest in equal parts to left and right:
+       (20em - 9.5em) / 2 = 5.25em */
+    @top-left {
+      text-align: left;
+      vertical-align: top;
+      margin-bottom: 2em;
+      height: 10em;
+      content: "x x x x x";
+      background: hotpink;
+    }
+    @top-center {
+      text-align: left;
+      vertical-align: top;
+      margin-bottom: 1em;
+      height: 10em;
+      content: "x x x x x x x x x";
+      background: cyan;
+    }
+    @top-right {
+      text-align: left;
+      vertical-align: top;
+      height: 10em;
+      content: "x x";
+      background: yellow;
+    }
+
+    /* Left min: 3em
+       Left max: 51em
+       Center min: 4em
+       Center max: 36em
+       Right min: 7em
+       Right max: 23em
+       Min total: 3em + 4em + 7em = 14em
+       Max total: 51em + 36em + 23em = 110em
+
+       Max content sizes are larger than available size. Min content sizes are
+       smaller. Start at min size, and distribute extra space proportionally to
+       the difference between max and min.
+
+       First resolve the width of center, by evaluating how much space the
+       double of each side box would take up. Pick the larger (to preserve
+       centering), and subtract that from available space.
+
+       Available space: 20em
+       Center flex: 36em - 4em = 32
+
+       Left double min: 3em * 2 = 6em
+       Left double flex (max - min): (51em-3em)*2 = 96
+       Total flex left double + center: 96 + 32 = 128
+       Unused space with double left: 20em - (6em + 4em) = 10em
+       Width of double left: 6em + 10em * 96 / 128 = 13.5em
+
+       Right double min: 7em * 2 = 14em
+       Right double flex (max - min): (23em-7em)*2 = 32
+       Total flex right double + center: 32 + 32 = 64
+       Unused space with double right: 20em - (14em + 4em) = 2em
+       Width of double right: 14em + 2em * 32 / 64 = 15em
+
+       Width of double right (15em) is larger than width of double left (13.5em).
+       Pick this one and resolve center, by using those flex values.
+       Width of center: 4em + 2em * 32/64 = 5em.
+
+       Now give the rest in equal parts to left and right:
+       (20em - 5em) / 2 = 7.5em */
+    @bottom-left {
+      text-align: left;
+      vertical-align: top;
+      margin-top: 2em;
+      height: 10em;
+      content: "x xx x xxx xx xx xx xx xx xx xx x xx xx xx xx xxx x";
+      background: yellow;
+    }
+    @bottom-center {
+      text-align: left;
+      vertical-align: top;
+      margin-top: 1em;
+      height: 10em;
+      content: "x x xxxx xxxx xxxx xx x x xxx xx xxx";
+      background: cyan;
+    }
+    @bottom-right {
+      text-align: left;
+      vertical-align: top;
+      height: 10em;
+      content: "x x x x x xxxxxxx x x x";
+      background: hotpink;
+    }
+</style>

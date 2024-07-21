@@ -37,10 +37,10 @@ impl Console {
                 unsafe { describe_scripted_caller(*GlobalScope::get_cx()) }.unwrap_or_default();
             let console_message = ConsoleMessage {
                 message,
-                logLevel: level,
+                log_level: level,
                 filename: caller.filename,
-                lineNumber: caller.line as usize,
-                columnNumber: caller.col as usize,
+                line_number: caller.line as usize,
+                column_number: caller.col as usize,
             };
             let worker_id = global
                 .downcast::<WorkerGlobalScope>()

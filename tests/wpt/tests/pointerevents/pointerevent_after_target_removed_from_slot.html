@@ -128,8 +128,17 @@
       await actions.send();
       await done_click_promise;
 
-      assert_equals(event_log.toString(), expected_events.toString(),
-          "events received");
+      let removal_in_event_log = event_log.indexOf("(child-removed)");
+      let removal_in_expected_list = expected_events.indexOf("(child-removed)");
+      assert_true(removal_in_event_log != -1 && removal_in_expected_list != -1,
+          "(child-removed) expected in both lists");
+
+      assert_equals(event_log.slice(0, removal_in_event_log).toString(),
+          expected_events.slice(0, removal_in_expected_list).toString(),
+          "events received before removal");
+      assert_equals(event_log.slice(removal_in_event_log+1).toString(),
+          expected_events.slice(removal_in_expected_list+1).toString(),
+          "events received after removal");
     }, test_name);
   }
 
@@ -142,10 +151,10 @@
       "pointerover@child",
       "pointerenter@host", "pointerenter@parent", "pointerenter@slot", "pointerenter@child",
       "pointerdown@child", "(child-removed)",
-      "pointerout@child", "pointerleave@child",
-      "pointerover@parent", "pointerup@parent",
-      "pointerdown@parent", "pointerup@parent",
-      "pointerout@parent", "pointerleave@parent"
+      "pointerover@parent", "pointerover@host", "pointerup@parent", "pointerup@host",
+      "pointerdown@parent", "pointerdown@host", "pointerup@parent", "pointerup@host",
+      "pointerout@parent", "pointerout@host",
+      "pointerleave@parent", "pointerleave@host"
     ]
   );
   addPromiseTest(
@@ -155,9 +164,11 @@
       "pointerover@child",
       "pointerenter@host", "pointerenter@parent", "pointerenter@slot", "pointerenter@child",
       "pointerdown@child", "(child-removed)",
-      "pointerleave@slot", "pointerover@parent", "pointerup@parent",
-      "pointerdown@parent", "pointerup@parent",
-      "pointerout@parent", "pointerleave@parent"
+      "pointerleave@slot",
+      "pointerover@parent", "pointerover@host", "pointerup@parent", "pointerup@host",
+      "pointerdown@parent", "pointerdown@host", "pointerup@parent", "pointerup@host",
+      "pointerout@parent", "pointerout@host",
+      "pointerleave@parent", "pointerleave@host"
     ]
   );
   addPromiseTest(
@@ -167,9 +178,10 @@
       "pointerover@child",
       "pointerenter@host", "pointerenter@parent", "pointerenter@slot", "pointerenter@child",
       "pointerdown@child", "pointerup@child", "(child-removed)",
-      "pointerout@child", "pointerleave@child",
-      "pointerover@parent", "pointerdown@parent", "pointerup@parent",
-      "pointerout@parent", "pointerleave@parent"
+      "pointerover@parent", "pointerover@host",
+      "pointerdown@parent", "pointerdown@host", "pointerup@parent", "pointerup@host",
+      "pointerout@parent", "pointerout@host",
+      "pointerleave@parent", "pointerleave@host"
     ]
   );
   addPromiseTest(
@@ -179,8 +191,11 @@
       "pointerover@child",
       "pointerenter@host", "pointerenter@parent", "pointerenter@slot", "pointerenter@child",
       "pointerdown@child", "pointerup@child", "(child-removed)",
-      "pointerleave@slot", "pointerover@parent", "pointerdown@parent", "pointerup@parent",
-      "pointerout@parent", "pointerleave@parent"
+      "pointerleave@slot",
+      "pointerover@parent", "pointerover@host",
+      "pointerdown@parent", "pointerdown@host", "pointerup@parent", "pointerup@host",
+      "pointerout@parent", "pointerout@host",
+      "pointerleave@parent", "pointerleave@host"
     ]
   );
 </script>

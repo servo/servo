@@ -17,7 +17,7 @@
     position: absolute;
     width: 100px;
     height: 100px;
-    position-try-options: --pf;
+    position-try-fallbacks: --pf;
     left: 999999px; /* force fallback */
   }
 </style>
@@ -36,7 +36,7 @@
 <script>
   test(() => {
     assert_equals(anchored.offsetLeft, 999999);
-  }, "position-try-options initially not matching any rules");
+  }, "position-try-fallbacks initially not matching any rules");
 
   test(() => {
     document.getElementById("to-enable").media = "";

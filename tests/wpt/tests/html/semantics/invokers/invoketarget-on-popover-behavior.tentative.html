@@ -11,135 +11,133 @@
 <script src="resources/invoker-utils.js"></script>
 
 <div id="invokee" popover>
-  <button id="containedinvoker" invoketarget="invokee"></button>
+  <button id="containedinvoker" commandfor="invokee" command="hidepopover"></button>
 </div>
-<button id="invokerbutton" invoketarget="invokee"></button>
+<button id="invokerbutton" commandfor="invokee" command="togglepopover"></button>
 
 <script>
-  // auto
-
-  promise_test(async function (t) {
-    assert_false(invokee.matches(":popover-open"));
-    invokee.addEventListener("invoke", (e) => { invokerbutton.setAttribute('invokeaction', 'hidepopover'); }, {
-      once: true,
-    });
-    await clickOn(invokerbutton);
-    t.add_cleanup(() => {
-      invokee.hidePopover();
-      invokerbutton.removeAttribute("invokeaction");
-    });
-    assert_true(invokee.matches(":popover-open"));
-  }, "changing invokeaction attribute inside invokeevent doesn't impact the invocation");
-
   function resetState() {
-    invokerbutton.removeAttribute("invokeaction");
-    containedinvoker.removeAttribute("invokeaction");
+    invokerbutton.setAttribute("commandfor", "invokee");
+    invokerbutton.setAttribute("command", "togglepopover");
+    containedinvoker.setAttribute("commandfor", "invokee");
+    containedinvoker.setAttribute("command", "closepopover");
     try {
       invokee.hidePopover();
     } catch {}
     invokee.setAttribute("popover", "");
   }
 
+  promise_test(async function (t) {
+    assert_false(invokee.matches(":popover-open"));
+    invokee.addEventListener("command", (e) => { invokerbutton.setAttribute('command', 'hidepopover'); }, {
+      once: true,
+    });
+    await clickOn(invokerbutton);
+    t.add_cleanup(resetState);
+    assert_true(invokee.matches(":popover-open"));
+  }, "changing command attribute inside invokeevent doesn't impact the invocation");
+
   // Open actions
   [
-    null,
-    "",
     "togglepopover",
     "showpopover",
     /* test case sensitivity */
     "tOgGlEpOpOvEr",
     "sHoWpOpOvEr",
-  ].forEach((action) => {
+  ].forEach((command) => {
     promise_test(
       async function (t) {
         t.add_cleanup(resetState);
-        if (action !== null) invokerbutton.invokeAction = action;
+        invokerbutton.command = command;
         assert_false(invokee.matches(":popover-open"));
         await clickOn(invokerbutton);
         assert_true(invokee.matches(":popover-open"));
       },
-      `invoking (as ${
-        action === null ? "auto" : action || "explicit empty"
-      }) closed popover opens`,
+      `invoking (as ${command}) closed popover opens`,
     );
 
     promise_test(
       async function (t) {
         t.add_cleanup(resetState);
-        if (action !== null) invokerbutton.invokeAction = action;
+        invokerbutton.command = command;
         assert_false(invokee.matches(":popover-open"));
-        invokee.addEventListener("invoke", (e) => e.preventDefault(), {
+        invokee.addEventListener("command", (e) => e.preventDefault(), {
           once: true,
         });
         await clickOn(invokerbutton);
         assert_false(invokee.matches(":popover-open"));
       },
-      `invoking (as ${
-        action === null ? "auto" : action || "explicit empty"
-      }) closed popover with preventDefault does not open`,
+      `invoking (as ${command}) closed popover with preventDefault does not open`,
     );
   });
 
   // Close actions
   [
-    null,
-    "",
     "togglepopover",
     "hidepopover",
     /* test case sensitivity */
     "tOgGlEpOpOvEr",
     "hIdEpOpOvEr",
-  ].forEach((action) => {
+  ].forEach((command) => {
     promise_test(
       async function (t) {
         t.add_cleanup(resetState);
-        if (action !== null) invokerbutton.invokeAction = action;
+        invokerbutton.command = command;
         invokee.showPopover();
         assert_true(invokee.matches(":popover-open"));
         await clickOn(invokerbutton);
         assert_false(invokee.matches(":popover-open"));
       },
-      `invoking (as ${
-        action === null ? "auto" : action || "explicit empty"
-      }) open popover closes`,
+      `invoking (as ${command}) open popover closes`,
     );
 
     promise_test(
       async function (t) {
         t.add_cleanup(resetState);
-        if (action !== null) containedinvoker.invokeAction = action;
+        invokerbutton.command = command;
+        invokee.showPopover();
+        assert_true(invokee.matches(":popover-open"));
+        invokee.addEventListener("command", (e) => e.preventDefault(), {
+          once: true,
+        });
+        await clickOn(invokerbutton);
+        assert_true(invokee.matches(":popover-open"));
+      },
+      `invoking (as ${command}) open popover with preventDefault does not close`,
+    );
+
+    promise_test(
+      async function (t) {
+        t.add_cleanup(resetState);
+        containedinvoker.command = command;
         invokee.showPopover();
         assert_true(invokee.matches(":popover-open"));
         await clickOn(containedinvoker);
         assert_false(invokee.matches(":popover-open"));
       },
-      `invoking (as ${
-        action === null ? "auto" : action || "explicit empty"
-      }) from within open popover closes`,
+      `invoking (as ${command}) from within open popover closes`,
     );
 
     promise_test(
       async function (t) {
         t.add_cleanup(resetState);
-        if (action !== null) invcontainedinvokervokeaction = action;
+        containedinvoker.command = command;
         invokee.showPopover();
-        invokee.addEventListener("invoke", (e) => e.preventDefault(), {
+        invokee.addEventListener("command", (e) => e.preventDefault(), {
           once: true,
         });
         assert_true(invokee.matches(":popover-open"));
         await clickOn(containedinvoker);
         assert_true(invokee.matches(":popover-open"));
       },
-      `invoking (as ${
-        action === null ? "auto" : action || "explicit empty"
-      }) open popover with preventDefault does not close`,
+      `invoking (as ${command}) from within open popover with preventDefault does not close`,
     );
   });
 
   // showpopover specific
   promise_test(async function (t) {
     t.add_cleanup(resetState);
-    invokerbutton.setAttribute("invokeaction", "showpopover");
+    invokerbutton.setAttribute("command", "showpopover");
     invokee.showPopover();
     assert_true(invokee.matches(":popover-open"));
     await clickOn(invokerbutton);
@@ -149,7 +147,7 @@
   // hidepopover specific
   promise_test(async function (t) {
     t.add_cleanup(resetState);
-    invokerbutton.setAttribute("invokeaction", "hidepopover");
+    invokerbutton.setAttribute("command", "hidepopover");
     assert_false(invokee.matches(":popover-open"));
     await clickOn(invokerbutton);
     assert_false(invokee.matches(":popover-open"));

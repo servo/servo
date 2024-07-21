@@ -96,7 +96,7 @@ subresourceRange) =>
     });
 
     for (const layer of layers) {
-      const ubo = t.device.createBuffer({
+      const ubo = t.createBufferTracked({
         mappedAtCreation: true,
         size: 8,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
@@ -106,11 +106,10 @@ subresourceRange) =>
 
       const byteLength =
       width * height * depth * ReadbackTypedArray.BYTES_PER_ELEMENT * rep.componentOrder.length;
-      const resultBuffer = t.device.createBuffer({
+      const resultBuffer = t.createBufferTracked({
         size: byteLength,
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
       });
-      t.trackForCleanup(resultBuffer);
 
       const viewDescriptor = {
         ...(!t.isCompatibility && {

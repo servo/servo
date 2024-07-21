@@ -1,5 +1,5 @@
 * text=auto eol=lf
-tests/* linguist-vendored
+tests/wpt/** linguist-vendored
 
 # Denote all files that are truly binary and should not be modified.
 *.png binary

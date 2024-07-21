@@ -1,0 +1,38 @@
+<!doctype html>
+<title>CSS Container Queries Test: size query container inside foreignObject</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  svg {
+    display: block;
+    width: 200px;
+    height: 200px;
+    container-type: size;
+  }
+  #container {
+    width: 100px;
+    height: 100px;
+    container-type: size;
+  }
+  @container (width = 100px) {
+    #inner { color: green; }
+  }
+</style>
+<svg>
+  <foreignObject>
+    <div id="container">
+      <div id="inner">Green</div>
+    </div>
+  </foreignObject>
+</svg>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  const green = "rgb(0, 128, 0)";
+
+  test(() => {
+    assert_equals(getComputedStyle(inner).color, green);
+  }, "#inner querying #container inside foreignObject");
+</script>

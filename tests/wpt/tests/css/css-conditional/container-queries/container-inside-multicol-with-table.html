@@ -1,0 +1,41 @@
+<!doctype html>
+<title>CSS Container Queries Test: container inside multicol with table</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #multicol {
+    columns: 2;
+  }
+  .container {
+    container-type: inline-size;
+    width: 100px;
+  }
+  @container (width = 100px) {
+    #t1, #t2 { color: green; }
+  }
+</style>
+<div id="multicol">
+  <div class="container">
+    <div id="t1"></div>
+  </div>
+  <table>
+    <div class="container">
+      <div id="t2"></div>
+    </div>
+  </table>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  const green = "rgb(0, 128, 0)";
+
+  test(() => {
+    assert_equals(getComputedStyle(t1).color, green);
+  }, "Matching size container inside table inside multicol");
+
+  test(() => {
+    assert_equals(getComputedStyle(t2).color, green);
+  }, "Matching size container inside multicol with table sibling");
+</script>

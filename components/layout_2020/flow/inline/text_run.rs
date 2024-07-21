@@ -30,11 +30,11 @@ use crate::fragment_tree::BaseFragmentInfo;
 
 // These constants are the xi-unicode line breaking classes that are defined in
 // `table.rs`. Unfortunately, they are only identified by number.
-const XI_LINE_BREAKING_CLASS_CM: u8 = 9;
-const XI_LINE_BREAKING_CLASS_GL: u8 = 12;
-const XI_LINE_BREAKING_CLASS_ZW: u8 = 28;
-const XI_LINE_BREAKING_CLASS_WJ: u8 = 30;
-const XI_LINE_BREAKING_CLASS_ZWJ: u8 = 40;
+pub(crate) const XI_LINE_BREAKING_CLASS_CM: u8 = 9;
+pub(crate) const XI_LINE_BREAKING_CLASS_GL: u8 = 12;
+pub(crate) const XI_LINE_BREAKING_CLASS_ZW: u8 = 28;
+pub(crate) const XI_LINE_BREAKING_CLASS_WJ: u8 = 30;
+pub(crate) const XI_LINE_BREAKING_CLASS_ZWJ: u8 = 40;
 
 /// <https://www.w3.org/TR/css-display-3/#css-text-run>
 #[derive(Debug, Serialize)]
@@ -47,16 +47,6 @@ pub(crate) struct TextRun {
     /// The text of this [`TextRun`] with a font selected, broken into unbreakable
     /// segments, and shaped.
     pub shaped_text: Vec<TextRunSegment>,
-
-    /// Whether or not to prevent a soft wrap opportunity at the start of this [`TextRun`].
-    /// This depends on the whether the first character in the run prevents a soft wrap
-    /// opportunity.
-    prevent_soft_wrap_opportunity_at_start: bool,
-
-    /// Whether or not to prevent a soft wrap opportunity at the end of this [`TextRun`].
-    /// This depends on the whether the last character in the run prevents a soft wrap
-    /// opportunity.
-    prevent_soft_wrap_opportunity_at_end: bool,
 }
 
 // There are two reasons why we might want to break at the start:
@@ -70,7 +60,6 @@ pub(crate) struct TextRun {
 #[derive(PartialEq)]
 enum SegmentStartSoftWrapPolicy {
     Force,
-    Prevent,
     FollowLinebreaker,
 }
 
@@ -153,13 +142,11 @@ impl TextRunSegment {
                 ifc.defer_forced_line_break();
                 continue;
             }
-
             // Break before each unbreakable run in this TextRun, except the first unless the
             // linebreaker was set to break before the first run.
             if run_index != 0 || soft_wrap_policy == SegmentStartSoftWrapPolicy::Force {
                 ifc.process_soft_wrap_opportunity();
             }
-
             ifc.push_glyph_store_to_unbreakable_segment(
                 run.glyph_store.clone(),
                 text_run,
@@ -332,8 +319,6 @@ impl TextRun {
             parent_style,
             text_range,
             shaped_text: Vec::new(),
-            prevent_soft_wrap_opportunity_at_start: false,
-            prevent_soft_wrap_opportunity_at_end: false,
         }
     }
 
@@ -417,13 +402,6 @@ impl TextRun {
             let current_byte_index = next_byte_index;
             next_byte_index += character.len_utf8();
 
-            let prevents_soft_wrap_opportunity =
-                char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character);
-            if current_byte_index == self.text_range.start && prevents_soft_wrap_opportunity {
-                self.prevent_soft_wrap_opportunity_at_start = true;
-            }
-            self.prevent_soft_wrap_opportunity_at_end = prevents_soft_wrap_opportunity;
-
             if char_does_not_change_font(character) {
                 continue;
             }
@@ -496,9 +474,8 @@ impl TextRun {
         // character it should also override the LineBreaker's indication to break at the start.
         let have_deferred_soft_wrap_opportunity =
             mem::replace(&mut ifc.have_deferred_soft_wrap_opportunity, false);
-        let mut soft_wrap_policy = match self.prevent_soft_wrap_opportunity_at_start {
-            true => SegmentStartSoftWrapPolicy::Prevent,
-            false if have_deferred_soft_wrap_opportunity => SegmentStartSoftWrapPolicy::Force,
+        let mut soft_wrap_policy = match have_deferred_soft_wrap_opportunity {
+            true => SegmentStartSoftWrapPolicy::Force,
             false => SegmentStartSoftWrapPolicy::FollowLinebreaker,
         };
 
@@ -506,31 +483,7 @@ impl TextRun {
             segment.layout_into_line_items(self, soft_wrap_policy, ifc);
             soft_wrap_policy = SegmentStartSoftWrapPolicy::FollowLinebreaker;
         }
-
-        ifc.prevent_soft_wrap_opportunity_before_next_atomic =
-            self.prevent_soft_wrap_opportunity_at_end;
     }
-}
-
-/// Whether or not this character will rpevent a soft wrap opportunity when it
-/// comes before or after an atomic inline element.
-///
-/// From <https://www.w3.org/TR/css-text-3/#line-break-details>:
-///
-/// > For Web-compatibility there is a soft wrap opportunity before and after each
-/// > replaced element or other atomic inline, even when adjacent to a character that
-/// > would normally suppress them, including U+00A0 NO-BREAK SPACE. However, with
-/// > the exception of U+00A0 NO-BREAK SPACE, there must be no soft wrap opportunity
-/// > between atomic inlines and adjacent characters belonging to the Unicode GL, WJ,
-/// > or ZWJ line breaking classes.
-fn char_prevents_soft_wrap_opportunity_when_before_or_after_atomic(character: char) -> bool {
-    if character == '\u{00A0}' {
-        return false;
-    }
-    let class = linebreak_property(character);
-    class == XI_LINE_BREAKING_CLASS_GL ||
-        class == XI_LINE_BREAKING_CLASS_WJ ||
-        class == XI_LINE_BREAKING_CLASS_ZWJ
 }
 
 /// Whether or not this character should be able to change the font during segmentation.  Certain
@@ -605,11 +558,7 @@ where
         if self.next_character.is_none() {
             self.next_character = self.iterator.next();
         }
-
-        let Some(character) = self.next_character else {
-            return None;
-        };
-
+        let character = self.next_character?;
         self.next_character = self.iterator.next();
         Some((character, self.next_character))
     }

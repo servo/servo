@@ -102,27 +102,24 @@ fn(async (t) => {
   const arrayType = typedArrayCtor(scalarType);
 
   // Create input buffer with values [0..n]
-  const inputBuffer = t.device.createBuffer({
+  const inputBuffer = t.createBufferTracked({
     size: bufferNumElements * arrayType.BYTES_PER_ELEMENT,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
     mappedAtCreation: true
   });
-  t.trackForCleanup(inputBuffer);
   const data = new arrayType(inputBuffer.getMappedRange());
   data.forEach((_, i) => data[i] = i);
   inputBuffer.unmap();
 
-  const outputBuffer = t.device.createBuffer({
+  const outputBuffer = t.createBufferTracked({
     size: bufferNumElements * arrayType.BYTES_PER_ELEMENT,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
   });
-  t.trackForCleanup(outputBuffer);
 
-  const exchangedBuffer = t.device.createBuffer({
+  const exchangedBuffer = t.createBufferTracked({
     size: bufferNumElements * arrayType.BYTES_PER_ELEMENT,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
   });
-  t.trackForCleanup(exchangedBuffer);
 
   const bindGroup = t.device.createBindGroup({
     layout: pipeline.getBindGroupLayout(0),
@@ -252,23 +249,20 @@ fn(async (t) => {
 
   const arrayType = typedArrayCtor(scalarType);
 
-  const outputBuffer = t.device.createBuffer({
+  const outputBuffer = t.createBufferTracked({
     size: wgNumElements * dispatchSize * arrayType.BYTES_PER_ELEMENT,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
   });
-  t.trackForCleanup(outputBuffer);
 
-  const wgCopyBuffer = t.device.createBuffer({
+  const wgCopyBuffer = t.createBufferTracked({
     size: wgNumElements * dispatchSize * arrayType.BYTES_PER_ELEMENT,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
   });
-  t.trackForCleanup(outputBuffer);
 
-  const exchangedBuffer = t.device.createBuffer({
+  const exchangedBuffer = t.createBufferTracked({
     size: wgNumElements * dispatchSize * arrayType.BYTES_PER_ELEMENT,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
   });
-  t.trackForCleanup(exchangedBuffer);
 
   const bindGroup = t.device.createBindGroup({
     layout: pipeline.getBindGroupLayout(0),
@@ -414,7 +408,7 @@ fn(async (t) => {
   const defaultValue = 99999999;
 
   // Create single-value data buffer initialized to the first ping-pong value
-  const dataBuffer = t.device.createBuffer({
+  const dataBuffer = t.createBufferTracked({
     size: 1 * arrayType.BYTES_PER_ELEMENT,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
     mappedAtCreation: true
@@ -424,26 +418,23 @@ fn(async (t) => {
     data[0] = pingPongValues[0];
     dataBuffer.unmap();
   }
-  t.trackForCleanup(dataBuffer);
 
-  const oldValuesBuffer = t.device.createBuffer({
+  const oldValuesBuffer = t.createBufferTracked({
     size: bufferNumElements * arrayType.BYTES_PER_ELEMENT,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
     mappedAtCreation: true
   });
-  t.trackForCleanup(oldValuesBuffer);
   {
     const data = new arrayType(oldValuesBuffer.getMappedRange());
     data.fill(defaultValue);
     oldValuesBuffer.unmap();
   }
 
-  const exchangedBuffer = t.device.createBuffer({
+  const exchangedBuffer = t.createBufferTracked({
     size: bufferNumElements * arrayType.BYTES_PER_ELEMENT,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
     mappedAtCreation: true
   });
-  t.trackForCleanup(exchangedBuffer);
   {
     const data = new arrayType(exchangedBuffer.getMappedRange());
     data.fill(defaultValue);
@@ -641,24 +632,22 @@ fn(async (t) => {
   const arrayType = typedArrayCtor(scalarType);
   const defaultValue = 99999999;
 
-  const oldValuesBuffer = t.device.createBuffer({
+  const oldValuesBuffer = t.createBufferTracked({
     size: bufferNumElements * arrayType.BYTES_PER_ELEMENT,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
     mappedAtCreation: true
   });
-  t.trackForCleanup(oldValuesBuffer);
   {
     const data = new arrayType(oldValuesBuffer.getMappedRange());
     data.fill(defaultValue);
     oldValuesBuffer.unmap();
   }
 
-  const exchangedBuffer = t.device.createBuffer({
+  const exchangedBuffer = t.createBufferTracked({
     size: bufferNumElements * arrayType.BYTES_PER_ELEMENT,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
     mappedAtCreation: true
   });
-  t.trackForCleanup(exchangedBuffer);
   {
     const data = new arrayType(exchangedBuffer.getMappedRange());
     data.fill(defaultValue);

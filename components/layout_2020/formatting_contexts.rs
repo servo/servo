@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::convert::TryInto;
-
 use app_units::Au;
 use serde::Serialize;
 use servo_arc::Arc;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
+use style::selector_parser::PseudoElement;
 use style::values::specified::text::TextDecorationLine;
 
 use crate::context::LayoutContext;
@@ -61,10 +60,19 @@ pub(crate) enum NonReplacedFormattingContextContents {
 
 /// The baselines of a layout or a [`crate::fragment_tree::BoxFragment`]. Some layout
 /// uses the first and some layout uses the last.
-#[derive(Debug, Default, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Serialize)]
 pub(crate) struct Baselines {
     pub first: Option<Au>,
     pub last: Option<Au>,
+}
+
+impl Baselines {
+    pub(crate) fn offset(&self, block_offset: Au) -> Baselines {
+        Self {
+            first: self.first.map(|first| first + block_offset),
+            last: self.last.map(|last| last + block_offset),
+        }
+    }
 }
 
 pub(crate) struct IndependentLayout {
@@ -85,15 +93,16 @@ pub(crate) struct IndependentLayout {
 }
 
 impl IndependentFormattingContext {
-    pub fn construct<'dom>(
+    pub fn construct<'dom, Node: NodeExt<'dom>>(
         context: &LayoutContext,
-        node_and_style_info: &NodeAndStyleInfo<impl NodeExt<'dom>>,
+        node_and_style_info: &NodeAndStyleInfo<Node>,
         display_inside: DisplayInside,
         contents: Contents,
         propagated_text_decoration_line: TextDecorationLine,
     ) -> Self {
-        match contents.try_into() {
-            Ok(non_replaced_contents) => {
+        match contents {
+            Contents::NonReplaced(non_replaced_contents) => {
+                let mut base_fragment_info: BaseFragmentInfo = node_and_style_info.into();
                 let contents = match display_inside {
                     DisplayInside::Flow { is_list_item } |
                     DisplayInside::FlowRoot { is_list_item } => {
@@ -116,22 +125,32 @@ impl IndependentFormattingContext {
                         ))
                     },
                     DisplayInside::Table => {
+                        let table_grid_style = context
+                            .shared_context()
+                            .stylist
+                            .style_for_anonymous::<Node::ConcreteElement>(
+                            &context.shared_context().guards,
+                            &PseudoElement::ServoTableGrid,
+                            &node_and_style_info.style,
+                        );
+                        base_fragment_info.flags.insert(FragmentFlags::DO_NOT_PAINT);
                         NonReplacedFormattingContextContents::Table(Table::construct(
                             context,
                             node_and_style_info,
+                            table_grid_style,
                             non_replaced_contents,
                             propagated_text_decoration_line,
                         ))
                     },
                 };
                 Self::NonReplaced(NonReplacedFormattingContext {
-                    base_fragment_info: node_and_style_info.into(),
                     style: Arc::clone(&node_and_style_info.style),
+                    base_fragment_info,
                     content_sizes: None,
                     contents,
                 })
             },
-            Err(contents) => {
+            Contents::Replaced(contents) => {
                 let mut base_fragment_info: BaseFragmentInfo = node_and_style_info.into();
                 base_fragment_info.flags.insert(FragmentFlags::IS_REPLACED);
                 Self::Replaced(ReplacedFormattingContext {
@@ -209,6 +228,7 @@ impl NonReplacedFormattingContext {
                 layout_context,
                 positioning_context,
                 containing_block_for_children,
+                containing_block,
             ),
             NonReplacedFormattingContextContents::Table(table) => table.layout(
                 layout_context,

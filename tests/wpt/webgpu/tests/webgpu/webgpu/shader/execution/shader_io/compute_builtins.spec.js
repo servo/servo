@@ -147,11 +147,10 @@ fn((t) => {
   const kOutputElementSize = 16;
 
   // Create the output buffers.
-  const outputBuffer = t.device.createBuffer({
+  const outputBuffer = t.createBufferTracked({
     size: totalInvocations * kOutputElementSize * 4,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
   });
-  t.trackForCleanup(outputBuffer);
 
   const bindGroup = t.device.createBindGroup({
     layout: pipeline.getBindGroupLayout(0),
@@ -168,12 +167,11 @@ fn((t) => {
       pass.dispatchWorkgroups(t.params.numGroups.x, t.params.numGroups.y, t.params.numGroups.z);
       break;
     case 'indirect':{
-        const dispatchBuffer = t.device.createBuffer({
+        const dispatchBuffer = t.createBufferTracked({
           size: 3 * Uint32Array.BYTES_PER_ELEMENT,
           usage: GPUBufferUsage.INDIRECT,
           mappedAtCreation: true
         });
-        t.trackForCleanup(dispatchBuffer);
         const dispatchData = new Uint32Array(dispatchBuffer.getMappedRange());
         dispatchData[0] = t.params.numGroups.x;
         dispatchData[1] = t.params.numGroups.y;

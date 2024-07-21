@@ -53,9 +53,7 @@ impl CoreTextFontCache {
         }
 
         let mut cache = cache.write();
-        let identifier_cache = cache
-            .entry(font_identifier.clone())
-            .or_insert_with(Default::default);
+        let identifier_cache = cache.entry(font_identifier.clone()).or_default();
 
         // It could be that between the time of the cache miss above and now, after the write lock
         // on the cache has been acquired, the cache was populated with the data that we need. Thus

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Index of</title>
+        <style>
+            h1 {
+                border-bottom: 1px solid black;
+            }
+
+            .listing {
+                margin: 0.5em;
+                display: table;
+            }
+
+            .listing .header,
+            .listing .entry {
+                display: table-row;
+            }
+
+            .listing .header {
+                font-weight: bold;
+            }
+
+            .listing .header span,
+            .listing .entry span {
+                display: table-cell;
+                padding-right: 1em;
+            }
+
+            .entry span:nth-child(1) {
+                min-width: 20em;
+            }
+
+            .entry span.size,
+            .entry span.last-modified {
+                white-space: nowrap;
+            }
+
+            .parent_link > a:before {
+                content: "📁 ";
+            }
+
+            .parent_link {
+                display: none;
+            }
+
+            .entry.directory > .name:before {
+                content: "📁 ";
+            }
+
+            .entry.file > .name:before {
+                content: "📄 ";
+            }
+
+            .entry.symlink > .name:before {
+                content: "🔗 ";
+            }
+        </style>
+        <script>
+            function setData(directoryName, parentLink, rows) {
+                document.title += directoryName;
+                document.querySelector("h1").innerHTML += " " + directoryName;
+
+                if (parentLink != "") {
+                    document.querySelector(".parent_link > a").href = parentLink;
+                    document.querySelector(".parent_link").style.display = "initial";
+                }
+
+                rows.sort((rowA, rowB) => rowA[1].localeCompare(rowB[1]));
+
+                let listing = document.querySelector(".listing");
+                let rowTemplate = document.getElementById("rowTemplate");
+                for (row of rows) {
+                    let rowElement = rowTemplate.content.cloneNode(true);
+                    rowElement.querySelector(".entry").classList.add(row[0]);
+                    rowElement.querySelector(".name > .link").innerText = row[1];
+                    rowElement.querySelector(".name > .link").href = row[2];
+                    rowElement.querySelector(".size").innerText = row[3];
+                    rowElement.querySelector(".last-modified").innerText = row[4];
+                    listing.appendChild(rowElement);
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h1>Index of</h1>
+        <div class="parent_link"><a href="">Up to parent directory</a></div>
+        <div class="listing">
+            <div class="header">
+                <span class="name">Name</span>
+                <span class="size">Size</span>
+                <span class="last-modified">Last Modified</span>
+            </div>
+        </div>
+        <template id="rowTemplate">
+            <div class="entry">
+                <span class="name"><a class="link"></a></span>
+                <span class="size"></span>
+                <span class="last-modified"></span>
+            </div>
+        </template>
+    </body>
+</html>

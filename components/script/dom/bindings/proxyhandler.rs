@@ -697,7 +697,7 @@ unsafe fn append_cross_origin_allowlisted_prop_keys(
 ) {
     rooted!(in(*cx) let mut id: jsid);
 
-    let jsstring = JS_AtomizeAndPinString(*cx, b"then\0".as_ptr() as *const c_char);
+    let jsstring = JS_AtomizeAndPinString(*cx, c"then".as_ptr());
     rooted!(in(*cx) let rooted = jsstring);
     RUST_INTERNED_STRING_TO_JSID(*cx, rooted.handle().get(), id.handle_mut());
     AppendToIdVector(props, id.handle());

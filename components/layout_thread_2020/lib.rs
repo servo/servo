@@ -59,6 +59,7 @@ use script_traits::{
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_config::opts::{self, DebugOptions};
+use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::animation::DocumentAnimationSet;
 use style::context::{
@@ -71,7 +72,7 @@ use style::global_style_data::{GLOBAL_STYLE_DATA, STYLE_THREAD_POOL};
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::properties::style_structs::Font;
-use style::properties::PropertyId;
+use style::properties::{ComputedValues, PropertyId};
 use style::selector_parser::{PseudoElement, SnapshotMap};
 use style::servo::media_queries::FontMetricsProvider;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
@@ -82,7 +83,9 @@ use style::stylesheets::{
 use style::stylist::Stylist;
 use style::traversal::DomTraversal;
 use style::traversal_flags::TraversalFlags;
-use style::values::computed::CSSPixelLength;
+use style::values::computed::font::GenericFontFamily;
+use style::values::computed::{CSSPixelLength, FontSize, Length, NonNegativeLength};
+use style::values::specified::font::KeywordInfo;
 use style::{driver, Zero};
 use style_traits::{CSSPixel, DevicePixel, SpeculativePainter};
 use url::Url;
@@ -494,6 +497,14 @@ impl LayoutThread {
         // Let webrender know about this pipeline by sending an empty display list.
         webrender_api_sender.send_initial_transaction(id.into());
 
+        let mut font = Font::initial_values();
+        let default_font_size = pref!(fonts.default_size);
+        font.font_size = FontSize {
+            computed_size: NonNegativeLength::new(default_font_size as f32),
+            used_size: NonNegativeLength::new(default_font_size as f32),
+            keyword_info: KeywordInfo::medium(),
+        };
+
         // The device pixel ratio is incorrect (it does not have the hidpi value),
         // but it will be set correctly when the initial reflow takes place.
         let font_context = Arc::new(FontContext::new(font_cache_thread, resource_threads));
@@ -503,6 +514,7 @@ impl LayoutThread {
             window_size.initial_viewport,
             window_size.device_pixel_ratio,
             Box::new(LayoutFontMetricsProvider(font_context.clone())),
+            ComputedValues::initial_values_with_font_override(font),
         );
 
         LayoutThread {
@@ -602,11 +614,12 @@ impl LayoutThread {
         let locked_script_channel = Mutex::new(self.script_chan.clone());
         let pipeline_id = self.id;
         let web_font_finished_loading_callback = move |succeeded: bool| {
-            if succeeded {
-                let _ = locked_script_channel
-                    .lock()
-                    .send(ConstellationControlMsg::WebFontLoaded(pipeline_id));
-            }
+            let _ = locked_script_channel
+                .lock()
+                .send(ConstellationControlMsg::WebFontLoaded(
+                    pipeline_id,
+                    succeeded,
+                ));
         };
 
         // Find all font-face rules and notify the font cache of them.
@@ -620,9 +633,10 @@ impl LayoutThread {
         );
 
         if self.debug.load_webfonts_synchronously && newly_loading_font_count > 0 {
+            // TODO: Handle failure in web font loading
             let _ = self
                 .script_chan
-                .send(ConstellationControlMsg::WebFontLoaded(self.id));
+                .send(ConstellationControlMsg::WebFontLoaded(self.id, true));
         }
     }
 
@@ -1041,6 +1055,7 @@ impl LayoutThread {
             window_size_data.initial_viewport,
             window_size_data.device_pixel_ratio,
             Box::new(LayoutFontMetricsProvider(self.font_context.clone())),
+            self.stylist.device().default_computed_values().to_arc(),
         );
 
         // Preserve any previously computed root font size.
@@ -1259,6 +1274,14 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             script_percent_scale_down: None,
             script_script_percent_scale_down: None,
         }
+    }
+
+    fn base_size_for_generic(&self, generic: GenericFontFamily) -> Length {
+        Length::new(match generic {
+            GenericFontFamily::Monospace => pref!(fonts.default_monospace_size),
+            _ => pref!(fonts.default_size),
+        } as f32)
+        .max(Length::new(0.0))
     }
 }
 

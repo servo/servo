@@ -89,7 +89,8 @@
   function flush() {
    expect_throws(_ => {
       var o = document.createElement('object');
-      o.type = "application/x-shockwave-flash";
+      o.type = "video/mp4";
+      o.data = "dummy.webm";
       document.body.appendChild(o);
     });
   }

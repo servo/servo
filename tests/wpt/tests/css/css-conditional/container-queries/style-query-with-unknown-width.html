@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>CSS Container Queries Test: style and size query against container without a principal box</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-queries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #container {
+    container-type: inline-size;
+    display: contents;
+    --foo: bar;
+  }
+  @container (width >= 0px) or style(--foo: bar) {
+    #target { color: green; }
+  }
+</style>
+<div id="container">
+  <div id="target">Should be green</div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  test(() => {
+    assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+  }, "width query should evaluate to unknown and style query to true");
+</script>

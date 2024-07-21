@@ -1,0 +1,239 @@
+<!doctype html>
+<title>@container (nested)</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+
+#outer {
+  container-name: outer;
+  container-type: size;
+  width: 100px;
+  height: 100px;
+}
+
+#inner {
+  container-name: inner;
+  container-type: size;
+  width: 50px;
+  height: 50px;
+}
+</style>
+<div id=outer>
+  <div id=inner>
+    <div id=child></div>
+  </div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+</script>
+
+<!--
+  "Implicit" refers to implicit container selection, i.e. understanding which
+  container to evaluate against by looking at the features used.
+-->
+
+<style>
+  @container (width: 50px) {
+    @container (height: 50px) {
+      #child { --implicit:true; }
+    }
+  }
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(child).getPropertyValue('--implicit'), 'true');
+  }, 'Implicit');
+</script>
+
+
+<style>
+  @container (width: 70px) {
+    @container (height: 50px) {
+      #child { --implicit-outer-fail:true; }
+    }
+  }
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(child).getPropertyValue('--implicit-outer-fail'), '');
+  }, 'Implicit, outer failing');
+</script>
+
+
+<style>
+  @container (width: 50px) {
+    @container (height: 70px) {
+      #child { --implicit-inner-fail:true; }
+    }
+  }
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(child).getPropertyValue('--implicit-inner-fail'), '');
+  }, 'Implicit, inner failing');
+</script>
+
+
+<style>
+  @container outer (width: 100px) {
+    @container inner (height: 50px) {
+      #child { --named-outer-inner:true; }
+    }
+  }
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(child).getPropertyValue('--named-outer-inner'), 'true');
+  }, 'Outer named, inner named');
+</script>
+
+
+<style>
+  @container inner (width: 50px) {
+    @container outer (height: 100px) {
+      #child { --named-outer-inner-reverse:true; }
+    }
+  }
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(child).getPropertyValue('--named-outer-inner-reverse'), 'true');
+  }, 'Outer named, inner named (reverse)');
+</script>
+
+
+<style>
+  @container unknown (width: 100px) {
+    @container inner (height: 50px) {
+      #child { --named-failing-outer:true; }
+    }
+  }
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(child).getPropertyValue('--named-failing-outer'), '');
+  }, 'Failing outer name');
+</script>
+
+<style>
+  @container outer (width: 100px) {
+    @container unknown (height: 50px) {
+      #child { --named-failing-inner:true; }
+    }
+  }
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(child).getPropertyValue('--named-failing-inner'), '');
+  }, 'Failing inner name');
+</script>
+
+
+<style>
+  @container outer (width: 100px) {
+    @container (height: 50px) {
+      #child { --named-outer-inner-implicit:true; }
+    }
+  }
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(child).getPropertyValue('--named-outer-inner-implicit'), 'true');
+  }, 'Outer named, inner implicit');
+</script>
+
+
+<style>
+  @container (width: 50px) {
+    @container inner (height: 50px) {
+      #child { --implicit-outer-inner-named:true; }
+    }
+  }
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(child).getPropertyValue('--implicit-outer-inner-named'), 'true');
+  }, 'Inner named, outer implicit');
+</script>
+
+
+<style>
+  @container (width: 50px) {
+    @container outer (height: 100px) {
+      #child { --implicit-outer-inner-named-reverse:true; }
+    }
+  }
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(child).getPropertyValue('--implicit-outer-inner-named-reverse'), 'true');
+  }, 'Inner named, outer implicit (reverse)');
+</script>
+
+
+<style>
+  @container (width > 1px) {
+    @container (width > 2px) {
+      @container (width > 3px) {
+        #child { --three-levels:true; }
+      }
+    }
+  }
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(child).getPropertyValue('--three-levels'), 'true');
+  }, 'Three levels');
+</script>
+
+
+<style>
+  @container (width > 1px) {
+    @container (width > 2000px) {
+      @container (width > 3px) {
+        #child { --three-levels-middle-fail:true; }
+      }
+    }
+  }
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(child).getPropertyValue('--three-levels-middle-fail'), '');
+  }, 'Three levels, middle fail');
+</script>
+
+
+<style>
+  @container (width: 50px) {
+    @container outer (height: 100px) {
+      #child { --inner-named-invalidation:true; }
+    }
+  }
+</style>
+<script>
+  test((t) => {
+    t.add_cleanup(() => { outer.style = ''; });
+    assert_equals(getComputedStyle(child).getPropertyValue('--inner-named-invalidation'), 'true');
+    outer.style.height = '200px';
+    assert_equals(getComputedStyle(child).getPropertyValue('--inner-named-invalidation'), '');
+  }, 'Named inner invalidation');
+</script>
+
+
+<style>
+  @container (width: 50px) {
+    @container outer (height: 100px) {
+      #child { --outer-implicit-invalidation:true; }
+    }
+  }
+</style>
+<script>
+  test((t) => {
+    t.add_cleanup(() => { inner.style = ''; });
+    assert_equals(getComputedStyle(child).getPropertyValue('--outer-implicit-invalidation'), 'true');
+    inner.style.width = '200px';
+    assert_equals(getComputedStyle(child).getPropertyValue('--outer-implicit-invalidation'), '');
+  }, 'Implicit outer invalidation');
+</script>

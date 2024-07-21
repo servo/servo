@@ -10,6 +10,13 @@ validateUnaryOperation('clamp', allWebNNOperandDataTypes);
 
 promise_test(async t => {
   const options = {minValue: 1.0, maxValue: 3.0};
+  if (!context.opSupportLimits().input.dataTypes.includes('uint32')) {
+    assert_throws_js(
+        TypeError,
+        () => builder.input(
+            'input', {dataType: 'uint32', dimensions: [1, 2, 3]}));
+    return;
+  }
   const input =
       builder.input('input', {dataType: 'uint32', dimensions: [1, 2, 3]});
   const output = builder.clamp(input, options);
@@ -19,6 +26,13 @@ promise_test(async t => {
 
 promise_test(async t => {
   const options = {minValue: 0, maxValue: 0};
+  if (!context.opSupportLimits().input.dataTypes.includes('int32')) {
+    assert_throws_js(
+        TypeError,
+        () => builder.input(
+            'input', {dataType: 'int32', dimensions: [1, 2, 3, 4]}));
+    return;
+  }
   const input =
       builder.input('input', {dataType: 'int32', dimensions: [1, 2, 3, 4]});
   const output = builder.clamp(input, options);
@@ -28,6 +42,13 @@ promise_test(async t => {
 
 promise_test(async t => {
   const options = {minValue: 3.0, maxValue: 1.0};
+  if (!context.opSupportLimits().input.dataTypes.includes('uint8')) {
+    assert_throws_js(
+        TypeError,
+        () =>
+            builder.input('input', {dataType: 'uint8', dimensions: [1, 2, 3]}));
+    return;
+  }
   const input =
       builder.input('input', {dataType: 'uint8', dimensions: [1, 2, 3]});
   assert_throws_js(TypeError, () => builder.clamp(input, options));

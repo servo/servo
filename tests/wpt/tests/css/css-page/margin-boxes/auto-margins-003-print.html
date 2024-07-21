@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#margin-dimension">
+<meta name="assert" content="Auto margins adjacent to the page area should never become negative.">
+<link rel="match" href="auto-margins-003-print-ref.html">
+<style>
+  @page {
+    margin: 100px;
+    size: 500px 400px;
+    border: solid blue;
+    @top-left-corner {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      margin-top: 90px;
+      margin-left: 90px;
+      content: "";
+    }
+    @top-left {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      margin-top: 90px;
+      content: "";
+    }
+    @top-center {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      margin-top: 90px;
+      content: "";
+    }
+    @top-right {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      margin-top: 90px;
+      content: "";
+    }
+    @top-right-corner {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      margin-top: 90px;
+      margin-right: 90px;
+      content: "";
+    }
+    @right-top {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      margin-right: 90px;
+      content: "";
+    }
+    @right-middle {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      margin-right: 90px;
+      content: "";
+    }
+    @right-bottom {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      margin-right: 90px;
+      content: "";
+    }
+    @bottom-right-corner {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      margin-right: 90px;
+      margin-bottom: 90px;
+      content: "";
+    }
+    @bottom-right {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      margin-bottom: 90px;
+      content: "";
+    }
+    @bottom-center {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      margin-bottom: 90px;
+      content: "";
+    }
+    @bottom-left {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      margin-bottom: 90px;
+      content: "";
+    }
+    @bottom-left-corner {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      margin-left: 90px;
+      margin-bottom: 90px;
+      content: "";
+    }
+    @left-bottom {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      margin-left: 90px;
+      content: "";
+    }
+    @left-middle {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      margin-left: 90px;
+      content: "";
+    }
+    @left-top {
+      border: solid;
+      width: 25px;
+      height: 25px;
+      margin: auto;
+      margin-left: 90px;
+      content: "";
+    }
+  }
+</style>
+There should be 16 margin boxes around this page area. They should all be
+squares, and their borders should be flush with the blue border. They should not
+overlap with the page area.

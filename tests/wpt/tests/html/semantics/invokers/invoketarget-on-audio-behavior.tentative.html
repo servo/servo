@@ -11,38 +11,22 @@
 <script src="resources/invoker-utils.js"></script>
 
 <audio controls id="invokee" src="/media/sound_5.mp3"></audio>
-<button id="invokerbutton" invoketarget="invokee"></button>
+<button id="invokerbutton" commandfor="invokee" command="mute"></button>
 
 <script>
-  // auto
-
-  promise_test(async function (t) {
-    t.add_cleanup(async () => {
-      invokerbutton.removeAttribute("invokeaction");
-      invokee.pause();
-      invokee.currentTime = 0;
-      invokee.muted = false;
-    });
-    assert_true(invokee.paused);
-    invokerbutton.setAttribute("invokeaction", "");
-    await clickOn(invokerbutton);
-    await new Promise((resolve) => {
-      requestAnimationFrame(resolve);
-    });
-    assert_true(invokee.paused);
-  }, "invoking audio with auto action is no-op");
+  function resetState() {
+    invokerbutton.setAttribute("command", "mute");
+    invokee.pause();
+    invokee.currentTime = 0;
+    invokee.muted = false;
+  }
 
   // playpause
 
   promise_test(async function (t) {
-    t.add_cleanup(async () => {
-      invokerbutton.removeAttribute("invokeaction");
-      invokee.pause();
-      invokee.currentTime = 0;
-      invokee.muted = false;
-    });
+    t.add_cleanup(resetState);
     assert_true(invokee.paused);
-    invokerbutton.setAttribute("invokeaction", "playpause");
+    invokerbutton.setAttribute("command", "playpause");
     await clickOn(invokerbutton);
     await new Promise((resolve) => {
       requestAnimationFrame(resolve);
@@ -51,14 +35,9 @@
   }, "invoking audio with playpause action makes audio play");
 
   promise_test(async function (t) {
-    t.add_cleanup(async () => {
-      invokerbutton.removeAttribute("invokeaction");
-      invokee.pause();
-      invokee.currentTime = 0;
-      invokee.muted = false;
-    });
+    t.add_cleanup(resetState);
     assert_true(invokee.paused);
-    invokerbutton.setAttribute("invokeaction", "playpause");
+    invokerbutton.setAttribute("command", "playpause");
     invokerbutton.click();
     await new Promise((resolve) => {
       requestAnimationFrame(resolve);
@@ -67,17 +46,12 @@
   }, "invoking audio with playpause action (without user activation) is a no-op");
 
   promise_test(async function (t) {
-    t.add_cleanup(async () => {
-      invokerbutton.removeAttribute("invokeaction");
-      invokee.pause();
-      invokee.currentTime = 0;
-      invokee.muted = false;
-    });
-    invokee.addEventListener("invoke", (e) => e.preventDefault(), {
+    t.add_cleanup(resetState);
+    invokee.addEventListener("command", (e) => e.preventDefault(), {
       once: true,
     });
     assert_true(invokee.paused);
-    invokerbutton.setAttribute("invokeaction", "playpause");
+    invokerbutton.setAttribute("command", "playpause");
     await clickOn(invokerbutton);
     await new Promise((resolve) => {
       requestAnimationFrame(resolve);
@@ -86,16 +60,11 @@
   }, "invoking audio with playpause action and preventDefault is a no-op");
 
   promise_test(async function (t) {
-    t.add_cleanup(async () => {
-      invokerbutton.removeAttribute("invokeaction");
-      invokee.pause();
-      invokee.currentTime = 0;
-      invokee.muted = false;
-    });
+    t.add_cleanup(resetState);
     await test_driver.bless("play audio");
     invokee.play();
     assert_false(invokee.paused);
-    invokerbutton.setAttribute("invokeaction", "playpause");
+    invokerbutton.setAttribute("command", "playpause");
     await clickOn(invokerbutton);
     await new Promise((resolve) => {
       requestAnimationFrame(resolve);
@@ -106,14 +75,9 @@
   // play
 
   promise_test(async function (t) {
-    t.add_cleanup(async () => {
-      invokerbutton.removeAttribute("invokeaction");
-      invokee.pause();
-      invokee.currentTime = 0;
-      invokee.muted = false;
-    });
+    t.add_cleanup(resetState);
     assert_true(invokee.paused);
-    invokerbutton.setAttribute("invokeaction", "play");
+    invokerbutton.setAttribute("command", "play");
     await clickOn(invokerbutton);
     await new Promise((resolve) => {
       requestAnimationFrame(resolve);
@@ -122,14 +86,9 @@
   }, "invoking audio with play action makes audio play");
 
   promise_test(async function (t) {
-    t.add_cleanup(async () => {
-      invokerbutton.removeAttribute("invokeaction");
-      invokee.pause();
-      invokee.currentTime = 0;
-      invokee.muted = false;
-    });
+    t.add_cleanup(resetState);
     assert_true(invokee.paused);
-    invokerbutton.setAttribute("invokeaction", "play");
+    invokerbutton.setAttribute("command", "play");
     invokerbutton.click();
     await new Promise((resolve) => {
       requestAnimationFrame(resolve);
@@ -138,17 +97,12 @@
   }, "invoking audio with play action (without user activation) is a no-op");
 
   promise_test(async function (t) {
-    t.add_cleanup(async () => {
-      invokerbutton.removeAttribute("invokeaction");
-      invokee.pause();
-      invokee.currentTime = 0;
-      invokee.muted = false;
-    });
-    invokee.addEventListener("invoke", (e) => e.preventDefault(), {
+    t.add_cleanup(resetState);
+    invokee.addEventListener("command", (e) => e.preventDefault(), {
       once: true,
     });
     assert_true(invokee.paused);
-    invokerbutton.setAttribute("invokeaction", "play");
+    invokerbutton.setAttribute("command", "play");
     await clickOn(invokerbutton);
     await new Promise((resolve) => {
       requestAnimationFrame(resolve);
@@ -157,16 +111,11 @@
   }, "invoking audio with play action and preventDefault is a no-op");
 
   promise_test(async function (t) {
-    t.add_cleanup(async () => {
-      invokerbutton.removeAttribute("invokeaction");
-      invokee.pause();
-      invokee.currentTime = 0;
-      invokee.muted = false;
-    });
+    t.add_cleanup(resetState);
     await test_driver.bless("play audio");
     invokee.play();
     assert_false(invokee.paused);
-    invokerbutton.setAttribute("invokeaction", "play");
+    invokerbutton.setAttribute("command", "play");
     await clickOn(invokerbutton);
     await new Promise((resolve) => {
       requestAnimationFrame(resolve);
@@ -177,14 +126,9 @@
   // pause
 
   promise_test(async function (t) {
-    t.add_cleanup(async () => {
-      invokerbutton.removeAttribute("invokeaction");
-      invokee.pause();
-      invokee.currentTime = 0;
-      invokee.muted = false;
-    });
+    t.add_cleanup(resetState);
     assert_true(invokee.paused);
-    invokerbutton.setAttribute("invokeaction", "pause");
+    invokerbutton.setAttribute("command", "pause");
     await clickOn(invokerbutton);
     await new Promise((resolve) => {
       requestAnimationFrame(resolve);
@@ -193,17 +137,12 @@
   }, "invoking audio with pause action is a no-op");
 
   promise_test(async function (t) {
-    t.add_cleanup(async () => {
-      invokerbutton.removeAttribute("invokeaction");
-      invokee.pause();
-      invokee.currentTime = 0;
-      invokee.muted = false;
-    });
-    invokee.addEventListener("invoke", (e) => e.preventDefault(), {
+    t.add_cleanup(resetState);
+    invokee.addEventListener("command", (e) => e.preventDefault(), {
       once: true,
     });
     assert_true(invokee.paused);
-    invokerbutton.setAttribute("invokeaction", "pause");
+    invokerbutton.setAttribute("command", "pause");
     await clickOn(invokerbutton);
     await new Promise((resolve) => {
       requestAnimationFrame(resolve);
@@ -212,16 +151,11 @@
   }, "invoking audio with pause action and preventDefault is a no-op");
 
   promise_test(async function (t) {
-    t.add_cleanup(async () => {
-      invokerbutton.removeAttribute("invokeaction");
-      invokee.pause();
-      invokee.currentTime = 0;
-      invokee.muted = false;
-    });
+    t.add_cleanup(resetState);
     await test_driver.bless("play audio");
     invokee.play();
     assert_false(invokee.paused);
-    invokerbutton.setAttribute("invokeaction", "pause");
+    invokerbutton.setAttribute("command", "pause");
     await clickOn(invokerbutton);
     await new Promise((resolve) => {
       requestAnimationFrame(resolve);
@@ -232,14 +166,9 @@
   // mute
 
   promise_test(async function (t) {
-    t.add_cleanup(async () => {
-      invokerbutton.removeAttribute("invokeaction");
-      invokee.pause();
-      invokee.currentTime = 0;
-      invokee.muted = false;
-    });
+    t.add_cleanup(resetState);
     assert_false(invokee.muted);
-    invokerbutton.setAttribute("invokeaction", "toggleMuted");
+    invokerbutton.setAttribute("command", "toggleMuted");
     await clickOn(invokerbutton);
     await new Promise((resolve) => {
       requestAnimationFrame(resolve);
@@ -248,17 +177,12 @@
   }, "invoking audio with toggleMuted action mutes it");
 
   promise_test(async function (t) {
-    t.add_cleanup(async () => {
-      invokerbutton.removeAttribute("invokeaction");
-      invokee.pause();
-      invokee.currentTime = 0;
-      invokee.muted = false;
-    });
-    invokee.addEventListener("invoke", (e) => e.preventDefault(), {
+    t.add_cleanup(resetState);
+    invokee.addEventListener("command", (e) => e.preventDefault(), {
       once: true,
     });
     assert_false(invokee.muted);
-    invokerbutton.setAttribute("invokeaction", "toggleMuted");
+    invokerbutton.setAttribute("command", "toggleMuted");
     await clickOn(invokerbutton);
     await new Promise((resolve) => {
       requestAnimationFrame(resolve);
@@ -267,15 +191,10 @@
   }, "invoking audio with toggleMuted action and preventDefault is a no-op");
 
   promise_test(async function (t) {
-    t.add_cleanup(async () => {
-      invokerbutton.removeAttribute("invokeaction");
-      invokee.pause();
-      invokee.currentTime = 0;
-      invokee.muted = false;
-    });
+    t.add_cleanup(resetState);
     invokee.muted = true;
     assert_true(invokee.muted);
-    invokerbutton.setAttribute("invokeaction", "toggleMuted");
+    invokerbutton.setAttribute("command", "toggleMuted");
     await clickOn(invokerbutton);
     await new Promise((resolve) => {
       requestAnimationFrame(resolve);

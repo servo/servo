@@ -132,13 +132,11 @@ testValue)
 
 function createTextures(t, targets) {
   return targets.map(({ format }) =>
-  t.trackForCleanup(
-    t.device.createTexture({
-      size: [1, 1],
-      format,
-      usage: GPUTextureUsage.RENDER_ATTACHMENT
-    })
-  )
+  t.createTextureTracked({
+    size: [1, 1],
+    format,
+    usage: GPUTextureUsage.RENDER_ATTACHMENT
+  })
   );
 }
 

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>@container-dependent elements respond to size changes of an @container-dependent iframe</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #container {
+    container-type: size;
+    width: 200px;
+    height: 200px;
+  }
+  iframe {
+    width: 200px;
+    height: 40px;
+  }
+  @container (width > 300px) {
+    iframe { width: 400px; }
+  }
+</style>
+<div id=container>
+  <iframe id=iframe srcdoc="
+    <style>
+      div#container {
+        container-type: size;
+        height: 20px;
+      }
+      div#child { color: red; }
+      @container (width > 300px) {
+        div#child { color: green; }
+      }
+    </style>
+    <div id=container>
+      <div id=child>Test</div>
+    </div>
+  "></iframe>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  function waitForLoad(w) {
+    return new Promise(resolve => w.addEventListener('load', resolve));
+  }
+
+  promise_test(async () => {
+    await waitForLoad(window);
+    let inner_div = iframe.contentDocument.querySelector('div#child');
+    assert_equals(getComputedStyle(inner_div).color, 'rgb(255, 0, 0)');
+
+    // Changing the size of the outer container changes the size of the iframe,
+    // which in turn should change the size of the inner container (inside that
+    // iframe).
+    container.style.width = '400px';
+    container.style.setProperty('--x', 'x'); // crbug.com/1312940
+
+    assert_equals(getComputedStyle(inner_div).color, 'rgb(0, 128, 0)');
+  });
+</script>

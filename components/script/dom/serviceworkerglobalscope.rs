@@ -17,7 +17,6 @@ use js::jsapi::{JSContext, JS_AddInterruptCallback};
 use js::jsval::UndefinedValue;
 use net_traits::request::{CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder};
 use net_traits::{CustomResponseMediator, IpcSend};
-use parking_lot::Mutex;
 use script_traits::{ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use servo_config::pref;
 use servo_rand::random;
@@ -242,7 +241,7 @@ impl ServiceWorkerGlobalScope {
                 runtime,
                 from_devtools_receiver,
                 closing,
-                Arc::new(Mutex::new(Identities::new())),
+                Arc::new(Identities::new()),
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
             own_sender,

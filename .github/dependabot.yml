@@ -15,6 +15,15 @@ updates:
          - "glib*"
          - "gobject*"
          - "gstreamer*"
+  groups:
+    egui-related:
+       patterns:
+         - "ecolor"
+         - "egui"
+         - "egui-winit"
+         - "egui_glow"
+         - "emath"
+         - "epaint"
   ignore:
   # Ignore all stylo crates as their upgrades are coordinated via companion PRs.
   - dependency-name: servo_atoms

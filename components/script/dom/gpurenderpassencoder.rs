@@ -3,11 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use webgpu::wgc::command::{render_commands as wgpu_render, RenderPass};
-use webgpu::{wgt, WebGPU, WebGPURequest};
+use webgpu::{wgt, RenderCommand, WebGPU, WebGPURenderPass, WebGPURequest};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::GPUIndexFormat;
-use super::bindings::error::Fallible;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUColor, GPURenderPassEncoderMethods,
@@ -19,7 +17,7 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubindgroup::GPUBindGroup;
 use crate::dom::gpubuffer::GPUBuffer;
-use crate::dom::gpucommandencoder::{GPUCommandEncoder, GPUCommandEncoderState};
+use crate::dom::gpucommandencoder::GPUCommandEncoder;
 use crate::dom::gpurenderbundle::GPURenderBundle;
 use crate::dom::gpurenderpipeline::GPURenderPipeline;
 
@@ -30,16 +28,15 @@ pub struct GPURenderPassEncoder {
     #[no_trace]
     channel: WebGPU,
     label: DomRefCell<USVString>,
-    #[ignore_malloc_size_of = "defined in wgpu-core"]
     #[no_trace]
-    render_pass: DomRefCell<Option<RenderPass>>,
+    render_pass: WebGPURenderPass,
     command_encoder: Dom<GPUCommandEncoder>,
 }
 
 impl GPURenderPassEncoder {
     fn new_inherited(
         channel: WebGPU,
-        render_pass: Option<RenderPass>,
+        render_pass: WebGPURenderPass,
         parent: &GPUCommandEncoder,
         label: USVString,
     ) -> Self {
@@ -47,7 +44,7 @@ impl GPURenderPassEncoder {
             channel,
             reflector_: Reflector::new(),
             label: DomRefCell::new(label),
-            render_pass: DomRefCell::new(render_pass),
+            render_pass,
             command_encoder: Dom::from_ref(parent),
         }
     }
@@ -55,7 +52,7 @@ impl GPURenderPassEncoder {
     pub fn new(
         global: &GlobalScope,
         channel: WebGPU,
-        render_pass: Option<RenderPass>,
+        render_pass: WebGPURenderPass,
         parent: &GPUCommandEncoder,
         label: USVString,
     ) -> DomRoot<Self> {
@@ -68,6 +65,16 @@ impl GPURenderPassEncoder {
             )),
             global,
         )
+    }
+
+    fn send_render_command(&self, render_command: RenderCommand) {
+        if let Err(e) = self.channel.0.send(WebGPURequest::RenderPassCommand {
+            render_pass_id: self.render_pass.0,
+            render_command,
+            device_id: self.command_encoder.device_id().0,
+        }) {
+            warn!("Error sending WebGPURequest::RenderPassCommand: {e:?}")
+        }
     }
 }
 
@@ -83,16 +90,12 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuprogrammablepassencoder-setbindgroup>
-    #[allow(unsafe_code)]
-    fn SetBindGroup(&self, index: u32, bind_group: &GPUBindGroup, dynamic_offsets: Vec<u32>) {
-        if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
-            wgpu_render::wgpu_render_pass_set_bind_group(
-                render_pass,
-                index,
-                bind_group.id().0,
-                &dynamic_offsets,
-            )
-        }
+    fn SetBindGroup(&self, index: u32, bind_group: &GPUBindGroup, offsets: Vec<u32>) {
+        self.send_render_command(RenderCommand::SetBindGroup {
+            index,
+            bind_group_id: bind_group.id().0,
+            offsets,
+        })
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setviewport>
@@ -105,83 +108,70 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         min_depth: Finite<f32>,
         max_depth: Finite<f32>,
     ) {
-        if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
-            wgpu_render::wgpu_render_pass_set_viewport(
-                render_pass,
-                *x,
-                *y,
-                *width,
-                *height,
-                *min_depth,
-                *max_depth,
-            );
-        }
+        self.send_render_command(RenderCommand::SetViewport {
+            x: *x,
+            y: *y,
+            width: *width,
+            height: *height,
+            min_depth: *min_depth,
+            max_depth: *max_depth,
+        })
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setscissorrect>
     fn SetScissorRect(&self, x: u32, y: u32, width: u32, height: u32) {
-        if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
-            wgpu_render::wgpu_render_pass_set_scissor_rect(render_pass, x, y, width, height);
-        }
+        self.send_render_command(RenderCommand::SetScissorRect {
+            x,
+            y,
+            width,
+            height,
+        })
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setblendcolor>
     fn SetBlendConstant(&self, color: GPUColor) {
-        if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
-            let colors = match color {
-                GPUColor::GPUColorDict(d) => wgt::Color {
-                    r: *d.r,
-                    g: *d.g,
-                    b: *d.b,
-                    a: *d.a,
-                },
-                GPUColor::DoubleSequence(mut s) => {
-                    if s.len() < 3 {
-                        s.resize(3, Finite::wrap(0.0f64));
-                    }
-                    s.resize(4, Finite::wrap(1.0f64));
-                    wgt::Color {
-                        r: *s[0],
-                        g: *s[1],
-                        b: *s[2],
-                        a: *s[3],
-                    }
-                },
-            };
-            wgpu_render::wgpu_render_pass_set_blend_constant(render_pass, &colors);
-        }
+        let color = match color {
+            GPUColor::GPUColorDict(d) => wgt::Color {
+                r: *d.r,
+                g: *d.g,
+                b: *d.b,
+                a: *d.a,
+            },
+            GPUColor::DoubleSequence(mut s) => {
+                if s.len() < 3 {
+                    s.resize(3, Finite::wrap(0.0f64));
+                }
+                s.resize(4, Finite::wrap(1.0f64));
+                wgt::Color {
+                    r: *s[0],
+                    g: *s[1],
+                    b: *s[2],
+                    a: *s[3],
+                }
+            },
+        };
+        self.send_render_command(RenderCommand::SetBlendConstant(color))
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setstencilreference>
     fn SetStencilReference(&self, reference: u32) {
-        if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
-            wgpu_render::wgpu_render_pass_set_stencil_reference(render_pass, reference);
-        }
+        self.send_render_command(RenderCommand::SetStencilReference(reference))
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-end>
-    fn End(&self) -> Fallible<()> {
-        let render_pass = self.render_pass.borrow_mut().take();
-        self.channel
-            .0
-            .send(WebGPURequest::RunRenderPass {
-                command_encoder_id: self.command_encoder.id().0,
-                render_pass,
-            })
-            .expect("Failed to send RunRenderPass");
-
-        self.command_encoder.set_state(
-            GPUCommandEncoderState::Open,
-            GPUCommandEncoderState::EncodingRenderPass,
-        );
-        Ok(())
+    fn End(&self) {
+        if let Err(e) = self.channel.0.send(WebGPURequest::EndRenderPass {
+            render_pass_id: self.render_pass.0,
+            device_id: self.command_encoder.device_id().0,
+            command_encoder_id: self.command_encoder.id().0,
+        }) {
+            warn!("Failed to send WebGPURequest::EndRenderPass: {e:?}");
+        }
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setpipeline>
     fn SetPipeline(&self, pipeline: &GPURenderPipeline) {
-        if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
-            wgpu_render::wgpu_render_pass_set_pipeline(render_pass, pipeline.id().0);
-        }
+        self.send_render_command(RenderCommand::SetPipeline(pipeline.id().0))
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurendercommandsmixin-setindexbuffer>
@@ -192,44 +182,35 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         offset: u64,
         size: u64,
     ) {
-        if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
-            wgpu_render::wgpu_render_pass_set_index_buffer(
-                render_pass,
-                buffer.id().0,
-                match index_format {
-                    GPUIndexFormat::Uint16 => wgt::IndexFormat::Uint16,
-                    GPUIndexFormat::Uint32 => wgt::IndexFormat::Uint32,
-                },
-                offset,
-                wgt::BufferSize::new(size),
-            );
-        }
+        self.send_render_command(RenderCommand::SetIndexBuffer {
+            buffer_id: buffer.id().0,
+            index_format: match index_format {
+                GPUIndexFormat::Uint16 => wgt::IndexFormat::Uint16,
+                GPUIndexFormat::Uint32 => wgt::IndexFormat::Uint32,
+            },
+            offset,
+            size: wgt::BufferSize::new(size),
+        })
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setvertexbuffer>
     fn SetVertexBuffer(&self, slot: u32, buffer: &GPUBuffer, offset: u64, size: u64) {
-        if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
-            wgpu_render::wgpu_render_pass_set_vertex_buffer(
-                render_pass,
-                slot,
-                buffer.id().0,
-                offset,
-                wgt::BufferSize::new(size),
-            );
-        }
+        self.send_render_command(RenderCommand::SetVertexBuffer {
+            slot,
+            buffer_id: buffer.id().0,
+            offset,
+            size: wgt::BufferSize::new(size),
+        })
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-draw>
     fn Draw(&self, vertex_count: u32, instance_count: u32, first_vertex: u32, first_instance: u32) {
-        if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
-            wgpu_render::wgpu_render_pass_draw(
-                render_pass,
-                vertex_count,
-                instance_count,
-                first_vertex,
-                first_instance,
-            );
-        }
+        self.send_render_command(RenderCommand::Draw {
+            vertex_count,
+            instance_count,
+            first_vertex,
+            first_instance,
+        })
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindexed>
@@ -241,46 +222,47 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         base_vertex: i32,
         first_instance: u32,
     ) {
-        if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
-            wgpu_render::wgpu_render_pass_draw_indexed(
-                render_pass,
-                index_count,
-                instance_count,
-                first_index,
-                base_vertex,
-                first_instance,
-            );
-        }
+        self.send_render_command(RenderCommand::DrawIndexed {
+            index_count,
+            instance_count,
+            first_index,
+            base_vertex,
+            first_instance,
+        })
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindirect>
-    fn DrawIndirect(&self, indirect_buffer: &GPUBuffer, indirect_offset: u64) {
-        if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
-            wgpu_render::wgpu_render_pass_draw_indirect(
-                render_pass,
-                indirect_buffer.id().0,
-                indirect_offset,
-            );
-        }
+    fn DrawIndirect(&self, buffer: &GPUBuffer, offset: u64) {
+        self.send_render_command(RenderCommand::DrawIndirect {
+            buffer_id: buffer.id().0,
+            offset,
+        })
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-drawindexedindirect>
-    fn DrawIndexedIndirect(&self, indirect_buffer: &GPUBuffer, indirect_offset: u64) {
-        if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
-            wgpu_render::wgpu_render_pass_draw_indexed_indirect(
-                render_pass,
-                indirect_buffer.id().0,
-                indirect_offset,
-            );
-        }
+    fn DrawIndexedIndirect(&self, buffer: &GPUBuffer, offset: u64) {
+        self.send_render_command(RenderCommand::DrawIndexedIndirect {
+            buffer_id: buffer.id().0,
+            offset,
+        })
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-executebundles>
     #[allow(unsafe_code)]
     fn ExecuteBundles(&self, bundles: Vec<DomRoot<GPURenderBundle>>) {
-        let bundle_ids = bundles.iter().map(|b| b.id().0).collect::<Vec<_>>();
-        if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
-            wgpu_render::wgpu_render_pass_execute_bundles(render_pass, &bundle_ids)
+        let bundle_ids: Vec<_> = bundles.iter().map(|b| b.id().0).collect();
+        self.send_render_command(RenderCommand::ExecuteBundles(bundle_ids))
+    }
+}
+
+impl Drop for GPURenderPassEncoder {
+    fn drop(&mut self) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DropRenderPass(self.render_pass.0))
+        {
+            warn!("Failed to send WebGPURequest::DropRenderPass with {e:?}");
         }
     }
 }

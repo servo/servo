@@ -253,15 +253,6 @@ class QueryStarterRenderBundle {
 }
 
 class OcclusionQueryTest extends GPUTest {
-  createBuffer(desc) {
-    return this.trackForCleanup(this.device.createBuffer(desc));
-  }
-  createTexture(desc) {
-    return this.trackForCleanup(this.device.createTexture(desc));
-  }
-  createQuerySet(desc) {
-    return this.trackForCleanup(this.device.createQuerySet(desc));
-  }
   createVertexBuffer(data) {
     return this.makeBufferWithContents(data, GPUBufferUsage.VERTEX);
   }
@@ -294,26 +285,26 @@ class OcclusionQueryTest extends GPUTest {
 
     const queryResolveBufferOffset =
     bufferOffset === 'non-zero' ? kRequiredQueryBufferOffsetAlignment : 0;
-    const queryResolveBuffer = this.createBuffer({
+    const queryResolveBuffer = this.createBufferTracked({
       size: numQueries * 8 + queryResolveBufferOffset,
       usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC
     });
 
-    const readBuffer = this.createBuffer({
+    const readBuffer = this.createBufferTracked({
       size: numQueries * kBytesPerQuery,
       usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
     });
 
     const vertexBuffer = this.createSingleTriangleVertexBuffer(0);
 
-    const renderTargetTexture = this.createTexture({
+    const renderTargetTexture = this.createTextureTracked({
       format: 'rgba8unorm',
       size: kTextureSize,
       usage: GPUTextureUsage.RENDER_ATTACHMENT
     });
 
     const multisampleRenderTarget = sampleCount ?
-    this.createTexture({
+    this.createTextureTracked({
       size: kTextureSize,
       format: 'rgba8unorm',
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
@@ -322,7 +313,7 @@ class OcclusionQueryTest extends GPUTest {
     null;
 
     const depthStencilTexture = depthStencilFormat ?
-    this.createTexture({
+    this.createTextureTracked({
       format: depthStencilFormat,
       size: kTextureSize,
       usage: GPUTextureUsage.RENDER_ATTACHMENT
@@ -390,7 +381,7 @@ class OcclusionQueryTest extends GPUTest {
     });
 
     const querySetOffset = params?.querySetOffset === 'non-zero' ? 7 : 0;
-    const occlusionQuerySet = this.createQuerySet({
+    const occlusionQuerySet = this.createQuerySetTracked({
       type: 'occlusion',
       count: numQueries + querySetOffset
     });
@@ -958,8 +949,8 @@ fn(async (t) => {
     readBuffer
   } = t.setup({ numQueries: kNumQueries });
 
-  const readBuffer2 = t.createBuffer(readBuffer);
-  const readBuffer3 = t.createBuffer(readBuffer);
+  const readBuffer2 = t.createBufferTracked(readBuffer);
+  const readBuffer3 = t.createBufferTracked(readBuffer);
 
   const renderSomething = (encoder) => {
     const pass = encoder.beginRenderPass(renderPassDescriptor);

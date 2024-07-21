@@ -29,6 +29,6 @@ fn((t) => {
   const { type, count } = t.params;
 
   t.expectValidationError(() => {
-    t.device.createQuerySet({ type, count });
+    t.createQuerySetTracked({ type, count });
   }, count > kMaxQueryCount);
 });

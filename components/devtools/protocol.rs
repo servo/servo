@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Low-level wire protocol implementation. Currently only supports
-//! [JSON packets](https://wiki.mozilla.org/Remote_Debugging_Protocol_Stream_Transport#JSON_Packets).
+//! [JSON packets](https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#json-packets).
 
 use std::error::Error;
 use std::io::{Read, Write};
@@ -14,9 +14,10 @@ use serde::Serialize;
 use serde_json::{self, Value};
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ActorDescription {
     pub category: &'static str,
-    pub typeName: &'static str,
+    pub type_name: &'static str,
     pub methods: Vec<Method>,
 }
 
@@ -63,7 +64,7 @@ impl JsonPacketStream for TcpStream {
     }
 
     fn read_json_packet(&mut self) -> Result<Option<Value>, String> {
-        // https://wiki.mozilla.org/Remote_Debugging_Protocol_Stream_Transport
+        // https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#stream-transport
         // In short, each JSON packet is [ascii length]:[JSON data of given length]
         let mut buffer = vec![];
         loop {

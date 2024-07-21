@@ -235,8 +235,9 @@
     @assert pixel 5,45 ==~ 0,255,0,255;
     @assert pixel 95,45 ==~ 0,255,0,255;
   expected: green
-  variants: &load-font-variant-definition
-  - HtmlCanvas:
+  variants:
+  - &load-font-variant-definition
+    HtmlCanvas:
       append_variants_to_name: false
       canvas_types: ['HtmlCanvas']
       load_font: |-
@@ -271,7 +272,8 @@
     @assert pixel 5,45 ==~ 0,255,0,255;
     @assert pixel 95,45 ==~ 0,255,0,255;
   expected: green
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.draw.baseline.middle
   desc: textBaseline middle is the middle of the em square (not the bounding box)
@@ -293,7 +295,8 @@
     @assert pixel 5,45 ==~ 0,255,0,255;
     @assert pixel 95,45 ==~ 0,255,0,255;
   expected: green
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.draw.baseline.alphabetic
   test_type: promise
@@ -314,7 +317,8 @@
     @assert pixel 5,45 ==~ 0,255,0,255;
     @assert pixel 95,45 ==~ 0,255,0,255;
   expected: green
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.draw.baseline.ideographic
   test_type: promise
@@ -335,7 +339,8 @@
     @assert pixel 5,45 ==~ 0,255,0,255; @moz-todo
     @assert pixel 95,45 ==~ 0,255,0,255; @moz-todo
   expected: green
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.draw.baseline.hanging
   test_type: promise
@@ -356,7 +361,8 @@
     @assert pixel 5,45 ==~ 0,255,0,255;
     @assert pixel 95,45 ==~ 0,255,0,255;
   expected: green
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.draw.space.collapse.space
   desc: Space characters are converted to U+0020, and are NOT collapsed
@@ -373,7 +379,8 @@
     @assert pixel 25,25 ==~ 0,255,0,255;
     @assert pixel 75,25 ==~ 255,0,0,255;
   expected: green
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.draw.space.collapse.other
   desc: Space characters are converted to U+0020, and are NOT collapsed
@@ -390,7 +397,8 @@
     @assert pixel 25,25 ==~ 0,255,0,255;
     @assert pixel 75,25 ==~ 255,0,0,255;
   expected: green
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.draw.space.collapse.start
   desc: Space characters at the start of a line are NOT collapsed
@@ -407,7 +415,8 @@
     @assert pixel 25,25 ==~ 255,0,0,255; @moz-todo
     @assert pixel 75,25 ==~ 0,255,0,255;
   expected: green
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.draw.space.collapse.end
   desc: Space characters at the end of a line are NOT collapsed
@@ -425,7 +434,8 @@
     @assert pixel 25,25 ==~ 0,255,0,255;
     @assert pixel 75,25 ==~ 255,0,0,255;
   expected: green
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.measure.width.space
   desc: Space characters are converted to U+0020 and NOT collapsed
@@ -442,7 +452,8 @@
 
     @assert ctx.measureText(' AB').width === 150;
     @assert ctx.measureText('AB ').width === 150;
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.drawing.style.measure.rtl.text
   desc: Measurement should follow canvas direction instead text direction
@@ -647,6 +658,31 @@
     ctx.strokeText('ToToToToToToTo', -50, 45);
   expected: green
 
+- name: 2d.text.drawing.style.reset.fontKerning.none
+  desc: >-
+    crbug/338965374, fontKerning still works after setting font for a second
+    time.
+  code: |
+    ctx.font = '100px serif';
+    ctx.fontKerning = "none";
+    const width1 = ctx.measureText("AW").width;
+    ctx.font = '100px serif';
+    @assert ctx.fontKerning === "none";
+    const width2 = ctx.measureText("AW").width;
+    @assert width1 === width2;
+
+- name: 2d.text.drawing.style.reset.fontKerning.none2
+  desc: FontKerning value still applies after font changes.
+  code: |
+    ctx.font = '10px serif';
+    ctx.fontKerning = "none";
+    ctx.font = '20px serif';
+    ctx.fillText("TATATA", 20, 30);
+  reference: |
+    ctx.font = '20px serif';
+    ctx.fontKerning = "none";
+    ctx.fillText("TATATA", 20, 30);
+
 # CanvasTest is:
 #   A = (0, 0) to (1em, 0.75em)       (above baseline)
 #   B = (0, 0) to (1em, -0.25em)      (below baseline)
@@ -679,7 +715,8 @@
     @assert pixel 25,25 ==~ 0,255,0,255;
     @assert pixel 75,25 ==~ 0,255,0,255;
   expected: green
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.draw.fill.maxWidth.bound
   desc: fillText handles maxWidth based on line size, not bounding box size
@@ -698,7 +735,8 @@
     @assert pixel 25,25 ==~ 0,255,0,255;
     @assert pixel 75,25 ==~ 0,255,0,255;
   expected: green
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.draw.fontface
   fonts:
@@ -716,7 +754,8 @@
     @assert pixel 25,25 ==~ 0,255,0,255;
     @assert pixel 75,25 ==~ 0,255,0,255;
   expected: green
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.draw.fontface.repeat
   desc: Draw with the font immediately, then wait a bit until and draw again. (This
@@ -740,7 +779,8 @@
     _assertPixelApprox(canvas, 25,25, 0,255,0,255, 2);
     _assertPixelApprox(canvas, 75,25, 0,255,0,255, 2);
   expected: green
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.draw.fontface.notinpage
   desc: '@font-face fonts should work even if they are not used in the page'
@@ -760,7 +800,8 @@
     @assert pixel 25,25 ==~ 0,255,0,255; @moz-todo
     @assert pixel 75,25 ==~ 0,255,0,255; @moz-todo
   expected: green
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.draw.align.left
   desc: textAlign left is the left of the first em square (not the bounding box)
@@ -782,7 +823,8 @@
     @assert pixel 5,45 ==~ 0,255,0,255;
     @assert pixel 95,45 ==~ 0,255,0,255;
   expected: green
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.draw.align.right
   desc: textAlign right is the right of the last em square (not the bounding box)
@@ -804,7 +846,8 @@
     @assert pixel 5,45 ==~ 0,255,0,255;
     @assert pixel 95,45 ==~ 0,255,0,255;
   expected: green
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.draw.align.start.ltr
   desc: textAlign start with ltr is the left edge
@@ -830,7 +873,8 @@
     @assert pixel 5,45 ==~ 0,255,0,255;
     @assert pixel 95,45 ==~ 0,255,0,255;
   expected: green
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.draw.align.start.rtl
   desc: textAlign start with rtl is the right edge
@@ -856,7 +900,8 @@
     @assert pixel 5,45 ==~ 0,255,0,255;
     @assert pixel 95,45 ==~ 0,255,0,255;
   expected: green
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.draw.align.end.ltr
   desc: textAlign end with ltr is the right edge
@@ -882,7 +927,8 @@
     @assert pixel 5,45 ==~ 0,255,0,255;
     @assert pixel 95,45 ==~ 0,255,0,255;
   expected: green
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.draw.align.end.rtl
   desc: textAlign end with rtl is the left edge
@@ -908,7 +954,8 @@
     @assert pixel 5,45 ==~ 0,255,0,255;
     @assert pixel 95,45 ==~ 0,255,0,255;
   expected: green
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.draw.align.center
   desc: textAlign center is the center of the em squares (not the bounding box)
@@ -930,7 +977,8 @@
     @assert pixel 5,45 ==~ 0,255,0,255;
     @assert pixel 95,45 ==~ 0,255,0,255;
   expected: green
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 
 - name: 2d.text.draw.space.basic
@@ -948,7 +996,8 @@
     @assert pixel 25,25 ==~ 0,255,0,255;
     @assert pixel 75,25 ==~ 0,255,0,255;
   expected: green
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.draw.space.collapse.nonspace
   desc: Non-space characters are not converted to U+0020 and collapsed
@@ -965,7 +1014,8 @@
     @assert pixel 25,25 ==~ 0,255,0,255;
     @assert pixel 75,25 ==~ 0,255,0,255;
   expected: green
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.measure.width.basic
   desc: The width of character is same as font used
@@ -981,7 +1031,8 @@
 
     ctx.font = '100px CanvasTest';
     @assert ctx.measureText('A').width === 100;
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.measure.width.empty
   desc: The empty string has zero width
@@ -992,7 +1043,8 @@
     {{ load_font }}
     ctx.font = '50px CanvasTest';
     @assert ctx.measureText("").width === 0;
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.measure.actualBoundingBox
   desc: Testing actualBoundingBox
@@ -1027,7 +1079,8 @@
     @assert ctx.measureText('ABCD').actualBoundingBoxRight >= 200;
     @assert ctx.measureText('ABCD').actualBoundingBoxAscent >= 85;
     @assert ctx.measureText('ABCD').actualBoundingBoxDescent >= 37;
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.measure.fontBoundingBox
   desc: Testing fontBoundingBox measurements
@@ -1044,7 +1097,8 @@
 
     @assert ctx.measureText('ABCD').fontBoundingBoxAscent === 30;
     @assert ctx.measureText('ABCD').fontBoundingBoxDescent === 10;
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.measure.fontBoundingBox.ahem
   desc: Testing fontBoundingBox for font ahem
@@ -1060,7 +1114,8 @@
     @assert ctx.measureText('A').fontBoundingBoxDescent === 10;
     @assert ctx.measureText('ABCD').fontBoundingBoxAscent === 40;
     @assert ctx.measureText('ABCD').fontBoundingBoxDescent === 10;
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.measure.fontBoundingBox-reduced-ascent
   desc: Testing fontBoundingBox for OffscreenCanvas with reduced ascent metric
@@ -1077,7 +1132,8 @@
 
     @assert ctx.measureText('ABCD').fontBoundingBoxAscent === 10;
     @assert ctx.measureText('ABCD').fontBoundingBoxDescent === 10;
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.measure.fontBoundingBox-zero-descent
   desc: Testing fontBoundingBox for OffscreenCanvas with zero descent metric
@@ -1094,7 +1150,8 @@
 
     @assert ctx.measureText('ABCD').fontBoundingBoxAscent === 30;
     @assert ctx.measureText('ABCD').fontBoundingBoxDescent === 0;
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.measure.emHeights
   desc: Testing emHeights
@@ -1113,7 +1170,8 @@
     @assert ctx.measureText('ABCD').emHeightAscent === 30;
     @assert ctx.measureText('ABCD').emHeightDescent === 10;
     @assert ctx.measureText('ABCD').emHeightDescent + ctx.measureText('ABCD').emHeightAscent === 40;
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.measure.emHeights-low-ascent
   desc: Testing emHeights with reduced ascent metric
@@ -1132,7 +1190,8 @@
     @assert ctx.measureText('ABCD').emHeightAscent === 20;
     @assert ctx.measureText('ABCD').emHeightDescent === 20;
     @assert ctx.measureText('ABCD').emHeightDescent + ctx.measureText('ABCD').emHeightAscent === 40;
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.measure.emHeights-zero-descent
   desc: Testing emHeights with zero descent metric
@@ -1151,7 +1210,8 @@
     @assert ctx.measureText('ABCD').emHeightAscent === 40;
     @assert ctx.measureText('ABCD').emHeightDescent === 0;
     @assert ctx.measureText('ABCD').emHeightDescent + ctx.measureText('ABCD').emHeightAscent === 40;
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.measure.baselines
   desc: Testing baselines
@@ -1170,16 +1230,23 @@
     @assert Math.abs(ctx.measureText('ABCD').alphabeticBaseline) === 0;
     @assert ctx.measureText('ABCD').ideographicBaseline === 6.25;
     @assert ctx.measureText('ABCD').hangingBaseline === 25;
-  variants: *load-font-variant-definition
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.measure.selection-rects.tentative
-  desc: Check that TextMetrics::getSelectionRects() matches its DOM equivalent.
+  desc: >-
+    Check that TextMetrics::getSelectionRects() matches its DOM equivalent, with
+    direction {{ text_direction }}, text align {{ text_align }},
+    {{ letter_spacing }} letter spacing, and {{ variant_names[3] }}.
   canvas_types: ['HtmlCanvas', 'OffscreenCanvas']
   code: |
     function placeAndSelectTextInDOM(text, from, to) {
       const el = document.createElement("div");
       el.innerHTML = text;
       el.style.font = '50px sans-serif';
+      el.style.direction = '{{ text_direction }}';
+      el.style.textAlign = '{{ text_align }}';
+      el.style.letterSpacing = '{{ letter_spacing }}';
       document.body.appendChild(el);
 
       let range = document.createRange();
@@ -1187,6 +1254,10 @@
       range.setStart(el.childNodes[0], 0);
       range.setEnd(el.childNodes[0], text.length);
       const parent = range.getClientRects()[0];
+      let width = 0;
+      for (const rect of range.getClientRects()) {
+        width += rect.width;
+      }
 
       range.setStart(el.childNodes[0], from);
       range.setEnd(el.childNodes[0], to);
@@ -1199,8 +1270,21 @@
 
       document.body.removeChild(el);
 
+      // Offset to the alignment point determined by textAlign.
+      let text_align_dx;
+      switch (el.style.textAlign) {
+        case 'right':
+          text_align_dx = width;
+          break;
+        case 'center':
+          text_align_dx = width / 2;
+          break;
+        default:
+          text_align_dx = 0;
+      }
+
       for(let i = 0 ; i < sel_rects.length ; ++i) {
-        sel_rects[i].x -= parent.x;
+        sel_rects[i].x -= parent.x + text_align_dx;
         sel_rects[i].y -= parent.y;
       }
 
@@ -1217,16 +1301,36 @@
         // DOM is not straightforward.
       }
     }
+    {% if use_directional_override %}
+
+    function addDirectionalOverrideCharacters(text, direction_is_ltr) {
+      // source: www.w3.org/International/questions/qa-bidi-unicode-controls.en
+      const LTR_OVERRIDE = '\u202D';
+      const RTL_OVERRIDE = '\u202E';
+      const OVERRIDE_END = '\u202C';
+      if (direction_is_ltr) {
+        return LTR_OVERRIDE + text + OVERRIDE_END;
+      }
+      return RTL_OVERRIDE + text + OVERRIDE_END;
+    }
+    {% endif %}
 
     ctx.font = '50px sans-serif';
+    ctx.direction = '{{ text_direction }}';
+    ctx.textAlign = '{{ text_align }}';
+    ctx.letterSpacing = '{{ letter_spacing }}';
 
     const kTexts = [
       'UNAVAILABLE',
       '🏁🎶🏁',
-      '）（あ）（'
+      '）（あ）（',
+      '-abcd_'
     ]
 
-    for (const text of kTexts) {
+    for (text of kTexts) {
+      {% if use_directional_override %}
+      text = addDirectionalOverrideCharacters(text, ctx.direction == 'ltr');
+      {% endif %}
       const tm = ctx.measureText(text);
       // First character.
       checkRectListsMatch(
@@ -1258,6 +1362,26 @@
         placeAndSelectTextInDOM(text, 1, 0)
       );
     }
+  variants_layout: [single_file, single_file, single_file, single_file]
+  variants:
+  - direction-ltr:
+      text_direction: ltr
+    direction-rtl:
+      text_direction: rtl
+  - align-left:
+      text_align: left
+    align-center:
+      text_align: center
+    align-right:
+      text_align: right
+  - no-spacing:
+      letter_spacing: 0px
+    spacing:
+      letter_spacing: 10px
+  - no-directional-override:
+      use_directional_override: false
+    directional-override:
+      use_directional_override: true
 
 - name: 2d.text.measure.selection-rects-baselines.tentative
   desc: >-
@@ -1278,7 +1402,8 @@
     const kTexts = [
       'UNAVAILABLE',
       '🏁🎶🏁',
-      '）（あ）（'
+      '）（あ）（',
+      '-abcd_'
     ]
 
     for (const text of kTexts) {
@@ -1324,7 +1449,8 @@
     const kTexts = [
       'UNAVAILABLE',
       '🏁🎶🏁',
-      '）（あ）（'
+      '）（あ）（',
+      '-abcd_'
     ]
 
     for (const text of kTexts) {
@@ -1341,6 +1467,478 @@
       assert_throws_dom("IndexSizeError",
                         () => tm.getSelectionRects(text.length + 1, text.length + 1) );
     }
+
+- name: 2d.text.measure.getActualBoundingBox.tentative
+  desc: >-
+    Test TextMetrics::getActualBoundingBox(), with text align {{ text_align }}
+    , and {{ letter_spacing }} letter spacing.
+  test_type: promise
+  fonts:
+  - CanvasTest
+  size: [800, 200]
+  code: |
+    // Use measureText to create a rect for the whole text
+    function getFullTextBoundingBox(text) {
+      const tm = ctx.measureText(text);
+      return {
+        x: -tm.actualBoundingBoxLeft,
+        y: -tm.actualBoundingBoxAscent,
+        width: tm.actualBoundingBoxLeft + tm.actualBoundingBoxRight,
+        height: tm.actualBoundingBoxAscent + tm.actualBoundingBoxDescent
+      };
+    }
+
+    // Returns a string a replaces the characters in text that are not in the
+    // range [start, end) with spaces.
+    function buildTestString(text, start, end) {
+      let ret = '';
+      for (let i = 0; i < text.length; ++i) {
+        if (start <= i && i < end)
+          ret += text[i];
+        else
+          ret += ' ';
+      }
+      return ret;
+    }
+
+    function checkRectsMatch(rect_a, rect_b, text, start, end) {
+      assert_approx_equals(rect_a.x, rect_b.x, 1.0, `${text} :: x :: ${start} to ${end}`);
+      assert_approx_equals(rect_a.y, rect_b.y, 1.0, `${text} :: y :: ${start} to ${end}`);
+      assert_approx_equals(rect_a.width, rect_b.width, 1.0, `${text} :: width :: ${start} to ${end}`);
+      assert_approx_equals(rect_a.height, rect_b.height, 1.0, `${text} :: height :: ${start} to ${end}`);
+    }
+
+    function testForSubstring(text, start, end) {
+      const textMetrics = ctx.measureText(text);
+      const rect_from_api = textMetrics.getActualBoundingBox(start, end);
+      const rect_from_full_bounds = getFullTextBoundingBox(
+                                      buildTestString(text, start, end));
+      checkRectsMatch(rect_from_api, rect_from_full_bounds, buildTestString(text, start, end), start, end);
+    }
+
+    {{ load_font }}
+    ctx.textAlign = '{{ text_align }}';
+    ctx.letterSpacing = '{{ letter_spacing }}';
+
+    const kAligns = [
+      'left',
+      'center',
+      'right',
+    ];
+
+    const kBaselines = [
+      'top',
+      'hanging',
+      'middle',
+      'alphabetic',
+      'ideographic',
+      'bottom',
+    ];
+
+    ctx.font = '50px CanvasTest';
+    const text = 'ABCDE';
+    for (const align of kAligns) {
+      for (const baseline of kBaselines) {
+        ctx.textAlign = align;
+        ctx.textBaseline = baseline;
+        // Full string.
+        testForSubstring(text, 0, text.length);
+        // Intermediate string.
+        testForSubstring(text, 1, text.length - 1);
+        // First character.
+        testForSubstring(text, 0, 1);
+        // Intermediate character.
+        testForSubstring(text, 2, 3);
+      }
+    }
+  variants_layout:
+      [multi_files, single_file, single_file]
+  variants:
+  - *load-font-variant-definition
+  - align-left:
+      text_align: left
+    align-center:
+      text_align: center
+    align-right:
+      text_align: right
+  - no-spacing:
+      letter_spacing: 0px
+    spacing:
+      letter_spacing: 10px
+
+- name: 2d.text.measure.getActualBoundingBox-full-text.tentative
+  desc: >-
+    Test TextMetrics::getActualBoundingBox() for the full length of the string
+    for some edge cases, with direction {{ text_direction }} and
+    {{ variant_names[1] }}
+  size: [800, 200]
+  code: |
+    // Use measureText to create a rect for the whole text
+    function getFullTextBoundingBox(text) {
+      const tm = ctx.measureText(text);
+      return {
+        x: -tm.actualBoundingBoxLeft,
+        y: -tm.actualBoundingBoxAscent,
+        width: tm.actualBoundingBoxLeft + tm.actualBoundingBoxRight,
+        height: tm.actualBoundingBoxAscent + tm.actualBoundingBoxDescent
+      };
+    }
+
+    function checkRectsMatch(rect_a, rect_b) {
+      assert_approx_equals(rect_a.x, rect_b.x, 1.0);
+      assert_approx_equals(rect_a.y, rect_b.y, 1.0);
+      assert_approx_equals(rect_a.width, rect_b.width, 1.0);
+      assert_approx_equals(rect_a.height, rect_b.height, 1.0);
+    }
+    {% if use_directional_override %}
+
+    function addDirectionalOverrideCharacters(text, direction_is_ltr) {
+      // source: www.w3.org/International/questions/qa-bidi-unicode-controls.en
+      const LTR_OVERRIDE = '\u202D';
+      const RTL_OVERRIDE = '\u202E';
+      const OVERRIDE_END = '\u202C';
+      if (direction_is_ltr) {
+        return LTR_OVERRIDE + text + OVERRIDE_END;
+      }
+      return RTL_OVERRIDE + text + OVERRIDE_END;
+    }
+    {% endif %}
+
+    const kAligns = [
+      'left',
+      'center',
+      'right',
+    ];
+
+    const kBaselines = [
+      'top',
+      'hanging',
+      'middle',
+      'alphabetic',
+      'ideographic',
+      'bottom',
+    ];
+
+    const kTexts = [
+      'UNAVAILABLE',
+      '🏁🎶🏁',
+      '）（あ）（',
+      '-abcd '
+    ]
+
+    ctx.font = '50px sans-serif';
+    ctx.direction = '{{ text_direction }}';
+    for (const align of kAligns) {
+      for (const baseline of kBaselines) {
+        ctx.textAlign = align;
+        ctx.textBaseline = baseline;
+        for (text of kTexts) {
+          {% if use_directional_override %}
+          text = addDirectionalOverrideCharacters(text, ctx.direction == 'ltr');
+          {% endif %}
+          const tm = ctx.measureText(text);
+          const rect_from_api = tm.getActualBoundingBox(0, text.length);
+          const rect_from_full_bounds = getFullTextBoundingBox(text);
+          checkRectsMatch(rect_from_api, rect_from_full_bounds)
+        }
+      }
+    }
+  variants_layout: [single_file, single_file]
+  variants:
+  - direction-ltr:
+      text_direction: ltr
+    direction-rtl:
+      text_direction: rtl
+  - no-directional-override:
+      use_directional_override: false
+    directional-override:
+      use_directional_override: true
+
+- name: 2d.text.measure.getActualBoundingBox-exceptions.tentative
+  desc: >-
+    Check that TextMetrics::getActualBoundingBox() throws when using invalid
+    indexes.
+  code: |
+    const kTexts = [
+      'UNAVAILABLE',
+      '🏁🎶🏁',
+      '）（あ）（',
+      '-abcd_'
+    ]
+
+    for (const text of kTexts) {
+      const tm = ctx.measureText(text);
+      // Handled by the IDL binding.
+      assert_throws_js(TypeError, () => tm.getActualBoundingBox(-1, 0) );
+      assert_throws_js(TypeError, () => tm.getActualBoundingBox(0, -1) );
+      assert_throws_js(TypeError, () => tm.getActualBoundingBox(-1, -1) );
+      // Thrown in TextMetrics.
+      assert_throws_dom("IndexSizeError",
+                        () => tm.getActualBoundingBox(text.length, 0) );
+      assert_throws_dom("IndexSizeError",
+                        () => tm.getActualBoundingBox(0, text.length + 1) );
+      assert_throws_dom("IndexSizeError",
+                        () => tm.getActualBoundingBox(text.length, text.length + 1) );
+
+- name: 2d.text.measure.caret-position.tentative
+  desc: >-
+    Check that TextMetrics::caretPositionFromPoint() matches its DOM equivalent,
+    where possible, with direction {{ text_direction }}, text align
+    {{ text_align }}, {{ letter_spacing }} letter spacing and
+    {{ variant_names[3] }}.
+  canvas_types: ['HtmlCanvas', 'OffscreenCanvas']
+  code: |
+    function alignOffset(offset, width) {
+      if ('{{ text_align }}' == 'center') {
+        offset -= width / 2;
+      } else if ('{{ text_align }}' == 'right' ||
+               ('{{ text_direction }}' == 'ltr' && '{{ text_align }}' == 'end') ||
+               ('{{ text_direction }}' == 'rtl' && '{{ text_align }}' == 'start')) {
+        offset -= width;
+      }
+      return offset;
+    }
+
+    {% if use_directional_override %}
+    function addDirectionalOverrideCharacters(text, direction_is_ltr) {
+      // source: www.w3.org/International/questions/qa-bidi-unicode-controls.en
+      const LTR_OVERRIDE = '\u202D';
+      const RTL_OVERRIDE = '\u202E';
+      const OVERRIDE_END = '\u202C';
+      if (direction_is_ltr) {
+        return LTR_OVERRIDE + text + OVERRIDE_END;
+      }
+      return RTL_OVERRIDE + text + OVERRIDE_END;
+    }
+    {% endif %}
+
+    function placeAndMeasureTextInDOM(text, text_width, point) {
+      const el = document.createElement("p");
+      el.innerHTML = text;
+      el.style.font = '50px sans-serif';
+      el.style.direction = '{{ text_direction }}';
+      el.style.letterSpacing = '{{ letter_spacing }}';
+      // Put the text top left to make offsets simpler.
+      el.style.padding = '0px';
+      el.style.margin = '0px';
+      el.style.position = 'absolute';
+      el.style.x = '0px';
+      el.style.y = '0px';
+      document.body.appendChild(el);
+      text_bound = el.getBoundingClientRect();
+      text_x = text_bound.x;
+      text_y = text_bound.y + text_bound.height / 2;
+
+      // Offset to the requested point determined by textAlign and direction.
+      let text_align_dx = 0;
+      if ('{{ text_align }}' == 'center') {
+        text_align_dx = text_width / 2;
+      } else if ('{{ text_align }}' == 'right' ||
+               ('{{ text_direction }}' == 'ltr' && '{{ text_align }}' == 'end') ||
+               ('{{ text_direction }}' == 'rtl' && '{{ text_align }}' == 'start')) {
+        text_align_dx = text_width;
+      }
+      position = document.caretPositionFromPoint(point + text_align_dx + text_x, text_y);
+      @assert position.offsetNode.parentNode === el;
+
+      document.body.removeChild(el);
+
+      return position.offset;
+    }
+
+    ctx.font = '50px sans-serif';
+    ctx.direction = '{{ text_direction }}';
+    ctx.textAlign = '{{ text_align }}';
+    ctx.letterSpacing = '{{ letter_spacing }}';
+
+    const kTexts = [
+      'UNAVAILABLE',
+      '🏁🎶🏁',
+      '）（あ）（',
+      '--abcd__'
+    ]
+
+    for (text of kTexts) {
+      {% if use_directional_override %}
+      text = addDirectionalOverrideCharacters(text, ctx.direction == 'ltr');
+      {% endif %}
+      const tm = ctx.measureText(text);
+      text_width = tm.width;
+      step = 30;
+      if ('{{letter_spacing}}' == '10px') {
+        step = 40;
+      }
+
+      offset = step;
+      adjusted_offset = alignOffset(offset, text_width);
+      tm_position = tm.caretPositionFromPoint(adjusted_offset);
+      doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+      assert_equals(tm_position,
+                    doc_position,
+                    "for " + text + " offset " + offset);
+
+      offset = text_width / 2;
+      adjusted_offset = alignOffset(offset, text_width);
+      tm_position = tm.caretPositionFromPoint(adjusted_offset);
+      doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+      assert_equals(tm_position,
+                    doc_position,
+                    "for " + text + " offset " + offset);
+
+      offset = text_width - step;
+      adjusted_offset = alignOffset(offset, text_width);
+      tm_position = tm.caretPositionFromPoint(adjusted_offset);
+      doc_position = placeAndMeasureTextInDOM(text, text_width, adjusted_offset);
+      assert_equals(tm_position,
+                    doc_position,
+                    "for " + text + " offset " + offset);
+    }
+  variants_layout: [single_file, single_file, single_file, single_file]
+  variants:
+  - direction-ltr:
+      text_direction: ltr
+    direction-rtl:
+      text_direction: rtl
+  - align-left:
+      text_align: left
+    align-center:
+      text_align: center
+    align-right:
+      text_align: right
+    align-start:
+      text_align: start
+    align-end:
+      text_align: end
+  - no-spacing:
+      letter_spacing: 0px
+    spacing:
+      letter_spacing: 10px
+  - no-directional-override:
+      use_directional_override: false
+    directional-override:
+      use_directional_override: true
+
+- name: 2d.text.measure.caret-position-edges.tentative
+  desc: >-
+    Check that TextMetrics::caretPositionFromPoint() gives correct edges when
+    the requested point is outside the range, with direction {{ text_direction }}
+    and text align {{ text_align }}.
+  code: |
+    function computeExpected(text, text_width, offset) {
+      expected_position = 0;
+      if ('{{ text_align }}' == 'center' && offset == 0) {
+        return text.length / 2;
+      }
+      if ('{{ text_direction }}' == 'ltr') {
+        if (offset >= text_width) {
+          return text.length;
+        }
+        if (offset <= -text_width) {
+          return 0;
+        }
+        // offset must be 0.
+        if ('{{ text_align }}' == 'start' || '{{ text_align }}' == 'left') {
+          return 0;
+        } else {
+          return text.length;
+        }
+      } else {
+        if (offset >= text_width) {
+          return 0;
+        }
+        if (offset <= -text_width) {
+          return text.length;
+        }
+        // offset must be 0.
+        if ('{{ text_align }}' == 'start' || '{{ text_align }}' == 'right') {
+          return 0;
+        } else {
+          return text.length;
+        }
+      }
+      return expected_position;
+    }
+
+    ctx.font = '50px sans-serif';
+    ctx.direction = '{{ text_direction }}';
+    ctx.textAlign = '{{ text_align }}';
+    ctx.letterSpacing = '{{ letter_spacing }}';
+
+    // The leading and trailing '-' cause the string to always follow
+    // the specified direction, even though the interior will always be ltr.
+    const text = '-0123456789-';
+
+    // Points are multiples of the string width as reported by
+    // textMetrics.width.
+    const kPoints = [
+      -2,
+      -1,
+      0,
+      1,
+      2
+    ]
+
+    const tm = ctx.measureText(text);
+    text_width = tm.width;
+    for (const multiple of kPoints) {
+      offset = multiple * text_width;
+      tm_position = tm.caretPositionFromPoint(offset);
+      expected_position = computeExpected(text, text_width, offset);
+      assert_equals(tm_position,
+                    expected_position,
+                    "for " + text + " multiple " + multiple);
+    }
+  variants_layout: [single_file, single_file]
+  variants:
+  - direction-ltr:
+      text_direction: ltr
+    direction-rtl:
+      text_direction: rtl
+  - align-left:
+      text_align: left
+    align-center:
+      text_align: center
+    align-right:
+      text_align: right
+    align-start:
+      text_align: start
+    align-end:
+      text_align: end
+
+- name: 2d.text.measure.caret-position-edge-cases.tentative
+  desc: >-
+    Test the edge cases for caretPositionFromPoint, where the point is at the
+    edge of glyph and at the midpoint.
+  test_type: promise
+  fonts:
+  - CanvasTest
+  code: |
+    {{ load_font }}
+    ctx.font = '50px CanvasTest';
+    ctx.direction = 'ltr';
+    ctx.align = 'left'
+    ctx.baseline = 'alphabetic'
+    tm = ctx.measureText('A');
+    const a_width = tm.width;
+    tm = ctx.measureText('B');
+    const b_width = tm.width;
+    tm = ctx.measureText('C');
+    const c_width = tm.width;
+    const epsilon = 1.0e-4;
+
+    tm = ctx.measureText('ABC');
+    @assert tm.caretPositionFromPoint(0) == 0;
+    @assert tm.caretPositionFromPoint(a_width / 2) == 0;
+    @assert tm.caretPositionFromPoint(a_width / 2 + 1) == 1;
+    @assert tm.caretPositionFromPoint(a_width) == 1;
+    @assert tm.caretPositionFromPoint(a_width + b_width / 2) == 1;
+    @assert tm.caretPositionFromPoint(a_width + b_width / 2 + 1) == 2;
+    @assert tm.caretPositionFromPoint(a_width + b_width) == 2;
+    @assert tm.caretPositionFromPoint(a_width + b_width + c_width / 2) == 2;
+    @assert tm.caretPositionFromPoint(a_width + b_width + c_width / 2 + 1) == 3;
+    @assert tm.caretPositionFromPoint(a_width + b_width + c_width) == 3;
+  variants:
+  - *load-font-variant-definition
 
 - name: 2d.text.drawing.style.absolute.spacing
   desc: Testing letter spacing and word spacing with absolute length
@@ -1688,10 +2286,19 @@
     ctx.textRendering = "auto";
     @assert ctx.textRendering === "auto";
 
+- name: 2d.text.drawing.style.reset.TextRendering
+  desc: TextRendering stays the same after font change.
+  code: |
+    ctx.font = '20px serif';
+    ctx.textRendering = "optimizeSpeed";
+    @assert ctx.textRendering === "optimizeSpeed";
+    ctx.font = '10px serif';
+    @assert ctx.textRendering === "optimizeSpeed";
+
 - name: 2d.text.drawing.style.fontStretch.settings
   desc: Testing value setting of fontStretch in Canvas
   code: |
-    // Setting textRendering with lower cases
+    // Setting fontStretch with lower cases
     ctx.fontStretch = "ultra-condensed";
     @assert ctx.fontStretch === "ultra-condensed";
 
@@ -1817,6 +2424,23 @@
   reference: |
     ctx.font = "32px serif";
     ctx.fillText("Hello World", 20, 100);
+
+- name: 2d.text.fontVariantCaps.after.reset.font
+  desc: Testing if the fontVariantCaps is reset after font change
+  size: [300, 300]
+  code: |
+    ctx.font = "32px serif";
+    ctx.fontVariantCaps = "small-caps";
+
+    ctx.font = "31px serif";
+    ctx.fillText("Hello World", 20, 40);
+    ctx.fontVariantCaps = "small-caps";
+    ctx.fillText("Hello World", 20, 80);
+  reference: |
+    ctx.font = "31px serif";
+    ctx.fillText("Hello World", 20, 40);
+    ctx.fontVariantCaps = "small-caps";
+    ctx.fillText("Hello World", 20, 80);
 
 - name: 2d.text.setFont.mathFont
   desc: crbug.com/1212190, make sure offscreencanvas doesn't crash with Math Font

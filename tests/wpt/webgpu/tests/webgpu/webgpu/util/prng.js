@@ -122,4 +122,43 @@ export class PRNG {
     this.next();
     return this.temper();
   }
+
+  /** @returns a uniformly selected integer in [0, N-1].  N must be at least 1 and at most 2**32. */
+  uniformInt(N) {
+    const upperBound = (1 << 16) * (1 << 16);
+    assert(N === Math.trunc(N)); // It's an integer
+    assert(N > 0, `${N} must be positive`);
+    assert(N <= upperBound, `${N} is too big, should be at most ${upperBound}`);
+
+    // Use a method described in The Stanford GraphBase,
+    // Donald E. Knuth (New York: ACM Press, 1994), viii+576pp.
+    // Co-published by Addison-Wesley Publishing Company.
+    // See GB_FLIP, section 12, Uniform Integers.
+
+    // A naive algorithm would take a random u32 value X, and then
+    // return (X % N).  But this is biased toward smaller values
+    // when N is not a power of 2.  As Knuth writes, if N is
+    // (2**32) / 3, this naive algorithm would return values
+    // less than N/2 about 2/3 of the time.
+
+    // Instead, we eliminate the bias by discarding samples when
+    // they would have been biased. The "keep zone", so to speak,
+    // must be a multiple of N.  We make the algorithm efficient
+    // by maximizing the size of the keep zone: Find the largest
+    // multiple of N that fits within a u32.
+    // On average, this algorithm will discard 2 or fewer samples.
+
+    // Find the largest multiple of N that fits below upperBound.
+    const keepZoneSize = upperBound - upperBound % N;
+    assert(keepZoneSize % N === 0);
+    // It covers a big chunk of the whole u32 range.
+    assert(keepZoneSize >= upperBound / 2);
+    // Draw u32 values until we find one in the keep zone.
+    let candidate;
+    do {
+      candidate = this.randomU32();
+    } while (candidate >= keepZoneSize);
+    // Now return the candidate, but folding away multiples of N.
+    return candidate % N;
+  }
 }

@@ -11,11 +11,12 @@
 <script src="resources/invoker-utils.js"></script>
 
 <audio controls id="invokee" src="/media/sound_5.mp3"></audio>
-<button id="invokerbutton" invoketarget="invokee"></button>
+<button id="invokerbutton" commandfor="invokee"></button>
 
 <script>
   // invalid actions on audio
   [
+    "",
     "foo-bar",
     "showpopover",
     "showmodal",
@@ -24,8 +25,8 @@
     "close",
   ].forEach((action) => {
     promise_test(async function (t) {
-      t.add_cleanup(() => invokerbutton.removeAttribute("invokeaction"));
-      invokerbutton.setAttribute("invokeaction", action);
+      t.add_cleanup(() => invokerbutton.removeAttribute("command"));
+      invokerbutton.setAttribute("command", action);
       assert_true(invokee.paused);
       assert_false(invokee.muted);
       await clickOn(invokerbutton);

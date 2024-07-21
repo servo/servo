@@ -410,7 +410,7 @@ fn gradient_items_to_color_stops(
 }
 
 /// <https://drafts.csswg.org/css-images-4/#color-stop-fixup>
-fn fixup_stops(stops: &mut Vec<ColorStop<ColorF, f32>>) -> Vec<wr::GradientStop> {
+fn fixup_stops(stops: &mut [ColorStop<ColorF, f32>]) -> Vec<wr::GradientStop> {
     assert!(stops.len() >= 2);
 
     // https://drafts.csswg.org/css-images-4/#color-stop-fixup

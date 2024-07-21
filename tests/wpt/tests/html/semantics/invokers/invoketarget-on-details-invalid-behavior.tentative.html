@@ -11,16 +11,17 @@
 <script src="resources/invoker-utils.js"></script>
 
 <details id="invokee">Details Contents</details>
-<button id="invokerbutton" invoketarget="invokee"></button>
+<button id="invokerbutton" commandfor="invokee" command="open"></button>
 
 <script>
   function resetState() {
-    invokerbutton.removeAttribute("invokeaction");
+    invokerbutton.removeAttribute("command");
     invokee.removeAttribute("open");
   }
 
   // invalid actions on details
   [
+    "",
     "foo-bar",
     "showpopover",
     "showmodal",
@@ -28,22 +29,22 @@
     "hidepopover",
     "hide",
     "toggleopen",
-  ].forEach((action) => {
+  ].forEach((command) => {
     promise_test(async function (t) {
       t.add_cleanup(resetState);
-      invokerbutton.invokeAction = action;
+      invokerbutton.command = command;
       assert_false(invokee.matches("[open]"));
       await clickOn(invokerbutton);
       assert_false(invokee.matches("[open]"));
-    }, `invoking (as ${action}) on details does nothing`);
+    }, `invoking (as ${command}) on details does nothing`);
 
     promise_test(async function (t) {
       t.add_cleanup(resetState);
-      invokerbutton.invokeAction = action;
+      invokerbutton.command = command;
       invokee.setAttribute("open", "");
       assert_true(invokee.matches("[open]"));
       await clickOn(invokerbutton);
       assert_true(invokee.matches("[open]"));
-    }, `invoking (as ${action}) on open details does nothing`);
+    }, `invoking (as ${command}) on open details does nothing`);
   });
 </script>

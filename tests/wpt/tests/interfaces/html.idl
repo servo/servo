@@ -48,7 +48,7 @@ typedef (HTMLScriptElement or SVGScriptElement) HTMLOrSVGScriptElement;
 
 [LegacyOverrideBuiltIns]
 partial interface Document {
-  static Document parseHTMLUnsafe(HTMLString html);
+  static Document parseHTMLUnsafe((TrustedHTML or DOMString) html);
 
   // resource metadata management
   [PutForwards=href, LegacyUnforgeable] readonly attribute Location? location;
@@ -452,7 +452,7 @@ interface HTMLIFrameElement : HTMLElement {
   [HTMLConstructor] constructor();
 
   [CEReactions] attribute USVString src;
-  [CEReactions] attribute HTMLString srcdoc;
+  [CEReactions] attribute (TrustedHTML or DOMString) srcdoc;
   [CEReactions] attribute DOMString name;
   [SameObject, PutForwards=value] readonly attribute DOMTokenList sandbox;
   [CEReactions] attribute DOMString allow;
@@ -2293,19 +2293,19 @@ Window includes WindowOrWorkerGlobalScope;
 WorkerGlobalScope includes WindowOrWorkerGlobalScope;
 
 partial interface Element {
-  [CEReactions] undefined setHTMLUnsafe(HTMLString html);
+  [CEReactions] undefined setHTMLUnsafe((TrustedHTML or DOMString) html);
   DOMString getHTML(optional GetHTMLOptions options = {});
 
-  [CEReactions] attribute [LegacyNullToEmptyString] HTMLString innerHTML;
-  [CEReactions] attribute [LegacyNullToEmptyString] HTMLString outerHTML;
-  [CEReactions] undefined insertAdjacentHTML(DOMString position, HTMLString string);
+  [CEReactions] attribute (TrustedHTML or [LegacyNullToEmptyString] DOMString) innerHTML;
+  [CEReactions] attribute (TrustedHTML or [LegacyNullToEmptyString] DOMString) outerHTML;
+  [CEReactions] undefined insertAdjacentHTML(DOMString position, (TrustedHTML or DOMString) string);
 };
 
 partial interface ShadowRoot {
-  [CEReactions] undefined setHTMLUnsafe(HTMLString html);
+  [CEReactions] undefined setHTMLUnsafe((TrustedHTML or DOMString) html);
   DOMString getHTML(optional GetHTMLOptions options = {});
 
-  [CEReactions] attribute [LegacyNullToEmptyString] HTMLString innerHTML;
+  [CEReactions] attribute (TrustedHTML or [LegacyNullToEmptyString] DOMString) innerHTML;
 };
 
 dictionary GetHTMLOptions {
@@ -2317,7 +2317,7 @@ dictionary GetHTMLOptions {
 interface DOMParser {
   constructor();
 
-  [NewObject] Document parseFromString(HTMLString string, DOMParserSupportedType type);
+  [NewObject] Document parseFromString((TrustedHTML or DOMString) string, DOMParserSupportedType type);
 };
 
 enum DOMParserSupportedType {
@@ -2329,7 +2329,7 @@ enum DOMParserSupportedType {
 };
 
 partial interface Range {
-  [CEReactions, NewObject] DocumentFragment createContextualFragment(HTMLString string);
+  [CEReactions, NewObject] DocumentFragment createContextualFragment((TrustedHTML or DOMString) string);
 };
 
 [Exposed=Window]
@@ -2544,7 +2544,7 @@ interface WorkerGlobalScope : EventTarget {
   readonly attribute WorkerGlobalScope self;
   readonly attribute WorkerLocation location;
   readonly attribute WorkerNavigator navigator;
-  undefined importScripts(ScriptURLString... urls);
+  undefined importScripts((TrustedScriptURL or USVString)... urls);
 
   attribute OnErrorEventHandler onerror;
   attribute EventHandler onlanguagechange;
@@ -2582,7 +2582,7 @@ interface mixin AbstractWorker {
 
 [Exposed=(Window,DedicatedWorker,SharedWorker)]
 interface Worker : EventTarget {
-  constructor(ScriptURLString scriptURL, optional WorkerOptions options = {});
+  constructor((TrustedScriptURL or USVString) scriptURL, optional WorkerOptions options = {});
 
   undefined terminate();
 
@@ -2604,7 +2604,7 @@ Worker includes AbstractWorker;
 
 [Exposed=Window]
 interface SharedWorker : EventTarget {
-  constructor(ScriptURLString scriptURL, optional (DOMString or WorkerOptions) options = {});
+  constructor((TrustedScriptURL or USVString) scriptURL, optional (DOMString or WorkerOptions) options = {});
 
   readonly attribute MessagePort port;
 };

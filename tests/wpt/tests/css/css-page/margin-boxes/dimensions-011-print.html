@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#margin-dimension">
+<meta name="assert" content="Auto center/middle, one auto side, one non-auto side.">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<link rel="match" href="dimensions-011-print-ref.html">
+<style>
+  @page {
+    margin: 6em;
+    width: 20em;
+    height: 16em;
+    font: 16px/1 Ahem;
+    white-space: pre-wrap;
+
+    /* The fixed-size right box is larger (4em) than left (even if stretched by
+       additional space). The left box will get this much space reserved too,
+       leaving 12em (20em - 2*4em) for center. */
+    @top-left {
+      vertical-align: top;
+      text-align: left;
+      content: "x";
+      margin-top: 20px;
+      margin-bottom: auto;
+      height: max-content;
+      background: hotpink;
+    }
+    @top-center {
+      vertical-align: top;
+      text-align: left;
+      margin-top: 40px;
+      margin-bottom: auto;
+      height: max-content;
+      content: "xxxxx";
+      background: cyan;
+    }
+    @top-right {
+      vertical-align: top;
+      text-align: left;
+      margin-top: 60px;
+      margin-bottom: auto;
+      height: max-content;
+      content: "x";
+      width: 4em;
+      background: yellow;
+    }
+
+    /* The auto-sized left box is larger than fixed-size right. Since available
+       space is 20em, and the double of left plus center is less than that,
+       unused space (4em) needs to be distributed.
+
+       Double min content width for left is 2*6em = 12em.
+       Min content width for center is 4em.
+       Unused space becomes 20em - (12em + 4em) = 4em.
+       Total flex is 12+4=16. Double left flex is 12, center flex is 4.
+
+       Double left width: 12em + 4em * 12/16 = 15em
+       Center width: 4em + 4em * 4 / 16 = 5em.
+
+       Left width: 15em / 2 = 7.5em
+       Right width will be kept as-is, since it's fixed. */
+    @bottom-left {
+      vertical-align: top;
+      text-align: left;
+      content: "xxxxxx";
+      margin-top: 20px;
+      margin-bottom: auto;
+      height: max-content;
+      background: yellow;
+    }
+    @bottom-center {
+      vertical-align: top;
+      text-align: left;
+      margin-top: 40px;
+      margin-bottom: auto;
+      height: max-content;
+      content: "xxxx";
+      background: cyan;
+    }
+    @bottom-right {
+      vertical-align: top;
+      text-align: left;
+      margin-top: 60px;
+      margin-bottom: auto;
+      height: max-content;
+      content: "x";
+      width: 2em;
+      background: hotpink;
+    }
+  }
+</style>

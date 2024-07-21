@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#painting">
+<meta name="assert" content="Test default vertical and horizontal alignment for all 16 margin boxes">
+<link rel="match" href="paint-order-001-print-ref.html">
+<style>
+  @page {
+    margin: 100px;
+    size: 500px 400px;
+    @top-left-corner {
+      border: solid thin;
+      margin-left: 20px;
+      text-align: center;
+      vertical-align: middle;
+      content: "FAIL";
+      background: pink;
+    }
+    @top-left {
+      border: solid thin;
+      margin: 5px -4em;
+      text-align: right;
+      vertical-align: middle;
+      content: "FAIL";
+      background: hotpink;
+    }
+    @top-center {
+      border: solid thin;
+      margin: 10px 0;
+      width: 5em;
+      text-align: right;
+      vertical-align: middle;
+      content: "FAIL";
+      background: cyan;
+    }
+    @top-right {
+      border: solid thin;
+      margin: 15px -4em;
+      text-align: right;
+      vertical-align: middle;
+      content: "FAIL";
+      background: yellow;
+    }
+    @top-right-corner {
+      border: solid thin;
+      margin-top: 20px;
+      text-align: center;
+      vertical-align: bottom;
+      content: "FAIL";
+      background: pink;
+    }
+    @right-top {
+      border: solid thin;
+      margin: -4em 5px;
+      text-align: center;
+      vertical-align: bottom;
+      content: "FAIL";
+      background: hotpink;
+    }
+    @right-middle {
+      border: solid thin;
+      margin: 0 10px;
+      height: 5em;
+      text-align: center;
+      vertical-align: bottom;
+      content: "FAIL";
+      background: cyan;
+    }
+    @right-bottom {
+      border: solid thin;
+      margin: -4em 15px;
+      text-align: left;
+      vertical-align: bottom;
+      content: "FAIL";
+      background: yellow;
+    }
+    @bottom-right-corner {
+      border: solid thin;
+      margin-right: 20px;
+      text-align: left;
+      vertical-align: center;
+      content: "FAIL";
+      background: pink;
+    }
+    @bottom-right {
+      border: solid thin;
+      margin: 5px -4em;
+      text-align: left;
+      vertical-align: middle;
+      content: "FAIL";
+      background: hotpink;
+    }
+    @bottom-center {
+      border: solid thin;
+      width: 5em;
+      margin: 10px 0;
+      text-align: left;
+      vertical-align: middle;
+      content: "FAIL";
+      background: cyan;
+    }
+    @bottom-left {
+      border: solid thin;
+      margin: 15px -4em;
+      text-align: left;
+      vertical-align: top;
+      content: "FAIL";
+      background: yellow;
+    }
+    @bottom-left-corner {
+      border: solid thin;
+      margin-bottom: 20px;
+      vertical-align: top;
+      text-align: center;
+      content: "FAIL";
+      background: pink;
+    }
+    @left-bottom {
+      border: solid thin;
+      margin: -4em 5px;
+      text-align: center;
+      vertical-align: top;
+      content: "FAIL";
+      background: hotpink;
+    }
+    @left-middle {
+      border: solid thin;
+      margin: 0 10px;
+      height: 5em;
+      text-align: center;
+      vertical-align: top;
+      content: "FAIL";
+      background: cyan;
+    }
+    @left-top {
+      border: solid thin;
+      margin: -4em 15px;
+      content: "";
+      background: yellow;
+    }
+  }
+</style>
+Default margin box paint order should start with top-left-corner, then go
+clockwise. Hotpink boxes should be on top of pink ones. Cyan on top of
+hotpink. Yellow on top of cyan. No text ("FAIL") should be seen in the margin
+boxes.

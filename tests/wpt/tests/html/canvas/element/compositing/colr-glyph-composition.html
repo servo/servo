@@ -1,0 +1,67 @@
+<html>
+<meta charset="utf-8">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1902253">
+<link rel="match" href="colr-glyph-composition-ref.html">
+<style>
+canvas {
+  margin: 5px;
+}
+</style>
+<script>
+function test(op) {
+  cv = document.createElement("canvas");
+  cv.width = "100";
+  cv.height = "100";
+  document.body.appendChild(cv);
+  cx = cv.getContext("2d");
+  cx.fillStyle = "#888888";
+  cx.fillRect(0,0,100,50);
+  cx.globalCompositeOperation=op;
+  cx.fillStyle = "black";
+  cx.font = "64px Segoe UI Emoji, sans-serif";
+  cx.fillText("\u{1F63A}",5,65);
+}
+
+function br() {
+  document.body.appendChild(document.createElement("br"));
+}
+
+window.onload = ( ) => {
+  test("source-over");
+  test("source-in");
+  test("source-out");
+  test("source-atop");
+  br();
+  test("destination-over");
+  test("destination-in");
+  test("destination-out");
+  test("destination-atop");
+  br();
+  test("copy");
+  test("lighter");
+  test("xor");
+  test("multiply");
+  br();
+  test("screen");
+  test("overlay");
+  test("darken");
+  test("lighten");
+  br();
+  test("color-dodge");
+  test("color-burn");
+  test("hard-light");
+  test("soft-light");
+  br();
+  test("difference");
+  test("exclusion");
+  test("hue");
+  test("saturation");
+  br();
+  test("color");
+  test("luminosity");
+};
+</script>
+<body>
+</body>
+</html>

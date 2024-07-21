@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Display: reading-flow with value grid-order in Shadow DOM</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='../../resources/shadow-dom.js'></script>
+<script src="../../resources/focus-utils.js"></script>
+
+<style>
+.wrapper {
+  display: grid;
+  reading-flow: grid-order;
+}
+</style>
+
+<span id="host1" class="test-case" data-expect="b1,a1,c1"
+      data-description="Slot assigned element is a grid with reading-flow.">
+  <template shadowrootmode="open">
+    <style>
+    .wrapper {
+      display: grid;
+      reading-flow: grid-order;
+    }
+    </style>
+    <slot></slot>
+  </template>
+  <div class="wrapper">
+    <button style="order: 2" id="a1">Item A</button>
+    <button style="order: 1" id="b1">Item B</button>
+    <button style="order: 3" id="c1">Item C</button>
+  </div>
+</span>
+<br>
+
+<span id="host2" class="test-case" data-expect="b2,a2,c2"
+      data-description="Slot is a grid with reading-flow.">
+  <template shadowrootmode="open">
+    <style>
+    .wrapper {
+      display: grid;
+      reading-flow: grid-order;
+    }
+    </style>
+    <slot class="wrapper"></slot>
+  </template>
+  <button style="order: 2" id="a2">Item A</button>
+  <button style="order: 1" id="b2">Item B</button>
+  <button style="order: 3" id="c2">Item C</button>
+</span>
+<br>
+
+<span id="host3" class="test-case" data-expect="host3/o2,host3/o4,o1,o3,o5"
+      data-description="Slot is inside a grid container with reading-flow.">
+  <template shadowrootmode="open">
+    <style>
+    .wrapper {
+      display: grid;
+      reading-flow: grid-order;
+    }
+    </style>
+    <div class="wrapper">
+      <button style="order: 4" id="o4">Order 4</button>
+      <slot style="order: 10"></slot>
+      <button style="order: 2" id="o2">Order 2</button>
+    </div>
+  </template>
+  <button style="order: 5" id="o5">Slotted 5</button>
+  <button style="order: 1" id="o1">Slotted 1</button>
+  <button style="order: 3" id="o3">Slotted 3</button>
+</span>
+<br>
+
+<span id="host4" class="test-case"
+      data-expect="host4/after,host4/before,b4,a4,d42,d41,d43,c4"
+      data-description="Slot is a grid with reading-flow inside a grid container with reading-flow.">
+  <template shadowrootmode="open">
+    <style>
+    .wrapper {
+      display: grid;
+      reading-flow: grid-order;
+    }
+    </style>
+    <div class="wrapper">
+      <button style="order: 4" id="before">Before</button>
+      <slot style="order: 10"></slot>
+      <button style="order: 2" id="after">After</button>
+    </div>
+  </template>
+  <button style="order: 3" id="a4">Item A</button>
+  <button style="order: 1" id="b4">Item B</button>
+  <button style="order: 6" id="c4">Item C</button>
+  <div style="order: 5" class="wrapper">
+    <button style="order: 2" id="d41">Item D1</button>
+    <button style="order: 1" id="d42">Item D2</button>
+    <button style="order: 3" id="d43">Item D3</button>
+  </div>
+</span>
+<br>
+
+<span id="host5" class="test-case" data-expect="b51,a51,c51,b52,a52,c52"
+      data-description="Slot is not inside a shadow host.">
+  <div class="wrapper">
+    <slot name=slot1>
+      <button style="order: 2" id="a51">Item A</button>
+      <button style="order: 1" id="b51">Item B</button>
+      <button style="order: 3" id="c51">Item C</button>
+    </slot>
+  </div>
+  <slot class="wrapper" name=slot2>
+    <button style="order: 2" id="a52">Item A</button>
+    <button style="order: 1" id="b52">Item B</button>
+    <button style="order: 3" id="c52">Item C</button>
+  </slot>
+</span>
+<br>
+
+<span id="host6" class="test-case" data-expect="host6/after,host6/before,b6,a6"
+      data-description="Slot is a display contents inside a grid container.">
+  <template shadowrootmode="open">
+    <style>
+    .wrapper {
+      display: grid;
+      reading-flow: grid-order;
+    }
+    </style>
+    <div class="wrapper">
+      <button style="order: 4" id="before">Before</button>
+      <slot style="display: contents" style="order: 4"></slot>
+      <button style="order: 3" id="after">After</button>
+    </div>
+  </template>
+  <button id="a6" style="order: 7">A</button>
+  <button id="b6" style="order: 2">B</button>
+</span>
+<br>
+
+<span id="host7" class="test-case" data-expect="a7,b7,host7/after,host7/before"
+      data-description="Slot is a display block inside a grid container.">
+  <template shadowrootmode="open">
+    <style>
+    .wrapper {
+      display: grid;
+      reading-flow: grid-order;
+    }
+    </style>
+    <div class="wrapper">
+      <button style="order: 4" id="before">Before</button>
+      <slot style="display: block" style="order: 4"></slot>
+      <button style="order: 3" id="after">After</button>
+    </div>
+  </template>
+  <button id="a7" style="order: 7">A</button>
+  <button id="b7" style="order: 2">B</button>
+</span>
+<br>
+
+<script>
+runFocusTestCases();
+</script>

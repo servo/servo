@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  @page {
+    margin: 0;
+    size: 500px 440px;
+  }
+  body {
+    display: grid;
+    grid-template-columns: 100px auto 100px;
+    grid-template-rows: 100px auto 100px;
+    height: 100vh;
+    margin: 0;
+  }
+  .square {
+    box-sizing: border-box;
+    width: 100px;
+    border: solid;
+    flex: 1;
+    background: green;
+  }
+  .vertical-edge {
+    display: flex;
+    justify-content: space-between;
+  }
+  .horizontal-edge {
+    display: flex;
+    flex-flow: column;
+    justify-content: space-between;
+  }
+  .pagearea {
+    border: solid;
+    padding: 8px;
+  }
+</style>
+
+<div class="square"></div>
+<div class="vertical-edge">
+  <div class="square"></div>
+  <div class="square"></div>
+  <div class="square"></div>
+</div>
+<div class="square"></div>
+<div class="horizontal-edge">
+  <div class="square"></div>
+  <div class="square"></div>
+  <div class="square"></div>
+</div>
+<div class="pagearea">
+  There should be 16 margin boxes around this page area. They should take up all
+  available space, and there should be no red, only green rectangles with a
+  black border.
+</div>
+<div class="horizontal-edge">
+  <div class="square"></div>
+  <div class="square"></div>
+  <div class="square"></div>
+</div>
+<div class="square"></div>
+<div class="vertical-edge">
+  <div class="square"></div>
+  <div class="square"></div>
+  <div class="square"></div>
+</div>
+<div class="square"></div>

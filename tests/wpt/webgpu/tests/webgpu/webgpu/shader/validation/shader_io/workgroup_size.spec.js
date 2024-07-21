@@ -218,7 +218,11 @@ const kWorkgroupSizeTests = {
     pass: false
   },
 
-  duplicate: {
+  duplicate1: {
+    src: `@workgroup_size(1) @workgroup_size(1)`,
+    pass: false
+  },
+  duplicate2: {
     src: `@workgroup_size(1)
 @workgroup_size(2, 2, 2)`,
     pass: false

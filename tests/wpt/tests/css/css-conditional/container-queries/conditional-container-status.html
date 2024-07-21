@@ -1,0 +1,28 @@
+<!doctype html>
+<title>Conditionally removing container status</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-type">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  .parent { width: 300px; }
+  .child { width: 100px; }
+  .parent, .child { container-type: inline-size; }
+  @container (min-width: 200px) {
+    .child { container-type: initial; }
+    .grandchild { border: 3px solid green }
+  }
+</style>
+<div class="parent">
+  <div class="child">
+    <div class="grandchild">You should see a green border around this text</div>
+  </div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  test(function() {
+    let s = getComputedStyle(document.querySelector('.grandchild'));
+    assert_equals(s.getPropertyValue('border-color'), 'rgb(0, 128, 0)');
+  }, 'Conditionally applying container-type:initial');
+</script>

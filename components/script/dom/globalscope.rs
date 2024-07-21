@@ -11,7 +11,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread::JoinHandle;
-use std::time::Instant;
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use std::{mem, ptr};
 
 use base::id::{
@@ -46,13 +46,13 @@ use net_traits::image_cache::ImageCache;
 use net_traits::request::Referrer;
 use net_traits::response::HttpsState;
 use net_traits::{CoreResourceMsg, CoreResourceThread, IpcSend, ResourceThreads};
-use parking_lot::Mutex;
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
 use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
 use script_traits::transferable::MessagePortImpl;
 use script_traits::{
-    BroadcastMsg, GamepadEvent, GamepadUpdateType, MessagePortMsg, MsDuration, PortMessageTask,
-    ScriptMsg, ScriptToConstellationChan, TimerEvent, TimerEventId, TimerSchedulerMsg, TimerSource,
+    BroadcastMsg, GamepadEvent, GamepadSupportedHapticEffects, GamepadUpdateType, MessagePortMsg,
+    MsDuration, PortMessageTask, ScriptMsg, ScriptToConstellationChan, TimerEvent, TimerEventId,
+    TimerSchedulerMsg, TimerSource,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use uuid::Uuid;
@@ -321,10 +321,10 @@ pub struct GlobalScope {
     /// Identity Manager for WebGPU resources
     #[ignore_malloc_size_of = "defined in wgpu"]
     #[no_trace]
-    gpu_id_hub: Arc<Mutex<Identities>>,
+    gpu_id_hub: Arc<Identities>,
 
     /// WebGPU devices
-    gpu_devices: DomRefCell<HashMapTracedValues<WebGPUDevice, Dom<GPUDevice>>>,
+    gpu_devices: DomRefCell<HashMapTracedValues<WebGPUDevice, WeakRef<GPUDevice>>>,
 
     // https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute
     #[ignore_malloc_size_of = "mozjs"]
@@ -778,7 +778,7 @@ impl GlobalScope {
         microtask_queue: Rc<MicrotaskQueue>,
         is_headless: bool,
         user_agent: Cow<'static, str>,
-        gpu_id_hub: Arc<Mutex<Identities>>,
+        gpu_id_hub: Arc<Identities>,
         inherited_secure_context: Option<bool>,
     ) -> Self {
         Self {
@@ -2318,13 +2318,16 @@ impl GlobalScope {
                 self.pipeline_id,
                 PageError {
                     type_: "PageError".to_string(),
-                    errorMessage: warning.to_string(),
-                    sourceName: self.get_url().to_string(),
-                    lineText: "".to_string(),
-                    lineNumber: 0,
-                    columnNumber: 0,
+                    error_message: warning.to_string(),
+                    source_name: self.get_url().to_string(),
+                    line_text: "".to_string(),
+                    line_number: 0,
+                    column_number: 0,
                     category: "script".to_string(),
-                    timeStamp: 0, //TODO
+                    time_stamp: SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_millis() as u64,
                     error: false,
                     warning: true,
                     exception: true,
@@ -2506,13 +2509,16 @@ impl GlobalScope {
                         self.pipeline_id,
                         PageError {
                             type_: "PageError".to_string(),
-                            errorMessage: error_info.message.clone(),
-                            sourceName: error_info.filename.clone(),
-                            lineText: "".to_string(), //TODO
-                            lineNumber: error_info.lineno,
-                            columnNumber: error_info.column,
+                            error_message: error_info.message.clone(),
+                            source_name: error_info.filename.clone(),
+                            line_text: "".to_string(), //TODO
+                            line_number: error_info.lineno,
+                            column_number: error_info.column,
                             category: "script".to_string(),
-                            timeStamp: 0, //TODO
+                            time_stamp: SystemTime::now()
+                                .duration_since(UNIX_EPOCH)
+                                .unwrap_or_default()
+                                .as_millis() as u64,
                             error: true,
                             warning: false,
                             exception: true,
@@ -3102,14 +3108,23 @@ impl GlobalScope {
         None
     }
 
-    pub fn wgpu_id_hub(&self) -> Arc<Mutex<Identities>> {
+    pub fn wgpu_id_hub(&self) -> Arc<Identities> {
         self.gpu_id_hub.clone()
     }
 
     pub fn add_gpu_device(&self, device: &GPUDevice) {
         self.gpu_devices
             .borrow_mut()
-            .insert(device.id(), Dom::from_ref(device));
+            .insert(device.id(), WeakRef::new(device));
+    }
+
+    pub fn remove_gpu_device(&self, device: WebGPUDevice) {
+        let device = self
+            .gpu_devices
+            .borrow_mut()
+            .remove(&device)
+            .expect("GPUDevice should still be in devices hashmap");
+        assert!(device.root().is_none())
     }
 
     pub fn gpu_device_lost(&self, device: WebGPUDevice, reason: DeviceLostReason, msg: String) {
@@ -3117,16 +3132,25 @@ impl GlobalScope {
             DeviceLostReason::Unknown => GPUDeviceLostReason::Unknown,
             DeviceLostReason::Destroyed => GPUDeviceLostReason::Destroyed,
         };
-        let _ac = enter_realm(&*self);
-        self.gpu_devices
+        let _ac = enter_realm(self);
+        if let Some(device) = self
+            .gpu_devices
             .borrow_mut()
-            .remove(&device)
-            .expect("GPUDevice should still exists")
-            .lose(reason, msg);
+            .get_mut(&device)
+            .expect("GPUDevice should still be in devices hashmap")
+            .root()
+        {
+            device.lose(reason, msg);
+        }
     }
 
     pub fn handle_uncaptured_gpu_error(&self, device: WebGPUDevice, error: webgpu::Error) {
-        if let Some(gpu_device) = self.gpu_devices.borrow().get(&device) {
+        if let Some(gpu_device) = self
+            .gpu_devices
+            .borrow()
+            .get(&device)
+            .and_then(|device| device.root())
+        {
             gpu_device.fire_uncaptured_error(error);
         } else {
             warn!("Recived error for lost GPUDevice!")
@@ -3135,12 +3159,13 @@ impl GlobalScope {
 
     pub fn handle_gamepad_event(&self, gamepad_event: GamepadEvent) {
         match gamepad_event {
-            GamepadEvent::Connected(index, name, bounds) => {
+            GamepadEvent::Connected(index, name, bounds, supported_haptic_effects) => {
                 self.handle_gamepad_connect(
                     index.0,
                     name,
                     bounds.axis_bounds,
                     bounds.button_bounds,
+                    supported_haptic_effects,
                 );
             },
             GamepadEvent::Disconnected(index) => {
@@ -3162,6 +3187,7 @@ impl GlobalScope {
         name: String,
         axis_bounds: (f64, f64),
         button_bounds: (f64, f64),
+        supported_haptic_effects: GamepadSupportedHapticEffects,
     ) {
         // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
         //          then abort these steps.
@@ -3173,7 +3199,9 @@ impl GlobalScope {
                 if let Some(window) = global.downcast::<Window>() {
                     let navigator = window.Navigator();
                     let selected_index = navigator.select_gamepad_index();
-                    let gamepad = Gamepad::new(&global, selected_index, name, axis_bounds, button_bounds);
+                    let gamepad = Gamepad::new(
+                        &global, selected_index, name, axis_bounds, button_bounds, supported_haptic_effects
+                    );
                     navigator.set_gamepad(selected_index as usize, &gamepad);
                 }
             }),

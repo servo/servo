@@ -1,0 +1,29 @@
+<!doctype html>
+<title>container-type layout invalidation</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #div {
+    width: fit-content;
+  }
+</style>
+<div id=div>
+  content
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  test(function(t) {
+    t.add_cleanup(() => { div.style = ''; });
+
+    assert_greater_than(div.offsetWidth, 0);
+    assert_greater_than(div.offsetHeight, 0);
+
+    div.style.containerType = 'size';
+
+    assert_equals(div.offsetWidth, 0);
+    assert_equals(div.offsetHeight, 0);
+  }, 'Changing container-type invalidates layout');
+</script>

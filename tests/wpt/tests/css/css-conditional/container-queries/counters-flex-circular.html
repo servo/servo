@@ -1,0 +1,76 @@
+<!doctype html>
+<title>CSS Container Queries Test: counters inside container should not affect container size via flex layout</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-type">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #flex {
+    width: 200px;
+    display: flex;
+    flex-direction: row;
+    counter-reset: my-count 0;
+  }
+  /* #item1 grows to use remaining space given #item2's content */
+  #item1 {
+    flex-grow: 1;
+    height: 100px;
+  }
+  #container {
+    container-type: size;
+  }
+  #item2 {
+    flex-grow: 0;
+    font: 50px/1 Ahem;
+  }
+  /* #item2 size depends on generated content which depends on my-count
+     counter. */
+  #item2::before {
+    display: inline-block;
+    content: counter(my-count);
+  }
+  /* The counter-increment inside the container should not affect the size of
+     #item2 because of style containment. Otherwise we would have a
+     circularity. */
+  @container (min-width: 125px) {
+    #inner {
+      counter-increment: my-count 10;
+      background-color: green;
+    }
+  }
+</style>
+<div id="flex">
+  <div id="item1">
+    <div id="container">
+      <div id="inner"></div>
+    </div>
+  </div>
+  <div id="item2"></div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  const item1_width = parseInt(getComputedStyle(item1).width);
+  const item2_width = parseInt(getComputedStyle(item2).width);
+  const container_width = parseInt(getComputedStyle(container).width);
+  const inner_width = parseInt(getComputedStyle(inner).width);
+
+  test(() => {
+    assert_equals(item1_width, container_width);
+    assert_equals(item1_width, inner_width);
+  }, "#item1, #container, and #inner should all have the same width: " + item1_width);
+
+  test(() => {
+    let expected_background = container_width >= 125 ? "rgb(0, 128, 0)" : "rgba(0, 0, 0, 0)";
+    assert_equals(getComputedStyle(inner).backgroundColor, expected_background);
+  }, "The container query should match the layed out width");
+
+  test(() => {
+    assert_equals(item1_width + item2_width, 200);
+  }, "The sum of the item widths should match the flexbox width");
+
+  test(() => {
+    assert_equals(parseInt(getComputedStyle(item2, "::before").width), item2_width);
+  }, "The size of the flex item #2 should be given by its contents");
+</script>

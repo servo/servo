@@ -146,7 +146,7 @@ test_inset_area_order('--left', '--left');
 test_inset_area_order('--top', '--top');
 test_inset_area_order('--bottom', '--bottom');
 
-// position-try-order:normal just picks the first option.
+// position-try-order:normal just picks the first fallback.
 test_inset_area_order('--right, --left, --bottom, --top', '--right');
 test_inset_area_order('normal --right, --left, --bottom, --top', '--right');
 test_inset_area_order('normal --top, --left, --bottom, --right', '--top');

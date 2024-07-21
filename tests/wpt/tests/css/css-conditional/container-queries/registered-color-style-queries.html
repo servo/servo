@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>CSS Container Queries Test: registered color syntax style queries</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#style-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  @property --reg-color {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: red;
+  }
+
+  #light { color-scheme: light; }
+  #dark { color-scheme: dark; }
+  .container { --reg-color: light-dark(white, black); }
+
+  @container style(--reg-color: white) {
+    #t1 { color: green; }
+  }
+  @container style(--reg-color: black) {
+    #t2 { color: green; }
+  }
+</style>
+<div id="light" class="container">
+  <div id="t1"></div>
+</div>
+<div id="dark" class="container">
+  <div id="t2"></div>
+</div>
+<script>
+  const green = "rgb(0, 128, 0)";
+
+  test(() => {
+    assert_equals(getComputedStyle(t1).color, green);
+  }, "Registered color with light color-scheme and light-dark()");
+
+  test(() => {
+    assert_equals(getComputedStyle(t2).color, green);
+  }, "Registered color with dark color-scheme and light-dark()");
+</script>

@@ -87,23 +87,19 @@ class DepthBiasTest extends TextureTestMixin(GPUTest) {
         unreachable();
     }
 
-    const renderTarget = this.trackForCleanup(
-      this.device.createTexture({
-        format: renderTargetFormat,
-        size: { width: 1, height: 1, depthOrArrayLayers: 1 },
-        usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
-      })
-    );
+    const renderTarget = this.createTextureTracked({
+      format: renderTargetFormat,
+      size: { width: 1, height: 1, depthOrArrayLayers: 1 },
+      usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
+    });
 
-    const depthTexture = this.trackForCleanup(
-      this.device.createTexture({
-        size: { width: 1, height: 1, depthOrArrayLayers: 1 },
-        format: depthFormat,
-        sampleCount: 1,
-        mipLevelCount: 1,
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
-      })
-    );
+    const depthTexture = this.createTextureTracked({
+      size: { width: 1, height: 1, depthOrArrayLayers: 1 },
+      format: depthFormat,
+      sampleCount: 1,
+      mipLevelCount: 1,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
+    });
 
     const depthStencilAttachment = {
       view: depthTexture.createView(),
@@ -119,8 +115,8 @@ class DepthBiasTest extends TextureTestMixin(GPUTest) {
       colorAttachments: [
       {
         view: renderTarget.createView(),
-        storeOp: 'store',
-        loadOp: 'load'
+        loadOp: 'load',
+        storeOp: 'store'
       }],
 
       depthStencilAttachment

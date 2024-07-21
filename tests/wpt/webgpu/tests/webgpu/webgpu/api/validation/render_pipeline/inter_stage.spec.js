@@ -5,10 +5,21 @@ Interface matching between vertex and fragment shader validation for createRende
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { range } from '../../../../common/util/util.js';
 
+
 import { CreateRenderPipelineValidationTest } from './common.js';
 
 function getVarName(i) {
   return `v${i}`;
+}
+
+function skipIfDisallowedInterpolationParameter(t, ...wgsl) {
+  if (t.isCompatibility) {
+    for (const s of wgsl) {
+      if (s.includes('linear') || s.includes('sample')) {
+        t.skip(`unsupported interpolation parameter in compat: ${wgsl}`);
+      }
+    }
+  }
 }
 
 class InterStageMatchingValidationTest extends CreateRenderPipelineValidationTest {
@@ -146,8 +157,8 @@ fn((t) => {
   const { isAsync, output, input } = t.params;
 
   const descriptor = t.getDescriptorWithStates(
-    t.getVertexStateWithOutputs([`@location(0) @interpolate(flat) vout0: ${output}`]),
-    t.getFragmentStateWithInputs([`@location(0) @interpolate(flat) fin0: ${input}`])
+    t.getVertexStateWithOutputs([`@location(0) @interpolate(flat, either) vout0: ${output}`]),
+    t.getFragmentStateWithInputs([`@location(0) @interpolate(flat, either) fin0: ${input}`])
   );
 
   t.doCreateRenderPipelineTest(isAsync, output === input, descriptor);
@@ -167,8 +178,8 @@ u.combine('isAsync', [false, true]).combineWithParams([
 { output: '', input: '@interpolate(linear)' },
 { output: '@interpolate(perspective)', input: '@interpolate(perspective)' },
 { output: '@interpolate(linear)', input: '@interpolate(perspective)' },
-{ output: '@interpolate(flat)', input: '@interpolate(perspective)' },
-{ output: '@interpolate(linear)', input: '@interpolate(flat)' },
+{ output: '@interpolate(flat, either)', input: '@interpolate(perspective)' },
+{ output: '@interpolate(linear)', input: '@interpolate(flat, either)' },
 {
   output: '@interpolate(linear, center)',
   input: '@interpolate(linear, center)',
@@ -176,6 +187,9 @@ u.combine('isAsync', [false, true]).combineWithParams([
 }]
 )
 ).
+beforeAllSubcases((t) => {
+  skipIfDisallowedInterpolationParameter(t, t.params.output, t.params.input);
+}).
 fn((t) => {
   const { isAsync, output, input, _success, _compat_success } = t.params;
 
@@ -209,7 +223,7 @@ u.combine('isAsync', [false, true]).combineWithParams([
   _success: true,
   _compat_success: false
 },
-{ output: '@interpolate(flat)', input: '@interpolate(flat)' },
+{ output: '@interpolate(flat, either)', input: '@interpolate(flat, either)' },
 { output: '@interpolate(perspective)', input: '@interpolate(perspective, sample)' },
 { output: '@interpolate(perspective, center)', input: '@interpolate(perspective, sample)' },
 {
@@ -219,6 +233,9 @@ u.combine('isAsync', [false, true]).combineWithParams([
 { output: '@interpolate(perspective, centroid)', input: '@interpolate(perspective)' }]
 )
 ).
+beforeAllSubcases((t) => {
+  skipIfDisallowedInterpolationParameter(t, t.params.output, t.params.input);
+}).
 fn((t) => {
   const { isAsync, output, input, _success, _compat_success } = t.params;
 
@@ -262,11 +279,14 @@ desc(
 ).
 params((u) =>
 u.combine('isAsync', [false, true]).combineWithParams([
-// Number of user-defined output scalar components in test shader = device.limits.maxInterStageShaderComponents + numScalarDelta.
+// Number of user-defined output scalar components in test shader =
+//     Math.floor((device.limits.maxInterStageShaderComponents + numScalarDelta) / 4) * 4.
 { numScalarDelta: 0, topology: 'triangle-list', _success: true },
 { numScalarDelta: 1, topology: 'triangle-list', _success: false },
 { numScalarDelta: 0, topology: 'point-list', _success: false },
-{ numScalarDelta: -1, topology: 'point-list', _success: true }]
+{ numScalarDelta: -1, topology: 'point-list', _success: false },
+{ numScalarDelta: -3, topology: 'point-list', _success: false },
+{ numScalarDelta: -4, topology: 'point-list', _success: true }]
 )
 ).
 fn((t) => {
@@ -301,18 +321,20 @@ desc(
 ).
 params((u) =>
 u.combine('isAsync', [false, true]).combineWithParams([
-// Number of user-defined input scalar components in test shader = device.limits.maxInterStageShaderComponents + numScalarDelta.
+// Number of user-defined input scalar components in test shader =
+//     Math.floor((device.limits.maxInterStageShaderComponents + numScalarDelta) / 4) * 4.
 { numScalarDelta: 0, useExtraBuiltinInputs: false },
 { numScalarDelta: 1, useExtraBuiltinInputs: false },
 { numScalarDelta: 0, useExtraBuiltinInputs: true },
 { numScalarDelta: -3, useExtraBuiltinInputs: true },
-{ numScalarDelta: -2, useExtraBuiltinInputs: true }]
+{ numScalarDelta: -4, useExtraBuiltinInputs: true }]
 )
 ).
 fn((t) => {
   const { isAsync, numScalarDelta, useExtraBuiltinInputs } = t.params;
 
-  const numScalarComponents = t.device.limits.maxInterStageShaderComponents + numScalarDelta;
+  const numScalarComponents =
+  Math.floor((t.device.limits.maxInterStageShaderComponents + numScalarDelta) / 4) * 4;
   const numExtraComponents = useExtraBuiltinInputs ? t.isCompatibility ? 2 : 3 : 0;
   const numUsedComponents = numScalarComponents + numExtraComponents;
   const success = numUsedComponents <= t.device.limits.maxInterStageShaderComponents;
@@ -330,12 +352,12 @@ fn((t) => {
   }
 
   if (useExtraBuiltinInputs) {
-    inputs.push(
-      '@builtin(front_facing) front_facing_in: bool',
-      '@builtin(sample_mask) sample_mask_in: u32'
-    );
+    inputs.push('@builtin(front_facing) front_facing_in: bool');
     if (!t.isCompatibility) {
-      inputs.push('@builtin(sample_index) sample_index_in: u32');
+      inputs.push(
+        '@builtin(sample_mask) sample_mask_in: u32',
+        '@builtin(sample_index) sample_index_in: u32'
+      );
     }
   }
 

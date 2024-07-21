@@ -18,9 +18,9 @@
     left: 999999px; /* force fallback */
   }
 
-  #doc_pf_doc { position-try-options: --doc; }
-  #doc_pf_outer { position-try-options: --outer; }
-  #doc_pf_inner { position-options: --inner; }
+  #doc_pf_doc { position-try-fallbacks: --doc; }
+  #doc_pf_outer { position-try-fallbacks: --outer; }
+  #doc_pf_inner { position-try-fallbacks: --inner; }
 </style>
 
 <div id="doc_pf_doc" class="abs"></div>
@@ -38,9 +38,9 @@
         left: 999999px; /* force fallback */
       }
 
-      #outer_pf_doc { position-try-options: --doc; }
-      #outer_pf_outer { position-try-options: --outer; }
-      #outer_pf_inner { position-try-options: --inner; }
+      #outer_pf_doc { position-try-fallbacks: --doc; }
+      #outer_pf_outer { position-try-fallbacks: --outer; }
+      #outer_pf_inner { position-try-fallbacks: --inner; }
     </style>
     <div id="outer_pf_doc" class="abs"></div>
     <div id="outer_pf_outer" class="abs"></div>
@@ -57,9 +57,9 @@
             left: 999999px; /* force fallback */
           }
 
-          #inner_pf_doc { position-try-options: --doc; }
-          #inner_pf_outer { position-try-options: --outer; }
-          #inner_pf_inner { position-try-options: --inner; }
+          #inner_pf_doc { position-try-fallbacks: --doc; }
+          #inner_pf_outer { position-try-fallbacks: --outer; }
+          #inner_pf_inner { position-try-fallbacks: --inner; }
         </style>
         <div id="inner_pf_doc" class="abs"></div>
         <div id="inner_pf_outer" class="abs"></div>
@@ -78,7 +78,7 @@
     left: 1px;
   }
   #host_slotted_part::part(part) {
-    position-try-options: --host-slot-part;
+    position-try-fallbacks: --host-slot-part;
   }
 </style>
 <div id="host_slotted_part">
@@ -90,7 +90,7 @@
       ::slotted(#slotted), :host {
         position: absolute;
         left: 999999px; /* force fallback */
-        position-try-options: --host-slot-part;
+        position-try-fallbacks: --host-slot-part;
       }
       #part {
         position: absolute;
@@ -107,42 +107,42 @@
 <script>
   test(() => {
     assert_equals(doc_pf_doc.offsetLeft, 100);
-  }, "Document position-try-options matches @position-try in document scope");
+  }, "Document position-try-fallbacks matches @position-try in document scope");
 
   test(() => {
     assert_equals(doc_pf_outer.offsetLeft, 999999);
-  }, "Document position-try-options does not match @position-try in #outer_host scope");
+  }, "Document position-try-fallbacks does not match @position-try in #outer_host scope");
 
   test(() => {
     assert_equals(doc_pf_inner.offsetLeft, 999999);
-  }, "Document position-try-options does not match @position-try in #inner_host scope");
+  }, "Document position-try-fallbacks does not match @position-try in #inner_host scope");
 
   const outer_root = outer_host.shadowRoot;
   const inner_root = outer_root.querySelector("#inner_host").shadowRoot;
 
   test(() => {
     assert_equals(outer_root.querySelector("#outer_pf_doc").offsetLeft, 100);
-  }, "Outer position-try-options matches @position-try in document scope");
+  }, "Outer position-try-fallbacks matches @position-try in document scope");
 
   test(() => {
     assert_equals(outer_root.querySelector("#outer_pf_outer").offsetLeft, 200);
-  }, "Outer position-try-options matches @position-try in #outer_host scope");
+  }, "Outer position-try-fallbacks matches @position-try in #outer_host scope");
 
   test(() => {
     assert_equals(outer_root.querySelector("#outer_pf_inner").offsetLeft, 999999);
-  }, "Outer position-try-options does not match @position-try in #inner_host scope");
+  }, "Outer position-try-fallbacks does not match @position-try in #inner_host scope");
 
   test(() => {
     assert_equals(inner_root.querySelector("#inner_pf_doc").offsetLeft, 100)
-  }, "Inner position-try-options matches @position-try in document scope");
+  }, "Inner position-try-fallbacks matches @position-try in document scope");
 
   test(() => {
     assert_equals(inner_root.querySelector("#inner_pf_outer").offsetLeft, 200);
-  }, "Inner position-try-options matches @position-try in #outer_host scope");
+  }, "Inner position-try-fallbacks matches @position-try in #outer_host scope");
 
   test(() => {
     assert_equals(inner_root.querySelector("#inner_pf_inner").offsetLeft, 300);
-  }, "Inner position-try-options matches @position-try in #inner_host scope");
+  }, "Inner position-try-fallbacks matches @position-try in #inner_host scope");
 
   test(() => {
     assert_equals(host_slotted_part.offsetLeft, 2);

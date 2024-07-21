@@ -11,6 +11,10 @@
 <script src="/mathml/support/fonts.js"></script>
 <script src="/mathml/support/layout-comparison.js"></script>
 <script src="/mathml/support/mathml-fragments.js"></script>
+<style>
+  /* Revert style specified in the UA style sheet that changes box size. */
+  mfrac { padding-inline: 0; }
+</style>
 <script>
   setup({ explicit_done: true });
   window.addEventListener("load", () => { loadAllFonts().then(runTests); });

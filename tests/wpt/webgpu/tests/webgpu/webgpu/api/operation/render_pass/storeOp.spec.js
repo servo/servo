@@ -65,7 +65,7 @@ combine('depthStencilStoreOperation', kStoreOps)
 fn((t) => {
   // Create a basic color attachment.
   const kColorFormat = 'rgba8unorm';
-  const colorAttachment = t.device.createTexture({
+  const colorAttachment = t.createTextureTracked({
     format: kColorFormat,
     size: { width: kWidth, height: kHeight, depthOrArrayLayers: 1 },
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
@@ -75,7 +75,7 @@ fn((t) => {
 
   // Create a basic depth/stencil attachment.
   const kDepthStencilFormat = 'depth32float';
-  const depthStencilAttachment = t.device.createTexture({
+  const depthStencilAttachment = t.createTextureTracked({
     format: kDepthStencilFormat,
     size: { width: kWidth, height: kHeight, depthOrArrayLayers: 1 },
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
@@ -154,7 +154,7 @@ beforeAllSubcases((t) => {
   t.skipIfTextureFormatNotSupported(t.params.colorFormat);
 }).
 fn((t) => {
-  const colorAttachment = t.device.createTexture({
+  const colorAttachment = t.createTextureTracked({
     format: t.params.colorFormat,
     size: { width: kWidth, height: kHeight, depthOrArrayLayers: t.params.arrayLayer + 1 },
     mipLevelCount: kMipLevelCount,
@@ -219,7 +219,7 @@ fn((t) => {
 
   for (let i = 0; i < t.params.colorAttachments; i++) {
     colorAttachments.push(
-      t.device.createTexture({
+      t.createTextureTracked({
         format: kColorFormat,
         size: { width: kWidth, height: kHeight, depthOrArrayLayers: 1 },
         usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
@@ -284,7 +284,7 @@ combine('mipLevel', kMipLevel).
 combine('arrayLayer', kArrayLayers)
 ).
 fn((t) => {
-  const depthStencilTexture = t.device.createTexture({
+  const depthStencilTexture = t.createTextureTracked({
     format: t.params.depthStencilFormat,
     size: { width: kWidth, height: kHeight, depthOrArrayLayers: t.params.arrayLayer + 1 },
     mipLevelCount: kMipLevelCount,

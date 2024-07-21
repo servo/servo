@@ -152,9 +152,9 @@ promise_test(async () => {
 
   assert_array_equals(results, [
     "Subscribed. active: true",
-    "Outer signal abort event",
-    "Teardown",
     "Inner signal abort event",
+    "Teardown",
+    "Outer signal abort event",
   ], "Events and teardowns are fired in the right ordered");
 
   // Everything microtask above should be queued up by now, so queue one more
@@ -163,12 +163,12 @@ promise_test(async () => {
   await Promise.resolve();
   assert_array_equals(results, [
     "Subscribed. active: true",
-    "Outer signal abort event",
-    "Teardown",
     "Inner signal abort event",
-    "Outer signal Promise",
-    "Teardown Promise",
+    "Teardown",
+    "Outer signal abort event",
     "Inner signal Promise",
+    "Teardown Promise",
+    "Outer signal Promise",
   ], "Promises resolve in the right order");
 }, "Operator Promise abort ordering");
 

@@ -58,6 +58,7 @@ pub enum Canvas2dMsg {
     IsPointInPath(f64, f64, FillRule, IpcSender<bool>),
     LineTo(Point2D<f32>),
     MoveTo(Point2D<f32>),
+    MeasureText(String, IpcSender<TextMetrics>),
     PutImageData(Rect<u64>, IpcBytesReceiver),
     QuadraticCurveTo(Point2D<f32>, Point2D<f32>),
     Rect(Rect<f32>),
@@ -473,4 +474,20 @@ impl FromStr for Direction {
             _ => Err(()),
         }
     }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
+pub struct TextMetrics {
+    pub width: f32,
+    pub actual_boundingbox_left: f32,
+    pub actual_boundingbox_right: f32,
+    pub actual_boundingbox_ascent: f32,
+    pub actual_boundingbox_descent: f32,
+    pub font_boundingbox_ascent: f32,
+    pub font_boundingbox_descent: f32,
+    pub em_height_ascent: f32,
+    pub em_height_descent: f32,
+    pub hanging_baseline: f32,
+    pub alphabetic_baseline: f32,
+    pub ideographic_baseline: f32,
 }

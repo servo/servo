@@ -98,8 +98,6 @@ g.test('wgsl_matches_api').
 desc(`Tests that language features are accepted iff the API reports support for them.`).
 params((u) => u.combine('feature', kKnownWGSLLanguageFeatures)).
 fn((t) => {
-  t.skipIfLanguageFeatureNotSupported('readonly_and_readwrite_storage_textures');
-
   const code = `requires ${t.params.feature};`;
   t.expectCompileResult(t.hasLanguageFeature(t.params.feature), code);
 });

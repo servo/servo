@@ -117,3 +117,45 @@ async function loadNestedSharedStorageFrameInNewFrame(data) {
   await windowPromise;
   return {frame: frame, nestedFrame: nestedFrame, nestedFrameUrl: nestedSrc};
 }
+
+async function testCreateWorkletWithDataOption(
+    test, data_origin, key, value, is_same_origin_script, expect_success) {
+  const sameOrigin = location.origin;
+  const crossOrigin = 'https://{{domains[www]}}:{{ports[https][0]}}';
+  const sameOriginScriptUrl = `/shared-storage/resources/simple-module.js`;
+  const scriptOrigin = is_same_origin_script ? sameOrigin : crossOrigin;
+  const scriptUrl = is_same_origin_script ? sameOriginScriptUrl :
+                                            crossOrigin + sameOriginScriptUrl;
+
+  try {
+    // Currently the `dataOrigin` option is not hooked up.
+    const worklet = await sharedStorage.createWorklet(
+        scriptUrl, {credentials: 'omit', dataOrigin: data_origin});
+
+    const ancestor_key = token();
+    let url0 =
+        generateURL('/shared-storage/resources/frame0.html', [ancestor_key]);
+
+    let select_url_result =
+        await worklet.selectURL('test-url-selection-operation', [{url: url0}], {
+          data: {'mockResult': 0, 'setKey': key, 'setValue': value},
+          resolveToConfig: true,
+          keepAlive: true
+        });
+
+    assert_true(validateSelectURLResult(select_url_result, true));
+    attachFencedFrame(select_url_result, 'opaque-ads');
+    const result0 = await nextValueFromServer(ancestor_key);
+    assert_equals(result0, 'frame0_loaded');
+
+    await verifyKeyValueForOrigin(key, value, scriptOrigin);
+    await deleteKeyForOrigin(key, scriptOrigin);
+    assert_true(expect_success, 'no error caught even though one was expected');
+  } catch (e) {
+    assert_false(
+        expect_success, 'expected success but error thrown: ' + e.toString());
+    assert_equals(e.name, 'TypeError');
+  } finally {
+    test.done();
+  }
+}

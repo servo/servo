@@ -6,7 +6,7 @@ from ... import any_int, recursive_compare
 
 pytestmark = pytest.mark.asyncio
 
-EMPTY_PAGE = "/webdriver/tests/bidi/support/empty.html"
+EMPTY_PAGE = "/webdriver/tests/bidi/browsing_context/support/empty.html"
 FRAGMENT_NAVIGATED_EVENT = "browsingContext.fragmentNavigated"
 
 

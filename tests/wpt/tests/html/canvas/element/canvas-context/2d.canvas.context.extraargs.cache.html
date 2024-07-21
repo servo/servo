@@ -19,9 +19,9 @@
 var t = async_test("The 2D context doesn't throw with extra getContext arguments (cached)");
 _addTest(function(canvas, ctx) {
 
-  _assertDifferent(canvas.getContext('2d', false, {}, [], 1, "2"), null, "canvas.getContext('2d', false, {}, [], 1, \"2\")", "null");
+  _assertDifferent(canvas.getContext('2d', false, {}, [], 1, '2'), null, "canvas.getContext('2d', false, {}, [], 1, '2')", "null");
   _assertDifferent(canvas.getContext('2d', 123), null, "canvas.getContext('2d', 123)", "null");
-  _assertDifferent(canvas.getContext('2d', "test"), null, "canvas.getContext('2d', \"test\")", "null");
+  _assertDifferent(canvas.getContext('2d', 'test'), null, "canvas.getContext('2d', 'test')", "null");
   _assertDifferent(canvas.getContext('2d', undefined), null, "canvas.getContext('2d', undefined)", "null");
   _assertDifferent(canvas.getContext('2d', null), null, "canvas.getContext('2d', null)", "null");
   _assertDifferent(canvas.getContext('2d', Symbol.hasInstance), null, "canvas.getContext('2d', Symbol.hasInstance)", "null");

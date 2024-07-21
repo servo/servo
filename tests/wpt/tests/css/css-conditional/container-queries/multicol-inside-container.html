@@ -1,0 +1,28 @@
+<!doctype html>
+<title>CSS Container Queries Test: Multicol inside size container</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<style>
+  #container {
+    container-type: size;
+    width: 200px;
+    height: 100px;
+  }
+  @container (width <= 200px) {
+    #multicol {
+      column-count: 2;
+      column-gap: 0;
+    }
+  }
+  #green {
+    display: inline-block;
+    width: 100%;
+    height: 100px;
+    background-color: green;
+    vertical-align: bottom;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="container">
+  <div id="multicol"><div id="green"></div></div>
+</div>

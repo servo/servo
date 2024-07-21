@@ -5,6 +5,7 @@
 #![allow(dead_code)] // this file is stub as wgpu does not provide info
 
 use dom_struct::dom_struct;
+use webgpu::ShaderCompilationInfo;
 
 use super::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCompilationMessageMethods, GPUCompilationMessageType,
@@ -60,6 +61,18 @@ impl GPUCompilationMessage {
                 message, mtype, line_num, line_pos, offset, length,
             )),
             global,
+        )
+    }
+
+    pub fn from(global: &GlobalScope, info: ShaderCompilationInfo) -> DomRoot<Self> {
+        GPUCompilationMessage::new(
+            global,
+            info.message.into(),
+            GPUCompilationMessageType::Error,
+            info.line_number,
+            info.line_pos,
+            info.offset,
+            info.length,
         )
     }
 }

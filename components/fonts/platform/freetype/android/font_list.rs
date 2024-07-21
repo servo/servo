@@ -10,13 +10,16 @@ use base::text::{is_cjk, UnicodeBlock, UnicodeBlockMethod};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{
     FontStretch as StyleFontStretch, FontStyle as StyleFontStyle, FontWeight as StyleFontWeight,
 };
 use style::Atom;
 
 use super::xml::{Attribute, Node};
-use crate::{FallbackFontSelectionOptions, FontTemplate, FontTemplateDescriptor};
+use crate::{
+    FallbackFontSelectionOptions, FontTemplate, FontTemplateDescriptor, LowercaseFontFamilyName,
+};
 
 lazy_static::lazy_static! {
     static ref FONT_LIST: FontList = FontList::new();
@@ -259,11 +262,15 @@ impl FontList {
     }
 
     fn find_family(&self, name: &str) -> Option<&FontFamily> {
-        self.families.iter().find(|f| f.name == name)
+        self.families
+            .iter()
+            .find(|family| family.name.eq_ignore_ascii_case(name))
     }
 
     fn find_alias(&self, name: &str) -> Option<&FontAlias> {
-        self.aliases.iter().find(|f| f.from == name)
+        self.aliases
+            .iter()
+            .find(|family| family.from.eq_ignore_ascii_case(name))
     }
 
     // Parse family and font file names
@@ -511,17 +518,6 @@ where
     }
 }
 
-pub fn system_default_family(generic_name: &str) -> Option<String> {
-    if let Some(family) = FONT_LIST.find_family(&generic_name) {
-        Some(family.name.clone())
-    } else if let Some(alias) = FONT_LIST.find_alias(&generic_name) {
-        Some(alias.from.clone())
-    } else {
-        //  First font defined in the fonts.xml is the default on Android.
-        FONT_LIST.families.get(0).map(|family| family.name.clone())
-    }
-}
-
 // Based on gfxAndroidPlatform::GetCommonFallbackFonts() in Gecko
 pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
     let mut families = vec![];
@@ -577,4 +573,14 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
     families
 }
 
-pub static SANS_SERIF_FONT_FAMILY: &'static str = "sans-serif";
+pub fn default_system_generic_font_family(generic: GenericFontFamily) -> LowercaseFontFamilyName {
+    match generic {
+        GenericFontFamily::None | GenericFontFamily::Serif => "serif",
+        GenericFontFamily::SansSerif => "sans-serif",
+        GenericFontFamily::Monospace => "monospace",
+        GenericFontFamily::Cursive => "cursive",
+        GenericFontFamily::Fantasy => "serif",
+        GenericFontFamily::SystemUi => "Droid Sans",
+    }
+    .into()
+}

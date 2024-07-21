@@ -3,11 +3,11 @@
 **/import { dataCache } from '../../../../common/framework/data_cache.js';import { unreachable } from '../../../../common/util/util.js';import BinaryStream from '../../../util/binary_stream.js';
 import { deserializeComparator, serializeComparator } from '../../../util/compare.js';
 import {
-  Matrix,
-  Scalar,
+  MatrixValue,
 
-  Vector,
+  VectorValue,
   deserializeValue,
+  isScalarValue,
   serializeValue } from
 '../../../util/conversion.js';
 import {
@@ -31,7 +31,7 @@ SerializedExpectationKind = /*#__PURE__*/function (SerializedExpectationKind) {S
 
 /** serializeExpectation() serializes an Expectation to a BinaryStream */
 export function serializeExpectation(s, e) {
-  if (e instanceof Scalar || e instanceof Vector || e instanceof Matrix) {
+  if (isScalarValue(e) || e instanceof VectorValue || e instanceof MatrixValue) {
     s.writeU8(SerializedExpectationKind.Value);
     serializeValue(s, e);
     return;
@@ -123,11 +123,11 @@ export function deserializeCase(s) {
   return { input, expected };
 }
 
-/** CaseListBuilder is a function that builds a CaseList */
+/** CaseListBuilder is a function that builds a list of cases, Case[] */
 
 
 /**
- * CaseCache is a cache of CaseList.
+ * CaseCache is a cache of Case[].
  * CaseCache implements the Cacheable interface, so the cases can be pre-built
  * and stored in the data cache, reducing computation costs at CTS runtime.
  */

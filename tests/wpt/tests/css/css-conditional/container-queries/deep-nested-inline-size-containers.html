@@ -1,0 +1,38 @@
+<!doctype html>
+<title>CSS Container Queries Test: Deeply nested inline-size container queries</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style id="test_style">
+  .container { container-type: inline-size; }
+  #outer { width: 200px; }
+</style>
+<div id="outer" class="container"></div>
+<script>
+  setup(() => {
+    assert_implements_container_queries();
+
+    // Create 50 nested inline-size containers where a child container is 1px
+    // narrower than its parent
+    let sheet = test_style.sheet;
+    let container = outer;
+    for (let width = 200; width > 150; --width) {
+      sheet.insertRule(`
+        @container (width = ${width}px) {
+          .container { max-width: ${width-1}px; }
+        }
+      `);
+      let child = document.createElement("div");
+      child.className = "container";
+      container.appendChild(child);
+      container = child;
+    }
+  });
+
+  test(() => {
+    let expected_width = 200;
+    for (let container of document.querySelectorAll(".container"))
+      assert_equals(container.offsetWidth, expected_width--);
+  }, "Test that all container widths match");
+</script>

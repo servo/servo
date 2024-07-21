@@ -18,13 +18,11 @@ Tests that using a destroyed texture in writeTexture fails.
 paramsSubcasesOnly((u) => u.combine('destroyed', [false, true])).
 fn((t) => {
   const { destroyed } = t.params;
-  const texture = t.trackForCleanup(
-    t.device.createTexture({
-      size: [1, 1, 1],
-      format: 'rgba8unorm',
-      usage: GPUTextureUsage.COPY_DST
-    })
-  );
+  const texture = t.createTextureTracked({
+    size: [1, 1, 1],
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.COPY_DST
+  });
 
   if (destroyed) {
     texture.destroy();
@@ -45,20 +43,16 @@ Tests that using a destroyed texture in copyTextureToTexture fails.
 ).
 paramsSubcasesOnly((u) => u.combine('destroyed', ['none', 'src', 'dst', 'both'])).
 fn((t) => {
-  const src = t.trackForCleanup(
-    t.device.createTexture({
-      size: [1, 1, 1],
-      format: 'rgba8unorm',
-      usage: GPUTextureUsage.COPY_SRC
-    })
-  );
-  const dst = t.trackForCleanup(
-    t.device.createTexture({
-      size: [1, 1, 1],
-      format: 'rgba8unorm',
-      usage: GPUTextureUsage.COPY_DST
-    })
-  );
+  const src = t.createTextureTracked({
+    size: [1, 1, 1],
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.COPY_SRC
+  });
+  const dst = t.createTextureTracked({
+    size: [1, 1, 1],
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.COPY_DST
+  });
 
   const encoder = t.device.createCommandEncoder();
   encoder.copyTextureToTexture({ texture: src }, { texture: dst }, [1, 1, 1]);
@@ -96,16 +90,12 @@ Tests that using a destroyed texture in copyBufferToTexture fails.
 paramsSubcasesOnly((u) => u.combine('destroyed', [false, true])).
 fn((t) => {
   const { destroyed } = t.params;
-  const buffer = t.trackForCleanup(
-    t.device.createBuffer({ size: 4, usage: GPUBufferUsage.COPY_SRC })
-  );
-  const texture = t.trackForCleanup(
-    t.device.createTexture({
-      size: [1, 1, 1],
-      format: 'rgba8unorm',
-      usage: GPUTextureUsage.COPY_DST
-    })
-  );
+  const buffer = t.createBufferTracked({ size: 4, usage: GPUBufferUsage.COPY_SRC });
+  const texture = t.createTextureTracked({
+    size: [1, 1, 1],
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.COPY_DST
+  });
 
   const encoder = t.device.createCommandEncoder();
   encoder.copyBufferToTexture({ buffer }, { texture }, [1, 1, 1]);
@@ -130,16 +120,12 @@ Tests that using a destroyed texture in copyTextureToBuffer fails.
 paramsSubcasesOnly((u) => u.combine('destroyed', [false, true])).
 fn((t) => {
   const { destroyed } = t.params;
-  const texture = t.trackForCleanup(
-    t.device.createTexture({
-      size: [1, 1, 1],
-      format: 'rgba8unorm',
-      usage: GPUTextureUsage.COPY_SRC
-    })
-  );
-  const buffer = t.trackForCleanup(
-    t.device.createBuffer({ size: 4, usage: GPUBufferUsage.COPY_DST })
-  );
+  const texture = t.createTextureTracked({
+    size: [1, 1, 1],
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.COPY_SRC
+  });
+  const buffer = t.createBufferTracked({ size: 4, usage: GPUBufferUsage.COPY_DST });
 
   const encoder = t.device.createCommandEncoder();
   encoder.copyTextureToBuffer({ texture }, { buffer }, [1, 1, 1]);
@@ -170,13 +156,11 @@ combine('bindingType', ['texture', 'storageTexture'])
 fn((t) => {
   const { destroyed, encoderType, bindingType } = t.params;
   const { device } = t;
-  const texture = t.trackForCleanup(
-    t.device.createTexture({
-      size: [1, 1, 1],
-      format: 'rgba8unorm',
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING
-    })
-  );
+  const texture = t.createTextureTracked({
+    size: [1, 1, 1],
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING
+  });
 
   const layout = device.createBindGroupLayout({
     entries: [
@@ -227,31 +211,25 @@ fn((t) => {
   const { textureToDestroy } = t.params;
   const { device } = t;
 
-  const colorAttachment = t.trackForCleanup(
-    t.device.createTexture({
-      size: [1, 1, 1],
-      format: 'rgba8unorm',
-      sampleCount: 4,
-      usage: GPUTextureUsage.RENDER_ATTACHMENT
-    })
-  );
+  const colorAttachment = t.createTextureTracked({
+    size: [1, 1, 1],
+    format: 'rgba8unorm',
+    sampleCount: 4,
+    usage: GPUTextureUsage.RENDER_ATTACHMENT
+  });
 
-  const resolveAttachment = t.trackForCleanup(
-    t.device.createTexture({
-      size: [1, 1, 1],
-      format: 'rgba8unorm',
-      usage: GPUTextureUsage.RENDER_ATTACHMENT
-    })
-  );
+  const resolveAttachment = t.createTextureTracked({
+    size: [1, 1, 1],
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.RENDER_ATTACHMENT
+  });
 
-  const depthStencilAttachment = t.trackForCleanup(
-    t.device.createTexture({
-      size: [1, 1, 1],
-      format: 'depth32float',
-      sampleCount: 4,
-      usage: GPUTextureUsage.RENDER_ATTACHMENT
-    })
-  );
+  const depthStencilAttachment = t.createTextureTracked({
+    size: [1, 1, 1],
+    format: 'depth32float',
+    sampleCount: 4,
+    usage: GPUTextureUsage.RENDER_ATTACHMENT
+  });
 
   const encoder = device.createCommandEncoder();
   const pass = encoder.beginRenderPass({

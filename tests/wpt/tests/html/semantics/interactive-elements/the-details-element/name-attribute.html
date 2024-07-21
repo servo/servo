@@ -194,10 +194,6 @@ promise_test(async t => {
   let received_ids = [];
   let listener = event => {
     received_ids.push(event.target.id);
-    let i = 0;
-    for (let element of elements) {
-      element.setAttribute("name", `b${i++}`);
-    }
   };
   for (let element of elements) {
     element.addEventListener("DOMSubtreeModified", listener);

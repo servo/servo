@@ -4,7 +4,7 @@
 Execution Tests for matrix-vector and vector-matrix f16 multiplication expression
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../gpu_test.js';
-import { TypeF16, TypeMat, TypeVec } from '../../../../util/conversion.js';
+import { Type } from '../../../../util/conversion.js';
 import { allInputSources, run } from '../expression.js';
 
 import { binary, compoundBinary } from './binary.js';
@@ -40,8 +40,8 @@ fn(async (t) => {
   await run(
     t,
     binary('*'),
-    [TypeMat(cols, rows, TypeF16), TypeVec(cols, TypeF16)],
-    TypeVec(rows, TypeF16),
+    [Type.mat(cols, rows, Type.f16), Type.vec(cols, Type.f16)],
+    Type.vec(rows, Type.f16),
     t.params,
     cases
   );
@@ -75,8 +75,8 @@ fn(async (t) => {
   await run(
     t,
     binary('*'),
-    [TypeVec(rows, TypeF16), TypeMat(cols, rows, TypeF16)],
-    TypeVec(cols, TypeF16),
+    [Type.vec(rows, Type.f16), Type.mat(cols, rows, Type.f16)],
+    Type.vec(cols, Type.f16),
     t.params,
     cases
   );
@@ -105,8 +105,8 @@ fn(async (t) => {
   await run(
     t,
     compoundBinary('*='),
-    [TypeVec(rows, TypeF16), TypeMat(cols, rows, TypeF16)],
-    TypeVec(cols, TypeF16),
+    [Type.vec(rows, Type.f16), Type.mat(cols, rows, Type.f16)],
+    Type.vec(cols, Type.f16),
     t.params,
     cases
   );

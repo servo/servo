@@ -680,7 +680,7 @@ class ServerProc:
         try:
             self.daemon = init_func(logger, host, port, paths, routes, bind_address, config, **kwargs)
         except OSError:
-            logger.critical("Socket error on port %s" % port, file=sys.stderr)
+            logger.critical("Socket error on port %s" % port)
             raise
         except Exception:
             logger.critical(traceback.format_exc())
@@ -900,7 +900,7 @@ class WebSocketDaemon:
             # TODO: Fix the logging configuration in WebSockets processes
             # see https://github.com/web-platform-tests/wpt/issues/22719
             logger.critical("Failed to start websocket server on port %s, "
-                            "is something already using that port?" % port, file=sys.stderr)
+                            "is something already using that port?" % port)
             raise OSError()
         assert all(item == ports[0] for item in ports)
         self.port = ports[0]

@@ -147,7 +147,7 @@ test_order('--left', '--left');
 test_order('--top', '--top');
 test_order('--bottom', '--bottom');
 
-// position-try-order:normal just picks the first option.
+// position-try-order:normal just picks the first fallback.
 test_order('--right, --left, --bottom, --top', '--right');
 test_order('normal --right, --left, --bottom, --top', '--right');
 test_order('normal --top, --left, --bottom, --right', '--top');

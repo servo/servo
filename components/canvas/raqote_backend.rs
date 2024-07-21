@@ -2,23 +2,36 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
+use std::collections::HashMap;
+
 use canvas_traits::canvas::*;
 use cssparser::color::clamp_unit_f32;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::Angle;
 use font_kit::font::Font;
+use fonts::{ByteIndex, FontIdentifier, FontTemplateRefMethods};
 use log::warn;
 use lyon_geom::Arc;
+use range::Range;
 use raqote::PathOp;
 use style::color::AbsoluteColor;
 
-use crate::canvas_data;
 use crate::canvas_data::{
-    Backend, CanvasPaintState, Color, CompositionOp, DrawOptions, Filter, GenericDrawTarget,
-    GenericPathBuilder, GradientStop, GradientStops, Path, SourceSurface, StrokeOptions,
+    self, Backend, CanvasPaintState, Color, CompositionOp, DrawOptions, Filter, GenericDrawTarget,
+    GenericPathBuilder, GradientStop, GradientStops, Path, SourceSurface, StrokeOptions, TextRun,
 };
 use crate::canvas_paint_thread::AntialiasMode;
 
+thread_local! {
+    /// The shared font cache used by all canvases that render on a thread. It would be nicer
+    /// to have a global cache, but it looks like font-kit uses a per-thread FreeType, so
+    /// in order to ensure that fonts are particular to a thread we have to make our own
+    /// cache thread local as well.
+    static SHARED_FONT_CACHE: RefCell<HashMap<FontIdentifier, Font>> = RefCell::default();
+}
+
+#[derive(Default)]
 pub struct RaqoteBackend;
 
 impl Backend for RaqoteBackend {
@@ -508,43 +521,61 @@ impl GenericDrawTarget for raqote::DrawTarget {
 
     fn fill_text(
         &mut self,
-        font: &Font,
-        point_size: f32,
-        text: &str,
+        text_runs: Vec<TextRun>,
         start: Point2D<f32>,
         pattern: &canvas_data::Pattern,
-        options: &DrawOptions,
+        draw_options: &DrawOptions,
     ) {
-        let mut start = pathfinder_geometry::vector::vec2f(start.x, start.y);
-        let mut ids = Vec::new();
-        let mut positions = Vec::new();
-        for c in text.chars() {
-            let id = match font.glyph_for_char(c) {
-                Some(id) => id,
-                None => {
-                    warn!("Skipping non-existent glyph {}", c);
-                    continue;
-                },
-            };
-            ids.push(id);
-            positions.push(Point2D::new(start.x(), start.y()));
-            let advance = match font.advance(id) {
-                Ok(advance) => advance,
-                Err(e) => {
-                    warn!("Skipping glyph {} with missing advance: {:?}", c, e);
-                    continue;
-                },
-            };
-            start += advance * point_size / 24. / 96.;
+        let mut advance = 0.;
+        for run in text_runs.iter() {
+            let mut positions = Vec::new();
+            let glyphs = &run.glyphs;
+            let ids: Vec<_> = glyphs
+                .iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), glyphs.len()))
+                .map(|glyph| {
+                    let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
+                    positions.push(Point2D::new(
+                        advance + start.x + glyph_offset.x.to_f32_px(),
+                        start.y + glyph_offset.y.to_f32_px(),
+                    ));
+                    advance += glyph.advance().to_f32_px();
+                    glyph.id()
+                })
+                .collect();
+
+            // TODO: raqote uses font-kit to rasterize glyphs, but font-kit fails an assertion when
+            // using color bitmap fonts in the FreeType backend. For now, simply do not render these
+            // type of fonts.
+            if run.font.has_color_bitmap_or_colr_table() {
+                continue;
+            }
+
+            let template = &run.font.template;
+
+            SHARED_FONT_CACHE.with(|font_cache| {
+                let identifier = template.identifier();
+                if !font_cache.borrow().contains_key(&identifier) {
+                    let Ok(font) = Font::from_bytes(template.data(), identifier.index()) else {
+                        return;
+                    };
+                    font_cache.borrow_mut().insert(identifier.clone(), font);
+                }
+
+                let font_cache = font_cache.borrow();
+                let Some(font) = font_cache.get(&identifier) else {
+                    return;
+                };
+
+                self.draw_glyphs(
+                    font,
+                    run.font.descriptor.pt_size.to_f32_px(),
+                    &ids,
+                    &positions,
+                    &pattern.source(),
+                    draw_options.as_raqote(),
+                );
+            })
         }
-        self.draw_glyphs(
-            font,
-            point_size,
-            &ids,
-            &positions,
-            &pattern.source(),
-            options.as_raqote(),
-        );
     }
 
     fn fill_rect(

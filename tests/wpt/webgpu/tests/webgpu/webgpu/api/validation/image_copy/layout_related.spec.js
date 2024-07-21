@@ -60,7 +60,7 @@ fn((t) => {
   const format = 'rgba8unorm';
   const copyHeight = copyHeightInBlocks * kTextureFormatInfo[format].blockHeight;
 
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size,
     dimension,
     format,
@@ -102,7 +102,7 @@ combineWithParams([
 fn((t) => {
   const { method, bytesPerRow, rowsPerImage, depthOrArrayLayers, _success } = t.params;
 
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size: [1, 1, depthOrArrayLayers],
     format: 'rgba8unorm',
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
@@ -260,7 +260,7 @@ fn((t) => {
   const info = kTextureFormatInfo[format];
 
   const size = { width: info.blockWidth, height: info.blockHeight, depthOrArrayLayers: 1 };
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size,
     format,
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
@@ -303,7 +303,7 @@ fn((t) => {
   const info = kTextureFormatInfo[format];
 
   const size = { width: info.blockWidth, height: info.blockHeight, depthOrArrayLayers: 1 };
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size,
     format,
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
@@ -466,7 +466,7 @@ fn((t) => {
   const offset = offsetInBlocks * info.color.bytes;
   const dataSize = dataSizeInBlocks * info.color.bytes;
 
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size: { width: 4, height: 4, depthOrArrayLayers: 1 },
     format,
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST

@@ -165,6 +165,14 @@ mod gen {
         std::cmp::max(num_cpus::get() * 3 / 4, 1) as i64
     }
 
+    fn default_font_size() -> i64 {
+        16
+    }
+
+    fn default_monospace_font_size() -> i64 {
+        13
+    }
+
     fn black() -> i64 {
         0x000000
     }
@@ -187,6 +195,23 @@ mod gen {
                     #[serde(default = "black")]
                     foreground_color: i64,
                 }
+            },
+            fonts: {
+                #[serde(default)]
+                default: String,
+                #[serde(default)]
+                serif: String,
+                #[serde(default)]
+                #[serde(rename = "fonts.sans-serif")]
+                sans_serif: String,
+                #[serde(default)]
+                monospace: String,
+                #[serde(default = "default_font_size")]
+                #[serde(rename = "fonts.default-size")]
+                default_size: i64,
+                #[serde(default = "default_monospace_font_size")]
+                #[serde(rename = "fonts.default-monospace-size")]
+                default_monospace_size: i64,
             },
             css: {
                 animations: {
@@ -375,6 +400,9 @@ mod gen {
                     layers: {
                         enabled: bool,
                     },
+                    openxr: {
+                        enabled: bool,
+                    },
                     sessionavailable: bool,
                     #[serde(rename = "dom.webxr.unsafe-assume-user-intent")]
                     unsafe_assume_user_intent: bool,
@@ -550,6 +578,9 @@ mod gen {
                 http_cache: {
                     #[serde(rename = "network.http-cache.disabled")]
                     disabled: bool,
+                },
+                local_directory_listing: {
+                    enabled: bool,
                 },
                 mime: {
                     sniff: bool,

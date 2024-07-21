@@ -31,15 +31,15 @@ jobs:
         arch: ['aarch64-linux-android', 'armv7-linux-androideabi', 'i686-linux-android', 'x86_64-linux-android']
     steps:
       - uses: actions/checkout@v4
-        if: github.event_name != 'issue_comment' && github.event_name != 'pull_request_target'
+        if: github.event_name != 'pull_request_target'
         with:
           fetch-depth: 2
-      # This is necessary to checkout the pull request if this run was triggered
-      # via an `issue_comment` action on a pull request.
+      # This is necessary to checkout the pull request if this run was triggered via a
+      # `pull_request_target` event.
       - uses: actions/checkout@v4
-        if: github.event_name == 'issue_comment' || github.event_name == 'pull_request_target'
+        if: github.event_name == 'pull_request_target'
         with:
-          ref: refs/pull/${{ github.event.issue.number || github.event.number }}/head
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 2
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.4
@@ -71,11 +71,21 @@ jobs:
         id: setup-ndk
         with:
           ndk-version: r25c
+      - name: Setup Key Store for APK Signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.APK_KEYSTORE_BASE64 }}
+        run: |
+          APK_SIGNING_KEY_STORE_PATH="${PWD}/servo_keystore.jks"
+          echo "${KEYSTORE_BASE64}" | base64 -d > "${APK_SIGNING_KEY_STORE_PATH}"
+          echo "APK_SIGNING_KEY_STORE_PATH=${APK_SIGNING_KEY_STORE_PATH}" >> ${GITHUB_ENV}
       - name: Build (arch ${{ matrix.arch }} profile ${{ inputs.profile }})
         env:
           ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
+          APK_SIGNING_KEY_STORE_PASS: ${{ secrets.APK_SIGNING_KEY_STORE_PASS }}
+          APK_SIGNING_KEY_ALIAS: ${{ secrets.APK_SIGNING_KEY_ALIAS }}
+          APK_SIGNING_KEY_PASS: ${{ secrets.APK_SIGNING_KEY_PASS }}
         run: |
-          python3 ./mach build --locked --android --target ${{ matrix.arch }} --${{ inputs.profile }}
+          python3 ./mach build --use-crown --locked --android --target ${{ matrix.arch }} --${{ inputs.profile }}
           cp -r target/cargo-timings target/cargo-timings-android-${{ matrix.arch }}
       # TODO: This is disabled since APK crashes during startup.
       # See https://github.com/servo/servo/issues/31134

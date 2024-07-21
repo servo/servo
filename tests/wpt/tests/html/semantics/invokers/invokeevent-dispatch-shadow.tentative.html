@@ -25,7 +25,7 @@
     let hostEventTarget = null;
     let hostEventInvoker = null;
     slot.addEventListener(
-      "invoke",
+      "command",
       (e) => {
         childEvent = e;
         childEventTarget = e.target;
@@ -34,7 +34,7 @@
       { once: true },
     );
     host.addEventListener(
-      "invoke",
+      "command",
       (e) => {
         hostEvent = e;
         hostEventTarget = e.target;
@@ -42,13 +42,13 @@
       },
       { once: true },
     );
-    const event = new InvokeEvent("invoke", {
+    const event = new CommandEvent("command", {
       bubbles: true,
       invoker: slot,
       composed: true,
     });
     slot.dispatchEvent(event);
-    assert_true(childEvent instanceof InvokeEvent, "slot saw invoke event");
+    assert_true(childEvent instanceof CommandEvent, "slot saw invoke event");
     assert_equals(
       childEventTarget,
       slot,
@@ -74,7 +74,7 @@
       host,
       "invoker is retargeted to shadowroot host",
     );
-  }, "InvokeEvent propagates across shadow boundaries retargeting invoker");
+  }, "CommandEvent propagates across shadow boundaries retargeting invoker");
 
   test(function (t) {
     const host = document.createElement("div");
@@ -83,12 +83,13 @@
     const shadow = host.attachShadow({ mode: "open" });
     const button = shadow.appendChild(document.createElement("button"));
     const invokee = host.appendChild(document.createElement("div"));
-    button.invokeTargetElement = invokee;
+    button.commandForElement = invokee;
+    button.command = 'test-command';
     let event = null;
     let eventTarget = null;
     let eventInvoker = null;
     invokee.addEventListener(
-      "invoke",
+      "command",
       (e) => {
         event = e;
         eventTarget = e.target;
@@ -97,8 +98,8 @@
       { once: true },
     );
     button.click();
-    assert_true(event instanceof InvokeEvent);
+    assert_true(event instanceof CommandEvent);
     assert_equals(eventTarget, invokee, "target is invokee");
     assert_equals(eventInvoker, host, "invoker is host");
-  }, "cross shadow InvokeEvent retargets invoker to host element");
+  }, "cross shadow CommandEvent retargets invoker to host element");
 </script>

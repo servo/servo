@@ -1,0 +1,118 @@
+<!doctype html>
+<title>CSS Container Queries Test: font-relative units</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  @import url("/fonts/ahem.css");
+  :root { font-family: 'Ahem'; font-size: 10px; line-height: 10px; }
+  #em_container {
+    container-type: inline-size;
+    width: 100px;
+    font-size: 100px;
+  }
+  #ex_container {
+    container-type: inline-size;
+    font-size: 50px;
+    width: 10ex;
+    height: 50rex;
+  }
+  #cap_container {
+    container-type: inline-size;
+    font-size: 50px;
+    width: 10cap;
+  }
+  #ch_container {
+    container-type: inline-size;
+    font-size: 50px;
+    width: 10ch;
+  }
+  #ic_container {
+    container-type: inline-size;
+    font-size: 50px;
+    width: 10ic;
+  }
+  #lh_container {
+    container-type: inline-size;
+    line-height: 50px;
+    width: 10lh;
+  }
+  @container (width: 1em) {
+    #em_test { color: green }
+  }
+  @container (width: 10rem) {
+    #rem_test { color: green }
+  }
+  @container (width: 10cap) {
+    #cap_test { color: green }
+  }
+  @container (width: 50rcap) {
+    #rcap_test { color: green }
+  }
+  @container (width: 10ex) {
+    #ex_test { color: green }
+  }
+  @container (width: 50rex) {
+    #rex_test { color: green }
+  }
+  @container (width: 10ch) {
+    #ch_test { color: green }
+  }
+  @container (width: 50rch) {
+    #rch_test { color: green }
+  }
+  @container (width: 10ic) {
+    #ic_test { color: green }
+  }
+  @container (width: 50ric) {
+    #ric_test { color: green }
+  }
+  @container (width: 10lh) {
+    #lh_test { color: green }
+  }
+  @container (width: 50rlh) {
+    #rlh_test { color: green }
+  }
+</style>
+<div id="em_container">
+  <div id="em_test"></div>
+  <div id="rem_test"></div>
+</div>
+<div id="cap_container">
+  <div id="cap_test"></div>
+  <div id="rcap_test"></div>
+</div>
+<div id="ex_container">
+  <div id="ex_test"></div>
+  <div id="rex_test"></div>
+</div>
+<div id="ch_container">
+  <div id="ch_test"></div>
+  <div id="rch_test"></div>
+</div>
+<div id="ic_container">
+  <div id="ic_test"></div>
+  <div id="ric_test"></div>
+</div>
+<div id="lh_container">
+  <div id="lh_test"></div>
+  <div id="rlh_test"></div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  const green = "rgb(0, 128, 0)";
+  test(() => assert_equals(getComputedStyle(em_test).color, green), "em relative inline-size");
+  test(() => assert_equals(getComputedStyle(rem_test).color, green), "rem relative inline-size");
+  test(() => assert_equals(getComputedStyle(ex_test).color, green), "ex relative inline-size");
+  test(() => assert_equals(getComputedStyle(rex_test).color, green), "rex relative inline-size");
+  test(() => assert_equals(getComputedStyle(ch_test).color, green), "ch relative inline-size");
+  test(() => assert_equals(getComputedStyle(rch_test).color, green), "rch relative inline-size");
+  test(() => assert_equals(getComputedStyle(ic_test).color, green), "ic relative inline-size");
+  test(() => assert_equals(getComputedStyle(ric_test).color, green), "ric relative inline-size");
+  test(() => assert_equals(getComputedStyle(lh_test).color, green), "lh relative inline-size");
+  test(() => assert_equals(getComputedStyle(rlh_test).color, green), "rlh relative inline-size");
+  test(() => assert_equals(getComputedStyle(cap_test).color, green), "cap relative inline-size");
+  test(() => assert_equals(getComputedStyle(rcap_test).color, green), "rcap relative inline-size");
+</script>

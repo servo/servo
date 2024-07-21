@@ -116,7 +116,6 @@ fn main(@builtin(local_invocation_id) lid : vec3u,
     new Uint32Array([...iterRange(numWorkgroups * 4, (_i) => 0)]),
     GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
   );
-  t.trackForCleanup(buffer);
 
   const bg = t.device.createBindGroup({
     layout: pipeline.getBindGroupLayout(0),

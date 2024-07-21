@@ -84,13 +84,12 @@ export function runStorageVariableTest({
     }
   });
 
-  const outputBuffer = t.device.createBuffer({
+  const outputBuffer = t.createBufferTracked({
     size: bufferNumElements * arrayType.BYTES_PER_ELEMENT,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
     mappedAtCreation: true
   });
   // Fill with initial value
-  t.trackForCleanup(outputBuffer);
   const data = new arrayType(outputBuffer.getMappedRange());
   data.fill(initValue);
   outputBuffer.unmap();
@@ -184,7 +183,7 @@ export function runWorkgroupVariableTest({
     }
   });
 
-  const outputBuffer = t.device.createBuffer({
+  const outputBuffer = t.createBufferTracked({
     size: wgNumElements * dispatchSize * arrayType.BYTES_PER_ELEMENT,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
   });

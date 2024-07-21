@@ -2,19 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::convert::TryInto;
 use std::os::raw::c_long;
 use std::sync::Arc;
 use std::{mem, ptr};
 
 use app_units::Au;
+use euclid::default::{Point2D, Rect, Size2D};
 use freetype_sys::{
     ft_sfnt_head, ft_sfnt_os2, FT_Byte, FT_Done_Face, FT_Error, FT_F26Dot6, FT_Face, FT_Fixed,
     FT_Get_Char_Index, FT_Get_Kerning, FT_Get_Sfnt_Table, FT_GlyphSlot, FT_Int32, FT_Load_Glyph,
     FT_Long, FT_MulFix, FT_New_Memory_Face, FT_Pos, FT_Select_Size, FT_Set_Char_Size, FT_Short,
     FT_SizeRec, FT_Size_Metrics, FT_UInt, FT_ULong, FT_UShort, FT_Vector, FT_FACE_FLAG_COLOR,
     FT_FACE_FLAG_FIXED_SIZES, FT_FACE_FLAG_SCALABLE, FT_KERNING_DEFAULT, FT_LOAD_COLOR,
-    FT_LOAD_DEFAULT, FT_STYLE_FLAG_ITALIC, TT_OS2,
+    FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_STYLE_FLAG_ITALIC, TT_OS2,
 };
 use log::debug;
 use parking_lot::ReentrantMutex;
@@ -106,12 +106,11 @@ fn create_face(data: Arc<Vec<u8>>, face_index: u32) -> Result<FT_Face, &'static 
         let library = FreeTypeLibraryHandle::get().lock();
 
         // This is to support 32bit Android where FT_Long is defined as i32.
-        let face_index = face_index.try_into().unwrap();
         let result = FT_New_Memory_Face(
             library.freetype_library,
             data.as_ptr(),
             data.len() as FT_Long,
-            face_index,
+            face_index as FT_Long,
             &mut face,
         );
 
@@ -388,6 +387,28 @@ impl PlatformFontMethods for PlatformFont {
             }
             Some(FontTable { buffer: buf })
         }
+    }
+
+    fn typographic_bounds(&self, glyph_id: GlyphId) -> Rect<f32> {
+        let face = self.face.lock();
+        assert!(!face.is_null());
+
+        let load_flags = FT_LOAD_DEFAULT | FT_LOAD_NO_HINTING;
+        let result = unsafe { FT_Load_Glyph(*face, glyph_id as FT_UInt, load_flags) };
+        if 0 != result {
+            debug!("Unable to load glyph {}. reason: {:?}", glyph_id, result);
+            return Rect::default();
+        }
+
+        let metrics = unsafe { &(*(**face).glyph).metrics };
+
+        Rect::new(
+            Point2D::new(
+                metrics.horiBearingX as f32,
+                (metrics.horiBearingY - metrics.height) as f32,
+            ),
+            Size2D::new(metrics.width as f32, metrics.height as f32),
+        ) * (1. / 64.)
     }
 
     fn webrender_font_instance_flags(&self) -> FontInstanceFlags {

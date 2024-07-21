@@ -81,7 +81,7 @@ jobs:
       - uses: actions/checkout@v4
         if: github.event_name == 'pull_request_target'
         with:
-          ref: refs/pull/${{ github.event.number }}/head
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 2 # This is necessary for `test-tidy`.
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.4
@@ -111,7 +111,7 @@ jobs:
         run: python3 ./mach test-tidy --no-progress --all
       - name: Build (${{ inputs.profile }})
         run: |
-          python3 ./mach build --locked --${{ inputs.profile }}
+          python3 ./mach build --use-crown --locked --${{ inputs.profile }}
           cp -r target/cargo-timings target/cargo-timings-linux
       - name: Smoketest
         run: xvfb-run python3 ./mach smoketest --${{ inputs.profile  }}

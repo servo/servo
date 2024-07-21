@@ -107,3 +107,15 @@ fn main() {
 
   t.expectCompileResult(t.params.mode !== 'write', code);
 });
+
+g.test('must_use').
+desc('Test that the result must be used').
+params((u) => u.combine('use', [true, false])).
+fn((t) => {
+  const code = `
+    @group(0) @binding(0) var<storage> v : array<u32>;
+    fn foo() {
+      ${t.params.use ? '_ =' : ''} arrayLength(&v);
+    }`;
+  t.expectCompileResult(t.params.use, code);
+});

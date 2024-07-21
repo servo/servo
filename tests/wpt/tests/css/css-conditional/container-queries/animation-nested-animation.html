@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>Container Queries - Animations within animating container</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#animated-containers">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  @keyframes outer {
+    from { width: 100px; }
+    to { width: 300px; }
+  }
+  @keyframes inner {
+    from { background-color: blue; }
+    to { background-color: yellow; }
+  }
+  #container {
+    container-type: inline-size;
+    animation: outer 1s linear paused;
+  }
+  #target {
+    background-color: green;
+  }
+
+  @container (min-width: 200px) {
+    #target {
+      animation: inner 1s linear paused;
+    }
+  }
+</style>
+<div id=container>
+  <div id=target>
+    Test
+  </div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  test(() => {
+    assert_equals(getComputedStyle(target).backgroundColor, 'rgb(0, 128, 0)');
+
+    assert_equals(container.getAnimations().length, 1);
+    let animation = container.getAnimations()[0];
+    animation.currentTime = 600;
+
+    assert_equals(getComputedStyle(target).backgroundColor, 'rgb(0, 0, 255)');
+  }, 'Animated container can create inner animation');
+</script>

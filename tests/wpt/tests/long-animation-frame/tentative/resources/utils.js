@@ -1,7 +1,9 @@
 const windowLoaded = new Promise(resolve => window.addEventListener('load', resolve));
-setup(() =>
-  assert_implements(window.PerformanceLongAnimationFrameTiming,
-    'Long animation frames are not supported.'));
+if ("setup" in globalThis) {
+  setup(() =>
+    assert_implements(window.PerformanceLongAnimationFrameTiming,
+      'Long animation frames are not supported.'));
+}
 
 const very_long_frame_duration = 360;
 const no_long_frame_timeout = very_long_frame_duration * 2;

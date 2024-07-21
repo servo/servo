@@ -42,13 +42,12 @@ subresourceRange) =>
       level
     );
 
-    const dst = t.device.createTexture({
+    const dst = t.createTextureTracked({
       dimension: params.dimension,
       size: [width, height, depth],
       format: params.format,
       usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC
     });
-    t.trackForCleanup(dst);
 
     const commandEncoder = t.device.createCommandEncoder();
     commandEncoder.copyTextureToTexture(

@@ -34,4 +34,3 @@ RUSTC_BOOTSTRAP = "crown,script,style_tests"
 
 [build]
 rustdocflags = ["--document-private-items"]
-rustc = "crown"

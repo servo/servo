@@ -2,6 +2,7 @@ import pytest
 from tests.support.sync import AsyncPoll
 from webdriver.error import TimeoutException
 
+
 pytestmark = pytest.mark.asyncio
 
 USER_PROMPT_OPENED_EVENT = "browsingContext.userPromptOpened"
@@ -35,7 +36,13 @@ async def test_unsubscribe(bidi_session, inline, new_tab):
 
 @pytest.mark.parametrize("prompt_type", ["alert", "confirm", "prompt"])
 async def test_prompt_type(
-    bidi_session, subscribe_events, inline, new_tab, wait_for_event, wait_for_future_safe, prompt_type
+    bidi_session,
+    subscribe_events,
+    inline,
+    new_tab,
+    wait_for_event,
+    wait_for_future_safe,
+    prompt_type,
 ):
     await subscribe_events(events=[USER_PROMPT_OPENED_EVENT])
     on_entry = wait_for_event(USER_PROMPT_OPENED_EVENT)
@@ -53,17 +60,24 @@ async def test_prompt_type(
         "context": new_tab["context"],
         "type": prompt_type,
         "message": text,
-        **({
-            "defaultValue": ""
-        } if prompt_type == 'prompt' else {})
+        "handler": "dismiss",
+        **({"defaultValue": ""} if prompt_type == "prompt" else {}),
     }
 
 
 @pytest.mark.parametrize(
-    "default", [None, "", "default"], ids=["undefined", "empty string", "non empty string"]
+    "default",
+    [None, "", "default"],
+    ids=["undefined", "empty string", "non empty string"],
 )
 async def test_prompt_default_value(
-    bidi_session, inline, new_tab, subscribe_events, wait_for_event, wait_for_future_safe, default
+    bidi_session,
+    inline,
+    new_tab,
+    subscribe_events,
+    wait_for_event,
+    wait_for_future_safe,
+    default,
 ):
     await subscribe_events(events=[USER_PROMPT_OPENED_EVENT])
     on_entry = wait_for_event(USER_PROMPT_OPENED_EVENT)
@@ -82,23 +96,23 @@ async def test_prompt_default_value(
 
     event = await wait_for_future_safe(on_entry)
 
-    expected_event = {
+    assert event == {
         "context": new_tab["context"],
         "type": "prompt",
         "message": text,
+        "handler": "dismiss",
+        "defaultValue": default if default is not None else ""
     }
-
-    if default is None:
-        expected_event["defaultValue"] = ""
-    else:
-        expected_event["defaultValue"] = default
-
-    assert event == expected_event
 
 
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
 async def test_subscribe_to_one_context(
-    bidi_session, subscribe_events, inline, wait_for_event, wait_for_future_safe, type_hint
+    bidi_session,
+    subscribe_events,
+    inline,
+    wait_for_event,
+    wait_for_future_safe,
+    type_hint,
 ):
     new_context = await bidi_session.browsing_context.create(type_hint=type_hint)
     await subscribe_events(
@@ -142,6 +156,7 @@ async def test_subscribe_to_one_context(
     assert event == {
         "context": new_context["context"],
         "type": "alert",
+        "handler": "dismiss",
         "message": "first tab",
     }
 
@@ -184,5 +199,72 @@ async def test_iframe(
     assert event == {
         "context": new_tab["context"],
         "type": "alert",
+        "handler": "dismiss",
         "message": "in iframe",
     }
+
+
+@pytest.mark.parametrize("type_hint", ["tab", "window"])
+async def test_two_prompts(
+    bidi_session,
+    subscribe_events,
+    inline,
+    wait_for_event,
+    wait_for_future_safe,
+    type_hint,
+):
+    new_context = await bidi_session.browsing_context.create(type_hint=type_hint)
+    await subscribe_events(
+        events=[USER_PROMPT_OPENED_EVENT]
+    )
+    # Track all received browsingContext.userPromptOpened events in the events array
+    events = []
+
+    async def on_event(method, data):
+        events.append(data)
+
+    remove_listener = bidi_session.add_event_listener(
+        USER_PROMPT_OPENED_EVENT, on_event
+    )
+
+    on_first_event = wait_for_event(USER_PROMPT_OPENED_EVENT)
+
+    another_new_context = await bidi_session.browsing_context.create(
+        type_hint=type_hint
+    )
+
+    # Open a prompt in the first context.
+    await bidi_session.browsing_context.navigate(
+        context=new_context["context"],
+        url=inline("<script>window.alert('first tab')</script>"),
+    )
+
+    await wait_for_future_safe(on_first_event)
+
+    # Open a prompt in the second context.
+    await bidi_session.browsing_context.navigate(
+        context=another_new_context["context"],
+        url=inline("<script>window.confirm('second tab')</script>"),
+    )
+
+    on_second_event = wait_for_event(USER_PROMPT_OPENED_EVENT)
+
+    await wait_for_future_safe(on_second_event)
+
+    assert len(events) == 2
+
+    assert events == [{
+        "context": new_context["context"],
+        "type": "alert",
+        "handler": "dismiss",
+        "message": "first tab",
+    }, {
+        "context": another_new_context["context"],
+        "type": "confirm",
+        "handler": "dismiss",
+        "message": "second tab",
+    }]
+
+    remove_listener()
+    await bidi_session.browsing_context.close(context=new_context["context"])
+    await bidi_session.browsing_context.close(context=another_new_context["context"])

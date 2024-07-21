@@ -7,6 +7,7 @@ use std::borrow::Cow;
 use html5ever::{local_name, LocalName};
 use log::warn;
 use script_layout_interface::wrapper_traits::{ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use script_layout_interface::{LayoutElementType, LayoutNodeType};
 use servo_arc::Arc as ServoArc;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
@@ -33,7 +34,7 @@ pub(crate) struct NodeAndStyleInfo<Node> {
     pub style: ServoArc<ComputedValues>,
 }
 
-impl<Node> NodeAndStyleInfo<Node> {
+impl<'dom, Node: NodeExt<'dom>> NodeAndStyleInfo<Node> {
     fn new_with_pseudo(
         node: Node,
         pseudo_element_type: WhichPseudoElement,
@@ -52,6 +53,12 @@ impl<Node> NodeAndStyleInfo<Node> {
             pseudo_element_type: None,
             style,
         }
+    }
+
+    pub(crate) fn is_single_line_text_input(&self) -> bool {
+        self.node.map_or(false, |node| {
+            node.type_id() == LayoutNodeType::Element(LayoutElementType::HTMLInputElement)
+        })
     }
 }
 
@@ -115,20 +122,19 @@ where
 
 #[derive(Debug)]
 pub(super) enum Contents {
-    /// Refers to a DOM subtree, plus `::before` and `::after` pseudo-elements.
-    OfElement,
-
+    /// Any kind of content that is not replaced, including the contents of pseudo-elements.
+    NonReplaced(NonReplacedContents),
     /// Example: an `<img src=…>` element.
     /// <https://drafts.csswg.org/css2/conform.html#replaced-element>
     Replaced(ReplacedContent),
-
-    /// Content of a `::before` or `::after` pseudo-element that is being generated.
-    /// <https://drafts.csswg.org/css2/generate.html#content>
-    OfPseudoElement(Vec<PseudoElementContentItem>),
 }
 
+#[derive(Debug)]
 pub(super) enum NonReplacedContents {
+    /// Refers to a DOM subtree, plus `::before` and `::after` pseudo-elements.
     OfElement,
+    /// Content of a `::before` or `::after` pseudo-element that is being generated.
+    /// <https://drafts.csswg.org/css2/generate.html#content>
     OfPseudoElement(Vec<PseudoElementContentItem>),
 }
 
@@ -172,6 +178,23 @@ fn traverse_children_of<'dom, Node>(
         }
     }
 
+    if matches!(
+        parent_element.type_id(),
+        LayoutNodeType::Element(LayoutElementType::HTMLInputElement)
+    ) {
+        let info = NodeAndStyleInfo::new(parent_element, parent_element.style(context));
+
+        // The addition of zero-width space here forces the text input to have an inline formatting
+        // context that might otherwise be trimmed if there's no text. This is important to ensure
+        // that the input element is at least as tall as the line gap of the caret:
+        // <https://drafts.csswg.org/css-ui/#element-with-default-preferred-size>.
+        //
+        // TODO: Is there a less hacky way to do this?
+        handler.handle_text(&info, "\u{200B}".into());
+
+        handler.handle_text(&info, parent_element.to_threadsafe().node_text_content());
+    }
+
     traverse_pseudo_element(WhichPseudoElement::After, parent_element, context, handler);
 }
 
@@ -197,7 +220,8 @@ fn traverse_element<'dom, Node>(
             }
         },
         Display::GeneratingBox(display) => {
-            let contents = replaced.map_or(Contents::OfElement, Contents::Replaced);
+            let contents =
+                replaced.map_or(NonReplacedContents::OfElement.into(), Contents::Replaced);
             let display = display.used_value_for_contents(&contents);
             let box_slot = element.element_box_slot();
             let info = NodeAndStyleInfo::new(element, style);
@@ -227,7 +251,7 @@ fn traverse_pseudo_element<'dom, Node>(
             Display::GeneratingBox(display) => {
                 let items = generate_pseudo_element_content(&info.style, element, context);
                 let box_slot = element.pseudo_element_box_slot(which);
-                let contents = Contents::OfPseudoElement(items);
+                let contents = NonReplacedContents::OfPseudoElement(items).into();
                 handler.handle_element(&info, display, contents, box_slot);
             },
         }
@@ -286,30 +310,25 @@ fn traverse_pseudo_element_contents<'dom, Node>(
 impl Contents {
     /// Returns true iff the `try_from` impl below would return `Err(_)`
     pub fn is_replaced(&self) -> bool {
-        match self {
-            Contents::OfElement | Contents::OfPseudoElement(_) => false,
-            Contents::Replaced(_) => true,
-        }
-    }
-}
-
-impl std::convert::TryFrom<Contents> for NonReplacedContents {
-    type Error = ReplacedContent;
-
-    fn try_from(contents: Contents) -> Result<Self, Self::Error> {
-        match contents {
-            Contents::OfElement => Ok(NonReplacedContents::OfElement),
-            Contents::OfPseudoElement(items) => Ok(NonReplacedContents::OfPseudoElement(items)),
-            Contents::Replaced(replaced) => Err(replaced),
-        }
+        matches!(self, Contents::Replaced(_))
     }
 }
 
 impl From<NonReplacedContents> for Contents {
-    fn from(contents: NonReplacedContents) -> Self {
+    fn from(non_replaced_contents: NonReplacedContents) -> Self {
+        Contents::NonReplaced(non_replaced_contents)
+    }
+}
+
+impl std::convert::TryFrom<Contents> for NonReplacedContents {
+    type Error = &'static str;
+
+    fn try_from(contents: Contents) -> Result<Self, Self::Error> {
         match contents {
-            NonReplacedContents::OfElement => Contents::OfElement,
-            NonReplacedContents::OfPseudoElement(items) => Contents::OfPseudoElement(items),
+            Contents::NonReplaced(non_replaced_contents) => Ok(non_replaced_contents),
+            Contents::Replaced(_) => {
+                Err("Tried to covnert a `Contents::Replaced` into `NonReplacedContent`")
+            },
         }
     }
 }

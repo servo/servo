@@ -17,6 +17,8 @@ export { TestCaseRecorder } from '../internal/logging/test_case_recorder.js';
 
 
 
+
+
 export class SubcaseBatchState {
   constructor(
   recorder,
@@ -124,8 +126,14 @@ export class Fixture {
         if (WEBGL_lose_context) WEBGL_lose_context.loseContext();
       } else if ('destroy' in o) {
         o.destroy();
-      } else {
+      } else if ('destroyAsync' in o) {
+        await o.destroyAsync();
+      } else if ('close' in o) {
         o.close();
+      } else {
+        // HTMLVideoElement
+        o.src = '';
+        o.srcObject = null;
       }
     }
   }
@@ -133,11 +141,29 @@ export class Fixture {
   /**
    * Tracks an object to be cleaned up after the test finishes.
    *
-   * MAINTENANCE_TODO: Use this in more places. (Will be easier once .destroy() is allowed on
-   * invalid objects.)
+   * Usually when creating buffers/textures/query sets, you can use the helpers in GPUTest instead.
    */
   trackForCleanup(o) {
-    this.objectsToCleanUp.push(o);
+    if (o instanceof Promise) {
+      this.eventualAsyncExpectation(() =>
+      o.then(
+        (o) => this.trackForCleanup(o),
+        () => {}
+      )
+      );
+      return o;
+    }
+
+    if (o instanceof GPUDevice) {
+      this.objectsToCleanUp.push({
+        async destroyAsync() {
+          o.destroy();
+          await o.lost;
+        }
+      });
+    } else {
+      this.objectsToCleanUp.push(o);
+    }
     return o;
   }
 
@@ -156,9 +182,23 @@ export class Fixture {
     return o;
   }
 
+  /** Call requestDevice() and track the device for cleanup. */
+  requestDeviceTracked(adapter, desc = undefined) {
+
+    return this.trackForCleanup(adapter.requestDevice(desc));
+  }
+
   /** Log a debug message. */
   debug(msg) {
     this.rec.debug(new Error(msg));
+  }
+
+  /**
+   * Log an info message.
+   * **Use sparingly. Use `debug()` instead if logs are only needed with debug logging enabled.**
+   */
+  info(msg) {
+    this.rec.info(new Error(msg));
   }
 
   /** Throws an exception marking the subcase as skipped. */

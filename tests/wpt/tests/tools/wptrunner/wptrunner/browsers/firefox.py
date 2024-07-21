@@ -910,7 +910,6 @@ class FirefoxWdSpecBrowser(WebDriverBrowser):
         self.binary = binary
         self.package_name = package_name
         self.webdriver_binary = webdriver_binary
-        self.init_deadline = None
 
         self.stackfix_dir = stackfix_dir
         self.symbols_path = symbols_path
@@ -959,7 +958,6 @@ class FirefoxWdSpecBrowser(WebDriverBrowser):
 
     def start(self, group_metadata, **kwargs):
         self.leak_report_file = setup_leak_report(self.leak_check, self.profile, self.env)
-        self.init_deadline = time.time() + self.init_timeout
         super().start(group_metadata, **kwargs)
 
     def stop(self, force=False):

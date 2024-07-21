@@ -13,7 +13,8 @@ flatMap((trait) =>
     return FP[trait].generateScalarToIntervalCases(
       FP[trait].scalarRange(),
       nonConst ? 'unfiltered' : 'finite',
-      FP[trait].degreesInterval
+      // degrees has an inherited accuracy, so abstract is only expected to be as accurate as f32
+      FP[trait !== 'abstract' ? trait : 'f32'].degreesInterval
     );
   }
 }))

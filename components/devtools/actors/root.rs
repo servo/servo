@@ -2,18 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+//! Liberally derived from the [Firefox JS implementation]
+//! (https://searchfox.org/mozilla-central/source/devtools/server/actors/root.js).
+//! Connection point for all new remote devtools interactions, providing lists of know actors
+//! that perform more specific actions (targets, addons, browser chrome, etc.)
+
 use std::net::TcpStream;
 
 use serde::Serialize;
 use serde_json::{Map, Value};
 
-/// Liberally derived from the [Firefox JS implementation]
-/// (http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/root.js).
-/// Connection point for all new remote devtools interactions, providing lists of know actors
-/// that perform more specific actions (targets, addons, browser chrome, etc.)
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::device::DeviceActor;
 use crate::actors::performance::PerformanceActor;
+use crate::actors::process::{ProcessActor, ProcessActorMsg};
 use crate::actors::tab::{TabDescriptorActor, TabDescriptorActorMsg};
 use crate::actors::worker::{WorkerActor, WorkerMsg};
 use crate::protocol::{ActorDescription, JsonPacketStream};
@@ -95,7 +97,7 @@ pub struct Types {
 #[derive(Serialize)]
 struct ListProcessesResponse {
     from: String,
-    processes: Vec<ProcessForm>,
+    processes: Vec<ProcessActorMsg>,
 }
 
 #[derive(Default, Serialize)]
@@ -107,19 +109,9 @@ pub struct DescriptorTraits {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct ProcessForm {
-    actor: String,
-    id: u32,
-    is_parent: bool,
-    is_windowless_parent: bool,
-    traits: DescriptorTraits,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
 struct GetProcessResponse {
     from: String,
-    process_descriptor: ProcessForm,
+    process_descriptor: ProcessActorMsg,
 }
 
 pub struct RootActor {
@@ -155,30 +147,21 @@ impl Actor for RootActor {
             },
 
             "listProcesses" => {
+                let process = registry.find::<ProcessActor>(&self.process).encodable();
                 let reply = ListProcessesResponse {
                     from: self.name(),
-                    processes: vec![ProcessForm {
-                        actor: self.process.clone(),
-                        id: 0,
-                        is_parent: true,
-                        is_windowless_parent: false,
-                        traits: Default::default(),
-                    }],
+                    processes: vec![process],
                 };
                 let _ = stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed
             },
 
+            // TODO: Unexpected message getTarget for process (when inspecting)
             "getProcess" => {
+                let process = registry.find::<ProcessActor>(&self.process).encodable();
                 let reply = GetProcessResponse {
                     from: self.name(),
-                    process_descriptor: ProcessForm {
-                        actor: self.process.clone(),
-                        id: 0,
-                        is_parent: true,
-                        is_windowless_parent: false,
-                        traits: Default::default(),
-                    },
+                    process_descriptor: process,
                 };
                 let _ = stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed
@@ -196,7 +179,6 @@ impl Actor for RootActor {
                 ActorMessageStatus::Processed
             },
 
-            // https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#listing-browser-tabs
             "listTabs" => {
                 let actor = ListTabsReply {
                     from: "root".to_owned(),

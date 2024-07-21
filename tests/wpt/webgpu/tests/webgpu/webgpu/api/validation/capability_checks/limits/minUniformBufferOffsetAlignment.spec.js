@@ -73,12 +73,10 @@ fn(async (t) => {
     requestedLimit,
     testValue,
     async ({ device, testValue, shouldError }) => {
-      const buffer = t.trackForCleanup(
-        device.createBuffer({
-          size: testValue * 2,
-          usage: GPUBufferUsage.UNIFORM
-        })
-      );
+      const buffer = t.createBufferTracked({
+        size: testValue * 2,
+        usage: GPUBufferUsage.UNIFORM
+      });
 
       const layout = device.createBindGroupLayout({
         entries: [
@@ -126,7 +124,7 @@ fn(async (t) => {
     requestedLimit,
     testValue,
     async ({ device, testValue, shouldError }) => {
-      const buffer = device.createBuffer({
+      const buffer = t.createBufferTracked({
         size: testValue * 2,
         usage: GPUBufferUsage.UNIFORM
       });

@@ -18,23 +18,6 @@
   const invalidValues = ["boom", 321, -Infinity, { foo: 5 }];
 
   promise_test(async (t) => {
-    for (const enableHighAccuracy of invalidValues) {
-      navigator.geolocation.getCurrentPosition(() => {}, null, {
-        enableHighAccuracy,
-      });
-    }
-  }, "Call getCurrentPosition with wrong type for enableHighAccuracy. No exception expected.");
-
-  promise_test(async (t) => {
-    for (const enableHighAccuracy of invalidValues) {
-      const id = navigator.geolocation.watchPosition(() => {}, null, {
-        enableHighAccuracy,
-      });
-      navigator.geolocation.clearWatch(id);
-    }
-  }, "Call watchPosition with wrong type for enableHighAccuracy. No exception expected.");
-
-  promise_test(async (t) => {
     const error = await new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(reject, resolve, {
         timeout: 0,
@@ -79,4 +62,22 @@
     assert_equals(error.code, GeolocationPositionError.TIMEOUT);
     navigator.geolocation.clearWatch(watchId);
   }, "Check that a negative timeout and maxAge values are clamped to 0 (watchPosition)");
+
+  promise_test(async (t) => {
+    for (const enableHighAccuracy of invalidValues) {
+      navigator.geolocation.getCurrentPosition(() => {}, null, {
+        enableHighAccuracy,
+      });
+    }
+  }, "Call getCurrentPosition with wrong type for enableHighAccuracy. No exception expected.");
+
+  promise_test(async (t) => {
+    for (const enableHighAccuracy of invalidValues) {
+      const id = navigator.geolocation.watchPosition(() => {}, null, {
+        enableHighAccuracy,
+      });
+      navigator.geolocation.clearWatch(id);
+    }
+  }, "Call watchPosition with wrong type for enableHighAccuracy. No exception expected.");
+
 </script>

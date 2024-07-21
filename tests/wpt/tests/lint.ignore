@@ -162,6 +162,8 @@ SET TIMEOUT: custom-elements/scoped-registry/scoped-registry-define-upgrade-crit
 SET TIMEOUT: encrypted-media/polyfill/chrome-polyfill.js
 SET TIMEOUT: encrypted-media/polyfill/clearkey-polyfill.js
 SET TIMEOUT: encrypted-media/scripts/playback-temporary-events.js
+SET TIMEOUT: fedcm/support/fedcm-iframe.html
+SET TIMEOUT: fedcm/support/fedcm/disconnect-iframe.html
 SET TIMEOUT: fetch/fetch-later/resources/fetch-later-helper.js
 SET TIMEOUT: fetch/metadata/resources/helper.sub.js
 SET TIMEOUT: fetch/metadata/resources/message-opener.html
@@ -294,8 +296,6 @@ SET TIMEOUT: workers/*
 SET TIMEOUT: xhr/resources/init.htm
 SET TIMEOUT: xhr/resources/xmlhttprequest-timeout.js
 SET TIMEOUT: fenced-frame/resolve-to-config-promise.https.html
-SET TIMEOUT: credential-management/support/fedcm-iframe.html
-SET TIMEOUT: credential-management/support/fedcm/disconnect-iframe.html
 
 # generate_tests implementation and sample usage
 GENERATE_TESTS: resources/test/tests/functional/generate-callback.html
@@ -405,7 +405,7 @@ SET TIMEOUT: speculation-rules/prerender/resources/media-autoplay-attribute.html
 SET TIMEOUT: speculation-rules/prerender/resources/media-play.html
 SET TIMEOUT: html/browsers/browsing-the-web/back-forward-cache/timers.html
 SET TIMEOUT: dom/abort/crashtests/timeout-close.html
-SET TIMEOUT: storage-access-api/storage-access-beyond-cookies.locks.tentative.sub.https.window.js
+SET TIMEOUT: storage-access-api/storage-access-beyond-cookies.locks.sub.https.window.js
 
 # setTimeout use in reftests
 SET TIMEOUT: acid/acid3/test.html
@@ -608,7 +608,7 @@ WEB-PLATFORM.TEST:web-bundle/subresource-loading/resources/*.js
 # https://github.com/web-platform-tests/wpt/issues/16455
 # Please consult with ecosystem-infra@chromium.org before adding more.
 MISSING DEPENDENCY: credential-management/support/otpcredential-helper.js
-MISSING DEPENDENCY: credential-management/support/fedcm-mock.js
+MISSING DEPENDENCY: fedcm/support/fedcm-mock.js
 MISSING DEPENDENCY: resources/chromium/content-index-helpers.js
 MISSING DEPENDENCY: resources/chromium/contacts_manager_mock.js
 MISSING DEPENDENCY: resources/chromium/web-bluetooth-test.js

@@ -67,6 +67,8 @@ use fonts::FontCacheThread;
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 pub use gleam::gl;
 use ipc_channel::ipc::{self, IpcSender};
+#[cfg(feature = "layout_2013")]
+pub use layout_thread_2013;
 use log::{error, trace, warn, Log, Metadata, Record};
 use media::{GLPlayerThreads, GlApi, NativeDisplay, WindowGLContext};
 use net::resource_thread::new_resource_threads;
@@ -98,10 +100,9 @@ use webrender_traits::{
 pub use {
     background_hang_monitor, base, bluetooth, bluetooth_traits, canvas, canvas_traits, compositing,
     constellation, devtools, devtools_traits, embedder_traits, euclid, fonts, ipc_channel,
-    keyboard_types, layout_thread_2013, layout_thread_2020, media, net, net_traits, profile,
-    profile_traits, script, script_layout_interface, script_traits, servo_config as config,
-    servo_config, servo_geometry, servo_url as url, servo_url, style, style_traits, webgpu,
-    webrender_api, webrender_traits,
+    keyboard_types, layout_thread_2020, media, net, net_traits, profile, profile_traits, script,
+    script_layout_interface, script_traits, servo_config as config, servo_config, servo_geometry,
+    servo_url as url, servo_url, style, style_traits, webgpu, webrender_api, webrender_traits,
 };
 
 #[cfg(feature = "webdriver")]
@@ -135,7 +136,7 @@ mod media_platform {
 
             match GStreamerBackend::init_with_plugins(
                 plugin_dir,
-                &gstreamer_plugins::GSTREAMER_PLUGINS,
+                gstreamer_plugins::GSTREAMER_PLUGINS,
             ) {
                 Ok(b) => b,
                 Err(e) => {
@@ -525,10 +526,16 @@ where
     fn get_native_media_display_and_gl_context(
         rendering_context: &RenderingContext,
     ) -> Option<(NativeDisplay, GlContext)> {
-        let gl_context = GlContext::Egl(rendering_context.native_context().egl_context as usize);
-        let native_display =
-            NativeDisplay::Egl(rendering_context.native_device().egl_display as usize);
-        Some((native_display, gl_context))
+        #[cfg(feature = "no-wgl")]
+        {
+            let gl_context =
+                GlContext::Egl(rendering_context.native_context().egl_context as usize);
+            let native_display =
+                NativeDisplay::Egl(rendering_context.native_device().egl_display as usize);
+            Some((native_display, gl_context))
+        }
+        #[cfg(not(feature = "no-wgl"))]
+        None
     }
 
     #[cfg(not(any(
@@ -962,6 +969,22 @@ fn create_compositor_channel(
     )
 }
 
+fn get_layout_factory(legacy_layout: bool) -> Arc<dyn LayoutFactory> {
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "layout_2013")] {
+            if legacy_layout {
+                return Arc::new(layout_thread_2013::LayoutFactoryImpl());
+            }
+        } else {
+            if legacy_layout {
+                warn!("Runtime option `legacy_layout` was enabled, but the `layout_2013` \
+                feature was not enabled at compile time. Falling back to layout 2020! ");
+           }
+        }
+    }
+    Arc::new(layout_thread_2020::LayoutFactoryImpl())
+}
+
 fn create_constellation(
     user_agent: Cow<'static, str>,
     config_dir: Option<PathBuf>,
@@ -1028,11 +1051,7 @@ fn create_constellation(
         wgpu_image_map,
     };
 
-    let layout_factory: Arc<dyn LayoutFactory> = if opts::get().legacy_layout {
-        Arc::new(layout_thread_2013::LayoutFactoryImpl())
-    } else {
-        Arc::new(layout_thread_2020::LayoutFactoryImpl())
-    };
+    let layout_factory: Arc<dyn LayoutFactory> = get_layout_factory(opts::get().legacy_layout);
 
     Constellation::<
         script::script_thread::ScriptThread,
@@ -1207,11 +1226,8 @@ pub fn run_content_process(token: String) {
             set_logger(content.script_to_constellation_chan().clone());
 
             let background_hang_monitor_register = content.register_with_background_hang_monitor();
-            let layout_factory: Arc<dyn LayoutFactory> = if opts::get().legacy_layout {
-                Arc::new(layout_thread_2013::LayoutFactoryImpl())
-            } else {
-                Arc::new(layout_thread_2020::LayoutFactoryImpl())
-            };
+            let layout_factory: Arc<dyn LayoutFactory> =
+                get_layout_factory(opts::get().legacy_layout);
 
             content.start_all::<script::script_thread::ScriptThread>(
                 true,

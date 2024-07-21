@@ -104,8 +104,13 @@ link:link[rel~=help], link:visited[rel~=help] { cursor: help; }
 /*
  * FIXME: use `outline: auto;`
  */
-a:focus, area:focus,
-input:focus, textarea:focus, button:focus { outline: thin dotted; }
+a:focus, area:focus {
+  outline: thin dotted;
+}
+
+input:focus, textarea:focus, button:focus {
+  outline: thin solid black;
+}
 
 mark { background: yellow; color: black; }
 
@@ -199,7 +204,10 @@ dir, menu, ul { list-style-type: disc; }
 
 
 table { display: table; }
-caption { display: table-caption; }
+caption {
+  display: table-caption;
+  text-align: center;
+}
 colgroup, colgroup[hidden] { display: table-column-group; }
 col, col[hidden] { display: table-column; }
 thead, thead[hidden] { display: table-header-group; }
@@ -251,22 +259,47 @@ table:matches(
   display: none !important;
 }
 
-
-input, select, option, optgroup, button, textarea {
+input, select, button, textarea {
+  letter-spacing: initial;
+  word-spacing: initial;
+  line-height: initial;
+  text-transform: initial;
   text-indent: initial;
-  text-transform: none;
+  text-shadow: initial;
+  appearance: auto;
 }
 
-textarea { white-space: pre-wrap; }
+input:not([type=image i], [type=range i], [type=checkbox i], [type=radio i]) {
+  overflow: clip !important;
+  overflow-clip-margin: 0 !important;
+}
 
-input[type="radio"], input[type="checkbox"], input[type="reset"], input[type="button"],
-input[type="submit"], select, button {
-  box-sizing: border-box;
+input, select, textarea {
+  text-align: initial;
+}
+
+:autofill {
+  field-sizing: fixed !important;
+}
+
+input:is([type=reset i], [type=button i], [type=submit i]), button {
+  text-align: center;
 }
 
 input, textarea, select, button { display: inline-block; }
 
-hr { 
+input[type=hidden i], input[type=file i], input[type=image i] {
+  appearance: none;
+}
+
+input[type=radio i], input[type=checkbox i], input[type=reset i], input[type=button i], input[type=submit i],
+input[type=color i], input[type=search i], select, button {
+  box-sizing: border-box;
+}
+
+textarea { white-space: pre-wrap; }
+
+hr {
   color: gray;
   border-style: inset;
   border-width: 1px;

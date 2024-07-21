@@ -67,7 +67,6 @@ use url::Host;
 use uuid::Uuid;
 use webrender_api::units::DeviceIntRect;
 
-use super::bindings::trace::{HashMapTracedValues, NoTrace};
 use crate::animation_timeline::AnimationTimeline;
 use crate::animations::Animations;
 use crate::document_loader::{DocumentLoader, LoadType};
@@ -77,7 +76,7 @@ use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEvent_Binding::BeforeUnloadEventMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
-    DocumentMethods, DocumentReadyState, NamedPropertyValue,
+    DocumentMethods, DocumentReadyState, DocumentVisibilityState, NamedPropertyValue,
 };
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElement_Binding::HTMLIFrameElementMethods;
@@ -100,7 +99,8 @@ use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::xmlname::XMLName::InvalidXMLName;
+use crate::dom::bindings::trace::{HashMapTracedValues, NoTrace};
+use crate::dom::bindings::xmlname::XMLName::Invalid;
 use crate::dom::bindings::xmlname::{
     namespace_from_domstring, validate_and_extract, xml_name_type,
 };
@@ -121,6 +121,7 @@ use crate::dom::element::{
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventDefault, EventStatus};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::focusevent::FocusEvent;
+use crate::dom::fontfaceset::FontFaceSet;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpucanvascontext::{GPUCanvasContext, WebGPUContextId};
 use crate::dom::hashchangeevent::HashChangeEvent;
@@ -152,6 +153,7 @@ use crate::dom::node::{
 use crate::dom::nodeiterator::NodeIterator;
 use crate::dom::nodelist::NodeList;
 use crate::dom::pagetransitionevent::PageTransitionEvent;
+use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::promise::Promise;
 use crate::dom::range::Range;
@@ -166,6 +168,7 @@ use crate::dom::touch::Touch;
 use crate::dom::touchevent::TouchEvent;
 use crate::dom::touchlist::TouchList;
 use crate::dom::treewalker::TreeWalker;
+use crate::dom::types::VisibilityStateEntry;
 use crate::dom::uievent::UIEvent;
 use crate::dom::virtualmethods::vtable_for;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
@@ -466,6 +469,11 @@ pub struct Document {
     /// - <https://bugzilla.mozilla.org/show_bug.cgi?id=1596992>
     /// - <https://github.com/w3c/csswg-drafts/issues/4518>
     resize_observers: DomRefCell<Vec<Dom<ResizeObserver>>>,
+    /// The set of all fonts loaded by this document.
+    /// <https://drafts.csswg.org/css-font-loading/#font-face-source>
+    fonts: MutNullableDom<FontFaceSet>,
+    /// <https://html.spec.whatwg.org/multipage/#visibility-state>
+    visibility_state: Cell<DocumentVisibilityState>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -704,8 +712,9 @@ impl Document {
             return;
         }
 
-        // html.spec.whatwg.org/multipage/#history-traversal
-        // Step 4.6
+        // This step used to be Step 4.6 in html.spec.whatwg.org/multipage/#history-traversal
+        // But it's now Step 4 in https://html.spec.whatwg.org/multipage/#reactivate-a-document
+        // TODO: See #32687 for more information.
         let document = Trusted::new(self);
         self.window
             .task_manager()
@@ -718,9 +727,12 @@ impl Document {
                     if document.page_showing.get() {
                         return;
                     }
-                    // Step 4.6.2
+                    // Step 4.6.2 Set document's page showing flag to true.
                     document.page_showing.set(true);
-                    // Step 4.6.4
+                    // Step 4.6.3 Update the visibility state of document to "visible".
+                    document.update_visibility_state(DocumentVisibilityState::Visible);
+                    // Step 4.6.4 Fire a page transition event named pageshow at document's relevant
+                    // global object with true.
                     let event = PageTransitionEvent::new(
                         window,
                         atom!("pageshow"),
@@ -2216,9 +2228,12 @@ impl Document {
         // TODO: Step 1, increase the event loop's termination nesting level by 1.
         // Step 2
         self.incr_ignore_opens_during_unload_counter();
-        // Step 3-6
+        // Step 3-6 If oldDocument's page showing is true:
         if self.page_showing.get() {
+            // Set oldDocument's page showing to false.
             self.page_showing.set(false);
+            // Fire a page transition event named pagehide at oldDocument's relevant global object with oldDocument's
+            // salvageable state.
             let event = PageTransitionEvent::new(
                 &self.window,
                 atom!("pagehide"),
@@ -2229,7 +2244,8 @@ impl Document {
             let event = event.upcast::<Event>();
             event.set_trusted(true);
             let _ = self.window.dispatch_event_with_target_override(event);
-            // TODO Step 6, document visibility steps.
+            // Step 6 Update the visibility state of oldDocument to "hidden".
+            self.update_visibility_state(DocumentVisibilityState::Hidden);
         }
         // Step 7
         if !self.fired_unload.get() {
@@ -2983,9 +2999,10 @@ impl Document {
     /// <https://drafts.csswg.org/resize-observer/#deliver-resize-loop-error-notification>
     pub(crate) fn deliver_resize_loop_error_notification(&self) {
         let global_scope = self.window.upcast::<GlobalScope>();
-        let mut error_info: ErrorInfo = Default::default();
-        error_info.message =
-            "ResizeObserver loop completed with undelivered notifications.".to_string();
+        let error_info: ErrorInfo = crate::dom::bindings::error::ErrorInfo {
+            message: "ResizeObserver loop completed with undelivered notifications.".to_string(),
+            ..Default::default()
+        };
         global_scope.report_an_error(error_info, HandleValue::null());
     }
 }
@@ -3002,7 +3019,7 @@ pub enum DocumentSource {
 
 #[allow(unsafe_code)]
 pub trait LayoutDocumentHelpers<'dom> {
-    fn is_html_document_for_layout(self) -> bool;
+    fn is_html_document_for_layout(&self) -> bool;
     fn needs_paint_from_layout(self);
     fn will_paint(self);
     fn quirks_mode(self) -> QuirksMode;
@@ -3015,7 +3032,7 @@ pub trait LayoutDocumentHelpers<'dom> {
 #[allow(unsafe_code)]
 impl<'dom> LayoutDocumentHelpers<'dom> for LayoutDom<'dom, Document> {
     #[inline]
-    fn is_html_document_for_layout(self) -> bool {
+    fn is_html_document_for_layout(&self) -> bool {
         self.unsafe_get().is_html_document
     }
 
@@ -3291,6 +3308,8 @@ impl Document {
             pending_compositor_events: Default::default(),
             mouse_move_event_index: Default::default(),
             resize_observers: Default::default(),
+            fonts: Default::default(),
+            visibility_state: Cell::new(DocumentVisibilityState::Hidden),
         }
     }
 
@@ -4077,6 +4096,52 @@ impl Document {
     pub(crate) fn set_declarative_refresh(&self, refresh: DeclarativeRefresh) {
         *self.declarative_refresh.borrow_mut() = Some(refresh);
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#visibility-state>
+    fn update_visibility_state(&self, visibility_state: DocumentVisibilityState) {
+        // Step 1 If document's visibility state equals visibilityState, then return.
+        if self.visibility_state.get() == visibility_state {
+            return;
+        }
+        // Step 2 Set document's visibility state to visibilityState.
+        self.visibility_state.set(visibility_state);
+        // Step 3 Queue a new VisibilityStateEntry whose visibility state is visibilityState and whose timestamp is
+        // the current high resolution time given document's relevant global object.
+        let entry = VisibilityStateEntry::new(
+            &self.global(),
+            visibility_state,
+            *self.global().performance().Now(),
+        );
+        self.window
+            .Performance()
+            .queue_entry(entry.upcast::<PerformanceEntry>());
+
+        // Step 4 Run the screen orientation change steps with document.
+        // TODO ScreenOrientation hasn't implemented yet
+
+        // Step 5 Run the view transition page visibility change steps with document.
+        // TODO ViewTransition hasn't implemented yet
+
+        // Step 6 Run any page visibility change steps which may be defined in other specifications, with visibility
+        // state and document. Any other specs' visibility steps will go here.
+
+        // <https://www.w3.org/TR/gamepad/#handling-visibility-change>
+        if visibility_state == DocumentVisibilityState::Hidden {
+            self.window
+                .Navigator()
+                .GetGamepads()
+                .iter_mut()
+                .for_each(|gamepad| {
+                    if let Some(g) = gamepad {
+                        g.vibration_actuator().handle_visibility_change();
+                    }
+                });
+        }
+
+        // Step 7 Fire an event named visibilitychange at document, with its bubbles attribute initialized to true.
+        self.upcast::<EventTarget>()
+            .fire_bubbling_event(atom!("visibilitychange"));
+    }
 }
 
 impl ProfilerMetadataFactory for Document {
@@ -4292,7 +4357,7 @@ impl DocumentMethods for Document {
         mut local_name: DOMString,
         options: StringOrElementCreationOptions,
     ) -> Fallible<DomRoot<Element>> {
-        if xml_name_type(&local_name) == InvalidXMLName {
+        if xml_name_type(&local_name) == Invalid {
             debug!("Not a valid element name");
             return Err(Error::InvalidCharacter);
         }
@@ -4354,7 +4419,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-createattribute
     fn CreateAttribute(&self, mut local_name: DOMString) -> Fallible<DomRoot<Attr>> {
-        if xml_name_type(&local_name) == InvalidXMLName {
+        if xml_name_type(&local_name) == Invalid {
             debug!("Not a valid element name");
             return Err(Error::InvalidCharacter);
         }
@@ -4433,7 +4498,7 @@ impl DocumentMethods for Document {
         data: DOMString,
     ) -> Fallible<DomRoot<ProcessingInstruction>> {
         // Step 1.
-        if xml_name_type(&target) == InvalidXMLName {
+        if xml_name_type(&target) == Invalid {
             return Err(Error::InvalidCharacter);
         }
 
@@ -5363,6 +5428,22 @@ impl DocumentMethods for Document {
         } else {
             None
         }
+    }
+
+    // https://drafts.csswg.org/css-font-loading/#font-face-source
+    fn Fonts(&self) -> DomRoot<FontFaceSet> {
+        self.fonts
+            .or_init(|| FontFaceSet::new(&self.global(), None))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-hidden>
+    fn Hidden(&self) -> bool {
+        self.visibility_state.get() == DocumentVisibilityState::Hidden
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-document-visibilitystate>
+    fn VisibilityState(&self) -> DocumentVisibilityState {
+        self.visibility_state.get()
     }
 }
 

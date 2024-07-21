@@ -85,7 +85,7 @@ fn(async (t) => {
   const { size, range } = t.params;
   const [rangeOffset, rangeSize] = reifyMapRange(size, range);
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     size,
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.MAP_WRITE
   });
@@ -123,7 +123,7 @@ fn(async (t) => {
   const [rangeOffset1, rangeSize1] = reifyMapRange(size, range1);
   const [rangeOffset2, rangeSize2] = reifyMapRange(size, range2);
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     mappedAtCreation,
     size,
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.MAP_WRITE
@@ -186,7 +186,7 @@ fn(async (t) => {
   const { size, range } = t.params;
   const [rangeOffset, rangeSize] = reifyMapRange(size, range);
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     mappedAtCreation: true,
     size,
     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
@@ -265,7 +265,7 @@ fn(async (t) => {
   float64Expected[3] = Number.MAX_VALUE;
   float64Expected[4] = Number.MIN_VALUE;
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     mappedAtCreation: true,
     size,
     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
@@ -306,7 +306,7 @@ fn((t) => {
   const { size, range, mappable } = t.params;
   const [, rangeSize] = reifyMapRange(size, range);
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     mappedAtCreation: true,
     size,
     usage: GPUBufferUsage.COPY_SRC | (mappable ? GPUBufferUsage.MAP_WRITE : 0)
@@ -333,7 +333,7 @@ fn(async (t) => {
   const { size, range, mappedAtCreation } = t.params;
   const [rangeOffset, rangeSize] = reifyMapRange(size, range);
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     mappedAtCreation,
     size,
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.MAP_WRITE
@@ -385,7 +385,7 @@ fn((t) => {
 
   let buffer;
   t.expectValidationError(() => {
-    buffer = t.device.createBuffer({
+    buffer = t.createBufferTracked({
       mappedAtCreation: true,
       size,
       usage
@@ -437,7 +437,7 @@ fn(async (t) => {
 
   let buffer;
   t.expectValidationError(() => {
-    buffer = t.device.createBuffer({
+    buffer = t.createBufferTracked({
       mappedAtCreation: false,
       size,
       usage

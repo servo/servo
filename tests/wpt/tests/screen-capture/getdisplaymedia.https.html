@@ -59,7 +59,6 @@ promise_test(t => {
  {video: {height: {exact: 240}}},
  {video: {frameRate: {min: 4}}},
  {video: {frameRate: {exact: 4}}},
- {video: false, audio: true},
 ].forEach(constraints => promise_test(async t => {
   await test_driver.bless('getDisplayMedia()');
   const p = navigator.mediaDevices.getDisplayMedia(constraints);

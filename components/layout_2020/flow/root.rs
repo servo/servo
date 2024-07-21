@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use atomic_refcell::AtomicRef;
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
@@ -11,14 +12,14 @@ use serde::Serialize;
 use servo_arc::Arc;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, Overflow};
+use style::values::computed::Overflow;
 use style_traits::CSSPixel;
 use webrender_traits::display_list::ScrollSensitivity;
 
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, NodeExt};
-use crate::dom_traversal::{iter_child_nodes, Contents, NodeAndStyleInfo};
+use crate::dom_traversal::{iter_child_nodes, Contents, NodeAndStyleInfo, NonReplacedContents};
 use crate::flexbox::FlexLevelBox;
 use crate::flow::float::FloatBox;
 use crate::flow::inline::InlineItem;
@@ -206,7 +207,7 @@ impl BoxTree {
         loop {
             if let Some((primary_style, display_inside, update_point)) = update_point(dirty_node) {
                 let contents = ReplacedContent::for_element(dirty_node, context)
-                    .map_or(Contents::OfElement, Contents::Replaced);
+                    .map_or_else(|| NonReplacedContents::OfElement.into(), Contents::Replaced);
                 let info = NodeAndStyleInfo::new(dirty_node, Arc::clone(&primary_style));
                 let out_of_flow_absolutely_positioned_box = ArcRefCell::new(
                     AbsolutelyPositionedBox::construct(context, &info, display_inside, contents),
@@ -264,7 +265,7 @@ fn construct_for_root_element<'dom>(
     };
 
     let contents = ReplacedContent::for_element(root_element, context)
-        .map_or(Contents::OfElement, Contents::Replaced);
+        .map_or_else(|| NonReplacedContents::OfElement.into(), Contents::Replaced);
     let root_box = if box_style.position.is_absolutely_positioned() {
         BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(ArcRefCell::new(
             AbsolutelyPositionedBox::construct(context, &info, display_inside, contents),
@@ -300,18 +301,25 @@ impl BoxTree {
         layout_context: &LayoutContext,
         viewport: euclid::Size2D<f32, CSSPixel>,
     ) -> FragmentTree {
-        let style = ComputedValues::initial_values();
+        let style = layout_context
+            .style_context
+            .stylist
+            .device()
+            .default_computed_values();
 
         // FIXME: use the document’s mode:
         // https://drafts.csswg.org/css-writing-modes/#principal-flow
         let physical_containing_block = PhysicalRect::new(
             PhysicalPoint::zero(),
-            PhysicalSize::new(Length::new(viewport.width), Length::new(viewport.height)),
+            PhysicalSize::new(
+                Au::from_f32_px(viewport.width),
+                Au::from_f32_px(viewport.height),
+            ),
         );
         let initial_containing_block = DefiniteContainingBlock {
             size: LogicalVec2 {
-                inline: physical_containing_block.size.width.into(),
-                block: physical_containing_block.size.height.into(),
+                inline: physical_containing_block.size.width,
+                block: physical_containing_block.size.height,
             },
             style,
         };

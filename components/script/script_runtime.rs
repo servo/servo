@@ -30,12 +30,12 @@ use js::jsapi::{
     GetPromiseUserInputEventHandlingState, HandleObject, Heap, InitConsumeStreamCallback,
     InitDispatchToEventLoop, JSContext as RawJSContext, JSGCParamKey, JSGCStatus,
     JSJitCompilerOption, JSObject, JSSecurityCallbacks, JSTracer, JS_AddExtraGCRootsTracer,
-    JS_InitDestroyPrincipalsCallback, JS_RequestInterruptCallback, JS_SetGCCallback,
-    JS_SetGCParameter, JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled,
-    JS_SetParallelParsingEnabled, JS_SetSecurityCallbacks, JobQueue, MimeType,
-    PromiseRejectionHandlingState, PromiseUserInputEventHandlingState, SetDOMCallbacks,
-    SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks, SetProcessBuildIdOp,
-    SetPromiseRejectionTrackerCallback, StreamConsumer as JSStreamConsumer,
+    JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback, JS_RequestInterruptCallback,
+    JS_SetGCCallback, JS_SetGCParameter, JS_SetGlobalJitCompilerOption,
+    JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled, JS_SetSecurityCallbacks,
+    JobQueue, MimeType, PromiseRejectionHandlingState, PromiseUserInputEventHandlingState,
+    SetDOMCallbacks, SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks,
+    SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback, StreamConsumer as JSStreamConsumer,
 };
 use js::jsval::UndefinedValue;
 use js::panic::wrap_panic;
@@ -466,6 +466,7 @@ unsafe fn new_rt_and_cx_with_parent(
     JS_SetSecurityCallbacks(cx, &SECURITY_CALLBACKS);
 
     JS_InitDestroyPrincipalsCallback(cx, Some(principals::destroy_servo_jsprincipal));
+    JS_InitReadPrincipalsCallback(cx, Some(principals::read_jsprincipal));
 
     // Needed for debug assertions about whether GC is running.
     if cfg!(debug_assertions) {
@@ -747,8 +748,8 @@ pub unsafe fn get_reports(cx: *mut RawJSContext, path_seg: String) -> Vec<Report
     reports
 }
 
-thread_local!(static GC_CYCLE_START: Cell<Option<Instant>> = Cell::new(None));
-thread_local!(static GC_SLICE_START: Cell<Option<Instant>> = Cell::new(None));
+thread_local!(static GC_CYCLE_START: Cell<Option<Instant>> = const { Cell::new(None) });
+thread_local!(static GC_SLICE_START: Cell<Option<Instant>> = const { Cell::new(None) });
 
 #[allow(unsafe_code)]
 unsafe extern "C" fn gc_slice_callback(
@@ -802,7 +803,7 @@ unsafe extern "C" fn debug_gc_callback(
 }
 
 thread_local!(
-    static THREAD_ACTIVE: Cell<bool> = Cell::new(true);
+    static THREAD_ACTIVE: Cell<bool> = const { Cell::new(true) };
 );
 
 pub(crate) fn runtime_is_alive() -> bool {

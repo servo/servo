@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <title>CSS Anchor Positioning: try-tactic, inset-area</title>
-<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#typedef-position-try-options-try-tactic">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#typedef-position-try-fallbacks-try-tactic">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style>
@@ -53,7 +53,7 @@ function test_computed_value(try_tactic, property, value, expected, direction, w
         ${property}:${value};
       }
       #target {
-        position-try-options: --pf ${try_tactic};
+        position-try-fallbacks: --pf ${try_tactic};
       }
     `;
     assert_equals(getComputedStyle(target).getPropertyValue(property), expected);

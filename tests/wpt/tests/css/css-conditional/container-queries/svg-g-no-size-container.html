@@ -1,0 +1,23 @@
+<!doctype html>
+<title>CSS Container Queries Test: SVG &lt;g&gt; element not a size query container</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<link rel="match" href="svg-g-no-size-container-ref.html">
+<style>
+  g {
+    display: block;
+    width: 100px;
+    height: 100px;
+    container-type: size;
+  }
+
+  @supports not (container-type: size) {
+    text { fill: red; }
+  }
+  @container (width = 100px) {
+    text { fill: red; }
+  }
+</style>
+<p>You should see the word PASS below and no red.</p>
+<svg>
+  <g><text x="0" y="20" id="text">PASS</text></g>
+</svg>

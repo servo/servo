@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#margin-dimension">
+<meta name="assert" content="Zero min/max content min/max size.">
+<link rel="match" href="dimensions-010-print-ref.html">
+<style>
+  @page {
+    margin: 100px;
+    size: 650px 500px;
+
+    @top-left {
+      background: hotpink;
+      content: "";
+    }
+    @top-center {
+      background: cyan;
+      content: "";
+    }
+    @top-right {
+      background: yellow;
+      content: "";
+    }
+
+    @left-top {
+      background: yellow;
+      content: "";
+    }
+    @left-middle {
+      background: cyan;
+      content: "";
+    }
+    @left-bottom {
+      background: hotpink;
+      content: "";
+    }
+
+    @right-top {
+      background: red;
+      content: "";
+    }
+    @right-middle {
+      background: cyan;
+      content: "\a0";
+    }
+    @right-bottom {
+      background: red;
+      content: "";
+    }
+
+    @bottom-left {
+      background: hotpink;
+      content: "\a0";
+    }
+    @bottom-center {
+      background: red;
+      content: "";
+    }
+    /* Since there's a center box here, although it doesn't require any space,
+       it will be there right in the center, meaning that the hotpink box, which
+       *does* require space, can only receive everything to the left of the
+       center box. */
+    @bottom-right {
+      background: yellow;
+      content: "";
+    }
+  }
+</style>

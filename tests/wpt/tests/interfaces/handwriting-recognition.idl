@@ -1,0 +1,100 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Handwriting Recognition API (https://wicg.github.io/handwriting-recognition/)
+
+[SecureContext]
+partial interface Navigator {
+  Promise<HandwritingRecognizerQueryResult?>
+      queryHandwritingRecognizer(HandwritingModelConstraint constraint);
+};
+
+dictionary HandwritingModelConstraint {
+  required sequence<DOMString> languages;
+};
+
+dictionary HandwritingRecognizerQueryResult {
+  boolean textAlternatives;
+  boolean textSegmentation;
+  HandwritingHintsQueryResult hints;
+};
+
+dictionary HandwritingHintsQueryResult {
+  sequence<HandwritingRecognitionType> recognitionType;
+  sequence<HandwritingInputType> inputType;
+  boolean textContext;
+  boolean alternatives;
+};
+
+enum HandwritingRecognitionType{
+  "text", "per-character"
+};
+
+enum HandwritingInputType {
+  "mouse", "stylus", "touch"
+};
+
+[SecureContext]
+partial interface Navigator {
+  Promise<HandwritingRecognizer>
+      createHandwritingRecognizer(HandwritingModelConstraint constraint);
+};
+
+[Exposed=Window, SecureContext]
+interface HandwritingRecognizer {
+  HandwritingDrawing startDrawing(optional HandwritingHints hints = {});
+
+  undefined finish();
+};
+
+dictionary HandwritingHints {
+  DOMString recognitionType = "text";
+  DOMString inputType = "mouse";
+  DOMString textContext;
+  unsigned long alternatives = 3;
+};
+
+[Exposed=Window, SecureContext]
+interface HandwritingDrawing {
+  undefined addStroke(HandwritingStroke stroke);
+  undefined removeStroke(HandwritingStroke stroke);
+  undefined clear();
+  sequence<HandwritingStroke> getStrokes();
+
+  Promise<sequence<HandwritingPrediction>> getPrediction();
+};
+
+[SecureContext, Exposed=Window]
+interface HandwritingStroke {
+  constructor();
+  undefined addPoint(HandwritingPoint point);
+  sequence<HandwritingPoint> getPoints();
+  undefined clear();
+};
+
+dictionary HandwritingPoint {
+  required double x;
+  required double y;
+
+  // Optional. Number of milliseconds since a reference time point for a
+  // drawing.
+  DOMHighResTimeStamp t;
+};
+
+dictionary HandwritingPrediction {
+  required DOMString text;
+  sequence<HandwritingSegment> segmentationResult;
+};
+
+dictionary HandwritingSegment {
+  required DOMString grapheme;
+  required unsigned long beginIndex;
+  required unsigned long endIndex;
+  required sequence<HandwritingDrawingSegment> drawingSegments;
+};
+
+dictionary HandwritingDrawingSegment {
+  required unsigned long strokeIndex;
+  required unsigned long beginPointIndex;
+  required unsigned long endPointIndex;
+};

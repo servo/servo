@@ -478,32 +478,31 @@ impl DOMString {
     /// where date and time are both valid, and the time string must be as short as possible
     /// <https://html.spec.whatwg.org/multipage/#valid-normalised-local-date-and-time-string>
     pub fn convert_valid_normalized_local_date_and_time_string(&mut self) -> Option<()> {
-        let ((year, month, day), (hour, minute, second)) =
-            self.parse_local_date_and_time_string()?;
-        if second == 0.0 {
+        let date = self.parse_local_date_and_time_string()?;
+        if date.seconds == 0.0 {
             self.0 = format!(
                 "{:04}-{:02}-{:02}T{:02}:{:02}",
-                year, month, day, hour, minute
+                date.year, date.month, date.day, date.hour, date.minute
             );
-        } else if second < 10.0 {
+        } else if date.seconds < 10.0 {
             // we need exactly one leading zero on the seconds,
             // whatever their total string length might be
             self.0 = format!(
                 "{:04}-{:02}-{:02}T{:02}:{:02}:0{}",
-                year, month, day, hour, minute, second
+                date.year, date.month, date.day, date.hour, date.minute, date.seconds
             );
         } else {
             // we need no leading zeroes on the seconds
             self.0 = format!(
                 "{:04}-{:02}-{:02}T{:02}:{:02}:{}",
-                year, month, day, hour, minute, second
+                date.year, date.month, date.day, date.hour, date.minute, date.seconds
             );
         }
         Some(())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#parse-a-local-date-and-time-string>
-    pub fn parse_local_date_and_time_string(&self) -> Option<((i32, u32, u32), (u32, u32, f64))> {
+    pub(crate) fn parse_local_date_and_time_string(&self) -> Option<ParsedDate> {
         let value = &self;
         // Step 1, 2, 4
         let mut iterator = if value.contains('T') {
@@ -514,11 +513,11 @@ impl DOMString {
 
         // Step 3
         let date = iterator.next()?;
-        let date_tuple = parse_date_component(date)?;
+        let (year, month, day) = parse_date_component(date)?;
 
         // Step 5
         let time = iterator.next()?;
-        let time_tuple = parse_time_component(time)?;
+        let (hour, minute, seconds) = parse_time_component(time)?;
 
         // Step 6
         if iterator.next().is_some() {
@@ -526,7 +525,14 @@ impl DOMString {
         }
 
         // Step 7, 8, 9
-        Some((date_tuple, time_tuple))
+        Some(ParsedDate {
+            year,
+            month,
+            day,
+            hour,
+            minute,
+            seconds,
+        })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#valid-e-mail-address>
@@ -802,4 +808,14 @@ fn max_week_in_year(year: i32) -> u32 {
 #[inline]
 fn is_leap_year(year: i32) -> bool {
     year % 400 == 0 || (year % 4 == 0 && year % 100 != 0)
+}
+
+#[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
+pub(crate) struct ParsedDate {
+    pub year: i32,
+    pub month: u32,
+    pub day: u32,
+    pub hour: u32,
+    pub minute: u32,
+    pub seconds: f64,
 }

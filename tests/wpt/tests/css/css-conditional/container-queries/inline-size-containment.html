@@ -1,0 +1,37 @@
+<!doctype html>
+<title>CSS Container Queries Test: query of inline-size container is affected by min-width property</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  #keg { container-type: inline-size; }
+  @container (max-width: 200px) {
+    #target { height: 400px; }
+  }
+  @container (min-width: 400px) {
+    #target { height: 20px; }
+  }
+</style>
+<div id="ancestry">
+  <div id="keg">
+    <div id="target">
+      <div style="height:50px;"></div>
+    </div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  test(()=> {
+    ancestry.style.width = "100px";
+    assert_equals(keg.offsetHeight, 400);
+
+    ancestry.style.width = "300px";
+    assert_equals(keg.offsetHeight, 50);
+
+    ancestry.style.width = "500px";
+    assert_equals(keg.offsetHeight, 20);
+  }, "inline-size containment only");
+</script>

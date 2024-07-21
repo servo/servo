@@ -391,3 +391,24 @@ fn main() {
 }`;
   t.expectCompileResult(true, code);
 });
+
+g.test('must_use').
+desc('Test that bitcast result must be used').
+params((u) =>
+u.
+combine('case', [
+'bitcast<u32>(1i)',
+'bitcast<f32>(1u)',
+'bitcast<vec2f>(vec2i())',
+'bitcast<vec3u>(vec3u())',
+'bitcast<vec4i>(vec4f())']
+).
+combine('use', [true, false])
+).
+fn((t) => {
+  const code = `
+    fn foo() {
+      ${t.params.use ? '_ =' : ''} ${t.params.case};
+    }`;
+  t.expectCompileResult(t.params.use, code);
+});

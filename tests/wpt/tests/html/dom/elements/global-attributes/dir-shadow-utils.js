@@ -6,3 +6,19 @@ function html_direction(element) {
   }
   return is_ltr ? "ltr" : "rtl";
 }
+
+function setup_tree(light_tree, shadow_tree) {
+  let body = document.body;
+  let old_length = body.childNodes.length;
+  body.insertAdjacentHTML("beforeend", light_tree.trim());
+  if (body.childNodes.length != old_length + 1) {
+    throw "unexpected markup";
+  }
+  let result = body.lastChild;
+  if (shadow_tree) {
+    let shadow = result.querySelector("#root").attachShadow({mode: "open"});
+    shadow.innerHTML = shadow_tree.trim();
+    return [result, shadow];
+  }
+  return result;
+}

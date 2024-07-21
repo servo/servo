@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API disconnect() basic errors.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+
+<script type="module">
+import {fedcm_test,
+        mark_signed_in,
+        set_fedcm_cookie,
+        fedcm_get_and_select_first_account,
+        manifest_origin,
+        request_options_with_mediation_required,
+        select_manifest,
+        disconnect_options} from './support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  await mark_signed_in();
+  await set_fedcm_cookie();
+  // Get at least one connected account that can be disconnected.
+  const cred = await fedcm_get_and_select_first_account(t,
+      request_options_with_mediation_required());
+  const manifest = `${manifest_origin}/\
+fedcm/support/manifest.py`;
+  await promise_rejects_js(t, TypeError, IdentityCredential.disconnect({
+    configURL: manifest,
+    clientId: '1'
+  }));
+  await promise_rejects_js(t, TypeError, IdentityCredential.disconnect({
+    configURL: manifest,
+    accountHint: 'hint'
+  }));
+  return promise_rejects_js(t, TypeError, IdentityCredential.disconnect({
+    clientId: '1',
+    accountHint: 'hint'
+  }));
+}, "disconnect requires 3 parameters: configURL, clientId, and accountHint");
+
+fedcm_test(async t => {
+  await mark_signed_in();
+  await set_fedcm_cookie();
+  // Get at least one connected account that can be disconnected.
+  const cred = await fedcm_get_and_select_first_account(t,
+      request_options_with_mediation_required());
+
+  const manifest = `manifest_with_cross_origin_disconnect.sub.json`;
+  await select_manifest(t, request_options_with_mediation_required(manifest));
+  return promise_rejects_dom(t, 'NetworkError',
+      IdentityCredential.disconnect(disconnect_options('1234', manifest)));
+}, "disconnect fails if the disconnect endpoint is cross-origin with respect\
+to the config file");
+
+fedcm_test(async t => {
+  await mark_signed_in();
+  await set_fedcm_cookie();
+  // Get at least one connected account that can be disconnected.
+  const cred = await fedcm_get_and_select_first_account(t,
+      request_options_with_mediation_required());
+
+  const manifest = `manifest_with_disconnect_failure.json`;
+  await select_manifest(t, request_options_with_mediation_required(manifest));
+  return promise_rejects_dom(t, 'NetworkError',
+      IdentityCredential.disconnect(disconnect_options('1234', manifest)));
+}, "disconnect fails if the server sends failure");
+</script>

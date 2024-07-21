@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  @page {
+    margin: 0;
+    size: 500px 400px;
+  }
+  body {
+    display: grid;
+    grid-template-columns: 100px auto 100px;
+    grid-template-rows: 100px auto 100px;
+    height: 100vh;
+    margin: 0;
+  }
+  .box {
+    border: solid thin;
+    flex: 1;
+  }
+  body > .box {
+    background: pink;
+  }
+  .vertical-edge {
+    display: flex;
+  }
+  .horizontal-edge {
+    display: flex;
+    flex-flow: column;
+  }
+  .vertical-edge > .box.first {
+    width: 5em;
+    margin: 5px -4em;
+    background: hotpink;
+  }
+  .vertical-edge > .box.second {
+    width: 5em;
+    flex: none;
+    margin: 10px 0;
+    background: cyan;
+  }
+  .vertical-edge > .box.third {
+    margin: 15px -4em;
+    background: yellow;
+  }
+  .horizontal-edge > .box.first {
+    height: 5em;
+    margin: -4em 5px;
+    background: hotpink;
+  }
+  .horizontal-edge > .box.second {
+    height: 5em;
+    flex: none;
+    margin: 0 10px;
+    background: cyan;
+  }
+  .horizontal-edge > .box.third {
+    margin: -4em 15px;
+    background: yellow;
+  }
+  .pagearea {
+    padding: 8px;
+  }
+</style>
+
+<div class="box" style="margin-left:20px; z-index:0;"></div>
+<div class="vertical-edge">
+  <div class="box first" style="z-index:1;"></div>
+  <div class="box second" style="z-index:2;"></div>
+  <div class="box third" style="z-index:3;"></div>
+</div>
+<div class="box" style="margin-top:20px; z-index:4;"></div>
+<div class="horizontal-edge">
+  <div class="box third" style="z-index:15;"></div>
+  <div class="box second" style="z-index:14;"></div>
+  <div class="box first" style="z-index:13;"></div>
+</div>
+<div class="pagearea">
+  Default margin box paint order should start with top-left-corner, then go
+  clockwise. Hotpink boxes should be on top of pink ones. Cyan on top of
+  hotpink. Yellow on top of cyan. No text ("FAIL") should be seen in the margin
+  boxes.
+</div>
+<div class="horizontal-edge">
+  <div class="box first" style="z-index:5;"></div>
+  <div class="box second" style="z-index:6;"></div>
+  <div class="box third" style="z-index:7;"></div>
+</div>
+<div class="box" style="margin-bottom:20px; z-index:12;"></div>
+<div class="vertical-edge">
+  <div class="box third" style="z-index:11;"></div>
+  <div class="box second" style="z-index:10;"></div>
+  <div class="box first" style="z-index:9;"></div>
+</div>
+<div class="box" style="margin-right:20px; z-index:8;"></div>

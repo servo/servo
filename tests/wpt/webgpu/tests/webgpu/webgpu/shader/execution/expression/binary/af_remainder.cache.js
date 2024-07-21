@@ -3,11 +3,13 @@
 **/import { FP } from '../../../../util/floating_point.js';import { sparseScalarF64Range, sparseVectorF64Range } from '../../../../util/math.js';import { makeCaseCache } from '../case_cache.js';
 
 const remainderVectorScalarInterval = (v, s) => {
-  return FP.abstract.toVector(v.map((e) => FP.abstract.remainderInterval(e, s)));
+  // remainder has an inherited accuracy, so abstract is only expected to be as accurate as f32
+  return FP.abstract.toVector(v.map((e) => FP.f32.remainderInterval(e, s)));
 };
 
 const remainderScalarVectorInterval = (s, v) => {
-  return FP.abstract.toVector(v.map((e) => FP.abstract.remainderInterval(s, e)));
+  // remainder has an inherited accuracy, so abstract is only expected to be as accurate as f32
+  return FP.abstract.toVector(v.map((e) => FP.f32.remainderInterval(s, e)));
 };
 
 const scalar_cases = {
@@ -16,7 +18,8 @@ const scalar_cases = {
       sparseScalarF64Range(),
       sparseScalarF64Range(),
       'finite',
-      FP.abstract.remainderInterval
+      // remainder has an inherited accuracy, so abstract is only expected to be as accurate as f32
+      FP.f32.remainderInterval
     );
   }
 };

@@ -16,11 +16,12 @@ debugmozjs = ["script/debugmozjs"]
 googlevr = ["webxr/googlevr"]
 jitspew = ["script/jitspew"]
 js_backtrace = ["script/js_backtrace"]
+layout_2013 = ["dep:layout_thread_2013"]
 max_log_level = ["log/release_max_level_info"]
 media-gstreamer = ["servo-media-gstreamer", "gstreamer"]
 multiview = ["compositing/multiview", "constellation/multiview"]
 native-bluetooth = ["bluetooth/native-bluetooth"]
-no-wgl = ["canvas/no-wgl"]
+no-wgl = ["mozangle/egl", "mozangle/build_dlls", "surfman/sm-angle-default"]
 dynamic_freetype = ["webrender/dynamic_freetype"]
 profilemozjs = ["script/profilemozjs"]
 refcell_backtrace = ["script/refcell_backtrace"]
@@ -39,6 +40,7 @@ bluetooth = { path = "../bluetooth" }
 bluetooth_traits = { workspace = true }
 canvas = { path = "../canvas", default-features = false }
 canvas_traits = { workspace = true }
+cfg-if = { workspace = true }
 compositing = { path = "../compositing" }
 compositing_traits = { workspace = true }
 constellation = { path = "../constellation" }
@@ -54,7 +56,7 @@ gleam = { workspace = true }
 gstreamer = { workspace = true, optional = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
-layout_thread_2013 = { path = "../layout_thread" }
+layout_thread_2013 = { path = "../layout_thread", optional = true }
 layout_thread_2020 = { path = "../layout_thread_2020" }
 log = { workspace = true }
 media = { path = "../media" }
@@ -86,6 +88,3 @@ webxr-api = { git = "https://github.com/servo/webxr" }
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android"), not(target_arch = "arm"), not(target_arch = "aarch64")))'.dependencies]
 gaol = "0.2.1"
-
-[target.'cfg(target_os = "windows")'.dependencies]
-mozangle = { workspace = true, features = ["egl", "build_dlls"] }

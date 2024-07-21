@@ -42,7 +42,7 @@ body { margin: 0; }
    containing block, so that the first two positions will exceed the end edges
    of the IMCB, and the last position will be used. */
 .exceeds-end {
-  position-try-options: --exceeds-end-1, --exceeds-end-2;
+  position-try-fallbacks: --exceeds-end-1, --exceeds-end-2;
   left: 0;
   right: anchor(--a left);
   width: 100px;
@@ -68,7 +68,7 @@ body { margin: 0; }
    of its containing block, so that the first two positions will exceed the
    start edges of the IMCB, and the last position will be used. */
 .exceeds-start {
-  position-try-options: --exceeds-start-1, --exceeds-start-2;
+  position-try-fallbacks: --exceeds-start-1, --exceeds-start-2;
   bottom: 0;
   top: anchor(--a bottom);
   height: 100px;
@@ -92,7 +92,7 @@ body { margin: 0; }
 /* Both inset sides are `auto`, but the size is too big to fit in the containing
    block. */
 .exceeds-size {
-  position-try-options: --exceeds-size-1, --exceeds-size-2;
+  position-try-fallbacks: --exceeds-size-1, --exceeds-size-2;
   top: anchor(--a bottom);
   left: auto;
   right: auto;

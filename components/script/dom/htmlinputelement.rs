@@ -59,7 +59,7 @@ use crate::dom::htmldatalistelement::HTMLDataListElement;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::htmlformelement::{
-    FormControl, FormDatum, FormDatumValue, FormSubmitter, HTMLFormElement, ResetFrom,
+    FormControl, FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement, ResetFrom,
     SubmittedFrom,
 };
 use crate::dom::keyboardevent::KeyboardEvent;
@@ -1679,7 +1679,7 @@ impl HTMLInputElement {
     /// Steps range from 5.1 to 5.10 (specific to HTMLInputElement)
     pub fn form_datums(
         &self,
-        submitter: Option<FormSubmitter>,
+        submitter: Option<FormSubmitterElement>,
         encoding: Option<&'static Encoding>,
     ) -> Vec<FormDatum> {
         // 3.1: disabled state check is in get_unclean_dataset
@@ -1690,7 +1690,7 @@ impl HTMLInputElement {
         // Step 5.4
         let name = self.Name();
         let is_submitter = match submitter {
-            Some(FormSubmitter::InputElement(s)) => self == s,
+            Some(FormSubmitterElement::Input(s)) => self == s,
             _ => false,
         };
 
@@ -2107,7 +2107,7 @@ impl HTMLInputElement {
                     // lazily test for > 1 submission-blocking inputs
                     return;
                 }
-                form.submit(SubmittedFrom::NotFromForm, FormSubmitter::FormElement(form));
+                form.submit(SubmittedFrom::NotFromForm, FormSubmitterElement::Form(form));
             },
         }
     }
@@ -2141,15 +2141,16 @@ impl HTMLInputElement {
             },
             InputType::DatetimeLocal => {
                 // Is this supposed to know the locale's daylight-savings-time rules?
-                value.parse_local_date_and_time_string().and_then(
-                    |((year, month, day), (hours, minutes, seconds))| {
-                        let hms_millis =
-                            (seconds + 60.0 * minutes as f64 + 3600.0 * hours as f64) * 1000.0;
-                        NaiveDate::from_ymd_opt(year, month, day)
-                            .and_then(|date| date.and_hms_opt(0, 0, 0))
-                            .map(|time| time.and_utc().timestamp_millis() as f64 + hms_millis)
-                    },
-                )
+                value.parse_local_date_and_time_string().and_then(|date| {
+                    let seconds = date.seconds as u32;
+                    let milliseconds = ((date.seconds - seconds as f64) * 1000.) as u32;
+                    Some(
+                        NaiveDate::from_ymd_opt(date.year, date.month, date.day)?
+                            .and_hms_milli_opt(date.hour, date.minute, seconds, milliseconds)?
+                            .and_utc()
+                            .timestamp_millis() as f64,
+                    )
+                })
             },
             InputType::Number | InputType::Range => value.parse_floating_point_number(),
             // min/max/valueAsNumber/stepDown/stepUp do not apply to
@@ -2820,7 +2821,7 @@ impl Activatable for HTMLInputElement {
                 if let Some(o) = self.form_owner() {
                     o.submit(
                         SubmittedFrom::NotFromForm,
-                        FormSubmitter::InputElement(self),
+                        FormSubmitterElement::Input(self),
                     )
                 }
             },

@@ -9,12 +9,12 @@ android {
     compileSdk 33
     buildToolsVersion = "33.0.2"
 
-    namespace 'org.mozilla.servo'
+    namespace 'org.servo.servoshell'
 
     buildDir = rootDir.absolutePath + "/../../../target/android/gradle/servoapp"
 
     defaultConfig {
-        applicationId "org.mozilla.servo"
+        applicationId "org.servo.servoshell"
         minSdk 30
         targetSdk 30
         versionCode 1
@@ -50,12 +50,25 @@ android {
     }
 
 
+    def signingKeyInfo = getSigningKeyInfo()
+
+    if (signingKeyInfo) {
+        signingConfigs {
+            release {
+               storeFile signingKeyInfo.storeFile
+               storePassword signingKeyInfo.storePassword
+               keyAlias signingKeyInfo.keyAlias
+               keyPassword signingKeyInfo.keyPassword
+            }
+        }
+    }
+
     buildTypes {
         debug {
         }
 
         release {
-            signingConfig signingConfigs.debug // Change this to sign with a production key
+            signingConfig signingKeyInfo ? signingConfigs.release : signingConfigs.debug
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

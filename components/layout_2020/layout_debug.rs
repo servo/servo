@@ -19,7 +19,7 @@ use serde_json::{to_string, to_value, Value};
 use crate::flow::BoxTree;
 use crate::fragment_tree::FragmentTree;
 
-thread_local!(static STATE_KEY: RefCell<Option<State>> = RefCell::new(None));
+thread_local!(static STATE_KEY: RefCell<Option<State>> = const { RefCell::new(None) });
 
 #[cfg(debug_assertions)]
 static DEBUG_ID_COUNTER: AtomicUsize = AtomicUsize::new(0);

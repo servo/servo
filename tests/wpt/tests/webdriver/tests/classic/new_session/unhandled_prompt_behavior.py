@@ -90,13 +90,13 @@ def test_unhandled_prompt_behavior_as_string(
     [
         (  # Check the default behavior with no handlers defined
             {},
-            "dismiss and notify",
+            {},
             True,
             True,
         ),
         (  # Check the default behavior with a custom value defined
             {"default": "accept"},
-            "accept",
+            {"default": "accept"},
             True,
             False,
         ),
@@ -155,11 +155,7 @@ def test_unhandled_prompt_behavior_as_object(
         }
     )
     value = assert_success(response)
-    if prompt == "default":
-        # For a single default handler the capability is serialized as a string
-        assert value["capabilities"]["unhandledPromptBehavior"] == handler
-    else:
-        assert value["capabilities"]["unhandledPromptBehavior"] == {prompt: handler}
+    assert value["capabilities"]["unhandledPromptBehavior"] == {prompt: handler}
 
 
 @pytest.mark.parametrize("handler", PROMPT_HANDLERS)

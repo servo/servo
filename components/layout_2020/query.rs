@@ -81,8 +81,8 @@ pub fn process_node_scroll_area_request(
     };
 
     Rect::new(
-        Point2D::new(rect.origin.x.px(), rect.origin.y.px()),
-        Size2D::new(rect.size.width.px(), rect.size.height.px()),
+        Point2D::new(rect.origin.x.to_f32_px(), rect.origin.y.to_f32_px()),
+        Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px()),
     )
     .round()
     .to_i32()
@@ -232,14 +232,14 @@ pub fn process_resolved_style_request<'dom>(
                 LonghandId::Height if resolved_size_should_be_used_value(fragment) => {
                     Some(content_rect.size.height)
                 },
-                LonghandId::MarginBottom => Some(margins.bottom.into()),
-                LonghandId::MarginTop => Some(margins.top.into()),
-                LonghandId::MarginLeft => Some(margins.left.into()),
-                LonghandId::MarginRight => Some(margins.right.into()),
-                LonghandId::PaddingBottom => Some(padding.bottom.into()),
-                LonghandId::PaddingTop => Some(padding.top.into()),
-                LonghandId::PaddingLeft => Some(padding.left.into()),
-                LonghandId::PaddingRight => Some(padding.right.into()),
+                LonghandId::MarginBottom => Some(margins.bottom),
+                LonghandId::MarginTop => Some(margins.top),
+                LonghandId::MarginLeft => Some(margins.left),
+                LonghandId::MarginRight => Some(margins.right),
+                LonghandId::PaddingBottom => Some(padding.bottom),
+                LonghandId::PaddingTop => Some(padding.top),
+                LonghandId::PaddingLeft => Some(padding.left),
+                LonghandId::PaddingRight => Some(padding.right),
                 _ => None,
             }
             .map(|value| value.to_css_string())
@@ -383,18 +383,8 @@ fn process_offset_parent_query_inner(
                 Fragment::Image(_) |
                 Fragment::IFrame(_) => unreachable!(),
             };
-            let border_box = fragment_relative_rect.translate(containing_block.origin.to_vector());
 
-            let mut border_box = Rect::new(
-                Point2D::new(
-                    Au::from_f32_px(border_box.origin.x.px()),
-                    Au::from_f32_px(border_box.origin.y.px()),
-                ),
-                Size2D::new(
-                    Au::from_f32_px(border_box.size.width.px()),
-                    Au::from_f32_px(border_box.size.height.px()),
-                ),
-            );
+            let mut border_box = fragment_relative_rect.translate(containing_block.origin.to_vector()).to_untyped();
 
             // "If any of the following holds true return null and terminate
             // this algorithm: [...] The element’s computed value of the
@@ -477,10 +467,7 @@ fn process_offset_parent_query_inner(
                                     .origin
                                     .to_vector() +
                                     containing_block.origin.to_vector();
-                                let padding_box_corner = Vector2D::new(
-                                    Au::from_f32_px(padding_box_corner.x.px()),
-                                    Au::from_f32_px(padding_box_corner.y.px()),
-                                );
+                                let padding_box_corner = padding_box_corner.to_untyped();
                                 Some(padding_box_corner)
                             } else {
                                 None

@@ -159,11 +159,12 @@ fn((t) => {
   const { mismatched } = t.params;
   const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
 
-  const querySet = sourceDevice.createQuerySet({
-    type: 'timestamp',
-    count: 2
-  });
-  t.trackForCleanup(querySet);
+  const querySet = t.trackForCleanup(
+    sourceDevice.createQuerySet({
+      type: 'timestamp',
+      count: 2
+    })
+  );
 
   const encoder = t.createEncoder('non-pass');
   try {

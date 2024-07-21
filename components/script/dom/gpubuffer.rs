@@ -12,7 +12,7 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
 use js::typedarray::{ArrayBuffer, ArrayBufferU8};
 use webgpu::wgc::device::HostMap;
-use webgpu::{WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
+use webgpu::{WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse};
 
 use super::bindings::buffer_source::{create_new_external_array_buffer, HeapBufferSource};
 use crate::dom::bindings::cell::DomRefCell;
@@ -350,29 +350,26 @@ impl GPUBufferMethods for GPUBuffer {
 }
 
 impl AsyncWGPUListener for GPUBuffer {
-    fn handle_response(&self, response: Option<WebGPUResponseResult>, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>) {
         match response {
-            Some(response) => match response {
-                Ok(WebGPUResponse::BufferMapAsync(bytes)) => {
-                    *self
-                        .map_info
-                        .borrow_mut()
-                        .as_mut()
-                        .unwrap()
-                        .mapping
-                        .lock()
-                        .unwrap()
-                        .as_mut() = bytes.to_vec();
-                    promise.resolve_native(&());
-                    self.state.set(GPUBufferState::Mapped);
-                },
-                Err(e) => {
-                    warn!("Could not map buffer({:?})", e);
-                    promise.reject_error(Error::Abort);
-                },
-                Ok(_) => unreachable!("GPUBuffer received wrong WebGPUResponse"),
+            WebGPUResponse::BufferMapAsync(Ok(bytes)) => {
+                *self
+                    .map_info
+                    .borrow_mut()
+                    .as_mut()
+                    .unwrap()
+                    .mapping
+                    .lock()
+                    .unwrap()
+                    .as_mut() = bytes.to_vec();
+                promise.resolve_native(&());
+                self.state.set(GPUBufferState::Mapped);
             },
-            None => unreachable!("Failed to get a response for BufferMapAsync"),
+            WebGPUResponse::BufferMapAsync(Err(e)) => {
+                warn!("Could not map buffer({:?})", e);
+                promise.reject_error(Error::Abort);
+            },
+            _ => unreachable!("GPUBuffer received wrong WebGPUResponse"),
         }
         *self.map_promise.borrow_mut() = None;
     }

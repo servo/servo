@@ -6,12 +6,12 @@ from .base import NullBrowser  # noqa: F401
 from .base import get_timeout_multiplier   # noqa: F401
 from .base import cmd_arg
 from ..executors import executor_kwargs as base_executor_kwargs
-from ..executors.executorwebdriver import WebDriverCrashtestExecutor  # noqa: F401
 from ..executors.base import WdspecExecutor  # noqa: F401
 from ..executors.executorchrome import (  # noqa: F401
     ChromeDriverPrintRefTestExecutor,
     ChromeDriverRefTestExecutor,
     ChromeDriverTestharnessExecutor,
+    ChromeDriverCrashTestExecutor
 )
 
 
@@ -22,7 +22,7 @@ __wptrunner__ = {"product": "chrome",
                               "reftest": "ChromeDriverRefTestExecutor",
                               "print-reftest": "ChromeDriverPrintRefTestExecutor",
                               "wdspec": "WdspecExecutor",
-                              "crashtest": "WebDriverCrashtestExecutor"},
+                              "crashtest": "ChromeDriverCrashTestExecutor"},
                  "browser_kwargs": "browser_kwargs",
                  "executor_kwargs": "executor_kwargs",
                  "env_extras": "env_extras",
@@ -119,6 +119,8 @@ def executor_kwargs(logger, test_type, test_environment, run_info_data, subsuite
     # flag is no-op. Required to avoid flakiness in tests, as the infobar
     # changes the viewport, which can happen during the test run.
     chrome_options["args"].append("--disable-infobars")
+    # For WebNN tests.
+    chrome_options["args"].append("--enable-features=WebMachineLearningNeuralNetwork")
 
     # Classify `http-private`, `http-public` and https variants in the
     # appropriate IP address spaces.
@@ -194,6 +196,13 @@ def update_properties():
 
 
 class ChromeBrowser(WebDriverBrowser):
+    def restart_on_test_type_change(self, new_test_type: str, old_test_type: str) -> bool:
+        # Restart the test runner when switch from/to wdspec tests. Wdspec test
+        # is using a different protocol class so a restart is always needed.
+        if "wdspec" in [old_test_type, new_test_type]:
+            return True
+        return False
+
     def make_command(self):
         return [self.webdriver_binary,
                 cmd_arg("port", str(self.port)),

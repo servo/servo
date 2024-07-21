@@ -1,0 +1,196 @@
+<!doctype html>
+<title>@container: inner at-rules</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #container {
+    container-type: size;
+    width: 100px;
+    height: 100px;
+  }
+
+</style>
+<div id=container>
+  <div id=child></div>
+</div>
+
+<script>
+  setup(() => assert_implements_container_queries());
+</script>
+
+<style>
+  @container (width: 100px) {
+    @keyframes anim1 {
+      from { --anim1:true; }
+      to { --anim1:true; }
+    }
+  }
+
+  @container (width: 200px) {
+    @keyframes anim2 {
+      from { --anim2:true; }
+      to { --anim2:true; }
+    }
+  }
+
+  #child { animation: anim1 10s paused, anim2 10s paused; }
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(child).getPropertyValue('--anim1'), 'true');
+    assert_equals(getComputedStyle(child).getPropertyValue('--anim2'), 'true');
+  }, '@keyframes is defined regardless of evaluation');
+</script>
+
+
+<style>
+  @container (width: 100px) {
+    @property --prop1 {
+      syntax: "<length>";
+      inherits: false;
+      initial-value: 0px;
+    }
+  }
+
+  @container (width: 200px) {
+    @property --prop2 {
+      syntax: "<length>";
+      inherits: false;
+      initial-value: 0px;
+    }
+  }
+
+  #child {
+    font-size: 20px;
+    --prop1:1em;
+    --prop2:2em;
+  }
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(child).getPropertyValue('--prop1'), '20px');
+    assert_equals(getComputedStyle(child).getPropertyValue('--prop2'), '40px');
+  }, '@property is defined regardless of evaluation');
+</script>
+
+
+<style>
+  @container (width: 100px) {
+    @layer a;
+  }
+
+  @container (width: 200px) {
+    @layer b;
+  }
+
+  @layer b {
+    #child { --layer:b; }
+  }
+
+  @layer a {
+    #child { --layer:a; }
+  }
+
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(child).getPropertyValue('--layer'), 'b');
+  }, '@layer order respected regardless of evaluation');
+</script>
+
+
+<style>
+  @container (width: 100px) {
+    @font-face {
+      font-family: Font1;
+      font-stretch: 50% 200%;
+      src: url(/fonts/Ahem.ttf);
+    }
+  }
+
+  @container (width: 200px) {
+    @font-face {
+      font-family: Font2;
+      font-stretch: 40% 190%;
+      src: url(/fonts/Ahem.ttf);
+    }
+  }
+
+</style>
+<script>
+  promise_test(async (t) => {
+    const fonts1 = await document.fonts.load("20px Font1");
+    assert_not_equals(fonts1[0], undefined);
+    assert_equals(fonts1[0].stretch, "50% 200%");
+
+    const fonts2 = await document.fonts.load("20px Font2");
+    assert_not_equals(fonts2[0], undefined);
+    assert_equals(fonts2[0].stretch, "40% 190%");
+  }, '@font-face is defined regardless of evaluation');
+</script>
+
+
+<style>
+  @container (width: 100px) {
+    /* Assumed to be false */
+    @media (width: 0px) {
+      #child { --media1:true; }
+    }
+    /* Assumed to be true */
+    @media (min-width: 0px) {
+      #child { --media2:true; }
+    }
+  }
+
+  /* Same again, but with failing container query. */
+  @container (width: 200px) {
+    @media (width: 0px) {
+      #child { --media3:true; }
+    }
+    @media (min-width: 0px) {
+      #child { --media4:true; }
+    }
+  }
+
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(child).getPropertyValue('--media1'), '');
+    assert_equals(getComputedStyle(child).getPropertyValue('--media2'), 'true');
+    assert_equals(getComputedStyle(child).getPropertyValue('--media3'), '');
+    assert_equals(getComputedStyle(child).getPropertyValue('--media4'), '');
+  }, '@media works inside @container');
+</script>
+
+
+<style>
+  @container (width: 100px) {
+    @supports (width: 500kg) {
+      #child { --supports1:true; }
+    }
+    @supports (width: 500px) {
+      #child { --supports2:true; }
+    }
+  }
+
+  /* Same again, but with failing container query. */
+  @container (width: 200px) {
+    @supports (width: 500kg) {
+      #child { --supports3:true; }
+    }
+    @supports (width: 500px) {
+      #child { --supports4:true; }
+    }
+  }
+
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(child).getPropertyValue('--supports1'), '');
+    assert_equals(getComputedStyle(child).getPropertyValue('--supports2'), 'true');
+    assert_equals(getComputedStyle(child).getPropertyValue('--supports3'), '');
+    assert_equals(getComputedStyle(child).getPropertyValue('--supports4'), '');
+  }, '@supports works inside @container');
+</script>

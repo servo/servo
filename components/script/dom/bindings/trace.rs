@@ -64,7 +64,6 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::utils::WindowProxyHandler;
 use crate::dom::gpubuffer::GPUBufferState;
 use crate::dom::gpucanvascontext::WebGPUContextId;
-use crate::dom::gpucommandencoder::GPUCommandEncoderState;
 use crate::dom::htmlimageelement::SourceSet;
 use crate::dom::htmlmediaelement::HTMLMediaElementFetchContext;
 use crate::script_runtime::{ContextForRequestInterrupt, StreamConsumer};
@@ -179,37 +178,34 @@ where
     }
 
     #[inline]
-    pub fn get<Q: ?Sized>(&self, k: &Q) -> Option<&V>
+    pub fn get<Q>(&self, k: &Q) -> Option<&V>
     where
         K: std::borrow::Borrow<Q>,
-        Q: Hash + Eq,
+        Q: Hash + Eq + ?Sized,
     {
         self.0.get(k)
     }
 
     #[inline]
-    pub fn get_mut<Q: ?Sized>(&mut self, k: &Q) -> Option<&mut V>
+    pub fn get_mut<Q: Hash + Eq + ?Sized>(&mut self, k: &Q) -> Option<&mut V>
     where
         K: std::borrow::Borrow<Q>,
-        Q: Hash + Eq,
     {
         self.0.get_mut(k)
     }
 
     #[inline]
-    pub fn contains_key<Q: ?Sized>(&self, k: &Q) -> bool
+    pub fn contains_key<Q: Hash + Eq + ?Sized>(&self, k: &Q) -> bool
     where
         K: std::borrow::Borrow<Q>,
-        Q: Hash + Eq,
     {
         self.0.contains_key(k)
     }
 
     #[inline]
-    pub fn remove<Q: ?Sized>(&mut self, k: &Q) -> Option<V>
+    pub fn remove<Q: Hash + Eq + ?Sized>(&mut self, k: &Q) -> Option<V>
     where
         K: std::borrow::Borrow<Q>,
-        Q: Hash + Eq,
     {
         self.0.remove(k)
     }
@@ -371,7 +367,6 @@ unsafe_no_jsmanaged_fields!(DOMString);
 unsafe_no_jsmanaged_fields!(USVString);
 unsafe_no_jsmanaged_fields!(WebGPUContextId);
 unsafe_no_jsmanaged_fields!(GPUBufferState);
-unsafe_no_jsmanaged_fields!(GPUCommandEncoderState);
 unsafe_no_jsmanaged_fields!(SourceSet);
 unsafe_no_jsmanaged_fields!(HTMLMediaElementFetchContext);
 unsafe_no_jsmanaged_fields!(StreamConsumer);

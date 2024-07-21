@@ -1,0 +1,74 @@
+<!doctype html>
+<title>container-name invalidation</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-name">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  div {
+    color: black;
+  }
+  #outer {
+    container-name: c1;
+    container-type: inline-size;
+    width: 300px;
+  }
+
+  #inner {
+    container-name: c2;
+    container-type: inline-size;
+    width: 200px;
+  }
+
+  #intermediate {
+    width: 250px;
+  }
+
+  @container c1 (width: 250px) {
+    #child {
+      color: green;
+    }
+  }
+</style>
+<div id=outer>
+  <div id=intermediate>
+    <div id=inner>
+      <div id=child>Test</div>
+    </div>
+  </div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  test(function(t) {
+    t.add_cleanup(() => { outer.style = ''; });
+
+    assert_equals(getComputedStyle(child).color, 'rgb(0, 0, 0)');
+
+    outer.style.width = '250px';
+    assert_equals(getComputedStyle(child).color, 'rgb(0, 128, 0)');
+
+    outer.style.width = '251px';
+    assert_equals(getComputedStyle(child).color, 'rgb(0, 0, 0)');
+  }, 'Changing a named container invalidates relevant descendants');
+
+  test(function(t) {
+    t.add_cleanup(() => {
+      outer.style = '';
+      intermediate.style = '';
+    });
+
+    assert_equals(getComputedStyle(child).color, 'rgb(0, 0, 0)');
+
+    // #intermediate becomes the new container.
+    intermediate.style = 'container-name:c1; container-type:inline-size';
+    assert_equals(getComputedStyle(child).color, 'rgb(0, 128, 0)');
+
+    // #outer becomes the container again.
+    intermediate.style = '';
+    assert_equals(getComputedStyle(child).color, 'rgb(0, 0, 0)');
+
+    outer.style.width = '250px';
+    assert_equals(getComputedStyle(child).color, 'rgb(0, 128, 0)');
+  }, 'Changing container-name invalidates relevant descendants');
+</script>

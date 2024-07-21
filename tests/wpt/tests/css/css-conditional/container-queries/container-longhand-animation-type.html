@@ -1,0 +1,45 @@
+<!doctype html>
+<title>Container Queries - The container longhands are not animatable</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#propdef-container-name">
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#propdef-container-type">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  @keyframes anim {
+    from {
+      --ref:PASS;
+      container-name: FAIL;
+      container-type: size;
+    }
+    to {
+      --ref:PASS;
+      container-name: FAIL;
+      container-type: size;
+    }
+  }
+  #container {
+    --ref:FAIL;
+    container-name: PASS;
+    container-type: inline-size;
+    animation: anim 1s linear paused;
+  }
+</style>
+<div id=container>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  test(() => {
+    assert_equals(getComputedStyle(container).getPropertyValue('--ref'), 'PASS');
+  }, 'Reference variable is applied');
+
+  test(() => {
+    assert_equals(getComputedStyle(container).getPropertyValue('container-name'), 'PASS');
+  }, 'container-name is not animatable');
+
+  test(() => {
+    assert_equals(getComputedStyle(container).getPropertyValue('container-type'), 'inline-size');
+  }, 'container-type is not animatable');
+
+</script>

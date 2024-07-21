@@ -70,3 +70,14 @@ function trySpellcheck(...nodes) {
         }
     }, 250);
 }
+
+function createRangeForTextOnly(element, start, end) {
+    const textNode = element.firstChild;
+    if (element.childNodes.length != 1 || textNode.nodeName != '#text') {
+        throw new Error('element must contain a single #text node only');
+    }
+    const range = document.createRange();
+    range.setStart(textNode, start);
+    range.setEnd(textNode, end);
+    return range;
+}

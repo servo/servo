@@ -8,7 +8,7 @@ e1 and e2 are interpreted as vectors with four 8-bit unsigned integer components
 unsigned integer dot product of these two vectors.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
-import { TypeU32, u32 } from '../../../../../util/conversion.js';
+import { Type, u32 } from '../../../../../util/conversion.js';
 
 import { allInputSources, run } from '../../expression.js';
 
@@ -55,5 +55,5 @@ fn(async (t) => {
     return [makeCase(...v)];
   });
 
-  await run(t, builtin('dot4U8Packed'), [TypeU32, TypeU32], TypeU32, cfg, cases);
+  await run(t, builtin('dot4U8Packed'), [Type.u32, Type.u32], Type.u32, cfg, cases);
 });

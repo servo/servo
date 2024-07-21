@@ -91,8 +91,8 @@ promise_test(async () => {
     "before source next 1",
     "after source next 1",
     "before source complete",
-    "source teardown",
     "source abort",
+    "source teardown",
     "after source complete",
   ], "Array values after last() is called");
 
@@ -105,8 +105,8 @@ promise_test(async () => {
     "before source next 1",
     "after source next 1",
     "before source complete",
-    "source teardown",
     "source abort",
+    "source teardown",
     "after source complete",
     "last resolved with: 1",
   ], "Array values after Promise is awaited");

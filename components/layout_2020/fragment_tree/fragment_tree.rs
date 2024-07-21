@@ -9,7 +9,6 @@ use fxhash::FxHashSet;
 use serde::Serialize;
 use style::animation::AnimationSetKey;
 use style::dom::OpaqueNode;
-use style::values::computed::Length;
 use webrender_api::units;
 use webrender_traits::display_list::ScrollSensitivity;
 
@@ -17,7 +16,7 @@ use super::{ContainingBlockManager, Fragment, Tag};
 use crate::cell::ArcRefCell;
 use crate::display_list::StackingContext;
 use crate::flow::CanvasBackground;
-use crate::geom::{physical_rect_to_au_rect, PhysicalRect};
+use crate::geom::PhysicalRect;
 
 #[derive(Serialize)]
 pub struct FragmentTree {
@@ -33,10 +32,10 @@ pub struct FragmentTree {
 
     /// The scrollable overflow rectangle for the entire tree
     /// <https://drafts.csswg.org/css-overflow/#scrollable>
-    pub(crate) scrollable_overflow: PhysicalRect<Length>,
+    pub(crate) scrollable_overflow: PhysicalRect<Au>,
 
     /// The containing block used in the layout of this fragment tree.
-    pub(crate) initial_containing_block: PhysicalRect<Length>,
+    pub(crate) initial_containing_block: PhysicalRect<Au>,
 
     /// <https://drafts.csswg.org/css-backgrounds/#special-backgrounds>
     #[serde(skip)]
@@ -70,14 +69,14 @@ impl FragmentTree {
 
     pub fn scrollable_overflow(&self) -> units::LayoutSize {
         units::LayoutSize::from_untyped(Size2D::new(
-            self.scrollable_overflow.size.width.px(),
-            self.scrollable_overflow.size.height.px(),
+            self.scrollable_overflow.size.width.to_f32_px(),
+            self.scrollable_overflow.size.height.to_f32_px(),
         ))
     }
 
     pub(crate) fn find<T>(
         &self,
-        mut process_func: impl FnMut(&Fragment, usize, &PhysicalRect<Length>) -> Option<T>,
+        mut process_func: impl FnMut(&Fragment, usize, &PhysicalRect<Au>) -> Option<T>,
     ) -> Option<T> {
         let info = ContainingBlockManager {
             for_non_absolute_descendants: &self.initial_containing_block,
@@ -125,9 +124,9 @@ impl FragmentTree {
                 Fragment::IFrame(_) => return None,
             };
 
-            content_boxes.push(physical_rect_to_au_rect(
-                fragment_relative_rect.translate(containing_block.origin.to_vector()),
-            ));
+            let rect = fragment_relative_rect.translate(containing_block.origin.to_vector());
+
+            content_boxes.push(rect.to_untyped());
             None::<()>
         });
         content_boxes
@@ -156,10 +155,7 @@ impl FragmentTree {
                         .padding_rect()
                         .to_physical(fragment.style.writing_mode, containing_block);
                     Rect::new(
-                        Point2D::new(
-                            border.border_left_width.into(),
-                            border.border_top_width.into(),
-                        ),
+                        Point2D::new(border.border_left_width, border.border_top_width),
                         Size2D::new(padding_rect.size.width, padding_rect.size.height),
                     )
                 },
@@ -171,15 +167,15 @@ impl FragmentTree {
             };
 
             let rect = Rect::new(
-                Point2D::new(rect.origin.x.px(), rect.origin.y.px()),
-                Size2D::new(rect.size.width.px(), rect.size.height.px()),
+                Point2D::new(rect.origin.x.to_f32_px(), rect.origin.y.to_f32_px()),
+                Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px()),
             );
             Some(rect.round().to_i32().to_untyped())
         })
         .unwrap_or_else(Rect::zero)
     }
 
-    pub fn get_scrolling_area_for_viewport(&self) -> PhysicalRect<Length> {
+    pub fn get_scrolling_area_for_viewport(&self) -> PhysicalRect<Au> {
         let mut scroll_area = self.initial_containing_block;
         for fragment in self.root_fragments.iter() {
             scroll_area = fragment
@@ -190,7 +186,7 @@ impl FragmentTree {
         scroll_area
     }
 
-    pub fn get_scrolling_area_for_node(&self, requested_node: OpaqueNode) -> PhysicalRect<Length> {
+    pub fn get_scrolling_area_for_node(&self, requested_node: OpaqueNode) -> PhysicalRect<Au> {
         let tag_to_find = Tag::new(requested_node);
         let scroll_area = self.find(|fragment, _, containing_block| {
             if fragment.tag() == Some(tag_to_find) {
@@ -199,6 +195,6 @@ impl FragmentTree {
                 None
             }
         });
-        scroll_area.unwrap_or_else(PhysicalRect::<Length>::zero)
+        scroll_area.unwrap_or_else(PhysicalRect::<Au>::zero)
     }
 }

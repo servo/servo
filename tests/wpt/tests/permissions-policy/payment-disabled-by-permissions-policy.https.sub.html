@@ -40,6 +40,7 @@
         test,
         src: cross_origin_src,
         expect_feature_available: expect_feature_unavailable_default,
+        feature_name: "payment",
         is_promise_test: true,
       });
     }, `${header} disallows Payment Request API in cross-origin iframes.`);

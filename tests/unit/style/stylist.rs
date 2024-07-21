@@ -11,16 +11,19 @@ use style::context::QuirksMode;
 use style::font_metrics::FontMetrics;
 use style::media_queries::{Device, MediaType};
 use style::properties::style_structs::Font;
-use style::properties::{longhands, Importance, PropertyDeclaration, PropertyDeclarationBlock};
+use style::properties::{
+    longhands, ComputedValues, Importance, PropertyDeclaration, PropertyDeclarationBlock,
+};
 use style::selector_map::SelectorMap;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::servo::media_queries::FontMetricsProvider;
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::StyleRule;
 use style::stylist::{
-    needs_revalidation_for_testing, ContainerConditionId, LayerId, Rule, Stylist,
+    needs_revalidation_for_testing, ContainerConditionId, LayerId, Rule, ScopeConditionId, Stylist,
 };
 use style::thread_state::{self, ThreadState};
+use style::values::computed::font::GenericFontFamily;
 use style::values::computed::Length;
 use url::Url;
 
@@ -37,6 +40,9 @@ impl FontMetricsProvider for DummyMetricsProvider {
         _retrieve_math_scales: bool,
     ) -> FontMetrics {
         Default::default()
+    }
+    fn base_size_for_generic(&self, _: GenericFontFamily) -> Length {
+        Length::new(16.)
     }
 }
 
@@ -78,6 +84,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> (Vec<Vec<Rule>>, SharedRwLock) {
                             LayerId::root(),
                             ContainerConditionId::none(),
                             /* in_starting_style = */ false,
+                            ScopeConditionId::none(),
                         )
                     })
                     .collect()
@@ -240,12 +247,14 @@ fn test_insert() {
 }
 
 fn mock_stylist() -> Stylist {
+    let initial_style = ComputedValues::initial_values_with_font_override(Font::initial_values());
     let device = Device::new(
         MediaType::screen(),
         QuirksMode::NoQuirks,
         Size2D::new(0f32, 0f32),
         Scale::new(1.0),
         Box::new(DummyMetricsProvider),
+        initial_style,
     );
     Stylist::new(device, QuirksMode::NoQuirks)
 }

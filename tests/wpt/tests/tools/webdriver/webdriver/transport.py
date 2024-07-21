@@ -224,15 +224,7 @@ class HTTPWireProtocol:
                 raise ValueError("Failed to encode request body as JSON:\n"
                                  "%s" % json.dumps(body, indent=2))
 
-        # When the timeout triggers, the TestRunnerManager thread will reuse
-        # this connection to check if the WebDriver its alive and we may end
-        # raising an httplib.CannotSendRequest exception if the WebDriver is
-        # not responding and this httplib.request() call is blocked on the
-        # runner thread. We use the boolean below to check for that and restart
-        # the connection in that case.
-        self._last_request_is_blocked = True
         response = self._request(method, uri, payload, headers, timeout=None)
-        self._last_request_is_blocked = False
         return Response.from_http(response, decoder=decoder, **codec_kwargs)
 
     def _request(self, method, uri, payload, headers=None, timeout=None):
@@ -248,6 +240,13 @@ class HTTPWireProtocol:
         if self._last_request_is_blocked or self._has_unread_data():
             self.close()
 
+        # When the timeout triggers, the TestRunnerManager thread will reuse
+        # this connection to check if the WebDriver its alive and we may end
+        # raising an httplib.CannotSendRequest exception if the WebDriver is
+        # not responding and this httplib.request() call is blocked on the
+        # runner thread. We use the boolean below to check for that and restart
+        # the connection in that case.
+        self._last_request_is_blocked = True
         self.connection.request(method, url, payload, headers)
 
         # timeout for request has to be set just before calling httplib.getresponse()
@@ -261,6 +260,7 @@ class HTTPWireProtocol:
             if timeout:
                 self._conn.settimeout(previous_timeout)
 
+        self._last_request_is_blocked = False
         return response
 
     def _has_unread_data(self):

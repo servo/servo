@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
 
-const NOT_SUPPORTED_ERROR: &'static str = "Error! Not supported platform!";
+const NOT_SUPPORTED_ERROR: &str = "Error! Not supported platform!";
 
 #[derive(Clone, Debug)]
 pub struct EmptyAdapter {}

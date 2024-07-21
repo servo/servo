@@ -27,5 +27,18 @@ export const d = makeCaseCache('inverseSqrt', {
       'unfiltered',
       FP.f16.inverseSqrtInterval
     );
+  },
+  abstract: () => {
+    return FP.abstract.generateScalarToIntervalCases(
+      [
+      // 0 < x <= 1 linearly spread
+      ...linearRange(kValue.f64.positive.min, 1, 100),
+      // 1 <= x < 2^64, biased towards 1, only using 100 steps, because af tests are more expensive per case
+      ...biasedRange(1, 2 ** 64, 100)],
+
+      'finite',
+      // inverseSqrt has an ulp accuracy, so is only expected to be as accurate as f32
+      FP.f32.inverseSqrtInterval
+    );
   }
 });

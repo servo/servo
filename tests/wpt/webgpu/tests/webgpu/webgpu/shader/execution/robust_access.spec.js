@@ -7,6 +7,7 @@ Tests to check datatype clamping in shaders is correctly implemented for all ind
 TODO: add tests to check that textureLoad operations stay in-bounds.
 `;import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { assert } from '../../../common/util/util.js';
+import { Float16Array } from '../../../external/petamoriken/float16/float16.js';
 import { GPUTest } from '../../gpu_test.js';
 import { align } from '../../util/math.js';
 import { generateTypes, supportedScalarTypes, supportsAtomics } from '../types.js';
@@ -25,6 +26,7 @@ const kMinI32 = -0x8000_0000;
  */
 async function runShaderTest(
 t,
+enables,
 stage,
 testSource,
 layout,
@@ -34,14 +36,14 @@ dynamicOffsets)
   assert(stage === GPUShaderStage.COMPUTE, 'Only know how to deal with compute for now');
 
   // Contains just zero (for now).
-  const constantsBuffer = t.device.createBuffer({ size: 4, usage: GPUBufferUsage.UNIFORM });
+  const constantsBuffer = t.createBufferTracked({ size: 4, usage: GPUBufferUsage.UNIFORM });
 
-  const resultBuffer = t.device.createBuffer({
+  const resultBuffer = t.createBufferTracked({
     size: 4,
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE
   });
 
-  const source = `
+  const source = `${enables}
 struct Constants {
   zero: u32
 };
@@ -99,7 +101,9 @@ array,
 type,
 { zeroByteStart, zeroByteCount })
 {
-  const constructor = { u32: Uint32Array, i32: Int32Array, f32: Float32Array }[type];
+  const constructor = { u32: Uint32Array, i32: Int32Array, f16: Float16Array, f32: Float32Array }[
+  type];
+
   assert(zeroByteCount % constructor.BYTES_PER_ELEMENT === 0);
   new constructor(array).fill(42);
   new constructor(array, zeroByteStart, zeroByteCount / constructor.BYTES_PER_ELEMENT).fill(0);
@@ -122,6 +126,7 @@ desc(
     TODO: Test types like vec2<atomic<i32>>, if that's allowed.
     TODO: Test exprIndexAddon as constexpr.
     TODO: Test exprIndexAddon as pipeline-overridable constant expression.
+    TODO: Adjust test logic to support array of f16 in the uniform address space
   `
 ).
 params((u) =>
@@ -168,10 +173,15 @@ combineWithParams([
 { shadowingMode: 'function-scope' }]
 ).
 expand('isAtomic', (p) => supportsAtomics(p) ? [false, true] : [false]).
-beginSubcases().
 expand('baseType', supportedScalarTypes).
+beginSubcases().
 expandWithParams(generateTypes)
 ).
+beforeAllSubcases((t) => {
+  if (t.params.baseType === 'f16') {
+    t.selectDeviceOrSkipTestCase('shader-f16');
+  }
+}).
 fn(async (t) => {
   const {
     addressSpace,
@@ -188,6 +198,13 @@ fn(async (t) => {
 
   assert(_kTypeInfo !== undefined, 'not an indexable type');
   assert('arrayLength' in _kTypeInfo);
+
+  if (baseType === 'f16' && addressSpace === 'uniform' && containerType === 'array') {
+    // Array elements must be aligned to 16 bytes, but the logic in generateTypes
+    // creates an array of vec4 of the baseType. But for f16 that's only 8 bytes.
+    // We would need to write more complex logic for that.
+    t.skip('Test logic does not handle array of f16 in the uniform address space');
+  }
 
   let usesCanary = false;
   let globalSource = '';
@@ -429,6 +446,8 @@ fn runTest() -> u32 {
 
   });
 
+  const enables = t.params.baseType === 'f16' ? 'enable f16;' : '';
+
   // Run it.
   if (bufferBindingSize !== undefined && baseType !== 'bool') {
     const expectedData = new ArrayBuffer(testBufferSize);
@@ -450,6 +469,7 @@ fn runTest() -> u32 {
     // Run the shader, accessing the buffer.
     await runShaderTest(
       t,
+      enables,
       GPUShaderStage.COMPUTE,
       testSource,
       layout,
@@ -475,6 +495,6 @@ fn runTest() -> u32 {
       bufferBindingEnd
     );
   } else {
-    await runShaderTest(t, GPUShaderStage.COMPUTE, testSource, layout, []);
+    await runShaderTest(t, enables, GPUShaderStage.COMPUTE, testSource, layout, []);
   }
 });

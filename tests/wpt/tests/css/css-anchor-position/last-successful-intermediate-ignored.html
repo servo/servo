@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <title>CSS Anchor Positioning: last successful updated on resizeObserver timing</title>
-<link rel="help" href="https://drafts.csswg.org/css-anchor-position/#last-successful-position-option">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position/#last-successful-position-fallback">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="support/test-common.js"></script>
@@ -22,7 +22,7 @@
   }
   #anchored {
     position-anchor: --a;
-    position-try-options: flip-block;
+    position-try-fallbacks: flip-block;
     position: absolute;
     width: 100px;
     height: 200px;

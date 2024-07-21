@@ -71,7 +71,7 @@ fn((t) => {
     subrectSize: { width, height }
   });
 
-  const dst = t.device.createTexture({
+  const dst = t.createTextureTracked({
     size: { width, height },
     format: dstColorFormat,
     usage:
@@ -176,7 +176,7 @@ fn((t) => {
     subrectSize: srcSize
   });
 
-  const dst = t.device.createTexture({
+  const dst = t.createTextureTracked({
     size: dstSize,
     format: kColorFormat,
     usage:

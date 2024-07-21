@@ -862,7 +862,12 @@ class CommandBase(object):
                     action='store_true',
                     help='Build with frame pointer enabled, used by the background hang monitor.',
                 ),
-                CommandArgument('--without-wgl', group="Feature Selection", default=None, action='store_true'),
+                CommandArgument(
+                    '--use-crown',
+                    default=False,
+                    action='store_true',
+                    help="Enable Servo's `crown` linter tool"
+                )
             ]
 
         def decorator_function(original_function):
@@ -976,7 +981,8 @@ class CommandBase(object):
         self, command: str, cargo_args: List[str],
         env=None, verbose=False,
         debug_mozjs=False, with_debug_assertions=False,
-        with_frame_pointer=False, without_wgl=False,
+        with_frame_pointer=False,
+        use_crown=False,
         target_override: Optional[str] = None,
         **_kwargs
     ):
@@ -1009,6 +1015,22 @@ class CommandBase(object):
                 if command == 'rustc':
                     args += ["--lib", "--crate-type=cdylib"]
 
+        if use_crown:
+            if 'CARGO_BUILD_RUSTC' in env:
+                current_rustc = env['CARGO_BUILD_RUSTC']
+                if current_rustc != 'crown':
+                    print('Error: `mach` was called with `--use-crown` while `CARGO_BUILD_RUSTC` was'
+                          f'already set to `{current_rustc}` in the parent environment.\n'
+                          'These options conflict, please specify only one of them.')
+                    sys.exit(1)
+            env['CARGO_BUILD_RUSTC'] = 'crown'
+            # Changing `RUSTC` or `CARGO_BUILD_RUSTC` does not cause `cargo check` to
+            # recheck files with the new compiler. `cargo build` is not affected and
+            # triggers a rebuild as expected. To also make `check` work as expected,
+            # we add a dummy `cfg` to RUSTFLAGS when using crown, so as to have different
+            # RUSTFLAGS when using `crown`, to reliably trigger re-checking.
+            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " --cfg=crown"
+
         if "-p" not in cargo_args:  # We're building specific package, that may not have features
             features = list(self.features)
             if self.enable_media:
@@ -1019,8 +1041,6 @@ class CommandBase(object):
             if with_frame_pointer:
                 env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C force-frame-pointers=yes"
                 features.append("profilemozjs")
-            if without_wgl:
-                features.append("no-wgl")
             if self.config["build"]["webgl-backtrace"]:
                 features.append("webgl-backtrace")
             if self.config["build"]["dom-backtrace"]:

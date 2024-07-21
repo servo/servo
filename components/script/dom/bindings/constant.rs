@@ -4,6 +4,8 @@
 
 //! WebIDL constants.
 
+use std::ffi::CStr;
+
 use js::jsapi::{JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UInt32Value};
 use js::rust::wrappers::JS_DefineProperty;
@@ -15,7 +17,7 @@ use crate::script_runtime::JSContext;
 #[derive(Clone)]
 pub struct ConstantSpec {
     /// name of the constant.
-    pub name: &'static [u8],
+    pub name: &'static CStr,
     /// value of the constant.
     pub value: ConstantVal,
 }
@@ -25,26 +27,26 @@ pub struct ConstantSpec {
 #[allow(dead_code)]
 pub enum ConstantVal {
     /// `long` constant.
-    IntVal(i32),
+    Int(i32),
     /// `unsigned long` constant.
-    UintVal(u32),
+    Uint(u32),
     /// `double` constant.
-    DoubleVal(f64),
+    Double(f64),
     /// `boolean` constant.
-    BoolVal(bool),
+    Bool(bool),
     /// `null` constant.
-    NullVal,
+    Null,
 }
 
 impl ConstantSpec {
     /// Returns a `JSVal` that represents the value of this `ConstantSpec`.
     pub fn get_value(&self) -> JSVal {
         match self.value {
-            ConstantVal::NullVal => NullValue(),
-            ConstantVal::IntVal(i) => Int32Value(i),
-            ConstantVal::UintVal(u) => UInt32Value(u),
-            ConstantVal::DoubleVal(d) => DoubleValue(d),
-            ConstantVal::BoolVal(b) => BooleanValue(b),
+            ConstantVal::Null => NullValue(),
+            ConstantVal::Int(i) => Int32Value(i),
+            ConstantVal::Uint(u) => UInt32Value(u),
+            ConstantVal::Double(d) => DoubleValue(d),
+            ConstantVal::Bool(b) => BooleanValue(b),
         }
     }
 }
@@ -58,7 +60,7 @@ pub fn define_constants(cx: JSContext, obj: HandleObject, constants: &[ConstantS
             assert!(JS_DefineProperty(
                 *cx,
                 obj,
-                spec.name.as_ptr() as *const libc::c_char,
+                spec.name.as_ptr(),
                 value.handle(),
                 (JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT) as u32
             ));

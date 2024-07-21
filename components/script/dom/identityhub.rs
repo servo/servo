@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use smallvec::SmallVec;
+use webgpu::identity::{ComputePass, ComputePassId, RenderPass, RenderPassId};
 use webgpu::wgc::id::markers::{
     Adapter, BindGroup, BindGroupLayout, Buffer, CommandEncoder, ComputePipeline, Device,
     PipelineLayout, RenderBundle, RenderPipeline, Sampler, ShaderModule, Texture, TextureView,
@@ -31,6 +32,8 @@ pub struct IdentityHub {
     samplers: IdentityManager<Sampler>,
     render_pipelines: IdentityManager<RenderPipeline>,
     render_bundles: IdentityManager<RenderBundle>,
+    compute_passes: IdentityManager<ComputePass>,
+    render_passes: IdentityManager<RenderPass>,
 }
 
 impl IdentityHub {
@@ -50,6 +53,8 @@ impl IdentityHub {
             samplers: IdentityManager::new(),
             render_pipelines: IdentityManager::new(),
             render_bundles: IdentityManager::new(),
+            compute_passes: IdentityManager::new(),
+            render_passes: IdentityManager::new(),
         }
     }
 }
@@ -82,43 +87,43 @@ impl Identities {
         }
     }
 
-    fn select(&mut self, backend: Backend) -> &mut IdentityHub {
+    fn select(&self, backend: Backend) -> &IdentityHub {
         match backend {
             #[cfg(any(target_os = "linux", target_os = "windows"))]
-            Backend::Vulkan => &mut self.vk_hub,
+            Backend::Vulkan => &self.vk_hub,
             #[cfg(target_os = "windows")]
-            Backend::Dx12 => &mut self.dx12_hub,
+            Backend::Dx12 => &self.dx12_hub,
             #[cfg(any(target_os = "ios", target_os = "macos"))]
-            Backend::Metal => &mut self.metal_hub,
+            Backend::Metal => &self.metal_hub,
             #[cfg(any(target_os = "linux", target_os = "windows"))]
-            Backend::Gl => &mut self.gl_hub,
-            _ => &mut self.dummy_hub,
+            Backend::Gl => &self.gl_hub,
+            _ => &self.dummy_hub,
         }
     }
 
-    fn hubs(&mut self) -> Vec<(&mut IdentityHub, Backend)> {
+    fn hubs(&self) -> Vec<(&IdentityHub, Backend)> {
         vec![
             #[cfg(any(target_os = "linux", target_os = "windows"))]
-            (&mut self.vk_hub, Backend::Vulkan),
+            (&self.vk_hub, Backend::Vulkan),
             #[cfg(target_os = "windows")]
-            (&mut self.dx12_hub, Backend::Dx12),
+            (&self.dx12_hub, Backend::Dx12),
             #[cfg(any(target_os = "ios", target_os = "macos"))]
-            (&mut self.metal_hub, Backend::Metal),
+            (&self.metal_hub, Backend::Metal),
             #[cfg(any(target_os = "linux", target_os = "windows"))]
-            (&mut self.gl_hub, Backend::Gl),
-            (&mut self.dummy_hub, Backend::Empty),
+            (&self.gl_hub, Backend::Gl),
+            (&self.dummy_hub, Backend::Empty),
         ]
     }
 
-    pub fn create_device_id(&mut self, backend: Backend) -> DeviceId {
+    pub fn create_device_id(&self, backend: Backend) -> DeviceId {
         self.select(backend).devices.process(backend)
     }
 
-    pub fn kill_device_id(&mut self, id: DeviceId) {
+    pub fn free_device_id(&self, id: DeviceId) {
         self.select(id.backend()).devices.free(id);
     }
 
-    pub fn create_adapter_ids(&mut self) -> SmallVec<[AdapterId; 4]> {
+    pub fn create_adapter_ids(&self) -> SmallVec<[AdapterId; 4]> {
         let mut ids = SmallVec::new();
         for hubs in self.hubs() {
             ids.push(hubs.0.adapters.process(hubs.1));
@@ -126,104 +131,120 @@ impl Identities {
         ids
     }
 
-    pub fn kill_adapter_id(&mut self, id: AdapterId) {
+    pub fn free_adapter_id(&self, id: AdapterId) {
         self.select(id.backend()).adapters.free(id);
     }
 
-    pub fn create_buffer_id(&mut self, backend: Backend) -> BufferId {
+    pub fn create_buffer_id(&self, backend: Backend) -> BufferId {
         self.select(backend).buffers.process(backend)
     }
 
-    pub fn kill_buffer_id(&mut self, id: BufferId) {
+    pub fn free_buffer_id(&self, id: BufferId) {
         self.select(id.backend()).buffers.free(id);
     }
 
-    pub fn create_bind_group_id(&mut self, backend: Backend) -> BindGroupId {
+    pub fn create_bind_group_id(&self, backend: Backend) -> BindGroupId {
         self.select(backend).bind_groups.process(backend)
     }
 
-    pub fn kill_bind_group_id(&mut self, id: BindGroupId) {
+    pub fn free_bind_group_id(&self, id: BindGroupId) {
         self.select(id.backend()).bind_groups.free(id);
     }
 
-    pub fn create_bind_group_layout_id(&mut self, backend: Backend) -> BindGroupLayoutId {
+    pub fn create_bind_group_layout_id(&self, backend: Backend) -> BindGroupLayoutId {
         self.select(backend).bind_group_layouts.process(backend)
     }
 
-    pub fn kill_bind_group_layout_id(&mut self, id: BindGroupLayoutId) {
+    pub fn free_bind_group_layout_id(&self, id: BindGroupLayoutId) {
         self.select(id.backend()).bind_group_layouts.free(id);
     }
 
-    pub fn create_compute_pipeline_id(&mut self, backend: Backend) -> ComputePipelineId {
+    pub fn create_compute_pipeline_id(&self, backend: Backend) -> ComputePipelineId {
         self.select(backend).compute_pipelines.process(backend)
     }
 
-    pub fn kill_compute_pipeline_id(&mut self, id: ComputePipelineId) {
+    pub fn free_compute_pipeline_id(&self, id: ComputePipelineId) {
         self.select(id.backend()).compute_pipelines.free(id);
     }
 
-    pub fn create_pipeline_layout_id(&mut self, backend: Backend) -> PipelineLayoutId {
+    pub fn create_pipeline_layout_id(&self, backend: Backend) -> PipelineLayoutId {
         self.select(backend).pipeline_layouts.process(backend)
     }
 
-    pub fn kill_pipeline_layout_id(&mut self, id: PipelineLayoutId) {
+    pub fn free_pipeline_layout_id(&self, id: PipelineLayoutId) {
         self.select(id.backend()).pipeline_layouts.free(id);
     }
 
-    pub fn create_shader_module_id(&mut self, backend: Backend) -> ShaderModuleId {
+    pub fn create_shader_module_id(&self, backend: Backend) -> ShaderModuleId {
         self.select(backend).shader_modules.process(backend)
     }
 
-    pub fn kill_shader_module_id(&mut self, id: ShaderModuleId) {
+    pub fn free_shader_module_id(&self, id: ShaderModuleId) {
         self.select(id.backend()).shader_modules.free(id);
     }
 
-    pub fn create_command_encoder_id(&mut self, backend: Backend) -> CommandEncoderId {
+    pub fn create_command_encoder_id(&self, backend: Backend) -> CommandEncoderId {
         self.select(backend).command_encoders.process(backend)
     }
 
-    pub fn kill_command_buffer_id(&mut self, id: CommandEncoderId) {
+    pub fn free_command_buffer_id(&self, id: CommandEncoderId) {
         self.select(id.backend()).command_encoders.free(id);
     }
 
-    pub fn create_sampler_id(&mut self, backend: Backend) -> SamplerId {
+    pub fn create_sampler_id(&self, backend: Backend) -> SamplerId {
         self.select(backend).samplers.process(backend)
     }
 
-    pub fn kill_sampler_id(&mut self, id: SamplerId) {
+    pub fn free_sampler_id(&self, id: SamplerId) {
         self.select(id.backend()).samplers.free(id);
     }
 
-    pub fn create_render_pipeline_id(&mut self, backend: Backend) -> RenderPipelineId {
+    pub fn create_render_pipeline_id(&self, backend: Backend) -> RenderPipelineId {
         self.select(backend).render_pipelines.process(backend)
     }
 
-    pub fn kill_render_pipeline_id(&mut self, id: RenderPipelineId) {
+    pub fn free_render_pipeline_id(&self, id: RenderPipelineId) {
         self.select(id.backend()).render_pipelines.free(id);
     }
 
-    pub fn create_texture_id(&mut self, backend: Backend) -> TextureId {
+    pub fn create_texture_id(&self, backend: Backend) -> TextureId {
         self.select(backend).textures.process(backend)
     }
 
-    pub fn kill_texture_id(&mut self, id: TextureId) {
+    pub fn free_texture_id(&self, id: TextureId) {
         self.select(id.backend()).textures.free(id);
     }
 
-    pub fn create_texture_view_id(&mut self, backend: Backend) -> TextureViewId {
+    pub fn create_texture_view_id(&self, backend: Backend) -> TextureViewId {
         self.select(backend).texture_views.process(backend)
     }
 
-    pub fn kill_texture_view_id(&mut self, id: TextureViewId) {
+    pub fn free_texture_view_id(&self, id: TextureViewId) {
         self.select(id.backend()).texture_views.free(id);
     }
 
-    pub fn create_render_bundle_id(&mut self, backend: Backend) -> RenderBundleId {
+    pub fn create_render_bundle_id(&self, backend: Backend) -> RenderBundleId {
         self.select(backend).render_bundles.process(backend)
     }
 
-    pub fn kill_render_bundle_id(&mut self, id: RenderBundleId) {
+    pub fn free_render_bundle_id(&self, id: RenderBundleId) {
         self.select(id.backend()).render_bundles.free(id);
+    }
+
+    pub fn create_compute_pass_id(&self, backend: Backend) -> ComputePassId {
+        self.select(backend).compute_passes.process(backend)
+    }
+
+    pub fn free_compute_pass_id(&self, id: ComputePassId) {
+        self.select(id.backend()).compute_passes.free(id);
+    }
+
+    pub fn create_render_pass_id(&self, backend: Backend) -> RenderPassId {
+        self.select(backend).render_passes.process(backend)
+    }
+
+    pub fn free_render_pass_id(&self, id: RenderPassId) {
+        self.select(id.backend()).render_passes.free(id);
     }
 }
 
