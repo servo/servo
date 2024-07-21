@@ -788,8 +788,6 @@ impl From<NetTraitsRequestMode> for RequestMode {
     }
 }
 
-// TODO
-// When whatwg/fetch PR #346 is merged, fix this.
 impl From<ReferrerPolicy> for MsgReferrerPolicy {
     fn from(policy: ReferrerPolicy) -> Self {
         match policy {
