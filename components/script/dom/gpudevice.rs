@@ -581,7 +581,6 @@ impl GPUDeviceMethods for GPUDevice {
                 entry_point: Some(Cow::Owned(descriptor.compute.entryPoint.to_string())),
                 constants: Cow::Owned(HashMap::new()),
                 zero_initialize_workgroup_memory: true,
-                vertex_pulling_transform: false,
             },
             cache: None,
         };
@@ -772,7 +771,6 @@ impl GPUDeviceMethods for GPUDevice {
                         )),
                         constants: Cow::Owned(HashMap::new()),
                         zero_initialize_workgroup_memory: true,
-                        vertex_pulling_transform: false,
                     },
                     buffers: Cow::Owned(
                         descriptor
@@ -809,7 +807,6 @@ impl GPUDeviceMethods for GPUDevice {
                             entry_point: Some(Cow::Owned(stage.parent.entryPoint.to_string())),
                             constants: Cow::Owned(HashMap::new()),
                             zero_initialize_workgroup_memory: true,
-                            vertex_pulling_transform: false,
                         },
                         targets: Cow::Owned(
                             stage
