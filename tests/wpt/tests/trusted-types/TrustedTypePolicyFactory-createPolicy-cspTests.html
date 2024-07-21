@@ -21,7 +21,7 @@
   // Non-allowed names test
   test(t => {
     assert_throws_js(TypeError, _ => {
-     window.trustedTypes.createPolicy('SomeOtherName', { createURL: s => s } );
+     window.trustedTypes.createPolicy('SomeOtherName', { createHTML: s => s } );
     });
   }, "Non-allowed name policy creation throws.");
 </script>

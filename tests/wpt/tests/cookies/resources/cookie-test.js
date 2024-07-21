@@ -5,7 +5,6 @@ async function getAndExpireCookiesForDefaultPathTest() {
     try {
       const iframe = document.createElement('iframe');
       iframe.style = 'display: none';
-      iframe.src = '/cookies/resources/echo-cookie.html';
       iframe.addEventListener('load', (e) => {
         const win = e.target.contentWindow;
         const iframeCookies = win.getCookies();
@@ -14,6 +13,7 @@ async function getAndExpireCookiesForDefaultPathTest() {
           resolve(iframeCookies);
         });
       }, {once: true});
+      iframe.src = '/cookies/resources/echo-cookie.html';
       document.documentElement.appendChild(iframe);
     } catch (e) {
       reject(e);
@@ -28,7 +28,6 @@ async function getAndExpireCookiesForRedirectTest(location) {
     try {
       const iframe = document.createElement('iframe');
       iframe.style = 'display: none';
-      iframe.src = location;
       const listener = (e) => {
         if (typeof e.data == 'object' && 'cookies' in e.data) {
           window.removeEventListener('message', listener);
@@ -40,6 +39,7 @@ async function getAndExpireCookiesForRedirectTest(location) {
       iframe.addEventListener('load', (e) => {
         e.target.contentWindow.postMessage('getAndExpireCookiesForRedirectTest', '*');
       }, {once: true});
+      iframe.src = location;
       document.documentElement.appendChild(iframe);
     } catch (e) {
       reject(e);

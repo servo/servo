@@ -4,6 +4,10 @@
 <script>
 async_test(t => {
   let start_length = history.length;
+
+  let onpopstate_fired = false;
+  window.onpopstate = e => onpopstate_fired = true;
+
   navigation.onnavigate = t.step_func(e => {
     e.intercept({ handler: async () => {
       await new Promise(r => t.step_timeout(r, 0));
@@ -11,6 +15,7 @@ async_test(t => {
         assert_equals(location.hash, "#1");
         assert_equals(history.state, "update");
         assert_equals(history.length, start_length + 1);
+        assert_false(onpopstate_fired);
       }, 0));
     }});
   });

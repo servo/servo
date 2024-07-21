@@ -234,6 +234,11 @@ let test_cases = [
     fragment: '#:~:text=horizontally%20scrolled%20text',
     expect_position: 'horizontal-scroll',
     description: 'Text directive should horizontally scroll into view'
+  },
+  {
+    fragment: '#:~:text=Element,This',
+    expect_position: 'element',
+    description: 'Text directive that spans a range larger than the viewport should scroll the start into view'
   }
 ];
 

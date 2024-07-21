@@ -1,7 +1,11 @@
 import pytest
 import webdriver.bidi.error as error
 
-from webdriver.bidi.modules.script import ContextTarget, RealmTarget, SerializationOptions
+from webdriver.bidi.modules.script import (
+    ContextTarget,
+    RealmTarget,
+    SerializationOptions,
+)
 
 pytestmark = pytest.mark.asyncio
 
@@ -10,9 +14,8 @@ pytestmark = pytest.mark.asyncio
 async def test_params_target_invalid_type(bidi_session, target):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.script.call_function(
-            function_declaration="(arg) => arg",
-            await_promise=False,
-            target=target)
+            function_declaration="(arg) => arg", await_promise=False, target=target
+        )
 
 
 @pytest.mark.parametrize("context", [None, False, 42, {}, []])
@@ -21,7 +24,8 @@ async def test_params_context_invalid_type(bidi_session, context):
         await bidi_session.script.call_function(
             function_declaration="(arg) => arg",
             await_promise=False,
-            target=ContextTarget(context))
+            target=ContextTarget(context),
+        )
 
 
 @pytest.mark.parametrize("sandbox", [False, 42, {}, []])
@@ -30,8 +34,8 @@ async def test_params_sandbox_invalid_type(bidi_session, top_context, sandbox):
         await bidi_session.script.call_function(
             function_declaration="(arg) => arg",
             await_promise=False,
-            target=ContextTarget(top_context["context"],
-                                 sandbox))
+            target=ContextTarget(top_context["context"], sandbox),
+        )
 
 
 async def test_params_context_unknown(bidi_session):
@@ -39,7 +43,8 @@ async def test_params_context_unknown(bidi_session):
         await bidi_session.script.call_function(
             function_declaration="(arg) => arg",
             await_promise=False,
-            target=ContextTarget("_UNKNOWN_"))
+            target=ContextTarget("_UNKNOWN_"),
+        )
 
 
 @pytest.mark.parametrize("realm", [None, False, 42, {}, []])
@@ -48,7 +53,8 @@ async def test_params_realm_invalid_type(bidi_session, realm):
         await bidi_session.script.call_function(
             function_declaration="(arg) => arg",
             await_promise=False,
-            target=RealmTarget(realm))
+            target=RealmTarget(realm),
+        )
 
 
 async def test_params_realm_unknown(bidi_session):
@@ -56,50 +62,53 @@ async def test_params_realm_unknown(bidi_session):
         await bidi_session.script.call_function(
             function_declaration="(arg) => arg",
             await_promise=False,
-            target=RealmTarget("_UNKNOWN_"))
+            target=RealmTarget("_UNKNOWN_"),
+        )
 
 
 @pytest.mark.parametrize("function_declaration", [None, False, 42, {}, []])
-async def test_params_function_declaration_invalid_type(bidi_session, top_context,
-                                                        function_declaration):
+async def test_params_function_declaration_invalid_type(
+    bidi_session, top_context, function_declaration
+):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.script.call_function(
             function_declaration=function_declaration,
             await_promise=False,
-            target=ContextTarget(top_context["context"]))
+            target=ContextTarget(top_context["context"]),
+        )
 
 
 @pytest.mark.parametrize("this", [False, "SOME_STRING", 42, {}, []])
-async def test_params_this_invalid_type(bidi_session, top_context,
-                                        this):
+async def test_params_this_invalid_type(bidi_session, top_context, this):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.script.call_function(
             function_declaration="(arg) => arg",
             this=this,
             await_promise=False,
-            target=ContextTarget(top_context["context"]))
+            target=ContextTarget(top_context["context"]),
+        )
 
 
 @pytest.mark.parametrize("arguments", [False, "SOME_STRING", 42, {}])
-async def test_params_arguments_invalid_type(bidi_session, top_context,
-                                             arguments):
+async def test_params_arguments_invalid_type(bidi_session, top_context, arguments):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.script.call_function(
             function_declaration="(arg) => arg",
             arguments=arguments,
             await_promise=False,
-            target=ContextTarget(top_context["context"]))
+            target=ContextTarget(top_context["context"]),
+        )
 
 
 @pytest.mark.parametrize("argument", [False, "SOME_STRING", 42, {}, []])
-async def test_params_arguments_entry_invalid_type(bidi_session, top_context,
-                                                   argument):
+async def test_params_arguments_entry_invalid_type(bidi_session, top_context, argument):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.script.call_function(
             function_declaration="(arg) => arg",
             arguments=[argument],
             await_promise=False,
-            target=ContextTarget(top_context["context"]))
+            target=ContextTarget(top_context["context"]),
+        )
 
 
 @pytest.mark.parametrize("value", [None, False, "_UNKNOWN_", 42, []])
@@ -163,7 +172,10 @@ async def test_params_arguments_channel_serialization_options_invalid_type(
             arguments=[
                 {
                     "type": "channel",
-                    "value": {"serializationOptions": serialization_options},
+                    "value": {
+                        "channel": "foo",
+                        "serializationOptions": serialization_options,
+                    },
                 }
             ],
             await_promise=False,
@@ -182,7 +194,8 @@ async def test_params_arguments_channel_max_dom_depth_invalid_type(
                 {
                     "type": "channel",
                     "value": {
-                        "serializationOptions": {"maxDomDepth": max_dom_depth}
+                        "channel": "foo",
+                        "serializationOptions": {"maxDomDepth": max_dom_depth},
                     },
                 }
             ],
@@ -201,7 +214,8 @@ async def test_params_arguments_channel_max_dom_depth_invalid_value(
                 {
                     "type": "channel",
                     "value": {
-                        "serializationOptions": {"maxDomDepth": -1}
+                        "channel": "foo",
+                        "serializationOptions": {"maxDomDepth": -1},
                     },
                 }
             ],
@@ -221,7 +235,8 @@ async def test_params_arguments_channel_max_object_depth_invalid_type(
                 {
                     "type": "channel",
                     "value": {
-                        "serializationOptions": {"maxObjectDepth": max_object_depth}
+                        "channel": "foo",
+                        "serializationOptions": {"maxObjectDepth": max_object_depth},
                     },
                 }
             ],
@@ -239,7 +254,10 @@ async def test_params_arguments_channel_max_object_depth_invalid_value(
             arguments=[
                 {
                     "type": "channel",
-                    "value": {"serializationOptions": {"maxObjectDepth": -1}},
+                    "value": {
+                        "channel": "foo",
+                        "serializationOptions": {"maxObjectDepth": -1},
+                    },
                 }
             ],
             await_promise=False,
@@ -258,9 +276,10 @@ async def test_params_arguments_channel_include_shadow_tree_invalid_type(
                 {
                     "type": "channel",
                     "value": {
+                        "channel": "foo",
                         "serializationOptions": {
                             "includeShadowTree": include_shadow_tree
-                        }
+                        },
                     },
                 }
             ],
@@ -279,7 +298,8 @@ async def test_params_arguments_channel_include_shadow_tree_invalid_value(
                 {
                     "type": "channel",
                     "value": {
-                        "serializationOptions": {"includeShadowTree": "_UNKNOWN_"}
+                        "channel": "foo",
+                        "serializationOptions": {"includeShadowTree": "_UNKNOWN_"},
                     },
                 }
             ],
@@ -289,9 +309,7 @@ async def test_params_arguments_channel_include_shadow_tree_invalid_value(
 
 
 @pytest.mark.parametrize("value", [None, False, 42, {}, []])
-async def test_params_arguments_handle_invalid_type(
-    bidi_session, top_context, value
-):
+async def test_params_arguments_handle_invalid_type(bidi_session, top_context, value):
     serialized_value = {
         "handle": value,
     }
@@ -301,12 +319,11 @@ async def test_params_arguments_handle_invalid_type(
             function_declaration="(arg) => arg",
             arguments=[serialized_value],
             await_promise=False,
-            target=ContextTarget(top_context["context"]))
+            target=ContextTarget(top_context["context"]),
+        )
 
 
-async def test_params_arguments_handle_unknown_value(
-    bidi_session, top_context
-):
+async def test_params_arguments_handle_unknown_value(bidi_session, top_context):
     serialized_value = {
         "handle": "foo",
     }
@@ -316,13 +333,12 @@ async def test_params_arguments_handle_unknown_value(
             function_declaration="(arg) => arg",
             arguments=[serialized_value],
             await_promise=False,
-            target=ContextTarget(top_context["context"]))
+            target=ContextTarget(top_context["context"]),
+        )
 
 
 @pytest.mark.parametrize("value", [None, False, 42, {}, []])
-async def test_params_arguments_sharedId_invalid_type(
-    bidi_session, top_context, value
-):
+async def test_params_arguments_sharedId_invalid_type(bidi_session, top_context, value):
     serialized_value = {
         "sharedId": value,
     }
@@ -332,48 +348,59 @@ async def test_params_arguments_sharedId_invalid_type(
             function_declaration="(arg) => arg",
             arguments=[serialized_value],
             await_promise=False,
-            target=ContextTarget(top_context["context"]))
+            target=ContextTarget(top_context["context"]),
+        )
 
 
 @pytest.mark.parametrize("await_promise", [None, "False", 0, 42, {}, []])
-async def test_params_await_promise_invalid_type(bidi_session, top_context,
-                                                 await_promise):
+async def test_params_await_promise_invalid_type(
+    bidi_session, top_context, await_promise
+):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.script.call_function(
             function_declaration="(arg) => arg",
             await_promise=await_promise,
-            target=ContextTarget(top_context["context"]))
+            target=ContextTarget(top_context["context"]),
+        )
 
 
 @pytest.mark.parametrize("result_ownership", [False, "_UNKNOWN_", 42, {}, []])
-async def test_params_result_ownership_invalid_value(bidi_session, top_context,
-                                                     result_ownership):
+async def test_params_result_ownership_invalid_value(
+    bidi_session, top_context, result_ownership
+):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.script.call_function(
             function_declaration="(arg) => arg",
             await_promise=False,
             target=ContextTarget(top_context["context"]),
-            result_ownership=result_ownership)
+            result_ownership=result_ownership,
+        )
 
 
 @pytest.mark.parametrize("serialization_options", [False, "_UNKNOWN_", 42, []])
-async def test_params_serialization_options_invalid_type(bidi_session, top_context, serialization_options):
+async def test_params_serialization_options_invalid_type(
+    bidi_session, top_context, serialization_options
+):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.script.call_function(
             function_declaration="(arg) => arg",
             serialization_options=serialization_options,
             target=ContextTarget(top_context["context"]),
-            await_promise=True)
+            await_promise=True,
+        )
 
 
 @pytest.mark.parametrize("max_dom_depth", [False, "_UNKNOWN_", {}, []])
-async def test_params_max_dom_depth_invalid_type(bidi_session, top_context, max_dom_depth):
+async def test_params_max_dom_depth_invalid_type(
+    bidi_session, top_context, max_dom_depth
+):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.script.call_function(
             function_declaration="(arg) => arg",
             serialization_options=SerializationOptions(max_dom_depth=max_dom_depth),
             target=ContextTarget(top_context["context"]),
-            await_promise=True)
+            await_promise=True,
+        )
 
 
 async def test_params_max_dom_depth_invalid_value(bidi_session, top_context):
@@ -382,17 +409,23 @@ async def test_params_max_dom_depth_invalid_value(bidi_session, top_context):
             function_declaration="(arg) => arg",
             serialization_options=SerializationOptions(max_dom_depth=-1),
             target=ContextTarget(top_context["context"]),
-            await_promise=True)
+            await_promise=True,
+        )
 
 
 @pytest.mark.parametrize("max_object_depth", [False, "_UNKNOWN_", {}, []])
-async def test_params_max_object_depth_invalid_type(bidi_session, top_context, max_object_depth):
+async def test_params_max_object_depth_invalid_type(
+    bidi_session, top_context, max_object_depth
+):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.script.call_function(
             function_declaration="(arg) => arg",
-            serialization_options=SerializationOptions(max_object_depth=max_object_depth),
+            serialization_options=SerializationOptions(
+                max_object_depth=max_object_depth
+            ),
             target=ContextTarget(top_context["context"]),
-            await_promise=True)
+            await_promise=True,
+        )
 
 
 async def test_params_max_object_depth_invalid_value(bidi_session, top_context):
@@ -401,17 +434,23 @@ async def test_params_max_object_depth_invalid_value(bidi_session, top_context):
             function_declaration="(arg) => arg",
             serialization_options=SerializationOptions(max_object_depth=-1),
             target=ContextTarget(top_context["context"]),
-            await_promise=True)
+            await_promise=True,
+        )
 
 
 @pytest.mark.parametrize("include_shadow_tree", [False, 42, {}, []])
-async def test_params_include_shadow_tree_invalid_type(bidi_session, top_context, include_shadow_tree):
+async def test_params_include_shadow_tree_invalid_type(
+    bidi_session, top_context, include_shadow_tree
+):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.script.call_function(
             function_declaration="(arg) => arg",
-            serialization_options=SerializationOptions(include_shadow_tree=include_shadow_tree),
+            serialization_options=SerializationOptions(
+                include_shadow_tree=include_shadow_tree
+            ),
             target=ContextTarget(top_context["context"]),
-            await_promise=True)
+            await_promise=True,
+        )
 
 
 async def test_params_include_shadow_tree_invalid_value(bidi_session, top_context):
@@ -420,14 +459,18 @@ async def test_params_include_shadow_tree_invalid_value(bidi_session, top_contex
             function_declaration="(arg) => arg",
             serialization_options=SerializationOptions(include_shadow_tree="foo"),
             target=ContextTarget(top_context["context"]),
-            await_promise=True)
+            await_promise=True,
+        )
 
 
 @pytest.mark.parametrize("user_activation", ["foo", 42, {}, []])
-async def test_params_user_activation_invalid_type(bidi_session, top_context, user_activation):
+async def test_params_user_activation_invalid_type(
+    bidi_session, top_context, user_activation
+):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.script.call_function(
             function_declaration="(arg) => arg",
             target=ContextTarget(top_context["context"]),
             await_promise=False,
-            user_activation=user_activation)
+            user_activation=user_activation,
+        )

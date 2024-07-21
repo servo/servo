@@ -71,7 +71,19 @@
     // but now expect all of them to pass.
     promise_test(t => {
       trustedTypes.createPolicy("default", {
-        createScript: x => x, createHTML: x => x, createScriptURL: x => x });
+        createScript: (x, _, sink) => {
+          assert_equals(sink, 'SVGScriptElement text');
+          return x;
+        },
+        createHTML: (x, _, sink) => {
+          assert_equals(sink, 'Element innerHTML');
+          return x;
+        },
+        createScriptURL: (x, _, sink) => {
+          assert_equals(sink, 'SVGScriptElement href');
+          return x;
+        }});
+
       return Promise.resolve();
     }, "Setup default policy");
 

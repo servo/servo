@@ -41,7 +41,7 @@
         "data": [
           7
         ],
-        "type": "int64"
+        "type": "int32"
       }
     },
     {
@@ -84,7 +84,7 @@
         "data": [
           7
         ],
-        "type": "int64"
+        "type": "int32"
       }
     },
     {
@@ -127,7 +127,7 @@
         "data": [
           7
         ],
-        "type": "int64"
+        "type": "int32"
       }
     },
     {
@@ -170,7 +170,7 @@
         "data": [
           7
         ],
-        "type": "int64"
+        "type": "int32"
       }
     },
     {
@@ -213,7 +213,7 @@
         "data": [
           7
         ],
-        "type": "int64"
+        "type": "int32"
       }
     },
     {
@@ -256,7 +256,7 @@
         "data": [
           7
         ],
-        "type": "int64"
+        "type": "int32"
       }
     },
     {
@@ -307,7 +307,7 @@
           0,
           0
         ],
-        "type": "int64"
+        "type": "int32"
       }
     },
     {
@@ -376,7 +376,7 @@
           0,
           0
         ],
-        "type": "int64"
+        "type": "int32"
       }
     },
     {
@@ -422,7 +422,7 @@
         "data": [
           7
         ],
-        "type": "int64"
+        "type": "int32"
       }
     },
     {
@@ -468,99 +468,7 @@
         "data": [
           7
         ],
-        "type": "int64"
-      }
-    },
-    {
-      "name": "argMin float32 4D tensor options.selectLastIndex=true",
-      "inputs": {
-        "input": {
-          "shape": [2, 1, 4, 3],
-          "data": [
-            3.830124090690262,
-            -24.986487937638074,
-            5.299982630691289,
-            -48.5486590218902,
-            40.30886781808215,
-            60.184293919409726,
-            -82.78385618759043,
-            -96.50904103637833,
-            71.87028201591897,
-            38.866394268784035,
-            -39.143725517854435,
-            31.444366685561903,
-            -82.78385618759043,
-            -96.50904103637833,
-            -25.53388886326502,
-            -16.142265850469343,
-            66.63677406472371,
-            82.5119815304117,
-            -82.78385618759043,
-            -96.50904103637833,
-            39.7687246127592,
-            42.15040238450999,
-            82.66863662444459,
-            85.4526923278379
-          ],
-          "type": "float32"
-        }
-      },
-      "options": {
-        "selectLastIndex": true
-      },
-      "expected": {
-        "name": "output",
-        "shape": [],
-        "data": [
-          19
-        ],
-        "type": "int64"
-      }
-    },
-    {
-      "name": "argMin float32 4D tensor options.selectLastIndex=false",
-      "inputs": {
-        "input": {
-          "shape": [2, 1, 4, 3],
-          "data": [
-            3.830124090690262,
-            -24.986487937638074,
-            5.299982630691289,
-            -48.5486590218902,
-            40.30886781808215,
-            60.184293919409726,
-            -82.78385618759043,
-            -96.50904103637833,
-            71.87028201591897,
-            38.866394268784035,
-            -39.143725517854435,
-            31.444366685561903,
-            -82.78385618759043,
-            -96.50904103637833,
-            -25.53388886326502,
-            -16.142265850469343,
-            66.63677406472371,
-            82.5119815304117,
-            -82.78385618759043,
-            -96.50904103637833,
-            39.7687246127592,
-            42.15040238450999,
-            82.66863662444459,
-            85.4526923278379
-          ],
-          "type": "float32"
-        }
-      },
-      "options": {
-        "selectLastIndex": false
-      },
-      "expected": {
-        "name": "output",
-        "shape": [],
-        "data": [
-          7
-        ],
-        "type": "int64"
+        "type": "int32"
       }
     },
     {
@@ -609,7 +517,7 @@
           2,
           4
         ],
-        "type": "int64"
+        "type": "int32"
       }
     },
     {
@@ -659,11 +567,11 @@
           1,
           1
         ],
-        "type": "int64"
+        "type": "int32"
       }
     },
     {
-      "name": "argMin float32 4D tensor options.axes=[0, 2] options.selectLastIndex=false",
+      "name": "argMin float32 4D tensor options.axes=[0, 2]",
       "inputs": {
         "input": {
           "shape": [2, 1, 4, 3],
@@ -697,8 +605,7 @@
         }
       },
       "options": {
-        "axes": [0, 2],
-        "selectLastIndex": false
+        "axes": [0, 2]
       },
       "expected": {
         "name": "output",
@@ -708,11 +615,11 @@
           2,
           4
         ],
-        "type": "int64"
+        "type": "int32"
       }
     },
     {
-      "name": "argMin float32 4D tensor options.axes=[0, 2] options.selectLastIndex=true",
+      "name": "argMin float32 4D tensor options.axes=[3, 0, 1]",
       "inputs": {
         "input": {
           "shape": [2, 1, 4, 3],
@@ -746,57 +653,7 @@
         }
       },
       "options": {
-        "axes": [0, 2],
-        "selectLastIndex": true
-      },
-      "expected": {
-        "name": "output",
-        "shape": [1, 3],
-        "data": [
-          6,
-          6,
-          4
-        ],
-        "type": "int64"
-      }
-    },
-    {
-      "name": "argMin float32 4D tensor options.axes=[3, 0, 1] options.selectLastIndex=false",
-      "inputs": {
-        "input": {
-          "shape": [2, 1, 4, 3],
-          "data": [
-            3.830124090690262,
-            -24.986487937638074,
-            5.299982630691289,
-            -48.5486590218902,
-            40.30886781808215,
-            60.184293919409726,
-            -82.78385618759043,
-            -96.50904103637833,
-            71.87028201591897,
-            38.866394268784035,
-            -39.143725517854435,
-            31.444366685561903,
-            -82.78385618759043,
-            -96.50904103637833,
-            -25.53388886326502,
-            -16.142265850469343,
-            66.63677406472371,
-            82.5119815304117,
-            -82.78385618759043,
-            -96.50904103637833,
-            39.7687246127592,
-            42.15040238450999,
-            82.66863662444459,
-            85.4526923278379
-          ],
-          "type": "float32"
-        }
-      },
-      "options": {
-        "axes": [3, 0, 1],
-        "selectLastIndex": false
+        "axes": [3, 0, 1]
       },
       "expected": {
         "name": "output",
@@ -807,57 +664,7 @@
           1,
           1
         ],
-        "type": "int64"
-      }
-    },
-    {
-      "name": "argMin float32 4D tensor options.axes=[3, 0, 1] options.selectLastIndex=true",
-      "inputs": {
-        "input": {
-          "shape": [2, 1, 4, 3],
-          "data": [
-            3.830124090690262,
-            -24.986487937638074,
-            5.299982630691289,
-            -48.5486590218902,
-            40.30886781808215,
-            60.184293919409726,
-            -82.78385618759043,
-            -96.50904103637833,
-            71.87028201591897,
-            38.866394268784035,
-            -39.143725517854435,
-            31.444366685561903,
-            -82.78385618759043,
-            -96.50904103637833,
-            -25.53388886326502,
-            -16.142265850469343,
-            66.63677406472371,
-            82.5119815304117,
-            -82.78385618759043,
-            -96.50904103637833,
-            39.7687246127592,
-            42.15040238450999,
-            82.66863662444459,
-            85.4526923278379
-          ],
-          "type": "float32"
-        }
-      },
-      "options": {
-        "axes": [3, 0, 1],
-        "selectLastIndex": true
-      },
-      "expected": {
-        "name": "output",
-        "shape": [4],
-        "data": [
-          4,
-          0,
-          4,
-          1
-        ],
-        "type": "int64"
+        "type": "int32"
       }
     },
     {
@@ -896,8 +703,7 @@
       },
       "options": {
         "axes": [3, 0],
-        "keepDimensions": true,
-        "selectLastIndex": false
+        "keepDimensions": true
       },
       "expected": {
         "name": "output",
@@ -908,7 +714,7 @@
           1,
           1
         ],
-        "type": "int64"
+        "type": "int32"
       }
     },
     {
@@ -931,11 +737,11 @@
         "data": [
           0
         ],
-        "type": "int64"
+        "type": "int32"
       }
     },
     {
-      "name": "argMin float32 0D scalar options.axes=[] no effect by both keepDimensions and selectLastIndex being true",
+      "name": "argMin float32 0D scalar options.axes=[] no effect by keepDimensions being true",
       "inputs": {
         "input": {
           "shape": [],
@@ -947,8 +753,7 @@
       },
       "options": {
         "axes": [],
-        "keepDimensions": true,
-        "selectLastIndex": true
+        "keepDimensions": true
       },
       "expected": {
         "name": "output",
@@ -956,7 +761,7 @@
         "data": [
           0
         ],
-        "type": "int64"
+        "type": "int32"
       }
     }
   ]

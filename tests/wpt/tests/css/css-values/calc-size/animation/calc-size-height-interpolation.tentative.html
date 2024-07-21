@@ -325,6 +325,7 @@
   ]);
 
   // Test that we don't interpolate if doing so would require too much expansion.
+  // See https://github.com/w3c/csswg-drafts/issues/10369 .
   test_no_interpolation({
     property: 'height',
     from: 'calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(calc-size(auto, size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2), size / 2 + size / 2)',

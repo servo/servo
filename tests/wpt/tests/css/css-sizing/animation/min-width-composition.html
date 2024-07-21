@@ -74,5 +74,18 @@ test_composition({
   {at: 1, expect: 'auto'},
   {at: 1.5, expect: 'auto'},
 ]);
+
+test_composition({
+  property: 'min-width',
+  underlying: 'min-content',
+  addFrom: 'max-content',
+  addTo: 'fit-content',
+}, [
+  {at: -0.3, expect: 'max-content'},
+  {at: 0, expect: 'max-content'},
+  {at: 0.5, expect: 'fit-content'},
+  {at: 1, expect: 'fit-content'},
+  {at: 1.5, expect: 'fit-content'},
+]);
 </script>
 </body>

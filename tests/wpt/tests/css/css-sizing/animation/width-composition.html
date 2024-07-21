@@ -7,6 +7,14 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/interpolation-testcommon.js"></script>
+<style>
+.target::before {
+  display: block;
+  content: "";
+  width: 75px;
+  height: 125px;
+}
+</style>
 
 <body>
 <script>
@@ -74,5 +82,20 @@ test_composition({
   {at: 1, expect: 'auto'},
   {at: 1.5, expect: 'auto'},
 ]);
+
+test_composition({
+  property: 'width',
+  underlying: '100px',
+  addFrom: '100px',
+  addTo: 'min-content', /* 75px, not compatible */
+}, [
+  {at: -0.3, expect: '200px'},
+  {at: 0, expect: '200px'},
+  {at: 0.5, expect: '75px'},
+  {at: 1, expect: '75px'},
+  {at: 1.5, expect: '75px'},
+]);
+</script>
+</body>
 </script>
 </body>

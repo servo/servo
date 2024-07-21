@@ -37,7 +37,7 @@ attribution_reporting_promise_test(async t => {
   assert_own_property(shared_info, 'reporting_origin');
   assert_own_property(shared_info, 'scheduled_report_time');
   assert_own_property(shared_info, 'version');
-  assert_equals(shared_info.version, '0.1');
+  assert_equals(shared_info.version, '1.0');
   assert_own_property(shared_info, 'attribution_destination');
   assert_equals(shared_info.attribution_destination, host);
   assert_not_own_property(shared_info, 'source_registration_time');

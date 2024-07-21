@@ -16,6 +16,85 @@ from .. import (
 
 
 @pytest.mark.asyncio
+async def test_cors_preflight_request(bidi_session, url, fetch, setup_network_test):
+    network_events = await setup_network_test(
+        events=[
+            BEFORE_REQUEST_SENT_EVENT,
+            RESPONSE_COMPLETED_EVENT,
+            RESPONSE_STARTED_EVENT,
+        ],
+        test_url=url(PAGE_EMPTY_HTML),
+    )
+
+    # Track all received network.beforeRequestSent, responseStarted &
+    # responseCompleted events in the events array.
+    events = []
+
+    async def on_event(method, data):
+        events.append(data)
+
+    remove_before_request_sent_listener = bidi_session.add_event_listener(
+        BEFORE_REQUEST_SENT_EVENT, on_event
+    )
+    remove_response_completed_listener = bidi_session.add_event_listener(
+        RESPONSE_COMPLETED_EVENT, on_event
+    )
+    remove_response_started_listener = bidi_session.add_event_listener(
+        RESPONSE_STARTED_EVENT, on_event
+    )
+
+    fetch_url = url(
+        "/webdriver/tests/support/http_handlers/headers.py?"
+        + "header=Access-Control-Allow-Origin:*&header=Access-Control-Allow-Headers:Content-Type",
+        domain="alt",
+    )
+    asyncio.ensure_future(
+        fetch(fetch_url, method="GET", headers={"Content-Type": "custom/type"})
+    )
+
+    wait = AsyncPoll(bidi_session, timeout=2)
+    await wait.until(lambda _: len(events) >= 6)
+
+    # Check that all events for the CORS preflight request are received before
+    # receiving events for the actual request
+
+    # Preflight beforeRequestSent
+    assert_before_request_sent_event(
+        events[0],
+        expected_request={"method": "OPTIONS", "url": fetch_url},
+    )
+    # Preflight responseStarted
+    assert_response_event(
+        events[1],
+        expected_request={"method": "OPTIONS", "url": fetch_url},
+    )
+    # Preflight responseCompleted
+    assert_response_event(
+        events[2],
+        expected_request={"method": "OPTIONS", "url": fetch_url},
+    )
+    # Actual request beforeRequestSent
+    assert_before_request_sent_event(
+        events[3],
+        expected_request={"method": "GET", "url": fetch_url},
+    )
+    # Actual request responseStarted
+    assert_response_event(
+        events[4],
+        expected_request={"method": "GET", "url": fetch_url},
+    )
+    # Actual request responseCompleted
+    assert_response_event(
+        events[5],
+        expected_request={"method": "GET", "url": fetch_url},
+    )
+
+    remove_before_request_sent_listener()
+    remove_response_completed_listener()
+    remove_response_started_listener()
+
+
+@pytest.mark.asyncio
 async def test_iframe_navigation_request(
     bidi_session,
     top_context,

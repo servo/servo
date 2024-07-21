@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  @page {
+    margin: 0;
+  }
+  body {
+    margin: 0;
+  }
+  .page {
+    display: grid;
+    grid-template-rows: 4em auto 4em;
+    height: 100vh;
+    margin: 0 4em;
+  }
+</style>
+<div class="page">
+  <div></div>
+  <div>
+    All pages except this one should display the current page and the total page
+    count in both the header and footer.
+  </div>
+  <div></div>
+</div>
+<div class="page">
+  <div>Page 2 of 3</div>
+  <div>Another page</div>
+  <div>Page 2 of 3</div>
+</div>
+<div class="page">
+  <div>Page 3 of 3</div>
+  <div>Yet another page</div>
+  <div>Page 3 of 3</div>
+</div>

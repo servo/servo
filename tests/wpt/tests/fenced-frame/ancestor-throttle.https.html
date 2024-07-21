@@ -34,7 +34,7 @@ async function runTest(embed_url,
   // sent to the server. Otherwise "blocked" will be sent after 3 seconds.
   step_timeout(() => {
     writeValueToServer(ancestor_key, "blocked");
-  }, 1000);
+  }, 3000);
 
   // Get the result for the fenced frame's nested iframe.
   const fenced_frame_result = await nextValueFromServer(ancestor_key);

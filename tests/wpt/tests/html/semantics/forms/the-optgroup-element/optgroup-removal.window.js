@@ -1,6 +1,6 @@
 test(() => {
   const select = document.createElement("select");
-  select.innerHTML = "<optgroup><option>1<optgroup><option>2";
+  select.innerHTML = "<optgroup><option>1</optgroup><optgroup><option>2";
   assert_equals(select.value, "1");
   select.querySelector("optgroup").remove();
   assert_equals(select.value, "2");

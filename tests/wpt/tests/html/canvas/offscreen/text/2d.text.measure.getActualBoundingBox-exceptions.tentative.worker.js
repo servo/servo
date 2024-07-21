@@ -36,6 +36,7 @@ t.step(function() {
                       () => tm.getActualBoundingBox(0, text.length + 1) );
     assert_throws_dom("IndexSizeError",
                       () => tm.getActualBoundingBox(text.length, text.length + 1) );
+  }
   t.done();
 });
 done();

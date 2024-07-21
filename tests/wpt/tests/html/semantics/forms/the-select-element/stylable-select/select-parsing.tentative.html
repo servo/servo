@@ -37,12 +37,9 @@
 </select>
 
 <select id=s6>
-<button>
-<button></button>
-</button>
-<datalist>
-<datalist></datalist>
-</datalist>
+  <div>
+    <option><img>option</option>
+  </div>
 </select>
 
 <div id=afterlast>
@@ -55,15 +52,15 @@ test(() => {
   // previous test case didn't leave the HTML parser open on another element.
   assert_equals(document.getElementById('s1').parentNode, document.body);
   assert_equals(document.getElementById('s1').innerHTML, `
-  div 1
+  <div>div 1</div>
   <button>button</button>
-  div 2
+  <div>div 2</div>
   <datalist>
     <option>option</option>
   </datalist>
-  div 3
+  <div>div 3</div>
 `);
-}, '<button>s and <datalist>s should be allowed in <select>.');
+}, '<div>s, <button>s, and <datalist>s should be allowed in <select>.');
 
 test(() => {
   assert_equals(document.getElementById('s2').parentNode, document.body);
@@ -97,14 +94,11 @@ test(() => {
 test(() => {
   assert_equals(document.getElementById('s6').parentNode, document.body);
   assert_equals(document.getElementById('s6').innerHTML, `
-<button>
-</button>
-
-<datalist>
-</datalist>
-
+  <div>
+    <option><img>option</option>
+  </div>
 `);
-}, 'Nested <button>s or <datalist>s in <select> should be dropped.');
+}, 'Divs and imgs should be allowed as direct children of select and within options without a datalist.');
 
 test(() => {
   assert_equals(document.getElementById('afterlast').parentNode, document.body);
