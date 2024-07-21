@@ -298,14 +298,14 @@ fn((t) => {
 });
 
 g.test('partial_eval_errors').
-desc('Tests partial evaluation errors for left shift').
+desc('Tests partial evaluation errors for left and right shift').
 params((u) =>
 u.
 combine('op', ['<<', '>>']).
 combine('type', ['i32', 'u32']).
 beginSubcases().
 combine('stage', ['shader', 'pipeline']).
-combine('value', [32, 33, 64])
+combine('value', [31, 32, 33, 64])
 ).
 fn((t) => {
   const u32 = Type.u32;
@@ -315,12 +315,12 @@ fn((t) => {
   }
   const wgsl = `
 override o = 0u;
-fn foo() {
+fn foo() -> ${t.params.type} {
   var v : ${t.params.type} = 0;
-  let tmp = v ${t.params.op} ${rhs};
+  return v ${t.params.op} ${rhs};
 }`;
 
-  const expect = t.params.value <= 32;
+  const expect = t.params.value < 32;
   if (t.params.stage === 'shader') {
     t.expectCompileResult(expect, wgsl);
   } else {
@@ -330,7 +330,7 @@ fn foo() {
       expectedResult: expect,
       code: wgsl,
       constants,
-      reference: ['o']
+      reference: ['o', 'foo()']
     });
   }
 });

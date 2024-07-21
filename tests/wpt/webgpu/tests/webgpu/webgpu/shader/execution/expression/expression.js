@@ -430,7 +430,17 @@ batch_size)
     }
     batchesInFlight += 1;
 
-    pendingBatches.push(processBatch(batchCases).finally(batchFinishedCallback));
+    pendingBatches.push(
+      processBatch(batchCases).
+      catch((err) => {
+        if (err instanceof GPUPipelineError) {
+          t.fail(`Pipeline Creation Error, ${err.reason}: ${err.message}`);
+        } else {
+          throw err;
+        }
+      }).
+      finally(batchFinishedCallback)
+    );
   }
 
   await Promise.all(pendingBatches);

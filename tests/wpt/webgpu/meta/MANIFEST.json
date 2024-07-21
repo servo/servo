@@ -528,7 +528,7 @@
     []
    ],
    "checkout_commit.txt": [
-    "ba9ce014f077d7700ba4fb1c54f9061aab4e062c",
+    "a52cebd18ee4178ebee8c0c3310d43b001c52534",
     []
    ],
    "webgpu": {
@@ -645,7 +645,7 @@
        []
       ],
       "version.js": [
-       "1583378be3382623678c24860638334537ea0a56",
+       "8b224ed0153532ada2ac18d9a832b3484b7ebb53",
        []
       ],
       "websocket_logger.js": [
@@ -2037,7 +2037,7 @@
          []
         ],
         "depth_stencil_state.spec.js": [
-         "8be7ee6e8841b6c5359c9d0802e3ff66cf742a2e",
+         "1a5f4e41bee6a1e87a0990cc2d256132a965cc96",
          []
         ],
         "fragment_state.spec.js": [
@@ -3259,7 +3259,7 @@
            []
           ],
           "textureLoad.spec.js": [
-           "7dc13aa0377d94d3cf3e1bd2da09c4f035b52873",
+           "4c9789b1b0367f24717d790d1af66892116b9f02",
            []
           ],
           "textureNumLayers.spec.js": [
@@ -3303,7 +3303,7 @@
            []
           ],
           "texture_utils.js": [
-           "4de55d82e5e73dbc54e47772cc4b36c9f81d2852",
+           "d684573c2949a7ab904d197a97fd4db35db52cc7",
            []
           ],
           "transpose.cache.js": [
@@ -3371,7 +3371,7 @@
            []
           ],
           "utils.js": [
-           "a603a10a6f7301299478db804680abf21a4da8b9",
+           "93651bcf971e686c523d08b9a0ddf80755bfb6ca",
            []
           ],
           "workgroupBarrier.spec.js": [
@@ -3413,7 +3413,7 @@
          []
         ],
         "expression.js": [
-         "2c1a2c9473e7ac67122794e74ba1634707893e24",
+         "8ce5a018ac0a8216ee7016c4acf11422abca276b",
          []
         ],
         "interval_filter.js": [
@@ -3640,7 +3640,7 @@
         []
        ],
        "robust_access.spec.js": [
-        "12f83e420846db6763b8aad6132202eea97af39e",
+        "96e58aa337801b8ea560d806155b027c7f7c1f83",
         []
        ],
        "robust_access_vertex.spec.js": [
@@ -3701,7 +3701,7 @@
        ]
       },
       "types.js": [
-       "7855490eea9498f93b6345d1046fdc71a101bc0c",
+       "9f18971ebf944979e39792a8dc6d6af9a6cfc3c3",
        []
       ],
       "validation": {
@@ -3770,7 +3770,7 @@
           []
          ],
          "bitwise_shift.spec.js": [
-          "2894eafb016a1709f4c45f3091ddee41d624358a",
+          "dc9a4306c7a6793474a0025a267c2ab6b4ac01a5",
           []
          ],
          "comparison.spec.js": [
@@ -7499,7 +7499,7 @@
   "testharness": {
    "webgpu": {
     "cts.https.html": [
-     "e516a3b38767a0d82d614f5c9d1207d86f726c3b",
+     "3c5b8f7c30964b2d3eaa3e75f23d9096ce395e62",
      [
       "webgpu/cts.https.html?q=webgpu:api,operation,adapter,info:adapter_info:*",
       {
@@ -11750,6 +11750,12 @@
      ],
      [
       "webgpu/cts.https.html?q=webgpu:api,validation,render_pipeline,depth_stencil_state:depthWriteEnabled_optional:*",
+      {
+       "timeout": "long"
+      }
+     ],
+     [
+      "webgpu/cts.https.html?q=webgpu:api,validation,render_pipeline,depth_stencil_state:depth_bias:*",
       {
        "timeout": "long"
       }

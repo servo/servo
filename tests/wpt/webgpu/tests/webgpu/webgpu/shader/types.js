@@ -241,6 +241,11 @@ export function* generateTypes({
 
 
 
+
+
+
+
+
 {
   const scalarInfo = kScalarTypeInfo[baseType];
   if (isAtomic) {
@@ -308,6 +313,7 @@ export function* generateTypes({
     let arrayElementCount = kDefaultArrayLength;
     let supportsAtomics = scalarInfo.supportsAtomics;
     let layout = undefined;
+    let accessSuffixes = undefined;
     if (scalarInfo.layout) {
       // Compute the layout of the array type.
       // Adjust the array element count or element type as needed.
@@ -318,6 +324,7 @@ export function* generateTypes({
         assert(!isAtomic, 'the uniform case is making vec4 of scalar, which cannot handle atomics');
         arrayElemType = `vec4<${baseType}>`;
         supportsAtomics = false;
+        accessSuffixes = ['.x', '.y', '.z', '.w'];
         const arrayElemLayout = vectorLayout('vec4', baseType);
         // assert(arrayElemLayout.alignment % 16 === 0); // Callers responsibility to avoid
         arrayElementCount = align(arrayElementCount, 4) / 4;
@@ -343,7 +350,8 @@ export function* generateTypes({
       elementBaseType: `${baseType}`,
       arrayLength: arrayElementCount,
       layout,
-      supportsAtomics
+      supportsAtomics,
+      accessSuffixes
     };
 
     // Sized

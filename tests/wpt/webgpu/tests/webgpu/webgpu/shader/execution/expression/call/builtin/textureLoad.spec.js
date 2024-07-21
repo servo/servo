@@ -24,7 +24,9 @@ import {
   isCompressedFloatTextureFormat,
   isDepthTextureFormat,
   kCompressedTextureFormats,
-  kEncodableTextureFormats } from
+  kEncodableTextureFormats,
+  kTextureFormatInfo,
+  textureDimensionAndFormatCompatible } from
 '../../../../../format_info.js';
 import { GPUTest } from '../../../../../gpu_test.js';
 import {
@@ -34,6 +36,7 @@ import {
   pack4x8unorm,
   pack4x8snorm } from
 '../../../../../util/conversion.js';
+import { maxMipLevelCount } from '../../../../../util/texture/base.js';
 import { TexelFormats } from '../../../../types.js';
 
 import {
@@ -44,14 +47,19 @@ import {
   doTextureCalls,
   appendComponentTypeForFormatToTextureType } from
 
+
+
 './texture_utils.js';
 import {
 
 
+
   generateCoordBoundaries,
   getCoordinateForBoundaries,
+  getLayerFromLayerSpec,
   getMipLevelFromLevelSpec,
   isBoundaryNegative,
+  isLayerSpecNegative,
   isLevelSpecNegative } from
 './utils.js';
 
@@ -65,8 +73,14 @@ function filterOutU32WithNegativeValues(t)
 
 
 
+
 {
-  return t.C === 'i32' || !isLevelSpecNegative(t.level) && !isBoundaryNegative(t.coordsBoundary);
+  return (
+    t.C === 'i32' ||
+    !isLevelSpecNegative(t.level) &&
+    !isBoundaryNegative(t.coordsBoundary) &&
+    !isLayerSpecNegative(t.array_index ?? 0));
+
 }
 
 export const g = makeTestGroup(GPUTest);
@@ -87,11 +101,64 @@ Parameters:
 ).
 params((u) =>
 u.
+combine('format', kTestableColorFormats).
+filter((t) => textureDimensionAndFormatCompatible('1d', t.format))
+// 1d textures can't have a height !== 1
+.filter((t) => kTextureFormatInfo[t.format].blockHeight === 1).
+beginSubcases().
 combine('C', ['i32', 'u32']).
-combine('coords', generateCoordBoundaries(1)).
-combine('level', [-1, 0, `numlevels-1`, `numlevels`])
+combine('L', ['i32', 'u32']).
+combine('coordsBoundary', generateCoordBoundaries(1)).
+combine('level', [-1, 0, `numLevels-1`, `numLevels`])
+// Only test level out of bounds if coordBoundary is in-bounds
+.filter((t) => !(t.level !== 0 && t.coordsBoundary !== 'in-bounds')).
+filter(filterOutU32WithNegativeValues)
 ).
-unimplemented();
+beforeAllSubcases((t) => {
+  const { format } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
+  t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format);
+}).
+fn(async (t) => {
+  const { format, C, L, coordsBoundary, level } = t.params;
+
+  // We want at least 4 blocks or something wide enough for 3 mip levels.
+  const [width] = chooseTextureSize({ minSize: 8, minBlocks: 4, format });
+  const size = [width, 1];
+
+  const descriptor = {
+    format,
+    dimension: '1d',
+    size,
+    usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+  };
+  const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
+  const mipLevel = getMipLevelFromLevelSpec(texture.mipLevelCount, level);
+  const coords = getCoordinateForBoundaries(texture, mipLevel, coordsBoundary);
+
+  const calls = [
+  {
+    builtin: 'textureLoad',
+    coordType: C === 'i32' ? 'i' : 'u',
+    levelType: L === 'i32' ? 'i' : 'u',
+    mipLevel,
+    coords
+  }];
+
+  const textureType = appendComponentTypeForFormatToTextureType('texture_1d', texture.format);
+  const viewDescriptor = {};
+  const sampler = undefined;
+  const results = await doTextureCalls(t, texture, viewDescriptor, textureType, sampler, calls);
+  const res = await checkCallResults(
+    t,
+    { texels, descriptor, viewDescriptor },
+    textureType,
+    sampler,
+    calls,
+    results
+  );
+  t.expectOK(res);
+});
 
 g.test('sampled_2d').
 specURL('https://www.w3.org/TR/WGSL/#textureload').
@@ -116,7 +183,9 @@ beginSubcases().
 combine('C', ['i32', 'u32']).
 combine('L', ['i32', 'u32']).
 combine('coordsBoundary', generateCoordBoundaries(2)).
-combine('level', [-1, 0, `numLevels-1`, `numLevels`]).
+combine('level', [-1, 0, `numLevels-1`, `numLevels`])
+// Only test level out of bounds if coordBoundary is in-bounds
+.filter((t) => !(t.level !== 0 && t.coordsBoundary !== 'in-bounds')).
 filter(filterOutU32WithNegativeValues)
 ).
 beforeAllSubcases((t) => {
@@ -128,12 +197,13 @@ fn(async (t) => {
   const { format, C, L, coordsBoundary, level } = t.params;
 
   // We want at least 4 blocks or something wide enough for 3 mip levels.
-  const [width, height] = chooseTextureSize({ minSize: 8, minBlocks: 4, format });
+  const size = chooseTextureSize({ minSize: 8, minBlocks: 4, format });
 
   const descriptor = {
     format,
-    size: { width, height },
-    usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+    size,
+    usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+    mipLevelCount: maxMipLevelCount({ size })
   };
   const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
   const mipLevel = getMipLevelFromLevelSpec(texture.mipLevelCount, level);
@@ -179,11 +249,62 @@ Parameters:
 ).
 params((u) =>
 u.
+combine('format', kTestableColorFormats).
+filter((t) => textureDimensionAndFormatCompatible('3d', t.format)).
+beginSubcases().
 combine('C', ['i32', 'u32']).
-combine('coords', generateCoordBoundaries(3)).
+combine('L', ['i32', 'u32']).
+combine('coordsBoundary', generateCoordBoundaries(3)).
 combine('level', [-1, 0, `numLevels-1`, `numLevels`])
+// Only test level out of bounds if coordBoundary is in-bounds
+.filter((t) => !(t.level !== 0 && t.coordsBoundary !== 'in-bounds')).
+filter(filterOutU32WithNegativeValues)
 ).
-unimplemented();
+beforeAllSubcases((t) => {
+  const { format } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
+  t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format);
+}).
+fn(async (t) => {
+  const { format, C, L, coordsBoundary, level } = t.params;
+
+  // We want at least 4 blocks or something wide enough for 3 mip levels.
+  const size = chooseTextureSize({ minSize: 8, minBlocks: 4, format, viewDimension: '3d' });
+
+  const descriptor = {
+    format,
+    dimension: '3d',
+    size,
+    usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+    mipLevelCount: maxMipLevelCount({ size })
+  };
+  const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
+  const mipLevel = getMipLevelFromLevelSpec(texture.mipLevelCount, level);
+  const coords = getCoordinateForBoundaries(texture, mipLevel, coordsBoundary);
+
+  const calls = [
+  {
+    builtin: 'textureLoad',
+    coordType: C === 'i32' ? 'i' : 'u',
+    levelType: L === 'i32' ? 'i' : 'u',
+    mipLevel,
+    coords
+  }];
+
+  const textureType = appendComponentTypeForFormatToTextureType('texture_3d', texture.format);
+  const viewDescriptor = {};
+  const sampler = undefined;
+  const results = await doTextureCalls(t, texture, viewDescriptor, textureType, sampler, calls);
+  const res = await checkCallResults(
+    t,
+    { texels, descriptor, viewDescriptor },
+    textureType,
+    sampler,
+    calls,
+    results
+  );
+  t.expectOK(res);
+});
 
 g.test('multisampled').
 specURL('https://www.w3.org/TR/WGSL/#textureload').
@@ -259,8 +380,8 @@ desc(
   `
 C is i32 or u32
 
-fn textureLoad(t: texture_2d_array<T>, coords: vec2<C>, array_index: C, level: C) -> vec4<T>
-fn textureLoad(t: texture_depth_2d_array, coords: vec2<C>, array_index: C, level: C) -> f32
+fn textureLoad(t: texture_2d_array<T>, coords: vec2<C>, array_index: A, level: L) -> vec4<T>
+fn textureLoad(t: texture_depth_2d_array, coords: vec2<C>, array_index: A, level: L) -> f32
 
 Parameters:
  * t: The sampled texture to read from
@@ -271,14 +392,73 @@ Parameters:
 ).
 params((u) =>
 u.
+combine('format', kTestableColorFormats)
+// MAINTENANCE_TODO: Update createTextureFromTexelViews to support depth32float and remove this filter.
+.filter((t) => t.format !== 'depth32float' && !isCompressedFloatTextureFormat(t.format)).
 combine('texture_type', ['texture_2d_array', 'texture_depth_2d_array']).
+filter(
+  (t) => !(t.texture_type === 'texture_depth_2d_array' && !isDepthTextureFormat(t.format))
+).
 beginSubcases().
 combine('C', ['i32', 'u32']).
-combine('coords', generateCoordBoundaries(2)).
-combine('array_index', [-1, 0, `numlayers-1`, `numlayers`]).
+combine('A', ['i32', 'u32']).
+combine('L', ['i32', 'u32']).
+combine('coordsBoundary', generateCoordBoundaries(3)).
+combine('array_index', [-1, 0, `numLayers-1`, `numLayers`])
+// Only test array_index out of bounds if coordBoundary is in bounds
+.filter((t) => !(t.array_index !== 0 && t.coordsBoundary !== 'in-bounds')).
 combine('level', [-1, 0, `numLevels-1`, `numLevels`])
+// Only test level out of bounds if coordBoundary and array_index are in bounds
+.filter((t) => !(t.level !== 0 && (t.coordsBoundary !== 'in-bounds' || t.array_index !== 0))).
+filter(filterOutU32WithNegativeValues)
 ).
-unimplemented();
+beforeAllSubcases((t) => {
+  const { format } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
+  t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format);
+}).
+fn(async (t) => {
+  const { texture_type, format, C, A, L, coordsBoundary, level, array_index } = t.params;
+
+  // We want at least 4 blocks or something wide enough for 3 mip levels.
+  const size = chooseTextureSize({ minSize: 8, minBlocks: 4, format, viewDimension: '3d' });
+
+  const descriptor = {
+    format,
+    size,
+    usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+    mipLevelCount: maxMipLevelCount({ size })
+  };
+  const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
+  const mipLevel = getMipLevelFromLevelSpec(texture.mipLevelCount, level);
+  const arrayIndex = getLayerFromLayerSpec(texture.depthOrArrayLayers, array_index);
+  const coords = getCoordinateForBoundaries(texture, mipLevel, coordsBoundary);
+
+  const calls = [
+  {
+    builtin: 'textureLoad',
+    coordType: C === 'i32' ? 'i' : 'u',
+    levelType: L === 'i32' ? 'i' : 'u',
+    arrayIndexType: A === 'i32' ? 'i' : 'u',
+    arrayIndex,
+    mipLevel,
+    coords
+  }];
+
+  const textureType = appendComponentTypeForFormatToTextureType(texture_type, texture.format);
+  const viewDescriptor = {};
+  const sampler = undefined;
+  const results = await doTextureCalls(t, texture, viewDescriptor, textureType, sampler, calls);
+  const res = await checkCallResults(
+    t,
+    { texels, descriptor, viewDescriptor },
+    textureType,
+    sampler,
+    calls,
+    results
+  );
+  t.expectOK(res);
+});
 
 // Returns texel values to use as inputs for textureLoad.
 // Values are kept simple to avoid rounding issues.
