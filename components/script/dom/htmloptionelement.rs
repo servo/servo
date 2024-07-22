@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix, QualName};
 use js::rust::HandleObject;
 use style::str::{split_html_space_chars, str_join};
-use style_traits::dom::ElementState;
+use style_dom::ElementState;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;

@@ -11,7 +11,7 @@ use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
 use script_traits::ScriptToConstellationChan;
 use style::attr::AttrValue;
-use style_traits::dom::ElementState;
+use style_dom::ElementState;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
