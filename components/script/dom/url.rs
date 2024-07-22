@@ -141,7 +141,7 @@ impl URL {
     ) -> Option<DomRoot<URL>> {
         // Step 1: Let parsedURL be the result of running the API URL parser on url with base,
         // if given.
-        let parsed_base = base.map(|b| ServoUrl::parse(b.0.as_str()).ok()).flatten();
+        let parsed_base = base.and_then(|base| ServoUrl::parse(base.0.as_str()).ok());
         let parsed_url = ServoUrl::parse_with_base(parsed_base.as_ref(), &url.0);
 
         // Step 2: If parsedURL is failure, then return null.
@@ -152,7 +152,7 @@ impl URL {
         // These steps are all handled while mapping the Result to an Option<ServoUrl>.
         // Regarding initialization, the same condition should apply here as stated in the comments
         // in Self::Constructor above - construct it on-demand inside `URL::SearchParams`.
-        parsed_url.ok().map(|u| URL::new(global, None, u))
+        Some(URL::new(global, None, parsed_url.ok()?))
     }
 
     /// <https://w3c.github.io/FileAPI/#dfn-createObjectURL>
@@ -205,6 +205,7 @@ impl URL {
     }
 }
 
+#[allow(non_snake_case)]
 impl URLMethods for URL {
     /// <https://url.spec.whatwg.org/#dom-url-hash>
     fn Hash(&self) -> USVString {
