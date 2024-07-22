@@ -89,7 +89,7 @@ pub enum WebGPURequest {
     CreateBuffer {
         device_id: id::DeviceId,
         buffer_id: id::BufferId,
-        descriptor: Option<BufferDescriptor<'static>>,
+        descriptor: BufferDescriptor<'static>,
     },
     CreateCommandEncoder {
         device_id: id::DeviceId,

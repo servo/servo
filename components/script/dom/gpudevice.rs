@@ -256,23 +256,16 @@ impl GPUDeviceMethods for GPUDevice {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer>
     fn CreateBuffer(&self, descriptor: &GPUBufferDescriptor) -> Fallible<DomRoot<GPUBuffer>> {
-        let desc =
-            wgt::BufferUsages::from_bits(descriptor.usage).map(|usg| wgpu_res::BufferDescriptor {
-                label: convert_label(&descriptor.parent),
-                size: descriptor.size as wgt::BufferAddress,
-                usage: usg,
-                mapped_at_creation: descriptor.mappedAtCreation,
-            });
+        let desc = wgpu_res::BufferDescriptor {
+            label: convert_label(&descriptor.parent),
+            size: descriptor.size as wgt::BufferAddress,
+            usage: wgt::BufferUsages::from_bits_retain(descriptor.usage),
+            mapped_at_creation: descriptor.mappedAtCreation,
+        };
         let id = self
             .global()
             .wgpu_id_hub()
             .create_buffer_id(self.device.0.backend());
-
-        if desc.is_none() {
-            self.dispatch_error(webgpu::Error::Validation(String::from(
-                "Invalid GPUBufferUsage",
-            )));
-        }
 
         self.channel
             .0

@@ -356,13 +356,11 @@ impl WGPU {
                         descriptor,
                     } => {
                         let global = &self.global;
-                        if let Some(desc) = descriptor {
-                            let (_, error) = gfx_select!(buffer_id =>
-                                global.device_create_buffer(device_id, &desc, Some(buffer_id)));
+                                                    let (_, error) = gfx_select!(buffer_id =>
+                                global.device_create_buffer(device_id, &descriptor, Some(buffer_id)));
 
                             self.maybe_dispatch_wgpu_error(device_id, error);
-                        }
-                    },
+                                            },
                     WebGPURequest::CreateCommandEncoder {
                         device_id,
                         command_encoder_id,
