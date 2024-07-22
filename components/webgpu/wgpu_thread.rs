@@ -173,6 +173,7 @@ impl WGPU {
     pub(crate) fn run(&mut self) {
         loop {
             if let Ok(msg) = self.receiver.recv() {
+                log::trace!("recv: {msg:?}");
                 match msg {
                     WebGPURequest::BufferMapAsync {
                         sender,
@@ -356,11 +357,11 @@ impl WGPU {
                         descriptor,
                     } => {
                         let global = &self.global;
-                                                    let (_, error) = gfx_select!(buffer_id =>
-                                global.device_create_buffer(device_id, &descriptor, Some(buffer_id)));
+                        let (_, error) = gfx_select!(buffer_id =>
+                            global.device_create_buffer(device_id, &descriptor, Some(buffer_id)));
 
-                            self.maybe_dispatch_wgpu_error(device_id, error);
-                                            },
+                        self.maybe_dispatch_wgpu_error(device_id, error);
+                    },
                     WebGPURequest::CreateCommandEncoder {
                         device_id,
                         command_encoder_id,
