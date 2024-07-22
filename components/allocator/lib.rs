@@ -13,7 +13,7 @@ pub use crate::platform::*;
 mod platform {
     use std::os::raw::c_void;
 
-    pub use jemallocator::Jemalloc as Allocator;
+    pub use tikv_jemallocator::Jemalloc as Allocator;
 
     /// Get the size of a heap block.
     ///
@@ -21,12 +21,12 @@ mod platform {
     ///
     /// Passing a non-heap allocated pointer to this function results in undefined behavior.
     pub unsafe extern "C" fn usable_size(ptr: *const c_void) -> usize {
-        jemallocator::usable_size(ptr)
+        tikv_jemallocator::usable_size(ptr)
     }
 
     /// Memory allocation APIs compatible with libc
     pub mod libc_compat {
-        pub use jemalloc_sys::{free, malloc, realloc};
+        pub use tikv_jemalloc_sys::{free, malloc, realloc};
     }
 }
 

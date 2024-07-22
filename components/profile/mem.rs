@@ -500,7 +500,7 @@ mod system_reporter {
     }
 
     #[cfg(not(any(target_os = "windows", target_env = "ohos")))]
-    use jemalloc_sys::mallctl;
+    use tikv_jemalloc_sys::mallctl;
 
     #[cfg(not(any(target_os = "windows", target_env = "ohos")))]
     fn jemalloc_stat(value_name: &str) -> Option<usize> {

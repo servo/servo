@@ -13,8 +13,8 @@ path = "lib.rs"
 use-system-allocator = ["libc"]
 
 [target.'cfg(not(any(windows, target_env = "ohos")))'.dependencies]
-jemallocator = { workspace = true }
-jemalloc-sys = { workspace = true }
+tikv-jemallocator = { workspace = true }
+tikv-jemalloc-sys = { workspace = true }
 libc = { workspace = true, optional = true }
 
 [target.'cfg(windows)'.dependencies]
