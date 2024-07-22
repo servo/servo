@@ -1808,19 +1808,31 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             ScrollLocation::Start | ScrollLocation::End => scroll_location,
         };
 
-        let hit_test_result = match self.hit_test_at_point(cursor) {
-            Some(result) => result,
-            None => return None,
-        };
+        let hit_test_results =
+            self.hit_test_at_point_with_flags_and_pipeline(cursor, HitTestFlags::FIND_ALL, None);
 
-        let pipeline_details = match self.pipeline_details.get_mut(&hit_test_result.pipeline_id) {
-            Some(details) => details,
-            None => return None,
-        };
-        pipeline_details
-            .scroll_tree
-            .scroll_node_or_ancestor(&hit_test_result.scroll_tree_node, scroll_location)
-            .map(|(external_id, offset)| (hit_test_result.pipeline_id, external_id, offset))
+        // Iterate through all hit test results, processing only the first node of each pipeline.
+        // This is needed to propagate the scroll events from a pipeline representing an iframe to
+        // its ancestor pipelines.
+        let mut previous_pipeline_id = None;
+        for CompositorHitTestResult {
+            pipeline_id,
+            scroll_tree_node,
+            ..
+        } in hit_test_results.iter()
+        {
+            if previous_pipeline_id.replace(pipeline_id) != Some(pipeline_id) {
+                let scroll_result = self
+                    .pipeline_details
+                    .get_mut(&pipeline_id)?
+                    .scroll_tree
+                    .scroll_node_or_ancestor(&scroll_tree_node, scroll_location);
+                if let Some((external_id, offset)) = scroll_result {
+                    return Some((*pipeline_id, external_id, offset));
+                }
+            }
+        }
+        None
     }
 
     /// If there are any animations running, dispatches appropriate messages to the constellation.
