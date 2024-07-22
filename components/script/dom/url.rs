@@ -104,7 +104,7 @@ impl URL {
         };
 
         // Skip the steps below.
-        // Instead of construcing a new `URLSearchParams` object here, construct it
+        // Instead of constructing a new `URLSearchParams` object here, construct it
         // on-demand inside `URL::SearchParams`.
         //
         // Step 3. Let query be parsedURL’s query.
@@ -131,6 +131,28 @@ impl URL {
         };
         // Step 2.2, 3
         ServoUrl::parse_with_base(parsed_base.as_ref(), &url.0).is_ok()
+    }
+
+    /// <https://url.spec.whatwg.org/#dom-url-parse>
+    pub fn Parse(
+        global: &GlobalScope,
+        url: USVString,
+        base: Option<USVString>,
+    ) -> Option<DomRoot<URL>> {
+        // Step 1: Let parsedURL be the result of running the API URL parser on url with base,
+        // if given.
+        let parsed_base = base.and_then(|base| ServoUrl::parse(base.0.as_str()).ok());
+        let parsed_url = ServoUrl::parse_with_base(parsed_base.as_ref(), &url.0);
+
+        // Step 2: If parsedURL is failure, then return null.
+        // Step 3: Let url be a new URL object.
+        // Step 4: Initialize url with parsedURL.
+        // Step 5: Return url.
+
+        // These steps are all handled while mapping the Result to an Option<ServoUrl>.
+        // Regarding initialization, the same condition should apply here as stated in the comments
+        // in Self::Constructor above - construct it on-demand inside `URL::SearchParams`.
+        Some(URL::new(global, None, parsed_url.ok()?))
     }
 
     /// <https://w3c.github.io/FileAPI/#dfn-createObjectURL>
@@ -183,6 +205,7 @@ impl URL {
     }
 }
 
+#[allow(non_snake_case)]
 impl URLMethods for URL {
     /// <https://url.spec.whatwg.org/#dom-url-hash>
     fn Hash(&self) -> USVString {

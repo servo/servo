@@ -8,6 +8,7 @@
 interface URL {
   [Throws] constructor(USVString url, optional USVString base);
 
+  static URL? parse(USVString url, optional USVString base);
   static boolean canParse(USVString url, optional USVString base);
 
   [SetterThrows]
