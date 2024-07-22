@@ -38,7 +38,7 @@ fn((t) => {
   const usage = BufferUsage.COPY_SRC;
   t.expectGPUError(
     'validation',
-    () => t.device.createBuffer({ size, usage, mappedAtCreation }),
+    () => t.createBufferTracked({ size, usage, mappedAtCreation }),
     !isValid
   );
 });
@@ -51,7 +51,7 @@ fn((t) => {
   const size = t.makeLimitVariant('maxBufferSize', { mult: 1, add: sizeAddition });
   const isValid = size <= t.device.limits.maxBufferSize;
   const usage = BufferUsage.COPY_SRC;
-  t.expectGPUError('validation', () => t.device.createBuffer({ size, usage }), !isValid);
+  t.expectGPUError('validation', () => t.createBufferTracked({ size, usage }), !isValid);
 });
 
 const kInvalidUsage = 0x8000;
@@ -79,7 +79,7 @@ fn((t) => {
 
   t.expectGPUError(
     'validation',
-    () => t.device.createBuffer({ size: kBufferSizeAlignment * 2, usage, mappedAtCreation }),
+    () => t.createBufferTracked({ size: kBufferSizeAlignment * 2, usage, mappedAtCreation }),
     !isValid
   );
 });
@@ -109,5 +109,5 @@ u.combineWithParams([
 fn((t) => {
   const { _valid, usage, size } = t.params;
 
-  t.expectGPUError('validation', () => t.device.createBuffer({ size, usage }), !_valid);
+  t.expectGPUError('validation', () => t.createBufferTracked({ size, usage }), !_valid);
 });

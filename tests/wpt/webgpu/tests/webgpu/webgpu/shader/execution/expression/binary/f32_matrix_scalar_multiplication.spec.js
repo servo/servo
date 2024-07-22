@@ -4,7 +4,7 @@
 Execution Tests for matrix-scalar and scalar-matrix f32 multiplication expression
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../gpu_test.js';
-import { TypeF32, TypeMat } from '../../../../util/conversion.js';
+import { Type } from '../../../../util/conversion.js';
 import { allInputSources, run } from '../expression.js';
 
 import { binary, compoundBinary } from './binary.js';
@@ -37,8 +37,8 @@ fn(async (t) => {
   await run(
     t,
     binary('*'),
-    [TypeMat(cols, rows, TypeF32), TypeF32],
-    TypeMat(cols, rows, TypeF32),
+    [Type.mat(cols, rows, Type.f32), Type.f32],
+    Type.mat(cols, rows, Type.f32),
     t.params,
     cases
   );
@@ -69,8 +69,8 @@ fn(async (t) => {
   await run(
     t,
     compoundBinary('*='),
-    [TypeMat(cols, rows, TypeF32), TypeF32],
-    TypeMat(cols, rows, TypeF32),
+    [Type.mat(cols, rows, Type.f32), Type.f32],
+    Type.mat(cols, rows, Type.f32),
     t.params,
     cases
   );
@@ -101,8 +101,8 @@ fn(async (t) => {
   await run(
     t,
     binary('*'),
-    [TypeF32, TypeMat(cols, rows, TypeF32)],
-    TypeMat(cols, rows, TypeF32),
+    [Type.f32, Type.mat(cols, rows, Type.f32)],
+    Type.mat(cols, rows, Type.f32),
     t.params,
     cases
   );

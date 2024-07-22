@@ -6,17 +6,22 @@
 * test @interpolate
 * test builtin(sample_index)
 * test builtin(front_facing)
+* test builtin(sample_mask)
 
 Note: @interpolate settings and sample_index affect whether or not the fragment shader
 is evaluated per-fragment or per-sample. With @interpolate(, sample) or usage of
 @builtin(sample_index) the fragment shader should be executed per-sample.
 
-TODO:
-* test frag_depth
+* sample_mask output is tested in
+  src/webgpu/api/operation/render_pipeline/sample_mask.spec.ts
+
+* frag_depth output is tested in
+  src/webgpu/api/operation/rendering/depth_clip_clamp.spec.ts
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { ErrorWithExtra, assert, range, unreachable } from '../../../../common/util/util.js';
 
 import { GPUTest } from '../../../gpu_test.js';
+import { getProvokingVertexForFlatInterpolationEitherSampling } from '../../../inter_stage.js';
 import { getMultisampleFragmentOffsets } from '../../../multisample_info.js';
 import { dotProduct, subtractVectors } from '../../../util/math.js';
 import { TexelView } from '../../../util/texture/texel_view.js';
@@ -134,17 +139,15 @@ textures)
   assert(isTextureSameDimensions(textures[0], textures[3]));
   const { width, height, sampleCount } = textures[0];
 
-  const copyBuffer = t.device.createBuffer({
+  const copyBuffer = t.createBufferTracked({
     size: width * height * sampleCount * 4 * 4,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
   });
-  t.trackForCleanup(copyBuffer);
 
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     size: copyBuffer.size,
     usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
   });
-  t.trackForCleanup(buffer);
 
   const pipeline = getCopyMultisamplePipelineForDevice(t.device, textures);
   const encoder = t.device.createCommandEncoder();
@@ -301,6 +304,7 @@ function isTriangleClockwise(windowPoints) {
 
 
 
+
 /**
  * For each sample in texture, computes the values that would be provided
  * to the shader as `@builtin(position)` if the texture was a render target
@@ -342,6 +346,22 @@ function generateFragmentInputs({
 
     for (let y = 0; y < height; ++y) {
       for (let x = 0; x < width; ++x) {
+        let sampleMask = 0;
+        for (let sampleIndex = 0; sampleIndex < sampleCount; ++sampleIndex) {
+          const localSampleMask = 1 << sampleIndex;
+          const multisampleOffset = fragmentOffsets[sampleIndex];
+          const sampleFragmentPoint = [x + multisampleOffset[0], y + multisampleOffset[1]];
+          const sampleBarycentricCoords = calcBarycentricCoordinates(
+            windowPoints2D,
+            sampleFragmentPoint
+          );
+
+          const inside = isInsideTriangle(sampleBarycentricCoords);
+          if (inside) {
+            sampleMask |= localSampleMask;
+          }
+        }
+
         for (let sampleIndex = 0; sampleIndex < sampleCount; ++sampleIndex) {
           const fragmentPoint = [x + 0.5, y + 0.5];
           const multisampleOffset = fragmentOffsets[sampleIndex];
@@ -366,6 +386,7 @@ function generateFragmentInputs({
               ndcPoints,
               windowPoints,
               sampleIndex,
+              sampleMask,
               frontFacing
             });
 
@@ -404,11 +425,17 @@ function computeFragmentPosition({
 /**
  * Creates a function that will compute the interpolation of an inter-stage variable.
  */
-function createInterStageInterpolationFn(
+async function createInterStageInterpolationFn(
+t,
 interStagePoints,
 type,
 sampling)
 {
+  const provokingVertex =
+  type === 'flat' && sampling === 'either' ?
+  await getProvokingVertexForFlatInterpolationEitherSampling(t) :
+  'first';
+
   return function ({
     baseVertexIndex,
     fragmentBarycentricCoords,
@@ -417,7 +444,9 @@ sampling)
   }) {
     const triangleInterStagePoints = interStagePoints.slice(baseVertexIndex, baseVertexIndex + 3);
     const barycentricCoords =
-    sampling === 'center' ? fragmentBarycentricCoords : sampleBarycentricCoords;
+    sampling === 'center' || sampling === undefined ?
+    fragmentBarycentricCoords :
+    sampleBarycentricCoords;
     switch (type) {
       case 'perspective':
         return triangleInterStagePoints[0].map((_, colNum) =>
@@ -434,7 +463,7 @@ sampling)
         );
         break;
       case 'flat':
-        return triangleInterStagePoints[0];
+        return triangleInterStagePoints[provokingVertex === 'first' ? 0 : 2];
         break;
       default:
         unreachable();
@@ -447,12 +476,13 @@ sampling)
  * and then return [1, 0, 0, 0] if all interpolated values are between 0.0 and 1.0 inclusive
  * or [-1, 0, 0, 0] otherwise.
  */
-function createInterStageInterpolationBetween0And1TestFn(
+async function createInterStageInterpolationBetween0And1TestFn(
+t,
 interStagePoints,
 type,
 sampling)
 {
-  const interpolateFn = createInterStageInterpolationFn(interStagePoints, type, sampling);
+  const interpolateFn = await createInterStageInterpolationFn(t, interStagePoints, type, sampling);
   return function (fragData) {
     const interpolatedValues = interpolateFn(fragData);
     const allTrue = interpolatedValues.reduce((all, v) => all && v >= 0 && v <= 1, true);
@@ -472,6 +502,13 @@ function computeFragmentSampleIndex({ sampleIndex }) {
  */
 function computeFragmentFrontFacing({ frontFacing }) {
   return [frontFacing ? 1 : 0, 0, 0, 0];
+}
+
+/**
+ * Computes 'builtin(sample_mask)'
+ */
+function computeSampleMask({ sampleMask }) {
+  return [sampleMask, 0, 0, 0];
 }
 
 /**
@@ -586,19 +623,17 @@ t,
     `
   });
 
-  const textures = range(4, () => {
-    const texture = t.device.createTexture({
-      size: [width, height],
-      usage:
-      GPUTextureUsage.RENDER_ATTACHMENT |
-      GPUTextureUsage.TEXTURE_BINDING |
-      GPUTextureUsage.COPY_SRC,
-      format: 'rgba8unorm',
-      sampleCount
-    });
-    t.trackForCleanup(texture);
-    return texture;
-  });
+  const textures = range(4, () =>
+  t.createTextureTracked({
+    size: [width, height],
+    usage:
+    GPUTextureUsage.RENDER_ATTACHMENT |
+    GPUTextureUsage.TEXTURE_BINDING |
+    GPUTextureUsage.COPY_SRC,
+    format: 'rgba8unorm',
+    sampleCount
+  })
+  );
 
   const pipeline = t.device.createRenderPipeline({
     layout: 'auto',
@@ -621,11 +656,10 @@ t,
     }
   });
 
-  const uniformBuffer = t.device.createBuffer({
+  const uniformBuffer = t.createBufferTracked({
     size: 8,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
   });
-  t.trackForCleanup(uniformBuffer);
   t.device.queue.writeBuffer(uniformBuffer, 0, new Float32Array([width, height]));
 
   const viewport = [0, 0, width, height, ...nearFar];
@@ -729,7 +763,8 @@ combine('interpolation', [
 { type: 'linear', sampling: 'center' },
 { type: 'linear', sampling: 'centroid' },
 { type: 'linear', sampling: 'sample' },
-{ type: 'flat' }]
+{ type: 'flat', sampling: 'first' },
+{ type: 'flat', sampling: 'either' }]
 )
 ).
 beforeAllSubcases((t) => {
@@ -810,11 +845,15 @@ u //
 .combine('nearFar', [[0, 1], [0.25, 0.75]]).
 combine('sampleCount', [1, 4]).
 combine('interpolation', [
+{ type: 'perspective' },
 { type: 'perspective', sampling: 'center' },
 { type: 'perspective', sampling: 'sample' },
+{ type: 'linear' },
 { type: 'linear', sampling: 'center' },
 { type: 'linear', sampling: 'sample' },
-{ type: 'flat' }]
+{ type: 'flat' },
+{ type: 'flat', sampling: 'first' },
+{ type: 'flat', sampling: 'either' }]
 )
 ).
 beforeAllSubcases((t) => {
@@ -863,7 +902,7 @@ fn(async (t) => {
     nearFar,
     sampleCount,
     clipSpacePoints,
-    interpolateFn: createInterStageInterpolationFn(interStagePoints, type, sampling)
+    interpolateFn: await createInterStageInterpolationFn(t, interStagePoints, type, sampling)
   });
 
   t.expectOK(
@@ -997,7 +1036,8 @@ fn(async (t) => {
     nearFar,
     sampleCount,
     clipSpacePoints,
-    interpolateFn: createInterStageInterpolationBetween0And1TestFn(
+    interpolateFn: await createInterStageInterpolationBetween0And1TestFn(
+      t,
       interStagePoints,
       type,
       sampling
@@ -1033,7 +1073,8 @@ combine('interpolation', [
 { type: 'linear', sampling: 'center' },
 { type: 'linear', sampling: 'centroid' },
 { type: 'linear', sampling: 'sample' },
-{ type: 'flat' }]
+{ type: 'flat', sampling: 'first' },
+{ type: 'flat', sampling: 'either' }]
 )
 ).
 beforeAllSubcases((t) => {
@@ -1117,7 +1158,8 @@ combine('interpolation', [
 { type: 'linear', sampling: 'center' },
 { type: 'linear', sampling: 'centroid' },
 { type: 'linear', sampling: 'sample' },
-{ type: 'flat' }]
+{ type: 'flat', sampling: 'first' },
+{ type: 'flat', sampling: 'either' }]
 )
 ).
 beforeAllSubcases((t) => {
@@ -1196,8 +1238,179 @@ fn(async (t) => {
     interpolateFn: computeFragmentFrontFacing
   });
 
-  // Double check, first corner should be different than last based on the triangles we are drawing.
-  assert(expected[0] !== expected[expected.length - 4]);
+  assert(expected.indexOf(0) >= 0, 'expect some values to be 0');
+  assert(expected.findIndex((v) => v !== 0) >= 0, 'expect some values to be non 0');
+
+  t.expectOK(
+    checkSampleRectsApproximatelyEqual({
+      width,
+      height,
+      sampleCount,
+      actual,
+      expected,
+      maxDiffULPsForFloatFormat: 0
+    })
+  );
+});
+
+g.test('inputs,sample_mask').
+desc(
+  `
+    Test fragment shader builtin(sample_mask) values.
+
+    Draws various triangles that should trigger different sample_mask values.
+    Checks that sample_mask matches what's expected. Note: the triangles
+    are selected so they do not intersect sample points as we don't want
+    to test precision issues on whether or not a sample point is inside
+    or outside the triangle when right on the edge.
+
+    Example: x=-1, y=2, it draws the following triangle
+
+    [ -0.8, -2 ]
+    [  1.2,  2 ]
+    [ -0.8,  2 ]
+
+    On to a 4x4 pixel texture
+
+     -0.8, 2
+      .----------------------.  1.2 2
+      |...................../
+      |..................../
+      |.................../
+      |................../
+      |................./
+    +-|---+-----+-----+/----+  ---
+    | |...|.....|...../     |   ^
+    | |...|.....|..../|     |   |
+    +-|---+-----+---/-+-----+   |
+    | |...|.....|../  |     |   |
+    | |...|.....|./   |     |   |
+    +-|---+-----+/----+-----+   texture / clip space
+    | |...|...../     |     |   |
+    | |...|..../|     |     |   |
+    +-|---+---/-+-----+-----+   |
+    | |...|../  |     |     |   |
+    | |...|./   |     |     |   V
+    +-|---+/----+-----+-----+  ---
+      |.../
+      |../
+      |./
+      |/
+      /
+      .
+      -0.8, -2
+
+    Inside an individual pixel you might see this situation
+
+    +-------------+
+    |....s1|/     |
+    |......|      |
+    |...../|   s2 |
+    +------C------+
+    |s3./  |      |
+    |../   |      |
+    |./    |s4    |
+    +-------------+
+
+    where s1, s2, s3, s4, are sample points and C is the center. For a sampleCount = 4 texture
+    the sample_mask is expected to emit sample_mask = 0b0101
+
+    ref: https://learn.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_standard_multisample_quality_levels
+  `
+).
+params((u) =>
+u //
+.combine('nearFar', [[0, 1], [0.25, 0.75]]).
+combine('sampleCount', [1, 4]).
+combine('interpolation', [
+// given that 'sample' effects whether things are run per-sample or per-fragment
+// we test all of these to make sure they don't affect the result differently than expected.
+{ type: 'perspective', sampling: 'center' },
+{ type: 'perspective', sampling: 'centroid' },
+{ type: 'perspective', sampling: 'sample' },
+{ type: 'linear', sampling: 'center' },
+{ type: 'linear', sampling: 'centroid' },
+{ type: 'linear', sampling: 'sample' },
+{ type: 'flat', sampling: 'first' },
+{ type: 'flat', sampling: 'either' }]
+).
+beginSubcases().
+combineWithParams([
+{ x: -1, y: -1 },
+{ x: -1, y: -2 },
+{ x: -1, y: 1 },
+{ x: -1, y: 3 },
+{ x: -2, y: -1 },
+{ x: -2, y: 3 },
+{ x: -3, y: -1 },
+{ x: -3, y: -2 },
+{ x: -3, y: 1 },
+{ x: 1, y: -1 },
+{ x: 1, y: -3 },
+{ x: 1, y: 1 },
+{ x: 1, y: 2 },
+{ x: 2, y: -2 },
+{ x: 2, y: -3 },
+{ x: 2, y: 1 },
+{ x: 2, y: 2 },
+{ x: 3, y: -1 },
+{ x: 3, y: -3 },
+{ x: 3, y: 1 },
+{ x: 3, y: 2 },
+{ x: 3, y: 3 }]
+)
+).
+beforeAllSubcases((t) => {
+  const {
+    interpolation: { type, sampling }
+  } = t.params;
+  t.skipIfInterpolationTypeOrSamplingNotSupported({ type, sampling });
+  t.skipIf(t.isCompatibility, 'sample_mask is not supported in compatibility mode');
+}).
+fn(async (t) => {
+  const {
+    x,
+    y,
+    nearFar,
+    sampleCount,
+    interpolation: { type, sampling }
+  } = t.params;
+
+  const clipSpacePoints = [
+  [x + 0.2, -y, 0, 1],
+  [-x + 0.2, y, 0, 1],
+  [x + 0.2, y, 0, 1]];
+
+
+  const interStagePoints = [
+  [13, 14, 15, 16],
+  [17, 18, 19, 20],
+  [21, 22, 23, 24]];
+
+
+  const width = 4;
+  const height = 4;
+  const actual = await renderFragmentShaderInputsTo4TexturesAndReadbackValues(t, {
+    interpolationType: type,
+    interpolationSampling: sampling,
+    sampleCount,
+    width,
+    height,
+    nearFar,
+    clipSpacePoints,
+    interStagePoints,
+    fragInCode: '@builtin(sample_mask) sample_mask: u32,',
+    outputCode: 'vec4f(f32(fin.sample_mask), 0, 0, 0)'
+  });
+
+  const expected = generateFragmentInputs({
+    width,
+    height,
+    nearFar,
+    sampleCount,
+    clipSpacePoints,
+    interpolateFn: computeSampleMask
+  });
 
   t.expectOK(
     checkSampleRectsApproximatelyEqual({

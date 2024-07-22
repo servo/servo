@@ -128,23 +128,19 @@ class StencilTest extends TextureTestMixin(GPUTest) {
   isSingleEncoderMultiplePass = false)
   {
     const renderTargetFormat = 'rgba8unorm';
-    const renderTarget = this.trackForCleanup(
-      this.device.createTexture({
-        format: renderTargetFormat,
-        size: { width: 1, height: 1, depthOrArrayLayers: 1 },
-        usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
-      })
-    );
+    const renderTarget = this.createTextureTracked({
+      format: renderTargetFormat,
+      size: { width: 1, height: 1, depthOrArrayLayers: 1 },
+      usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
+    });
 
-    const depthTexture = this.trackForCleanup(
-      this.device.createTexture({
-        size: { width: 1, height: 1, depthOrArrayLayers: 1 },
-        format: depthStencilFormat,
-        sampleCount: 1,
-        mipLevelCount: 1,
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST
-      })
-    );
+    const depthTexture = this.createTextureTracked({
+      size: { width: 1, height: 1, depthOrArrayLayers: 1 },
+      format: depthStencilFormat,
+      sampleCount: 1,
+      mipLevelCount: 1,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST
+    });
 
     const hasDepth = kTextureFormatInfo[depthStencilFormat].depth;
     const depthStencilAttachment = {
@@ -160,8 +156,8 @@ class StencilTest extends TextureTestMixin(GPUTest) {
       colorAttachments: [
       {
         view: renderTarget.createView(),
-        storeOp: 'store',
-        loadOp: 'load'
+        loadOp: 'load',
+        storeOp: 'store'
       }],
 
       depthStencilAttachment
@@ -179,8 +175,8 @@ class StencilTest extends TextureTestMixin(GPUTest) {
           colorAttachments: [
           {
             view: renderTarget.createView(),
-            storeOp: 'store',
-            loadOp: 'load'
+            loadOp: 'load',
+            storeOp: 'store'
           }],
 
           depthStencilAttachment

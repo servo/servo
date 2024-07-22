@@ -12,6 +12,7 @@ use crate::protocol::JsonPacketStream;
 use crate::StreamId;
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct ThreadAttached {
     from: String,
     #[serde(rename = "type")]
@@ -19,9 +20,9 @@ struct ThreadAttached {
     actor: String,
     frame: u32,
     error: u32,
-    recordingEndpoint: u32,
-    executionPoint: u32,
-    poppedFrames: Vec<PoppedFrameMsg>,
+    recording_endpoint: u32,
+    execution_point: u32,
+    popped_frames: Vec<PoppedFrameMsg>,
     why: WhyMsg,
 }
 
@@ -98,9 +99,9 @@ impl Actor for ThreadActor {
                     actor: registry.new_name("pause"),
                     frame: 0,
                     error: 0,
-                    recordingEndpoint: 0,
-                    executionPoint: 0,
-                    poppedFrames: vec![],
+                    recording_endpoint: 0,
+                    execution_point: 0,
+                    popped_frames: vec![],
                     why: WhyMsg {
                         type_: "attached".to_owned(),
                     },

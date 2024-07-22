@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#margin-dimension">
+<meta name="assert" content="Auto margins should never resolve to something negative, but be clamped to 0.">
+<link rel="match" href="auto-margins-002-print-ref.html">
+<style>
+  @page {
+    margin: 100px;
+    size: 500px 440px;
+    border: solid;
+    background: red;
+    @top-left-corner {
+      border: solid;
+      margin: auto;
+      content: "";
+      background: green;
+    }
+    @top-left {
+      border: solid;
+      margin: auto;
+      content: "";
+      background: green;
+    }
+    @top-center {
+      border: solid;
+      margin: auto;
+      content: "";
+      background: green;
+    }
+    @top-right {
+      border: solid;
+      margin: auto;
+      content: "";
+      background: green;
+    }
+    @top-right-corner {
+      border: solid;
+      margin: auto;
+      content: "";
+      background: green;
+    }
+    @right-top {
+      border: solid;
+      margin: auto;
+      content: "";
+      background: green;
+    }
+    @right-middle {
+      border: solid;
+      margin: auto;
+      content: "";
+      background: green;
+    }
+    @right-bottom {
+      border: solid;
+      margin: auto;
+      content: "";
+      background: green;
+    }
+    @bottom-right-corner {
+      border: solid;
+      margin: auto;
+      content: "";
+      background: green;
+    }
+    @bottom-right {
+      border: solid;
+      margin: auto;
+      content: "";
+      background: green;
+    }
+    @bottom-center {
+      border: solid;
+      margin: auto;
+      content: "";
+      background: green;
+    }
+    @bottom-left {
+      border: solid;
+      margin: auto;
+      content: "";
+      background: green;
+    }
+    @bottom-left-corner {
+      border: solid;
+      margin: auto;
+      content: "";
+      background: green;
+    }
+    @left-bottom {
+      border: solid;
+      margin: auto;
+      content: "";
+      background: green;
+    }
+    @left-middle {
+      border: solid;
+      margin: auto;
+      content: "";
+      background: green;
+    }
+    @left-top {
+      border: solid;
+      margin: auto;
+      content: "";
+      background: green;
+    }
+  }
+  body {
+    background: white;
+  }
+</style>
+There should be 16 margin boxes around this page area. They should take up all
+available space, and there should be no red, only green rectangles with a black
+border.

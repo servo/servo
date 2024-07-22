@@ -16,11 +16,12 @@ use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
-use servo_atoms::{atom, Atom};
 use smallvec::SmallVec;
 use style::computed_values::font_variant_caps;
 use style::properties::style_structs::Font as FontStyleStruct;
-use style::values::computed::font::{GenericFontFamily, SingleFontFamily};
+use style::values::computed::font::{
+    FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
+};
 use style::values::computed::{FontStretch, FontStyle, FontWeight};
 use unicode_script::Script;
 use webrender_api::{FontInstanceFlags, FontInstanceKey};
@@ -48,6 +49,7 @@ pub const KERN: u32 = ot_tag!('k', 'e', 'r', 'n');
 pub const SBIX: u32 = ot_tag!('s', 'b', 'i', 'x');
 pub const CBDT: u32 = ot_tag!('C', 'B', 'D', 'T');
 pub const COLR: u32 = ot_tag!('C', 'O', 'L', 'R');
+pub const BASE: u32 = ot_tag!('B', 'A', 'S', 'E');
 
 pub const LAST_RESORT_GLYPH_ADVANCE: FractionalPixel = 10.0;
 
@@ -88,6 +90,7 @@ pub trait PlatformFontMethods: Sized {
     fn can_do_fast_shaping(&self) -> bool;
     fn metrics(&self) -> FontMetrics;
     fn table_for_tag(&self, _: FontTableTag) -> Option<FontTable>;
+    fn typographic_bounds(&self, _: GlyphId) -> Rect<f32>;
 
     /// Get the necessary [`FontInstanceFlags`]` for this font.
     fn webrender_font_instance_flags(&self) -> FontInstanceFlags;
@@ -329,8 +332,7 @@ impl Font {
             }
         }
 
-        let is_single_preserved_newline = text.len() == 1 && text.chars().next() == Some('\n');
-
+        let is_single_preserved_newline = text.len() == 1 && text.starts_with('\n');
         let start_time = Instant::now();
         let mut glyphs = GlyphStore::new(
             text.len(),
@@ -464,6 +466,16 @@ impl Font {
         cache.glyph_advances.insert(glyph_id, new_width);
         new_width
     }
+
+    pub fn typographic_bounds(&self, glyph_id: GlyphId) -> Rect<f32> {
+        self.handle.typographic_bounds(glyph_id)
+    }
+
+    #[allow(unsafe_code)]
+    pub fn get_baseline(&self) -> Option<FontBaseline> {
+        let this = self as *const Font;
+        unsafe { self.shaper.get_or_init(|| Shaper::new(this)).get_baseline() }
+    }
 }
 
 pub type FontRef = Arc<Font>;
@@ -480,9 +492,7 @@ pub struct FontGroup {
 }
 
 impl FontGroup {
-    pub fn new(style: &FontStyleStruct) -> FontGroup {
-        let descriptor = FontDescriptor::from(style);
-
+    pub fn new(style: &FontStyleStruct, descriptor: FontDescriptor) -> FontGroup {
         let families: SmallVec<[FontGroupFamily; 8]> = style
             .font_family
             .families
@@ -630,10 +640,18 @@ impl FontGroup {
         TemplatePredicate: Fn(FontTemplateRef) -> bool,
         FontPredicate: Fn(&FontRef) -> bool,
     {
-        iter::once(FontFamilyDescriptor::serif())
-            .chain(fallback_font_families(options).into_iter().map(|family| {
-                FontFamilyDescriptor::new(FontFamilyName::from(family), FontSearchScope::Local)
-            }))
+        iter::once(FontFamilyDescriptor::default())
+            .chain(
+                fallback_font_families(options)
+                    .into_iter()
+                    .map(|family_name| {
+                        let family = SingleFontFamily::FamilyName(FamilyName {
+                            name: family_name.into(),
+                            syntax: FontFamilyNameSyntax::Quoted,
+                        });
+                        FontFamilyDescriptor::new(family, FontSearchScope::Local)
+                    }),
+            )
             .filter_map(|family_descriptor| {
                 FontGroupFamily {
                     family_descriptor,
@@ -676,11 +694,8 @@ struct FontGroupFamily {
 
 impl FontGroupFamily {
     fn new(family: &SingleFontFamily) -> FontGroupFamily {
-        let family_descriptor =
-            FontFamilyDescriptor::new(FontFamilyName::from(family), FontSearchScope::Any);
-
         FontGroupFamily {
-            family_descriptor,
+            family_descriptor: FontFamilyDescriptor::new(family.clone(), FontSearchScope::Any),
             members: None,
         }
     }
@@ -782,73 +797,30 @@ pub enum FontSearchScope {
     Local,
 }
 
-/// A font family name used in font selection.
-#[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
-pub enum FontFamilyName {
-    /// A specific name such as `"Arial"`
-    Specific(Atom),
-
-    /// A generic name such as `sans-serif`
-    Generic(Atom),
-}
-
-impl FontFamilyName {
-    pub fn name(&self) -> &str {
-        match *self {
-            FontFamilyName::Specific(ref name) => name,
-            FontFamilyName::Generic(ref name) => name,
-        }
-    }
-}
-
-impl<'a> From<&'a SingleFontFamily> for FontFamilyName {
-    fn from(other: &'a SingleFontFamily) -> FontFamilyName {
-        match *other {
-            SingleFontFamily::FamilyName(ref family_name) => {
-                FontFamilyName::Specific(family_name.name.clone())
-            },
-
-            SingleFontFamily::Generic(generic) => FontFamilyName::Generic(match generic {
-                GenericFontFamily::None => panic!("Shouldn't appear in style"),
-                GenericFontFamily::Serif => atom!("serif"),
-                GenericFontFamily::SansSerif => atom!("sans-serif"),
-                GenericFontFamily::Monospace => atom!("monospace"),
-                GenericFontFamily::Cursive => atom!("cursive"),
-                GenericFontFamily::Fantasy => atom!("fantasy"),
-                GenericFontFamily::SystemUi => atom!("system-ui"),
-            }),
-        }
-    }
-}
-
-impl<'a> From<&'a str> for FontFamilyName {
-    fn from(other: &'a str) -> FontFamilyName {
-        FontFamilyName::Specific(Atom::from(other))
-    }
-}
-
 /// The font family parameters for font selection.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct FontFamilyDescriptor {
-    pub name: FontFamilyName,
+    pub family: SingleFontFamily,
     pub scope: FontSearchScope,
 }
 
 impl FontFamilyDescriptor {
-    pub fn new(name: FontFamilyName, scope: FontSearchScope) -> FontFamilyDescriptor {
-        FontFamilyDescriptor { name, scope }
+    pub fn new(family: SingleFontFamily, scope: FontSearchScope) -> FontFamilyDescriptor {
+        FontFamilyDescriptor { family, scope }
     }
 
-    fn serif() -> FontFamilyDescriptor {
+    fn default() -> FontFamilyDescriptor {
         FontFamilyDescriptor {
-            name: FontFamilyName::Generic(atom!("serif")),
+            family: SingleFontFamily::Generic(GenericFontFamily::None),
             scope: FontSearchScope::Local,
         }
     }
+}
 
-    pub fn name(&self) -> &str {
-        self.name.name()
-    }
+pub struct FontBaseline {
+    pub ideographic_baseline: f32,
+    pub alphabetic_baseline: f32,
+    pub hanging_baseline: f32,
 }
 
 /// Given a mapping array `mapping` and a value, map that value onto

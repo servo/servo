@@ -1,0 +1,134 @@
+<!doctype html>
+<title>@container-dependent styles respond to layout changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#containment-size">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<script>
+  setup(() => assert_implements_container_queries());
+</script>
+<style>
+
+  @container (width: 10px) { .affected { --x:10; } }
+  @container (width: 20px) { .affected { --x:20; } }
+
+  .flex {
+    display: flex;
+    height: 30px;
+    width: 30px;
+  }
+
+  .container {
+    container-type: size;
+    flex: 1;
+    background: tomato;
+  }
+
+  .sibling {
+    background-color: skyblue;
+  }
+  .w10 {
+    width: 10px;
+  }
+  .ahem { font: 5px Ahem; }
+
+  /* The following is just to make the results more human-readable. */
+  main {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+</style>
+
+<main>
+  <!-- A sibling of the container gets a layout-affecting style change -->
+  <div class=flex>
+    <div class=container>
+      <div>
+        <div>
+          <div class=affected id=target1></div>
+        </div>
+      </div>
+    </div>
+    <div class="sibling w10" id=sibling1></div>
+  </div>
+  <script>
+    test(function() {
+      let cs = getComputedStyle(target1);
+      assert_equals(cs.getPropertyValue('--x'), '20');
+
+      sibling1.style.width = '20px';
+      assert_equals(cs.getPropertyValue('--x'), '10');
+    }, 'Sibling style mutation');
+  </script>
+
+  <!-- A sibling of the container gets a layout-affecting style change
+       affecting the parent of the gCS target -->
+  <div class=flex>
+    <div class=container>
+      <div>
+        <div class=affected id=parent2>
+          <div id=target2></div>
+        </div>
+      </div>
+    </div>
+    <div class="sibling w10" id=sibling2></div>
+  </div>
+  <script>
+    test(function() {
+      let cs = getComputedStyle(target2);
+      assert_equals(cs.getPropertyValue('--x'), '20');
+
+      sibling2.style.width = '20px';
+      assert_equals(cs.getPropertyValue('--x'), '10');
+    }, 'Sibling style mutation, parent is affected');
+  </script>
+
+<!-- A sibling of the container gets a layout-affecting style change
+       affecting an ancestor of the gCS target -->
+  <div class=flex>
+    <div class=container>
+      <div class=affected id=ancestor3>
+        <div>
+          <div id=target3></div>
+        </div>
+      </div>
+    </div>
+    <div class="sibling w10" id=sibling3></div>
+  </div>
+  <script>
+    test(function() {
+      let cs = getComputedStyle(target3);
+      assert_equals(cs.getPropertyValue('--x'), '20');
+
+      sibling3.style.width = '20px';
+      assert_equals(cs.getPropertyValue('--x'), '10');
+    }, 'Sibling style mutation, ancestor is affected');
+  </script>
+
+  <!-- A sibling of the container needs layout via text mutation -->
+  <div class=flex>
+    <div class=container>
+      <div>
+        <div>
+          <div class=affected id=target4></div>
+        </div>
+      </div>
+    </div>
+    <div class="sibling ahem" id=sibling4>XX</div>
+  </div>
+  <script>
+    promise_test(async function() {
+      await document.fonts.ready;
+
+      let cs = getComputedStyle(target4);
+      assert_equals(cs.getPropertyValue('--x'), '20');
+
+      sibling4.textContent = 'XXXX';
+      assert_equals(cs.getPropertyValue('--x'), '10');
+    }, 'Sibling text mutation');
+  </script>
+
+</main>

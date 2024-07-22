@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display: reading-flow with value grid-order on shadow host</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='../../resources/shadow-dom.js'></script>
+<script src="../../resources/focus-utils.js"></script>
+
+<style>
+.wrapper {
+  display: grid;
+  reading-flow: grid-order;
+}
+</style>
+
+<div class="test-case" data-expect="host/B,host/A"
+      data-description="Grid items in shadow host with delegatesFocus">
+  <div id="host" class="wrapper" tabindex="0">
+    <template shadowrootmode="open" shadowrootdelegatesfocus>
+      <button id="A" style="order: 2">A</button>
+      <button id="B" style="order: 1">B</button>
+    </template>
+  </div>
+</div>
+
+<div class="test-case" data-expect="host2,host2/B,host2/A"
+      data-description="Grid items in shadow host without delegatesFocus">
+  <div id="host2" class="wrapper" tabindex="0">
+    <template shadowrootmode="open">
+      <button id="A" style="order: 2">A</button>
+      <button id="B" style="order: 1">B</button>
+    </template>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

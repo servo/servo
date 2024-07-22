@@ -63,7 +63,7 @@ export class BufferResourceUsageTest extends ValidationTest {
   }
 
   beginSimpleRenderPass(encoder) {
-    const colorTexture = this.device.createTexture({
+    const colorTexture = this.createTextureTracked({
       format: 'rgba8unorm',
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
       size: [16, 16, 1]
@@ -694,7 +694,7 @@ fn((t) => {
         renderPassEncoder.drawIndirect(buffer, offset);
         break;
       case 'indexedIndirect':{
-          const indexBuffer = t.device.createBuffer({
+          const indexBuffer = t.createBufferTracked({
             size: 4,
             usage: GPUBufferUsage.INDEX
           });

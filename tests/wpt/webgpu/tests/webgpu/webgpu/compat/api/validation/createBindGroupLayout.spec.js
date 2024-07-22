@@ -18,7 +18,7 @@ params((u) => u.combine('format', kCompatModeUnsupportedStorageTextureFormats)).
 fn((t) => {
   const { format } = t.params;
 
-  t.expectValidationError(() => {
+  t.expectValidationErrorInCompatibilityMode(() => {
     t.device.createBindGroupLayout({
       entries: [
       {

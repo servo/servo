@@ -11,13 +11,13 @@ enum XRHitTestTrackableType {
 
 dictionary XRHitTestOptionsInit {
   required XRSpace space;
-  FrozenArray<XRHitTestTrackableType> entityTypes;
+  sequence<XRHitTestTrackableType> entityTypes;
   XRRay offsetRay;
 };
 
 dictionary XRTransientInputHitTestOptionsInit {
   required DOMString profile;
-  FrozenArray<XRHitTestTrackableType> entityTypes;
+  sequence<XRHitTestTrackableType> entityTypes;
   XRRay offsetRay;
 };
 
@@ -48,8 +48,8 @@ partial interface XRSession {
 };
 
 partial interface XRFrame {
-  FrozenArray<XRHitTestResult> getHitTestResults(XRHitTestSource hitTestSource);
-  FrozenArray<XRTransientInputHitTestResult> getHitTestResultsForTransientInput(XRTransientInputHitTestSource hitTestSource);
+  sequence<XRHitTestResult> getHitTestResults(XRHitTestSource hitTestSource);
+  sequence<XRTransientInputHitTestResult> getHitTestResultsForTransientInput(XRTransientInputHitTestSource hitTestSource);
 };
 
 dictionary XRRayDirectionInit {

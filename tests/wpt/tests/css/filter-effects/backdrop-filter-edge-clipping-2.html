@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name=fuzzy content="maxDifference=0-20;totalPixels=0-10000">
+<title>backdrop-filter: Filter input is at element bounds</title>
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="author" href="mailto:flackr@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match" href="reference/backdrop-filter-edge-clipping-2-ref.html">
+
+<!-- Expected: A white box with a blue border, surrounded by green.
+     A red blurred region should be seen at the bottom of the white box.
+     No green should be observed within the white box.
+     No dark/black should be observed within the white box either. -->
+
+<div class="greenbox top"></div>
+<div class="greenbox right"></div>
+<div class="greenbox bottom"></div>
+<div class="redline"></div>
+<div class="filterbox"></div>
+<style>
+.filterbox {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  top: 150px;
+  left: 0px;
+  backdrop-filter: blur(10px);
+}
+.greenbox {
+  position:absolute;
+  width: 160px;
+  height: 50px;
+  background: green;
+}
+.redline {
+  position:absolute;
+  width: 90px;
+  height: 5px;
+  top:245px;
+  left:5px;
+  background: red;
+}
+.top {
+  top:100px;
+  left: 0;
+}
+.right {
+  top:130px;
+  left: 102px;
+  width: 58px;
+  height: 150px;
+}
+.bottom {
+  top:250px;
+  left: 0;
+  height: 60px;
+}
+</style>

@@ -688,16 +688,153 @@ test(() => {
   assert_array_equals(results, ['subscribe() callback']);
   ac.abort();
   results.push('abort() returned');
+  // The reason the "inner" abort event handler is invoked first is because the
+  // "inner" AbortSignal is not a dependent signal (that would ordinarily get
+  // aborted after the parent, aka "outer" signal, is completely finished being
+  // aborted). Instead, the order of operations looks like this:
+  //   1. "Outer" signal begins to be aborted
+  //   2. Its abort algorithms [1] run [2]; the internal abort algorithm here is
+  //      the "inner" Subscriber's "Close a subscription" [0].
+  //      a. This signals abort on the "inner" Subscriber's signal, firing the
+  //         abort event
+  //      b. Then, the "inner" Subscriber's teardowns run.
+  //   3. Once the "outer" signal's abort algorithms are finished, the abort
+  //      event is fired [3], triggering the outer abort handler.
+  //
+  // [0]: https://wicg.github.io/observable/#close-a-subscription
+  // [1]: https://dom.spec.whatwg.org/#abortsignal-abort-algorithms
+  // [2]: https://dom.spec.whatwg.org/#ref-for-abortsignal-abort-algorithms%E2%91%A2:~:text=For%20each%20algorithm%20of%20signal%E2%80%99s%20abort%20algorithms%3A%20run%20algorithm
+  // [3]: https://dom.spec.whatwg.org/#abortsignal-signal-abort:~:text=Fire%20an%20event%20named%20abort%20at%20signal
   assert_array_equals(results, [
-      'subscribe() callback',
-      'outer abort handler', 'teardown 2', 'teardown 1',
-      'inner abort handler', 'abort() returned',
+      'subscribe() callback', 'inner abort handler', 'teardown 2', 'teardown 1',
+      'outer abort handler', 'abort() returned',
   ]);
   assert_false(activeDuringTeardown1, 'should not be active during teardown callback 1');
   assert_false(activeDuringTeardown2, 'should not be active during teardown callback 2');
   assert_true(abortedDuringTeardown1, 'should be aborted during teardown callback 1');
   assert_true(abortedDuringTeardown2, 'should be aborted during teardown callback 2');
 }, "Unsubscription lifecycle");
+
+// In the usual consumer-initiated unsubscription case, when the AbortController
+// is aborted after subscription, teardowns run from upstream->downstream. This
+// is because for a given Subscriber, when a downstream signal is aborted
+// (`ac.signal` in this case), the "Close" algorithm prompts the Subscriber to
+// first abort *its* own signal (the one accessible via `Subscriber#signal`) and
+// then run its teardowns.
+//
+// This means upstream Subscribers get the first opportunity their teardowns
+// before the control flow is returned to downstream Subscribers to run *their*
+// teardowns (after they abort their internal signal).
+test(() => {
+  const results = [];
+  const upstream = new Observable(subscriber => {
+    subscriber.signal.addEventListener('abort',
+        e => results.push('upstream abort handler'), {once: true});
+    subscriber.addTeardown(
+        () => results.push(`upstream teardown. reason: ${subscriber.signal.reason}`));
+  });
+  const middle = new Observable(subscriber => {
+    subscriber.signal.addEventListener('abort',
+        e => results.push('middle abort handler'), {once: true});
+    subscriber.addTeardown(
+        () => results.push(`middle teardown. reason: ${subscriber.signal.reason}`));
+    upstream.subscribe({}, {signal: subscriber.signal});
+  });
+  const downstream = new Observable(subscriber => {
+    subscriber.signal.addEventListener('abort',
+        e => results.push('downstream abort handler'), {once: true});
+    subscriber.addTeardown(
+        () => results.push(`downstream teardown. reason: ${subscriber.signal.reason}`));
+    middle.subscribe({}, {signal: subscriber.signal});
+  });
+
+  const ac = new AbortController();
+  downstream.subscribe({}, {signal: ac.signal});
+  ac.abort('Abort!');
+  assert_array_equals(results, [
+      'upstream abort handler',
+      'upstream teardown. reason: Abort!',
+      'middle abort handler',
+      'middle teardown. reason: Abort!',
+      'downstream abort handler',
+      'downstream teardown. reason: Abort!',
+  ]);
+}, "Teardowns are called in upstream->downstream order on " +
+   "consumer-initiated unsubscription");
+
+// This test is like the above, but asserts the exact opposite order of
+// teardowns. This is because, since the Subscriber's signal is aborted
+// immediately upon construction, `addTeardown()` runs teardowns synchronously
+// in subscriber-order, which goes from downstream->upstream.
+test(() => {
+  const results = [];
+  const upstream = new Observable(subscriber => {
+    subscriber.addTeardown(
+        () => results.push(`upstream teardown. reason: ${subscriber.signal.reason}`));
+  });
+  const middle = new Observable(subscriber => {
+    subscriber.addTeardown(
+        () => results.push(`middle teardown. reason: ${subscriber.signal.reason}`));
+    upstream.subscribe({}, {signal: subscriber.signal});
+  });
+  const downstream = new Observable(subscriber => {
+    subscriber.addTeardown(
+        () => results.push(`downstream teardown. reason: ${subscriber.signal.reason}`));
+    middle.subscribe({}, {signal: subscriber.signal});
+  });
+
+  downstream.subscribe({}, {signal: AbortSignal.abort('Initial abort')});
+  assert_array_equals(results, [
+      "downstream teardown. reason: Initial abort",
+      "middle teardown. reason: Initial abort",
+      "upstream teardown. reason: Initial abort",
+  ]);
+}, "Teardowns are called in downstream->upstream order on " +
+   "consumer-initiated unsubscription with pre-aborted Signal");
+
+// Producer-initiated unsubscription test, capturing the ordering of abort events and teardowns.
+test(() => {
+  const results = [];
+
+  const source = new Observable(subscriber => {
+    subscriber.addTeardown(() => results.push('source teardown'));
+    subscriber.signal.addEventListener('abort',
+        e => results.push('source abort event'));
+  });
+
+  const middle = new Observable(subscriber => {
+    subscriber.addTeardown(() => results.push('middle teardown'));
+    subscriber.signal.addEventListener('abort',
+        e => results.push('middle abort event'));
+
+    source.subscribe(() => {}, {signal: subscriber.signal});
+  });
+
+  let innerSubscriber = null;
+  const downstream = new Observable(subscriber => {
+    innerSubscriber = subscriber;
+    subscriber.addTeardown(() => results.push('downstream teardown'));
+    subscriber.signal.addEventListener('abort',
+        e => results.push('downstream abort event'));
+
+    middle.subscribe(() => {}, {signal: subscriber.signal});
+  });
+
+  downstream.subscribe();
+
+  // Trigger a producer-initiated unsubscription from the most-downstream Observable.
+  innerSubscriber.complete();
+
+  assert_array_equals(results, [
+    'source abort event',
+    'source teardown',
+    'middle abort event',
+    'middle teardown',
+    'downstream abort event',
+    'downstream teardown',
+  ]);
+}, "Producer-initiated unsubscription in a downstream Observable fires abort " +
+   "events before each teardown, in downstream->upstream order");
 
 test(t => {
   let innerSubscriber = null;

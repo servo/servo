@@ -9,6 +9,8 @@ from tests.support.sync import AsyncPoll
 from .. import (
     assert_response_event,
     HTTP_STATUS_AND_STATUS_TEXT,
+    PAGE_DATA_URL_HTML,
+    PAGE_DATA_URL_IMAGE,
     PAGE_EMPTY_HTML,
     PAGE_EMPTY_IMAGE,
     PAGE_EMPTY_SCRIPT,
@@ -409,5 +411,79 @@ async def test_url_with_fragment(
         events[0],
         expected_request={"method": "GET", "url": fragment_url},
         expected_response={"url": fragment_url},
+        redirect_count=0,
+    )
+
+
+@pytest.mark.parametrize(
+    "page_url, mimeType",
+    [(PAGE_DATA_URL_HTML, "text/html"), (PAGE_DATA_URL_IMAGE, "image/png")],
+    ids=["html", "image"],
+)
+@pytest.mark.asyncio
+async def test_navigate_data_url(
+    bidi_session, top_context, wait_for_event, wait_for_future_safe, setup_network_test, page_url, mimeType
+):
+    network_events = await setup_network_test(events=[RESPONSE_STARTED_EVENT])
+    events = network_events[RESPONSE_STARTED_EVENT]
+
+    on_response_started = wait_for_event(RESPONSE_STARTED_EVENT)
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"], url=page_url, wait="complete"
+    )
+    await wait_for_future_safe(on_response_started)
+
+    assert len(events) == 1
+
+    assert_response_event(
+        events[0],
+        expected_request={"method": "GET", "url": page_url},
+        expected_response={
+            "headers": [{
+                "name": "Content-Type",
+                "value": {"type": "string", "value": mimeType}
+            }],
+            "mimeType": mimeType,
+            "protocol": "data",
+            "status": 200,
+            "statusText": "OK",
+            "url": page_url,
+        },
+        redirect_count=0,
+    )
+
+
+@pytest.mark.parametrize(
+    "fetch_url, mimeType",
+    [(PAGE_DATA_URL_HTML, "text/html"), (PAGE_DATA_URL_IMAGE, "image/png")],
+    ids=["html", "image"],
+)
+@pytest.mark.asyncio
+async def test_fetch_data_url(
+    wait_for_event, wait_for_future_safe, fetch, setup_network_test, fetch_url, mimeType
+):
+    network_events = await setup_network_test(events=[RESPONSE_STARTED_EVENT])
+    events = network_events[RESPONSE_STARTED_EVENT]
+
+    on_response_started = wait_for_event(RESPONSE_STARTED_EVENT)
+    await fetch(fetch_url, method="GET")
+    await wait_for_future_safe(on_response_started)
+
+    assert len(events) == 1
+
+    assert_response_event(
+        events[0],
+        expected_request={"method": "GET", "url": fetch_url},
+        expected_response={
+            "headers": [{
+                "name": "Content-Type",
+                "value": {"type": "string", "value": mimeType}
+            }],
+            "mimeType": mimeType,
+            "protocol": "data",
+            "status": 200,
+            "statusText": "OK",
+            "url": fetch_url,
+        },
         redirect_count=0,
     )

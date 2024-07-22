@@ -6,7 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::typedarray::{Float64, Float64Array};
-use script_traits::GamepadUpdateType;
+use script_traits::{GamepadSupportedHapticEffects, GamepadUpdateType};
 
 use super::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::codegen::Bindings::GamepadBinding::{GamepadHand, GamepadMethods};
@@ -20,6 +20,7 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::gamepadbuttonlist::GamepadButtonList;
 use crate::dom::gamepadevent::{GamepadEvent, GamepadEventType};
+use crate::dom::gamepadhapticactuator::GamepadHapticActuator;
 use crate::dom::gamepadpose::GamepadPose;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
@@ -49,6 +50,7 @@ pub struct Gamepad {
     axis_bounds: (f64, f64),
     button_bounds: (f64, f64),
     exposed: Cell<bool>,
+    vibration_actuator: Dom<GamepadHapticActuator>,
 }
 
 impl Gamepad {
@@ -65,6 +67,7 @@ impl Gamepad {
         hand: GamepadHand,
         axis_bounds: (f64, f64),
         button_bounds: (f64, f64),
+        vibration_actuator: &GamepadHapticActuator,
     ) -> Gamepad {
         Self {
             reflector_: Reflector::new(),
@@ -81,6 +84,7 @@ impl Gamepad {
             axis_bounds,
             button_bounds,
             exposed: Cell::new(false),
+            vibration_actuator: Dom::from_ref(vibration_actuator),
         }
     }
 
@@ -90,8 +94,16 @@ impl Gamepad {
         id: String,
         axis_bounds: (f64, f64),
         button_bounds: (f64, f64),
+        supported_haptic_effects: GamepadSupportedHapticEffects,
     ) -> DomRoot<Gamepad> {
-        Self::new_with_proto(global, gamepad_id, id, axis_bounds, button_bounds)
+        Self::new_with_proto(
+            global,
+            gamepad_id,
+            id,
+            axis_bounds,
+            button_bounds,
+            supported_haptic_effects,
+        )
     }
 
     /// When we construct a new gamepad, we initialize the number of buttons and
@@ -105,8 +117,11 @@ impl Gamepad {
         id: String,
         axis_bounds: (f64, f64),
         button_bounds: (f64, f64),
+        supported_haptic_effects: GamepadSupportedHapticEffects,
     ) -> DomRoot<Gamepad> {
         let button_list = GamepadButtonList::init_buttons(global);
+        let vibration_actuator =
+            GamepadHapticActuator::new(global, gamepad_id, supported_haptic_effects);
         let gamepad = reflect_dom_object_with_proto(
             Box::new(Gamepad::new_inherited(
                 gamepad_id,
@@ -120,6 +135,7 @@ impl Gamepad {
                 GamepadHand::_empty,
                 axis_bounds,
                 button_bounds,
+                &vibration_actuator,
             )),
             global,
             None,
@@ -163,6 +179,11 @@ impl GamepadMethods for Gamepad {
     // https://w3c.github.io/gamepad/#dom-gamepad-buttons
     fn Buttons(&self) -> DomRoot<GamepadButtonList> {
         DomRoot::from_ref(&*self.buttons)
+    }
+
+    // https://w3c.github.io/gamepad/#dom-gamepad-vibrationactuator
+    fn VibrationActuator(&self) -> DomRoot<GamepadHapticActuator> {
+        DomRoot::from_ref(&*self.vibration_actuator)
     }
 
     // https://w3c.github.io/gamepad/extensions.html#gamepadhand-enum
@@ -285,6 +306,10 @@ impl Gamepad {
     /// <https://www.w3.org/TR/gamepad/#dfn-exposed>
     pub fn set_exposed(&self, exposed: bool) {
         self.exposed.set(exposed);
+    }
+
+    pub fn vibration_actuator(&self) -> &GamepadHapticActuator {
+        &*self.vibration_actuator
     }
 }
 

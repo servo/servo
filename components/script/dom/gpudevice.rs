@@ -17,7 +17,7 @@ use webgpu::wgc::id::{BindGroupLayoutId, PipelineLayoutId};
 use webgpu::wgc::{
     binding_model as wgpu_bind, command as wgpu_com, pipeline as wgpu_pipe, resource as wgpu_res,
 };
-use webgpu::{self, wgt, PopError, WebGPU, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
+use webgpu::{self, wgt, PopError, WebGPU, WebGPURequest, WebGPUResponse};
 
 use super::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
 use super::bindings::error::Fallible;
@@ -198,7 +198,6 @@ impl GPUDevice {
             let layout_id = self
                 .global()
                 .wgpu_id_hub()
-                .lock()
                 .create_pipeline_layout_id(self.device.0.backend());
             let max_bind_grps = self.limits.MaxBindGroups();
             let mut bgls = Vec::with_capacity(max_bind_grps as usize);
@@ -207,7 +206,6 @@ impl GPUDevice {
                 let bgl = self
                     .global()
                     .wgpu_id_hub()
-                    .lock()
                     .create_bind_group_layout_id(self.device.0.backend());
                 bgls.push(webgpu::WebGPUBindGroupLayout(bgl));
                 bgl_ids.push(bgl);
@@ -218,7 +216,7 @@ impl GPUDevice {
 
     /// <https://gpuweb.github.io/gpuweb/#lose-the-device>
     pub fn lose(&self, reason: GPUDeviceLostReason, msg: String) {
-        let ref lost_promise = *self.lost_promise.borrow();
+        let lost_promise = &(*self.lost_promise.borrow());
         let global = &self.global();
         let lost = GPUDeviceLostInfo::new(global, msg.into(), reason);
         lost_promise.resolve_native(&*lost);
@@ -268,7 +266,6 @@ impl GPUDeviceMethods for GPUDevice {
         let id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_buffer_id(self.device.0.backend());
 
         if desc.is_none() {
@@ -411,7 +408,6 @@ impl GPUDeviceMethods for GPUDevice {
         let bind_group_layout_id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_bind_group_layout_id(self.device.0.backend());
         self.channel
             .0
@@ -452,7 +448,6 @@ impl GPUDeviceMethods for GPUDevice {
         let pipeline_layout_id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_pipeline_layout_id(self.device.0.backend());
         self.channel
             .0
@@ -512,7 +507,6 @@ impl GPUDeviceMethods for GPUDevice {
         let bind_group_id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_bind_group_id(self.device.0.backend());
         self.channel
             .0
@@ -539,13 +533,21 @@ impl GPUDeviceMethods for GPUDevice {
     fn CreateShaderModule(
         &self,
         descriptor: RootedTraceableBox<GPUShaderModuleDescriptor>,
+        comp: InRealm,
     ) -> DomRoot<GPUShaderModule> {
         let program_id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_shader_module_id(self.device.0.backend());
-
+        let promise = Promise::new_in_current_realm(comp);
+        let shader_module = GPUShaderModule::new(
+            &self.global(),
+            self.channel.clone(),
+            webgpu::WebGPUShaderModule(program_id),
+            descriptor.parent.label.clone().unwrap_or_default(),
+            promise.clone(),
+        );
+        let sender = response_async(&promise, &*shader_module);
         self.channel
             .0
             .send(WebGPURequest::CreateShaderModule {
@@ -553,16 +555,10 @@ impl GPUDeviceMethods for GPUDevice {
                 program_id,
                 program: descriptor.code.0.clone(),
                 label: None,
+                sender,
             })
             .expect("Failed to create WebGPU ShaderModule");
-
-        let shader_module = webgpu::WebGPUShaderModule(program_id);
-        GPUShaderModule::new(
-            &self.global(),
-            self.channel.clone(),
-            shader_module,
-            descriptor.parent.label.clone().unwrap_or_default(),
-        )
+        shader_module
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcomputepipeline>
@@ -573,7 +569,6 @@ impl GPUDeviceMethods for GPUDevice {
         let compute_pipeline_id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_compute_pipeline_id(self.device.0.backend());
 
         let (layout, implicit_ids, bgls) = self.get_pipeline_layout_data(&descriptor.parent.layout);
@@ -586,7 +581,9 @@ impl GPUDeviceMethods for GPUDevice {
                 entry_point: Some(Cow::Owned(descriptor.compute.entryPoint.to_string())),
                 constants: Cow::Owned(HashMap::new()),
                 zero_initialize_workgroup_memory: true,
+                vertex_pulling_transform: false,
             },
+            cache: None,
         };
 
         self.channel
@@ -629,7 +626,6 @@ impl GPUDeviceMethods for GPUDevice {
         let command_encoder_id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_command_encoder_id(self.device.0.backend());
         self.channel
             .0
@@ -678,7 +674,6 @@ impl GPUDeviceMethods for GPUDevice {
         let texture_id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_texture_id(self.device.0.backend());
 
         if desc.is_none() {
@@ -715,7 +710,6 @@ impl GPUDeviceMethods for GPUDevice {
         let sampler_id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_sampler_id(self.device.0.backend());
         let compare_enable = descriptor.compare.is_some();
         let desc = wgpu_res::SamplerDescriptor {
@@ -769,6 +763,7 @@ impl GPUDeviceMethods for GPUDevice {
             Some(wgpu_pipe::RenderPipelineDescriptor {
                 label: convert_label(&descriptor.parent.parent),
                 layout,
+                cache: None,
                 vertex: wgpu_pipe::VertexState {
                     stage: wgpu_pipe::ProgrammableStageDescriptor {
                         module: descriptor.vertex.parent.module.id().0,
@@ -777,6 +772,7 @@ impl GPUDeviceMethods for GPUDevice {
                         )),
                         constants: Cow::Owned(HashMap::new()),
                         zero_initialize_workgroup_memory: true,
+                        vertex_pulling_transform: false,
                     },
                     buffers: Cow::Owned(
                         descriptor
@@ -813,6 +809,7 @@ impl GPUDeviceMethods for GPUDevice {
                             entry_point: Some(Cow::Owned(stage.parent.entryPoint.to_string())),
                             constants: Cow::Owned(HashMap::new()),
                             zero_initialize_workgroup_memory: true,
+                            vertex_pulling_transform: false,
                         },
                         targets: Cow::Owned(
                             stage
@@ -887,7 +884,6 @@ impl GPUDeviceMethods for GPUDevice {
         let render_pipeline_id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_render_pipeline_id(self.device.0.backend());
 
         self.channel
@@ -968,7 +964,7 @@ impl GPUDeviceMethods for GPUDevice {
             .0
             .send(WebGPURequest::PushErrorScope {
                 device_id: self.device.0,
-                filter: filter.to_webgpu(),
+                filter: filter.as_webgpu(),
             })
             .is_err()
         {
@@ -1014,9 +1010,9 @@ impl GPUDeviceMethods for GPUDevice {
 }
 
 impl AsyncWGPUListener for GPUDevice {
-    fn handle_response(&self, response: Option<WebGPUResponseResult>, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>) {
         match response {
-            Some(Ok(WebGPUResponse::PoppedErrorScope(result))) => match result {
+            WebGPUResponse::PoppedErrorScope(result) => match result {
                 Ok(None) | Err(PopError::Lost) => promise.resolve_native(&None::<Option<GPUError>>),
                 Err(PopError::Empty) => promise.reject_error(Error::Operation),
                 Ok(Some(error)) => {
@@ -1024,20 +1020,13 @@ impl AsyncWGPUListener for GPUDevice {
                     promise.resolve_native(&error);
                 },
             },
-            _ => unreachable!("Wrong response recived on AsyncWGPUListener for GPUDevice"),
+            _ => unreachable!("Wrong response received on AsyncWGPUListener for GPUDevice"),
         }
     }
 }
 
 impl Drop for GPUDevice {
     fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DestroyDevice(self.device.0))
-        {
-            warn!("Failed to send DestroyDevice ({:?}) ({})", self.device.0, e);
-        }
         if let Err(e) = self
             .channel
             .0

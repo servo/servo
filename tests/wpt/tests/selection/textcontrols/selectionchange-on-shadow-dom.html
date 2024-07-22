@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test selectionchange events fired on shadow dom</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="root"></div>
+
+<script>
+ let root = document.getElementById('root');
+ let shadow = root.attachShadow({ mode: 'open' });
+ let input = document.createElement('input');
+ input.value = 'something to do 0';
+ shadow.append(input);
+
+ let events_on_document = [];
+ document.addEventListener("selectionchange", ev => {
+    events_on_document.push(ev);
+});
+
+promise_test(async () => {
+    input.focus();
+    events_on_document.length = 0;
+    input.setSelectionRange(0, 1);
+    await new Promise(resolve => step_timeout(resolve, 0));
+    assert_equals(events_on_document.length, 1);
+}, "selectionchange event fired on a shadow dom bubble to the document");
+</script>

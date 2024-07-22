@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp: auto` with the clamp point in a descendant with bmp</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-020-ref.html">
+<meta name="assert" content="If line-clamp: auto has the clamp point in a descendant, it should take its bmp into account">
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 6lh;
+  font: 16px / 32px serif;
+  white-space: pre;
+  background-color: yellow;
+}
+.clamp > div {
+  /* The total block-size bpm across the top and bottom is 2*(15+2) = 34px, greater than the line-height */
+  padding: 15px;
+  border: 2px solid black;
+}
+</style>
+<div class="clamp"><div>Line 1
+Line 2
+Line 3
+Line 4
+Line 5
+Line 6</div></div>

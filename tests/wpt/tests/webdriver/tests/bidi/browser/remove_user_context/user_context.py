@@ -1,9 +1,12 @@
 import pytest
 
-from tests.support.sync import AsyncPoll
 import webdriver.bidi.error as error
+from webdriver.error import TimeoutException
 
+from tests.support.sync import AsyncPoll
 from .. import get_user_context_ids
+
+USER_PROMPT_OPENED_EVENT = "browsingContext.userPromptOpened"
 
 
 @pytest.mark.asyncio
@@ -19,9 +22,8 @@ async def test_remove_context(bidi_session, create_user_context):
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
 @pytest.mark.asyncio
 async def test_remove_context_closes_contexts(
-    bidi_session, subscribe_events, wait_for_event, create_user_context, type_hint
+    bidi_session, subscribe_events, create_user_context, type_hint
 ):
-    # Subscribe to all browsing context events
     await subscribe_events(events=["browsingContext.contextDestroyed"])
 
     user_context_1 = await create_user_context()
@@ -71,5 +73,42 @@ async def test_remove_context_closes_contexts(
     destroyed_contexts = [event["context"] for event in events]
     assert context_3["context"] in destroyed_contexts
     assert context_4["context"] in destroyed_contexts
+
+    remove_listener()
+
+
+@pytest.mark.parametrize("type_hint", ["tab", "window"])
+@pytest.mark.asyncio
+async def test_remove_context_skips_beforeunload_prompt(
+    bidi_session,
+    subscribe_events,
+    create_user_context,
+    setup_beforeunload_page,
+    type_hint,
+):
+    await subscribe_events(events=[USER_PROMPT_OPENED_EVENT])
+
+    events = []
+
+    async def on_event(method, data):
+        if data["type"] == "beforeunload":
+            events.append(method)
+
+    remove_listener = bidi_session.add_event_listener(
+        USER_PROMPT_OPENED_EVENT, on_event)
+
+    user_context = await create_user_context()
+
+    context = await bidi_session.browsing_context.create(
+        user_context=user_context, type_hint=type_hint
+    )
+
+    await setup_beforeunload_page(context)
+
+    await bidi_session.browser.remove_user_context(user_context=user_context)
+
+    wait = AsyncPoll(bidi_session, timeout=0.5)
+    with pytest.raises(TimeoutException):
+        await wait.until(lambda _: len(events) > 0)
 
     remove_listener()

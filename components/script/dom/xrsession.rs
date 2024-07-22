@@ -438,10 +438,7 @@ impl XRSession {
         self.outside_raf.set(false);
         let len = self.current_raf_callback_list.borrow().len();
         for i in 0..len {
-            let callback = self.current_raf_callback_list.borrow()[i]
-                .1
-                .as_ref()
-                .map(Rc::clone);
+            let callback = self.current_raf_callback_list.borrow()[i].1.clone();
             if let Some(callback) = callback {
                 let _ = callback.Call__(time, &frame, ExceptionHandling::Report);
             }

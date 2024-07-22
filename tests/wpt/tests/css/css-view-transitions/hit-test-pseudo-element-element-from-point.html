@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<title>View transitions: hit testing the pseudo-elements should always return the document element</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+html { view-transition-name: none; }
+
+body { margin: 0; }
+
+#target {
+  width: 100px;
+  height: 100vh;
+  view-transition-name: target;
+}
+
+::view-transition {
+  background-color: green;
+}
+
+::view-transition,
+::view-transition-group(target),
+::view-transition-image-pair(target) {
+  height: 100%;
+  padding-left: 100px;
+}
+
+::view-transition-group(target) {
+  animation-duration: 30s;
+  background-color: lightgreen;
+}
+
+::view-transition-image-pair(target) {
+  height: 100%;
+  background-color: skyblue;
+  animation: none;
+  margin-left: 100px;
+}
+
+::view-transition-old(target) {
+  height: 100%;
+  width: 100px;
+  animation: none;
+  background-color: navy;
+}
+::view-transition-new(target) {
+  height: 100%;
+  width: 100px;
+  margin-left: 100px;
+  animation: none;
+  background-color: purple;
+}
+</style>
+
+<div id=target></div>
+
+<script>
+async_test(t => {
+  assert_implements(document.startViewTransition, "Missing document.startViewTransition");
+  document.startViewTransition(() => {
+    requestAnimationFrame(async () => {
+      // ::view-transition-group
+      t.step(() => assert_equals(document.elementFromPoint(20, 20), document.documentElement));
+      // ::view-transition-image-pair
+      t.step(() => assert_equals(document.elementFromPoint(120, 20), document.documentElement));
+      // ::view-transition-old
+      t.step(() => assert_equals(document.elementFromPoint(220, 20), document.documentElement));
+      // ::view-transition-new
+      t.step(() => assert_equals(document.elementFromPoint(320, 20), document.documentElement));
+      // ::view-transition
+      t.step(() => assert_equals(document.elementFromPoint(420, 20), document.documentElement));
+      t.done();
+    });
+  });
+}, "Hit-testing view transition pseudo-elements should always return the document element");
+</script>

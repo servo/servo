@@ -519,13 +519,13 @@ impl EventTarget {
         let name = CString::new(format!("on{}", &**ty)).unwrap();
 
         // Step 3.9, subsection ParameterList
-        const ARG_NAMES: &[*const c_char] = &[b"event\0" as *const u8 as *const c_char];
+        const ARG_NAMES: &[*const c_char] = &[c"event".as_ptr()];
         const ERROR_ARG_NAMES: &[*const c_char] = &[
-            b"event\0" as *const u8 as *const c_char,
-            b"source\0" as *const u8 as *const c_char,
-            b"lineno\0" as *const u8 as *const c_char,
-            b"colno\0" as *const u8 as *const c_char,
-            b"error\0" as *const u8 as *const c_char,
+            c"event".as_ptr(),
+            c"source".as_ptr(),
+            c"lineno".as_ptr(),
+            c"colno".as_ptr(),
+            c"error".as_ptr(),
         ];
         let is_error = ty == &atom!("error") && self.is::<Window>();
         let args = if is_error { ERROR_ARG_NAMES } else { ARG_NAMES };
@@ -591,10 +591,11 @@ impl EventTarget {
     }
 
     #[allow(unsafe_code)]
-    pub fn set_event_handler_common<T: CallbackContainer>(&self, ty: &str, listener: Option<Rc<T>>)
-    where
-        T: CallbackContainer,
-    {
+    pub fn set_event_handler_common<T: CallbackContainer>(
+        &self,
+        ty: &str,
+        listener: Option<Rc<T>>,
+    ) {
         let cx = GlobalScope::get_cx();
 
         let event_listener = listener.map(|listener| {
@@ -606,10 +607,7 @@ impl EventTarget {
     }
 
     #[allow(unsafe_code)]
-    pub fn set_error_event_handler<T: CallbackContainer>(&self, ty: &str, listener: Option<Rc<T>>)
-    where
-        T: CallbackContainer,
-    {
+    pub fn set_error_event_handler<T: CallbackContainer>(&self, ty: &str, listener: Option<Rc<T>>) {
         let cx = GlobalScope::get_cx();
 
         let event_listener = listener.map(|listener| {
@@ -625,9 +623,7 @@ impl EventTarget {
         &self,
         ty: &str,
         listener: Option<Rc<T>>,
-    ) where
-        T: CallbackContainer,
-    {
+    ) {
         let cx = GlobalScope::get_cx();
 
         let event_listener = listener.map(|listener| {

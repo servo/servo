@@ -9,7 +9,7 @@ into a u32 value. Component e[i] of the input is mapped to bits (8 * i) through 
 result.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
-import { TypeI32, TypeU32, TypeVec, u32, toVector, i32 } from '../../../../../util/conversion.js';
+import { u32, toVector, i32, Type } from '../../../../../util/conversion.js';
 import { clamp } from '../../../../../util/math.js';
 
 import { allInputSources, run } from '../../expression.js';
@@ -69,5 +69,5 @@ fn(async (t) => {
     return [makeCase(v)];
   });
 
-  await run(t, builtin('pack4xI8Clamp'), [TypeVec(4, TypeI32)], TypeU32, cfg, cases);
+  await run(t, builtin('pack4xI8Clamp'), [Type.vec4i], Type.u32, cfg, cases);
 });

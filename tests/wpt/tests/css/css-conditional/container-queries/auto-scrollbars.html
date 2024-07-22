@@ -1,0 +1,53 @@
+<!doctype html>
+<title>CSS Container Queries Test: scrollbar stability for @container queries and overflow:auto</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-queries">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollbar-layout">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #scroller {
+    height: 100px;
+    width: 100px;
+    overflow-y: auto;
+  }
+  #container {
+    container-type: inline-size;
+  }
+  #inner {
+    height: 100px;
+    border-bottom: 1px solid red;
+  }
+  @container (max-width: 99px) {
+    #inner {
+      height: 50px;
+    }
+  }
+</style>
+<div id="precondition" style="width:100px;height:100px;overflow:scroll"></div>
+<div id="scroller">
+  <div id="container">
+    <div id="inner"></div>
+  </div>
+</div>
+<script>
+  setup(() => {
+    assert_implements_container_queries();
+    assert_implements_optional(precondition.clientWidth < 100,
+                               "Tests do not work with overlay scrollbars");
+  });
+
+  let initialScrollerWidth = scroller.clientWidth;
+  test(() => {
+    assert_equals(getComputedStyle(inner).height, "50px",
+                  "Layout with a scrollbar means the container query applies");
+  }, "Initial layout - expecting a scrollbar without overflowing content instead of overflowing content without a scrollbar");
+
+  test(() => {
+    inner.style.borderBottomWidth = "2px";
+    assert_equals(scroller.clientWidth, initialScrollerWidth, "Scrollbar visibility is consistent after reflow.");
+    assert_equals(getComputedStyle(inner).height, "50px",
+                  "Layout with a scrollbar means the container query applies");
+  }, "Same result after a reflow");
+
+</script>

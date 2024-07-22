@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-page-3/#margin-dimension">
+<meta name="assert" content="Test auto lengths. Min content sizes are larger than available size. No center/middle boxes.">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<link rel="match" href="dimensions-008-print-ref.html">
+<style>
+  @page {
+    margin: 6em;
+    width: 20em;
+    height: 16em;
+    font: 16px/1 Ahem;
+    white-space: pre-wrap;
+
+    /* Total min size is larger than available size. Shrink proportionally to
+       min sizes. */
+
+    /* Left margin box min: 18em
+       Right margin box min: 6em
+       Flex will be the same as min. Total flex: 18+6=24
+
+       Available space: 20em
+       Unused space: 20em - 24em = -4em
+
+       Left width: 18em + (-4em) * 18/24 = 15em
+       Right width: 6em + (-4em) * 6/24 = 5em */
+    @top-left {
+      text-align: left;
+      vertical-align: top;
+      content: "xxxxxxxxxxxxxxxxxx x";
+      margin-bottom: 3em;
+      background: hotpink;
+    }
+    @top-right {
+      text-align: left;
+      vertical-align: top;
+      margin-top: 3em;
+      content: "xxxxxx xxx";
+      background: yellow;
+    }
+
+    /* Top margin box min: 18em (18 lines)
+       Bottom margin box min: 30em (30 lines)
+       Flex will be the same as min. Total flex: 18+30=48
+
+       Available space: 16em
+       Unused space: 16em - 48em = -32em
+
+       Top height: 18em + (-32em) * 18/48 = 6em
+       Bottom height: 30em + (-32em) * 30/48 = 10em */
+    @left-top {
+      text-align: left;
+      vertical-align: top;
+      margin-right: 3em;
+      content: "x\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\a";
+      background: hotpink;
+    }
+    @left-bottom {
+      text-align: left;
+      vertical-align: top;
+      margin-left: 3em;
+      content: "x\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\ax\a";
+      background: yellow;
+    }
+</style>

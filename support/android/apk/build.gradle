@@ -65,3 +65,17 @@ ext.getNdkDir = { ->
     }
     return ndkDir.absolutePath
 }
+
+ext.getSigningKeyInfo = { ->
+    def storeFilePath = System.getenv("APK_SIGNING_KEY_STORE_PATH")
+    if (storeFilePath != null) {
+        return  [
+            storeFile: new File(storeFilePath),
+            storePassword: System.getenv("APK_SIGNING_KEY_STORE_PASS"),
+            keyAlias: System.getenv("APK_SIGNING_KEY_ALIAS"),
+            keyPassword: System.getenv("APK_SIGNING_KEY_PASS"),
+        ]
+    } else {
+        return null
+    }
+}

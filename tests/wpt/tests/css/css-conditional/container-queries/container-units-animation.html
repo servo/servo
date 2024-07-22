@@ -1,0 +1,70 @@
+<!doctype html>
+<title>Container Relative Units: Animation</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-lengths">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #container {
+    container-type: size;
+    width: 200px;
+    height: 200px;
+  }
+
+  @keyframes anim_cqw { from { top: 20cqw; } to { top: 40cqw; } }
+  @keyframes anim_cqh { from { top: 20cqh; } to { top: 40cqh; } }
+  @keyframes anim_cqi { from { top: 20cqi; } to { top: 40cqi; } }
+  @keyframes anim_cqb { from { top: 20cqb; } to { top: 40cqb; } }
+  @keyframes anim_cqmin { from { top: 20cqmin; } to { top: 40cqmin; } }
+  @keyframes anim_cqmax { from { top: 20cqmax; } to { top: 40cqmax; } }
+
+  #container > div {
+    animation-delay: -5s;
+    animation-play-state: paused;
+    animation-duration: 10s;
+    animation-timing-function: linear;
+  }
+
+  #element_cqw { animation-name: anim_cqw; }
+  #element_cqh { animation-name: anim_cqh; }
+  #element_cqi { animation-name: anim_cqi; }
+  #element_cqb { animation-name: anim_cqb; }
+  #element_cqmin { animation-name: anim_cqmin; }
+  #element_cqmax { animation-name: anim_cqmax; }
+
+</style>
+<div id=container>
+  <div id=element_cqw></div>
+  <div id=element_cqh></div>
+  <div id=element_cqi></div>
+  <div id=element_cqb></div>
+  <div id=element_cqmin></div>
+  <div id=element_cqmax></div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  const units = ['cqw', 'cqh', 'cqi', 'cqb', 'cqmin', 'cqmax'];
+
+  for (let unit of units) {
+    test(() => {
+      let element = document.getElementById(`element_${unit}`)
+      assert_equals(getComputedStyle(element).top, '60px');
+    }, `Animation using ${unit} unit`);
+
+    test(() => {
+      let element = document.getElementById(`element_${unit}`)
+      assert_equals(getComputedStyle(element).top, '60px');
+      try {
+        container.style.width = '300px';
+        container.style.height = '300px';
+        assert_equals(getComputedStyle(element).top, '90px');
+      } finally {
+        container.style = '';
+      }
+
+      assert_equals(getComputedStyle(element).top, '60px');
+    }, `Animation using ${unit} unit responds to changing container size`);
+  }
+
+</script>

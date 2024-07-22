@@ -4,8 +4,8 @@
 Execution Tests for the i32 conversion operations
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../gpu_test.js';
-import { TypeBool, TypeF16, TypeF32, TypeI32, TypeU32 } from '../../../../util/conversion.js';
-import { allInputSources, run } from '../expression.js';
+import { Type } from '../../../../util/conversion.js';
+import { allInputSources, run, onlyConstInputSource } from '../expression.js';
 
 import { d } from './i32_conversion.cache.js';
 import { unary } from './unary.js';
@@ -31,7 +31,7 @@ u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3,
 ).
 fn(async (t) => {
   const cases = await d.get('bool');
-  await run(t, vectorizeToExpression(t.params.vectorize), [TypeBool], TypeI32, t.params, cases);
+  await run(t, vectorizeToExpression(t.params.vectorize), [Type.bool], Type.i32, t.params, cases);
 });
 
 g.test('u32').
@@ -48,7 +48,7 @@ u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3,
 ).
 fn(async (t) => {
   const cases = await d.get('u32');
-  await run(t, vectorizeToExpression(t.params.vectorize), [TypeU32], TypeI32, t.params, cases);
+  await run(t, vectorizeToExpression(t.params.vectorize), [Type.u32], Type.i32, t.params, cases);
 });
 
 g.test('i32').
@@ -65,7 +65,7 @@ u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3,
 ).
 fn(async (t) => {
   const cases = await d.get('i32');
-  await run(t, vectorizeToExpression(t.params.vectorize), [TypeI32], TypeI32, t.params, cases);
+  await run(t, vectorizeToExpression(t.params.vectorize), [Type.i32], Type.i32, t.params, cases);
 });
 
 g.test('f32').
@@ -82,7 +82,7 @@ u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3,
 ).
 fn(async (t) => {
   const cases = await d.get('f32');
-  await run(t, vectorizeToExpression(t.params.vectorize), [TypeF32], TypeI32, t.params, cases);
+  await run(t, vectorizeToExpression(t.params.vectorize), [Type.f32], Type.i32, t.params, cases);
 });
 
 g.test('f16').
@@ -102,5 +102,57 @@ beforeAllSubcases((t) => {
 }).
 fn(async (t) => {
   const cases = await d.get('f16');
-  await run(t, vectorizeToExpression(t.params.vectorize), [TypeF16], TypeI32, t.params, cases);
+  await run(t, vectorizeToExpression(t.params.vectorize), [Type.f16], Type.i32, t.params, cases);
+});
+
+g.test('abstract_int').
+specURL('https://www.w3.org/TR/WGSL/#value-constructor-builtin-function').
+desc(
+  `
+i32(e), where e is an AbstractInt
+
+Identity operation if e is in bounds for i32, otherwise shader creation error
+`
+).
+params((u) =>
+u.
+combine('inputSource', onlyConstInputSource).
+combine('vectorize', [undefined, 2, 3, 4])
+).
+fn(async (t) => {
+  const cases = await d.get('abstractInt');
+  await run(
+    t,
+    vectorizeToExpression(t.params.vectorize),
+    [Type.abstractInt],
+    Type.i32,
+    t.params,
+    cases
+  );
+});
+
+g.test('abstract_float').
+specURL('https://www.w3.org/TR/WGSL/#value-constructor-builtin-function').
+desc(
+  `
+i32(e), where e is an AbstractFloat
+
+e is converted to i32, rounding towards zero
+`
+).
+params((u) =>
+u.
+combine('inputSource', onlyConstInputSource).
+combine('vectorize', [undefined, 2, 3, 4])
+).
+fn(async (t) => {
+  const cases = await d.get('abstractFloat');
+  await run(
+    t,
+    vectorizeToExpression(t.params.vectorize),
+    [Type.abstractFloat],
+    Type.i32,
+    t.params,
+    cases
+  );
 });

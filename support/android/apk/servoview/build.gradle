@@ -10,7 +10,7 @@ android {
     compileSdk 33
     buildToolsVersion = "33.0.2"
 
-    namespace 'org.mozilla.servoview'
+    namespace 'org.servo.servoview'
 
     buildDir = rootDir.absolutePath + "/../../../target/android/gradle/servoview"
 

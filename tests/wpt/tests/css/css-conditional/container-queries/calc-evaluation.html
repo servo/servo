@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>CSS Container Queries Test: calc()</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<link rel="help" href="https://drafts.csswg.org/mediaqueries-4/#units">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  :root { font-size: 10px; }
+
+  /* To make output more readable */
+  :root > * { font-size: initial; }
+
+  #container {
+    container-type: size;
+    width: 200px;
+    height: 50px;
+  }
+  @container (width = calc(100px + 10rem)) {
+    #target { color: green; }
+  }
+</style>
+<div id=container>
+  <div id=target></div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  test(() => {
+    assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+  }, 'em relative inline-size');
+</script>

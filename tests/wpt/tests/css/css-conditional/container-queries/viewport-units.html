@@ -1,0 +1,33 @@
+<!doctype html>
+<title>CSS Container Queries Test: viewport units</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #vw { container-type: inline-size; width: 10vw; }
+  #vh { container-type: inline-size; width: 10vh; }
+
+  @container (min-width: 10vw) {
+    #vw span { color: green }
+  }
+  @container (min-width: 11vw) {
+    #vw span { color: red }
+  }
+  @container (min-width: 10vh) {
+    #vh span { color: green }
+  }
+  @container (min-width: 11vh) {
+    #vh span { color: red }
+  }
+</style>
+<div id="vw"><span>Green</span></div>
+<div id="vh"><span>Green</span></div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  const green = "rgb(0, 128, 0)";
+
+  test(() => assert_equals(getComputedStyle(vw.firstChild).color, green), "Match width with vw");
+  test(() => assert_equals(getComputedStyle(vh.firstChild).color, green), "Match width with vh");
+</script>

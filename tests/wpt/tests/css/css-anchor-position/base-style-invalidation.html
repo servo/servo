@@ -26,7 +26,7 @@
   #anchored {
     position: absolute;
     position-anchor: --a;
-    position-try-options: --pt flip-start;
+    position-try-fallbacks: --pt flip-start;
     inset: 0;
     top: anchor(top);
     bottom: anchor(bottom);
@@ -60,5 +60,5 @@
     anchored.classList.toggle('flip');
     assert_equals(anchored.offsetLeft, 20);
     assert_equals(anchored.offsetTop, 75);
-  }, 'The chosen position options changes when the base style differs');
+  }, 'The chosen position fallbacks changes when the base style differs');
 </script>

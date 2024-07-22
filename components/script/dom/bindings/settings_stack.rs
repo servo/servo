@@ -12,7 +12,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::globalscope::GlobalScope;
 
-thread_local!(static STACK: RefCell<Vec<StackEntry>> = RefCell::new(Vec::new()));
+thread_local!(static STACK: RefCell<Vec<StackEntry>> = const { RefCell::new(Vec::new()) });
 
 #[derive(Debug, Eq, JSTraceable, PartialEq)]
 enum StackEntryKind {

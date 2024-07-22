@@ -44,7 +44,7 @@ fn((t) => {
   const { descriptor } = t.params;
 
   t.expectValidationError(() => {
-    const buffer = t.device.createBuffer(descriptor);
+    const buffer = t.createBufferTracked(descriptor);
 
     t.expect(buffer.size === descriptor.size);
     t.expect(buffer.usage === descriptor.usage);
@@ -66,10 +66,8 @@ u.combine('descriptor', kBufferSubcases).filter((p) => !p.descriptor.invalid)
 fn((t) => {
   const { descriptor } = t.params;
 
-  const buffer = t.device.createBuffer(descriptor);
-  t.trackForCleanup(buffer);
-  const buffer2 = t.device.createBuffer(buffer);
-  t.trackForCleanup(buffer2);
+  const buffer = t.createBufferTracked(descriptor);
+  const buffer2 = t.createBufferTracked(buffer);
 
   const bufferAsObject = buffer;
   const buffer2AsObject = buffer2;
@@ -164,7 +162,7 @@ fn((t) => {
   }
 
   t.expectValidationError(() => {
-    const texture = t.device.createTexture(descriptor);
+    const texture = t.createTextureTracked(descriptor);
 
     t.expect(texture.width === width);
     t.expect(texture.height === height);
@@ -195,12 +193,10 @@ u.combine('descriptor', kTextureSubcases).filter((p) => !p.descriptor.invalid)
 fn((t) => {
   const { descriptor } = t.params;
 
-  const texture = t.device.createTexture(descriptor);
-  t.trackForCleanup(texture);
+  const texture = t.createTextureTracked(descriptor);
   const textureWithSize = texture;
   textureWithSize.size = [texture.width, texture.height, texture.depthOrArrayLayers];
-  const texture2 = t.device.createTexture(textureWithSize);
-  t.trackForCleanup(texture2);
+  const texture2 = t.createTextureTracked(textureWithSize);
 
   const textureAsObject = texture;
   const texture2AsObject = texture2;
@@ -217,14 +213,14 @@ fn((t) => {
 
   // MAINTENANCE_TODO: Check this if it is made possible by a spec change.
   //
-  //     texture3 = t.device.createTexture({
+  //     texture3 = t.createTextureTracked({
   //       ...texture,
   //       size: [texture.width, texture.height, texture.depthOrArrayLayers],
   //     });
   //
   // and this
   //
-  //     texture3 = t.device.createTexture({
+  //     texture3 = t.createTextureTracked({
   //       size: [texture.width, texture.height, texture.depthOrArrayLayers],
   //       ...texture,
   //     });
@@ -249,7 +245,7 @@ fn((t) => {
   const { descriptor } = t.params;
 
   t.expectValidationError(() => {
-    const querySet = t.device.createQuerySet(descriptor);
+    const querySet = t.createQuerySetTracked(descriptor);
 
     t.expect(querySet.type === descriptor.type);
     t.expect(querySet.count === descriptor.count);
@@ -270,10 +266,8 @@ u.combine('descriptor', kQuerySetSubcases).filter((p) => !p.descriptor.invalid)
 fn((t) => {
   const { descriptor } = t.params;
 
-  const querySet = t.device.createQuerySet(descriptor);
-  t.trackForCleanup(querySet);
-  const querySet2 = t.device.createQuerySet(querySet);
-  t.trackForCleanup(querySet2);
+  const querySet = t.createQuerySetTracked(descriptor);
+  const querySet2 = t.createQuerySetTracked(querySet);
 
   const querySetAsObject = querySet;
   const querySet2AsObject = querySet2;

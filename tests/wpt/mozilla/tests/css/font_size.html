@@ -10,10 +10,14 @@
 <p style="font-size: 200%">200% is 40px.
 <p style="font-size: smaller">smaller is 16.66666…px.
 <p style="font-size: larger">larger is 24px.
-<p style="font-size: xx-small">xx-small is 9.6px.
-<p style="font-size: x-small">x-small is 12px.
-<p style="font-size: small">small is 14.2222…px.
+    <!-- When the size is a keyword like the ones below, the resulting size is
+        based the "base size" of the generic font (or the default font size if
+        there is no generic font). Right now in Servo that size for serif is 16px
+        by default -->
+<p style="font-size: xx-small">xx-small is 9px.
+<p style="font-size: x-small">x-small is 10px.
+<p style="font-size: small">small is 13px.
 <p style="font-size: medium">medium is 16px.
-<p style="font-size: large">large is 19.2px.
+<p style="font-size: large">large is 18px.
 <p style="font-size: x-large">x-large is 24px.
 <p style="font-size: xx-large">xx-large is 32px.

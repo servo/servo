@@ -1,0 +1,26 @@
+<!doctype html>
+<title>CSS Container Queries Test: inline-size query changes rendered legend in fieldset</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<link rel="match" href="fieldset-legend-change-ref.html">
+<p>Pass if the rendered legend below is "PASS"</p>
+<style>
+  fieldset {
+    width: 200px;
+    container-type: inline-size;
+  }
+  .wide { width: 400px; }
+
+  @container (min-width: 300px) {
+    #fail {
+      display: none;
+    }
+  }
+</style>
+<fieldset id="fieldset">
+  <legend id="fail">FAIL</legend>
+  <legend>PASS</legend>
+</fieldset>
+<script>
+  fieldset.offsetTop;
+  fieldset.className = "wide";
+</script>

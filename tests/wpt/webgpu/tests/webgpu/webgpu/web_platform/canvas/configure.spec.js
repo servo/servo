@@ -13,7 +13,6 @@ import { GPUConst } from '../../constants.js';
 import {
   kAllTextureFormats,
   kFeaturesForFormats,
-  kTextureFormats,
   filterFormatsByFeature,
   viewCompatible } from
 '../../format_info.js';
@@ -254,7 +253,7 @@ fn((t) => {
 
   if (usage & GPUConst.TextureUsage.COPY_SRC) {
     const size = [currentTexture.width, currentTexture.height, 1];
-    const dstTexture = t.device.createTexture({
+    const dstTexture = t.createTextureTracked({
       format: currentTexture.format,
       usage: GPUTextureUsage.COPY_DST,
       size
@@ -387,7 +386,7 @@ combine('format', kCanvasTextureFormats).
 combine('viewFormatFeature', kFeaturesForFormats).
 beginSubcases().
 expand('viewFormat', ({ viewFormatFeature }) =>
-filterFormatsByFeature(viewFormatFeature, kTextureFormats)
+filterFormatsByFeature(viewFormatFeature, kAllTextureFormats)
 )
 ).
 beforeAllSubcases((t) => {

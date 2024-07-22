@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Conditional Test: Inheritance of container-*</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-name">
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-type">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+setup(() => assert_implements_container_queries());
+
+assert_not_inherited('container-name', 'none', 'foo');
+assert_not_inherited('container-type', 'normal', 'inline-size');
+</script>

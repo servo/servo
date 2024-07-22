@@ -8,16 +8,7 @@ bits 8 × i through 8 × i + 7 of the result.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
 import { kValue } from '../../../../../util/constants.js';
-import {
-  f32,
-  pack4x8snorm,
-
-  TypeF32,
-  TypeU32,
-  TypeVec,
-  u32,
-  vec4 } from
-'../../../../../util/conversion.js';
+import { f32, pack4x8snorm, u32, vec4, Type } from '../../../../../util/conversion.js';
 import { quantizeToF32, vectorF32Range } from '../../../../../util/math.js';
 
 import { allInputSources, run } from '../../expression.js';
@@ -37,6 +28,11 @@ params((u) => u.combine('inputSource', allInputSources)).
 fn(async (t) => {
   const makeCase = (vals) => {
     const vals_f32 = new Array(4);
+
+
+
+
+
     for (const idx in vals) {
       vals[idx] = quantizeToF32(vals[idx]);
       vals_f32[idx] = f32(vals[idx]);
@@ -57,5 +53,5 @@ fn(async (t) => {
 
   });
 
-  await run(t, builtin('pack4x8snorm'), [TypeVec(4, TypeF32)], TypeU32, t.params, cases);
+  await run(t, builtin('pack4x8snorm'), [Type.vec4f], Type.u32, t.params, cases);
 });

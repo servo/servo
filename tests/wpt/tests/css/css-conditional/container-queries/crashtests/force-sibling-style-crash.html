@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>getComputedStyle on sibling of style-dirty container</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<link rel="help" href="https://crbug.com/1306385">
+<div id=ancestor style="--x:foo">
+  <div id=container style="container-type:size;width:100px;">
+    <span>Test</span>
+  </div>
+  <div id=target></div>
+</div>
+<script>
+  ancestor.offsetTop;
+  ancestor.style.setProperty('--x', 'bar');
+  container.style.width = '200px';
+  getComputedStyle(target).getPropertyValue('--x');
+</script>

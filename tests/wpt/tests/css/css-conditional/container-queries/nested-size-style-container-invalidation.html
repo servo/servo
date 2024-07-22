@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Nested size/style @container-dependent elements respond to container size changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #container {
+    container-type: size;
+    width: 1000px;
+  }
+  #container.narrow {
+    width: 600px;
+  }
+  #target {
+    color: red;
+  }
+  @container (width < 800px) {
+    @container style(--foo: bar) {
+      #target { color: green; }
+    }
+  }
+</style>
+<div id="container">
+  <div style="--foo: bar">
+    <div id="target">Green?</div>
+  </div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  test(() => {
+    assert_equals(getComputedStyle(target).color, "rgb(255, 0, 0)");
+  }, "Initially red");
+
+  test(() => {
+    container.className = "narrow";
+    assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)");
+  }, "Green after reducing width");
+</script>

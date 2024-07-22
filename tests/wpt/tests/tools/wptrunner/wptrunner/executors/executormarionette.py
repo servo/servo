@@ -952,8 +952,8 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
         if marionette is None:
             do_delayed_imports()
 
-    def setup(self, runner):
-        super().setup(runner)
+    def setup(self, runner, protocol=None):
+        super().setup(runner, protocol)
         for extension_path in self.install_extensions:
             self.logger.info("Installing extension from %s" % extension_path)
             addons = Addons(self.protocol.marionette)
@@ -1081,8 +1081,8 @@ class MarionetteRefTestExecutor(RefTestExecutor):
         return (InternalRefTestImplementation if reftest_internal
                 else RefTestImplementation)(self)
 
-    def setup(self, runner):
-        super().setup(runner)
+    def setup(self, runner, protocol=None):
+        super().setup(runner, protocol)
         for extension_path in self.install_extensions:
             self.logger.info("Installing extension from %s" % extension_path)
             addons = Addons(self.protocol.marionette)
@@ -1335,8 +1335,8 @@ class MarionettePrintRefTestExecutor(MarionetteRefTestExecutor):
                                            debug=debug,
                                            **kwargs)
 
-    def setup(self, runner):
-        super().setup(runner)
+    def setup(self, runner, protocol=None):
+        super().setup(runner, protocol)
         if not isinstance(self.implementation, InternalRefTestImplementation):
             self.protocol.pdf_print.load_runner()
 

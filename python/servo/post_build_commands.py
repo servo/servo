@@ -33,6 +33,9 @@ from servo.command_base import (
 )
 
 
+ANDROID_APP_NAME = "org.servo.servoshell"
+
+
 def read_file(filename, if_exists=False):
     if if_exists and not path.exists(filename):
         return None
@@ -104,7 +107,7 @@ class PostBuildCommands(CommandBase):
                 print("https://github.com/servo/servo/wiki/Building-for-Android#debugging-on-device")
                 return
             script = [
-                "am force-stop org.mozilla.servo",
+                f"am force-stop {ANDROID_APP_NAME}",
             ]
             json_params = shell_quote(json.dumps(params))
             extra = "-e servoargs " + json_params
@@ -115,10 +118,10 @@ class PostBuildCommands(CommandBase):
             if gst_debug:
                 extra += " -e gstdebug " + gst_debug
             script += [
-                "am start " + extra + " org.mozilla.servo/org.mozilla.servo.MainActivity",
+                f"am start {extra} {ANDROID_APP_NAME}/{ANDROID_APP_NAME}.MainActivity",
                 "sleep 0.5",
-                "echo Servo PID: $(pidof org.mozilla.servo)",
-                "logcat --pid=$(pidof org.mozilla.servo)",
+                f"echo Servo PID: $(pidof {ANDROID_APP_NAME})",
+                f"logcat --pid=$(pidof {ANDROID_APP_NAME})",
                 "exit"
             ]
             args = [self.android_adb_path(env)]

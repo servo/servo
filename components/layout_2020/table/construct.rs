@@ -9,15 +9,17 @@ use std::iter::repeat;
 use log::warn;
 use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
 use servo_arc::Arc;
+use style::properties::style_structs::Font;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 use style::str::char_is_whitespace;
 use style::values::specified::TextDecorationLine;
 
 use super::{
-    Table, TableSlot, TableSlotCell, TableSlotCoordinates, TableSlotOffset, TableTrack,
-    TableTrackGroup, TableTrackGroupType,
+    Table, TableCaption, TableSlot, TableSlotCell, TableSlotCoordinates, TableSlotOffset,
+    TableTrack, TableTrackGroup, TableTrackGroupType,
 };
+use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, NodeExt};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents, TraversalHandler};
@@ -73,12 +75,14 @@ impl Table {
     pub(crate) fn construct<'dom>(
         context: &LayoutContext,
         info: &NodeAndStyleInfo<impl NodeExt<'dom>>,
+        grid_style: Arc<ComputedValues>,
         contents: NonReplacedContents,
         propagated_text_decoration_line: TextDecorationLine,
     ) -> Self {
         let text_decoration_line =
             propagated_text_decoration_line | info.style.clone_text_decoration_line();
-        let mut traversal = TableBuilderTraversal::new(context, info, text_decoration_line);
+        let mut traversal =
+            TableBuilderTraversal::new(context, info, grid_style, text_decoration_line);
         contents.traverse(context, info, &mut traversal);
         traversal.finish()
     }
@@ -92,7 +96,7 @@ impl Table {
     where
         Node: crate::dom::NodeExt<'dom>,
     {
-        let anonymous_style = context
+        let grid_and_wrapper_style = context
             .shared_context()
             .stylist
             .style_for_anonymous::<Node::ConcreteElement>(
@@ -100,10 +104,14 @@ impl Table {
                 &PseudoElement::ServoAnonymousTable,
                 &parent_info.style,
             );
-        let anonymous_info = parent_info.new_anonymous(anonymous_style.clone());
+        let anonymous_info = parent_info.new_anonymous(grid_and_wrapper_style.clone());
 
-        let mut table_builder =
-            TableBuilderTraversal::new(context, &anonymous_info, propagated_text_decoration_line);
+        let mut table_builder = TableBuilderTraversal::new(
+            context,
+            &anonymous_info,
+            grid_and_wrapper_style.clone(),
+            propagated_text_decoration_line,
+        );
 
         for content in contents {
             match content {
@@ -128,7 +136,7 @@ impl Table {
 
         IndependentFormattingContext::NonReplaced(NonReplacedFormattingContext {
             base_fragment_info: (&anonymous_info).into(),
-            style: anonymous_style,
+            style: grid_and_wrapper_style,
             content_sizes: None,
             contents: NonReplacedFormattingContextContents::Table(table),
         })
@@ -229,15 +237,25 @@ pub struct TableBuilder {
 }
 
 impl TableBuilder {
-    pub(super) fn new(style: Arc<ComputedValues>) -> Self {
+    pub(super) fn new(
+        style: Arc<ComputedValues>,
+        grid_style: Arc<ComputedValues>,
+        base_fragment_info: BaseFragmentInfo,
+    ) -> Self {
         Self {
-            table: Table::new(style),
+            table: Table::new(style, grid_style, base_fragment_info),
             incoming_rowspans: Vec::new(),
         }
     }
 
     pub fn new_for_tests() -> Self {
-        Self::new(ComputedValues::initial_values().to_arc())
+        let testing_style =
+            ComputedValues::initial_values_with_font_override(Font::initial_values());
+        Self::new(
+            testing_style.clone(),
+            testing_style.clone(),
+            BaseFragmentInfo::anonymous(),
+        )
     }
 
     pub fn last_row_index_in_row_group_at_row_n(&self, n: usize) -> usize {
@@ -622,13 +640,14 @@ where
     pub(crate) fn new(
         context: &'style LayoutContext<'style>,
         info: &'style NodeAndStyleInfo<Node>,
+        grid_style: Arc<ComputedValues>,
         text_decoration_line: TextDecorationLine,
     ) -> Self {
         TableBuilderTraversal {
             context,
             info,
             current_text_decoration_line: text_decoration_line,
-            builder: TableBuilder::new(info.style.clone()),
+            builder: TableBuilder::new(info.style.clone(), grid_style, info.into()),
             current_anonymous_row_content: Vec::new(),
             current_row_group_index: None,
         }
@@ -825,9 +844,36 @@ where
                     ::std::mem::forget(box_slot);
                 },
                 DisplayLayoutInternal::TableCaption => {
-                    // TODO: Handle table captions.
+                    let contents = match contents.try_into() {
+                        Ok(non_replaced_contents) => {
+                            NonReplacedFormattingContextContents::Flow(
+                                BlockFormattingContext::construct(
+                                    self.context,
+                                    info,
+                                    non_replaced_contents,
+                                    self.current_text_decoration_line,
+                                    false, /* is_list_item */
+                                ),
+                            )
+                        },
+                        Err(_replaced) => {
+                            unreachable!("Replaced should not have a LayoutInternal display type.");
+                        },
+                    };
+
+                    let caption = TableCaption {
+                        context: ArcRefCell::new(NonReplacedFormattingContext {
+                            style: info.style.clone(),
+                            base_fragment_info: info.into(),
+                            content_sizes: None,
+                            contents,
+                        }),
+                    };
+
+                    self.builder.table.captions.push(caption);
+
                     // We are doing this until we have actually set a Box for this `BoxSlot`.
-                    ::std::mem::forget(box_slot);
+                    ::std::mem::forget(box_slot)
                 },
                 DisplayLayoutInternal::TableCell => {
                     self.current_anonymous_row_content

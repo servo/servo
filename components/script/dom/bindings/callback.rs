@@ -61,15 +61,10 @@ pub struct CallbackObject {
     incumbent: Option<Dom<GlobalScope>>,
 }
 
-impl Default for CallbackObject {
-    #[allow(crown::unrooted_must_root)]
-    fn default() -> CallbackObject {
-        CallbackObject::new()
-    }
-}
-
 impl CallbackObject {
     #[allow(crown::unrooted_must_root)]
+    // These are used by the bindings and do not need `default()` functions.
+    #[allow(clippy::new_without_default)]
     fn new() -> CallbackObject {
         CallbackObject {
             callback: Heap::default(),
@@ -140,6 +135,8 @@ pub struct CallbackFunction {
 impl CallbackFunction {
     /// Create a new `CallbackFunction` for this object.
     #[allow(crown::unrooted_must_root)]
+    // These are used by the bindings and do not need `default()` functions.
+    #[allow(clippy::new_without_default)]
     pub fn new() -> CallbackFunction {
         CallbackFunction {
             object: CallbackObject::new(),
@@ -167,6 +164,8 @@ pub struct CallbackInterface {
 
 impl CallbackInterface {
     /// Create a new CallbackInterface object for the given `JSObject`.
+    // These are used by the bindings and do not need `default()` functions.
+    #[allow(clippy::new_without_default)]
     pub fn new() -> CallbackInterface {
         CallbackInterface {
             object: CallbackObject::new(),

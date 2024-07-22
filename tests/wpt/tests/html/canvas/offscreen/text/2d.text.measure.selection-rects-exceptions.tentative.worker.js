@@ -19,7 +19,8 @@ t.step(function() {
   const kTexts = [
     'UNAVAILABLE',
     '🏁🎶🏁',
-    '）（あ）（'
+    '）（あ）（',
+    '-abcd_'
   ]
 
   for (const text of kTexts) {

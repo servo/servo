@@ -6,7 +6,7 @@ copyTextureToTexture tests.
 import { kTextureUsages, kTextureDimensions } from '../../../../capability_info.js';
 import {
   kTextureFormatInfo,
-  kTextureFormats,
+  kAllTextureFormats,
   kCompressedTextureFormats,
   kDepthStencilFormats,
   kFeaturesForFormats,
@@ -128,20 +128,22 @@ fn((t) => {
   const format = 'rgba8unorm';
 
   const srcTextureDevice = srcMismatched ? t.mismatchedDevice : t.device;
-  const srcTexture = srcTextureDevice.createTexture({
-    size,
-    format,
-    usage: GPUTextureUsage.COPY_SRC
-  });
-  t.trackForCleanup(srcTexture);
+  const srcTexture = t.trackForCleanup(
+    srcTextureDevice.createTexture({
+      size,
+      format,
+      usage: GPUTextureUsage.COPY_SRC
+    })
+  );
 
   const dstTextureDevice = dstMismatched ? t.mismatchedDevice : t.device;
-  const dstTexture = dstTextureDevice.createTexture({
-    size,
-    format,
-    usage: GPUTextureUsage.COPY_DST
-  });
-  t.trackForCleanup(dstTexture);
+  const dstTexture = t.trackForCleanup(
+    dstTextureDevice.createTexture({
+      size,
+      format,
+      usage: GPUTextureUsage.COPY_DST
+    })
+  );
 
   t.TestCopyTextureToTexture(
     { texture: srcTexture },
@@ -180,14 +182,14 @@ unless((p) => p.dimension === '1d' && (p.srcLevelCount !== 1 || p.dstLevelCount 
 fn((t) => {
   const { srcLevelCount, dstLevelCount, srcCopyLevel, dstCopyLevel, dimension } = t.params;
 
-  const srcTexture = t.device.createTexture({
+  const srcTexture = t.createTextureTracked({
     size: { width: 32, height: 1, depthOrArrayLayers: 1 },
     dimension,
     format: 'rgba8unorm',
     usage: GPUTextureUsage.COPY_SRC,
     mipLevelCount: srcLevelCount
   });
-  const dstTexture = t.device.createTexture({
+  const dstTexture = t.createTextureTracked({
     size: { width: 32, height: 1, depthOrArrayLayers: 1 },
     dimension,
     format: 'rgba8unorm',
@@ -220,12 +222,12 @@ combine('dstUsage', kTextureUsages)
 fn((t) => {
   const { srcUsage, dstUsage } = t.params;
 
-  const srcTexture = t.device.createTexture({
+  const srcTexture = t.createTextureTracked({
     size: { width: 4, height: 4, depthOrArrayLayers: 1 },
     format: 'rgba8unorm',
     usage: srcUsage
   });
-  const dstTexture = t.device.createTexture({
+  const dstTexture = t.createTextureTracked({
     size: { width: 4, height: 4, depthOrArrayLayers: 1 },
     format: 'rgba8unorm',
     usage: dstUsage
@@ -255,16 +257,22 @@ u //
 .combine('srcSampleCount', [1, 4]).
 combine('dstSampleCount', [1, 4])
 ).
+beforeAllSubcases((t) => {
+  t.skipIf(
+    t.isCompatibility && (t.params.srcSampleCount !== 1 || t.params.dstSampleCount !== 1),
+    'multisample textures are not copyable in compatibility mode'
+  );
+}).
 fn((t) => {
   const { srcSampleCount, dstSampleCount } = t.params;
 
-  const srcTexture = t.device.createTexture({
+  const srcTexture = t.createTextureTracked({
     size: { width: 4, height: 4, depthOrArrayLayers: 1 },
     format: 'rgba8unorm',
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
     sampleCount: srcSampleCount
   });
-  const dstTexture = t.device.createTexture({
+  const dstTexture = t.createTextureTracked({
     size: { width: 4, height: 4, depthOrArrayLayers: 1 },
     format: 'rgba8unorm',
     usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
@@ -307,6 +315,9 @@ combine('dstCopyOrigin', [
 expand('copyWidth', (p) => [32 - Math.max(p.srcCopyOrigin.x, p.dstCopyOrigin.x), 16]).
 expand('copyHeight', (p) => [16 - Math.max(p.srcCopyOrigin.y, p.dstCopyOrigin.y), 8])
 ).
+beforeAllSubcases((t) => {
+  t.skipIf(t.isCompatibility, 'multisample textures are not copyable in compatibility mode');
+}).
 fn((t) => {
   const { srcCopyOrigin, dstCopyOrigin, copyWidth, copyHeight } = t.params;
 
@@ -315,13 +326,13 @@ fn((t) => {
 
   // Currently we don't support multisampled 2D array textures and the mipmap level count of the
   // multisampled textures must be 1.
-  const srcTexture = t.device.createTexture({
+  const srcTexture = t.createTextureTracked({
     size: { width: kWidth, height: kHeight, depthOrArrayLayers: 1 },
     format: 'rgba8unorm',
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
     sampleCount: 4
   });
-  const dstTexture = t.device.createTexture({
+  const dstTexture = t.createTextureTracked({
     size: { width: kWidth, height: kHeight, depthOrArrayLayers: 1 },
     format: 'rgba8unorm',
     usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
@@ -351,10 +362,10 @@ combine('srcFormatFeature', kFeaturesForFormats).
 combine('dstFormatFeature', kFeaturesForFormats).
 beginSubcases().
 expand('srcFormat', ({ srcFormatFeature }) =>
-filterFormatsByFeature(srcFormatFeature, kTextureFormats)
+filterFormatsByFeature(srcFormatFeature, kAllTextureFormats)
 ).
 expand('dstFormat', ({ dstFormatFeature }) =>
-filterFormatsByFeature(dstFormatFeature, kTextureFormats)
+filterFormatsByFeature(dstFormatFeature, kAllTextureFormats)
 )
 ).
 beforeAllSubcases((t) => {
@@ -376,13 +387,13 @@ fn((t) => {
     depthOrArrayLayers: 1
   };
 
-  const srcTexture = t.device.createTexture({
+  const srcTexture = t.createTextureTracked({
     size: textureSize,
     format: srcFormat,
     usage: GPUTextureUsage.COPY_SRC
   });
 
-  const dstTexture = t.device.createTexture({
+  const dstTexture = t.createTextureTracked({
     size: textureSize,
     format: dstFormat,
     usage: GPUTextureUsage.COPY_DST
@@ -446,13 +457,13 @@ fn((t) => {
   t.params;
   const kMipLevelCount = 3;
 
-  const srcTexture = t.device.createTexture({
+  const srcTexture = t.createTextureTracked({
     size: { width: srcTextureSize.width, height: srcTextureSize.height, depthOrArrayLayers: 1 },
     format,
     mipLevelCount: kMipLevelCount,
     usage: GPUTextureUsage.COPY_SRC
   });
-  const dstTexture = t.device.createTexture({
+  const dstTexture = t.createTextureTracked({
     size: { width: dstTextureSize.width, height: dstTextureSize.height, depthOrArrayLayers: 1 },
     format,
     mipLevelCount: kMipLevelCount,
@@ -543,14 +554,14 @@ fn((t) => {
   }
   const kFormat = 'rgba8unorm';
 
-  const srcTexture = t.device.createTexture({
+  const srcTexture = t.createTextureTracked({
     size: textureSize,
     format: kFormat,
     dimension,
     mipLevelCount,
     usage: GPUTextureUsage.COPY_SRC
   });
-  const dstTexture = t.device.createTexture({
+  const dstTexture = t.createTextureTracked({
     size: textureSize,
     format: kFormat,
     dimension,
@@ -660,7 +671,7 @@ fn((t) => {
 
   const kArrayLayerCount = 7;
 
-  const testTexture = t.device.createTexture({
+  const testTexture = t.createTextureTracked({
     size: { width: 16, height: 16, depthOrArrayLayers: kArrayLayerCount },
     format: 'rgba8unorm',
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
@@ -702,12 +713,12 @@ fn((t) => {
 
   const kTextureSize = { width: 16, height: 8, depthOrArrayLayers: 1 };
 
-  const srcTexture = t.device.createTexture({
+  const srcTexture = t.createTextureTracked({
     size: kTextureSize,
     format,
     usage: GPUTextureUsage.COPY_SRC
   });
-  const dstTexture = t.device.createTexture({
+  const dstTexture = t.createTextureTracked({
     size: kTextureSize,
     format,
     usage: GPUTextureUsage.COPY_DST
@@ -788,14 +799,14 @@ fn((t) => {
   };
   const kMipLevelCount = 4;
 
-  const srcTexture = t.device.createTexture({
+  const srcTexture = t.createTextureTracked({
     size: kTextureSize,
     format,
     dimension,
     mipLevelCount: kMipLevelCount,
     usage: GPUTextureUsage.COPY_SRC
   });
-  const dstTexture = t.device.createTexture({
+  const dstTexture = t.createTextureTracked({
     size: kTextureSize,
     format,
     dimension,

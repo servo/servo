@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf-8>
+<title>CSS test: letter-spacing should be trimmed at start of line</title>
+<link rel=author href="mailto:jkew@mozilla.com">
+<link rel=match href="reference/letter-spacing-trim-start-001-ref.html">
+<link rel=help href="https://drafts.csswg.org/css-text-3/#letter-spacing-property">
+<link rel=help href="https://bugzilla.mozilla.org/show_bug.cgi?id=1892262">
+<style>
+.outer {
+  position: relative;
+  font: 24px/2 monospace;
+}
+.box {
+  display: inline-block;
+  width: 2ch;
+  height: 1.75em;
+  margin: calc(1ch - 2px);
+  border: 2px solid black;
+  border-radius: 5px;
+}
+.test {
+  position: absolute;
+  top: .5em;
+  left: 1.5ch;
+  letter-spacing: 3ch;
+}
+</style>
+</head>
+<body>
+The numbers should be centered in the boxes:<br>
+<div class=outer>
+  <div class=box></div><div class=box></div><div class=box></div><div class=box></div><div class=box></div><div class=box></div>
+  <div class=test>123456</div>
+</div>
+</body>
+</html>

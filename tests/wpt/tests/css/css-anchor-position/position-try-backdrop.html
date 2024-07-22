@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>CSS Anchor Positioning: position-try-options on ::backdrop</title>
+<title>CSS Anchor Positioning: position-try-fallbacks on ::backdrop</title>
 <link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#fallback-apply">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -19,7 +19,7 @@
     width:100px;
     height:100px;
     left: 9999px; /* Force overflow */
-    position-try-options: --pt;
+    position-try-fallbacks: --pt;
   }
 </style>
 <div id=anchor>Anchor</div>
@@ -29,5 +29,5 @@
     dialog.showModal();
     let style = getComputedStyle(dialog, '::backdrop');
     assert_equals(style.left, '300px');
-  }, '::backdrop can use position-try-options');
+  }, '::backdrop can use position-try-fallbacks');
 </script>

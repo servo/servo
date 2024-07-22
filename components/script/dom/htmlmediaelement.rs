@@ -615,6 +615,10 @@ impl HTMLMediaElement {
             return;
         }
 
+        if old_ready_state == ready_state {
+            return;
+        }
+
         let window = window_from_node(self);
         let task_source = window.task_manager().media_element_task_source();
 
@@ -780,7 +784,7 @@ impl HTMLMediaElement {
             // Step 9.obj.
             Mode::Object => {
                 // Step 9.obj.1.
-                *self.current_src.borrow_mut() = "".to_owned();
+                "".clone_into(&mut self.current_src.borrow_mut());
 
                 // Step 9.obj.2.
                 // FIXME(nox): The rest of the steps should be ran in parallel.
@@ -1062,6 +1066,10 @@ impl HTMLMediaElement {
         let window = window_from_node(self);
         let task_source = window.task_manager().media_element_task_source();
         task_source.queue_simple_event(self.upcast(), atom!("ratechange"), &window);
+    }
+
+    fn in_error_state(&self) -> bool {
+        self.error.get().is_some()
     }
 
     // https://html.spec.whatwg.org/multipage/#potentially-playing
@@ -1538,6 +1546,9 @@ impl HTMLMediaElement {
                                     }),
                                     window.upcast(),
                                 );
+
+                                // https://html.spec.whatwg.org/multipage/#dom-media-have_current_data
+                                self.change_ready_state(ReadyState::HaveCurrentData);
                             }
                         },
 
@@ -1556,6 +1567,14 @@ impl HTMLMediaElement {
             },
             PlayerEvent::Error(ref error) => {
                 error!("Player error: {:?}", error);
+
+                // If we have already flagged an error condition while processing
+                // the network response, we should silently skip any observable
+                // errors originating while decoding the erroneous response.
+                if self.in_error_state() {
+                    return;
+                }
+
                 // https://html.spec.whatwg.org/multipage/#loading-the-media-resource:media-data-13
                 // 1. The user agent should cancel the fetching process.
                 if let Some(ref mut current_fetch_context) =
@@ -1803,6 +1822,8 @@ impl HTMLMediaElement {
                 }
             },
             PlayerEvent::EnoughData => {
+                self.change_ready_state(ReadyState::HaveEnoughData);
+
                 // The player has enough data and it is asking us to stop pushing
                 // bytes, so we cancel the ongoing fetch request iff we are able
                 // to restart it from where we left. Otherwise, we continue the
@@ -2795,56 +2816,53 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
     // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
     fn process_response_eof(&mut self, status: Result<ResourceFetchTiming, NetworkError>) {
+        trace!("process response eof");
         if let Some(seek_lock) = self.seek_lock.take() {
             seek_lock.unlock(/* successful seek */ false);
         }
 
         let elem = self.elem.root();
 
-        if elem.player.borrow().is_none() {
+        if elem.generation_id.get() != self.generation_id || elem.player.borrow().is_none() {
             return;
         }
 
-        // If an error was previously received and no new fetch request was triggered,
-        // we skip processing the payload and notify the media backend that we are done
-        // pushing data.
-        if elem.generation_id.get() == self.generation_id {
-            if let Some(ref current_fetch_context) = *elem.current_fetch_context.borrow() {
-                if let Some(CancelReason::Error) = current_fetch_context.cancel_reason() {
-                    if let Err(e) = elem
-                        .player
-                        .borrow()
-                        .as_ref()
-                        .unwrap()
-                        .lock()
-                        .unwrap()
-                        .end_of_stream()
-                    {
-                        warn!("Could not signal EOS to player {:?}", e);
-                    }
-                    return;
-                }
+        // There are no more chunks of the response body forthcoming, so we can
+        // go ahead and notify the media backend not to expect any further data.
+        if let Err(e) = elem
+            .player
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .lock()
+            .unwrap()
+            .end_of_stream()
+        {
+            warn!("Could not signal EOS to player {:?}", e);
+        }
+
+        // If an error was previously received we skip processing the payload.
+        if let Some(ref current_fetch_context) = *elem.current_fetch_context.borrow() {
+            if let Some(CancelReason::Error) = current_fetch_context.cancel_reason() {
+                return;
             }
         }
 
         if status.is_ok() && self.latest_fetched_content != 0 {
-            if elem.ready_state.get() == ReadyState::HaveNothing {
-                // Make sure that we don't skip the HaveMetadata and HaveCurrentData
-                // states for short streams.
-                elem.change_ready_state(ReadyState::HaveMetadata);
-            }
-            elem.change_ready_state(ReadyState::HaveEnoughData);
-
             elem.upcast::<EventTarget>().fire_event(atom!("progress"));
 
             elem.network_state.set(NetworkState::Idle);
 
             elem.upcast::<EventTarget>().fire_event(atom!("suspend"));
-
-            elem.delay_load_event(false);
         }
         // => "If the connection is interrupted after some media data has been received..."
         else if elem.ready_state.get() != ReadyState::HaveNothing {
+            // If the media backend has already flagged an error, skip any observable
+            // network-related errors.
+            if elem.in_error_state() {
+                return;
+            }
+
             // Step 1
             if let Some(ref mut current_fetch_context) = *elem.current_fetch_context.borrow_mut() {
                 current_fetch_context.cancel(CancelReason::Error);

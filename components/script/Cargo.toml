@@ -34,10 +34,11 @@ background_hang_monitor_api = { workspace = true }
 backtrace = { workspace = true }
 base = { workspace = true }
 base64 = { workspace = true }
+bincode = { workspace = true }
 bitflags = { workspace = true }
 bluetooth_traits = { workspace = true }
 canvas_traits = { workspace = true }
-chrono = "0.4"
+chrono = { workspace = true }
 content-security-policy = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -90,7 +91,6 @@ script_layout_interface = { workspace = true }
 script_traits = { workspace = true }
 selectors = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
-serde_bytes = { workspace = true }
 servo-media = { workspace = true }
 servo_allocator = { path = "../allocator" }
 servo_arc = { workspace = true }

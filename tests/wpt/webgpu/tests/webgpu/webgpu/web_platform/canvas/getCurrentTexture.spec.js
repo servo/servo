@@ -191,7 +191,7 @@ fn((t) => {
         // Ensure that each frame a new texture object is returned.
         t.expect(currentTexture !== prevTexture);
 
-        // Ensure that texture contents are transparent black.
+        // Ensure that the texture's initial contents are transparent black.
         t.expectSingleColor(currentTexture, currentTexture.format, {
           size: [currentTexture.width, currentTexture.height, 1],
           exp: { R: 0, G: 0, B: 0, A: 0 }
@@ -199,7 +199,8 @@ fn((t) => {
       }
 
       if (clearTexture) {
-        // Clear the texture to test that texture contents don't carry over from frame to frame.
+        // Fill the texture with a non-zero color, to test that texture
+        // contents don't carry over from frame to frame.
         const encoder = t.device.createCommandEncoder();
         const pass = encoder.beginRenderPass({
           colorAttachments: [
@@ -236,10 +237,8 @@ fn((t) => {
       }
     }
 
-    // Call frameCheck for the first time from requestAnimationFrame
-    // To make sure two frameChecks are run in different frames for onscreen canvas.
-    // offscreen canvas doesn't care.
-    requestAnimationFrame(frameCheck);
+    // Render the first frame immediately. The rest will be triggered recursively.
+    frameCheck();
   });
 });
 
@@ -347,6 +346,14 @@ u //
 combine('prevFrameCallsite', ['runInNewCanvasFrame', 'requestAnimationFrame']).
 combine('getCurrentTextureAgain', [true, false])
 ).
+beforeAllSubcases((t) => {
+  if (
+  t.params.prevFrameCallsite === 'requestAnimationFrame' &&
+  typeof requestAnimationFrame === 'undefined')
+  {
+    throw new SkipTestCase('requestAnimationFrame not available');
+  }
+}).
 fn((t) => {
   const { canvasType, prevFrameCallsite, getCurrentTextureAgain } = t.params;
   const ctx = t.initCanvasContext(t.params.canvasType);

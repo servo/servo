@@ -1,6 +1,6 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { optionEnabled } from '../../runtime/helper/options.js';import { assert, unreachable } from '../../util/util.js';
+**/import { optionWorkerMode } from '../../runtime/helper/options.js';import { assert, unreachable } from '../../util/util.js';
 
 
 import { compareQueries, Ordering } from './compare.js';
@@ -188,12 +188,12 @@ wptURL)
       assert(
         expectationURL.pathname === wptURL.pathname,
         `Invalid expectation path ${expectationURL.pathname}
-Expectation should be of the form path/to/cts.https.html?worker=0&q=suite:test_path:test_name:foo=1;bar=2;...
+Expectation should be of the form path/to/cts.https.html?debug=0&q=suite:test_path:test_name:foo=1;bar=2;...
         `
       );
 
       const params = expectationURL.searchParams;
-      if (optionEnabled('worker', params) !== optionEnabled('worker', wptURL.searchParams)) {
+      if (optionWorkerMode('worker', params) !== optionWorkerMode('worker', wptURL.searchParams)) {
         continue;
       }
 

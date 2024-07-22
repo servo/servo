@@ -134,7 +134,7 @@ fn start_element<S: Serializer>(node: &Element, serializer: &mut S) -> io::Resul
         })
         .collect::<Vec<_>>();
     let attr_refs = attrs.iter().map(|(qname, value)| {
-        let ar: AttrRef = (&qname, &**value);
+        let ar: AttrRef = (qname, &**value);
         ar
     });
     serializer.start_elem(name, attr_refs)?;

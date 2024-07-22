@@ -1,6 +1,7 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { abstractFloatShaderBuilder, basicExpressionBuilder } from
+**/import { abstractFloatShaderBuilder, abstractIntShaderBuilder,
+  basicExpressionBuilder } from
 
 '../expression.js';
 
@@ -10,6 +11,11 @@ export function unary(op) {
 }
 
 /* @returns a ShaderBuilder that evaluates a prefix unary operation that returns AbstractFloats */
-export function abstractUnary(op) {
+export function abstractFloatUnary(op) {
   return abstractFloatShaderBuilder((value) => `${op}(${value})`);
+}
+
+/* @returns a ShaderBuilder that evaluates a prefix unary operation that returns AbstractInts */
+export function abstractIntUnary(op) {
+  return abstractIntShaderBuilder((value) => `${op}(${value})`);
 }

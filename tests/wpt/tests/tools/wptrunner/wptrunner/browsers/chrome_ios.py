@@ -1,9 +1,7 @@
 # mypy: allow-untyped-defs
 
-import traceback
 from .base import WebDriverBrowser, require_arg
 from .base import get_timeout_multiplier   # noqa: F401
-from ..environment import wait_for_service
 from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.base import WdspecExecutor  # noqa: F401
 from ..executors.executorwebdriver import (WebDriverCrashtestExecutor,  # noqa: F401
@@ -60,19 +58,3 @@ class ChromeiOSBrowser(WebDriverBrowser):
     def make_command(self):
         return ([self.webdriver_binary, f"--port={self.port}"] +
                 self.webdriver_args)
-
-    def start(self, group_metadata, **kwargs):
-        super().start(group_metadata, **kwargs)
-        try:
-            wait_for_service(
-                self.logger,
-                self.host,
-                self.port,
-                timeout=self.init_timeout,
-                server_process=self._proc,
-            )
-        except Exception:
-            self.logger.error(
-                "WebDriver was not accessible "
-                f"within the timeout:\n{traceback.format_exc()}")
-            raise

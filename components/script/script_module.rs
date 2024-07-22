@@ -273,14 +273,16 @@ impl ModuleTree {
         self.parent_identities.borrow_mut().insert(parent_identity);
     }
 
-    pub fn insert_incomplete_fetch_url(&self, dependency: ServoUrl) {
-        self.incomplete_fetch_urls.borrow_mut().insert(dependency);
-    }
-
-    pub fn remove_incomplete_fetch_url(&self, dependency: ServoUrl) {
+    pub fn insert_incomplete_fetch_url(&self, dependency: &ServoUrl) {
         self.incomplete_fetch_urls
             .borrow_mut()
-            .shift_remove(&dependency);
+            .insert(dependency.clone());
+    }
+
+    pub fn remove_incomplete_fetch_url(&self, dependency: &ServoUrl) {
+        self.incomplete_fetch_urls
+            .borrow_mut()
+            .shift_remove(dependency);
     }
 
     /// recursively checks if all of the transitive descendants are
@@ -421,7 +423,7 @@ impl ModuleTree {
         global: &GlobalScope,
         owner: ModuleOwner,
         module_script_text: Rc<DOMString>,
-        url: ServoUrl,
+        url: &ServoUrl,
         options: ScriptFetchOptions,
     ) -> Result<ModuleObject, RethrowError> {
         let cx = GlobalScope::get_cx();
@@ -460,7 +462,7 @@ impl ModuleTree {
             self.resolve_requested_module_specifiers(
                 global,
                 module_script.handle().into_handle(),
-                url.clone(),
+                url,
             )
             .map(|_| ModuleObject(Heap::boxed(*module_script)))
         }
@@ -559,7 +561,7 @@ impl ModuleTree {
         &self,
         global: &GlobalScope,
         module_object: HandleObject,
-        base_url: ServoUrl,
+        base_url: &ServoUrl,
     ) -> Result<IndexSet<ServoUrl>, RethrowError> {
         let cx = GlobalScope::get_cx();
         let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
@@ -576,7 +578,7 @@ impl ModuleTree {
 
                 let url = ModuleTree::resolve_module_specifier(
                     *cx,
-                    &base_url,
+                    base_url,
                     specifier.handle().into_handle(),
                 );
 
@@ -623,7 +625,7 @@ impl ModuleTree {
         }
 
         // Step 3.
-        ServoUrl::parse_with_base(Some(url), &specifier_str.clone())
+        ServoUrl::parse_with_base(Some(url), &specifier_str)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#finding-the-first-parse-error>
@@ -692,7 +694,7 @@ impl ModuleTree {
         options: &ScriptFetchOptions,
         parent_identity: ModuleIdentity,
     ) {
-        debug!("Start to load dependencies of {}", self.url.clone());
+        debug!("Start to load dependencies of {}", self.url);
 
         let global = owner.global();
 
@@ -706,7 +708,7 @@ impl ModuleTree {
                     self.set_status(ModuleStatus::Finished);
                     debug!(
                         "Module {} doesn't have module record but tried to load descendants.",
-                        self.url.clone()
+                        self.url
                     );
                     return;
                 },
@@ -714,7 +716,7 @@ impl ModuleTree {
                 Some(raw_record) => self.resolve_requested_module_specifiers(
                     &global,
                     raw_record.handle(),
-                    self.url.clone(),
+                    &self.url,
                 ),
             }
         };
@@ -722,7 +724,7 @@ impl ModuleTree {
         match specifier_urls {
             // Step 3.
             Ok(valid_specifier_urls) if valid_specifier_urls.is_empty() => {
-                debug!("Module {} doesn't have any dependencies.", self.url.clone());
+                debug!("Module {} doesn't have any dependencies.", self.url);
                 self.advance_finished_and_link(&global);
             },
             Ok(valid_specifier_urls) => {
@@ -741,7 +743,7 @@ impl ModuleTree {
                         // Step 5-3-2.
                         visited_urls.insert(parsed_url.clone());
 
-                        self.insert_incomplete_fetch_url(parsed_url.clone());
+                        self.insert_incomplete_fetch_url(&parsed_url);
                     }
                 }
 
@@ -749,7 +751,7 @@ impl ModuleTree {
                 if urls.is_empty() {
                     debug!(
                         "After checking with visited urls, module {} doesn't have dependencies to load.",
-                        self.url.clone()
+                        &self.url
                     );
                     self.advance_finished_and_link(&global);
                     return;
@@ -767,7 +769,7 @@ impl ModuleTree {
                     // Step 2.
                     fetch_single_module_script(
                         owner.clone(),
-                        url.clone(),
+                        url,
                         visited_urls.clone(),
                         destination,
                         options,
@@ -795,7 +797,7 @@ impl ModuleTree {
 
         self.set_status(ModuleStatus::Finished);
 
-        debug!("Going to advance and finish for: {}", self.url.clone());
+        debug!("Going to advance and finish for: {}", self.url);
 
         {
             // Notify parents of this module to finish
@@ -812,7 +814,7 @@ impl ModuleTree {
                 };
 
                 if incomplete_count_before_remove > 0 {
-                    parent_tree.remove_incomplete_fetch_url(self.url.clone());
+                    parent_tree.remove_incomplete_fetch_url(&self.url);
                     parent_tree.advance_finished_and_link(global);
                 }
             }
@@ -1129,15 +1131,15 @@ impl FetchResponseListener for ModuleContext {
 
         let module_tree = {
             let module_map = global.get_module_map().borrow();
-            module_map.get(&self.url.clone()).unwrap().clone()
+            module_map.get(&self.url).unwrap().clone()
         };
 
-        module_tree.remove_incomplete_fetch_url(self.url.clone());
+        module_tree.remove_incomplete_fetch_url(&self.url);
 
         // Step 12.
         match load {
             Err(err) => {
-                error!("Failed to fetch {} with error {:?}", self.url.clone(), err);
+                error!("Failed to fetch {} with error {:?}", &self.url, err);
                 module_tree.set_network_error(err);
                 module_tree.advance_finished_and_link(&global);
             },
@@ -1148,7 +1150,7 @@ impl FetchResponseListener for ModuleContext {
                     &global,
                     self.owner.clone(),
                     resp_mod_script.text(),
-                    self.url.clone(),
+                    &self.url,
                     self.options.clone(),
                 );
 
@@ -1467,7 +1469,7 @@ unsafe extern "C" fn HostPopulateImportMeta(
     JS_DefineProperty4(
         cx,
         meta_object,
-        "url\0".as_ptr() as *const _,
+        c"url".as_ptr(),
         url_string.handle().into_handle(),
         JSPROP_ENUMERATE.into(),
     )
@@ -1627,7 +1629,7 @@ fn fetch_single_module_script(
         module_tree.insert_parent_identity(parent_identity);
     }
 
-    module_tree.insert_incomplete_fetch_url(url.clone());
+    module_tree.insert_incomplete_fetch_url(&url);
 
     // Step 4.
     global.set_module_map(url.clone(), module_tree);
@@ -1714,7 +1716,7 @@ pub(crate) fn fetch_inline_module_script(
         &global,
         owner.clone(),
         module_script_text,
-        url.clone(),
+        &url,
         options.clone(),
     );
 

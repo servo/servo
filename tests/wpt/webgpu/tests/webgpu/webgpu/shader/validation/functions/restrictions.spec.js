@@ -291,7 +291,8 @@ const kFunctionParamTypeCases = {
   invalid_ptr4: { name: `ptr<private,u32,read>`, valid: false }, // Can't specify access mode
   invalid_ptr5: { name: `ptr<private,u32,write>`, valid: false }, // Can't specify access mode
   invalid_ptr6: { name: `ptr<private,u32,read_write>`, valid: false }, // Can't specify access mode
-  invalid_ptr7: { name: `ptr<private,clamp>`, valid: false } // Invalid store type
+  invalid_ptr7: { name: `ptr<private,clamp>`, valid: false }, // Invalid store type
+  invalid_ptr8: { name: `ptr<function, texture_external>`, valid: false } // non-constructible pointer type
 };
 
 g.test('function_parameter_types').
@@ -450,6 +451,12 @@ const kFunctionParamValueCases = {
   ptr3: { value: `&g_u32`, matches: ['ptr3'] },
   ptr4: { value: `&g_constructible`, matches: ['ptr4'] },
 
+  ptr_let1: { value: `ptr_f_u32`, matches: ['ptr1'] },
+  ptr_let2: { value: `ptr_f_constructible`, matches: ['ptr2'] },
+  ptr_let3: { value: `ptr_g_u32`, matches: ['ptr3'] },
+  ptr_let4: { value: `ptr_g_constructible`, matches: ['ptr4'] },
+  ptr_let5: { value: `let_let_f_u32`, matches: ['ptr1'] },
+
   // Requires 'unrestricted_pointer_parameters' WGSL feature
   ptr5: {
     value: `&f_constructible.b`,
@@ -601,6 +608,11 @@ fn foo() {
   var f_array5 : array<bool, 4>;
   var f_constructible : constructible;
   var f_struct_with_array : struct_with_array;
+  let ptr_f_u32 = &f_u32;
+  let ptr_f_constructible = &f_constructible;
+  let ptr_g_u32 = &g_u32;
+  let ptr_g_constructible = &g_constructible;
+  let let_let_f_u32 = ptr_f_u32;
 
   bar(${arg.value});
 }
@@ -810,4 +822,378 @@ fn foo() {
   checkArgTypeMatch(t.params.p2_type, kArgValues[t.params.arg2_value].matches) &&
   checkArgTypeMatch(t.params.p3_type, kArgValues[t.params.arg3_value].matches);
   t.expectCompileResult(res, code);
+});
+
+g.test('param_name_can_shadow_function_name').
+specURL('https://www.w3.org/TR/WGSL/#function-declaration-sec').
+desc(`Tests that a function parameter can shadow the function name`).
+fn((t) => {
+  const code = `
+fn foo(foo: i32) -> i32 {
+  return foo;
+}
+`;
+  t.expectCompileResult(true, code);
+});
+
+g.test('param_name_can_shadow_alias').
+specURL('https://www.w3.org/TR/WGSL/#function-declaration-sec').
+desc(`Tests that a function parameter can shadow an alias`).
+fn((t) => {
+  const code = `
+alias foo = f32;
+fn test(foo: i32) -> i32 {
+  return foo;
+}
+`;
+  t.expectCompileResult(true, code);
+});
+
+g.test('param_name_can_shadow_global').
+specURL('https://www.w3.org/TR/WGSL/#function-declaration-sec').
+desc(`Tests that a function parameter can shadow a global`).
+fn((t) => {
+  const code = `
+const foo: f32 = 1.2f;
+
+fn test(foo: i32) -> i32 {
+  return foo;
+}
+`;
+  t.expectCompileResult(true, code);
+});
+
+g.test('param_comma_placement').
+specURL('https://www.w3.org/TR/WGSL/#function-declaration-sec').
+desc(`Tests validation of commas in function parameter lists`).
+params((u) =>
+u.
+combine('param_1', [true, false]).
+combine('param_2', [true, false]).
+combine('comma', [true, false])
+).
+fn((t) => {
+  const has_p1 = t.params.param_1;
+  const has_p2 = t.params.param_2;
+  const has_c = t.params.comma;
+
+  const p1 = has_p1 ? 'foo: i32' : '';
+  const p2 = has_p2 ? 'bar: f32' : '';
+  const comma = has_c ? ', ' : ' ';
+
+  const code = `
+fn test(${p1}${comma}${p2}) {
+}
+`;
+
+  const success =
+  !has_p1 && !has_p2 && !has_c || // no params
+  has_p1 && !has_p2 || // only p1, which can have a trailing comma or not
+  !has_p1 && has_p2 && !has_c || // just p2
+  has_p1 && has_p2 && has_c; // both params comma separated
+  t.expectCompileResult(success, code);
+});
+
+g.test('param_type_can_be_alias').
+specURL('https://www.w3.org/TR/WGSL/#function-declaration-sec').
+desc(`Tests that a function parameter type can be an alias`).
+fn((t) => {
+  const code = `
+alias foo = f32;
+fn test(foo: foo) -> foo {
+  return foo;
+}
+`;
+  t.expectCompileResult(true, code);
+});
+
+g.test('function_name_required').
+specURL('https://www.w3.org/TR/WGSL/#function-declaration-sec').
+desc(`Tests the function name is required`).
+params((u) => u.combine('name', [true, false])).
+fn((t) => {
+  const has_name = t.params.name;
+  const name = has_name ? 'name' : '';
+  const code = `
+fn ${name}() -> i32 {
+  return 1;
+}
+`;
+  t.expectCompileResult(has_name, code);
+});
+
+g.test('param_type_required').
+specURL('https://www.w3.org/TR/WGSL/#function-declaration-sec').
+desc(`Tests the parameter type is required`).
+params((u) => u.combine('ty', [true, false]).combine('colon', [true, false])).
+fn((t) => {
+  const has_ty = t.params.ty;
+  const has_colon = t.params.colon;
+  const ty = has_ty ? 'i32' : '';
+  const colon = has_colon ? ':' : ' ';
+  const code = `
+fn f(foo${colon}${ty}) -> i32 {
+  return 1;
+}
+`;
+  t.expectCompileResult(has_ty && has_colon, code);
+});
+
+g.test('body_required').
+specURL('https://www.w3.org/TR/WGSL/#function-declaration-sec').
+desc(`Tests the function body is required`).
+params((u) => u.combine('body', ['braces', 'semi', ''])).
+fn((t) => {
+  const body = t.params.body === 'braces' ? '{}' : t.params.body === 'semi' ? ';' : '';
+
+  const code = `
+fn f() ${body}
+
+fn other() {}
+`;
+  t.expectCompileResult(body === '{}', code);
+});
+
+g.test('parens_required').
+specURL('https://www.w3.org/TR/WGSL/#function-declaration-sec').
+desc(`Tests that the parens for a function are required`).
+params((u) => u.combine('parens', [true, false]).combine('param', [true, false])).
+fn((t) => {
+  const has_parens = t.params.parens;
+  const has_param = t.params.param;
+
+  let args = '';
+  if (has_parens) {
+    args += '(';
+  }
+  if (has_param) {
+    args += 'foo: i32';
+  }
+
+  if (has_parens) {
+    args += ')';
+  }
+
+  const code = `
+fn f ${args} {}
+`;
+  t.expectCompileResult(has_parens, code);
+});
+
+g.test('non_module_scoped_function').
+specURL('https://www.w3.org/TR/WGSL/#function-declaration-sec').
+desc(`Tests that a non-module-scope function is rejected`).
+params((u) => u.combine('loc', ['inner', 'outer'])).
+fn((t) => {
+  const o = `fn a() -> i32 { return 1; }`;
+
+  let inner = '';
+  let outer = '';
+
+  if (t.params.loc === 'inner') {
+    inner = o;
+  } else {
+    outer = o;
+  }
+
+  const code = `
+${outer}
+fn b() {
+  ${inner}
+}
+`;
+  t.expectCompileResult(t.params.loc === 'outer', code);
+});
+
+const kAttributes = {
+  align: {
+    attr: '@align(5)',
+    pass: {
+      func: false,
+      param: false,
+      ret: false
+    }
+  },
+  binding: {
+    attr: '@binding(5)',
+    pass: {
+      func: false,
+      param: false,
+      ret: false
+    }
+  },
+  builtin: {
+    attr: '@builtin(position)',
+    pass: {
+      func: false,
+      param: false,
+      ret: false
+    }
+  },
+  compute: {
+    attr: `@compute`,
+    pass: {
+      func: false,
+      param: false,
+      ret: false
+    }
+  },
+  const: {
+    attr: '@const',
+    pass: {
+      func: false,
+      param: false,
+      ret: false
+    }
+  },
+  diagnostic: {
+    attr: `@diagnostic(off, derivative_uniformity)`,
+    pass: {
+      func: true,
+      param: false,
+      ret: false
+    }
+  },
+  fragment: {
+    attr: `@fragment`,
+    pass: {
+      func: false,
+      param: false,
+      ret: false
+    }
+  },
+  group: {
+    attr: `@group(1)`,
+    pass: {
+      func: false,
+      param: false,
+      ret: false
+    }
+  },
+  id: {
+    attr: `@id(1)`,
+    pass: {
+      func: false,
+      param: false,
+      ret: false
+    }
+  },
+  interpolate: {
+    attr: `@interpolate(linear, center)`,
+    pass: {
+      func: false,
+      param: false,
+      ret: false
+    }
+  },
+  invariant: {
+    attr: `@invariant`,
+    pass: {
+      func: false,
+      param: false,
+      ret: false
+    }
+  },
+  location: {
+    attr: `@location(0)`,
+    pass: {
+      func: false,
+      param: false,
+      ret: false
+    }
+  },
+  must_use: {
+    attr: `@must_use`,
+    pass: {
+      func: true,
+      param: false,
+      ret: false
+    }
+  },
+  size: {
+    attr: `@size(10)`,
+    pass: {
+      func: false,
+      param: false,
+      ret: false
+    }
+  },
+  vertex: {
+    attr: `@vertex`,
+    pass: {
+      func: false,
+      param: false,
+      ret: false
+    }
+  },
+  workgroup_size: {
+    attr: `@workgroup_size(1)`,
+    pass: {
+      func: false,
+      param: false,
+      ret: false
+    }
+  }
+};
+
+g.test('function_attributes').
+specURL('https://www.w3.org/TR/WGSL/#function-declaration-sec').
+desc(`Tests the attributes for a function`).
+params((u) =>
+u.combine('case', keysOf(kAttributes)).combine('placement', ['func', 'param', 'ret'])
+).
+fn((t) => {
+  const d = kAttributes[t.params.case];
+  const func = t.params.placement === 'func';
+  const param = t.params.placement === 'param';
+  const ret = t.params.placement === 'ret';
+
+  const code = `
+${func ? d.attr : ''}
+fn b(${param ? d.attr : ''} foo: i32) -> ${ret ? d.attr : ''} i32{
+  return 1;
+}
+`;
+  const succeed =
+  t.params.placement === 'func' ?
+  d.pass.func :
+  t.params.placement === 'params' ?
+  d.pass.param :
+  d.pass.ret;
+  t.expectCompileResult(succeed, code);
+});
+
+g.test('must_use_requires_return').
+specURL('https://www.w3.org/TR/WGSL/#function-declaration-sec').
+desc(`Tests the must_use attribute requires a return`).
+params((u) => u.combine('ret', [true, false])).
+fn((t) => {
+  let ret = '';
+  let ret_stmt = '';
+
+  if (t.params.ret) {
+    ret = '-> i32';
+    ret_stmt = 'return 1;';
+  }
+
+  const code = `
+@must_use
+fn b() ${ret} {
+  ${ret_stmt}
+}
+`;
+  t.expectCompileResult(t.params.ret, code);
+});
+
+g.test('overload').
+specURL('https://www.w3.org/TR/WGSL/#function-declaration-sec').
+desc(`Tests that user functions can not overload `).
+params((u) => u.combine('overload', [true, false])).
+fn((t) => {
+  let code = 'fn a(f: i32) {}\n';
+
+  if (t.params.overload) {
+    code += 'fn a(f: u32) {}';
+  }
+  t.expectCompileResult(t.params.overload === false, code);
 });

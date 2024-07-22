@@ -244,10 +244,10 @@ impl OutsideMarker {
         let max_inline_size = flow_layout.fragments.iter().fold(
             Length::zero(),
             |current_max, fragment| match fragment {
-                Fragment::Text(text) => current_max.max(text.rect.max_inline_position()),
-                Fragment::Image(image) => current_max.max(image.rect.max_inline_position()),
+                Fragment::Text(text) => current_max.max(text.rect.max_inline_position().into()),
+                Fragment::Image(image) => current_max.max(image.rect.max_inline_position().into()),
                 Fragment::Positioning(positioning) => {
-                    current_max.max(positioning.rect.max_inline_position())
+                    current_max.max(positioning.rect.max_inline_position().into())
                 },
                 Fragment::Box(_) |
                 Fragment::Float(_) |
@@ -286,7 +286,7 @@ impl OutsideMarker {
             base_fragment_info,
             self.marker_style.clone(),
             flow_layout.fragments,
-            content_rect,
+            content_rect.into(),
             LogicalSides::zero(),
             LogicalSides::zero(),
             LogicalSides::zero(),
@@ -910,7 +910,7 @@ fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         base_fragment_info,
         style.clone(),
         flow_layout.fragments,
-        content_rect.into(),
+        content_rect,
         pbm.padding,
         pbm.border,
         margin,
@@ -926,7 +926,7 @@ impl NonReplacedFormattingContext {
     ///
     /// - <https://drafts.csswg.org/css2/visudet.html#blockwidth>
     /// - <https://drafts.csswg.org/css2/visudet.html#normal-block>
-    fn layout_in_flow_block_level(
+    pub(crate) fn layout_in_flow_block_level(
         &self,
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
@@ -996,7 +996,7 @@ impl NonReplacedFormattingContext {
             self.base_fragment_info,
             self.style.clone(),
             layout.fragments,
-            content_rect.into(),
+            content_rect,
             pbm.padding,
             pbm.border,
             margin,
@@ -1086,7 +1086,7 @@ impl NonReplacedFormattingContext {
                 &collapsed_margin_block_start,
                 containing_block,
                 &pbm,
-                &content_size + &pbm.padding_border_sums.into(),
+                content_size + pbm.padding_border_sums.into(),
                 &self.style,
             );
         } else {
@@ -1102,12 +1102,10 @@ impl NonReplacedFormattingContext {
             });
 
             // Create a PlacementAmongFloats using the minimum size in all dimensions as the object size.
-            let minimum_size_of_block = &LogicalVec2 {
-                inline: min_box_size.inline,
-                block: block_size.auto_is(|| min_box_size.block),
-            }
-            .into() +
-                &pbm.padding_border_sums;
+            let minimum_size_of_block = LogicalVec2 {
+                inline: min_box_size.inline.into(),
+                block: block_size.auto_is(|| min_box_size.block).into(),
+            } + pbm.padding_border_sums;
             let mut placement = PlacementAmongFloats::new(
                 &sequential_layout_state.floats,
                 ceiling,
@@ -1248,7 +1246,7 @@ impl NonReplacedFormattingContext {
             self.base_fragment_info,
             self.style.clone(),
             layout.fragments,
-            content_rect.into(),
+            content_rect,
             pbm.padding,
             pbm.border,
             margin,
@@ -1291,7 +1289,7 @@ fn layout_in_flow_replaced_block_level(
         //  than defined by section 10.3.3. CSS 2 does not define when a UA may put said
         //  element next to the float or by how much said element may become narrower."
         let collapsed_margin_block_start = CollapsedMargin::new(margin_block_start);
-        let size = &content_size + &pbm.padding_border_sums.clone();
+        let size = content_size + pbm.padding_border_sums;
         (
             clearance,
             (margin_inline_start, margin_inline_end),
@@ -1353,7 +1351,7 @@ fn layout_in_flow_replaced_block_level(
         base_fragment_info,
         style.clone(),
         fragments,
-        content_rect.into(),
+        content_rect,
         pbm.padding,
         pbm.border,
         margin,
@@ -1371,7 +1369,7 @@ struct ContainingBlockPaddingAndBorder<'a> {
 
 struct ResolvedMargins {
     /// Used value for the margin properties, as exposed in getComputedStyle().
-    margin: LogicalSides<Au>,
+    pub margin: LogicalSides<Au>,
 
     /// Distance between the border box and the containing block on the inline-start side.
     /// This is typically the same as the inline-start margin, but can be greater when
@@ -1379,7 +1377,7 @@ struct ResolvedMargins {
     /// The reason we aren't just adjusting the used margin-inline-start is that
     /// this shouldn't be observable via getComputedStyle().
     /// <https://drafts.csswg.org/css-align/#justify-self-property>
-    effective_margin_inline_start: Au,
+    pub effective_margin_inline_start: Au,
 }
 
 /// Given the style for an in-flow box and its containing block, determine the containing
@@ -1668,7 +1666,7 @@ impl PlacementState {
             return;
         }
 
-        let box_block_offset = box_fragment.content_rect.start_corner.block.into();
+        let box_block_offset = box_fragment.content_rect.start_corner.block;
         if let (None, Some(first)) = (self.inflow_baselines.first, box_fragment.baselines.first) {
             self.inflow_baselines.first = Some(first + box_block_offset);
         }
@@ -1700,14 +1698,14 @@ impl PlacementState {
                     .contains(FragmentFlags::IS_OUTSIDE_LIST_ITEM_MARKER);
                 if is_outside_marker {
                     assert!(self.marker_block_size.is_none());
-                    self.marker_block_size = Some(fragment.content_rect.size.block.into());
+                    self.marker_block_size = Some(fragment.content_rect.size.block);
                     return;
                 }
 
                 let fragment_block_margins = &fragment.block_margins_collapsed_with_children;
                 let mut fragment_block_size = fragment.padding.block_sum() +
                     fragment.border.block_sum() +
-                    fragment.content_rect.size.block.into();
+                    fragment.content_rect.size.block;
 
                 // We use `last_in_flow_margin_collapses_with_parent_end_margin` to implement
                 // this quote from https://drafts.csswg.org/css2/#collapsing-margins
@@ -1744,7 +1742,7 @@ impl PlacementState {
                         .adjoin_assign(&fragment_block_margins.start);
                 }
                 fragment.content_rect.start_corner.block +=
-                    (self.current_margin.solve() + self.current_block_direction_position).into();
+                    self.current_margin.solve() + self.current_block_direction_position;
 
                 if fragment_block_margins.collapsed_through {
                     // `fragment_block_size` is typically zero when collapsing through,

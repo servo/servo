@@ -4,7 +4,7 @@
 Execution Tests for the f16 arithmetic unary expression operations
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../gpu_test.js';
-import { TypeF16 } from '../../../../util/conversion.js';
+import { Type } from '../../../../util/conversion.js';
 import { allInputSources, run } from '../expression.js';
 
 import { d } from './f16_arithmetic.cache.js';
@@ -28,5 +28,5 @@ beforeAllSubcases((t) => {
 }).
 fn(async (t) => {
   const cases = await d.get('negation');
-  await run(t, unary('-'), [TypeF16], TypeF16, t.params, cases);
+  await run(t, unary('-'), [Type.f16], Type.f16, t.params, cases);
 });

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<title>CSS Anchor Positioning: changing @position-try rules invalidates last successful position option</title>
-<link rel="help" href="https://drafts.csswg.org/css-anchor-position/#last-successful-position-option">
+<title>CSS Anchor Positioning: changing @position-try rules invalidates last successful position fallback</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position/#last-successful-position-fallback">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="support/test-common.js"></script>
@@ -22,7 +22,7 @@
   }
   #anchored {
     position-anchor: --a;
-    position-try-options: --try;
+    position-try-fallbacks: --try;
     position: absolute;
     width: 100px;
     height: 200px;

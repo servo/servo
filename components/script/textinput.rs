@@ -982,7 +982,7 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// Whether the content is empty.
     pub fn is_empty(&self) -> bool {
-        self.lines.len() <= 1 && self.lines.get(0).map_or(true, |line| line.is_empty())
+        self.lines.len() <= 1 && self.lines.first().map_or(true, |line| line.is_empty())
     }
 
     /// The length of the content in bytes.

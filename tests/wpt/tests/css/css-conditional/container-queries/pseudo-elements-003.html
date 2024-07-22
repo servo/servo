@@ -1,0 +1,69 @@
+<!doctype html>
+<title>@container: originating element container for pseudo elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-queries">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  .container { container-type: inline-size; }
+  #target { display: list-item; }
+  @container (max-width: 200px) {
+    #target::before { content: "PASS"; color: green; }
+    #target::after { color: green; }
+    #target::marker { color: green; }
+    #target::first-line { color: green; }
+    #target::first-letter { color: green; }
+  }
+  @container ((min-width: 300px) and (max-width: 350px)) {
+    #outer::first-line { color: green; }
+    #outer::first-letter { color: green; }
+  }
+  dialog::backdrop { background-color: lime; }
+  @container (max-width: 100px) {
+    dialog::backdrop { background-color: green; }
+  }
+</style>
+<div style="width: 400px" class="container">
+  <div style="width: 300px" class="container">
+    <div id="target" class="container" style="width: 200px">First-line</div>
+    <dialog id="dialog" class="container" style="width: 100px"></dialog>
+  </div>
+  <div style="width: 400px" class="container">
+    <div id="outer" style="width: 300px" class="container">
+      <div class="container" style="width: 200px">First-line</div>
+  </div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  const green = "rgb(0, 128, 0)";
+  const lime = "rgb(0, 255, 0)";
+
+  test(() => {
+    assert_equals(getComputedStyle(target, "::before").color, green);
+  }, "Originating element container for ::before");
+  test(() => {
+    assert_equals(getComputedStyle(target, "::after").color, green);
+  }, "Originating element container for ::after");
+  test(() => {
+    assert_equals(getComputedStyle(target, "::marker").color, green);
+  }, "Originating element container for ::marker");
+  test(() => {
+    assert_equals(getComputedStyle(target, "::first-line").color, green);
+  }, "Originating element container for ::first-line");
+  test(() => {
+    assert_equals(getComputedStyle(target, "::first-letter").color, green);
+  }, "Originating element container for ::first-letter");
+  test(() => {
+    assert_equals(getComputedStyle(outer, "::first-line").color, green);
+  }, "Originating element container for outer ::first-line");
+  test(() => {
+    assert_equals(getComputedStyle(outer, "::first-letter").color, green);
+  }, "Originating element container for outer ::first-letter");
+  test((t) => {
+    t.add_cleanup(() => dialog.close());
+    assert_equals(getComputedStyle(dialog, "::backdrop").backgroundColor, lime, "::backdrop not rendered");
+    dialog.showModal();
+    assert_equals(getComputedStyle(dialog, "::backdrop").backgroundColor, green, "::backdrop rendered");
+  }, "Originating element container for ::backdrop");
+</script>

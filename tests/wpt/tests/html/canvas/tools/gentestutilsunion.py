@@ -360,6 +360,7 @@ class _Variant():
             'variant_name': '',
             'images': [],
             'svgimages': [],
+            'fonts': [],
         }
         params.update(test)
         return _Variant(params)
@@ -639,6 +640,7 @@ class _VariantGrid:
             'notes': self._unique_param('notes'),
             'images': self._param_set('images'),
             'svgimages': self._param_set('svgimages'),
+            'fonts': self._param_set('fonts'),
         }
         if self.template_type in (_TemplateType.REFERENCE,
                                   _TemplateType.HTML_REFERENCE):

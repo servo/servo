@@ -82,6 +82,13 @@ fn((t) => {
       }) :
       t.createInvalidShaderModule(),
       entryPoint: 'main'
+    },
+    // Specify a color attachment so we have at least one render target.
+    fragment: {
+      targets: [{ format: 'rgba8unorm' }],
+      module: t.device.createShaderModule({
+        code: `@fragment fn main() -> @location(0) vec4f { return vec4f(0); }`
+      })
     }
   });
 });

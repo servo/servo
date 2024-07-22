@@ -166,7 +166,7 @@ const registerAttributionSrcByImg = (attributionSrc) => {
   element.attributionSrc = attributionSrc;
 };
 
-const registerAttributionSrc = async ({
+const registerAttributionSrc = ({
   source,
   trigger,
   cookie,
@@ -226,16 +226,8 @@ const registerAttributionSrc = async ({
       if (eligible === null) {
         img.attributionSrc = url;
       } else {
-        await new Promise(resolve => {
-          img.onload = resolve;
-          // Since the resource being fetched isn't a valid image, onerror will
-          // be fired, but the browser will still process the
-          // attribution-related headers, so resolve the promise instead of
-          // rejecting.
-          img.onerror = resolve;
-          img.attributionSrc = '';
-          img.src = url;
-        });
+        img.attributionSrc = '';
+        img.src = url;
       }
       return 'event';
     case 'script':
@@ -244,12 +236,9 @@ const registerAttributionSrc = async ({
       if (eligible === null) {
         script.attributionSrc = url;
       } else {
-        await new Promise(resolve => {
-          script.onload = resolve;
-          script.attributionSrc = '';
-          script.src = url;
-          document.body.appendChild(script);
-        });
+        script.attributionSrc = '';
+        script.src = url;
+        document.body.appendChild(script);
       }
       return 'event';
     case 'a':
@@ -265,10 +254,10 @@ const registerAttributionSrc = async ({
         a.href = url;
       }
       document.body.appendChild(a);
-      await test_driver.click(a);
+      test_driver.click(a);
       return 'navigation';
     case 'open':
-      await test_driver.bless('open window', () => {
+      test_driver.bless('open window', () => {
         const feature = referrerPolicy === 'no-referrer' ? 'noreferrer' : '';
         if (eligible === null) {
           open(
@@ -284,20 +273,16 @@ const registerAttributionSrc = async ({
       if (eligible !== null) {
         attributionReporting = JSON.parse(eligible);
       }
-      await fetch(url, {credentials, attributionReporting, referrerPolicy});
+      fetch(url, {credentials, attributionReporting, referrerPolicy});
       return 'event';
     }
     case 'xhr':
-      await new Promise((resolve, reject) => {
-        const req = new XMLHttpRequest();
-        req.open('GET', url);
-        if (eligible !== null) {
-          req.setAttributionReporting(JSON.parse(eligible));
-        }
-        req.onload = resolve;
-        req.onerror = () => reject(req.statusText);
-        req.send();
-      });
+      const req = new XMLHttpRequest();
+      req.open('GET', url);
+      if (eligible !== null) {
+        req.setAttributionReporting(JSON.parse(eligible));
+      }
+      req.send();
       return 'event';
     default:
       throw `unknown method "${method}"`;

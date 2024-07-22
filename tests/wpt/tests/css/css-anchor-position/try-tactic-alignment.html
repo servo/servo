@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <title>CSS Anchor Positioning: try-tactic, justify/align-self</title>
-<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#typedef-position-try-options-try-tactic">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#typedef-position-try-fallbacks-try-tactic">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style>
@@ -59,14 +59,14 @@ function test_justify_flip(try_tactic, untransformed, transformed, direction, wr
         ${untransformed}
       }
       #target {
-        position-try-options: --pf ${try_tactic};
+        position-try-fallbacks: --pf ${try_tactic};
       }
       @position-try --ref {
         inset: 0;
         ${transformed}
       }
       #ref {
-        position-try-options: --ref;
+        position-try-fallbacks: --ref;
       }
     `;
     assert_equals(target.offsetLeft, ref.offsetLeft, 'offsetLeft');
@@ -146,7 +146,7 @@ function test_computed_value(try_tactic, property, value, expected) {
         ${property}:${value};
       }
       #target {
-        position-try-options: --pf ${try_tactic};
+        position-try-fallbacks: --pf ${try_tactic};
       }
     `;
     assert_equals(getComputedStyle(target).getPropertyValue(property), expected);

@@ -13,7 +13,6 @@ path = "lib.rs"
 [dependencies]
 app_units = { workspace = true }
 base = { workspace = true }
-crossbeam-channel = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fnv = { workspace = true }

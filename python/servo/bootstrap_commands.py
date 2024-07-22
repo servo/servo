@@ -43,12 +43,15 @@ class MachCommands(CommandBase):
     @CommandArgument('--skip-platform',
                      action='store_true',
                      help='Skip platform bootstrapping.')
-    def bootstrap(self, force=False, skip_platform=False):
+    @CommandArgument('--skip-lints',
+                     action='store_true',
+                     help='Skip tool necessary for linting.')
+    def bootstrap(self, force=False, skip_platform=False, skip_lints=False):
         # Note: This entry point isn't actually invoked by ./mach bootstrap.
         # ./mach bootstrap calls mach_bootstrap.bootstrap_command_only so that
         # it can install dependencies without needing mach's dependencies
         try:
-            servo.platform.get().bootstrap(force, skip_platform)
+            servo.platform.get().bootstrap(force, skip_platform, skip_lints)
         except NotImplementedError as exception:
             print(exception)
             return 1

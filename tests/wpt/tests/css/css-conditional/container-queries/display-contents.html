@@ -1,0 +1,93 @@
+<!doctype html>
+<title>@container and display:contents</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#containment-size">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<script>
+  setup(() => assert_implements_container_queries());
+</script>
+<style>
+  .container {
+    container-type: inline-size;
+    width: 30px;
+    height: 30px;
+    background: tomato;
+  }
+  .big {
+    width: 50px;
+    height: 50px;
+    background: skyblue;
+  }
+  .contents {
+    display: contents;
+  }
+
+  @container (width: 30px) {
+    .target { --x:30; }
+  }
+
+  @container (width: 50px) {
+    .target { --x:50; }
+  }
+
+  main {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+</style>
+
+<main>
+  <!-- Container is display:contents -->
+  <div class="container contents">
+    <div>
+      <div class="target" id=target1></div>
+    </div>
+  </div>
+  <script>
+    test(function() {
+      let s = getComputedStyle(target1);
+      assert_equals(s.getPropertyValue('--x'), '');
+    }, 'getComputedStyle when container is display:contents');
+  </script>
+
+  <!-- Container becomes display:contents -->
+  <div id=container2 class="container">
+    <div>
+      <div class="target" id=target2></div>
+    </div>
+  </div>
+  <script>
+    test(function() {
+      let s = getComputedStyle(target2);
+      assert_equals(s.getPropertyValue('--x'), '30');
+      container2.classList.add('contents');
+      assert_equals(s.getPropertyValue('--x'), '');
+      container2.classList.remove('contents');
+      assert_equals(s.getPropertyValue('--x'), '30');
+    }, 'getComputedStyle when container becomes display:contents');
+  </script>
+
+  <!-- Intermediate container becomes display:contents -->
+  <div class="container">
+    <div>
+      <div id=container3 class="container">
+        <div>
+          <div class="target" id=target3></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    test(function() {
+      let s = getComputedStyle(target3);
+      assert_equals(s.getPropertyValue('--x'), '30');
+      container3.classList.add('contents');
+      assert_equals(s.getPropertyValue('--x'), '');
+      container3.classList.remove('contents');
+      assert_equals(s.getPropertyValue('--x'), '30');
+    }, 'getComputedStyle when intermediate container becomes display:contents');
+  </script>
+</main>

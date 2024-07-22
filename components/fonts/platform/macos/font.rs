@@ -17,6 +17,7 @@ use core_text::font::CTFont;
 use core_text::font_descriptor::{
     kCTFontDefaultOrientation, CTFontTraits, SymbolicTraitAccessors, TraitAccessors,
 };
+use euclid::default::{Point2D, Rect, Size2D};
 use log::debug;
 use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
 use webrender_api::FontInstanceFlags;
@@ -324,6 +325,16 @@ impl PlatformFontMethods for PlatformFont {
             return FontInstanceFlags::EMBEDDED_BITMAPS;
         }
         FontInstanceFlags::empty()
+    }
+
+    fn typographic_bounds(&self, glyph_id: GlyphId) -> Rect<f32> {
+        let rect = self
+            .ctfont
+            .get_bounding_rects_for_glyphs(kCTFontDefaultOrientation, &[glyph_id as u16]);
+        Rect::new(
+            Point2D::new(rect.origin.x as f32, rect.origin.y as f32),
+            Size2D::new(rect.size.width as f32, rect.size.height as f32),
+        )
     }
 }
 

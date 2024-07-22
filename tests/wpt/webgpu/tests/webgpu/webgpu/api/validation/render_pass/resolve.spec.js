@@ -108,7 +108,7 @@ fn((t) => {
       // color attachment with resolve target.
       if (resolveSlot === colorAttachmentSlot) {
         // Create the color attachment with resolve target with the configurable parameters.
-        const resolveSourceColorAttachment = t.device.createTexture({
+        const resolveSourceColorAttachment = t.createTextureTracked({
           format: colorAttachmentFormat,
           size: {
             width: colorAttachmentWidth,
@@ -119,7 +119,7 @@ fn((t) => {
           usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
         });
 
-        const resolveTarget = t.device.createTexture({
+        const resolveTarget = t.createTextureTracked({
           format: resolveTargetFormat,
           size: {
             width: resolveTargetWidth,
@@ -149,7 +149,7 @@ fn((t) => {
       } else {
         // Create a basic texture to fill other color attachment slots. This texture's dimensions
         // and sample count must match the resolve source color attachment to be valid.
-        const colorAttachment = t.device.createTexture({
+        const colorAttachment = t.createTextureTracked({
           format: otherAttachmentFormat,
           size: {
             width: colorAttachmentWidth,
@@ -160,7 +160,7 @@ fn((t) => {
           usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
         });
 
-        const resolveTarget = t.device.createTexture({
+        const resolveTarget = t.createTextureTracked({
           format: otherAttachmentFormat,
           size: {
             width: colorAttachmentWidth,

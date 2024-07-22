@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use egui::{
-    pos2, CentralPanel, Color32, Frame, Key, Modifiers, PaintCallback, Pos2, Spinner,
+    pos2, CentralPanel, Color32, Frame, Key, Label, Modifiers, PaintCallback, Pos2, Spinner,
     TopBottomPanel, Vec2,
 };
 use egui_glow::CallbackFn;
@@ -173,7 +173,7 @@ impl Minibrowser {
         let _duration = context.run(window, |ctx| {
             // TODO: While in fullscreen add some way to mitigate the increased phishing risk
             // when not displaying the URL bar: https://github.com/servo/servo/issues/32443
-            if !window.fullscreen().is_some() {
+            if window.fullscreen().is_none() {
                 TopBottomPanel::top("toolbar").show(ctx, |ui| {
                     ui.allocate_ui_with_layout(
                         ui.available_size(),
@@ -245,18 +245,6 @@ impl Minibrowser {
             };
             let mut embedder_events = vec![];
 
-            if let Some(status_text) = &self.status_text {
-                let position = Some(pos2(0.0, ctx.available_rect().max.y));
-                egui::containers::popup::show_tooltip_at(
-                    ctx,
-                    "tooltip_for_status_text".into(),
-                    position,
-                    |ui| {
-                        ui.label(status_text.clone());
-                    },
-                );
-            }
-
             CentralPanel::default()
                 .frame(Frame::none())
                 .show(ctx, |ui| {
@@ -282,6 +270,17 @@ impl Minibrowser {
                     let Some(servo_fbo) = servo_framebuffer_id else {
                         return;
                     };
+
+                    if let Some(status_text) = &self.status_text {
+                        egui::containers::popup::show_tooltip_at(
+                            ctx,
+                            ui.layer_id(),
+                            "tooltip layer".into(),
+                            pos2(0.0, ctx.available_rect().max.y),
+                            |ui| ui.add(Label::new(status_text.clone()).extend()),
+                        );
+                    }
+
                     ui.painter().add(PaintCallback {
                         rect,
                         callback: Arc::new(CallbackFn::new(move |info, painter| {

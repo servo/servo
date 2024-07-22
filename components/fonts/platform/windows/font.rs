@@ -14,6 +14,7 @@ use std::sync::Arc;
 
 use app_units::Au;
 use dwrote::{FontFace, FontFile};
+use euclid::default::{Point2D, Rect, Size2D};
 use log::{debug, warn};
 use style::computed_values::font_stretch::T as StyleFontStretch;
 use style::computed_values::font_weight::T as StyleFontWeight;
@@ -272,5 +273,27 @@ impl PlatformFontMethods for PlatformFont {
 
     fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
         FontInstanceFlags::empty()
+    }
+
+    fn typographic_bounds(&self, glyph_id: GlyphId) -> Rect<f32> {
+        let metrics = self
+            .face
+            .get_design_glyph_metrics(&[glyph_id as u16], false);
+        let metrics = &metrics[0];
+        let advance_width = metrics.advanceWidth as f32;
+        let advance_height = metrics.advanceHeight as f32;
+        let left_side_bearing = metrics.leftSideBearing as f32;
+        let right_side_bearing = metrics.rightSideBearing as f32;
+        let top_side_bearing = metrics.topSideBearing as f32;
+        let bottom_side_bearing = metrics.bottomSideBearing as f32;
+        let vertical_origin_y = metrics.verticalOriginY as f32;
+        let y_offset = vertical_origin_y + bottom_side_bearing - advance_height;
+        let width = advance_width - (left_side_bearing + right_side_bearing);
+        let height = advance_height - (top_side_bearing + bottom_side_bearing);
+
+        Rect::new(
+            Point2D::new(left_side_bearing, y_offset),
+            Size2D::new(width, height),
+        )
     }
 }

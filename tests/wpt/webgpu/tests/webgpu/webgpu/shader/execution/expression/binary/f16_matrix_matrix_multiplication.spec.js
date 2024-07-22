@@ -4,7 +4,7 @@
 Execution Tests for matrix-matrix f16 multiplication expression
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../gpu_test.js';
-import { TypeF16, TypeMat } from '../../../../util/conversion.js';
+import { Type } from '../../../../util/conversion.js';
 import { allInputSources, run } from '../expression.js';
 
 import { binary, compoundBinary } from './binary.js';
@@ -44,8 +44,8 @@ fn(async (t) => {
   await run(
     t,
     binary('*'),
-    [TypeMat(x_cols, x_rows, TypeF16), TypeMat(y_cols, y_rows, TypeF16)],
-    TypeMat(y_cols, x_rows, TypeF16),
+    [Type.mat(x_cols, x_rows, Type.f16), Type.mat(y_cols, y_rows, Type.f16)],
+    Type.mat(y_cols, x_rows, Type.f16),
     t.params,
     cases
   );
@@ -82,8 +82,8 @@ fn(async (t) => {
   await run(
     t,
     compoundBinary('*='),
-    [TypeMat(x_cols, x_rows, TypeF16), TypeMat(y_cols, y_rows, TypeF16)],
-    TypeMat(y_cols, x_rows, TypeF16),
+    [Type.mat(x_cols, x_rows, Type.f16), Type.mat(y_cols, y_rows, Type.f16)],
+    Type.mat(y_cols, x_rows, Type.f16),
     t.params,
     cases
   );

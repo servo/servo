@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp: auto` margin collapsing accounts for self-collapsing boxes</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-031-ref.html">
+<meta name="assert" content="With `line-clamp: auto`, if a clamp point might fall inside a box, its margins are accounted for correctly. This is the case even for self-collapsing boxes before the clamp point.">
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: calc(4lh + 2 * 5px);
+  font: 16px / 32px serif;
+  background-color: orange;
+}
+.inner {
+  white-space: pre;
+  margin: 5px;
+  background-color: yellow;
+}
+.collapse-through {
+  margin: 10px;
+}
+.abspos {
+  position: absolute;
+  right: 0;
+  height: 100px;
+  width: 100px;
+  background-color: skyblue;
+}
+</style>
+
+<!--
+  The bottom margin of the first `.inner` ends at the clamp boundary, and the
+  bottom margin of `.collapse-through` ends after it. The clamp point therefore
+  is before `.collapse-through`, and so `.abpos` won't be visible.
+-->
+
+<div class="clamp">
+<div class="inner">Line 1
+Line 2
+Line 3
+Line 4</div>
+<div class="collapse-through"></div>
+<div class="abspos"></div>
+<div class="inner">Line 5
+Line 6
+Line 7
+Line 8</div>
+</div>

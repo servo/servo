@@ -57,7 +57,7 @@ jobs:
       - uses: actions/checkout@v4
         if: github.event_name == 'pull_request_target'
         with:
-          ref: refs/pull/${{ github.event.number }}/head
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 2
       # Workaround for https://github.com/actions/runner-images/issues/10001:
       - name: Upgrade llvm
@@ -94,7 +94,7 @@ jobs:
           "$env:WIX\bin" >> $env:GITHUB_PATH
       - name: Build (${{ inputs.profile }})
         run: |
-          python mach build --locked --${{ inputs.profile }}
+          python mach build --use-crown --locked --${{ inputs.profile }}
           cp C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows -Recurse
       - name: Copy resources
         run: cp D:\a\servo\servo\resources C:\a\servo\servo -Recurse

@@ -1,1 +1,5 @@
+# intentional Box::leak, introduced here: https://github.com/servo/stylo/blob/f4cde5d89d03db92d111eaa4b4b34e622b6eecac/style/sharing/mod.rs#L481
 leak:style::sharing::SHARING_CACHE_KEY::__init
+
+# lazy_static never frees memory because it never runs destructors, see https://docs.rs/lazy_static/1.4.0/lazy_static/index.html#semantics
+leak:lazy_static::lazy::Lazy*::get

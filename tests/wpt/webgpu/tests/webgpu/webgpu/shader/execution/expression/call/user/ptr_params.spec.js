@@ -61,7 +61,7 @@ expected)
     inputUsage === 'uniform' ? GPUBufferUsage.UNIFORM : GPUBufferUsage.STORAGE
   );
 
-  const outputBuffer = t.device.createBuffer({
+  const outputBuffer = t.createBufferTracked({
     size: expected.buffer.byteLength,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
   });
@@ -630,6 +630,150 @@ ${main}
   /* [1][2][0] */0, 0, 0, 0,
   /* [1][2][1] */0, 0, 0, 0]
   );
+
+  run(t, wgsl, 'storage', input, expected);
+});
+
+g.test('atomic_ptr_to_element').
+desc(
+  'Test a pointer parameter to an atomic<i32> of an array can be read from and written to by a callee function'
+).
+params((u) => u.combine('address_space', ['workgroup', 'storage'])).
+fn((t) => {
+  t.skipIfLanguageFeatureNotSupported('unrestricted_pointer_parameters');
+
+  const main = {
+    workgroup: `
+var<workgroup> W_input : T;
+var<workgroup> W_output : T;
+@compute @workgroup_size(1)
+fn main() {
+  // Copy input -> W_input
+  for (var i = 0; i < 2; i++) {
+    for (var j = 0; j < 3; j++) {
+      for (var k = 0; k < 2; k++) {
+        atomicStore(&W_input[k][j][i], atomicLoad(&input[k][j][i]));
+      }
+    }
+  }
+
+  f0(&W_input, &W_output);
+
+  // Copy W_output -> output
+  for (var i = 0; i < 2; i++) {
+    for (var j = 0; j < 3; j++) {
+      for (var k = 0; k < 2; k++) {
+        atomicStore(&output[k][j][i], atomicLoad(&W_output[k][j][i]));
+      }
+    }
+  }
+}
+`,
+    storage: `
+@compute @workgroup_size(1)
+fn main() {
+  f0(&input, &output);
+}
+`
+  }[t.params.address_space];
+
+  const ptr = (ty) =>
+  t.params.address_space === 'storage' ?
+  `ptr<storage, ${ty}, read_write>` :
+  `ptr<${t.params.address_space}, ${ty}>`;
+
+  const wgsl = `
+alias T3 = atomic<i32>;
+alias T2 = array<T3, 2>;
+alias T1 = array<T2, 3>;
+alias T = array<T1, 2>;
+
+@binding(0) @group(0) var<storage, read_write> input : T;
+@binding(1) @group(0) var<storage, read_write> output : T;
+
+fn f2(in : ${ptr('T2')}, out : ${ptr('T2')}) {
+  let v = atomicLoad(&(*in)[0]);
+  atomicStore(&(*out)[1], v);
+}
+
+fn f1(in : ${ptr('T1')}, out : ${ptr('T1')}) {
+  f2(&(*in)[0], &(*out)[1]);
+  f2(&(*in)[2], &(*out)[0]);
+}
+
+fn f0(in : ${ptr('T')}, out : ${ptr('T')}) {
+  f1(&(*in)[1], &(*out)[0]);
+}
+
+${main}
+`;
+
+
+  const input = new Uint32Array([
+  /* [0][0][0] */1,
+  /* [0][0][1] */2,
+  /* [0][1][0] */3,
+  /* [0][1][1] */4,
+  /* [0][2][0] */5,
+  /* [0][2][1] */6,
+  /* [1][0][0] */7, // -> [0][1][1]
+  /* [1][0][1] */8,
+  /* [1][1][0] */9,
+  /* [1][1][1] */10,
+  /* [1][2][0] */11, // -> [0][0][1]
+  /* [1][2][1] */12]
+  );
+
+
+  const expected = new Uint32Array([
+  /* [0][0][0] */0,
+  /* [0][0][1] */11,
+  /* [0][1][0] */0,
+  /* [0][1][1] */7,
+  /* [0][2][0] */0,
+  /* [0][2][1] */0,
+  /* [1][0][0] */0,
+  /* [1][0][1] */0,
+  /* [1][1][0] */0,
+  /* [1][1][1] */0,
+  /* [1][2][0] */0,
+  /* [1][2][1] */0]
+  );
+
+  run(t, wgsl, 'storage', input, expected);
+});
+
+g.test('array_length').
+desc(
+  'Test a pointer parameter to a runtime sized array can be used by arrayLength() in a callee function'
+).
+fn((t) => {
+  t.skipIfLanguageFeatureNotSupported('unrestricted_pointer_parameters');
+
+  const wgsl = `
+@binding(0) @group(0) var<storage, read> arr : array<u32>;
+@binding(1) @group(0) var<storage, read_write> output : u32;
+
+fn f2(p : ptr<storage, array<u32>, read>) -> u32 {
+  return arrayLength(p);
+}
+
+fn f1(p : ptr<storage, array<u32>, read>) -> u32 {
+  return f2(p);
+}
+
+fn f0(p : ptr<storage, array<u32>, read>) -> u32 {
+  return f1(p);
+}
+
+@compute @workgroup_size(1)
+fn main() {
+  output = f0(&arr);
+}
+`;
+
+  const input = new Uint32Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+  const expected = new Uint32Array([12]);
 
   run(t, wgsl, 'storage', input, expected);
 });

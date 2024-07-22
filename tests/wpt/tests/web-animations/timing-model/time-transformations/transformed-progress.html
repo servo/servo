@@ -53,6 +53,19 @@ const gStepTimingFunctionTests = [
                 ]
   },
   {
+    description: 'Test start bounds of step-start easing with no delay',
+    effect:     {
+                  delay: 0,
+                  duration: 1000,
+                  fill: 'backwards',
+                  easing: 'steps(1, start)'
+                },
+    conditions: [
+                  { currentTime: -1, progress: 0 },
+                  { currentTime:  0, progress: 1 }
+                ]
+  },
+  {
     description: 'Test bounds point of step-start easing with reverse direction',
     effect:     {
                   delay: 1000,
@@ -386,6 +399,31 @@ for (const options of gStepTimingFunctionTests) {
     }
   }, options.description);
 }
+
+test(t => {
+  const target = createDiv(t);
+  const anim = target.animate(
+      [
+        { easing: 'steps(1, start)', opacity: 0 },
+        { opacity: 1 }
+      ],
+      { easing: 'linear(-2, 2)', duration: 1000, fill: 'both' });
+
+  anim.currentTime = 0;
+  assert_equals(anim.effect.getComputedTiming().progress, -2);
+  // Input < 0 ==> output = 0.
+  assert_equals(getComputedStyle(target).opacity, "0");
+  anim.currentTime = 500;
+  assert_equals(anim.effect.getComputedTiming().progress, 0);
+  // Input = 0 & before flag = false ==> output = 1.
+  assert_equals(getComputedStyle(target).opacity, "1");
+  anim.currentTime = 1000;
+  // Input > 0 & before flag = false ==> output = 1.
+  assert_equals(anim.effect.getComputedTiming().progress, 2);
+  assert_equals(getComputedStyle(target).opacity, "1");
+
+}, 'Test global timing function with values outside [0,1] with a step ' +
+   'timing function on the keyframe');
 
 </script>
 </body>

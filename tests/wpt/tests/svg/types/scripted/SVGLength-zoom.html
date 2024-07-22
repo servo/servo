@@ -1,0 +1,17 @@
+<!DOCTYPE HTML>
+<title>SVGLength in zoomed div</title>
+<link rel="help" href="https://www.w3.org/TR/SVG/types.html#InterfaceSVGLength">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div style="zoom: 2;">
+<svg>
+  <rect id="rect" width="100" height="100"/>
+</svg>
+</div>
+<script>
+  const rect = document.getElementById("rect");
+
+  test(() => {
+    assert_approx_equals(rect.width.baseVal.value, 100, 0.1);
+  }, "SVGLength in zoomed div should be unchanged");
+</script>

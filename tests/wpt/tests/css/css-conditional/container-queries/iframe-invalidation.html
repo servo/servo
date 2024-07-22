@@ -1,0 +1,43 @@
+<!doctype html>
+<title>@container-dependent elements respond to iframe size changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  iframe {
+    width: 200px;
+    height: 40px;
+  }
+</style>
+<iframe id=iframe srcdoc="
+  <style>
+    div#container {
+      container-type: size;
+      height: 20px;
+    }
+    div#child { color: red; }
+    @container (min-width: 300px) {
+      div#child { color: green; }
+    }
+  </style>
+  <div id=container>
+    <div id=child>Test</div>
+  </div>
+"></iframe>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  function waitForLoad(w) {
+    return new Promise(resolve => w.addEventListener('load', resolve));
+  }
+
+  promise_test(async () => {
+    await waitForLoad(window);
+    let inner_div = iframe.contentDocument.querySelector('div#child');
+    assert_equals(getComputedStyle(inner_div).color, 'rgb(255, 0, 0)');
+
+    iframe.style = 'width:400px';
+    assert_equals(getComputedStyle(inner_div).color, 'rgb(0, 128, 0)');
+  })
+</script>

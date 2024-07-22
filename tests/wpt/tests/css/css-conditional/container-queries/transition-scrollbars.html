@@ -1,0 +1,59 @@
+<!doctype html>
+<title>Container Queries - Scrollbars do not cause transitions</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions/#starting">
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#animated-containers">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #scrollable {
+    overflow: auto;
+    width: 100px;
+    height: 100px;
+  }
+  #container {
+    container-type: inline-size;
+  }
+  #target {
+    background-color: black;
+  }
+
+  /* Matches with or without a scrollbar: */
+  @container (max-width: 100px) {
+    #target {
+      background-color: blue;
+    }
+  }
+
+  /* Matches only when there's a scrollbar: */
+  @container (max-width: 99px) {
+    #target {
+      background-color: green;
+      font-size: 10px;
+      transition: 2s steps(2, start) background-color;
+    }
+  }
+</style>
+<div id=scrollable>
+  <div id=container>
+    <div id=target>
+      Foo bar foo bar foo
+      Foo bar foo bar foo
+      Foo bar foo bar foo
+      Foo bar foo bar foo
+      Foo bar foo bar foo
+    </div>
+  </div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  test(() => {
+    // Whether or not a scrollbar appeared is out of scope for this test.
+    // The only thing we care about is that no transition was triggered.
+    // Therefore we allow both 'green' and 'blue', but not any other values.
+    let has_scrollbar = target.offsetWidth < 100;
+    let expected = has_scrollbar ? 'rgb(0, 128, 0)' : 'rgb(0, 0, 255)';
+    assert_equals(getComputedStyle(target).backgroundColor, expected);
+  }, 'Scrollbars do not cause a transition of background-color');
+</script>

@@ -12,7 +12,7 @@ export const g = makeTestGroup(GPUTest);
 
 const kTestFunctions = {
   createBuffer: (t, label) => {
-    const buffer = t.device.createBuffer({ size: 16, usage: GPUBufferUsage.COPY_DST, label });
+    const buffer = t.createBufferTracked({ size: 16, usage: GPUBufferUsage.COPY_DST, label });
     t.expect(buffer.label === label);
     buffer.destroy();
     t.expect(buffer.label === label);
@@ -22,7 +22,7 @@ const kTestFunctions = {
     const gpu = getGPU(t.rec);
     const adapter = await gpu.requestAdapter();
     t.expect(!!adapter);
-    const device = await adapter.requestDevice({ label });
+    const device = await t.requestDeviceTracked(adapter, { label });
     t.expect(!!device);
     t.expect(device.label === label);
     device.destroy();
@@ -30,7 +30,7 @@ const kTestFunctions = {
   },
 
   createTexture: (t, label) => {
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       label,
       size: [1, 1, 1],
       format: 'rgba8unorm',
@@ -105,6 +105,14 @@ const kTestFunctions = {
       vertex: {
         module,
         entryPoint: 'foo'
+      },
+      // Specify a color attachment so we have at least one render target. Otherwise, details here
+      // are not relevant to this test.
+      fragment: {
+        targets: [{ format: 'rgba8unorm' }],
+        module: t.device.createShaderModule({
+          code: `@fragment fn main() -> @location(0) vec4f { return vec4f(0); }`
+        })
       }
     });
     t.expect(renderPipeline.label === label);
@@ -142,6 +150,14 @@ const kTestFunctions = {
       vertex: {
         module,
         entryPoint: 'foo'
+      },
+      // Specify a color attachment so we have at least one render target. Otherwise, details here
+      // are not relevant to this test.
+      fragment: {
+        targets: [{ format: 'rgba8unorm' }],
+        module: t.device.createShaderModule({
+          code: `@fragment fn main() -> @location(0) vec4f { return vec4f(0); }`
+        })
       }
     });
     t.expect(renderPipeline.label === label);
@@ -161,7 +177,7 @@ const kTestFunctions = {
   },
 
   createQuerySet: (t, label) => {
-    const querySet = t.device.createQuerySet({
+    const querySet = t.createQuerySetTracked({
       label,
       type: 'occlusion',
       count: 1
@@ -172,7 +188,7 @@ const kTestFunctions = {
   },
 
   beginRenderPass: (t, label) => {
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       label,
       size: [1, 1, 1],
       format: 'rgba8unorm',
@@ -214,7 +230,7 @@ const kTestFunctions = {
   },
 
   createView: (t, label) => {
-    const texture = t.device.createTexture({
+    const texture = t.createTextureTracked({
       size: [1, 1, 1],
       format: 'rgba8unorm',
       usage: GPUTextureUsage.RENDER_ATTACHMENT
@@ -266,6 +282,14 @@ fn((t) => {
     vertex: {
       module,
       entryPoint: 'main'
+    },
+    // Specify a color attachment so we have at least one render target. Otherwise, details here
+    // are not relevant to this test.
+    fragment: {
+      targets: [{ format: 'rgba8unorm' }],
+      module: t.device.createShaderModule({
+        code: `@fragment fn main() -> @location(0) vec4f { return vec4f(0); }`
+      })
     }
   });
   const layout1 = pipeline.getBindGroupLayout(0);

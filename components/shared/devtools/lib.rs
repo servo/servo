@@ -8,7 +8,6 @@
 
 #![crate_name = "devtools_traits"]
 #![crate_type = "rlib"]
-#![allow(non_snake_case)]
 #![deny(unsafe_code)]
 
 use std::net::TcpStream;
@@ -118,25 +117,24 @@ pub struct AttrInfo {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NodeInfo {
-    pub uniqueId: String,
-    pub baseURI: String,
+    pub unique_id: String,
+    #[serde(rename = "baseURI")]
+    pub base_uri: String,
     pub parent: String,
-    pub nodeType: u16,
-    pub namespaceURI: String,
-    pub nodeName: String,
-    pub numChildren: usize,
-
+    pub node_type: u16,
+    #[serde(rename = "namespaceURI")]
+    pub namespace_uri: String,
+    pub node_name: String,
+    pub num_children: usize,
     pub name: String,
-    pub publicId: String,
-    pub systemId: String,
-
+    pub public_id: String,
+    pub system_id: String,
     pub attrs: Vec<AttrInfo>,
-
-    pub isDocumentElement: bool,
-
-    pub shortValue: String,
-    pub incompleteValue: bool,
+    pub is_document_element: bool,
+    pub short_value: String,
+    pub incomplete_value: bool,
 }
 
 pub struct StartedTimelineMarker {
@@ -162,27 +160,28 @@ pub enum TimelineMarkerType {
 
 /// The properties of a DOM node as computed by layout.
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ComputedNodeLayout {
     pub display: String,
     pub position: String,
-    pub zIndex: String,
-    pub boxSizing: String,
+    pub z_index: String,
+    pub box_sizing: String,
 
-    pub autoMargins: AutoMargins,
-    pub marginTop: String,
-    pub marginRight: String,
-    pub marginBottom: String,
-    pub marginLeft: String,
+    pub auto_margins: AutoMargins,
+    pub margin_top: String,
+    pub margin_right: String,
+    pub margin_bottom: String,
+    pub margin_left: String,
 
-    pub borderTopWidth: String,
-    pub borderRightWidth: String,
-    pub borderBottomWidth: String,
-    pub borderLeftWidth: String,
+    pub border_top_width: String,
+    pub border_right_width: String,
+    pub border_bottom_width: String,
+    pub border_left_width: String,
 
-    pub paddingTop: String,
-    pub paddingRight: String,
-    pub paddingBottom: String,
-    pub paddingLeft: String,
+    pub padding_top: String,
+    pub padding_right: String,
+    pub padding_bottom: String,
+    pub padding_left: String,
 
     pub width: f32,
     pub height: f32,
@@ -230,9 +229,10 @@ pub enum DevtoolScriptControlMsg {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Modification {
-    pub attributeName: String,
-    pub newValue: Option<String>,
+    pub attribute_name: String,
+    pub new_value: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -246,12 +246,13 @@ pub enum LogLevel {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ConsoleMessage {
     pub message: String,
-    pub logLevel: LogLevel,
+    pub log_level: LogLevel,
     pub filename: String,
-    pub lineNumber: usize,
-    pub columnNumber: usize,
+    pub line_number: usize,
+    pub column_number: usize,
 }
 
 bitflags! {
@@ -263,16 +264,17 @@ bitflags! {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PageError {
     #[serde(rename = "_type")]
     pub type_: String,
-    pub errorMessage: String,
-    pub sourceName: String,
-    pub lineText: String,
-    pub lineNumber: u32,
-    pub columnNumber: u32,
+    pub error_message: String,
+    pub source_name: String,
+    pub line_text: String,
+    pub line_number: u32,
+    pub column_number: u32,
     pub category: String,
-    pub timeStamp: u64,
+    pub time_stamp: u64,
     pub error: bool,
     pub warning: bool,
     pub exception: bool,
@@ -280,23 +282,21 @@ pub struct PageError {
     pub private: bool,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct ConsoleAPI {
-    #[serde(rename = "_type")]
-    pub type_: String,
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ConsoleLog {
     pub level: String,
     pub filename: String,
-    pub lineNumber: u32,
-    pub functionName: String,
-    pub timeStamp: u64,
-    pub private: bool,
+    pub line_number: u32,
+    pub column_number: u32,
+    pub time_stamp: u64,
     pub arguments: Vec<String>,
+    // pub stacktrace: Vec<...>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum CachedConsoleMessage {
     PageError(PageError),
-    ConsoleAPI(ConsoleAPI),
+    ConsoleLog(ConsoleLog),
 }
 
 #[derive(Debug, PartialEq)]
@@ -306,8 +306,8 @@ pub struct HttpRequest {
     pub headers: HeaderMap,
     pub body: Option<Vec<u8>>,
     pub pipeline_id: PipelineId,
-    pub startedDateTime: SystemTime,
-    pub timeStamp: i64,
+    pub started_date_time: SystemTime,
+    pub time_stamp: i64,
     pub connect_time: u64,
     pub send_time: u64,
     pub is_xhr: bool,

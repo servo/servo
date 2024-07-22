@@ -25,8 +25,6 @@ packages = [
     "cookie",
     "futures",
     "hermit-abi",
-    "libloading",
-    "nix",
     "redox_syscall",
     "syn",
     "synstructure",

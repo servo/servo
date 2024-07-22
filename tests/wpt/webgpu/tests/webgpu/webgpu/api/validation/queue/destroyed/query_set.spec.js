@@ -63,13 +63,11 @@ fn((t) => {
   }
 
   {
-    const texture = t.trackForCleanup(
-      t.device.createTexture({
-        size: [1, 1, 1],
-        format: 'rgba8unorm',
-        usage: GPUTextureUsage.RENDER_ATTACHMENT
-      })
-    );
+    const texture = t.createTextureTracked({
+      size: [1, 1, 1],
+      format: 'rgba8unorm',
+      usage: GPUTextureUsage.RENDER_ATTACHMENT
+    });
     const encoder = t.createEncoder('non-pass');
     encoder.encoder.
     beginRenderPass({
@@ -98,7 +96,7 @@ paramsSubcasesOnly((u) => u.combine('querySetState', ['valid', 'destroyed'])).
 fn((t) => {
   const querySet = t.createQuerySetWithState(t.params.querySetState);
 
-  const buffer = t.device.createBuffer({ size: 8, usage: GPUBufferUsage.QUERY_RESOLVE });
+  const buffer = t.createBufferTracked({ size: 8, usage: GPUBufferUsage.QUERY_RESOLVE });
 
   const encoder = t.createEncoder('non-pass');
   encoder.encoder.resolveQuerySet(querySet, 0, 1, buffer, 0);

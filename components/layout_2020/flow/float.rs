@@ -897,7 +897,7 @@ impl FloatBox {
                 // or non-replaced.
                 let pbm = style.padding_border_margin(containing_block);
                 let margin = pbm.margin.auto_is(Au::zero);
-                let pbm_sums = &(&pbm.padding + &pbm.border) + &margin.clone();
+                let pbm_sums = pbm.padding + pbm.border + margin;
 
                 let (content_size, children);
                 match self.contents {
@@ -991,7 +991,7 @@ impl FloatBox {
                     self.contents.base_fragment_info(),
                     style.clone(),
                     children,
-                    content_rect,
+                    content_rect.into(),
                     pbm.padding,
                     pbm.border,
                     margin,
@@ -1208,10 +1208,10 @@ impl SequentialLayoutState {
             block_start_of_containing_block_in_bfc + block_offset_from_containing_block_top,
         );
 
-        let pbm_sums = &(&box_fragment.padding + &box_fragment.border) + &box_fragment.margin;
-        let content_rect: LogicalRect<Au> = box_fragment.content_rect.clone().into();
+        let pbm_sums = box_fragment.padding + box_fragment.border + box_fragment.margin;
+        let content_rect = &box_fragment.content_rect;
         let margin_box_start_corner = self.floats.add_float(&PlacementInfo {
-            size: &content_rect.size + &pbm_sums.sum(),
+            size: content_rect.size + pbm_sums.sum(),
             side: FloatSide::from_style(&box_fragment.style).expect("Float box wasn't floated!"),
             clear: box_fragment.style.get_box().clear,
         });
@@ -1219,7 +1219,7 @@ impl SequentialLayoutState {
         // This is the position of the float in the float-containing block formatting context. We add the
         // existing start corner here because we may have already gotten some relative positioning offset.
         let new_position_in_bfc =
-            &(&margin_box_start_corner + &pbm_sums.start_offset()) + &content_rect.start_corner;
+            margin_box_start_corner + pbm_sums.start_offset() + content_rect.start_corner;
 
         // This is the position of the float relative to the containing block start.
         let new_position_in_containing_block = LogicalVec2 {
@@ -1227,6 +1227,6 @@ impl SequentialLayoutState {
             block: new_position_in_bfc.block - block_start_of_containing_block_in_bfc,
         };
 
-        box_fragment.content_rect.start_corner = new_position_in_containing_block.into();
+        box_fragment.content_rect.start_corner = new_position_in_containing_block;
     }
 }

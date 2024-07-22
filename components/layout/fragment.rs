@@ -1505,9 +1505,7 @@ impl Fragment {
         if let Some(ref inline_fragment_context) = self.inline_context {
             for node in &inline_fragment_context.nodes {
                 if node.style.get_box().position == Position::Relative {
-                    // TODO(servo#30577) revert once underlying bug is fixed
-                    // rel_pos = rel_pos + from_style(&*node.style, containing_block_size);
-                    rel_pos = rel_pos.add_or_warn(from_style(&node.style, containing_block_size));
+                    rel_pos = rel_pos + from_style(&node.style, containing_block_size);
                 }
             }
         }

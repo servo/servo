@@ -7,7 +7,7 @@ use style::color::AbsoluteColor;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
-use style::values::computed::{Filter as ComputedFilter, Length};
+use style::values::computed::Filter as ComputedFilter;
 use webrender_api::{units, FilterOp, LineStyle, MixBlendMode, Shadow, TransformStyle};
 
 use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize};
@@ -80,13 +80,6 @@ impl ToWebRender for ComputedTransformStyle {
     }
 }
 
-impl ToWebRender for PhysicalPoint<Length> {
-    type Type = units::LayoutPoint;
-    fn to_webrender(&self) -> Self::Type {
-        units::LayoutPoint::new(self.x.px(), self.y.px())
-    }
-}
-
 impl ToWebRender for PhysicalPoint<Au> {
     type Type = units::LayoutPoint;
     fn to_webrender(&self) -> Self::Type {
@@ -94,27 +87,10 @@ impl ToWebRender for PhysicalPoint<Au> {
     }
 }
 
-impl ToWebRender for PhysicalSize<Length> {
-    type Type = units::LayoutSize;
-    fn to_webrender(&self) -> Self::Type {
-        units::LayoutSize::new(self.width.px(), self.height.px())
-    }
-}
-
 impl ToWebRender for PhysicalSize<Au> {
     type Type = units::LayoutSize;
     fn to_webrender(&self) -> Self::Type {
         units::LayoutSize::new(self.width.to_f32_px(), self.height.to_f32_px())
-    }
-}
-
-impl ToWebRender for PhysicalRect<Length> {
-    type Type = units::LayoutRect;
-    fn to_webrender(&self) -> Self::Type {
-        units::LayoutRect::from_origin_and_size(
-            self.origin.to_webrender(),
-            self.size.to_webrender(),
-        )
     }
 }
 

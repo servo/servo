@@ -1,0 +1,80 @@
+<!doctype html>
+<title>Evaluation of style queries</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #container {
+    --applied: false;
+    --foo: bar;
+  }
+</style>
+<div id=container>
+  <div id=inner></div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  function test_query(query, expected) {
+    test((t) => {
+      let style = document.createElement('style');
+      t.add_cleanup(() => { style.remove(); });
+      style.innerText = `@container ${query} { #inner { --applied:true; } }`;
+      let cs = getComputedStyle(inner);
+      assert_equals(cs.getPropertyValue('--applied'), 'false');
+      document.head.append(style);
+      assert_equals(cs.getPropertyValue('--applied'), expected.toString());
+    }, query);
+  };
+
+  // Note that the following assumes that elements are style containers by
+  // default [1], and that:
+  //
+  // - style(--foo: bar) is a query that returns 'true', and
+  // - style(--baz: qux) is a query that returns 'false'.
+  //
+  // [1] https://github.com/w3c/csswg-drafts/issues/7066
+
+  // Nesting in <style-query>:
+  test_query('style((--foo: bar))', true);
+  test_query('style((--baz: qux))', false);
+  test_query('style((unknown))', false);
+  test_query('unknown((--foo: bar))', false);
+
+  // "not" in <style-query>:
+  test_query('style(not (--foo: bar))', false);
+  test_query('style(not (--baz: qux))', true);
+  test_query('style(not (unknown))', false);
+
+  // "and" in <style-query>:
+  test_query('style((--foo: bar) and (--foo: bar))', true);
+  test_query('style((--foo: bar) and (--foo: bar) and (--foo: bar))', true);
+  test_query('style((--baz: qux) and (--baz: qux))', false);
+  test_query('style((--baz: qux) and (--foo: bar) and (--foo: bar))', false);
+  test_query('style((--foo: bar) and (--baz: qux) and (--foo: bar))', false);
+  test_query('style((--foo: bar) and (--foo: bar) and (--baz: qux))', false);
+  test_query('style((unknown) and (--foo: bar) and (--foo: bar))', false);
+  test_query('style((--foo: bar) and (unknown) and (--foo: bar))', false);
+  test_query('style((--foo: bar) and (--foo: bar) and (unknown))', false);
+
+  // "or" in <style-query>:
+  test_query('style((--foo: bar) or (--foo: bar))', true);
+  test_query('style((--foo: bar) or (--foo: bar) or (--foo: bar))', true);
+  test_query('style((--baz: qux) or (--baz: qux))', false);
+  test_query('style((--baz: qux) or (--foo: bar) or (--foo: bar))', true);
+  test_query('style((--foo: bar) or (--baz: qux) or (--foo: bar))', true);
+  test_query('style((--foo: bar) or (--foo: bar) or (--baz: qux))', true);
+  test_query('style((unknown) or (--foo: bar) or (--foo: bar))', false);
+  test_query('style((--foo: bar) or (unknown) or (--foo: bar))', false);
+  test_query('style((--foo: bar) or (--foo: bar) or (unknown))', false);
+  test_query('style((unknown) or (--baz: qux) or (--foo: bar))', false);
+
+  // Combinations, <style-query>:
+  test_query('style(not ((--foo: bar) and (--foo: bar)))', false);
+  test_query('style(not ((--foo: bar) and (--baz: qux)))', true);
+  test_query('style((--foo: bar) and (not ((--baz: qux) or (--foo: bar))))', false);
+  test_query('style((--baz: qux) or (not ((--baz: qux) and (--foo: bar))))', true);
+  test_query('style((--baz: qux) or ((--baz: qux) and (--foo: bar)))', false);
+
+</script>

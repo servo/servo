@@ -45,7 +45,7 @@ jobs:
         run: |
           gtar -xzf target.tar.gz
           python3 -m pip install --upgrade pip
-          python3 ./mach bootstrap
+          python3 ./mach bootstrap --skip-lints
       - name: Smoketest
         run: python3 ./mach smoketest --${{ inputs.profile }}
       - name: Run tests

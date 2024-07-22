@@ -266,6 +266,6 @@ where
         inline: flow_relative_base_rect_size.inline - flow_relative_offsets.inline_end,
         block: flow_relative_base_rect_size.block - flow_relative_offsets.block_end,
     };
-    let size = &end_corner_position - &start_corner;
+    let size = end_corner_position - start_corner;
     LogicalRect { start_corner, size }
 }

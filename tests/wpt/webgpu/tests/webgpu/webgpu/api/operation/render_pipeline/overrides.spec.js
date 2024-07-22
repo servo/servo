@@ -14,7 +14,7 @@ class F extends GPUTest {
   vertex,
   fragment)
   {
-    const renderTarget = this.device.createTexture({
+    const renderTarget = this.createTextureTracked({
       format,
       size: { width: 1, height: 1, depthOrArrayLayers: 1 },
       usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
@@ -41,14 +41,14 @@ class F extends GPUTest {
       colorAttachments: [
       {
         view: renderTarget.createView(),
-        storeOp: 'store',
         clearValue: {
           r: kClearValueResult.R,
           g: kClearValueResult.G,
           b: kClearValueResult.B,
           a: kClearValueResult.A
         },
-        loadOp: 'clear'
+        loadOp: 'clear',
+        storeOp: 'store'
       }]
 
     });
@@ -311,12 +311,12 @@ fn(async (t) => {
     t.params.fragmentConstants1
   );
 
-  const renderTarget0 = t.device.createTexture({
+  const renderTarget0 = t.createTextureTracked({
     format,
     size: { width: 1, height: 1, depthOrArrayLayers: 1 },
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
   });
-  const renderTarget1 = t.device.createTexture({
+  const renderTarget1 = t.createTextureTracked({
     format,
     size: { width: 1, height: 1, depthOrArrayLayers: 1 },
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
@@ -328,14 +328,14 @@ fn(async (t) => {
     colorAttachments: [
     {
       view: renderTarget0.createView(),
-      storeOp: 'store',
       clearValue: {
         r: kClearValueResult.R,
         g: kClearValueResult.G,
         b: kClearValueResult.B,
         a: kClearValueResult.A
       },
-      loadOp: 'clear'
+      loadOp: 'clear',
+      storeOp: 'store'
     }]
 
   });
@@ -347,14 +347,14 @@ fn(async (t) => {
     colorAttachments: [
     {
       view: renderTarget1.createView(),
-      storeOp: 'store',
       clearValue: {
         r: kClearValueResult.R,
         g: kClearValueResult.G,
         b: kClearValueResult.B,
         a: kClearValueResult.A
       },
-      loadOp: 'clear'
+      loadOp: 'clear',
+      storeOp: 'store'
     }]
 
   });

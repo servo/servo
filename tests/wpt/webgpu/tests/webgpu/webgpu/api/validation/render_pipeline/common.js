@@ -6,6 +6,8 @@ kDefaultVertexShaderCode } from
 '../../../util/shader.js';
 import { ValidationTest } from '../validation_test.js';
 
+
+
 const values = [0, 1, 0, 1];
 export class CreateRenderPipelineValidationTest extends ValidationTest {
   getDescriptor(
@@ -19,17 +21,16 @@ export class CreateRenderPipelineValidationTest extends ValidationTest {
 
   {})
   {
-    const defaultTargets = [{ format: 'rgba8unorm' }];
     const {
       primitive = {},
-      targets = defaultTargets,
+      targets = [{ format: 'rgba8unorm' }],
       multisample = {},
       depthStencil,
       fragmentShaderCode = getFragmentShaderCodeWithOutput([
       {
         values,
         plainType: getPlainTypeInfo(
-          kTextureFormatInfo[targets[0] ? targets[0].format : 'rgba8unorm'].sampleType
+          kTextureFormatInfo[targets[0] ? targets[0].format : 'rgba8unorm'].color.type
         ),
         componentCount: 4
       }]

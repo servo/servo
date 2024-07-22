@@ -10,7 +10,7 @@ Reverses the bits in e: The bit at position k of the result equals the bit at po
 Component-wise when T is a vector.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
-import { TypeU32, u32Bits, TypeI32, i32Bits } from '../../../../../util/conversion.js';
+import { u32Bits, i32Bits, Type } from '../../../../../util/conversion.js';
 import { allInputSources, run } from '../../expression.js';
 
 import { builtin } from './builtin.js';
@@ -26,7 +26,7 @@ u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3,
 fn(async (t) => {
   const cfg = t.params;
 
-  await run(t, builtin('reverseBits'), [TypeU32], TypeU32, cfg, [
+  await run(t, builtin('reverseBits'), [Type.u32], Type.u32, cfg, [
   // Zero
   { input: u32Bits(0b00000000000000000000000000000000), expected: u32Bits(0b00000000000000000000000000000000) },
 
@@ -142,7 +142,7 @@ u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3,
 fn(async (t) => {
   const cfg = t.params;
 
-  await run(t, builtin('reverseBits'), [TypeI32], TypeI32, cfg, [
+  await run(t, builtin('reverseBits'), [Type.i32], Type.i32, cfg, [
   // Zero
   { input: i32Bits(0b00000000000000000000000000000000), expected: i32Bits(0b00000000000000000000000000000000) },
 

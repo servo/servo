@@ -2236,7 +2236,7 @@
      ]
     ],
     "font_size.html": [
-     "4ffd55261f2f9e5b4dd2beaf8de8fb528c1de718",
+     "4f0fafc984a312881c0182325c1dc8876ea67f09",
      [
       null,
       [
@@ -3473,7 +3473,7 @@
      ]
     ],
     "input_line_height.html": [
-     "1de07c88ae2092e2e9885d30e2001e9fe09ca8b3",
+     "f1c1d742000a6c4c11d40806e07aeba502141368",
      [
       null,
       [
@@ -6547,7 +6547,7 @@
      ]
     ],
     "textarea_space_calculation.html": [
-     "20945e971b543cbc11741863314ccf3595654e80",
+     "ee5ea7b1c01f5a11188bc50eca3a60ea2c15edf2",
      [
       null,
       [
@@ -7570,6 +7570,19 @@
       [
        [
         "/_mozilla/mozilla/duplicated_scroll_ids_ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "font-element-comma-separated.html": [
+     "db7e13f2ca3db0ebd3c610c3c25b052749b85e30",
+     [
+      null,
+      [
+       [
+        "/_mozilla/mozilla/font-element-comma-separated-ref.html",
         "=="
        ]
       ],
@@ -8711,7 +8724,7 @@
      []
     ],
     "font_face_attribute_ref.html": [
-     "f018747d2ab41119af5e06d6a018101169592cab",
+     "14378f20cead025327c4cf296ac766b39ebea13a",
      []
     ],
     "font_fallback_failed_ref.html": [
@@ -8719,7 +8732,7 @@
      []
     ],
     "font_size_ref.html": [
-     "6bcf54338856d79af998eefad7bc7bb9f94d0236",
+     "923a3c45c8a5c333b575bedfff8500291547f265",
      []
     ],
     "font_style_ref.html": [
@@ -9115,7 +9128,7 @@
      []
     ],
     "input_line_height_ref.html": [
-     "16d4fd99712bd1d21cc8320f2e273a867f3fb807",
+     "f29e061cc35625fa039473e702f78dbc5a7d9c14",
      []
     ],
     "input_placeholder_ref.html": [
@@ -10073,7 +10086,7 @@
      []
     ],
     "textarea_space_calculation-ref.html": [
-     "b777beb062b67a51c1efdfe4afa55568fd3724e6",
+     "56abdf23c8f88a9f236d54ef798734becc372027",
      []
     ],
     "transform_3d_from_outside_viewport_ref.html": [
@@ -10434,6 +10447,10 @@
     ],
     "duplicated_scroll_ids_ref.html": [
      "6783d72a6629f4938df8126dc5114d936eaaa48f",
+     []
+    ],
+    "font-element-comma-separated-ref.html": [
+     "97efe2b83d5f78bdac0d4aa951b63342fb1fa1cf",
      []
     ],
     "form_submit_about_frame.html": [
@@ -13417,14 +13434,14 @@
      ]
     ],
     "interfaces.html": [
-     "063495d90f464f161c52a8d099a298e914b9b082",
+     "d4daa95cfe84f1ffd77d0b631e67deb778db5fc3",
      [
       null,
       {}
      ]
     ],
     "interfaces.worker.js": [
-     "59d4aa1855fbf281736b28581fbc519a847c8a0d",
+     "2f048af52b8f807c24cf2b9f6d68e42f1eab2abd",
      [
       "mozilla/interfaces.worker.html",
       {}

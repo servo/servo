@@ -8,7 +8,7 @@ e is interpreted as a vector with four 8-bit unsigned integer components. Unpack
 with zero extension.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
-import { TypeU32, TypeVec, u32, toVector } from '../../../../../util/conversion.js';
+import { u32, toVector, Type } from '../../../../../util/conversion.js';
 
 import { allInputSources, run } from '../../expression.js';
 
@@ -44,5 +44,5 @@ fn(async (t) => {
     return [makeCase(v)];
   });
 
-  await run(t, builtin('unpack4xU8'), [TypeU32], TypeVec(4, TypeU32), cfg, cases);
+  await run(t, builtin('unpack4xU8'), [Type.u32], Type.vec4u, cfg, cases);
 });

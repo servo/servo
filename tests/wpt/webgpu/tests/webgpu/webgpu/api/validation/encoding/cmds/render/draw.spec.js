@@ -772,7 +772,7 @@ fn((t) => {
   const { bundleFirstHalf, bundleSecondHalf, maxDrawCount, drawCount } = t.params;
 
   const colorFormat = 'rgba8unorm';
-  const colorTexture = t.device.createTexture({
+  const colorTexture = t.createTextureTracked({
     size: { width: 1, height: 1, depthOrArrayLayers: 1 },
     format: colorFormat,
     mipLevelCount: 1,

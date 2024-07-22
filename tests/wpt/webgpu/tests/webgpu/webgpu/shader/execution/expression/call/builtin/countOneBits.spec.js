@@ -11,7 +11,7 @@ Also known as "population count".
 Component-wise when T is a vector.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../../gpu_test.js';
-import { TypeU32, u32Bits, u32, TypeI32, i32Bits, i32 } from '../../../../../util/conversion.js';
+import { Type, u32Bits, u32, i32Bits, i32 } from '../../../../../util/conversion.js';
 import { allInputSources, run } from '../../expression.js';
 
 import { builtin } from './builtin.js';
@@ -26,7 +26,7 @@ u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3,
 ).
 fn(async (t) => {
   const cfg = t.params;
-  await run(t, builtin('countOneBits'), [TypeU32], TypeU32, cfg, [
+  await run(t, builtin('countOneBits'), [Type.u32], Type.u32, cfg, [
   // Zero
   { input: u32Bits(0b00000000000000000000000000000000), expected: u32(0) },
 
@@ -141,7 +141,7 @@ u.combine('inputSource', allInputSources).combine('vectorize', [undefined, 2, 3,
 ).
 fn(async (t) => {
   const cfg = t.params;
-  await run(t, builtin('countOneBits'), [TypeI32], TypeI32, cfg, [
+  await run(t, builtin('countOneBits'), [Type.i32], Type.i32, cfg, [
   // Zero
   { input: i32Bits(0b00000000000000000000000000000000), expected: i32(0) },
 

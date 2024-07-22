@@ -1114,29 +1114,29 @@ impl Node {
     pub fn summarize(&self) -> NodeInfo {
         let USVString(base_uri) = self.BaseURI();
         NodeInfo {
-            uniqueId: self.unique_id(),
-            baseURI: base_uri,
+            unique_id: self.unique_id(),
+            base_uri,
             parent: self
                 .GetParentNode()
                 .map_or("".to_owned(), |node| node.unique_id()),
-            nodeType: self.NodeType(),
-            namespaceURI: String::new(), //FIXME
-            nodeName: String::from(self.NodeName()),
-            numChildren: self.ChildNodes().Length() as usize,
+            node_type: self.NodeType(),
+            namespace_uri: String::new(), //FIXME
+            node_name: String::from(self.NodeName()),
+            num_children: self.ChildNodes().Length() as usize,
 
             //FIXME doctype nodes only
             name: String::new(),
-            publicId: String::new(),
-            systemId: String::new(),
+            public_id: String::new(),
+            system_id: String::new(),
             attrs: self.downcast().map(Element::summarize).unwrap_or(vec![]),
 
-            isDocumentElement: self
+            is_document_element: self
                 .owner_doc()
                 .GetDocumentElement()
                 .map_or(false, |elem| elem.upcast::<Node>() == self),
 
-            shortValue: self.GetNodeValue().map(String::from).unwrap_or_default(), //FIXME: truncate
-            incompleteValue: false, //FIXME: reflect truncation
+            short_value: self.GetNodeValue().map(String::from).unwrap_or_default(), //FIXME: truncate
+            incomplete_value: false, //FIXME: reflect truncation
         }
     }
 

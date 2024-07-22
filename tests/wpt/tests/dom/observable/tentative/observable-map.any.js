@@ -132,7 +132,7 @@ test(() => {
   });
 
   assert_array_equals(results,
-      ['source teardown', 'source abort event', 'map observable complete']);
+      ['source abort event', 'source teardown', 'map observable complete']);
 }, "map(): Upon source completion, source Observable teardown sequence " +
    "happens before downstream mapper complete() is called");
 

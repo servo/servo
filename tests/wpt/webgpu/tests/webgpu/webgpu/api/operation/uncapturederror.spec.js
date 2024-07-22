@@ -2,22 +2,24 @@
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/export const description = `
 Tests for GPUDevice.onuncapturederror.
-`;import { Fixture } from '../../../common/framework/fixture.js';
-import { makeTestGroup } from '../../../common/framework/test_group.js';
+`;import { makeTestGroup } from '../../../common/framework/test_group.js';
+import { kGeneratableErrorScopeFilters } from '../../capability_info.js';
+import { ErrorTest } from '../../error_test.js';
 
-export const g = makeTestGroup(Fixture);
-
-g.test('constructor').
-desc(
-  `GPUUncapturedErrorEvent constructor options (also tests constructing GPUOutOfMemoryError/GPUValidationError)`
-).
-unimplemented();
+export const g = makeTestGroup(ErrorTest);
 
 g.test('iff_uncaptured').
 desc(
   `{validation, out-of-memory} error should fire uncapturederror iff not captured by a scope.`
 ).
-unimplemented();
+params((u) => u.combine('errorType', kGeneratableErrorScopeFilters)).
+fn(async (t) => {
+  const { errorType } = t.params;
+  const uncapturedErrorEvent = await t.expectUncapturedError(() => {
+    t.generateError(errorType);
+  });
+  t.expect(t.isInstanceOfError(errorType, uncapturedErrorEvent.error));
+});
 
 g.test('only_original_device_is_event_target').
 desc(

@@ -82,9 +82,6 @@ jobs:
           python-version: '3.10'
       - uses: actions/checkout@v4
         with:
-          # This is necessary to checkout the pull request if this run was triggered
-          # via an `label` action on a pull request.
-          ref: refs/pull/${{ github.event.number }}/head
           sparse-checkout: |
             python/servo/try_parser.py
           sparse-checkout-cone-mode: false

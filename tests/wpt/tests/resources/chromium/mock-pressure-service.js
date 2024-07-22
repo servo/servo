@@ -1,11 +1,12 @@
-import {PressureManager, PressureManagerReceiver, PressureStatus} from '/gen/services/device/public/mojom/pressure_manager.mojom.m.js'
+import {PressureStatus} from '/gen/services/device/public/mojom/pressure_manager.mojom.m.js'
 import {PressureSource, PressureState} from '/gen/services/device/public/mojom/pressure_update.mojom.m.js'
+import {WebPressureManager, WebPressureManagerReceiver} from '/gen/third_party/blink/public/mojom/compute_pressure/web_pressure_manager.mojom.m.js'
 
-class MockPressureService {
+class MockWebPressureService {
   constructor() {
-    this.receiver_ = new PressureManagerReceiver(this);
+    this.receiver_ = new WebPressureManagerReceiver(this);
     this.interceptor_ =
-        new MojoInterfaceInterceptor(PressureManager.$interfaceName);
+        new MojoInterfaceInterceptor(WebPressureManager.$interfaceName);
     this.interceptor_.oninterfacerequest = e => {
       this.receiver_.$.bindHandle(e.handle);
     };
@@ -124,4 +125,4 @@ class MockPressureService {
   }
 }
 
-export const mockPressureService = new MockPressureService();
+export const mockPressureService = new MockWebPressureService();

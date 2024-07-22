@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use cssparser::match_ignore_ascii_case;
 use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
@@ -9,6 +10,9 @@ use servo_atoms::Atom;
 use style::attr::AttrValue;
 use style::color::AbsoluteColor;
 use style::str::{read_numbers, HTML_SPACE_CHARACTERS};
+use style::values::computed::font::{
+    FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
+};
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
@@ -49,6 +53,37 @@ impl HTMLFontElement {
             document,
             proto,
         )
+    }
+
+    pub(crate) fn parse_face_attribute(face_value: Atom) -> Vec<SingleFontFamily> {
+        face_value
+            .split(',')
+            .map(|string| Self::parse_single_face_value_from_string(string.trim()))
+            .collect()
+    }
+
+    fn parse_single_face_value_from_string(string: &str) -> SingleFontFamily {
+        match_ignore_ascii_case! { string,
+            "serif" => return SingleFontFamily::Generic(GenericFontFamily::Serif),
+            "sans-serif" => return SingleFontFamily::Generic(GenericFontFamily::SansSerif),
+            "cursive" => return SingleFontFamily::Generic(GenericFontFamily::Cursive),
+            "fantasy" => return SingleFontFamily::Generic(GenericFontFamily::Fantasy),
+            "monospace" => return SingleFontFamily::Generic(GenericFontFamily::Monospace),
+            "system-ui" => return SingleFontFamily::Generic(GenericFontFamily::SystemUi),
+            _ => {}
+        }
+
+        let name = string.to_owned().replace(['\'', '"'], "");
+        let syntax = if name == string {
+            FontFamilyNameSyntax::Identifiers
+        } else {
+            FontFamilyNameSyntax::Quoted
+        };
+
+        SingleFontFamily::FamilyName(FamilyName {
+            name: name.into(),
+            syntax,
+        })
     }
 }
 

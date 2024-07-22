@@ -35,7 +35,6 @@ fn main() {
     new Uint32Array([0, 0, 0, 0]),
     GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
   );
-  t.trackForCleanup(buffer);
 
   const bg = t.device.createBindGroup({
     layout: pipeline.getBindGroupLayout(0),
@@ -92,7 +91,7 @@ fn frag_main() -> @location(0) vec4f {
 
   const [width, height] = [8, 8];
   const format = 'rgba8unorm';
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size: { width, height },
     usage:
     GPUTextureUsage.RENDER_ATTACHMENT |
@@ -102,7 +101,7 @@ fn frag_main() -> @location(0) vec4f {
   });
 
   // We'll copy one pixel only.
-  const dst = t.device.createBuffer({
+  const dst = t.createBufferTracked({
     size: 4,
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
   });

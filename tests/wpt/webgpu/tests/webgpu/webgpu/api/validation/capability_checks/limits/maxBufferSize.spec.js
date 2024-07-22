@@ -11,14 +11,13 @@ fn(async (t) => {
   await t.testDeviceWithRequestedMaximumLimits(
     limitTest,
     testValueName,
-    async ({ device, testValue, actualLimit, shouldError }) => {
+    async ({ testValue, actualLimit, shouldError }) => {
       await t.testForValidationErrorWithPossibleOutOfMemoryError(
         () => {
-          const buffer = device.createBuffer({
+          t.createBufferTracked({
             usage: GPUBufferUsage.VERTEX,
             size: testValue
           });
-          buffer.destroy();
         },
         shouldError,
         `size: ${testValue}, limit: ${actualLimit}`

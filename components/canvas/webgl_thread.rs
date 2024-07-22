@@ -479,6 +479,8 @@ impl WebGLThread {
             "WebGLThread::create_webgl_context({:?}, {:?}, {:?})",
             webgl_version, requested_size, attributes
         );
+        #[cfg(target_env = "ohos")]
+        return Err("WebGL is not working yet on ohos".into());
 
         // Creating a new GLContext may make the current bound context_id dirty.
         // Clear it to ensure that  make_current() is called in subsequent commands.

@@ -54,13 +54,14 @@ class Base:
         except FileNotFoundError:
             return False
 
-    def bootstrap(self, force: bool, skip_platform: bool):
+    def bootstrap(self, force: bool, skip_platform: bool, skip_lints: bool):
         installed_something = False
         if not skip_platform:
             installed_something |= self._platform_bootstrap(force)
-        installed_something |= self.install_taplo(force)
-        installed_something |= self.install_cargo_deny(force)
-        installed_something |= self.install_crown(force)
+        if not skip_lints:
+            installed_something |= self.install_taplo(force)
+            installed_something |= self.install_cargo_deny(force)
+            installed_something |= self.install_crown(force)
 
         if not installed_something:
             print("Dependencies were already installed!")

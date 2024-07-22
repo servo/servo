@@ -204,7 +204,6 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
         let render_bundle_id = self
             .global()
             .wgpu_id_hub()
-            .lock()
             .create_render_bundle_id(self.device.id().0.backend());
 
         self.channel

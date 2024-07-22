@@ -18,7 +18,7 @@
     top: 0px;
     width: 150px; /* force fallback */
     height: 25px;
-    position-try-options: --pf;
+    position-try-fallbacks: --pf;
   }
   @position-try --pf {
     width: 50px;
@@ -106,7 +106,7 @@
 <!-- revert / revert-layer -->
 <style>
   #abs_revert {
-    position-try-options: --pf-revert;
+    position-try-fallbacks: --pf-revert;
   }
   @layer author-layer {
     #abs_revert {

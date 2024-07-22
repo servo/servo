@@ -414,6 +414,25 @@ export function oneULPF32(target, mode = 'flush') {
 }
 
 /**
+ * @returns an integer value between 0..0xffffffff using a simple non-cryptographic hash function
+ * @param values integers to generate hash from.
+ */
+export function hashU32(...values) {
+  let n = 0x3504_f333;
+  for (const v of values) {
+    n = v + (n << 7) + (n >>> 1);
+    n = n * 0x29493 & 0xffff_ffff;
+  }
+  n ^= n >>> 8;
+  n += n << 15;
+  n = n & 0xffff_ffff;
+  if (n < 0) {
+    n = ~n * 2 + 1;
+  }
+  return n;
+}
+
+/**
  * @returns ulp(x), the unit of least precision for a specific number as a 32-bit float
  *
  * ulp(x) is the distance between the two floating point numbers nearest x.
@@ -1171,27 +1190,18 @@ export function sparseI32Range() {
 const kVectorI32Values = {
   2: kInterestingI32Values.flatMap((f) => [
   [f, 1],
-  [1, f],
-  [f, -1],
   [-1, f]]
   ),
   3: kInterestingI32Values.flatMap((f) => [
-  [f, 1, 2],
-  [1, f, 2],
-  [1, 2, f],
-  [f, -1, -2],
-  [-1, f, -2],
-  [-1, -2, f]]
+  [f, 1, -2],
+  [-1, f, 2],
+  [1, -2, f]]
   ),
   4: kInterestingI32Values.flatMap((f) => [
-  [f, 1, 2, 3],
-  [1, f, 2, 3],
-  [1, 2, f, 3],
-  [1, 2, 3, f],
-  [f, -1, -2, -3],
-  [-1, f, -2, -3],
-  [-1, -2, f, -3],
-  [-1, -2, -3, f]]
+  [f, -1, 2, 3],
+  [1, f, -2, 3],
+  [1, 2, f, -3],
+  [-1, 2, -3, f]]
   )
 };
 
@@ -1211,6 +1221,38 @@ const kVectorI32Values = {
 export function vectorI32Range(dim) {
   assert(dim === 2 || dim === 3 || dim === 4, 'vectorI32Range only accepts dimensions 2, 3, and 4');
   return kVectorI32Values[dim];
+}
+
+const kSparseVectorI32Values = {
+  2: sparseI32Range().map((i, idx) => [idx % 2 === 0 ? i : idx, idx % 2 === 1 ? i : -idx]),
+  3: sparseI32Range().map((i, idx) => [
+  idx % 3 === 0 ? i : idx,
+  idx % 3 === 1 ? i : -idx,
+  idx % 3 === 2 ? i : idx]
+  ),
+  4: sparseI32Range().map((i, idx) => [
+  idx % 4 === 0 ? i : idx,
+  idx % 4 === 1 ? i : -idx,
+  idx % 4 === 2 ? i : idx,
+  idx % 4 === 3 ? i : -idx]
+  )
+};
+
+/**
+ * Minimal set of vectors, indexed by dimension, that contain interesting
+ * abstract integer values.
+ *
+ * This is an even more stripped down version of `vectorI32Range` for when
+ * pairs of vectors are being tested.
+ * All interesting integers from sparseI32Range are guaranteed to be
+ * tested, but not in every position.
+ */
+export function sparseVectorI32Range(dim) {
+  assert(
+    dim === 2 || dim === 3 || dim === 4,
+    'sparseVectorI32Range only accepts dimensions 2, 3, and 4'
+  );
+  return kSparseVectorI32Values[dim];
 }
 
 /**
@@ -1291,6 +1333,38 @@ export function vectorU32Range(dim) {
   return kVectorU32Values[dim];
 }
 
+const kSparseVectorU32Values = {
+  2: sparseU32Range().map((i, idx) => [idx % 2 === 0 ? i : idx, idx % 2 === 1 ? i : -idx]),
+  3: sparseU32Range().map((i, idx) => [
+  idx % 3 === 0 ? i : idx,
+  idx % 3 === 1 ? i : -idx,
+  idx % 3 === 2 ? i : idx]
+  ),
+  4: sparseU32Range().map((i, idx) => [
+  idx % 4 === 0 ? i : idx,
+  idx % 4 === 1 ? i : -idx,
+  idx % 4 === 2 ? i : idx,
+  idx % 4 === 3 ? i : -idx]
+  )
+};
+
+/**
+ * Minimal set of vectors, indexed by dimension, that contain interesting
+ * abstract integer values.
+ *
+ * This is an even more stripped down version of `vectorU32Range` for when
+ * pairs of vectors are being tested.
+ * All interesting integers from sparseU32Range are guaranteed to be
+ * tested, but not in every position.
+ */
+export function sparseVectorU32Range(dim) {
+  assert(
+    dim === 2 || dim === 3 || dim === 4,
+    'sparseVectorU32Range only accepts dimensions 2, 3, and 4'
+  );
+  return kSparseVectorU32Values[dim];
+}
+
 /**
  * @returns an ascending sorted array of numbers spread over the entire range of 32-bit unsigned ints
  *
@@ -1302,25 +1376,101 @@ export function fullU32Range(count = 50) {
   return [0, ...biasedRange(1, kValue.u32.max, count)].map(Math.trunc);
 }
 
-/** Short list of f32 values of interest to test against */
-const kInterestingF32Values = [
-kValue.f32.negative.min,
--10.0,
--1.0,
--0.125,
-kValue.f32.negative.max,
-kValue.f32.negative.subnormal.min,
-kValue.f32.negative.subnormal.max,
--0.0,
-0.0,
-kValue.f32.positive.subnormal.min,
-kValue.f32.positive.subnormal.max,
-kValue.f32.positive.min,
-0.125,
-1.0,
-10.0,
-kValue.f32.positive.max];
+/** Short list of i64 values of interest to test against */
+const kInterestingI64Values = [
+kValue.i64.negative.max,
+kValue.i64.negative.max / 2n,
+-256n,
+-10n,
+-1n,
+0n,
+1n,
+10n,
+256n,
+kValue.i64.positive.max / 2n,
+kValue.i64.positive.max];
 
+
+/** @returns minimal i64 values that cover the entire range of i64 behaviours
+ *
+ * This is used instead of fullI64Range when the number of test cases being
+ * generated is a super linear function of the length of i64 values which is
+ * leading to time outs.
+ */
+export function sparseI64Range() {
+  return kInterestingI64Values;
+}
+
+const kVectorI64Values = {
+  2: kInterestingI64Values.flatMap((f) => [
+  [f, 1n],
+  [-1n, f]]
+  ),
+  3: kInterestingI64Values.flatMap((f) => [
+  [f, 1n, -2n],
+  [-1n, f, 2n],
+  [1n, -2n, f]]
+  ),
+  4: kInterestingI64Values.flatMap((f) => [
+  [f, -1n, 2n, 3n],
+  [1n, f, -2n, 3n],
+  [1n, 2n, f, -3n],
+  [-1n, 2n, -3n, f]]
+  )
+};
+
+/**
+ * Returns set of vectors, indexed by dimension containing interesting i64
+ * values.
+ *
+ * The tests do not do the simple option for coverage of computing the cartesian
+ * product of all of the interesting i64 values N times for vecN tests,
+ * because that creates a huge number of tests for vec3 and vec4, leading to
+ * time outs.
+ *
+ * Instead they insert the interesting i64 values into each location of the
+ * vector to get a spread of testing over the entire range. This reduces the
+ * number of cases being run substantially, but maintains coverage.
+ */
+export function vectorI64Range(dim) {
+  assert(dim === 2 || dim === 3 || dim === 4, 'vectorI64Range only accepts dimensions 2, 3, and 4');
+  return kVectorI64Values[dim];
+}
+
+const kSparseVectorI64Values = {
+  2: sparseI64Range().map((i, idx) => [
+  idx % 2 === 0 ? i : BigInt(idx),
+  idx % 2 === 1 ? i : -BigInt(idx)]
+  ),
+  3: sparseI64Range().map((i, idx) => [
+  idx % 3 === 0 ? i : BigInt(idx),
+  idx % 3 === 1 ? i : -BigInt(idx),
+  idx % 3 === 2 ? i : BigInt(idx)]
+  ),
+  4: sparseI64Range().map((i, idx) => [
+  idx % 4 === 0 ? i : BigInt(idx),
+  idx % 4 === 1 ? i : -BigInt(idx),
+  idx % 4 === 2 ? i : BigInt(idx),
+  idx % 4 === 3 ? i : -BigInt(idx)]
+  )
+};
+
+/**
+ * Minimal set of vectors, indexed by dimension, that contain interesting
+ * abstract integer values.
+ *
+ * This is an even more stripped down version of `vectorI64Range` for when
+ * pairs of vectors are being tested.
+ * All interesting integers from sparseI64Range are guaranteed to be
+ * tested, but not in every position.
+ */
+export function sparseVectorI64Range(dim) {
+  assert(
+    dim === 2 || dim === 3 || dim === 4,
+    'sparseVectorI64Range only accepts dimensions 2, 3, and 4'
+  );
+  return kSparseVectorI64Values[dim];
+}
 
 /**
  * @returns an ascending sorted array of numbers spread over the entire range of 64-bit signed ints
@@ -1344,6 +1494,26 @@ counts =
 
 }
 
+/** Short list of f32 values of interest to test against */
+const kInterestingF32Values = [
+kValue.f32.negative.min,
+-10.0,
+-1.0,
+-0.125,
+kValue.f32.negative.max,
+kValue.f32.negative.subnormal.min,
+kValue.f32.negative.subnormal.max,
+-0.0,
+0.0,
+kValue.f32.positive.subnormal.min,
+kValue.f32.positive.subnormal.max,
+kValue.f32.positive.min,
+0.125,
+1.0,
+10.0,
+kValue.f32.positive.max];
+
+
 /** @returns minimal f32 values that cover the entire range of f32 behaviours
  *
  * Has specially selected values that cover edge cases, normals, and subnormals.
@@ -1361,29 +1531,20 @@ export function sparseScalarF32Range() {
 }
 
 const kVectorF32Values = {
-  2: sparseScalarF32Range().flatMap((f) => [
+  2: kInterestingF32Values.flatMap((f) => [
   [f, 1.0],
-  [1.0, f],
-  [f, -1.0],
   [-1.0, f]]
   ),
-  3: sparseScalarF32Range().flatMap((f) => [
-  [f, 1.0, 2.0],
-  [1.0, f, 2.0],
-  [1.0, 2.0, f],
-  [f, -1.0, -2.0],
-  [-1.0, f, -2.0],
-  [-1.0, -2.0, f]]
+  3: kInterestingF32Values.flatMap((f) => [
+  [f, 1.0, -2.0],
+  [-1.0, f, 2.0],
+  [1.0, -2.0, f]]
   ),
-  4: sparseScalarF32Range().flatMap((f) => [
-  [f, 1.0, 2.0, 3.0],
-  [1.0, f, 2.0, 3.0],
-  [1.0, 2.0, f, 3.0],
-  [1.0, 2.0, 3.0, f],
-  [f, -1.0, -2.0, -3.0],
-  [-1.0, f, -2.0, -3.0],
-  [-1.0, -2.0, f, -3.0],
-  [-1.0, -2.0, -3.0, f]]
+  4: kInterestingF32Values.flatMap((f) => [
+  [f, -1.0, 2.0, 3.0],
+  [1.0, f, -2.0, 3.0],
+  [1.0, 2.0, f, -3.0],
+  [-1.0, 2.0, -3.0, f]]
   )
 };
 
@@ -1597,29 +1758,20 @@ export function sparseScalarF16Range() {
 }
 
 const kVectorF16Values = {
-  2: sparseScalarF16Range().flatMap((f) => [
+  2: kInterestingF16Values.flatMap((f) => [
   [f, 1.0],
-  [1.0, f],
-  [f, -1.0],
   [-1.0, f]]
   ),
-  3: sparseScalarF16Range().flatMap((f) => [
-  [f, 1.0, 2.0],
-  [1.0, f, 2.0],
-  [1.0, 2.0, f],
-  [f, -1.0, -2.0],
-  [-1.0, f, -2.0],
-  [-1.0, -2.0, f]]
+  3: kInterestingF16Values.flatMap((f) => [
+  [f, 1.0, -2.0],
+  [-1.0, f, 2.0],
+  [1.0, -2.0, f]]
   ),
-  4: sparseScalarF16Range().flatMap((f) => [
-  [f, 1.0, 2.0, 3.0],
-  [1.0, f, 2.0, 3.0],
-  [1.0, 2.0, f, 3.0],
-  [1.0, 2.0, 3.0, f],
-  [f, -1.0, -2.0, -3.0],
-  [-1.0, f, -2.0, -3.0],
-  [-1.0, -2.0, f, -3.0],
-  [-1.0, -2.0, -3.0, f]]
+  4: kInterestingF16Values.flatMap((f) => [
+  [f, -1.0, 2.0, 3.0],
+  [1.0, f, -2.0, 3.0],
+  [1.0, 2.0, f, -3.0],
+  [-1.0, 2.0, -3.0, f]]
   )
 };
 
@@ -1833,29 +1985,20 @@ export function sparseScalarF64Range() {
 }
 
 const kVectorF64Values = {
-  2: sparseScalarF64Range().flatMap((f) => [
+  2: kInterestingF64Values.flatMap((f) => [
   [f, 1.0],
-  [1.0, f],
-  [f, -1.0],
   [-1.0, f]]
   ),
-  3: sparseScalarF64Range().flatMap((f) => [
-  [f, 1.0, 2.0],
-  [1.0, f, 2.0],
-  [1.0, 2.0, f],
-  [f, -1.0, -2.0],
-  [-1.0, f, -2.0],
-  [-1.0, -2.0, f]]
+  3: kInterestingF64Values.flatMap((f) => [
+  [f, 1.0, -2.0],
+  [-1.0, f, 2.0],
+  [1.0, -2.0, f]]
   ),
-  4: sparseScalarF64Range().flatMap((f) => [
-  [f, 1.0, 2.0, 3.0],
-  [1.0, f, 2.0, 3.0],
-  [1.0, 2.0, f, 3.0],
-  [1.0, 2.0, 3.0, f],
-  [f, -1.0, -2.0, -3.0],
-  [-1.0, f, -2.0, -3.0],
-  [-1.0, -2.0, f, -3.0],
-  [-1.0, -2.0, -3.0, f]]
+  4: kInterestingF64Values.flatMap((f) => [
+  [f, -1.0, 2.0, 3.0],
+  [1.0, f, -2.0, 3.0],
+  [1.0, 2.0, f, -3.0],
+  [-1.0, 2.0, -3.0, f]]
   )
 };
 
@@ -2108,6 +2251,19 @@ export function quantizeToU32(num) {
   return Math.trunc(num);
 }
 
+/**
+ * @returns the closest 64-bit signed integer value to the input.
+ */
+export function quantizeToI64(num) {
+  if (num >= kValue.i64.positive.max) {
+    return kValue.i64.positive.max;
+  }
+  if (num <= kValue.i64.negative.min) {
+    return kValue.i64.negative.min;
+  }
+  return num;
+}
+
 /** @returns whether the number is an integer and a power of two */
 export function isPowerOfTwo(n) {
   if (!Number.isInteger(n)) {
@@ -2316,4 +2472,19 @@ export function subtractVectors(v1, v2) {
  */
 export function dotProduct(v1, v2) {
   return v1.reduce((a, v, i) => a + v * v2[i], 0);
+}
+
+/** @returns the absolute value of a bigint */
+export function absBigInt(v) {
+  return v < 0n ? -v : v;
+}
+
+/** @returns the maximum from a list of bigints */
+export function maxBigInt(...vals) {
+  return vals.reduce((prev, cur) => cur > prev ? cur : prev);
+}
+
+/** @returns the minimum from a list of bigints */
+export function minBigInt(...vals) {
+  return vals.reduce((prev, cur) => cur < prev ? cur : prev);
 }

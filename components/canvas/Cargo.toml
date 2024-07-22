@@ -11,11 +11,11 @@ name = "canvas"
 path = "lib.rs"
 
 [features]
-no-wgl = ["surfman/sm-no-wgl"]
 webgl_backtrace = ["canvas_traits/webgl_backtrace"]
 xr-profile = ["webxr-api/profile", "time"]
 
 [dependencies]
+app_units = { workspace = true }
 bitflags = { workspace = true }
 byteorder = { workspace = true }
 canvas_traits = { workspace = true }
@@ -31,8 +31,10 @@ log = { workspace = true }
 lyon_geom = "1.0.4"
 net_traits = { workspace = true }
 num-traits = { workspace = true }
+parking_lot = { workspace = true }
 pathfinder_geometry = "0.5"
 pixels = { path = "../pixels" }
+range = { path = "../range" }
 raqote = "0.8.4"
 servo_arc = { workspace = true }
 sparkle = { workspace = true }
@@ -40,6 +42,7 @@ style = { workspace = true }
 style_traits = { workspace = true }
 surfman = { workspace = true }
 time = { workspace = true, optional = true }
+unicode-script = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }

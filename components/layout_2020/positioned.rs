@@ -8,7 +8,7 @@ use rayon::prelude::{IndexedParallelIterator, ParallelIterator};
 use serde::Serialize;
 use style::computed_values::position::T as Position;
 use style::properties::ComputedValues;
-use style::values::computed::{CSSPixelLength, Length};
+use style::values::computed::Length;
 use style::values::specified::text::TextDecorationLine;
 use style::Zero;
 
@@ -190,16 +190,16 @@ impl PositioningContext {
     /// See documentation for [PositioningContext::adjust_static_position_of_hoisted_fragments].
     pub(crate) fn adjust_static_position_of_hoisted_fragments_with_offset(
         &mut self,
-        start_offset: &LogicalVec2<CSSPixelLength>,
+        start_offset: &LogicalVec2<Au>,
         index: PositioningContextLength,
     ) {
         let update_fragment_if_needed = |hoisted_fragment: &mut HoistedAbsolutelyPositionedBox| {
             let mut fragment = hoisted_fragment.fragment.borrow_mut();
             if let AbsoluteBoxOffsets::StaticStart { start } = &mut fragment.box_offsets.inline {
-                *start += start_offset.inline.into();
+                *start += start_offset.inline;
             }
             if let AbsoluteBoxOffsets::StaticStart { start } = &mut fragment.box_offsets.block {
-                *start += start_offset.block.into();
+                *start += start_offset.block;
             }
         };
 
@@ -240,8 +240,7 @@ impl PositioningContext {
         self.append(new_context);
 
         if style.clone_position() == Position::Relative {
-            new_fragment.content_rect.start_corner +=
-                &relative_adjustement(style, containing_block);
+            new_fragment.content_rect.start_corner += relative_adjustement(style, containing_block);
         }
 
         new_fragment
@@ -259,9 +258,9 @@ impl PositioningContext {
             // Ignore the content rect’s position in its own containing block:
             start_corner: LogicalVec2::zero(),
         }
-        .inflate(&new_fragment.padding.map(|t| (*t).into()));
+        .inflate(&new_fragment.padding);
         let containing_block = DefiniteContainingBlock {
-            size: padding_rect.size.into(),
+            size: padding_rect.size,
             style: &new_fragment.style,
         };
 
@@ -404,7 +403,7 @@ impl PositioningContext {
 }
 
 /// A data structure which stores the size of a positioning context.
-#[derive(PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub(crate) struct PositioningContextLength {
     /// The number of boxes that will be hoisted the the nearest positioned ancestor for
     /// layout.
@@ -633,10 +632,9 @@ impl HoistedAbsolutelyPositionedBox {
 
                         let (block_size, inline_size) =
                             match independent_layout.content_inline_size_for_table {
-                                Some(inline_size) => (
-                                    independent_layout.content_block_size.into(),
-                                    inline_size.into(),
-                                ),
+                                Some(inline_size) => {
+                                    (independent_layout.content_block_size, inline_size)
+                                },
                                 None => (
                                     size.auto_is(|| independent_layout.content_block_size),
                                     inline_size,
@@ -690,7 +688,7 @@ impl HoistedAbsolutelyPositionedBox {
                 block_end: block_axis.margin_end,
             };
 
-            let pb = &pbm.padding + &pbm.border;
+            let pb = pbm.padding + pbm.border;
             let inline_start = match inline_axis.anchor {
                 Anchor::Start(start) => start + pb.inline_start + margin.inline_start,
                 Anchor::End(end) => {
@@ -719,7 +717,7 @@ impl HoistedAbsolutelyPositionedBox {
                 absolutely_positioned_box.context.base_fragment_info(),
                 absolutely_positioned_box.context.style().clone(),
                 fragments,
-                content_rect.into(),
+                content_rect,
                 pbm.padding,
                 pbm.border,
                 margin,
@@ -889,7 +887,7 @@ fn vec_append_owned<T>(a: &mut Vec<T>, mut b: Vec<T>) {
 pub(crate) fn relative_adjustement(
     style: &ComputedValues,
     containing_block: &ContainingBlock,
-) -> LogicalVec2<Length> {
+) -> LogicalVec2<Au> {
     // It's not completely clear what to do with indefinite percentages
     // (https://github.com/w3c/csswg-drafts/issues/9353), so we match
     // other browsers and treat them as 'auto' offsets.
@@ -898,20 +896,20 @@ pub(crate) fn relative_adjustement(
     let box_offsets = style
         .box_offsets(containing_block)
         .map_inline_and_block_axes(
-            |v| v.percentage_relative_to(cbis.into()),
+            |v| v.percentage_relative_to(cbis.into()).map(Au::from),
             |v| match cbbs.non_auto() {
-                Some(cbbs) => v.percentage_relative_to(cbbs.into()),
+                Some(cbbs) => v.percentage_relative_to(cbbs.into()).map(Au::from),
                 None => match v.non_auto().and_then(|v| v.to_length()) {
-                    Some(v) => LengthOrAuto::LengthPercentage(v),
-                    None => LengthOrAuto::Auto,
+                    Some(v) => AuOrAuto::LengthPercentage(v.into()),
+                    None => AuOrAuto::Auto,
                 },
             },
         );
-    fn adjust(start: LengthOrAuto, end: LengthOrAuto) -> Length {
+    fn adjust(start: AuOrAuto, end: AuOrAuto) -> Au {
         match (start, end) {
-            (LengthOrAuto::Auto, LengthOrAuto::Auto) => Length::zero(),
-            (LengthOrAuto::Auto, LengthOrAuto::LengthPercentage(end)) => -end,
-            (LengthOrAuto::LengthPercentage(start), _) => start,
+            (AuOrAuto::Auto, AuOrAuto::Auto) => Au::zero(),
+            (AuOrAuto::Auto, AuOrAuto::LengthPercentage(end)) => -end,
+            (AuOrAuto::LengthPercentage(start), _) => start,
         }
     }
     LogicalVec2 {

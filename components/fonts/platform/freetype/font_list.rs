@@ -27,6 +27,7 @@ use libc::{c_char, c_int};
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{FontStretch, FontStyle, FontWeight};
 use style::Atom;
 use unicode_script::Script;
@@ -35,7 +36,7 @@ use super::c_str_to_string;
 use crate::font::map_platform_values_to_style_values;
 use crate::font_template::{FontTemplate, FontTemplateDescriptor};
 use crate::platform::add_noto_fallback_families;
-use crate::{EmojiPresentationPreference, FallbackFontSelectionOptions};
+use crate::{EmojiPresentationPreference, FallbackFontSelectionOptions, LowercaseFontFamilyName};
 
 /// An identifier for a local font on systems using Freetype.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
@@ -166,41 +167,6 @@ where
     }
 }
 
-pub fn system_default_family(generic_name: &str) -> Option<String> {
-    let generic_name_c = CString::new(generic_name).unwrap();
-    let generic_name_ptr = generic_name_c.as_ptr();
-
-    unsafe {
-        let pattern = FcNameParse(generic_name_ptr as *mut FcChar8);
-
-        FcConfigSubstitute(ptr::null_mut(), pattern, FcMatchPattern);
-        FcDefaultSubstitute(pattern);
-
-        let mut result = 0;
-        let family_match = FcFontMatch(ptr::null_mut(), pattern, &mut result);
-
-        let family_name = if result == FcResultMatch {
-            let mut match_string: *mut FcChar8 = ptr::null_mut();
-            FcPatternGetString(
-                family_match,
-                FC_FAMILY.as_ptr() as *mut c_char,
-                0,
-                &mut match_string,
-            );
-            let result = c_str_to_string(match_string as *const c_char);
-            FcPatternDestroy(family_match);
-            Some(result)
-        } else {
-            None
-        };
-
-        FcPatternDestroy(pattern);
-        family_name
-    }
-}
-
-pub static SANS_SERIF_FONT_FAMILY: &str = "DejaVu Sans";
-
 // Based on gfxPlatformGtk::GetCommonFallbackFonts() in Gecko
 pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
     let mut families = Vec::new();
@@ -239,6 +205,58 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
     families.push("Droid Sans Fallback");
 
     families
+}
+
+pub fn default_system_generic_font_family(generic: GenericFontFamily) -> LowercaseFontFamilyName {
+    let generic_string = match generic {
+        GenericFontFamily::None | GenericFontFamily::Serif => "serif",
+        GenericFontFamily::SansSerif => "sans-serif",
+        GenericFontFamily::Monospace => "monospace",
+        GenericFontFamily::Cursive => "cursive",
+        GenericFontFamily::Fantasy => "fantasy",
+        GenericFontFamily::SystemUi => "sans-serif",
+    };
+
+    let generic_name_c = CString::new(generic_string).unwrap();
+    let generic_name_ptr = generic_name_c.as_ptr();
+
+    unsafe {
+        let pattern = FcNameParse(generic_name_ptr as *mut FcChar8);
+        FcConfigSubstitute(ptr::null_mut(), pattern, FcMatchPattern);
+        FcDefaultSubstitute(pattern);
+
+        let mut result = 0;
+        let family_match = FcFontMatch(ptr::null_mut(), pattern, &mut result);
+
+        if result == FcResultMatch {
+            let mut match_string: *mut FcChar8 = ptr::null_mut();
+            FcPatternGetString(
+                family_match,
+                FC_FAMILY.as_ptr() as *mut c_char,
+                0,
+                &mut match_string,
+            );
+            let family_name = c_str_to_string(match_string as *const c_char);
+
+            FcPatternDestroy(family_match);
+            FcPatternDestroy(pattern);
+
+            return family_name.into();
+        }
+
+        FcPatternDestroy(family_match);
+        FcPatternDestroy(pattern);
+    }
+
+    match generic {
+        GenericFontFamily::None | GenericFontFamily::Serif => "Noto Serif",
+        GenericFontFamily::SansSerif => "Noto Sans",
+        GenericFontFamily::Monospace => "Deja Vu Sans Mono",
+        GenericFontFamily::Cursive => "Comic Sans MS",
+        GenericFontFamily::Fantasy => "Impact",
+        GenericFontFamily::SystemUi => "Noto Sans",
+    }
+    .into()
 }
 
 fn font_style_from_fontconfig_pattern(pattern: *mut FcPattern) -> Option<FontStyle> {

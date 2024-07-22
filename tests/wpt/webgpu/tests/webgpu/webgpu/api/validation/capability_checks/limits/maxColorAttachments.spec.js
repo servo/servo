@@ -59,13 +59,11 @@ fn(async (t) => {
       const encoder = device.createCommandEncoder();
 
       const textures = range(testValue, (_) =>
-      t.trackForCleanup(
-        device.createTexture({
-          size: [1, 1],
-          format: 'r8unorm',
-          usage: GPUTextureUsage.RENDER_ATTACHMENT
-        })
-      )
+      t.createTextureTracked({
+        size: [1, 1],
+        format: 'r8unorm',
+        usage: GPUTextureUsage.RENDER_ATTACHMENT
+      })
       );
 
       const pass = encoder.beginRenderPass({

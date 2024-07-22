@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<style>
+  @page {
+    size: 400px;
+    margin: 0;
+  }
+  body {
+    margin: 0;
+  }
+  .pass::before {
+    content: "PASS";
+  }
+  .pa_ss::before {
+    content: "PA" "SS";
+  }
+</style>
+<div class="pass" style="margin-left:100px; float:left; width:100px; height:100px; background:hotpink;"></div>
+<div class="pa_ss" style="float:left; width:100px; height:100px; background:yellow;"></div>
+<div style="display:flow-root; clear:both;">
+  <div style="margin-top:200px; margin-left:100px; width:200px; height:100px; background:yellow;"></div>
+</div>

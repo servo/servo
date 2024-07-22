@@ -1,0 +1,51 @@
+<!doctype html>
+<title>Test that ::backdrop responds to container size changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  :root {
+    color: black;
+  }
+
+  #container {
+    container-type: size;
+    width: 200px;
+    height: 40px;
+  }
+
+  ::backdrop {
+    background-color: black;
+  }
+
+  @container (min-width: 300px) {
+    ::backdrop {
+      background-color: green;
+    }
+  }
+</style>
+<main id=container>
+  <dialog>test</dialog>
+</main>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  let dialog = document.querySelector('dialog');
+
+  test(function() {
+    try {
+      dialog.showModal();
+
+      assert_equals(getComputedStyle(dialog, '::backdrop').backgroundColor, 'rgb(0, 0, 0)');
+
+      container.style.width = '300px';
+      assert_equals(getComputedStyle(dialog, '::backdrop').backgroundColor, 'rgb(0, 128, 0)');
+
+      container.style = '';
+      assert_equals(getComputedStyle(dialog, '::backdrop').backgroundColor, 'rgb(0, 0, 0)');
+    } finally {
+      dialog.close();
+    }
+  }, 'Pseudo-element ::backdrop responds to container size changes');
+</script>

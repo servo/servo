@@ -6,11 +6,9 @@ Validation tests for the ${builtin}() builtin.
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { keysOf, objectsToRecord } from '../../../../../../common/util/data_tables.js';
 import {
-  TypeF16,
-  TypeF32,
-  elementType,
-  kAllFloatScalarsAndVectors,
-  kAllIntegerScalarsAndVectors } from
+  Type,
+  kConvertableToFloatScalarsAndVectors,
+  scalarTypeOf } from
 '../../../../../util/conversion.js';
 import { isRepresentable } from '../../../../../util/floating_point.js';
 import { ShaderValidationTest } from '../../../shader_validation_test.js';
@@ -24,7 +22,7 @@ import {
 
 export const g = makeTestGroup(ShaderValidationTest);
 
-const kValuesTypes = objectsToRecord(kAllFloatScalarsAndVectors);
+const kValuesTypes = objectsToRecord(kConvertableToFloatScalarsAndVectors);
 
 g.test('values').
 desc(
@@ -41,13 +39,17 @@ beginSubcases().
 expand('value', (u) => fullRangeForType(kValuesTypes[u.type]))
 ).
 beforeAllSubcases((t) => {
-  if (elementType(kValuesTypes[t.params.type]) === TypeF16) {
+  if (scalarTypeOf(kValuesTypes[t.params.type]) === Type.f16) {
     t.selectDeviceOrSkipTestCase('shader-f16');
   }
 }).
 fn((t) => {
   const type = kValuesTypes[t.params.type];
-  const expectedResult = isRepresentable(Math.sinh(t.params.value), elementType(type));
+  const expectedResult = isRepresentable(
+    Math.sinh(Number(t.params.value)),
+    // AbstractInt is converted to AbstractFloat before calling into the builtin
+    scalarTypeOf(type).kind === 'abstract-int' ? Type.abstractFloat : scalarTypeOf(type)
+  );
   validateConstOrOverrideBuiltinEval(
     t,
     builtin,
@@ -57,22 +59,40 @@ fn((t) => {
   );
 });
 
-const kIntegerArgumentTypes = objectsToRecord([TypeF32, ...kAllIntegerScalarsAndVectors]);
+const kArgCases = {
+  good: '(1.2)',
+  bad_no_parens: '',
+  // Bad number of args
+  bad_0args: '()',
+  bad_2arg: '(1.2, 2.3)',
+  // Bad value for arg 0
+  bad_0bool: '(false)',
+  bad_0array: '(array(1.1,2.2))',
+  bad_0struct: '(modf(2.2))',
+  bad_0uint: '(1u)',
+  bad_0int: '(1i)',
+  bad_0vec2i: '(vec2i())',
+  bad_0vec2u: '(vec2u())',
+  bad_0vec3i: '(vec3i())',
+  bad_0vec3u: '(vec3u())',
+  bad_0vec4i: '(vec4i())',
+  bad_0vec4u: '(vec4u())'
+};
 
-g.test('integer_argument').
-desc(
-  `
-Validates that scalar and vector integer arguments are rejected by ${builtin}()
-`
-).
-params((u) => u.combine('type', keysOf(kIntegerArgumentTypes))).
+g.test('args').
+desc(`Test compilation failure of ${builtin} with variously shaped and typed arguments`).
+params((u) => u.combine('arg', keysOf(kArgCases))).
 fn((t) => {
-  const type = kIntegerArgumentTypes[t.params.type];
-  validateConstOrOverrideBuiltinEval(
-    t,
-    builtin,
-    /* expectedResult */type === TypeF32,
-    [type.create(0)],
-    'constant'
+  t.expectCompileResult(
+    t.params.arg === 'good',
+    `const c = ${builtin}${kArgCases[t.params.arg]};`
   );
+});
+
+g.test('must_use').
+desc(`Result of ${builtin} must be used`).
+params((u) => u.combine('use', [true, false])).
+fn((t) => {
+  const use_it = t.params.use ? '_ = ' : '';
+  t.expectCompileResult(t.params.use, `fn f() { ${use_it}${builtin}${kArgCases['good']}; }`);
 });

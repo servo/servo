@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::convert::{TryFrom, TryInto};
+use std::convert::TryFrom;
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use servo_arc::Arc;
@@ -14,7 +14,8 @@ use style::str::char_is_whitespace;
 use style::values::specified::text::TextDecorationLine;
 
 use super::inline::construct::InlineFormattingContextBuilder;
-use super::inline::{InlineBox, InlineFormattingContext};
+use super::inline::inline_box::InlineBox;
+use super::inline::InlineFormattingContext;
 use super::OutsideMarker;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
@@ -191,6 +192,7 @@ where
     ) -> Self {
         let text_decoration_line =
             propagated_text_decoration_line | info.style.clone_text_decoration_line();
+
         BlockContainerBuilder {
             context,
             info,
@@ -214,6 +216,7 @@ where
             self.context,
             self.text_decoration_line,
             !self.have_already_seen_first_line_for_text_indent,
+            self.info.is_single_line_text_input(),
         ) {
             // There are two options here. This block was composed of both one or more inline formatting contexts
             // and child blocks OR this block was a single inline formatting context. In the latter case, we
@@ -399,7 +402,7 @@ where
             DisplayInside::Flow {
                 is_list_item: false,
             },
-            Contents::OfPseudoElement(contents),
+            NonReplacedContents::OfPseudoElement(contents).into(),
             BoxSlot::dummy(),
         );
     }
@@ -492,8 +495,8 @@ where
         }
 
         let propagated_text_decoration_line = self.text_decoration_line;
-        let kind = match contents.try_into() {
-            Ok(contents) => match display_inside {
+        let kind = match contents {
+            Contents::NonReplaced(contents) => match display_inside {
                 DisplayInside::Flow { is_list_item }
                     if !info.style.establishes_block_formatting_context() =>
                 {
@@ -511,7 +514,7 @@ where
                     propagated_text_decoration_line,
                 },
             },
-            Err(contents) => {
+            Contents::Replaced(contents) => {
                 let contents = Contents::Replaced(contents);
                 BlockLevelCreator::Independent {
                     display_inside,
@@ -598,6 +601,7 @@ where
             self.context,
             self.text_decoration_line,
             !self.have_already_seen_first_line_for_text_indent,
+            self.info.is_single_line_text_input(),
         ) {
             self.push_block_level_job_for_inline_formatting_context(inline_formatting_context);
         }

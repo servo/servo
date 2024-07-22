@@ -1,0 +1,39 @@
+<!doctype html>
+<title>CSS Container Queries: Input losing focus as a result of a size query</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #container {
+    container-type: inline-size;
+    width: 200px;
+  }
+  #container.narrow {
+    width: 100px;
+  }
+  @container (width = 100px) {
+    #inner.hide { visibility: hidden; }
+  }
+</style>
+<div id="outer">
+  <div id="container">
+    <input type="text" id="inner">
+  </div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  let hide_test = async_test("Verify that onblur is called on hidden input");
+  onload = () => {
+    inner.addEventListener("blur", () => hide_test.done());
+    inner.focus();
+    inner.className = "hide";
+    container.className = "narrow";
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        hide_test.step(() => assert_unreached("Event listener for 'blur' not called"));
+      });
+    });
+  };
+</script>

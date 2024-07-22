@@ -1,0 +1,68 @@
+<!doctype html>
+<title>Container Queries - Animated container creating new containers</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#animated-containers">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  @keyframes anim {
+    from { width: 200px; }
+    to { width: 300px; }
+  }
+  #container {
+    container-type: inline-size;
+    animation: anim 1s linear paused;
+  }
+  #target {
+    background-color: red;
+  }
+
+  #intermediate {
+    width: 100px;
+  }
+
+  @container (min-width: 250px) {
+    #intermediate {
+      container-type: inline-size;
+    }
+  }
+
+  @container (width: 200px) {
+    #target {
+      background-color: blue;
+    }
+  }
+
+  @container (width: 100px) {
+    /* Initially queries  #container, but later queries #intermediate, when
+       the other container query starts matching. */
+    #target {
+      background-color: green;
+    }
+  }
+</style>
+<div id=container>
+  <div id=intermediate>
+    <div id=target>
+      Test
+    </div>
+  </div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  test(() => {
+    assert_equals(getComputedStyle(target).backgroundColor, 'rgb(0, 0, 255)');
+
+    assert_equals(container.getAnimations().length, 1);
+    let animation = container.getAnimations()[0];
+
+    animation.currentTime = 600;
+    assert_equals(getComputedStyle(target).backgroundColor, 'rgb(0, 128, 0)');
+
+    // Verify that #intermediate is queried by changing its width. The container
+    // query will stop matching if #intermediate is the queried container.
+    intermediate.style.width = '110px';
+    assert_equals(getComputedStyle(target).backgroundColor, 'rgb(255, 0, 0)');
+  }, 'Animated container creating new container');
+</script>

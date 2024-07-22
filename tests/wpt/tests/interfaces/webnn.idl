@@ -11,7 +11,8 @@ WorkerNavigator includes NavigatorML;
 
 enum MLDeviceType {
   "cpu",
-  "gpu"
+  "gpu",
+  "npu"
 };
 
 enum MLPowerPreference {
@@ -131,7 +132,6 @@ dictionary MLClampOptions {
 
 partial interface MLGraphBuilder {
   MLOperand clamp(MLOperand input, optional MLClampOptions options = {});
-  MLActivation clamp(optional MLClampOptions options = {});
 };
 
 partial interface MLGraphBuilder {
@@ -513,7 +513,6 @@ partial interface MLGraphBuilder {
 
 partial interface MLGraphBuilder {
   MLOperand softmax(MLOperand input, unsigned long axis);
-  MLActivation softmax(unsigned long axis);
 };
 
 partial interface MLGraphBuilder {

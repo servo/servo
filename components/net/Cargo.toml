@@ -58,6 +58,7 @@ servo_config = { path = "../config" }
 servo_url = { path = "../url" }
 sha2 = "0.10"
 time = { workspace = true }
+chrono = { workspace = true }
 tokio = { workspace = true, features = ["sync", "macros", "rt-multi-thread"] }
 tokio-rustls = { workspace = true }
 tokio-stream = "0.1"

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>CSS Container Query Test: named style container query change with inherited custom property</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #container {
+    container-name: container;
+  }
+  .match {
+    --match: true;
+  }
+  #inner {
+    color: red;
+  }
+  @container container style(--match: true) {
+    #inner {
+      color: green;
+    }
+  }
+</style>
+<div id="container">
+  <div id="outer">
+    <div id="inner"></div>
+  </div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  test(() => {
+    assert_equals(getComputedStyle(inner).color, "rgb(255, 0, 0)");
+    assert_equals(getComputedStyle(inner).getPropertyValue("--match"), "");
+    assert_equals(getComputedStyle(outer).getPropertyValue("--match"), "");
+    assert_equals(getComputedStyle(container).getPropertyValue("--match"), "");
+  }, "Pre-conditions");
+
+  test(() => {
+    container.className = "match";
+    assert_equals(getComputedStyle(inner).color, "rgb(0, 128, 0)");
+    assert_equals(getComputedStyle(inner).getPropertyValue("--match"), "true");
+    assert_equals(getComputedStyle(outer).getPropertyValue("--match"), "true");
+    assert_equals(getComputedStyle(container).getPropertyValue("--match"), "true");
+  }, "Changed --match inherits down descendants and affects container query");
+</script>

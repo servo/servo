@@ -36,5 +36,9 @@ export const d = makeCaseCache('exp2', {
   },
   f16_non_const: () => {
     return FP.f16.generateScalarToIntervalCases(f16_inputs, 'unfiltered', FP.f16.exp2Interval);
+  },
+  abstract: () => {
+    // exp2 has an ulp accuracy, so is only expected to be as accurate as f32
+    return FP.abstract.generateScalarToIntervalCases(f32_inputs, 'finite', FP.f32.exp2Interval);
   }
 });

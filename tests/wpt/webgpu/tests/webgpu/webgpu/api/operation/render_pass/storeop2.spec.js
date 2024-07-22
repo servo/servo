@@ -19,7 +19,7 @@ paramsSimple([
 { storeOp: 'discard', _expected: 0 }]
 ).
 fn((t) => {
-  const renderTexture = t.device.createTexture({
+  const renderTexture = t.createTextureTracked({
     size: { width: 1, height: 1, depthOrArrayLayers: 1 },
     format: 'r8unorm',
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT
@@ -64,9 +64,9 @@ fn((t) => {
     colorAttachments: [
     {
       view: renderTexture.createView(),
-      storeOp: t.params.storeOp,
       clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
-      loadOp: 'clear'
+      loadOp: 'clear',
+      storeOp: t.params.storeOp
     }]
 
   });

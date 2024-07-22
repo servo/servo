@@ -357,17 +357,6 @@ dictionary AuthenticationExtensionsLargeBlobOutputs {
     boolean written;
 };
 
-partial dictionary AuthenticationExtensionsClientInputs {
-  boolean uvm;
-};
-
-typedef sequence<unsigned long> UvmEntry;
-typedef sequence<UvmEntry> UvmEntries;
-
-partial dictionary AuthenticationExtensionsClientOutputs {
-  UvmEntries uvm;
-};
-
 dictionary AuthenticationExtensionsSupplementalPubKeysInputs {
     required sequence<DOMString> scopes;
     DOMString attestation = "indirect";

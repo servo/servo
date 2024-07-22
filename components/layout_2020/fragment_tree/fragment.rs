@@ -11,7 +11,6 @@ use fonts::{FontMetrics, GlyphStore};
 use serde::Serialize;
 use servo_arc::Arc as ServoArc;
 use style::properties::ComputedValues;
-use style::values::computed::Length;
 use style::values::specified::text::TextDecorationLine;
 use style::Zero;
 use webrender_api::{FontInstanceKey, ImageKey};
@@ -65,7 +64,7 @@ pub(crate) struct TextFragment {
     pub base: BaseFragment,
     #[serde(skip_serializing)]
     pub parent_style: ServoArc<ComputedValues>,
-    pub rect: LogicalRect<Length>,
+    pub rect: LogicalRect<Au>,
     pub font_metrics: FontMetrics,
     #[serde(skip_serializing)]
     pub font_key: FontInstanceKey,
@@ -75,7 +74,7 @@ pub(crate) struct TextFragment {
     pub text_decoration_line: TextDecorationLine,
 
     /// Extra space to add for each justification opportunity.
-    pub justification_adjustment: Length,
+    pub justification_adjustment: Au,
 }
 
 #[derive(Serialize)]
@@ -83,7 +82,7 @@ pub(crate) struct ImageFragment {
     pub base: BaseFragment,
     #[serde(skip_serializing)]
     pub style: ServoArc<ComputedValues>,
-    pub rect: LogicalRect<Length>,
+    pub rect: LogicalRect<Au>,
     #[serde(skip_serializing)]
     pub image_key: ImageKey,
 }
@@ -93,7 +92,7 @@ pub(crate) struct IFrameFragment {
     pub base: BaseFragment,
     pub pipeline_id: PipelineId,
     pub browsing_context_id: BrowsingContextId,
-    pub rect: LogicalRect<Length>,
+    pub rect: LogicalRect<Au>,
     #[serde(skip_serializing)]
     pub style: ServoArc<ComputedValues>,
 }
@@ -133,7 +132,7 @@ impl Fragment {
         }
     }
 
-    pub fn scrolling_area(&self, containing_block: &PhysicalRect<Length>) -> PhysicalRect<Length> {
+    pub fn scrolling_area(&self, containing_block: &PhysicalRect<Au>) -> PhysicalRect<Au> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => fragment
                 .scrollable_overflow(containing_block)
@@ -142,10 +141,7 @@ impl Fragment {
         }
     }
 
-    pub fn scrollable_overflow(
-        &self,
-        containing_block: &PhysicalRect<Length>,
-    ) -> PhysicalRect<Length> {
+    pub fn scrollable_overflow(&self, containing_block: &PhysicalRect<Au>) -> PhysicalRect<Au> {
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
                 fragment.scrollable_overflow_for_parent(containing_block)
@@ -166,9 +162,9 @@ impl Fragment {
 
     pub(crate) fn find<T>(
         &self,
-        manager: &ContainingBlockManager<PhysicalRect<Length>>,
+        manager: &ContainingBlockManager<PhysicalRect<Au>>,
         level: usize,
-        process_func: &mut impl FnMut(&Fragment, usize, &PhysicalRect<Length>) -> Option<T>,
+        process_func: &mut impl FnMut(&Fragment, usize, &PhysicalRect<Au>) -> Option<T>,
     ) -> Option<T> {
         let containing_block = manager.get_containing_block_for_fragment(self);
         if let Some(result) = process_func(self, level, containing_block) {

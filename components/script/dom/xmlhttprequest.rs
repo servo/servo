@@ -1053,7 +1053,7 @@ impl XMLHttpRequest {
             },
         };
 
-        *self.response_url.borrow_mut() = metadata.final_url[..Position::AfterQuery].to_owned();
+        metadata.final_url[..Position::AfterQuery].clone_into(&mut self.response_url.borrow_mut());
 
         // XXXManishearth Clear cache entries in case of a network error
         self.process_partial_response(XHRProgress::HeadersReceived(

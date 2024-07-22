@@ -98,21 +98,17 @@ test(() => {
       },
     ],
     extensions: {
-      appid: "app id",
-      appidExclude: "app id exclude",
-      hamcCreateSecret: true,
-      uvm: true,
-      credentialProtectionPolicy: "cred protect",
+      appidExclude: "https://example.com/appid",
+      hmacCreateSecret: true,
+      credentialProtectionPolicy: "userVerificationRequired",
       enforceCredentialProtectionPolicy: true,
       minPinLength: true,
       credProps: true,
       largeBlob: {
-        support: "large blob support",
-        read: true,
+        support: "required",
         write: test_b64,
       },
       credBlob: test_b64,
-      getCredBlob: true,
       supplementalPubKeys: {
         scopes: ["spk scope"],
         attestation: "directest",
@@ -150,21 +146,17 @@ test(() => {
       },
     ],
     extensions: {
-      appid: "app id",
-      appidExclude: "app id exclude",
-      hamcCreateSecret: true,
-      uvm: true,
-      credentialProtectionPolicy: "cred protect",
+      appidExclude: "https://example.com/appid",
+      hmacCreateSecret: true,
+      credentialProtectionPolicy: "userVerificationRequired",
       enforceCredentialProtectionPolicy: true,
       minPinLength: true,
       credProps: true,
       largeBlob: {
-        support: "large blob support",
-        read: true,
+        support: "required",
         write: test_bytes,
       },
       credBlob: test_bytes,
-      getCredBlob: true,
       supplementalPubKeys: {
         scopes: ["spk scope"],
         attestation: "directest",
@@ -188,22 +180,15 @@ test(() => {
     },
   };
 
-  assert_equals(actual.extensions.appid, expected.extensions.appid);
   assert_equals(actual.extensions.appidExclude, expected.extensions.appidExclude);
   assert_equals(actual.extensions.hmacCreateSecret, expected.extensions.hmacCreateSecret);
-  assert_equals(actual.extensions.uvm, expected.extensions.uvm);
   assert_equals(actual.extensions.credentialProtectionPolicy, expected.extensions.credentialProtectionPolicy);
   assert_equals(actual.extensions.enforceCredentialProtectionPolicy, expected.extensions.enforceCredentialProtectionPolicy);
   assert_equals(actual.extensions.minPinLength, expected.extensions.minPinLength);
   assert_equals(actual.extensions.credProps, expected.extensions.credProps);
-  assert_equals(actual.extensions.largeBlob.support, expected.extensions.largeBlob.support, "X");
-  assert_equals(actual.extensions.largeBlob.read, expected.extensions.largeBlob.read);
-
-  assert_true(bytesEqual(actual.extensions.largeBlob.write, expected.extensions.largeBlob.write), "XX");
-
-  assert_true(bytesEqual(actual.extensions.credBlob, expected.extensions.credBlob), "XXX");
-
-  assert_equals(actual.extensions.getCredBlob, expected.extensions.getCredBlob);
+  assert_equals(actual.extensions.largeBlob.support, expected.extensions.largeBlob.support);
+  assert_true(bytesEqual(actual.extensions.largeBlob.write, expected.extensions.largeBlob.write));
+  assert_true(bytesEqual(actual.extensions.credBlob, expected.extensions.credBlob));
   assertJsonEquals(actual.extensions.supplementalPubKeys, expected.extensions.supplementalPubKeys);
   let prfValuesEquals = (a, b) => {
     return bytesEqual(a.first, b.first) && bytesEqual(a.second, b.second);

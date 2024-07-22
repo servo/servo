@@ -11,11 +11,11 @@ name = "devtools"
 path = "lib.rs"
 
 [build-dependencies]
-chrono = "0.4"
+chrono = { workspace = true }
 
 [dependencies]
 base = { workspace = true }
-chrono = "0.4"
+chrono = { workspace = true }
 crossbeam-channel = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }

@@ -156,13 +156,12 @@ where
                             .push_text(flex_text_run.text, &flex_text_run.info);
                     }
 
-                    let Some(inline_formatting_context) = inline_formatting_context_builder.finish(
+                    let inline_formatting_context = inline_formatting_context_builder.finish(
                         self.context,
                         self.text_decoration_line,
-                        true, /* has_first_formatted_line */
-                    ) else {
-                        return None;
-                    };
+                        true,  /* has_first_formatted_line */
+                        false, /* is_single_line_text_box */
+                    )?;
 
                     let block_formatting_context = BlockFormattingContext::from_block_container(
                         BlockContainer::InlineFormattingContext(inline_formatting_context),

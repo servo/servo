@@ -535,7 +535,7 @@ pub fn extract_mime_type(headers: &HyperHeaders) -> Option<Vec<u8>> {
                 // Step 6.4
                 if temp_essence != essence {
                     charset = temp_charset.map(|c| c.to_string());
-                    essence = temp_essence.to_owned();
+                    temp_essence.clone_into(&mut essence);
                 } else {
                     // Step 6.5
                     if temp_charset.is_none() && charset.is_some() {

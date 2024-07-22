@@ -29,7 +29,7 @@ desc('Test that invalid textures may be destroyed without generating validation 
 fn(async (t) => {
   t.device.pushErrorScope('validation');
 
-  const invalidTexture = t.device.createTexture({
+  const invalidTexture = t.createTextureTracked({
     size: [t.device.limits.maxTextureDimension2D + 1, 1, 1],
     format: 'rgba8unorm',
     usage: GPUTextureUsage.TEXTURE_BINDING
@@ -89,8 +89,8 @@ fn((t) => {
     usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
   };
 
-  const colorTexture = t.device.createTexture(colorTextureDesc);
-  const depthStencilTexture = t.device.createTexture(depthStencilTextureDesc);
+  const colorTexture = t.createTextureTracked(colorTextureDesc);
+  const depthStencilTexture = t.createTextureTracked(depthStencilTextureDesc);
 
   if (colorTextureState === 'destroyedBeforeEncode') {
     colorTexture.destroy();

@@ -16,8 +16,7 @@ use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment};
 use crate::cell::ArcRefCell;
 use crate::formatting_contexts::Baselines;
 use crate::geom::{
-    LengthOrAuto, LogicalRect, LogicalSides, PhysicalPoint, PhysicalRect, PhysicalSides,
-    PhysicalSize,
+    AuOrAuto, LogicalRect, LogicalSides, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize,
 };
 use crate::style_ext::ComputedValuesExt;
 
@@ -50,7 +49,7 @@ pub(crate) struct BoxFragment {
     /// From the containing block’s start corner…?
     /// This might be broken when the containing block is in a different writing mode:
     /// <https://drafts.csswg.org/css-writing-modes/#orthogonal-flows>
-    pub content_rect: LogicalRect<Length>,
+    pub content_rect: LogicalRect<Au>,
 
     pub padding: LogicalSides<Au>,
     pub border: LogicalSides<Au>,
@@ -72,7 +71,7 @@ pub(crate) struct BoxFragment {
     pub block_margins_collapsed_with_children: CollapsedBlockMargins,
 
     /// The scrollable overflow of this box fragment.
-    pub scrollable_overflow_from_children: PhysicalRect<Length>,
+    pub scrollable_overflow_from_children: PhysicalRect<Au>,
 
     /// Whether or not this box was overconstrained in the given dimension.
     overconstrained: PhysicalSize<bool>,
@@ -80,7 +79,7 @@ pub(crate) struct BoxFragment {
     /// The resolved box insets if this box is `position: sticky`. These are calculated
     /// during stacking context tree construction because they rely on the size of the
     /// scroll container.
-    pub(crate) resolved_sticky_insets: Option<PhysicalSides<LengthOrAuto>>,
+    pub(crate) resolved_sticky_insets: Option<PhysicalSides<AuOrAuto>>,
 
     #[serde(skip_serializing)]
     pub background_mode: BackgroundMode,
@@ -92,7 +91,7 @@ impl BoxFragment {
         base_fragment_info: BaseFragmentInfo,
         style: ServoArc<ComputedValues>,
         children: Vec<Fragment>,
-        content_rect: LogicalRect<Length>,
+        content_rect: LogicalRect<Au>,
         padding: LogicalSides<Au>,
         border: LogicalSides<Au>,
         margin: LogicalSides<Au>,
@@ -127,7 +126,7 @@ impl BoxFragment {
         base_fragment_info: BaseFragmentInfo,
         style: ServoArc<ComputedValues>,
         children: Vec<Fragment>,
-        content_rect: LogicalRect<Length>,
+        content_rect: LogicalRect<Au>,
         padding: LogicalSides<Au>,
         border: LogicalSides<Au>,
         margin: LogicalSides<Au>,
@@ -154,10 +153,7 @@ impl BoxFragment {
         let mut baselines = Baselines::default();
         if style.establishes_scroll_container() {
             baselines.last = Some(
-                Au::from(content_rect.size.block) +
-                    padding.block_end +
-                    border.block_end +
-                    margin.block_end,
+                content_rect.size.block + padding.block_end + border.block_end + margin.block_end,
             )
         }
 
@@ -203,10 +199,7 @@ impl BoxFragment {
         self.background_mode = BackgroundMode::None;
     }
 
-    pub fn scrollable_overflow(
-        &self,
-        containing_block: &PhysicalRect<Length>,
-    ) -> PhysicalRect<Length> {
+    pub fn scrollable_overflow(&self, containing_block: &PhysicalRect<Au>) -> PhysicalRect<Au> {
         let physical_padding_rect = self
             .padding_rect()
             .to_physical(self.style.writing_mode, containing_block);
@@ -222,14 +215,16 @@ impl BoxFragment {
         )
     }
 
-    pub fn padding_rect(&self) -> LogicalRect<Length> {
-        self.content_rect
-            .inflate(&self.padding.map(|t| (*t).into()))
+    pub(crate) fn padding_rect(&self) -> LogicalRect<Au> {
+        self.content_rect.inflate(&self.padding)
     }
 
-    pub fn border_rect(&self) -> LogicalRect<Length> {
-        self.padding_rect()
-            .inflate(&self.border.map(|t| (*t).into()))
+    pub(crate) fn border_rect(&self) -> LogicalRect<Au> {
+        self.padding_rect().inflate(&self.border)
+    }
+
+    pub(crate) fn margin_rect(&self) -> LogicalRect<Au> {
+        self.border_rect().inflate(&self.margin)
     }
 
     pub fn print(&self, tree: &mut PrintTree) {
@@ -264,8 +259,8 @@ impl BoxFragment {
 
     pub fn scrollable_overflow_for_parent(
         &self,
-        containing_block: &PhysicalRect<Length>,
-    ) -> PhysicalRect<Length> {
+        containing_block: &PhysicalRect<Au>,
+    ) -> PhysicalRect<Au> {
         let mut overflow = self
             .border_rect()
             .to_physical(self.style.writing_mode, containing_block);
@@ -297,8 +292,8 @@ impl BoxFragment {
 
     pub(crate) fn calculate_resolved_insets_if_positioned(
         &self,
-        containing_block: &PhysicalRect<CSSPixelLength>,
-    ) -> PhysicalSides<LengthOrAuto> {
+        containing_block: &PhysicalRect<Au>,
+    ) -> PhysicalSides<AuOrAuto> {
         let position = self.style.get_box().position;
         debug_assert_ne!(
             position,
@@ -315,12 +310,12 @@ impl BoxFragment {
             return resolved_sticky_insets;
         }
 
-        let convert_to_length_or_auto = |sides: PhysicalSides<Length>| {
+        let convert_to_length_or_auto = |sides: PhysicalSides<Au>| {
             PhysicalSides::new(
-                LengthOrAuto::LengthPercentage(sides.top),
-                LengthOrAuto::LengthPercentage(sides.right),
-                LengthOrAuto::LengthPercentage(sides.bottom),
-                LengthOrAuto::LengthPercentage(sides.left),
+                AuOrAuto::LengthPercentage(sides.top),
+                AuOrAuto::LengthPercentage(sides.right),
+                AuOrAuto::LengthPercentage(sides.bottom),
+                AuOrAuto::LengthPercentage(sides.left),
             )
         };
 
@@ -347,19 +342,25 @@ impl BoxFragment {
                         (Some(start), Some(end)) => (start, end),
                     }
                 };
-            let (left, right) = get_resolved_axis(&insets.left, &insets.right, cb_width);
-            let (top, bottom) = get_resolved_axis(&insets.top, &insets.bottom, cb_height);
-            return convert_to_length_or_auto(PhysicalSides::new(top, right, bottom, left));
+            let (left, right) = get_resolved_axis(&insets.left, &insets.right, cb_width.into());
+            let (top, bottom) = get_resolved_axis(&insets.top, &insets.bottom, cb_height.into());
+            return convert_to_length_or_auto(PhysicalSides::new(
+                top.into(),
+                right.into(),
+                bottom.into(),
+                left.into(),
+            ));
         }
 
         debug_assert!(
             position == ComputedPosition::Fixed || position == ComputedPosition::Absolute
         );
 
-        let resolve = |value: &LengthPercentageOrAuto, container_length| {
+        let resolve = |value: &LengthPercentageOrAuto, container_length: Au| -> Au {
             value
                 .auto_is(LengthPercentage::zero)
-                .percentage_relative_to(container_length)
+                .percentage_relative_to(container_length.into())
+                .into()
         };
 
         let (top, bottom) = if self.overconstrained.height {

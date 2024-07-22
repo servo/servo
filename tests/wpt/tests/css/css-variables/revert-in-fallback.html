@@ -28,15 +28,15 @@
 
       test((t) => {
         assert_equals(getComputedStyle(document.body).getPropertyValue('margin'), body_ua_margin);
-      }, 'var(--unknown, revert-layer) in shorthand');
+      }, 'var(--unknown, revert) in shorthand');
 
       test((x) => {
         assert_equals(getComputedStyle(document.body).getPropertyValue('margin-left'), body_ua_margin);
-      }, 'var(--unknown, revert-layer) in shorthand observed via longhand');
+      }, 'var(--unknown, revert) in shorthand observed via longhand');
 
       test((t) => {
         assert_equals(getComputedStyle(document.body).getPropertyValue('display'), body_ua_display);
-      }, 'var(--unknown, revert-layer) in longhand');
+      }, 'var(--unknown, revert) in longhand');
     </script>
   </body>
 </html>

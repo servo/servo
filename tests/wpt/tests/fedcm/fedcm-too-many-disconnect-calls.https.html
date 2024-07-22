@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Federated Credential Management API two disconnect() at the same time.</title>
+<link rel="help" href="https://fedidcg.github.io/FedCM">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+
+<script type="module">
+import {fedcm_test,
+        mark_signed_in,
+        set_fedcm_cookie,
+        fedcm_get_and_select_first_account,
+        manifest_origin,
+        request_options_with_mediation_required,
+        disconnect_options} from './support/fedcm-helper.sub.js';
+
+fedcm_test(async t => {
+  await mark_signed_in();
+  await set_fedcm_cookie();
+  // Get at least one connected account that can be disconnected.
+  const cred = await fedcm_get_and_select_first_account(t, request_options_with_mediation_required());
+  const manifest = `${manifest_origin}/\
+fedcm/support/manifest.py`;
+  const options = disconnect_options("1234");
+  IdentityCredential.disconnect(options);
+  await promise_rejects_dom(t, 'NetworkError', IdentityCredential.disconnect(options));
+}, "When disconnect is called while there is a pending one, it is rejected.");
+</script>

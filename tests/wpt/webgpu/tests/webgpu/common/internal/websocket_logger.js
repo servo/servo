@@ -1,19 +1,24 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/ /**
+**/import { globalTestConfig } from '../framework/test_config.js'; /**
  * - 'uninitialized' means we haven't tried to connect yet
  * - Promise means it's pending
  * - 'failed' means it failed (this is the most common case, where the logger isn't running)
  * - WebSocket means it succeeded
- */let connection = 'uninitialized';
+ */
+let connection =
+'uninitialized';
 
 /**
- * Log a string to a websocket at `localhost:59497`. See `tools/websocket-logger`.
+ * If the logToWebSocket option is enabled (?log_to_web_socket=1 in browser,
+ * --log-to-web-socket on command line, or enable it by default in options.ts),
+ * log a string to a websocket at `localhost:59497`. See `tools/websocket-logger`.
  *
- * This does nothing if a connection couldn't be established on the first call.
+ * This does nothing if a logToWebSocket is not enabled, or if a connection
+ * couldn't be established on the first call.
  */
-export function logToWebsocket(msg) {
-  if (connection === 'failed') {
+export function logToWebSocket(msg) {
+  if (!globalTestConfig.logToWebSocket || connection === 'failed') {
     return;
   }
 

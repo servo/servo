@@ -4,23 +4,52 @@
 
 use dom_struct::dom_struct;
 use js::jsval::JSVal;
+use webgpu::ShaderCompilationInfo;
 
 use super::bindings::codegen::Bindings::WebGPUBinding::GPUCompilationInfoMethods;
-use super::bindings::root::Dom;
+use super::bindings::import::module::DomRoot;
+use super::bindings::reflector::reflect_dom_object_with_proto;
+use super::bindings::utils::to_frozen_array;
 use super::types::GPUCompilationMessage;
 use crate::dom::bindings::reflector::Reflector;
+use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
 
 #[dom_struct]
 pub struct GPUCompilationInfo {
     reflector_: Reflector,
-    msg: Dom<GPUCompilationMessage>,
+    // currently we only get one message from wgpu
+    msg: Vec<DomRoot<GPUCompilationMessage>>,
 }
 
-// TODO: wgpu does not expose right fields right now
+impl GPUCompilationInfo {
+    pub fn new_inherited(msg: Vec<DomRoot<GPUCompilationMessage>>) -> Self {
+        Self {
+            reflector_: Reflector::new(),
+            msg,
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn new(global: &GlobalScope, msg: Vec<DomRoot<GPUCompilationMessage>>) -> DomRoot<Self> {
+        reflect_dom_object_with_proto(Box::new(Self::new_inherited(msg)), global, None)
+    }
+
+    pub fn from(global: &GlobalScope, error: Option<ShaderCompilationInfo>) -> DomRoot<Self> {
+        Self::new(
+            global,
+            if let Some(error) = error {
+                vec![GPUCompilationMessage::from(global, error)]
+            } else {
+                Vec::new()
+            },
+        )
+    }
+}
+
 impl GPUCompilationInfoMethods for GPUCompilationInfo {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucompilationinfo-messages>
-    fn Messages(&self, _cx: JSContext) -> JSVal {
-        todo!()
+    fn Messages(&self, cx: JSContext) -> JSVal {
+        to_frozen_array(self.msg.as_slice(), cx)
     }
 }

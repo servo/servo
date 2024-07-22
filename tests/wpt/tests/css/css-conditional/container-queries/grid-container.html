@@ -1,0 +1,29 @@
+<!doctype html>
+<title>CSS Container Queries Test: Grid container</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #grid {
+    display: grid;
+    container-type: inline-size;
+    width: 400px;
+    grid-template-columns: 1fr 1fr;
+  }
+  @container (width = 400px) {
+    #grid div { color: green }
+  }
+</style>
+<div id="grid">
+  <div id="item1"></div>
+  <div id="item2"></div>
+</div>
+<script>
+  setup(() => assert_implements_container_queries());
+
+  test(() => {
+    assert_equals(getComputedStyle(item1).color, "rgb(0, 128, 0)");
+    assert_equals(getComputedStyle(item2).color, "rgb(0, 128, 0)");
+  }, "Check that grid items can query grid container");
+</script>

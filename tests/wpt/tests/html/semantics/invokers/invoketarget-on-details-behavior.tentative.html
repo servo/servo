@@ -11,95 +11,83 @@
 <script src="resources/invoker-utils.js"></script>
 
 <details id="invokee">Details Contents</details>
-<button id="invokerbutton" invoketarget="invokee"></button>
+<button id="invokerbutton" commandfor="invokee" command="open"></button>
 
 <script>
   function resetState() {
-    invokerbutton.removeAttribute("invokeaction");
+    invokerbutton.removeAttribute("command");
     invokee.removeAttribute("open");
   }
 
   // Open actions
   [
-    null,
-    "",
     "toggle",
     "open",
     /* test case sensitivity */
     "tOgGlE",
     "oPeN",
-  ].forEach((action) => {
+  ].forEach((command) => {
     promise_test(
       async function (t) {
         t.add_cleanup(resetState);
-        if (action !== null) invokerbutton.invokeAction = action;
+        invokerbutton.command = command;
         assert_false(invokee.matches("[open]"));
         await clickOn(invokerbutton);
         assert_true(invokee.matches("[open]"));
       },
-      `invoking (as ${
-        action === null ? "auto" : action || "explicit empty"
-      }) closed details opens`,
+      `invoking (as ${command}) closed details opens`,
     );
 
     promise_test(
       async function (t) {
         t.add_cleanup(resetState);
-        if (action !== null) invokerbutton.invokeAction = action;
+        invokerbutton.command = command;
         assert_false(invokee.matches("[open]"));
-        invokee.addEventListener("invoke", (e) => e.preventDefault(), {
+        invokee.addEventListener("command", (e) => e.preventDefault(), {
           once: true,
         });
         await clickOn(invokerbutton);
         t.add_cleanup(() => invokee.removeAttribute("open"));
         assert_false(invokee.matches("[open]"));
       },
-      `invoking (as ${
-        action === null ? "auto" : action || "explicit empty"
-      }) closed details with preventDefault does not open`,
+      `invoking (as ${command}) closed details with preventDefault does not open`,
     );
   });
 
   // Close actions
   [
-    null,
-    "",
     "toggle",
     "close",
     /* test case sensitivity */
     "tOgGlE",
     "cLoSe",
-  ].forEach((action) => {
+  ].forEach((command) => {
     promise_test(
       async function (t) {
         t.add_cleanup(resetState);
-        if (action !== null) invokerbutton.invokeAction = action;
+        invokerbutton.command = command;
         invokee.setAttribute("open", "");
         assert_true(invokee.matches("[open]"));
         await clickOn(invokerbutton);
         assert_false(invokee.matches("[open]"));
       },
-      `invoking (as ${
-        action === null ? "auto" : action || "explicit empty"
-      }) open details closes`,
+      `invoking (as ${command}) open details closes`,
     );
 
     promise_test(
       async function (t) {
         t.add_cleanup(resetState);
-        if (action !== null) invokerbutton.invokeAction = action;
+        invokerbutton.command = command;
         invokee.setAttribute("open", "");
-        invokerbutton.setAttribute("invokeaction", "toggle");
-        invokee.addEventListener("invoke", (e) => e.preventDefault(), {
+        invokerbutton.setAttribute("command", "toggle");
+        invokee.addEventListener("command", (e) => e.preventDefault(), {
           once: true,
         });
         assert_true(invokee.matches("[open]"));
         await clickOn(invokerbutton);
         assert_true(invokee.matches("[open]"));
       },
-      `invoking (as ${
-        action === null ? "auto" : action || "explicit empty"
-      }) open details with prevent default closes`,
+      `invoking (as ${command}) open details with prevent default closes`,
     );
   });
 
@@ -107,9 +95,9 @@
 
   promise_test(async function (t) {
     t.add_cleanup(resetState);
-    invokerbutton.invokeAction = "toggle";
+    invokerbutton.command = "toggle";
     invokee.addEventListener(
-      "invoke",
+      "command",
       (e) => {
         invokee.setAttribute("open", "");
       },
@@ -126,20 +114,20 @@
 
   promise_test(async function (t) {
     t.add_cleanup(resetState);
-    invokerbutton.invokeAction = "open";
+    invokerbutton.command = "open";
     invokee.setAttribute("open", "");
     assert_true(invokee.matches("[open]"));
     await clickOn(invokerbutton);
     assert_true(invokee.matches("[open]"));
-  }, "invoking open details with open action is noop");
+  }, "invoking open details with open command is noop");
 
   // close
 
   promise_test(async function (t) {
     t.add_cleanup(resetState);
-    invokerbutton.invokeAction = "close";
+    invokerbutton.command = "close";
     assert_false(invokee.matches("[open]"));
     await clickOn(invokerbutton);
     assert_false(invokee.matches("[open]"));
-  }, "invoking closed details with close action is noop");
+  }, "invoking closed details with close command is noop");
 </script>

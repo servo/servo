@@ -5,89 +5,84 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
-<button id="invoker" invoketarget="invokee"></button>
+<button id="invoker" commandfor="invokee" command="test"></button>
 <div id="invokee"></div>
 
 <script>
   test(function () {
-    assert_equals(invoker.invokeTargetElement, invokee);
-  }, "invokeTargetElement reflects invokee HTML element");
+    assert_equals(invoker.commandForElement, invokee);
+  }, "commandForElement reflects invokee HTML element");
 
   test(function () {
     const div = document.body.appendChild(document.createElement("div"));
-    invoker.invokeTargetElement = div;
-    assert_equals(invoker.invokeTargetElement, div);
-    assert_equals(invoker.getAttribute("invoketarget"), "");
-    assert_false(invoker.hasAttribute("invokeaction"));
-  }, "invokeTargetElement reflects set value");
+    invoker.commandForElement = div;
+    assert_equals(invoker.commandForElement, div);
+    assert_equals(invoker.getAttribute("commandfor"), "");
+    assert_equals(invoker.getAttribute("command"), "test");
+  }, "commandForElement reflects set value");
 
   test(function () {
     const host = document.body.appendChild(document.createElement("div"));
     const shadow = host.attachShadow({ mode: "open" });
     const button = shadow.appendChild(document.createElement("button"));
-    button.invokeTargetElement = invokee;
-    assert_equals(button.invokeTargetElement, invokee);
-    assert_equals(invoker.getAttribute("invoketarget"), "");
-    assert_false(invoker.hasAttribute("invokeaction"));
-  }, "invokeTargetElement reflects set value across shadow root into light dom");
+    button.commandForElement = invokee;
+    assert_equals(button.commandForElement, invokee);
+    assert_equals(invoker.getAttribute("commandfor"), "");
+    assert_equals(invoker.getAttribute("command"), "test");
+  }, "commandForElement reflects set value across shadow root into light dom");
 
   test(function () {
     const host = document.body.appendChild(document.createElement("div"));
     const shadow = host.attachShadow({ mode: "open" });
     const div = shadow.appendChild(document.createElement("div"));
-    invoker.invokeTargetElement = div;
-    assert_equals(invoker.invokeTargetElement, null);
-    assert_equals(invoker.getAttribute("invoketarget"), "");
-    assert_false(invoker.hasAttribute("invokeaction"));
-  }, "invokeTargetElement does not reflect set value inside shadowroot");
+    invoker.commandForElement = div;
+    assert_equals(invoker.commandForElement, null);
+    assert_equals(invoker.getAttribute("commandfor"), "");
+    assert_equals(invoker.getAttribute("command"), "test");
+  }, "commandForElement does not reflect set value inside shadowroot");
 
   test(function () {
     assert_throws_js(
       TypeError,
       function () {
-        invoker.invokeTargetElement = {};
+        invoker.commandForElement = {};
       },
-      "invokeTargetElement attribute must be an instance of Element",
+      "commandForElement attribute must be an instance of Element",
     );
-  }, "invokeTargetElement throws error on assignment of non Element");
+  }, "commandForElement throws error on assignment of non Element");
 
   test(function () {
-    assert_false(invoker.hasAttribute("invokeaction"));
-    assert_equals(invoker.invokeAction, "");
-  }, "invokeAction reflects '' when attribute not present");
+    invoker.setAttribute("command", "");
+    assert_equals(invoker.getAttribute("command"), "");
+    assert_equals(invoker.command, "");
+  }, "command reflects '' when attribute empty, setAttribute version");
 
   test(function () {
-    invoker.setAttribute("invokeaction", "");
-    assert_equals(invoker.getAttribute("invokeaction"), "");
-    assert_equals(invoker.invokeAction, "");
-  }, "invokeAction reflects '' when attribute empty, setAttribute version");
+    invoker.command = "fooBarBaz";
+    assert_equals(invoker.getAttribute("command"), "fooBarBaz");
+    assert_equals(invoker.command, "fooBarBaz");
+  }, "command reflects same casing");
 
   test(function () {
-    invoker.invokeAction = "fooBarBaz";
-    assert_equals(invoker.getAttribute("invokeaction"), "fooBarBaz");
-    assert_equals(invoker.invokeAction, "fooBarBaz");
-  }, "invokeAction reflects same casing");
+    invoker.command = "";
+    assert_equals(invoker.getAttribute("command"), "");
+    assert_equals(invoker.command, "");
+  }, "command reflects '' when attribute empty, IDL version");
 
   test(function () {
-    invoker.invokeAction = "";
-    assert_equals(invoker.getAttribute("invokeaction"), "");
-    assert_equals(invoker.invokeAction, "");
-  }, "invokeAction reflects '' when attribute empty, IDL version");
+    invoker.command = [1, 2, 3];
+    assert_equals(invoker.getAttribute("command"), "1,2,3");
+    assert_equals(invoker.command, "1,2,3");
+  }, "command reflects tostring value");
 
   test(function () {
-    invoker.invokeAction = [1, 2, 3];
-    assert_equals(invoker.getAttribute("invokeaction"), "1,2,3");
-    assert_equals(invoker.invokeAction, "1,2,3");
-  }, "invokeAction reflects tostring value");
+    invoker.command = [];
+    assert_equals(invoker.getAttribute("command"), "");
+    assert_equals(invoker.command, "");
+  }, "command reflects '' when attribute set to []");
 
   test(function () {
-    invoker.invokeAction = [];
-    assert_equals(invoker.getAttribute("invokeaction"), "");
-    assert_equals(invoker.invokeAction, "");
-  }, "invokeAction reflects '' when attribute set to []");
-
-  test(function () {
-    invoker.invokeAction = {};
-    assert_equals(invoker.invokeAction, "[object Object]");
-  }, "invokeAction reflects tostring value 2");
+    invoker.command = {};
+    assert_equals(invoker.command, "[object Object]");
+  }, "command reflects tostring value 2");
 </script>

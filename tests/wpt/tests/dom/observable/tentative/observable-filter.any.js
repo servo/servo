@@ -30,6 +30,7 @@ test(() => {
     subscriber.next(1);
     assert_true(teardownCalled, "Teardown called once map unsubscribes due to error");
     assert_false(subscriber.active, "Unsubscription makes Subscriber inactive");
+    results.push(subscriber.signal.reason);
     subscriber.next(2);
     subscriber.complete();
   });
@@ -44,7 +45,7 @@ test(() => {
       complete: () => results.push("complete"),
     });
 
-  assert_array_equals(results, [error]);
+  assert_array_equals(results, [error, error]);
 }, "filter(): Errors thrown in filter predicate are emitted to Observer error() handler");
 
 test(() => {
@@ -100,7 +101,7 @@ test(() => {
   });
 
   assert_array_equals(results,
-      ['source teardown', 'source abort event', 'filter observable complete']);
+      ['source abort event', 'source teardown', 'filter observable complete']);
 }, "filter(): Upon source completion, source Observable teardown sequence " +
    "happens after downstream filter complete() is called");
 

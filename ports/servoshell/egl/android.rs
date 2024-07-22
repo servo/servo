@@ -18,11 +18,13 @@ use jni::{JNIEnv, JavaVM};
 use libc::{dup2, pipe, read};
 use log::{debug, error, info, warn};
 use simpleservo::{
-    Coordinates, DeviceIntRect, EventLoopWaker, HostTrait, InitOptions, InputMethodType,
-    MediaSessionPlaybackState, PromptResult, ServoGlue, SERVO,
+    DeviceIntRect, EventLoopWaker, InitOptions, InputMethodType, MediaSessionPlaybackState,
+    PromptResult, SERVO,
 };
 
 use super::gl_glue;
+use super::host_trait::HostTrait;
+use super::servo_glue::{Coordinates, ServoGlue};
 
 struct HostCallbacks {
     callbacks: GlobalRef,
@@ -57,7 +59,7 @@ where
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_version<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_version<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) -> JString<'local> {
@@ -67,7 +69,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_version<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_init<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     _activity: JObject<'local>,
@@ -142,7 +144,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_init<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_setBatchMode<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_setBatchMode<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     batch: jboolean,
@@ -152,7 +154,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_setBatchMode<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_requestShutdown<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_requestShutdown<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) {
@@ -161,7 +163,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_requestShutdown<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_deinit<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_deinit<'local>(
     _env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) {
@@ -170,7 +172,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_deinit<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_resize<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_resize<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     coordinates: JObject<'local>,
@@ -184,7 +186,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_resize<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_performUpdates<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_performUpdates<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) {
@@ -193,7 +195,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_performUpdates<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_loadUri<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_loadUri<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
     url: JString<'local>,
@@ -211,7 +213,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_loadUri<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_reload<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_reload<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) {
@@ -220,7 +222,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_reload<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_stop<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_stop<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) {
@@ -229,7 +231,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_stop<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_refresh<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_refresh<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) {
@@ -238,7 +240,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_refresh<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_goBack<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_goBack<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) {
@@ -247,7 +249,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_goBack<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_goForward<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_goForward<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) {
@@ -256,7 +258,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_goForward<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_scrollStart<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_scrollStart<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     dx: jint,
@@ -271,7 +273,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_scrollStart<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_scrollEnd<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_scrollEnd<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     dx: jint,
@@ -286,7 +288,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_scrollEnd<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_scroll<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_scroll<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     dx: jint,
@@ -301,7 +303,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_scroll<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_touchDown<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_touchDown<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     x: jfloat,
@@ -313,7 +315,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_touchDown<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_touchUp<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_touchUp<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     x: jfloat,
@@ -325,7 +327,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_touchUp<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_touchMove<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_touchMove<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     x: jfloat,
@@ -337,7 +339,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_touchMove<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_touchCancel<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_touchCancel<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     x: jfloat,
@@ -349,7 +351,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_touchCancel<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_pinchZoomStart<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoomStart<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     factor: jfloat,
@@ -363,7 +365,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_pinchZoomStart<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_pinchZoom<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoom<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     factor: jfloat,
@@ -375,7 +377,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_pinchZoom<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_pinchZoomEnd<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoomEnd<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     factor: jfloat,
@@ -389,7 +391,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_pinchZoomEnd<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_click<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_click<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     x: jfloat,
@@ -400,7 +402,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_click<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_pauseCompositor<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_pauseCompositor<'local>(
     mut env: JNIEnv,
     _: JClass<'local>,
 ) {
@@ -409,7 +411,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_pauseCompositor<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_resumeCompositor<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_resumeCompositor<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     surface: JObject<'local>,
@@ -425,7 +427,7 @@ pub extern "C" fn Java_org_mozilla_servoview_JNIServo_resumeCompositor<'local>(
 }
 
 #[no_mangle]
-pub extern "C" fn Java_org_mozilla_servoview_JNIServo_mediaSessionAction<'local>(
+pub extern "C" fn Java_org_servo_servoview_JNIServo_mediaSessionAction<'local>(
     mut env: JNIEnv<'local>,
     _: JClass<'local>,
     action: jint,
@@ -714,7 +716,7 @@ fn redirect_stdout_to_logcat() {
 
         let mut cursor = 0_usize;
 
-        let tag = b"servoshell\0".as_ptr() as _;
+        let tag = c"servoshell".as_ptr() as _;
 
         loop {
             let result = {
@@ -735,7 +737,7 @@ fn redirect_stdout_to_logcat() {
                     __android_log_write(
                         3,
                         tag,
-                        b"error in log thread; closing\0".as_ptr() as *const _,
+                        c"error in log thread; closing".as_ptr() as *const _,
                     );
                 }
                 return;
@@ -901,7 +903,7 @@ fn get_options<'local>(
         env,
         opts,
         "coordinates",
-        "Lorg/mozilla/servoview/JNIServo$ServoCoordinates;",
+        "Lorg/servo/servoview/JNIServo$ServoCoordinates;",
     )?
     .l()
     .map_err(|_| "coordinates is not an object")?;

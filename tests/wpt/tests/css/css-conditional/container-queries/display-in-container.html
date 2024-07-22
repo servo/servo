@@ -1,0 +1,69 @@
+<!doctype html>
+<title>CSS Container Queries Test: @container queries affecting display type</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-queries">
+<link rel="match" href="display-in-container-ref.html">
+<style>
+  .container, .not_a_container {
+    width: auto;
+    height: 100px;
+    border: 1px solid black;
+    margin-bottom: 10px;
+  }
+  .container {
+    container-type: size;
+  }
+  span {
+    border: 1px solid green;
+    margin: 2px;
+  }
+
+  /* Note: 150px - 2px, since .container has a 1px border */
+  @container (min-width: 148px) {
+    div { display: flex; }
+    span { flex: 1; }
+  }
+
+  /* Note: 200px - 2px, since .container has a 1px border */
+  @container (min-width: 198px) {
+    div { display: revert; }
+    span { display: block; }
+  }
+
+  /* Should not apply: */
+  @container (min-width: 199px) {
+    * { color: red; background-color: red; }
+  }
+</style>
+<div style="width:150px">
+  <div class=container>
+    <main>
+      <div>
+        <span>Test1</span>
+        <span>Test2</span>
+        <span>Test3</span>
+      </div>
+    </main>
+  </div>
+</div>
+<div style="width:200px">
+  <div class=container>
+    <main>
+      <div>
+        <span>Test1</span>
+        <span>Test2</span>
+        <span>Test3</span>
+      </div>
+    </main>
+  </div>
+</div>
+<div style="width:150px">
+  <div class=not_a_container>
+    <main>
+      <div>
+        <span>Test1</span>
+        <span>Test2</span>
+        <span>Test3</span>
+      </div>
+    </main>
+  </div>
+</div>

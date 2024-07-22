@@ -14,6 +14,7 @@ def assert_browsing_context(
     info,
     context,
     children=None,
+    original_opener=None,
     parent_expected=True,
     parent=None,
     url=None,
@@ -51,6 +52,7 @@ def assert_browsing_context(
     assert isinstance(info["url"], str)
     assert info["url"] == url
     assert info["userContext"] == user_context
+    assert info["originalOpener"] == original_opener
 
 
 async def assert_document_status(bidi_session, context, visible, focused):

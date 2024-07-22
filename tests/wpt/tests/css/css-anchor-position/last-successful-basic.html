@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<title>CSS Anchor Positioning: basic last successful position option</title>
-<link rel="help" href="https://drafts.csswg.org/css-anchor-position/#last-successful-position-option">
+<title>CSS Anchor Positioning: basic last successful position fallback</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position/#last-successful-position-fallback">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="support/test-common.js"></script>
@@ -22,7 +22,7 @@
   }
   #anchored {
     position-anchor: --a;
-    position-try-options: flip-block;
+    position-try-fallbacks: flip-block;
     position: absolute;
     width: 100px;
     height: 200px;
@@ -53,5 +53,5 @@
     await waitUntilNextAnimationFrame();
     await waitUntilNextAnimationFrame();
     assert_equals(anchored.offsetTop, 0);
-  }, "Base position without option now successful");
+  }, "Base position without fallback now successful");
 </script>

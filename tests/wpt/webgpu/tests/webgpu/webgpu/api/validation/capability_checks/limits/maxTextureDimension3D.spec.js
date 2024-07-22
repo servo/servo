@@ -11,13 +11,13 @@ fn(async (t) => {
   await t.testDeviceWithRequestedMaximumLimits(
     limitTest,
     testValueName,
-    async ({ device, shouldError, testValue }) => {
+    async ({ shouldError, testValue }) => {
       for (let dimensionIndex = 0; dimensionIndex < 3; ++dimensionIndex) {
         const size = [2, 2, 2];
         size[dimensionIndex] = testValue;
 
         await t.testForValidationErrorWithPossibleOutOfMemoryError(() => {
-          const texture = device.createTexture({
+          const texture = t.createTextureTracked({
             size,
             format: 'rgba8unorm',
             dimension: '3d',

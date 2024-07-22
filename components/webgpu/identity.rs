@@ -5,10 +5,16 @@
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::{Deserialize, Serialize};
 
+pub use crate::wgc::id::markers::{
+    ComputePassEncoder as ComputePass, RenderPassEncoder as RenderPass,
+};
 use crate::wgc::id::{
     AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, CommandEncoderId,
     ComputePipelineId, DeviceId, PipelineLayoutId, QueueId, RenderBundleId, RenderPipelineId,
     SamplerId, ShaderModuleId, SurfaceId, TextureId, TextureViewId,
+};
+pub use crate::wgc::id::{
+    ComputePassEncoderId as ComputePassId, RenderPassEncoderId as RenderPassId,
 };
 
 macro_rules! webgpu_resource {
@@ -43,3 +49,5 @@ webgpu_resource!(WebGPUShaderModule, ShaderModuleId);
 webgpu_resource!(WebGPUSurface, SurfaceId);
 webgpu_resource!(WebGPUTexture, TextureId);
 webgpu_resource!(WebGPUTextureView, TextureViewId);
+webgpu_resource!(WebGPUComputePass, ComputePassId);
+webgpu_resource!(WebGPURenderPass, RenderPassId);

@@ -24,19 +24,19 @@ use style::font_face::{FontFaceSourceFormat, FontFaceSourceFormatKeyword, Source
 use style::media_queries::Device;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::shared_lock::SharedRwLockReadGuard;
-use style::stylesheets::{DocumentStyleSheet, StylesheetInDocument};
+use style::stylesheets::{CssRule, DocumentStyleSheet, FontFaceRule, StylesheetInDocument};
+use style::values::computed::font::{FamilyName, FontFamilyNameSyntax, SingleFontFamily};
 use style::Atom;
 use url::Url;
 use webrender_api::{FontInstanceKey, FontKey};
 
 use crate::font::{
-    Font, FontDescriptor, FontFamilyDescriptor, FontFamilyName, FontGroup, FontRef, FontSearchScope,
+    Font, FontDescriptor, FontFamilyDescriptor, FontGroup, FontRef, FontSearchScope,
 };
-use crate::font_cache_thread::{
-    CSSFontFaceDescriptors, FontIdentifier, FontSource, LowercaseString,
-};
+use crate::font_cache_thread::{CSSFontFaceDescriptors, FontIdentifier, FontSource};
 use crate::font_store::{CrossThreadFontStore, CrossThreadWebRenderFontStore};
 use crate::font_template::{FontTemplate, FontTemplateRef, FontTemplateRefMethods};
+use crate::LowercaseFontFamilyName;
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
 
@@ -170,28 +170,39 @@ impl<S: FontSource> FontContext<S> {
         font
     }
 
+    fn matching_web_font_templates(
+        &self,
+        descriptor_to_match: &FontDescriptor,
+        family_descriptor: &FontFamilyDescriptor,
+    ) -> Option<Vec<FontTemplateRef>> {
+        if family_descriptor.scope != FontSearchScope::Any {
+            return None;
+        }
+
+        // Do not look for generic fonts in our list of web fonts.
+        let SingleFontFamily::FamilyName(ref family_name) = family_descriptor.family else {
+            return None;
+        };
+
+        self.web_fonts
+            .read()
+            .families
+            .get(&family_name.name.clone().into())
+            .map(|templates| templates.find_for_descriptor(Some(descriptor_to_match)))
+    }
+
+    /// Try to find matching templates in this [`FontContext`], first looking in the list of web fonts and
+    /// falling back to asking the [`super::FontCacheThread`] for a matching system font.
     pub fn matching_templates(
         &self,
         descriptor_to_match: &FontDescriptor,
         family_descriptor: &FontFamilyDescriptor,
     ) -> Vec<FontTemplateRef> {
-        // First try to find an appropriate web font that matches this descriptor.
-        if family_descriptor.scope == FontSearchScope::Any {
-            let family_name = LowercaseString::from(&family_descriptor.name);
-            if let Some(templates) = self
-                .web_fonts
-                .read()
-                .families
-                .get(&family_name)
-                .map(|templates| templates.find_for_descriptor(Some(descriptor_to_match)))
-            {
-                return templates;
-            }
-        }
-
-        // If not request a matching font from the system font cache.
-        self.cache
-            .matching_templates(descriptor_to_match, family_descriptor)
+        self.matching_web_font_templates(descriptor_to_match, family_descriptor)
+            .unwrap_or_else(|| {
+                self.cache
+                    .matching_templates(descriptor_to_match, family_descriptor)
+            })
     }
 
     /// Create a `Font` for use in layout calculations, from a `FontTemplateData` returned by the
@@ -275,10 +286,14 @@ impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontConte
         };
 
         let mut number_loading = 0;
-        stylesheet.effective_font_face_rules(device, guard, |rule| {
-            let font_face = match rule.font_face() {
-                Some(font_face) => font_face,
-                None => return,
+        for rule in stylesheet.effective_rules(device, guard) {
+            let CssRule::FontFace(ref lock) = *rule else {
+                continue;
+            };
+
+            let rule: &FontFaceRule = lock.read_with(guard);
+            let Some(font_face) = rule.font_face() else {
+                continue;
             };
 
             let sources: Vec<Source> = font_face
@@ -290,7 +305,7 @@ impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontConte
                 .cloned()
                 .collect();
             if sources.is_empty() {
-                return;
+                continue;
             }
 
             // Fetch all local fonts first, beacause if we try to fetch them later on during the process of
@@ -306,10 +321,13 @@ impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontConte
                     local_fonts
                         .entry(family_name.name.clone())
                         .or_insert_with(|| {
-                            let family_name = FontFamilyName::Specific(family_name.name.clone());
+                            let family = SingleFontFamily::FamilyName(FamilyName {
+                                name: family_name.name.clone(),
+                                syntax: FontFamilyNameSyntax::Quoted,
+                            });
                             self.font_source
                                 .lock()
-                                .find_matching_font_templates(None, &family_name)
+                                .find_matching_font_templates(None, &family)
                                 .first()
                                 .cloned()
                         });
@@ -334,7 +352,7 @@ impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontConte
             if let Some(ref synchronous_receiver) = synchronous_receiver {
                 synchronous_receiver.recv().unwrap();
             }
-        });
+        }
 
         number_loading
     }
@@ -449,7 +467,7 @@ impl<S: FontSource + Send + 'static> FontContextWebFontMethods for Arc<FontConte
 struct RemoteWebFontDownloader<FCT: FontSource> {
     font_context: Arc<FontContext<FCT>>,
     url: ServoArc<Url>,
-    web_font_family_name: LowercaseString,
+    web_font_family_name: LowercaseFontFamilyName,
     response_valid: Mutex<bool>,
     response_data: Mutex<Vec<u8>>,
 }
@@ -464,7 +482,7 @@ impl<FCT: FontSource + Send + 'static> RemoteWebFontDownloader<FCT> {
     fn download(
         url_source: UrlSource,
         font_context: Arc<FontContext<FCT>>,
-        web_font_family_name: LowercaseString,
+        web_font_family_name: LowercaseFontFamilyName,
         state: WebFontDownloadState,
     ) {
         // https://drafts.csswg.org/css-fonts/#font-fetching-requirements
@@ -648,7 +666,7 @@ impl<FCT: FontSource> CachingFontSource<FCT> {
         let templates = self
             .font_cache_thread
             .lock()
-            .find_matching_font_templates(Some(descriptor_to_match), &family_descriptor.name);
+            .find_matching_font_templates(Some(descriptor_to_match), &family_descriptor.family);
         self.templates.write().insert(cache_key, templates.clone());
 
         templates
@@ -663,7 +681,11 @@ impl<FCT: FontSource> CachingFontSource<FCT> {
         if let Some(font_group) = self.resolved_font_groups.read().get(&cache_key) {
             return font_group.clone();
         }
-        let font_group = Arc::new(RwLock::new(FontGroup::new(&cache_key.style)));
+
+        let mut descriptor = FontDescriptor::from(&*cache_key.style);
+        descriptor.pt_size = size;
+
+        let font_group = Arc::new(RwLock::new(FontGroup::new(&cache_key.style, descriptor)));
         self.resolved_font_groups
             .write()
             .insert(cache_key, font_group.clone());

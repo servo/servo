@@ -53,7 +53,7 @@ fn((t) => {
     t.params.readMethod
   );
 
-  const texture = t.device.createTexture({
+  const texture = t.createTextureTracked({
     size: [t.textureWidth, t.textureHeight, t.textureDepthOrArrayLayers],
     format: t.params.format,
     dimension: t.params.dimension,
@@ -61,7 +61,6 @@ fn((t) => {
     mipLevelCount: t.params.mipLevelCount,
     sampleCount: t.params.sampleCount
   });
-  t.trackForCleanup(texture);
 
   if (t.params.canaryOnCreation) {
     // Initialize some subresources with canary values

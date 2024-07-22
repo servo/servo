@@ -4,7 +4,7 @@
 Execution Tests for the f32 comparison operations
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../gpu_test.js';
-import { TypeBool, TypeF32 } from '../../../../util/conversion.js';
+import { Type } from '../../../../util/conversion.js';
 import { allInputSources, run } from '../expression.js';
 
 import { binary } from './binary.js';
@@ -27,7 +27,7 @@ fn(async (t) => {
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'equals_const' : 'equals_non_const'
   );
-  await run(t, binary('=='), [TypeF32, TypeF32], TypeBool, t.params, cases);
+  await run(t, binary('=='), [Type.f32, Type.f32], Type.bool, t.params, cases);
 });
 
 g.test('not_equals').
@@ -45,7 +45,7 @@ fn(async (t) => {
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'not_equals_const' : 'not_equals_non_const'
   );
-  await run(t, binary('!='), [TypeF32, TypeF32], TypeBool, t.params, cases);
+  await run(t, binary('!='), [Type.f32, Type.f32], Type.bool, t.params, cases);
 });
 
 g.test('less_than').
@@ -63,7 +63,7 @@ fn(async (t) => {
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'less_than_const' : 'less_than_non_const'
   );
-  await run(t, binary('<'), [TypeF32, TypeF32], TypeBool, t.params, cases);
+  await run(t, binary('<'), [Type.f32, Type.f32], Type.bool, t.params, cases);
 });
 
 g.test('less_equals').
@@ -81,7 +81,7 @@ fn(async (t) => {
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'less_equals_const' : 'less_equals_non_const'
   );
-  await run(t, binary('<='), [TypeF32, TypeF32], TypeBool, t.params, cases);
+  await run(t, binary('<='), [Type.f32, Type.f32], Type.bool, t.params, cases);
 });
 
 g.test('greater_than').
@@ -99,7 +99,7 @@ fn(async (t) => {
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'greater_than_const' : 'greater_than_non_const'
   );
-  await run(t, binary('>'), [TypeF32, TypeF32], TypeBool, t.params, cases);
+  await run(t, binary('>'), [Type.f32, Type.f32], Type.bool, t.params, cases);
 });
 
 g.test('greater_equals').
@@ -117,5 +117,5 @@ fn(async (t) => {
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'greater_equals_const' : 'greater_equals_non_const'
   );
-  await run(t, binary('>='), [TypeF32, TypeF32], TypeBool, t.params, cases);
+  await run(t, binary('>='), [Type.f32, Type.f32], Type.bool, t.params, cases);
 });

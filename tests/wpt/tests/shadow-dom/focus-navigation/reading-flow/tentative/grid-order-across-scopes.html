@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Display: reading-flow with value grid-order on shadow host</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='../../resources/shadow-dom.js'></script>
+<script src="../../resources/focus-utils.js"></script>
+
+<style>
+.wrapper {
+  display: grid;
+  reading-flow: grid-order;
+}
+</style>
+
+<!-- Since C is a direct reading flow item, it is visited first. -->
+<!-- Since B,A are inside a display: contents, they are visited after. -->
+<div class="test-case" data-expect="C,B,A"
+      data-description="Grid items in shadow host that is a display contents grid item">
+  <div class=wrapper>
+    <div style="display: contents">
+      <template shadowrootmode=open>
+        <slot></slot>
+      </template>
+      <button id="A" style="order: 2">A</button>
+      <button id="B" style="order: 1">B</button>
+    </div>
+    <button id="C" style="order: 3">C</button>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

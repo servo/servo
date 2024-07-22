@@ -1,0 +1,21 @@
+<!doctype html>
+<title>CSS Container Queries Test: Inline multicol inside size container - crash</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<link rel="help" href="https://crbug.com/829028">
+<style>
+  #container {
+    container-type: size;
+    width: 200px;
+    height: 100px;
+  }
+  @container (width <= 200px) {
+    #multicol {
+      column-count: 2;
+      column-gap: 0;
+    }
+  }
+</style>
+<p>Test passes if it doesn't crash.</p>
+<div id="container">
+  <span id="multicol"><div></div></span>
+</div>

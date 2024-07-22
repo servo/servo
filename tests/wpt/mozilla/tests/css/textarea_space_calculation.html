@@ -3,8 +3,19 @@
 <title>textarea does not take up more space than it takes up</title>
 <link rel="match" href="textarea_space_calculation-ref.html">
 <style>
-textarea{height:2em;width:2em}
-div{background:red;width:2em;font-size:12px;line-height:3px}
+textarea {
+    height:2em;
+    width:2em;
+    /* `em` units are based on font size, so this size
+       has to be the same as the font size in the div. */
+    font-size:12px;
+}
+div {
+    background: red;
+    width: 2em;
+    font-size: 12px;
+    line-height: 3px
+}
 </style>
 <h1>To pass, no red should be visible</h1>
 <div>

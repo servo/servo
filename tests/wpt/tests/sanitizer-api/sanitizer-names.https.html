@@ -140,7 +140,7 @@
     test(t => {
       const elems = ["svg:" + elem];
       assert_array_equals(
-        new Sanitizer({elements: elems}).getConfiguration().allowElements,
+        new Sanitizer({elements: elems}).getConfiguration().allowElements.toSorted(),
         elems);
     }, `Mixed case element names #${index}: "${elem}" is preserved in config.`);
   });

@@ -60,6 +60,10 @@ pub fn get_default_url(
     new_url.or(pref_url).or(blank_url).unwrap()
 }
 
+/// Interpret an input URL.
+///
+/// If this is not a valid URL, try to "fix" it by adding a scheme or if all else fails,
+/// interpret the string as a search term.
 pub fn location_bar_input_to_url(request: &str) -> Option<ServoUrl> {
     let request = request.trim();
     ServoUrl::parse(request)

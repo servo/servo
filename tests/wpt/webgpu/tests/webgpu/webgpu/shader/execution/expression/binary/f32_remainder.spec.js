@@ -4,7 +4,7 @@
 Execution Tests for non-matrix f32 remainder expression
 `;import { makeTestGroup } from '../../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../../gpu_test.js';
-import { TypeF32, TypeVec } from '../../../../util/conversion.js';
+import { Type } from '../../../../util/conversion.js';
 import { allInputSources, run } from '../expression.js';
 
 import { binary, compoundBinary } from './binary.js';
@@ -25,7 +25,7 @@ fn(async (t) => {
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'scalar_const' : 'scalar_non_const'
   );
-  await run(t, binary('%'), [TypeF32, TypeF32], TypeF32, t.params, cases);
+  await run(t, binary('%'), [Type.f32, Type.f32], Type.f32, t.params, cases);
 });
 
 g.test('vector').
@@ -41,7 +41,7 @@ fn(async (t) => {
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'scalar_const' : 'scalar_non_const' // Using vectorize to generate vector cases based on scalar cases
   );
-  await run(t, binary('%'), [TypeF32, TypeF32], TypeF32, t.params, cases);
+  await run(t, binary('%'), [Type.f32, Type.f32], Type.f32, t.params, cases);
 });
 
 g.test('scalar_compound').
@@ -59,7 +59,7 @@ fn(async (t) => {
   const cases = await d.get(
     t.params.inputSource === 'const' ? 'scalar_const' : 'scalar_non_const'
   );
-  await run(t, compoundBinary('%='), [TypeF32, TypeF32], TypeF32, t.params, cases);
+  await run(t, compoundBinary('%='), [Type.f32, Type.f32], Type.f32, t.params, cases);
 });
 
 g.test('vector_scalar').
@@ -79,8 +79,8 @@ fn(async (t) => {
   await run(
     t,
     binary('%'),
-    [TypeVec(dim, TypeF32), TypeF32],
-    TypeVec(dim, TypeF32),
+    [Type.vec(dim, Type.f32), Type.f32],
+    Type.vec(dim, Type.f32),
     t.params,
     cases
   );
@@ -103,8 +103,8 @@ fn(async (t) => {
   await run(
     t,
     compoundBinary('%='),
-    [TypeVec(dim, TypeF32), TypeF32],
-    TypeVec(dim, TypeF32),
+    [Type.vec(dim, Type.f32), Type.f32],
+    Type.vec(dim, Type.f32),
     t.params,
     cases
   );
@@ -127,8 +127,8 @@ fn(async (t) => {
   await run(
     t,
     binary('%'),
-    [TypeF32, TypeVec(dim, TypeF32)],
-    TypeVec(dim, TypeF32),
+    [Type.f32, Type.vec(dim, Type.f32)],
+    Type.vec(dim, Type.f32),
     t.params,
     cases
   );

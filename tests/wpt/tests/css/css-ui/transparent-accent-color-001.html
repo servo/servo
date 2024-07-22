@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<title>CSS Basic User Interface Test: transparent accent color</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#widget-accent">
+<link rel="match" href="reference/transparent-accent-color-001-ref.html">
+<meta name="assert" content="If the color supplied is partially or fully transparent, it is precomposed over the color of the light mode canvas.">
+<meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-450">
+<style>
+
+.container {
+    border: solid orange;
+    padding: 1ch;
+    margin: 1ch;
+    float: left;
+}
+
+input, #extract-canvas { color-scheme: light; }
+#extract-canvas { background-color: canvas; }
+#t3 { background: orange; }
+
+</style>
+
+<p>Test passes if in each box below, you see a pair of identically colored check-boxes.
+
+<div id="extract-canvas"></div>
+<div id=t1 class="container">
+  <input class=test type=checkbox checked>
+  <input class=ref type=checkbox checked>
+</div>
+
+<div id=t2 class="container">
+  <input class=test type=checkbox checked>
+  <input class=ref type=checkbox checked>
+</div>
+
+<div id=t3 class="container">
+  <input class=test type=checkbox checked>
+  <input class=ref type=checkbox checked>
+</div>
+
+<script>
+
+  const testColors = [[255,0,0,0], [0,0,255,0.5], [0,0,255,0.5]];
+
+  function getColorComponents(color) {
+    return color.substring(color.indexOf("(") + 1).replace(/\s/g,"").split(",").map(parseFloat);
+  }
+
+  function constructCSSColor(components) {
+    return (components.length == 4 ? "rgba(" : "rgb(") + components.join(", ") + ")";
+  }
+
+  function computeExpectedColor(canvasColor, colorWithAlpha) {
+    const expected = [];
+    for (let i = 0; i < 3; i++)
+      expected.push(canvasColor[i] - canvasColor[i] * colorWithAlpha[3] + colorWithAlpha[i] * colorWithAlpha[3]);
+    return expected;
+  }
+
+  const canvasColorComponents = getColorComponents(getComputedStyle(document.getElementById("extract-canvas")).backgroundColor);
+  for (const [i, container] of document.querySelectorAll(".container").entries()) {
+    container.getElementsByClassName("test")[0].style.accentColor = constructCSSColor(testColors[i]);
+    container.getElementsByClassName("ref")[0].style.accentColor = constructCSSColor(computeExpectedColor(canvasColorComponents, testColors[i]));
+  }
+
+</script>

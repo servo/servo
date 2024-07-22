@@ -240,7 +240,7 @@ fn((t) => {
   const { textureCompressionBC } = t.params;
   const shouldError = !textureCompressionBC;
   t.shouldThrow(shouldError ? 'TypeError' : false, () => {
-    t.device.createTexture({
+    t.createTextureTracked({
       format: 'bc1-rgba-unorm',
       size: [4, 4, 1],
       usage: GPUTextureUsage.TEXTURE_BINDING
@@ -266,7 +266,7 @@ fn((t) => {
 
   const shouldError = !textureCompressionETC2;
   t.shouldThrow(shouldError ? 'TypeError' : false, () => {
-    t.device.createTexture({
+    t.createTextureTracked({
       format: 'etc2-rgb8unorm',
       size: [4, 4, 1],
       usage: GPUTextureUsage.TEXTURE_BINDING

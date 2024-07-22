@@ -97,13 +97,13 @@ binding_offset)
   });
 
   // Create the buffer that will contain the runtime-sized array.
-  const buffer = t.device.createBuffer({
+  const buffer = t.createBufferTracked({
     size: buffer_size,
     usage: GPUBufferUsage.STORAGE
   });
 
   // Create the buffer that will receive the array length.
-  const lengthBuffer = t.device.createBuffer({
+  const lengthBuffer = t.createBufferTracked({
     size: 4,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
   });

@@ -48,7 +48,7 @@
         expect_feature_available: expect_feature_unavailable_default,
         is_promise_test: true,
       });
-    }, `${header} disallows Payment Request API cross-origin iframes.`);
+    }, `Payment Request API is disabled in cross-origin iframe if allow="payment" is not set and ${header}.`);
 
     promise_test(async (test) => {
       return test_feature_availability({

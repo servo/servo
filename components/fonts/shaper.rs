@@ -19,20 +19,24 @@ use harfbuzz_sys::{
     hb_face_create_for_tables, hb_face_destroy, hb_face_t, hb_feature_t, hb_font_create,
     hb_font_destroy, hb_font_funcs_create, hb_font_funcs_set_glyph_h_advance_func,
     hb_font_funcs_set_nominal_glyph_func, hb_font_funcs_t, hb_font_set_funcs, hb_font_set_ppem,
-    hb_font_set_scale, hb_font_t, hb_glyph_info_t, hb_glyph_position_t, hb_position_t, hb_shape,
-    hb_tag_t, HB_DIRECTION_LTR, HB_DIRECTION_RTL, HB_MEMORY_MODE_READONLY,
+    hb_font_set_scale, hb_font_t, hb_glyph_info_t, hb_glyph_position_t, hb_ot_layout_get_baseline,
+    hb_position_t, hb_shape, hb_tag_t, HB_DIRECTION_LTR, HB_DIRECTION_RTL, HB_MEMORY_MODE_READONLY,
+    HB_OT_LAYOUT_BASELINE_TAG_HANGING, HB_OT_LAYOUT_BASELINE_TAG_IDEO_EMBOX_BOTTOM_OR_LEFT,
+    HB_OT_LAYOUT_BASELINE_TAG_ROMAN,
 };
 use lazy_static::lazy_static;
 use log::debug;
 
 use crate::platform::font::FontTable;
 use crate::{
-    fixed_to_float, float_to_fixed, ot_tag, ByteIndex, Font, FontTableMethods, FontTableTag,
-    GlyphData, GlyphId, GlyphStore, ShapingFlags, ShapingOptions, KERN,
+    fixed_to_float, float_to_fixed, ot_tag, ByteIndex, Font, FontBaseline, FontTableMethods,
+    FontTableTag, GlyphData, GlyphId, GlyphStore, ShapingFlags, ShapingOptions, BASE, KERN,
 };
 
 const NO_GLYPH: i32 = -1;
 const LIGA: u32 = ot_tag!('l', 'i', 'g', 'a');
+const HB_OT_TAG_DEFAULT_SCRIPT: u32 = ot_tag!('D', 'F', 'L', 'T');
+const HB_OT_TAG_DEFAULT_LANGUAGE: u32 = ot_tag!('d', 'f', 'l', 't');
 
 pub struct ShapedGlyphData {
     count: usize,
@@ -605,6 +609,47 @@ impl Shaper {
         }
 
         advance
+    }
+
+    pub unsafe fn get_baseline(&self) -> Option<FontBaseline> {
+        (*self.font).table_for_tag(BASE)?;
+
+        let mut hanging_baseline = 0;
+        let mut alphabetic_baseline = 0;
+        let mut ideographic_baseline = 0;
+
+        hb_ot_layout_get_baseline(
+            self.hb_font,
+            HB_OT_LAYOUT_BASELINE_TAG_ROMAN,
+            HB_DIRECTION_LTR,
+            HB_OT_TAG_DEFAULT_SCRIPT,
+            HB_OT_TAG_DEFAULT_LANGUAGE,
+            &mut alphabetic_baseline as *mut _,
+        );
+
+        hb_ot_layout_get_baseline(
+            self.hb_font,
+            HB_OT_LAYOUT_BASELINE_TAG_HANGING,
+            HB_DIRECTION_LTR,
+            HB_OT_TAG_DEFAULT_SCRIPT,
+            HB_OT_TAG_DEFAULT_LANGUAGE,
+            &mut hanging_baseline as *mut _,
+        );
+
+        hb_ot_layout_get_baseline(
+            self.hb_font,
+            HB_OT_LAYOUT_BASELINE_TAG_IDEO_EMBOX_BOTTOM_OR_LEFT,
+            HB_DIRECTION_LTR,
+            HB_OT_TAG_DEFAULT_SCRIPT,
+            HB_OT_TAG_DEFAULT_LANGUAGE,
+            &mut ideographic_baseline as *mut _,
+        );
+
+        Some(FontBaseline {
+            ideographic_baseline: Shaper::fixed_to_float(ideographic_baseline) as f32,
+            alphabetic_baseline: Shaper::fixed_to_float(alphabetic_baseline) as f32,
+            hanging_baseline: Shaper::fixed_to_float(hanging_baseline) as f32,
+        })
     }
 }
 

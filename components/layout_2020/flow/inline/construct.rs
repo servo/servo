@@ -6,7 +6,7 @@ use std::borrow::Cow;
 use std::char::{ToLowercase, ToUppercase};
 
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
-use style::values::computed::{TextDecorationLine, TextTransform};
+use style::values::computed::TextDecorationLine;
 use style::values::specified::text::TextTransformCase;
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -103,7 +103,7 @@ impl InlineFormattingContextBuilder {
                 InlineItem::TextRun(_) => true,
                 InlineItem::OutOfFlowAbsolutelyPositionedBox(_) => false,
                 InlineItem::OutOfFlowFloatBox(_) => false,
-                InlineItem::Atomic(_) => false,
+                InlineItem::Atomic(..) => false,
             }
         }
 
@@ -116,7 +116,10 @@ impl InlineFormattingContextBuilder {
         &mut self,
         independent_formatting_context: IndependentFormattingContext,
     ) -> ArcRefCell<InlineItem> {
-        let inline_level_box = ArcRefCell::new(InlineItem::Atomic(independent_formatting_context));
+        let inline_level_box = ArcRefCell::new(InlineItem::Atomic(
+            independent_formatting_context,
+            self.current_text_offset,
+        ));
         self.inline_items.push(inline_level_box.clone());
 
         // Push an object replacement character for this atomic, which will ensure that the line breaker
@@ -165,12 +168,15 @@ impl InlineFormattingContextBuilder {
     }
 
     fn end_inline_box_internal(&mut self) -> InlineBoxIdentifier {
-        self.inline_boxes.end_inline_box();
+        let identifier = self
+            .inline_box_stack
+            .pop()
+            .expect("Ended non-existent inline box");
         self.inline_items
             .push(ArcRefCell::new(InlineItem::EndInlineBox));
-        self.inline_box_stack
-            .pop()
-            .expect("Ended non-existent inline box")
+
+        self.inline_boxes.end_inline_box(identifier);
+        identifier
     }
 
     pub(crate) fn push_text<'dom, Node: NodeExt<'dom>>(
@@ -185,10 +191,13 @@ impl InlineFormattingContextBuilder {
             self.last_inline_box_ended_with_collapsible_white_space,
         );
 
-        let text_transform = info.style.clone_text_transform();
+        // TODO: Not all text transforms are about case, this logic should stop ignoring
+        // TextTransform::FULL_WIDTH and TextTransform::FULL_SIZE_KANA.
+        let text_transform = info.style.clone_text_transform().case();
         let capitalized_text: String;
-        let char_iterator: Box<dyn Iterator<Item = char>> =
-            if text_transform.case_ == TextTransformCase::Capitalize {
+        let char_iterator: Box<dyn Iterator<Item = char>> = match text_transform {
+            TextTransformCase::None => Box::new(collapsed),
+            TextTransformCase::Capitalize => {
                 // `TextTransformation` doesn't support capitalization, so we must capitalize the whole
                 // string at once and make a copy. Here `on_word_boundary` indicates whether or not the
                 // inline formatting context as a whole is on a word boundary. This is different from
@@ -198,13 +207,13 @@ impl InlineFormattingContextBuilder {
                 let collapsed_string: String = collapsed.collect();
                 capitalized_text = capitalize_string(&collapsed_string, self.on_word_boundary);
                 Box::new(capitalized_text.chars())
-            } else if !text_transform.is_none() {
+            },
+            _ => {
                 // If `text-transform` is active, wrap the `WhitespaceCollapse` iterator in
                 // a `TextTransformation` iterator.
                 Box::new(TextTransformation::new(collapsed, text_transform))
-            } else {
-                Box::new(collapsed)
-            };
+            },
+        };
 
         let white_space_collapse = info.style.clone_white_space_collapse();
         let new_text: String = char_iterator
@@ -265,7 +274,7 @@ impl InlineFormattingContextBuilder {
         for identifier in self.inline_box_stack.iter() {
             new_builder.start_inline_box(
                 self.inline_boxes
-                    .get(&identifier)
+                    .get(identifier)
                     .borrow()
                     .split_around_block(),
             );
@@ -283,6 +292,7 @@ impl InlineFormattingContextBuilder {
             layout_context,
             text_decoration_line,
             has_first_formatted_line,
+            /* is_single_line_text_input = */ false,
         )
     }
 
@@ -292,6 +302,7 @@ impl InlineFormattingContextBuilder {
         layout_context: &LayoutContext,
         text_decoration_line: TextDecorationLine,
         has_first_formatted_line: bool,
+        is_single_line_text_input: bool,
     ) -> Option<InlineFormattingContext> {
         if self.is_empty() {
             return None;
@@ -305,6 +316,7 @@ impl InlineFormattingContextBuilder {
             layout_context,
             text_decoration_line,
             has_first_formatted_line,
+            is_single_line_text_input,
         ))
     }
 }
@@ -506,14 +518,14 @@ pub struct TextTransformation<InputIterator> {
     /// The input character iterator.
     char_iterator: InputIterator,
     /// The `text-transform` value to use.
-    text_transform: TextTransform,
+    text_transform: TextTransformCase,
     /// If an uppercasing or lowercasing produces more than one character, this
     /// caches them so that they can be returned in subsequent iterator calls.
     pending_case_conversion_result: Option<PendingCaseConversionResult>,
 }
 
 impl<InputIterator> TextTransformation<InputIterator> {
-    pub fn new(char_iterator: InputIterator, text_transform: TextTransform) -> Self {
+    pub fn new(char_iterator: InputIterator, text_transform: TextTransformCase) -> Self {
         Self {
             char_iterator,
             text_transform,
@@ -539,7 +551,7 @@ where
         self.pending_case_conversion_result = None;
 
         for character in self.char_iterator.by_ref() {
-            match self.text_transform.case_ {
+            match self.text_transform {
                 TextTransformCase::None => return Some(character),
                 TextTransformCase::Uppercase => {
                     let mut pending_result =
@@ -559,8 +571,7 @@ where
                 },
                 // `text-transform: capitalize` currently cannot work on a per-character basis,
                 // so must be handled outside of this iterator.
-                // TODO: Add support for `full-width` and `full-size-kana`.
-                _ => return Some(character),
+                TextTransformCase::Capitalize => return Some(character),
             }
         }
         None
