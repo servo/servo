@@ -18,9 +18,10 @@ use napi_ohos::threadsafe_function::{
     ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode,
 };
 use napi_ohos::{Env, JsFunction, JsObject, JsString, NapiRaw};
-use ohos_sys::ace::xcomponent::native_interface_xcomponent::{
+use ohos_sys::xcomponent::{
     OH_NativeXComponent, OH_NativeXComponent_Callback, OH_NativeXComponent_GetTouchEvent,
-    OH_NativeXComponent_TouchEvent, OH_NativeXComponent_TouchEventType,
+    OH_NativeXComponent_RegisterCallback, OH_NativeXComponent_TouchEvent,
+    OH_NativeXComponent_TouchEventType,
 };
 use servo::embedder_traits::PromptResult;
 use servo::euclid::Point2D;
@@ -395,7 +396,6 @@ fn register_xcomponent_callbacks(env: &Env, xcomponent: &JsObject) -> napi_ohos:
         OnSurfaceDestroyed: Some(on_surface_destroyed_cb),
         DispatchTouchEvent: Some(on_dispatch_touch_event_cb),
     });
-    use ohos_sys::ace::xcomponent::native_interface_xcomponent::OH_NativeXComponent_RegisterCallback;
     let res =
         unsafe { OH_NativeXComponent_RegisterCallback(nativeXComponent, Box::leak(cbs) as *mut _) };
     if res != 0 {
