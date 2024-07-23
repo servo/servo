@@ -13,6 +13,7 @@ import tempfile
 from typing import Optional
 import urllib
 import zipfile
+import shutil
 
 from servo import util
 
@@ -28,10 +29,49 @@ GSTREAMER_URL = f"{DEPS_URL}/gstreamer-1.0-msvc-x86_64-1.22.8.msi"
 GSTREAMER_DEVEL_URL = f"{DEPS_URL}/gstreamer-1.0-devel-msvc-x86_64-1.22.8.msi"
 DEPENDENCIES_DIR = os.path.join(util.get_target_dir(), "dependencies")
 
+WINGET_DEPENDENCIES = ["Kitware.CMake", "LLVM.LLVM", "Ninja-build.Ninja", "WiXToolset.WiXToolset"]
+
 
 def get_dependency_dir(package):
     """Get the directory that a given Windows dependency should extract to."""
     return os.path.join(DEPENDENCIES_DIR, package, DEPENDENCIES[package])
+
+
+def _winget_import(force: bool = False):
+    try:
+        # We install tools like LLVM / CMake, so we probably don't want to force-upgrade
+        # a user installed version without good reason.
+        cmd = ["winget", "install", "--interactive"]
+        if force:
+            cmd.append("--force")
+        else:
+            cmd.append("--no-upgrade")
+
+        cmd.extend(WINGET_DEPENDENCIES)
+
+        # The output will be printed to the terminal that `./mach bootstrap` is running in.
+        subprocess.run(cmd, encoding="utf-8")
+    except subprocess.CalledProcessError as e:
+        print("Could not run winget.  Follow manual build setup instructions.")
+        raise e
+
+
+def _choco_install(force: bool = False):
+    try:
+        choco_config = os.path.join(util.SERVO_ROOT, "support", "windows", "chocolatey.config")
+
+        # This is the format that PowerShell wants arguments passed to it.
+        cmd_exe_args = f"'/K','choco','install','-y', '\"{choco_config}\"'"
+        if force:
+            cmd_exe_args += ",'-f'"
+
+        print(cmd_exe_args)
+        subprocess.check_output(
+            ["powershell", "Start-Process", "-Wait", "-verb", "runAs", "cmd.exe", "-ArgumentList", f"@({cmd_exe_args})"]
+        ).decode("utf-8")
+    except subprocess.CalledProcessError as e:
+        print("Could not run chocolatey.  Follow manual build setup instructions.")
+        raise e
 
 
 class Windows(Base):
@@ -61,31 +101,11 @@ class Windows(Base):
 
     def _platform_bootstrap(self, force: bool) -> bool:
         installed_something = self.passive_bootstrap()
-
-        try:
-            choco_config = os.path.join(util.SERVO_ROOT, "support", "windows", "chocolatey.config")
-
-            # This is the format that PowerShell wants arguments passed to it.
-            cmd_exe_args = f"'/K','choco','install','-y', '\"{choco_config}\"'"
-            if force:
-                cmd_exe_args += ",'-f'"
-
-            print(cmd_exe_args)
-            subprocess.check_output(
-                [
-                    "powershell",
-                    "Start-Process",
-                    "-Wait",
-                    "-verb",
-                    "runAs",
-                    "cmd.exe",
-                    "-ArgumentList",
-                    f"@({cmd_exe_args})",
-                ]
-            ).decode("utf-8")
-        except subprocess.CalledProcessError as e:
-            print("Could not run chocolatey.  Follow manual build setup instructions.")
-            raise e
+        # If `winget` works well in practice, we could switch the default in the future.
+        if shutil.which("choco") is not None:
+            _choco_install(force)
+        else:
+            _winget_import()
 
         target = BuildTarget.from_triple(None)
         installed_something |= self._platform_bootstrap_gstreamer(target, force)
