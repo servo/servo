@@ -4419,7 +4419,8 @@ dependencies = [
 [[package]]
 name = "ohos-sys"
 version = "0.1.0"
-source = "git+https://github.com/jschwe/ohos-sys.git#bf0625fc7ea8035c2991626fb0a593e06c9c8c21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b4948c565d42c324e658fe83b9d99511d922c562701572179df7763777be327"
 
 [[package]]
 name = "once_cell"
