@@ -13,6 +13,7 @@ import tempfile
 from typing import Optional
 import urllib
 import zipfile
+import shutil
 
 from .. import util
 from .base import Base
@@ -58,9 +59,21 @@ class Windows(Base):
         else:
             print("done")
 
-    def _platform_bootstrap(self, force: bool = False) -> bool:
-        installed_something = self.passive_bootstrap()
+    def _winget_import(self):
+        try:
+            winget_config = os.path.join(util.SERVO_ROOT, "support", "windows", "winget.json")
 
+            # Todo: Discuss using `--no-upgrade`
+            cmd_exe_args = f"'/K','winget','import','--import-file','{str(winget_config)}'"
+            print(cmd_exe_args)
+            subprocess.check_output(["powershell", "Start-Process", "-Wait", "-verb", "runAs",
+                                     "cmd.exe", "-ArgumentList", f"@({cmd_exe_args})"],
+                                    encoding='utf-8')
+        except subprocess.CalledProcessError as e:
+            print("Could not run winget.  Follow manual build setup instructions.")
+            raise e
+
+    def _choco_install(self, force: bool = False):
         try:
             choco_config = os.path.join(util.SERVO_ROOT, "support", "windows", "chocolatey.config")
 
@@ -77,6 +90,14 @@ class Windows(Base):
         except subprocess.CalledProcessError as e:
             print("Could not run chocolatey.  Follow manual build setup instructions.")
             raise e
+
+    def _platform_bootstrap(self, force: bool = False) -> bool:
+        installed_something = self.passive_bootstrap()
+        # If `winget` works well in practice, we could switch the default in the future.
+        if shutil.which('choco') is not None:
+            self._choco_install(force)
+        else:
+            self._winget_import()
 
         installed_something |= self._platform_bootstrap_gstreamer(force)
         return installed_something
