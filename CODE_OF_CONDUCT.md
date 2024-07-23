@@ -1,6 +1,6 @@
 # Code of Conduct
 
-The Servo Project follows the [**Rust Code of Conduct**](https://www.rust-lang.org/policies/code-of-conduct), with two differences.
+The Servo Project follows the [**Rust Code of Conduct**](https://www.rust-lang.org/policies/code-of-conduct), with the differences below.
 
 Our code of conduct applies to the [Servo Zulip channels](https://servo.zulipchat.com/), [GitHub repositories](https://github.com/servo), and all official Servo venues, rather than the Rust project.
 
