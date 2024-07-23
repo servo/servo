@@ -857,3 +857,16 @@ fn test_select_all() {
         textinput.selection_end()
     );
 }
+
+#[test]
+fn test_backspace_in_textarea_at_beginning_of_line() {
+    let mut textinput = text_input(Lines::Multiple, "servo\nhello");
+
+    for _ in 0..6 {
+        textinput.handle_keydown_aux(Key::ArrowRight, Modifiers::empty(), false);
+    }
+
+    textinput.handle_keydown_aux(Key::Backspace, Modifiers::empty(), false);
+
+    assert_eq!(textinput.get_content(), DOMString::from("servohello"));
+}
