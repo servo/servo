@@ -8,9 +8,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use log::{debug, error, info};
-use ohos_sys::ace::xcomponent::native_interface_xcomponent::{
-    OH_NativeXComponent, OH_NativeXComponent_GetXComponentSize,
-};
+use ohos_sys::xcomponent::{OH_NativeXComponent, OH_NativeXComponent_GetXComponentSize};
 use servo::compositing::windowing::EmbedderEvent;
 use servo::compositing::CompositeTarget;
 use servo::embedder_traits::resources;
