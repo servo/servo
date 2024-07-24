@@ -251,7 +251,7 @@ impl<'a> UnshapedTextRun<'a> {
         }
     }
 
-    fn to_shaped_text_run(self) -> Option<TextRun> {
+    fn into_shaped_text_run(self) -> Option<TextRun> {
         let font = self.font?;
         if self.string.is_empty() {
             return None;
@@ -552,7 +552,7 @@ impl<'a> CanvasData<'a> {
         // to be some alignment along a baseline and also support for bidi text.
         let shaped_runs: Vec<_> = runs
             .into_iter()
-            .filter_map(UnshapedTextRun::to_shaped_text_run)
+            .filter_map(UnshapedTextRun::into_shaped_text_run)
             .collect();
         let total_advance = shaped_runs
             .iter()
@@ -635,7 +635,7 @@ impl<'a> CanvasData<'a> {
 
         let shaped_runs: Vec<_> = runs
             .into_iter()
-            .filter_map(UnshapedTextRun::to_shaped_text_run)
+            .filter_map(UnshapedTextRun::into_shaped_text_run)
             .collect();
         let total_advance = shaped_runs
             .iter()
