@@ -5,7 +5,7 @@
   buildAndroid ? false
 }:
 with import (builtins.fetchTarball {
-  url = "https://github.com/NixOS/nixpkgs/archive/46ae0210ce163b3cba6c7da08840c1d63de9c701.tar.gz";
+  url = "https://github.com/NixOS/nixpkgs/archive/63d37ccd2d178d54e7fb691d7ec76000740ea24a.tar.gz";
 }) {
   overlays = [
     (import (builtins.fetchTarball {
@@ -77,6 +77,7 @@ stdenv.mkDerivation (androidEnvironment // {
 
     rustup
     taplo
+    cargo-deny
     llvmPackages.bintools # provides lld
 
     udev # Needed by libudev-sys for GamePad API.
