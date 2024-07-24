@@ -13,7 +13,6 @@ crate-type = ["rlib"]
 
 [features]
 debugmozjs = ["script/debugmozjs"]
-googlevr = ["webxr/googlevr"]
 jitspew = ["script/jitspew"]
 js_backtrace = ["script/js_backtrace"]
 layout_2013 = ["dep:layout_thread_2013"]

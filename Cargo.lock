@@ -125,12 +125,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e999941b234f3131b00bc13c22d06e8c5ff726d1b6318ac7eb276997bbb4fef0"
 
 [[package]]
-name = "android_injected_glue"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80b9e34fcbf29c0563547cb2ecce9b49504597cad6166769b1e4efb45c6c2951"
-
-[[package]]
 name = "android_log-sys"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2651,12 +2645,6 @@ dependencies = [
  "libc",
  "system-deps",
 ]
-
-[[package]]
-name = "gvr-sys"
-version = "0.7.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2a8e6ed12756f9e5fd8d50019e4f6839f50cf95f82657353e9d860730a5f797"
 
 [[package]]
 name = "h2"
@@ -7366,12 +7354,10 @@ name = "webxr"
 version = "0.0.1"
 source = "git+https://github.com/servo/webxr#bacb22faec8aa469ff6454bf0434d3b89fe419a3"
 dependencies = [
- "android_injected_glue",
  "bindgen",
  "crossbeam-channel",
  "euclid",
  "gl_generator",
- "gvr-sys",
  "log",
  "openxr",
  "serde",
