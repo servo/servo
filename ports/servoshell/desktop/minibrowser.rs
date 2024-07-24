@@ -71,6 +71,7 @@ impl Minibrowser {
         };
 
         // Adapted from https://github.com/emilk/egui/blob/9478e50d012c5138551c38cbee16b07bc1fcf283/crates/egui_glow/examples/pure_glow.rs
+        #[allow(clippy::arc_with_non_send_sync)]
         let context = EguiGlow::new(events_loop.as_winit(), Arc::new(gl), None);
         let widget_surface_fbo = match rendering_context.context_surface_info() {
             Ok(Some(info)) => NonZeroU32::new(info.framebuffer_object).map(NativeFramebuffer),
