@@ -183,14 +183,12 @@ class PackageCommands(CommandBase):
             if flavor is not None:
                 flavor_name = flavor.title()
 
-            vr = flavor == "googlevr" or flavor == "oculusvr"
-
             dir_to_resources = path.join(self.get_top_dir(), 'target', 'android', 'resources')
             if path.exists(dir_to_resources):
                 delete(dir_to_resources)
 
             shutil.copytree(path.join(dir_to_root, 'resources'), dir_to_resources)
-            change_prefs(dir_to_resources, "android", vr=vr)
+            change_prefs(dir_to_resources, "android", vr=False)
 
             variant = ":assemble" + flavor_name + arch_string + build_type_string
             apk_task_name = ":servoapp" + variant
