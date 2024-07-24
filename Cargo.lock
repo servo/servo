@@ -391,18 +391,18 @@ dependencies = [
 
 [[package]]
 name = "bit-set"
-version = "0.6.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0481a0e032742109b1133a095184ee93d88f3dc9e0d28a5d033dc77a073f44f"
+checksum = "08807e080ed7f9d5433fa9b275196cfc35414f66a0c79d864dc51a0d825231a3"
 dependencies = [
  "bit-vec",
 ]
 
 [[package]]
 name = "bit-vec"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2c54ff287cfc0a34f38a6b832ea1bd8e448a330b3e40a50859e6488bee07f22"
+checksum = "5e764a1d40d510daf35e07be9eb06e75770908c27d411ee6c92109c9840eaaf7"
 
 [[package]]
 name = "bit_field"
@@ -1198,7 +1198,7 @@ checksum = "96a6ac251f4a2aca6b3f91340350eab87ae57c3f127ffeb585e92bd336717991"
 [[package]]
 name = "d3d12"
 version = "22.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=c0e7c1ef945a7dd61c81fb951ea554213811aee0#c0e7c1ef945a7dd61c81fb951ea554213811aee0"
+source = "git+https://github.com/gfx-rs/wgpu?rev=65b6e15f0fdf46b109df66ec57b75aa6be9b067d#65b6e15f0fdf46b109df66ec57b75aa6be9b067d"
 dependencies = [
  "bitflags 2.6.0",
  "libloading",
@@ -1521,7 +1521,7 @@ dependencies = [
  "bytemuck",
  "egui",
  "egui-winit",
- "glow",
+ "glow 0.13.1",
  "log",
  "memoffset",
  "wasm-bindgen",
@@ -2268,6 +2268,18 @@ name = "glow"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bd348e04c43b32574f2de31c8bb397d96c9fcfa1371bd4ca6d8bdc464ab121b1"
+dependencies = [
+ "js-sys",
+ "slotmap",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "glow"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f865cbd94bd355b89611211e49508da98a1fce0ad755c1e8448fb96711b24528"
 dependencies = [
  "js-sys",
  "slotmap",
@@ -4040,7 +4052,7 @@ checksum = "956787520e75e9bd233246045d19f42fb73242759cc57fba9611d940ae96d4b0"
 [[package]]
 name = "naga"
 version = "22.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=c0e7c1ef945a7dd61c81fb951ea554213811aee0#c0e7c1ef945a7dd61c81fb951ea554213811aee0"
+source = "git+https://github.com/gfx-rs/wgpu?rev=65b6e15f0fdf46b109df66ec57b75aa6be9b067d#65b6e15f0fdf46b109df66ec57b75aa6be9b067d"
 dependencies = [
  "arrayvec",
  "bit-set",
@@ -5809,7 +5821,7 @@ dependencies = [
  "gilrs",
  "gl_generator",
  "gleam",
- "glow",
+ "glow 0.13.1",
  "hilog",
  "image",
  "ipc-channel",
@@ -7405,7 +7417,7 @@ checksum = "53a85b86a771b1c87058196170769dd264f66c0782acf1ae6cc51bfd64b39082"
 [[package]]
 name = "wgpu-core"
 version = "22.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=c0e7c1ef945a7dd61c81fb951ea554213811aee0#c0e7c1ef945a7dd61c81fb951ea554213811aee0"
+source = "git+https://github.com/gfx-rs/wgpu?rev=65b6e15f0fdf46b109df66ec57b75aa6be9b067d#65b6e15f0fdf46b109df66ec57b75aa6be9b067d"
 dependencies = [
  "arrayvec",
  "bit-vec",
@@ -7430,7 +7442,7 @@ dependencies = [
 [[package]]
 name = "wgpu-hal"
 version = "22.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=c0e7c1ef945a7dd61c81fb951ea554213811aee0#c0e7c1ef945a7dd61c81fb951ea554213811aee0"
+source = "git+https://github.com/gfx-rs/wgpu?rev=65b6e15f0fdf46b109df66ec57b75aa6be9b067d#65b6e15f0fdf46b109df66ec57b75aa6be9b067d"
 dependencies = [
  "android_system_properties",
  "arrayvec",
@@ -7441,7 +7453,7 @@ dependencies = [
  "cfg_aliases 0.1.1",
  "core-graphics-types",
  "d3d12",
- "glow",
+ "glow 0.14.0",
  "glutin_wgl_sys",
  "gpu-alloc",
  "gpu-descriptor",
@@ -7471,7 +7483,7 @@ dependencies = [
 [[package]]
 name = "wgpu-types"
 version = "22.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=c0e7c1ef945a7dd61c81fb951ea554213811aee0#c0e7c1ef945a7dd61c81fb951ea554213811aee0"
+source = "git+https://github.com/gfx-rs/wgpu?rev=65b6e15f0fdf46b109df66ec57b75aa6be9b067d#65b6e15f0fdf46b109df66ec57b75aa6be9b067d"
 dependencies = [
  "bitflags 2.6.0",
  "js-sys",
