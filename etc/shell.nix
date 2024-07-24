@@ -77,6 +77,7 @@ stdenv.mkDerivation (androidEnvironment // {
 
     rustup
     taplo
+    cargo-deny
     llvmPackages.bintools # provides lld
 
     udev # Needed by libudev-sys for GamePad API.
