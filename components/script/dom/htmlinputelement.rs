@@ -29,7 +29,7 @@ use script_traits::ScriptToConstellationChan;
 use servo_atoms::Atom;
 use style::attr::AttrValue;
 use style::str::{split_commas, str_join};
-use style_traits::dom::ElementState;
+use style_dom::ElementState;
 use unicode_bidi::{bidi_class, BidiClass};
 use url::Url;
 

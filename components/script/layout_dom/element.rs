@@ -34,7 +34,7 @@ use style::shared_lock::Locked as StyleLocked;
 use style::values::computed::Display;
 use style::values::{AtomIdent, AtomString};
 use style::CaseSensitivityExt;
-use style_traits::dom::ElementState;
+use style_dom::ElementState;
 
 use crate::dom::attr::AttrHelpersForLayout;
 use crate::dom::bindings::inheritance::{

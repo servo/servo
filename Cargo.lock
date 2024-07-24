@@ -1285,7 +1285,7 @@ dependencies = [
 [[package]]
 name = "derive_common"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-05-31#f6cb33f86468ba272d5329f64f78a75df8e9fcbe"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#eceb838e855e3b73a28df602b69494899f6d168b"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -1412,6 +1412,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cb6969eaabd2421f8a2775cfd2471a2b634372b4a25d41e3bd647b79912850a0"
 dependencies = [
  "litrs",
+]
+
+[[package]]
+name = "dom"
+version = "0.0.1"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#eceb838e855e3b73a28df602b69494899f6d168b"
+dependencies = [
+ "bitflags 2.6.0",
 ]
 
 [[package]]
@@ -3727,13 +3735,14 @@ dependencies = [
 [[package]]
 name = "malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-05-31#f6cb33f86468ba272d5329f64f78a75df8e9fcbe"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#eceb838e855e3b73a28df602b69494899f6d168b"
 dependencies = [
  "accountable-refcell",
  "app_units",
  "content-security-policy",
  "crossbeam-channel",
  "cssparser",
+ "dom",
  "euclid",
  "http",
  "indexmap",
@@ -4215,12 +4224,6 @@ dependencies = [
  "cfg_aliases 0.2.1",
  "libc",
 ]
-
-[[package]]
-name = "nodrop"
-version = "0.1.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72ef4a56884ca558e5ddb05a1d1e7e1bfd9a68d9ed024c21704cc98872dae1bb"
 
 [[package]]
 name = "nohash-hasher"
@@ -5199,6 +5202,7 @@ dependencies = [
  "data-url",
  "deny_public_fields",
  "devtools_traits",
+ "dom",
  "dom_struct",
  "domobject_derive",
  "embedder_traits",
@@ -5388,7 +5392,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.24.0"
-source = "git+https://github.com/servo/stylo?branch=2024-05-31#f6cb33f86468ba272d5329f64f78a75df8e9fcbe"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#eceb838e855e3b73a28df602b69494899f6d168b"
 dependencies = [
  "bitflags 2.6.0",
  "cssparser",
@@ -5676,9 +5680,8 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.2.0"
-source = "git+https://github.com/servo/stylo?branch=2024-05-31#f6cb33f86468ba272d5329f64f78a75df8e9fcbe"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#eceb838e855e3b73a28df602b69494899f6d168b"
 dependencies = [
- "nodrop",
  "serde",
  "stable_deref_trait",
 ]
@@ -5686,7 +5689,7 @@ dependencies = [
 [[package]]
 name = "servo_atoms"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-05-31#f6cb33f86468ba272d5329f64f78a75df8e9fcbe"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#eceb838e855e3b73a28df602b69494899f6d168b"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -5874,7 +5877,7 @@ checksum = "38b58827f4464d87d377d175e90bf58eb00fd8716ff0a62f80356b5e61555d0d"
 [[package]]
 name = "size_of_test"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-05-31#f6cb33f86468ba272d5329f64f78a75df8e9fcbe"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#eceb838e855e3b73a28df602b69494899f6d168b"
 dependencies = [
  "static_assertions",
 ]
@@ -6015,7 +6018,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "static_prefs"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?branch=2024-05-31#f6cb33f86468ba272d5329f64f78a75df8e9fcbe"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#eceb838e855e3b73a28df602b69494899f6d168b"
 
 [[package]]
 name = "strict-num"
@@ -6052,7 +6055,7 @@ dependencies = [
 [[package]]
 name = "style"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-05-31#f6cb33f86468ba272d5329f64f78a75df8e9fcbe"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#eceb838e855e3b73a28df602b69494899f6d168b"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -6061,6 +6064,7 @@ dependencies = [
  "byteorder",
  "cssparser",
  "derive_more",
+ "dom",
  "encoding_rs",
  "euclid",
  "fxhash",
@@ -6110,7 +6114,7 @@ dependencies = [
 [[package]]
 name = "style_config"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-05-31#f6cb33f86468ba272d5329f64f78a75df8e9fcbe"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#eceb838e855e3b73a28df602b69494899f6d168b"
 dependencies = [
  "lazy_static",
 ]
@@ -6118,7 +6122,7 @@ dependencies = [
 [[package]]
 name = "style_derive"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-05-31#f6cb33f86468ba272d5329f64f78a75df8e9fcbe"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#eceb838e855e3b73a28df602b69494899f6d168b"
 dependencies = [
  "darling",
  "derive_common",
@@ -6149,7 +6153,7 @@ dependencies = [
 [[package]]
 name = "style_traits"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-05-31#f6cb33f86468ba272d5329f64f78a75df8e9fcbe"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#eceb838e855e3b73a28df602b69494899f6d168b"
 dependencies = [
  "app_units",
  "bitflags 2.6.0",
@@ -6519,7 +6523,7 @@ dependencies = [
 [[package]]
 name = "to_shmem"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-05-31#f6cb33f86468ba272d5329f64f78a75df8e9fcbe"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#eceb838e855e3b73a28df602b69494899f6d168b"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -6532,7 +6536,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.0.1"
-source = "git+https://github.com/servo/stylo?branch=2024-05-31#f6cb33f86468ba272d5329f64f78a75df8e9fcbe"
+source = "git+https://github.com/servo/stylo?branch=2024-07-16#eceb838e855e3b73a28df602b69494899f6d168b"
 dependencies = [
  "darling",
  "derive_common",

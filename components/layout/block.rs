@@ -3007,15 +3007,15 @@ pub trait ISizeAndMarginsComputer {
                 ) => {
                     // servo_left, servo_right, and servo_center are used to implement
                     // the "align descendants" rule in HTML5 § 14.2.
-                    if block_align == TextAlign::ServoCenter {
+                    if block_align == TextAlign::MozCenter {
                         // Ignore any existing margins, and make the inline-start and
                         // inline-end margins equal.
                         let margin = (available_inline_size - inline_size).scale_by(0.5);
                         (margin, inline_size, margin)
                     } else {
                         let ignore_end_margin = match block_align {
-                            TextAlign::ServoLeft => block_mode.is_bidi_ltr(),
-                            TextAlign::ServoRight => !block_mode.is_bidi_ltr(),
+                            TextAlign::MozLeft => block_mode.is_bidi_ltr(),
+                            TextAlign::MozRight => !block_mode.is_bidi_ltr(),
                             _ => parent_has_same_direction,
                         };
                         if ignore_end_margin {

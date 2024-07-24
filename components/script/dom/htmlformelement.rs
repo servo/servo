@@ -20,7 +20,7 @@ use servo_atoms::Atom;
 use servo_rand::random;
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
-use style_traits::dom::ElementState;
+use style_dom::ElementState;
 
 use super::bindings::trace::{HashMapTracedValues, NoTrace};
 use crate::body::Extractable;

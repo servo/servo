@@ -102,6 +102,7 @@ servo_url = { path = "../url" }
 smallvec = { workspace = true, features = ["union"] }
 sparkle = { workspace = true }
 style = { workspace = true }
+style_dom = { workspace = true }
 style_traits = { workspace = true }
 swapper = "0.1"
 tempfile = "3"

@@ -58,7 +58,7 @@ use style::stylesheets::{CssRuleType, UrlExtraData};
 use style::values::generics::NonNegative;
 use style::values::{computed, specified, AtomIdent, AtomString, CSSFloat};
 use style::{dom_apis, thread_state, CaseSensitivityExt};
-use style_traits::dom::ElementState;
+use style_dom::ElementState;
 use xml5ever::serialize as xmlSerialize;
 use xml5ever::serialize::TraversalScope::{
     ChildrenOnly as XmlChildrenOnly, IncludeNode as XmlIncludeNode,
