@@ -106,10 +106,27 @@ struct FlexItemLayoutResult {
     baseline_relative_to_margin_box: Option<Au>,
 }
 
+impl FlexItemLayoutResult {
+    fn get_or_synthesize_baseline_with_block_size(&self, block_size: Au, item: &FlexItem) -> Au {
+        self.baseline_relative_to_margin_box
+            .unwrap_or_else(|| item.synthesized_baseline_relative_to_margin_box(block_size))
+    }
+}
+
 /// Return type of `FlexLine::layout`
 struct FlexLineLayoutResult {
     cross_size: Au,
-    item_fragments: Vec<(BoxFragment, PositioningContext)>, // One per flex item, in the given order
+    /// The [`BoxFragment`]s and [`PositioningContext`]s of all flex items,
+    /// one per flex item in "order-modified document order."
+    item_fragments: Vec<(BoxFragment, PositioningContext)>,
+    /// The 'shared alignment baseline' of this flex line. This is the baseline used for
+    /// baseline-aligned items if there are any, otherwise `None`.
+    shared_alignment_baseline: Option<Au>,
+    /// This is the baseline of the first and last items with compatible writing mode, regardless of
+    /// whether they particpate in baseline alignement. This is used as a fallback baseline for the
+    /// container, if there are no items participating in baseline alignment in the first or last
+    /// flex lines.
+    all_baselines: Baselines,
 }
 
 impl FlexContext<'_> {
@@ -420,10 +437,12 @@ impl FlexContainer {
             },
         };
 
-        let mut flex_item_fragments = flex_lines
-            .into_iter()
-            .zip(line_cross_start_positions)
-            .flat_map(move |(mut line, line_cross_start_position)| {
+        let mut baseline_alignment_participating_baselines = Baselines::default();
+        let mut all_baselines = Baselines::default();
+        let num_lines = flex_lines.len();
+        let mut flex_item_fragments = izip!(flex_lines.into_iter(), line_cross_start_positions)
+            .enumerate()
+            .flat_map(|(index, (mut line, line_cross_start_position))| {
                 let flow_relative_line_position = match (flex_axis, flex_wrap_reverse) {
                     (FlexAxis::Row, false) => LogicalVec2 {
                         block: line_cross_start_position,
@@ -442,6 +461,23 @@ impl FlexContainer {
                         inline: container_cross_size - line_cross_start_position - line.cross_size,
                     },
                 };
+
+                let line_shared_alignment_baseline = line
+                    .shared_alignment_baseline
+                    .map(|baseline| baseline + flow_relative_line_position.block);
+                let line_all_baselines =
+                    line.all_baselines.offset(flow_relative_line_position.block);
+                if index == 0 {
+                    baseline_alignment_participating_baselines.first =
+                        line_shared_alignment_baseline;
+                    all_baselines.first = line_all_baselines.first;
+                }
+                if index == num_lines - 1 {
+                    baseline_alignment_participating_baselines.last =
+                        line_shared_alignment_baseline;
+                    all_baselines.last = line_all_baselines.last;
+                }
+
                 for (fragment, _) in &mut line.item_fragments {
                     fragment.content_rect.start_corner += flow_relative_line_position
                 }
@@ -480,12 +516,20 @@ impl FlexContainer {
         // There should be no more flex items
         assert!(flex_item_fragments.next().is_none());
 
+        let baselines = Baselines {
+            first: baseline_alignment_participating_baselines
+                .first
+                .or(all_baselines.first),
+            last: baseline_alignment_participating_baselines
+                .last
+                .or(all_baselines.last),
+        };
+
         IndependentLayout {
             fragments,
             content_block_size,
             content_inline_size_for_table: None,
-            // TODO: compute baseline for flex container
-            baselines: Baselines::default(),
+            baselines,
         }
     }
 
@@ -743,12 +787,12 @@ fn flex_base_size(
 
 // “Collect flex items into flex lines”
 // https://drafts.csswg.org/css-flexbox/#algo-line-break
-fn collect_flex_lines<'items, LineResult>(
+fn collect_flex_lines<'items>(
     flex_context: &mut FlexContext,
     container_main_size: Au,
     mut items: &'items mut [FlexItem<'items>],
-    mut each: impl FnMut(&mut FlexContext, FlexLine<'items>) -> LineResult,
-) -> Vec<LineResult> {
+    mut each: impl FnMut(&mut FlexContext, FlexLine<'items>) -> FlexLineLayoutResult,
+) -> Vec<FlexLineLayoutResult> {
     if flex_context.container_is_single_line {
         let line = FlexLine {
             outer_hypothetical_main_sizes_sum: items
@@ -830,7 +874,7 @@ impl FlexLine<'_> {
         // Determine the used cross size of each flex item
         // https://drafts.csswg.org/css-flexbox/#algo-stretch
         let item_count = self.items.len();
-        let mut max_baseline = None;
+        let mut shared_alignment_baseline = None;
         let mut item_used_cross_sizes = Vec::with_capacity(item_count);
         let mut item_cross_margins = Vec::with_capacity(item_count);
         for (item, item_layout_result, used_main_size) in izip!(
@@ -860,18 +904,17 @@ impl FlexLine<'_> {
                     item.layout(*used_main_size, flex_context, Some(used_cross_size));
             }
 
-            item_layout_result.baseline_relative_to_margin_box = match item.align_self.0.value() {
-                AlignFlags::BASELINE | AlignFlags::LAST_BASELINE => {
-                    let baseline = item_layout_result
-                        .baseline_relative_to_margin_box
-                        .unwrap_or_else(|| {
-                            item.synthesized_baseline_relative_to_margin_box(used_cross_size)
-                        });
-                    max_baseline = Some(max_baseline.unwrap_or(baseline).max(baseline));
-                    Some(baseline)
-                },
-                _ => None,
-            };
+            // TODO: This also needs to check whether we have a compatible writing mode.
+            let baseline = item_layout_result
+                .get_or_synthesize_baseline_with_block_size(used_cross_size, item);
+            if matches!(
+                item.align_self.0.value(),
+                AlignFlags::BASELINE | AlignFlags::LAST_BASELINE
+            ) {
+                shared_alignment_baseline =
+                    Some(shared_alignment_baseline.unwrap_or(baseline).max(baseline));
+            }
+            item_layout_result.baseline_relative_to_margin_box = Some(baseline);
 
             // https://drafts.csswg.org/css-flexbox/#algo-cross-margins
             item_cross_margins.push(item.resolve_auto_cross_margins(
@@ -972,6 +1015,7 @@ impl FlexLine<'_> {
             _ => Au::zero(),
         };
 
+        let mut all_baselines = Baselines::default();
         let mut main_position_cursor = main_start_position;
         let item_fragments = izip!(
             self.items.iter(),
@@ -1016,7 +1060,7 @@ impl FlexLine<'_> {
                     item_layout_result
                         .baseline_relative_to_margin_box
                         .unwrap_or_default(),
-                    max_baseline.unwrap_or_default(),
+                    shared_alignment_baseline.unwrap_or_default(),
                 );
 
                 let start_corner = FlexRelativeVec2 {
@@ -1028,12 +1072,23 @@ impl FlexLine<'_> {
                     cross: *item_used_cross_size,
                 };
 
+                // Need to collect both baselines from baseline participation and other baselines.
                 let content_rect = flex_context
                     .rect_to_flow_relative(line_size, FlexRelativeRect { start_corner, size });
                 let margin = flex_context.sides_to_flow_relative(item_margin);
                 let collapsed_margin = CollapsedBlockMargins::from_margin(&margin);
 
-                // TODO: We should likely propagate baselines from `display: flex`.
+                if let Some(item_baseline) =
+                    item_layout_result.baseline_relative_to_margin_box.as_ref()
+                {
+                    let item_baseline = *item_baseline + item_content_cross_start_position -
+                        item.border.cross_start -
+                        item.padding.cross_start -
+                        item_margin.cross_start;
+                    all_baselines.first.get_or_insert(item_baseline);
+                    all_baselines.last = Some(item_baseline);
+                }
+
                 (
                     BoxFragment::new(
                         item.box_.base_fragment_info(),
@@ -1055,6 +1110,8 @@ impl FlexLine<'_> {
         FlexLineLayoutResult {
             cross_size: line_cross_size,
             item_fragments,
+            all_baselines,
+            shared_alignment_baseline,
         }
     }
 
@@ -1393,13 +1450,10 @@ impl<'items> FlexLine<'items> {
                 item.align_self.0.value(),
                 AlignFlags::BASELINE | AlignFlags::LAST_BASELINE
             ) {
-                let baseline = item_result
-                    .baseline_relative_to_margin_box
-                    .unwrap_or_else(|| {
-                        item.synthesized_baseline_relative_to_margin_box(
-                            item_result.hypothetical_cross_size,
-                        )
-                    });
+                let baseline = item_result.get_or_synthesize_baseline_with_block_size(
+                    item_result.hypothetical_cross_size,
+                    item,
+                );
                 let hypothetical_margin_box_cross_size =
                     item_result.hypothetical_cross_size + item.pbm_auto_is_zero.cross;
                 max_ascent = max_ascent.max(baseline);
