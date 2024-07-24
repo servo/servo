@@ -82,7 +82,7 @@ def copy_windows_dependencies(binary_path, destination):
             shutil.copy(path.join(binary_path, f), destination)
 
 
-def change_prefs(resources_path, platform, vr=False):
+def change_prefs(resources_path, platform):
     print("Swapping prefs")
     prefs_path = path.join(resources_path, "prefs.json")
     package_prefs_path = path.join(resources_path, "package-prefs.json")
@@ -92,8 +92,6 @@ def change_prefs(resources_path, platform, vr=False):
         package_prefs = json.load(package_prefs)
         if "all" in package_prefs:
             pref_sets += [package_prefs["all"]]
-        if vr and "vr" in package_prefs:
-            pref_sets += [package_prefs["vr"]]
         if platform in package_prefs:
             pref_sets += [package_prefs[platform]]
         for pref_set in pref_sets:
@@ -183,14 +181,12 @@ class PackageCommands(CommandBase):
             if flavor is not None:
                 flavor_name = flavor.title()
 
-            vr = flavor == "googlevr" or flavor == "oculusvr"
-
             dir_to_resources = path.join(self.get_top_dir(), 'target', 'android', 'resources')
             if path.exists(dir_to_resources):
                 delete(dir_to_resources)
 
             shutil.copytree(path.join(dir_to_root, 'resources'), dir_to_resources)
-            change_prefs(dir_to_resources, "android", vr=vr)
+            change_prefs(dir_to_resources, "android")
 
             variant = ":assemble" + flavor_name + arch_string + build_type_string
             apk_task_name = ":servoapp" + variant

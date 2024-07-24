@@ -140,13 +140,8 @@ class MachCommands(CommandBase):
             )
 
             if self.is_android_build and not no_package:
-                flavor = None
-                if "googlevr" in self.features:
-                    flavor = "googlevr"
-                elif "oculusvr" in self.features:
-                    flavor = "oculusvr"
                 rv = Registrar.dispatch("package", context=self.context, build_type=build_type,
-                                        target=self.cross_compile_target, flavor=flavor)
+                                        target=self.cross_compile_target, flavor=None)
                 if rv:
                     return rv
 
