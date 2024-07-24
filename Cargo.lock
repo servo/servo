@@ -372,8 +372,6 @@ dependencies = [
  "itertools 0.10.5",
  "lazy_static",
  "lazycell",
- "log",
- "prettyplease",
  "proc-macro2",
  "quote",
  "regex",
@@ -4748,16 +4746,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "925383efa346730478fb4838dbe9137d2a47675ad789c546d150a6e1dd4ab31c"
 
 [[package]]
-name = "prettyplease"
-version = "0.2.20"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f12335488a2f3b0a83b14edad48dca9879ce89b2edd10e80237e4e852dd645e"
-dependencies = [
- "proc-macro2",
- "syn 2.0.72",
-]
-
-[[package]]
 name = "proc-macro-crate"
 version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7357,12 +7345,10 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#bacb22faec8aa469ff6454bf0434d3b89fe419a3"
+source = "git+https://github.com/servo/webxr#11a3727637e6ca7664601ffa64afd21f97e78747"
 dependencies = [
- "bindgen",
  "crossbeam-channel",
  "euclid",
- "gl_generator",
  "log",
  "openxr",
  "serde",
@@ -7377,7 +7363,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#bacb22faec8aa469ff6454bf0434d3b89fe419a3"
+source = "git+https://github.com/servo/webxr#11a3727637e6ca7664601ffa64afd21f97e78747"
 dependencies = [
  "euclid",
  "ipc-channel",
