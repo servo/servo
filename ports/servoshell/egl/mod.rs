@@ -11,6 +11,8 @@ mod android;
 #[cfg(target_env = "ohos")]
 mod ohos;
 
+mod log;
+
 mod host_trait;
 mod resources;
 mod servo_glue;
