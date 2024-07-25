@@ -1385,7 +1385,7 @@ dependencies = [
  "diplomat_core",
  "proc-macro2",
  "quote",
- "syn 2.0.70",
+ "syn 2.0.72",
 ]
 
 [[package]]
@@ -1409,7 +1409,7 @@ dependencies = [
  "serde",
  "smallvec",
  "strck_ident",
- "syn 2.0.70",
+ "syn 2.0.72",
 ]
 
 [[package]]
@@ -4337,7 +4337,7 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.14.1"
-source = "git+https://github.com/sagudev/mozjs?branch=esr128#e618981f24a5105321301b33ab874632661846ed"
+source = "git+https://github.com/sagudev/mozjs?branch=esr128#15db7f6d2b4b3a7cbf7ba1a434cbb368ec409f54"
 dependencies = [
  "bindgen",
  "cc",
@@ -4351,7 +4351,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.128.0-0"
-source = "git+https://github.com/sagudev/mozjs?branch=esr128#e618981f24a5105321301b33ab874632661846ed"
+source = "git+https://github.com/sagudev/mozjs?branch=esr128#15db7f6d2b4b3a7cbf7ba1a434cbb368ec409f54"
 dependencies = [
  "bindgen",
  "cc",
