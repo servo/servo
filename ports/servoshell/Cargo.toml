@@ -86,6 +86,7 @@ serde_json = { workspace = true }
 surfman = { workspace = true, features = ["sm-angle-default"] }
 webxr = { git = "https://github.com/servo/webxr" }
 ohos-sys = { version = "0.2.1", features = ["xcomponent"] }
+nix = { workspace = true, features = ["fs"] }
 
 
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
