@@ -16,7 +16,7 @@ use style::Zero;
 
 use crate::style_ext::{Clamp, ComputedValuesExt};
 
-#[derive(Clone, Copy, Debug, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Serialize)]
 pub(crate) struct ContentSizes {
     pub min_content: Au,
     pub max_content: Au,

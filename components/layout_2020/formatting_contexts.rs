@@ -258,7 +258,7 @@ impl NonReplacedFormattingContextContents {
             Self::Flow(inner) => inner
                 .contents
                 .inline_content_sizes(layout_context, writing_mode),
-            Self::Flex(inner) => inner.inline_content_sizes(),
+            Self::Flex(inner) => inner.inline_content_sizes(layout_context, writing_mode),
             Self::Table(table) => table.inline_content_sizes(layout_context, writing_mode),
         }
     }
