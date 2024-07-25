@@ -51,6 +51,7 @@ packages = [
     "foreign-types",
     "foreign-types-shared",
     "metal",
+    "glow",
 
     # quickcheck (required by layout_2020 for tests) is
     # stuck on 0.8.4 with no new releases.

@@ -7,6 +7,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
+use webgpu::wgt::MemoryHints;
 use webgpu::{wgt, WebGPU, WebGPUAdapter, WebGPURequest, WebGPUResponse};
 
 use super::gpusupportedfeatures::GPUSupportedFeatures;
@@ -124,6 +125,7 @@ impl GPUAdapterMethods for GPUAdapter {
             required_features: features,
             required_limits: wgt::Limits::default(),
             label: None,
+            memory_hints: MemoryHints::MemoryUsage,
         };
         if let Some(limits) = &descriptor.requiredLimits {
             for (limit, value) in (*limits).iter() {

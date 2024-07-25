@@ -30,6 +30,7 @@ use wgc::resource::{BufferMapCallback, BufferMapOperation};
 use wgc::{gfx_select, id};
 use wgpu_core::command::RenderPassDescriptor;
 use wgpu_core::resource::BufferAccessResult;
+use wgpu_types::MemoryHints;
 use wgt::InstanceDescriptor;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
 
@@ -172,6 +173,7 @@ impl WGPU {
     pub(crate) fn run(&mut self) {
         loop {
             if let Ok(msg) = self.receiver.recv() {
+                log::trace!("recv: {msg:?}");
                 match msg {
                     WebGPURequest::BufferMapAsync {
                         sender,
@@ -196,7 +198,7 @@ impl WGPU {
                                         // SAFETY: guarantee to be safe from wgpu
                                         let data = unsafe {
                                             slice::from_raw_parts(
-                                                slice_pointer,
+                                                slice_pointer.as_ptr(),
                                                 range_size as usize,
                                             )
                                         };
@@ -355,12 +357,10 @@ impl WGPU {
                         descriptor,
                     } => {
                         let global = &self.global;
-                        if let Some(desc) = descriptor {
-                            let (_, error) = gfx_select!(buffer_id =>
-                                global.device_create_buffer(device_id, &desc, Some(buffer_id)));
+                        let (_, error) = gfx_select!(buffer_id =>
+                            global.device_create_buffer(device_id, &descriptor, Some(buffer_id)));
 
-                            self.maybe_dispatch_wgpu_error(device_id, error);
-                        }
+                        self.maybe_dispatch_wgpu_error(device_id, error);
                     },
                     WebGPURequest::CreateCommandEncoder {
                         device_id,
@@ -384,13 +384,13 @@ impl WGPU {
                         let bgls = implicit_ids
                             .as_ref()
                             .map_or(Vec::with_capacity(0), |(_, bgls)| {
-                                bgls.iter().map(|x| Some(x.to_owned())).collect()
+                                bgls.iter().map(|x| x.to_owned()).collect()
                             });
                         let implicit =
                             implicit_ids
                                 .as_ref()
                                 .map(|(layout, _)| ImplicitPipelineIds {
-                                    root_id: Some(*layout),
+                                    root_id: *layout,
                                     group_ids: bgls.as_slice(),
                                 });
                         let (_, error) = gfx_select!(compute_pipeline_id => global.device_create_compute_pipeline(
@@ -432,13 +432,13 @@ impl WGPU {
                         let bgls = implicit_ids
                             .as_ref()
                             .map_or(Vec::with_capacity(0), |(_, bgls)| {
-                                bgls.iter().map(|x| Some(x.to_owned())).collect()
+                                bgls.iter().map(|x| x.to_owned()).collect()
                             });
                         let implicit =
                             implicit_ids
                                 .as_ref()
                                 .map(|(layout, _)| ImplicitPipelineIds {
-                                    root_id: Some(*layout),
+                                    root_id: *layout,
                                     group_ids: bgls.as_slice(),
                                 });
                         if let Some(desc) = descriptor {
@@ -712,6 +712,7 @@ impl WGPU {
                             label: descriptor.label.as_ref().map(crate::Cow::from),
                             required_features: descriptor.required_features,
                             required_limits: descriptor.required_limits.clone(),
+                            memory_hints: MemoryHints::MemoryUsage,
                         };
                         let global = &self.global;
                         let (device_id, queue_id, error) = gfx_select!(device_id => global.adapter_request_device(
@@ -1123,7 +1124,10 @@ impl WGPU {
                                         global.buffer_get_mapped_range(buffer_id, 0, Some(buffer_size as u64)))
                                     .unwrap();
                                     let data = unsafe {
-                                        slice::from_raw_parts(slice_pointer, range_size as usize)
+                                        slice::from_raw_parts(
+                                            slice_pointer.as_ptr(),
+                                            range_size as usize,
+                                        )
                                     }
                                     .to_vec();
                                     if let Some(present_data) =
@@ -1183,7 +1187,10 @@ impl WGPU {
                                 ))
                                 .unwrap();
                             unsafe {
-                                slice::from_raw_parts_mut(slice_pointer, range_size as usize)
+                                slice::from_raw_parts_mut(
+                                    slice_pointer.as_ptr(),
+                                    range_size as usize,
+                                )
                             }
                             .copy_from_slice(&array_buffer);
                         }
