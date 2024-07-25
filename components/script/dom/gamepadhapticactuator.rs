@@ -26,7 +26,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::realms::{AlreadyInRealm, InRealm};
+use crate::realms::InRealm;
 use crate::script_runtime::JSContext;
 use crate::task::TaskCanceller;
 use crate::task_source::gamepad::GamepadTaskSource;

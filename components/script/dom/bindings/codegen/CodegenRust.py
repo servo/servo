@@ -3744,7 +3744,7 @@ class CGCallGenerator(CGThing):
         if "cx" not in argsPre and needsCx:
             args.prepend(CGGeneric("cx"))
         if nativeMethodName in descriptor.inRealmMethods:
-            args.append(CGGeneric("InRealm::in_realm(&AlreadyInRealm::assert_for_cx(cx))"))
+            args.append(CGGeneric("InRealm::already(&AlreadyInRealm::assert_for_cx(cx))"))
 
         # Build up our actual call
         self.cgRoot = CGList([], "\n")

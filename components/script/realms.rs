@@ -34,7 +34,7 @@ pub enum InRealm<'a> {
 }
 
 impl<'a> InRealm<'a> {
-    pub fn in_realm(token: &AlreadyInRealm) -> InRealm {
+    pub fn already(token: &AlreadyInRealm) -> InRealm {
         InRealm::Already(token)
     }
 
