@@ -1124,6 +1124,7 @@ impl Node {
             is_top_level_document: node_type == NodeConstants::DOCUMENT_NODE,
             node_name: String::from(self.NodeName()),
             num_children: self.ChildNodes().Length() as usize,
+            attrs: self.downcast().map(Element::summarize).unwrap_or(vec![]),
         }
     }
 

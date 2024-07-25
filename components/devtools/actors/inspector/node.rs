@@ -25,7 +25,13 @@ struct GetUniqueSelectorReply {
     value: String,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Serialize)]
+struct AttrMsg {
+    name: String,
+    value: String,
+}
+
+#[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NodeActorMsg {
     pub actor: String,
@@ -55,7 +61,7 @@ pub struct NodeActorMsg {
     parent: String,
     shadow_root_mode: Option<()>,
     traits: HashMap<String, ()>,
-    // TODO: Allow inline nodes
+    attrs: Vec<AttrMsg>,
 }
 
 pub struct NodeActor {
@@ -185,6 +191,14 @@ impl NodeInfoToProtocol for NodeInfo {
             parent: actors.script_to_actor(self.parent.clone()),
             shadow_root_mode: None,
             traits: HashMap::new(),
+            attrs: self
+                .attrs
+                .into_iter()
+                .map(|attr| AttrMsg {
+                    name: attr.name,
+                    value: attr.value,
+                })
+                .collect(),
         }
     }
 }
