@@ -510,7 +510,8 @@ impl XRSession {
 
     /// <https://immersive-web.github.io/webxr/#xrframe-apply-frame-updates>
     fn apply_frame_updates(&self, _frame: &XRFrame) {
-        // TODO: add a comment about why this is empty right now!
+        // <https://www.w3.org/TR/webxr-gamepads-module-1/#xrframe-apply-gamepad-frame-updates>
+        self.input_sources.update_gamepad_states();
     }
 
     fn handle_frame_event(&self, event: FrameUpdateEvent) {
