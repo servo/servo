@@ -209,7 +209,7 @@ unsafe extern "C" fn enqueue_promise_job(
             GlobalScope::from_object(incumbent_global.get())
         } else {
             let realm = AlreadyInRealm::assert_for_cx(cx);
-            GlobalScope::from_context(*cx, InRealm::in_realm(&realm))
+            GlobalScope::from_context(*cx, InRealm::already(&realm))
         };
         let pipeline = global.pipeline_id();
         let interaction = if promise.get().is_null() {
