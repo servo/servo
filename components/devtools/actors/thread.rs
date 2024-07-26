@@ -9,7 +9,7 @@ use serde_json::{Map, Value};
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
-use crate::StreamId;
+use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -50,11 +50,6 @@ struct ThreadInterruptedReply {
 }
 
 #[derive(Serialize)]
-struct ReconfigureReply {
-    from: String,
-}
-
-#[derive(Serialize)]
 struct SourcesReply {
     from: String,
     sources: Vec<Source>,
@@ -62,11 +57,6 @@ struct SourcesReply {
 
 #[derive(Serialize)]
 enum Source {}
-
-#[derive(Serialize)]
-struct VoidAttachedReply {
-    from: String,
-}
 
 pub struct ThreadActor {
     name: String,
@@ -107,7 +97,7 @@ impl Actor for ThreadActor {
                     },
                 };
                 let _ = stream.write_json_packet(&msg);
-                let _ = stream.write_json_packet(&VoidAttachedReply { from: self.name() });
+                let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
                 ActorMessageStatus::Processed
             },
 
@@ -117,7 +107,7 @@ impl Actor for ThreadActor {
                     type_: "resumed".to_owned(),
                 };
                 let _ = stream.write_json_packet(&msg);
-                let _ = stream.write_json_packet(&VoidAttachedReply { from: self.name() });
+                let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
                 ActorMessageStatus::Processed
             },
 
@@ -131,14 +121,14 @@ impl Actor for ThreadActor {
             },
 
             "reconfigure" => {
-                let _ = stream.write_json_packet(&ReconfigureReply { from: self.name() });
+                let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
                 ActorMessageStatus::Processed
             },
 
             "sources" => {
                 let msg = SourcesReply {
                     from: self.name(),
-                    sources: vec![],
+                    sources: vec![], // TODO: Add sources for the debugger here
                 };
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed

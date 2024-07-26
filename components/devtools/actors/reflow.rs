@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+//! This actor is used for protocol purposes, it forwards the reflow events to clients.
+
 use std::net::TcpStream;
 
 use serde_json::{Map, Value};
@@ -9,29 +11,38 @@ use serde_json::{Map, Value};
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::StreamId;
 
-pub struct ProfilerActor {
+pub struct ReflowActor {
     name: String,
 }
 
-impl Actor for ProfilerActor {
+impl Actor for ReflowActor {
     fn name(&self) -> String {
         self.name.clone()
     }
 
+    /// The reflow actor can handle the following messages:
+    ///
+    /// - `start`: Does nothing yet. This doesn't need a reply like other messages.
     fn handle_message(
         &self,
         _registry: &ActorRegistry,
-        _msg_type: &str,
+        msg_type: &str,
         _msg: &Map<String, Value>,
         _stream: &mut TcpStream,
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
-        Ok(ActorMessageStatus::Ignored)
+        Ok(match msg_type {
+            "start" => {
+                // TODO: Create an observer on "reflows" events
+                ActorMessageStatus::Processed
+            },
+            _ => ActorMessageStatus::Ignored,
+        })
     }
 }
 
-impl ProfilerActor {
-    pub fn new(name: String) -> ProfilerActor {
-        ProfilerActor { name }
+impl ReflowActor {
+    pub fn new(name: String) -> Self {
+        Self { name }
     }
 }

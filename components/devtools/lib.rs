@@ -28,7 +28,7 @@ use devtools_traits::{
 };
 use embedder_traits::{EmbedderMsg, EmbedderProxy, PromptDefinition, PromptOrigin, PromptResult};
 use ipc_channel::ipc::{self, IpcSender};
-use log::{debug, warn};
+use log::{debug, trace, warn};
 use serde::Serialize;
 use servo_rand::RngCore;
 
@@ -50,10 +50,8 @@ mod actor;
 /// <https://searchfox.org/mozilla-central/source/devtools/server/actors>
 mod actors {
     pub mod browsing_context;
-    pub mod configuration;
     pub mod console;
     pub mod device;
-    pub mod emulation;
     pub mod framerate;
     pub mod inspector;
     pub mod memory;
@@ -62,7 +60,7 @@ mod actors {
     pub mod performance;
     pub mod preference;
     pub mod process;
-    pub mod profiler;
+    pub mod reflow;
     pub mod root;
     pub mod stylesheets;
     pub mod tab;
@@ -279,6 +277,7 @@ fn run_server(
     // We need separate actor representations for each script global that exists;
     // clients can theoretically connect to multiple globals simultaneously.
     // TODO: move this into the root or target modules?
+    #[allow(clippy::too_many_arguments)]
     fn handle_new_global(
         actors: Arc<Mutex<ActorRegistry>>,
         ids: (BrowsingContextId, PipelineId, Option<WorkerId>),
@@ -608,7 +607,7 @@ fn run_server(
 
     let mut next_id = StreamId(0);
     while let Ok(msg) = receiver.recv() {
-        debug!("{:?}", msg);
+        trace!("{:?}", msg);
         match msg {
             DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::AddClient(stream)) => {
                 let actors = actors.clone();

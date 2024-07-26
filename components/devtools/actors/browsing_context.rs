@@ -9,6 +9,7 @@
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::net::TcpStream;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use base::id::{BrowsingContextId, PipelineId};
 use devtools_traits::DevtoolScriptControlMsg::{self, WantsLiveNotifications};
@@ -18,18 +19,16 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::actors::configuration::{TargetConfigurationActor, ThreadConfigurationActor};
-use crate::actors::emulation::EmulationActor;
+use crate::actors::inspector::accessibility::AccessibilityActor;
+use crate::actors::inspector::css_properties::CssPropertiesActor;
 use crate::actors::inspector::InspectorActor;
-use crate::actors::performance::PerformanceActor;
-use crate::actors::profiler::ProfilerActor;
+use crate::actors::reflow::ReflowActor;
 use crate::actors::stylesheets::StyleSheetsActor;
 use crate::actors::tab::TabDescriptorActor;
 use crate::actors::thread::ThreadActor;
-use crate::actors::timeline::TimelineActor;
 use crate::actors::watcher::{SessionContext, SessionContextType, WatcherActor};
 use crate::protocol::JsonPacketStream;
-use crate::StreamId;
+use crate::{EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
 struct FrameUpdateReply {
@@ -116,7 +115,12 @@ struct TabNavigated {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct BrowsingContextTraits {
+    frames: bool,
     is_browsing_context: bool,
+    log_in_page: bool,
+    navigation: bool,
+    supports_top_level_target_flag: bool,
+    watchpoints: bool,
 }
 
 #[derive(Serialize)]
@@ -130,28 +134,29 @@ pub struct BrowsingContextActorMsg {
     #[serde(rename = "browsingContextID")]
     browsing_context_id: u32,
     is_top_level_target: bool,
-    console_actor: String,
-    thread_actor: String,
     traits: BrowsingContextTraits,
+    // Implemented actors
+    accessibility_actor: String,
+    console_actor: String,
+    css_properties_actor: String,
+    inspector_actor: String,
+    reflow_actor: String,
+    style_sheets_actor: String,
+    thread_actor: String,
     // Part of the official protocol, but not yet implemented.
-    // emulation_actor: String,
-    // inspector_actor: String,
-    // timeline_actor: String,
-    // profiler_actor: String,
-    // performance_actor: String,
-    // style_sheets_actor: String,
-    // storage_actor: String,
-    // memory_actor: String,
-    // framerate_actor: String,
-    // reflow_actor: String,
-    // css_properties_actor: String,
     // animations_actor: String,
-    // web_extension_inspected_window_actor: String,
-    // accessibility_actor: String,
-    // screenshot_actor: String,
     // changes_actor: String,
-    // web_socket_actor: String,
+    // framerate_actor: String,
     // manifest_actor: String,
+    // memory_actor: String,
+    // network_content_actor: String,
+    // objects_manager: String,
+    // performance_actor: String,
+    // resonsive_actor: String,
+    // storage_actor: String,
+    // tracer_actor: String,
+    // web_extension_inspected_window_actor: String,
+    // web_socket_actor: String,
 }
 
 /// The browsing context actor encompasses all of the other supporting actors when debugging a web
@@ -163,16 +168,13 @@ pub(crate) struct BrowsingContextActor {
     pub url: RefCell<String>,
     pub active_pipeline: Cell<PipelineId>,
     pub browsing_context_id: BrowsingContextId,
+    pub accessibility: String,
     pub console: String,
-    pub _emulation: String,
-    pub _inspector: String,
-    pub _performance: String,
-    pub _profiler: String,
-    pub _style_sheets: String,
-    pub target_configuration: String,
-    pub thread_configuration: String,
+    pub css_properties: String,
+    pub inspector: String,
+    pub reflow: String,
+    pub style_sheets: String,
     pub thread: String,
-    pub _timeline: String,
     pub _tab: String,
     pub script_chan: IpcSender<DevtoolScriptControlMsg>,
     pub streams: RefCell<HashMap<StreamId, TcpStream>>,
@@ -187,12 +189,20 @@ impl Actor for BrowsingContextActor {
     fn handle_message(
         &self,
         _registry: &ActorRegistry,
-        _msg_type: &str,
+        msg_type: &str,
         _msg: &Map<String, Value>,
-        _stream: &mut TcpStream,
+        stream: &mut TcpStream,
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
-        Ok(ActorMessageStatus::Ignored)
+        Ok(match msg_type {
+            "listFrames" => {
+                // TODO: Find out what needs to be listed here
+                let msg = EmptyReplyMsg { from: self.name() };
+                let _ = stream.write_json_packet(&msg);
+                ActorMessageStatus::Processed
+            },
+            _ => ActorMessageStatus::Ignored,
+        })
     }
 
     fn cleanup(&self, id: StreamId) {
@@ -217,7 +227,9 @@ impl BrowsingContextActor {
         let name = actors.new_name("target");
         let DevtoolsPageInfo { title, url } = page_info;
 
-        let emulation = EmulationActor::new(actors.new_name("emulation"));
+        let accessibility = AccessibilityActor::new(actors.new_name("accessibility"));
+
+        let css_properties = CssPropertiesActor::new(actors.new_name("css-properties"));
 
         let inspector = InspectorActor {
             name: actors.new_name("inspector"),
@@ -228,29 +240,16 @@ impl BrowsingContextActor {
             browsing_context: name.clone(),
         };
 
-        let performance = PerformanceActor::new(actors.new_name("performance"));
+        let reflow = ReflowActor::new(actors.new_name("reflow"));
 
-        let profiler = ProfilerActor::new(actors.new_name("profiler"));
-
-        // the strange switch between styleSheets and stylesheets is due
-        // to an inconsistency in devtools. See Bug #1498893 in bugzilla
         let style_sheets = StyleSheetsActor::new(actors.new_name("stylesheets"));
 
         let tabdesc = TabDescriptorActor::new(actors, name.clone());
 
-        let target_configuration =
-            TargetConfigurationActor::new(actors.new_name("target-configuration"));
-
-        let thread_configuration =
-            ThreadConfigurationActor::new(actors.new_name("thread-configuration"));
-
-        let thread = ThreadActor::new(actors.new_name("context"));
-
-        let timeline =
-            TimelineActor::new(actors.new_name("timeline"), pipeline, script_sender.clone());
+        let thread = ThreadActor::new(actors.new_name("thread"));
 
         let watcher = WatcherActor::new(
-            actors.new_name("watcher"),
+            actors,
             name.clone(),
             SessionContext::new(SessionContextType::BrowserElement),
         );
@@ -262,31 +261,25 @@ impl BrowsingContextActor {
             url: RefCell::new(url.into_string()),
             active_pipeline: Cell::new(pipeline),
             browsing_context_id: id,
+            accessibility: accessibility.name(),
             console,
-            _emulation: emulation.name(),
-            _inspector: inspector.name(),
-            _performance: performance.name(),
-            _profiler: profiler.name(),
+            css_properties: css_properties.name(),
+            inspector: inspector.name(),
+            reflow: reflow.name(),
             streams: RefCell::new(HashMap::new()),
-            _style_sheets: style_sheets.name(),
+            style_sheets: style_sheets.name(),
             _tab: tabdesc.name(),
-            target_configuration: target_configuration.name(),
-            thread_configuration: thread_configuration.name(),
             thread: thread.name(),
-            _timeline: timeline.name(),
             watcher: watcher.name(),
         };
 
-        actors.register(Box::new(emulation));
+        actors.register(Box::new(accessibility));
+        actors.register(Box::new(css_properties));
         actors.register(Box::new(inspector));
-        actors.register(Box::new(performance));
-        actors.register(Box::new(profiler));
+        actors.register(Box::new(reflow));
         actors.register(Box::new(style_sheets));
         actors.register(Box::new(tabdesc));
-        actors.register(Box::new(target_configuration));
-        actors.register(Box::new(thread_configuration));
         actors.register(Box::new(thread));
-        actors.register(Box::new(timeline));
         actors.register(Box::new(watcher));
 
         target
@@ -297,6 +290,11 @@ impl BrowsingContextActor {
             actor: self.name(),
             traits: BrowsingContextTraits {
                 is_browsing_context: true,
+                frames: true,
+                log_in_page: false,
+                navigation: true,
+                supports_top_level_target_flag: true,
+                watchpoints: true,
             },
             title: self.title.borrow().clone(),
             url: self.url.borrow().clone(),
@@ -305,14 +303,13 @@ impl BrowsingContextActor {
             //FIXME: shouldn't ignore pipeline namespace field
             outer_window_id: self.active_pipeline.get().index.0.get(),
             is_top_level_target: true,
+            accessibility_actor: self.accessibility.clone(),
             console_actor: self.console.clone(),
+            css_properties_actor: self.css_properties.clone(),
+            inspector_actor: self.inspector.clone(),
+            reflow_actor: self.reflow.clone(),
+            style_sheets_actor: self.style_sheets.clone(),
             thread_actor: self.thread.clone(),
-            // emulation_actor: self.emulation.clone(),
-            // inspector_actor: self.inspector.clone(),
-            // performance_actor: self.performance.clone(),
-            // profiler_actor: self.profiler.clone(),
-            // style_sheets_actor: self.style_sheets.clone(),
-            // timeline_actor: self.timeline.clone(),
         }
     }
 
@@ -369,10 +366,7 @@ impl BrowsingContextActor {
     pub(crate) fn document_event(&self, stream: &mut TcpStream) {
         // TODO: This is a hacky way of sending the 3 messages
         //       Figure out if there needs work to be done here, ensure the page is loaded
-        for (i, &name) in ["dom-loading", "dom-interactive", "dom-complete"]
-            .iter()
-            .enumerate()
-        {
+        for &name in ["dom-loading", "dom-interactive", "dom-complete"].iter() {
             let _ = stream.write_json_packet(&ResourceAvailableReply {
                 from: self.name(),
                 type_: "resource-available-form".into(),
@@ -381,7 +375,10 @@ impl BrowsingContextActor {
                     name: name.into(),
                     new_uri: None,
                     resource_type: "document-event".into(),
-                    time: i as u64,
+                    time: SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_millis() as u64,
                     title: Some(self.title.borrow().clone()),
                     url: Some(self.url.borrow().clone()),
                 }],

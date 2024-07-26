@@ -11,17 +11,25 @@
 use std::collections::HashMap;
 use std::net::TcpStream;
 
+use log::warn;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
+use self::network_parent::{NetworkParentActor, NetworkParentActorMsg};
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
-use crate::actors::configuration::{
-    TargetConfigurationActor, TargetConfigurationActorMsg, ThreadConfigurationActor,
-    ThreadConfigurationActorMsg,
+use crate::actors::watcher::target_configuration::{
+    TargetConfigurationActor, TargetConfigurationActorMsg,
+};
+use crate::actors::watcher::thread_configuration::{
+    ThreadConfigurationActor, ThreadConfigurationActorMsg,
 };
 use crate::protocol::JsonPacketStream;
 use crate::{EmptyReplyMsg, StreamId};
+
+pub mod network_parent;
+pub mod target_configuration;
+pub mod thread_configuration;
 
 /// Describes the debugged context. It informs the server of which objects can be debugged.
 /// <https://searchfox.org/mozilla-central/source/devtools/server/actors/watcher/session-context.js>
@@ -54,7 +62,7 @@ impl SessionContext {
                 ("css-change", false),
                 ("css-message", false),
                 ("css-registered-properties", false),
-                ("document-event", true),
+                ("document-event", false),
                 ("Cache", false),
                 ("cookies", false),
                 ("error-message", true),
@@ -98,6 +106,19 @@ struct WatchTargetsReply {
 }
 
 #[derive(Serialize)]
+struct GetParentBrowsingContextIDReply {
+    from: String,
+    #[serde(rename = "browsingContextID")]
+    browsing_context_id: u32,
+}
+
+#[derive(Serialize)]
+struct GetNetworkParentActorReply {
+    from: String,
+    network: NetworkParentActorMsg,
+}
+
+#[derive(Serialize)]
 struct GetTargetConfigurationActorReply {
     from: String,
     configuration: TargetConfigurationActorMsg,
@@ -125,6 +146,9 @@ pub struct WatcherActorMsg {
 pub struct WatcherActor {
     name: String,
     browsing_context_actor: String,
+    network_parent: String,
+    target_configuration: String,
+    thread_configuration: String,
     session_context: SessionContext,
 }
 
@@ -142,6 +166,9 @@ impl Actor for WatcherActor {
     /// - `watchResources`: Start watching certain resource types. This sends
     /// `resource-available-form` events.
     ///
+    /// - `getNetworkParentActor`: Returns the network parent actor. It doesn't seem to do much at
+    /// the moment.
+    ///
     /// - `getTargetConfigurationActor`: Returns the configuration actor for a specific target, so
     /// that the server can update its settings.
     ///
@@ -154,33 +181,30 @@ impl Actor for WatcherActor {
         stream: &mut TcpStream,
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
+        let target = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
         Ok(match msg_type {
             "watchTargets" => {
-                let target = registry
-                    .find::<BrowsingContextActor>(&self.browsing_context_actor)
-                    .encodable();
-                let _ = stream.write_json_packet(&WatchTargetsReply {
+                let msg = WatchTargetsReply {
                     from: self.name(),
                     type_: "target-available-form".into(),
-                    target,
-                });
+                    target: target.encodable(),
+                };
+                let _ = stream.write_json_packet(&msg);
 
-                let target = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
                 target.frame_update(stream);
 
                 // Messages that contain a `type` field are used to send event callbacks, but they
                 // don't count as a reply. Since every message needs to be responded, we send an
                 // extra empty packet to the devtools host to inform that we successfully received
                 // and processed the message so that it can continue
-                let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
-
+                let msg = EmptyReplyMsg { from: self.name() };
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
             "watchResources" => {
                 let Some(resource_types) = msg.get("resourceTypes") else {
                     return Ok(ActorMessageStatus::Ignored);
                 };
-
                 let Some(resource_types) = resource_types.as_array() else {
                     return Ok(ActorMessageStatus::Ignored);
                 };
@@ -189,41 +213,55 @@ impl Actor for WatcherActor {
                     let Some(resource) = resource.as_str() else {
                         continue;
                     };
-
-                    let target =
-                        registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
-
-                    if resource == "document-event" {
-                        target.document_event(stream);
+                    match resource {
+                        "document-event" => {
+                            target.document_event(stream);
+                        },
+                        "console-message" | "error-message" => {},
+                        _ => warn!("resource {} not handled yet", resource),
                     }
 
-                    let _ = stream.write_json_packet(&EmptyReplyMsg { from: self.name() });
+                    let msg = EmptyReplyMsg { from: self.name() };
+                    let _ = stream.write_json_packet(&msg);
                 }
-
+                ActorMessageStatus::Processed
+            },
+            "getParentBrowsingContextID" => {
+                let browsing_context_id = target.browsing_context_id.index.0.get();
+                let msg = GetParentBrowsingContextIDReply {
+                    from: self.name(),
+                    browsing_context_id,
+                };
+                let _ = stream.write_json_packet(&msg);
+                ActorMessageStatus::Processed
+            },
+            "getNetworkParentActor" => {
+                let network_parent = registry.find::<NetworkParentActor>(&self.network_parent);
+                let msg = GetNetworkParentActorReply {
+                    from: self.name(),
+                    network: network_parent.encodable(),
+                };
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
             "getTargetConfigurationActor" => {
-                let target = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
                 let target_configuration =
-                    registry.find::<TargetConfigurationActor>(&target.target_configuration);
-
-                let _ = stream.write_json_packet(&GetTargetConfigurationActorReply {
+                    registry.find::<TargetConfigurationActor>(&self.target_configuration);
+                let msg = GetTargetConfigurationActorReply {
                     from: self.name(),
                     configuration: target_configuration.encodable(),
-                });
-
+                };
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
             "getThreadConfigurationActor" => {
-                let target = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
                 let thread_configuration =
-                    registry.find::<ThreadConfigurationActor>(&target.thread_configuration);
-
-                let _ = stream.write_json_packet(&GetThreadConfigurationActorReply {
+                    registry.find::<ThreadConfigurationActor>(&self.thread_configuration);
+                let msg = GetThreadConfigurationActorReply {
                     from: self.name(),
                     configuration: thread_configuration.encodable(),
-                });
-
+                };
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
             _ => ActorMessageStatus::Ignored,
@@ -233,15 +271,30 @@ impl Actor for WatcherActor {
 
 impl WatcherActor {
     pub fn new(
-        name: String,
+        actors: &mut ActorRegistry,
         browsing_context_actor: String,
         session_context: SessionContext,
     ) -> Self {
-        Self {
-            name,
+        let network_parent = NetworkParentActor::new(actors.new_name("network-parent"));
+        let target_configuration =
+            TargetConfigurationActor::new(actors.new_name("target-configuration"));
+        let thread_configuration =
+            ThreadConfigurationActor::new(actors.new_name("thread-configuration"));
+
+        let watcher = Self {
+            name: actors.new_name("watcher"),
             browsing_context_actor,
+            network_parent: network_parent.name(),
+            target_configuration: target_configuration.name(),
+            thread_configuration: thread_configuration.name(),
             session_context,
-        }
+        };
+
+        actors.register(Box::new(network_parent));
+        actors.register(Box::new(target_configuration));
+        actors.register(Box::new(thread_configuration));
+
+        watcher
     }
 
     pub fn encodable(&self) -> WatcherActorMsg {

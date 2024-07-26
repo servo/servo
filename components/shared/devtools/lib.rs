@@ -124,17 +124,10 @@ pub struct NodeInfo {
     pub base_uri: String,
     pub parent: String,
     pub node_type: u16,
-    #[serde(rename = "namespaceURI")]
-    pub namespace_uri: String,
     pub node_name: String,
     pub num_children: usize,
-    pub name: String,
-    pub public_id: String,
-    pub system_id: String,
     pub attrs: Vec<AttrInfo>,
-    pub is_document_element: bool,
-    pub short_value: String,
-    pub incomplete_value: bool,
+    pub is_top_level_document: bool,
 }
 
 pub struct StartedTimelineMarker {

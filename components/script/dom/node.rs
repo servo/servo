@@ -1113,30 +1113,18 @@ impl Node {
 
     pub fn summarize(&self) -> NodeInfo {
         let USVString(base_uri) = self.BaseURI();
+        let node_type = self.NodeType();
         NodeInfo {
             unique_id: self.unique_id(),
             base_uri,
             parent: self
                 .GetParentNode()
                 .map_or("".to_owned(), |node| node.unique_id()),
-            node_type: self.NodeType(),
-            namespace_uri: String::new(), //FIXME
+            node_type,
+            is_top_level_document: node_type == NodeConstants::DOCUMENT_NODE,
             node_name: String::from(self.NodeName()),
             num_children: self.ChildNodes().Length() as usize,
-
-            //FIXME doctype nodes only
-            name: String::new(),
-            public_id: String::new(),
-            system_id: String::new(),
             attrs: self.downcast().map(Element::summarize).unwrap_or(vec![]),
-
-            is_document_element: self
-                .owner_doc()
-                .GetDocumentElement()
-                .map_or(false, |elem| elem.upcast::<Node>() == self),
-
-            short_value: self.GetNodeValue().map(String::from).unwrap_or_default(), //FIXME: truncate
-            incomplete_value: false, //FIXME: reflect truncation
         }
     }
 

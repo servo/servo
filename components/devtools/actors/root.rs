@@ -52,7 +52,6 @@ struct GetRootReply {
 #[derive(Serialize)]
 struct ListTabsReply {
     from: String,
-    selected: u32,
     tabs: Vec<TabDescriptorActorMsg>,
 }
 
@@ -182,7 +181,6 @@ impl Actor for RootActor {
             "listTabs" => {
                 let actor = ListTabsReply {
                     from: "root".to_owned(),
-                    selected: 0,
                     tabs: self
                         .tabs
                         .iter()
