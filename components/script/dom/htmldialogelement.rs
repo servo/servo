@@ -11,7 +11,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLDialogElementBinding::HTMLDialo
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::document::Document;
+use crate::dom::document::{Document, FocusType};
 use crate::dom::element::Element;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
@@ -68,6 +68,31 @@ impl HTMLDialogElementMethods for HTMLDialogElement {
     // https://html.spec.whatwg.org/multipage/#dom-dialog-returnvalue
     fn SetReturnValue(&self, return_value: DOMString) {
         *self.return_value.borrow_mut() = return_value;
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-dialog-show>
+    fn Show(&self) {
+        let element = self.upcast::<Element>();
+
+        // Step 1 TODO: Check is modal flag is false
+        if element.has_attribute(&local_name!("open")) {
+            return;
+        }
+
+        // TODO: Step 2 If this has an open attribute, then throw an "InvalidStateError" DOMException.
+
+        // Step 3
+        element.set_bool_attribute(&local_name!("open"), true);
+
+        // TODO: Step 4 Set this's previously focused element to the focused element.
+
+        // TODO: Step 5 Let hideUntil be the result of running topmost popover ancestor given this, null, and false.
+
+        // TODO: Step 6 If hideUntil is null, then set hideUntil to this's node document.
+
+        // TODO: Step 7 Run hide all popovers until given hideUntil, false, and true.
+
+        // TODO(Issue #32702): Step 8 Run the dialog focusing steps given this.
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-dialog-close
