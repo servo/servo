@@ -644,7 +644,6 @@ dependencies = [
  "style",
  "style_traits",
  "surfman",
- "time 0.1.45",
  "unicode-script",
  "webrender",
  "webrender_api",
@@ -670,7 +669,6 @@ dependencies = [
  "servo_config",
  "sparkle",
  "style",
- "time 0.1.45",
  "webrender_api",
  "webxr-api",
 ]
@@ -7382,7 +7380,6 @@ dependencies = [
  "ipc-channel",
  "log",
  "serde",
- "time 0.1.45",
 ]
 
 [[package]]

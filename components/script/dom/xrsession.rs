@@ -182,21 +182,12 @@ impl XRSession {
         ROUTER.add_route(
             frame_receiver.to_opaque(),
             Box::new(move |message| {
-                #[allow(unused)]
-                let mut frame: Frame = message.to().unwrap();
-                #[cfg(feature = "xr-profile")]
-                {
-                    let received = time::precise_time_ns();
-                    println!(
-                        "WEBXR PROFILING [raf receive]:\t{}ms",
-                        (received - frame.sent_time) as f64 / 1_000_000.
-                    );
-                    frame.sent_time = received;
-                }
+                let frame: Frame = message.to().unwrap();
+                let time = time::precise_time_ns();
                 let this = this.clone();
                 let _ = task_source.queue_with_canceller(
                     task!(xr_raf_callback: move || {
-                        this.root().raf_callback(frame);
+                        this.root().raf_callback(frame, time);
                     }),
                     &canceller,
                 );
@@ -363,15 +354,8 @@ impl XRSession {
     }
 
     /// <https://immersive-web.github.io/webxr/#xr-animation-frame>
-    fn raf_callback(&self, mut frame: Frame) {
+    fn raf_callback(&self, mut frame: Frame, time: u64) {
         debug!("WebXR RAF callback {:?}", frame);
-        #[cfg(feature = "xr-profile")]
-        let raf_start = time::precise_time_ns();
-        #[cfg(feature = "xr-profile")]
-        println!(
-            "WEBXR PROFILING [raf queued]:\t{}ms",
-            (raf_start - frame.sent_time) as f64 / 1_000_000.
-        );
 
         // Step 1-2 happen in the xebxr device thread
 
@@ -421,7 +405,7 @@ impl XRSession {
             mem::swap(&mut *self.raf_callback_list.borrow_mut(), &mut current);
         }
         let start = self.global().as_window().get_navigation_start();
-        let time = reduce_timing_resolution((frame.time_ns - start).to_ms());
+        let time = reduce_timing_resolution((time - start).to_ms());
 
         let frame = XRFrame::new(&self.global(), self, frame);
         // Step 8-9
@@ -454,12 +438,6 @@ impl XRSession {
 
         // TODO: how does this fit the webxr spec?
         self.session.borrow_mut().render_animation_frame();
-
-        #[cfg(feature = "xr-profile")]
-        println!(
-            "WEBXR PROFILING [raf execute]:\t{}ms",
-            (time::precise_time_ns() - raf_start) as f64 / 1_000_000.
-        );
     }
 
     fn update_inline_projection_matrix(&self) {

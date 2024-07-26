@@ -2912,10 +2912,6 @@ impl Document {
 
         #[allow(unused)]
         let mut time = 0;
-        #[cfg(feature = "xr-profile")]
-        {
-            time = time::precise_time_ns();
-        }
         let (sender, receiver) = webgl::webgl_channel().unwrap();
         self.window
             .webgl_chan()
