@@ -14,6 +14,7 @@ use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use std::time::Duration;
 
+use cookie::Cookie;
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::EmbedderProxy;
@@ -43,6 +44,7 @@ use crate::async_runtime::HANDLE;
 use crate::connector::{
     create_http_client, create_tls_config, CACertificates, CertificateErrorOverrideManager,
 };
+use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::methods::{fetch, CancellationListener, FetchContext};
@@ -51,7 +53,7 @@ use crate::hsts::HstsList;
 use crate::http_cache::HttpCache;
 use crate::http_loader::{http_redirect_fetch, HttpState};
 use crate::storage_thread::StorageThreadFactory;
-use crate::{cookie, websocket_loader};
+use crate::websocket_loader;
 
 /// Load a file with CA certificate and produce a RootCertStore with the results.
 fn load_root_cert_store_from_file(file_path: String) -> io::Result<RootCertStore> {
@@ -315,7 +317,7 @@ impl ResourceChannelManager {
                 .fetch(req_init, Some(res_init), sender, http_state, cancel_chan),
             CoreResourceMsg::SetCookieForUrl(request, cookie, source) => self
                 .resource_manager
-                .set_cookie_for_url(&request, cookie.into_inner(), source, http_state),
+                .set_cookie_for_url(&request, cookie.into_inner().to_owned(), source, http_state),
             CoreResourceMsg::SetCookiesForUrl(request, cookies, source) => {
                 for cookie in cookies {
                     self.resource_manager.set_cookie_for_url(
@@ -637,11 +639,11 @@ impl CoreResourceManager {
     fn set_cookie_for_url(
         &mut self,
         request: &ServoUrl,
-        cookie: cookie_rs::Cookie<'static>,
+        cookie: Cookie<'static>,
         source: CookieSource,
         http_state: &Arc<HttpState>,
     ) {
-        if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, request, source) {
+        if let Some(cookie) = ServoCookie::new_wrapped(cookie, request, source) {
             let mut cookie_jar = http_state.cookie_jar.write().unwrap();
             cookie_jar.push(cookie, request, source)
         }

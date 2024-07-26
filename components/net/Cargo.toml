@@ -21,7 +21,7 @@ base64 = { workspace = true }
 brotli = "3"
 bytes = "1"
 content-security-policy = { workspace = true }
-cookie_rs = { package = "cookie", version = "0.12" }
+cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 data-url = { workspace = true }
 devtools_traits = { workspace = true }
@@ -58,6 +58,7 @@ servo_config = { path = "../config" }
 servo_url = { path = "../url" }
 sha2 = "0.10"
 time = { workspace = true }
+time_03 = { workspace = true }
 chrono = { workspace = true }
 tokio = { workspace = true, features = ["sync", "macros", "rt-multi-thread"] }
 tokio-rustls = { workspace = true }

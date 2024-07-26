@@ -39,7 +39,7 @@ use url::Url;
 
 use crate::async_runtime::HANDLE;
 use crate::connector::{create_tls_config, CACertificates, TlsConfig};
-use crate::cookie::Cookie;
+use crate::cookie::ServoCookie;
 use crate::fetch::methods::should_be_blocked_due_to_bad_port;
 use crate::hosts::replace_host;
 use crate::http_loader::HttpState;
@@ -127,7 +127,7 @@ fn process_ws_response(
     for cookie in response.headers().get_all(header::SET_COOKIE) {
         if let Ok(s) = std::str::from_utf8(cookie.as_bytes()) {
             if let Some(cookie) =
-                Cookie::from_cookie_string(s.into(), resource_url, CookieSource::HTTP)
+                ServoCookie::from_cookie_string(s.into(), resource_url, CookieSource::HTTP)
             {
                 jar.push(cookie, resource_url, CookieSource::HTTP);
             }

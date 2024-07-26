@@ -26,7 +26,7 @@ for (const i in TEST_CASES) {
 
     // Cleanup
     if (document.cookie.includes("=")) {
-      document.cookie = document.cookie.split("=")[0] + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+      document.cookie = document.cookie.split("=")[0] + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT";
       assert_equals(document.cookie, "");
     }
   }, t.name);

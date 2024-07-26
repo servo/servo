@@ -8,23 +8,24 @@
 use std::borrow::ToOwned;
 use std::net::{Ipv4Addr, Ipv6Addr};
 
-use hyper_serde::Serde;
+use cookie::Cookie;
 use net_traits::pub_domains::is_pub_domain;
 use net_traits::CookieSource;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
-use time::{at, now, Duration, Tm};
+use time::{now, Tm};
+use time_03::OffsetDateTime;
 
 /// A stored cookie that wraps the definition in cookie-rs. This is used to implement
 /// various behaviours defined in the spec that rely on an associated request URL,
 /// which cookie-rs and hyper's header parsing do not support.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Cookie {
+pub struct ServoCookie {
     #[serde(
         deserialize_with = "hyper_serde::deserialize",
         serialize_with = "hyper_serde::serialize"
     )]
-    pub cookie: cookie_rs::Cookie<'static>,
+    pub cookie: Cookie<'static>,
     pub host_only: bool,
     pub persistent: bool,
     #[serde(
@@ -37,36 +38,31 @@ pub struct Cookie {
         serialize_with = "hyper_serde::serialize"
     )]
     pub last_access: Tm,
-    pub expiry_time: Option<Serde<Tm>>,
+    pub expiry_time: Option<OffsetDateTime>,
 }
 
-impl Cookie {
+impl ServoCookie {
     pub fn from_cookie_string(
         cookie_str: String,
         request: &ServoUrl,
         source: CookieSource,
-    ) -> Option<Cookie> {
-        cookie_rs::Cookie::parse(cookie_str)
+    ) -> Option<ServoCookie> {
+        Cookie::parse(cookie_str)
             .ok()
-            .map(|cookie| Cookie::new_wrapped(cookie, request, source))
+            .map(|cookie| ServoCookie::new_wrapped(cookie, request, source))
             .unwrap_or(None)
     }
 
     /// <http://tools.ietf.org/html/rfc6265#section-5.3>
     pub fn new_wrapped(
-        mut cookie: cookie_rs::Cookie<'static>,
+        mut cookie: Cookie<'static>,
         request: &ServoUrl,
         source: CookieSource,
-    ) -> Option<Cookie> {
+    ) -> Option<ServoCookie> {
         // Step 3
-        let (persistent, expiry_time) = match (cookie.max_age(), cookie.expires()) {
-            (Some(max_age), _) => (
-                true,
-                Some(at(
-                    now().to_timespec() + Duration::seconds(max_age.num_seconds())
-                )),
-            ),
-            (_, Some(expires)) => (true, Some(expires)),
+        let (persistent, expiry_time) = match (cookie.max_age(), cookie.expires_datetime()) {
+            (Some(max_age), _) => (true, Some(time_03::OffsetDateTime::now_utc() + max_age)),
+            (_, Some(date_time)) => (true, Some(date_time)),
             _ => (false, None),
         };
 
@@ -86,7 +82,7 @@ impl Cookie {
 
         // Step 6
         let host_only = if !domain.is_empty() {
-            if !Cookie::domain_match(&url_host, &domain) {
+            if !ServoCookie::domain_match(&url_host, &domain) {
                 return None;
             } else {
                 cookie.set_domain(domain);
@@ -107,7 +103,7 @@ impl Cookie {
             })
             .to_owned();
         if !path.starts_with('/') {
-            path = Cookie::default_path(request.path()).to_string();
+            path = ServoCookie::default_path(request.path()).to_string();
         }
         cookie.set_path(path);
 
@@ -131,13 +127,13 @@ impl Cookie {
             return None;
         }
 
-        Some(Cookie {
+        Some(ServoCookie {
             cookie,
             host_only,
             persistent,
             creation_time: now(),
             last_access: now(),
-            expiry_time: expiry_time.map(Serde),
+            expiry_time,
         })
     }
 
@@ -145,8 +141,8 @@ impl Cookie {
         self.last_access = now();
     }
 
-    pub fn set_expiry_time_negative(&mut self) {
-        self.expiry_time = Some(Serde(now() - Duration::seconds(1)));
+    pub fn set_expiry_time_in_past(&mut self) {
+        self.expiry_time = Some(time_03::OffsetDateTime::UNIX_EPOCH);
     }
 
     // http://tools.ietf.org/html/rfc6265#section-5.1.4
@@ -206,13 +202,13 @@ impl Cookie {
                 return false;
             }
         } else if let (Some(domain), Some(cookie_domain)) = (domain, &self.cookie.domain()) {
-            if !Cookie::domain_match(domain, cookie_domain) {
+            if !ServoCookie::domain_match(domain, cookie_domain) {
                 return false;
             }
         }
 
         if let Some(cookie_path) = self.cookie.path() {
-            if !Cookie::path_match(url.path(), cookie_path) {
+            if !ServoCookie::path_match(url.path(), cookie_path) {
                 return false;
             }
         }

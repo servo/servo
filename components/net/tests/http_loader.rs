@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
 
 use base::id::TEST_PIPELINE_ID;
-use cookie_rs::Cookie as CookiePair;
+use cookie::Cookie as CookiePair;
 use crossbeam_channel::{unbounded, Receiver};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
@@ -30,7 +30,7 @@ use http::{Method, StatusCode};
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use net::cookie::Cookie;
+use net::cookie::ServoCookie;
 use net::cookie_storage::CookieStorage;
 use net::http_loader::determine_requests_referrer;
 use net::resource_thread::AuthCacheEntry;
@@ -648,7 +648,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
 
     {
         let mut cookie_jar = context.state.cookie_jar.write().unwrap();
-        let cookie = Cookie::new_wrapped(
+        let cookie = ServoCookie::new_wrapped(
             CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
             &url,
             CookieSource::HTTP,
@@ -694,7 +694,7 @@ fn test_load_sends_cookie_if_nonhttp() {
 
     {
         let mut cookie_jar = context.state.cookie_jar.write().unwrap();
-        let cookie = Cookie::new_wrapped(
+        let cookie = ServoCookie::new_wrapped(
             CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
             &url,
             CookieSource::NonHTTP,
@@ -1192,7 +1192,7 @@ fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
     let mut context = new_fetch_context(None, None, None);
     {
         let mut cookie_jar = context.state.cookie_jar.write().unwrap();
-        let cookie_x = Cookie::new_wrapped(
+        let cookie_x = ServoCookie::new_wrapped(
             CookiePair::new("mozillaIsNot".to_owned(), "dotOrg".to_owned()),
             &url_x,
             CookieSource::HTTP,
@@ -1201,7 +1201,7 @@ fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
 
         cookie_jar.push(cookie_x, &url_x, CookieSource::HTTP);
 
-        let cookie_y = Cookie::new_wrapped(
+        let cookie_y = ServoCookie::new_wrapped(
             CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
             &url_y,
             CookieSource::HTTP,

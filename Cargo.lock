@@ -981,18 +981,19 @@ dependencies = [
 
 [[package]]
 name = "cookie"
-version = "0.12.0"
+version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "888604f00b3db336d2af898ec3c1d5d0ddf5e6d462220f2ededc33a87ac4bbd5"
+checksum = "e859cd57d0710d9e06c381b550c06e76992472a8c6d527aecd2fc673dcc231fb"
 dependencies = [
- "time 0.1.45",
+ "time 0.3.36",
+ "version_check",
 ]
 
 [[package]]
 name = "cookie"
-version = "0.16.2"
+version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e859cd57d0710d9e06c381b550c06e76992472a8c6d527aecd2fc673dcc231fb"
+checksum = "4ddef33a339a91ea89fb53151bd0a4689cfce27055c291dfa69945475d22c747"
 dependencies = [
  "time 0.3.36",
  "version_check",
@@ -1276,6 +1277,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b42b6fa04a440b495c8b04d0e71b707c585f83cb9cb28cf8cd0d976c315e31b4"
 dependencies = [
  "powerfmt",
+ "serde",
 ]
 
 [[package]]
@@ -2903,7 +2905,7 @@ dependencies = [
 name = "hyper_serde"
 version = "0.13.2"
 dependencies = [
- "cookie 0.12.0",
+ "cookie 0.18.1",
  "headers",
  "http",
  "hyper",
@@ -2912,6 +2914,7 @@ dependencies = [
  "serde_bytes",
  "serde_test",
  "time 0.1.45",
+ "time 0.3.36",
 ]
 
 [[package]]
@@ -4135,7 +4138,7 @@ dependencies = [
  "bytes",
  "chrono",
  "content-security-policy",
- "cookie 0.12.0",
+ "cookie 0.18.1",
  "crossbeam-channel",
  "data-url",
  "devtools_traits",
@@ -4172,6 +4175,7 @@ dependencies = [
  "servo_url",
  "sha2",
  "time 0.1.45",
+ "time 0.3.36",
  "tokio",
  "tokio-rustls",
  "tokio-stream",
@@ -4190,7 +4194,7 @@ version = "0.0.1"
 dependencies = [
  "base",
  "content-security-policy",
- "cookie 0.12.0",
+ "cookie 0.18.1",
  "embedder_traits",
  "headers",
  "http",
@@ -5196,7 +5200,7 @@ dependencies = [
  "canvas_traits",
  "chrono",
  "content-security-policy",
- "cookie 0.12.0",
+ "cookie 0.18.1",
  "crossbeam-channel",
  "cssparser",
  "data-url",
@@ -5334,7 +5338,7 @@ dependencies = [
  "bitflags 2.6.0",
  "bluetooth_traits",
  "canvas_traits",
- "cookie 0.12.0",
+ "cookie 0.18.1",
  "crossbeam-channel",
  "devtools_traits",
  "embedder_traits",
@@ -7228,7 +7232,7 @@ dependencies = [
  "base",
  "base64",
  "compositing_traits",
- "cookie 0.12.0",
+ "cookie 0.18.1",
  "crossbeam-channel",
  "euclid",
  "http",
