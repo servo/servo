@@ -126,7 +126,7 @@ use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::identityhub::Identities;
 use crate::dom::mutationobserver::MutationObserver;
-use crate::dom::node::{document_from_node, window_from_node, Node, ShadowIncluding};
+use crate::dom::node::{window_from_node, Node, ShadowIncluding};
 use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performancepainttiming::PerformancePaintTiming;
 use crate::dom::serviceworker::TrustedServiceWorkerAddress;
@@ -1649,25 +1649,28 @@ impl ScriptThread {
         // TODO: The specification says to filter out non-renderable documents,
         // as well as those for which a rendering update would be unnecessary,
         // but this isn't happening here.
-        let pipeline_and_docs: Vec<(PipelineId, DomRoot<Document>)> = self
+        let pipelines_to_update: Vec<PipelineId> = self
             .documents
             .borrow()
             .iter()
             .filter(|(_, document)| document.window().is_top_level())
-            .map(|(id, document)| (id, DomRoot::from_ref(&*document)))
             .flat_map(|(id, document)| {
-                let mut documents = vec![(id.clone(), document.clone())];
-                documents.extend(document.iter_iframes().filter_map(|iframe| {
-                    iframe
-                        .pipeline_id()
-                        .map(|id| (id, document_from_node(&*iframe)))
-                }));
+                let mut documents = vec![id.clone()];
+                documents.extend(
+                    document
+                        .iter_iframes()
+                        .filter_map(|iframe| iframe.pipeline_id()),
+                );
                 documents
-            })
-            .collect();
+            });
+        //println!("Second Documents: {:?}", start);
         // Note: the spec reads: "for doc in docs" at each step
         // whereas this runs all steps per doc in docs.
-        for (pipeline_id, document) in pipeline_and_docs {
+        for pipeline_id in pipelines_to_update {
+            let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+                warn!("Updating the rendering for closed pipeline {pipeline_id}.");
+                continue;
+            };
             // TODO(#32004): The rendering should be updated according parent and shadow root order
             // in the specification, but this isn't happening yet.
 
