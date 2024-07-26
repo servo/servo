@@ -4435,9 +4435,9 @@ checksum = "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
 
 [[package]]
 name = "openxr"
-version = "0.18.0"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a03958eb34719625119448d483ebd2fe008a2128b6286f2a7138b7e48072053"
+checksum = "2a2d6934d2508f94fd4cbda6c2a326f111f60ce59fd9136df6d478564397dd40"
 dependencies = [
  "libc",
  "libloading",
@@ -4447,9 +4447,9 @@ dependencies = [
 
 [[package]]
 name = "openxr-sys"
-version = "0.10.0"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1534b2c14b56564e58b91f5015817e1d87bd43ca12a188eda6a9ea3859b0ec25"
+checksum = "f10e7e38c47f2175fc39363713b656db899fa0b4a14341029702cbdfa6f44d05"
 dependencies = [
  "libc",
 ]
@@ -7360,7 +7360,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#11a3727637e6ca7664601ffa64afd21f97e78747"
+source = "git+https://github.com/servo/webxr#89d702763d22aa29458dab06265bcd18a23e3ccd"
 dependencies = [
  "crossbeam-channel",
  "euclid",
@@ -7369,7 +7369,6 @@ dependencies = [
  "serde",
  "sparkle",
  "surfman",
- "time 0.1.45",
  "webxr-api",
  "winapi",
  "wio",
@@ -7378,7 +7377,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#11a3727637e6ca7664601ffa64afd21f97e78747"
+source = "git+https://github.com/servo/webxr#89d702763d22aa29458dab06265bcd18a23e3ccd"
 dependencies = [
  "euclid",
  "ipc-channel",
