@@ -211,8 +211,8 @@ impl Actor for WalkerActor {
     }
 }
 
-/// Recursively searchs for a child with the specified selector
-/// If it founds it, it returns a list with the child and all of its ascendents
+/// Recursively searches for a child with the specified selector
+/// If it is found, returns a list with the child and all of its ancestors.
 fn find_child(
     script_chan: &IpcSender<DevtoolScriptControlMsg>,
     pipeline: PipelineId,

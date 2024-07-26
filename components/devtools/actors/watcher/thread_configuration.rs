@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Liberally derived from <https://searchfox.org/mozilla-central/source/devtools/server/actors/thread-configuration.js>
-//! This actor manages the configuration flags that the devtools host can apply to the targets.
+//! This actor manages the configuration flags that the devtools host can apply to threads.
 
 use std::collections::HashMap;
 use std::net::TcpStream;

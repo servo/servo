@@ -166,8 +166,8 @@ impl Actor for WatcherActor {
     /// - `watchResources`: Start watching certain resource types. This sends
     /// `resource-available-form` events.
     ///
-    /// - `getNetworkParentActor`: Returns the network parent actor, it doesn't seem to do much at
-    /// the moment
+    /// - `getNetworkParentActor`: Returns the network parent actor. It doesn't seem to do much at
+    /// the moment.
     ///
     /// - `getTargetConfigurationActor`: Returns the configuration actor for a specific target, so
     /// that the server can update its settings.
