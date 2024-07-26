@@ -60,7 +60,7 @@ use crate::connector::{
     create_http_client, create_tls_config, CACertificates, CertificateErrorOverrideManager,
     Connector,
 };
-use crate::cookie;
+use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
 use crate::fetch::cors_cache::CorsCache;
@@ -328,7 +328,7 @@ fn set_cookie_for_url(cookie_jar: &RwLock<CookieStorage>, request: &ServoUrl, co
     let mut cookie_jar = cookie_jar.write().unwrap();
     let source = CookieSource::HTTP;
 
-    if let Some(cookie) = cookie::Cookie::from_cookie_string(cookie_val.into(), request, source) {
+    if let Some(cookie) = ServoCookie::from_cookie_string(cookie_val.into(), request, source) {
         cookie_jar.push(cookie, request, source);
     }
 }

@@ -20,6 +20,7 @@ use base::id::{BrowsingContextId, TopLevelBrowsingContextId};
 use base64::Engine;
 use capabilities::ServoCapabilities;
 use compositing_traits::ConstellationMsg;
+use cookie::{CookieBuilder, Expiration};
 use crossbeam_channel::{after, select, unbounded, Receiver, Sender};
 use euclid::{Rect, Size2D};
 use http::method::Method;
@@ -92,9 +93,10 @@ fn cookie_msg_to_cookie(cookie: cookie::Cookie) -> Cookie {
         value: cookie.value().to_owned(),
         path: cookie.path().map(|s| s.to_owned()),
         domain: cookie.domain().map(|s| s.to_owned()),
-        expiry: cookie
-            .expires()
-            .map(|time| Date(time.to_timespec().sec as u64)),
+        expiry: cookie.expires().and_then(|expiration| match expiration {
+            Expiration::DateTime(date_time) => Some(Date(date_time.unix_timestamp() as u64)),
+            Expiration::Session => None,
+        }),
         secure: cookie.secure().unwrap_or(false),
         http_only: cookie.http_only().unwrap_or(false),
         same_site: cookie.same_site().map(|s| s.to_string()),
@@ -1254,19 +1256,19 @@ impl Handler {
     ) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let cookie = cookie::Cookie::build(params.name.to_owned(), params.value.to_owned())
+        let cookie_builder = CookieBuilder::new(params.name.to_owned(), params.value.to_owned())
             .secure(params.secure)
             .http_only(params.httpOnly);
-        let cookie = match params.domain {
-            Some(ref domain) => cookie.domain(domain.to_owned()),
-            _ => cookie,
+        let cookie_builder = match params.domain {
+            Some(ref domain) => cookie_builder.domain(domain.to_owned()),
+            _ => cookie_builder,
         };
-        let cookie = match params.path {
-            Some(ref path) => cookie.path(path.to_owned()).finish(),
-            _ => cookie.finish(),
+        let cookie_builder = match params.path {
+            Some(ref path) => cookie_builder.path(path.to_owned()),
+            _ => cookie_builder,
         };
 
-        let cmd = WebDriverScriptCommand::AddCookie(cookie, sender);
+        let cmd = WebDriverScriptCommand::AddCookie(cookie_builder.build(), sender);
         self.browsing_context_script_command(cmd)?;
         match receiver.recv().unwrap() {
             Ok(_) => Ok(WebDriverResponse::Void),

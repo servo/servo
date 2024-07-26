@@ -8,14 +8,14 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use cookie::Cookie;
+use cookie::{Cookie, CookieBuilder};
 use headers::ContentType;
 use http::header::{self, HeaderMap, HeaderValue};
 use http::StatusCode;
 use hyper::{Method, Uri};
 use hyper_serde::{De, Ser};
 use serde_test::{assert_de_tokens, assert_ser_tokens, Token};
-use time::Duration;
+use time_03::Duration;
 
 #[test]
 fn test_content_type() {
@@ -31,13 +31,13 @@ fn test_cookie() {
     // Unfortunately we have to do the to_string().parse() dance here to avoid the object being a
     // string with a bunch of indices in it which apparently is different from the exact same
     // cookie but parsed as a bunch of strings.
-    let cookie: Cookie = Cookie::build("Hello", "World!")
+    let cookie: Cookie = CookieBuilder::new("Hello", "World!")
         .max_age(Duration::seconds(42))
         .domain("servo.org")
         .path("/")
         .secure(true)
         .http_only(false)
-        .finish()
+        .build()
         .to_string()
         .parse()
         .unwrap();
