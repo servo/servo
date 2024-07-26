@@ -50,7 +50,6 @@ profilemozjs = ["libservo/profilemozjs"]
 refcell_backtrace = ["libservo/refcell_backtrace"]
 webdriver = ["libservo/webdriver"]
 webgl_backtrace = ["libservo/webgl_backtrace"]
-xr-profile = ["libservo/xr-profile"]
 
 [dependencies]
 libc = { workspace = true }

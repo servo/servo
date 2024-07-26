@@ -12,7 +12,6 @@ path = "lib.rs"
 
 [features]
 webgl_backtrace = ["canvas_traits/webgl_backtrace"]
-xr-profile = ["webxr-api/profile", "time"]
 
 [dependencies]
 app_units = { workspace = true }
@@ -41,7 +40,6 @@ sparkle = { workspace = true }
 style = { workspace = true }
 style_traits = { workspace = true }
 surfman = { workspace = true }
-time = { workspace = true, optional = true }
 unicode-script = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }

@@ -18,7 +18,6 @@ profilemozjs = ['js/profilemozjs']
 webgl_backtrace = ["canvas_traits/webgl_backtrace"]
 js_backtrace = []
 refcell_backtrace = ["accountable-refcell"]
-xr-profile = ["webxr-api/profile"]
 
 [build-dependencies]
 phf_codegen = "0.11"

@@ -51,11 +51,6 @@ use webxr_api::{
 
 use crate::webgl_limits::GLLimitsDetect;
 
-#[cfg(feature = "xr-profile")]
-fn to_ms(ns: u64) -> f64 {
-    ns as f64 / 1_000_000.
-}
-
 struct GLContextData {
     ctx: Context,
     gl: Rc<Gl>,
@@ -831,14 +826,6 @@ impl WebGLThread {
 
         #[allow(unused)]
         let mut end_swap = 0;
-        #[cfg(feature = "xr-profile")]
-        {
-            end_swap = time::precise_time_ns();
-            println!(
-                "WEBXR PROFILING [swap buffer]:\t{}ms",
-                to_ms(end_swap - start_swap)
-            );
-        }
         completed_sender.send(end_swap).unwrap();
     }
 
