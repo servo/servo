@@ -3214,22 +3214,29 @@ impl GlobalScope {
         // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
         //          then abort these steps.
         let this = Trusted::new(self);
-        self.gamepad_task_source().queue_with_canceller(
-            task!(gamepad_connected: move || {
-                let global = this.root();
+        self.gamepad_task_source()
+            .queue_with_canceller(
+                task!(gamepad_connected: move || {
+                    let global = this.root();
 
-                if let Some(window) = global.downcast::<Window>() {
-                    let navigator = window.Navigator();
-                    let selected_index = navigator.select_gamepad_index();
-                    let gamepad = Gamepad::new(
-                        &global, selected_index, name, "standard".into(), axis_bounds, button_bounds, supported_haptic_effects
-                    );
-                    navigator.set_gamepad(selected_index as usize, &gamepad);
-                }
-            }),
-            &self.task_canceller(TaskSourceName::Gamepad)
-        )
-        .expect("Failed to queue gamepad connected task.");
+                    if let Some(window) = global.downcast::<Window>() {
+                        let navigator = window.Navigator();
+                        let selected_index = navigator.select_gamepad_index();
+                        let gamepad = Gamepad::new(
+                            &global,
+                            selected_index,
+                            name,
+                            "standard".into(),
+                            axis_bounds,
+                            button_bounds,
+                            supported_haptic_effects
+                        );
+                        navigator.set_gamepad(selected_index as usize, &gamepad);
+                    }
+                }),
+                &self.task_canceller(TaskSourceName::Gamepad),
+            )
+            .expect("Failed to queue gamepad connected task.");
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepaddisconnected>

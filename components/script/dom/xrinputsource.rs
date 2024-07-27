@@ -43,6 +43,7 @@ impl XRInputSource {
         session: &XRSession,
         info: InputSource,
     ) -> XRInputSource {
+        // <https://www.w3.org/TR/webxr-gamepads-module-1/#gamepad-differences>
         let gamepad = Gamepad::new(
             global,
             0,
@@ -147,6 +148,7 @@ impl XRInputSourceMethods for XRInputSource {
         self.profiles.get()
     }
 
+    /// <https://www.w3.org/TR/webxr-gamepads-module-1/#xrinputsource-interface>
     fn GetGamepad(&self) -> Option<DomRoot<Gamepad>> {
         if let Some(gamepad) = self.gamepad.as_ref() {
             Some(DomRoot::from_ref(&**gamepad))
