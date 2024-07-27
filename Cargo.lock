@@ -4009,8 +4009,7 @@ dependencies = [
 [[package]]
 name = "libz-sys"
 version = "1.1.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c15da26e5af7e25c90b37a2d75cdbf940cf4a55316de9d84c679c9b8bfabf82e"
+source = "git+https://github.com/rust-lang/libz-sys.git?rev=f76b7a24ed0a71ef1b8bdac1895e8535cb2cb9c0#f76b7a24ed0a71ef1b8bdac1895e8535cb2cb9c0"
 dependencies = [
  "cc",
  "libc",
@@ -4337,7 +4336,7 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.14.1"
-source = "git+https://github.com/sagudev/mozjs?branch=esr128#15db7f6d2b4b3a7cbf7ba1a434cbb368ec409f54"
+source = "git+https://github.com/sagudev/mozjs?branch=esr128#3b7f5175d88d5f0aa078011f5e9dfe1bb2a1c22f"
 dependencies = [
  "bindgen",
  "cc",
@@ -4351,7 +4350,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.128.0-0"
-source = "git+https://github.com/sagudev/mozjs?branch=esr128#15db7f6d2b4b3a7cbf7ba1a434cbb368ec409f54"
+source = "git+https://github.com/sagudev/mozjs?branch=esr128#3b7f5175d88d5f0aa078011f5e9dfe1bb2a1c22f"
 dependencies = [
  "bindgen",
  "cc",
