@@ -1174,37 +1174,6 @@ impl HTMLFormElement {
         submitter: Option<FormSubmitterElement>,
         encoding: Option<&'static Encoding>,
     ) -> Option<Vec<FormDatum>> {
-        fn clean_crlf(s: &str) -> DOMString {
-            // Step 4
-            let mut buf = "".to_owned();
-            let mut prev = ' ';
-            for ch in s.chars() {
-                match ch {
-                    '\n' if prev != '\r' => {
-                        buf.push('\r');
-                        buf.push('\n');
-                    },
-                    '\n' => {
-                        buf.push('\n');
-                    },
-                    // This character isn't LF but is
-                    // preceded by CR
-                    _ if prev == '\r' => {
-                        buf.push('\r');
-                        buf.push('\n');
-                        buf.push(ch);
-                    },
-                    _ => buf.push(ch),
-                };
-                prev = ch;
-            }
-            // In case the last character was CR
-            if prev == '\r' {
-                buf.push('\n');
-            }
-            DOMString::from(buf)
-        }
-
         // Step 1
         if self.constructing_entry_list.get() {
             return None;
@@ -1214,19 +1183,7 @@ impl HTMLFormElement {
         self.constructing_entry_list.set(true);
 
         // Step 3-6
-        let mut ret = self.get_unclean_dataset(submitter, encoding);
-        for datum in &mut ret {
-            match &*datum.ty {
-                "file" | "textarea" => (), // TODO
-                _ => {
-                    datum.name = clean_crlf(&datum.name);
-                    datum.value = FormDatumValue::String(clean_crlf(match datum.value {
-                        FormDatumValue::String(ref s) => s,
-                        FormDatumValue::File(_) => unreachable!(),
-                    }));
-                },
-            }
-        }
+        let ret = self.get_unclean_dataset(submitter, encoding);
 
         let window = window_from_node(self);
 
@@ -1782,20 +1739,56 @@ impl FormControlElementHelpers for Element {
     }
 }
 
-// https://html.spec.whatwg.org/multipage/#multipart/form-data-encoding-algorithm
+/// <https://html.spec.whatwg.org/multipage/#multipart/form-data-encoding-algorithm>
 pub fn encode_multipart_form_data(
     form_data: &mut [FormDatum],
     boundary: String,
     encoding: &'static Encoding,
 ) -> Vec<u8> {
-    // Step 1
     let mut result = vec![];
 
-    // Step 2
-    for entry in form_data.iter_mut() {
-        // TODO: Step 2.1
+    // Newline replacement routine as described in Step 1
+    fn clean_crlf(s: &str) -> DOMString {
+        let mut buf = "".to_owned();
+        let mut prev = ' ';
+        for ch in s.chars() {
+            match ch {
+                '\n' if prev != '\r' => {
+                    buf.push('\r');
+                    buf.push('\n');
+                },
+                '\n' => {
+                    buf.push('\n');
+                },
+                // This character isn't LF but is
+                // preceded by CR
+                _ if prev == '\r' => {
+                    buf.push('\r');
+                    buf.push('\n');
+                    buf.push(ch);
+                },
+                _ => buf.push(ch),
+            };
+            prev = ch;
+        }
+        // In case the last character was CR
+        if prev == '\r' {
+            buf.push('\n');
+        }
+        DOMString::from(buf)
+    }
 
-        // Step 3
+    for entry in form_data.iter_mut() {
+        // Step 1.1: Perform newline replacement on entry's name
+        entry.name = clean_crlf(&entry.name);
+
+        // Step 1.2: If entry's value is not a File object, perform newline replacement on entry's
+        // value
+        if let FormDatumValue::String(ref s) = entry.value {
+            entry.value = FormDatumValue::String(clean_crlf(s));
+        }
+
+        // Step 2: Return the byte sequence resulting from encoding the entry list.
         // https://tools.ietf.org/html/rfc7578#section-4
         // NOTE(izgzhen): The encoding here expected by most servers seems different from
         // what spec says (that it should start with a '\r\n').
