@@ -329,7 +329,7 @@ impl ServoParser {
     }
 
     pub fn can_write(&self) -> bool {
-        self.script_created_parser || self.script_nesting_level.get() <= 1
+        self.script_created_parser || self.script_nesting_level.get() > 0
     }
 
     /// Steps 6-8 of <https://html.spec.whatwg.org/multipage/#document.write()>
