@@ -144,6 +144,11 @@ impl HTMLFieldSetElementMethods for HTMLFieldSetElement {
     fn SetCustomValidity(&self, error: DOMString) {
         self.validity_state().set_custom_error_message(error);
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-fieldset-type>
+    fn Type(&self) -> DOMString {
+        DOMString::from_string(String::from("fieldset"))
+    }
 }
 
 impl VirtualMethods for HTMLFieldSetElement {
