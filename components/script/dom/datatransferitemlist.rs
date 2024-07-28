@@ -17,21 +17,32 @@ pub struct DataTransferItemList {
 }
 
 impl DataTransferItemListMethods for DataTransferItemList {
+    // https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-length
     fn Length(&self) -> u32 {
         todo!()
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-add
     fn Add(&self, data: DOMString, type_: DOMString) -> Option<DomRoot<DataTransferItem>> {
         todo!()
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-add
     fn Add_(&self, data: &File) -> Option<DomRoot<DataTransferItem>> {
         todo!()
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-remove
     fn Remove(&self, index: u32) {
         todo!()
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-clear
     fn Clear(&self) {
         todo!()
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-item
     fn IndexedGetter(&self, index: u32) -> Option<DomRoot<DataTransferItem>> {
         todo!()
     }

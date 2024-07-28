@@ -37,10 +37,12 @@ impl ClipboardEvent {
 }
 
 impl ClipboardEventMethods for ClipboardEvent {
+    // https://www.w3.org/TR/clipboard-apis/#dom-clipboardevent-clipboarddata
     fn GetClipboardData(&self) -> Option<DomRoot<DataTransfer>> {
         todo!()
     }
 
+    // https://dom.spec.whatwg.org/#dom-event-istrusted
     fn IsTrusted(&self) -> bool {
         todo!()
     }

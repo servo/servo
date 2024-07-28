@@ -22,18 +22,22 @@ pub struct DataTransferItem {
 }
 
 impl DataTransferItemMethods for DataTransferItem {
+    // https://html.spec.whatwg.org/multipage/#dom-datatransferitem-kind
     fn Kind(&self) -> DOMString {
         todo!()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-datatransferitem-type
     fn Type(&self) -> DOMString {
         todo!()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-datatransferitem-getasstring
     fn GetAsString(&self, callback: Option<Rc<FunctionStringCallback>>) {
         todo!()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-datatransferitem-getasfile
     fn GetAsFile(&self) -> Option<DomRoot<File>> {
         todo!()
     }
