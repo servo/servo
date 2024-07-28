@@ -569,7 +569,7 @@ class CommandBase(object):
 
         android_api = android_platform.replace('android-', '')
 
-        # Check if the NDK version is 25
+        # Check if the NDK version is 26
         if not os.path.isfile(path.join(env["ANDROID_NDK_ROOT"], 'source.properties')):
             print("ANDROID_NDK should have file `source.properties`.")
             print("The environment variable ANDROID_NDK_ROOT may be set at a wrong path.")
