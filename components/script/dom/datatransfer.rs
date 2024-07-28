@@ -28,21 +28,32 @@ impl DataTransfer {
 }
 
 impl DataTransferMethods for DataTransfer {
+    // https://html.spec.whatwg.org/multipage/#dom-datatransfer-dropeffect
     fn DropEffect(&self) -> DOMString {
         todo!()
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-datatransfer-dropeffect
     fn SetDropEffect(&self, value: DOMString) {
         todo!()
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-datatransfer-effectallowed
     fn EffectAllowed(&self) -> DOMString {
         todo!()
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-datatransfer-effectallowed
     fn SetEffectAllowed(&self, value: DOMString) {
         todo!()
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-datatransfer-items
     fn Items(&self) -> DomRoot<DataTransferItemList> {
         todo!()
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-datatransfer-setdragimage
     fn SetDragImage(&self, image: &Element, x: i32, y: i32) {
         todo!()
     }
