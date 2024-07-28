@@ -13,7 +13,7 @@ interface HTMLFieldSetElement : HTMLElement {
   [CEReactions]
            attribute DOMString name;
 
-  //readonly attribute DOMString type;
+  readonly attribute DOMString type;
 
   [SameObject] readonly attribute HTMLCollection elements;
 
