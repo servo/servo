@@ -19,7 +19,6 @@ use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyl
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::{jsstring_to_str, ConversionResult, FromJSValConvertible};
 use crate::dom::bindings::inheritance::Castable;

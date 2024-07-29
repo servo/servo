@@ -109,14 +109,14 @@ pub enum EvaluateJSReply {
     ActorValue { class: String, uuid: String },
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct AttrInfo {
     pub namespace: String,
     pub name: String,
     pub value: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NodeInfo {
     pub unique_id: String,

@@ -115,17 +115,15 @@ impl Actor for WalkerActor {
                     .map_err(|_| ())?;
                 let children = rx.recv().map_err(|_| ())?.ok_or(())?;
 
-                let nodes = children
-                    .into_iter()
-                    .map(|child| {
-                        child.encode(registry, true, self.script_chan.clone(), self.pipeline)
-                    })
-                    .collect();
-
                 let msg = ChildrenReply {
                     has_first: true,
                     has_last: true,
-                    nodes,
+                    nodes: children
+                        .into_iter()
+                        .map(|child| {
+                            child.encode(registry, true, self.script_chan.clone(), self.pipeline)
+                        })
+                        .collect(),
                     from: self.name(),
                 };
                 let _ = stream.write_json_packet(&msg);
