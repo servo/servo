@@ -209,6 +209,8 @@ pub mod types {
     include!(concat!(env!("OUT_DIR"), "/InterfaceTypes.rs"));
 }
 
+pub mod abortcontroller;
+pub mod abortsignal;
 pub mod abstractrange;
 pub mod abstractworker;
 pub mod abstractworkerglobalscope;
