@@ -835,7 +835,7 @@ unsafe extern "C" fn servo_build_id(build_id: *mut BuildIdCharVector) -> bool {
 #[allow(unsafe_code)]
 #[cfg(feature = "debugmozjs")]
 unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
-    use js::jsapi::{JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ};
+    use js::jsapi::SetGCZeal;
 
     let level = match pref!(js.mem.gc.zeal.level) {
         level @ 0..=14 => level as u8,
@@ -843,9 +843,10 @@ unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
     };
     let frequency = match pref!(js.mem.gc.zeal.frequency) {
         frequency if frequency >= 0 => frequency as u32,
-        _ => JS_DEFAULT_ZEAL_FREQ,
+        // https://searchfox.org/mozilla-esr128/source/js/public/GCAPI.h#1392
+        _ => 5000,
     };
-    JS_SetGCZeal(cx, level, frequency);
+    SetGCZeal(cx, level, frequency);
 }
 
 #[allow(unsafe_code)]
