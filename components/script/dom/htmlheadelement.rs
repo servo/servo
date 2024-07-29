@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use content_security_policy::{CspList, PolicyDisposition, PolicySource};
 use dom_struct::dom_struct;
 use html5ever::{local_name, namespace_url, ns, LocalName, Prefix};
 use js::rust::HandleObject;
@@ -79,6 +80,48 @@ impl HTMLHeadElement {
                 }
             }
         }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv-content-security-policy>
+    pub fn set_content_security_policy(&self) {
+        let doc = document_from_node(self);
+
+        if doc.GetHead().as_deref() != Some(self) {
+            return;
+        }
+
+        let mut csp_list: Option<CspList> = None;
+        let node = self.upcast::<Node>();
+        let candinates = node
+            .traverse_preorder(ShadowIncluding::No)
+            .filter_map(DomRoot::downcast::<Element>)
+            .filter(|elem| elem.is::<HTMLMetaElement>())
+            .filter(|elem| {
+                elem.get_string_attribute(&local_name!("http-equiv"))
+                    .to_ascii_lowercase() ==
+                    "content-security-policy".to_owned()
+            })
+            .filter(|elem| {
+                elem.get_attribute(&ns!(), &local_name!("content"))
+                    .is_some()
+            });
+
+        for meta in candinates {
+            if let Some(ref content) = meta.get_attribute(&ns!(), &local_name!("content")) {
+                let content = content.value();
+                let content_val = content.trim();
+                if !content_val.is_empty() {
+                    let policies =
+                        CspList::parse(content_val, PolicySource::Meta, PolicyDisposition::Enforce);
+                    match csp_list {
+                        Some(ref mut csp_list) => csp_list.append(policies),
+                        None => csp_list = Some(policies),
+                    }
+                }
+            }
+        }
+
+        doc.set_csp_list(csp_list);
     }
 }
 

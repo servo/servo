@@ -55,6 +55,7 @@ test_interfaces([
   "ReadableStream",
   "Request",
   "Response",
+  "SecurityPolicyViolationEvent",
   "TextDecoder",
   "TextEncoder",
   "URL",

@@ -2296,6 +2296,7 @@ impl Node {
                     loader,
                     None,
                     None,
+                    document.status_code(),
                     Default::default(),
                 );
                 DomRoot::upcast::<Node>(document)

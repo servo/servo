@@ -68,6 +68,8 @@ pub mod script_runtime;
 #[allow(unsafe_code)]
 pub mod script_thread;
 #[warn(deprecated)]
+pub mod security_manager;
+#[warn(deprecated)]
 pub mod serviceworker_manager;
 #[warn(deprecated)]
 mod stylesheet_loader;

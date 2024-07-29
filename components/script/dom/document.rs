@@ -474,6 +474,8 @@ pub struct Document {
     fonts: MutNullableDom<FontFaceSet>,
     /// <https://html.spec.whatwg.org/multipage/#visibility-state>
     visibility_state: Cell<DocumentVisibilityState>,
+    /// <https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml>
+    status_code: Option<u16>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -3001,6 +3003,10 @@ impl Document {
         };
         global_scope.report_an_error(error_info, HandleValue::null());
     }
+
+    pub(crate) fn status_code(&self) -> Option<u16> {
+        self.status_code
+    }
 }
 
 fn is_character_value_key(key: &Key) -> bool {
@@ -3156,6 +3162,7 @@ impl Document {
         doc_loader: DocumentLoader,
         referrer: Option<String>,
         referrer_policy: Option<ReferrerPolicy>,
+        status_code: Option<u16>,
         canceller: FetchCanceller,
     ) -> Document {
         let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
@@ -3306,6 +3313,7 @@ impl Document {
             resize_observers: Default::default(),
             fonts: Default::default(),
             visibility_state: Cell::new(DocumentVisibilityState::Hidden),
+            status_code,
         }
     }
 
@@ -3443,6 +3451,7 @@ impl Document {
             docloader,
             None,
             None,
+            None,
             Default::default(),
         ))
     }
@@ -3461,6 +3470,7 @@ impl Document {
         doc_loader: DocumentLoader,
         referrer: Option<String>,
         referrer_policy: Option<ReferrerPolicy>,
+        status_code: Option<u16>,
         canceller: FetchCanceller,
     ) -> DomRoot<Document> {
         Self::new_with_proto(
@@ -3477,6 +3487,7 @@ impl Document {
             doc_loader,
             referrer,
             referrer_policy,
+            status_code,
             canceller,
         )
     }
@@ -3496,6 +3507,7 @@ impl Document {
         doc_loader: DocumentLoader,
         referrer: Option<String>,
         referrer_policy: Option<ReferrerPolicy>,
+        status_code: Option<u16>,
         canceller: FetchCanceller,
     ) -> DomRoot<Document> {
         let document = reflect_dom_object_with_proto(
@@ -3512,6 +3524,7 @@ impl Document {
                 doc_loader,
                 referrer,
                 referrer_policy,
+                status_code,
                 canceller,
             )),
             window,
@@ -3632,6 +3645,7 @@ impl Document {
                     DocumentActivity::Inactive,
                     DocumentSource::NotFromParser,
                     DocumentLoader::new(&self.loader()),
+                    None,
                     None,
                     None,
                     Default::default(),
