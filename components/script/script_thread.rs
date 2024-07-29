@@ -1662,8 +1662,8 @@ impl ScriptThread {
                         .filter_map(|iframe| iframe.pipeline_id()),
                 );
                 documents
-            });
-        //println!("Second Documents: {:?}", start);
+            })
+            .collect();
         // Note: the spec reads: "for doc in docs" at each step
         // whereas this runs all steps per doc in docs.
         for pipeline_id in pipelines_to_update {
