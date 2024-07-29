@@ -6,7 +6,6 @@ use rustc_ast::Mutability;
 use rustc_hir::def::{DefKind, Res};
 use rustc_hir::def_id::{CrateNum, DefId, LocalDefId, LOCAL_CRATE};
 use rustc_hir::{ImplItemRef, ItemKind, Node, OwnerId, PrimTy, TraitItemRef};
-use rustc_infer::infer::type_variable::TypeVariableOrigin;
 use rustc_infer::infer::TyCtxtInferExt;
 use rustc_lint::LateContext;
 use rustc_middle::ty::fast_reject::SimplifiedType;
@@ -338,14 +337,10 @@ pub fn implements_trait_with_env<'tcx>(
         return false;
     }
     let infcx = tcx.infer_ctxt().build();
-    let orig = TypeVariableOrigin {
-        param_def_id: None,
-        span: DUMMY_SP,
-    };
     let ty_params = tcx.mk_args_from_iter(
         ty_params
             .into_iter()
-            .map(|arg| arg.unwrap_or_else(|| infcx.next_ty_var(orig).into())),
+            .map(|arg| arg.unwrap_or_else(|| infcx.next_ty_var(DUMMY_SP).into())),
     );
     infcx
         .type_implements_trait(
