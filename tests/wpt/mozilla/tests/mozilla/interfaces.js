@@ -18,6 +18,7 @@ function test_interfaces(interfaceNamesInGlobalScope) {
       "Date",
       "Error",
       "EvalError",
+      "FinalizationRegistry",
       "Float32Array",
       "Float64Array",
       "Function",
@@ -54,6 +55,7 @@ function test_interfaces(interfaceNamesInGlobalScope) {
       "Uint8Array",
       "Uint8ClampedArray",
       "WeakMap",
+      "WeakRef",
       "WeakSet",
       "WebAssembly",
     ];

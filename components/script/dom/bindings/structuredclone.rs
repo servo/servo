@@ -160,6 +160,7 @@ unsafe extern "C" fn write_callback(
 unsafe extern "C" fn read_transfer_callback(
     cx: *mut JSContext,
     _r: *mut JSStructuredCloneReader,
+    _policy: *const CloneDataPolicy,
     tag: u32,
     _content: *mut raw::c_void,
     extra_data: u64,

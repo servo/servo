@@ -110,10 +110,12 @@ pub struct WebGL2RenderingContext {
     default_fb_drawbuffer: Cell<u32>,
 }
 
+// TODO: This should be in mozjs
+// upstream: https://searchfox.org/mozilla-central/source/js/public/ScalarType.h#66
 fn typedarray_elem_size(typeid: Type) -> usize {
     match typeid {
         Type::Int8 | Type::Uint8 | Type::Uint8Clamped => 1,
-        Type::Int16 | Type::Uint16 => 2,
+        Type::Int16 | Type::Uint16 | Type::Float16 => 2,
         Type::Int32 | Type::Uint32 | Type::Float32 => 4,
         Type::Int64 | Type::Float64 => 8,
         Type::BigInt64 | Type::BigUint64 => 8,

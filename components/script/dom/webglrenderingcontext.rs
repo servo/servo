@@ -4965,6 +4965,7 @@ fn array_buffer_type_to_sized_type(type_: Type) -> Option<SizedDataType> {
         Type::Int16 => Some(SizedDataType::Int16),
         Type::Int32 => Some(SizedDataType::Int32),
         Type::Float32 => Some(SizedDataType::Float32),
+        Type::Float16 |
         Type::Float64 |
         Type::BigInt64 |
         Type::BigUint64 |

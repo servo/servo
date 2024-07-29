@@ -47,7 +47,7 @@ For more detailed build instructions, see the Servo book under [Setting up your 
 
 - Ensure that the following environment variables are set:
   - `ANDROID_SDK_ROOT`
-  - `ANDROID_NDK_ROOT`: `$ANDROID_SDK_ROOT/ndk/25.2.9519653/`
+  - `ANDROID_NDK_ROOT`: `$ANDROID_SDK_ROOT/ndk/26.2.11394342/`
  `ANDROID_SDK_ROOT` can be any directory (such as `~/android-sdk`).
   All of the Android build dependencies will be installed there.
 - Install the latest version of the [Android command-line
@@ -58,7 +58,7 @@ For more detailed build instructions, see the Servo book under [Setting up your 
   sudo $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --install
    "build-tools;33.0.2" \
    "emulator" \
-   "ndk;25.2.9519653" \
+   "ndk;26.2.11394342" \
    "platform-tools" \
    "platforms;android-33" \
    "system-images;android-33;google_apis;x86_64"

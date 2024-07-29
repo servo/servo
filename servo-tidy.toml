@@ -61,6 +61,9 @@ packages = [
     "phf",
     "phf_generator",
     "phf_shared",
+
+    # icu (from mozjs) uses old version
+    "regex-automata",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
