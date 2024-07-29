@@ -189,23 +189,21 @@ impl WGPU {
                         let callback = BufferMapCallback::from_rust(Box::from(
                             move |result: BufferAccessResult| {
                                 drop(token);
-                                let response = result
-                                    .map(|_| {
-                                        let global = &glob;
-                                        let (slice_pointer, range_size) = gfx_select!(buffer_id =>
+                                let response = result.map(|_| {
+                                    let global = &glob;
+                                    let (slice_pointer, range_size) = gfx_select!(buffer_id =>
                                             global.buffer_get_mapped_range(buffer_id, 0, None))
-                                        .unwrap();
-                                        // SAFETY: guarantee to be safe from wgpu
-                                        let data = unsafe {
-                                            slice::from_raw_parts(
-                                                slice_pointer.as_ptr(),
-                                                range_size as usize,
-                                            )
-                                        };
+                                    .unwrap();
+                                    // SAFETY: guarantee to be safe from wgpu
+                                    let data = unsafe {
+                                        slice::from_raw_parts(
+                                            slice_pointer.as_ptr(),
+                                            range_size as usize,
+                                        )
+                                    };
 
-                                        IpcSharedMemory::from_bytes(data)
-                                    })
-                                    .map_err(|e| e.to_string());
+                                    IpcSharedMemory::from_bytes(data)
+                                });
                                 if let Err(e) =
                                     resp_sender.send(WebGPUResponse::BufferMapAsync(response))
                                 {
@@ -226,13 +224,14 @@ impl WGPU {
                             operation
                         ));
                         self.poller.wake();
-                        if let Err(ref e) = result {
+                        if let Err(e) = &result {
                             if let Err(w) =
-                                sender.send(WebGPUResponse::BufferMapAsync(Err(e.to_string())))
+                                sender.send(WebGPUResponse::BufferMapAsync(Err(e.to_owned())))
                             {
                                 warn!("Failed to send BufferMapAsync Response ({:?})", w);
                             }
                         }
+                        // Per spec we also need to raise validation error here
                         self.maybe_dispatch_wgpu_error(device_id, result.err());
                     },
                     WebGPURequest::CommandEncoderFinish {
@@ -691,8 +690,7 @@ impl WGPU {
                                     limits,
                                     channel: WebGPU(self.sender.clone()),
                                 }
-                            })
-                            .map_err(|e| e.to_string());
+                            });
 
                         if let Err(e) = sender.send(WebGPUResponse::Adapter(response)) {
                             warn!(
@@ -723,8 +721,7 @@ impl WGPU {
                             Some(device_id.transmute()),
                         ));
                         if let Some(e) = error {
-                            if let Err(e) = sender.send(WebGPUResponse::Device(Err(e.to_string())))
-                            {
+                            if let Err(e) = sender.send(WebGPUResponse::Device(Err(e))) {
                                 warn!(
                                     "Failed to send response to WebGPURequest::RequestDevice ({})",
                                     e

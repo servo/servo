@@ -7,6 +7,8 @@
 use ipc_channel::ipc::IpcSharedMemory;
 use serde::{Deserialize, Serialize};
 use wgc::pipeline::CreateShaderModuleError;
+use wgpu_core::instance::{RequestAdapterError, RequestDeviceError};
+use wgpu_core::resource::BufferAccessError;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
 
 use crate::identity::*;
@@ -75,10 +77,9 @@ pub struct Device {
 pub enum WebGPUResponse {
     /// WebGPU is disabled
     None,
-    // TODO: use wgpu errors
-    Adapter(Result<Adapter, String>),
-    Device(Result<Device, String>),
-    BufferMapAsync(Result<IpcSharedMemory, String>),
+    Adapter(Result<Adapter, RequestAdapterError>),
+    Device(Result<Device, RequestDeviceError>),
+    BufferMapAsync(Result<IpcSharedMemory, BufferAccessError>),
     SubmittedWorkDone,
     PoppedErrorScope(Result<Option<Error>, PopError>),
     CompilationInfo(Option<ShaderCompilationInfo>),
