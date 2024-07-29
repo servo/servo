@@ -101,6 +101,7 @@
   "layout.animations.test.enabled": false,
   "layout.columns.enabled": false,
   "layout.flexbox.enabled": false,
+  "layout.flexbox.use_taffy": false,
   "layout.grid.enabled": false,
   "layout.legacy_layout": false,
   "layout.threads": 3,

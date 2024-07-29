@@ -544,6 +544,7 @@ mod gen {
                 },
                 flexbox: {
                     enabled: bool,
+                    use_taffy: bool,
                 },
                 grid: {
                     enabled: bool,
