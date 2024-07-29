@@ -51,6 +51,7 @@ data-url = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
 xi-unicode = { workspace = true }
+taffy = { git = "https://github.com/dioxuslabs/taffy", rev = "9915b967e9809dc57f210de8fe5f7510e66806d6", features = ["serde"] }
 
 [dev-dependencies]
 lazy_static = { workspace = true }
