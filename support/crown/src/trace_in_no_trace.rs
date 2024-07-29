@@ -30,7 +30,7 @@ declare_tool_lint! {
 
 const EMPTY_TRACE_IN_NO_TRACE_MSG: &str =
     "must_not_have_traceable marked wrapper is not needed for types that implements \
-empty Traceable (like primitive types). Consider removing the wrapper.";
+  empty Traceable (like primitive types). Consider removing the wrapper.";
 
 pub fn register(lint_store: &mut LintStore) {
     let symbols = Symbols::new();
@@ -131,24 +131,18 @@ fn incorrect_no_trace<'tcx, I: Into<MultiSpan> + Copy>(
                 {
                     let inner = substs.type_at(pos);
                     if inner.is_primitive_ty() {
-                        cx.lint(
-                            EMPTY_TRACE_IN_NO_TRACE,
-                            EMPTY_TRACE_IN_NO_TRACE_MSG,
-                            |lint| {
-                                lint.span(span);
-                            },
-                        )
+                        cx.lint(EMPTY_TRACE_IN_NO_TRACE, |lint| {
+                            lint.primary_message(EMPTY_TRACE_IN_NO_TRACE_MSG);
+                            lint.span(span);
+                        })
                     } else if is_jstraceable(cx, inner) {
-                        cx.lint(
-                            TRACE_IN_NO_TRACE,
-                            format!(
+                        cx.lint(TRACE_IN_NO_TRACE, |lint| {
+                            lint.primary_message(format!(
                                 "must_not_have_traceable marked wrapper must not have \
-jsmanaged inside on {pos}-th position. Consider removing the wrapper."
-                            ),
-                            |lint| {
-                                lint.span(span);
-                            },
-                        )
+ jsmanaged inside on {pos}-th position. Consider removing the wrapper."
+                            ));
+                            lint.span(span);
+                        })
                     }
                     false
                 } else {
