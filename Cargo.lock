@@ -976,9 +976,9 @@ dependencies = [
 
 [[package]]
 name = "content-security-policy"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "754c060c4a3342c5824d14caeba6c588716e9327f50558532685ef56718e0461"
+checksum = "bf7225464dae1993d0045c023d0975f44d63337f35f85faddb998ff9abdfcd0f"
 dependencies = [
  "base64",
  "bitflags 2.6.0",
