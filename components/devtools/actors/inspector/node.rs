@@ -9,9 +9,7 @@ use std::collections::HashMap;
 use std::net::TcpStream;
 
 use base::id::PipelineId;
-use devtools_traits::DevtoolScriptControlMsg::{
-    GetChildren, GetDocumentElement, GetNodeValue, ModifyAttribute,
-};
+use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement, ModifyAttribute};
 use devtools_traits::{DevtoolScriptControlMsg, NodeInfo};
 use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
@@ -184,12 +182,7 @@ impl NodeInfoToProtocol for NodeInfo {
 
             let (tx, rx) = ipc::channel().ok()?;
             script_chan
-                .send(GetChildren(
-                    // TODO: Filter whitespace
-                    pipeline,
-                    name.clone(),
-                    tx,
-                ))
+                .send(GetChildren(pipeline, name.clone(), tx))
                 .unwrap();
             let mut children = rx.recv().ok()??;
 
@@ -208,12 +201,6 @@ impl NodeInfoToProtocol for NodeInfo {
 
             Some(Box::new(msg))
         })();
-
-        let (tx, rx) = ipc::channel().unwrap();
-        script_chan.send(GetNodeValue(pipeline, name, tx)).unwrap();
-        let node_value = rx.recv().unwrap();
-
-        // TODO: Filter whitespace
 
         NodeActorMsg {
             actor,
@@ -236,7 +223,7 @@ impl NodeInfoToProtocol for NodeInfo {
             is_top_level_document: self.is_top_level_document,
             node_name: self.node_name,
             node_type: self.node_type,
-            node_value,
+            node_value: self.node_value,
             num_children: self.num_children,
             parent: actors.script_to_actor(self.parent.clone()),
             shadow_root_mode: None,

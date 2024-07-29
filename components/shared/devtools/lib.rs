@@ -109,14 +109,14 @@ pub enum EvaluateJSReply {
     ActorValue { class: String, uuid: String },
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct AttrInfo {
     pub namespace: String,
     pub name: String,
     pub value: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NodeInfo {
     pub unique_id: String,
@@ -125,6 +125,7 @@ pub struct NodeInfo {
     pub parent: String,
     pub node_type: u16,
     pub node_name: String,
+    pub node_value: Option<String>,
     pub num_children: usize,
     pub attrs: Vec<AttrInfo>,
     pub is_top_level_document: bool,
@@ -198,8 +199,6 @@ pub enum DevtoolScriptControlMsg {
     GetRootNode(PipelineId, IpcSender<Option<NodeInfo>>),
     /// Retrieve the details of the document element for the given pipeline.
     GetDocumentElement(PipelineId, IpcSender<Option<NodeInfo>>),
-    /// Returns the node value of the element
-    GetNodeValue(PipelineId, String, IpcSender<Option<String>>),
     /// Retrieve the details of the child nodes of the given node in the given pipeline.
     GetChildren(PipelineId, String, IpcSender<Option<Vec<NodeInfo>>>),
     /// Retrieve the computed layout properties of the given node in the given pipeline.

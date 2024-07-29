@@ -104,20 +104,6 @@ pub fn handle_get_document_element(
     reply.send(info).unwrap();
 }
 
-pub fn handle_get_node_value(
-    documents: &Documents,
-    pipeline: PipelineId,
-    node_id: String,
-    reply: IpcSender<Option<String>>,
-) {
-    match find_node_by_unique_id(documents, pipeline, &node_id) {
-        None => reply.send(None).unwrap(),
-        Some(node) => {
-            reply.send(node.GetNodeValue().map(|v| v.into())).unwrap();
-        },
-    };
-}
-
 fn find_node_by_unique_id(
     documents: &Documents,
     pipeline: PipelineId,
@@ -140,7 +126,44 @@ pub fn handle_get_children(
     match find_node_by_unique_id(documents, pipeline, &node_id) {
         None => reply.send(None).unwrap(),
         Some(parent) => {
-            let children = parent.children().map(|child| child.summarize()).collect();
+            let is_whitespace = |node: &NodeInfo| {
+                node.node_type == 3 &&
+                    (node.node_value.is_none() ||
+                        node.node_value.clone().unwrap().trim().is_empty())
+            };
+
+            let inline: Vec<_> = parent
+                .children()
+                .map(|child| {
+                    let window = window_from_node(&*child);
+                    let Some(elem) = child.downcast::<Element>() else {
+                        return false;
+                    };
+                    let computed_style = window.GetComputedStyle(elem, None);
+                    let display = computed_style.Display();
+                    display == "inline"
+                })
+                .collect();
+
+            let children: Vec<_> = parent
+                .children()
+                .enumerate()
+                .filter_map(|(i, child)| {
+                    // Filter whitespace only text nodes that are not inline level
+                    // https://firefox-source-docs.mozilla.org/devtools-user/page_inspector/how_to/examine_and_edit_html/index.html#Whitespace-only_text_nodes
+                    let prev_inline = i > 0 && inline[i - 1];
+                    let next_inline = i < inline.len() - 1 && inline[i + 1];
+
+                    let info = child.summarize();
+                    if !is_whitespace(&info) {
+                        return Some(info);
+                    }
+
+                    (prev_inline && next_inline).then_some(info)
+                })
+                .collect();
+
+            log::warn!("{:?}", children);
 
             reply.send(Some(children)).unwrap();
         },

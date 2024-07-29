@@ -2508,9 +2508,6 @@ impl ScriptThread {
             DevtoolScriptControlMsg::GetDocumentElement(id, reply) => {
                 devtools::handle_get_document_element(&documents, id, reply)
             },
-            DevtoolScriptControlMsg::GetNodeValue(id, node_id, reply) => {
-                devtools::handle_get_node_value(&documents, id, node_id, reply)
-            },
             DevtoolScriptControlMsg::GetChildren(id, node_id, reply) => {
                 devtools::handle_get_children(&documents, id, node_id, reply)
             },
