@@ -149,7 +149,7 @@ pub fn handle_get_children(
                 .enumerate()
                 .filter_map(|(i, child)| {
                     // Filter whitespace only text nodes that are not inline level
-                    // https://firefox-source-docs.mozilla.org/devtools-user/page_inspector/how_to/examine_and_edit_html/index.html#Whitespace-only_text_nodes
+                    // https://firefox-source-docs.mozilla.org/devtools-user/page_inspector/how_to/examine_and_edit_html/index.html#whitespace-only-text-nodes
                     let prev_inline = i > 0 && inline[i - 1];
                     let next_inline = i < inline.len() - 1 && inline[i + 1];
 
