@@ -1655,13 +1655,11 @@ impl ScriptThread {
             .iter()
             .filter(|(_, document)| document.window().is_top_level())
             .flat_map(|(id, document)| {
-                let mut documents = vec![id.clone()];
-                documents.extend(
+                std::iter::once(id.clone()).chain(
                     document
                         .iter_iframes()
                         .filter_map(|iframe| iframe.pipeline_id()),
-                );
-                documents
+                )
             })
             .collect();
         // Note: the spec reads: "for doc in docs" at each step
