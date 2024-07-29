@@ -8,7 +8,8 @@ use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
 use style::values::computed::Filter as ComputedFilter;
-use webrender_api::{units, FilterOp, LineStyle, MixBlendMode, Shadow, TransformStyle};
+use style::values::specified::border::BorderImageRepeatKeyword;
+use webrender_api::{units, FilterOp, LineStyle, MixBlendMode, RepeatMode, Shadow, TransformStyle};
 
 use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize};
 
@@ -125,6 +126,19 @@ impl ToWebRender for ComputedTextDecorationStyle {
             ComputedTextDecorationStyle::Dashed => LineStyle::Dashed,
             ComputedTextDecorationStyle::Wavy => LineStyle::Wavy,
             _ => LineStyle::Solid,
+        }
+    }
+}
+
+impl ToWebRender for BorderImageRepeatKeyword {
+    type Type = RepeatMode;
+
+    fn to_webrender(&self) -> Self::Type {
+        match *self {
+            BorderImageRepeatKeyword::Stretch => RepeatMode::Stretch,
+            BorderImageRepeatKeyword::Repeat => RepeatMode::Repeat,
+            BorderImageRepeatKeyword::Round => RepeatMode::Round,
+            BorderImageRepeatKeyword::Space => RepeatMode::Space,
         }
     }
 }
