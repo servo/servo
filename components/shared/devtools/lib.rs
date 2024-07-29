@@ -198,6 +198,8 @@ pub enum DevtoolScriptControlMsg {
     GetRootNode(PipelineId, IpcSender<Option<NodeInfo>>),
     /// Retrieve the details of the document element for the given pipeline.
     GetDocumentElement(PipelineId, IpcSender<Option<NodeInfo>>),
+    /// Returns the node value of the element
+    GetNodeValue(PipelineId, String, IpcSender<Option<String>>),
     /// Retrieve the details of the child nodes of the given node in the given pipeline.
     GetChildren(PipelineId, String, IpcSender<Option<Vec<NodeInfo>>>),
     /// Retrieve the computed layout properties of the given node in the given pipeline.
