@@ -138,8 +138,8 @@ webpki-roots = "0.25"
 webrender = { git = "https://github.com/servo/webrender", branch = "0.64", features = ["capture"] }
 webrender_api = { git = "https://github.com/servo/webrender", branch = "0.64" }
 webrender_traits = { path = "components/shared/webrender" }
-wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "65b6e15f0fdf46b109df66ec57b75aa6be9b067d" }
-wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "65b6e15f0fdf46b109df66ec57b75aa6be9b067d" }
+wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "69eea63757f097bc0953e5ed607eefe1977f9efa" }
+wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "69eea63757f097bc0953e5ed607eefe1977f9efa" }
 windows-sys = "0.52"
 xi-unicode = "0.1.0"
 xml5ever = "0.18"
