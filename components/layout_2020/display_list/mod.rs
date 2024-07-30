@@ -9,21 +9,34 @@ use app_units::Au;
 use base::id::BrowsingContextId;
 use base::WebRenderEpochToU16;
 use embedder_traits::Cursor;
-use euclid::{Point2D, SideOffsets2D, Size2D};
+use euclid::{Point2D, SideOffsets2D, Size2D, UnknownUnit};
 use fnv::FnvHashMap;
 use fonts::GlyphStore;
+use gradient::WebRenderGradient;
 use net_traits::image_cache::UsePlaceholder;
 use servo_geometry::MaxRect;
 use style::color::{AbsoluteColor, ColorSpace};
+use style::computed_values::border_image_outset::T as BorderImageOutset;
 use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
 use style::dom::OpaqueNode;
 use style::properties::longhands::visibility::computed_value::T as Visibility;
+use style::properties::style_structs::Border;
 use style::properties::ComputedValues;
-use style::values::computed::{BorderStyle, Color, Length, LengthPercentage, OutlineStyle};
+use style::values::computed::image::Image;
+use style::values::computed::{
+    BorderImageSideWidth, BorderImageWidth, BorderStyle, Color, Length, LengthPercentage,
+    NonNegativeLengthOrNumber, NumberOrPercentage, OutlineStyle,
+};
+use style::values::generics::rect::Rect;
+use style::values::generics::NonNegative;
 use style::values::specified::text::TextDecorationLine;
 use style::values::specified::ui::CursorKind;
-use style_traits::CSSPixel;
-use webrender_api::{self as wr, units, BoxShadowClipMode, ClipChainId};
+use style_traits::{CSSPixel, DevicePixel};
+use webrender_api::units::LayoutPixel;
+use webrender_api::{
+    self as wr, units, BorderDetails, BoxShadowClipMode, ClipChainId, CommonItemProperties,
+    ImageRendering, NinePatchBorder, NinePatchBorderSource,
+};
 use webrender_traits::display_list::{
     CompositorDisplayListInfo, ScrollSensitivity, ScrollTreeNodeId,
 };
@@ -740,7 +753,6 @@ impl<'a> BuilderForBoxFragment<'a> {
         builder: &mut DisplayListBuilder,
         painter: &BackgroundPainter,
     ) {
-        use style::values::computed::image::Image;
         let style = painter.style;
         let b = style.get_background();
         // Reverse because the property is top layer first, we want to paint bottom layer first.
@@ -749,10 +761,38 @@ impl<'a> BuilderForBoxFragment<'a> {
                 Image::None => {},
                 Image::Gradient(ref gradient) => {
                     let intrinsic = IntrinsicSizes::empty();
-                    if let Some(layer) =
+                    let Some(layer) =
                         &background::layout_layer(self, painter, builder, index, intrinsic)
-                    {
-                        gradient::build(style, gradient, layer, builder)
+                    else {
+                        continue;
+                    };
+
+                    match gradient::build(style, gradient, layer.tile_size, builder) {
+                        WebRenderGradient::Linear(linear_gradient) => builder.wr().push_gradient(
+                            &layer.common,
+                            layer.bounds,
+                            linear_gradient,
+                            layer.tile_size,
+                            layer.tile_spacing,
+                        ),
+                        WebRenderGradient::Radial(radial_gradient) => {
+                            builder.wr().push_radial_gradient(
+                                &layer.common,
+                                layer.bounds,
+                                radial_gradient,
+                                layer.tile_size,
+                                layer.tile_spacing,
+                            )
+                        },
+                        WebRenderGradient::Conic(conic_gradient) => {
+                            builder.wr().push_conic_gradient(
+                                &layer.common,
+                                layer.bounds,
+                                conic_gradient,
+                                layer.tile_size,
+                                layer.tile_spacing,
+                            )
+                        },
                     }
                 },
                 Image::Url(ref image_url) => {
@@ -857,7 +897,12 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
+        // `border-image` replaces an element's border entirely.
         let common = builder.common_properties(self.border_rect, &self.fragment.style);
+        if self.build_border_image(builder, &common, border, border_widths) {
+            return;
+        }
+
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
             top: self.build_border_side(border.border_top_style, border.border_top_color.clone()),
             right: self
@@ -874,6 +919,100 @@ impl<'a> BuilderForBoxFragment<'a> {
         builder
             .wr()
             .push_border(&common, self.border_rect, border_widths, details)
+    }
+
+    /// Add a display item for image borders if necessary.
+    fn build_border_image(
+        &self,
+        builder: &mut DisplayListBuilder,
+        common: &CommonItemProperties,
+        border: &Border,
+        border_widths: SideOffsets2D<f32, LayoutPixel>,
+    ) -> bool {
+        let border_style_struct = self.fragment.style.get_border();
+        let border_image_outset =
+            resolve_border_image_outset(border_style_struct.border_image_outset, border_widths);
+        let border_image_area = self.border_rect.to_rect().outer_rect(border_image_outset);
+        let border_image_size = border_image_area.size;
+        let border_image_widths = resolve_border_image_width(
+            &border_style_struct.border_image_width,
+            border_widths,
+            border_image_size,
+        );
+        let border_image_repeat = &border_style_struct.border_image_repeat;
+        let border_image_fill = border_style_struct.border_image_slice.fill;
+        let border_image_slice = &border_style_struct.border_image_slice.offsets;
+
+        let stops = Vec::new();
+        let mut width = border_image_size.width;
+        let mut height = border_image_size.height;
+        let source = match border.border_image_source {
+            Image::Url(ref image_url) => {
+                // FIXME: images won’t always have in intrinsic width or
+                // height when support for SVG is added, or a WebRender
+                // `ImageKey`, for that matter.
+                //
+                // FIXME: It feels like this should take into account the pseudo
+                // element and not just the node.
+                let Some(tag) = self.fragment.base.tag else {
+                    return false;
+                };
+                let Some(image_url) = image_url.url() else {
+                    return false;
+                };
+
+                let Some(image_info) = builder.context.get_webrender_image_for_url(
+                    tag.node,
+                    image_url.clone().into(),
+                    UsePlaceholder::No,
+                ) else {
+                    return false;
+                };
+
+                let Some(key) = image_info.key else {
+                    return false;
+                };
+
+                width = image_info.width as f32;
+                height = image_info.height as f32;
+                NinePatchBorderSource::Image(key, ImageRendering::Auto)
+            },
+            Image::Gradient(ref gradient) => {
+                match gradient::build(&self.fragment.style, gradient, border_image_size, builder) {
+                    WebRenderGradient::Linear(gradient) => {
+                        NinePatchBorderSource::Gradient(gradient)
+                    },
+                    WebRenderGradient::Radial(gradient) => {
+                        NinePatchBorderSource::RadialGradient(gradient)
+                    },
+                    WebRenderGradient::Conic(gradient) => {
+                        NinePatchBorderSource::ConicGradient(gradient)
+                    },
+                }
+            },
+            Image::CrossFade(_) | Image::ImageSet(_) | Image::None | Image::PaintWorklet(_) => {
+                return false
+            },
+        };
+
+        let size = euclid::Size2D::new(width as i32, height as i32);
+        let details = BorderDetails::NinePatch(NinePatchBorder {
+            source,
+            width: size.width,
+            height: size.height,
+            slice: resolve_border_image_slice(border_image_slice, size),
+            fill: border_image_fill,
+            repeat_horizontal: border_image_repeat.0.to_webrender(),
+            repeat_vertical: border_image_repeat.1.to_webrender(),
+        });
+        builder.wr().push_border(
+            &common,
+            border_image_area.to_box2d(),
+            border_image_widths,
+            details,
+        );
+        builder.wr().push_stops(&stops);
+        true
     }
 
     fn build_outline(&mut self, builder: &mut DisplayListBuilder) {
@@ -1116,5 +1255,73 @@ fn create_clip_chain(
         builder
             .display_list
             .define_clip_chain(parent_clip_chain_id, [new_clip_id]),
+    )
+}
+
+/// Resolve the WebRender border-image outset area from the style values.
+fn resolve_border_image_outset(
+    outset: BorderImageOutset,
+    border: SideOffsets2D<f32, LayoutPixel>,
+) -> SideOffsets2D<f32, LayoutPixel> {
+    fn image_outset_for_side(outset: NonNegativeLengthOrNumber, border_width: f32) -> f32 {
+        match outset {
+            NonNegativeLengthOrNumber::Length(length) => length.px(),
+            NonNegativeLengthOrNumber::Number(factor) => border_width * factor.0,
+        }
+    }
+
+    SideOffsets2D::new(
+        image_outset_for_side(outset.0, border.top),
+        image_outset_for_side(outset.1, border.right),
+        image_outset_for_side(outset.2, border.bottom),
+        image_outset_for_side(outset.3, border.left),
+    )
+}
+
+/// Resolve the WebRender border-image width from the style values.
+fn resolve_border_image_width(
+    width: &BorderImageWidth,
+    border: SideOffsets2D<f32, LayoutPixel>,
+    border_area: Size2D<f32, LayoutPixel>,
+) -> SideOffsets2D<f32, LayoutPixel> {
+    fn image_width_for_side(
+        border_image_width: &BorderImageSideWidth,
+        border_width: f32,
+        total_length: f32,
+    ) -> f32 {
+        match border_image_width {
+            BorderImageSideWidth::LengthPercentage(v) => {
+                v.to_used_value(Au::from_f32_px(total_length)).to_f32_px()
+            },
+            BorderImageSideWidth::Number(x) => border_width * x.0,
+            BorderImageSideWidth::Auto => border_width,
+        }
+    }
+
+    SideOffsets2D::new(
+        image_width_for_side(&width.0, border.top, border_area.height),
+        image_width_for_side(&width.1, border.right, border_area.width),
+        image_width_for_side(&width.2, border.bottom, border_area.height),
+        image_width_for_side(&width.3, border.left, border_area.width),
+    )
+}
+
+/// Resolve the WebRender border-image slice from the style values.
+fn resolve_border_image_slice(
+    border_image_slice: &Rect<NonNegative<NumberOrPercentage>>,
+    size: Size2D<i32, UnknownUnit>,
+) -> SideOffsets2D<i32, DevicePixel> {
+    fn resolve_percentage(value: NonNegative<NumberOrPercentage>, length: i32) -> i32 {
+        match value.0 {
+            NumberOrPercentage::Percentage(p) => (p.0 * length as f32).round() as i32,
+            NumberOrPercentage::Number(n) => n.round() as i32,
+        }
+    }
+
+    SideOffsets2D::new(
+        resolve_percentage(border_image_slice.0, size.height),
+        resolve_percentage(border_image_slice.1, size.width),
+        resolve_percentage(border_image_slice.2, size.height),
+        resolve_percentage(border_image_slice.3, size.width),
     )
 }
