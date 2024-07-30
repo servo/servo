@@ -718,7 +718,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                                                 isMember="Sequence",
                                                 isAutoRooted=isAutoRooted)
         declType = wrapInNativeContainerType(type, innerInfo.declType)
-        config = getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs)
+        config = getConversionConfigForType(type, innerContainerType(type).hasEnforceRange(), isClamp, treatNullAs)
 
         if type.nullable():
             declType = CGWrapper(declType, pre="Option<", post=" >")
