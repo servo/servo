@@ -48,22 +48,22 @@ pub fn in_derive_expn(span: Span) -> bool {
 
 #[macro_export]
 macro_rules! symbols {
-     ($($s: ident)+) => {
-         #[derive(Clone)]
-         #[allow(non_snake_case)]
-         pub(crate) struct Symbols {
-             $( $s: Symbol, )+
-         }
+    ($($s: ident)+) => {
+        #[derive(Clone)]
+        #[allow(non_snake_case)]
+        pub(crate) struct Symbols {
+            $( $s: Symbol, )+
+        }
 
-         impl Symbols {
-             fn new() -> Self {
-                 Symbols {
-                     $( $s: Symbol::intern(stringify!($s)), )+
-                 }
-             }
-         }
-     }
- }
+        impl Symbols {
+            fn new() -> Self {
+                Symbols {
+                    $( $s: Symbol::intern(stringify!($s)), )+
+                }
+            }
+        }
+    }
+}
 
 /*
 Stuff copied from clippy:
