@@ -66,19 +66,18 @@ pub struct Adapter {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct Device {
-    pub device_id: WebGPUDevice,
-    pub queue_id: WebGPUQueue,
-    pub descriptor: wgt::DeviceDescriptor<Option<String>>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
 #[allow(clippy::large_enum_variant)]
 pub enum WebGPUResponse {
     /// WebGPU is disabled
     None,
     Adapter(Result<Adapter, RequestAdapterError>),
-    Device(Result<Device, RequestDeviceError>),
+    Device(
+        (
+            WebGPUDevice,
+            WebGPUQueue,
+            Result<wgt::DeviceDescriptor<Option<String>>, RequestDeviceError>,
+        ),
+    ),
     BufferMapAsync(Result<IpcSharedMemory, BufferAccessError>),
     SubmittedWorkDone,
     PoppedErrorScope(Result<Option<Error>, PopError>),

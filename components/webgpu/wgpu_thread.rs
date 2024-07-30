@@ -38,8 +38,8 @@ use crate::gpu_error::ErrorScope;
 use crate::poll_thread::Poller;
 use crate::render_commands::apply_render_command;
 use crate::{
-    Adapter, ComputePassId, Device, Error, PopError, PresentationData, RenderPassId, Transmute,
-    WebGPU, WebGPUAdapter, WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
+    Adapter, ComputePassId, Error, PopError, PresentationData, RenderPassId, Transmute, WebGPU,
+    WebGPUAdapter, WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
 };
 
 pub const PRESENTATION_BUFFER_COUNT: usize = 10;
@@ -720,8 +720,12 @@ impl WGPU {
                             Some(device_id),
                             Some(device_id.transmute()),
                         ));
+                        let device = WebGPUDevice(device_id);
+                        let queue = WebGPUQueue(queue_id);
                         if let Some(e) = error {
-                            if let Err(e) = sender.send(WebGPUResponse::Device(Err(e))) {
+                            if let Err(e) =
+                                sender.send(WebGPUResponse::Device((device, queue, Err(e))))
+                            {
                                 warn!(
                                     "Failed to send response to WebGPURequest::RequestDevice ({})",
                                     e
@@ -729,8 +733,6 @@ impl WGPU {
                             }
                             continue;
                         }
-                        let device = WebGPUDevice(device_id);
-                        let queue = WebGPUQueue(queue_id);
                         {
                             self.devices
                                 .lock()
@@ -774,11 +776,9 @@ impl WGPU {
                                 }
                             }));
                         gfx_select!(device_id => global.device_set_device_lost_closure(device_id, callback));
-                        if let Err(e) = sender.send(WebGPUResponse::Device(Ok(Device {
-                            device_id: device,
-                            queue_id: queue,
-                            descriptor,
-                        }))) {
+                        if let Err(e) =
+                            sender.send(WebGPUResponse::Device((device, queue, Ok(descriptor))))
+                        {
                             warn!(
                                 "Failed to send response to WebGPURequest::RequestDevice ({})",
                                 e
