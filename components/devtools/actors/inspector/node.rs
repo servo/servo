@@ -104,7 +104,7 @@ impl Actor for NodeActor {
             "modifyAttributes" => {
                 let target = msg.get("to").ok_or(())?.as_str().ok_or(())?;
                 let mods = msg.get("modifications").ok_or(())?.as_array().ok_or(())?;
-                let modifications = mods
+                let modifications: Vec<_> = mods
                     .iter()
                     .filter_map(|json_mod| {
                         serde_json::from_str(&serde_json::to_string(json_mod).ok()?).ok()

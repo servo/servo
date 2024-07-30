@@ -273,7 +273,7 @@ impl WalkerActor {
         &self,
         stream: &mut TcpStream,
         target: &str,
-        modifications: &Vec<Modification>,
+        modifications: &[Modification],
     ) {
         {
             let mut mutations = self.mutations.borrow_mut();
