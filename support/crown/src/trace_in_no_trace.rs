@@ -30,7 +30,7 @@ declare_tool_lint! {
 
 const EMPTY_TRACE_IN_NO_TRACE_MSG: &str =
     "must_not_have_traceable marked wrapper is not needed for types that implements \
-  empty Traceable (like primitive types). Consider removing the wrapper.";
+empty Traceable (like primitive types). Consider removing the wrapper.";
 
 pub fn register(lint_store: &mut LintStore) {
     let symbols = Symbols::new();
