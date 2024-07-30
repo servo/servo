@@ -19,6 +19,7 @@ use style::properties::ComputedValues;
 use style::values::computed::length::Size;
 use style::values::computed::Length;
 use style::values::generics::flex::GenericFlexBasis as FlexBasis;
+use style::values::generics::length::LengthPercentageOrNormal;
 use style::values::specified::align::AlignFlags;
 use style::Zero;
 
@@ -299,16 +300,37 @@ impl FlexContainer {
             },
         };
 
+        let row_gap = container_style.clone_row_gap();
+        let column_gap = container_style.clone_column_gap();
+        let (cross_gap, main_gap) = match flex_context.flex_axis {
+            FlexAxis::Row => (row_gap, column_gap),
+            FlexAxis::Column => (column_gap, row_gap),
+        };
+        let cross_gap = match cross_gap {
+            LengthPercentageOrNormal::LengthPercentage(length_percent) => length_percent
+                .maybe_to_used_value(flex_context.container_definite_inner_size.cross)
+                .unwrap_or_default(),
+            LengthPercentageOrNormal::Normal => Au::zero(),
+        };
+        let main_gap = match main_gap {
+            LengthPercentageOrNormal::LengthPercentage(length_percent) => length_percent
+                .maybe_to_used_value(flex_context.container_definite_inner_size.main)
+                .unwrap_or_default(),
+            LengthPercentageOrNormal::Normal => Au::zero(),
+        };
+
         // “Resolve the flexible lengths of all the flex items to find their *used main size*.”
         // https://drafts.csswg.org/css-flexbox/#algo-flex
         let flex_lines = collect_flex_lines(
             &mut flex_context,
             container_main_size,
             &mut flex_items,
-            |flex_context, mut line| line.layout(flex_context, container_main_size),
+            main_gap,
         );
 
-        let content_cross_size = flex_lines.iter().map(|line| line.cross_size).sum();
+        let line_count = flex_lines.len();
+        let content_cross_size = flex_lines.iter().map(|line| line.cross_size).sum::<Au>() +
+            cross_gap * (line_count as i32 - 1);
 
         // https://drafts.csswg.org/css-flexbox/#algo-cross-container
         let container_cross_size = flex_context
@@ -322,9 +344,8 @@ impl FlexContainer {
 
         // https://drafts.csswg.org/css-flexbox/#algo-line-align
         // Align all flex lines per `align-content`.
-        let line_count = flex_lines.len();
         let mut cross_start_position_cursor = Au::zero();
-        let mut line_interval = Au::zero();
+        let mut line_interval = cross_gap;
 
         if let Some(cross_size) = flex_context.container_definite_inner_size.cross {
             let free_space = cross_size - content_cross_size;
@@ -391,8 +412,7 @@ impl FlexContainer {
                 _ => Au::zero(),
             };
 
-            // TODO: Implement gap property
-            line_interval = /*gap + */ match resolved_align_content {
+            line_interval += match resolved_align_content {
                 AlignFlags::START => Au::zero(),
                 AlignFlags::FLEX_START => Au::zero(),
                 AlignFlags::END => Au::zero(),
@@ -791,17 +811,17 @@ fn collect_flex_lines<'items>(
     flex_context: &mut FlexContext,
     container_main_size: Au,
     mut items: &'items mut [FlexItem<'items>],
-    mut each: impl FnMut(&mut FlexContext, FlexLine<'items>) -> FlexLineLayoutResult,
+    main_gap: Au,
 ) -> Vec<FlexLineLayoutResult> {
     if flex_context.container_is_single_line {
-        let line = FlexLine {
+        let mut line = FlexLine {
             outer_hypothetical_main_sizes_sum: items
                 .iter()
                 .map(|item| item.hypothetical_main_size + item.pbm_auto_is_zero.main)
                 .sum(),
             items,
         };
-        vec![each(flex_context, line)]
+        vec![line.layout(flex_context, container_main_size, main_gap)]
     } else {
         let mut lines = Vec::new();
         let mut line_size_so_far = Au::zero();
@@ -809,7 +829,10 @@ fn collect_flex_lines<'items>(
         let mut index = 0;
         while let Some(item) = items.get(index) {
             let item_size = item.hypothetical_main_size + item.pbm_auto_is_zero.main;
-            let line_size_would_be = line_size_so_far + item_size;
+            let mut line_size_would_be = line_size_so_far + item_size;
+            if !line_so_far_is_empty {
+                line_size_would_be += main_gap;
+            }
             let item_fits = line_size_would_be <= container_main_size;
             if item_fits || line_so_far_is_empty {
                 line_size_so_far = line_size_would_be;
@@ -818,23 +841,23 @@ fn collect_flex_lines<'items>(
             } else {
                 // We found something that doesn’t fit. This line ends *before* this item.
                 let (line_items, rest) = items.split_at_mut(index);
-                let line = FlexLine {
+                let mut line = FlexLine {
                     items: line_items,
                     outer_hypothetical_main_sizes_sum: line_size_so_far,
                 };
                 items = rest;
-                lines.push(each(flex_context, line));
+                lines.push(line.layout(flex_context, container_main_size, main_gap));
                 // The next line has this item.
                 line_size_so_far = item_size;
                 index = 1;
             }
         }
         // The last line is added even without finding an item that doesn’t fit
-        let line = FlexLine {
+        let mut line = FlexLine {
             items,
             outer_hypothetical_main_sizes_sum: line_size_so_far,
         };
-        lines.push(each(flex_context, line));
+        lines.push(line.layout(flex_context, container_main_size, main_gap));
         lines
     }
 }
@@ -844,9 +867,11 @@ impl FlexLine<'_> {
         &mut self,
         flex_context: &mut FlexContext,
         container_main_size: Au,
+        main_gap: Au,
     ) -> FlexLineLayoutResult {
+        let item_count = self.items.len();
         let (item_used_main_sizes, mut free_space) =
-            self.resolve_flexible_lengths(container_main_size);
+            self.resolve_flexible_lengths(container_main_size - main_gap * (item_count as i32 - 1));
 
         // https://drafts.csswg.org/css-flexbox/#algo-cross-item
         let mut item_layout_results = self
@@ -873,7 +898,6 @@ impl FlexLine<'_> {
 
         // Determine the used cross size of each flex item
         // https://drafts.csswg.org/css-flexbox/#algo-stretch
-        let item_count = self.items.len();
         let mut shared_alignment_baseline = None;
         let mut item_used_cross_sizes = Vec::with_capacity(item_count);
         let mut item_cross_margins = Vec::with_capacity(item_count);
@@ -999,8 +1023,7 @@ impl FlexLine<'_> {
             _ => Au::zero(),
         };
 
-        // TODO: Implement gap property
-        let item_main_interval = /*gap + */ match resolved_justify_content {
+        let item_main_interval = match resolved_justify_content {
             AlignFlags::START => Au::zero(),
             AlignFlags::FLEX_START => Au::zero(),
             AlignFlags::END => Au::zero(),
@@ -1014,6 +1037,7 @@ impl FlexLine<'_> {
             // TODO: Implement all alignments. Note: not all alignment values are valid for content distribution
             _ => Au::zero(),
         };
+        let item_main_interval = item_main_interval + main_gap;
 
         let mut all_baselines = Baselines::default();
         let mut main_position_cursor = main_start_position;
