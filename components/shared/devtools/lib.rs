@@ -152,6 +152,12 @@ pub enum TimelineMarkerType {
     DOMEvent,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppliedNodeStyle {
+    pub text: String,
+}
+
 /// The properties of a DOM node as computed by layout.
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -201,6 +207,8 @@ pub enum DevtoolScriptControlMsg {
     GetDocumentElement(PipelineId, IpcSender<Option<NodeInfo>>),
     /// Retrieve the details of the child nodes of the given node in the given pipeline.
     GetChildren(PipelineId, String, IpcSender<Option<Vec<NodeInfo>>>),
+    /// Retrieve the applied css style properties for the given node.
+    GetAppliedStyle(PipelineId, String, IpcSender<Option<Vec<AppliedNodeStyle>>>),
     /// Retrieve the computed layout properties of the given node in the given pipeline.
     GetLayout(PipelineId, String, IpcSender<Option<ComputedNodeLayout>>),
     /// Update a given node's attributes with a list of modifications.

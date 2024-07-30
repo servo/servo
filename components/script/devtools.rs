@@ -2,17 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Borrow;
 use std::rc::Rc;
 use std::str;
 
 use base::id::PipelineId;
 use devtools_traits::{
-    AutoMargins, ComputedNodeLayout, EvaluateJSReply, Modification, NodeInfo, TimelineMarker,
-    TimelineMarkerType,
+    AppliedNodeStyle, AutoMargins, ComputedNodeLayout, EvaluateJSReply, Modification, NodeInfo,
+    TimelineMarker, TimelineMarkerType,
 };
 use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
 use js::rust::ToString;
+use servo_arc::Arc;
+use style::properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
+use style::shared_lock::Locked;
 use uuid::Uuid;
 
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
@@ -167,6 +171,51 @@ pub fn handle_get_children(
             reply.send(Some(children)).unwrap();
         },
     };
+}
+
+pub fn handle_get_applied_style(
+    documents: &Documents,
+    pipeline: PipelineId,
+    node_id: String,
+    reply: IpcSender<Option<Vec<AppliedNodeStyle>>>,
+) {
+    let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
+        None => return reply.send(None).unwrap(),
+        Some(found_node) => found_node,
+    };
+
+    // Get css declarations for this node
+    let declarations = (|| {
+        let elem = node
+            .downcast::<Element>()
+            .expect("should be getting layout of element");
+
+        #[allow(unsafe_code)]
+        let style = elem.style_attribute().try_borrow().ok()?;
+        log::warn!("borrow");
+
+        let style = style.clone()?;
+        log::warn!("{:?}", style);
+        let declarations: &Locked<PropertyDeclarationBlock> = style.borrow();
+
+        let document = documents.find_document(pipeline)?;
+        {
+            let guard = document.style_shared_lock().read();
+            let declarations = (*declarations).read_with(&guard).declarations();
+            Some(declarations.to_vec())
+        }
+    })()
+    .unwrap_or(vec![]);
+
+    // Map the property declarations to devtools accesible types
+    let msg = declarations
+        .iter()
+        .map(|decl| AppliedNodeStyle {
+            text: format!("{:?}", decl), // TODO: Continue here
+        })
+        .collect();
+
+    reply.send(Some(msg)).unwrap();
 }
 
 pub fn handle_get_layout(

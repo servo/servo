@@ -9,21 +9,20 @@ use std::collections::HashMap;
 use std::net::TcpStream;
 
 use base::id::PipelineId;
-use devtools_traits::DevtoolScriptControlMsg::GetLayout;
+use devtools_traits::DevtoolScriptControlMsg::{GetAppliedStyle, GetDocumentElement, GetLayout};
 use devtools_traits::{ComputedNodeLayout, DevtoolScriptControlMsg};
 use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actors::inspector::node::NodeInfoToProtocol;
 use crate::protocol::JsonPacketStream;
 use crate::StreamId;
 
 #[derive(Serialize)]
 struct GetAppliedReply {
     entries: Vec<AppliedEntry>,
-    rules: Vec<AppliedRule>,
-    sheets: Vec<AppliedSheet>,
     from: String,
 }
 
@@ -36,10 +35,9 @@ struct GetComputedReply {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct AppliedEntry {
-    rule: String,
-    pseudo_element: Value,
+    rule: AppliedRule,
+    pseudo_element: Option<()>,
     is_system: bool,
-    matched_selectors: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -47,12 +45,10 @@ struct AppliedEntry {
 struct AppliedRule {
     actor: String,
     #[serde(rename = "type")]
-    type_: String,
+    type_: u32,
     href: String,
     css_text: String,
-    line: u32,
-    column: u32,
-    parent_style_sheet: String,
+    declarations: Vec<()>,
 }
 
 #[derive(Serialize)]
@@ -143,10 +139,40 @@ impl Actor for PageStyleActor {
         Ok(match msg_type {
             "getApplied" => {
                 // TODO: Query script for relevant applied styles to node (msg.node)
+                let target = msg.get("node").ok_or(())?.as_str().ok_or(())?;
+
+                let (tx, rx) = ipc::channel().unwrap();
+                self.script_chan
+                    .send(GetDocumentElement(self.pipeline, tx))
+                    .unwrap();
+                let node = rx.recv().map_err(|_| ())?.ok_or(())?;
+
+                let (tx, rx) = ipc::channel().map_err(|_| ())?;
+                self.script_chan
+                    .send(GetAppliedStyle(
+                        self.pipeline,
+                        registry.actor_to_script(target.to_owned()),
+                        tx,
+                    ))
+                    .unwrap();
+                let styles = rx.recv().map_err(|_| ())?.ok_or(())?;
+                let entries = styles
+                    .iter()
+                    .map(|style| AppliedEntry {
+                        rule: AppliedRule {
+                            actor: "".into(), //
+                            type_: 100,       //
+                            href: node.base_uri.clone(),
+                            css_text: style.text.clone(),
+                            declarations: vec![], //
+                        },
+                        pseudo_element: None, //
+                        is_system: false,
+                    })
+                    .collect();
+
                 let msg = GetAppliedReply {
-                    entries: vec![],
-                    rules: vec![],
-                    sheets: vec![],
+                    entries,
                     from: self.name(),
                 };
                 let _ = stream.write_json_packet(&msg);
@@ -164,7 +190,6 @@ impl Actor for PageStyleActor {
             },
 
             "getLayout" => {
-                // TODO: Query script for box layout properties of node (msg.node)
                 let target = msg.get("node").ok_or(())?.as_str().ok_or(())?;
                 let (tx, rx) = ipc::channel().map_err(|_| ())?;
                 self.script_chan
