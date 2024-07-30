@@ -139,7 +139,7 @@ fn incorrect_no_trace<'tcx, I: Into<MultiSpan> + Copy>(
                         cx.lint(TRACE_IN_NO_TRACE, |lint| {
                             lint.primary_message(format!(
                                 "must_not_have_traceable marked wrapper must not have \
- jsmanaged inside on {pos}-th position. Consider removing the wrapper."
+jsmanaged inside on {pos}-th position. Consider removing the wrapper."
                             ));
                             lint.span(span);
                         })
