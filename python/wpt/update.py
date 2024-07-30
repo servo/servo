@@ -12,7 +12,7 @@ from wptrunner.update import setup_logging, WPTUpdate  # noqa: F401
 from wptrunner.update.base import exit_unclean  # noqa: F401
 from wptrunner import wptcommandline  # noqa: F401
 
-from . import WPT_PATH, update_args_for_legacy_layout
+from . import WPT_PATH, update_args_for_legacy_layout, update_args_for_taffy_layout
 from . import manifestupdate
 
 TEST_ROOT = os.path.join(WPT_PATH, 'tests')
@@ -113,6 +113,8 @@ def update_tests(**kwargs) -> int:
 
     if kwargs.pop("legacy_layout"):
         update_args_for_legacy_layout(kwargs)
+    if kwargs.pop("taffy_layout"):
+        update_args_for_taffy_layout(kwargs)
 
     if kwargs.get('sync', False):
         return do_sync(**kwargs)
@@ -131,4 +133,7 @@ def create_parser(**_kwargs):
     parser.add_argument("--legacy-layout", "--layout-2013", "--with-layout-2013",
                         default=False, action="store_true",
                         help="Use expected results for the legacy layout engine")
+    parser.add_argument("--taffy-layout",
+                        default=False, action="store_true",
+                        help="Use expected results for the taffy layout engine")
     return parser
