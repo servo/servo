@@ -19,6 +19,7 @@ use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyl
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::{jsstring_to_str, ConversionResult, FromJSValConvertible};
 use crate::dom::bindings::inheritance::Castable;
@@ -126,9 +127,10 @@ pub fn handle_get_children(
         None => reply.send(None).unwrap(),
         Some(parent) => {
             let is_whitespace = |node: &NodeInfo| {
-                node.node_type == 3 &&
-                    (node.node_value.is_none() ||
-                        node.node_value.clone().unwrap().trim().is_empty())
+                node.node_type == NodeConstants::TEXT_NODE &&
+                    node.node_value
+                        .as_ref()
+                        .map_or(true, |v| v.trim().is_empty())
             };
 
             let inline: Vec<_> = parent
@@ -161,8 +163,6 @@ pub fn handle_get_children(
                     (prev_inline && next_inline).then_some(info)
                 })
                 .collect();
-
-            log::warn!("{:?}", children);
 
             reply.send(Some(children)).unwrap();
         },

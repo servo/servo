@@ -19,6 +19,11 @@ use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
 use crate::{EmptyReplyMsg, StreamId};
 
+/// Text node type constant. This is defined again to avoid depending on `script`, where it is defined originally.
+/// See `script::dom::bindings::codegen::Bindings::NodeBinding::NodeConstants`.
+const TEXT_NODE: u16 = 3;
+
+/// The maximum length of a text node for it to appear as an inline child in the inspector.
 const MAX_INLINE_LENGTH: usize = 50;
 
 #[derive(Serialize)]
@@ -175,7 +180,7 @@ impl NodeInfoToProtocol for NodeInfo {
         // If a node only has a single text node as a child whith a small enough text,
         // return it with this node as an `inlineTextChild`.
         let inline_text_child = (|| {
-            // TODO: Also return if this node is a flex element
+            // TODO: Also return if this node is a flex element.
             if self.num_children != 1 || self.node_name == "SLOT" {
                 return None;
             }
@@ -189,12 +194,12 @@ impl NodeInfoToProtocol for NodeInfo {
             let child = children.pop()?;
             let msg = child.encode(actors, true, script_chan.clone(), pipeline);
 
-            // Check if it is a text node
-            if msg.node_type != 3 {
+            // If the node child is not a text node, do not represent it inline.
+            if msg.node_type != TEXT_NODE {
                 return None;
             }
 
-            // Check if it is small enough
+            // If the text node child is too big, do not represent it inline.
             if msg.node_value.clone().unwrap_or_default().len() > MAX_INLINE_LENGTH {
                 return None;
             }
