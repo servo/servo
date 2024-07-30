@@ -169,30 +169,41 @@ fn traverse_children_of<'dom, Node>(
 {
     traverse_pseudo_element(WhichPseudoElement::Before, parent_element, context, handler);
 
-    for child in iter_child_nodes(parent_element) {
-        if child.is_text_node() {
-            let info = NodeAndStyleInfo::new(child, child.style(context));
-            handler.handle_text(&info, child.to_threadsafe().node_text_content());
-        } else if child.is_element() {
-            traverse_element(child, context, handler);
-        }
-    }
-
-    if matches!(
+    let is_text_input_element = matches!(
         parent_element.type_id(),
         LayoutNodeType::Element(LayoutElementType::HTMLInputElement)
-    ) {
+    );
+
+    let is_textarea_element = matches!(
+        parent_element.type_id(),
+        LayoutNodeType::Element(LayoutElementType::HTMLTextAreaElement)
+    );
+
+    if is_text_input_element || is_textarea_element {
         let info = NodeAndStyleInfo::new(parent_element, parent_element.style(context));
 
-        // The addition of zero-width space here forces the text input to have an inline formatting
-        // context that might otherwise be trimmed if there's no text. This is important to ensure
-        // that the input element is at least as tall as the line gap of the caret:
-        // <https://drafts.csswg.org/css-ui/#element-with-default-preferred-size>.
-        //
-        // TODO: Is there a less hacky way to do this?
-        handler.handle_text(&info, "\u{200B}".into());
+        if is_text_input_element {
+            // The addition of zero-width space here forces the text input to have an inline formatting
+            // context that might otherwise be trimmed if there's no text. This is important to ensure
+            // that the input element is at least as tall as the line gap of the caret:
+            // <https://drafts.csswg.org/css-ui/#element-with-default-preferred-size>.
+            //
+            // TODO: Is there a less hacky way to do this?
+            handler.handle_text(&info, "\u{200B}".into());
+        }
 
         handler.handle_text(&info, parent_element.to_threadsafe().node_text_content());
+    }
+
+    if !is_text_input_element && !is_textarea_element {
+        for child in iter_child_nodes(parent_element) {
+            if child.is_text_node() {
+                let info = NodeAndStyleInfo::new(child, child.style(context));
+                handler.handle_text(&info, child.to_threadsafe().node_text_content());
+            } else if child.is_element() {
+                traverse_element(child, context, handler);
+            }
+        }
     }
 
     traverse_pseudo_element(WhichPseudoElement::After, parent_element, context, handler);
