@@ -16,6 +16,7 @@ use serde::Serialize;
 use serde_json::{self, Map, Value};
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actors::inspector::walker::WalkerActor;
 use crate::protocol::JsonPacketStream;
 use crate::{EmptyReplyMsg, StreamId};
 
@@ -77,6 +78,7 @@ pub struct NodeActor {
     name: String,
     script_chan: IpcSender<DevtoolScriptControlMsg>,
     pipeline: PipelineId,
+    pub walker: String,
 }
 
 impl Actor for NodeActor {
@@ -108,6 +110,10 @@ impl Actor for NodeActor {
                         serde_json::from_str(&serde_json::to_string(json_mod).ok()?).ok()
                     })
                     .collect();
+
+                let walker = registry.find::<WalkerActor>(&self.walker);
+                walker.new_mutations(stream, &self.name, &modifications);
+
                 self.script_chan
                     .send(ModifyAttribute(
                         self.pipeline,
@@ -127,8 +133,13 @@ impl Actor for NodeActor {
                     .send(GetDocumentElement(self.pipeline, tx))
                     .unwrap();
                 let doc_elem_info = rx.recv().map_err(|_| ())?.ok_or(())?;
-                let node =
-                    doc_elem_info.encode(registry, true, self.script_chan.clone(), self.pipeline);
+                let node = doc_elem_info.encode(
+                    registry,
+                    true,
+                    self.script_chan.clone(),
+                    self.pipeline,
+                    self.walker.clone(),
+                );
 
                 let msg = GetUniqueSelectorReply {
                     from: self.name(),
@@ -150,6 +161,7 @@ pub trait NodeInfoToProtocol {
         display: bool,
         script_chan: IpcSender<DevtoolScriptControlMsg>,
         pipeline: PipelineId,
+        walker: String,
     ) -> NodeActorMsg;
 }
 
@@ -160,6 +172,7 @@ impl NodeInfoToProtocol for NodeInfo {
         display: bool,
         script_chan: IpcSender<DevtoolScriptControlMsg>,
         pipeline: PipelineId,
+        walker: String,
     ) -> NodeActorMsg {
         let actor = if !actors.script_actor_registered(self.unique_id.clone()) {
             let name = actors.new_name("node");
@@ -167,6 +180,7 @@ impl NodeInfoToProtocol for NodeInfo {
                 name: name.clone(),
                 script_chan: script_chan.clone(),
                 pipeline,
+                walker,
             };
             actors.register_script_actor(self.unique_id, name.clone());
             actors.register_later(Box::new(node_actor));

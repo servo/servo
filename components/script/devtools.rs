@@ -235,6 +235,11 @@ pub fn handle_modify_attribute(
     node_id: String,
     modifications: Vec<Modification>,
 ) {
+    let Some(document) = documents.find_document(pipeline) else {
+        return warn!("document for pipeline id {} is not found", &pipeline);
+    };
+    let _realm = enter_realm(document.window());
+
     let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
         None => {
             return warn!(

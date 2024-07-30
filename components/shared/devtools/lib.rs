@@ -222,7 +222,7 @@ pub enum DevtoolScriptControlMsg {
     Reload(PipelineId),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Modification {
     pub attribute_name: String,

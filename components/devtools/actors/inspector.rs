@@ -86,14 +86,26 @@ impl Actor for InspectorActor {
                 self.script_chan.send(GetRootNode(pipeline, tx)).unwrap();
                 let root_info = rx.recv().unwrap().ok_or(())?;
 
-                let root = root_info.encode(registry, false, self.script_chan.clone(), pipeline);
+                let name = match self.walker.borrow().as_ref() {
+                    Some(walker) => walker.clone(),
+                    None => registry.new_name("walker"),
+                };
+
+                let root = root_info.encode(
+                    registry,
+                    false,
+                    self.script_chan.clone(),
+                    pipeline,
+                    name.clone(),
+                );
 
                 if self.walker.borrow().is_none() {
                     let walker = WalkerActor {
-                        name: registry.new_name("walker"),
+                        name,
                         script_chan: self.script_chan.clone(),
                         pipeline,
                         root_node: root.clone(),
+                        mutations: RefCell::new(vec![]),
                     };
                     let mut walker_name = self.walker.borrow_mut();
                     *walker_name = Some(walker.name());
