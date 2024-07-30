@@ -19,6 +19,7 @@ use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyl
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::{jsstring_to_str, ConversionResult, FromJSValConvertible};
 use crate::dom::bindings::inheritance::Castable;
@@ -125,7 +126,43 @@ pub fn handle_get_children(
     match find_node_by_unique_id(documents, pipeline, &node_id) {
         None => reply.send(None).unwrap(),
         Some(parent) => {
-            let children = parent.children().map(|child| child.summarize()).collect();
+            let is_whitespace = |node: &NodeInfo| {
+                node.node_type == NodeConstants::TEXT_NODE &&
+                    node.node_value
+                        .as_ref()
+                        .map_or(true, |v| v.trim().is_empty())
+            };
+
+            let inline: Vec<_> = parent
+                .children()
+                .map(|child| {
+                    let window = window_from_node(&*child);
+                    let Some(elem) = child.downcast::<Element>() else {
+                        return false;
+                    };
+                    let computed_style = window.GetComputedStyle(elem, None);
+                    let display = computed_style.Display();
+                    display == "inline"
+                })
+                .collect();
+
+            let children: Vec<_> = parent
+                .children()
+                .enumerate()
+                .filter_map(|(i, child)| {
+                    // Filter whitespace only text nodes that are not inline level
+                    // https://firefox-source-docs.mozilla.org/devtools-user/page_inspector/how_to/examine_and_edit_html/index.html#whitespace-only-text-nodes
+                    let prev_inline = i > 0 && inline[i - 1];
+                    let next_inline = i < inline.len() - 1 && inline[i + 1];
+
+                    let info = child.summarize();
+                    if !is_whitespace(&info) {
+                        return Some(info);
+                    }
+
+                    (prev_inline && next_inline).then_some(info)
+                })
+                .collect();
 
             reply.send(Some(children)).unwrap();
         },

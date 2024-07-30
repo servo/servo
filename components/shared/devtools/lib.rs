@@ -125,6 +125,7 @@ pub struct NodeInfo {
     pub parent: String,
     pub node_type: u16,
     pub node_name: String,
+    pub node_value: Option<String>,
     pub num_children: usize,
     pub attrs: Vec<AttrInfo>,
     pub is_top_level_document: bool,

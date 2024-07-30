@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::net::TcpStream;
 
 use base::id::PipelineId;
-use devtools_traits::DevtoolScriptControlMsg::{GetDocumentElement, ModifyAttribute};
+use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement, ModifyAttribute};
 use devtools_traits::{DevtoolScriptControlMsg, NodeInfo};
 use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
@@ -18,6 +18,13 @@ use serde_json::{self, Map, Value};
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
 use crate::{EmptyReplyMsg, StreamId};
+
+/// Text node type constant. This is defined again to avoid depending on `script`, where it is defined originally.
+/// See `script::dom::bindings::codegen::Bindings::NodeBinding::NodeConstants`.
+const TEXT_NODE: u16 = 3;
+
+/// The maximum length of a text node for it to appear as an inline child in the inspector.
+const MAX_INLINE_LENGTH: usize = 50;
 
 #[derive(Serialize)]
 struct GetUniqueSelectorReply {
@@ -41,6 +48,8 @@ pub struct NodeActorMsg {
     container_type: Option<()>,
     pub display_name: String,
     display_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    inline_text_child: Option<Box<NodeActorMsg>>,
     is_after_pseudo_element: bool,
     is_anonymous: bool,
     is_before_pseudo_element: bool,
@@ -55,7 +64,7 @@ pub struct NodeActorMsg {
     is_top_level_document: bool,
     node_name: String,
     node_type: u16,
-    node_value: Option<()>,
+    node_value: Option<String>,
     pub num_children: usize,
     #[serde(skip_serializing_if = "String::is_empty")]
     parent: String,
@@ -156,7 +165,7 @@ impl NodeInfoToProtocol for NodeInfo {
             let name = actors.new_name("node");
             let node_actor = NodeActor {
                 name: name.clone(),
-                script_chan,
+                script_chan: script_chan.clone(),
                 pipeline,
             };
             actors.register_script_actor(self.unique_id, name.clone());
@@ -166,6 +175,38 @@ impl NodeInfoToProtocol for NodeInfo {
             actors.script_to_actor(self.unique_id)
         };
 
+        let name = actors.actor_to_script(actor.clone());
+
+        // If a node only has a single text node as a child whith a small enough text,
+        // return it with this node as an `inlineTextChild`.
+        let inline_text_child = (|| {
+            // TODO: Also return if this node is a flex element.
+            if self.num_children != 1 || self.node_name == "SLOT" {
+                return None;
+            }
+
+            let (tx, rx) = ipc::channel().ok()?;
+            script_chan
+                .send(GetChildren(pipeline, name.clone(), tx))
+                .unwrap();
+            let mut children = rx.recv().ok()??;
+
+            let child = children.pop()?;
+            let msg = child.encode(actors, true, script_chan.clone(), pipeline);
+
+            // If the node child is not a text node, do not represent it inline.
+            if msg.node_type != TEXT_NODE {
+                return None;
+            }
+
+            // If the text node child is too big, do not represent it inline.
+            if msg.node_value.clone().unwrap_or_default().len() > MAX_INLINE_LENGTH {
+                return None;
+            }
+
+            Some(Box::new(msg))
+        })();
+
         NodeActorMsg {
             actor,
             base_uri: self.base_uri,
@@ -173,6 +214,7 @@ impl NodeInfoToProtocol for NodeInfo {
             container_type: None,
             display_name: self.node_name.clone().to_lowercase(),
             display_type: Some("block".into()),
+            inline_text_child,
             is_after_pseudo_element: false,
             is_anonymous: false,
             is_before_pseudo_element: false,
@@ -186,7 +228,7 @@ impl NodeInfoToProtocol for NodeInfo {
             is_top_level_document: self.is_top_level_document,
             node_name: self.node_name,
             node_type: self.node_type,
-            node_value: None,
+            node_value: self.node_value,
             num_children: self.num_children,
             parent: actors.script_to_actor(self.parent.clone()),
             shadow_root_mode: None,
