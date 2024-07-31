@@ -180,7 +180,7 @@ impl NodeInfoToProtocol for NodeInfo {
                 name: name.clone(),
                 script_chan: script_chan.clone(),
                 pipeline,
-                walker,
+                walker: walker.clone(),
             };
             actors.register_script_actor(self.unique_id, name.clone());
             actors.register_later(Box::new(node_actor));
@@ -206,7 +206,7 @@ impl NodeInfoToProtocol for NodeInfo {
             let mut children = rx.recv().ok()??;
 
             let child = children.pop()?;
-            let msg = child.encode(actors, true, script_chan.clone(), pipeline);
+            let msg = child.encode(actors, true, script_chan.clone(), pipeline, walker);
 
             // If the node child is not a text node, do not represent it inline.
             if msg.node_type != TEXT_NODE {
