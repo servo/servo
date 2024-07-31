@@ -350,6 +350,12 @@ impl XRSession {
             XREvent::UpdateInput(id, source) => {
                 self.input_sources.add_remove_input_source(self, id, source);
             },
+            XREvent::InputChanged(id, frame) => {
+                let source = self.input_sources.find(id);
+                if let Some(source) = source {
+                    source.update_gamepad_state(frame);
+                }
+            },
         }
     }
 
@@ -511,7 +517,7 @@ impl XRSession {
     /// <https://immersive-web.github.io/webxr/#xrframe-apply-frame-updates>
     fn apply_frame_updates(&self, _frame: &XRFrame) {
         // <https://www.w3.org/TR/webxr-gamepads-module-1/#xrframe-apply-gamepad-frame-updates>
-        self.input_sources.update_gamepad_states();
+        //self.input_sources.update_gamepad_states();
     }
 
     fn handle_frame_event(&self, event: FrameUpdateEvent) {

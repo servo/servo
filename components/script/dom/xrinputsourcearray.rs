@@ -127,13 +127,6 @@ impl XRInputSourceArray {
             .find(|x| x.id() == id)
             .map(|x| DomRoot::from_ref(&**x))
     }
-
-    pub fn update_gamepad_states(&self) {
-        self.input_sources
-            .borrow()
-            .iter()
-            .for_each(|i| i.update_gamepad_state());
-    }
 }
 
 impl XRInputSourceArrayMethods for XRInputSourceArray {

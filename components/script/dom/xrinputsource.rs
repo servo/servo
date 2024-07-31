@@ -7,7 +7,7 @@ use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use script_traits::GamepadSupportedHapticEffects;
-use webxr_api::{Handedness, InputId, InputSource, TargetRayMode};
+use webxr_api::{Handedness, InputFrame, InputId, InputSource, TargetRayMode};
 
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
     XRHandedness, XRInputSourceMethods, XRTargetRayMode,
@@ -97,10 +97,22 @@ impl XRInputSource {
         &self.session
     }
 
-    pub fn update_gamepad_state(&self) {
+    pub fn update_gamepad_state(&self, frame: InputFrame) {
         if let Some(gamepad) = self.gamepad.as_ref() {
-            // TODO: Update gamepad buttons and axes with data from the XR device
-            // This still needs to be surfaced from the WebXR crate somehow
+            frame
+                .button_values
+                .iter()
+                .enumerate()
+                .for_each(|(i, value)| {
+                    gamepad.map_and_normalize_buttons(i as usize, *value as f64);
+                });
+            frame
+                .axis_values
+                .iter()
+                .enumerate()
+                .for_each(|(i, value)| {
+                    gamepad.map_and_normalize_axes(i as usize, *value as f64);
+                });
         }
     }
 }
