@@ -86,10 +86,11 @@ impl Actor for InspectorActor {
                 self.script_chan.send(GetRootNode(pipeline, tx)).unwrap();
                 let root_info = rx.recv().unwrap().ok_or(())?;
 
-                let name = match self.walker.borrow().as_ref() {
-                    Some(walker) => walker.clone(),
-                    None => registry.new_name("walker"),
-                };
+                let name = self
+                    .walker
+                    .borrow()
+                    .clone()
+                    .unwrap_or_else(|| registry.new_name("walker"));
 
                 let root = root_info.encode(
                     registry,
