@@ -2714,7 +2714,7 @@ where
         if let Some(webgl_threads) = self.webgl_threads.as_ref() {
             debug!("Exiting WebGL thread.");
             if let Err(e) = webgl_threads.exit(webgl_threads_sender) {
-                warn!("Exit WebGL Thread failed ({})", e);
+                warn!("Exit WebGL Thread failed ({e})");
             }
         }
 

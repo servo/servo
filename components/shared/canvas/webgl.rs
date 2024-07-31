@@ -73,12 +73,9 @@ impl WebGLThreads {
     }
 
     /// Sends a exit message to close the WebGLThreads and release all WebGLContexts.
-    pub fn exit(
-        &self,
-        webgl_threads_sender: ipc_channel::ipc::IpcSender<()>,
-    ) -> Result<(), &'static str> {
+    pub fn exit(&self, sender: ipc_channel::ipc::IpcSender<()>) -> Result<(), &'static str> {
         self.0
-            .send(WebGLMsg::Exit(webgl_threads_sender))
+            .send(WebGLMsg::Exit(sender))
             .map_err(|_| "Failed to send Exit message")
     }
 }
