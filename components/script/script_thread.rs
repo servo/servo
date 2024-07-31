@@ -1839,8 +1839,8 @@ impl ScriptThread {
                             // creator's origin. This must match the logic in the constellation
                             // when creating a new pipeline
                             let not_an_about_blank_and_about_srcdoc_load =
-                                new_layout_info.load_data.url.as_str() != "about:blank"
-                                    && new_layout_info.load_data.url.as_str() != "about:srcdoc";
+                                new_layout_info.load_data.url.as_str() != "about:blank" &&
+                                    new_layout_info.load_data.url.as_str() != "about:srcdoc";
                             let origin = if not_an_about_blank_and_about_srcdoc_load {
                                 MutableOrigin::new(new_layout_info.load_data.url.origin())
                             } else if let Some(parent) =
@@ -2380,13 +2380,13 @@ impl ScriptThread {
                     *self.webgpu_port.borrow_mut() = Some(p);
                 }
             },
-            msg @ ConstellationControlMsg::AttachLayout(..)
-            | msg @ ConstellationControlMsg::Viewport(..)
-            | msg @ ConstellationControlMsg::Resize(..)
-            | msg @ ConstellationControlMsg::ExitFullScreen(..)
-            | msg @ ConstellationControlMsg::SendEvent(..)
-            | msg @ ConstellationControlMsg::TickAllAnimations(..)
-            | msg @ ConstellationControlMsg::ExitScriptThread => {
+            msg @ ConstellationControlMsg::AttachLayout(..) |
+            msg @ ConstellationControlMsg::Viewport(..) |
+            msg @ ConstellationControlMsg::Resize(..) |
+            msg @ ConstellationControlMsg::ExitFullScreen(..) |
+            msg @ ConstellationControlMsg::SendEvent(..) |
+            msg @ ConstellationControlMsg::TickAllAnimations(..) |
+            msg @ ConstellationControlMsg::ExitScriptThread => {
                 panic!("should have handled {:?} already", msg)
             },
             ConstellationControlMsg::SetScrollStates(pipeline_id, scroll_states) => {
@@ -3676,8 +3676,8 @@ impl ScriptThread {
             },
 
             Some(ref mime)
-                if (mime.type_() == mime::TEXT && mime.subtype() == mime::XML)
-                    || (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML) =>
+                if (mime.type_() == mime::TEXT && mime.subtype() == mime::XML) ||
+                    (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML) =>
             {
                 IsHTMLDocument::NonHTMLDocument
             },

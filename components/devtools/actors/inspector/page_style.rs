@@ -15,6 +15,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
+use super::style_rule::StyleRuleActor;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::inspector::node::NodeInfoToProtocol;
 use crate::protocol::JsonPacketStream;
@@ -44,24 +45,33 @@ struct AppliedEntry {
 #[serde(rename_all = "camelCase")]
 struct AppliedRule {
     actor: String,
+    ancestor_data: Vec<()>,
+    authored_text: String,
+    css_text: String,
+    declarations: Vec<AppliedDeclaration>,
+    href: String,
     #[serde(rename = "type")]
     type_: u32,
-    href: String,
-    css_text: String,
-    declarations: Vec<()>,
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct AppliedSheet {
-    actor: String,
-    href: String,
-    node_href: String,
-    disabled: bool,
-    title: String,
-    system: bool,
-    style_sheet_index: isize,
-    rule_count: usize,
+pub struct AppliedDeclaration {
+    pub colon_offsets: Vec<i32>,
+    pub is_name_valid: bool,
+    pub is_used: IsUsed,
+    pub is_valid: bool,
+    pub name: String,
+    pub offsets: Vec<i32>,
+    pub priority: String,
+    pub terminator: String,
+    pub value: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IsUsed {
+    pub used: bool,
 }
 
 #[derive(Serialize)]
@@ -138,8 +148,11 @@ impl Actor for PageStyleActor {
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "getApplied" => {
-                // TODO: Query script for relevant applied styles to node (msg.node)
                 let target = msg.get("node").ok_or(())?.as_str().ok_or(())?;
+
+                // TODO: This should be the same actor across different invocations of
+                // styles, save the result somewhere and check for changes
+                let actor = StyleRuleActor::new(registry.new_name("style-rule"));
 
                 let (tx, rx) = ipc::channel().unwrap();
                 self.script_chan
@@ -156,26 +169,46 @@ impl Actor for PageStyleActor {
                     ))
                     .unwrap();
                 let styles = rx.recv().map_err(|_| ())?.ok_or(())?;
-                let entries = styles
-                    .iter()
-                    .map(|style| AppliedEntry {
-                        rule: AppliedRule {
-                            actor: "".into(), //
-                            type_: 100,       //
-                            href: node.base_uri.clone(),
-                            css_text: style.text.clone(),
-                            declarations: vec![], //
-                        },
-                        pseudo_element: None, //
-                        is_system: false,
-                    })
-                    .collect();
+                let entry = AppliedEntry {
+                    // TODO: Fill with real values
+                    rule: AppliedRule {
+                        // TODO: Separate rules based on selector and ancerstor and so on
+                        //       Each style rule actor should correspond to each set of rules
+                        actor: actor.name(),
+                        ancestor_data: vec![],
+                        authored_text: "TODO".into(),
+                        css_text: "TODO".into(),
+                        declarations: styles
+                            .iter()
+                            .filter_map(|style| {
+                                let mut decl = style.text.split(":");
+                                Some(AppliedDeclaration {
+                                    colon_offsets: vec![],
+                                    is_name_valid: true,
+                                    is_used: IsUsed { used: true },
+                                    is_valid: true,
+                                    name: decl.next()?.trim().into(),
+                                    offsets: vec![],
+                                    priority: "".into(),
+                                    terminator: "".into(),
+                                    value: decl.next()?.replace(";", "").trim().into(), // Is this ok?
+                                })
+                            })
+                            .collect(),
+                        href: node.base_uri.clone(),
+                        type_: 100,
+                    },
+                    pseudo_element: None,
+                    is_system: false,
+                };
 
                 let msg = GetAppliedReply {
-                    entries,
+                    entries: vec![entry],
                     from: self.name(),
                 };
                 let _ = stream.write_json_packet(&msg);
+
+                registry.register_later(Box::new(actor));
                 ActorMessageStatus::Processed
             },
 
