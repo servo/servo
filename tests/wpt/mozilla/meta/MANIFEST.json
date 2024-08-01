@@ -13776,6 +13776,13 @@
       {}
      ]
     ],
+    "parser-reentrancy-customelement.html": [
+     "8742bf95b9bf082b6102c792ab8fe069afd87022",
+     [
+      null,
+      {}
+     ]
+    ],
     "partial_shadow_dom.html": [
      "74e308f94036a6dbf5c4223cd3d229f49ffceb4e",
      [
