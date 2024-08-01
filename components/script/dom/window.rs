@@ -2321,8 +2321,8 @@ impl Window {
         self.Document().url()
     }
 
-    pub fn windowproxy_handler(&self) -> Rc<WindowProxyHandler> {
-        Rc::clone(&self.dom_static.windowproxy_handler)
+    pub fn windowproxy_handler(&self) -> &'static WindowProxyHandler {
+        self.dom_static.windowproxy_handler
     }
 
     pub fn get_pending_reflow_count(&self) -> u32 {

@@ -6,7 +6,6 @@
 
 use std::ffi::CString;
 use std::os::raw::{c_char, c_void};
-use std::rc::Rc;
 use std::{ptr, slice, str};
 
 use js::conversions::ToJSValConvertible;
@@ -32,7 +31,7 @@ use js::rust::{
     MutableHandleValue, ToString,
 };
 use js::JS_CALLEE;
-use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use malloc_size_of::MallocSizeOfOps;
 
 use crate::dom::bindings::codegen::PrototypeList::{MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE_LENGTH};
 use crate::dom::bindings::codegen::{InterfaceObjectMap, PrototypeList};
@@ -43,22 +42,22 @@ use crate::dom::bindings::error::throw_invalid_this;
 use crate::dom::bindings::inheritance::TopTypeId;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::trace_object;
-use crate::dom::windowproxy::{WindowProxyHandler, PROXY_HANDLER};
+use crate::dom::windowproxy::WindowProxyHandler;
 use crate::script_runtime::JSContext as SafeJSContext;
 
 #[derive(JSTraceable, MallocSizeOf)]
 /// Static data associated with a global object.
 pub struct GlobalStaticData {
-    #[ignore_malloc_size_of = "Rc and WindowProxyHandler does not properly implement it anyway"]
+    #[ignore_malloc_size_of = "WindowProxyHandler does not properly implement it anyway"]
     /// The WindowProxy proxy handler for this global.
-    pub windowproxy_handler: Rc<WindowProxyHandler>,
+    pub windowproxy_handler: &'static WindowProxyHandler,
 }
 
 impl GlobalStaticData {
     /// Creates a new GlobalStaticData.
     pub fn new() -> GlobalStaticData {
         GlobalStaticData {
-            windowproxy_handler: Rc::new(WindowProxyHandler::new(&PROXY_HANDLER)),
+            windowproxy_handler: WindowProxyHandler::proxy_handler(),
         }
     }
 }

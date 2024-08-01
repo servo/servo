@@ -4,7 +4,6 @@
 
 use std::cell::Cell;
 use std::ptr;
-use std::rc::Rc;
 
 use base::id::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use dom_struct::dom_struct;
@@ -125,11 +124,6 @@ pub struct WindowProxy {
     /// The creator browsing context's origin.
     #[no_trace]
     creator_origin: Option<ImmutableOrigin>,
-
-    /// Only a member because the pointer within WindowProxyHandler is used in C++ and must live as long as this struct.
-    #[ignore_malloc_size_of = "Rc"]
-    #[no_trace]
-    proxy_handler: Cell<Rc<WindowProxyHandler>>,
 }
 
 impl WindowProxy {
@@ -141,7 +135,6 @@ impl WindowProxy {
         parent: Option<&WindowProxy>,
         opener: Option<BrowsingContextId>,
         creator: CreatorBrowsingContextInfo,
-        window_proxy_handler: Rc<WindowProxyHandler>,
     ) -> WindowProxy {
         let name = frame_element.map_or(DOMString::new(), |e| {
             e.get_string_attribute(&local_name!("name"))
@@ -162,7 +155,6 @@ impl WindowProxy {
             creator_base_url: creator.base_url,
             creator_url: creator.url,
             creator_origin: creator.origin,
-            proxy_handler: Cell::new(window_proxy_handler),
         }
     }
 
@@ -202,7 +194,6 @@ impl WindowProxy {
                 parent,
                 opener,
                 creator,
-                handler,
             ));
 
             // The window proxy owns the browsing context.
@@ -237,7 +228,7 @@ impl WindowProxy {
         creator: CreatorBrowsingContextInfo,
     ) -> DomRoot<WindowProxy> {
         unsafe {
-            let handler = Rc::new(WindowProxyHandler::new(&XORIGIN_PROXY_HANDLER));
+            let handler = WindowProxyHandler::x_origin_proxy_handler();
 
             let cx = GlobalScope::get_cx();
 
@@ -250,7 +241,6 @@ impl WindowProxy {
                 parent,
                 opener,
                 creator,
-                Rc::clone(&handler),
             ));
 
             // Create a new dissimilar-origin window.
@@ -631,10 +621,9 @@ impl WindowProxy {
     /// Change the Window that this WindowProxy resolves to.
     // TODO: support setting the window proxy to a dummy value,
     // to handle the case when the active document is in another script thread.
-    fn set_window(&self, window: &GlobalScope, traps: &ProxyTraps) {
+    fn set_window(&self, window: &GlobalScope, handler: &WindowProxyHandler) {
         unsafe {
             debug!("Setting window of {:p}.", self);
-            let handler = Rc::new(WindowProxyHandler::new(traps));
 
             let cx = GlobalScope::get_cx();
             let window_jsobject = window.reflector().get_jsobject();
@@ -649,7 +638,7 @@ impl WindowProxy {
             // The old window proxy no longer owns this browsing context.
             SetProxyReservedSlot(old_js_proxy.get(), 0, &PrivateValue(ptr::null_mut()));
 
-            // Brain transpant the window proxy. Brain transplantation is
+            // Brain transplant the window proxy. Brain transplantation is
             // usually done to move a window proxy between compartments, but
             // that's not what we are doing here. We need to do this just
             // because we want to replace the wrapper's `ProxyTraps`, but we
@@ -669,7 +658,6 @@ impl WindowProxy {
             // Notify the JS engine about the new window proxy binding.
             SetWindowProxy(*cx, window_jsobject, new_js_proxy.handle());
 
-            self.proxy_handler.set(handler);
             // Update the reflector.
             debug!(
                 "Setting reflector of {:p} to {:p}.",
@@ -690,7 +678,7 @@ impl WindowProxy {
                 );
             }
         }
-        self.set_window(globalscope, &PROXY_HANDLER);
+        self.set_window(globalscope, WindowProxyHandler::proxy_handler());
         self.currently_active.set(Some(globalscope.pipeline_id()));
     }
 
@@ -700,7 +688,10 @@ impl WindowProxy {
         }
         let globalscope = self.global();
         let window = DissimilarOriginWindow::new(&globalscope, self);
-        self.set_window(window.upcast(), &XORIGIN_PROXY_HANDLER);
+        self.set_window(
+            window.upcast(),
+            WindowProxyHandler::x_origin_proxy_handler(),
+        );
         self.currently_active.set(None);
     }
 
@@ -1048,7 +1039,7 @@ unsafe extern "C" fn get_prototype_if_ordinary(
     true
 }
 
-pub(super) static PROXY_HANDLER: ProxyTraps = ProxyTraps {
+static PROXY_TRAPS: ProxyTraps = ProxyTraps {
     // TODO: These traps should change their behavior depending on
     //       `IsPlatformObjectSameOrigin(this.[[Window]])`
     enter: None,
@@ -1094,13 +1085,44 @@ impl MallocSizeOf for WindowProxyHandler {
     }
 }
 
+// Safety: Send and Sync is guaranteed since the underlying pointer and all its associated methods in C++ are const.
+#[allow(unsafe_code)]
+unsafe impl Send for WindowProxyHandler {}
+// Safety: Send and Sync is guaranteed since the underlying pointer and all its associated methods in C++ are const.
+#[allow(unsafe_code)]
+unsafe impl Sync for WindowProxyHandler {}
+
 #[allow(unsafe_code)]
 impl WindowProxyHandler {
-    pub fn new(traps: &ProxyTraps) -> Self {
+    fn new(traps: &ProxyTraps) -> Self {
         // Safety: Foreign function generated by bindgen. Pointer is freed in drop to prevent memory leak.
         let ptr = unsafe { CreateWrapperProxyHandler(traps) };
         assert!(!ptr.is_null());
         Self(ptr)
+    }
+
+    /// Returns a single, shared WindowProxyHandler that contains XORIGIN_PROXY_TRAPS.
+    pub fn x_origin_proxy_handler() -> &'static Self {
+        use std::sync::OnceLock;
+        /// We are sharing a single instance for the entire programs here due to lifetime issues.
+        /// The pointer in self.0 is known to C++ and visited by the GC. Hence, we don't know when
+        /// it is safe to free it.
+        /// Sharing a single instance should be fine because all methods on this pointer in C++
+        /// are const and don't modify its internal state.
+        static SINGLETON: OnceLock<WindowProxyHandler> = OnceLock::new();
+        SINGLETON.get_or_init(|| Self::new(&XORIGIN_PROXY_TRAPS))
+    }
+
+    /// Returns a single, shared WindowProxyHandler that contains normal PROXY_TRAPS.
+    pub fn proxy_handler() -> &'static Self {
+        use std::sync::OnceLock;
+        /// We are sharing a single instance for the entire programs here due to lifetime issues.
+        /// The pointer in self.0 is known to C++ and visited by the GC. Hence, we don't know when
+        /// it is safe to free it.
+        /// Sharing a single instance should be fine because all methods on this pointer in C++
+        /// are const and don't modify its internal state.
+        static SINGLETON: OnceLock<WindowProxyHandler> = OnceLock::new();
+        SINGLETON.get_or_init(|| Self::new(&PROXY_TRAPS))
     }
 
     /// Creates a new WindowProxy object on the C++ side and returns the pointer to it.
@@ -1237,7 +1259,7 @@ unsafe extern "C" fn preventExtensions_xorigin(
     throw_security_error(cx, InRealm::Already(&in_realm_proof))
 }
 
-static XORIGIN_PROXY_HANDLER: ProxyTraps = ProxyTraps {
+static XORIGIN_PROXY_TRAPS: ProxyTraps = ProxyTraps {
     enter: None,
     getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor_xorigin),
     defineProperty: Some(defineProperty_xorigin),
