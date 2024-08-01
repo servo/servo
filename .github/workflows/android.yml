@@ -30,6 +30,13 @@ jobs:
       matrix:
         arch: ['aarch64-linux-android', 'armv7-linux-androideabi', 'i686-linux-android', 'x86_64-linux-android']
     steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: false
+          large-packages: false
+          swap-storage: false
       - uses: actions/checkout@v4
         if: github.event_name != 'pull_request_target'
         with:
