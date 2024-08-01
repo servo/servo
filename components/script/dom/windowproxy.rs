@@ -12,8 +12,8 @@ use html5ever::local_name;
 use indexmap::map::IndexMap;
 use ipc_channel::ipc;
 use js::glue::{
-    CreateWrapperProxyHandler, GetProxyPrivate, GetProxyReservedSlot, ProxyTraps,
-    SetProxyReservedSlot,
+    CreateWrapperProxyHandler, DeleteWrapperProxyHandler, GetProxyPrivate, GetProxyReservedSlot,
+    ProxyTraps, SetProxyReservedSlot,
 };
 use js::jsapi::{
     GCContext, Handle as RawHandle, HandleId as RawHandleId, HandleObject as RawHandleObject,
@@ -28,6 +28,7 @@ use js::jsval::{JSVal, NullValue, PrivateValue, UndefinedValue};
 use js::rust::wrappers::{JS_TransplantObject, NewWindowProxy, SetWindowProxy};
 use js::rust::{get_object_class, Handle, MutableHandle};
 use js::JSCLASS_IS_GLOBAL;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::request::Referrer;
 use script_traits::{
     AuxiliaryBrowsingContextLoadInfo, HistoryEntryReplacement, LoadData, LoadOrigin, NewLayoutInfo,
@@ -46,7 +47,7 @@ use crate::dom::bindings::reflector::{DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::JSTraceable;
-use crate::dom::bindings::utils::{get_array_index_from_id, AsVoidPtr, WindowProxyHandler};
+use crate::dom::bindings::utils::{get_array_index_from_id, AsVoidPtr};
 use crate::dom::dissimilaroriginwindow::DissimilarOriginWindow;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
@@ -126,7 +127,7 @@ pub struct WindowProxy {
 }
 
 impl WindowProxy {
-    pub fn new_inherited(
+    fn new_inherited(
         browsing_context_id: BrowsingContextId,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         currently_active: Option<PipelineId>,
@@ -168,8 +169,7 @@ impl WindowProxy {
         creator: CreatorBrowsingContextInfo,
     ) -> DomRoot<WindowProxy> {
         unsafe {
-            let WindowProxyHandler(handler) = window.windowproxy_handler();
-            assert!(!handler.is_null());
+            let handler = window.windowproxy_handler();
 
             let cx = GlobalScope::get_cx();
             let window_jsobject = window.reflector().get_jsobject();
@@ -181,7 +181,7 @@ impl WindowProxy {
             let _ac = JSAutoRealm::new(*cx, window_jsobject.get());
 
             // Create a new window proxy.
-            rooted!(in(*cx) let js_proxy = NewWindowProxy(*cx, window_jsobject, handler));
+            rooted!(in(*cx) let js_proxy = handler.new_window_proxy(&cx, window_jsobject));
             assert!(!js_proxy.is_null());
 
             // Create a new browsing context.
@@ -228,8 +228,7 @@ impl WindowProxy {
         creator: CreatorBrowsingContextInfo,
     ) -> DomRoot<WindowProxy> {
         unsafe {
-            let handler = CreateWrapperProxyHandler(&XORIGIN_PROXY_HANDLER);
-            assert!(!handler.is_null());
+            let handler = WindowProxyHandler::x_origin_proxy_handler();
 
             let cx = GlobalScope::get_cx();
 
@@ -255,7 +254,7 @@ impl WindowProxy {
             let _ac = JSAutoRealm::new(*cx, window_jsobject.get());
 
             // Create a new window proxy.
-            rooted!(in(*cx) let js_proxy = NewWindowProxy(*cx, window_jsobject, handler));
+            rooted!(in(*cx) let js_proxy = handler.new_window_proxy(&cx, window_jsobject));
             assert!(!js_proxy.is_null());
 
             // The window proxy owns the browsing context.
@@ -622,11 +621,9 @@ impl WindowProxy {
     /// Change the Window that this WindowProxy resolves to.
     // TODO: support setting the window proxy to a dummy value,
     // to handle the case when the active document is in another script thread.
-    fn set_window(&self, window: &GlobalScope, traps: &ProxyTraps) {
+    fn set_window(&self, window: &GlobalScope, handler: &WindowProxyHandler) {
         unsafe {
             debug!("Setting window of {:p}.", self);
-            let handler = CreateWrapperProxyHandler(traps);
-            assert!(!handler.is_null());
 
             let cx = GlobalScope::get_cx();
             let window_jsobject = window.reflector().get_jsobject();
@@ -641,12 +638,12 @@ impl WindowProxy {
             // The old window proxy no longer owns this browsing context.
             SetProxyReservedSlot(old_js_proxy.get(), 0, &PrivateValue(ptr::null_mut()));
 
-            // Brain transpant the window proxy. Brain transplantation is
+            // Brain transplant the window proxy. Brain transplantation is
             // usually done to move a window proxy between compartments, but
             // that's not what we are doing here. We need to do this just
             // because we want to replace the wrapper's `ProxyTraps`, but we
             // don't want to update its identity.
-            rooted!(in(*cx) let new_js_proxy = NewWindowProxy(*cx, window_jsobject, handler));
+            rooted!(in(*cx) let new_js_proxy = handler.new_window_proxy(&cx, window_jsobject));
             debug!(
                 "Transplanting proxy from {:p} to {:p}.",
                 old_js_proxy.get(),
@@ -681,7 +678,7 @@ impl WindowProxy {
                 );
             }
         }
-        self.set_window(globalscope, &PROXY_HANDLER);
+        self.set_window(globalscope, WindowProxyHandler::proxy_handler());
         self.currently_active.set(Some(globalscope.pipeline_id()));
     }
 
@@ -691,7 +688,10 @@ impl WindowProxy {
         }
         let globalscope = self.global();
         let window = DissimilarOriginWindow::new(&globalscope, self);
-        self.set_window(window.upcast(), &XORIGIN_PROXY_HANDLER);
+        self.set_window(
+            window.upcast(),
+            WindowProxyHandler::x_origin_proxy_handler(),
+        );
         self.currently_active.set(None);
     }
 
@@ -1039,7 +1039,7 @@ unsafe extern "C" fn get_prototype_if_ordinary(
     true
 }
 
-static PROXY_HANDLER: ProxyTraps = ProxyTraps {
+static PROXY_TRAPS: ProxyTraps = ProxyTraps {
     // TODO: These traps should change their behavior depending on
     //       `IsPlatformObjectSameOrigin(this.[[Window]])`
     enter: None,
@@ -1074,9 +1074,79 @@ static PROXY_HANDLER: ProxyTraps = ProxyTraps {
     isConstructor: None,
 };
 
+/// Proxy handler for a WindowProxy.
+/// Has ownership of the inner pointer and deallocates it when it is no longer needed.
+pub struct WindowProxyHandler(*const libc::c_void);
+
+impl MallocSizeOf for WindowProxyHandler {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        // FIXME(#6907) this is a pointer to memory allocated by `new` in NewProxyHandler in rust-mozjs.
+        0
+    }
+}
+
+// Safety: Send and Sync is guaranteed since the underlying pointer and all its associated methods in C++ are const.
 #[allow(unsafe_code)]
-pub fn new_window_proxy_handler() -> WindowProxyHandler {
-    unsafe { WindowProxyHandler(CreateWrapperProxyHandler(&PROXY_HANDLER)) }
+unsafe impl Send for WindowProxyHandler {}
+// Safety: Send and Sync is guaranteed since the underlying pointer and all its associated methods in C++ are const.
+#[allow(unsafe_code)]
+unsafe impl Sync for WindowProxyHandler {}
+
+#[allow(unsafe_code)]
+impl WindowProxyHandler {
+    fn new(traps: &ProxyTraps) -> Self {
+        // Safety: Foreign function generated by bindgen. Pointer is freed in drop to prevent memory leak.
+        let ptr = unsafe { CreateWrapperProxyHandler(traps) };
+        assert!(!ptr.is_null());
+        Self(ptr)
+    }
+
+    /// Returns a single, shared WindowProxyHandler that contains XORIGIN_PROXY_TRAPS.
+    pub fn x_origin_proxy_handler() -> &'static Self {
+        use std::sync::OnceLock;
+        /// We are sharing a single instance for the entire programs here due to lifetime issues.
+        /// The pointer in self.0 is known to C++ and visited by the GC. Hence, we don't know when
+        /// it is safe to free it.
+        /// Sharing a single instance should be fine because all methods on this pointer in C++
+        /// are const and don't modify its internal state.
+        static SINGLETON: OnceLock<WindowProxyHandler> = OnceLock::new();
+        SINGLETON.get_or_init(|| Self::new(&XORIGIN_PROXY_TRAPS))
+    }
+
+    /// Returns a single, shared WindowProxyHandler that contains normal PROXY_TRAPS.
+    pub fn proxy_handler() -> &'static Self {
+        use std::sync::OnceLock;
+        /// We are sharing a single instance for the entire programs here due to lifetime issues.
+        /// The pointer in self.0 is known to C++ and visited by the GC. Hence, we don't know when
+        /// it is safe to free it.
+        /// Sharing a single instance should be fine because all methods on this pointer in C++
+        /// are const and don't modify its internal state.
+        static SINGLETON: OnceLock<WindowProxyHandler> = OnceLock::new();
+        SINGLETON.get_or_init(|| Self::new(&PROXY_TRAPS))
+    }
+
+    /// Creates a new WindowProxy object on the C++ side and returns the pointer to it.
+    /// The pointer should be owned by the GC.
+    pub fn new_window_proxy(
+        &self,
+        cx: &crate::script_runtime::JSContext,
+        window_jsobject: js::gc::HandleObject,
+    ) -> *mut JSObject {
+        let obj = unsafe { NewWindowProxy(**cx, window_jsobject, self.0) };
+        assert!(!obj.is_null());
+        obj
+    }
+}
+
+#[allow(unsafe_code)]
+impl Drop for WindowProxyHandler {
+    fn drop(&mut self) {
+        // Safety: Pointer is allocated by corresponding C++ function, owned by this
+        // struct and not accessible from outside.
+        unsafe {
+            DeleteWrapperProxyHandler(self.0);
+        }
+    }
 }
 
 // The proxy traps for cross-origin windows.
@@ -1189,7 +1259,7 @@ unsafe extern "C" fn preventExtensions_xorigin(
     throw_security_error(cx, InRealm::Already(&in_realm_proof))
 }
 
-static XORIGIN_PROXY_HANDLER: ProxyTraps = ProxyTraps {
+static XORIGIN_PROXY_TRAPS: ProxyTraps = ProxyTraps {
     enter: None,
     getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor_xorigin),
     defineProperty: Some(defineProperty_xorigin),
