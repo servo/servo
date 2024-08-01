@@ -5,8 +5,8 @@
 use std::rc::Rc;
 
 use gleam::gl::{self, Gl};
-use image::RgbImage;
-use log::trace;
+use image::RgbaImage;
+use log::{trace, warn};
 use servo_geometry::FramebufferUintLength;
 
 pub struct RenderTargetInfo {
@@ -105,7 +105,7 @@ impl RenderTargetInfo {
         y: i32,
         width: FramebufferUintLength,
         height: FramebufferUintLength,
-    ) -> RgbImage {
+    ) -> RgbaImage {
         let width = width.get() as usize;
         let height = height.get() as usize;
         // For some reason, OSMesa fails to render on the 3rd
@@ -121,13 +121,17 @@ impl RenderTargetInfo {
             y,
             width as gl::GLsizei,
             height as gl::GLsizei,
-            gl::RGB,
+            gl::RGBA,
             gl::UNSIGNED_BYTE,
         );
+        let gl_error = self.gl.get_error();
+        if gl_error != gl::NO_ERROR {
+            warn!("GL error code 0x{gl_error:x} set after read_pixels");
+        }
 
         // flip image vertically (texture is upside down)
         let orig_pixels = pixels.clone();
-        let stride = width * 3;
+        let stride = width * 4;
         for y in 0..height {
             let dst_start = y * stride;
             let src_start = (height - y - 1) * stride;
@@ -135,7 +139,7 @@ impl RenderTargetInfo {
             pixels[dst_start..dst_start + stride].clone_from_slice(&src_slice[..stride]);
         }
 
-        RgbImage::from_raw(width as u32, height as u32, pixels).expect("Flipping image failed!")
+        RgbaImage::from_raw(width as u32, height as u32, pixels).expect("Flipping image failed!")
     }
 }
 
