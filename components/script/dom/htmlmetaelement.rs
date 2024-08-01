@@ -88,8 +88,10 @@ impl HTMLMetaElement {
         // https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv
         } else if !self.HttpEquiv().is_empty() {
             // TODO: Implement additional http-equiv candidates
-            if self.HttpEquiv().to_ascii_lowercase().as_str() == "refresh" {
-                self.declarative_refresh();
+            match self.HttpEquiv().to_ascii_lowercase().as_str() {
+                "refresh" => self.declarative_refresh(),
+                "content-security-policy" => self.apply_csp_list(),
+                _ => {},
             }
         }
     }
@@ -111,6 +113,15 @@ impl HTMLMetaElement {
         if let Some(parent) = self.upcast::<Node>().GetParentElement() {
             if let Some(head) = parent.downcast::<HTMLHeadElement>() {
                 head.set_document_referrer();
+            }
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv-content-security-policy>
+    fn apply_csp_list(&self) {
+        if let Some(parent) = self.upcast::<Node>().GetParentElement() {
+            if let Some(head) = parent.downcast::<HTMLHeadElement>() {
+                head.set_content_security_policy();
             }
         }
     }

@@ -19,6 +19,8 @@ use std::time::{Duration, Instant};
 use std::{fmt, os, ptr, thread};
 
 use base::id::PipelineId;
+use content_security_policy::{CheckResult, PolicyDisposition};
+use js::conversions::jsstr_to_string;
 use js::glue::{
     CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchableRun, JobQueueTraps,
     RUST_js_GetErrorMessage, SetBuildId, StreamConsumerConsumeChunk,
@@ -27,23 +29,23 @@ use js::glue::{
 use js::jsapi::{
     AsmJSOption, BuildIdCharVector, ContextOptionsRef, DisableIncrementalGC,
     Dispatchable as JSRunnable, Dispatchable_MaybeShuttingDown, GCDescription, GCOptions,
-    GCProgress, GCReason, GetPromiseUserInputEventHandlingState, HandleObject, Heap,
+    GCProgress, GCReason, GetPromiseUserInputEventHandlingState, HandleObject, HandleString, Heap,
     InitConsumeStreamCallback, InitDispatchToEventLoop, JSContext as RawJSContext, JSGCParamKey,
     JSGCStatus, JSJitCompilerOption, JSObject, JSSecurityCallbacks, JSTracer,
     JS_AddExtraGCRootsTracer, JS_InitDestroyPrincipalsCallback, JS_InitReadPrincipalsCallback,
     JS_RequestInterruptCallback, JS_SetGCCallback, JS_SetGCParameter,
     JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled,
     JS_SetParallelParsingEnabled, JS_SetSecurityCallbacks, JobQueue, MimeType,
-    PromiseRejectionHandlingState, PromiseUserInputEventHandlingState, SetDOMCallbacks,
-    SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks, SetProcessBuildIdOp,
-    SetPromiseRejectionTrackerCallback, StreamConsumer as JSStreamConsumer,
+    PromiseRejectionHandlingState, PromiseUserInputEventHandlingState, RuntimeCode,
+    SetDOMCallbacks, SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks,
+    SetProcessBuildIdOp, SetPromiseRejectionTrackerCallback, StreamConsumer as JSStreamConsumer,
 };
 use js::jsval::UndefinedValue;
 use js::panic::wrap_panic;
 use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
 use js::rust::{
-    Handle, HandleObject as RustHandleObject, IntoHandle, JSEngine, JSEngineHandle, ParentRuntime,
-    Runtime as RustRuntime,
+    describe_scripted_caller, Handle, HandleObject as RustHandleObject, IntoHandle, JSEngine,
+    JSEngineHandle, ParentRuntime, Runtime as RustRuntime,
 };
 use lazy_static::lazy_static;
 use malloc_size_of::MallocSizeOfOps;
@@ -79,6 +81,7 @@ use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::script_module::EnsureModuleHooksInitialized;
 use crate::script_thread::trace_thread;
+use crate::security_manager::CSPViolationReporter;
 use crate::task::TaskBox;
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::{TaskSource, TaskSourceName};
@@ -90,8 +93,7 @@ static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
 };
 
 static SECURITY_CALLBACKS: JSSecurityCallbacks = JSSecurityCallbacks {
-    // TODO: Content Security Policy <https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP>
-    contentSecurityPolicyAllows: None,
+    contentSecurityPolicyAllows: Some(content_security_policy_allows),
     subsumes: Some(principals::subsumes),
 };
 
@@ -309,6 +311,61 @@ unsafe extern "C" fn promise_rejection_tracker(
             },
         };
     })
+}
+
+#[allow(unsafe_code)]
+unsafe extern "C" fn content_security_policy_allows(
+    cx: *mut RawJSContext,
+    runtime_code: RuntimeCode,
+    sample: HandleString,
+) -> bool {
+    let mut allowed = false;
+    let cx = JSContext::from_ptr(cx);
+    wrap_panic(&mut || {
+        // SpiderMonkey provides null pointer when executing webassembly.
+        let sample = match sample {
+            sample if !sample.is_null() => Some(jsstr_to_string(*cx, *sample)),
+            _ => None,
+        };
+        let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
+        let global = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
+        let Some(csp_list) = global.get_csp_list() else {
+            allowed = true;
+            return;
+        };
+
+        let is_js_evaluation_allowed = csp_list.is_js_evaluation_allowed() == CheckResult::Allowed;
+        let is_wasm_evaluation_allowed =
+            csp_list.is_wasm_evaluation_allowed() == CheckResult::Allowed;
+        let scripted_caller = describe_scripted_caller(*cx).unwrap_or_default();
+
+        allowed = match runtime_code {
+            RuntimeCode::JS if is_js_evaluation_allowed => true,
+            RuntimeCode::WASM if is_wasm_evaluation_allowed => true,
+            _ => false,
+        };
+
+        if !allowed {
+            // FIXME: Don't fire event if `script-src` and `default-src`
+            // were not passed.
+            for policy in csp_list.0 {
+                let task = CSPViolationReporter::new(
+                    &global,
+                    sample.clone(),
+                    policy.disposition == PolicyDisposition::Report,
+                    runtime_code,
+                    scripted_caller.filename.clone(),
+                    scripted_caller.line,
+                    scripted_caller.col,
+                );
+                global
+                    .dom_manipulation_task_source()
+                    .queue(task, &global)
+                    .unwrap();
+            }
+        }
+    });
+    allowed
 }
 
 #[allow(unsafe_code, crown::unrooted_must_root)]

@@ -442,7 +442,12 @@ impl JsTimers {
     ) -> i32 {
         let callback = match callback {
             TimerCallback::StringTimerCallback(code_str) => {
-                InternalTimerCallback::StringTimerCallback(code_str)
+                let cx = GlobalScope::get_cx();
+                if global.is_js_evaluation_allowed(cx) {
+                    InternalTimerCallback::StringTimerCallback(code_str)
+                } else {
+                    return 0;
+                }
             },
             TimerCallback::FunctionTimerCallback(function) => {
                 // This is a bit complicated, but this ensures that the vector's

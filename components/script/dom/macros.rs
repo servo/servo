@@ -471,6 +471,7 @@ macro_rules! global_event_handlers(
         event_handler!(progress, GetOnprogress, SetOnprogress);
         event_handler!(ratechange, GetOnratechange, SetOnratechange);
         event_handler!(reset, GetOnreset, SetOnreset);
+        event_handler!(securitypolicyviolation, GetOnsecuritypolicyviolation, SetOnsecuritypolicyviolation);
         event_handler!(seeked, GetOnseeked, SetOnseeked);
         event_handler!(seeking, GetOnseeking, SetOnseeking);
         event_handler!(select, GetOnselect, SetOnselect);

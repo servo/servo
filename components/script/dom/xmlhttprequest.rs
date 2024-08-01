@@ -1527,6 +1527,7 @@ impl XMLHttpRequest {
             docloader,
             None,
             None,
+            None,
             Default::default(),
         )
     }

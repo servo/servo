@@ -3672,6 +3672,8 @@ impl ScriptThread {
             .and_then(|h| h.typed_get::<ReferrerPolicyHeader>())
             .map(ReferrerPolicy::from);
 
+        let status_code = metadata.status.map(|status| status.0).unwrap_or(200);
+
         let document = Document::new(
             &window,
             HasBrowsingContext::Yes,
@@ -3685,6 +3687,7 @@ impl ScriptThread {
             loader,
             referrer,
             referrer_policy,
+            Some(status_code),
             incomplete.canceller,
         );
         document.set_ready_state(DocumentReadyState::Loading);
