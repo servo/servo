@@ -152,3 +152,57 @@ impl Drop for RenderTargetInfo {
         self.gl.delete_framebuffers(&self.framebuffer_ids);
     }
 }
+
+#[cfg(test)]
+mod test {
+    use gleam::gl;
+    use image::Rgba;
+    use servo_geometry::FramebufferUintLength;
+    use surfman::{Connection, ContextAttributeFlags, ContextAttributes, Error, GLApi, GLVersion};
+
+    use super::RenderTargetInfo;
+
+    #[test]
+    #[allow(unsafe_code)]
+    fn test_read_pixels() -> Result<(), Error> {
+        let connection = Connection::new()?;
+        let adapter = connection.create_software_adapter()?;
+        let mut device = connection.create_device(&adapter)?;
+        let context_descriptor = device.create_context_descriptor(&ContextAttributes {
+            version: GLVersion::new(3, 0),
+            flags: ContextAttributeFlags::empty(),
+        })?;
+        let mut context = device.create_context(&context_descriptor, None)?;
+
+        let gl = match connection.gl_api() {
+            GLApi::GL => unsafe { gl::GlFns::load_with(|s| device.get_proc_address(&context, s)) },
+            GLApi::GLES => unsafe {
+                gl::GlesFns::load_with(|s| device.get_proc_address(&context, s))
+            },
+        };
+
+        device.make_context_current(&context)?;
+
+        {
+            const WIDTH: FramebufferUintLength = FramebufferUintLength::new(16);
+            const HEIGHT: FramebufferUintLength = FramebufferUintLength::new(16);
+            let render_target = RenderTargetInfo::new(gl, WIDTH, HEIGHT);
+            render_target.bind();
+            render_target
+                .gl
+                .clear_color(12.0 / 255.0, 34.0 / 255.0, 56.0 / 255.0, 78.0 / 255.0);
+            render_target.gl.clear(gl::COLOR_BUFFER_BIT);
+
+            let img = render_target.read_back_from_gpu(0, 0, WIDTH, HEIGHT);
+            assert_eq!(img.width(), WIDTH.get());
+            assert_eq!(img.height(), HEIGHT.get());
+
+            let expected_pixel: Rgba<u8> = Rgba([12, 34, 56, 78]);
+            assert!(img.pixels().all(|&p| p == expected_pixel));
+        }
+
+        device.destroy_context(&mut context)?;
+
+        Ok(())
+    }
+}
