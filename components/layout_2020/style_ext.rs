@@ -204,9 +204,19 @@ pub(crate) trait ComputedValuesExt {
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<LengthOrAuto>;
+    fn content_box_size_for_box_size(
+        &self,
+        box_size: LogicalVec2<LengthOrAuto>,
+        pbm: &PaddingBorderMargin,
+    ) -> LogicalVec2<LengthOrAuto>;
     fn content_min_box_size(
         &self,
         containing_block: &ContainingBlock,
+        pbm: &PaddingBorderMargin,
+    ) -> LogicalVec2<LengthOrAuto>;
+    fn content_min_box_size_for_min_size(
+        &self,
+        box_size: LogicalVec2<LengthOrAuto>,
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<LengthOrAuto>;
     fn content_max_box_size(
@@ -214,7 +224,16 @@ pub(crate) trait ComputedValuesExt {
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<Option<Length>>;
+    fn content_max_box_size_for_max_size(
+        &self,
+        box_size: LogicalVec2<Option<Length>>,
+        pbm: &PaddingBorderMargin,
+    ) -> LogicalVec2<Option<Length>>;
     fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin;
+    fn padding_border_margin_for_intrinsic_size(
+        &self,
+        writing_mode: WritingMode,
+    ) -> PaddingBorderMargin;
     fn padding(
         &self,
         containing_block_writing_mode: WritingMode,
@@ -316,6 +335,14 @@ impl ComputedValuesExt for ComputedValues {
         let box_size = self
             .box_size(containing_block.style.writing_mode)
             .percentages_relative_to(containing_block);
+        self.content_box_size_for_box_size(box_size, pbm)
+    }
+
+    fn content_box_size_for_box_size(
+        &self,
+        box_size: LogicalVec2<LengthOrAuto>,
+        pbm: &PaddingBorderMargin,
+    ) -> LogicalVec2<LengthOrAuto> {
         match self.get_position().box_sizing {
             BoxSizing::ContentBox => box_size,
             BoxSizing::BorderBox => LogicalVec2 {
@@ -336,9 +363,17 @@ impl ComputedValuesExt for ComputedValues {
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
     ) -> LogicalVec2<LengthOrAuto> {
-        let min_box_size = self
+        let box_size = self
             .min_box_size(containing_block.style.writing_mode)
             .percentages_relative_to(containing_block);
+        self.content_min_box_size_for_min_size(box_size, pbm)
+    }
+
+    fn content_min_box_size_for_min_size(
+        &self,
+        min_box_size: LogicalVec2<LengthOrAuto>,
+        pbm: &PaddingBorderMargin,
+    ) -> LogicalVec2<LengthOrAuto> {
         match self.get_position().box_sizing {
             BoxSizing::ContentBox => min_box_size,
             BoxSizing::BorderBox => LogicalVec2 {
@@ -361,6 +396,15 @@ impl ComputedValuesExt for ComputedValues {
         let max_box_size = self
             .max_box_size(containing_block.style.writing_mode)
             .percentages_relative_to(containing_block);
+
+        self.content_max_box_size_for_max_size(max_box_size, pbm)
+    }
+
+    fn content_max_box_size_for_max_size(
+        &self,
+        max_box_size: LogicalVec2<Option<Length>>,
+        pbm: &PaddingBorderMargin,
+    ) -> LogicalVec2<Option<Length>> {
         match self.get_position().box_sizing {
             BoxSizing::ContentBox => max_box_size,
             BoxSizing::BorderBox => {
@@ -387,6 +431,28 @@ impl ComputedValuesExt for ComputedValues {
         let margin = self
             .margin(containing_block.style.writing_mode)
             .percentages_relative_to(cbis.into());
+        PaddingBorderMargin {
+            padding_border_sums: LogicalVec2 {
+                inline: (padding.inline_sum() + border.inline_sum()).into(),
+                block: (padding.block_sum() + border.block_sum()).into(),
+            },
+            padding: padding.into(),
+            border: border.into(),
+            margin: margin.map(|t| t.map(|m| m.into())),
+        }
+    }
+
+    fn padding_border_margin_for_intrinsic_size(
+        &self,
+        writing_mode: WritingMode,
+    ) -> PaddingBorderMargin {
+        let padding = self
+            .padding(writing_mode)
+            .percentages_relative_to(Length::zero());
+        let border = self.border_width(writing_mode);
+        let margin = self
+            .margin(writing_mode)
+            .percentages_relative_to(Length::zero());
         PaddingBorderMargin {
             padding_border_sums: LogicalVec2 {
                 inline: (padding.inline_sum() + border.inline_sum()).into(),

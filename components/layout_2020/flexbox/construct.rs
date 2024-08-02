@@ -7,7 +7,7 @@ use std::borrow::Cow;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use style::values::specified::text::TextDecorationLine;
 
-use super::{FlexContainer, FlexLevelBox};
+use super::{FlexContainer, FlexItemBox, FlexLevelBox};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, LayoutBox, NodeExt};
@@ -176,9 +176,11 @@ where
                         ),
                     };
 
-                    Some(ArcRefCell::new(FlexLevelBox::FlexItem(
-                        IndependentFormattingContext::NonReplaced(non_replaced),
-                    )))
+                    Some(ArcRefCell::new(FlexLevelBox::FlexItem(FlexItemBox {
+                        independent_formatting_context: IndependentFormattingContext::NonReplaced(
+                            non_replaced,
+                        ),
+                    })))
                 },
                 FlexLevelJob::Element {
                     info,
@@ -201,15 +203,15 @@ where
                             )),
                         ))
                     } else {
-                        ArcRefCell::new(FlexLevelBox::FlexItem(
-                            IndependentFormattingContext::construct(
+                        ArcRefCell::new(FlexLevelBox::FlexItem(FlexItemBox {
+                            independent_formatting_context: IndependentFormattingContext::construct(
                                 self.context,
                                 &info,
                                 display_inside,
                                 contents,
                                 self.text_decoration_line,
                             ),
-                        ))
+                        }))
                     };
                     box_slot.set(LayoutBox::FlexLevel(box_.clone()));
                     Some(box_)
@@ -227,6 +229,9 @@ where
             FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => 0,
         });
 
-        FlexContainer { children }
+        FlexContainer {
+            children,
+            style: self.info.style.clone(),
+        }
     }
 }
