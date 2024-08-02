@@ -31,7 +31,7 @@ use super::{FlexContainer, FlexItemBox, FlexLevelBox};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext, IndependentLayout};
-use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment};
+use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags};
 use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::sizing::ContentSizes;
@@ -1522,9 +1522,12 @@ impl InitialFlexLineLayout<'_> {
                     all_baselines.last = Some(item_baseline);
                 }
 
+                let mut fragment_info = item.box_.base_fragment_info();
+                fragment_info.flags.insert(FragmentFlags::IS_FLEX_ITEM);
+
                 (
                     BoxFragment::new(
-                        item.box_.base_fragment_info(),
+                        fragment_info,
                         item.box_.style().clone(),
                         item_layout_result.fragments,
                         content_rect,
