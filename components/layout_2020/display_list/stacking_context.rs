@@ -315,8 +315,11 @@ pub struct StackingContext {
     /// The clip chain id of this stacking context if it has one. Used for filter clipping.
     clip_chain_id: Option<wr::ClipChainId>,
 
-    /// The fragment that established this stacking context.
+    /// The style of the fragment that established this stacking context.
     initializing_fragment_style: Option<ServoArc<ComputedValues>>,
+
+    /// The [`FragmentFlags`] of the [`Fragment`] that established this stacking context.
+    initializing_fragment_flags: FragmentFlags,
 
     /// The type of this stacking context. Used for collecting and sorting.
     context_type: StackingContextType,
@@ -376,6 +379,7 @@ impl StackingContext {
         spatial_id: wr::SpatialId,
         clip_chain_id: wr::ClipChainId,
         initializing_fragment_style: ServoArc<ComputedValues>,
+        initializing_fragment_flags: FragmentFlags,
         context_type: StackingContextType,
     ) -> Self {
         // WebRender has two different ways of expressing "no clip." ClipChainId::INVALID should be
@@ -390,6 +394,7 @@ impl StackingContext {
             spatial_id,
             clip_chain_id,
             initializing_fragment_style: Some(initializing_fragment_style),
+            initializing_fragment_flags,
             context_type,
             contents: vec![],
             real_stacking_contexts_and_positioned_stacking_containers: vec![],
@@ -404,6 +409,7 @@ impl StackingContext {
             spatial_id: wr::SpaceAndClipInfo::root_scroll(wr.pipeline_id).spatial_id,
             clip_chain_id: None,
             initializing_fragment_style: None,
+            initializing_fragment_flags: FragmentFlags::empty(),
             context_type: StackingContextType::RealStackingContext,
             contents: vec![],
             real_stacking_contexts_and_positioned_stacking_containers: vec![],
@@ -433,7 +439,9 @@ impl StackingContext {
     fn z_index(&self) -> i32 {
         self.initializing_fragment_style
             .as_ref()
-            .map_or(0, |style| style.effective_z_index())
+            .map_or(0, |style| {
+                style.effective_z_index(self.initializing_fragment_flags)
+            })
     }
 
     pub(crate) fn sort(&mut self) {
@@ -1055,6 +1063,7 @@ impl BoxFragment {
             containing_block.scroll_node_id.spatial_id,
             containing_block.clip_chain_id,
             self.style.clone(),
+            self.base.flags,
             context_type,
         );
         self.build_stacking_context_tree_for_children(
