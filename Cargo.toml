@@ -104,7 +104,7 @@ serde_json = "1.0"
 servo-media = { git = "https://github.com/servo/media" }
 servo-media-dummy = { git = "https://github.com/servo/media" }
 servo-media-gstreamer = { git = "https://github.com/servo/media" }
-servo_arc = { git = "https://github.com/servo/stylo", branch = "2024-07-16" }
+servo_arc = { git = "https://github.com/servo/stylo", branch = "2024-07-16", features = ["servo"] }
 servo_atoms = { git = "https://github.com/servo/stylo", branch = "2024-07-16" }
 size_of_test = { git = "https://github.com/servo/stylo", branch = "2024-07-16" }
 smallbitvec = "2.5.3"
