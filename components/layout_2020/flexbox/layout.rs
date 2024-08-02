@@ -506,137 +506,6 @@ impl FlexContainer {
                 flex_context.container_max_cross_size,
             );
 
-        // https://drafts.csswg.org/css-flexbox/#algo-line-align
-        // Align all flex lines per `align-content`.
-        let mut cross_start_position_cursor = Au::zero();
-        let mut line_interval = cross_gap;
-
-        let mut extra_space_for_align_stretch = Au::zero();
-        if let Some(cross_size) = flex_context.container_definite_inner_size.cross {
-            let mut free_space = cross_size - content_cross_size;
-            let layout_is_flex_reversed = flex_context.flex_wrap_reverse;
-
-            // Implement fallback alignment.
-            //
-            // In addition to the spec at https://www.w3.org/TR/css-align-3/ this implementation follows
-            // the resolution of https://github.com/w3c/csswg-drafts/issues/10154
-            let resolved_align_content: AlignFlags = {
-                let align_content_style = flex_context.align_content.0.primary();
-
-                // Inital values from the style system
-                let mut resolved_align_content = align_content_style.value();
-                let mut is_safe = align_content_style.flags() == AlignFlags::SAFE;
-
-                // From https://drafts.csswg.org/css-flexbox/#algo-line-align:
-                // > Some alignments can only be fulfilled in certain situations or are
-                // > limited in how much space they can consume; for example, space-between
-                // > can only operate when there is more than one alignment subject, and
-                // > baseline alignment, once fulfilled, might not be enough to absorb all
-                // > the excess space. In these cases a fallback alignment takes effect (as
-                // > defined below) to fully consume the excess space.
-                let fallback_is_needed = match resolved_align_content {
-                    _ if free_space <= Au::zero() => true,
-                    AlignFlags::STRETCH => line_count < 1,
-                    AlignFlags::SPACE_BETWEEN |
-                    AlignFlags::SPACE_AROUND |
-                    AlignFlags::SPACE_EVENLY => line_count < 2,
-                    _ => false,
-                };
-
-                if fallback_is_needed {
-                    (resolved_align_content, is_safe) = match resolved_align_content {
-                        AlignFlags::STRETCH => (AlignFlags::FLEX_START, true),
-                        AlignFlags::SPACE_BETWEEN => (AlignFlags::FLEX_START, true),
-                        AlignFlags::SPACE_AROUND => (AlignFlags::CENTER, true),
-                        AlignFlags::SPACE_EVENLY => (AlignFlags::CENTER, true),
-                        _ => (resolved_align_content, is_safe),
-                    }
-                };
-
-                // 2. If free space is negative the "safe" alignment variants all fallback to Start alignment
-                if free_space <= Au::zero() && is_safe {
-                    resolved_align_content = AlignFlags::START;
-                }
-
-                resolved_align_content
-            };
-
-            // TODO: There are bad cases where we end up distributing much less free space than we have.
-            // For instance if we have 999 Au of free space and 1000 lines, we won't distribute any!
-            // We need to calculate how much free space to distribute to a line for every line, subtracting
-            // that value from the total.
-            if resolved_align_content == AlignFlags::STRETCH {
-                extra_space_for_align_stretch = free_space / initial_line_layouts.len() as i32;
-                free_space -= extra_space_for_align_stretch * initial_line_layouts.len() as i32;
-            }
-
-            // Implement "unsafe" alignment. "safe" alignment is handled by the fallback process above.
-            cross_start_position_cursor = match resolved_align_content {
-                AlignFlags::START => Au::zero(),
-                AlignFlags::FLEX_START => {
-                    if layout_is_flex_reversed {
-                        free_space
-                    } else {
-                        Au::zero()
-                    }
-                },
-                AlignFlags::END => free_space,
-                AlignFlags::FLEX_END => {
-                    if layout_is_flex_reversed {
-                        Au::zero()
-                    } else {
-                        free_space
-                    }
-                },
-                AlignFlags::CENTER => free_space / 2,
-                AlignFlags::STRETCH => Au::zero(),
-                AlignFlags::SPACE_BETWEEN => Au::zero(),
-                AlignFlags::SPACE_AROUND => free_space / line_count as i32 / 2,
-                AlignFlags::SPACE_EVENLY => free_space / (line_count + 1) as i32,
-
-                // TODO: Implement all alignments. Note: not all alignment values are valid for content distribution
-                _ => Au::zero(),
-            };
-
-            line_interval += match resolved_align_content {
-                AlignFlags::START => Au::zero(),
-                AlignFlags::FLEX_START => Au::zero(),
-                AlignFlags::END => Au::zero(),
-                AlignFlags::FLEX_END => Au::zero(),
-                AlignFlags::CENTER => Au::zero(),
-                AlignFlags::STRETCH => Au::zero(),
-                AlignFlags::SPACE_BETWEEN => free_space / (line_count - 1) as i32,
-                AlignFlags::SPACE_AROUND => free_space / line_count as i32,
-                AlignFlags::SPACE_EVENLY => free_space / (line_count + 1) as i32,
-
-                // TODO: Implement all alignments. Note: not all alignment values are valid for content distribution
-                _ => Au::zero(),
-            };
-        };
-
-        let final_line_layouts: Vec<_> = initial_line_layouts
-            .into_iter()
-            .map(|initial_layout| {
-                let final_line_cross_size =
-                    initial_layout.line_size.cross + extra_space_for_align_stretch;
-                initial_layout.finish_with_final_cross_size(
-                    &mut flex_context,
-                    main_gap,
-                    final_line_cross_size,
-                )
-            })
-            .collect();
-
-        let line_cross_start_positions = final_line_layouts
-            .iter()
-            .map(|line| {
-                let cross_start = cross_start_position_cursor;
-                let cross_end = cross_start + line.cross_size + line_interval;
-                cross_start_position_cursor = cross_end;
-                cross_start
-            })
-            .collect::<Vec<_>>();
-
         let content_block_size = match flex_context.flex_axis {
             FlexAxis::Row => {
                 // `container_main_size` ends up unused here but in this case that’s fine
@@ -656,58 +525,165 @@ impl FlexContainer {
             },
         };
 
+        let mut remaining_free_cross_space = flex_context
+            .container_definite_inner_size
+            .cross
+            .map(|cross_size| cross_size - content_cross_size)
+            .unwrap_or_default();
+
+        // Implement fallback alignment.
+        //
+        // In addition to the spec at https://www.w3.org/TR/css-align-3/ this implementation follows
+        // the resolution of https://github.com/w3c/csswg-drafts/issues/10154
+        let num_lines = initial_line_layouts.len();
+        let resolved_align_content: AlignFlags = {
+            let align_content_style = flex_context.align_content.0.primary();
+
+            // Inital values from the style system
+            let mut resolved_align_content = align_content_style.value();
+            let mut is_safe = align_content_style.flags() == AlignFlags::SAFE;
+
+            // From https://drafts.csswg.org/css-flexbox/#algo-line-align:
+            // > Some alignments can only be fulfilled in certain situations or are
+            // > limited in how much space they can consume; for example, space-between
+            // > can only operate when there is more than one alignment subject, and
+            // > baseline alignment, once fulfilled, might not be enough to absorb all
+            // > the excess space. In these cases a fallback alignment takes effect (as
+            // > defined below) to fully consume the excess space.
+            let fallback_is_needed = match resolved_align_content {
+                _ if remaining_free_cross_space <= Au::zero() => true,
+                AlignFlags::STRETCH => num_lines < 1,
+                AlignFlags::SPACE_BETWEEN | AlignFlags::SPACE_AROUND | AlignFlags::SPACE_EVENLY => {
+                    num_lines < 2
+                },
+                _ => false,
+            };
+
+            if fallback_is_needed {
+                (resolved_align_content, is_safe) = match resolved_align_content {
+                    AlignFlags::STRETCH => (AlignFlags::FLEX_START, true),
+                    AlignFlags::SPACE_BETWEEN => (AlignFlags::FLEX_START, true),
+                    AlignFlags::SPACE_AROUND => (AlignFlags::CENTER, true),
+                    AlignFlags::SPACE_EVENLY => (AlignFlags::CENTER, true),
+                    _ => (resolved_align_content, is_safe),
+                }
+            };
+
+            // 2. If free space is negative the "safe" alignment variants all fallback to Start alignment
+            if remaining_free_cross_space <= Au::zero() && is_safe {
+                resolved_align_content = AlignFlags::START;
+            }
+
+            resolved_align_content
+        };
+
+        // Implement "unsafe" alignment. "safe" alignment is handled by the fallback process above.
+        let mut cross_start_position_cursor = match resolved_align_content {
+            AlignFlags::START => Au::zero(),
+            AlignFlags::FLEX_START => {
+                if flex_context.flex_wrap_reverse {
+                    remaining_free_cross_space
+                } else {
+                    Au::zero()
+                }
+            },
+            AlignFlags::END => remaining_free_cross_space,
+            AlignFlags::FLEX_END => {
+                if flex_context.flex_wrap_reverse {
+                    Au::zero()
+                } else {
+                    remaining_free_cross_space
+                }
+            },
+            AlignFlags::CENTER => remaining_free_cross_space / 2,
+            AlignFlags::STRETCH => Au::zero(),
+            AlignFlags::SPACE_BETWEEN => Au::zero(),
+            AlignFlags::SPACE_AROUND => remaining_free_cross_space / num_lines as i32 / 2,
+            AlignFlags::SPACE_EVENLY => remaining_free_cross_space / (num_lines as i32 + 1),
+
+            // TODO: Implement all alignments. Note: not all alignment values are valid for content distribution
+            _ => Au::zero(),
+        };
+
         let mut baseline_alignment_participating_baselines = Baselines::default();
         let mut all_baselines = Baselines::default();
-        let num_lines = final_line_layouts.len();
-        let mut flex_item_fragments =
-            izip!(final_line_layouts.into_iter(), line_cross_start_positions)
-                .enumerate()
-                .flat_map(|(index, (mut line, line_cross_start_position))| {
-                    let flow_relative_line_position = match (flex_axis, flex_wrap_reverse) {
-                        (FlexAxis::Row, false) => LogicalVec2 {
-                            block: line_cross_start_position,
-                            inline: Au::zero(),
-                        },
-                        (FlexAxis::Row, true) => LogicalVec2 {
-                            block: container_cross_size -
-                                line_cross_start_position -
-                                line.cross_size,
-                            inline: Au::zero(),
-                        },
-                        (FlexAxis::Column, false) => LogicalVec2 {
-                            block: Au::zero(),
-                            inline: line_cross_start_position,
-                        },
-                        (FlexAxis::Column, true) => LogicalVec2 {
-                            block: Au::zero(),
-                            inline: container_cross_size -
-                                line_cross_start_position -
-                                line.cross_size,
-                        },
-                    };
+        let flex_item_fragments: Vec<_> = initial_line_layouts
+            .into_iter()
+            .enumerate()
+            .flat_map(|(index, initial_line_layout)| {
+                // We call `allocate_free_cross_space_for_flex_line` for each line to avoid having
+                // leftover space when the number of lines doesn't evenly divide the total free space,
+                // considering the precision of app units.
+                let (space_to_add_to_line, space_to_add_after_line) =
+                    allocate_free_cross_space_for_flex_line(
+                        resolved_align_content,
+                        remaining_free_cross_space,
+                        (num_lines - index) as i32,
+                    );
+                remaining_free_cross_space -= space_to_add_to_line + space_to_add_after_line;
 
-                    let line_shared_alignment_baseline = line
-                        .shared_alignment_baseline
-                        .map(|baseline| baseline + flow_relative_line_position.block);
-                    let line_all_baselines =
-                        line.all_baselines.offset(flow_relative_line_position.block);
-                    if index == 0 {
-                        baseline_alignment_participating_baselines.first =
-                            line_shared_alignment_baseline;
-                        all_baselines.first = line_all_baselines.first;
-                    }
-                    if index == num_lines - 1 {
-                        baseline_alignment_participating_baselines.last =
-                            line_shared_alignment_baseline;
-                        all_baselines.last = line_all_baselines.last;
-                    }
+                let final_line_cross_size =
+                    initial_line_layout.line_size.cross + space_to_add_to_line;
+                let mut final_line_layout = initial_line_layout.finish_with_final_cross_size(
+                    &mut flex_context,
+                    main_gap,
+                    final_line_cross_size,
+                );
 
-                    for (fragment, _) in &mut line.item_fragments {
-                        fragment.content_rect.start_corner += flow_relative_line_position
-                    }
-                    line.item_fragments
-                });
+                let line_cross_start_position = cross_start_position_cursor;
+                cross_start_position_cursor = line_cross_start_position +
+                    final_line_cross_size +
+                    space_to_add_after_line +
+                    cross_gap;
 
+                let flow_relative_line_position = match (flex_axis, flex_wrap_reverse) {
+                    (FlexAxis::Row, false) => LogicalVec2 {
+                        block: line_cross_start_position,
+                        inline: Au::zero(),
+                    },
+                    (FlexAxis::Row, true) => LogicalVec2 {
+                        block: container_cross_size -
+                            line_cross_start_position -
+                            final_line_layout.cross_size,
+                        inline: Au::zero(),
+                    },
+                    (FlexAxis::Column, false) => LogicalVec2 {
+                        block: Au::zero(),
+                        inline: line_cross_start_position,
+                    },
+                    (FlexAxis::Column, true) => LogicalVec2 {
+                        block: Au::zero(),
+                        inline: container_cross_size -
+                            line_cross_start_position -
+                            final_line_cross_size,
+                    },
+                };
+
+                let line_shared_alignment_baseline = final_line_layout
+                    .shared_alignment_baseline
+                    .map(|baseline| baseline + flow_relative_line_position.block);
+                let line_all_baselines = final_line_layout
+                    .all_baselines
+                    .offset(flow_relative_line_position.block);
+                if index == 0 {
+                    baseline_alignment_participating_baselines.first =
+                        line_shared_alignment_baseline;
+                    all_baselines.first = line_all_baselines.first;
+                }
+                if index == num_lines - 1 {
+                    baseline_alignment_participating_baselines.last =
+                        line_shared_alignment_baseline;
+                    all_baselines.last = line_all_baselines.last;
+                }
+
+                for (fragment, _) in &mut final_line_layout.item_fragments {
+                    fragment.content_rect.start_corner += flow_relative_line_position
+                }
+                final_line_layout.item_fragments
+            })
+            .collect();
+
+        let mut flex_item_fragments = flex_item_fragments.into_iter();
         let fragments = absolutely_positioned_items_with_original_order
             .into_iter()
             .map(|child_as_abspos| match child_as_abspos {
@@ -776,6 +752,52 @@ impl FlexContainer {
             min_box_size.cross.into(),
             max_box_size.cross.map(Into::into),
         )
+    }
+}
+
+/// Align all flex lines per `align-content` according to
+/// <https://drafts.csswg.org/css-flexbox/#algo-line-align>. Returns the space to add to
+/// each line or the space to add after each line.
+fn allocate_free_cross_space_for_flex_line(
+    resolved_align_content: AlignFlags,
+    remaining_free_cross_space: Au,
+    remaining_line_count: i32,
+) -> (Au, Au) {
+    if remaining_free_cross_space == Au::zero() {
+        return (Au::zero(), Au::zero());
+    }
+
+    match resolved_align_content {
+        AlignFlags::START => (Au::zero(), Au::zero()),
+        AlignFlags::FLEX_START => (Au::zero(), Au::zero()),
+        AlignFlags::END => (Au::zero(), Au::zero()),
+        AlignFlags::FLEX_END => (Au::zero(), Au::zero()),
+        AlignFlags::CENTER => (Au::zero(), Au::zero()),
+        AlignFlags::STRETCH => (
+            remaining_free_cross_space / remaining_line_count,
+            Au::zero(),
+        ),
+        AlignFlags::SPACE_BETWEEN => {
+            if remaining_line_count > 1 {
+                (
+                    Au::zero(),
+                    remaining_free_cross_space / (remaining_line_count - 1),
+                )
+            } else {
+                (Au::zero(), Au::zero())
+            }
+        },
+        AlignFlags::SPACE_AROUND => (
+            Au::zero(),
+            remaining_free_cross_space / remaining_line_count,
+        ),
+        AlignFlags::SPACE_EVENLY => (
+            Au::zero(),
+            remaining_free_cross_space / (remaining_line_count + 1),
+        ),
+
+        // TODO: Implement all alignments. Note: not all alignment values are valid for content distribution
+        _ => (Au::zero(), Au::zero()),
     }
 }
 
@@ -1378,8 +1400,6 @@ impl InitialFlexLineLayout<'_> {
         }
 
         // Align the items along the main-axis per justify-content.
-        let layout_is_flex_reversed = flex_context.flex_direction_is_reversed;
-
         // Implement fallback alignment.
         //
         // In addition to the spec at https://www.w3.org/TR/css-align-3/ this implementation follows
@@ -1417,7 +1437,7 @@ impl InitialFlexLineLayout<'_> {
         let main_start_position = match resolved_justify_content {
             AlignFlags::START => Au::zero(),
             AlignFlags::FLEX_START => {
-                if layout_is_flex_reversed {
+                if flex_context.flex_direction_is_reversed {
                     free_space_in_main_axis
                 } else {
                     Au::zero()
@@ -1425,7 +1445,7 @@ impl InitialFlexLineLayout<'_> {
             },
             AlignFlags::END => free_space_in_main_axis,
             AlignFlags::FLEX_END => {
-                if layout_is_flex_reversed {
+                if flex_context.flex_direction_is_reversed {
                     Au::zero()
                 } else {
                     free_space_in_main_axis
