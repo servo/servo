@@ -13,7 +13,6 @@ use js::jsval::JSVal;
 use script_traits::GamepadSupportedHapticEffects;
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::GamepadHapticActuatorBinding::{
     GamepadEffectParameters, GamepadHapticActuatorMethods, GamepadHapticEffectType,
 };
