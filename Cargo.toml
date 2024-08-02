@@ -191,3 +191,6 @@ strip = true
 # patch libz-sys for https://github.com/rust-lang/libz-sys/pull/199
 # until released as 1.1.19 (also remove this in mozjs repo)
 libz-sys = { git = "https://github.com/rust-lang/libz-sys.git", rev = "f76b7a24ed0a71ef1b8bdac1895e8535cb2cb9c0" }
+
+# patch surfman for https://github.com/servo/surfman/pull/300
+surfman = { git = "https://github.com/servo/surfman.git", rev = "e077b41c75d8996d6ce677fbebe2bcb55aa8dd22" }

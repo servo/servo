@@ -896,6 +896,7 @@ dependencies = [
  "servo_geometry",
  "servo_url",
  "style_traits",
+ "surfman",
  "time 0.1.45",
  "toml 0.5.11",
  "webrender",
@@ -6578,8 +6579,7 @@ dependencies = [
 [[package]]
 name = "surfman"
 version = "0.9.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ef31fb4346fc13b83872a73fa2a1f4856dbf3ab3eb3495b32fb41c26ec8cc7a"
+source = "git+https://github.com/servo/surfman.git?rev=e077b41c75d8996d6ce677fbebe2bcb55aa8dd22#e077b41c75d8996d6ce677fbebe2bcb55aa8dd22"
 dependencies = [
  "bitflags 1.3.2",
  "cfg_aliases 0.1.1",
