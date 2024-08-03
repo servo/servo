@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::collections::HashMap;
 use std::f64::consts::{FRAC_PI_2, PI};
 use std::mem;
 use std::rc::Rc;
@@ -15,8 +16,8 @@ use metrics::ToMs;
 use profile_traits::ipc;
 use webxr_api::{
     self, util, ApiSpace, ContextId as WebXRContextId, Display, EntityTypes, EnvironmentBlendMode,
-    Event as XREvent, Frame, FrameUpdateEvent, HitTestId, HitTestSource, Ray, SelectEvent,
-    SelectKind, Session, SessionId, View, Viewer, Visibility,
+    Event as XREvent, Frame, FrameUpdateEvent, HitTestId, HitTestSource, InputFrame, InputId, Ray,
+    SelectEvent, SelectKind, Session, SessionId, View, Viewer, Visibility,
 };
 
 use super::bindings::trace::HashMapTracedValues;
@@ -92,6 +93,9 @@ pub struct XRSession {
     /// Opaque framebuffers need to know the session is "outside of a requestAnimationFrame"
     /// <https://immersive-web.github.io/webxr/#opaque-framebuffer>
     outside_raf: Cell<bool>,
+    #[ignore_malloc_size_of = "defined in webxr"]
+    #[no_trace]
+    input_frames: DomRefCell<HashMap<InputId, InputFrame>>,
 }
 
 impl XRSession {
@@ -122,6 +126,7 @@ impl XRSession {
             next_hit_test_id: Cell::new(HitTestId(0)),
             pending_hit_test_promises: DomRefCell::new(HashMapTracedValues::new()),
             outside_raf: Cell::new(true),
+            input_frames: DomRefCell::new(HashMap::new()),
         }
     }
 
@@ -351,10 +356,7 @@ impl XRSession {
                 self.input_sources.add_remove_input_source(self, id, source);
             },
             XREvent::InputChanged(id, frame) => {
-                let source = self.input_sources.find(id);
-                if let Some(source) = source {
-                    source.update_gamepad_state(frame);
-                }
+                self.input_frames.borrow_mut().insert(id, frame);
             },
         }
     }
@@ -517,7 +519,12 @@ impl XRSession {
     /// <https://immersive-web.github.io/webxr/#xrframe-apply-frame-updates>
     fn apply_frame_updates(&self, _frame: &XRFrame) {
         // <https://www.w3.org/TR/webxr-gamepads-module-1/#xrframe-apply-gamepad-frame-updates>
-        //self.input_sources.update_gamepad_states();
+        for (id, frame) in &*self.input_frames.borrow() {
+            let source = self.input_sources.find(*id);
+            if let Some(source) = source {
+                source.update_gamepad_state(frame.clone());
+            }
+        }
     }
 
     fn handle_frame_event(&self, event: FrameUpdateEvent) {
