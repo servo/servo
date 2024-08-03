@@ -519,10 +519,10 @@ impl XRSession {
     /// <https://immersive-web.github.io/webxr/#xrframe-apply-frame-updates>
     fn apply_frame_updates(&self, _frame: &XRFrame) {
         // <https://www.w3.org/TR/webxr-gamepads-module-1/#xrframe-apply-gamepad-frame-updates>
-        for (id, frame) in &*self.input_frames.borrow() {
-            let source = self.input_sources.find(*id);
+        for (id, frame) in self.input_frames.borrow_mut().drain() {
+            let source = self.input_sources.find(id);
             if let Some(source) = source {
-                source.update_gamepad_state(frame.clone());
+                source.update_gamepad_state(frame);
             }
         }
     }
