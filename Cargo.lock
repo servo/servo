@@ -7745,7 +7745,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#93ee726f84dc3feb9aa47f9a61fdedd784d14938"
+source = "git+https://github.com/servo/webxr#790f50587d651fd865736cfd8c70cab0dea5dc7f"
 dependencies = [
  "crossbeam-channel",
  "euclid",
@@ -7762,7 +7762,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#93ee726f84dc3feb9aa47f9a61fdedd784d14938"
+source = "git+https://github.com/servo/webxr#790f50587d651fd865736cfd8c70cab0dea5dc7f"
 dependencies = [
  "euclid",
  "ipc-channel",
