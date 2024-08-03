@@ -73,6 +73,7 @@ GSTREAMER_PLUGIN_LIBS = [
     "gstrtpmanager",
     "gstvideofilter",
     "gstvpx",
+    "gstwavparse",
     # gst-plugins-bad
     "gstaudiobuffersplit",
     "gstdtls",
