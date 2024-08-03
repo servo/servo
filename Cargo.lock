@@ -1280,7 +1280,7 @@ name = "deny_public_fields"
 version = "0.0.1"
 dependencies = [
  "syn 2.0.72",
- "synstructure 0.13.1",
+ "synstructure",
 ]
 
 [[package]]
@@ -1309,7 +1309,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.72",
- "synstructure 0.13.1",
+ "synstructure",
 ]
 
 [[package]]
@@ -3640,7 +3640,7 @@ version = "0.0.1"
 dependencies = [
  "proc-macro2",
  "syn 2.0.72",
- "synstructure 0.13.1",
+ "synstructure",
 ]
 
 [[package]]
@@ -4121,13 +4121,13 @@ dependencies = [
 
 [[package]]
 name = "malloc_size_of_derive"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "632647502a8bfa82458c07134791fffa7a719f00427d1afd79c3cb6d4960a982"
+checksum = "f44db74bde26fdf427af23f1d146c211aed857c59e3be750cf2617f6b0b05c94"
 dependencies = [
  "proc-macro2",
- "syn 1.0.109",
- "synstructure 0.12.6",
+ "syn 2.0.72",
+ "synstructure",
 ]
 
 [[package]]
@@ -4907,7 +4907,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.72",
- "synstructure 0.13.1",
+ "synstructure",
  "unicode-xid",
 ]
 
@@ -6530,7 +6530,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.72",
- "synstructure 0.13.1",
+ "synstructure",
 ]
 
 [[package]]
@@ -6644,18 +6644,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "synstructure"
-version = "0.12.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f36bdaa60a83aca3921b5259d5400cbf5e90fc51931376a9bd4a0eb79aa7210f"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 1.0.109",
- "unicode-xid",
 ]
 
 [[package]]
@@ -6944,7 +6932,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.72",
- "synstructure 0.13.1",
+ "synstructure",
 ]
 
 [[package]]
@@ -8469,7 +8457,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.72",
- "synstructure 0.13.1",
+ "synstructure",
 ]
 
 [[package]]
@@ -8511,7 +8499,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.72",
- "synstructure 0.13.1",
+ "synstructure",
 ]
 
 [[package]]
