@@ -630,6 +630,25 @@ pub unsafe fn callargs_is_constructing(args: &CallArgs) -> bool {
     (*args.argv_.offset(-1)).is_magic()
 }
 
+/// https://searchfox.org/mozilla-central/rev/7279a1df13a819be254fd4649e07c4ff93e4bd45/dom/bindings/BindingUtils.cpp#3300
+pub unsafe extern "C" fn generic_static_promise_method(
+    cx: *mut JSContext,
+    argc: libc::c_uint,
+    vp: *mut JSVal,
+) -> bool {
+    let args = CallArgs::from_vp(vp, argc);
+
+    let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
+    assert!(!info.is_null());
+    // TODO: we need safe wrappers for this in mozjs!
+    //assert_eq!((*info)._bitfield_1, JSJitInfo_OpType::StaticMethod as u8)
+    let static_fn = (*info).__bindgen_anon_1.staticMethod.unwrap();
+    if static_fn(cx, argc, vp) {
+        return true;
+    }
+    exception_to_promise(cx, args.rval())
+}
+
 /// Coverts exception to promise rejection
 ///
 /// https://searchfox.org/mozilla-central/rev/b220e40ff2ee3d10ce68e07d8a8a577d5558e2a2/dom/bindings/BindingUtils.cpp#3315

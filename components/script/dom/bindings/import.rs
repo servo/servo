@@ -137,9 +137,9 @@ pub mod module {
     pub use crate::dom::bindings::utils::{
         callargs_is_constructing, enumerate_global, exception_to_promise, generic_getter,
         generic_lenient_getter, generic_lenient_setter, generic_method, generic_setter,
-        get_array_index_from_id, get_property_on_prototype, has_property_on_prototype,
-        resolve_global, trace_global, AsVoidPtr, DOMClass, DOMJSClass, ProtoOrIfaceArray,
-        DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, JSCLASS_DOM_GLOBAL,
+        generic_static_promise_method, get_array_index_from_id, get_property_on_prototype,
+        has_property_on_prototype, resolve_global, trace_global, AsVoidPtr, DOMClass, DOMJSClass,
+        ProtoOrIfaceArray, DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, JSCLASS_DOM_GLOBAL,
     };
     pub use crate::dom::bindings::weakref::{WeakReferenceable, DOM_WEAK_SLOT};
     pub use crate::dom::types::{AnalyserNode, AudioNode, BaseAudioContext, EventTarget};

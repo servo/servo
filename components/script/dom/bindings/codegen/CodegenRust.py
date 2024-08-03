@@ -1756,7 +1756,8 @@ class MethodDefiner(PropertyDefiner):
                          "methodInfo": not m.isStatic(),
                          "length": methodLength(m),
                          "flags": "JSPROP_READONLY" if crossorigin else "JSPROP_ENUMERATE",
-                         "condition": PropertyDefiner.getControllingCondition(m, descriptor)}
+                         "condition": PropertyDefiner.getControllingCondition(m, descriptor),
+                         "returnsPromise": m.returnsPromise()}
                         for m in methods]
 
         # TODO: Once iterable is implemented, use tiebreak rules instead of
@@ -1877,8 +1878,12 @@ class MethodDefiner(PropertyDefiner):
                     jitinfo = "&%s_methodinfo as *const _ as *const JSJitInfo" % identifier
                     accessor = "Some(generic_method)"
                 else:
-                    jitinfo = "ptr::null()"
-                    accessor = 'Some(%s)' % m.get("nativeName", m["name"])
+                    if m.get("returnsPromise", False):
+                        jitinfo = "&%s_methodinfo" % m.get("nativeName", m["name"])
+                        accessor = "Some(generic_static_promise_method)"
+                    else:
+                        jitinfo = "ptr::null()"
+                        accessor = 'Some(%s)' % m.get("nativeName", m["name"])
             if m["name"].startswith("@@"):
                 assert not self.crossorigin
                 name = 'JSPropertySpec_Name { symbol_: SymbolCode::%s as usize + 1 }' % m["name"][2:]
@@ -4685,6 +4690,44 @@ class CGMemberJITInfo(CGThing):
         return "%s | %s" % (existingType, type)
 
 
+# https://searchfox.org/mozilla-central/rev/9993372dd72daea851eba4600d5750067104bc15/dom/bindings/Codegen.py#12355-12374
+class CGStaticMethodJitinfo(CGGeneric):
+    """
+    A class for generating the JITInfo for a promise-returning static method.
+    """
+
+    def __init__(self, method):
+        CGGeneric.__init__(
+            self,
+            f"""
+            const {method.identifier.name}_methodinfo: JSJitInfo = JSJitInfo {{
+                __bindgen_anon_1: JSJitInfo__bindgen_ty_1 {{
+                    staticMethod: Some({method.identifier.name})
+                }},
+                __bindgen_anon_2: JSJitInfo__bindgen_ty_2 {{
+                    protoID: PrototypeList::ID::Last as u16,
+                }},
+                __bindgen_anon_3: JSJitInfo__bindgen_ty_3 {{ depth: 0 }},
+                _bitfield_align_1: [],
+                _bitfield_1: __BindgenBitfieldUnit::new(
+                    new_jsjitinfo_bitfield_1!(
+                        JSJitInfo_OpType::StaticMethod as u8,
+                        JSJitInfo_AliasSet::AliasEverything as u8,
+                        JSValueType::JSVAL_TYPE_OBJECT as u8,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        0,
+                    ).to_ne_bytes()
+                ),
+            }};
+            """
+        )
+
+
 def getEnumValueName(value):
     # Some enum values can be empty strings.  Others might have weird
     # characters in them.  Deal with the former by returning "_empty",
@@ -6432,6 +6475,8 @@ class CGDescriptor(CGThing):
                 elif m.isStatic():
                     assert descriptor.interface.hasInterfaceObject()
                     cgThings.append(CGStaticMethod(descriptor, m))
+                    if m.returnsPromise():
+                        cgThings.append(CGStaticMethodJitinfo(m))
                 elif not descriptor.interface.isCallback():
                     cgThings.append(CGSpecializedMethod(descriptor, m))
                     if m.returnsPromise():
