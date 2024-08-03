@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 
 use crate::dom::bindings::codegen::Bindings::DataTransferItemListBinding::DataTransferItemListMethods;
 use crate::dom::bindings::reflector::Reflector;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::datatransferitem::DataTransferItem;
 use crate::dom::file::File;
@@ -14,12 +14,22 @@ use crate::dom::file::File;
 #[dom_struct]
 pub struct DataTransferItemList {
     reflector_: Reflector,
+    items: Vec<Dom<DataTransferItem>>,
+}
+
+impl DataTransferItemList {
+    pub fn new_inherited() -> DataTransferItemList {
+        DataTransferItemList {
+            reflector_: Reflector::new(),
+            items: Vec::new(),
+        }
+    }
 }
 
 impl DataTransferItemListMethods for DataTransferItemList {
     // https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-length
     fn Length(&self) -> u32 {
-        todo!()
+        self.items.len() as u32
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-datatransferitemlist-add

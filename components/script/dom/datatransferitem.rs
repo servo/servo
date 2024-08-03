@@ -21,15 +21,25 @@ pub struct DataTransferItem {
     type_: DomRefCell<DOMString>,
 }
 
+impl DataTransferItem {
+    pub fn new_inherited(kind: DOMString, type_: DOMString) -> DataTransferItem {
+        DataTransferItem {
+            reflector_: Reflector::new(),
+            kind: DomRefCell::new(kind),
+            type_: DomRefCell::new(type_),
+        }
+    }
+}
+
 impl DataTransferItemMethods for DataTransferItem {
     // https://html.spec.whatwg.org/multipage/#dom-datatransferitem-kind
     fn Kind(&self) -> DOMString {
-        todo!()
+        self.kind.borrow().clone()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-datatransferitem-type
     fn Type(&self) -> DOMString {
-        todo!()
+        self.type_.borrow().clone()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-datatransferitem-getasstring
