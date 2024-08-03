@@ -13130,6 +13130,31 @@
       {}
      ]
     ],
+    "exceptionToRejection.any.js": [
+     "738a8bedbcfe83a6f110bc6e6d133e31f80ea9ad",
+     [
+      "mozilla/exceptionToRejection.any.html",
+      {
+       "script_metadata": [
+        [
+         "title",
+         "Test that promise exception are converted to rejections"
+        ]
+       ]
+      }
+     ],
+     [
+      "mozilla/exceptionToRejection.any.worker.html",
+      {
+       "script_metadata": [
+        [
+         "title",
+         "Test that promise exception are converted to rejections"
+        ]
+       ]
+      }
+     ]
+    ],
     "fetch_cannot_overwhelm_system.window.js": [
      "989231e9caedd099f5212bd2f9d377c83f929a22",
      [

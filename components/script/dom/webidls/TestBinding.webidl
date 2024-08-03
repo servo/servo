@@ -574,6 +574,16 @@ interface TestBinding {
   undefined promiseRejectWithTypeError(Promise<any> p, USVString message);
   undefined resolvePromiseDelayed(Promise<any> p, DOMString value, unsigned long long ms);
 
+  [Throws]
+  static Promise<any> staticThrowToRejectPromise();
+  [Throws]
+  Promise<any> methodThrowToRejectPromise();
+  [Throws]
+  readonly attribute Promise<any> getterThrowToRejectPromise;
+
+  static Promise<any> staticInternalThrowToRejectPromise([EnforceRange] unsigned long long arg);
+  Promise<any> methodInternalThrowToRejectPromise([EnforceRange] unsigned long long arg);
+
   undefined panic();
 
   GlobalScope entryGlobal();
