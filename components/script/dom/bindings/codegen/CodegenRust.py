@@ -4044,6 +4044,40 @@ class CGSpecializedMethod(CGAbstractExternMethod):
         return MakeNativeName(nativeName)
 
 
+# https://searchfox.org/mozilla-central/rev/b220e40ff2ee3d10ce68e07d8a8a577d5558e2a2/dom/bindings/Codegen.py#10655-10684
+class CGMethodPromiseWrapper(CGAbstractExternMethod):
+    """
+    A class for generating a wrapper around another method that will
+    convert exceptions to promises.
+    """
+
+    def __init__(self, descriptor, methodToWrap):
+        self.method = methodToWrap
+        name = CGMethodPromiseWrapper.makeNativeName(descriptor, self.method)
+        args = [Argument('*mut JSContext', 'cx'),
+                Argument('RawHandleObject', '_obj'),
+                Argument('*mut libc::c_void', 'this'),
+                Argument('*const JSJitMethodCallArgs', 'args')]
+        CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args)
+
+    def definition_body(self):
+        return CGGeneric(fill(
+            """
+            let ok = ${methodName}(${args});
+            if ok {
+              return true;
+            }
+            return exception_to_promise(cx, (*args).rval());
+            """,
+            methodName=self.method.identifier.name,
+            args=", ".join(arg.name for arg in self.args),
+        ))
+
+    @staticmethod
+    def makeNativeName(descriptor, m):
+        return m.identifier.name + "_promise_wrapper"
+
+
 class CGDefaultToJSONMethod(CGSpecializedMethod):
     def __init__(self, descriptor, method):
         assert method.isDefaultToJSON()
@@ -4391,6 +4425,8 @@ class CGMemberJITInfo(CGThing):
         if self.member.isMethod():
             methodinfo = ("%s_methodinfo" % self.member.identifier.name)
             method = ("%s" % self.member.identifier.name)
+            if self.member.returnsPromise():
+                method = CGMethodPromiseWrapper.makeNativeName(self.descriptor, self.member)
 
             # Methods are infallible if they are infallible, have no arguments
             # to unwrap, and have a return type that's infallible to wrap up for
@@ -6357,6 +6393,10 @@ class CGDescriptor(CGThing):
                     cgThings.append(CGStaticMethod(descriptor, m))
                 elif not descriptor.interface.isCallback():
                     cgThings.append(CGSpecializedMethod(descriptor, m))
+                    if m.returnsPromise():
+                        cgThings.append(
+                            CGMethodPromiseWrapper(descriptor, m)
+                        )
                     cgThings.append(CGMemberJITInfo(descriptor, m))
             elif m.isAttr():
                 if m.getExtendedAttribute("Unscopable"):
