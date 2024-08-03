@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::convert::TryFrom;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
@@ -13,6 +12,7 @@ use webgpu::{wgt, WebGPU, WebGPUAdapter, WebGPURequest, WebGPUResponse};
 
 use super::bindings::codegen::Bindings::WebGPUBinding::GPUDeviceLostReason;
 use super::gpusupportedfeatures::GPUSupportedFeatures;
+use super::gpusupportedlimits::set_limit;
 use super::types::{GPUAdapterInfo, GPUSupportedLimits};
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUAdapterMethods, GPUDeviceDescriptor,
@@ -131,84 +131,10 @@ impl GPUAdapterMethods for GPUAdapter {
         };
         if let Some(limits) = &descriptor.requiredLimits {
             for (limit, value) in (*limits).iter() {
-                let v = u32::try_from(*value).unwrap_or(u32::MAX);
-                match limit.as_ref() {
-                    "maxTextureDimension1D" => desc.required_limits.max_texture_dimension_1d = v,
-                    "maxTextureDimension2D" => desc.required_limits.max_texture_dimension_2d = v,
-                    "maxTextureDimension3D" => desc.required_limits.max_texture_dimension_3d = v,
-                    "maxTextureArrayLayers" => desc.required_limits.max_texture_array_layers = v,
-                    "maxBindGroups" => desc.required_limits.max_bind_groups = v,
-                    "maxBindingsPerBindGroup" => {
-                        desc.required_limits.max_bindings_per_bind_group = v
-                    },
-                    "maxDynamicUniformBuffersPerPipelineLayout" => {
-                        desc.required_limits
-                            .max_dynamic_uniform_buffers_per_pipeline_layout = v
-                    },
-                    "maxDynamicStorageBuffersPerPipelineLayout" => {
-                        desc.required_limits
-                            .max_dynamic_storage_buffers_per_pipeline_layout = v
-                    },
-                    "maxSampledTexturesPerShaderStage" => {
-                        desc.required_limits.max_sampled_textures_per_shader_stage = v
-                    },
-                    "maxSamplersPerShaderStage" => {
-                        desc.required_limits.max_samplers_per_shader_stage = v
-                    },
-                    "maxStorageBuffersPerShaderStage" => {
-                        desc.required_limits.max_storage_buffers_per_shader_stage = v
-                    },
-                    "maxStorageTexturesPerShaderStage" => {
-                        desc.required_limits.max_storage_textures_per_shader_stage = v
-                    },
-                    "maxUniformBuffersPerShaderStage" => {
-                        desc.required_limits.max_uniform_buffers_per_shader_stage = v
-                    },
-                    "maxUniformBufferBindingSize" => {
-                        desc.required_limits.max_uniform_buffer_binding_size = v
-                    },
-                    "maxStorageBufferBindingSize" => {
-                        desc.required_limits.max_storage_buffer_binding_size = v
-                    },
-                    "minUniformBufferOffsetAlignment" => {
-                        desc.required_limits.min_uniform_buffer_offset_alignment = v
-                    },
-                    "minStorageBufferOffsetAlignment" => {
-                        desc.required_limits.min_storage_buffer_offset_alignment = v
-                    },
-                    "maxVertexBuffers" => desc.required_limits.max_vertex_buffers = v,
-                    "maxBufferSize" => desc.required_limits.max_buffer_size = *value,
-                    "maxVertexAttributes" => desc.required_limits.max_vertex_attributes = v,
-                    "maxVertexBufferArrayStride" => {
-                        desc.required_limits.max_vertex_buffer_array_stride = v
-                    },
-                    "maxInterStageShaderComponents" => {
-                        desc.required_limits.max_inter_stage_shader_components = v
-                    },
-                    "maxComputeWorkgroupStorageSize" => {
-                        desc.required_limits.max_compute_workgroup_storage_size = v
-                    },
-                    "maxComputeInvocationsPerWorkgroup" => {
-                        desc.required_limits.max_compute_invocations_per_workgroup = v
-                    },
-                    "maxComputeWorkgroupSizeX" => {
-                        desc.required_limits.max_compute_workgroup_size_x = v
-                    },
-                    "maxComputeWorkgroupSizeY" => {
-                        desc.required_limits.max_compute_workgroup_size_y = v
-                    },
-                    "maxComputeWorkgroupSizeZ" => {
-                        desc.required_limits.max_compute_workgroup_size_z = v
-                    },
-                    "maxComputeWorkgroupsPerDimension" => {
-                        desc.required_limits.max_compute_workgroups_per_dimension = v
-                    },
-                    _ => {
-                        error!("Unknown required limit: {limit} with value {value}");
-                        // we should reject but spec is still evolving
-                        // promise.reject_error(Error::Operation);
-                        // return promise;
-                    },
+                if !set_limit(&mut desc.required_limits, limit.as_ref(), *value) {
+                    warn!("Unknown GPUDevice limit: {limit}");
+                    promise.reject_error(Error::Operation);
+                    return promise;
                 }
             }
         }
