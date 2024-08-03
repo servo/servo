@@ -7,8 +7,8 @@ use js::rust::HandleObject;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DataTransferBinding::DataTransferMethods;
-use crate::dom::bindings::reflector::Reflector;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::reflector::{reflect_dom_object_with_proto, Reflector};
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::datatransferitemlist::DataTransferItemList;
 use crate::dom::element::Element;
@@ -19,38 +19,52 @@ pub struct DataTransfer {
     reflector_: Reflector,
     dropEffect: DomRefCell<DOMString>,
     effectAllowed: DomRefCell<DOMString>,
+    items: Dom<DataTransferItemList>,
 }
 
 impl DataTransfer {
+    pub fn new_inherited() -> DataTransfer {
+        DataTransfer {
+            reflector_: Reflector::new(),
+            dropEffect: DomRefCell::new(DOMString::from("none")),
+            effectAllowed: DomRefCell::new(DOMString::from("none")),
+            items: Dom::from_ref(&DataTransferItemList::new_inherited()),
+        }
+    }
+
+    pub fn new(window: &Window, proto: Option<HandleObject>) -> DomRoot<DataTransfer> {
+        reflect_dom_object_with_proto(Box::new(DataTransfer::new_inherited()), window, proto)
+    }
+
     pub fn Constructor(window: &Window, proto: Option<HandleObject>) -> DomRoot<DataTransfer> {
-        todo!()
+        DataTransfer::new(window, proto)
     }
 }
 
 impl DataTransferMethods for DataTransfer {
     // https://html.spec.whatwg.org/multipage/#dom-datatransfer-dropeffect
     fn DropEffect(&self) -> DOMString {
-        todo!()
+        self.dropEffect.borrow().clone()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-datatransfer-dropeffect
     fn SetDropEffect(&self, value: DOMString) {
-        todo!()
+        *self.dropEffect.borrow_mut() = value;
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-datatransfer-effectallowed
     fn EffectAllowed(&self) -> DOMString {
-        todo!()
+        self.effectAllowed.borrow().clone()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-datatransfer-effectallowed
     fn SetEffectAllowed(&self, value: DOMString) {
-        todo!()
+        *self.effectAllowed.borrow_mut() = value;
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-datatransfer-items
     fn Items(&self) -> DomRoot<DataTransferItemList> {
-        todo!()
+        DomRoot::from_ref(&self.items)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-datatransfer-setdragimage
