@@ -1084,6 +1084,29 @@ impl TestBindingMethods for TestBinding {
             stringMember: Some(s2),
         }
     }
+
+    fn MethodThrowToRejectPromise(&self) -> Fallible<Rc<Promise>> {
+        Err(Error::Type("test".to_string()))
+    }
+
+    fn GetGetterThrowToRejectPromise(&self) -> Fallible<Rc<Promise>> {
+        Err(Error::Type("test".to_string()))
+    }
+
+    fn MethodInternalThrowToRejectPromise(&self, _arg: u64) -> Rc<Promise> {
+        unreachable!("Method should already throw")
+    }
+}
+
+#[allow(non_snake_case)]
+impl TestBinding {
+    pub fn StaticThrowToRejectPromise(_: &GlobalScope) -> Fallible<Rc<Promise>> {
+        Err(Error::Type("test".to_string()))
+    }
+
+    pub fn StaticInternalThrowToRejectPromise(_: &GlobalScope, _arg: u64) -> Rc<Promise> {
+        unreachable!("Method should already throw")
+    }
 }
 
 #[allow(non_snake_case)]

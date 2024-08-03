@@ -1756,7 +1756,8 @@ class MethodDefiner(PropertyDefiner):
                          "methodInfo": not m.isStatic(),
                          "length": methodLength(m),
                          "flags": "JSPROP_READONLY" if crossorigin else "JSPROP_ENUMERATE",
-                         "condition": PropertyDefiner.getControllingCondition(m, descriptor)}
+                         "condition": PropertyDefiner.getControllingCondition(m, descriptor),
+                         "returnsPromise": m.returnsPromise()}
                         for m in methods]
 
         # TODO: Once iterable is implemented, use tiebreak rules instead of
@@ -1877,8 +1878,12 @@ class MethodDefiner(PropertyDefiner):
                     jitinfo = "&%s_methodinfo as *const _ as *const JSJitInfo" % identifier
                     accessor = "Some(generic_method)"
                 else:
-                    jitinfo = "ptr::null()"
-                    accessor = 'Some(%s)' % m.get("nativeName", m["name"])
+                    if m.get("returnsPromise", False):
+                        jitinfo = "&%s_methodinfo" % m.get("nativeName", m["name"])
+                        accessor = "Some(generic_static_promise_method)"
+                    else:
+                        jitinfo = "ptr::null()"
+                        accessor = 'Some(%s)' % m.get("nativeName", m["name"])
             if m["name"].startswith("@@"):
                 assert not self.crossorigin
                 name = 'JSPropertySpec_Name { symbol_: SymbolCode::%s as usize + 1 }' % m["name"][2:]
@@ -4044,6 +4049,79 @@ class CGSpecializedMethod(CGAbstractExternMethod):
         return MakeNativeName(nativeName)
 
 
+# https://searchfox.org/mozilla-central/rev/b220e40ff2ee3d10ce68e07d8a8a577d5558e2a2/dom/bindings/Codegen.py#10655-10684
+class CGMethodPromiseWrapper(CGAbstractExternMethod):
+    """
+    A class for generating a wrapper around another method that will
+    convert exceptions to promises.
+    """
+
+    def __init__(self, descriptor, methodToWrap):
+        self.method = methodToWrap
+        name = CGMethodPromiseWrapper.makeNativeName(descriptor, self.method)
+        args = [Argument('*mut JSContext', 'cx'),
+                Argument('RawHandleObject', '_obj'),
+                Argument('*mut libc::c_void', 'this'),
+                Argument('*const JSJitMethodCallArgs', 'args')]
+        CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args)
+
+    def definition_body(self):
+        return CGGeneric(fill(
+            """
+            let ok = ${methodName}(${args});
+            if ok {
+              return true;
+            }
+            return exception_to_promise(cx, (*args).rval());
+            """,
+            methodName=self.method.identifier.name,
+            args=", ".join(arg.name for arg in self.args),
+        ))
+
+    @staticmethod
+    def makeNativeName(descriptor, m):
+        return m.identifier.name + "_promise_wrapper"
+
+
+# https://searchfox.org/mozilla-central/rev/7279a1df13a819be254fd4649e07c4ff93e4bd45/dom/bindings/Codegen.py#11390-11419
+class CGGetterPromiseWrapper(CGAbstractExternMethod):
+    """
+    A class for generating a wrapper around another getter that will
+    convert exceptions to promises.
+    """
+
+    def __init__(self, descriptor, methodToWrap):
+        self.method = methodToWrap
+        name = CGGetterPromiseWrapper.makeNativeName(descriptor, self.method)
+        self.method_call = CGGetterPromiseWrapper.makeOrigName(descriptor, self.method)
+        args = [Argument('*mut JSContext', 'cx'),
+                Argument('RawHandleObject', '_obj'),
+                Argument('*mut libc::c_void', 'this'),
+                Argument('JSJitGetterCallArgs', 'args')]
+        CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args)
+
+    def definition_body(self):
+        return CGGeneric(fill(
+            """
+            let ok = ${methodName}(${args});
+            if ok {
+              return true;
+            }
+            return exception_to_promise(cx, args.rval());
+            """,
+            methodName=self.method_call,
+            args=", ".join(arg.name for arg in self.args),
+        ))
+
+    @staticmethod
+    def makeOrigName(descriptor, m):
+        return 'get_' + descriptor.internalNameFor(m.identifier.name)
+
+    @staticmethod
+    def makeNativeName(descriptor, m):
+        return CGGetterPromiseWrapper.makeOrigName(descriptor, m) + "_promise_wrapper"
+
+
 class CGDefaultToJSONMethod(CGSpecializedMethod):
     def __init__(self, descriptor, method):
         assert method.isDefaultToJSON()
@@ -4355,6 +4433,8 @@ class CGMemberJITInfo(CGThing):
             internalMemberName = self.descriptor.internalNameFor(self.member.identifier.name)
             getterinfo = ("%s_getterinfo" % internalMemberName)
             getter = ("get_%s" % internalMemberName)
+            if self.member.type.isPromise():
+                getter = CGGetterPromiseWrapper.makeNativeName(self.descriptor, self.member)
             getterinfal = "infallible" in self.descriptor.getExtendedAttributes(self.member, getter=True)
 
             movable = self.mayBeMovable() and getterinfal
@@ -4391,6 +4471,8 @@ class CGMemberJITInfo(CGThing):
         if self.member.isMethod():
             methodinfo = ("%s_methodinfo" % self.member.identifier.name)
             method = ("%s" % self.member.identifier.name)
+            if self.member.returnsPromise():
+                method = CGMethodPromiseWrapper.makeNativeName(self.descriptor, self.member)
 
             # Methods are infallible if they are infallible, have no arguments
             # to unwrap, and have a return type that's infallible to wrap up for
@@ -4606,6 +4688,44 @@ class CGMemberJITInfo(CGThing):
         if type == existingType:
             return existingType
         return "%s | %s" % (existingType, type)
+
+
+# https://searchfox.org/mozilla-central/rev/9993372dd72daea851eba4600d5750067104bc15/dom/bindings/Codegen.py#12355-12374
+class CGStaticMethodJitinfo(CGGeneric):
+    """
+    A class for generating the JITInfo for a promise-returning static method.
+    """
+
+    def __init__(self, method):
+        CGGeneric.__init__(
+            self,
+            f"""
+            const {method.identifier.name}_methodinfo: JSJitInfo = JSJitInfo {{
+                __bindgen_anon_1: JSJitInfo__bindgen_ty_1 {{
+                    staticMethod: Some({method.identifier.name})
+                }},
+                __bindgen_anon_2: JSJitInfo__bindgen_ty_2 {{
+                    protoID: PrototypeList::ID::Last as u16,
+                }},
+                __bindgen_anon_3: JSJitInfo__bindgen_ty_3 {{ depth: 0 }},
+                _bitfield_align_1: [],
+                _bitfield_1: __BindgenBitfieldUnit::new(
+                    new_jsjitinfo_bitfield_1!(
+                        JSJitInfo_OpType::StaticMethod as u8,
+                        JSJitInfo_AliasSet::AliasEverything as u8,
+                        JSValueType::JSVAL_TYPE_OBJECT as u8,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        0,
+                    ).to_ne_bytes()
+                ),
+            }};
+            """
+        )
 
 
 def getEnumValueName(value):
@@ -6355,8 +6475,14 @@ class CGDescriptor(CGThing):
                 elif m.isStatic():
                     assert descriptor.interface.hasInterfaceObject()
                     cgThings.append(CGStaticMethod(descriptor, m))
+                    if m.returnsPromise():
+                        cgThings.append(CGStaticMethodJitinfo(m))
                 elif not descriptor.interface.isCallback():
                     cgThings.append(CGSpecializedMethod(descriptor, m))
+                    if m.returnsPromise():
+                        cgThings.append(
+                            CGMethodPromiseWrapper(descriptor, m)
+                        )
                     cgThings.append(CGMemberJITInfo(descriptor, m))
             elif m.isAttr():
                 if m.getExtendedAttribute("Unscopable"):
@@ -6367,6 +6493,10 @@ class CGDescriptor(CGThing):
                     cgThings.append(CGStaticGetter(descriptor, m))
                 elif not descriptor.interface.isCallback():
                     cgThings.append(CGSpecializedGetter(descriptor, m))
+                    if m.type.isPromise():
+                        cgThings.append(
+                            CGGetterPromiseWrapper(descriptor, m)
+                        )
 
                 if not m.readonly:
                     if m.isStatic():

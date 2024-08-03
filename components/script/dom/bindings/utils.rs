@@ -6,6 +6,7 @@
 
 use std::ffi::CString;
 use std::os::raw::{c_char, c_void};
+use std::ptr::NonNull;
 use std::{ptr, slice, str};
 
 use js::conversions::ToJSValConvertible;
@@ -14,17 +15,19 @@ use js::glue::{
     UnwrapObjectDynamic, UnwrapObjectStatic, RUST_FUNCTION_VALUE_TO_JITINFO,
 };
 use js::jsapi::{
-    AtomToLinearString, CallArgs, DOMCallbacks, GetLinearStringCharAt, GetLinearStringLength,
-    GetNonCCWObjectGlobal, HandleId as RawHandleId, HandleObject as RawHandleObject, Heap, JSAtom,
-    JSContext, JSJitInfo, JSObject, JSTracer, JS_DeprecatedStringHasLatin1Chars,
-    JS_EnumerateStandardClasses, JS_FreezeObject, JS_GetLatin1StringCharsAndLength,
-    JS_IsExceptionPending, JS_IsGlobalObject, JS_ResolveStandardClass,
-    MutableHandleIdVector as RawMutableHandleIdVector, ObjectOpResult, StringIsArrayIndex,
+    AtomToLinearString, CallArgs, DOMCallbacks, ExceptionStackBehavior, GetLinearStringCharAt,
+    GetLinearStringLength, GetNonCCWObjectGlobal, HandleId as RawHandleId,
+    HandleObject as RawHandleObject, Heap, JSAtom, JSContext, JSJitInfo, JSObject, JSTracer,
+    JS_ClearPendingException, JS_DeprecatedStringHasLatin1Chars, JS_EnumerateStandardClasses,
+    JS_FreezeObject, JS_GetLatin1StringCharsAndLength, JS_IsExceptionPending, JS_IsGlobalObject,
+    JS_ResolveStandardClass, MutableHandleIdVector as RawMutableHandleIdVector,
+    MutableHandleValue as RawMutableHandleValue, ObjectOpResult, StringIsArrayIndex,
 };
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::{
-    JS_DeletePropertyById, JS_ForwardGetPropertyTo, JS_GetProperty, JS_GetPrototype,
-    JS_HasProperty, JS_HasPropertyById, JS_SetProperty,
+    CallOriginalPromiseReject, JS_DeletePropertyById, JS_ForwardGetPropertyTo,
+    JS_GetPendingException, JS_GetProperty, JS_GetPrototype, JS_HasProperty, JS_HasPropertyById,
+    JS_SetPendingException, JS_SetProperty,
 };
 use js::rust::{
     get_object_class, is_dom_class, GCMethods, Handle, HandleId, HandleObject, HandleValue,
@@ -616,4 +619,42 @@ impl AsCCharPtrPtr for [u8] {
 
 pub unsafe fn callargs_is_constructing(args: &CallArgs) -> bool {
     (*args.argv_.offset(-1)).is_magic()
+}
+
+/// https://searchfox.org/mozilla-central/rev/7279a1df13a819be254fd4649e07c4ff93e4bd45/dom/bindings/BindingUtils.cpp#3300
+pub unsafe extern "C" fn generic_static_promise_method(
+    cx: *mut JSContext,
+    argc: libc::c_uint,
+    vp: *mut JSVal,
+) -> bool {
+    let args = CallArgs::from_vp(vp, argc);
+
+    let info = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
+    assert!(!info.is_null());
+    // TODO: we need safe wrappers for this in mozjs!
+    //assert_eq!((*info)._bitfield_1, JSJitInfo_OpType::StaticMethod as u8)
+    let static_fn = (*info).__bindgen_anon_1.staticMethod.unwrap();
+    if static_fn(cx, argc, vp) {
+        return true;
+    }
+    exception_to_promise(cx, args.rval())
+}
+
+/// Coverts exception to promise rejection
+///
+/// https://searchfox.org/mozilla-central/rev/b220e40ff2ee3d10ce68e07d8a8a577d5558e2a2/dom/bindings/BindingUtils.cpp#3315
+pub unsafe fn exception_to_promise(cx: *mut JSContext, rval: RawMutableHandleValue) -> bool {
+    rooted!(in(cx) let mut exception = UndefinedValue());
+    if !JS_GetPendingException(cx, exception.handle_mut()) {
+        return false;
+    }
+    JS_ClearPendingException(cx);
+    if let Some(promise) = NonNull::new(CallOriginalPromiseReject(cx, exception.handle())) {
+        promise.to_jsval(cx, MutableHandleValue::from_raw(rval));
+        true
+    } else {
+        // We just give up.  Put the exception back.
+        JS_SetPendingException(cx, exception.handle(), ExceptionStackBehavior::Capture);
+        false
+    }
 }
