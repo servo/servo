@@ -46,5 +46,8 @@ webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
 webxr = { git = "https://github.com/servo/webxr" }
 
+[dev-dependencies]
+surfman = { workspace = true }
+
 [build-dependencies]
 toml = "0.5"

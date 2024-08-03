@@ -116,7 +116,7 @@ style = { git = "https://github.com/servo/stylo", branch = "2024-07-16", feature
 style_config = { git = "https://github.com/servo/stylo", branch = "2024-07-16" }
 style_dom = { git = "https://github.com/servo/stylo", package = "dom", branch = "2024-07-16" }
 style_traits = { git = "https://github.com/servo/stylo", branch = "2024-07-16", features = ["servo"] }
-surfman = { version = "0.9", features = ["chains"] }
+surfman = { version = "0.9.5", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 thin-vec = "0.2.13"

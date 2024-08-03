@@ -2246,7 +2246,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 Some(Image {
                     width: img.width(),
                     height: img.height(),
-                    format: PixelFormat::RGB8,
+                    format: PixelFormat::RGBA8,
                     bytes: ipc::IpcSharedMemory::from_bytes(&img),
                     id: None,
                     cors_status: CorsStatus::Safe,
@@ -2269,7 +2269,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                                 FramebufferUintLength::new(width),
                                 FramebufferUintLength::new(height),
                             );
-                            let dynamic_image = DynamicImage::ImageRgb8(img);
+                            let dynamic_image = DynamicImage::ImageRgba8(img);
                             if let Err(e) = dynamic_image.write_to(&mut file, ImageFormat::Png) {
                                 error!("Failed to save {} ({}).", path, e);
                             }

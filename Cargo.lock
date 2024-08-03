@@ -896,6 +896,7 @@ dependencies = [
  "servo_geometry",
  "servo_url",
  "style_traits",
+ "surfman",
  "time 0.1.45",
  "toml 0.5.11",
  "webrender",
@@ -5539,6 +5540,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "scc"
+version = "2.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a870e34715d5d59c8536040d4d4e7a41af44d527dc50237036ba4090db7996fc"
+dependencies = [
+ "sdd",
+]
+
+[[package]]
 name = "scoped-tls"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5762,6 +5772,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "sdd"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "177258b64c0faaa9ffd3c65cd3262c2bc7e2588dbbd9c1641d0346145c1bbda8"
+
+[[package]]
 name = "selectors"
 version = "0.24.0"
 source = "git+https://github.com/servo/stylo?branch=2024-07-16#ed09e046c8cc7654eb3a0c2e3ec789503f64ed74"
@@ -5857,6 +5873,31 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "serial_test"
+version = "3.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4b4b487fe2acf240a021cf57c6b2b4903b1e78ca0ecd862a71b71d2a51fed77d"
+dependencies = [
+ "futures 0.3.30",
+ "log",
+ "once_cell",
+ "parking_lot",
+ "scc",
+ "serial_test_derive",
+]
+
+[[package]]
+name = "serial_test_derive"
+version = "3.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "82fe9db325bcef1fbcde82e078a5cc4efdf787e96b3b9cf45b50b529f2083d67"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.72",
 ]
 
 [[package]]
@@ -6577,9 +6618,9 @@ dependencies = [
 
 [[package]]
 name = "surfman"
-version = "0.9.4"
+version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ef31fb4346fc13b83872a73fa2a1f4856dbf3ab3eb3495b32fb41c26ec8cc7a"
+checksum = "2e0fa3767391402bf43c1dd4a70bb76f0573856748f7c240e9180994cc3bc3bb"
 dependencies = [
  "bitflags 1.3.2",
  "cfg_aliases 0.1.1",
@@ -6598,6 +6639,7 @@ dependencies = [
  "metal 0.24.0",
  "objc",
  "raw-window-handle",
+ "serial_test",
  "servo-display-link",
  "sparkle",
  "wayland-sys 0.30.1",
