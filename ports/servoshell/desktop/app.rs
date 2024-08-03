@@ -20,7 +20,7 @@ use servo::Servo;
 use surfman::GLApi;
 use webxr::glwindow::GlWindowDiscovery;
 #[cfg(target_os = "windows")]
-use webxr::openxr::OpenXrDiscovery;
+use webxr::openxr::{AppInfo, OpenXrDiscovery};
 use winit::event::WindowEvent;
 use winit::event_loop::EventLoopWindowTarget;
 use winit::window::WindowId;
@@ -163,7 +163,10 @@ impl App {
                     )))
                 } else if pref!(dom.webxr.openxr.enabled) && !opts::get().headless {
                     #[cfg(target_os = "windows")]
-                    let openxr = Some(XrDiscovery::OpenXr(OpenXrDiscovery::new(None)));
+                    let openxr = {
+                        let app_info = AppInfo::new("Servoshell", 0, "Servo", 0);
+                        Some(XrDiscovery::OpenXr(OpenXrDiscovery::new(None, app_info)))
+                    };
                     #[cfg(not(target_os = "windows"))]
                     let openxr = None;
 
