@@ -34,7 +34,7 @@ pub struct XRInputSource {
     hand: MutNullableDom<XRHand>,
     #[ignore_malloc_size_of = "mozjs"]
     profiles: Heap<JSVal>,
-    gamepad: Option<DomRoot<Gamepad>>,
+    gamepad: DomRoot<Gamepad>,
 }
 
 impl XRInputSource {
@@ -64,7 +64,7 @@ impl XRInputSource {
             grip_space: Default::default(),
             hand: Default::default(),
             profiles: Heap::default(),
-            gamepad: Some(gamepad),
+            gamepad,
         }
     }
 
@@ -98,18 +98,18 @@ impl XRInputSource {
     }
 
     pub fn update_gamepad_state(&self, frame: InputFrame) {
-        if let Some(gamepad) = self.gamepad.as_ref() {
-            frame
-                .button_values
-                .iter()
-                .enumerate()
-                .for_each(|(i, value)| {
-                    gamepad.map_and_normalize_buttons(i as usize, *value as f64);
-                });
-            frame.axis_values.iter().enumerate().for_each(|(i, value)| {
-                gamepad.map_and_normalize_axes(i as usize, *value as f64);
+        frame
+            .button_values
+            .iter()
+            .enumerate()
+            .for_each(|(i, value)| {
+                self.gamepad
+                    .map_and_normalize_buttons(i as usize, *value as f64);
             });
-        }
+        frame.axis_values.iter().enumerate().for_each(|(i, value)| {
+            self.gamepad
+                .map_and_normalize_axes(i as usize, *value as f64);
+        });
     }
 }
 
@@ -158,11 +158,7 @@ impl XRInputSourceMethods for XRInputSource {
 
     /// <https://www.w3.org/TR/webxr-gamepads-module-1/#xrinputsource-interface>
     fn GetGamepad(&self) -> Option<DomRoot<Gamepad>> {
-        if let Some(gamepad) = self.gamepad.as_ref() {
-            Some(DomRoot::from_ref(&**gamepad))
-        } else {
-            None
-        }
+        Some(DomRoot::from_ref(&*self.gamepad))
     }
 
     // https://github.com/immersive-web/webxr-hands-input/blob/master/explainer.md
