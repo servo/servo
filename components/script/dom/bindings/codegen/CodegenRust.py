@@ -4078,6 +4078,45 @@ class CGMethodPromiseWrapper(CGAbstractExternMethod):
         return m.identifier.name + "_promise_wrapper"
 
 
+# https://searchfox.org/mozilla-central/rev/7279a1df13a819be254fd4649e07c4ff93e4bd45/dom/bindings/Codegen.py#11390-11419
+class CGGetterPromiseWrapper(CGAbstractExternMethod):
+    """
+    A class for generating a wrapper around another getter that will
+    convert exceptions to promises.
+    """
+
+    def __init__(self, descriptor, methodToWrap):
+        self.method = methodToWrap
+        name = CGGetterPromiseWrapper.makeNativeName(descriptor, self.method)
+        self.method_call = CGGetterPromiseWrapper.makeOrigName(descriptor, self.method)
+        args = [Argument('*mut JSContext', 'cx'),
+                Argument('RawHandleObject', '_obj'),
+                Argument('*mut libc::c_void', 'this'),
+                Argument('JSJitGetterCallArgs', 'args')]
+        CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args)
+
+    def definition_body(self):
+        return CGGeneric(fill(
+            """
+            let ok = ${methodName}(${args});
+            if ok {
+              return true;
+            }
+            return exception_to_promise(cx, args.rval());
+            """,
+            methodName=self.method_call,
+            args=", ".join(arg.name for arg in self.args),
+        ))
+
+    @staticmethod
+    def makeOrigName(descriptor, m):
+        return 'get_' + descriptor.internalNameFor(m.identifier.name)
+
+    @staticmethod
+    def makeNativeName(descriptor, m):
+        return CGGetterPromiseWrapper.makeOrigName(descriptor, m) + "_promise_wrapper"
+
+
 class CGDefaultToJSONMethod(CGSpecializedMethod):
     def __init__(self, descriptor, method):
         assert method.isDefaultToJSON()
@@ -4389,6 +4428,8 @@ class CGMemberJITInfo(CGThing):
             internalMemberName = self.descriptor.internalNameFor(self.member.identifier.name)
             getterinfo = ("%s_getterinfo" % internalMemberName)
             getter = ("get_%s" % internalMemberName)
+            if self.member.type.isPromise():
+                getter = CGGetterPromiseWrapper.makeNativeName(self.descriptor, self.member)
             getterinfal = "infallible" in self.descriptor.getExtendedAttributes(self.member, getter=True)
 
             movable = self.mayBeMovable() and getterinfal
@@ -6407,6 +6448,10 @@ class CGDescriptor(CGThing):
                     cgThings.append(CGStaticGetter(descriptor, m))
                 elif not descriptor.interface.isCallback():
                     cgThings.append(CGSpecializedGetter(descriptor, m))
+                    if m.type.isPromise():
+                        cgThings.append(
+                            CGGetterPromiseWrapper(descriptor, m)
+                        )
 
                 if not m.readonly:
                     if m.isStatic():
