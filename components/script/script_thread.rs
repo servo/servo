@@ -2427,8 +2427,9 @@ impl ScriptThread {
                 pipeline_id,
             } => {
                 self.gpu_id_hub.free_device_id(device_id);
-                let global = self.documents.borrow().find_global(pipeline_id).unwrap();
-                global.remove_gpu_device(WebGPUDevice(device_id));
+                if let Some(global) = self.documents.borrow().find_global(pipeline_id) {
+                    global.remove_gpu_device(WebGPUDevice(device_id));
+                } // page can already be destroyed
             },
             WebGPUMsg::FreeBuffer(id) => self.gpu_id_hub.free_buffer_id(id),
             WebGPUMsg::FreePipelineLayout(id) => self.gpu_id_hub.free_pipeline_layout_id(id),
