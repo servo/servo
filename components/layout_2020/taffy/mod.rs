@@ -15,6 +15,9 @@ use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 
 mod construct;
 mod layout;
+mod taffy_stylo;
+
+use taffy_stylo::{TaffyStyloStyle, TaffyStyloStyleRef};
 
 #[derive(Debug, Serialize)]
 pub(crate) struct TaffyContainer {

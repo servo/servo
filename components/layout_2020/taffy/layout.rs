@@ -10,9 +10,8 @@ use style::values::specified::box_::DisplayInside;
 use style::Zero;
 use taffy::style_helpers::{TaffyMaxContent, TaffyMinContent};
 use taffy::MaybeMath;
-use taffy_stylo::{TaffyStyloStyle, TaffyStyloStyleRef};
 
-use super::{TaffyContainer, TaffyItemBox, TaffyItemBoxInner};
+use super::{TaffyContainer, TaffyItemBox, TaffyItemBoxInner, TaffyStyloStyle, TaffyStyloStyleRef};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext, IndependentLayout};
