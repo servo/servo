@@ -227,6 +227,7 @@ impl DisplayList {
             horizontal_offset_bounds,
             LayoutVector2D::zero(), /* previously_applied_offset */
             spatial_tree_item_key,
+            None, /* transform */
         );
         self.compositor_info.scroll_tree.add_scroll_tree_node(
             Some(parent_scroll_node_id),

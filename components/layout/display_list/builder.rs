@@ -2199,6 +2199,7 @@ impl Fragment {
                     font_key: text_fragment.run.font_key,
                     color: text_color.to_layout(),
                     glyph_options: None,
+                    ref_frame_offset: LayoutVector2D::zero(),
                 },
                 glyphs,
             )));
