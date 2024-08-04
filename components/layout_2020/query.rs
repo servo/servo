@@ -12,10 +12,12 @@ use log::warn;
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
-use script_layout_interface::OffsetParentResponse;
+use script_layout_interface::{LayoutElementType, LayoutNodeType, OffsetParentResponse};
 use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
+use style::computed_values::display::T as Display;
 use style::computed_values::position::T as Position;
+use style::computed_values::visibility::T as Visibility;
 use style::context::{QuirksMode, SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use style::dom::{OpaqueNode, TElement};
 use style::properties::style_structs::Font;
@@ -524,9 +526,102 @@ fn is_eligible_parent(fragment: &BoxFragment) -> bool {
             .contains(FragmentFlags::IS_TABLE_TH_OR_TD_ELEMENT)
 }
 
+enum InnerTextItem {
+    Text(String),
+    RequiredLineBreakCount(u32),
+}
+
+// https://html.spec.whatwg.org/multipage/#inner-text-collection-steps
+fn inner_text_collection_steps<'dom>(
+    node: impl LayoutNode<'dom>,
+    results: &mut Vec<InnerTextItem>,
+) {
+    let mut items = Vec::new();
+    for child in node.traverse_preorder() {
+        let node = match child.type_id() {
+            LayoutNodeType::Text => child.parent_node().unwrap(),
+            _ => child,
+        };
+
+        let element_data = match node.style_data() {
+            Some(data) => &data.element_data,
+            None => continue,
+        };
+
+        let style = match element_data.borrow().styles.get_primary() {
+            None => continue,
+            Some(style) => style.clone(),
+        };
+
+        // Step 2.
+        if style.get_inherited_box().visibility != Visibility::Visible {
+            continue;
+        }
+
+        // Step 3.
+        let display = style.get_box().display;
+        if !child.is_connected() || display == Display::None {
+            continue;
+        }
+
+        match child.type_id() {
+            LayoutNodeType::Text => {
+                // Step 4.
+                items.push(InnerTextItem::Text(String::from(
+                    child.to_threadsafe().node_text_content(),
+                )));
+            },
+            LayoutNodeType::Element(LayoutElementType::HTMLBRElement) => {
+                // Step 5.
+                items.push(InnerTextItem::Text(String::from(
+                    "\u{000A}", /* line feed */
+                )));
+            },
+            LayoutNodeType::Element(LayoutElementType::HTMLParagraphElement) => {
+                // Step 8.
+                items.insert(0, InnerTextItem::RequiredLineBreakCount(2));
+                items.push(InnerTextItem::RequiredLineBreakCount(2));
+            },
+            _ => {},
+        }
+    }
+    results.append(&mut items);
+}
+
 // https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute
-pub fn process_element_inner_text_query<'dom>(_node: impl LayoutNode<'dom>) -> String {
-    "".to_owned()
+pub fn process_element_inner_text_query<'dom>(node: impl LayoutNode<'dom>) -> String {
+    // Step 1.
+    let mut results = Vec::new();
+    // Step 2.
+    inner_text_collection_steps(node, &mut results);
+    let mut max_req_line_break_count = 0;
+    let mut inner_text = Vec::new();
+    for item in results {
+        match item {
+            InnerTextItem::Text(s) => {
+                // Step 5.
+                for _ in 0..max_req_line_break_count {
+                    inner_text.push("\u{000A}".to_owned());
+                }
+                max_req_line_break_count = 0;
+                // Step 3.
+                if !s.is_empty() {
+                    inner_text.push(s);
+                }
+            },
+            InnerTextItem::RequiredLineBreakCount(count) => {
+                // Step 4.
+                // Remove required line break count at the start.
+                if !inner_text.is_empty() {
+                    // Store the count if it's the max of this run,
+                    // but it may be ignored if no text item is found afterwards,
+                    // which means that these are consecutive line breaks at the end.
+                    max_req_line_break_count = max_req_line_break_count.max(count);
+                }
+            },
+        }
+    }
+    inner_text.into_iter().collect()
 }
 
 pub fn process_text_index_request(_node: OpaqueNode, _point: Point2D<Au>) -> Option<usize> {
