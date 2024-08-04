@@ -22,6 +22,7 @@ import shutil
 import subprocess
 import sys
 
+import servo.gstreamer
 from mach.decorators import (
     CommandArgument,
     CommandProvider,
@@ -38,8 +39,6 @@ from servo.command_base import (
     is_macosx,
     is_windows,
 )
-from servo.build_commands import copy_dependencies
-from servo.gstreamer import macos_gst_root
 from servo.util import delete, get_target_dir
 
 PACKAGES = {
@@ -218,10 +217,9 @@ class PackageCommands(CommandBase):
 
             change_prefs(dir_to_resources, "macosx")
 
-            print("Finding dylibs and relinking")
+            print("Packaging GStreamer...")
             dmg_binary = path.join(content_dir, "servo")
-            dir_to_gst_lib = path.join(macos_gst_root(), 'lib', '')
-            copy_dependencies(dmg_binary, lib_dir, dir_to_gst_lib)
+            servo.gstreamer.package_gstreamer_dylibs(dmg_binary, lib_dir)
 
             print("Adding version to Credits.rtf")
             version_command = [binary_path, '--version']
