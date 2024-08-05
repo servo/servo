@@ -17,7 +17,6 @@ use serde_json::{self, Map, Value};
 
 use super::style_rule::StyleRuleActor;
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::actors::inspector::node::NodeInfoToProtocol;
 use crate::protocol::JsonPacketStream;
 use crate::StreamId;
 

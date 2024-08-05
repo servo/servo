@@ -16,9 +16,11 @@ use js::jsval::UndefinedValue;
 use js::rust::ToString;
 use servo_arc::Arc;
 use style::properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
+use style::rule_tree::StyleSource;
 use style::shared_lock::Locked;
 use uuid::Uuid;
 
+use crate::dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleList_Binding::CSSRuleListMethods;
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -190,13 +192,13 @@ pub fn handle_get_applied_style(
             .downcast::<Element>()
             .expect("should be getting layout of element");
 
+        // This is only for style="..."
         #[allow(unsafe_code)]
-        let style = elem.style_attribute().try_borrow().ok()?;
-        log::warn!("borrow");
+        let style = elem.style_attribute().try_borrow().ok()?.clone()?;
 
-        let style = style.clone()?;
-        log::warn!("{:?}", style);
+        // This is mixing computed and applied
         let declarations: &Locked<PropertyDeclarationBlock> = style.borrow();
+        log::error!("{:?}", declarations);
 
         let document = documents.find_document(pipeline)?;
         {

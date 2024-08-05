@@ -5,10 +5,8 @@
 //! Liberally derived from <https://searchfox.org/mozilla-central/source/devtools/server/actors/thread-configuration.js>
 //! This actor represents one css rule from a node, allowing the inspector to view it and change it.
 
-use std::collections::HashMap;
 use std::net::TcpStream;
 
-use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
@@ -32,15 +30,16 @@ impl Actor for StyleRuleActor {
         _registry: &ActorRegistry,
         msg_type: &str,
         _msg: &Map<String, Value>,
-        _stream: &mut TcpStream,
+        stream: &mut TcpStream,
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
-            // TODO: "updateConfiguration" => {
-            //     let msg = EmptyReplyMsg { from: self.name() };
-            //     let _ = stream.write_json_packet(&msg);
-            //     ActorMessageStatus::Processed
-            // },
+            "setRuleText" => {
+                // TODO: ...
+                let msg = EmptyReplyMsg { from: self.name() };
+                let _ = stream.write_json_packet(&msg);
+                ActorMessageStatus::Processed
+            },
             _ => ActorMessageStatus::Ignored,
         })
     }
