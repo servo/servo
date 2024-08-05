@@ -1978,16 +1978,21 @@ impl FlexItemBox {
         if self
             .independent_formatting_context
             .style()
-            .get_box()
-            .overflow_x
-            .is_scrollable()
+            .establishes_scroll_container()
         {
             return Au::zero();
         }
 
         if cross_axis_is_item_block_axis {
-            let specified_size_suggestion = content_box_size.inline;
+            // > **specified size suggestion**
+            // > If the item’s preferred main size is definite and not automatic, then the specified
+            // > size suggestion is that size. It is otherwise undefined.
+            let specified_size_suggestion = content_box_size.inline.non_auto();
 
+            // > **transferred size suggestion**
+            // > If the item has a preferred aspect ratio and its preferred cross size is definite, then the
+            // > transferred size suggestion is that size (clamped by its minimum and maximum cross sizes if they
+            // > are definite), converted through the aspect ratio. It is otherwise undefined.
             let transferred_size_suggestion = match self.independent_formatting_context {
                 IndependentFormattingContext::NonReplaced(_) => None,
                 IndependentFormattingContext::Replaced(ref bfc) => {
@@ -2009,40 +2014,46 @@ impl FlexItemBox {
                 },
             };
 
+            // > **content size suggestion**
+            // > The content size suggestion is the min-content size in the main axis, clamped, if it has a
+            // > preferred aspect ratio, by any definite minimum and maximum cross sizes converted through the
+            // > aspect ratio.
             let inline_content_size = self
                 .independent_formatting_context
                 .inline_content_sizes(layout_context)
                 .min_content;
-            let content_size_suggestion = match self.independent_formatting_context {
-                IndependentFormattingContext::NonReplaced(_) => inline_content_size,
-                IndependentFormattingContext::Replaced(ref replaced) => {
-                    if let Some(ratio) = replaced
+            let (is_replaced, aspect_ratio) = match self.independent_formatting_context {
+                IndependentFormattingContext::NonReplaced(_) => (false, None),
+                IndependentFormattingContext::Replaced(ref replaced) => (
+                    true,
+                    replaced
                         .contents
                         .inline_size_over_block_size_intrinsic_ratio(
                             self.independent_formatting_context.style(),
-                        )
-                    {
-                        inline_content_size.clamp_between_extremums(
-                            min_size.block.auto_is(Au::zero).scale_by(ratio),
-                            max_size.block.map(|l| l.scale_by(ratio)),
-                        )
-                    } else {
-                        inline_content_size
-                    }
-                },
+                        ),
+                ),
             };
+            let content_size_suggestion = aspect_ratio
+                .map(|aspect_ratio| {
+                    inline_content_size.clamp_between_extremums(
+                        min_size.block.auto_is(Au::zero).scale_by(aspect_ratio),
+                        max_size.block.map(|l| l.scale_by(aspect_ratio)),
+                    )
+                })
+                .unwrap_or(inline_content_size);
 
-            let result = match specified_size_suggestion {
-                AuOrAuto::LengthPercentage(l) => l.min(content_size_suggestion),
-                AuOrAuto::Auto => {
-                    if let Some(l) = transferred_size_suggestion {
-                        l.min(content_size_suggestion)
-                    } else {
-                        content_size_suggestion
-                    }
-                },
-            };
-            result.clamp_below_max(max_size.inline)
+            // > The content-based minimum size of a flex item is the smaller of its specified size
+            // > suggestion and its content size suggestion if its specified size suggestion exists;
+            // > otherwise, the smaller of its transferred size suggestion and its content size
+            // > suggestion if the element is replaced and its transferred size suggestion exists;
+            // > otherwise its content size suggestion. In all cases, the size is clamped by the maximum
+            // > main size if it’s definite.
+            match (specified_size_suggestion, transferred_size_suggestion) {
+                (Some(specified), _) => specified.min(content_size_suggestion),
+                (_, Some(transferred)) if is_replaced => transferred.min(content_size_suggestion),
+                _ => content_size_suggestion,
+            }
+            .clamp_below_max(max_size.inline)
         } else {
             // FIXME(stshine): Implement this when main axis is item's block axis.
             Au::zero()
