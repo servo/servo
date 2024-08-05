@@ -135,8 +135,8 @@ url = "2.5"
 uuid = { version = "1.10.0", features = ["v4"] }
 webdriver = "0.49.0"
 webpki-roots = "0.25"
-webrender = { git = "https://github.com/servo/webrender", branch = "0.64", features = ["capture"] }
-webrender_api = { git = "https://github.com/servo/webrender", branch = "0.64" }
+webrender = { git = "https://github.com/servo/webrender", branch = "0.65", features = ["capture"] }
+webrender_api = { git = "https://github.com/servo/webrender", branch = "0.65" }
 webrender_traits = { path = "components/shared/webrender" }
 wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "69eea63757f097bc0953e5ed607eefe1977f9efa" }
 wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "69eea63757f097bc0953e5ed607eefe1977f9efa" }
@@ -171,6 +171,7 @@ strip = true
 #
 # [patch."https://github.com/servo/stylo"]
 # derive_common = { path = "../stylo/derive_common" }
+# dom = { path = "../stylo/dom" }
 # malloc_size_of = { path = "../stylo/malloc_size_of" }
 # selectors = { path = "../stylo/selectors" }
 # servo_arc = { path = "../stylo/servo_arc" }
@@ -182,6 +183,12 @@ strip = true
 # style_derive = { path = "../stylo/style_derive" }
 # style_traits = { path = "../stylo/style_traits" }
 # to_shmem = { path = "../stylo/to_shmem" }
+#
+# Or for WebRender:
+#
+# [patch."https://github.com/servo/webrender"]
+# webrender = { path = "../webrender/webrender" }
+# webrender_api = { path = "../webrender/webrender_api" }
 #
 # Or for another Git dependency:
 #
