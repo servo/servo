@@ -215,8 +215,8 @@ def bootstrap(topdir):
     topdir = os.path.abspath(topdir)
 
     # We don't support paths with spaces for now
-    # https://github.com/servo/servo/issues/9442
-    if ' ' in topdir:
+    # https://github.com/servo/servo/issues/9616
+    if ' ' in topdir and (not _is_windows()):
         print('Cannot run mach in a path with spaces.')
         print('Current path:', topdir)
         sys.exit(1)
