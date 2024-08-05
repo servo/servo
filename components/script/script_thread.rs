@@ -2427,8 +2427,9 @@ impl ScriptThread {
                 pipeline_id,
             } => {
                 self.gpu_id_hub.free_device_id(device_id);
-                let global = self.documents.borrow().find_global(pipeline_id).unwrap();
-                global.remove_gpu_device(WebGPUDevice(device_id));
+                if let Some(global) = self.documents.borrow().find_global(pipeline_id) {
+                    global.remove_gpu_device(WebGPUDevice(device_id));
+                } // page can already be destroyed
             },
             WebGPUMsg::FreeBuffer(id) => self.gpu_id_hub.free_buffer_id(id),
             WebGPUMsg::FreePipelineLayout(id) => self.gpu_id_hub.free_pipeline_layout_id(id),
@@ -3672,6 +3673,8 @@ impl ScriptThread {
             .and_then(|h| h.typed_get::<ReferrerPolicyHeader>())
             .map(ReferrerPolicy::from);
 
+        let status_code = metadata.status.map(|status| status.0).unwrap_or(200);
+
         let document = Document::new(
             &window,
             HasBrowsingContext::Yes,
@@ -3685,6 +3688,7 @@ impl ScriptThread {
             loader,
             referrer,
             referrer_policy,
+            Some(status_code),
             incomplete.canceller,
         );
         document.set_ready_state(DocumentReadyState::Loading);

@@ -720,8 +720,11 @@ impl From<RequestDestination> for NetTraitsRequestDestination {
             RequestDestination::Document => NetTraitsRequestDestination::Document,
             RequestDestination::Embed => NetTraitsRequestDestination::Embed,
             RequestDestination::Font => NetTraitsRequestDestination::Font,
+            RequestDestination::Frame => NetTraitsRequestDestination::Frame,
+            RequestDestination::Iframe => NetTraitsRequestDestination::IFrame,
             RequestDestination::Image => NetTraitsRequestDestination::Image,
             RequestDestination::Manifest => NetTraitsRequestDestination::Manifest,
+            RequestDestination::Json => NetTraitsRequestDestination::Json,
             RequestDestination::Object => NetTraitsRequestDestination::Object,
             RequestDestination::Report => NetTraitsRequestDestination::Report,
             RequestDestination::Script => NetTraitsRequestDestination::Script,
@@ -743,8 +746,11 @@ impl From<NetTraitsRequestDestination> for RequestDestination {
             NetTraitsRequestDestination::Document => RequestDestination::Document,
             NetTraitsRequestDestination::Embed => RequestDestination::Embed,
             NetTraitsRequestDestination::Font => RequestDestination::Font,
+            NetTraitsRequestDestination::Frame => RequestDestination::Frame,
+            NetTraitsRequestDestination::IFrame => RequestDestination::Iframe,
             NetTraitsRequestDestination::Image => RequestDestination::Image,
             NetTraitsRequestDestination::Manifest => RequestDestination::Manifest,
+            NetTraitsRequestDestination::Json => RequestDestination::Json,
             NetTraitsRequestDestination::Object => RequestDestination::Object,
             NetTraitsRequestDestination::Report => RequestDestination::Report,
             NetTraitsRequestDestination::Script => RequestDestination::Script,
@@ -759,6 +765,7 @@ impl From<NetTraitsRequestDestination> for RequestDestination {
             NetTraitsRequestDestination::Video => RequestDestination::Video,
             NetTraitsRequestDestination::Worker => RequestDestination::Worker,
             NetTraitsRequestDestination::Xslt => RequestDestination::Xslt,
+            NetTraitsRequestDestination::WebIdentity => RequestDestination::_empty,
         }
     }
 }

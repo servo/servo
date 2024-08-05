@@ -18,7 +18,7 @@ use base::id::{
     BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
     ServiceWorkerId, ServiceWorkerRegistrationId,
 };
-use content_security_policy::CspList;
+use content_security_policy::{CheckResult, CspList, PolicyDisposition};
 use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
@@ -28,14 +28,15 @@ use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::{
     Compile1, CurrentGlobalOrNull, GetNonCCWObjectGlobal, HandleObject, Heap,
-    InstantiateGlobalStencil, InstantiateOptions, JSContext, JSObject, JSScript, SetScriptPrivate,
+    InstantiateGlobalStencil, InstantiateOptions, JSContext, JSObject, JSScript, RuntimeCode,
+    SetScriptPrivate,
 };
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
 use js::rust::wrappers::{JS_ExecuteScript, JS_GetScriptPrivate};
 use js::rust::{
-    get_object_class, transform_str_to_source_text, CompileOptionsWrapper, HandleValue,
-    MutableHandleValue, ParentRuntime, Runtime,
+    describe_scripted_caller, get_object_class, transform_str_to_source_text,
+    CompileOptionsWrapper, HandleValue, MutableHandleValue, ParentRuntime, Runtime,
 };
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use net_traits::blob_url_store::{get_blob_origin, BlobBuf};
@@ -119,6 +120,7 @@ use crate::script_runtime::{
     CommonScriptMsg, ContextForRequestInterrupt, JSContext as SafeJSContext, ScriptChan, ScriptPort,
 };
 use crate::script_thread::{MainThreadScriptChan, ScriptThread};
+use crate::security_manager::CSPViolationReporter;
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
@@ -2773,6 +2775,37 @@ impl GlobalScope {
         }))
     }
 
+    #[allow(unsafe_code)]
+    pub fn is_js_evaluation_allowed(&self, cx: SafeJSContext) -> bool {
+        let Some(csp_list) = self.get_csp_list() else {
+            return true;
+        };
+
+        let scripted_caller = unsafe { describe_scripted_caller(*cx) }.unwrap_or_default();
+        let is_js_evaluation_allowed = csp_list.is_js_evaluation_allowed() == CheckResult::Allowed;
+
+        if !is_js_evaluation_allowed {
+            // FIXME: Don't fire event if `script-src` and `default-src`
+            // were not passed.
+            for policy in csp_list.0 {
+                let task = CSPViolationReporter::new(
+                    self,
+                    None,
+                    policy.disposition == PolicyDisposition::Report,
+                    RuntimeCode::JS,
+                    scripted_caller.filename.clone(),
+                    scripted_caller.line,
+                    scripted_caller.col,
+                );
+                self.dom_manipulation_task_source()
+                    .queue(task, self)
+                    .unwrap();
+            }
+        }
+
+        is_js_evaluation_allowed
+    }
+
     pub fn create_image_bitmap(
         &self,
         image: ImageBitmapSource,
@@ -3090,6 +3123,13 @@ impl GlobalScope {
         None
     }
 
+    pub fn status_code(&self) -> Option<u16> {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.Document().status_code();
+        }
+        None
+    }
+
     pub fn wgpu_id_hub(&self) -> Arc<Identities> {
         self.gpu_id_hub.clone()
     }
@@ -3174,22 +3214,29 @@ impl GlobalScope {
         // TODO: 2. If document is not null and is not allowed to use the "gamepad" permission,
         //          then abort these steps.
         let this = Trusted::new(self);
-        self.gamepad_task_source().queue_with_canceller(
-            task!(gamepad_connected: move || {
-                let global = this.root();
+        self.gamepad_task_source()
+            .queue_with_canceller(
+                task!(gamepad_connected: move || {
+                    let global = this.root();
 
-                if let Some(window) = global.downcast::<Window>() {
-                    let navigator = window.Navigator();
-                    let selected_index = navigator.select_gamepad_index();
-                    let gamepad = Gamepad::new(
-                        &global, selected_index, name, axis_bounds, button_bounds, supported_haptic_effects
-                    );
-                    navigator.set_gamepad(selected_index as usize, &gamepad);
-                }
-            }),
-            &self.task_canceller(TaskSourceName::Gamepad)
-        )
-        .expect("Failed to queue gamepad connected task.");
+                    if let Some(window) = global.downcast::<Window>() {
+                        let navigator = window.Navigator();
+                        let selected_index = navigator.select_gamepad_index();
+                        let gamepad = Gamepad::new(
+                            &global,
+                            selected_index,
+                            name,
+                            "standard".into(),
+                            axis_bounds,
+                            button_bounds,
+                            supported_haptic_effects
+                        );
+                        navigator.set_gamepad(selected_index as usize, &gamepad);
+                    }
+                }),
+                &self.task_canceller(TaskSourceName::Gamepad),
+            )
+            .expect("Failed to queue gamepad connected task.");
     }
 
     /// <https://www.w3.org/TR/gamepad/#dfn-gamepaddisconnected>

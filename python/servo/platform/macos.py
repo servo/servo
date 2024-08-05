@@ -16,6 +16,7 @@ from .. import util
 from .base import Base
 
 URL_BASE = "https://github.com/servo/servo-build-deps/releases/download/macOS"
+GSTREAMER_PLUGIN_VERSION = "1.22.3"
 GSTREAMER_URL = f"{URL_BASE}/gstreamer-1.0-1.22.3-universal.pkg"
 GSTREAMER_DEVEL_URL = f"{URL_BASE}/gstreamer-1.0-devel-1.22.3-universal.pkg"
 GSTREAMER_ROOT = "/Library/Frameworks/GStreamer.framework/Versions/1.0"
@@ -34,7 +35,6 @@ class MacOS(Base):
 
     def is_gstreamer_installed(self, cross_compilation_target: Optional[str]) -> bool:
         # Servo only supports the official GStreamer distribution on MacOS.
-        # Make sure we use the right `pkg-config`.
         return not cross_compilation_target and os.path.exists(GSTREAMER_ROOT)
 
     def _platform_bootstrap(self, _force: bool) -> bool:

@@ -27,7 +27,6 @@ packages = [
     "hermit-abi",
     "redox_syscall",
     "syn",
-    "synstructure",
     "time",
     "wasi",
     "wayland-sys",

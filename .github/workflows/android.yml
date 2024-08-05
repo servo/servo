@@ -30,6 +30,13 @@ jobs:
       matrix:
         arch: ['aarch64-linux-android', 'armv7-linux-androideabi', 'i686-linux-android', 'x86_64-linux-android']
     steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: false
+          large-packages: false
+          swap-storage: false
       - uses: actions/checkout@v4
         if: github.event_name != 'pull_request_target'
         with:
@@ -74,6 +81,7 @@ jobs:
       - name: Setup Key Store for APK Signing
         env:
           KEYSTORE_BASE64: ${{ secrets.APK_KEYSTORE_BASE64 }}
+        if: ${{ env.KEYSTORE_BASE64 != '' }}
         run: |
           APK_SIGNING_KEY_STORE_PATH="${PWD}/servo_keystore.jks"
           echo "${KEYSTORE_BASE64}" | base64 -d > "${APK_SIGNING_KEY_STORE_PATH}"

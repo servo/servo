@@ -78,6 +78,7 @@ impl DOMParserMethods for DOMParser {
                     loader,
                     None,
                     None,
+                    None,
                     Default::default(),
                 );
                 ServoParser::parse_html_document(&document, Some(s), url);
@@ -96,6 +97,7 @@ impl DOMParserMethods for DOMParser {
                     DocumentActivity::Inactive,
                     DocumentSource::FromParser,
                     loader,
+                    None,
                     None,
                     None,
                     Default::default(),

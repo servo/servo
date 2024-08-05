@@ -525,6 +525,7 @@ pub(crate) mod rtcrtptransceiver;
 pub mod rtcsessiondescription;
 pub mod rtctrackevent;
 pub mod screen;
+pub mod securitypolicyviolationevent;
 pub mod selection;
 pub mod serviceworker;
 pub mod serviceworkercontainer;

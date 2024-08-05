@@ -7,6 +7,8 @@
 use ipc_channel::ipc::IpcSharedMemory;
 use serde::{Deserialize, Serialize};
 use wgc::pipeline::CreateShaderModuleError;
+use wgpu_core::instance::{RequestAdapterError, RequestDeviceError};
+use wgpu_core::resource::BufferAccessError;
 pub use {wgpu_core as wgc, wgpu_types as wgt};
 
 use crate::identity::*;
@@ -64,21 +66,19 @@ pub struct Adapter {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct Device {
-    pub device_id: WebGPUDevice,
-    pub queue_id: WebGPUQueue,
-    pub descriptor: wgt::DeviceDescriptor<Option<String>>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
 #[allow(clippy::large_enum_variant)]
 pub enum WebGPUResponse {
     /// WebGPU is disabled
     None,
-    // TODO: use wgpu errors
-    Adapter(Result<Adapter, String>),
-    Device(Result<Device, String>),
-    BufferMapAsync(Result<IpcSharedMemory, String>),
+    Adapter(Result<Adapter, RequestAdapterError>),
+    Device(
+        (
+            WebGPUDevice,
+            WebGPUQueue,
+            Result<wgt::DeviceDescriptor<Option<String>>, RequestDeviceError>,
+        ),
+    ),
+    BufferMapAsync(Result<IpcSharedMemory, BufferAccessError>),
     SubmittedWorkDone,
     PoppedErrorScope(Result<Option<Error>, PopError>),
     CompilationInfo(Option<ShaderCompilationInfo>),

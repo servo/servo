@@ -8,7 +8,7 @@ use style::properties::longhands::flex_direction::computed_value::T as FlexDirec
 
 use crate::geom::{LogicalRect, LogicalSides, LogicalVec2};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub(super) struct FlexRelativeVec2<T> {
     pub main: T,
     pub cross: T,

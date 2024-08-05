@@ -6,13 +6,15 @@ use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
-use webxr_api::{Handedness, InputId, InputSource, TargetRayMode};
+use script_traits::GamepadSupportedHapticEffects;
+use webxr_api::{Handedness, InputFrame, InputId, InputSource, TargetRayMode};
 
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
     XRHandedness, XRInputSourceMethods, XRTargetRayMode,
 };
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::gamepad::Gamepad;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrhand::XRHand;
 use crate::dom::xrsession::XRSession;
@@ -32,10 +34,28 @@ pub struct XRInputSource {
     hand: MutNullableDom<XRHand>,
     #[ignore_malloc_size_of = "mozjs"]
     profiles: Heap<JSVal>,
+    gamepad: DomRoot<Gamepad>,
 }
 
 impl XRInputSource {
-    pub fn new_inherited(session: &XRSession, info: InputSource) -> XRInputSource {
+    pub fn new_inherited(
+        global: &GlobalScope,
+        session: &XRSession,
+        info: InputSource,
+    ) -> XRInputSource {
+        // <https://www.w3.org/TR/webxr-gamepads-module-1/#gamepad-differences>
+        let gamepad = Gamepad::new(
+            global,
+            0,
+            "".into(),
+            "xr-standard".into(),
+            (-1.0, 1.0),
+            (0.0, 1.0),
+            GamepadSupportedHapticEffects {
+                supports_dual_rumble: false,
+                supports_trigger_rumble: false,
+            },
+        );
         XRInputSource {
             reflector: Reflector::new(),
             session: Dom::from_ref(session),
@@ -44,6 +64,7 @@ impl XRInputSource {
             grip_space: Default::default(),
             hand: Default::default(),
             profiles: Heap::default(),
+            gamepad,
         }
     }
 
@@ -54,7 +75,7 @@ impl XRInputSource {
         info: InputSource,
     ) -> DomRoot<XRInputSource> {
         let source = reflect_dom_object(
-            Box::new(XRInputSource::new_inherited(session, info)),
+            Box::new(XRInputSource::new_inherited(global, session, info)),
             global,
         );
 
@@ -74,6 +95,21 @@ impl XRInputSource {
 
     pub fn session(&self) -> &XRSession {
         &self.session
+    }
+
+    pub fn update_gamepad_state(&self, frame: InputFrame) {
+        frame
+            .button_values
+            .iter()
+            .enumerate()
+            .for_each(|(i, value)| {
+                self.gamepad
+                    .map_and_normalize_buttons(i as usize, *value as f64);
+            });
+        frame.axis_values.iter().enumerate().for_each(|(i, value)| {
+            self.gamepad
+                .map_and_normalize_axes(i as usize, *value as f64);
+        });
     }
 }
 
@@ -118,6 +154,11 @@ impl XRInputSourceMethods for XRInputSource {
     // https://immersive-web.github.io/webxr/#dom-xrinputsource-profiles
     fn Profiles(&self, _cx: JSContext) -> JSVal {
         self.profiles.get()
+    }
+
+    /// <https://www.w3.org/TR/webxr-gamepads-module-1/#xrinputsource-interface>
+    fn GetGamepad(&self) -> Option<DomRoot<Gamepad>> {
+        Some(DomRoot::from_ref(&*self.gamepad))
     }
 
     // https://github.com/immersive-web/webxr-hands-input/blob/master/explainer.md
