@@ -272,7 +272,7 @@ def package_gstreamer_dylibs(binary_path: str, library_target_directory: str, cr
         return True
 
     if os.path.exists(library_target_directory):
-        print(" • Packaged GStreamer is out of date. Rebuilding into {library_target_directory}")
+        print(f" • Packaged GStreamer is out of date. Rebuilding into {library_target_directory}")
         shutil.rmtree(library_target_directory)
     else:
         print(f" • Packaging GStreamer into {library_target_directory}")
