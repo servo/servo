@@ -455,7 +455,7 @@ impl FlexContainer {
                 // https://github.com/w3c/csswg-drafts/issues/4905
                 // Gecko reportedly uses `block-size: fit-content` in this case
                 // (which requires running another pass of the "full" layout algorithm)
-                todo!()
+                Au::zero()
                 // Note: this panic shouldn’t happen since the start of `FlexContainer::layout`
                 // forces `FlexAxis::Row`.
             },
@@ -966,7 +966,7 @@ fn flex_base_size(
             } else {
                 // FIXME: block-axis content sizing requires another pass
                 // of "full" layout
-                todo!()
+                Au::zero()
                 // Note: this panic shouldn’t happen since the start of `FlexContainer::layout`
                 // forces `FlexAxis::Row` and the `writing-mode` property is disabled.
             }
@@ -986,13 +986,7 @@ fn cross_axis_is_item_block_axis(
 }
 
 fn used_flex_direction(container_style: &ComputedValues) -> FlexDirection {
-    // Column flex containers are not fully implemented yet,
-    // so give a different layout instead of panicking.
-    // FIXME: implement `todo!`s for FlexAxis::Column below, and remove this
-    match container_style.clone_flex_direction() {
-        FlexDirection::Row | FlexDirection::Column => FlexDirection::Row,
-        FlexDirection::RowReverse | FlexDirection::ColumnReverse => FlexDirection::RowReverse,
-    }
+    container_style.clone_flex_direction()
 }
 
 // “Collect flex items into flex lines”
@@ -1585,106 +1579,96 @@ impl FlexItem<'_> {
                 .positioning_context
                 .collects_for_nearest_positioned_ancestor(),
         );
-        match flex_context.flex_axis {
-            FlexAxis::Row => {
-                // The main axis is the container’s inline axis
 
-                // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
-                assert_eq!(
-                    flex_context.containing_block.style.writing_mode,
-                    self.box_.style().writing_mode,
-                    "Mixed writing modes are not supported yet"
+        // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
+        assert_eq!(
+            flex_context.containing_block.style.writing_mode,
+            self.box_.style().writing_mode,
+            "Mixed writing modes are not supported yet"
+        );
+        // … and also the item’s inline axis.
+
+        match self.box_ {
+            IndependentFormattingContext::Replaced(replaced) => {
+                let pbm = replaced
+                    .style
+                    .padding_border_margin(flex_context.containing_block);
+                let box_size = used_cross_size_override.map(|size| LogicalVec2 {
+                    inline: replaced
+                        .style
+                        .content_box_size(flex_context.containing_block, &pbm)
+                        .inline
+                        .map(Au::from),
+                    block: AuOrAuto::LengthPercentage(size),
+                });
+                let size = replaced.contents.used_size_as_if_inline_element(
+                    flex_context.containing_block,
+                    &replaced.style,
+                    box_size,
+                    &pbm,
                 );
-                // … and also the item’s inline axis.
+                let cross_size = flex_context.vec2_to_flex_relative(size).cross;
+                let fragments = replaced.contents.make_fragments(&replaced.style, size);
 
-                match self.box_ {
-                    IndependentFormattingContext::Replaced(replaced) => {
-                        let pbm = replaced
-                            .style
-                            .padding_border_margin(flex_context.containing_block);
-                        let box_size = used_cross_size_override.map(|size| LogicalVec2 {
-                            inline: replaced
-                                .style
-                                .content_box_size(flex_context.containing_block, &pbm)
-                                .inline
-                                .map(Au::from),
-                            block: AuOrAuto::LengthPercentage(size),
-                        });
-                        let size = replaced.contents.used_size_as_if_inline_element(
-                            flex_context.containing_block,
-                            &replaced.style,
-                            box_size,
-                            &pbm,
-                        );
-                        let cross_size = flex_context.vec2_to_flex_relative(size).cross;
-                        let fragments = replaced.contents.make_fragments(&replaced.style, size);
+                FlexItemLayoutResult {
+                    hypothetical_cross_size: cross_size,
+                    fragments,
+                    positioning_context,
 
-                        FlexItemLayoutResult {
-                            hypothetical_cross_size: cross_size,
-                            fragments,
-                            positioning_context,
-
-                            // We will need to synthesize the baseline, but since the used cross
-                            // size can differ from the hypothetical cross size, we should defer
-                            // synthesizing until needed.
-                            baseline_relative_to_margin_box: None,
-                        }
-                    },
-                    IndependentFormattingContext::NonReplaced(non_replaced) => {
-                        let block_size = match used_cross_size_override {
-                            Some(s) => AuOrAuto::LengthPercentage(s),
-                            None => self.content_box_size.cross.map(|t| t),
-                        };
-
-                        let item_as_containing_block = ContainingBlock {
-                            inline_size: used_main_size,
-                            block_size,
-                            style: &non_replaced.style,
-                        };
-                        let IndependentLayout {
-                            fragments,
-                            content_block_size,
-                            baselines: content_box_baselines,
-                            ..
-                        } = non_replaced.layout(
-                            flex_context.layout_context,
-                            &mut positioning_context,
-                            &item_as_containing_block,
-                            flex_context.containing_block,
-                        );
-
-                        let baselines_relative_to_margin_box =
-                            self.layout_baselines_relative_to_margin_box(&content_box_baselines);
-
-                        let baseline_relative_to_margin_box = match self.align_self.0.value() {
-                            // ‘baseline’ computes to ‘first baseline’.
-                            AlignFlags::BASELINE => baselines_relative_to_margin_box.first,
-                            AlignFlags::LAST_BASELINE => baselines_relative_to_margin_box.last,
-                            _ => None,
-                        };
-
-                        let hypothetical_cross_size = self
-                            .content_box_size
-                            .cross
-                            .auto_is(|| content_block_size)
-                            .clamp_between_extremums(
-                                self.content_min_size.cross,
-                                self.content_max_size.cross,
-                            );
-
-                        FlexItemLayoutResult {
-                            hypothetical_cross_size,
-                            fragments,
-                            positioning_context,
-                            baseline_relative_to_margin_box,
-                        }
-                    },
+                    // We will need to synthesize the baseline, but since the used cross
+                    // size can differ from the hypothetical cross size, we should defer
+                    // synthesizing until needed.
+                    baseline_relative_to_margin_box: None,
                 }
             },
-            FlexAxis::Column => {
-                todo!()
-                // Note: this panic shouldn’t happen since the start of `FlexContainer::layout`
-                // forces `FlexAxis::Row`.
+            IndependentFormattingContext::NonReplaced(non_replaced) => {
+                let block_size = match used_cross_size_override {
+                    Some(s) => AuOrAuto::LengthPercentage(s),
+                    None => self.content_box_size.cross.map(|t| t),
+                };
+
+                let item_as_containing_block = ContainingBlock {
+                    inline_size: used_main_size,
+                    block_size,
+                    style: &non_replaced.style,
+                };
+                let IndependentLayout {
+                    fragments,
+                    content_block_size,
+                    baselines: content_box_baselines,
+                    ..
+                } = non_replaced.layout(
+                    flex_context.layout_context,
+                    &mut positioning_context,
+                    &item_as_containing_block,
+                    flex_context.containing_block,
+                );
+
+                let baselines_relative_to_margin_box =
+                    self.layout_baselines_relative_to_margin_box(&content_box_baselines);
+
+                let baseline_relative_to_margin_box = match self.align_self.0.value() {
+                    // ‘baseline’ computes to ‘first baseline’.
+                    AlignFlags::BASELINE => baselines_relative_to_margin_box.first,
+                    AlignFlags::LAST_BASELINE => baselines_relative_to_margin_box.last,
+                    _ => None,
+                };
+
+                let hypothetical_cross_size = self
+                    .content_box_size
+                    .cross
+                    .auto_is(|| content_block_size)
+                    .clamp_between_extremums(
+                        self.content_min_size.cross,
+                        self.content_max_size.cross,
+                    );
+
+                FlexItemLayoutResult {
+                    hypothetical_cross_size,
+                    fragments,
+                    positioning_context,
+                    baseline_relative_to_margin_box,
+                }
             },
         }
     }
