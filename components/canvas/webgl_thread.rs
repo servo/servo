@@ -370,7 +370,7 @@ impl WebGLThread {
             },
             WebGLMsg::Exit(sender) => {
                 if let Err(e) = sender.send(()) {
-                    warn!("Failed to send response to WebGLMsg::Exit ({})", e)
+                    warn!("Failed to send response to WebGLMsg::Exit ({e})");
                 }
                 return true;
             },
