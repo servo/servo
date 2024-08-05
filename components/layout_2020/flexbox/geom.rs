@@ -67,7 +67,7 @@ impl<T> FlexRelativeSides<T> {
 
 /// One of the two bits set by the `flex-direction` property
 /// (The other is "forward" v.s. reverse.)
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub(super) enum FlexAxis {
     /// The main axis is the inline axis of the container (not necessarily of flex items!),
     /// cross is block.
