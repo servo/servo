@@ -169,7 +169,7 @@ impl RenderingContext {
 
     /// Invoke a closure with the surface associated with the current front buffer.
     /// This can be used to create a surfman::SurfaceTexture to blit elsewhere.
-    pub fn with_front_buffer<F: FnMut(&Device, Surface) -> Surface>(&self, mut f: F) {
+    pub fn with_front_buffer<F: FnOnce(&Device, Surface) -> Surface>(&self, f: F) {
         let device = &mut self.0.device.borrow_mut();
         let context = &mut self.0.context.borrow_mut();
         let surface = device
