@@ -4,11 +4,12 @@
 
 //! The walker actor is responsible for traversing the DOM tree in various ways to create new nodes
 
+use std::cell::RefCell;
 use std::net::TcpStream;
 
 use base::id::PipelineId;
-use devtools_traits::DevtoolScriptControlMsg;
 use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement};
+use devtools_traits::{DevtoolScriptControlMsg, Modification};
 use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
 use serde_json::{self, Map, Value};
@@ -30,6 +31,7 @@ pub struct WalkerActor {
     pub script_chan: IpcSender<DevtoolScriptControlMsg>,
     pub pipeline: PipelineId,
     pub root_node: NodeActorMsg,
+    pub mutations: RefCell<Vec<(Modification, String)>>,
 }
 
 #[derive(Serialize)]
@@ -70,9 +72,32 @@ struct WatchRootNodeReply {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct MutationMsg {
+    attribute_name: String,
+    new_value: Option<String>,
+    target: String,
+    #[serde(rename = "type")]
+    type_: String,
+}
+
+#[derive(Serialize)]
+struct GetMutationsReply {
+    from: String,
+    mutations: Vec<MutationMsg>,
+}
+
+#[derive(Serialize)]
 struct GetOffsetParentReply {
     from: String,
     node: Option<()>,
+}
+
+#[derive(Serialize)]
+struct NewMutationsReply {
+    from: String,
+    #[serde(rename = "type")]
+    type_: String,
 }
 
 impl Actor for WalkerActor {
@@ -89,6 +114,8 @@ impl Actor for WalkerActor {
     /// - `documentElement`: Returns the base document element node
     ///
     /// - `getLayoutInspector`: Returns the Layout inspector actor, placeholder
+    ///
+    /// - `getMutations`: Returns the list of attribute changes since it was last called
     ///
     /// - `getOffsetParent`: Placeholder
     ///
@@ -121,7 +148,13 @@ impl Actor for WalkerActor {
                     nodes: children
                         .into_iter()
                         .map(|child| {
-                            child.encode(registry, true, self.script_chan.clone(), self.pipeline)
+                            child.encode(
+                                registry,
+                                true,
+                                self.script_chan.clone(),
+                                self.pipeline,
+                                self.name(),
+                            )
                         })
                         .collect(),
                     from: self.name(),
@@ -140,8 +173,13 @@ impl Actor for WalkerActor {
                     .send(GetDocumentElement(self.pipeline, tx))
                     .map_err(|_| ())?;
                 let doc_elem_info = rx.recv().map_err(|_| ())?.ok_or(())?;
-                let node =
-                    doc_elem_info.encode(registry, true, self.script_chan.clone(), self.pipeline);
+                let node = doc_elem_info.encode(
+                    registry,
+                    true,
+                    self.script_chan.clone(),
+                    self.pipeline,
+                    self.name(),
+                );
 
                 let msg = DocumentElementReply {
                     from: self.name(),
@@ -163,6 +201,24 @@ impl Actor for WalkerActor {
                 let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
+            "getMutations" => {
+                let msg = GetMutationsReply {
+                    from: self.name(),
+                    mutations: self
+                        .mutations
+                        .borrow_mut()
+                        .drain(..)
+                        .map(|(mutation, target)| MutationMsg {
+                            attribute_name: mutation.attribute_name,
+                            new_value: mutation.new_value,
+                            target,
+                            type_: "attributes".into(),
+                        })
+                        .collect(),
+                };
+                let _ = stream.write_json_packet(&msg);
+                ActorMessageStatus::Processed
+            },
             "getOffsetParent" => {
                 let msg = GetOffsetParentReply {
                     from: self.name(),
@@ -177,6 +233,7 @@ impl Actor for WalkerActor {
                 let mut hierarchy = find_child(
                     &self.script_chan,
                     self.pipeline,
+                    &self.name,
                     registry,
                     selector,
                     node,
@@ -211,11 +268,30 @@ impl Actor for WalkerActor {
     }
 }
 
+impl WalkerActor {
+    pub(crate) fn new_mutations(
+        &self,
+        stream: &mut TcpStream,
+        target: &str,
+        modifications: &[Modification],
+    ) {
+        {
+            let mut mutations = self.mutations.borrow_mut();
+            mutations.extend(modifications.iter().cloned().map(|m| (m, target.into())));
+        }
+        let _ = stream.write_json_packet(&NewMutationsReply {
+            from: self.name(),
+            type_: "newMutations".into(),
+        });
+    }
+}
+
 /// Recursively searches for a child with the specified selector
 /// If it is found, returns a list with the child and all of its ancestors.
 fn find_child(
     script_chan: &IpcSender<DevtoolScriptControlMsg>,
     pipeline: PipelineId,
+    name: &str,
     registry: &ActorRegistry,
     selector: &str,
     node: &str,
@@ -232,7 +308,7 @@ fn find_child(
     let children = rx.recv().unwrap().ok_or(vec![])?;
 
     for child in children {
-        let msg = child.encode(registry, true, script_chan.clone(), pipeline);
+        let msg = child.encode(registry, true, script_chan.clone(), pipeline, name.into());
         if msg.display_name == selector {
             hierarchy.push(msg);
             return Ok(hierarchy);
@@ -245,6 +321,7 @@ fn find_child(
         match find_child(
             script_chan,
             pipeline,
+            name,
             registry,
             selector,
             &msg.actor,

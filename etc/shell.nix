@@ -5,7 +5,7 @@
   buildAndroid ? false
 }:
 with import (builtins.fetchTarball {
-  url = "https://github.com/NixOS/nixpkgs/archive/63d37ccd2d178d54e7fb691d7ec76000740ea24a.tar.gz";
+  url = "https://github.com/NixOS/nixpkgs/archive/d04953086551086b44b6f3c6b7eeb26294f207da.tar.gz";
 }) {
   overlays = [
     (import (builtins.fetchTarball {

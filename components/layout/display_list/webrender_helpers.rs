@@ -469,6 +469,7 @@ impl DisplayItem {
                             sticky_data.horizontal_offset_bounds,
                             LayoutVector2D::zero(), /* previously_applied_offset */
                             self.get_spatial_tree_item_key(builder, index),
+                            None, /* transform */
                         );
 
                         state.add_clip_node_mapping(index, parent_clip_chain_id);

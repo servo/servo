@@ -90,6 +90,22 @@ impl RenderingContext {
         Ok(RenderingContext(Rc::new(data)))
     }
 
+    pub fn create_surface(
+        &self,
+        surface_type: SurfaceType<NativeWidget>,
+    ) -> Result<Surface, Error> {
+        let device = &mut self.0.device.borrow_mut();
+        let context = &self.0.context.borrow();
+        let surface_access = SurfaceAccess::GPUOnly;
+        device.create_surface(&context, surface_access, surface_type)
+    }
+
+    pub fn destroy_surface(&self, mut surface: Surface) -> Result<(), Error> {
+        let device = &self.0.device.borrow();
+        let context = &mut self.0.context.borrow_mut();
+        device.destroy_surface(context, &mut surface)
+    }
+
     pub fn create_surface_texture(&self, surface: Surface) -> Result<SurfaceTexture, Error> {
         let device = &self.0.device.borrow();
         let context = &mut self.0.context.borrow_mut();
@@ -153,7 +169,7 @@ impl RenderingContext {
 
     /// Invoke a closure with the surface associated with the current front buffer.
     /// This can be used to create a surfman::SurfaceTexture to blit elsewhere.
-    pub fn with_front_buffer<F: FnMut(&Device, Surface) -> Surface>(&self, mut f: F) {
+    pub fn with_front_buffer<F: FnOnce(&Device, Surface) -> Surface>(&self, f: F) {
         let device = &mut self.0.device.borrow_mut();
         let context = &mut self.0.context.borrow_mut();
         let surface = device
