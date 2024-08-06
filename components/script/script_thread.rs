@@ -2540,6 +2540,9 @@ impl ScriptThread {
             DevtoolScriptControlMsg::ModifyAttribute(id, node_id, modifications) => {
                 devtools::handle_modify_attribute(&documents, id, node_id, modifications)
             },
+            DevtoolScriptControlMsg::ModifyRule(id, node_id, modifications) => {
+                devtools::handle_modify_rule(&documents, id, node_id, modifications)
+            },
             DevtoolScriptControlMsg::WantsLiveNotifications(id, to_send) => match documents
                 .find_window(id)
             {

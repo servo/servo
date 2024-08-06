@@ -76,8 +76,8 @@ pub struct NodeActorMsg {
 
 pub struct NodeActor {
     name: String,
-    script_chan: IpcSender<DevtoolScriptControlMsg>,
-    pipeline: PipelineId,
+    pub script_chan: IpcSender<DevtoolScriptControlMsg>,
+    pub pipeline: PipelineId,
     pub walker: String,
 }
 
@@ -102,7 +102,6 @@ impl Actor for NodeActor {
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "modifyAttributes" => {
-                let target = msg.get("to").ok_or(())?.as_str().ok_or(())?;
                 let mods = msg.get("modifications").ok_or(())?.as_array().ok_or(())?;
                 let modifications: Vec<_> = mods
                     .iter()
@@ -117,7 +116,7 @@ impl Actor for NodeActor {
                 self.script_chan
                     .send(ModifyAttribute(
                         self.pipeline,
-                        registry.actor_to_script(target.to_owned()),
+                        registry.actor_to_script(self.name()),
                         modifications,
                     ))
                     .map_err(|_| ())?;

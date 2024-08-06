@@ -155,7 +155,9 @@ pub enum TimelineMarkerType {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppliedNodeStyle {
-    pub text: String,
+    pub name: String,
+    pub value: String,
+    pub priority: String,
 }
 
 /// The properties of a DOM node as computed by layout.
@@ -212,7 +214,9 @@ pub enum DevtoolScriptControlMsg {
     /// Retrieve the computed layout properties of the given node in the given pipeline.
     GetLayout(PipelineId, String, IpcSender<Option<ComputedNodeLayout>>),
     /// Update a given node's attributes with a list of modifications.
-    ModifyAttribute(PipelineId, String, Vec<Modification>),
+    ModifyAttribute(PipelineId, String, Vec<AttrModification>),
+    /// Update a given node's style rules with a list of modifications.
+    ModifyRule(PipelineId, String, Vec<RuleModification>),
     /// Request live console messages for a given pipeline (true if desired, false otherwise).
     WantsLiveNotifications(PipelineId, bool),
     /// Request live notifications for a given set of timeline events for a given pipeline.
@@ -232,9 +236,20 @@ pub enum DevtoolScriptControlMsg {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Modification {
+pub struct AttrModification {
     pub attribute_name: String,
     pub new_value: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuleModification {
+    #[serde(rename = "type")]
+    pub type_: String,
+    pub index: u32,
+    pub name: String,
+    pub value: String,
+    pub priority: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

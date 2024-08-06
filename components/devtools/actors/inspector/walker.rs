@@ -9,7 +9,7 @@ use std::net::TcpStream;
 
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement};
-use devtools_traits::{DevtoolScriptControlMsg, Modification};
+use devtools_traits::{AttrModification, DevtoolScriptControlMsg};
 use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
 use serde_json::{self, Map, Value};
@@ -31,7 +31,7 @@ pub struct WalkerActor {
     pub script_chan: IpcSender<DevtoolScriptControlMsg>,
     pub pipeline: PipelineId,
     pub root_node: NodeActorMsg,
-    pub mutations: RefCell<Vec<(Modification, String)>>,
+    pub mutations: RefCell<Vec<(AttrModification, String)>>,
 }
 
 #[derive(Serialize)]
@@ -273,7 +273,7 @@ impl WalkerActor {
         &self,
         stream: &mut TcpStream,
         target: &str,
-        modifications: &[Modification],
+        modifications: &[AttrModification],
     ) {
         {
             let mut mutations = self.mutations.borrow_mut();

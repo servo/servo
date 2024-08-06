@@ -2,29 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Borrow;
 use std::rc::Rc;
 use std::str;
 
 use base::id::PipelineId;
 use devtools_traits::{
-    AppliedNodeStyle, AutoMargins, ComputedNodeLayout, EvaluateJSReply, Modification, NodeInfo,
-    TimelineMarker, TimelineMarkerType,
+    AppliedNodeStyle, AttrModification, AutoMargins, ComputedNodeLayout, EvaluateJSReply, NodeInfo,
+    RuleModification, TimelineMarker, TimelineMarkerType,
 };
 use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
 use js::rust::ToString;
-use servo_arc::Arc;
-use style::properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
-use style::rule_tree::StyleSource;
-use style::shared_lock::Locked;
+use style::properties::{LonghandId, ShorthandId};
 use uuid::Uuid;
 
-use crate::dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleList_Binding::CSSRuleListMethods;
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::{jsstring_to_str, ConversionResult, FromJSValConvertible};
@@ -36,6 +32,7 @@ use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlscriptelement::SourceCode;
 use crate::dom::node::{window_from_node, Node, ShadowIncluding};
+use crate::dom::types::HTMLElement;
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_thread::Documents;
@@ -186,36 +183,43 @@ pub fn handle_get_applied_style(
         Some(found_node) => found_node,
     };
 
-    // Get css declarations for this node
-    let declarations = (|| {
-        let elem = node
-            .downcast::<Element>()
-            .expect("should be getting layout of element");
+    // Method 1: This is only for the style attribute
+    let elem = node
+        .downcast::<HTMLElement>()
+        .expect("This should be an HTMLElement");
+    let style = elem.Style();
 
-        // This is only for style="..."
-        #[allow(unsafe_code)]
-        let style = elem.style_attribute().try_borrow().ok()?.clone()?;
-
-        // This is mixing computed and applied
-        let declarations: &Locked<PropertyDeclarationBlock> = style.borrow();
-        log::error!("{:?}", declarations);
-
-        let document = documents.find_document(pipeline)?;
-        {
-            let guard = document.style_shared_lock().read();
-            let declarations = (*declarations).read_with(&guard).declarations();
-            Some(declarations.to_vec())
-        }
-    })()
-    .unwrap_or(vec![]);
-
-    // Map the property declarations to devtools accesible types
-    let msg = declarations
-        .iter()
-        .map(|decl| AppliedNodeStyle {
-            text: format!("{:?}", decl), // TODO: Continue here
+    let msg = (0..style.Length())
+        .map(|i| {
+            let name = style.Item(i);
+            AppliedNodeStyle {
+                name: name.to_string(),
+                value: style.GetPropertyValue(name.clone()).to_string(),
+                priority: style.GetPropertyPriority(name).to_string(),
+            }
         })
         .collect();
+
+    // Method 2: Node styles, this is also only style attribute
+    //let style = node.style().unwrap();
+    //if let Some(rules) = style.rules().style_source() {
+    //    if let Some(style_rule) = rules.as_rule() {
+    //        error!("style rule");
+    //    }
+    //
+    //    if let Some(declarations) = rules.as_declarations() {
+    //        error!("declarations");
+    //        let declarations = declarations.clone_arc();
+    //        if let Some(document) = documents.find_document(pipeline) {
+    //            let guard = document.style_shared_lock().read();
+    //            let declarations = (*declarations).read_with(&guard).declarations();
+    //            error!("{:?}", declarations.to_vec());
+    //        }
+    //    }
+    //};
+
+    // Method 3: Downcast to Element and use .style_attribute()
+    // The same as before
 
     reply.send(Some(msg)).unwrap();
 }
@@ -284,7 +288,7 @@ pub fn handle_modify_attribute(
     documents: &Documents,
     pipeline: PipelineId,
     node_id: String,
-    modifications: Vec<Modification>,
+    modifications: Vec<AttrModification>,
 ) {
     let Some(document) = documents.find_document(pipeline) else {
         return warn!("document for pipeline id {} is not found", &pipeline);
@@ -315,6 +319,41 @@ pub fn handle_modify_attribute(
             },
             None => elem.RemoveAttribute(DOMString::from(modification.attribute_name)),
         }
+    }
+}
+
+pub fn handle_modify_rule(
+    documents: &Documents,
+    pipeline: PipelineId,
+    node_id: String,
+    modifications: Vec<RuleModification>,
+) {
+    let Some(document) = documents.find_document(pipeline) else {
+        return warn!("document for pipeline id {} is not found", &pipeline);
+    };
+    let _realm = enter_realm(document.window());
+
+    let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
+        None => {
+            return warn!(
+                "node id {} for pipeline id {} is not found",
+                &node_id, &pipeline
+            );
+        },
+        Some(found_node) => found_node,
+    };
+
+    let elem = node
+        .downcast::<HTMLElement>()
+        .expect("This should be an HTMLElement");
+    let style = elem.Style();
+
+    for modification in modifications {
+        let _ = style.SetProperty(
+            modification.name.into(),
+            modification.value.into(),
+            modification.priority.into(),
+        );
     }
 }
 
@@ -354,4 +393,9 @@ pub fn handle_reload(documents: &Documents, id: PipelineId) {
     if let Some(win) = documents.find_window(id) {
         win.Location().reload_without_origin_check();
     }
+}
+
+pub fn handle_get_css_database() {
+    // TODO: Build css database
+    ShorthandId::All.longhands().map(|l| {}).collect()
 }
