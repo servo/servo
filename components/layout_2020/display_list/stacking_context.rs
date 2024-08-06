@@ -17,6 +17,7 @@ use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::properties::ComputedValues;
+use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::{ClipRectOrAuto, Length};
 use style::values::generics::box_::Perspective;
 use style::values::generics::transform;
@@ -488,7 +489,8 @@ impl StackingContext {
         if effects.filter.0.is_empty() &&
             effects.opacity == 1.0 &&
             effects.mix_blend_mode == ComputedMixBlendMode::Normal &&
-            !style.has_transform_or_perspective(FragmentFlags::empty())
+            !style.has_transform_or_perspective(FragmentFlags::empty()) &&
+            style.clone_clip_path() == ClipPath::None
         {
             return false;
         }
@@ -1059,9 +1061,15 @@ impl BoxFragment {
             );
         }
 
+        let clip_path_chain_id = self.build_clip_path_frame_if_necessary(
+            display_list,
+            containing_block.scroll_node_id,
+            containing_block.clip_chain_id,
+            &containing_block.rect,
+        );
         let mut child_stacking_context = parent_stacking_context.create_descendant(
             containing_block.scroll_node_id.spatial_id,
-            containing_block.clip_chain_id,
+            clip_path_chain_id.unwrap_or(containing_block.clip_chain_id),
             self.style.clone(),
             self.base.flags,
             context_type,
@@ -1408,6 +1416,22 @@ impl BoxFragment {
         );
 
         Some(sticky_node_id)
+    }
+
+    fn build_clip_path_frame_if_necessary(
+        &self,
+        display_list: &mut DisplayList,
+        parent_scroll_node_id: ScrollTreeNodeId,
+        parent_clip_chain_id: wr::ClipChainId,
+        containing_block_rect: &PhysicalRect<Au>,
+    ) -> Option<wr::ClipChainId> {
+        super::clip_path::build(
+            self.style.clone_clip_path(),
+            display_list,
+            parent_scroll_node_id,
+            parent_clip_chain_id,
+            super::BuilderForBoxFragment::new(self, containing_block_rect),
+        )
     }
 
     /// Optionally returns the data for building a reference frame, without yet building it.

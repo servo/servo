@@ -13,6 +13,7 @@ use style::properties::longhands::backface_visibility::computed_value::T as Back
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::column_span::computed_value::T as ColumnSpan;
 use style::properties::ComputedValues;
+use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::image::Image as ComputedImageLayer;
 use style::values::computed::{Length, LengthPercentage, NonNegativeLengthPercentage, Size};
 use style::values::generics::box_::Perspective;
@@ -605,6 +606,10 @@ impl ComputedValuesExt for ComputedValues {
         // Fixed position and sticky position always create stacking contexts.
         // TODO(mrobinson): We need to handle sticky positioning here when we support it.
         if self.get_box().position == ComputedPosition::Fixed {
+            return true;
+        }
+
+        if self.get_svg().clip_path != ClipPath::None {
             return true;
         }
 
