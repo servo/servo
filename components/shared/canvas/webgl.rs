@@ -14,7 +14,7 @@ pub use base::generic_channel::GenericSender as WebGLSender;
 /// Result type for send()/recv() calls in in WebGLCommands.
 pub use base::generic_channel::SendResult as WebGLSendResult;
 use euclid::default::{Rect, Size2D};
-use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSharedMemory};
+use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSender, IpcSharedMemory};
 use malloc_size_of_derive::MallocSizeOf;
 use pixels::PixelFormat;
 use serde::{Deserialize, Serialize};
@@ -73,9 +73,9 @@ impl WebGLThreads {
     }
 
     /// Sends a exit message to close the WebGLThreads and release all WebGLContexts.
-    pub fn exit(&self) -> Result<(), &'static str> {
+    pub fn exit(&self, sender: IpcSender<()>) -> Result<(), &'static str> {
         self.0
-            .send(WebGLMsg::Exit)
+            .send(WebGLMsg::Exit(sender))
             .map_err(|_| "Failed to send Exit message")
     }
 }
@@ -106,7 +106,7 @@ pub enum WebGLMsg {
     /// request is fulfilled
     SwapBuffers(Vec<WebGLContextId>, WebGLSender<u64>, u64),
     /// Frees all resources and closes the thread.
-    Exit,
+    Exit(IpcSender<()>),
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
