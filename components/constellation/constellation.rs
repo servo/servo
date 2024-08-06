@@ -2644,7 +2644,7 @@ where
             ipc::channel().expect("Failed to create IPC channel!");
         let (storage_ipc_sender, storage_ipc_receiver) =
             ipc::channel().expect("Failed to create IPC channel!");
-        let (mut _webgl_threads_sender, mut webgl_threads_receiver) = (None, None);
+        let mut webgl_threads_receiver = None;
 
         debug!("Exiting core resource threads.");
         if let Err(e) = self
@@ -2712,14 +2712,11 @@ where
 
         if let Some(webgl_threads) = self.webgl_threads.as_ref() {
             let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
-            _webgl_threads_sender = Some(sender);
             webgl_threads_receiver = Some(receiver);
             debug!("Exiting WebGL thread.");
 
-            if let Some(sender) = _webgl_threads_sender {
-                if let Err(e) = webgl_threads.exit(sender) {
-                    warn!("Exit WebGL Thread failed ({e})");
-                }
+            if let Err(e) = webgl_threads.exit(sender) {
+                warn!("Exit WebGL Thread failed ({e})");
             }
         }
 
@@ -2740,13 +2737,13 @@ where
         if let Err(e) = storage_ipc_receiver.recv() {
             warn!("Exit storage thread failed ({:?})", e);
         }
-        match (self.webgl_threads.take(), webgl_threads_receiver) {
-            (Some(_), Some(webgl_threads_receiver)) => {
-                if let Err(e) = webgl_threads_receiver.recv() {
-                    warn!("Exit WebGL thread failed ({:?})", e);
-                }
-            },
-            _ => {},
+        if self.webgl_threads.is_some() {
+            if let Err(e) = webgl_threads_receiver
+                .expect("webgl_threads_receiver to be Some")
+                .recv()
+            {
+                warn!("Exit WebGL thread failed ({:?})", e);
+            }
         }
 
         debug!("Asking compositor to complete shutdown.");
