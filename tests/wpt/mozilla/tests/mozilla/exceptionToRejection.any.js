@@ -30,3 +30,9 @@ promise_test((t) => {
 promise_test((t) => {
     return promise_rejects_js(t, TypeError, binding.methodInternalThrowToRejectPromise(Number.MAX_SAFE_INTEGER + 1));
 }, "methodInternalThrowToRejectPromise");
+
+promise_test((t) => {
+    return promise_rejects_js(t, TypeError, new Promise(() => {
+        throw new TypeError();
+      }));
+}, "exception in JS Promise");
