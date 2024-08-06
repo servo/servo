@@ -57,7 +57,8 @@ def find_compatible_msvc_with_vswhere() -> Generator[VisualStudioInstallation, N
         '-format', 'json',
         '-products', '*',
         '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
-        '-requires', 'Microsoft.VisualStudio.Component.Windows10SDK'
+        '-requires', 'Microsoft.VisualStudio.Component.Windows10SDK',
+        '-utf8'
     ]).decode(errors='ignore')
 
     for install in json.loads(output):
