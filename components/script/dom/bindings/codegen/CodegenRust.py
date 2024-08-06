@@ -1870,13 +1870,17 @@ class MethodDefiner(PropertyDefiner):
             else:
                 selfHostedName = "0 as *const libc::c_char"
                 if m.get("methodInfo", True):
+                    if m.get("returnsPromise", False):
+                        exceptionToRejection = "true"
+                    else:
+                        exceptionToRejection = "false"
                     identifier = m.get("nativeName", m["name"])
                     # Go through an intermediate type here, because it's not
                     # easy to tell whether the methodinfo is a JSJitInfo or
                     # a JSTypedMethodJitInfo here.  The compiler knows, though,
                     # so let it do the work.
                     jitinfo = "&%s_methodinfo as *const _ as *const JSJitInfo" % identifier
-                    accessor = "Some(generic_method)"
+                    accessor = f"Some(generic_method::<{exceptionToRejection}>)"
                 else:
                     if m.get("returnsPromise", False):
                         jitinfo = "&%s_methodinfo" % m.get("nativeName", m["name"])
@@ -1977,10 +1981,14 @@ class AttrDefiner(PropertyDefiner):
                 accessor = 'get_' + self.descriptor.internalNameFor(attr.identifier.name)
                 jitinfo = "0 as *const JSJitInfo"
             else:
-                if attr.hasLegacyLenientThis():
-                    accessor = "generic_lenient_getter"
+                if attr.type.isPromise():
+                    exceptionToRejection = "true"
                 else:
-                    accessor = "generic_getter"
+                    exceptionToRejection = "false"
+                if attr.hasLegacyLenientThis():
+                    accessor = f"generic_lenient_getter::<{exceptionToRejection}>"
+                else:
+                    accessor = f"generic_getter::<{exceptionToRejection}>"
                 jitinfo = "&%s_getterinfo" % self.descriptor.internalNameFor(attr.identifier.name)
 
             return ("JSNativeWrapper { op: Some(%(native)s), info: %(info)s }"
