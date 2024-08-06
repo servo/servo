@@ -466,7 +466,7 @@ pub unsafe fn delete_property_by_id(
     JS_DeletePropertyById(cx, object, id, bp)
 }
 
-unsafe fn generic_call(
+unsafe fn generic_call<const EXCEPTION_TO_REJECTION: bool>(
     cx: *mut JSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
@@ -488,7 +488,11 @@ unsafe fn generic_call(
     let thisobj = args.thisv();
     if !thisobj.get().is_null_or_undefined() && !thisobj.get().is_object() {
         throw_invalid_this(cx, proto_id);
-        return false;
+        return if EXCEPTION_TO_REJECTION {
+            exception_to_promise(cx, args.rval())
+        } else {
+            false
+        };
     }
 
     rooted!(in(cx) let obj = if thisobj.get().is_object() {
@@ -507,7 +511,11 @@ unsafe fn generic_call(
                 return true;
             } else {
                 throw_invalid_this(cx, proto_id);
-                return false;
+                return if EXCEPTION_TO_REJECTION {
+                    exception_to_promise(cx, args.rval())
+                } else {
+                    false
+                };
             }
         },
     };
@@ -522,30 +530,30 @@ unsafe fn generic_call(
 }
 
 /// Generic method of IDL interface.
-pub unsafe extern "C" fn generic_method(
+pub unsafe extern "C" fn generic_method<const EXCEPTION_TO_REJECTION: bool>(
     cx: *mut JSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call(cx, argc, vp, false, CallJitMethodOp)
+    generic_call::<EXCEPTION_TO_REJECTION>(cx, argc, vp, false, CallJitMethodOp)
 }
 
 /// Generic getter of IDL interface.
-pub unsafe extern "C" fn generic_getter(
+pub unsafe extern "C" fn generic_getter<const EXCEPTION_TO_REJECTION: bool>(
     cx: *mut JSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call(cx, argc, vp, false, CallJitGetterOp)
+    generic_call::<EXCEPTION_TO_REJECTION>(cx, argc, vp, false, CallJitGetterOp)
 }
 
 /// Generic lenient getter of IDL interface.
-pub unsafe extern "C" fn generic_lenient_getter(
+pub unsafe extern "C" fn generic_lenient_getter<const EXCEPTION_TO_REJECTION: bool>(
     cx: *mut JSContext,
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call(cx, argc, vp, true, CallJitGetterOp)
+    generic_call::<EXCEPTION_TO_REJECTION>(cx, argc, vp, true, CallJitGetterOp)
 }
 
 unsafe extern "C" fn call_setter(
@@ -569,7 +577,7 @@ pub unsafe extern "C" fn generic_setter(
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call(cx, argc, vp, false, call_setter)
+    generic_call::<false>(cx, argc, vp, false, call_setter)
 }
 
 /// Generic lenient setter of IDL interface.
@@ -578,7 +586,7 @@ pub unsafe extern "C" fn generic_lenient_setter(
     argc: libc::c_uint,
     vp: *mut JSVal,
 ) -> bool {
-    generic_call(cx, argc, vp, true, call_setter)
+    generic_call::<false>(cx, argc, vp, true, call_setter)
 }
 
 unsafe extern "C" fn instance_class_has_proto_at_depth(
