@@ -455,7 +455,7 @@ impl FlexContainer {
                 // https://github.com/w3c/csswg-drafts/issues/4905
                 // Gecko reportedly uses `block-size: fit-content` in this case
                 // (which requires running another pass of the "full" layout algorithm)
-                Au::zero()
+                containing_block.block_size.auto_is(Au::zero)
                 // Note: this panic shouldn’t happen since the start of `FlexContainer::layout`
                 // forces `FlexAxis::Row`.
             },
