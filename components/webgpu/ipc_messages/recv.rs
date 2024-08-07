@@ -103,6 +103,8 @@ pub enum WebGPURequest {
         compute_pipeline_id: id::ComputePipelineId,
         descriptor: ComputePipelineDescriptor<'static>,
         implicit_ids: Option<(id::PipelineLayoutId, Vec<id::BindGroupLayoutId>)>,
+        /// present only on ASYNC versions
+        sender: Option<IpcSender<WebGPUResponse>>,
     },
     CreateContext(IpcSender<ExternalImageId>),
     CreatePipelineLayout {
@@ -115,6 +117,8 @@ pub enum WebGPURequest {
         render_pipeline_id: id::RenderPipelineId,
         descriptor: Option<RenderPipelineDescriptor<'static>>,
         implicit_ids: Option<(id::PipelineLayoutId, Vec<id::BindGroupLayoutId>)>,
+        /// present only on ASYNC versions
+        sender: Option<IpcSender<WebGPUResponse>>,
     },
     CreateSampler {
         device_id: id::DeviceId,

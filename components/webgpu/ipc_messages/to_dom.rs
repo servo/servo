@@ -6,6 +6,7 @@
 
 use ipc_channel::ipc::IpcSharedMemory;
 use serde::{Deserialize, Serialize};
+use wgc::id;
 use wgc::pipeline::CreateShaderModuleError;
 use wgpu_core::instance::{RequestAdapterError, RequestDeviceError};
 use wgpu_core::resource::BufferAccessError;
@@ -66,6 +67,12 @@ pub struct Adapter {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct Pipeline<T: std::fmt::Debug + Serialize> {
+    pub id: T,
+    pub label: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 #[allow(clippy::large_enum_variant)]
 pub enum WebGPUResponse {
     /// WebGPU is disabled
@@ -82,4 +89,6 @@ pub enum WebGPUResponse {
     SubmittedWorkDone,
     PoppedErrorScope(Result<Option<Error>, PopError>),
     CompilationInfo(Option<ShaderCompilationInfo>),
+    RenderPipeline(Result<Pipeline<id::RenderPipelineId>, Error>),
+    ComputePipeline(Result<Pipeline<id::ComputePipelineId>, Error>),
 }

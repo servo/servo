@@ -29,6 +29,8 @@ use wgc::pipeline::ShaderModuleDescriptor;
 use wgc::resource::{BufferMapCallback, BufferMapOperation};
 use wgc::{gfx_select, id};
 use wgpu_core::command::RenderPassDescriptor;
+use wgpu_core::device::DeviceError;
+use wgpu_core::pipeline::{CreateComputePipelineError, CreateRenderPipelineError};
 use wgpu_core::resource::BufferAccessResult;
 use wgpu_types::MemoryHints;
 use wgt::InstanceDescriptor;
@@ -38,8 +40,8 @@ use crate::gpu_error::ErrorScope;
 use crate::poll_thread::Poller;
 use crate::render_commands::apply_render_command;
 use crate::{
-    Adapter, ComputePassId, Error, PopError, PresentationData, RenderPassId, WebGPU, WebGPUAdapter,
-    WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
+    Adapter, ComputePassId, Error, Pipeline, PopError, PresentationData, RenderPassId, WebGPU,
+    WebGPUAdapter, WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
 };
 
 pub const PRESENTATION_BUFFER_COUNT: usize = 10;
@@ -378,6 +380,7 @@ impl WGPU {
                         compute_pipeline_id,
                         descriptor,
                         implicit_ids,
+                        sender,
                     } => {
                         let global = &self.global;
                         let bgls = implicit_ids
@@ -399,7 +402,24 @@ impl WGPU {
                                 implicit
                             )
                         );
-                        self.maybe_dispatch_wgpu_error(device_id, error);
+                        if let Some(sender) = sender {
+                            let res = match error {
+                                // if device is lost we must return pipeline and not raise any error
+                                Some(CreateComputePipelineError::Device(
+                                    DeviceError::Lost | DeviceError::Invalid(_),
+                                )) |
+                                None => Ok(Pipeline {
+                                    id: compute_pipeline_id,
+                                    label: descriptor.label.unwrap_or_default().to_string(),
+                                }),
+                                Some(e) => Err(Error::from_error(e)),
+                            };
+                            if let Err(e) = sender.send(WebGPUResponse::ComputePipeline(res)) {
+                                warn!("Failed sending WebGPUResponse::ComputePipeline {e:?}");
+                            }
+                        } else {
+                            self.maybe_dispatch_wgpu_error(device_id, error);
+                        }
                     },
                     WebGPURequest::CreateContext(sender) => {
                         let id = self
@@ -426,6 +446,7 @@ impl WGPU {
                         render_pipeline_id,
                         descriptor,
                         implicit_ids,
+                        sender,
                     } => {
                         let global = &self.global;
                         let bgls = implicit_ids
@@ -448,7 +469,25 @@ impl WGPU {
                                 Some(render_pipeline_id),
                                 implicit)
                             );
-                            self.maybe_dispatch_wgpu_error(device_id, error);
+
+                            if let Some(sender) = sender {
+                                let res = match error {
+                                    // if device is lost we must return pipeline and not raise any error
+                                    Some(CreateRenderPipelineError::Device(
+                                        DeviceError::Lost | DeviceError::Invalid(_),
+                                    )) |
+                                    None => Ok(Pipeline {
+                                        id: render_pipeline_id,
+                                        label: desc.label.unwrap_or_default().to_string(),
+                                    }),
+                                    Some(e) => Err(Error::from_error(e)),
+                                };
+                                if let Err(e) = sender.send(WebGPUResponse::RenderPipeline(res)) {
+                                    warn!("Failed sending WebGPUResponse::RenderPipeline {e:?}");
+                                }
+                            } else {
+                                self.maybe_dispatch_wgpu_error(device_id, error);
+                            }
                         }
                     },
                     WebGPURequest::CreateSampler {
