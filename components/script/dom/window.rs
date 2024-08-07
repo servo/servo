@@ -1560,6 +1560,22 @@ impl WindowMethods for Window {
             .map(|(k, _v)| DOMString::from(&***k))
             .collect()
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-structuredclone>
+    fn StructuredClone(&self, cx: JSContext, value: HandleValue) -> Fallible<js::jsval::JSVal> {
+        let data = structuredclone::write(cx, value, None)?;
+
+        rooted!(in(*cx) let mut message_clone = UndefinedValue());
+
+        structuredclone::read(
+            self.upcast::<GlobalScope>(),
+            data,
+            message_clone.handle_mut(),
+        )
+        .map_err(|_| Error::DataClone)?;
+
+        Ok(message_clone.get())
+    }
 }
 
 impl Window {

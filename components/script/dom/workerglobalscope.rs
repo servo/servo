@@ -39,6 +39,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::crypto::Crypto;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
@@ -430,6 +431,22 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     // https://w3c.github.io/webappsec-secure-contexts/#dom-windoworworkerglobalscope-issecurecontext
     fn IsSecureContext(&self) -> bool {
         self.upcast::<GlobalScope>().is_secure_context()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-structuredclone>
+    fn StructuredClone(&self, cx: JSContext, value: HandleValue) -> Fallible<js::jsval::JSVal> {
+        let data = structuredclone::write(cx, value, None)?;
+
+        rooted!(in(*cx) let mut message_clone = UndefinedValue());
+
+        structuredclone::read(
+            self.upcast::<GlobalScope>(),
+            data,
+            message_clone.handle_mut(),
+        )
+        .map_err(|_| Error::DataClone)?;
+
+        Ok(message_clone.get())
     }
 }
 

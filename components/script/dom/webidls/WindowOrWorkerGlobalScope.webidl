@@ -28,6 +28,11 @@ interface mixin WindowOrWorkerGlobalScope {
   Promise<ImageBitmap> createImageBitmap(ImageBitmapSource image, optional ImageBitmapOptions options = {});
   // Promise<ImageBitmap> createImageBitmap(
   //   ImageBitmapSource image, long sx, long sy, long sw, long sh, optional ImageBitmapOptions options);
+
+  // structured cloning
+  [Throws]
+  // any structuredClone(any value);
+  any structuredClone(any value, optional StructuredSerializeOptions options = {});
 };
 
 // https://w3c.github.io/hr-time/#the-performance-attribute
