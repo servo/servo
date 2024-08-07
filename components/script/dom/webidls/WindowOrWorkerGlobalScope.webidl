@@ -31,7 +31,6 @@ interface mixin WindowOrWorkerGlobalScope {
 
   // structured cloning
   [Throws]
-  // any structuredClone(any value);
   any structuredClone(any value, optional StructuredSerializeOptions options = {});
 };
 

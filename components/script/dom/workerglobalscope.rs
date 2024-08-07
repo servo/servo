@@ -12,9 +12,10 @@ use crossbeam_channel::Receiver;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
+use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
-use js::rust::{HandleValue, ParentRuntime};
+use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue, ParentRuntime};
 use net_traits::request::{
     CredentialsMode, Destination, ParserMetadata, RequestBuilder as NetRequestInit,
 };
@@ -24,6 +25,7 @@ use servo_url::{MutableOrigin, ServoUrl};
 use time::precise_time_ns;
 use uuid::Uuid;
 
+use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapOptions, ImageBitmapSource,
@@ -434,8 +436,22 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-structuredclone>
-    fn StructuredClone(&self, cx: JSContext, value: HandleValue) -> Fallible<js::jsval::JSVal> {
-        let data = structuredclone::write(cx, value, None)?;
+    fn StructuredClone(
+        &self,
+        cx: JSContext,
+        value: HandleValue,
+        options: RootedTraceableBox<StructuredSerializeOptions>,
+    ) -> Fallible<js::jsval::JSVal> {
+        let mut rooted = CustomAutoRooter::new(
+            options
+                .transfer
+                .iter()
+                .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+                .collect(),
+        );
+        let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
+
+        let data = structuredclone::write(cx, value, Some(guard))?;
 
         rooted!(in(*cx) let mut message_clone = UndefinedValue());
 

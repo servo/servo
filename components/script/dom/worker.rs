@@ -18,7 +18,7 @@ use uuid::Uuid;
 
 use crate::dom::abstractworker::{SimpleWorkerErrorHandler, WorkerScriptMsg};
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::MessagePortBinding::PostMessageOptions;
+use crate::dom::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::{WorkerMethods, WorkerOptions};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -243,7 +243,7 @@ impl WorkerMethods for Worker {
         &self,
         cx: JSContext,
         message: HandleValue,
-        options: RootedTraceableBox<PostMessageOptions>,
+        options: RootedTraceableBox<StructuredSerializeOptions>,
     ) -> ErrorResult {
         let mut rooted = CustomAutoRooter::new(
             options

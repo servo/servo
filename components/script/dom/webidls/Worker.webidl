@@ -15,7 +15,7 @@ interface Worker : EventTarget {
   undefined terminate();
 
   [Throws] undefined postMessage(any message, sequence<object> transfer);
-  [Throws] undefined postMessage(any message, optional PostMessageOptions options = {});
+  [Throws] undefined postMessage(any message, optional StructuredSerializeOptions options = {});
   attribute EventHandler onmessage;
   attribute EventHandler onmessageerror;
 };

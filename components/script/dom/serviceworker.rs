@@ -13,7 +13,7 @@ use servo_url::ServoUrl;
 
 use crate::dom::abstractworker::SimpleWorkerErrorHandler;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::MessagePortBinding::PostMessageOptions;
+use crate::dom::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerBinding::{
     ServiceWorkerMethods, ServiceWorkerState,
 };
@@ -144,7 +144,7 @@ impl ServiceWorkerMethods for ServiceWorker {
         &self,
         cx: JSContext,
         message: HandleValue,
-        options: RootedTraceableBox<PostMessageOptions>,
+        options: RootedTraceableBox<StructuredSerializeOptions>,
     ) -> ErrorResult {
         let mut rooted = CustomAutoRooter::new(
             options

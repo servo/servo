@@ -77,6 +77,7 @@ use webrender_api::units::{DeviceIntPoint, DeviceIntSize, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId};
 use webrender_traits::WebRenderScriptApi;
 
+use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
@@ -1562,8 +1563,22 @@ impl WindowMethods for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-structuredclone>
-    fn StructuredClone(&self, cx: JSContext, value: HandleValue) -> Fallible<js::jsval::JSVal> {
-        let data = structuredclone::write(cx, value, None)?;
+    fn StructuredClone(
+        &self,
+        cx: JSContext,
+        value: HandleValue,
+        options: RootedTraceableBox<StructuredSerializeOptions>,
+    ) -> Fallible<js::jsval::JSVal> {
+        let mut rooted = CustomAutoRooter::new(
+            options
+                .transfer
+                .iter()
+                .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+                .collect(),
+        );
+        let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
+
+        let data = structuredclone::write(cx, value, Some(guard))?;
 
         rooted!(in(*cx) let mut message_clone = UndefinedValue());
 
