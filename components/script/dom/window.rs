@@ -1569,27 +1569,8 @@ impl WindowMethods for Window {
         value: HandleValue,
         options: RootedTraceableBox<StructuredSerializeOptions>,
     ) -> Fallible<js::jsval::JSVal> {
-        let mut rooted = CustomAutoRooter::new(
-            options
-                .transfer
-                .iter()
-                .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
-                .collect(),
-        );
-        let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
-
-        let data = structuredclone::write(cx, value, Some(guard))?;
-
-        rooted!(in(*cx) let mut message_clone = UndefinedValue());
-
-        structuredclone::read(
-            self.upcast::<GlobalScope>(),
-            data,
-            message_clone.handle_mut(),
-        )
-        .map_err(|_| Error::DataClone)?;
-
-        Ok(message_clone.get())
+        self.upcast::<GlobalScope>()
+            .structured_clone(cx, value, options)
     }
 }
 

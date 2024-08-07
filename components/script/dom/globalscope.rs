@@ -36,7 +36,8 @@ use js::panic::maybe_resume_unwind;
 use js::rust::wrappers::{JS_ExecuteScript, JS_GetScriptPrivate};
 use js::rust::{
     describe_scripted_caller, get_object_class, transform_str_to_source_text,
-    CompileOptionsWrapper, HandleValue, MutableHandleValue, ParentRuntime, Runtime,
+    CompileOptionsWrapper, CustomAutoRooter, CustomAutoRooterGuard, HandleValue,
+    MutableHandleValue, ParentRuntime, Runtime,
 };
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use net_traits::blob_url_store::{get_blob_origin, BlobBuf};
@@ -59,8 +60,10 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use uuid::Uuid;
 use webgpu::{DeviceLostReason, WebGPUDevice};
 
+use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use super::bindings::codegen::Bindings::WebGPUBinding::GPUDeviceLostReason;
-use super::bindings::trace::HashMapTracedValues;
+use super::bindings::error::Fallible;
+use super::bindings::trace::{HashMapTracedValues, RootedTraceableBox};
 use crate::dom::bindings::cell::{DomRefCell, RefMut};
 use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastChannelMethods;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSource_Binding::EventSourceMethods;
@@ -3349,6 +3352,31 @@ impl GlobalScope {
 
     pub(crate) fn dynamic_module_list(&self) -> RefMut<DynamicModuleList> {
         self.dynamic_modules.borrow_mut()
+    }
+
+    pub(crate) fn structured_clone(
+        &self,
+        cx: SafeJSContext,
+        value: HandleValue,
+        options: RootedTraceableBox<StructuredSerializeOptions>,
+    ) -> Fallible<js::jsval::JSVal> {
+        let mut rooted = CustomAutoRooter::new(
+            options
+                .transfer
+                .iter()
+                .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+                .collect(),
+        );
+        let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
+
+        let data = structuredclone::write(cx, value, Some(guard))?;
+
+        rooted!(in(*cx) let mut message_clone = UndefinedValue());
+
+        structuredclone::read(self, data, message_clone.handle_mut())
+            .map_err(|_| Error::DataClone)?;
+
+        Ok(message_clone.get())
     }
 }
 
