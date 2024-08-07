@@ -26,6 +26,8 @@
   test_valid_selector(":dir(ltr)::part(foo)");
   test_valid_selector("::part(foo):lang(en)");
   test_valid_selector("::part(foo):dir(ltr)");
+  test_valid_selector("::part(foo):disabled");
+  test_valid_selector("::part(foo):checked");
   test_invalid_selector(":part()");
   test_invalid_selector(":part(0)");
   test_invalid_selector(":part('foo')");

@@ -5,17 +5,21 @@
 <link rel="help" href="http://www.w3.org/TR/css3-mediaqueries/#units">
 <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
 <style>
-	div {
-		width: 100px;
-		height: 100px;
-		background-color: red;
-	}
+  :root {
+    font-size: 16px;
+  }
 
-	@media screen and (aspect-ratio > calc(sign(17px - 1rem) * 59) / calc(79 * sign(17px - 1rem))) {
-		div {
-			background-color: green;
-		}
-	}
+  div {
+    width: 100px;
+    height: 100px;
+    background-color: red;
+  }
+
+  @media screen and (aspect-ratio > calc(sign(17px - 1rem) * 59) / calc(79 * sign(17px - 1rem))) {
+    div {
+      background-color: green;
+    }
+  }
 </style>
 <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
 <div></div>

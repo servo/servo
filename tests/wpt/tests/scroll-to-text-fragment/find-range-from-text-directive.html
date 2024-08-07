@@ -284,6 +284,31 @@ let test_cases = [
     fragment: '#:~:text=prefix-,match,matchEnd,-suffix5',
     expect_to_scroll: true,
     description: 'Range end matches correct suffix'
+  },
+  {
+    fragment: '#:~:text=Text%20with%20display:%20none',
+    expect_to_scroll: true,
+    description: '`start` element contains search-invisible text (display: none)'
+  },
+  {
+    fragment: '#:~:text=Text%20with%20visibility:%20hidden%20as%20block%20boundary',
+    expect_to_scroll: false,
+    description: '`start` element contains hidden text, which is a block boundary'
+  },
+  {
+    fragment: '#:~:text=Text%20with%20visibility:%20hidden%20as%20inline',
+    expect_to_scroll: true,
+    description: '`start` element contains hidden text which is not a block boundary'
+  },
+  {
+    fragment: '#:~:text=Text%20with%20Iframe',
+    expect_to_scroll: true,
+    description: '`start` element contains search-invisible text (iframe)'
+  },
+  {
+    fragment: '#:~:text=Text%20with%20image',
+    expect_to_scroll: true,
+    description: '`start` element contains search-invisible text (image)'
   }
 ];
 

@@ -15,21 +15,18 @@ if (navigator.ml) {
   const contextOptions = kContextOptionsForVariant[variant];
 
   let context;
-  let builder;
 
   promise_setup(async () => {
-    let supported = false;
     try {
       context = await navigator.ml.createContext(contextOptions);
-      supported = true;
     } catch (e) {
+      throw new AssertionError(
+          `Unable to create context for ${variant} variant. ${e}`);
     }
-    assert_implements(
-        supported, `Unable to create context for ${variant} variant`);
-    builder = new MLGraphBuilder(context);
   });
 
   promise_test(async t => {
+    const builder = new MLGraphBuilder(context);
     const a = builder.input('a', {dataType: 'float32', dimensions: [2]});
     const b = builder.relu(a);
     const graph = await builder.build({b});
@@ -45,6 +42,7 @@ if (navigator.ml) {
   }, 'Test compute() working for input ArrayBufferView created from bigger ArrayBuffer');
 
   promise_test(async t => {
+    const builder = new MLGraphBuilder(context);
     const a = builder.input('a', {dataType: 'float32', dimensions: [2]});
     const b = builder.relu(a);
     const graph = await builder.build({b});

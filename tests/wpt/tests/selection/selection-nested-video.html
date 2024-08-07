@@ -18,8 +18,10 @@ async_test(t => {
     assert_equals(sel.focusOffset, 0);
     t.done();
   })
-});
+}, 'selection have the same anchor and focus nodes because b and c are in different tree scopes.');
+
 </script>
 <div id="a">A</div>
 <video>
-<video id="b">
+  <video id="b"></video>
+</video>

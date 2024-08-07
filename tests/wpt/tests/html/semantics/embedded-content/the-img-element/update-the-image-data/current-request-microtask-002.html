@@ -1,0 +1,27 @@
+<!doctype html>
+<title>Current request microtask handling with multiple tasks.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+async_test(function(t) {
+  let img;
+  function testSrcOnMicrotask(expectedCurrentSrc, done) {
+    window.queueMicrotask(t.step_func(() => {
+      assert_equals(img.currentSrc, expectedCurrentSrc, `currentSrc should be ${expectedCurrentSrc}`);
+      if (done) {
+        t.done();
+      }
+    }));
+  }
+  testSrcOnMicrotask("");
+  img = new Image();
+  let png = "/images/green.png?" + Math.random();
+  testSrcOnMicrotask("");
+  // Both .src assignment and appendChild are relevant mutations. So the first task should be "canceled" (return early).
+  img.src = png;
+  testSrcOnMicrotask("");
+  document.body.appendChild(img);
+  testSrcOnMicrotask(new URL(png, document.documentURI).href, /* done = */ true);
+});
+</script>

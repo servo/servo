@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/utils.js"></script>
+<title>Test that fenced frame notifyEvent() cannot reuse a cached event</title>
+
+<body>
+  <script>
+    promise_test(async (t) => {
+      const fencedframe = await attachFencedFrameContext(
+                  {generator_api: 'fledge'});
+
+      let notified_promise = new Promise((resolve) => {
+        fencedframe.element.addEventListener('fencedtreeclick', () => resolve());
+      });
+
+      await fencedframe.execute(() => {
+        window.first_click_listener = (e) => {
+          // Before calling notifyEvent, cache the event for later. After this
+          // first notifyEvent call fires, we'll attempt to re-use the cached
+          // event to scam additional notifyEvent calls later.
+          window.cached_event = e;
+          window.fence.notifyEvent(e);
+        };
+        document.addEventListener('click', window.first_click_listener);
+      });
+
+      await multiClick(10, 10, fencedframe.element);
+      await notified_promise;
+
+      // That notifyEvent call should have consumed user activation.
+      let frame_has_activation = await fencedframe.execute(() => {
+        return navigator.userActivation.isActive;
+      });
+      assert_false(frame_has_activation);
+
+      // Now, let's do another activation, and try to call notifyEvent on
+      // the cached event.
+      // If we click again, the frame will receive another activation. If we
+      // try to call notifyEvent with the cached event instead, the call should
+      // fail, because even though the trusted click event still exists and the
+      // frame has activation, the original event has finished dispatching.
+      let second_notified_promise = new Promise((resolve) => {
+        fencedframe.element.addEventListener('fencedtreeclick', () => resolve());
+      });
+      await fencedframe.execute(() => {
+        // Unfortunately, a failed assertion in an event handler won't fail the
+        // whole test. So we have to wrap the handler in a Promise that can
+        // be awaited and examined from the test code.
+        document.removeEventListener('click', window.first_click_listener);
+        window.activation_promise = new Promise((resolve, reject) => {
+          document.addEventListener('click', (e) => {
+            try {
+              assert_equals(window.cached_event.type, 'click');
+              assert_true(window.cached_event.isTrusted);
+              assert_true(navigator.userActivation.isActive);
+              // 0 = NONE, no longer dispatching.
+              assert_equals(window.cached_event.eventPhase, 0);
+              window.fence.notifyEvent(window.cached_event);
+              reject('notifyEvent should not fire from a mousedown event.');
+            } catch (err) {
+              if (err.name != 'SecurityError') {
+                reject('Unexpected error: ' + err.message);
+                return;
+              }
+              resolve('PASS');
+            }
+          });
+        });
+      });
+
+      await multiClick(10, 10, fencedframe.element);
+
+      // After sending the mousedown events to reactivate the frame, we have to
+      // wait for the fenced frame to indicate that the notifyEvent call fails.
+      // If we get an unexpected result, we'll unwrap the promise into an
+      // exception, which should fail the test.
+      await fencedframe.execute(async () => {
+        await window.activation_promise;
+      });
+
+      // Lastly, we need to make sure the notifyEvent call never reached the
+      // parent frame.
+      let result = await Promise.race([
+        second_notified_promise,
+        new Promise((resolve) => {
+          t.step_timeout(() => resolve('timeout'), 2000);
+        })
+      ]);
+      assert_equals(result, 'timeout');
+
+    }, "Test that fenced frame notifyEvent() cannot reuse a cached event after dispatch finishes.");
+
+  </script>
+</body>

@@ -101,6 +101,7 @@ const tests = [
 ];
 
 tests.forEach(test => promise_test(async t => {
+                const builder = new MLGraphBuilder(context);
                 const inputA = builder.input('a', {
                   dataType: test.inputs.a.dataType,
                   dimensions: test.inputs.a.dimensions

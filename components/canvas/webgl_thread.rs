@@ -368,7 +368,10 @@ impl WebGLThread {
             WebGLMsg::SwapBuffers(swap_ids, sender, sent_time) => {
                 self.handle_swap_buffers(swap_ids, sender, sent_time);
             },
-            WebGLMsg::Exit => {
+            WebGLMsg::Exit(sender) => {
+                if let Err(e) = sender.send(()) {
+                    warn!("Failed to send response to WebGLMsg::Exit ({e})");
+                }
                 return true;
             },
         }

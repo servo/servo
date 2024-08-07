@@ -22,7 +22,7 @@ async function test() {
 
   const worklet = await sharedStorage.createWorklet(
     script_url,
-    { credentials: "omit" });
+    { credentials: "omit", dataOrigin: "script-origin" });
 
   let url0 = generateURL("/shared-storage/resources/frame0.html",
                          [ancestor_token]);

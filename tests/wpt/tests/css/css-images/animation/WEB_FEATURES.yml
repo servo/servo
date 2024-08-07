@@ -1,0 +1,4 @@
+features:
+- name: object-view-box
+  files:
+  - object-view-box-*

@@ -25,20 +25,20 @@ const tests_without_axis = [
     }
 ];
 
-tests_without_axis.forEach(test =>
-    promise_test(async t => {
-        let input = builder.input(
-            `input`, { dataType: test.input.dataType, dimensions: test.input.dimensions }
-        );
-        if (test.output) {
-            const output = builder.softmax(input);
-            assert_equals(output.dataType(), test.output.dataType);
-            assert_array_equals(output.shape(), test.output.dimensions);
-        } else {
-            assert_throws_js(TypeError, () => builder.softmax(input));
-        }
-    }, test.name)
-);
+tests_without_axis.forEach(
+    test => promise_test(async t => {
+      const builder = new MLGraphBuilder(context);
+      let input = builder.input(
+          `input`,
+          {dataType: test.input.dataType, dimensions: test.input.dimensions});
+      if (test.output) {
+        const output = builder.softmax(input);
+        assert_equals(output.dataType(), test.output.dataType);
+        assert_array_equals(output.shape(), test.output.dimensions);
+      } else {
+        assert_throws_js(TypeError, () => builder.softmax(input));
+      }
+    }, test.name));
 
 multi_builder_test(async (t, builder, otherBuilder) => {
     const operandDescriptor = { dataType: 'float32', dimensions: [2, 3] };
@@ -74,20 +74,20 @@ const tests = [
     }
 ];
 
-tests.forEach(test =>
-    promise_test(async t => {
-        let input = builder.input(
-            `input`, { dataType: test.input.dataType, dimensions: test.input.dimensions }
-        );
-        if (test.output) {
-            const output = builder.softmax(input, test.axis);
-            assert_equals(output.dataType(), test.output.dataType);
-            assert_array_equals(output.shape(), test.output.dimensions);
-        } else {
-            assert_throws_js(TypeError, () => builder.softmax(input, test.axis));
-        }
-    }, test.name)
-);
+tests.forEach(
+    test => promise_test(async t => {
+      const builder = new MLGraphBuilder(context);
+      let input = builder.input(
+          `input`,
+          {dataType: test.input.dataType, dimensions: test.input.dimensions});
+      if (test.output) {
+        const output = builder.softmax(input, test.axis);
+        assert_equals(output.dataType(), test.output.dataType);
+        assert_array_equals(output.shape(), test.output.dimensions);
+      } else {
+        assert_throws_js(TypeError, () => builder.softmax(input, test.axis));
+      }
+    }, test.name));
 
 multi_builder_test(async (t, builder, otherBuilder) => {
     const operandDescriptor = { dataType: 'float32', dimensions: [1, 2, 3] };

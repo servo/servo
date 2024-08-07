@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>Making generated content under pointer at hover should keep targeting the boundary event target to parent element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  promise_test(async () => {
+    const div = document.querySelector("div");
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: div})
+      .send();
+    const span = document.querySelector("span");
+    const promisePointerOver = new Promise(resolve => {
+      span.addEventListener("pointerover", event => resolve(event.target), {once: true});
+    });
+    const promiseMouseOver = new Promise(resolve => {
+      span.addEventListener("mouseover", event => resolve(event.target), {once: true});
+    });
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: span})
+      .pointerDown()
+      .pointerUp()
+      .send();
+    const pointerOverTarget = await promisePointerOver;
+    assert_equals(
+      pointerOverTarget,
+      span,
+      "pointerover target should be the <span>"
+    );
+    const mouseOverTarget = await promiseMouseOver;
+    assert_equals(
+      mouseOverTarget,
+      span,
+      "mouseover target should be the <span>"
+    );
+  }, "Generating text content under pointer");
+}, {once: true});
+</script>
+<style>
+span:hover::before {
+  content: "Here is generated content... ";
+}
+</style>
+</head>
+<body><span>Hover me!</span><div>Move pointer here first!</div></body>
+</html>

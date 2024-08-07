@@ -48,6 +48,7 @@ multi_builder_test(async (t, builder, otherBuilder) => {
       TypeError, () => builder.convTranspose2d(input, filter, options));
 }, '[convTranspose2d] throw if bias option is from another builder');
 
+const label = 'conv_transpose_2d';
 const tests = [
   {
     name: '[convTranspose2d] Test with default options.',
@@ -184,23 +185,29 @@ const tests = [
     name: '[convTranspose2d] Throw if the input is not a 4-D tensor.',
     input: {dataType: 'float32', dimensions: [1, 5, 5]},
     filter: {dataType: 'float32', dimensions: [1, 1, 2, 2]},
+    options: {label},
   },
   {
     name:
         '[convTranspose2d] Throw if the input data type is not floating point.',
     input: {dataType: 'int32', dimensions: [1, 1, 5, 5]},
     filter: {dataType: 'int32', dimensions: [1, 1, 2, 2]},
+    options: {label},
   },
   {
     name: '[convTranspose2d] Throw if the filter is not a 4-D tensor.',
     input: {dataType: 'float32', dimensions: [1, 1, 5, 5]},
     filter: {dataType: 'float32', dimensions: [2, 2]},
+    options: {label},
   },
   {
     name:
         '[convTranspose2d] Throw if the filter data type doesn\'t match the input data type.',
     input: {dataType: 'float32', dimensions: [1, 1, 5, 5]},
     filter: {dataType: 'int32', dimensions: [1, 1, 2, 2]},
+    options: {
+      label: label,
+    },
   },
   {
     name: '[convTranspose2d] Throw if the length of padding is not 4.',
@@ -208,6 +215,7 @@ const tests = [
     filter: {dataType: 'float32', dimensions: [1, 1, 2, 2]},
     options: {
       padding: [2, 2],
+      label: label,
     },
   },
   {
@@ -216,6 +224,7 @@ const tests = [
     filter: {dataType: 'float32', dimensions: [1, 1, 2, 2]},
     options: {
       strides: [2],
+      label: label,
     },
   },
   {
@@ -224,6 +233,7 @@ const tests = [
     filter: {dataType: 'float32', dimensions: [1, 1, 2, 2]},
     options: {
       strides: [1, 0],
+      label: label,
     },
   },
   {
@@ -232,6 +242,7 @@ const tests = [
     filter: {dataType: 'float32', dimensions: [1, 1, 2, 2]},
     options: {
       dilations: [1],
+      label: label,
     },
   },
   {
@@ -241,6 +252,7 @@ const tests = [
     filter: {dataType: 'float32', dimensions: [1, 1, 2, 2]},
     options: {
       dilations: [1, 0],
+      label: label,
     },
   },
   {
@@ -252,6 +264,7 @@ const tests = [
       filterLayout: 'iohw',
       inputLayout: 'nchw',
       groups: 1,
+      label: label,
     },
   },
   {
@@ -262,6 +275,7 @@ const tests = [
     options: {
       filterLayout: 'hwoi',
       inputLayout: 'nchw',
+      label: label,
     },
   },
   {
@@ -272,6 +286,7 @@ const tests = [
     options: {
       filterLayout: 'ohwi',
       inputLayout: 'nchw',
+      label: label,
     },
   },
   {
@@ -282,6 +297,7 @@ const tests = [
     options: {
       filterLayout: 'iohw',
       inputLayout: 'nhwc',
+      label: label,
     },
   },
   {
@@ -292,6 +308,7 @@ const tests = [
     options: {
       filterLayout: 'hwoi',
       inputLayout: 'nhwc',
+      label: label,
     },
   },
   {
@@ -302,6 +319,7 @@ const tests = [
     options: {
       filterLayout: 'ohwi',
       inputLayout: 'nhwc',
+      label: label,
     },
   },
   {
@@ -310,6 +328,7 @@ const tests = [
     filter: {dataType: 'float32', dimensions: [4, 2, 2, 2]},
     options: {
       groups: kMaxUnsignedLong,
+      label: label,
     },
   },
   {
@@ -318,6 +337,7 @@ const tests = [
     filter: {dataType: 'float32', dimensions: [1, 1, 2, 2]},
     options: {
       groups: 0,
+      label: label,
     },
   },
   {
@@ -327,6 +347,7 @@ const tests = [
     filter: {dataType: 'float32', dimensions: [1, 1, 434983, 2]},
     options: {
       dilations: [328443, 1],
+      label: label,
     },
   },
   {
@@ -336,6 +357,7 @@ const tests = [
     filter: {dataType: 'float32', dimensions: [1, 1, 2, 234545]},
     options: {
       dilations: [2, 843452],
+      label: label,
     },
   },
   {
@@ -345,6 +367,7 @@ const tests = [
     filter: {dataType: 'float32', dimensions: [1, 1, 3, 2]},
     options: {
       dilations: [kMaxUnsignedLong, 1],
+      label: label,
     },
   },
   {
@@ -354,6 +377,7 @@ const tests = [
     filter: {dataType: 'float32', dimensions: [1, 1, 3, 2]},
     options: {
       dilations: [1, kMaxUnsignedLong],
+      label: label,
     },
   },
   {
@@ -362,6 +386,7 @@ const tests = [
     filter: {dataType: 'float32', dimensions: [1, 1, 2, 2]},
     options: {
       bias: {dataType: 'float32', dimensions: [1, 2]},
+      label: label,
     },
   },
   {
@@ -372,6 +397,7 @@ const tests = [
     options: {
       filterLayout: 'iohw',
       bias: {dataType: 'float32', dimensions: [2]},
+      label: label,
     },
   },
   {
@@ -382,6 +408,7 @@ const tests = [
     options: {
       filterLayout: 'hwoi',
       bias: {dataType: 'float32', dimensions: [2]},
+      label: label,
     },
   },
   {
@@ -392,6 +419,7 @@ const tests = [
     options: {
       filterLayout: 'ohwi',
       bias: {dataType: 'float32', dimensions: [2]},
+      label: label,
     },
   },
   {
@@ -401,6 +429,7 @@ const tests = [
     filter: {dataType: 'float32', dimensions: [1, 1, 2, 2]},
     options: {
       bias: {dataType: 'int32', dimensions: [1]},
+      label: label,
     },
   },
   {
@@ -411,6 +440,7 @@ const tests = [
     options: {
       strides: [3, 2],
       outputPadding: [1, 1, 1, 1],
+      label: label,
     },
   },
   {
@@ -422,6 +452,7 @@ const tests = [
       padding: [0, 0, 3, 3],
       strides: [2, 2],
       outputPadding: [0, 2],
+      label: label,
     },
   },
   {
@@ -433,6 +464,7 @@ const tests = [
       padding: [0, 0, 3, 3],
       strides: [2, 2],
       outputPadding: [2, 0],
+      label: label,
     },
   },
   {
@@ -443,26 +475,27 @@ const tests = [
     options: {
       strides: [3, 2],
       outputSizes: [1, 2, 10, 8],
+      label: label,
     },
   },
   {
-    name:
-        '[convTranspose2d] Throw if outputSizes[0] is not greater than 0.',
+    name: '[convTranspose2d] Throw if outputSizes[0] is not greater than 0.',
     input: {dataType: 'float32', dimensions: [1, 1, 3, 3]},
     filter: {dataType: 'float32', dimensions: [1, 2, 3, 3]},
     options: {
       strides: [3, 2],
       outputSizes: [0, 7],
+      label: label,
     },
   },
   {
-    name:
-        '[convTranspose2d] Throw if outputSizes[1] is not greater than 0.',
+    name: '[convTranspose2d] Throw if outputSizes[1] is not greater than 0.',
     input: {dataType: 'float32', dimensions: [1, 1, 3, 3]},
     filter: {dataType: 'float32', dimensions: [1, 2, 3, 3]},
     options: {
       strides: [3, 2],
       outputSizes: [9, 0],
+      label: label,
     },
   },
   {
@@ -473,6 +506,7 @@ const tests = [
       padding: [4, 4, 0, 0],
       strides: [2, 2],
       outputPadding: [1, 0],
+      label: label,
     },
   },
   {
@@ -483,6 +517,7 @@ const tests = [
       padding: [0, 0, 4, 4],
       strides: [2, 2],
       outputPadding: [0, 1],
+      label: label,
     },
   },
   {
@@ -495,6 +530,7 @@ const tests = [
       strides: [2, 2],
       outputSizes: [4, 4],
       outputPadding: [1, 1],
+      label: label,
     },
   },
   {
@@ -507,12 +543,14 @@ const tests = [
       strides: [2, 2],
       outputSizes: [6, 8],
       outputPadding: [1, 1],
+      label: label,
     },
   },
 ];
 
 tests.forEach(
     test => promise_test(async t => {
+      const builder = new MLGraphBuilder(context);
       const input = builder.input(
           'input',
           {dataType: test.input.dataType, dimensions: test.input.dimensions});
@@ -532,8 +570,14 @@ tests.forEach(
         assert_equals(output.dataType(), test.output.dataType);
         assert_array_equals(output.shape(), test.output.dimensions);
       } else {
-        assert_throws_js(
-            TypeError,
-            () => builder.convTranspose2d(input, filter, test.options));
+        try {
+          builder.convTranspose2d(input, filter, test.options);
+        } catch (e) {
+          assert_equals(e.name, 'TypeError');
+          const error_message = e.message;
+          const regrexp = new RegExp('\\[' + label + '\\]');
+          ;
+          assert_not_equals(error_message.match(regrexp), null);
+        }
       }
     }, test.name));

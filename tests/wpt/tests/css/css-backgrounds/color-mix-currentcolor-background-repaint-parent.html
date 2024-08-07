@@ -34,9 +34,11 @@
     // before starting the test.
     await waitForCompositorReady();
     requestAnimationFrame(() => {
-      container.classList.add("green");
       requestAnimationFrame(() => {
-        document.documentElement.classList.remove("reftest-wait");
+        container.classList.add("green");
+        requestAnimationFrame(() => {
+          document.documentElement.classList.remove("reftest-wait");
+        });
       });
     });
   });

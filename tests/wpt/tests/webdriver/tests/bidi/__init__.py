@@ -40,6 +40,10 @@ def any_int(actual: Any) -> None:
     assert isinstance(actual, int)
 
 
+def any_number(actual: Any) -> None:
+    assert isinstance(actual, int) or isinstance(actual, float)
+
+
 def any_int_or_null(actual: Any) -> None:
     if actual is not None:
         any_int(actual)

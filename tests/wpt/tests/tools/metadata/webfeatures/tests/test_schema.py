@@ -1,7 +1,7 @@
 # mypy: allow-untyped-defs
 
 from dataclasses import asdict
-from ..schema import WebFeaturesFile, FeatureEntry, SpecialFileEnum, FeatureFile
+from ..schema import FileMatchingMode, WebFeaturesFile, FeatureEntry, SpecialFileEnum, FeatureFile
 
 import pytest
 import re
@@ -69,23 +69,39 @@ def test_does_feature_apply_recursively(input, expected_result):
     assert input.does_feature_apply_recursively() == expected_result
 
 @pytest.mark.parametrize(
-    "input_feature,input_files,expected_result",
+    "input_feature,input_files,expected_result,expected_match_mode",
     [
         (
             FeatureFile("*"),
             ["test.html", "TEST.HTML"],
-            ["test.html", "TEST.HTML"]
+            ["test.html", "TEST.HTML"],
+            FileMatchingMode.INCLUDE,
         ),
         (
             FeatureFile("test.html"),
             ["test.html", "TEST.HTML"],
-            ["test.html"]
+            ["test.html"],
+            FileMatchingMode.INCLUDE,
+        ),
+        (
+            FeatureFile("!test.html"),
+            ["test.html", "TEST.HTML"],
+            ["test.html"],
+            FileMatchingMode.EXCLUDE,
         ),
         (
             FeatureFile("test*.html"),
             ["test.html", "test1.html", "TEST1.HTML", "test2.html", "test-2.html", "foo.html"],
-            ["test.html", "test1.html", "test2.html", "test-2.html"]
+            ["test.html", "test1.html", "test2.html", "test-2.html"],
+            FileMatchingMode.INCLUDE,
+        ),
+        (
+            FeatureFile("!test*.html"),
+            ["test.html", "test1.html", "TEST1.HTML", "test2.html", "test-2.html", "foo.html"],
+            ["test.html", "test1.html", "test2.html", "test-2.html"],
+            FileMatchingMode.EXCLUDE,
         ),
     ])
-def test_feature_file_match_files(input_feature, input_files, expected_result):
+def test_feature_file_match_files(input_feature, input_files, expected_result, expected_match_mode):
     assert input_feature.match_files(input_files) == expected_result
+    assert input_feature.matching_mode == expected_match_mode

@@ -58,8 +58,9 @@ window.addEventListener("message", async (event) => {
     case "observe_permission_change":
       const status = await navigator.permissions.query({name: "storage-access"});
       status.addEventListener("change", (event) => {
-        reply(event.target.state)
+        parent.postMessage(event.target.state, '*');
       }, { once: true });
+      reply('permission_change_observer_installed');
       break;
     case "reload":
       window.location.reload();

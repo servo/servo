@@ -4,7 +4,8 @@ import traceback
 from http.client import HTTPConnection
 
 from abc import ABCMeta, abstractmethod
-from typing import ClassVar, List, Type
+from typing import Any, Awaitable, Callable, ClassVar, List, Mapping, Optional, Type
+from webdriver.bidi.modules.script import Target
 
 
 def merge_dicts(target, source):
@@ -203,7 +204,7 @@ class TestharnessProtocolPart(ProtocolPart):
         pass
 
     @abstractmethod
-    def get_test_window(self, window_id, parent):
+    def get_test_window(self, window_id: str, parent: str) -> str:
         """Get the window handle dorresponding to the window containing the
         currently active test.
 
@@ -262,6 +263,12 @@ class StorageProtocolPart(ProtocolPart):
         :param url: A url belonging to the origin"""
         pass
 
+    @abstractmethod
+    def run_bounce_tracking_mitigations(self):
+        """Run the Bounce Tracking Mitigations deletion/enforcement algorithm
+
+        :returns: A list of sites corresponding to bounce trackers whose state was removed"""
+        pass
 
 class SelectorProtocolPart(ProtocolPart):
     """Protocol part for selecting elements on the page."""
@@ -300,7 +307,6 @@ class ClickProtocolPart(ProtocolPart):
         pass
 
 
-
 class AccessibilityProtocolPart(ProtocolPart):
     """Protocol part for accessibility introspection"""
     __metaclass__ = ABCMeta
@@ -318,6 +324,83 @@ class AccessibilityProtocolPart(ProtocolPart):
         """Return the computed accessibility role for a specific element.
 
         :param element: A protocol-specific handle to an element."""
+        pass
+
+
+class BidiBrowsingContextProtocolPart(ProtocolPart):
+    """Protocol part for managing BiDi events"""
+    __metaclass__ = ABCMeta
+    name = "bidi_browsing_context"
+
+    @abstractmethod
+    async def handle_user_prompt(self,
+                                 context: str,
+                                 accept: Optional[bool] = None,
+                                 user_text: Optional[str] = None) -> None:
+        """
+        Allows closing an open prompt.
+        :param context: The context of the prompt.
+        :param accept: Whether to accept or dismiss the prompt.
+        :param user_text: The text to input in the prompt.
+        """
+        pass
+
+
+class BidiEventsProtocolPart(ProtocolPart):
+    """Protocol part for managing BiDi events"""
+    __metaclass__ = ABCMeta
+    name = "bidi_events"
+
+    @abstractmethod
+    async def subscribe(self,
+                        events: List[str],
+                        contexts: Optional[List[str]]) -> Mapping[str, Any]:
+        """
+        Subscribes to the given events in the given contexts.
+        :param events: The events to subscribe to.
+        :param contexts: The contexts to subscribe to. If None, the function will subscribe to all contexts.
+        """
+        pass
+
+    @abstractmethod
+    async def unsubscribe_all(self):
+        """Cleans up the subscription state. Removes all the previously added subscriptions."""
+        pass
+
+    @abstractmethod
+    def add_event_listener(
+            self,
+            name: Optional[str],
+            fn: Callable[[str, Mapping[str, Any]], Awaitable[Any]]
+    ) -> Callable[[], None]:
+        """Add an event listener. The callback will be called with the event name and the event data.
+
+        :param name: The name of the event to listen for. If None, the function will be called for all events.
+        :param fn: The function to call when the event is received.
+        :return: Function to remove the added listener."""
+        pass
+
+
+class BidiScriptProtocolPart(ProtocolPart):
+    """Protocol part for executing BiDi scripts"""
+    __metaclass__ = ABCMeta
+
+    name = "bidi_script"
+
+    @abstractmethod
+    async def call_function(
+            self,
+            function_declaration: str,
+            target: Target,
+            arguments: Optional[List[Mapping[str, Any]]] = None
+    ) -> Mapping[str, Any]:
+        """
+        Executes the provided script in the given target in asynchronous mode.
+
+        :param str function_declaration: The js source of the function to execute.
+        :param script.Target target: The target in which to execute the script.
+        :param list[script.LocalValue] arguments: The arguments to pass to the script.
+        """
         pass
 
 

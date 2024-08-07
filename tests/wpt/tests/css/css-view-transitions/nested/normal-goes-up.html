@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html class="reftest-wait no-match">
+<title>view-transition: normal should behave like having no group</title>
+<meta name=fuzzy content="maxDifference=0-255; totalPixels=0-515">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="nested-ref.html">
+<link rel=stylesheet href="resources/compute-common.css"></link>
+<script src="/common/reftest-wait.js"></script>
+<script src="resources/compute-test.js"></script>
+<body>
+    <div class="normal">
+        <div>
+            <div class="test normal-ref"></article>
+        </div>
+    </div>
+</body>

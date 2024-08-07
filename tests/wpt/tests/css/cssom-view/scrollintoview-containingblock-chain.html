@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<title>scrollIntoView should only adjust scrollers in the containing block chain</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-scrollintoview">
+<style>
+    .scroller {
+        width: 300px;
+        height: 300px;
+        overflow: scroll;
+    }
+
+    .contents {
+        width: 200%;
+        height: 300%;
+    }
+
+    #inner.scroller {
+        position: absolute;
+        margin-top: 250px;
+        margin-left: 100px;
+        width: 400px
+    }
+
+    #reveal {
+        margin-top: 400px;
+        background-color: blue;
+    }
+</style>
+<div id="container">
+    <div id="outer" class="scroller">
+        <div class="contents">
+            This should not scroll
+            <div id="inner" class="inner scroller">
+                <div class="contents">
+                    contents
+                    <div id="reveal">
+                        Reveal me
+                    </div>
+                </div>
+            </div>
+        </div>
+</div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+add_completion_callback(() => document.getElementById("container").remove());
+
+test(t => {
+    var reveal = document.getElementById('reveal');
+
+    var outerScroller = document.getElementById('outer');
+    var innerScroller = document.getElementById('inner');
+    var initialOuterTop = outerScroller.scrollTop;
+    var initialInnerTop = innerScroller.scrollTop;
+
+    assert_equals(initialOuterTop, 0);
+    assert_equals(initialInnerTop, 0);
+
+    reveal.scrollIntoView({block: "start", inline: "start"});
+
+    assert_approx_equals(innerScroller.scrollTop, 418, 4);
+    assert_equals(outerScroller.scrollTop, 0);
+}, "scrollIntoView should not scroll ancestor overflow:scroll elements that are not containing block ancestors");
+</script>

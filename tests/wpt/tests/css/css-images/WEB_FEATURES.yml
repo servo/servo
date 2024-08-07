@@ -2,3 +2,6 @@ features:
 - name: conic-gradients
   files:
   - "*conic*"
+- name: object-view-box
+  files:
+  - object-view-box-*

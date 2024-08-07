@@ -16,7 +16,7 @@ from .base import (
 from .executorwebdriver import (
     WebDriverCrashtestExecutor,
     WebDriverFedCMProtocolPart,
-    WebDriverProtocol,
+    WebDriverBidiProtocol,
     WebDriverRefTestExecutor,
     WebDriverRun,
     WebDriverTestharnessExecutor,
@@ -200,13 +200,13 @@ class ChromeDriverDevToolsProtocolPart(ProtocolPart):
                                                    body=body)
 
 
-class ChromeDriverProtocol(WebDriverProtocol):
+class ChromeDriverProtocol(WebDriverBidiProtocol):
     implements = [
         ChromeDriverDevToolsProtocolPart,
         ChromeDriverFedCMProtocolPart,
         ChromeDriverPrintProtocolPart,
         ChromeDriverTestharnessProtocolPart,
-        *(part for part in WebDriverProtocol.implements
+        *(part for part in WebDriverBidiProtocol.implements
           if part.name != ChromeDriverTestharnessProtocolPart.name and
             part.name != ChromeDriverFedCMProtocolPart.name)
     ]

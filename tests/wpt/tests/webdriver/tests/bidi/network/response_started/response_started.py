@@ -428,7 +428,7 @@ async def test_navigate_data_url(
     events = network_events[RESPONSE_STARTED_EVENT]
 
     on_response_started = wait_for_event(RESPONSE_STARTED_EVENT)
-    await bidi_session.browsing_context.navigate(
+    result = await bidi_session.browsing_context.navigate(
         context=top_context["context"], url=page_url, wait="complete"
     )
     await wait_for_future_safe(on_response_started)
@@ -450,7 +450,9 @@ async def test_navigate_data_url(
             "url": page_url,
         },
         redirect_count=0,
+        navigation=result["navigation"],
     )
+    assert events[0]["navigation"] is not None
 
 
 @pytest.mark.parametrize(
@@ -487,3 +489,4 @@ async def test_fetch_data_url(
         },
         redirect_count=0,
     )
+    assert events[0]["navigation"] is None

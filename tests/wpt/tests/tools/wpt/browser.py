@@ -2252,6 +2252,15 @@ class Ladybird(Browser):
         raise NotImplementedError
 
     def version(self, binary=None, webdriver_binary=None):
+        if not binary:
+            self.logger.warning("No browser binary provided.")
+            return None
+        output = call(binary, "--version")
+        if output:
+            version_string = output.strip()
+            match = re.match(r"Version (.*)", version_string)
+            if match:
+                return match.group(1)
         return None
 
 class WebKitTestRunner(Browser):

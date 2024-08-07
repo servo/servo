@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<body>
+<textarea id="target"></textarea>
+<!-- crbug.com/ 356194015 -->
+<script>
+  const target = document.getElementById('target');
+  const anim = target.animate({ flexBasis: ['content', 'content'] },
+                              { duration: 1000 });
+  anim.ready.then(() => {
+    document.documentElement.classList.remove('test-wait');
+  });
+</script>
+</body>

@@ -4,32 +4,39 @@
 
 'use strict';
 
+const label = `concate_123`;
 const tests = [
   {
     name: '[concat] Test building Concat with one input.',
-    inputs: [{dataType: 'float32', dimensions: [4,4,3]}],
+    inputs: [{dataType: 'float32', dimensions: [4, 4, 3]}],
     axis: 2,
-    output: {dataType: 'float32', dimensions: [4,4,3]}
+    output: {dataType: 'float32', dimensions: [4, 4, 3]}
   },
   {
     name: '[concat] Test building Concat with two inputs',
-    inputs: [{dataType: 'float32', dimensions: [3,1,5]},
-             {dataType: 'float32', dimensions: [3,2,5]}],
+    inputs: [
+      {dataType: 'float32', dimensions: [3, 1, 5]},
+      {dataType: 'float32', dimensions: [3, 2, 5]}
+    ],
     axis: 1,
-    output: {dataType: 'float32', dimensions: [3,3,5]}
+    output: {dataType: 'float32', dimensions: [3, 3, 5]}
   },
   {
     name: '[concat] Test building Concat with three inputs',
-    inputs: [{dataType: 'float32', dimensions: [3,5,1]},
-             {dataType: 'float32', dimensions: [3,5,2]},
-             {dataType: 'float32', dimensions: [3,5,3]}],
+    inputs: [
+      {dataType: 'float32', dimensions: [3, 5, 1]},
+      {dataType: 'float32', dimensions: [3, 5, 2]},
+      {dataType: 'float32', dimensions: [3, 5, 3]}
+    ],
     axis: 2,
-    output: {dataType: 'float32', dimensions: [3,5,6]}
+    output: {dataType: 'float32', dimensions: [3, 5, 6]}
   },
   {
     name: '[concat] Test building Concat with two 1D inputs.',
-    inputs: [{dataType: 'float32', dimensions: [1]},
-             {dataType: 'float32', dimensions: [1]}],
+    inputs: [
+      {dataType: 'float32', dimensions: [1]},
+      {dataType: 'float32', dimensions: [1]}
+    ],
     axis: 0,
     output: {dataType: 'float32', dimensions: [2]}
   },
@@ -39,39 +46,52 @@ const tests = [
   },
   {
     name: '[concat] Throw if the argument types are inconsistent.',
-    inputs: [{dataType: 'float32', dimensions: [1,1]},
-             {dataType: 'int32', dimensions: [1,1]}],
+    inputs: [
+      {dataType: 'float32', dimensions: [1, 1]},
+      {dataType: 'int32', dimensions: [1, 1]}
+    ],
     axis: 0,
   },
   {
     name: '[concat] Throw if the inputs have different ranks.',
-    inputs: [{dataType: 'float32', dimensions: [1,1]},
-             {dataType: 'float32', dimensions: [1,1,1]}],
+    inputs: [
+      {dataType: 'float32', dimensions: [1, 1]},
+      {dataType: 'float32', dimensions: [1, 1, 1]}
+    ],
     axis: 0,
   },
   {
-    name: '[concat] Throw if the axis is equal to or greater than the size of ranks',
-    inputs: [{dataType: 'float32', dimensions: [1,1]},
-             {dataType: 'float32', dimensions: [1,1]}],
+    name:
+        '[concat] Throw if the axis is equal to or greater than the size of ranks',
+    inputs: [
+      {dataType: 'float32', dimensions: [1, 1]},
+      {dataType: 'float32', dimensions: [1, 1]}
+    ],
     axis: 2,
   },
   {
     name: '[concat] Throw if concat with two 0-D scalars.',
-    inputs: [{dataType: 'float32', dimensions: []},
-             {dataType: 'float32', dimensions: []}],
+    inputs: [
+      {dataType: 'float32', dimensions: []},
+      {dataType: 'float32', dimensions: []}
+    ],
     axis: 0,
   },
   {
-    name: '[concat] Throw if the inputs have other axes with different sizes except on the axis.',
-    inputs: [{dataType: 'float32', dimensions: [1,1,1]},
-             {dataType: 'float32', dimensions: [1,2,3]}],
+    name:
+        '[concat] Throw if the inputs have other axes with different sizes except on the axis.',
+    inputs: [
+      {dataType: 'float32', dimensions: [1, 1, 1]},
+      {dataType: 'float32', dimensions: [1, 2, 3]}
+    ],
     axis: 1,
   },
 
 ];
 
-tests.forEach(test =>
-    promise_test(async t => {
+tests.forEach(
+    test => promise_test(async t => {
+      const builder = new MLGraphBuilder(context);
       let inputs = [];
       if (test.inputs) {
         for (let i = 0; i < test.inputs.length; ++i) {
@@ -86,10 +106,17 @@ tests.forEach(test =>
         assert_equals(output.dataType(), test.output.dataType);
         assert_array_equals(output.shape(), test.output.dimensions);
       } else {
-        assert_throws_js(TypeError, () => builder.concat(inputs, test.axis));
+        const options = {label};
+        try {
+          builder.concat(inputs, test.axis, options);
+        } catch (e) {
+          assert_equals(e.name, 'TypeError');
+          const error_message = e.message;
+          const regrexp = new RegExp('\\[' + label + '\\]');
+          assert_not_equals(error_message.match(regrexp), null);
+        }
       }
-    }, test.name)
-  );
+    }, test.name));
 
 multi_builder_test(async (t, builder, otherBuilder) => {
   const operandDescriptor = {dataType: 'float32', dimensions: [2, 2]};

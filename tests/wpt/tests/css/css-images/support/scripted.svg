@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="500" height="500">
+  <g>
+    <rect id="svg-rect" x="0" y="0" width="100" height="100" fill="green"></rect>
+    <foreignObject x="0" y="100" width="100" height="100">
+     <html xmlns="http://www.w3.org/1999/xhtml">
+      <div id="html-rect" style="background-color: green; width: 100px; height: 100px;"/>
+      <script>
+        document.getElementById('html-rect').style.backgroundColor = "red";
+      </script>
+     </html>
+    </foreignObject>
+  </g>
+  <script>
+    document.getElementById('svg-rect').setAttribute('fill', 'red');
+  </script>
+</svg>

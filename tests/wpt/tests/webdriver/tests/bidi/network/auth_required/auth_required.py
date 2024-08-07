@@ -1,8 +1,15 @@
-import pytest
-
 import asyncio
+import pytest
+from webdriver.bidi.modules.network import AuthCredentials
+from webdriver.error import TimeoutException
 
-from .. import assert_response_event, AUTH_REQUIRED_EVENT, PAGE_EMPTY_HTML
+from tests.support.sync import AsyncPoll
+
+from .. import (
+    assert_response_event,
+    AUTH_REQUIRED_EVENT,
+    PAGE_EMPTY_HTML,
+)
 
 
 @pytest.mark.asyncio
@@ -77,4 +84,45 @@ async def test_no_authentication(
     )
 
     assert len(events) == 0
+    remove_listener()
+
+
+@pytest.mark.asyncio
+async def test_with_wrong_credentials(setup_blocked_request, bidi_session):
+    # Setup unique username / password because browsers cache credentials.
+    username = "test_with_wrong_credentials"
+    password = "test_with_wrong_credentials_password"
+    request = await setup_blocked_request(
+        "authRequired", username=username, password=password
+    )
+
+    # Track all received network.authRequired events in the events array
+    events = []
+
+    async def on_event(method, data):
+        events.append(data)
+
+    remove_listener = bidi_session.add_event_listener(AUTH_REQUIRED_EVENT, on_event)
+    wait = AsyncPoll(bidi_session, timeout=1)
+
+    wrong_credentials = AuthCredentials(username=username, password="wrong_password")
+    await bidi_session.network.continue_with_auth(
+        request=request, action="provideCredentials", credentials=wrong_credentials
+    )
+
+    # We expect to get authRequired event after providing wrong credentials
+    await wait.until(lambda _: len(events) > 0)
+
+    await bidi_session.network.continue_with_auth(
+        request=request, action="provideCredentials", credentials=wrong_credentials
+    )
+
+    # We expect to get another authRequired event after providing wrong credentials
+    await wait.until(lambda _: len(events) > 1)
+
+    # Check no other authRequired event was received
+    wait = AsyncPoll(bidi_session, timeout=1)
+    with pytest.raises(TimeoutException):
+        await wait.until(lambda _: len(events) > 2)
+
     remove_listener()

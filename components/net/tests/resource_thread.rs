@@ -35,6 +35,9 @@ fn test_exit() {
     );
     resource_thread.send(CoreResourceMsg::Exit(sender)).unwrap();
     receiver.recv().unwrap();
+    // Workaround for https://github.com/servo/servo/issues/32912
+    #[cfg(windows)]
+    std::thread::sleep(std::time::Duration::from_millis(100));
 }
 
 #[test]

@@ -34,10 +34,16 @@
         await SetPermissionInFrame(frame1, [{ name: 'storage-access' }, 'prompt']);
       });
 
-      const observed = ObservePermissionChange(frame2);
-      await SetPermissionInFrame(frame1, [{ name: 'storage-access' }, 'granted']);
+      // Install observer on frame, and wait for acknowledgement that it is
+      // installed.
+      assert_equals(await ObservePermissionChange(frame2),
+                    "permission_change_observer_installed");
 
-      const state = await observed;
+      const observed_event = new Promise(r => {
+        onmessage = e => r(e.data);
+      });
+      await SetPermissionInFrame(frame1, [{ name: 'storage-access' }, 'granted']);
+      const state = await observed_event;
       assert_equals(state, "granted");
     }, 'Permissions grants are observable across same-origin iframes');
 
@@ -64,10 +70,16 @@
         await SetPermissionInFrame(frame1, [{ name: 'storage-access' }, 'prompt']);
       });
 
-      const observed = ObservePermissionChange(frame2);
-      await SetPermissionInFrame(frame1, [{ name: 'storage-access' }, 'granted']);
+      // Install observer on frame, and wait for acknowledgement that it is
+      // installed.
+      assert_equals(await ObservePermissionChange(frame2),
+                    "permission_change_observer_installed");
 
-      const state = await observed;
+      const observed_event = new Promise(r => {
+        onmessage = e => r(e.data);
+      });
+      await SetPermissionInFrame(frame1, [{ name: 'storage-access' }, 'granted']);
+      const state = await observed_event;
       assert_equals(state, "granted");
     }, "Permissions grants are observable across same-site iframes");
 

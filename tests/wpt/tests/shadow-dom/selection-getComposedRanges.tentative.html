@@ -3,7 +3,7 @@
 <body>
 <meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
 <meta name="assert" content="Selection's getComposedRanges should return a sequence of static ranges">
-<link rel="help" href="https://w3c.github.io/selection-api/#dom-selection-getcomposedrange">
+<link rel="help" href="https://w3c.github.io/selection-api/#dom-selection-getcomposedranges">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id="container"></div>
@@ -13,6 +13,17 @@ test(() => {
     getSelection().removeAllRanges();
     assert_array_equals(getSelection().getComposedRanges(), []);
 }, 'getComposedRanges returns an empty sequence when there is no selection');
+
+test(() => {
+  container.innerHTML = 'hello, world';
+  getSelection().setBaseAndExtent(container.firstChild, 0, container.firstChild, 5);
+  try {
+    getSelection().getComposedRanges(container);
+    assert_unreached('executed without error; want error');
+  } catch (e) {
+    assert_equals(e.message, "Failed to execute 'getComposedRanges' on 'Selection': parameter 1 is not of type 'ShadowRoot'.");
+  }
+}, 'getComposedRanges should fail if argument is not a shadow root');
 
 test(() => {
     container.innerHTML = 'hello, world';
@@ -38,6 +49,7 @@ test(() => {
 
 test(() => {
     container.innerHTML = 'a<div id="host"></div>b';
+    const host = container.querySelector('#host');
     const shadowRoot = host.attachShadow({mode: 'closed'});
     shadowRoot.innerHTML = 'hello, world';
     getSelection().setBaseAndExtent(shadowRoot.firstChild, 0, shadowRoot.firstChild, 5);
@@ -51,6 +63,7 @@ test(() => {
 
 test(() => {
     container.innerHTML = 'a<div id="host"></div>b';
+    const host = container.querySelector('#host');
     const shadowRoot = host.attachShadow({mode: 'closed'});
     shadowRoot.innerHTML = 'hello, world';
     getSelection().setBaseAndExtent(shadowRoot.firstChild, 0, shadowRoot.firstChild, 5);
@@ -64,6 +77,7 @@ test(() => {
 
 test(() => {
     container.innerHTML = 'a<div id="host"></div>b';
+    const host = container.querySelector('#host');
     const shadowRoot = host.attachShadow({mode: 'closed'});
     shadowRoot.innerHTML = 'hello, world';
     getSelection().setBaseAndExtent(shadowRoot.firstChild, 7, container, 2);
@@ -77,6 +91,7 @@ test(() => {
 
 test(() => {
     container.innerHTML = 'a<div id="host"></div>b';
+    const host = container.querySelector('#host');
     const shadowRoot = host.attachShadow({mode: 'closed'});
     shadowRoot.innerHTML = 'hello, world';
     getSelection().setBaseAndExtent(shadowRoot.firstChild, 7, container, 2);
@@ -90,6 +105,7 @@ test(() => {
 
 test(() => {
     container.innerHTML = 'a<div id="outerHost"></div>b';
+    const outerHost = container.querySelector('#outerHost');
     const outerShadowRoot = outerHost.attachShadow({mode: 'closed'});
     outerShadowRoot.innerHTML = '<div id="innerHost">hello</div><div>world</div>';
     const innerHost = outerShadowRoot.getElementById('innerHost');
@@ -106,6 +122,7 @@ test(() => {
 
 test(() => {
     container.innerHTML = 'a<div id="outerHost"></div>b';
+    const outerHost = container.querySelector('#outerHost');
     const outerShadowRoot = outerHost.attachShadow({mode: 'closed'});
     outerShadowRoot.innerHTML = '<div id="innerHost">hello</div><div>world</div>';
     const innerHost = outerShadowRoot.getElementById('innerHost');
@@ -122,6 +139,7 @@ test(() => {
 
 test(() => {
     container.innerHTML = 'a<div id="outerHost"></div>b';
+    const outerHost = container.querySelector('#outerHost');
     const outerShadowRoot = outerHost.attachShadow({mode: 'closed'});
     outerShadowRoot.innerHTML = '<div id="innerHost">hello</div><div>world</div>';
     const innerHost = outerShadowRoot.getElementById('innerHost');
@@ -135,6 +153,23 @@ test(() => {
     assert_equals(ranges[0].endContainer, outerShadowRoot);
     assert_equals(ranges[0].endOffset, 1);
 }, 'getComposedRanges returns a sequence with a static range pointing to the outer shadow tree when there is a selection in an inner shadow tree and the outer shadow tree is specified as an argument');
+
+test(() => {
+    container.innerHTML = 'a<div id="outerHost"></div>b';
+    const outerHost = container.querySelector('#outerHost');
+    const outerShadowRoot = outerHost.attachShadow({mode: 'closed'});
+    outerShadowRoot.innerHTML = '<div id="innerHost">hello</div><div>world</div>';
+    const innerHost = outerShadowRoot.getElementById('innerHost');
+    const innerShadowRoot = innerHost.attachShadow({mode: 'closed'});
+    innerShadowRoot.innerHTML = 'some text';
+    getSelection().setBaseAndExtent(container.firstChild, 0, outerShadowRoot, 0);
+    const ranges = getSelection().getComposedRanges(innerShadowRoot);
+    assert_equals(ranges.length, 1);
+    assert_equals(ranges[0].startContainer, container.firstChild, "A");
+    assert_equals(ranges[0].startOffset, 0, "B");
+    assert_equals(ranges[0].endContainer, outerShadowRoot, "C");
+    assert_equals(ranges[0].endOffset, 0, "D");
+}, 'getComposedRanges returns a sequence with a static range without rescoping when there is a selection in an outer shadow tree and the inner shadow tree is specified as an argument');
 
 </script>
 </body>

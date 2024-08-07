@@ -12,7 +12,7 @@
 
 promise_test(async () => {
   const ancestorKey = token();
-  const perOriginBitLimit = 6;
+  const perOriginBitLimit = 3;
   const numUrls = 8;
   const urls = generateUrls(numUrls, "/shared-storage/resources/frame",
                             [ancestorKey]);

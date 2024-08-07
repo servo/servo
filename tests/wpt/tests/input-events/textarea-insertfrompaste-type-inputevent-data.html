@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<textarea id="text">Copying and pasting some part of the text should set
+  the event.data with the selected part for inputType insertFromPaste</textarea>
+<script>
+  const text = document.getElementById("text");
+  let eventData;
+  text.addEventListener('input', (evt) => {
+    if(evt.inputType == 'insertFromPaste')
+      eventData = evt.data;
+  });
+  test(function () {
+    text.focus();
+    // Selecting first word of the text.
+    text.setSelectionRange(0, 7);
+    const selectedData = getSelection().toString();
+    // Copy and paste should fire input event with inputType insertFromPaste.
+    document.execCommand("copy");
+    document.execCommand("paste");
+    // Event data should now be set with the first word of the text
+    // which is "Copying".
+    assert_equals(selectedData, "Copying");
+    assert_equals(eventData, selectedData);
+  }, 'Input event data for inputType insertFromPaste should be set');
+</script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<body>
+<meta name="author" href="mailto:dizhangg@chromium.org">
+<meta name="assert" content="Selection's getComposedRanges should return a sequence of static ranges">
+<link rel="help" href="https://w3c.github.io/selection-api/#dom-selection-getcomposedranges">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="container">
+  <div id="host1">
+    <template shadowrootmode=open>C</template>
+    A - not slotted
+  </div>
+  <div id="host2">
+    <template shadowrootmode=open>D</template>
+    <div id=b>B - not slotted</div>
+  </div>
+</div>
+
+<script>
+
+const c = host1.shadowRoot;
+const d = host2.shadowRoot;
+
+test(() => {
+  const sel = getSelection();
+  sel.setBaseAndExtent(b, 0, c, 0);
+  assert_equals(sel.getRangeAt(0).startContainer, b);
+  assert_equals(sel.getRangeAt(0).startOffset, 0);
+  assert_equals(sel.getRangeAt(0).endContainer, b);
+  assert_equals(sel.getRangeAt(0).endOffset, 0);
+
+  assert_equals(sel.getComposedRanges()[0].startContainer, b);
+  assert_equals(sel.getComposedRanges()[0].startOffset, 0);
+  assert_equals(sel.getComposedRanges()[0].endContainer, b);
+  assert_equals(sel.getComposedRanges()[0].endOffset, 0);
+}, 'Setting the range to nodes that aren\'t in the same tree collapses both composed and non-composed ranges.');
+
+test(() => {
+  const sel = getSelection();
+  sel.setBaseAndExtent(c, 0, d, 0);
+
+  assert_equals(sel.getRangeAt(0).startContainer, d);
+  assert_equals(sel.getRangeAt(0).startOffset, 0);
+  assert_equals(sel.getRangeAt(0).endContainer, d);
+  assert_equals(sel.getRangeAt(0).endOffset, 0);
+
+  assert_equals(sel.getComposedRanges()[0].startContainer, container);
+  assert_equals(sel.getComposedRanges()[0].startOffset, 1);
+  assert_equals(sel.getComposedRanges()[0].endContainer, container);
+  assert_equals(sel.getComposedRanges()[0].endOffset, 4);
+
+  assert_equals(sel.getComposedRanges(c)[0].startContainer, c);
+  assert_equals(sel.getComposedRanges(c)[0].startOffset, 0);
+  assert_equals(sel.getComposedRanges(c)[0].endContainer, container);
+  assert_equals(sel.getComposedRanges(c)[0].endOffset, 4);
+
+  assert_equals(sel.getComposedRanges(d)[0].startContainer, container);
+  assert_equals(sel.getComposedRanges(d)[0].startOffset, 1);
+  assert_equals(sel.getComposedRanges(d)[0].endContainer, d);
+  assert_equals(sel.getComposedRanges(d)[0].endOffset, 0);
+
+  assert_equals(sel.getComposedRanges(c, d)[0].startContainer, c);
+  assert_equals(sel.getComposedRanges(c, d)[0].startOffset, 0);
+  assert_equals(sel.getComposedRanges(c, d)[0].endContainer, d);
+  assert_equals(sel.getComposedRanges(c, d)[0].endOffset, 0);
+
+  // Re-setting the same range should never change the output
+  sel.setBaseAndExtent(c, 0, d, 0);
+  assert_equals(sel.getRangeAt(0).startContainer, d);
+  assert_equals(sel.getRangeAt(0).startOffset, 0);
+  assert_equals(sel.getRangeAt(0).endContainer, d);
+  assert_equals(sel.getRangeAt(0).endOffset, 0);
+
+  assert_equals(sel.getComposedRanges(c, d)[0].startContainer, c);
+  assert_equals(sel.getComposedRanges(c, d)[0].startOffset, 0);
+  assert_equals(sel.getComposedRanges(c, d)[0].endContainer, d);
+  assert_equals(sel.getComposedRanges(c, d)[0].endOffset, 0);
+}, 'Setting the range to nodes in different shadow trees collapses ordinary ranges, but does not collapse composed ranges.');
+</script>

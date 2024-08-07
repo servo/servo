@@ -1,11 +1,14 @@
 /* Basic Testing Setup */
 html,body {
-  color: black; background: white; font: 15px/1 Ahem, monospace;
+  color: black; background: white; font: 15px/1 monospace;
   padding: 1em 0; margin: 0;
   max-width: 800px; height: calc(600px - 2em);
   border-bottom: 1px solid orange; /* Do Not Cross */
 }
 
+section {
+  float: left;
+}
 
 /* Visualization */
 grid {
@@ -18,7 +21,8 @@ item {
 
 /* Debugging Aid */
 section {
-  border-top: 1px solid gray;
+  border: 1px gray;
+  border-style: solid solid none none;
   counter-reset: grid;
 }
 

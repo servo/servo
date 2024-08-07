@@ -1,3 +1,4 @@
+import asyncio
 import pytest
 from tests.support.sync import AsyncPoll
 
@@ -17,6 +18,7 @@ PAGE_REDIRECT_HTTP_EQUIV = (
     "/webdriver/tests/bidi/network/support/redirect_http_equiv.html"
 )
 PAGE_REDIRECTED_HTML = "/webdriver/tests/bidi/network/support/redirected.html"
+USER_PROMPT_OPENED_EVENT = "browsingContext.userPromptOpened"
 
 
 async def test_unsubscribe(bidi_session):
@@ -461,3 +463,76 @@ async def test_navigate_history_pushstate(
     event = await wait_for_future_safe(on_entry)
 
     assert event["navigation"] == result["navigation"]
+
+
+@pytest.mark.capabilities({"unhandledPromptBehavior": {"beforeUnload": "ignore"}})
+async def test_with_beforeunload_prompt(
+    bidi_session,
+    new_tab,
+    wait_for_event,
+    wait_for_future_safe,
+    url,
+    subscribe_events,
+    setup_beforeunload_page,
+):
+    await subscribe_events(events=[NAVIGATION_STARTED_EVENT])
+    await setup_beforeunload_page(new_tab)
+    target_url = url("/webdriver/tests/support/html/default.html", domain="alt")
+
+    on_navigation_started = wait_for_event(NAVIGATION_STARTED_EVENT)
+    result = await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=target_url, wait="none"
+    )
+
+    event = await wait_for_future_safe(on_navigation_started)
+
+    assert event["context"] == new_tab["context"]
+    assert event["navigation"] == result["navigation"]
+    assert event["url"] == target_url
+
+
+@pytest.mark.capabilities({"unhandledPromptBehavior": {"beforeUnload": "ignore"}})
+async def test_with_accepted_beforeunload_prompt(
+    bidi_session,
+    new_tab,
+    wait_for_event,
+    wait_for_future_safe,
+    url,
+    subscribe_events,
+    setup_beforeunload_page,
+):
+    await subscribe_events(events=[NAVIGATION_STARTED_EVENT, USER_PROMPT_OPENED_EVENT])
+    await setup_beforeunload_page(new_tab)
+    target_url = url("/webdriver/tests/support/html/default.html", domain="alt")
+
+    # Track all received browsingContext.navigationStarted events in the events array
+    events = []
+
+    async def on_event(method, data):
+        events.append(data)
+
+    remove_listener = bidi_session.add_event_listener(
+        NAVIGATION_STARTED_EVENT, on_event
+    )
+
+    on_user_prompt_opened = wait_for_event(USER_PROMPT_OPENED_EVENT)
+    task = asyncio.ensure_future(
+        bidi_session.browsing_context.navigate(
+            context=new_tab["context"], url=target_url, wait="complete"
+        )
+    )
+
+    await wait_for_future_safe(on_user_prompt_opened)
+
+    await bidi_session.browsing_context.handle_user_prompt(
+        context=new_tab["context"], accept=True
+    )
+
+    result = await task
+
+    assert len(events) == 1
+    assert events[0]["context"] == new_tab["context"]
+    assert events[0]["navigation"] == result["navigation"]
+    assert events[0]["url"] == target_url
+
+    remove_listener()

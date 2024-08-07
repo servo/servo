@@ -18,20 +18,20 @@
     "midi",
     "nfc",
     "screen-wake-lock",
-    "camera",
     "display-capture",
-    "microphone",
     "speaker-selection",
     "xr-spatial-tracking",
   ];
 
   // These are known to be supported by multiple engines...
   const permissions = [
+    "camera",
     "geolocation",
+    "microphone",
     "notifications",
     "persistent-storage",
     "push",
-  ]
+  ];
 
   for (const name of [...permissions, ...atRisk]) {
     promise_test(async (test) => {

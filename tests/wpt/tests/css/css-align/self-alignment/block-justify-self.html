@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Self-Alignment: justify-self - block-level elements</title>
+<link rel="author" title="David Tran" href="mailto:davidtranhq+wpt@gmail.com">
+<link rel="match" href="block-justify-self-ref.html">
+<link rel="help" href="https://www.w3.org/TR/css-align-3/#justify-block" />
+<meta name="assert" content="justify-self applies to block-level boxes">
+<style>
+.grid-container div {
+  width: 100px;
+  background-color: green;
+}
+
+.block-container div, .block-container-with-table-items div {
+  width: 100px;
+  background-color: red;
+}
+
+.stack {
+  display: grid;
+}
+
+.stack > * {
+  grid-row: 1;
+  grid-column: 1;
+}
+
+body {
+  width: 700px;
+}
+
+</style>
+<p>Test passes if <strong>no red</strong> is visible</p>
+
+<div class="stack" style="float: left;">
+  <article class="block-container" style="display: block; width: 300px">
+    <div style="justify-self: auto;">auto</div>
+    <div style="justify-self: normal;">normal</div>
+    <div style="justify-self: stretch; width: auto; margin: 0;">stretch</div>
+    <div style="justify-self: stretch; margin: 0;">stretch</div>
+    <div style="justify-self: stretch; width: auto; margin: auto;">stretch</div>
+    <div style="justify-self: left;">left</div>
+    <div style="justify-self: right;">right</div>
+    <div style="justify-self: start;">start</div>
+    <div style="justify-self: center;">center</div>
+    <div style="justify-self: end;">end</div>
+    <div style="justify-self: self-start;">self-start</div>
+    <div style="justify-self: self-end;">self-end</div>
+    <div style="justify-self: flex-start;">flex-start</div>
+    <div style="justify-self: flex-end;">flex-end</div>
+    <div style="float: left; justify-self: center;">float left</div>
+    <div style="float: right; justify-self: center;">float right</div>
+    <div style="justify-self: self-start; direction: rtl">self-start (rtl)</div>
+    <div style="justify-self: self-end; direction: rtl">self-end (rtl)</div>
+    <div style="justify-self: start; direction: rtl">start (rtl)</div>
+    <div style="justify-self: end; direction: rtl">end (rtl)</div>
+    <div style="justify-self: end">end parent
+      <div style="position: absolute;">absolute child</div>
+    </div>
+    <div style="justify-self: end; position: absolute;">absolute parent</div>
+  </article>
+
+  <article class="block-container-with-table-items" style="display: block; width: 300px">
+    <div style="justify-self: auto;">auto</div>
+    <div style="justify-self: normal;">normal</div>
+    <div style="justify-self: stretch; width: auto; margin: 0;">stretch</div>
+    <div style="justify-self: stretch; margin: 0;">stretch</div>
+    <div style="justify-self: stretch; width: auto; margin: auto;">stretch</div>
+    <div style="justify-self: left;">left</div>
+    <div style="justify-self: right;">right</div>
+    <div style="justify-self: start;">start</div>
+    <div style="justify-self: center;">center</div>
+    <div style="justify-self: end;">end</div>
+    <div style="justify-self: self-start;">self-start</div>
+    <div style="justify-self: self-end;">self-end</div>
+    <div style="justify-self: flex-start;">flex-start</div>
+    <div style="justify-self: flex-end;">flex-end</div>
+    <div style="float: left; justify-self: center;">float left</div>
+    <div style="float: right; justify-self: center;">float right</div>
+    <div style="justify-self: self-start; direction: rtl">self-start (rtl)</div>
+    <div style="justify-self: self-end; direction: rtl">self-end (rtl)</div>
+    <div style="justify-self: start; direction: rtl">start (rtl)</div>
+    <div style="justify-self: end; direction: rtl">end (rtl)</div>
+    <div style="justify-self: end">end parent
+      <div style="position: absolute;">absolute child</div>
+    </div>
+    <div style="justify-self: end; position: absolute;">absolute parent</div>
+  </article>
+
+  <article class="grid-container" style="display: grid; grid-template-columns: 1fr; width: 300px">
+    <div style="justify-self: auto;">auto</div>
+    <div style="justify-self: normal;">normal</div>
+    <div style="justify-self: stretch; width: auto; margin: 0;">stretch</div>
+    <div style="justify-self: stretch; margin: 0;">stretch</div>
+    <div style="justify-self: stretch; width: auto; margin: auto;">stretch</div>
+    <div style="justify-self: left;">left</div>
+    <div style="justify-self: right;">right</div>
+    <div style="justify-self: start;">start</div>
+    <div style="justify-self: center;">center</div>
+    <div style="justify-self: end;">end</div>
+    <div style="justify-self: self-start;">self-start</div>
+    <div style="justify-self: self-end;">self-end</div>
+    <div style="justify-self: flex-start;">flex-start</div>
+    <div style="justify-self: flex-end;">flex-end</div>
+    <div style="float: left; justify-self: center;">float left</div>
+    <div style="float: right; justify-self: center;">float right</div>
+    <div style="justify-self: self-start; direction: rtl">self-start (rtl)</div>
+    <div style="justify-self: self-end; direction: rtl">self-end (rtl)</div>
+    <div style="justify-self: start; direction: rtl">start (rtl)</div>
+    <div style="justify-self: end; direction: rtl">end (rtl)</div>
+    <div style="justify-self: end">end parent
+      <div style="position: absolute;">absolute child</div>
+    </div>
+    <div style="justify-self: end; position: absolute;">absolute parent</div>
+  </article>
+</div>
+
+<div class="stack" style="direction: rtl; float: right;">
+  <article class="block-container" style="display: block; width: 300px">
+    <div style="justify-self: auto;">auto</div>
+    <div style="justify-self: normal;">normal</div>
+    <div style="justify-self: stretch; width: auto; margin: 0;">stretch</div>
+    <div style="justify-self: stretch; margin: 0;">stretch</div>
+    <div style="justify-self: stretch; width: auto; margin: auto;">stretch</div>
+    <div style="justify-self: left;">left</div>
+    <div style="justify-self: right;">right</div>
+    <div style="justify-self: start;">start</div>
+    <div style="justify-self: center;">center</div>
+    <div style="justify-self: end;">end</div>
+    <div style="justify-self: self-start;">self-start</div>
+    <div style="justify-self: self-end;">self-end</div>
+    <div style="justify-self: flex-start;">flex-start</div>
+    <div style="justify-self: flex-end;">flex-end</div>
+    <div style="float: left; justify-self: center;">float left</div>
+    <div style="float: right; justify-self: center;">float right</div>
+    <div style="justify-self: self-start; direction: ltr">self-start (ltr)</div>
+    <div style="justify-self: self-end; direction: ltr">self-end (ltr)</div>
+    <div style="justify-self: start; direction: ltr">start (ltr)</div>
+    <div style="justify-self: end; direction: ltr">end (ltr)</div>
+    <div style="justify-self: end">end parent
+      <div style="position: absolute;">absolute child</div>
+    </div>
+    <div style="justify-self: end; position: absolute;">absolute parent</div>
+  </article>
+
+  <article class="block-container-with-table-items" style="display: block; width: 300px">
+    <div style="justify-self: auto;">auto</div>
+    <div style="justify-self: normal;">normal</div>
+    <div style="justify-self: stretch; width: auto; margin: 0;">stretch</div>
+    <div style="justify-self: stretch; margin: 0;">stretch</div>
+    <div style="justify-self: stretch; width: auto; margin: auto;">stretch</div>
+    <div style="justify-self: left;">left</div>
+    <div style="justify-self: right;">right</div>
+    <div style="justify-self: start;">start</div>
+    <div style="justify-self: center;">center</div>
+    <div style="justify-self: end;">end</div>
+    <div style="justify-self: self-start;">self-start</div>
+    <div style="justify-self: self-end;">self-end</div>
+    <div style="justify-self: flex-start;">flex-start</div>
+    <div style="justify-self: flex-end;">flex-end</div>
+    <div style="float: left; justify-self: center;">float left</div>
+    <div style="float: right; justify-self: center;">float right</div>
+    <div style="justify-self: self-start; direction: ltr">self-start (ltr)</div>
+    <div style="justify-self: self-end; direction: ltr">self-end (ltr)</div>
+    <div style="justify-self: start; direction: ltr">start (ltr)</div>
+    <div style="justify-self: end; direction: ltr">end (ltr)</div>
+    <div style="justify-self: end">end parent
+      <div style="position: absolute;">absolute child</div>
+    </div>
+    <div style="justify-self: end; position: absolute;">absolute parent</div>
+  </article>
+
+  <article class="grid-container" style="display: grid; grid-template-columns: 1fr; width: 300px">
+    <div style="justify-self: auto;">auto</div>
+    <div style="justify-self: normal;">normal</div>
+    <div style="justify-self: stretch; width: auto; margin: 0;">stretch</div>
+    <div style="justify-self: stretch; margin: 0;">stretch</div>
+    <div style="justify-self: stretch; width: auto; margin: auto;">stretch</div>
+    <div style="justify-self: left;">left</div>
+    <div style="justify-self: right;">right</div>
+    <div style="justify-self: start;">start</div>
+    <div style="justify-self: center;">center</div>
+    <div style="justify-self: end;">end</div>
+    <div style="justify-self: self-start;">self-start</div>
+    <div style="justify-self: self-end;">self-end</div>
+    <div style="justify-self: flex-start;">flex-start</div>
+    <div style="justify-self: flex-end;">flex-end</div>
+    <div style="float: left; justify-self: center;">float left</div>
+    <div style="float: right; justify-self: center;">float right</div>
+    <div style="justify-self: self-start; direction: ltr">self-start (ltr)</div>
+    <div style="justify-self: self-end; direction: ltr">self-end (ltr)</div>
+    <div style="justify-self: start; direction: ltr">start (ltr)</div>
+    <div style="justify-self: end; direction: ltr">end (ltr)</div>
+    <div style="justify-self: end">end parent
+      <div style="position: absolute;">absolute child</div>
+    </div>
+    <div style="justify-self: end; position: absolute;">absolute parent</div>
+  </article>
+</div>

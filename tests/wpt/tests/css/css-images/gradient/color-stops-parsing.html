@@ -46,6 +46,19 @@
 
                         // kitchen sink
                         { stops: "black 0% calc(100% / 5), 25%, green 30% 60%, calc(100% * 3 / 4), white calc(100% - 20%) 100%", parse: true },
+
+                        // lots of stops
+                        {
+                                stops: (() => {
+                                        let longGradient = "";
+                                        for (let x = 0; x < 500; x++) {
+                                                longGradient += `white ${x/500}%, ${(2 * x + 1) / 1000}%, `;
+                                        }
+                                        longGradient += "black";
+                                        return longGradient;
+                                })(),
+                                parse: true
+                        }
                 ];
 
                 function check_gradient(gradient, stops, shouldParse) {
@@ -58,7 +71,6 @@
                         document.body.appendChild(div);
                         var computed_style = getComputedStyle(div).getPropertyValue("background-image");
                         assert_equals(computed_style.startsWith(gradient), shouldParse);
-
                         div.remove();
                 }
 

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Nested group name should match direct parent</title>
+<meta name=fuzzy content="maxDifference=0-255; totalPixels=0-515">
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="nested-ref-100.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="resources/compute-test.js"></script>
+<style>
+    body {
+        margin: 0;
+    }
+    div {
+        position: absolute;
+        top: 50px;
+        left: 50px;
+        width: 100px;
+        height: 100px;
+    }
+
+    .parent {
+        view-transition-name: parent;
+    }
+
+    .child {
+        view-transition-name: child;
+        view-transition-group: parent;
+        background: green;
+    }
+</style>
+<body>
+    <div class="parent">
+        <div class="child"></div>
+    </div>
+</body>

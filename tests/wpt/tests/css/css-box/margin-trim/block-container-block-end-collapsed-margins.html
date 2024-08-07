@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>margin-trim: block-container-block-end-collapsed-margins</title>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
+<link rel="match" href="block-container-block-end-collapsed-margins-ref.html">
+<meta name="assert" content="collapsed block-end margins should be trimmed but not affect container margins">
+<style>
+container {
+    display: block;
+    margin-trim: block;
+    margin-block-end: 10px;
+}
+item {
+    display: block;
+    margin-block-end: 40px;
+    width: 50px;
+    height: 50px;
+    background-color: green;
+}
+.collapsed {
+    margin-block-end: 0px;
+    height: 0px;
+}
+</style>
+</head>
+<body>
+<container>
+    <item></item>
+    <item class="collapsed"></item>
+</container>
+<item></item>
+</body>
+</html>

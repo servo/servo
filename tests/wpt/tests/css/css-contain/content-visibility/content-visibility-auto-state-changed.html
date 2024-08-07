@@ -24,9 +24,14 @@
 
 <script>
 let contentattrfired = false;
+let contentattrfiredonsvg = false;
 
 function contentattrDidFire() {
   contentattrfired = true;
+}
+
+function contentattrDidFireOnSvg() {
+  contentattrfiredonsvg = true;
 }
 
 </script>
@@ -34,6 +39,7 @@ function contentattrDidFire() {
 <div id=upper></div>
 <div id=attrtest></div>
 <div id=contentattrtest oncontentvisibilityautostatechange="contentattrDidFire()" class=auto></div>
+<svg id="svgcontentattrtest" oncontentvisibilityautostatechange="contentattrDidFireOnSvg()" class="auto"></svg>
 <div class=spacer></div>
 <div id=middle></div>
 <div class=spacer></div>
@@ -82,6 +88,12 @@ promise_test(async t => {
   await waitForAtLeastOneFrame();
   assert_true(contentattrfired, "contentattrfired");
 }, "ContentVisibilityAutoStateChange content attribute test");
+
+
+promise_test(async t => {
+  await waitForAtLeastOneFrame();
+  assert_true(contentattrfiredonsvg, "contentattrfiredonsvg");
+}, "ContentVisibilityAutoStateChange content attribute test on svg");
 
 promise_test(t => new Promise(async (resolve, reject) => {
   await new Promise((waited, _) => {

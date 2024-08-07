@@ -11,6 +11,9 @@ features:
 - name: modal
   files:
   - modal-pseudo-class.html
+- name: nth-child-of
+  files:
+  - nth-child-of-*
 - name: user-pseudos
   files:
   - user-invalid.html

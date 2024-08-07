@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cookies are not sent on cross origin violation reports for
+      frame-ancestors violations, even if the report-uri is same-origin
+      with the embedder.</title>
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+    fetch(
+      "/cookies/resources/set-cookie.py?name=cspViolationReportCookie1&path=" +
+        encodeURIComponent("/"),
+      {mode: 'no-cors', credentials: 'include'})
+    .then(() => {
+
+      const iframe = document.createElement('iframe');
+      const searchParams = new URLSearchParams();
+      let reportId = "{{$id:uuid()}}";
+      searchParams.set("reportID", reportId);
+      searchParams.set("reportUriBase", "http://{{host}}:{{ports[http][0]}}");
+      iframe.src = "http://{{domains[www1]}}:{{ports[http][0]}}/" +
+        "content-security-policy/reporting/support/not-embeddable-frame.py?" +
+        searchParams.toString();
+      document.body.appendChild(iframe);
+    });
+</script>
+<script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=frame-ancestors%20%27none%27&noCookies=true&reportID={{$id}}'></script>
+
+</body>
+</html>
