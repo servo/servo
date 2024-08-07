@@ -5,6 +5,8 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use js::gc::CustomAutoRooterGuard;
+use js::typedarray::Float32Array;
 use webxr_api::{Frame, LayerId, SubImages};
 
 use crate::dom::bindings::codegen::Bindings::XRFrameBinding::XRFrameMethods;
@@ -174,5 +176,58 @@ impl XRFrameMethods for XRFrame {
             .filter(|r| r.id == source.id())
             .map(|r| XRHitTestResult::new(&self.global(), *r, self))
             .collect()
+    }
+
+    #[allow(unsafe_code)]
+    /// <https://www.w3.org/TR/webxr-hand-input-1/#dom-xrframe-filljointradii>
+    fn FillJointRadii(&self, joint_spaces: Vec<DomRoot<XRJointSpace>>, mut radii: CustomAutoRooterGuard<Float32Array>) -> Result<bool, Error> {
+        if !self.active.get() {
+            return Err(Error::InvalidState);
+        }
+
+        for joint_space in &joint_spaces {
+            if self.session != joint_space.upcast::<XRSpace>().session() {
+                return Err(Error::InvalidState);
+            }
+        };
+
+        if joint_spaces.len() > radii.len() {
+            return Err(Error::Type("Length of radii does not match length of joint spaces".to_string()));
+        }
+
+        let mut radii_vec = radii.to_vec();
+        let mut all_valid = true;
+        radii_vec
+            .iter_mut()
+            .enumerate()
+            .for_each(|(i, radius)| {
+                let hand = self.data.inputs[0].hand.as_ref();
+                let Some(hand) = hand else {
+                    all_valid = false;
+                    return;
+                };
+                let joint_frame = hand.get(joint_spaces[i].get_joint());
+                let Some(joint) = joint_frame else {
+                    all_valid = false;
+                    return;
+                };
+                *radius = joint.radius;
+            });
+
+        if !all_valid {
+            radii_vec.fill(f32::NAN);
+        }
+
+        unsafe {
+            radii.update(&radii_vec);
+        }
+
+        Ok(all_valid)
+    }
+
+    #[allow(unsafe_code)]
+    /// <https://www.w3.org/TR/webxr-hand-input-1/#dom-xrframe-fillposes>
+    fn FillPoses(&self, spaces: Vec<DomRoot<XRSpace>>, base_space: &XRSpace, transforms: CustomAutoRooterGuard<Float32Array>) -> Result<bool, Error> {
+        todo!()
     }
 }
