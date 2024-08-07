@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
+<meta name="assert" content="border should protect the margins inside a nested block from trimming">
+<style>
+.trim {
+    margin-trim: block;
+    outline: 1px solid blue;
+}
+container {
+    display: block;
+    width: min-content;
+}
+item {
+    display: block;
+    inline-size: 50px;
+    block-size: 10px;
+    background-color: green;
+}
+.collapsed {
+    block-size: 0px;
+    margin-block: 10px;
+}
+.border {
+    block-size: auto;
+    border: 10px solid black;
+    margin-block-end: 25px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+</head>
+<body onload="checkLayout('.collapsed')">
+    <div id="target">
+        <container class="trim">
+            <container>
+                <item></item>
+
+                <!-- This item's block-end margin should be trimmed
+                     since it will collapse through to the outer container-->
+                <container style="margin-block-end: 300px;">
+                    <!-- However the margins inside this item cannot collapse through due to
+                         the border and should not be trimmed -->
+                    <container class="border">
+                        <item style="margin-block-end: 20px;"></item>
+                        <item data-offset-y="58" class="collapsed"></item>
+                    </container>
+                    <item data-offset-y="68" class="collapsed"></item>
+                </container>
+            </container>
+            <item data-offset-y="68" class="collapsed"></item>
+        </container>
+    </div>
+</body>
+</html>

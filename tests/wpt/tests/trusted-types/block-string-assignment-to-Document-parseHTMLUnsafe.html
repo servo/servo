@@ -34,13 +34,13 @@
   // After default policy creation string assignment implicitly calls createHTML.
   test(t => {
     let p = window.trustedTypes.createPolicy("default", { createHTML: createHTMLJS }, true);
-    let doc = Document.parseHTMLUnsafe(INPUTS.HTML, "text/html");
+    let doc = Document.parseHTMLUnsafe(INPUTS.HTML);
     assert_equals(doc.body.innerText, RESULTS.HTML);
   }, "'Document.parseHTMLUnsafe(string)' assigned via default policy (successful HTML transformation).");
 
   // After default policy creation null assignment implicitly calls createHTML.
   test(t => {
-    var doc = Document.parseHTMLUnsafe(null, "text/html");
+    var doc = Document.parseHTMLUnsafe(null);
     assert_equals(doc.body.innerText, "null");
   }, "'Document.parseHTMLUnsafe(null)' assigned via default policy does not throw");
 </script>

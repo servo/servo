@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>src = "" doesn't trigger a sync load if there's no existing current request</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1905646">
+<script>
+  promise_test(async function(t) {
+    let img = new Image();
+    img.src = "";
+    img.loading = "lazy";
+    img.onload = t.unreached_func("should not trigger a load event");
+    img.onerror = t.unreached_func("should not trigger an error event");
+    // Shouldn't fire any event since it's in the lazy state.
+    await new Promise(r => t.step_timeout(r, 0));
+    await new Promise(r => t.step_timeout(r, 0));
+
+    // We're about to append it to the document, which should trigger the (lazy) load (and in this case error event).
+    let error = new Promise(r => {
+      img.onerror = r;
+    });
+    document.documentElement.appendChild(img);
+    await error;
+  }, "Without srcset");
+
+  promise_test(async function(t) {
+    let img = new Image();
+    img.src = "";
+    img.srcset = "/images/green.png";
+    img.loading = "lazy";
+    img.onload = t.unreached_func("should not trigger a load event");
+    img.onerror = t.unreached_func("should not trigger an error event");
+    // Shouldn't fire any event since it's in the lazy state.
+    await new Promise(r => t.step_timeout(r, 0));
+    await new Promise(r => t.step_timeout(r, 0));
+
+    // We're about to append it to the document, which should trigger the (lazy) load.
+    let load = new Promise(r => {
+      img.onload = r;
+    });
+
+    document.documentElement.appendChild(img);
+    await load;
+  }, "With srcset");
+</script>

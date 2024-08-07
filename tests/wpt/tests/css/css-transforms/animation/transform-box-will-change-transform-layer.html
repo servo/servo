@@ -1,0 +1,62 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Verify transform-box animations on a 'will-change: transform' layer</title>
+<link rel="match" href="transform-box-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#ctm">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  .block {
+    position: absolute;
+    border: 20px solid black;
+    width: 100px;
+    height: 100px;
+    left: 100px;
+    top: 100px;
+    will-change: transform;
+  }
+
+  #transformBoxTarget {
+    transform: rotateZ(90deg);
+    transform-origin: 0% 100%;
+    transform-box: border-box;
+  }
+</style>
+<body>
+  <div id="transformBoxTarget" class="block"></div>
+
+<script>
+  'use strict';
+
+  async function waitForNextFrame() {
+    return new Promise(resolve => {
+      window.requestAnimationFrame(() => {
+        resolve();
+      });
+    });
+  }
+
+  async function createAnimation(elementName, keyframes) {
+    const element = document.getElementById(elementName);
+    const anim = element.animate(keyframes, {
+      duration: 1000,
+      easing: 'linear',
+      fill: 'forwards',
+    });
+    anim.pause();
+    anim.currentTime = 2000;
+    return anim.ready;
+  }
+
+  onload = async function() {
+    await waitForNextFrame();
+    await createAnimation('transformBoxTarget', [
+        { transformBox: 'border-box',  borderColor: 'black' },
+        { transformBox: 'content-box', borderColor: 'green' }]);
+
+    await waitForNextFrame();
+    takeScreenshot();
+  };
+</script>
+</body>
+

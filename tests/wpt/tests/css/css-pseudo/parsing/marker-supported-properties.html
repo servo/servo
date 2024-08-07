@@ -88,6 +88,9 @@ test_pseudo_computed_value("::marker", "text-emphasis-position", "under left");
 test_pseudo_computed_value("::marker", "text-emphasis-style", "dot");
 test_pseudo_computed_value("::marker", "text-shadow", "rgb(0, 255, 0) 1px 2px 3px");
 
+// ::marker supports `cursor`.
+test_pseudo_computed_value("::marker", "cursor", "move");
+
 // ::marker does NOT support layout properties
 test_pseudo_computed_value("::marker", "display", "none", ["block", "inline", "inline-block"]);
 test_pseudo_computed_value("::marker", "position", "absolute", "static");

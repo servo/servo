@@ -4,12 +4,16 @@
 <link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
 <link rel="author" href="mailto:khushalsagar@chromium.org">
 <link rel="match" href="block-with-overflowing-text-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <meta name="fuzzy" content="maxDifference=0-2;totalPixels=0-1200">
 
 
 <script src="/common/reftest-wait.js"></script>
 <script src="/common/rendering-utils.js"></script>
 <style>
+:root {
+  font: 20px/1 Ahem;
+}
 #target {
   text-shadow: red -20px -50px;
   position: relative;

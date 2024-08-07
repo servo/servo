@@ -1,44 +1,17 @@
 features:
 - name: autonomous-custom-elements
-  # TODO: Replace this list by an exclusion pattern. It is simply all tests
-  # except the ones for customized built-in elements.
   files:
-  - adopted-callback.html
-  - attribute-changed-callback.html
-  - connected-callbacks-html-fragment-parsing.html
-  - connected-callbacks-template.html
-  - connected-callbacks.html
-  - cross-realm-callback-report-exception.html
-  - custom-element-reaction-queue.html
-  - CustomElementRegistry-constructor-and-callbacks-are-held-strongly.html
-  - CustomElementRegistry-getName.html
-  - CustomElementRegistry.html
-  - disconnected-callbacks.html
-  - Document-createElement-svg.svg
-  - Document-createElement.html
-  - Document-createElementNS.html
-  - element-internals-aria-element-reflection.html
-  - element-internals-shadowroot.html
-  - ElementInternals-accessibility.html
-  - enqueue-custom-element-callback-reactions-inside-another-callback.html
-  - historical.html
-  - HTMLElement-attachInternals.html
-  - HTMLElement-constructor.html
-  - microtasks-and-constructors.html
-  - overwritten-customElements-global.html
-  - perform-microtask-checkpoint-before-construction-xml-parser.xhtml
-  - perform-microtask-checkpoint-before-construction.html
-  - pseudo-class-defined-print.html
-  - pseudo-class-defined.html
-  - range-and-constructors.html
-  - reaction-timing.html
-  - throw-on-dynamic-markup-insertion-counter-construct-xml-parser.xhtml
-  - throw-on-dynamic-markup-insertion-counter-construct.html
-  - throw-on-dynamic-markup-insertion-counter-reactions-xml-parser.xhtml
-  - throw-on-dynamic-markup-insertion-counter-reactions.html
-  - upgrading.html
+  - "*"
+  # Exclude customized built-in elements. Keep in sync with below list.
+  - "!builtin-coverage.html"
+  - "!customized-built-in-constructor-exceptions.html"
+  - "!Document-createElement-customized-builtins.html"
+  - "!Document-createElementNS-customized-builtins.html"
+  - "!HTMLElement-constructor-customized-builtins.html"
+  - "!pseudo-class-defined-customized-builtins.html"
 - name: customized-built-in-elements
   files:
+  # Keep in sync with above list.
   - builtin-coverage.html
   - customized-built-in-constructor-exceptions.html
   - Document-createElement-customized-builtins.html

@@ -272,6 +272,14 @@ const interpolationTests = [
     midPoint: "rgb(50, 100, 100) 2px 2px 2px",
   },
 
+  // ::marker supports `cursor`.
+  {
+    property: "cursor",
+    from: "auto",
+    to: "move",
+    midPoint: "move",
+  },
+
   // ::marker does NOT support layout properties
   {
     property: "display",

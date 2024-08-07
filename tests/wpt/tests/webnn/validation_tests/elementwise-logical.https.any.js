@@ -13,8 +13,10 @@ const kElementwiseLogicalBinaryOperators = [
 ];
 
 kElementwiseLogicalBinaryOperators.forEach((operatorName) => {
+  validateTwoInputsOfSameDataType(operatorName);
   validateTwoInputsFromMultipleBuilders(operatorName);
+  validateTwoInputsBroadcastable(operatorName);
 });
 
-// The `not()` operator is unary.
-validateInputFromAnotherBuilder('not');
+// The `logicalNot()` operator is unary.
+validateInputFromAnotherBuilder('logicalNot');

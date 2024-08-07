@@ -3,6 +3,7 @@ import base64
 import copy
 import json
 from typing import Any, Coroutine, Mapping
+from urllib.parse import urlunsplit
 
 import pytest
 import pytest_asyncio
@@ -623,8 +624,11 @@ async def setup_network_test(
     top_context,
     url,
 ):
-    """Navigate the current top level context to the provided url and subscribe
-    to network.beforeRequestSent.
+    """Navigate the provided top level context to the provided url and subscribe
+    to network events for the provided set of contexts.
+
+    By default, the test context is top_context["context"], test_url is
+    empty.html and contexts is None (meaning we will subscribe to all contexts).
 
     Returns an `events` dictionary in which the captured network events will be added.
     The keys of the dictionary are network event names (eg. "network.beforeRequestSent"),
@@ -632,24 +636,29 @@ async def setup_network_test(
     """
     listeners = []
 
-    async def _setup_network_test(events, test_url=url("/webdriver/tests/bidi/network/support/empty.html"), contexts=None):
+    async def _setup_network_test(
+        events,
+        test_url=url("/webdriver/tests/bidi/network/support/empty.html"),
+        context=top_context["context"],
+        contexts=None,
+    ):
         nonlocal listeners
 
         # Listen for network.responseCompleted for the initial navigation to
         # make sure this event will not be captured unexpectedly by the tests.
         await bidi_session.session.subscribe(
-            events=["network.responseCompleted"], contexts=[top_context["context"]]
+            events=["network.responseCompleted"], contexts=[context]
         )
         on_response_completed = wait_for_event("network.responseCompleted")
 
         await bidi_session.browsing_context.navigate(
-            context=top_context["context"],
+            context=context,
             url=test_url,
             wait="complete",
         )
         await wait_for_future_safe(on_response_completed)
         await bidi_session.session.unsubscribe(
-            events=["network.responseCompleted"], contexts=[top_context["context"]]
+            events=["network.responseCompleted"], contexts=[context]
         )
 
         await subscribe_events(events, contexts)
@@ -670,3 +679,11 @@ async def setup_network_test(
     # cleanup
     for remove_listener in listeners:
         remove_listener()
+
+
+@pytest.fixture
+def origin(server_config, domain_value):
+    def origin(protocol="https", domain="", subdomain=""):
+        return urlunsplit((protocol, domain_value(domain, subdomain), "", "", ""))
+
+    return origin

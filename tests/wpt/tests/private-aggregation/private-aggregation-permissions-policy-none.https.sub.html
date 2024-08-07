@@ -34,8 +34,8 @@ promise_test(async () => {
   await CreateWorkletAndVerifyContributeToHistogram(
       /*shared_storage_origin=*/cross_origin, paa_data, /*expected_error=*/true);
 }, 'In a page with "private-aggregation=()" permissions policy, ' +
-   'createWorklet() with cross-origin script, and then execute ' +
-   'contributeToHistogram() inside the worklet');
+   'createWorklet() with cross-origin script and script data origin, and then '
+   + 'execute contributeToHistogram() inside the worklet');
 
 </script>
 </body>

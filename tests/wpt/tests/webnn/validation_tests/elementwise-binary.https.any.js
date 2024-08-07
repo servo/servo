@@ -53,6 +53,7 @@ const tests = [
 function runElementWiseBinaryTests(operatorName, tests) {
   tests.forEach(test => {
     promise_test(async t => {
+      const builder = new MLGraphBuilder(context);
       if (!context.opSupportLimits().input.dataTypes.includes(
               test.a.dataType)) {
         assert_throws_js(

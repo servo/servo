@@ -29,11 +29,13 @@
     // before starting the test.
     await waitForCompositorReady();
     requestAnimationFrame(() => {
-      target.classList.add("green");
       requestAnimationFrame(() => {
-        document.documentElement.classList.remove("reftest-wait");
-      });
-    });
+        target.classList.add("green");
+        requestAnimationFrame(() => {
+          document.documentElement.classList.remove("reftest-wait");
+        });
+     });
+   });
   });
 </script>
 </html>

@@ -82,6 +82,25 @@ assert_valid("<transform-function>+", "translateX(2px) rotate(42deg)");
 assert_valid("<transform-list>", "scale(2)");
 assert_valid("<transform-list>", "translateX(2px) rotate(20deg)");
 
+// <string> is accepted in https://github.com/w3c/css-houdini-drafts/issues/1103
+assert_valid("<string>", "'foo bar'");
+assert_valid("<string>", " 'foo bar' ");
+assert_valid("<string>", "'foo bar");
+assert_valid("<string>", `'"foo" bar'`);
+assert_valid("<string>", '"bar baz"');
+assert_valid("<string>", `"bar 'baz'"`);
+assert_valid("<string>", `"bar 'baz'`);
+assert_valid("<string>+", "'foo' 'bar'");
+assert_valid("<string>#", "'foo', 'bar'");
+assert_valid("<string>+ | <string>#", "'foo' 'bar'");
+assert_valid("<string>+ | <string>#", " 'foo' 'bar'");
+assert_valid("<string>+ | <string>#", `'foo' "bar"`);
+assert_valid("<string>+ | <string>#", `'foo' "bar`);
+assert_valid("<string># | <string>+", "'foo', 'bar'");
+assert_valid("<string># | <string>+", "'foo', 'bar' ");
+assert_valid("<string># | <string>+", `"foo", 'bar'`);
+assert_valid("<string># | <string>+", `"foo", 'bar`);
+
 assert_valid("<color>", "rgb(12, 34, 56)");
 assert_valid("<color>", "lightgoldenrodyellow");
 assert_valid("<image>", "url(a)");
@@ -262,4 +281,7 @@ assert_invalid("<transform-list>+", "translateX(2px) rotate(20deg)");
 assert_invalid("<color>", "fancy-looking");
 assert_invalid("<image>", "banana.png");
 assert_invalid("<url>", "banana.png");
+
+assert_invalid("<string>", "foo bar'");
+assert_invalid("<string>", 'foo bar"');
 </script>

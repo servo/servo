@@ -36,7 +36,10 @@ test(() => {
   assert_equals(actual.allowCredentials[0].type, expected.allowCredentials[0].type);
   assert_true(bytesEqual(actual.allowCredentials[0].id, expected.allowCredentials[0].id));
   assert_equals(actual.userVerification, expected.userVerification);
-  assertJsonEquals(actual.hints, expected.hints);
+  if (actual.hasOwnProperty("hints")) {
+    // Not all implementations support hints yet.
+    assertJsonEquals(actual.hints, expected.hints);
+  }
 }, "parseRequestOptionsFromJSON()");
 
 test(() => {
@@ -96,12 +99,32 @@ test(() => {
   };
 
   assert_equals(actual.extensions.appid, expected.extensions.appid);
-  assert_equals(actual.extensions.largeBlob.read, expected.extensions.largeBlob.read);
-  assert_equals(actual.extensions.getCredBlob, expected.extensions.getCredBlob);
-  assertJsonEquals(actual.extensions.supplementalPubKeys, expected.extensions.supplementalPubKeys);
-  let prfValuesEquals = (a, b) => {
-    return bytesEqual(a.first, b.first) && bytesEqual(a.second, b.second);
-  };
-  assert_true(prfValuesEquals(actual.extensions.prf.eval, expected.extensions.prf.eval), "prf eval");
-  assert_true(prfValuesEquals(actual.extensions.prf.evalByCredential["test cred"], expected.extensions.prf.evalByCredential["test cred"]), "prf ebc");
+  // Some implementations do not support all of these extensions.
+  if (actual.extensions.hasOwnProperty('largeBlob')) {
+    assert_equals(
+      actual.extensions.largeBlob.read, expected.extensions.largeBlob.read);
+  }
+  if (actual.extensions.hasOwnProperty('getCredBlob')) {
+    assert_equals(
+      actual.extensions.getCredBlob, expected.extensions.getCredBlob);
+  }
+  if (actual.extensions.hasOwnProperty('supplementalPubKeys')) {
+    assertJsonEquals(
+      actual.extensions.supplementalPubKeys,
+      expected.extensions.supplementalPubKeys);
+  }
+  if (actual.extensions.hasOwnProperty('prf')) {
+    let prfValuesEquals = (a, b) => {
+      return bytesEqual(a.first, b.first) && bytesEqual(a.second, b.second);
+    };
+    assert_true(
+      prfValuesEquals(
+        actual.extensions.prf.eval, expected.extensions.prf.eval),
+      'prf eval');
+    assert_true(
+      prfValuesEquals(
+        actual.extensions.prf.evalByCredential['test cred'],
+        expected.extensions.prf.evalByCredential['test cred']),
+      'prf ebc');
+  }
 }, "parseRequestOptionsFromJSON() with extensions");

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Destroy and Hide Element in Animation Iteration Event</title>
+  <title>Destroy and Hide Element in Animation Event</title>
   <!-- Note: this is effectively a crashtest, but as crashtests do not
        support variants, authoring as a promise test -->
   <meta name="variant" content="?animationstart">
@@ -13,7 +13,15 @@
       width: 100px;
       margin: 10px;
       background-color: blue;
-      animation-duration: 0.2s;
+      /* Use a long duration and delay for precise control over when animation
+         events are triggered. With short animations, the animation-iteration
+         event could be dropped if the animation finishes too son. An
+         animation-iteration event does not fire when completing the last
+         iteration.
+      */
+      animation-name: move;
+      animation-duration: 10000s;
+      animation-delay: 5000s;
       animation-iteration-count: 2;
     }
 
@@ -43,6 +51,10 @@
     });
   }
 
+  function setAnimationTime(time) {
+    document.getAnimations().forEach(a => a.currentTime = time);
+  }
+
   promise_test(async t => {
     const eventType = location.search.substring(1);
     var box1 = document.getElementById('box1');
@@ -52,11 +64,24 @@
     promises.push(eventPromise(box1, eventType, () => {
       box1.parentNode.removeChild(box1);
     }));
-    box1.style.animationName = 'move';
     promises.push(eventPromise(box2, eventType, () => {
       box2.style.display = 'none';
     }));
-    box2.style.animationName = 'move';
+
+    await Promise.all(document.getAnimations().map(a => a.ready));
+
+    promises.push(new Promise(resolve => {
+      requestAnimationFrame(() => {
+        // trip animationstart.
+        setAnimationTime(6000000);
+        requestAnimationFrame(() => {
+          // trip animationiteration on any animations that are still running.
+          setAnimationTime(16000000);
+          resolve();
+        });
+      });
+    }));
+
     await Promise.all(promises);
 
     // Garbage collection is best effort.

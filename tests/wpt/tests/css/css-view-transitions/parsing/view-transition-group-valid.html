@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS View Transitions Test: view-transition-group with valid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<meta name="assert" content="view-transition-group supports custom tags">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("view-transition-group", "none");
+test_valid_value("view-transition-group", "nearest");
+test_valid_value("view-transition-group", "contain");
+test_valid_value("view-transition-group", "normal");
+test_valid_value("view-transition-group", "abc");
+test_valid_value("view-transition-group", "custom-ident");
+test_valid_value("view-transition-group", "a-1");
+</script>
+</body>
+</html>

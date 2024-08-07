@@ -14,6 +14,7 @@ import {request_options_with_mediation_required} from './fedcm-helper.sub.js';
 // }
 
 window.onload = async () => {
+  window.test_driver.set_test_context(window.top);
   // Use this variable to stop trying to select an account once the get() promise is resolved.
   let cancelHelper = false;
   try {

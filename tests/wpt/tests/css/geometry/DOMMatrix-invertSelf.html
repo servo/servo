@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Geometry Interfaces: DOMMatrix and DOMMatrixReadOnly invertSelf</title>
+<link rel="help" href="https://drafts.fxtf.org/geometry/#DOMMatrix">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/dommatrix-test-util.js"></script>
+<script>
+[
+  [[0, 0, 0, 0, 0, 0], [NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN]],
+  [[1, 1, 1, 1, 1, 1], [NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN]],
+  [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                       [NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN, NaN]],
+  [[1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+                       [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]],
+].forEach(([actual_array, expected_array]) => {
+  var is2D = false;
+  test(() => {
+    const actual = new DOMMatrix(actual_array);
+    const actualInvertSelfReturnValue = actual.invertSelf();
+    assert_true(actual === actualInvertSelfReturnValue);
+    const expected = new DOMMatrix(expected_array);
+    checkDOMMatrix(actual, expected, is2D);
+  }, `new DOMMatrix([${actual_array}]).invertSelf()`);
+});
+</script>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: no named elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="match" href="no-named-elements-ref.html">
+
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+body { background: red; }
+
+:root { view-transition-name: none; }
+
+@keyframes no-op {
+  from {opacity: 1;}
+  to {opacity: 1;}
+}
+
+:root::view-transition {
+  width: 100%;
+  height: 100%;
+  background: blue;
+  animation: no-op 300s;
+}
+</style>
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  let transition = document.startViewTransition();
+  transition.ready.then(takeScreenshot);
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name='author' title='weizman' href='https://www.weizmangal.com'>
+<meta name='assert' content='Shadow DOM should not leak via Selection API'>
+<link rel='help' href='https://w3c.github.io/webcomponents/spec/shadow/'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+<div id='log'></div>
+<div id='container'></div>
+</body>
+<script>
+  'use strict';
+
+  const container = document.getElementById('container');
+
+  function reset(text) {
+    const host = container.appendChild(document.createElement('div'));
+    const shadow = host.attachShadow({mode: 'closed'});
+    const child = shadow.appendChild(document.createElement('span'));
+    child.textContent = text;
+    return host;
+  }
+
+  async function select(t, target) {
+      const event_watcher = new EventWatcher(t, target, ["mouseup"]);
+      const actions_promise = new test_driver.Actions()
+          .pointerMove(0, 0, {origin: target})
+          .pointerDown()
+          .pointerMove(100, 0, {origin: target})
+          .pointerUp()
+          .send();
+      t.add_cleanup(() => actions_promise);
+      const event = await event_watcher.wait_for(["mouseup"]);
+      assert_equals(event.type, "mouseup");
+      assert_equals(event.target, target);
+  }
+
+  promise_test(async (t) => {
+    const text = 'text_inside_shadow';
+    const host = reset(text);
+    await select(t, host);
+    const node = getSelection().anchorNode;
+    assert_equals(node, container, 'getSelection().anchorNode should return the host of the shadow');
+    assert_not_equals(node.textContent, text, 'getSelection().anchorNode textContent should not be the text contents of an element inside the shadow root');
+  }, 'selection API should not leak nodes in Shadow DOM.');
+</script>
+</html>

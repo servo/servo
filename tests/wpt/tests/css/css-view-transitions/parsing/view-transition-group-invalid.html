@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS View Transitions Test: view-transition-group with invalid values</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<meta name="assert" content="view-transition-group does not support invalid values">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("view-transition-group", "default"); // `default` isn't allowed by the `<custom-ident>` syntax.
+test_invalid_value("view-transition-group", "foo none");
+test_invalid_value("view-transition-group", "#fff");
+test_invalid_value("view-transition-group", "12px");
+test_invalid_value("view-transition-group", "foo 12px");
+test_invalid_value("view-transition-group", "12em");
+test_invalid_value("view-transition-group", "12%");
+</script>
+</body>
+</html>

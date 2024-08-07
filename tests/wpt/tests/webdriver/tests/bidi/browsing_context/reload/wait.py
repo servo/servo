@@ -3,6 +3,8 @@
 import asyncio
 import pytest
 
+from ... import any_string
+
 pytestmark = pytest.mark.asyncio
 
 
@@ -171,3 +173,18 @@ async def test_slow_script_blocks_domContentLoaded(bidi_session, inline,
 
     remove_listener_2()
     remove_listener_1()
+
+
+@pytest.mark.capabilities({"unhandledPromptBehavior": {"beforeUnload": "ignore"}})
+async def test_wait_none_with_beforeunload_prompt(
+    bidi_session, new_tab, setup_beforeunload_page, url
+):
+    page_url = url("/webdriver/tests/support/html/beforeunload.html")
+    await setup_beforeunload_page(new_tab)
+
+    result = await bidi_session.browsing_context.reload(
+        context=new_tab["context"], wait="none"
+    )
+
+    assert result["url"] == page_url
+    any_string(result["navigation"])

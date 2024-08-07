@@ -6,5 +6,4 @@
 
 validateInputFromAnotherBuilder('sigmoid');
 
-validateUnaryOperation(
-    'sigmoid', floatingPointTypes, /*alsoBuildActivation=*/ true);
+validateSingleInputOperation('sigmoid');

@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  document.designMode = "on";
+  const style = document.createElement("style");
+  document.documentElement.appendChild(style);
+  document.designMode = "off";
+  style.setAttribute("contenteditable", "true");
+  document.documentElement.innerHTML = "<div></div>";
+}, {once: true});
+</script>
+</head>
+<body></body>
+</html>

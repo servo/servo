@@ -71,6 +71,25 @@ def test_process_non_recursive_feature():
         ]
     }
 
+def test_process_non_recursive_feature_negation():
+    feature_name = "feature1"
+    feature_files = [
+        FeatureFile("*range*"),  # Matches all files with *range* in the file name
+        # Removes blob-range.any.js which removes blob-range.any.html and blob-range.any.worker.html
+        FeatureFile("!blob-range.any.*"),
+    ]
+
+    mapper = WebFeatureToTestsDirMapper(TEST_FILES, None)
+    result = WebFeaturesMap()
+
+    mapper._process_non_recursive_feature(feature_name, feature_files, result)
+
+    assert result.to_dict() == {
+        "feature1": [
+            "/root/foo-range.any.html",
+            "/root/foo-range.any.worker.html",
+        ]
+    }
 
 def test_process_inherited_features():
     mapper = WebFeatureToTestsDirMapper(TEST_FILES, None)

@@ -56,19 +56,14 @@ fedcm_test(async t => {
   const cred = await fedcm_get_and_select_first_account(t, alt_request_options_with_mediation_required());
   assert_equals(cred.token, "token");
 
-  try {
-   const manifest_path = `${alt_manifest_origin}/\
+  const manifest_path = `${alt_manifest_origin}/\
 fedcm/support/fedcm/manifest.py`;
-    const user_info = await IdentityProvider.getUserInfo({
+  await promise_rejects_dom(t, 'InvalidStateError',
+    IdentityProvider.getUserInfo({
       configURL: manifest_path,
       // Approved client
       clientId: '123',
-    });
-    assert_unreached("Failure message");
-  } catch (error) {
-    assert_equals(error.message, "UserInfo request must be initiated from a frame that is the same origin with the provider.");
-    // Expect failure
-  }
+    }))
 }, 'Test that User Info API does not work in the top frame');
 
 </script>

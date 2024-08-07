@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>select sizing with text-transform:capitalize</title>
+<link rel="match" href="select-capitalize-sizing-ref.html">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1911550">
+<style>
+select {
+  text-transform: capitalize;
+}
+.appearance-none {
+  appearance: none;
+  padding: 0;
+  border: 1px solid;
+}
+</style>
+<select>
+  <option>x x x x x</option>
+</select>
+<br><br>
+<select class=appearance-none>
+  <option>x x x x x</option>
+</select>

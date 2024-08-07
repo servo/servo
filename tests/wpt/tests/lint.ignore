@@ -119,6 +119,9 @@ CONSOLE: service-workers/service-worker/resources/clients-get-other-origin.html
 CONSOLE: webrtc/tools/*
 CONSOLE: webaudio/resources/audit.js:41
 
+# Intentional use of console.*
+CONSOLE: infrastructure/webdriver/bidi/subscription.html
+
 # use of console in a public library - annotation-model ensures
 # it is not actually used
 CONSOLE: annotation-model/scripts/ajv.min.js

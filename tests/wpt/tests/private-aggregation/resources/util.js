@@ -35,8 +35,10 @@ async function CreateWorkletAndVerifyContributeToHistogram(shared_storage_origin
   let url1 = generateURL("/shared-storage/resources/frame1.html",
                          [ancestor_key]);
 
-  let worklet = await sharedStorage.createWorklet(shared_storage_origin +
-          "/private-aggregation/resources/shared-storage-helper-module.js");
+  let worklet = await sharedStorage.createWorklet(
+      shared_storage_origin +
+          '/private-aggregation/resources/shared-storage-helper-module.js',
+      {dataOrigin: 'script-origin'});
 
   let select_url_result = await worklet.selectURL(
     "contribute-to-histogram", [{url: url0}, {url: url1}],

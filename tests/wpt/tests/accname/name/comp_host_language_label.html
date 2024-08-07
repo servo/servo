@@ -24,10 +24,17 @@
 <h2>HTML input label/for</h2>
 <!-- above: input[type=button] -->
 <label for="cb">checkbox label</label><input id="cb" type="checkbox" data-expectedlabel="checkbox label" data-testname="html: label[for] input[type=checkbox]" class="ex"><br>
+<label for="cbv">checkbox label with non-empty value</label><input id="cbv" type="checkbox" data-expectedlabel="checkbox label with non-empty value" data-testname="html: label[for] input[type=checkbox][value='test']" class="ex" value="test"><br>
+<label for="cbc">checkbox label checked</label><input id="cbc" type="checkbox" data-expectedlabel="checkbox label checked" data-testname="html: label[for] input[type=checkbox][checked]" class="ex" checked><br>
+<label for="cbcv">checkbox label checked with non-empty value</label><input id="cbcv" type="checkbox" data-expectedlabel="checkbox label checked with non-empty value" data-testname="html: label[for] input[type=checkbox][checked][value='test']" class="ex" value="test" checked><br>
 <label for="co">color label</label><input id="co" type="color" data-expectedlabel="color label" data-testname="html: label[for] input[type=color]" class="ex"><br>
+<label for="cov">color label with non-empty value</label><input id="cov" type="color" data-expectedlabel="color label with non-empty value" data-testname="html: label[for] input[type=color][value='#999999']" class="ex" value="#999999"><br>
 <label for="da">date label</label><input id="da" type="date" data-expectedlabel="date label" data-testname="html: label[for] input[type=date]" class="ex"><br>
+<label for="dav">date label with non-empty value</label><input id="dav" type="date" data-expectedlabel="date label with non-empty value" data-testname="html: label[for] input[type=date][value='2025-01-01']" class="ex" value="2025-01-01"><br>
 <label for="dtl">datetime-local label</label><input id="dtl" type="date" data-expectedlabel="datetime-local label" data-testname="html: label[for] input[type=datetime-local]" class="ex"><br>
+<label for="dtlv">datetime-local label with non-empty value</label><input id="dtlv" type="date" data-expectedlabel="datetime-local label with non-empty value" data-testname="html: label[for] input[type=datetime-local][value='2025-01-01T00:01']" class="ex" value="2025-01-01T00:01"><br>
 <label for="em">email label</label><input id="em" type="email" data-expectedlabel="email label" data-testname="html: label[for] input[type=email]" class="ex"><br>
+<label for="emv">email label with non-empty value</label><input id="emv" type="email" data-expectedlabel="email label with non-empty value" data-testname="html: label[for] input[type=email][value='test@test.com']" class="ex" value="test@test.com"><br>
 
 <!-- todo: results for input[type=file] currently differ in all engines -->
 <!--
@@ -37,27 +44,45 @@
 <!-- skipped: input[type=hidden] for/id n/a -->
 <!-- above: input[type=image] -->
 <label for="mo">month label</label><input id="mo" type="month" data-expectedlabel="month label" data-testname="html: label[for] input[type=month]" class="ex"><br>
+<label for="mov">month label with non-empty value</label><input id="mov" type="month" data-expectedlabel="month label with non-empty value" data-testname="html: label[for] input[type=month][value='2025-01']" class="ex" value="2025-01"><br>
 <label for="n">number label</label><input id="n" type="number" data-expectedlabel="number label" data-testname="html: label[for] input[type=number]" class="ex"><br>
+<label for="nv">number label with non-empty value</label><input id="nv" type="number" data-expectedlabel="number label with non-empty value" data-testname="html: label[for] input[type=number][value=2025]" class="ex" value="2025"><br>
 <label for="pw">password label</label><input id="pw" type="password" data-expectedlabel="password label" data-testname="html: label[for] input[type=password]" class="ex"><br>
+<label for="pwv">password label with non-empty value</label><input id="pwv" type="password" data-expectedlabel="password label with non-empty value" data-testname="html: label[for] input[type=password][value='test']" class="ex" value="test"><br>
 <label for="ra">radio label</label><input id="ra" type="radio" data-expectedlabel="radio label" data-testname="html: label[for] input[type=radio]" class="ex"><br>
+<label for="rav">radio label with non-empty value</label><input id="rav" type="radio" data-expectedlabel="radio label with non-empty value" data-testname="html: label[for] input[type=radio][value='test']" class="ex" value="test"><br>
 <label for="rng">range label</label><input id="rng" type="range" data-expectedlabel="range label" data-testname="html: label[for] input[type=range]" class="ex"><br>
+<label for="rngv">range label with non-empty value</label><input id="rngv" type="range" data-expectedlabel="range label with non-empty value" data-testname="html: label[for] input[type=range][min=0][max=10][value=5]" class="ex" min="0" max="10" value="5"><br>
 <!-- input[type=reset] above -->
 <label for="search">search label</label><input id="search" type="search" data-expectedlabel="search label" data-testname="html: label[for] input[type=search]" class="ex"><br>
+<label for="searchv">search label with non-empty value</label><input id="searchv" type="search" data-expectedlabel="search label with non-empty value" data-testname="html: label[for] input[type=search][value='test']" class="ex" value="test"><br>
 <!-- input[type=submit] above -->
 <label for="tel">tel label</label><input id="tel" type="tel" data-expectedlabel="tel label" data-testname="html: label[for] input[type=tel]" class="ex"><br>
+<label for="telv">tel label with non-empty value</label><input id="telv" type="tel" data-expectedlabel="tel label with non-empty value" data-testname="html: label[for] input[type=tel][value='123-45-678']" class="ex" value="123-45-678"><br>
 <label for="t">textfield label</label><input id="t" type="text" data-expectedlabel="textfield label" data-testname="html: label[for] input[type=text]" class="ex"><br>
+<label for="tv">textfield label with non-empty value</label><input id="tv" type="text" data-expectedlabel="textfield label with non-empty value" data-testname="html: label[for] input[type=text][value='test']" class="ex" value="test"><br>
 <label for="time">time label</label><input id="time" type="time" data-expectedlabel="time label" data-testname="html: label[for] input[type=time]" class="ex"><br>
+<label for="timev">time label with non-empty value</label><input id="timev" type="time" data-expectedlabel="time label with non-empty value" data-testname="html: label[for] input[type=time][value='00:01']" class="ex" value="00:01"><br>
 <label for="url">url label</label><input id="url" type="url" data-expectedlabel="url label" data-testname="html: label[for] input[type=url]" class="ex"><br>
+<label for="urlv">url label with non-empty value</label><input id="urlv" type="url" data-expectedlabel="url label with non-empty value" data-testname="html: label[for] input[type=url][value='https://www.w3.org']" class="ex" value="https://www.w3.org"><br>
 <label for="week">week label</label><input id="week" type="week" data-expectedlabel="week label" data-testname="html: label[for] input[type=week]" class="ex"><br>
+<label for="weekv">week label with non-empty value</label><input id="weekv" type="week" data-expectedlabel="week label with non-empty value" data-testname="html: label[for] input[type=week][value='2025-W01']" class="ex" value="2025-W01"><br>
 
 
 <h2>HTML input label encapsulation</h2>
 <!-- above: input[type=button] -->
 <label><input type="checkbox" data-expectedlabel="checkbox label" data-testname="html: label input[type=checkbox] encapsulation" class="ex">checkbox label</label><br>
+<label><input type="checkbox" data-expectedlabel="checkbox label with non-empty value" data-testname="html: label input[type=checkbox][value='test'] encapsulation" class="ex" value="test">checkbox label with non-empty value</label><br>
+<label><input type="checkbox" data-expectedlabel="checkbox label checked" data-testname="html: label input[type=checkbox][checked] encapsulation" class="ex" checked>checkbox label checked</label><br>
+<label><input type="checkbox" data-expectedlabel="checkbox label checked with non-empty value" data-testname="html: label input[type=checkbox][value='test'][checked] encapsulation" class="ex" value="test" checked>checkbox label checked with non-empty value</label><br>
 <label><input type="color" data-expectedlabel="color label" data-testname="html: label input[type=color] encapsulation" class="ex">color label</label><br>
+<label><input type="color" data-expectedlabel="color label with non-empty value" data-testname="html: label input[type=color][value='#999999'] encapsulation" class="ex" value="#999999">color label with non-empty value</label><br>
 <label><input type="date" data-expectedlabel="date label" data-testname="html: label input[type=date] encapsulation" class="ex">date label</label><br>
+<label><input type="date" data-expectedlabel="date label with non-empty value" data-testname="html: label input[type=date][value='2025-01-01'] encapsulation" class="ex" value="2025-01-01">date label with non-empty value</label><br>
 <label><input type="datetime-local" data-expectedlabel="datetime-local label" data-testname="html: label input[type=datetime-local] encapsulation" class="ex">datetime-local label</label><br>
+<label><input type="datetime-local" data-expectedlabel="datetime-local label with non-empty value" data-testname="html: label input[type=datetime-local][value='2025-01-01T00:01'] encapsulation" class="ex" value="2025-01-01T00:01">datetime-local label with non-empty value</label><br>
 <label><input type="email" data-expectedlabel="email label" data-testname="html: label input[type=email] encapsulation" class="ex">email label</label><br>
+<label><input type="email" data-expectedlabel="email label with non-empty value" data-testname="html: label input[type=email][value='test@test.com'] encapsulation" class="ex" value="test@test.com">email label with non-empty value</label><br>
 
 <!-- todo: results for input[type=file] currently differ in all engines -->
 <!--
@@ -67,18 +92,29 @@
 <!-- skipped: input[type=hidden] n/a -->
 <!-- above: input[type=image] -->
 <label><input type="month" data-expectedlabel="month label" data-testname="html: label input[type=month] encapsulation" class="ex">month label</label><br>
+<label><input type="month" data-expectedlabel="month label with non-empty value" data-testname="html: label input[type=month][value='2025-01'] encapsulation" class="ex" value="2025-01">month label with non-empty value</label><br>
 <label><input type="number" data-expectedlabel="number label" data-testname="html: label input[type=number] encapsulation" class="ex">number label</label><br>
+<label><input type="number" data-expectedlabel="number label with non-empty value" data-testname="html: label input[type=number][value=1] encapsulation" class="ex" value="1">number label with non-empty value</label><br>
 <label><input type="password" data-expectedlabel="password label" data-testname="html: label input[type=password] encapsulation" class="ex">password label</label><br>
+<label><input type="password" data-expectedlabel="password label with non-empty value" data-testname="html: label input[type=password][value='test'] encapsulation" class="ex" value="test">password label with non-empty value</label><br>
 <label><input type="radio" data-expectedlabel="radio label" data-testname="html: label input[type=radio] encapsulation" class="ex">radio label</label><br>
+<label><input type="radio" data-expectedlabel="radio label with non-empty value" data-testname="html: label input[type=radio][value='test'] encapsulation" class="ex" value="test">radio label with non-empty value</label><br>
 <label><input type="range" data-expectedlabel="range label" data-testname="html: label input[type=range] encapsulation" class="ex">range label</label><br>
+<label><input type="range" data-expectedlabel="range label with non-empty value" data-testname="html: label input[type=range][value='5'][min='0'][max='10'] encapsulation" class="ex" min="0" max="10" value="5">range label with non-empty value</label><br>
 <!-- above: input[type=reset] -->
 <label><input type="search" data-expectedlabel="search label" data-testname="html: label input[type=search] encapsulation" class="ex">search label</label><br>
+<label><input type="search" data-expectedlabel="search label with non-empty value" data-testname="html: label input[type=search][value='test'] encapsulation" class="ex" value="test">search label with non-empty value</label><br>
 <!-- above: input[type=submit] -->
 <label><input type="tel" data-expectedlabel="tel label" data-testname="html: label input[type=tel] encapsulation" class="ex">tel label</label><br>
+<label><input type="tel" data-expectedlabel="tel label with non-empty value" data-testname="html: label input[type=tel][value='123-45-678'] encapsulation" class="ex" value="123-45-678">tel label with non-empty value</label><br>
 <label><input type="text" data-expectedlabel="textfield label" data-testname="html: label[for] input[type=text] encapsulation" class="ex">textfield label</label><br>
+<label><input type="text" data-expectedlabel="textfield label with non-empty value" data-testname="html: label[for] input[type=text][value='test'] encapsulation" class="ex" value="test">textfield label with non-empty value</label><br>
 <label><input type="time" data-expectedlabel="time label" data-testname="html: label input[type=time] encapsulation" class="ex">time label</label><br>
+<label><input type="time" data-expectedlabel="time label with non-empty value" data-testname="html: label input[type=time][value='00:01'] encapsulation" class="ex" value="00:01">time label with non-empty value</label><br>
 <label><input type="url" data-expectedlabel="url label" data-testname="html: label input[type=url] encapsulation" class="ex">url label</label><br>
+<label><input type="url" data-expectedlabel="url label with non-empty value" data-testname="html: label input[type=url][value='https://www.w3.org'] encapsulation" class="ex" value="https://www.w3.org">url label with non-empty value</label><br>
 <label><input type="week" data-expectedlabel="week label" data-testname="html: label input[type=week] encapsulation" class="ex">week label</label><br>
+<label><input type="week" data-expectedlabel="week label with non-empty value" data-testname="html: label input[type=week][value='2025-W01'] encapsulation" class="ex" value="2025-W01">week label with non-empty value</label><br>
 
 
 <!-- skipped: skip textarea for v1 since all engines fail in different ways. need to verify label/textarea is expected. -->

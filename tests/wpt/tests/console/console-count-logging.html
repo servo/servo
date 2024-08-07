@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test console log are present</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+    promise_test(async () => {
+        await test_driver.bidi.log.entry_added.subscribe();
+
+        // Create a promise that resolves when all the log entries are added.
+        const log_entries_promise = new Promise(resolve => {
+            const log_entries = [];
+            test_driver.bidi.log.entry_added.on(event => {
+                log_entries.push(event.text);
+                if (log_entries.length === 4) {
+                    resolve(log_entries);
+                }
+            });
+        });
+
+        console.count();
+        console.count(undefined);
+        console.count("default");
+        console.count({
+            toString() {
+                return "default"
+            }
+        });
+
+        // Wait for the log entries to be added.
+        const log_entries = await log_entries_promise;
+
+        assert_array_equals(log_entries, [
+            "default: 1",
+            "default: 2",
+            "default: 3",
+            "default: 4"]);
+    }, "Console count method default parameter should work");
+</script>

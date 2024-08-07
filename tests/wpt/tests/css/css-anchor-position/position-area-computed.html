@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>CSS Anchor Positioning: position-area getComputedStyle()</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position/#position-area">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<script src="/css/support/inheritance-testcommon.js"></script>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+  test_computed_value("position-area", "none");
+  test_computed_value("position-area", "span-all");
+  test_computed_value("position-area", "x-start");
+  test_computed_value("position-area", "center");
+  test_computed_value("position-area", "span-all span-all", "span-all");
+  test_computed_value("position-area", "center center", "center");
+  test_computed_value("position-area", "top center", "center top");
+  test_computed_value("position-area", "span-bottom span-all", "span-bottom");
+
+  assert_not_inherited("position-area", "none", "span-all");
+</script>

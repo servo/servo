@@ -24,6 +24,7 @@ async function attemptDisconnect() {
 }
 
 window.onload = async () => {
+  window.test_driver.set_test_context(window.top);
   const params = new URLSearchParams(document.location.search);
   if (params.has("skip_get")) {
     attemptDisconnect();

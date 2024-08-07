@@ -12,9 +12,11 @@
 <script>
 "use strict";
 
-promise_test(function() {
+let png = "/images/green.png?image-decode-with-quick-attach-" + Math.random();
+
+function run_test(prop = "src") {
   const img = new Image();
-  img.src = "/images/green.png";
+  img[prop] = png;
   const promise = img.decode().then(function(arg) {
     assert_equals(arg, undefined);
   });
@@ -22,5 +24,9 @@ promise_test(function() {
   // The promise should still resolve successfully.
   document.body.appendChild(img);
   return promise;
-}, document.title);
+}
+
+promise_test(() => run_test(), document.title + ": src not cached");
+promise_test(() => run_test(), document.title + ": src cached");
+promise_test(() => run_test("srcset"), document.title + ": srcset");
 </script>

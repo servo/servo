@@ -126,9 +126,12 @@ async function testCreateWorkletWithDataOption(
   const scriptOrigin = is_same_origin_script ? sameOrigin : crossOrigin;
   const scriptUrl = is_same_origin_script ? sameOriginScriptUrl :
                                             crossOrigin + sameOriginScriptUrl;
+  const dataOrigin =
+      (data_origin === 'script-origin') ? scriptOrigin : sameOrigin;
+  let success = false;
+  let error = null;
 
   try {
-    // Currently the `dataOrigin` option is not hooked up.
     const worklet = await sharedStorage.createWorklet(
         scriptUrl, {credentials: 'omit', dataOrigin: data_origin});
 
@@ -148,14 +151,17 @@ async function testCreateWorkletWithDataOption(
     const result0 = await nextValueFromServer(ancestor_key);
     assert_equals(result0, 'frame0_loaded');
 
-    await verifyKeyValueForOrigin(key, value, scriptOrigin);
-    await deleteKeyForOrigin(key, scriptOrigin);
-    assert_true(expect_success, 'no error caught even though one was expected');
+    await verifyKeyValueForOrigin(key, value, dataOrigin);
+    await deleteKeyForOrigin(key, dataOrigin);
+    success = true;
   } catch (e) {
-    assert_false(
-        expect_success, 'expected success but error thrown: ' + e.toString());
+    error = e;
     assert_equals(e.name, 'TypeError');
   } finally {
+    assert_equals(
+        expect_success, success,
+        error ? 'expected success but error thrown: ' + error.toString() :
+                'no error caught even though one was expected');
     test.done();
   }
 }
