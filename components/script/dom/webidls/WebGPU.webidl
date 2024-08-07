@@ -518,6 +518,21 @@ interface GPUCompilationInfo {
     readonly attribute any messages;
 };
 
+[Exposed=(Window, Worker), Pref="dom.webgpu.enabled"]
+interface GPUPipelineError : DOMException {
+    constructor(optional DOMString message = "", GPUPipelineErrorInit options);
+    readonly attribute GPUPipelineErrorReason reason;
+};
+
+dictionary GPUPipelineErrorInit {
+    required GPUPipelineErrorReason reason;
+};
+
+enum GPUPipelineErrorReason {
+    "validation",
+    "internal",
+};
+
 enum GPUAutoLayoutMode {
     "auto"
 };
