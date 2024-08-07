@@ -1083,7 +1083,6 @@ impl Sink {
     }
 }
 
-#[allow(crown::unrooted_must_root)] // FIXME: really?
 impl TreeSink for Sink {
     type Output = Self;
     fn finish(self) -> Self {
@@ -1092,10 +1091,12 @@ impl TreeSink for Sink {
 
     type Handle = Dom<Node>;
 
+    #[allow(crown::unrooted_must_root)]
     fn get_document(&mut self) -> Dom<Node> {
         Dom::from_ref(self.document.upcast())
     }
 
+    #[allow(crown::unrooted_must_root)]
     fn get_template_contents(&mut self, target: &Dom<Node>) -> Dom<Node> {
         let template = target
             .downcast::<HTMLTemplateElement>()
@@ -1117,6 +1118,7 @@ impl TreeSink for Sink {
         }
     }
 
+    #[allow(crown::unrooted_must_root)]
     fn create_element(
         &mut self,
         name: QualName,
@@ -1137,11 +1139,13 @@ impl TreeSink for Sink {
         Dom::from_ref(element.upcast())
     }
 
+    #[allow(crown::unrooted_must_root)]
     fn create_comment(&mut self, text: StrTendril) -> Dom<Node> {
         let comment = Comment::new(DOMString::from(String::from(text)), &self.document, None);
         Dom::from_ref(comment.upcast())
     }
 
+    #[allow(crown::unrooted_must_root)]
     fn create_pi(&mut self, target: StrTendril, data: StrTendril) -> Dom<Node> {
         let doc = &*self.document;
         let pi = ProcessingInstruction::new(
@@ -1182,6 +1186,7 @@ impl TreeSink for Sink {
         }
     }
 
+    #[allow(crown::unrooted_must_root)]
     fn append_before_sibling(&mut self, sibling: &Dom<Node>, new_node: NodeOrText<Dom<Node>>) {
         let parent = sibling
             .GetParentNode()
@@ -1203,10 +1208,12 @@ impl TreeSink for Sink {
         self.document.set_quirks_mode(mode);
     }
 
+    #[allow(crown::unrooted_must_root)]
     fn append(&mut self, parent: &Dom<Node>, child: NodeOrText<Dom<Node>>) {
         insert(parent, None, child, self.parsing_algorithm);
     }
 
+    #[allow(crown::unrooted_must_root)]
     fn append_based_on_parent_node(
         &mut self,
         elem: &Dom<Node>,
