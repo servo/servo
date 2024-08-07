@@ -1407,6 +1407,28 @@ impl WGPU {
                             }
                         }
                     },
+                    WebGPURequest::ComputeGetBindGroupLayout {
+                        device_id,
+                        pipeline_id,
+                        index,
+                        id,
+                    } => {
+                        let global = &self.global;
+                        let (_, error) = gfx_select!(pipeline_id =>
+                            global.compute_pipeline_get_bind_group_layout(pipeline_id, index, Some(id)));
+                        self.maybe_dispatch_wgpu_error(device_id, error);
+                    },
+                    WebGPURequest::RenderGetBindGroupLayout {
+                        device_id,
+                        pipeline_id,
+                        index,
+                        id,
+                    } => {
+                        let global = &self.global;
+                        let (_, error) = gfx_select!(pipeline_id =>
+                            global.render_pipeline_get_bind_group_layout(pipeline_id, index, Some(id)));
+                        self.maybe_dispatch_wgpu_error(device_id, error);
+                    },
                 }
             }
         }

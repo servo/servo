@@ -301,4 +301,16 @@ pub enum WebGPURequest {
         device_id: id::DeviceId,
         sender: IpcSender<WebGPUResponse>,
     },
+    ComputeGetBindGroupLayout {
+        device_id: id::DeviceId,
+        pipeline_id: id::ComputePipelineId,
+        index: u32,
+        id: id::BindGroupLayoutId,
+    },
+    RenderGetBindGroupLayout {
+        device_id: id::DeviceId,
+        pipeline_id: id::RenderPipelineId,
+        index: u32,
+        id: id::BindGroupLayoutId,
+    },
 }

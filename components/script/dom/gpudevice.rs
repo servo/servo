@@ -591,10 +591,8 @@ impl GPUDeviceMethods for GPUDevice {
         let compute_pipeline = webgpu::WebGPUComputePipeline(compute_pipeline_id);
         GPUComputePipeline::new(
             &self.global(),
-            self.channel.clone(),
             compute_pipeline,
             descriptor.parent.parent.label.clone().unwrap_or_default(),
-            bgls,
             self,
         )
     }
@@ -892,7 +890,6 @@ impl GPUDeviceMethods for GPUDevice {
             &self.global(),
             render_pipeline,
             descriptor.parent.parent.label.clone().unwrap_or_default(),
-            bgls,
             self,
         )
     }
