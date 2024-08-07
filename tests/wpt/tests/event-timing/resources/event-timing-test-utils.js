@@ -378,6 +378,21 @@ async function pressKey(target, key) {
   await test_driver.send_keys(target, key);
 }
 
+async function flingAndTapInTarget(target) {
+  const actions = new test_driver.Actions();
+  return actions.addPointer("pointer1", "touch")
+        .pointerMove(0, 0, {origin: target})
+        .pointerDown()
+        .pointerMove(0, -50, {origin: target})
+        .pointerMove(0, -50, {origin: target})
+        .pointerUp()
+        .pause(60)
+        .pointerMove(0, 0, {origin: target})
+        .pointerDown()
+        .pointerUp()
+        .send();
+}
+
 // The testdriver.js, testdriver-vendor.js need to be included to use this
 // function.
 async function addListenersAndPress(target, key, events) {
@@ -414,6 +429,29 @@ async function createPerformanceObserverPromise(observeTypes, callback, readyToR
       }
     }).observe({ entryTypes: observeTypes });
   });
+}
+
+const ENTER_KEY = '\uE007';
+const SPACE_KEY = '\uE00D';
+
+async function blockPointerDownEventListener(target, duration, count) {
+  return new Promise(resolve => {
+    target.addEventListener("pointerdown", () => {
+      event_count++;
+      mainThreadBusy(duration);
+      if (event_count == count)
+        resolve();
+    });
+  });
+}
+
+async function flingTapAndBlockMain(target, duration) {
+  await Promise.all([
+    blockPointerDownEventListener(target, 30, 2),
+    blockNextEventListener(target, "pointercancel", 30),
+    blockNextEventListener(target, "scroll", 30),
+    flingAndTapInTarget(target),
+  ]);
 }
 
 // The testdriver.js, testdriver-vendor.js need to be included to use this
@@ -457,6 +495,20 @@ async function interactAndObserve(interactionType, target, observerPromise, key 
     case 'orphan-pointerup': {
       addListeners(target, ['pointerup']);
       interactionPromise = pointerup(target);
+      break;
+    }
+    case 'space-key-simulated-click': {
+      addListeners(target, ['keydown', 'click']);
+      interactionPromise = interact('key', target, SPACE_KEY);
+      break;
+    }
+    case 'enter-key-simulated-click': {
+      addListeners(target, ['keydown', 'click']);
+      interactionPromise = interact('key', target, ENTER_KEY);
+      break;
+    }
+    case 'fling-tap': {
+      interactionPromise = flingTapAndBlockMain(target, 30);
       break;
     }
   }

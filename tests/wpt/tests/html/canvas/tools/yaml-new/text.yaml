@@ -2448,4 +2448,21 @@
   code: |
     ctx.font = "math serif";
 
+- name: 2d.text.writingmode
+  desc: writing-mode in css should not change how text is rendered
+  canvas_types: ['HtmlCanvas']
+  code: |
+    canvas.style.writingMode = "vertical-rl";
+    canvas.style.fontFamily = "Arial";
+
+    ctx.font = "bold 64px Arial";
+    ctx.textBaseline = "top";
+
+    ctx.fillText("Happy", 0, 100);
+  reference: |
+    ctx.font = "bold 64px Arial";
+    ctx.textBaseline = "top";
+
+    ctx.fillText("Happy", 0, 100);
+
 # TODO: shadows, alpha, composite, clip

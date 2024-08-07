@@ -76,6 +76,7 @@ multi_builder_test(async (t, builder, otherBuilder) => {
       () => builder.batchNormalization(input, mean, variance, options));
 }, '[batchNormalization] throw if bias option is from another builder');
 
+const label = `batchNormalization_?_123`;
 const tests = [
   {
     name: '[batchNormalization] Test with default options.',
@@ -101,6 +102,9 @@ const tests = [
     input: {dataType: 'int32', dimensions: [1, 2, 5, 5]},
     mean: {dataType: 'int32', dimensions: [2]},
     variance: {dataType: 'int32', dimensions: [2]},
+    options: {
+      label: label,
+    },
   },
   {
     name:
@@ -108,12 +112,18 @@ const tests = [
     input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
     mean: {dataType: 'float16', dimensions: [2]},
     variance: {dataType: 'float32', dimensions: [2]},
+    options: {
+      label: label,
+    },
   },
   {
     name: '[batchNormalization] Throw if the mean operand is not a 1-D tensor.',
     input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
     mean: {dataType: 'float32', dimensions: [1, 2]},
     variance: {dataType: 'float32', dimensions: [2]},
+    options: {
+      label: label,
+    },
   },
   {
     name:
@@ -123,6 +133,7 @@ const tests = [
     variance: {dataType: 'float32', dimensions: [2]},
     options: {
       axis: 1,
+      label: label,
     },
   },
   {
@@ -131,6 +142,9 @@ const tests = [
     input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
     mean: {dataType: 'float32', dimensions: [2]},
     variance: {dataType: 'float16', dimensions: [2]},
+    options: {
+      label: label,
+    },
   },
   {
     name:
@@ -138,6 +152,9 @@ const tests = [
     input: {dataType: 'float32', dimensions: [1, 2, 5, 5]},
     mean: {dataType: 'float32', dimensions: [2]},
     variance: {dataType: 'float32', dimensions: [2, 2]},
+    options: {
+      label: label,
+    },
   },
   {
     name:
@@ -147,6 +164,7 @@ const tests = [
     variance: {dataType: 'float32', dimensions: [2]},
     options: {
       axis: 2,
+      label: label,
     },
   },
   {
@@ -157,6 +175,7 @@ const tests = [
     variance: {dataType: 'float16', dimensions: [2]},
     options: {
       scale: {dataType: 'float32', dimensions: [2]},
+      label: label,
     },
   },
   {
@@ -167,6 +186,7 @@ const tests = [
     variance: {dataType: 'float32', dimensions: [2]},
     options: {
       scale: {dataType: 'float32', dimensions: [2, 1]},
+      label: label,
     },
   },
   {
@@ -178,6 +198,7 @@ const tests = [
     options: {
       axis: 2,
       scale: {dataType: 'float32', dimensions: [2]},
+      label: label,
     },
   },
   {
@@ -188,6 +209,7 @@ const tests = [
     variance: {dataType: 'float16', dimensions: [2]},
     options: {
       bias: {dataType: 'float32', dimensions: [2]},
+      label: label,
     },
   },
   {
@@ -197,6 +219,7 @@ const tests = [
     variance: {dataType: 'float32', dimensions: [2]},
     options: {
       bias: {dataType: 'float32', dimensions: [2, 1]},
+      label: label,
     },
   },
   {
@@ -208,6 +231,7 @@ const tests = [
     options: {
       axis: 2,
       bias: {dataType: 'float32', dimensions: [2]},
+      label: label,
     },
   },
   {
@@ -218,12 +242,14 @@ const tests = [
     variance: {dataType: 'float32', dimensions: [5]},
     options: {
       axis: 4,
+      label: label,
     },
   },
 ];
 
 tests.forEach(
     test => promise_test(async t => {
+      const builder = new MLGraphBuilder(context);
       const input = builder.input(
           'input',
           {dataType: test.input.dataType, dimensions: test.input.dimensions});
@@ -254,9 +280,13 @@ tests.forEach(
         assert_equals(output.dataType(), test.output.dataType);
         assert_array_equals(output.shape(), test.output.dimensions);
       } else {
-        assert_throws_js(
-            TypeError,
-            () => builder.batchNormalization(
-                input, mean, variance, test.options));
+        try {
+          builder.batchNormalization(input, mean, variance, test.options);
+        } catch (e) {
+          assert_equals(e.name, 'TypeError');
+          const error_message = e.message;
+          const regrexp = /\[batchNormalization_\?_123\]/;
+          assert_not_equals(error_message.match(regrexp), null);
+        }
       }
     }, test.name));

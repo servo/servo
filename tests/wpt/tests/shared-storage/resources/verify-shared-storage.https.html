@@ -11,6 +11,9 @@ async function test() {
       await sharedStorage.set('key0', 'key1');
     } else if (method == 'createWorklet') {
       await sharedStorage.createWorklet('simple-module.js')
+    } else if (method == 'createWorkletScriptOrigin') {
+      await sharedStorage.createWorklet('simple-module.js',
+                                        { dataOrigin: 'script-origin' })
     } else if (method == 'addModule') {
       await sharedStorage.worklet.addModule('simple-module.js')
     }

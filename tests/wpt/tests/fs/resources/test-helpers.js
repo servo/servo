@@ -123,9 +123,18 @@ async function cleanup_writable(test, value) {
   });
 }
 
+function getUniqueName(name) {
+  return `unique${Date.now()}${Math.random().toString().slice(2)}`;
+}
+
 function createFileHandles(dir, ...fileNames) {
   return Promise.all(
       fileNames.map(fileName => dir.getFileHandle(fileName, {create: true})));
+}
+
+function createDirectoryHandles(dir, ...dirNames) {
+  return Promise.all(
+      dirNames.map(dirName => dir.getDirectoryHandle(dirName, {create: true})));
 }
 
 // Releases a lock created by one of the create*WithCleanup functions below.

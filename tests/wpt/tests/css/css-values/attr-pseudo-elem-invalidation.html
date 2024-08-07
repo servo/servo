@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: attr() invalidation of pseudo elements</title>
+<meta name="assert" content="Test attr() invalidation of pseudo elements">
+<link rel="help" href="https://drafts.csswg.org/css-values/#attr-notation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<html>
+  <body>
+    <div id="div"></div>
+  </body>
+</html>
+
+<script>
+  const pseudoSelectors = [
+    "::after",
+    "::backdrop",
+    "::before",
+    "::first-letter",
+    "::first-line",
+    "::selection"
+  ];
+
+  function test_pseudo_element_invalidation(pseudoSelector) {
+    let elem = document.getElementById("div");
+    elem.setAttribute("data-foo", "150%");
+    elem.style["font-size"]= "attr(data-foo percentage)";
+    let old_font_size = window.getComputedStyle(elem, pseudoSelector).getPropertyValue("font-size");
+    elem.setAttribute("data-foo", "300%");
+    let new_font_size = window.getComputedStyle(elem, pseudoSelector).getPropertyValue("font-size");
+    test(() => {
+      assert_not_equals(new_font_size, old_font_size,
+                        "Change of attribute value should lead to invalidation of "
+                         + pseudoSelector + " element style.");
+    });
+    elem.style["font-size"]= null;
+  }
+
+  pseudoSelectors.forEach(pseudoSelector => {
+    test_pseudo_element_invalidation(pseudoSelector);
+  });
+</script>

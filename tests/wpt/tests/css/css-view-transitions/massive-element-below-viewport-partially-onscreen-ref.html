@@ -2,7 +2,12 @@
 <title>View transitions: massive element below viewport partially onscreen (ref)</title>
 <link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
 <link rel="author" href="mailto:khushalsagar@chromium.org">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style>
+:root {
+  font: 12px/1 Ahem;
+}
+
 .target {
   contain: paint;
   inline-size: 100px;
@@ -11,6 +16,10 @@
 }
 
 .top {
+  /* Ahem font sometimes causes slight difference between actual and reference
+    images due to anti-aliasing when bordering the white background in this
+    case. Adding a padding reduces the test flakiness. */
+  padding-top: 1px;
   inline-size: 100%;
   block-size: 100px;
   background: lightblue;

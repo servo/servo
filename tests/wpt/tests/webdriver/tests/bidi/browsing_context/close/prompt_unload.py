@@ -23,7 +23,7 @@ async def test_prompt_unload_not_triggering_dialog(
 
     new_context = await bidi_session.browsing_context.create(type_hint=type_hint)
 
-    # Set up event listener to make sure the "beforeunload" event is not emitted
+    # Set up event listener to make sure the "browsingContext.userPromptOpened" event is not emitted
     await subscribe_events([USER_PROMPT_OPENED_EVENT, CONTEXT_DESTROYED_EVENT])
     # Track all received browsingContext.userPromptOpened events in the events array
     events = []
@@ -64,7 +64,7 @@ async def test_prompt_unload_triggering_dialog(
 
     new_context = await bidi_session.browsing_context.create(type_hint=type_hint)
 
-    # Set up event listener to make sure the "beforeunload" event is not emitted
+    # Set up event listener to make sure the "browsingContext.contextDestroyed" event is not emitted
     await subscribe_events([USER_PROMPT_OPENED_EVENT, CONTEXT_DESTROYED_EVENT])
     user_prompt_opened = wait_for_event(USER_PROMPT_OPENED_EVENT)
 

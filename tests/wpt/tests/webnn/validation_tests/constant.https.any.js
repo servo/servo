@@ -128,6 +128,7 @@ const tests = [
 
 tests.forEach(
     test => promise_test(async t => {
+      const builder = new MLGraphBuilder(context);
       const buffer = new ArrayBuffer(test.bufferView.byteLength);
       const bufferView = new test.bufferView.type(buffer);
       if (test.output) {

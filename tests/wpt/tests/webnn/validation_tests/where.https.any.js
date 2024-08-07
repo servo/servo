@@ -76,6 +76,7 @@ const tests = [
 
 tests.forEach(
     test => promise_test(async t => {
+      const builder = new MLGraphBuilder(context);
       for (let operand of [test.condition, test.trueValue, test.falseValue]) {
         if (!context.opSupportLimits().input.dataTypes.includes(
                 operand.dataType)) {

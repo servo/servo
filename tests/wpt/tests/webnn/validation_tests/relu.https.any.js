@@ -6,5 +6,4 @@
 
 validateInputFromAnotherBuilder('relu');
 
-validateUnaryOperation(
-    'relu', [...floatingPointTypes, 'int32', 'int8'], /*alsoBuildActivation=*/ true);
+validateSingleInputOperation('relu');

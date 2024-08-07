@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div contenteditable id="editable">Copying and pasting some part of the text should not
+  set the event.data with the selected part for contenteditable</div>
+<script>
+  const editable = document.getElementById("editable");
+  let eventData;
+  let eventFired = false;
+  editable.addEventListener('input', (evt) => {
+    if(evt.inputType == 'insertFromPaste') {
+      eventFired = true;
+      eventData = evt.data;
+    }
+  });
+  test(function () {
+    editable.focus();
+    // Selecting first word of the text.
+    getSelection().setBaseAndExtent(editable.firstChild, 0, editable.firstChild, 7);
+    const selectedData = getSelection().toString();
+    // Copy and paste should fire input event with inputType insertFromPaste.
+    document.execCommand("copy");
+    document.execCommand("paste");
+    // Event data should NOT be set with the first word of the text
+    // which is "Copying" in case of contenteditable, it should be null instead.
+    assert_equals(selectedData, "Copying");
+    assert_equals(eventData, null);
+    assert_true(eventFired);
+  }, 'Input event data for inputType insertFromPaste should not be set for contenteditable');
+</script>
+</body>
+</html>

@@ -1,7 +1,12 @@
+import os
 import pytest
+from urllib.parse import urlparse
 
 from webdriver.bidi.modules.script import ContextTarget
-from webdriver.bidi.modules.storage import BrowsingContextPartitionDescriptor
+from webdriver.bidi.modules.storage import (
+    BrowsingContextPartitionDescriptor,
+    StorageKeyPartitionDescriptor,
+)
 
 from .. import assert_cookies
 
@@ -110,6 +115,7 @@ async def test_fetch(
     fetch,
     wait_for_future_safe,
     url,
+    origin,
     domain_1,
 ):
     # Clean up cookies in case some other tests failed before cleaning up.
@@ -124,9 +130,10 @@ async def test_fetch(
 
     cookie_name = "foo"
     cookie_value = "bar"
+    path = "/webdriver/tests/support/http_handlers"
     # Add `Access-Control-Allow-Origin` header for cross-origin request to work.
     request_url = url(
-        "/webdriver/tests/support/http_handlers/headers.py?header=Access-Control-Allow-Origin:*",
+        f"{path}/headers.py?header=Access-Control-Allow-Origin:*",
         domain=domain_1,
     )
 
@@ -145,7 +152,8 @@ async def test_fetch(
     await wait_for_future_safe(on_before_request_sent)
 
     result = await bidi_session.storage.get_cookies(
-        partition=BrowsingContextPartitionDescriptor(new_tab["context"])
+        partition=StorageKeyPartitionDescriptor(source_origin=origin(domain=domain_1)),
+        filter={"path": path},
     )
     assert_cookies(result["cookies"], events[0]["request"]["cookies"])
 
@@ -162,6 +170,7 @@ async def test_image(
     wait_for_future_safe,
     url,
     inline,
+    origin,
     domain_1,
 ):
     # Clean up cookies in case some other tests failed before cleaning up.
@@ -194,8 +203,10 @@ async def test_image(
     )
     await wait_for_future_safe(on_before_request_sent)
 
+    image_path = os.path.dirname(urlparse(image_url).path.replace("/", os.sep))
     result = await bidi_session.storage.get_cookies(
-        partition=BrowsingContextPartitionDescriptor(new_tab["context"])
+        partition=StorageKeyPartitionDescriptor(source_origin=origin(domain=domain_1)),
+        filter={"path": image_path}
     )
 
     # Find the network event which belongs to the image.

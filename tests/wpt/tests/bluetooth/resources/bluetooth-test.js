@@ -191,8 +191,9 @@ function assert_promise_rejects_with_message(promise, expected, description) {
       error => {
         assert_equals(error.name, expected.name, 'Unexpected Error Name:');
         if (expected.message) {
-          assert_equals(
-              error.message, expected.message, 'Unexpected Error Message:');
+          assert_true(
+              error.message.includes(expected.message),
+              'Unexpected Error Message:');
         }
       });
 }

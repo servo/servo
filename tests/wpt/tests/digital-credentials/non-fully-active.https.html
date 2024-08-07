@@ -42,28 +42,28 @@
     // Try to get credentials while not fully active...
     await promise_rejects_dom(
       t,
-      "NotAllowedError",
+      "InvalidStateError",
       DOMExceptionCtor,
       identity.get({ signal }),
-      "Expected NotAllowedError for get() on non-fully-active document"
+      "Expected InvalidStateError for get() on non-fully-active document"
     );
 
     // Try to create credentials while not fully active...
     await promise_rejects_dom(
       t,
-      "NotAllowedError",
+      "InvalidStateError",
       DOMExceptionCtor,
       identity.create({ signal }),
-      "Expected NotAllowedError for create() on non-fully-active document"
+      "Expected InvalidStateError for create() on non-fully-active document"
     );
 
     // Try to prevent silent access while not fully active...
     await promise_rejects_dom(
       t,
-      "NotAllowedError",
+      "InvalidStateError",
       DOMExceptionCtor,
       identity.preventSilentAccess(),
-      "Expected NotAllowedError for preventSilentAccess() on non-fully-active document"
+      "Expected InvalidStateError for preventSilentAccess() on non-fully-active document"
     );
   }, "non-fully active document behavior for CredentialsContainer");
 </script>

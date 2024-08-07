@@ -31,7 +31,7 @@ body {
 }
 #anchored {
   position-anchor: --anchor1;
-  inset-area: top;
+  position-area: top;
   position-try-fallbacks: --fixed;
   position: fixed;
   width: 50px;
@@ -39,7 +39,7 @@ body {
   background: blue;
 }
 @position-try --fixed {
-  inset-area: top left;
+  position-area: top left;
   position-anchor: --anchor2;
 }
 </style>

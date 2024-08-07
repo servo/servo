@@ -331,7 +331,9 @@ async function create_prerendered_page(t, params = {}, opt = {}, rule_extras = {
     exec: (fn, args) => prerender_remote.execute_script(fn, args),
     activate,
     tryToActivate,
-    getNetworkRequestCount
+    getNetworkRequestCount,
+    prerenderingURL: (new URL(prerendering_url, document.baseURI)).href,
+    activatingURL: (new URL(activating_url, document.baseURI)).href
   };
 }
 

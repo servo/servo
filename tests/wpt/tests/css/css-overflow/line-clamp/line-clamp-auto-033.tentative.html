@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp: auto` will not clamp inside IFC</title>
+<link rel="author" title="Andreu Botella" href="mailto:abotella@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-005-ref.html">
+<meta name="assert" content="With `line-clamp: auto`, there cannot be any clamp points inside IFCs. So if the max-height offset falls inside an IFC, the clamp would be before the IFC.">
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 6lh;
+  font: 16px / 32px serif;
+  white-space: pre;
+  padding: 0 4px;
+  background-color: yellow;
+}
+.ifc {
+  display: flow-root;
+  background-color: red;
+}
+</style>
+
+<div class="clamp">Line 1
+Line 2
+Line 3
+Line 4
+<div class="ifc">Line 5
+Line 6
+Line 7</div>
+Line 8</div>

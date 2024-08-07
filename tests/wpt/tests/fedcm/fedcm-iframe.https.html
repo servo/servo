@@ -29,7 +29,11 @@ async function createIframeAndWaitForMessage(test, iframeUrl, setPermissionPolic
       iframe.style = style;
     }
     document.body.appendChild(iframe);
-    const message = await messageWatcher.wait_for("message");
+    let message = null;
+    // Ignore internal "testdriver-complete" messages.
+    do {
+        message = await messageWatcher.wait_for("message");
+    } while (!("result" in message.data));
     return message.data;
 }
 

@@ -6,5 +6,4 @@
 
 validateInputFromAnotherBuilder('gelu');
 
-validateUnaryOperation(
-    'gelu', floatingPointTypes, /*alsoBuildActivation=*/ true);
+validateSingleInputOperation('gelu');

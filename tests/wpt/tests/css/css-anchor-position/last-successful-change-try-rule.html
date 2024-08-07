@@ -26,11 +26,11 @@
     position: absolute;
     width: 100px;
     height: 200px;
-    inset-area: top center;
+    position-area: top center;
     background: lime;
   }
   @position-try --try {
-    inset-area: bottom center;
+    position-area: bottom center;
   }
 </style>
 <div id="container">
@@ -53,7 +53,7 @@
 
   promise_test(async () => {
     // Changing @position-try --try {}
-    anchor_sheet.sheet.cssRules[3].style.insetArea = "bottom";
+    anchor_sheet.sheet.cssRules[3].style.positionArea = "bottom";
     await waitUntilNextAnimationFrame();
     await waitUntilNextAnimationFrame();
     assert_equals(anchored.offsetTop, -50);

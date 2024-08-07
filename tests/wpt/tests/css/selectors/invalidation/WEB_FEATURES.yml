@@ -7,6 +7,9 @@ features:
 - name: modal
   files:
   - modal-pseudo-class-in-has.html
+- name: nth-child-of
+  files:
+  - nth-child-of-*
 - name: user-pseudos
   files:
   - user-valid-user-invalid.html

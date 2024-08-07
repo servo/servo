@@ -213,6 +213,25 @@ test_applied('<transform-list>', 'rotateX(0deg)', false, 'rotateX(0deg)');
 test_applied('<transform-list>', 'rotateX(0deg) translateX(10px)', false, 'rotateX(0deg) translateX(10px)');
 test_applied('<url>', 'url("http://a/")', false, 'url("http://a/")');
 
+test_applied("<string>", "'foo bar'", false, '"foo bar"');
+test_applied("<string>", " 'foo bar' ", false, '"foo bar"');
+test_applied("<string>", `'"foo" bar'`, false, '"\\"foo\\" bar"');
+test_applied("<string>", '"bar baz"', false, '"bar baz"');
+test_applied("<string>", `"bar 'baz'"`, false, `"bar 'baz'"`);
+test_applied("<string>+", "'foo' 'bar'", false, '"foo" "bar"');
+test_applied("<string>#", "'foo', 'bar'", false, '"foo", "bar"');
+test_applied("<string>+ | <string>#", "'foo' 'bar'", false, '"foo" "bar"');
+test_applied("<string>+ | <string>#", " 'foo' 'bar'", false, '"foo" "bar"');
+test_applied("<string>+ | <string>#", `'foo' "bar"`, false, '"foo" "bar"');
+test_applied("<string># | <string>+", "'foo', 'bar'", false, '"foo", "bar"');
+test_applied("<string># | <string>+", "'foo', 'bar' ", false, '"foo", "bar"');
+test_applied("<string># | <string>+", `"foo", 'bar'`, false, '"foo", "bar"');
+
+test_not_applied("<string>", "'foo bar", false);
+test_not_applied("<string>", `"bar 'baz'`, false);
+test_not_applied("<string>+ | <string>#", `'foo' "bar`, false);
+test_not_applied("<string># | <string>+", `"foo", 'bar`, false);
+
 // inherits: true/false
 test_applied('<color>', 'tomato', false, 'rgb(255, 99, 71)');
 test_applied('<color>', 'tomato', true, 'rgb(255, 99, 71)');

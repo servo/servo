@@ -9,100 +9,26 @@ const kArgMinMaxOperators = [
   'argMax',
 ];
 
+const label = 'arg_min_max_1_!';
+
 const tests = [
   {
     name: '[argMin/Max] Test with default options.',
     input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
-    output: {dimensions: []}
+    axis: 0,
+    output: {dimensions: [2, 3, 4]}
   },
   {
-    name: '[argMin/Max] Test with axes=[].',
+    name: '[argMin/Max] Test with axes=1.',
     input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
-    options: {
-      axes: [],
-    },
-    output: {dimensions: [1, 2, 3, 4]}
-  },
-  {
-    name: '[argMin/Max] Test scalar input with empty axes.',
-    input: {dataType: 'float32', dimensions: []},
-    options: {
-      axes: [],
-    },
-    output: {dimensions: []}
-  },
-  {
-    name: '[argMin/Max] Test with axes=[1].',
-    input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
-    options: {
-      axes: [1],
-    },
+    axis: 1,
     output: {dimensions: [1, 3, 4]}
-  },
-  {
-    name: '[argMin/Max] Test with axes=[1, 3] and keepDimensions=true.',
-    input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
-    options: {
-      axes: [1, 3],
-      keepDimensions: true,
-    },
-    output: {dimensions: [1, 1, 3, 1]}
-  },
-  {
-    name: '[argMin/Max] Test with axes=[1, 3] and keepDimensions=false.',
-    input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
-    options: {
-      axes: [1, 3],
-      keepDimensions: false,
-    },
-    output: {dimensions: [1, 3]}
-  },
-  {
-    name: '[argMin/Max] Test with axes=[1] and selectLastIndex=true.',
-    input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
-    options: {
-      axes: [1],
-      selectLastIndex: true,
-    },
-    output: {dimensions: [1, 3, 4]}
-  },
-  {
-    name: '[argMin/Max] Test with axes=[1] and selectLastIndex=false.',
-    input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
-    options: {
-      axes: [1],
-      selectLastIndex: false,
-    },
-    output: {dimensions: [1, 3, 4]}
-  },
-  {
-    name:
-        '[argMin/Max] Throw if the value in axes is greater than or equal to input rank.',
-    input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
-    options: {
-      axes: [4],
-    },
-  },
-  {
-    name:
-        '[argMin/Max] Throw if two or more values are same in the axes sequence.',
-    input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
-    options: {
-      axes: [1, 1],
-    },
-  },
-  {
-    name: '[argMin/Max] Throw if input is a scalar and axes is non-empty.',
-    input: {dataType: 'float32', dimensions: []},
-    options: {
-      axes: [1],
-    },
   },
   {
     name: '[argMin/Max] Test with outputDataType=int32',
     input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
+    axis: 1,
     options: {
-      axes: [1],
       outputDataType: 'int32',
     },
     output: {dimensions: [1, 3, 4]}
@@ -110,39 +36,64 @@ const tests = [
   {
     name: '[argMin/Max] Test with outputDataType=int64',
     input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
+    axis: 1,
     options: {
-      axes: [1],
       outputDataType: 'int64',
     },
     output: {dimensions: [1, 3, 4]}
+  },
+  {
+    name:
+        '[argMin/Max] Throw if the value in axis is greater than or equal to input rank.',
+    input: {dataType: 'float32', dimensions: [1, 2, 3, 4]},
+    axis: 4,
+    options: {
+      label: label,
+    },
+  },
+  {
+    name: '[argMin/Max] Throw if input is a scalar and axis=0.',
+    input: {dataType: 'float32', dimensions: []},
+    axis: 0,
+    options: {
+      label: label,
+    },
   },
 ];
 
 function runTests(operatorName, tests) {
   tests.forEach(test => {
     promise_test(async t => {
+      const builder = new MLGraphBuilder(context);
       const input = builder.input(
-          'input',
-          {dataType: test.input.dataType, dimensions: test.input.dimensions});
+        'input',
+        { dataType: test.input.dataType, dimensions: test.input.dimensions });
+      const axis = test.axis;
       if (test.options && test.options.outputDataType !== undefined) {
         if (context.opSupportLimits()[operatorName].output.dataTypes.includes(
-                test.options.outputDataType)) {
-          const output = builder[operatorName](input, test.options);
+          test.options.outputDataType)) {
+          const output = builder[operatorName](input, axis, test.options);
           assert_equals(output.dataType(), test.options.outputDataType);
           assert_array_equals(output.shape(), test.output.dimensions);
         } else {
           assert_throws_js(
-              TypeError, () => builder[operatorName](input, test.options));
+            TypeError, () => builder[operatorName](input, axis, test.options));
         }
         return;
       }
       if (test.output) {
-        const output = builder[operatorName](input, test.options);
+        const output = builder[operatorName](input, axis, test.options);
         assert_equals(output.dataType(), 'int32');
         assert_array_equals(output.shape(), test.output.dimensions);
       } else {
-        assert_throws_js(
-            TypeError, () => builder[operatorName](input, test.options));
+        try {
+          builder[operatorName](input, axis, test.options);
+        } catch (e) {
+          assert_equals(e.name, 'TypeError');
+          const error_message = e.message;
+          const regrexp = /\[arg_min_max_1_\!\]/;
+          assert_not_equals(error_message.match(regrexp), null);
+        }
       }
     }, test.name.replace('[argMin/Max]', `[${operatorName}]`));
   });

@@ -1,6 +1,6 @@
 # mypy: allow-untyped-defs
 
-from .base import cmd_arg, require_arg
+from .base import require_arg
 from .base import get_timeout_multiplier   # noqa: F401
 from .chrome import ChromeBrowser, debug_args, executor_kwargs  # noqa: F401
 from ..executors.base import WdspecExecutor  # noqa: F401
@@ -55,8 +55,4 @@ def update_properties():
 
 
 class HeadlessShellBrowser(ChromeBrowser):
-    def make_command(self):
-        return [self.webdriver_binary,
-                cmd_arg("port", str(self.port)),
-                cmd_arg("url-base", self.base_path),
-                cmd_arg("enable-chrome-logs")] + self.webdriver_args
+    pass

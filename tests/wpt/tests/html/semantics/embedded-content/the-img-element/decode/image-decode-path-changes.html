@@ -14,17 +14,17 @@
 // -------------------
 promise_test(function(t) {
   var img = new Image();
-  img.src = "/images/green.png";
+  img.src = "/images/green.png?image-decode-path-changes-1";
   var promise = img.decode();
-  img.src = "/images/green.svg";
+  img.src = "/images/green.svg?image-decode-path-changes-1";
   return promise_rejects_dom(t, "EncodingError", promise);
 }, document.title + " src changes fail decode.");
 
 promise_test(function(t) {
   var img = new Image();
-  img.src = "/images/green.png";
+  img.src = "/images/green.png?image-decode-path-changes-2";
   var first_promise = img.decode();
-  img.src = "/images/blue.png";
+  img.src = "/images/blue.png?image-decode-path-changes-2";
   var second_promise = img.decode();
   assert_not_equals(first_promise, second_promise);
   return Promise.all([
@@ -35,9 +35,9 @@ promise_test(function(t) {
 
 promise_test(function(t) {
   var img = new Image();
-  img.src = "/images/green.png";
+  img.src = "/images/green.png?image-decode-path-changes-3";
   var first_promise = img.decode();
-  img.src = "/images/green.svg";
+  img.src = "/images/green.svg?image-decode-path-changes-3";
   var second_promise = img.decode();
   assert_not_equals(first_promise, second_promise);
   return Promise.all([
@@ -48,9 +48,9 @@ promise_test(function(t) {
 
 promise_test(function(t) {
   var img = new Image();
-  img.src = "/images/green.png";
+  img.src = "/images/green.png?image-decode-path-changes-4";
   var first_promise = img.decode();
-  img.src = "/non/existent/path.png";
+  img.src = "/non/existent/path.png?image-decode-path-changes-5";
   var second_promise = img.decode();
   assert_not_equals(first_promise, second_promise);
   return Promise.all([
@@ -73,12 +73,12 @@ promise_test(function(t) {
       img.onload = null;
 
       var first_promise = img.decode();
-      img.src = "/images/green.png";
+      img.src = "/images/green.png?image-decode-path-changes-6";
       var second_promise = img.decode();
       assert_not_equals(first_promise, second_promise);
       resolve(Promise.all([first_promise, second_promise]));
     });
-    img.src = "/images/green.png";
+    img.src = "/images/green.png?image-decode-path-changes-6";
   });
 }, document.title + " src changes to the same path succeed.");
 
@@ -86,17 +86,17 @@ promise_test(function(t) {
 // -------------------
 promise_test(function(t) {
   var img = new Image();
-  img.srcset = "/images/green.png 100w";
+  img.srcset = "/images/green.png?image-decode-path-changes-7 100w";
   var promise = img.decode();
-  img.srcset = "/images/green.svg 100w";
+  img.srcset = "/images/green.svg?image-decode-path-changes-7 100w";
   return promise_rejects_dom(t, "EncodingError", promise);
 }, document.title + " srcset changes fail decode.");
 
 promise_test(function(t) {
   var img = new Image();
-  img.srcset = "/images/green.png 100w";
+  img.srcset = "/images/green.png?image-decode-path-changes-8 100w";
   var first_promise = img.decode();
-  img.srcset = "/images/green.svg 100w";
+  img.srcset = "/images/green.svg?image-decode-path-changes-8 100w";
   var second_promise = img.decode();
   assert_not_equals(first_promise, second_promise);
   return Promise.all([
@@ -107,9 +107,9 @@ promise_test(function(t) {
 
 promise_test(function(t) {
   var img = new Image();
-  img.srcset = "/images/green.png 100w";
+  img.srcset = "/images/green.png?image-decode-path-changes-9 100w";
   var first_promise = img.decode();
-  img.srcset = "/non/existent/path.png 100w";
+  img.srcset = "/non/existent/path.png?image-decode-path-changes-9 100w";
   var second_promise = img.decode();
   assert_not_equals(first_promise, second_promise);
   return Promise.all([

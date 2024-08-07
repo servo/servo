@@ -108,7 +108,7 @@ function asyncInit() {
 
 idl_test(
   ['webrtc'],
-  ['webidl', 'mediacapture-streams', 'hr-time', 'dom', 'html'],
+  ['webidl', 'mediacapture-streams', 'hr-time', 'dom', 'html', 'websockets'],
   async idlArray => {
     idlArray.add_objects({
       RTCPeerConnection: [`new RTCPeerConnection()`],

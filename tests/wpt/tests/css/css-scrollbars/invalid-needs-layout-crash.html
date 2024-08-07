@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<style>
+#target::-webkit-scrollbar { position: absolute; }
+#target.crash::-webkit-scrollbar { right: 0 }
+</style>
+<div id="target" style="width: 100px; height: 100px; overflow: auto;"><div style="height: 200px;"></div></div>
+<script>
+document.body.offsetTop;
+document.getElementById('target').classList.add('crash');
+</script>

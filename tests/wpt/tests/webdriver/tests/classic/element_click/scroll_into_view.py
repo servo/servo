@@ -19,6 +19,14 @@ def assert_one_click(session):
 
 
 def test_scroll_into_view(session, inline):
+    original_handle = session.window_handle
+
+    # Use a new tab to close the virtual keyboard that might have opened by
+    # clicking the input field.
+    new_handle = session.new_window()
+
+    session.window_handle = new_handle
+
     session.url = inline("""
         <input type=text value=Federer
         style="position: absolute; left: 0vh; top: 500vh">""")
@@ -36,6 +44,9 @@ def test_scroll_into_view(session, inline):
             Math.floor(rect.right) <= window.innerWidth;
             """, args=(element,)) is True
 
+    session.window.close()
+
+    session.window_handle = original_handle
 
 @pytest.mark.parametrize("offset", range(9, 0, -1))
 def test_partially_visible_does_not_scroll(session, offset, inline):

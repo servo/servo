@@ -125,6 +125,12 @@ the global scope.
 .. js:autofunction:: test_driver.clear_device_posture
 ```
 
+### Bounce Tracking Mitigations ###
+
+```eval_rst
+.. js:autofunction:: test_driver.run_bounce_tracking_mitigations
+```
+
 ### Using test_driver in other browsing contexts ###
 
 Testdriver can be used in browsing contexts (i.e. windows or frames)

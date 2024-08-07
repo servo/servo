@@ -36,7 +36,7 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
     }
 
     try {
-      while(true) {
+      while(sentSize < 20 * 1024 * 1024) {
         channel1.send(largeString);
         sentSize += largeString.length;
       }
@@ -71,7 +71,7 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
     }
 
     try {
-      while(true) {
+      while(sentSize < 20 * 1024 * 1024) {
         channel1.send(largeArrayBuffer);
         sentSize += largeArrayBuffer.length;
       }
@@ -106,7 +106,7 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
     }
 
     try {
-      while(true) {
+      while(sentSize < 20 * 1024 * 1024) {
         channel1.send(largeBlob);
         sentSize += largeBlob.size;
       }

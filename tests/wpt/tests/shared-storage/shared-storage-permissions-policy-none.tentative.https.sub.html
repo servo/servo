@@ -29,7 +29,7 @@
       return promise_rejects_dom(t, "InvalidAccessError",
         sharedStorage.createWorklet(
             cross_origin_script,
-            { credentials: "omit" }));
+            { credentials: "omit", dataOrigin: "script-origin" }));
     }, header + ' disallows sharedStorage.createWorklet() with cross-origin script');
 
     async_test(t => {

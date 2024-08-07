@@ -35,7 +35,14 @@ drmconfig = {
         "sessionTypes" : [ "temporary", "persistent-usage-record", "persistent-license" ],
         "merchant" : "w3c-eme-test",
         "secret" : drmtodaysecret
-    } ]
+    } ],
+    "com.microsoft.playready.recommendation": [
+    {
+        "serverURL": "https://test.playready.microsoft.com/service/rightsmanager.asmx",
+        "servertype" : "microsoft",
+        "sessionTypes" : [ "temporary", "persistent-license" ],
+        "merchant" : "w3c-eme-test",
+    } ],
 };
 
 
@@ -54,7 +61,7 @@ var keySystemWrappers = {
         });
     },
 
-    'com.microsoft.playready': function(handler, messageType, message, params) {
+    playReadyHandler : function(handler, messageType, message, params) {
         var msg, xmlDoc;
         var licenseRequest = null;
         var headers = {};
@@ -86,6 +93,14 @@ var keySystemWrappers = {
         return handler.call(this, messageType, licenseRequest, 'arraybuffer', headers, params).catch(function(response){
             return response.text().then( function( error ) { throw error; } );
         });
+    },
+
+    'com.microsoft.playready': function(handler, messageType, message, params) {
+        return keySystemWrappers.playReadyHandler.call(this, handler, messageType, message, params);
+    },
+
+    'com.microsoft.playready.recommendation': function(handler, messageType, message, params) {
+        return keySystemWrappers.playReadyHandler.call(this, handler, messageType, message, params);
     }
 };
 
@@ -141,7 +156,6 @@ const requestConstructors = {
             }
             url += "PlayEnablers=B621D91F-EDCC-4035-8D4B-DC71760D43E9&";    // disable output protection
             url += "ContentKey=" + btoa(String.fromCharCode.apply(null, content.key));
-            return url;
         }
 
         // TODO: Include expiration time in URL

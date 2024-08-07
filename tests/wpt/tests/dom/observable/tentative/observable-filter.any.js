@@ -28,7 +28,7 @@ test(() => {
   const source = new Observable(subscriber => {
     subscriber.addTeardown(() => teardownCalled = true);
     subscriber.next(1);
-    assert_true(teardownCalled, "Teardown called once map unsubscribes due to error");
+    assert_true(teardownCalled, "Teardown called once filter unsubscribes due to error");
     assert_false(subscriber.active, "Unsubscription makes Subscriber inactive");
     results.push(subscriber.signal.reason);
     subscriber.next(2);
@@ -76,7 +76,7 @@ test(() => {
 
   let predicateCalls = 0;
   const results = [];
-  source.map(v => ++predicateCalls).subscribe({
+  source.filter(v => ++predicateCalls).subscribe({
     next: v => results.push(v),
     error: e => results.push(e),
     complete: () => results.push('complete'),

@@ -80,8 +80,14 @@ function getSupportedKeySystem() {
     var keysystem = undefined;
     if (userAgent.indexOf('edge') > -1 ) {
         keysystem = 'com.microsoft.playready';
-    } else if ( userAgent.indexOf('chrome') > -1 || userAgent.indexOf('firefox') > -1 ) {
+    } else if (userAgent.indexOf('chrome') > -1) {
         keysystem = 'com.widevine.alpha';
+    } else if (userAgent.indexOf('firefox') > -1) {
+        if (userAgent.includes("win")) {
+            keysystem = 'com.microsoft.playready.recommendation';
+        } else {
+            keysystem = 'com.widevine.alpha';
+        }
     }
     return keysystem;
 }

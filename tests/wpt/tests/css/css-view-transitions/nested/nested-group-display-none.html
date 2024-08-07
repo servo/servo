@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>Nested view-transition-group with display:none</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="nested-ref.html">
+<meta name=fuzzy content="maxDifference=0-255; totalPixels=0-515">
+<script src="/common/reftest-wait.js"></script>
+<style>
+    body {
+        background: green;
+    }
+    main {
+        view-transition-name: main;
+    }
+
+    section {
+        view-transition-name: section;
+        view-transition-group: main;
+    }
+
+    ::view-transition-group(*)
+    ::view-transition-image-pair(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*)
+     {
+        display: none;
+    }
+</style>
+<body>
+    <main>
+        <section>
+            Hello
+        </section>
+    </main>
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+async function runTest() {
+  let transition = document.startViewTransition();
+  transition.ready.then(() => takeScreenshot());
+}
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>
+</body>

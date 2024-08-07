@@ -27,7 +27,7 @@
     promise_test(async t => {
       const worklet = await sharedStorage.createWorklet(
         cross_origin_script,
-        { credentials: "omit" });
+        { credentials: "omit", dataOrigin: "script-origin" });
     }, header + ' allows sharedStorage.createWorklet() with cross-origin script');
 
     async_test(t => {

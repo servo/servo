@@ -16,8 +16,6 @@ android_device = None
 here = os.path.abspath(os.path.dirname(__file__))
 wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
 
-
-NDK_VERSION = "r26c"
 CMDLINE_TOOLS_VERSION_STRING = "12.0"
 CMDLINE_TOOLS_VERSION = "11076708"
 

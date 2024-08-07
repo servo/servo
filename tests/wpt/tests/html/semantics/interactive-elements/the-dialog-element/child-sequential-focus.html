@@ -5,24 +5,24 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <dialog autofocus id=autofocusdialog data-description="dialog element with autofocus should get initial focus." class=target>
-  <button>focusable button</button>
-  <button autofocus>autofocusable button</button>
+  <button tabindex="0">focusable button</button>
+  <button tabindex="0" autofocus>autofocusable button</button>
 </dialog>
 
 <dialog id=keyboardfocusdialog data-description="Only keyboard-focusable elements should get dialog initial focus.">
   <button tabindex="-1">mouse focusable button</button>
-  <button class=target>keyboard focusable button</button>
+  <button tabindex="0" class=target>keyboard focusable button</button>
 </dialog>
 
 <dialog id=autofocuswithoutkeyboarddialog data-description="Autofocus takes precedence over keyboard-focusable requirement.">
-  <button>keyboard focusable button</button>
+  <button tabindex="0">keyboard focusable button</button>
   <button tabindex="-1" autofocus class=target>mouse focusable autofocus button</button>
 </dialog>
 
 <dialog id=subtree data-description="Only keyboard-focusable elements should get dialog initial focus including in subtrees.">
   <div>
     <button tabindex="-1">mouse focusable button</button>
-    <button class=target>keyboard focusable button</button>
+    <button tabindex="0" class=target>keyboard focusable button</button>
   </div>
 </dialog>
 
@@ -31,7 +31,7 @@
     <span>mouse focusable button</span>
     <button tabindex="-1">nested mouse focusable button</button>
   </button>
-  <button class=target>keyboard focusable button</button>
+  <button tabindex="0" class=target>keyboard focusable button</button>
 </dialog>
 
 <script>

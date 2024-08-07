@@ -4,10 +4,15 @@
 <link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
 <link rel="author" href="mailto:khushalsagar@chromium.org">
 <link rel="match" href="massive-element-below-viewport-partially-onscreen-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <meta name="fuzzy" content="maxDifference=0-2; totalPixels=0-1600">
 
 <script src="/common/reftest-wait.js"></script>
 <style>
+:root {
+  font: 12px/1 Ahem;
+}
+
 .target {
   inline-size: 100px;
   block-size: 40000px;
@@ -15,6 +20,10 @@
 }
 
 .top {
+  /* Ahem font sometimes causes slight difference between actual and reference
+    images due to anti-aliasing when bordering the white background in this
+    case. Adding a padding reduces the test flakiness. */
+  padding-top: 1px;
   inline-size: 100%;
   block-size: 100px;
   background: lightblue;

@@ -51,15 +51,19 @@
     await waitForCompositorReady();
 
     const anim = target.getAnimations()[0];
-    anim.playbackRate = -1;
+    // If animation-duration:auto is not supported, getAnimations() may not
+    // return this animation.
+    if (typeof anim !== 'undefined') {
+      anim.playbackRate = -1;
 
-    // Scroll to exit 60%.
-    scroller.scrollTop = 860;
-    await waitForNextFrame();
+      // Scroll to exit 60%.
+      scroller.scrollTop = 860;
+      await waitForNextFrame();
 
-    // Update the animation range.
-    target.classList.add('exit-range');
-    await waitForNextFrame();
+      // Update the animation range.
+      target.classList.add('exit-range');
+      await waitForNextFrame();
+    }
 
     // Make sure change to animation range was properly picked up.
     document.documentElement.classList.remove("reftest-wait");

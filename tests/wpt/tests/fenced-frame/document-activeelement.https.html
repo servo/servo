@@ -17,10 +17,7 @@ promise_test(async(t) => {
 
   assert_equals(document.activeElement, document.body);
 
-  await actions.pointerMove(0, 0, {origin: fencedframe.element})
-               .pointerDown()
-               .pointerUp()
-               .send();
+  await multiClick(0, 0, fencedframe.element, 5);
 
   assert_equals(document.activeElement, fencedframe.element);
 }, 'document.activeElement should be the fenced frame when it has focus');
