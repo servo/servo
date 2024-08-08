@@ -1893,164 +1893,143 @@ pub fn collect_sequence_characters<F>(s: &str, predicate: F) -> (&str, &str)
 where
     F: Fn(&char) -> bool,
 {
-    for (i, ch) in s.chars().enumerate() {
-        if !predicate(&ch) {
-            return (&s[0..i], &s[i..]);
-        }
-    }
-
-    (s, "")
+    let i = s.find(|ch| !predicate(&ch)).unwrap_or(s.len());
+    (&s[0..i], &s[i..])
 }
 
 /// Parse an `srcset` attribute:
 /// <https://html.spec.whatwg.org/multipage/#parsing-a-srcset-attribute>.
 pub fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
-    let mut url_len = 0;
-    let mut candidates: Vec<ImageSource> = vec![];
-    while url_len < input.len() {
-        let position = &input[url_len..];
+    let mut input_pos = 0;
+    let mut candidates = vec![];
+    while input_pos < input.len() {
+        let position = &input[input_pos..];
         let (spaces, position) =
-            collect_sequence_characters(position, |c| *c == ',' || char::is_whitespace(*c));
+            collect_sequence_characters(position, |c| *c == ',' || char::is_ascii_whitespace(c));
         // add the length of the url that we parse to advance the start index
-        let space_len = spaces.char_indices().count();
-        url_len += space_len;
+        input_pos += spaces.len();
         if position.is_empty() {
             return candidates;
         }
-        let (url, spaces) = collect_sequence_characters(position, |c| !char::is_whitespace(*c));
+        let (url, position) =
+            collect_sequence_characters(position, |c| !char::is_ascii_whitespace(c));
         // add the counts of urls that we parse to advance the start index
-        url_len += url.chars().count();
-        let comma_count = url.chars().rev().take_while(|c| *c == ',').count();
-        let url: String = url
-            .chars()
-            .take(url.chars().count() - comma_count)
-            .collect();
-        // add 1 to start index, for the comma
-        url_len += comma_count + 1;
-        let (space, position) = collect_sequence_characters(spaces, |c| char::is_whitespace(*c));
-        let space_len = space.len();
-        url_len += space_len;
+        input_pos += url.len();
+
+        let trimmed_url = url.trim_end_matches(',');
         let mut descriptors = Vec::new();
-        let mut current_descriptor = String::new();
-        let mut state = ParseState::InDescriptor;
-        let mut char_stream = position.chars().enumerate();
-        let mut buffered: Option<(usize, char)> = None;
-        loop {
-            let next_char = buffered.take().or_else(|| char_stream.next());
-            if next_char.is_some() {
-                url_len += 1;
-            }
-            match state {
-                ParseState::InDescriptor => match next_char {
-                    Some((_, ' ')) => {
-                        if !current_descriptor.is_empty() {
-                            descriptors.push(current_descriptor.clone());
-                            current_descriptor = String::new();
-                            state = ParseState::AfterDescriptor;
-                        }
-                        continue;
+
+        if trimmed_url.len() == url.len() {
+            let (spaces, position) =
+                collect_sequence_characters(position, |c| char::is_ascii_whitespace(c));
+            input_pos += spaces.len();
+            let mut current_descriptor = String::new();
+            let mut state = ParseState::InDescriptor;
+            let mut char_stream = position.chars().peekable();
+            loop {
+                let Some(&next_char) = char_stream.peek() else {
+                    if !current_descriptor.is_empty() {
+                        descriptors.push(current_descriptor);
+                    }
+                    break;
+                };
+
+                let mut need_next = true;
+                match state {
+                    ParseState::InDescriptor => match next_char {
+                        c if char::is_ascii_whitespace(&c) => {
+                            if !current_descriptor.is_empty() {
+                                descriptors.push(current_descriptor);
+                                current_descriptor = String::new();
+                                state = ParseState::AfterDescriptor;
+                            }
+                        },
+                        ',' => {
+                            if !current_descriptor.is_empty() {
+                                descriptors.push(current_descriptor);
+                            }
+                            break;
+                        },
+                        '(' => {
+                            current_descriptor.push('(');
+                            state = ParseState::InParens;
+                        },
+                        c => current_descriptor.push(c),
                     },
-                    Some((_, ',')) => {
-                        if !current_descriptor.is_empty() {
-                            descriptors.push(current_descriptor.clone());
-                        }
-                        break;
+                    ParseState::InParens => match next_char {
+                        ')' => {
+                            current_descriptor.push(')');
+                            state = ParseState::InDescriptor;
+                        },
+                        c => current_descriptor.push(c),
                     },
-                    Some((_, c @ '(')) => {
-                        current_descriptor.push(c);
-                        state = ParseState::InParens;
-                        continue;
+                    ParseState::AfterDescriptor => match next_char {
+                        c if char::is_ascii_whitespace(&c) => state = ParseState::AfterDescriptor,
+                        _ => {
+                            state = ParseState::InDescriptor;
+                            need_next = false;
+                        },
                     },
-                    Some((_, c)) => {
-                        current_descriptor.push(c);
-                    },
-                    None => {
-                        if !current_descriptor.is_empty() {
-                            descriptors.push(current_descriptor.clone());
-                        }
-                        break;
-                    },
-                },
-                ParseState::InParens => match next_char {
-                    Some((_, c @ ')')) => {
-                        current_descriptor.push(c);
-                        state = ParseState::InDescriptor;
-                        continue;
-                    },
-                    Some((_, c)) => {
-                        current_descriptor.push(c);
-                        continue;
-                    },
-                    None => {
-                        if !current_descriptor.is_empty() {
-                            descriptors.push(current_descriptor.clone());
-                        }
-                        break;
-                    },
-                },
-                ParseState::AfterDescriptor => match next_char {
-                    Some((_, ' ')) => {
-                        state = ParseState::AfterDescriptor;
-                        continue;
-                    },
-                    Some((idx, c)) => {
-                        state = ParseState::InDescriptor;
-                        buffered = Some((idx, c));
-                        continue;
-                    },
-                    None => {
-                        if !current_descriptor.is_empty() {
-                            descriptors.push(current_descriptor.clone());
-                        }
-                        break;
-                    },
-                },
+                }
+                if need_next {
+                    input_pos += next_char.len_utf8();
+                    char_stream.next();
+                }
             }
         }
-
-        let mut error = false;
+        let url = trimmed_url;
         let mut width: Option<u32> = None;
         let mut density: Option<f64> = None;
         let mut future_compat_h: Option<u32> = None;
-        for descriptor in descriptors {
-            let (digits, remaining) =
-                collect_sequence_characters(&descriptor, |c| is_ascii_digit(c) || *c == '.');
-            let valid_non_negative_integer = parse_unsigned_integer(digits.chars());
-            let has_w = remaining == "w";
-            let valid_floating_point = parse_double(digits);
-            let has_x = remaining == "x";
-            let has_h = remaining == "h";
-            if valid_non_negative_integer.is_ok() && has_w {
-                let result = valid_non_negative_integer;
-                error = result.is_err();
-                if width.is_some() || density.is_some() {
-                    error = true;
-                }
-                if let Ok(w) = result {
-                    width = Some(w);
-                }
-            } else if valid_floating_point.is_ok() && has_x {
-                let result = valid_floating_point;
-                error = result.is_err();
-                if width.is_some() || density.is_some() || future_compat_h.is_some() {
-                    error = true;
-                }
-                if let Ok(x) = result {
-                    density = Some(x);
-                }
-            } else if valid_non_negative_integer.is_ok() && has_h {
-                let result = valid_non_negative_integer;
-                error = result.is_err();
-                if density.is_some() || future_compat_h.is_some() {
-                    error = true;
-                }
-                if let Ok(h) = result {
-                    future_compat_h = Some(h);
-                }
-            } else {
-                error = true;
-            }
-        }
+        let mut error = descriptors
+            .into_iter()
+            .map(|descriptor| match descriptor.chars().rev().next() {
+                Some(c @ ('w' | 'h')) => {
+                    let digits = &descriptor[..descriptor.len() - 1];
+                    match parse_unsigned_integer(digits.chars()) {
+                        Ok(val)
+                            if density.is_none() &&
+                                val > 0 &&
+                                digits
+                                    .strip_prefix('-')
+                                    .unwrap_or(digits)
+                                    .chars()
+                                    .all(|c| is_ascii_digit(&c)) =>
+                        {
+                            if c == 'w' && width.is_none() {
+                                width = Some(val);
+                                false
+                            } else if c == 'h' && future_compat_h.is_none() {
+                                future_compat_h = Some(val);
+                                false
+                            } else {
+                                true
+                            }
+                        },
+                        _ => true,
+                    }
+                },
+                Some('x') => {
+                    let digits = &descriptor[..descriptor.len() - 1];
+                    match parse_double(digits) {
+                        Ok(val)
+                            if digits.chars().all(|c| {
+                                is_ascii_digit(&c) || matches!(c, '.' | '-' | 'e' | 'E')
+                            }) && digits.ends_with(|c| is_ascii_digit(&c)) &&
+                                width.is_none() &&
+                                density.is_none() &&
+                                future_compat_h.is_none() &&
+                                val >= 0.0 =>
+                        {
+                            density = Some(val);
+                            false
+                        },
+                        _ => true,
+                    }
+                },
+                _ => true,
+            })
+            .any(|x| x);
         if future_compat_h.is_some() && width.is_none() {
             error = true;
         }
@@ -2059,7 +2038,10 @@ pub fn parse_a_srcset_attribute(input: &str) -> Vec<ImageSource> {
                 wid: width,
                 den: density,
             };
-            let image_source = ImageSource { url, descriptor };
+            let image_source = ImageSource {
+                url: url.to_string(),
+                descriptor,
+            };
             candidates.push(image_source);
         }
     }
