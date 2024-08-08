@@ -1085,6 +1085,7 @@ impl Sink {
 
 impl TreeSink for Sink {
     type Output = Self;
+    #[allow(crown::unrooted_must_root)]
     fn finish(self) -> Self {
         self
     }
