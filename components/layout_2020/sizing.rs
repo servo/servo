@@ -91,6 +91,7 @@ pub(crate) fn outer_inline(
     style: &ComputedValues,
     containing_block_writing_mode: WritingMode,
     get_content_size: impl FnOnce() -> ContentSizes,
+    get_auto_minimum: impl FnOnce() -> Au,
 ) -> ContentSizes {
     let padding = style.padding(containing_block_writing_mode);
     let border = style.border_width(containing_block_writing_mode);
@@ -100,9 +101,11 @@ pub(crate) fn outer_inline(
     // for determining intrinsic size contributions.
     // https://drafts.csswg.org/css-sizing-3/#min-percentage-contribution
     let zero = Length::zero();
-    let pb_lengths = border.inline_sum() +
-        padding.inline_start.percentage_relative_to(zero) +
-        padding.inline_end.percentage_relative_to(zero);
+    let pb_lengths = Au::from(
+        border.inline_sum() +
+            padding.inline_start.percentage_relative_to(zero) +
+            padding.inline_end.percentage_relative_to(zero),
+    );
     let mut m_lengths = zero;
     if let Some(m) = margin.inline_start.non_auto() {
         m_lengths += m.percentage_relative_to(zero)
@@ -123,22 +126,21 @@ pub(crate) fn outer_inline(
         .inline
         // Percentages for 'min-width' are treated as zero
         .percentage_relative_to(zero)
-        // FIXME: 'auto' is not zero in Flexbox
-        .auto_is(Length::zero);
+        .map(Au::from)
+        .auto_is(get_auto_minimum);
     let max_inline_size = style
         .max_box_size(containing_block_writing_mode)
         .inline
         // Percentages for 'max-width' are treated as 'none'
-        .and_then(|lp| lp.to_length());
-    let clamp = |l: Au| {
-        l.clamp_between_extremums(min_inline_size.into(), max_inline_size.map(|t| t.into()))
-    };
+        .and_then(|lp| lp.to_length())
+        .map(Au::from);
+    let clamp = |l: Au| l.clamp_between_extremums(min_inline_size, max_inline_size);
 
     let border_box_sizes = match inline_size {
         Some(non_auto) => {
             let clamped = clamp(non_auto.into());
             let border_box_size = match box_sizing {
-                BoxSizing::ContentBox => clamped + pb_lengths.into(),
+                BoxSizing::ContentBox => clamped + pb_lengths,
                 BoxSizing::BorderBox => clamped,
             };
             ContentSizes {
@@ -149,8 +151,8 @@ pub(crate) fn outer_inline(
         None => get_content_size().map(|content_box_size| {
             match box_sizing {
                 // Clamp to 'min-width' and 'max-width', which are sizing the…
-                BoxSizing::ContentBox => clamp(content_box_size) + pb_lengths.into(),
-                BoxSizing::BorderBox => clamp(content_box_size + pb_lengths.into()),
+                BoxSizing::ContentBox => clamp(content_box_size) + pb_lengths,
+                BoxSizing::BorderBox => clamp(content_box_size + pb_lengths),
             }
         }),
     };

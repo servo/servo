@@ -189,23 +189,20 @@ impl IndependentFormattingContext {
         &mut self,
         layout_context: &LayoutContext,
         containing_block_writing_mode: WritingMode,
+        get_auto_minimum: impl FnOnce() -> Au,
     ) -> ContentSizes {
         match self {
-            Self::NonReplaced(non_replaced) => {
-                let style = &non_replaced.style;
-                let content_sizes = &mut non_replaced.content_sizes;
-                let contents = &mut non_replaced.contents;
-                sizing::outer_inline(style, containing_block_writing_mode, || {
-                    *content_sizes.get_or_insert_with(|| {
-                        contents.inline_content_sizes(layout_context, style.writing_mode)
-                    })
-                })
-            },
-            Self::Replaced(replaced) => {
-                sizing::outer_inline(&replaced.style, containing_block_writing_mode, || {
-                    replaced.contents.inline_content_sizes(&replaced.style)
-                })
-            },
+            Self::NonReplaced(non_replaced) => non_replaced.outer_inline_content_sizes(
+                layout_context,
+                containing_block_writing_mode,
+                get_auto_minimum,
+            ),
+            Self::Replaced(replaced) => sizing::outer_inline(
+                &replaced.style,
+                containing_block_writing_mode,
+                || replaced.contents.inline_content_sizes(&replaced.style),
+                get_auto_minimum,
+            ),
         }
     }
 }
@@ -245,6 +242,25 @@ impl NonReplacedFormattingContext {
         *self
             .content_sizes
             .get_or_insert_with(|| contents.inline_content_sizes(layout_context, writing_mode))
+    }
+
+    pub fn outer_inline_content_sizes(
+        &mut self,
+        layout_context: &LayoutContext,
+        containing_block_writing_mode: WritingMode,
+        get_auto_minimum: impl FnOnce() -> Au,
+    ) -> ContentSizes {
+        sizing::outer_inline(
+            &self.style,
+            containing_block_writing_mode,
+            || {
+                *self.content_sizes.get_or_insert_with(|| {
+                    self.contents
+                        .inline_content_sizes(layout_context, self.style.writing_mode)
+                })
+            },
+            get_auto_minimum,
+        )
     }
 }
 

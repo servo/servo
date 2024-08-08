@@ -2377,6 +2377,7 @@ impl<'a> ContentSizesComputation<'a> {
                 let outer = atomic.outer_inline_content_sizes(
                     self.layout_context,
                     self.containing_block_writing_mode,
+                    Au::zero,
                 );
 
                 if !inline_formatting_context

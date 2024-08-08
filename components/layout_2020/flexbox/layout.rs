@@ -205,16 +205,46 @@ impl FlexContainer {
         layout_context: &LayoutContext,
         writing_mode: WritingMode,
     ) -> ContentSizes {
-        let flex_direction = used_flex_direction(&*self.style);
-        match FlexAxis::from(flex_direction) {
-            FlexAxis::Row => self.main_content_sizes(layout_context, writing_mode),
-            FlexAxis::Column => ContentSizes::zero(),
+        let flex_axis = FlexAxis::from(used_flex_direction(&*self.style));
+        match flex_axis {
+            FlexAxis::Row => self.main_content_sizes(layout_context, flex_axis, writing_mode),
+            FlexAxis::Column => self.cross_content_sizes(layout_context, flex_axis),
         }
     }
 
-    pub fn main_content_sizes(
+    fn cross_content_sizes(
         &mut self,
         layout_context: &LayoutContext,
+        flex_axis: FlexAxis,
+    ) -> ContentSizes {
+        // <https://drafts.csswg.org/css-flexbox/#intrinsic-cross-sizes>
+        assert_eq!(
+            flex_axis,
+            FlexAxis::Column,
+            "The cross axis should be the inline one"
+        );
+        let mut content_sizes = ContentSizes::zero();
+        for kid in self.children.iter() {
+            let kid = &mut *kid.borrow_mut();
+            match kid {
+                FlexLevelBox::FlexItem(item) => {
+                    // TODO: For the max-content size we should distribute items into
+                    // columns, and sum the column sizes and gaps.
+                    content_sizes.max_assign(
+                        item.independent_formatting_context
+                            .inline_content_sizes(layout_context),
+                    );
+                },
+                FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => {},
+            }
+        }
+        content_sizes
+    }
+
+    fn main_content_sizes(
+        &mut self,
+        layout_context: &LayoutContext,
+        flex_axis: FlexAxis,
         writing_mode: WritingMode,
     ) -> ContentSizes {
         // - TODO: calculate intrinsic cross sizes when container is a column
@@ -225,6 +255,11 @@ impl FlexContainer {
         // > It is calculated, considering only non-collapsed flex items, by:
         // > 1. For each flex item, subtract its outer flex base size from its max-content
         // > contribution size.
+        assert_eq!(
+            flex_axis,
+            FlexAxis::Row,
+            "The main axis should be the inline one"
+        );
         let mut chosen_max_flex_fraction = f32::NEG_INFINITY;
         let mut chosen_min_flex_fraction = f32::NEG_INFINITY;
         let mut sum_of_flex_grow_factors = 0.0;
@@ -1595,8 +1630,9 @@ impl FlexItem<'_> {
         );
 
         // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
+        let container_writing_mode = flex_context.containing_block.style.writing_mode;
         assert_eq!(
-            flex_context.containing_block.style.writing_mode,
+            container_writing_mode,
             self.box_.style().writing_mode,
             "Mixed writing modes are not supported yet"
         );
@@ -1656,7 +1692,19 @@ impl FlexItem<'_> {
                     (used_main_size, cross_size)
                 } else {
                     (
-                        cross_size.auto_is(Au::zero),
+                        cross_size.auto_is(|| {
+                            let content_contributions = non_replaced.outer_inline_content_sizes(
+                                flex_context.layout_context,
+                                container_writing_mode,
+                                Au::zero,
+                            );
+                            flex_context
+                                .containing_block
+                                .inline_size
+                                .min(content_contributions.max_content)
+                                .max(content_contributions.min_content) -
+                                self.pbm_auto_is_zero.cross
+                        }),
                         AuOrAuto::LengthPercentage(used_main_size),
                     )
                 };
@@ -1695,7 +1743,7 @@ impl FlexItem<'_> {
                         if cross_axis_is_item_block_axis {
                             content_block_size
                         } else {
-                            cross_size.auto_is(Au::zero)
+                            inline_size
                         }
                     })
                     .clamp_between_extremums(
@@ -1921,14 +1969,19 @@ impl FlexItemBox {
             padding_border,
         );
 
-        let content_contribution_sizes = self.inline_content_sizes(
-            layout_context,
-            container_writing_mode,
-            content_box_size,
-            content_min_size_no_auto,
-            content_max_size,
-            pbm_auto_is_zero,
+        // Compute the min-content and max-content contributions of the item.
+        // <https://drafts.csswg.org/css-flexbox/#intrinsic-item-contributions>
+        assert_eq!(
+            flex_axis,
+            FlexAxis::Row,
+            "The main axis should be the inline one"
         );
+        let content_contribution_sizes = self
+            .independent_formatting_context
+            .outer_inline_content_sizes(layout_context, container_writing_mode, || {
+                automatic_min_size
+            });
+
         let outer_flex_base_size = flex_base_size + pbm_auto_is_zero.main;
         let max_flex_factors = self.desired_flex_factors_for_preferred_width(
             content_contribution_sizes.max_content,
@@ -2017,61 +2070,6 @@ impl FlexItemBox {
         DesiredFlexFractionAndGrowOrShrinkFactor {
             desired_flex_fraction,
             flex_grow_or_shrink_factor: flex_grow_or_scaled_flex_shrink_factor,
-        }
-    }
-
-    fn inline_content_sizes(
-        &mut self,
-        layout_context: &LayoutContext,
-        writing_mode: WritingMode,
-        content_box_size: FlexRelativeVec2<GenericLengthPercentageOrAuto<Au>>,
-        content_min_size: FlexRelativeVec2<Au>,
-        content_max_size: FlexRelativeVec2<Option<Au>>,
-        pbm_auto_is_zero: FlexRelativeVec2<Au>,
-    ) -> ContentSizes {
-        // TODO: use cross sizes when container is a column
-        // (and check for ‘writing-mode’?)
-
-        // <https://drafts.csswg.org/css-flexbox/#intrinsic-item-contributions>
-        let outer_inline_content_sizes = self
-            .independent_formatting_context
-            .outer_inline_content_sizes(layout_context, writing_mode);
-        let outer_preferred_size = content_box_size
-            .main
-            .non_auto()
-            .map(|preferred_size| preferred_size + pbm_auto_is_zero.main);
-        let outer_min_main_size = content_min_size.main + pbm_auto_is_zero.main;
-        let outer_max_main_size = content_max_size
-            .main
-            .map(|max_main_size| max_main_size + pbm_auto_is_zero.main);
-
-        // > The main-size min-content contribution of a flex item is the larger of its
-        // > outer min-content size and outer preferred size if that is not auto, clamped by
-        // > its min/max main size.
-        let min_content_contribution = outer_preferred_size
-            .map_or(
-                outer_inline_content_sizes.min_content,
-                |outer_preferred_size| {
-                    outer_preferred_size.max(outer_inline_content_sizes.min_content)
-                },
-            )
-            .clamp_between_extremums(outer_min_main_size, outer_max_main_size);
-
-        // > The main-size max-content contribution of a flex item is the larger of its
-        // > outer max-content size and outer preferred size if that is not auto, clamped by
-        // > its min/max main size.
-        let max_content_contribution = outer_preferred_size
-            .map_or(
-                outer_inline_content_sizes.max_content,
-                |outer_preferred_size| {
-                    outer_preferred_size.max(outer_inline_content_sizes.max_content)
-                },
-            )
-            .clamp_between_extremums(outer_min_main_size, outer_max_main_size);
-
-        ContentSizes {
-            min_content: min_content_contribution,
-            max_content: max_content_contribution,
         }
     }
 

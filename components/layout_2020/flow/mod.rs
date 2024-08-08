@@ -357,7 +357,7 @@ fn calculate_inline_content_size_for_block_level_boxes(
             BlockLevelBox::OutOfFlowFloatBox(ref mut float_box) => {
                 let size = float_box
                     .contents
-                    .outer_inline_content_sizes(layout_context, writing_mode)
+                    .outer_inline_content_sizes(layout_context, writing_mode, Au::zero)
                     .max(ContentSizes::zero());
                 let style_box = &float_box.contents.style().get_box();
                 Some((size, style_box.float, style_box.clear))
@@ -365,9 +365,12 @@ fn calculate_inline_content_size_for_block_level_boxes(
             BlockLevelBox::SameFormattingContextBlock {
                 style, contents, ..
             } => {
-                let size = sizing::outer_inline(style, writing_mode, || {
-                    contents.inline_content_sizes(layout_context, style.writing_mode)
-                })
+                let size = sizing::outer_inline(
+                    style,
+                    writing_mode,
+                    || contents.inline_content_sizes(layout_context, style.writing_mode),
+                    Au::zero,
+                )
                 .max(ContentSizes::zero());
                 // A block in the same BFC can overlap floats, it's not moved next to them,
                 // so we shouldn't add its size to the size of the floats.
@@ -376,7 +379,7 @@ fn calculate_inline_content_size_for_block_level_boxes(
             },
             BlockLevelBox::Independent(ref mut independent) => {
                 let size = independent
-                    .outer_inline_content_sizes(layout_context, writing_mode)
+                    .outer_inline_content_sizes(layout_context, writing_mode, Au::zero)
                     .max(ContentSizes::zero());
                 Some((size, Float::None, independent.style().get_box().clear))
             },
