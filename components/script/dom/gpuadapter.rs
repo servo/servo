@@ -138,10 +138,14 @@ impl GPUAdapterMethods for GPUAdapter {
                 }
             }
         }
-        let id = self
+        let device_id = self
             .global()
             .wgpu_id_hub()
             .create_device_id(self.adapter.0.backend());
+        let queue_id = self
+            .global()
+            .wgpu_id_hub()
+            .create_queue_id(self.adapter.0.backend());
         let pipeline_id = self.global().pipeline_id();
         if self
             .channel
@@ -150,7 +154,8 @@ impl GPUAdapterMethods for GPUAdapter {
                 sender,
                 adapter_id: self.adapter,
                 descriptor: desc,
-                device_id: id,
+                device_id,
+                queue_id,
                 pipeline_id,
             })
             .is_err()

@@ -272,6 +272,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
             .0
             .send(WebGPURequest::CreateSwapChain {
                 device_id: descriptor.device.id().0,
+                queue_id: descriptor.device.GetQueue().id().0,
                 buffer_ids,
                 external_id: self.context_id.0,
                 sender,
