@@ -1891,13 +1891,8 @@ pub fn collect_sequence_characters<F>(s: &str, predicate: F) -> (&str, &str)
 where
     F: Fn(&char) -> bool,
 {
-    for (i, ch) in s.chars().enumerate() {
-        if !predicate(&ch) {
-            return (&s[0..i], &s[i..]);
-        }
-    }
-
-    (s, "")
+    let i = s.find(|ch| !predicate(&ch)).unwrap_or(s.len());
+    (&s[0..i], &s[i..])
 }
 
 /// Parse an `srcset` attribute:
