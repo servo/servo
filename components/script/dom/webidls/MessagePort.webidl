@@ -9,7 +9,7 @@
 [Exposed=(Window,Worker)]
 interface MessagePort : EventTarget {
   [Throws] undefined postMessage(any message, sequence<object> transfer);
-  [Throws] undefined postMessage(any message, optional PostMessageOptions options = {});
+  [Throws] undefined postMessage(any message, optional StructuredSerializeOptions options = {});
   undefined start();
   undefined close();
 
@@ -18,6 +18,6 @@ interface MessagePort : EventTarget {
   attribute EventHandler onmessageerror;
 };
 
-dictionary PostMessageOptions {
+dictionary StructuredSerializeOptions {
   sequence<object> transfer = [];
 };

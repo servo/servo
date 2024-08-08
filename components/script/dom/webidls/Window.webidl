@@ -188,6 +188,6 @@ partial interface Window {
   [Replaceable] readonly attribute any event; // historical
 };
 
-dictionary WindowPostMessageOptions : PostMessageOptions {
+dictionary WindowPostMessageOptions : StructuredSerializeOptions {
    USVString targetOrigin = "/";
 };

@@ -6,7 +6,7 @@
 [Global=(Worker,DedicatedWorker), Exposed=DedicatedWorker]
 /*sealed*/ interface DedicatedWorkerGlobalScope : WorkerGlobalScope {
   [Throws] undefined postMessage(any message, sequence<object> transfer);
-  [Throws] undefined postMessage(any message, optional PostMessageOptions options = {});
+  [Throws] undefined postMessage(any message, optional StructuredSerializeOptions options = {});
   attribute EventHandler onmessage;
 
   undefined close();

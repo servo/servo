@@ -34,7 +34,7 @@ use crate::dom::abstractworkerglobalscope::{
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
-use crate::dom::bindings::codegen::Bindings::MessagePortBinding::PostMessageOptions;
+use crate::dom::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
 use crate::dom::bindings::error::{ErrorInfo, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
@@ -659,7 +659,7 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
         &self,
         cx: SafeJSContext,
         message: HandleValue,
-        options: RootedTraceableBox<PostMessageOptions>,
+        options: RootedTraceableBox<StructuredSerializeOptions>,
     ) -> ErrorResult {
         let mut rooted = CustomAutoRooter::new(
             options

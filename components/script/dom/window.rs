@@ -77,6 +77,7 @@ use webrender_api::units::{DeviceIntPoint, DeviceIntSize, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId};
 use webrender_traits::WebRenderScriptApi;
 
+use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
@@ -1559,6 +1560,17 @@ impl WindowMethods for Window {
             .iter()
             .map(|(k, _v)| DOMString::from(&***k))
             .collect()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-structuredclone>
+    fn StructuredClone(
+        &self,
+        cx: JSContext,
+        value: HandleValue,
+        options: RootedTraceableBox<StructuredSerializeOptions>,
+    ) -> Fallible<js::jsval::JSVal> {
+        self.upcast::<GlobalScope>()
+            .structured_clone(cx, value, options)
     }
 }
 

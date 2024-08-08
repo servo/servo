@@ -16,7 +16,7 @@ use script_traits::PortMessageTask;
 
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::{
-    MessagePortMethods, PostMessageOptions,
+    MessagePortMethods, StructuredSerializeOptions,
 };
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, ErrorResult};
@@ -288,7 +288,7 @@ impl MessagePortMethods for MessagePort {
         &self,
         cx: SafeJSContext,
         message: HandleValue,
-        options: RootedTraceableBox<PostMessageOptions>,
+        options: RootedTraceableBox<StructuredSerializeOptions>,
     ) -> ErrorResult {
         if self.detached.get() {
             return Ok(());

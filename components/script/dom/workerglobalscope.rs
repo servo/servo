@@ -24,6 +24,7 @@ use servo_url::{MutableOrigin, ServoUrl};
 use time::precise_time_ns;
 use uuid::Uuid;
 
+use super::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapOptions, ImageBitmapSource,
@@ -430,6 +431,17 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     // https://w3c.github.io/webappsec-secure-contexts/#dom-windoworworkerglobalscope-issecurecontext
     fn IsSecureContext(&self) -> bool {
         self.upcast::<GlobalScope>().is_secure_context()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-structuredclone>
+    fn StructuredClone(
+        &self,
+        cx: JSContext,
+        value: HandleValue,
+        options: RootedTraceableBox<StructuredSerializeOptions>,
+    ) -> Fallible<js::jsval::JSVal> {
+        self.upcast::<GlobalScope>()
+            .structured_clone(cx, value, options)
     }
 }
 
