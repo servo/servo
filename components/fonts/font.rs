@@ -12,6 +12,7 @@ use std::{iter, str};
 use app_units::Au;
 use bitflags::bitflags;
 use euclid::default::{Point2D, Rect, Size2D};
+use euclid::num::Zero;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
@@ -137,6 +138,9 @@ pub struct FontMetrics {
     pub line_gap: Au,
     pub zero_horizontal_advance: Option<Au>,
     pub ic_horizontal_advance: Option<Au>,
+    /// The advance of the space character (' ') in this font or if there is no space,
+    /// the average char advance.
+    pub space_advance: Au,
 }
 
 impl FontMetrics {
@@ -144,20 +148,21 @@ impl FontMetrics {
     /// no font can be found.
     pub fn empty() -> Self {
         Self {
-            underline_size: Au(0),
-            underline_offset: Au(0),
-            strikeout_size: Au(0),
-            strikeout_offset: Au(0),
-            leading: Au(0),
-            x_height: Au(0),
-            em_size: Au(0),
-            ascent: Au(0),
-            descent: Au(0),
-            max_advance: Au(0),
-            average_advance: Au(0),
-            line_gap: Au(0),
+            underline_size: Au::zero(),
+            underline_offset: Au::zero(),
+            strikeout_size: Au::zero(),
+            strikeout_offset: Au::zero(),
+            leading: Au::zero(),
+            x_height: Au::zero(),
+            em_size: Au::zero(),
+            ascent: Au::zero(),
+            descent: Au::zero(),
+            max_advance: Au::zero(),
+            average_advance: Au::zero(),
+            line_gap: Au::zero(),
             zero_horizontal_advance: None,
             ic_horizontal_advance: None,
+            space_advance: Au::zero(),
         }
     }
 }
@@ -517,6 +522,14 @@ impl FontGroup {
         codepoint: char,
         next_codepoint: Option<char>,
     ) -> Option<FontRef> {
+        // Tab characters are converted into spaces when rendering.
+        // TODO: We should not render a tab character. Instead they should be converted into tab stops
+        // based upon the width of a space character in inline formatting contexts.
+        let codepoint = match codepoint {
+            '\t' => ' ',
+            _ => codepoint,
+        };
+
         let options = FallbackFontSelectionOptions::new(codepoint, next_codepoint);
 
         let should_look_for_small_caps = self.descriptor.variant == font_variant_caps::T::SmallCaps &&

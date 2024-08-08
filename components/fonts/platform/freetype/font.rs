@@ -351,6 +351,10 @@ impl PlatformFontMethods for PlatformFont {
             .glyph_index('\u{6C34}')
             .and_then(|idx| self.glyph_h_advance(idx))
             .map(Au::from_f64_px);
+        let space_advance = self
+            .glyph_index(' ')
+            .and_then(|idx| self.glyph_h_advance(idx))
+            .unwrap_or(average_advance);
 
         FontMetrics {
             underline_size: Au::from_f64_px(underline_size),
@@ -367,6 +371,7 @@ impl PlatformFontMethods for PlatformFont {
             line_gap: Au::from_f64_px(line_height),
             zero_horizontal_advance,
             ic_horizontal_advance,
+            space_advance: Au::from_f64_px(space_advance),
         }
     }
 
