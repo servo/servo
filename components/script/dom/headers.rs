@@ -214,10 +214,20 @@ impl HeadersMethods for Headers {
         }
         // Step 7
         // https://fetch.spec.whatwg.org/#concept-header-list-set
-        self.header_list.borrow_mut().insert(
-            HeaderName::from_str(&valid_name).unwrap(),
-            HeaderValue::from_bytes(&valid_value).unwrap(),
-        );
+        match HeaderValue::from_bytes(&valid_value) {
+            Ok(value) => {
+                self.header_list
+                    .borrow_mut()
+                    .insert(HeaderName::from_str(&valid_name).unwrap(), value);
+            },
+            Err(_) => {
+                // can't add the header, but we don't need to panic the browser over it
+                warn!(
+                    "Servo thinks \"{:?}\" is a valid HTTP header value but HeaderValue doesn't.",
+                    valid_value
+                );
+            },
+        };
         Ok(())
     }
 }
