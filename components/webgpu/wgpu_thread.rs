@@ -627,10 +627,10 @@ impl WGPU {
                             .unwrap();
                         let global = &self.global;
                         for b_id in data.available_buffer_ids.iter() {
-                            gfx_select!(b_id => global.buffer_drop(*b_id, false));
+                            gfx_select!(b_id => global.buffer_drop(*b_id));
                         }
                         for b_id in data.queued_buffer_ids.iter() {
-                            gfx_select!(b_id => global.buffer_drop(*b_id, false));
+                            gfx_select!(b_id => global.buffer_drop(*b_id));
                         }
                         for b_id in data.unassigned_buffer_ids.iter() {
                             if let Err(e) = self.script_sender.send(WebGPUMsg::FreeBuffer(*b_id)) {
@@ -1291,7 +1291,7 @@ impl WGPU {
                     },
                     WebGPURequest::DropTexture(id) => {
                         let global = &self.global;
-                        gfx_select!(id => global.texture_drop(id, false));
+                        gfx_select!(id => global.texture_drop(id));
                         self.poller.wake();
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeTexture(id)) {
                             warn!("Unable to send FreeTexture({:?}) ({:?})", id, e);
@@ -1306,7 +1306,7 @@ impl WGPU {
                     },
                     WebGPURequest::DropBuffer(id) => {
                         let global = &self.global;
-                        gfx_select!(id => global.buffer_drop(id, false));
+                        gfx_select!(id => global.buffer_drop(id));
                         self.poller.wake();
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeBuffer(id)) {
                             warn!("Unable to send FreeBuffer({:?}) ({:?})", id, e);
@@ -1366,7 +1366,7 @@ impl WGPU {
                     },
                     WebGPURequest::DropTextureView(id) => {
                         let global = &self.global;
-                        let _result = gfx_select!(id => global.texture_view_drop(id, false));
+                        let _result = gfx_select!(id => global.texture_view_drop(id));
                         self.poller.wake();
                         if let Err(e) = self.script_sender.send(WebGPUMsg::FreeTextureView(id)) {
                             warn!("Unable to send FreeTextureView({:?}) ({:?})", id, e);
