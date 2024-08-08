@@ -143,21 +143,3 @@ pub struct PresentationData {
     image_desc: ImageDescriptor,
     image_data: ImageData,
 }
-
-pub trait Transmute<U: id::Marker> {
-    fn transmute(self) -> id::Id<U>;
-}
-
-impl Transmute<id::markers::Queue> for id::Id<id::markers::Device> {
-    fn transmute(self) -> id::Id<id::markers::Queue> {
-        // if this is removed next one should be removed too.
-        self.into_queue_id()
-    }
-}
-
-impl Transmute<id::markers::Device> for id::Id<id::markers::Queue> {
-    fn transmute(self) -> id::Id<id::markers::Device> {
-        // SAFETY: This is safe because queue_id = device_id in wgpu
-        unsafe { id::Id::from_raw(self.into_raw()) }
-    }
-}

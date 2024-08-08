@@ -130,6 +130,7 @@ pub enum WebGPURequest {
     },
     CreateSwapChain {
         device_id: id::DeviceId,
+        queue_id: id::QueueId,
         buffer_ids: ArrayVec<id::BufferId, PRESENTATION_BUFFER_COUNT>,
         external_id: u64,
         sender: IpcSender<ImageKey>,
@@ -191,6 +192,7 @@ pub enum WebGPURequest {
         adapter_id: WebGPUAdapter,
         descriptor: wgt::DeviceDescriptor<Option<String>>,
         device_id: id::DeviceId,
+        queue_id: id::QueueId,
         pipeline_id: PipelineId,
     },
     // Compute Pass
@@ -250,6 +252,7 @@ pub enum WebGPURequest {
         command_encoder_id: id::CommandEncoderId,
     },
     Submit {
+        device_id: id::DeviceId,
         queue_id: id::QueueId,
         command_buffers: Vec<id::CommandBufferId>,
     },
@@ -267,12 +270,14 @@ pub enum WebGPURequest {
         size: u64,
     },
     WriteBuffer {
+        device_id: id::DeviceId,
         queue_id: id::QueueId,
         buffer_id: id::BufferId,
         buffer_offset: u64,
         data: IpcSharedMemory,
     },
     WriteTexture {
+        device_id: id::DeviceId,
         queue_id: id::QueueId,
         texture_cv: ImageCopyTexture,
         data_layout: wgt::ImageDataLayout,
@@ -282,6 +287,7 @@ pub enum WebGPURequest {
     QueueOnSubmittedWorkDone {
         sender: IpcSender<WebGPUResponse>,
         queue_id: id::QueueId,
+        device_id: id::DeviceId,
     },
     PushErrorScope {
         device_id: id::DeviceId,

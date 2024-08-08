@@ -6,12 +6,13 @@ use smallvec::SmallVec;
 use webgpu::identity::{ComputePass, ComputePassId, RenderPass, RenderPassId};
 use webgpu::wgc::id::markers::{
     Adapter, BindGroup, BindGroupLayout, Buffer, CommandEncoder, ComputePipeline, Device,
-    PipelineLayout, RenderBundle, RenderPipeline, Sampler, ShaderModule, Texture, TextureView,
+    PipelineLayout, Queue, RenderBundle, RenderPipeline, Sampler, ShaderModule, Texture,
+    TextureView,
 };
 use webgpu::wgc::id::{
     AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandEncoderId, ComputePipelineId,
-    DeviceId, PipelineLayoutId, RenderBundleId, RenderPipelineId, SamplerId, ShaderModuleId,
-    TextureId, TextureViewId,
+    DeviceId, PipelineLayoutId, QueueId, RenderBundleId, RenderPipelineId, SamplerId,
+    ShaderModuleId, TextureId, TextureViewId,
 };
 use webgpu::wgc::identity::IdentityManager;
 use webgpu::wgt::Backend;
@@ -20,6 +21,7 @@ use webgpu::wgt::Backend;
 pub struct IdentityHub {
     adapters: IdentityManager<Adapter>,
     devices: IdentityManager<Device>,
+    queues: IdentityManager<Queue>,
     buffers: IdentityManager<Buffer>,
     bind_groups: IdentityManager<BindGroup>,
     bind_group_layouts: IdentityManager<BindGroupLayout>,
@@ -41,6 +43,7 @@ impl IdentityHub {
         IdentityHub {
             adapters: IdentityManager::new(),
             devices: IdentityManager::new(),
+            queues: IdentityManager::new(),
             buffers: IdentityManager::new(),
             bind_groups: IdentityManager::new(),
             bind_group_layouts: IdentityManager::new(),
@@ -121,6 +124,14 @@ impl Identities {
 
     pub fn free_device_id(&self, id: DeviceId) {
         self.select(id.backend()).devices.free(id);
+    }
+
+    pub fn create_queue_id(&self, backend: Backend) -> QueueId {
+        self.select(backend).queues.process(backend)
+    }
+
+    pub fn free_queue_id(&self, id: QueueId) {
+        self.select(id.backend()).queues.free(id);
     }
 
     pub fn create_adapter_ids(&self) -> SmallVec<[AdapterId; 4]> {

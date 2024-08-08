@@ -38,8 +38,8 @@ use crate::gpu_error::ErrorScope;
 use crate::poll_thread::Poller;
 use crate::render_commands::apply_render_command;
 use crate::{
-    Adapter, ComputePassId, Error, PopError, PresentationData, RenderPassId, Transmute, WebGPU,
-    WebGPUAdapter, WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
+    Adapter, ComputePassId, Error, PopError, PresentationData, RenderPassId, WebGPU, WebGPUAdapter,
+    WebGPUDevice, WebGPUMsg, WebGPUQueue, WebGPURequest, WebGPUResponse,
 };
 
 pub const PRESENTATION_BUFFER_COUNT: usize = 10;
@@ -491,6 +491,7 @@ impl WGPU {
                     },
                     WebGPURequest::CreateSwapChain {
                         device_id,
+                        queue_id,
                         buffer_ids,
                         external_id,
                         sender,
@@ -510,7 +511,7 @@ impl WGPU {
                             external_id,
                             PresentationData {
                                 device_id,
-                                queue_id: device_id.transmute(),
+                                queue_id,
                                 data: vec![255; (buffer_stride * height as u32) as usize],
                                 size: Size2D::new(width, height),
                                 unassigned_buffer_ids: buffer_ids,
@@ -704,6 +705,7 @@ impl WGPU {
                         adapter_id,
                         descriptor,
                         device_id,
+                        queue_id,
                         pipeline_id,
                     } => {
                         let desc = DeviceDescriptor {
@@ -718,7 +720,7 @@ impl WGPU {
                             &desc,
                             None,
                             Some(device_id),
-                            Some(device_id.transmute()),
+                            Some(queue_id),
                         ));
                         let device = WebGPUDevice(device_id);
                         let queue = WebGPUQueue(queue_id);
@@ -991,6 +993,7 @@ impl WGPU {
                         };
                     },
                     WebGPURequest::Submit {
+                        device_id,
                         queue_id,
                         command_buffers,
                     } => {
@@ -1008,7 +1011,7 @@ impl WGPU {
                             gfx_select!(queue_id => global.queue_submit(queue_id, &command_buffers))
                                 .map_err(Error::from_error)
                         };
-                        self.maybe_dispatch_error(queue_id.transmute(), result.err());
+                        self.maybe_dispatch_error(device_id, result.err());
                     },
                     WebGPURequest::SwapChainPresent {
                         external_id,
@@ -1195,6 +1198,7 @@ impl WGPU {
                         self.maybe_dispatch_wgpu_error(device_id, result.err());
                     },
                     WebGPURequest::WriteBuffer {
+                        device_id,
                         queue_id,
                         buffer_id,
                         buffer_offset,
@@ -1208,9 +1212,10 @@ impl WGPU {
                             buffer_offset as wgt::BufferAddress,
                             &data
                         ));
-                        self.maybe_dispatch_wgpu_error(queue_id.transmute(), result.err());
+                        self.maybe_dispatch_wgpu_error(device_id, result.err());
                     },
                     WebGPURequest::WriteTexture {
+                        device_id,
                         queue_id,
                         texture_cv,
                         data_layout,
@@ -1228,9 +1233,13 @@ impl WGPU {
                             &size
                         ));
                         drop(_guard);
-                        self.maybe_dispatch_wgpu_error(queue_id.transmute(), result.err());
+                        self.maybe_dispatch_wgpu_error(device_id, result.err());
                     },
-                    WebGPURequest::QueueOnSubmittedWorkDone { sender, queue_id } => {
+                    WebGPURequest::QueueOnSubmittedWorkDone {
+                        sender,
+                        queue_id,
+                        device_id,
+                    } => {
                         let global = &self.global;
                         let token = self.poller.token();
                         let callback = SubmittedWorkDoneClosure::from_rust(Box::from(move || {
@@ -1241,7 +1250,7 @@ impl WGPU {
                         }));
                         let result = gfx_select!(queue_id => global.queue_on_submitted_work_done(queue_id, callback));
                         self.poller.wake();
-                        self.maybe_dispatch_wgpu_error(queue_id.transmute(), result.err());
+                        self.maybe_dispatch_wgpu_error(device_id, result.err());
                     },
                     WebGPURequest::DropTexture(id) => {
                         let global = &self.global;

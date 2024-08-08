@@ -61,6 +61,10 @@ impl GPUQueue {
     pub fn set_device(&self, device: &GPUDevice) {
         *self.device.borrow_mut() = Some(Dom::from_ref(device));
     }
+
+    pub fn id(&self) -> WebGPUQueue {
+        self.queue
+    }
 }
 
 impl GPUQueueMethods for GPUQueue {
@@ -95,6 +99,7 @@ impl GPUQueueMethods for GPUQueue {
         self.channel
             .0
             .send(WebGPURequest::Submit {
+                device_id: self.device.borrow().as_ref().unwrap().id().0,
                 queue_id: self.queue.0,
                 command_buffers,
             })
@@ -133,6 +138,7 @@ impl GPUQueueMethods for GPUQueue {
             &bytes[data_offset as usize..(data_offset + content_size) as usize],
         );
         if let Err(e) = self.channel.0.send(WebGPURequest::WriteBuffer {
+            device_id: self.device.borrow().as_ref().unwrap().id().0,
             queue_id: self.queue.0,
             buffer_id: buffer.id().0,
             buffer_offset,
@@ -169,6 +175,7 @@ impl GPUQueueMethods for GPUQueue {
         let final_data = IpcSharedMemory::from_bytes(&bytes);
 
         if let Err(e) = self.channel.0.send(WebGPURequest::WriteTexture {
+            device_id: self.device.borrow().as_ref().unwrap().id().0,
             queue_id: self.queue.0,
             texture_cv,
             data_layout: texture_layout,
@@ -197,6 +204,7 @@ impl GPUQueueMethods for GPUQueue {
             .send(WebGPURequest::QueueOnSubmittedWorkDone {
                 sender,
                 queue_id: self.queue.0,
+                device_id: self.device.borrow().as_ref().unwrap().id().0,
             })
         {
             warn!("QueueOnSubmittedWorkDone failed with {e}")
