@@ -103,6 +103,8 @@ pub enum WebGPURequest {
         compute_pipeline_id: id::ComputePipelineId,
         descriptor: ComputePipelineDescriptor<'static>,
         implicit_ids: Option<(id::PipelineLayoutId, Vec<id::BindGroupLayoutId>)>,
+        /// present only on ASYNC versions
+        async_sender: Option<IpcSender<WebGPUResponse>>,
     },
     CreateContext(IpcSender<ExternalImageId>),
     CreatePipelineLayout {
@@ -113,8 +115,10 @@ pub enum WebGPURequest {
     CreateRenderPipeline {
         device_id: id::DeviceId,
         render_pipeline_id: id::RenderPipelineId,
-        descriptor: Option<RenderPipelineDescriptor<'static>>,
+        descriptor: RenderPipelineDescriptor<'static>,
         implicit_ids: Option<(id::PipelineLayoutId, Vec<id::BindGroupLayoutId>)>,
+        /// present only on ASYNC versions
+        async_sender: Option<IpcSender<WebGPUResponse>>,
     },
     CreateSampler {
         device_id: id::DeviceId,
@@ -300,5 +304,17 @@ pub enum WebGPURequest {
     PopErrorScope {
         device_id: id::DeviceId,
         sender: IpcSender<WebGPUResponse>,
+    },
+    ComputeGetBindGroupLayout {
+        device_id: id::DeviceId,
+        pipeline_id: id::ComputePipelineId,
+        index: u32,
+        id: id::BindGroupLayoutId,
+    },
+    RenderGetBindGroupLayout {
+        device_id: id::DeviceId,
+        pipeline_id: id::RenderPipelineId,
+        index: u32,
+        id: id::BindGroupLayoutId,
     },
 }

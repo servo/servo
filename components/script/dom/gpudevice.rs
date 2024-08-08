@@ -14,15 +14,21 @@ use std::sync::{Arc, Mutex};
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use webgpu::wgc::id::{BindGroupLayoutId, PipelineLayoutId};
+use webgpu::wgc::pipeline::RenderPipelineDescriptor;
 use webgpu::wgc::{
     binding_model as wgpu_bind, command as wgpu_com, pipeline as wgpu_pipe, resource as wgpu_res,
 };
-use webgpu::{self, wgt, PopError, WebGPU, WebGPURequest, WebGPUResponse};
+use webgpu::{
+    self, wgt, PopError, WebGPU, WebGPUComputePipeline, WebGPURenderPipeline, WebGPURequest,
+    WebGPUResponse,
+};
 
+use super::bindings::codegen::Bindings::WebGPUBinding::GPUPipelineErrorReason;
 use super::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
 use super::bindings::error::Fallible;
 use super::gpu::AsyncWGPUListener;
 use super::gpudevicelostinfo::GPUDeviceLostInfo;
+use super::gpupipelineerror::GPUPipelineError;
 use super::gpusupportedlimits::GPUSupportedLimits;
 use super::types::GPUError;
 use crate::dom::bindings::cell::DomRefCell;
@@ -212,6 +218,118 @@ impl GPUDevice {
             }
             (None, Some((layout_id, bgl_ids)), bgls)
         }
+    }
+
+    fn parse_render_pipeline(
+        &self,
+        descriptor: &GPURenderPipelineDescriptor,
+    ) -> (
+        Option<(PipelineLayoutId, Vec<BindGroupLayoutId>)>,
+        RenderPipelineDescriptor<'static>,
+    ) {
+        let (layout, implicit_ids, _) = self.get_pipeline_layout_data(&descriptor.parent.layout);
+
+        let desc = wgpu_pipe::RenderPipelineDescriptor {
+            label: convert_label(&descriptor.parent.parent),
+            layout,
+            cache: None,
+            vertex: wgpu_pipe::VertexState {
+                stage: wgpu_pipe::ProgrammableStageDescriptor {
+                    module: descriptor.vertex.parent.module.id().0,
+                    entry_point: Some(Cow::Owned(descriptor.vertex.parent.entryPoint.to_string())),
+                    constants: Cow::Owned(HashMap::new()),
+                    zero_initialize_workgroup_memory: true,
+                },
+                buffers: Cow::Owned(
+                    descriptor
+                        .vertex
+                        .buffers
+                        .iter()
+                        .map(|buffer| wgpu_pipe::VertexBufferLayout {
+                            array_stride: buffer.arrayStride,
+                            step_mode: match buffer.stepMode {
+                                GPUVertexStepMode::Vertex => wgt::VertexStepMode::Vertex,
+                                GPUVertexStepMode::Instance => wgt::VertexStepMode::Instance,
+                            },
+                            attributes: Cow::Owned(
+                                buffer
+                                    .attributes
+                                    .iter()
+                                    .map(|att| wgt::VertexAttribute {
+                                        format: convert_vertex_format(att.format),
+                                        offset: att.offset,
+                                        shader_location: att.shaderLocation,
+                                    })
+                                    .collect::<Vec<_>>(),
+                            ),
+                        })
+                        .collect::<Vec<_>>(),
+                ),
+            },
+            fragment: descriptor
+                .fragment
+                .as_ref()
+                .map(|stage| wgpu_pipe::FragmentState {
+                    stage: wgpu_pipe::ProgrammableStageDescriptor {
+                        module: stage.parent.module.id().0,
+                        entry_point: Some(Cow::Owned(stage.parent.entryPoint.to_string())),
+                        constants: Cow::Owned(HashMap::new()),
+                        zero_initialize_workgroup_memory: true,
+                    },
+                    targets: Cow::Owned(
+                        stage
+                            .targets
+                            .iter()
+                            .map(|state| {
+                                Some(wgt::ColorTargetState {
+                                    format: convert_texture_format(state.format),
+                                    write_mask: wgt::ColorWrites::from_bits_retain(state.writeMask),
+                                    blend: state.blend.as_ref().map(|blend| wgt::BlendState {
+                                        color: convert_blend_component(&blend.color),
+                                        alpha: convert_blend_component(&blend.alpha),
+                                    }),
+                                })
+                            })
+                            .collect::<Vec<_>>(),
+                    ),
+                }),
+            primitive: convert_primitive_state(&descriptor.primitive),
+            depth_stencil: descriptor.depthStencil.as_ref().map(|dss_desc| {
+                wgt::DepthStencilState {
+                    format: convert_texture_format(dss_desc.format),
+                    depth_write_enabled: dss_desc.depthWriteEnabled,
+                    depth_compare: convert_compare_function(dss_desc.depthCompare),
+                    stencil: wgt::StencilState {
+                        front: wgt::StencilFaceState {
+                            compare: convert_compare_function(dss_desc.stencilFront.compare),
+                            fail_op: convert_stencil_op(dss_desc.stencilFront.failOp),
+                            depth_fail_op: convert_stencil_op(dss_desc.stencilFront.depthFailOp),
+                            pass_op: convert_stencil_op(dss_desc.stencilFront.passOp),
+                        },
+                        back: wgt::StencilFaceState {
+                            compare: convert_compare_function(dss_desc.stencilBack.compare),
+                            fail_op: convert_stencil_op(dss_desc.stencilBack.failOp),
+                            depth_fail_op: convert_stencil_op(dss_desc.stencilBack.depthFailOp),
+                            pass_op: convert_stencil_op(dss_desc.stencilBack.passOp),
+                        },
+                        read_mask: dss_desc.stencilReadMask,
+                        write_mask: dss_desc.stencilWriteMask,
+                    },
+                    bias: wgt::DepthBiasState {
+                        constant: dss_desc.depthBias,
+                        slope_scale: *dss_desc.depthBiasSlopeScale,
+                        clamp: *dss_desc.depthBiasClamp,
+                    },
+                }
+            }),
+            multisample: wgt::MultisampleState {
+                count: descriptor.multisample.count,
+                mask: descriptor.multisample.mask as u64,
+                alpha_to_coverage_enabled: descriptor.multisample.alphaToCoverageEnabled,
+            },
+            multiview: None,
+        };
+        (implicit_ids, desc)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#lose-the-device>
@@ -564,7 +682,7 @@ impl GPUDeviceMethods for GPUDevice {
             .wgpu_id_hub()
             .create_compute_pipeline_id(self.device.0.backend());
 
-        let (layout, implicit_ids, bgls) = self.get_pipeline_layout_data(&descriptor.parent.layout);
+        let (layout, implicit_ids, _) = self.get_pipeline_layout_data(&descriptor.parent.layout);
 
         let desc = wgpu_pipe::ComputePipelineDescriptor {
             label: convert_label(&descriptor.parent.parent),
@@ -585,16 +703,15 @@ impl GPUDeviceMethods for GPUDevice {
                 compute_pipeline_id,
                 descriptor: desc,
                 implicit_ids,
+                async_sender: None,
             })
             .expect("Failed to create WebGPU ComputePipeline");
 
         let compute_pipeline = webgpu::WebGPUComputePipeline(compute_pipeline_id);
         GPUComputePipeline::new(
             &self.global(),
-            self.channel.clone(),
             compute_pipeline,
             descriptor.parent.parent.label.clone().unwrap_or_default(),
-            bgls,
             self,
         )
     }
@@ -606,7 +723,36 @@ impl GPUDeviceMethods for GPUDevice {
         comp: InRealm,
     ) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp);
-        promise.resolve_native(&self.CreateComputePipeline(descriptor));
+        let sender = response_async(&promise, self);
+        let compute_pipeline_id = self
+            .global()
+            .wgpu_id_hub()
+            .create_compute_pipeline_id(self.device.0.backend());
+
+        let (layout, implicit_ids, _) = self.get_pipeline_layout_data(&descriptor.parent.layout);
+
+        let desc = wgpu_pipe::ComputePipelineDescriptor {
+            label: convert_label(&descriptor.parent.parent),
+            layout,
+            stage: wgpu_pipe::ProgrammableStageDescriptor {
+                module: descriptor.compute.module.id().0,
+                entry_point: Some(Cow::Owned(descriptor.compute.entryPoint.to_string())),
+                constants: Cow::Owned(HashMap::new()),
+                zero_initialize_workgroup_memory: true,
+            },
+            cache: None,
+        };
+
+        self.channel
+            .0
+            .send(WebGPURequest::CreateComputePipeline {
+                device_id: self.device.0,
+                compute_pipeline_id,
+                descriptor: desc,
+                implicit_ids,
+                async_sender: Some(sender),
+            })
+            .expect("Failed to create WebGPU ComputePipeline");
         promise
     }
 
@@ -747,129 +893,7 @@ impl GPUDeviceMethods for GPUDevice {
         &self,
         descriptor: &GPURenderPipelineDescriptor,
     ) -> DomRoot<GPURenderPipeline> {
-        let mut valid = true;
-
-        let (layout, implicit_ids, bgls) = self.get_pipeline_layout_data(&descriptor.parent.layout);
-
-        let desc = if valid {
-            Some(wgpu_pipe::RenderPipelineDescriptor {
-                label: convert_label(&descriptor.parent.parent),
-                layout,
-                cache: None,
-                vertex: wgpu_pipe::VertexState {
-                    stage: wgpu_pipe::ProgrammableStageDescriptor {
-                        module: descriptor.vertex.parent.module.id().0,
-                        entry_point: Some(Cow::Owned(
-                            descriptor.vertex.parent.entryPoint.to_string(),
-                        )),
-                        constants: Cow::Owned(HashMap::new()),
-                        zero_initialize_workgroup_memory: true,
-                    },
-                    buffers: Cow::Owned(
-                        descriptor
-                            .vertex
-                            .buffers
-                            .iter()
-                            .map(|buffer| wgpu_pipe::VertexBufferLayout {
-                                array_stride: buffer.arrayStride,
-                                step_mode: match buffer.stepMode {
-                                    GPUVertexStepMode::Vertex => wgt::VertexStepMode::Vertex,
-                                    GPUVertexStepMode::Instance => wgt::VertexStepMode::Instance,
-                                },
-                                attributes: Cow::Owned(
-                                    buffer
-                                        .attributes
-                                        .iter()
-                                        .map(|att| wgt::VertexAttribute {
-                                            format: convert_vertex_format(att.format),
-                                            offset: att.offset,
-                                            shader_location: att.shaderLocation,
-                                        })
-                                        .collect::<Vec<_>>(),
-                                ),
-                            })
-                            .collect::<Vec<_>>(),
-                    ),
-                },
-                fragment: descriptor
-                    .fragment
-                    .as_ref()
-                    .map(|stage| wgpu_pipe::FragmentState {
-                        stage: wgpu_pipe::ProgrammableStageDescriptor {
-                            module: stage.parent.module.id().0,
-                            entry_point: Some(Cow::Owned(stage.parent.entryPoint.to_string())),
-                            constants: Cow::Owned(HashMap::new()),
-                            zero_initialize_workgroup_memory: true,
-                        },
-                        targets: Cow::Owned(
-                            stage
-                                .targets
-                                .iter()
-                                .map(|state| {
-                                    Some(wgt::ColorTargetState {
-                                        format: convert_texture_format(state.format),
-                                        write_mask: match wgt::ColorWrites::from_bits(
-                                            state.writeMask,
-                                        ) {
-                                            Some(mask) => mask,
-                                            None => {
-                                                valid = false;
-                                                wgt::ColorWrites::empty()
-                                            },
-                                        },
-                                        blend: state.blend.as_ref().map(|blend| wgt::BlendState {
-                                            color: convert_blend_component(&blend.color),
-                                            alpha: convert_blend_component(&blend.alpha),
-                                        }),
-                                    })
-                                })
-                                .collect::<Vec<_>>(),
-                        ),
-                    }),
-                primitive: convert_primitive_state(&descriptor.primitive),
-                depth_stencil: descriptor.depthStencil.as_ref().map(|dss_desc| {
-                    wgt::DepthStencilState {
-                        format: convert_texture_format(dss_desc.format),
-                        depth_write_enabled: dss_desc.depthWriteEnabled,
-                        depth_compare: convert_compare_function(dss_desc.depthCompare),
-                        stencil: wgt::StencilState {
-                            front: wgt::StencilFaceState {
-                                compare: convert_compare_function(dss_desc.stencilFront.compare),
-                                fail_op: convert_stencil_op(dss_desc.stencilFront.failOp),
-                                depth_fail_op: convert_stencil_op(
-                                    dss_desc.stencilFront.depthFailOp,
-                                ),
-                                pass_op: convert_stencil_op(dss_desc.stencilFront.passOp),
-                            },
-                            back: wgt::StencilFaceState {
-                                compare: convert_compare_function(dss_desc.stencilBack.compare),
-                                fail_op: convert_stencil_op(dss_desc.stencilBack.failOp),
-                                depth_fail_op: convert_stencil_op(dss_desc.stencilBack.depthFailOp),
-                                pass_op: convert_stencil_op(dss_desc.stencilBack.passOp),
-                            },
-                            read_mask: dss_desc.stencilReadMask,
-                            write_mask: dss_desc.stencilWriteMask,
-                        },
-                        bias: wgt::DepthBiasState {
-                            constant: dss_desc.depthBias,
-                            slope_scale: *dss_desc.depthBiasSlopeScale,
-                            clamp: *dss_desc.depthBiasClamp,
-                        },
-                    }
-                }),
-                multisample: wgt::MultisampleState {
-                    count: descriptor.multisample.count,
-                    mask: descriptor.multisample.mask as u64,
-                    alpha_to_coverage_enabled: descriptor.multisample.alphaToCoverageEnabled,
-                },
-                multiview: None,
-            })
-        } else {
-            self.dispatch_error(webgpu::Error::Validation(String::from(
-                "Invalid GPUColorWriteFlags",
-            )));
-            None
-        };
+        let (implicit_ids, desc) = self.parse_render_pipeline(&descriptor);
 
         let render_pipeline_id = self
             .global()
@@ -883,6 +907,7 @@ impl GPUDeviceMethods for GPUDevice {
                 render_pipeline_id,
                 descriptor: desc,
                 implicit_ids,
+                async_sender: None,
             })
             .expect("Failed to create WebGPU render pipeline");
 
@@ -892,7 +917,6 @@ impl GPUDeviceMethods for GPUDevice {
             &self.global(),
             render_pipeline,
             descriptor.parent.parent.label.clone().unwrap_or_default(),
-            bgls,
             self,
         )
     }
@@ -904,7 +928,26 @@ impl GPUDeviceMethods for GPUDevice {
         comp: InRealm,
     ) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(comp);
-        promise.resolve_native(&self.CreateRenderPipeline(descriptor));
+        let (implicit_ids, desc) = self.parse_render_pipeline(&descriptor);
+
+        let sender = response_async(&promise, self);
+
+        let render_pipeline_id = self
+            .global()
+            .wgpu_id_hub()
+            .create_render_pipeline_id(self.device.0.backend());
+
+        self.channel
+            .0
+            .send(WebGPURequest::CreateRenderPipeline {
+                device_id: self.device.0,
+                render_pipeline_id,
+                descriptor: desc,
+                implicit_ids,
+                async_sender: Some(sender),
+            })
+            .expect("Failed to create WebGPU render pipeline");
+
         promise
     }
 
@@ -1009,6 +1052,48 @@ impl AsyncWGPUListener for GPUDevice {
                     let error = GPUError::from_error(&self.global(), error);
                     promise.resolve_native(&error);
                 },
+            },
+            WebGPUResponse::ComputePipeline(result) => match result {
+                Ok(pipeline) => promise.resolve_native(&GPUComputePipeline::new(
+                    &self.global(),
+                    WebGPUComputePipeline(pipeline.id),
+                    pipeline.label.into(),
+                    self,
+                )),
+                Err(webgpu::Error::Validation(msg)) => {
+                    promise.reject_native(&GPUPipelineError::new(
+                        &self.global(),
+                        msg.into(),
+                        GPUPipelineErrorReason::Validation,
+                    ))
+                },
+                Err(webgpu::Error::OutOfMemory(msg) | webgpu::Error::Internal(msg)) => promise
+                    .reject_native(&GPUPipelineError::new(
+                        &self.global(),
+                        msg.into(),
+                        GPUPipelineErrorReason::Internal,
+                    )),
+            },
+            WebGPUResponse::RenderPipeline(result) => match result {
+                Ok(pipeline) => promise.resolve_native(&GPURenderPipeline::new(
+                    &self.global(),
+                    WebGPURenderPipeline(pipeline.id),
+                    pipeline.label.into(),
+                    self,
+                )),
+                Err(webgpu::Error::Validation(msg)) => {
+                    promise.reject_native(&GPUPipelineError::new(
+                        &self.global(),
+                        msg.into(),
+                        GPUPipelineErrorReason::Validation,
+                    ))
+                },
+                Err(webgpu::Error::OutOfMemory(msg) | webgpu::Error::Internal(msg)) => promise
+                    .reject_native(&GPUPipelineError::new(
+                        &self.global(),
+                        msg.into(),
+                        GPUPipelineErrorReason::Internal,
+                    )),
             },
             _ => unreachable!("Wrong response received on AsyncWGPUListener for GPUDevice"),
         }
