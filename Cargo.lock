@@ -2879,8 +2879,7 @@ dependencies = [
 [[package]]
 name = "html5ever"
 version = "0.27.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c13771afe0e6e846f1e67d038d4cb29998a6779f93c809212e4e9c32efd244d4"
+source = "git+https://github.com/servo/html5ever?branch=no-mut-interface#ab4ea03bd7925d6c8ca497353fa5373bb1c17f42"
 dependencies = [
  "log",
  "mac",
@@ -4142,8 +4141,7 @@ dependencies = [
 [[package]]
 name = "markup5ever"
 version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "16ce3abbeba692c8b8441d036ef91aea6df8da2c6b6e21c7e14d3c18e526be45"
+source = "git+https://github.com/servo/html5ever?branch=no-mut-interface#ab4ea03bd7925d6c8ca497353fa5373bb1c17f42"
 dependencies = [
  "log",
  "phf 0.11.2",
@@ -8467,8 +8465,7 @@ checksum = "539a77ee7c0de333dcc6da69b177380a0b81e0dacfa4f7344c465a36871ee601"
 [[package]]
 name = "xml5ever"
 version = "0.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9bbb26405d8e919bc1547a5aa9abc95cbfa438f04844f5fdd9dc7596b748bf69"
+source = "git+https://github.com/servo/html5ever?branch=no-mut-interface#ab4ea03bd7925d6c8ca497353fa5373bb1c17f42"
 dependencies = [
  "log",
  "mac",

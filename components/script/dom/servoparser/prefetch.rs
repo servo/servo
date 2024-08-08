@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::{Cell, RefCell};
+
 use base::id::PipelineId;
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tokenizer::states::RawKind;
@@ -41,7 +43,7 @@ impl Tokenizer {
         let sink = PrefetchSink {
             origin: document.origin().immutable().clone(),
             pipeline_id: document.global().pipeline_id(),
-            base_url: None,
+            base_url: RefCell::new(None),
             document_url: document.url(),
             referrer: document.global().get_referrer(),
             referrer_policy: document.get_referrer_policy(),
@@ -49,14 +51,14 @@ impl Tokenizer {
             // Initially we set prefetching to false, and only set it
             // true after the first script tag, since that is what will
             // block the main parser.
-            prefetching: false,
+            prefetching: Cell::new(false),
         };
         let options = Default::default();
         let inner = HtmlTokenizer::new(sink, options);
         Tokenizer { inner }
     }
 
-    pub fn feed(&mut self, input: &mut BufferQueue) {
+    pub fn feed(&self, input: &BufferQueue) {
         while let TokenizerResult::Script(PrefetchHandle) = self.inner.feed(input) {}
     }
 }
@@ -70,14 +72,14 @@ struct PrefetchSink {
     #[no_trace]
     document_url: ServoUrl,
     #[no_trace]
-    base_url: Option<ServoUrl>,
+    base_url: RefCell<Option<ServoUrl>>,
     #[no_trace]
     referrer: Referrer,
     #[no_trace]
     referrer_policy: Option<ReferrerPolicy>,
     #[no_trace]
     resource_threads: ResourceThreads,
-    prefetching: bool,
+    prefetching: Cell<bool>,
 }
 
 /// The prefetch tokenizer produces trivial results
@@ -85,17 +87,13 @@ struct PrefetchHandle;
 
 impl TokenSink for PrefetchSink {
     type Handle = PrefetchHandle;
-    fn process_token(
-        &mut self,
-        token: Token,
-        _line_number: u64,
-    ) -> TokenSinkResult<PrefetchHandle> {
+    fn process_token(&self, token: Token, _line_number: u64) -> TokenSinkResult<PrefetchHandle> {
         let tag = match token {
             Token::TagToken(ref tag) => tag,
             _ => return TokenSinkResult::Continue,
         };
         match (tag.kind, &tag.name) {
-            (TagKind::StartTag, &local_name!("script")) if self.prefetching => {
+            (TagKind::StartTag, &local_name!("script")) if self.prefetching.get() => {
                 if let Some(url) = self.get_url(tag, local_name!("src")) {
                     debug!("Prefetch script {}", url);
                     let cors_setting = self.get_cors_settings(tag, local_name!("crossorigin"));
@@ -123,7 +121,7 @@ impl TokenSink for PrefetchSink {
                 }
                 TokenSinkResult::RawData(RawKind::ScriptData)
             },
-            (TagKind::StartTag, &local_name!("img")) if self.prefetching => {
+            (TagKind::StartTag, &local_name!("img")) if self.prefetching.get() => {
                 if let Some(url) = self.get_url(tag, local_name!("src")) {
                     debug!("Prefetch {} {}", tag.name, url);
                     let request = image_fetch_request(
@@ -141,7 +139,7 @@ impl TokenSink for PrefetchSink {
                 }
                 TokenSinkResult::Continue
             },
-            (TagKind::StartTag, &local_name!("link")) if self.prefetching => {
+            (TagKind::StartTag, &local_name!("link")) if self.prefetching.get() => {
                 if let Some(rel) = self.get_attr(tag, local_name!("rel")) {
                     if rel.value.eq_ignore_ascii_case("stylesheet") {
                         if let Some(url) = self.get_url(tag, local_name!("href")) {
@@ -176,14 +174,14 @@ impl TokenSink for PrefetchSink {
             },
             (TagKind::EndTag, &local_name!("script")) => {
                 // After the first script tag, the main parser is blocked, so it's worth prefetching.
-                self.prefetching = true;
+                self.prefetching.set(true);
                 TokenSinkResult::Script(PrefetchHandle)
             },
             (TagKind::StartTag, &local_name!("base")) => {
                 if let Some(url) = self.get_url(tag, local_name!("href")) {
-                    if self.base_url.is_none() {
+                    if self.base_url.borrow().is_none() {
                         debug!("Setting base {}", url);
-                        self.base_url = Some(url);
+                        *self.base_url.borrow_mut() = Some(url);
                     }
                 }
                 TokenSinkResult::Continue
@@ -200,7 +198,8 @@ impl PrefetchSink {
 
     fn get_url(&self, tag: &Tag, name: LocalName) -> Option<ServoUrl> {
         let attr = self.get_attr(tag, name)?;
-        let base = self.base_url.as_ref().unwrap_or(&self.document_url);
+        let base_url = self.base_url.borrow();
+        let base = base_url.as_ref().unwrap_or(&self.document_url);
         ServoUrl::parse_with_base(Some(base), &attr.value).ok()
     }
 

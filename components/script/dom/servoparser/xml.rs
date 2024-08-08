@@ -4,6 +4,8 @@
 
 #![allow(crown::unrooted_must_root)]
 
+use std::cell::Cell;
+
 use html5ever::tokenizer::TokenizerResult;
 use js::jsapi::JSTracer;
 use servo_url::ServoUrl;
@@ -30,7 +32,7 @@ impl Tokenizer {
         let sink = Sink {
             base_url: url,
             document: Dom::from_ref(document),
-            current_line: 1,
+            current_line: Cell::new(1),
             script: Default::default(),
             parsing_algorithm: ParsingAlgorithm::Normal,
         };
@@ -41,7 +43,7 @@ impl Tokenizer {
         Tokenizer { inner: tok }
     }
 
-    pub fn feed(&mut self, input: &mut BufferQueue) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
+    pub fn feed(&self, input: &BufferQueue) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
         self.inner.run(input);
         match self.inner.sink.sink.script.take() {
             Some(script) => TokenizerResult::Script(script),
@@ -49,7 +51,7 @@ impl Tokenizer {
         }
     }
 
-    pub fn end(&mut self) {
+    pub fn end(&self) {
         self.inner.end()
     }
 

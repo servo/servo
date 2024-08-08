@@ -4,6 +4,7 @@
 
 #![allow(crown::unrooted_must_root)]
 
+use std::cell::Cell;
 use std::io;
 
 use html5ever::buffer_queue::BufferQueue;
@@ -47,7 +48,7 @@ impl Tokenizer {
         let sink = Sink {
             base_url: url,
             document: Dom::from_ref(document),
-            current_line: 1,
+            current_line: Cell::new(1),
             script: Default::default(),
             parsing_algorithm,
         };
@@ -78,7 +79,7 @@ impl Tokenizer {
         Tokenizer { inner }
     }
 
-    pub fn feed(&mut self, input: &mut BufferQueue) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
+    pub fn feed(&self, input: &BufferQueue) -> TokenizerResult<DomRoot<HTMLScriptElement>> {
         match self.inner.feed(input) {
             TokenizerResult::Done => TokenizerResult::Done,
             TokenizerResult::Script(script) => {
@@ -87,7 +88,7 @@ impl Tokenizer {
         }
     }
 
-    pub fn end(&mut self) {
+    pub fn end(&self) {
         self.inner.end();
     }
 
@@ -95,7 +96,7 @@ impl Tokenizer {
         &self.inner.sink.sink.base_url
     }
 
-    pub fn set_plaintext_state(&mut self) {
+    pub fn set_plaintext_state(&self) {
         self.inner.set_plaintext_state();
     }
 }
