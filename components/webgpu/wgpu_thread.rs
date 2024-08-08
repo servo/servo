@@ -380,7 +380,7 @@ impl WGPU {
                         compute_pipeline_id,
                         descriptor,
                         implicit_ids,
-                        sender,
+                        async_sender: sender,
                     } => {
                         let global = &self.global;
                         let bgls = implicit_ids
@@ -446,7 +446,7 @@ impl WGPU {
                         render_pipeline_id,
                         descriptor,
                         implicit_ids,
-                        sender,
+                        async_sender: sender,
                     } => {
                         let global = &self.global;
                         let bgls = implicit_ids
@@ -461,33 +461,31 @@ impl WGPU {
                                     root_id: *layout,
                                     group_ids: bgls.as_slice(),
                                 });
-                        if let Some(desc) = descriptor {
-                            let (_, error) = gfx_select!(render_pipeline_id =>
-                            global.device_create_render_pipeline(
-                                device_id,
-                                &desc,
-                                Some(render_pipeline_id),
-                                implicit)
-                            );
+                        let (_, error) = gfx_select!(render_pipeline_id =>
+                        global.device_create_render_pipeline(
+                            device_id,
+                            &descriptor,
+                            Some(render_pipeline_id),
+                            implicit)
+                        );
 
-                            if let Some(sender) = sender {
-                                let res = match error {
-                                    // if device is lost we must return pipeline and not raise any error
-                                    Some(CreateRenderPipelineError::Device(
-                                        DeviceError::Lost | DeviceError::Invalid(_),
-                                    )) |
-                                    None => Ok(Pipeline {
-                                        id: render_pipeline_id,
-                                        label: desc.label.unwrap_or_default().to_string(),
-                                    }),
-                                    Some(e) => Err(Error::from_error(e)),
-                                };
-                                if let Err(e) = sender.send(WebGPUResponse::RenderPipeline(res)) {
-                                    warn!("Failed sending WebGPUResponse::RenderPipeline {e:?}");
-                                }
-                            } else {
-                                self.maybe_dispatch_wgpu_error(device_id, error);
+                        if let Some(sender) = sender {
+                            let res = match error {
+                                // if device is lost we must return pipeline and not raise any error
+                                Some(CreateRenderPipelineError::Device(
+                                    DeviceError::Lost | DeviceError::Invalid(_),
+                                )) |
+                                None => Ok(Pipeline {
+                                    id: render_pipeline_id,
+                                    label: descriptor.label.unwrap_or_default().to_string(),
+                                }),
+                                Some(e) => Err(Error::from_error(e)),
+                            };
+                            if let Err(e) = sender.send(WebGPUResponse::RenderPipeline(res)) {
+                                warn!("Failed sending WebGPUResponse::RenderPipeline {e:?}");
                             }
+                        } else {
+                            self.maybe_dispatch_wgpu_error(device_id, error);
                         }
                     },
                     WebGPURequest::CreateSampler {

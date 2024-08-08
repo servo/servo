@@ -220,135 +220,114 @@ impl GPUDevice {
         }
     }
 
-    fn parse_render_pipeline<'c>(
+    fn parse_render_pipeline(
         &self,
         descriptor: &GPURenderPipelineDescriptor,
     ) -> (
         Option<(PipelineLayoutId, Vec<BindGroupLayoutId>)>,
-        Option<RenderPipelineDescriptor<'c>>,
+        RenderPipelineDescriptor<'static>,
     ) {
-        let mut valid = true;
-
         let (layout, implicit_ids, _) = self.get_pipeline_layout_data(&descriptor.parent.layout);
 
-        let desc = if valid {
-            Some(wgpu_pipe::RenderPipelineDescriptor {
-                label: convert_label(&descriptor.parent.parent),
-                layout,
-                cache: None,
-                vertex: wgpu_pipe::VertexState {
+        let desc = wgpu_pipe::RenderPipelineDescriptor {
+            label: convert_label(&descriptor.parent.parent),
+            layout,
+            cache: None,
+            vertex: wgpu_pipe::VertexState {
+                stage: wgpu_pipe::ProgrammableStageDescriptor {
+                    module: descriptor.vertex.parent.module.id().0,
+                    entry_point: Some(Cow::Owned(descriptor.vertex.parent.entryPoint.to_string())),
+                    constants: Cow::Owned(HashMap::new()),
+                    zero_initialize_workgroup_memory: true,
+                },
+                buffers: Cow::Owned(
+                    descriptor
+                        .vertex
+                        .buffers
+                        .iter()
+                        .map(|buffer| wgpu_pipe::VertexBufferLayout {
+                            array_stride: buffer.arrayStride,
+                            step_mode: match buffer.stepMode {
+                                GPUVertexStepMode::Vertex => wgt::VertexStepMode::Vertex,
+                                GPUVertexStepMode::Instance => wgt::VertexStepMode::Instance,
+                            },
+                            attributes: Cow::Owned(
+                                buffer
+                                    .attributes
+                                    .iter()
+                                    .map(|att| wgt::VertexAttribute {
+                                        format: convert_vertex_format(att.format),
+                                        offset: att.offset,
+                                        shader_location: att.shaderLocation,
+                                    })
+                                    .collect::<Vec<_>>(),
+                            ),
+                        })
+                        .collect::<Vec<_>>(),
+                ),
+            },
+            fragment: descriptor
+                .fragment
+                .as_ref()
+                .map(|stage| wgpu_pipe::FragmentState {
                     stage: wgpu_pipe::ProgrammableStageDescriptor {
-                        module: descriptor.vertex.parent.module.id().0,
-                        entry_point: Some(Cow::Owned(
-                            descriptor.vertex.parent.entryPoint.to_string(),
-                        )),
+                        module: stage.parent.module.id().0,
+                        entry_point: Some(Cow::Owned(stage.parent.entryPoint.to_string())),
                         constants: Cow::Owned(HashMap::new()),
                         zero_initialize_workgroup_memory: true,
                     },
-                    buffers: Cow::Owned(
-                        descriptor
-                            .vertex
-                            .buffers
+                    targets: Cow::Owned(
+                        stage
+                            .targets
                             .iter()
-                            .map(|buffer| wgpu_pipe::VertexBufferLayout {
-                                array_stride: buffer.arrayStride,
-                                step_mode: match buffer.stepMode {
-                                    GPUVertexStepMode::Vertex => wgt::VertexStepMode::Vertex,
-                                    GPUVertexStepMode::Instance => wgt::VertexStepMode::Instance,
-                                },
-                                attributes: Cow::Owned(
-                                    buffer
-                                        .attributes
-                                        .iter()
-                                        .map(|att| wgt::VertexAttribute {
-                                            format: convert_vertex_format(att.format),
-                                            offset: att.offset,
-                                            shader_location: att.shaderLocation,
-                                        })
-                                        .collect::<Vec<_>>(),
-                                ),
+                            .map(|state| {
+                                Some(wgt::ColorTargetState {
+                                    format: convert_texture_format(state.format),
+                                    write_mask: wgt::ColorWrites::from_bits_retain(state.writeMask),
+                                    blend: state.blend.as_ref().map(|blend| wgt::BlendState {
+                                        color: convert_blend_component(&blend.color),
+                                        alpha: convert_blend_component(&blend.alpha),
+                                    }),
+                                })
                             })
                             .collect::<Vec<_>>(),
                     ),
-                },
-                fragment: descriptor
-                    .fragment
-                    .as_ref()
-                    .map(|stage| wgpu_pipe::FragmentState {
-                        stage: wgpu_pipe::ProgrammableStageDescriptor {
-                            module: stage.parent.module.id().0,
-                            entry_point: Some(Cow::Owned(stage.parent.entryPoint.to_string())),
-                            constants: Cow::Owned(HashMap::new()),
-                            zero_initialize_workgroup_memory: true,
-                        },
-                        targets: Cow::Owned(
-                            stage
-                                .targets
-                                .iter()
-                                .map(|state| {
-                                    Some(wgt::ColorTargetState {
-                                        format: convert_texture_format(state.format),
-                                        write_mask: match wgt::ColorWrites::from_bits(
-                                            state.writeMask,
-                                        ) {
-                                            Some(mask) => mask,
-                                            None => {
-                                                valid = false;
-                                                wgt::ColorWrites::empty()
-                                            },
-                                        },
-                                        blend: state.blend.as_ref().map(|blend| wgt::BlendState {
-                                            color: convert_blend_component(&blend.color),
-                                            alpha: convert_blend_component(&blend.alpha),
-                                        }),
-                                    })
-                                })
-                                .collect::<Vec<_>>(),
-                        ),
-                    }),
-                primitive: convert_primitive_state(&descriptor.primitive),
-                depth_stencil: descriptor.depthStencil.as_ref().map(|dss_desc| {
-                    wgt::DepthStencilState {
-                        format: convert_texture_format(dss_desc.format),
-                        depth_write_enabled: dss_desc.depthWriteEnabled,
-                        depth_compare: convert_compare_function(dss_desc.depthCompare),
-                        stencil: wgt::StencilState {
-                            front: wgt::StencilFaceState {
-                                compare: convert_compare_function(dss_desc.stencilFront.compare),
-                                fail_op: convert_stencil_op(dss_desc.stencilFront.failOp),
-                                depth_fail_op: convert_stencil_op(
-                                    dss_desc.stencilFront.depthFailOp,
-                                ),
-                                pass_op: convert_stencil_op(dss_desc.stencilFront.passOp),
-                            },
-                            back: wgt::StencilFaceState {
-                                compare: convert_compare_function(dss_desc.stencilBack.compare),
-                                fail_op: convert_stencil_op(dss_desc.stencilBack.failOp),
-                                depth_fail_op: convert_stencil_op(dss_desc.stencilBack.depthFailOp),
-                                pass_op: convert_stencil_op(dss_desc.stencilBack.passOp),
-                            },
-                            read_mask: dss_desc.stencilReadMask,
-                            write_mask: dss_desc.stencilWriteMask,
-                        },
-                        bias: wgt::DepthBiasState {
-                            constant: dss_desc.depthBias,
-                            slope_scale: *dss_desc.depthBiasSlopeScale,
-                            clamp: *dss_desc.depthBiasClamp,
-                        },
-                    }
                 }),
-                multisample: wgt::MultisampleState {
-                    count: descriptor.multisample.count,
-                    mask: descriptor.multisample.mask as u64,
-                    alpha_to_coverage_enabled: descriptor.multisample.alphaToCoverageEnabled,
-                },
-                multiview: None,
-            })
-        } else {
-            /*self.dispatch_error(webgpu::Error::Validation(String::from(
-                "Invalid GPUColorWriteFlags",
-            )));*/
-            None
+            primitive: convert_primitive_state(&descriptor.primitive),
+            depth_stencil: descriptor.depthStencil.as_ref().map(|dss_desc| {
+                wgt::DepthStencilState {
+                    format: convert_texture_format(dss_desc.format),
+                    depth_write_enabled: dss_desc.depthWriteEnabled,
+                    depth_compare: convert_compare_function(dss_desc.depthCompare),
+                    stencil: wgt::StencilState {
+                        front: wgt::StencilFaceState {
+                            compare: convert_compare_function(dss_desc.stencilFront.compare),
+                            fail_op: convert_stencil_op(dss_desc.stencilFront.failOp),
+                            depth_fail_op: convert_stencil_op(dss_desc.stencilFront.depthFailOp),
+                            pass_op: convert_stencil_op(dss_desc.stencilFront.passOp),
+                        },
+                        back: wgt::StencilFaceState {
+                            compare: convert_compare_function(dss_desc.stencilBack.compare),
+                            fail_op: convert_stencil_op(dss_desc.stencilBack.failOp),
+                            depth_fail_op: convert_stencil_op(dss_desc.stencilBack.depthFailOp),
+                            pass_op: convert_stencil_op(dss_desc.stencilBack.passOp),
+                        },
+                        read_mask: dss_desc.stencilReadMask,
+                        write_mask: dss_desc.stencilWriteMask,
+                    },
+                    bias: wgt::DepthBiasState {
+                        constant: dss_desc.depthBias,
+                        slope_scale: *dss_desc.depthBiasSlopeScale,
+                        clamp: *dss_desc.depthBiasClamp,
+                    },
+                }
+            }),
+            multisample: wgt::MultisampleState {
+                count: descriptor.multisample.count,
+                mask: descriptor.multisample.mask as u64,
+                alpha_to_coverage_enabled: descriptor.multisample.alphaToCoverageEnabled,
+            },
+            multiview: None,
         };
         (implicit_ids, desc)
     }
@@ -724,7 +703,7 @@ impl GPUDeviceMethods for GPUDevice {
                 compute_pipeline_id,
                 descriptor: desc,
                 implicit_ids,
-                sender: None,
+                async_sender: None,
             })
             .expect("Failed to create WebGPU ComputePipeline");
 
@@ -771,7 +750,7 @@ impl GPUDeviceMethods for GPUDevice {
                 compute_pipeline_id,
                 descriptor: desc,
                 implicit_ids,
-                sender: Some(sender),
+                async_sender: Some(sender),
             })
             .expect("Failed to create WebGPU ComputePipeline");
         promise
@@ -928,7 +907,7 @@ impl GPUDeviceMethods for GPUDevice {
                 render_pipeline_id,
                 descriptor: desc,
                 implicit_ids,
-                sender: None,
+                async_sender: None,
             })
             .expect("Failed to create WebGPU render pipeline");
 
@@ -965,7 +944,7 @@ impl GPUDeviceMethods for GPUDevice {
                 render_pipeline_id,
                 descriptor: desc,
                 implicit_ids,
-                sender: Some(sender),
+                async_sender: Some(sender),
             })
             .expect("Failed to create WebGPU render pipeline");
 

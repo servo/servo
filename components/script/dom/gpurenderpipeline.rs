@@ -93,7 +93,7 @@ impl GPURenderPipelineMethods for GPURenderPipeline {
                 id,
             })
         {
-            warn!("Failed to send WebGPURequest::ComputeGetBindGroupLayout {e:?}");
+            warn!("Failed to send WebGPURequest::RenderGetBindGroupLayout {e:?}");
         }
 
         Ok(GPUBindGroupLayout::new(
