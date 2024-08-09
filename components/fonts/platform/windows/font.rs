@@ -19,6 +19,7 @@ use log::{debug, warn};
 use style::computed_values::font_stretch::T as StyleFontStretch;
 use style::computed_values::font_weight::T as StyleFontWeight;
 use style::values::computed::font::FontStyle as StyleFontStyle;
+use style::Zero;
 use truetype::tables::WindowsMetrics;
 use truetype::value::Read;
 use webrender_api::FontInstanceFlags;
@@ -242,6 +243,17 @@ impl PlatformFontMethods for PlatformFont {
             .and_then(|idx| self.glyph_h_advance(idx))
             .map(Au::from_f64_px);
 
+        // TODO: These should be retrieved from the OS/2 table if possible and then
+        // fall back to measuring 'x' if that is not available.
+        let average_advance = Au::zero();
+        let max_advance = Au::zero();
+
+        let space_advance = self
+            .glyph_index(' ')
+            .and_then(|index| self.glyph_h_advance(index))
+            .map(Au::from_f64_px)
+            .unwrap_or(average_advance);
+
         let metrics = FontMetrics {
             underline_size: au_from_du(dm.underlineThickness as i32),
             underline_offset: au_from_du_s(dm.underlinePosition as i32),
@@ -252,11 +264,12 @@ impl PlatformFontMethods for PlatformFont {
             em_size: au_from_em(self.em_size as f64),
             ascent: au_from_du_s(dm.ascent as i32),
             descent: au_from_du_s(dm.descent as i32),
-            max_advance: au_from_pt(0.0),     // FIXME
-            average_advance: au_from_pt(0.0), // FIXME
+            max_advance,
+            average_advance,
             line_gap: au_from_du_s((dm.ascent + dm.descent + dm.lineGap as u16) as i32),
             zero_horizontal_advance,
             ic_horizontal_advance,
+            space_advance,
         };
         debug!("Font metrics (@{} pt): {:?}", self.em_size * 12., metrics);
         metrics
