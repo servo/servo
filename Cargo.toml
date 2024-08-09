@@ -140,7 +140,7 @@ webrender_api = { git = "https://github.com/servo/webrender", branch = "0.65" }
 webrender_traits = { path = "components/shared/webrender" }
 wgpu-core = { git = "https://github.com/gfx-rs/wgpu", rev = "781b54a8b9cee1a2cb22bda565662edec52eb70e" }
 wgpu-types = { git = "https://github.com/gfx-rs/wgpu", rev = "781b54a8b9cee1a2cb22bda565662edec52eb70e" }
-windows-sys = "0.52"
+windows-sys = "0.59"
 xi-unicode = "0.1.0"
 xml5ever = "0.18"
 
