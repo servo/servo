@@ -331,6 +331,8 @@ fn initialize_logging_once() {
             "servo",
             "servoshell",
             "servoshell::egl:gl_glue",
+            // Show redirected stdout / stderr by default
+            "servoshell::egl::log",
             // Show JS errors by default.
             "script::dom::bindings::error",
             // Show GL errors by default.
@@ -373,6 +375,13 @@ fn initialize_logging_once() {
 
             let _ = crate::backtrace::print_ohos();
         }));
+
+        // We only redirect stdout and stderr for non-production builds, since it is
+        // only used for debugging purposes. This saves us one thread in production.
+        #[cfg(not(production))]
+        if let Err(e) = super::log::redirect_stdout_and_stderr() {
+            error!("Failed to redirect stdout and stderr to hilog due to: {e:?}");
+        }
     })
 }
 

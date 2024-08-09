@@ -6206,6 +6206,7 @@ dependencies = [
  "log",
  "napi-derive-ohos",
  "napi-ohos",
+ "nix",
  "ohos-sys",
  "raw-window-handle",
  "serde_json",
