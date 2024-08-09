@@ -597,8 +597,16 @@ impl ComputedValuesExt for ComputedValues {
 
         // Statically positioned fragments don't establish stacking contexts if the previous
         // conditions are not fulfilled. Furthermore, z-index doesn't apply to statically
-        // positioned fragments.
-        if self.get_box().position == ComputedPosition::Static {
+        // positioned fragments (except for flex items, see below).
+        //
+        // From <https://drafts.csswg.org/css-flexbox/#painting>:
+        // > Flex items paint exactly the same as inline blocks [CSS2], except that order-modified
+        // > document order is used in place of raw document order, and z-index values other than auto
+        // > create a stacking context even if position is static (behaving exactly as if position
+        // > were relative).
+        if self.get_box().position == ComputedPosition::Static &&
+            !fragment_flags.contains(FragmentFlags::IS_FLEX_ITEM)
+        {
             return false;
         }
 
