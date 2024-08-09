@@ -1891,7 +1891,8 @@ pub fn collect_sequence_characters<F>(s: &str, predicate: F) -> (&str, &str)
 where
     F: Fn(&char) -> bool,
 {
-    for (i, ch) in s.chars().enumerate() {
+    let mut char_indices = s.char_indices();
+    while let Some((i, ch)) = char_indices.next() {
         if !predicate(&ch) {
             return (&s[0..i], &s[i..]);
         }
