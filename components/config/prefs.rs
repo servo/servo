@@ -544,6 +544,10 @@ mod gen {
                 },
                 flexbox: {
                     enabled: bool,
+                    use_taffy: bool,
+                },
+                grid: {
+                    enabled: bool,
                 },
                 legacy_layout: bool,
                 #[serde(default = "default_layout_threads")]

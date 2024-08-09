@@ -87,6 +87,7 @@ pub(crate) enum DisplayInside {
     Flow { is_list_item: bool },
     FlowRoot { is_list_item: bool },
     Flex,
+    Grid,
     Table,
 }
 
@@ -784,7 +785,7 @@ impl From<stylo::Display> for Display {
                 is_list_item: packed.is_list_item(),
             },
             stylo::DisplayInside::Flex => DisplayInside::Flex,
-            stylo::DisplayInside::Grid => todo!("Grid support is not yet implemented."),
+            stylo::DisplayInside::Grid => DisplayInside::Grid,
 
             // These should not be values of DisplayInside, but oh well
             stylo::DisplayInside::None => return Display::None,

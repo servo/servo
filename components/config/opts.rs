@@ -30,6 +30,9 @@ pub struct Opts {
     /// Whether or not the legacy layout system is enabled.
     pub legacy_layout: bool,
 
+    /// Whether or not the taffy layout system is enabled.
+    pub taffy_layout: bool,
+
     /// The maximum size of each tile in pixels (`-s`).
     pub tile_size: usize,
 
@@ -397,6 +400,7 @@ pub fn multiprocess() -> bool {
 pub fn default_opts() -> Opts {
     Opts {
         legacy_layout: false,
+        taffy_layout: false,
         tile_size: 512,
         time_profiling: None,
         time_profiler_trace_path: None,
@@ -434,6 +438,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
     let (app_name, args) = args.split_first().unwrap();
 
     opts.optflag("", "legacy-layout", "Use the legacy layout engine");
+    opts.optflag("", "taffy-layout", "Use the taffy layout engine");
     opts.optopt("o", "output", "Output file", "output.png");
     opts.optopt("s", "size", "Size of tiles", "512");
     opts.optflagopt(
@@ -733,14 +738,24 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
     let is_printing_version = opt_match.opt_present("v") || opt_match.opt_present("version");
 
     let legacy_layout = opt_match.opt_present("legacy-layout");
+    let taffy_layout = opt_match.opt_present("taffy-layout");
+    if legacy_layout && taffy_layout {
+        args_fail("Error: --legacy-layout and --taffy-layout options are mutually exclusive.");
+    }
     if legacy_layout {
         set_pref!(layout.legacy_layout, true);
         set_pref!(layout.flexbox.enabled, true);
+    }
+    if taffy_layout {
+        set_pref!(layout.grid.enabled, true);
+        set_pref!(layout.flexbox.enabled, true);
+        set_pref!(layout.flexbox.use_taffy, true);
     }
 
     let opts = Opts {
         debug: debug_options.clone(),
         legacy_layout,
+        taffy_layout,
         tile_size,
         time_profiling,
         time_profiler_trace_path: opt_match.opt_str("profiler-trace-path"),

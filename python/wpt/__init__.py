@@ -33,6 +33,8 @@ def create_parser():
                         help="Pass preferences to servo")
     parser.add_argument('--legacy-layout', '--layout-2013', '--with-layout-2013', default=False,
                         action="store_true", help="Use expected results for the legacy layout engine")
+    parser.add_argument('--taffy-layout', default=False,
+                        action="store_true", help="Use expected results for the taffy layout engine")
     parser.add_argument('--log-servojson', action="append", type=mozlog.commandline.log_file,
                         help="Servo's JSON logger of unexpected results")
     parser.add_argument('--always-succeed', default=False, action="store_true",
@@ -58,6 +60,11 @@ def update_args_for_legacy_layout(kwargs: dict):
     kwargs["test_paths"]["/_webgl/"].metadata_path = os.path.join(
         WPT_PATH, "webgl", "meta-legacy-layout"
     )
+
+
+def update_args_for_taffy_layout(kwargs: dict):
+    # TODO: setup taffy-layout metadata
+    pass
 
 
 def run_tests():
