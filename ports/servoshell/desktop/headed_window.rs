@@ -66,7 +66,7 @@ fn window_creation_scale_factor() -> Scale<f32, DeviceIndependentPixel, DevicePi
 fn window_creation_scale_factor() -> Scale<f32, DeviceIndependentPixel, DevicePixel> {
     use windows_sys::Win32::Graphics::Gdi::{GetDC, GetDeviceCaps, LOGPIXELSY};
 
-    let ppi = unsafe { GetDeviceCaps(GetDC(0), LOGPIXELSY as i32) };
+    let ppi = unsafe { GetDeviceCaps(GetDC(std::ptr::null_mut()), LOGPIXELSY as i32) };
     Scale::new(ppi as f32 / 96.0)
 }
 
