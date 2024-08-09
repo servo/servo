@@ -517,7 +517,8 @@ pub struct ScriptThread {
     /// <https://html.spec.whatwg.org/multipage/#last-render-opportunity-time>
     last_render_opportunity_time: DomRefCell<Option<Instant>>,
     /// Used to batch rendering opportunities
-    has_queued_update_the_rendering_task: DomRefCell<bool>,
+    #[no_trace]
+    update_the_rendering_task_queued_for_pipeline: DomRefCell<HashSet<PipelineId>>,
     /// The documents for pipelines managed by this thread
     documents: DomRefCell<Documents>,
     /// The window proxies known by this thread
@@ -1331,7 +1332,7 @@ impl ScriptThread {
         ScriptThread {
             documents: DomRefCell::new(Documents::default()),
             last_render_opportunity_time: Default::default(),
-            has_queued_update_the_rendering_task: Default::default(),
+            update_the_rendering_task_queued_for_pipeline: Default::default(),
             window_proxies: DomRefCell::new(HashMapTracedValues::new()),
             incomplete_loads: DomRefCell::new(vec![]),
             incomplete_parser_contexts: IncompleteParserContexts(RefCell::new(vec![])),
@@ -1640,7 +1641,9 @@ impl ScriptThread {
 
     /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>
     fn update_the_rendering(&self) {
-        *self.has_queued_update_the_rendering_task.borrow_mut() = false;
+        self.update_the_rendering_task_queued_for_pipeline
+            .borrow_mut()
+            .clear();
 
         if !self.can_continue_running_inner() {
             return;
@@ -1649,15 +1652,26 @@ impl ScriptThread {
         // TODO: The specification says to filter out non-renderable documents,
         // as well as those for which a rendering update would be unnecessary,
         // but this isn't happening here.
-        let pipeline_and_docs: Vec<(PipelineId, DomRoot<Document>)> = self
+        let pipelines_to_update: Vec<PipelineId> = self
             .documents
             .borrow()
             .iter()
-            .map(|(id, document)| (id, DomRoot::from_ref(&*document)))
+            .filter(|(_, document)| document.window().is_top_level())
+            .flat_map(|(id, document)| {
+                std::iter::once(id.clone()).chain(
+                    document
+                        .iter_iframes()
+                        .filter_map(|iframe| iframe.pipeline_id()),
+                )
+            })
             .collect();
         // Note: the spec reads: "for doc in docs" at each step
         // whereas this runs all steps per doc in docs.
-        for (pipeline_id, document) in pipeline_and_docs {
+        for pipeline_id in pipelines_to_update {
+            let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+                warn!("Updating the rendering for closed pipeline {pipeline_id}.");
+                continue;
+            };
             // TODO(#32004): The rendering should be updated according parent and shadow root order
             // in the specification, but this isn't happening yet.
 
@@ -1744,10 +1758,13 @@ impl ScriptThread {
         let rendering_task_source = task_manager.rendering_task_source();
         let canceller = task_manager.task_canceller(TaskSourceName::Rendering);
 
-        if *self.has_queued_update_the_rendering_task.borrow() {
+        if !self
+            .update_the_rendering_task_queued_for_pipeline
+            .borrow_mut()
+            .insert(pipeline_id)
+        {
             return;
         }
-        *self.has_queued_update_the_rendering_task.borrow_mut() = true;
 
         // Queues a task to update the rendering.
         // <https://html.spec.whatwg.org/multipage/#event-loop-processing-model:queue-a-global-task>
