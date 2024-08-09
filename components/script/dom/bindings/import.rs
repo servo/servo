@@ -111,6 +111,9 @@ pub mod module {
     pub use crate::dom::bindings::finalize::{
         finalize_common, finalize_global, finalize_weak_referenceable,
     };
+    pub use crate::dom::bindings::construct_hook::{
+        construct_html_custom,construct_default_custom
+    };
     pub use crate::dom::bindings::guard::{Condition, Guard};
     pub use crate::dom::bindings::htmlconstructor::{
         pop_current_element_queue, push_new_element_queue,
