@@ -15,6 +15,7 @@ use style_dom::ElementState;
 
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
+use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterData_Binding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::{
     EventHandlerNonNull, OnErrorEventHandlerNonNull,
 };
@@ -26,6 +27,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::characterdata::CharacterData;
 use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use crate::dom::customelementregistry::CallbackReaction;
 use crate::dom::document::{Document, FocusType};
@@ -467,52 +469,90 @@ impl HTMLElementMethods for HTMLElement {
         DOMString::from(text)
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute
+    /// <https://html.spec.whatwg.org/multipage/#set-the-inner-text-steps>
     fn SetInnerText(&self, input: DOMString) {
+        // Step 1: Let fragment be the rendered text fragment for value given element's node
+        // document.
+        let fragment = self.rendered_text_fragment(input);
+
+        // Step 2: Replace all with fragment within element.
+        Node::replace_all(Some(fragment.upcast()), self.upcast::<Node>());
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-outertext>
+    fn GetOuterText(&self) -> Fallible<DOMString> {
+        let node = self.upcast::<Node>();
+        let window = window_from_node(node);
+        let element = self.as_element();
+
         // Step 1.
+        let element_not_rendered = !node.is_connected() || !element.has_css_layout_box();
+        if element_not_rendered {
+            return Ok(node.GetTextContent().unwrap());
+        }
+
+        window.layout_reflow(QueryMsg::ElementOuterTextQuery);
+        let text = window
+            .layout()
+            .query_element_outer_text(node.to_trusted_node_address());
+
+        Ok(DOMString::from(text))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute%3Adom-outertext-2>
+    fn SetOuterText(&self, input: DOMString) -> Fallible<()> {
+        // Step 1: If this's parent is null, then throw a "NoModificationAllowedError" DOMException.
+        let Some(parent) = self.upcast::<Node>().GetParentNode() else {
+            return Err(Error::NoModificationAllowed);
+        };
+
+        let node = self.upcast::<Node>();
         let document = document_from_node(self);
 
-        // Step 2.
-        let fragment = DocumentFragment::new(&document);
+        // Step 2: Let next be this's next sibling.
+        let next = node.GetNextSibling();
 
-        // Step 3. The given value is already named 'input'.
+        // Step 3: Let previous be this's previous sibling.
+        let previous = node.GetPreviousSibling();
 
-        // Step 4.
-        let mut position = input.chars().peekable();
+        // Step 4: Let fragment be the rendered text fragment for the given value given this's node
+        // document.
+        let fragment = self.rendered_text_fragment(input);
 
-        // Step 5.
-        let mut text = String::new();
+        // Step 5: If fragment has no children, then append a new Text node whose data is the empty
+        // string and node document is this's node document to fragment.
+        if fragment.upcast::<Node>().children_count() == 0 {
+            let text_node = Text::new(DOMString::from("".to_owned()), &document);
 
-        // Step 6.
-        while let Some(ch) = position.next() {
-            match ch {
-                '\u{000A}' | '\u{000D}' => {
-                    if ch == '\u{000D}' && position.peek() == Some(&'\u{000A}') {
-                        // a \r\n pair should only generate one <br>,
-                        // so just skip the \r.
-                        position.next();
-                    }
+            fragment
+                .upcast::<Node>()
+                .AppendChild(text_node.upcast())
+                .unwrap();
+        }
 
-                    if !text.is_empty() {
-                        append_text_node_to_fragment(&document, &fragment, text);
-                        text = String::new();
-                    }
+        // Step 6: Replace this with fragment within this's parent.
+        if let Err(error) = parent.ReplaceChild(fragment.upcast(), node) {
+            warn!("Failed to replace child node: {:?}", error);
+        }
 
-                    let br = HTMLBRElement::new(local_name!("br"), None, &document, None);
-                    fragment.upcast::<Node>().AppendChild(br.upcast()).unwrap();
-                },
-                _ => {
-                    text.push(ch);
-                },
+        // Step 7: If next is non-null and next's previous sibling is a Text node, then merge with
+        // the next text node given next's previous sibling.
+        if let Some(next_sibling) = next {
+            if let Some(node) = next_sibling.GetPreviousSibling() {
+                if node.is::<Text>() {
+                    self.merge_with_the_next_text_node(node);
+                }
             }
         }
 
-        if !text.is_empty() {
-            append_text_node_to_fragment(&document, &fragment, text);
+        // Step 8: If previous is a Text node, then merge with the next text node given previous.
+        if let Some(node) = previous {
+            if node.is::<Text>() {
+                self.merge_with_the_next_text_node(node);
+            }
         }
 
-        // Step 7.
-        Node::replace_all(Some(fragment.upcast()), self.upcast::<Node>());
+        Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-translate
@@ -895,6 +935,82 @@ impl HTMLElement {
         match first_summary_element {
             Some(first_summary) => &*first_summary == self.as_element(),
             None => false,
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#rendered-text-fragment>
+    fn rendered_text_fragment(&self, input: DOMString) -> DomRoot<DocumentFragment> {
+        // Step 1: Let fragment be a new DocumentFragment whose node document is document.
+        let document = document_from_node(self);
+        let fragment = DocumentFragment::new(&document);
+
+        // Step 2: Let position be a position variable for input, initially pointing at the start
+        // of input.
+        let mut position = input.chars().peekable();
+
+        // Step : Let text be the empty string.
+        let mut text = String::new();
+
+        // Step 4
+        while let Some(ch) = position.next() {
+            match ch {
+                // While position is not past the end of input, and the code point at position is
+                // either U+000A LF or U+000D CR:
+                '\u{000A}' | '\u{000D}' => {
+                    if ch == '\u{000D}' && position.peek() == Some(&'\u{000A}') {
+                        // a \r\n pair should only generate one <br>,
+                        // so just skip the \r.
+                        position.next();
+                    }
+
+                    if !text.is_empty() {
+                        append_text_node_to_fragment(&document, &fragment, text);
+                        text = String::new();
+                    }
+
+                    let br = HTMLBRElement::new(local_name!("br"), None, &document, None);
+                    fragment.upcast::<Node>().AppendChild(br.upcast()).unwrap();
+                },
+                _ => {
+                    // Collect a sequence of code points that are not U+000A LF or U+000D CR from
+                    // input given position, and set text to the result.
+                    text.push(ch);
+                },
+            }
+        }
+
+        // If text is not the empty string, then append a new Text node whose data is text and node
+        // document is document to fragment.
+        if !text.is_empty() {
+            append_text_node_to_fragment(&document, &fragment, text);
+        }
+
+        fragment
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#merge-with-the-next-text-node>
+    fn merge_with_the_next_text_node(&self, node: DomRoot<Node>) {
+        // Step 1: Let next be node's next sibling.
+        if let Some(next) = node.GetNextSibling() {
+            // Step 2: If next is not a Text node, then return.
+            if next.is::<Text>() {
+                // Step 3: Replace data with node, node's data's length, 0, and next's data.
+                let node_chars = node.downcast::<CharacterData>().unwrap();
+                let next_chars = next.downcast::<CharacterData>().unwrap();
+
+                if let Err(error) =
+                    node_chars.ReplaceData(node_chars.Length(), 0, next_chars.Data())
+                {
+                    warn!("Failed to replace character data: {:?}", error);
+
+                    return;
+                }
+
+                // Step 4: If next's parent is non-null, then remove next.
+                if next.has_parent() {
+                    next.remove_self();
+                }
+            }
         }
     }
 }

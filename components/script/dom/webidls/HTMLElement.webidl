@@ -48,7 +48,8 @@ interface HTMLElement : Element {
   //         attribute boolean spellcheck;
   // void forceSpellCheck();
 
-  attribute [LegacyNullToEmptyString] DOMString innerText;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString innerText;
+  [CEReactions, Throws] attribute [LegacyNullToEmptyString] DOMString outerText;
 
   [Throws] ElementInternals attachInternals();
 
