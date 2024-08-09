@@ -31,4 +31,5 @@ dictionary EventListenerOptions {
 dictionary AddEventListenerOptions : EventListenerOptions {
   // boolean passive = false;
   boolean once = false;
+  AbortSignal signal;
 };
