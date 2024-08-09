@@ -454,7 +454,7 @@ where
             .otherwise(|| self.platform_handle_key(key_event));
     }
 
-    #[cfg(not(target_os = "win"))]
+    #[cfg(not(target_os = "windows"))]
     fn platform_handle_key(&mut self, key_event: KeyboardEvent) {
         if let Some(id) = self.focused_webview_id {
             if let Some(event) = ShortcutMatcher::from_event(key_event.clone())
@@ -471,7 +471,7 @@ where
         }
     }
 
-    #[cfg(target_os = "win")]
+    #[cfg(target_os = "windows")]
     fn platform_handle_key(&mut self, _key_event: KeyboardEvent) {}
 
     /// Handle key events after they have been handled by Servo.
