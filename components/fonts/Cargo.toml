@@ -49,6 +49,9 @@ webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
 xi-unicode = { workspace = true }
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(ohos_mock)'] }
+
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = { workspace = true }
 core-foundation = "0.9"
