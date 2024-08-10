@@ -26,6 +26,7 @@ packages = [
     "futures",
     "hermit-abi",
     "redox_syscall",
+    "libredox",
     "syn",
     "time",
     "wasi",
