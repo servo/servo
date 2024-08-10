@@ -1044,7 +1044,7 @@ class CommandBase(object):
             if self.config["build"]["webgl-backtrace"]:
                 features.append("webgl-backtrace")
             if self.config["build"]["dom-backtrace"]:
-                features.append("dom-backtrace")
+                features.append("js_backtrace")
             args += ["--features", " ".join(features)]
 
         if with_debug_assertions or self.config["build"]["debug-assertions"]:
