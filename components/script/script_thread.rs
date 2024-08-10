@@ -63,7 +63,9 @@ use media::WindowGLContext;
 use metrics::{PaintTimeMetrics, MAX_TASK_NS};
 use mime::{self, Mime};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
-use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestBuilder};
+use net_traits::request::{
+    CredentialsMode, Destination, RedirectMode, RequestBuilder, RequestMode,
+};
 use net_traits::storage_thread::StorageType;
 use net_traits::{
     FetchMetadata, FetchResponseListener, FetchResponseMsg, Metadata, NetworkError, ReferrerPolicy,
@@ -3953,6 +3955,7 @@ impl ScriptThread {
         let req_init = RequestBuilder::new(load_data.url.clone(), load_data.referrer)
             .method(load_data.method)
             .destination(Destination::Document)
+            .mode(RequestMode::Navigate)
             .credentials_mode(CredentialsMode::Include)
             .use_url_credentials(true)
             .pipeline_id(Some(id))

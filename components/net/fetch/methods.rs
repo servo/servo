@@ -26,8 +26,8 @@ use net_traits::blob_url_store::{parse_blob_url, BlobURLStoreError};
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::request::{
     is_cors_safelisted_method, is_cors_safelisted_request_header, BodyChunkRequest,
-    BodyChunkResponse, CredentialsMode, Destination, Origin, Referrer, Request, RequestMode,
-    ResponseTainting, Window,
+    BodyChunkResponse, CredentialsMode, Destination, Origin, RedirectMode, Referrer, Request,
+    RequestMode, ResponseTainting, Window,
 };
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{
@@ -298,7 +298,11 @@ pub async fn main_fetch(
 
             if (same_origin && !cors_flag) ||
                 current_url.scheme() == "data" ||
-                current_url.scheme() == "chrome"
+                current_url.scheme() == "chrome" ||
+                matches!(
+                    request.mode,
+                    RequestMode::Navigate | RequestMode::WebSocket { .. }
+                )
             {
                 // Substep 1.
                 request.response_tainting = ResponseTainting::Basic;
@@ -308,11 +312,18 @@ pub async fn main_fetch(
             } else if request.mode == RequestMode::SameOrigin {
                 Response::network_error(NetworkError::Internal("Cross-origin response".into()))
             } else if request.mode == RequestMode::NoCors {
-                // Substep 1.
-                request.response_tainting = ResponseTainting::Opaque;
+                // Substep 1. If request’s redirect mode is not "follow", then return a network error.
+                if request.redirect_mode != RedirectMode::Follow {
+                    Response::network_error(NetworkError::Internal(
+                        "NoCors requests must follow redirects".into(),
+                    ))
+                } else {
+                    // Substep 2. Set request’s response tainting to "opaque".
+                    request.response_tainting = ResponseTainting::Opaque;
 
-                // Substep 2.
-                scheme_fetch(request, cache, target, done_chan, context).await
+                    // Substep 3. Return the result of running scheme fetch given fetchParams.
+                    scheme_fetch(request, cache, target, done_chan, context).await
+                }
             } else if !matches!(current_url.scheme(), "http" | "https") {
                 Response::network_error(NetworkError::Internal("Non-http scheme".into()))
             } else if request.use_cors_preflight ||
