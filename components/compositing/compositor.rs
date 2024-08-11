@@ -1824,9 +1824,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             if previous_pipeline_id.replace(pipeline_id) != Some(pipeline_id) {
                 let scroll_result = self
                     .pipeline_details
-                    .get_mut(&pipeline_id)?
+                    .get_mut(pipeline_id)?
                     .scroll_tree
-                    .scroll_node_or_ancestor(&scroll_tree_node, scroll_location);
+                    .scroll_node_or_ancestor(scroll_tree_node, scroll_location);
                 if let Some((external_id, offset)) = scroll_result {
                     return Some((*pipeline_id, external_id, offset));
                 }
