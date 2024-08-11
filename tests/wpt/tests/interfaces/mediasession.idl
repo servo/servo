@@ -30,7 +30,8 @@ enum MediaSessionAction {
   "hangup",
   "previousslide",
   "nextslide",
-  "enterpictureinpicture"
+  "enterpictureinpicture",
+  "voiceactivity"
 };
 
 callback MediaSessionActionHandler = undefined(MediaSessionActionDetails details);

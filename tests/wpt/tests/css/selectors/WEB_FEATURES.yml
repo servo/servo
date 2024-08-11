@@ -1,4 +1,9 @@
 features:
+- name: dir-pseudo
+  files:
+  - dir-pseudo-*
+  - dir-selector-*
+  - dir-style-*
 - name: focus-visible
   files:
   - focus-visible-*

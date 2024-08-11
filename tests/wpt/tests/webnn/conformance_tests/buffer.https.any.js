@@ -282,6 +282,14 @@ const testReadWebNNBuffer = (testName) => {
 
   promise_test(async () => {
     let mlBuffer =
+        await mlContext.createBuffer({dataType: 'int32', dimensions: [1024]});
+
+    await assert_buffer_data_equals(
+        mlContext, mlBuffer, new Uint32Array(1024));
+  }, `${testName} / uninitialized`);
+
+  promise_test(async () => {
+    let mlBuffer =
         await mlContext.createBuffer({dataType: 'int32', dimensions: [1]});
 
     // Initialize the buffer.

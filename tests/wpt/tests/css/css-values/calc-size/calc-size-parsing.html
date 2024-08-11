@@ -83,17 +83,14 @@ test_valid_value("width", "calc-size(calc-size(min-content, size), size)");
 
 test_invalid_value("height", "calc(12% + calc-size(any, 31%))");
 
-// Based on the discussion in https://github.com/w3c/csswg-drafts/issues/10259
-// this presumes parse-time conversion of the one-argument form to the
-// two-argument form, but this isn't yet specified.
-test_valid_value("width", "calc-size(30px)", "calc-size(any, 30px)");
-test_valid_value("width", "calc-size(min(30px, 2em))", "calc-size(any, min(30px, 2em))");
+test_invalid_value("width", "calc-size(30px)");
+test_invalid_value("width", "calc-size(min(30px, 2em))");
 test_invalid_value("width", "calc-size(any)");
-test_valid_value("width", "calc-size(calc-size(any, 30px))", "calc-size(calc-size(any, 30px), size)");
+test_invalid_value("width", "calc-size(calc-size(any, 30px))");
 test_invalid_value("width", "calc-size(size)");
-test_valid_value("width", "calc-size(fit-content)", "calc-size(fit-content, size)");
-test_valid_value("width", "calc-size(calc-size(fit-content, size * 2))", "calc-size(calc-size(fit-content, size * 2), size)");
-test_valid_value("width", "calc-size(calc-size(30px))", "calc-size(calc-size(any, 30px), size)");
+test_invalid_value("width", "calc-size(fit-content)");
+test_invalid_value("width", "calc-size(calc-size(fit-content, size * 2))");
+test_invalid_value("width", "calc-size(calc-size(30px))");
 
 test_valid_value("flex-basis", "calc-size(any, 50px)");
 test_valid_value("flex-basis", "calc-size(auto, size)");

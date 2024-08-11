@@ -97,8 +97,6 @@ enum FontFaceSetLoadStatus { "loading", "loaded" };
 
 [Exposed=(Window,Worker)]
 interface FontFaceSet : EventTarget {
-  constructor(sequence<FontFace> initialFaces);
-
   setlike<FontFace>;
   FontFaceSet add(FontFace font);
   boolean delete(FontFace font);

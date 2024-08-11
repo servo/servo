@@ -79,6 +79,6 @@ interface CSSPositionTryDescriptors : CSSStyleDeclaration {
   attribute CSSOMString justify-self;
   attribute CSSOMString positionAnchor;
   attribute CSSOMString position-anchor;
-  attribute CSSOMString insetArea;
-  attribute CSSOMString inset-area;
+  attribute CSSOMString positionArea;
+  attribute CSSOMString position-area;
 };

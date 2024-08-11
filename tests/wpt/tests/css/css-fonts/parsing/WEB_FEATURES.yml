@@ -6,6 +6,9 @@ features:
   files:
   - font-palette-*
   - font-palette-values-*
+- name: font-size-adjust
+  files:
+  - font-size-adjust-*
 - name: font-synthesis
   files:
   - font-synthesis-computed.html

@@ -12,6 +12,21 @@
     @assert pixel 100,0 == 0,0,0,0;
     t.done();
 
+- name: 2d.reset.after-rasterization
+  desc: Reset after rasterizing a frame discards frame content.
+  code: |
+    ctx.fillStyle = 'rgba(255, 0, 0, 1)';
+    ctx.fillRect(0, 0, {{ size[0] }}, {{ size[1] }});
+
+    ctx.getImageData(0, 0, 1, 1);  // Force previous draw calls to be rendered.
+    ctx.reset();
+
+    ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
+    ctx.fillRect(0, 0, {{ size[0] }}, {{ (size[1] / 2) | int }});
+  reference: |
+    ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
+    ctx.fillRect(0, 0, {{ size[0] }}, {{ (size[1] / 2) | int }});
+
 - name: 2d.reset.state
   desc: check that the state is reset
   code: |

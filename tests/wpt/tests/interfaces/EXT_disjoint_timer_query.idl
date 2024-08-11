@@ -19,7 +19,7 @@ interface EXT_disjoint_timer_query {
   const GLenum TIMESTAMP_EXT               = 0x8E28;
   const GLenum GPU_DISJOINT_EXT            = 0x8FBB;
 
-  WebGLTimerQueryEXT? createQueryEXT();
+  WebGLTimerQueryEXT createQueryEXT();
   undefined deleteQueryEXT(WebGLTimerQueryEXT? query);
   [WebGLHandlesContextLoss] boolean isQueryEXT(WebGLTimerQueryEXT? query);
   undefined beginQueryEXT(GLenum target, WebGLTimerQueryEXT query);

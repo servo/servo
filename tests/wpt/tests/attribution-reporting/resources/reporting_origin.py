@@ -48,7 +48,7 @@ def main(request, response):
     If a `clear-stash` param is set, it will clear the stash.
     """
     if request.GET.get(b"clear-stash"):
-        request.stash.take(REQUESTS)
+        request.server.stash.take(REQUESTS)
         return
 
     # We dont want to redirect preflight requests. The cors headers are piped

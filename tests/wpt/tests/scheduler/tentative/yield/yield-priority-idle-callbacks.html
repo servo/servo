@@ -14,7 +14,7 @@
 // Returns {tasks, ids} where `tasks` is an array of promises associated with
 // the tasks and `ids` is an array of task ids appended to by the scheduled
 // tasks.
-function postTestTasks(yieldParams) {
+function postTestTasks() {
   const ids = [];
   const task = new Promise(resolve => {
     requestIdleCallback(async () => {
@@ -33,7 +33,7 @@ function postTestTasks(yieldParams) {
       }));
 
       for (let i = 1; i <= 3; i++) {
-        await scheduler.yield(yieldParams);
+        await scheduler.yield();
         ids.push('y' + i);
       }
       await Promise.all(subtasks);
@@ -46,13 +46,7 @@ function postTestTasks(yieldParams) {
 const expected_inherited_task_order = 'i1,uv1,uv2,y1,y2,y3,bg1,bg2,i2';
 
 promise_test(async t => {
-  const {task, ids} = postTestTasks({priority: "inherit"});
-  await task;
-  assert_equals(ids.join(), expected_inherited_task_order);
-}, 'requestIdleCallback() yields at background priority when inheriting priority');
-
-promise_test(async t => {
-  const {task, ids} = postTestTasks({signal: "inherit"});
+  const {task, ids} = postTestTasks();
   await task;
   assert_equals(ids.join(), expected_inherited_task_order);
 }, 'requestIdleCallback() yields at background priority when inheriting signal');

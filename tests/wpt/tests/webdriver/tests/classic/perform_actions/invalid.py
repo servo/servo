@@ -1,3 +1,4 @@
+# META: timeout=long
 import pytest
 
 from webdriver.error import InvalidArgumentException
@@ -295,6 +296,28 @@ def test_key_action_value_invalid_type(session, key_action, value):
             "actions": [
                 {
                     "type": key_action,
+                    "value": value,
+                }
+            ],
+        }
+    ]
+    response = perform_actions(session, actions)
+    assert_error(response, "invalid argument")
+
+
+@pytest.mark.parametrize("action_type", ["keyDown", "keyUp"])
+@pytest.mark.parametrize(
+    "value",
+    ["fa", "\u0BA8\u0BBFb", "\u0BA8\u0BBF\u0BA8", "\u1100\u1161\u11A8c"],
+)
+def test_key_action_invalid_value(session, action_type, value):
+    actions = [
+        {
+            "type": "key",
+            "id": "foo",
+            "actions": [
+                {
+                    "type": action_type,
                     "value": value,
                 }
             ],

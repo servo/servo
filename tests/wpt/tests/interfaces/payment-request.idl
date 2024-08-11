@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: Payment Request API 1.1 (https://w3c.github.io/payment-request/)
+// Source: Payment Request API (https://w3c.github.io/payment-request/)
 
 [SecureContext, Exposed=Window]
 interface PaymentRequest : EventTarget {

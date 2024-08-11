@@ -46,6 +46,11 @@ html.no-match::view-transition {
 .normal-ref {
     view-transition-group: normal;
 }
+
+.contain-ref {
+    view-transition-group: contain;
+}
+
 ::view-transition-group(green) {
     background: green;
 }

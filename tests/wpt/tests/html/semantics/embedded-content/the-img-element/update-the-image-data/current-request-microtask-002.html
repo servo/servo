@@ -17,11 +17,15 @@ async_test(function(t) {
   testSrcOnMicrotask("");
   img = new Image();
   let png = "/images/green.png?" + Math.random();
+  let resolved_png = new URL(png, document.documentURI).href;
   testSrcOnMicrotask("");
-  // Both .src assignment and appendChild are relevant mutations. So the first task should be "canceled" (return early).
+  // Both .src and .srcset assignments are relevant mutations. So the first task should be "canceled" (return early).
+  // appendChild is not a relevant mutation unless in a <picture> element.
   img.src = png;
   testSrcOnMicrotask("");
+  img.srcset = png;
+  testSrcOnMicrotask(resolved_png);
   document.body.appendChild(img);
-  testSrcOnMicrotask(new URL(png, document.documentURI).href, /* done = */ true);
+  testSrcOnMicrotask(resolved_png, /* done = */ true);
 });
 </script>

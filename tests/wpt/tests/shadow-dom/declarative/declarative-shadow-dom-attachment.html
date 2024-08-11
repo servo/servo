@@ -19,13 +19,13 @@ function addDeclarativeShadowRoot(elementType, mode, delegatesFocus) {
   const declarativeString = `<${elementType} id=theelement>${getDeclarativeContent(mode, delegatesFocus)}
      <span class='lightdom'>${lightDomTextContent}</span></${elementType}>`;
   const wrapper = document.createElement('div');
-  wrapper.setHTMLUnsafe(declarativeString);
+  wrapper.setHTMLUnsafe(declarativeString); // Should never throw
   const element = wrapper.querySelector('#theelement');
-  return {wrapper: wrapper, element: element};
+  return {wrapper, element};
 }
 
 function testElementType(allowed, nochildren, elementType, mode, delegatesFocus) {
-  var t = test(function() {
+  test((t) => {
     const nodes = addDeclarativeShadowRoot(elementType, mode, delegatesFocus);
     if (allowed) {
       const element = nodes.element;

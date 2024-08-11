@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Display: reading-flow with value grid-order and position: absolute elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="author" title="Di Zhang" href="mailto:dizhangg@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='../../resources/shadow-dom.js'></script>
+<script src="../../resources/focus-utils.js"></script>
+
+<style>
+.wrapper {
+  display: grid;
+  reading-flow: grid-order;
+}
+</style>
+
+<div class="test-case" data-expect="c,b,a1,a2"
+     data-description="Items in position:absolute container are visited at the end of the focus sequence.">
+  <div class="wrapper">
+    <div style="order: 2; position:absolute; left:100px">
+      <button id="a1">A1</button>
+      <button id="a2">A2</button>
+    </div>
+    <div style="order:3"><button id="b">B</button></div>
+    <div style="order:1"><button id="c">C</button></div>
+  </div>
+</div>
+
+<div class="test-case" data-expect="order1,order2,order4,absolute1,absolute2"
+     data-description="Items that have position:absolute are visited at the end of the focus sequence, in DOM order.">
+  <div class="wrapper" style="position: absolute; top: 100px">
+    <button id="absolute1" style="order: 5; position: absolute; left: 100px; top: 130px">absolute 1</button>
+    <button id="order2" style="order: 2">Order 2</button>
+    <button id="order1" style="order: 1">Order 1</button>
+    <button id="order4" style="order: 4">Order 4</button>
+    <button id="absolute2" style="order: 3; position: absolute; left: 100px">absolute 2</button>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

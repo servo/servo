@@ -64,8 +64,8 @@
             for (var i = 0; i < element.children.length; i++) {
                 var childBox = element.children[i].getBoundingClientRect();
                 var referenceChildBox = reference.children[i].getBoundingClientRect();
-                assert_approx_equals(childBox.width + marginLeft + marginRight, referenceChildBox.width, epsilon, "inline size (child ${i})");
-                assert_approx_equals(childBox.height + marginTop + marginBottom, referenceChildBox.height, epsilon, "block size (child ${i})");
+                assert_approx_equals(childBox.width + marginLeft + marginRight, referenceChildBox.width, epsilon, `inline size (child ${i})`);
+                assert_approx_equals(childBox.height + marginTop + marginBottom, referenceChildBox.height, epsilon, `block size (child ${i})`);
 
                 assert_approx_equals(childBox.left - marginLeft - elementBox.left,
                                      referenceChildBox.left - referenceBox.left,

@@ -25,7 +25,7 @@ test(function() {
 
   window.getSelection().setBaseAndExtent(start.firstChild, 3, end.firstChild, 3);
 
-  const composedRange = window.getSelection().getComposedRanges(shadowRoot)[0];
+  const composedRange = window.getSelection().getComposedRanges({ shadowRoots: [shadowRoot] })[0];
   // Sanity check to make sure we have selected something across the shadow boundary.
   assert_true(composedRange.startContainer == start.firstChild);
   assert_true(composedRange.startOffset == 3);
@@ -40,7 +40,6 @@ test(function() {
 }, "isPointInRange() test for collapsed selection");
 
 test(function() {
-  assert_implements(window.getSelection().getComposedRanges, "GetComposedRanges is not supported");
   const start = document.getElementById("start");
   const shadowRoot = document.getElementById("host").shadowRoot;
 

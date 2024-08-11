@@ -174,3 +174,26 @@ function keepaliveRedirectInUnloadTest(desc, {
         desc, token, {expectTokenExist: expectFetchSucceed});
   }, `${desc}; setting up`);
 }
+
+/**
+* utility to create pending keepalive fetch requests
+* The pending request state is achieved by ensuring the server (trickle.py) does not
+* immediately respond to the fetch requests.
+* The response delay is set as a url parameter.
+*/
+
+function createPendingKeepAliveRequest(delay, remote = false) {
+  // trickle.py is a script that can make a delayed response to the client request
+  const trickleRemoteURL = get_host_info().HTTPS_REMOTE_ORIGIN + '/fetch/api/resources/trickle.py?count=1&ms=';
+  const trickleLocalURL = get_host_info().HTTP_ORIGIN + '/fetch/api/resources/trickle.py?count=1&ms=';
+  url = remote ? trickleRemoteURL : trickleLocalURL;
+
+  const body = '*'.repeat(10);
+  return fetch(url + delay, { keepalive: true, body, method: 'POST' }).then(res => {
+      return res.text();
+  }).then(() => {
+      return new Promise(resolve => step_timeout(resolve, 1));
+  }).catch((error) => {
+      return Promise.reject(error);;
+  })
+}

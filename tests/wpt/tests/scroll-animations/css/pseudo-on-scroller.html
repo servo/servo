@@ -8,6 +8,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/web-animations/testcommon.js"></script>
+<script src="./support/testcommon.js"></script>
 <script src="testcommon.js"></script>
 <style type="text/css">
 .scroller {
@@ -45,8 +46,8 @@
   'use strict';
 
   promise_test(async t => {
+    await waitForCSSScrollTimelineStyle();
     const scroller = document.querySelector('.scroller');
-    await waitForNextFrame();
     assert_equals(getComputedStyle(scroller).backgroundColor, 'rgb(0, 255, 0)');
     assert_equals(getComputedStyle(scroller, ':before').backgroundColor,
                   'rgb(0, 0, 255)');

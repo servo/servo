@@ -23,8 +23,8 @@ function compareSpaceWithAndWithoutStyle(tag, style, parentStyle, direction) {
     if (!direction)
       direction = "ltr";
     document.body.insertAdjacentHTML("beforeend", `<div style="position: absolute;">\
-<div style="display: inline-block"><math><mrow dir="${direction}">${MathMLFragments[tag]}</mrow></math></div>\
-<div style="display: inline-block"><math><mrow dir="${direction}">${MathMLFragments[tag]}</mrow></math></div>\
+<div style="display: inline-block"><math display="block"><mrow dir="${direction}">${MathMLFragments[tag]}</mrow></math></div>\
+<div style="display: inline-block"><math display="block"><mrow dir="${direction}">${MathMLFragments[tag]}</mrow></math></div>\
 </div>`);
     var div = document.body.lastElementChild;
 
@@ -36,6 +36,7 @@ function compareSpaceWithAndWithoutStyle(tag, style, parentStyle, direction) {
     var styleElement = FragmentHelper.element(styleMath);
     styleElement.setAttribute("style", style);
     var styleChild = FragmentHelper.forceNonEmptyElement(styleElement);
+    FragmentHelper.forceNonEmptyDescendants(styleElement);
     var styleMathBox = styleMath.getBoundingClientRect();
     var styleElementBox = styleElement.getBoundingClientRect();
     var styleChildBox = styleChild.getBoundingClientRect();
@@ -45,6 +46,7 @@ function compareSpaceWithAndWithoutStyle(tag, style, parentStyle, direction) {
     var noStyleMath = noStyleDiv.firstElementChild;
     var noStyleElement = FragmentHelper.element(noStyleMath);
     var noStyleChild = FragmentHelper.forceNonEmptyElement(noStyleElement);
+    FragmentHelper.forceNonEmptyDescendants(noStyleElement);
     var noStyleMathBox = noStyleMath.getBoundingClientRect();
     var noStyleElementBox = noStyleElement.getBoundingClientRect();
     var noStyleChildBox = noStyleChild.getBoundingClientRect();
