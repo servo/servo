@@ -40,11 +40,15 @@ impl IIRFilterNode {
         context: &BaseAudioContext,
         options: &IIRFilterOptions,
     ) -> Fallible<IIRFilterNode> {
-        if options.feedforward.len() == 0 || options.feedforward.len() > 20 || options.feedback.len() == 0 || options.feedback.len() > 20 {
-          return Err(Error::NotSupported)
+        if options.feedforward.len() == 0 ||
+            options.feedforward.len() > 20 ||
+            options.feedback.len() == 0 ||
+            options.feedback.len() > 20
+        {
+            return Err(Error::NotSupported);
         }
         if options.feedforward.iter().all(|v| **v == 0.0) || *options.feedback[0] == 0.0 {
-          return Err(Error::InvalidState)
+            return Err(Error::InvalidState);
         }
         let node_options =
             options
@@ -103,8 +107,11 @@ impl IIRFilterNodeMethods for IIRFilterNode {
         mut mag_response: CustomAutoRooterGuard<Float32Array>,
         mut phase_response: CustomAutoRooterGuard<Float32Array>,
     ) -> Result<(), Error> {
-        if frequency_hz.len() != mag_response.len() || frequency_hz.len() != phase_response.len() || mag_response.len() != phase_response.len() {
-          return Err(Error::InvalidAccess)
+        if frequency_hz.len() != mag_response.len() ||
+            frequency_hz.len() != phase_response.len() ||
+            mag_response.len() != phase_response.len()
+        {
+            return Err(Error::InvalidAccess);
         }
         let feedforward: Vec<f64> = (self.feedforward.iter().map(|v| **v).collect_vec()).to_vec();
         let feedback: Vec<f64> = (self.feedback.iter().map(|v| **v).collect_vec()).to_vec();

@@ -554,8 +554,16 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createiirfilter>
-    fn CreateIIRFilter(&self, feedforward: Vec<Finite<f64>>, feedback: Vec<Finite<f64>>) -> Fallible<DomRoot<IIRFilterNode>> {
-        let opts = IIRFilterOptions { parent: AudioNodeOptions::empty(), feedback, feedforward };
+    fn CreateIIRFilter(
+        &self,
+        feedforward: Vec<Finite<f64>>,
+        feedback: Vec<Finite<f64>>,
+    ) -> Fallible<DomRoot<IIRFilterNode>> {
+        let opts = IIRFilterOptions {
+            parent: AudioNodeOptions::empty(),
+            feedback,
+            feedforward,
+        };
         IIRFilterNode::new(self.global().as_window(), self, &opts)
     }
 }
