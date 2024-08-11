@@ -28,7 +28,8 @@ pub(crate) struct ContainingBlockManager<'a, T> {
     ///      element is split across multiple lines, the containing block is
     ///      undefined.
     ///   2. Otherwise, the containing block is formed by the padding edge of the
-    ///      ancestor."
+    ///      ancestor.
+    ///
     /// <https://www.w3.org/TR/CSS2/visudet.html#containing-block-details>
     /// If the ancestor forms a containing block for all descendants (see below),
     /// this value will be None and absolute descendants will use the containing
