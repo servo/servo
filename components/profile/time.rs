@@ -9,8 +9,8 @@ use std::collections::{BTreeMap, HashMap};
 use std::fs::File;
 use std::io::{self, Write};
 use std::path::Path;
+use std::thread;
 use std::time::Duration;
-use std::{f64, thread, u32, u64};
 
 use ipc_channel::ipc::{self, IpcReceiver};
 use profile_traits::time::{
