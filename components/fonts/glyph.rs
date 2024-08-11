@@ -5,7 +5,7 @@
 use std::cmp::{Ordering, PartialOrd};
 use std::sync::Arc;
 use std::vec::Vec;
-use std::{fmt, mem, u16};
+use std::{fmt, mem};
 
 use app_units::Au;
 use euclid::default::Point2D;
