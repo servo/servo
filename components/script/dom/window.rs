@@ -737,7 +737,7 @@ impl WindowMethods for Window {
             if result {
                 Ok(())
             } else {
-                Err(Error::InvalidState)
+                Err(Error::JSFailed)
             }
         }
     }
