@@ -51,20 +51,20 @@ test(() => {
   assert_equals(sel.getComposedRanges()[0].endContainer, container);
   assert_equals(sel.getComposedRanges()[0].endOffset, 4);
 
-  assert_equals(sel.getComposedRanges(c)[0].startContainer, c);
-  assert_equals(sel.getComposedRanges(c)[0].startOffset, 0);
-  assert_equals(sel.getComposedRanges(c)[0].endContainer, container);
-  assert_equals(sel.getComposedRanges(c)[0].endOffset, 4);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [c] })[0].startContainer, c);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [c] })[0].startOffset, 0);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [c] })[0].endContainer, container);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [c] })[0].endOffset, 4);
 
-  assert_equals(sel.getComposedRanges(d)[0].startContainer, container);
-  assert_equals(sel.getComposedRanges(d)[0].startOffset, 1);
-  assert_equals(sel.getComposedRanges(d)[0].endContainer, d);
-  assert_equals(sel.getComposedRanges(d)[0].endOffset, 0);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [d] })[0].startContainer, container);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [d] })[0].startOffset, 1);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [d] })[0].endContainer, d);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [d] })[0].endOffset, 0);
 
-  assert_equals(sel.getComposedRanges(c, d)[0].startContainer, c);
-  assert_equals(sel.getComposedRanges(c, d)[0].startOffset, 0);
-  assert_equals(sel.getComposedRanges(c, d)[0].endContainer, d);
-  assert_equals(sel.getComposedRanges(c, d)[0].endOffset, 0);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [c, d] })[0].startContainer, c);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [c, d] })[0].startOffset, 0);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [c, d] })[0].endContainer, d);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [c, d] })[0].endOffset, 0);
 
   // Re-setting the same range should never change the output
   sel.setBaseAndExtent(c, 0, d, 0);
@@ -73,9 +73,9 @@ test(() => {
   assert_equals(sel.getRangeAt(0).endContainer, d);
   assert_equals(sel.getRangeAt(0).endOffset, 0);
 
-  assert_equals(sel.getComposedRanges(c, d)[0].startContainer, c);
-  assert_equals(sel.getComposedRanges(c, d)[0].startOffset, 0);
-  assert_equals(sel.getComposedRanges(c, d)[0].endContainer, d);
-  assert_equals(sel.getComposedRanges(c, d)[0].endOffset, 0);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [c, d] })[0].startContainer, c);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [c, d] })[0].startOffset, 0);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [c, d] })[0].endContainer, d);
+  assert_equals(sel.getComposedRanges({ shadowRoots: [c, d] })[0].endOffset, 0);
 }, 'Setting the range to nodes in different shadow trees collapses ordinary ranges, but does not collapse composed ranges.');
 </script>

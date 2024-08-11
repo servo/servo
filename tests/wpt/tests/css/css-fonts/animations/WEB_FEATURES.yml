@@ -4,3 +4,6 @@ features:
   - font-palette-animation-not-specified-endpoints.html
   - font-palette-interpolation.html
   - multiple-elements-font-palette-animation.html
+- name: font-size-adjust
+  files:
+  - font-size-adjust-*

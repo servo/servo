@@ -5,7 +5,6 @@ from http.client import HTTPConnection
 
 from abc import ABCMeta, abstractmethod
 from typing import Any, Awaitable, Callable, ClassVar, List, Mapping, Optional, Type
-from webdriver.bidi.modules.script import Target
 
 
 def merge_dicts(target, source):
@@ -391,7 +390,7 @@ class BidiScriptProtocolPart(ProtocolPart):
     async def call_function(
             self,
             function_declaration: str,
-            target: Target,
+            target: Mapping[str, Any],
             arguments: Optional[List[Mapping[str, Any]]] = None
     ) -> Mapping[str, Any]:
         """

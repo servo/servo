@@ -5,6 +5,11 @@ features:
 - name: default
   files:
   - default.html
+- name: dir-pseudo
+  files:
+  - dir-*
+  - dir.html
+  - dir01.html
 - name: indeterminate
   files:
   - checked-indeterminate.window.js

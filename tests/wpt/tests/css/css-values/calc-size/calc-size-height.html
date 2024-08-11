@@ -43,6 +43,8 @@ let basic_tests = [
 const container = document.getElementById("container");
 const target = document.getElementById("target");
 const target_cs = getComputedStyle(target);
+const child = document.getElementById("child");
+const child_cs = getComputedStyle(child);
 for (const obj of basic_tests) {
   test((t) => {
     target.style.removeProperty("height");
@@ -59,5 +61,17 @@ for (const obj of basic_tests) {
     assert_equals(target_cs.height, expected);
   }, `resolved height for height in definite height container: ${obj.value}`);
 }
+
+test((t) => {
+  t.add_cleanup(() => {
+    child.style.height = "";
+    child.innerHTML = "";
+  });
+  container.style.height = "auto";
+  target.style.height = "calc-size(min-content, size + 23px)";
+  child.style.height = "100%";
+  child.innerHTML = "<div style='height: 7px'></div>";
+  assert_equals(child_cs.height, "7px");
+}, "calc-size() is indefinite when the intrinsic size is indefinite");
 
 </script>

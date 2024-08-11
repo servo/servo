@@ -20,7 +20,11 @@ async function createIframeWithPermissionPolicyAndWaitForMessage(test, iframeUrl
   iframe.src = iframeUrl;
   iframe.allow = "identity-credentials-get";
   document.body.appendChild(iframe);
-  const message = await messageWatcher.wait_for("message");
+  let message = null;
+  // Ignore internal "testdriver-complete" messages.
+  do {
+      message = await messageWatcher.wait_for("message");
+  } while (!("result" in message.data));
   return message.data;
 }
 

@@ -17,22 +17,22 @@ dictionary MIDIOptions {
   boolean software;
 };
 
-[SecureContext, Exposed=Window] interface MIDIInputMap {
+[SecureContext, Exposed=(Window,Worker)] interface MIDIInputMap {
   readonly maplike <DOMString, MIDIInput>;
 };
 
-[SecureContext, Exposed=Window] interface MIDIOutputMap {
+[SecureContext, Exposed=(Window,Worker)] interface MIDIOutputMap {
   readonly maplike <DOMString, MIDIOutput>;
 };
 
-[SecureContext, Exposed=Window] interface MIDIAccess: EventTarget {
+[SecureContext, Exposed=(Window,Worker), Transferable] interface MIDIAccess: EventTarget {
   readonly attribute MIDIInputMap inputs;
   readonly attribute MIDIOutputMap outputs;
   attribute EventHandler onstatechange;
   readonly attribute boolean sysexEnabled;
 };
 
-[SecureContext, Exposed=Window] interface MIDIPort: EventTarget {
+[SecureContext, Exposed=(Window,Worker)] interface MIDIPort: EventTarget {
   readonly attribute DOMString id;
   readonly attribute DOMString? manufacturer;
   readonly attribute DOMString? name;
@@ -45,11 +45,11 @@ dictionary MIDIOptions {
   Promise <MIDIPort> close();
 };
 
-[SecureContext, Exposed=Window] interface MIDIInput: MIDIPort {
+[SecureContext, Exposed=(Window,Worker)] interface MIDIInput: MIDIPort {
   attribute EventHandler onmidimessage;
 };
 
-[SecureContext, Exposed=Window] interface MIDIOutput : MIDIPort {
+[SecureContext, Exposed=(Window,Worker)] interface MIDIOutput : MIDIPort {
   undefined send(sequence<octet> data, optional DOMHighResTimeStamp timestamp = 0);
   undefined clear();
 };
@@ -70,7 +70,7 @@ enum MIDIPortConnectionState {
   "pending",
 };
 
-[SecureContext, Exposed=Window]
+[SecureContext, Exposed=(Window,Worker)]
 interface MIDIMessageEvent : Event {
   constructor(DOMString type, optional MIDIMessageEventInit eventInitDict = {});
   readonly attribute Uint8Array? data;
@@ -80,7 +80,7 @@ dictionary MIDIMessageEventInit: EventInit {
   Uint8Array data;
 };
 
-[SecureContext, Exposed=Window]
+[SecureContext, Exposed=(Window,Worker)]
 interface MIDIConnectionEvent : Event {
   constructor(DOMString type, optional MIDIConnectionEventInit eventInitDict = {});
   readonly attribute MIDIPort? port;

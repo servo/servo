@@ -82,6 +82,7 @@ interface AudioContext : BaseAudioContext {
     [SecureContext] readonly attribute (DOMString or AudioSinkInfo) sinkId;
     [SecureContext] readonly attribute AudioRenderCapacity renderCapacity;
     attribute EventHandler onsinkchange;
+    attribute EventHandler onerror;
     AudioTimestamp getOutputTimestamp ();
     Promise<undefined> resume ();
     Promise<undefined> suspend ();

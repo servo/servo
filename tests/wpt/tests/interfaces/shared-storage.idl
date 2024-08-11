@@ -5,6 +5,8 @@
 
 typedef (USVString or FencedFrameConfig) SharedStorageResponse;
 
+enum SharedStorageDataOrigin { "context-origin", "script-origin" };
+
 [Exposed=(Window)]
 interface SharedStorageWorklet : Worklet {
   Promise<SharedStorageResponse> selectURL(DOMString name,
@@ -52,7 +54,7 @@ interface WindowSharedStorage : SharedStorage {
   Promise<any> run(DOMString name,
                    optional SharedStorageRunOperationMethodOptions options = {});
 
-  Promise<SharedStorageWorklet> createWorklet(USVString moduleURL, optional WorkletOptions options = {});
+  Promise<SharedStorageWorklet> createWorklet(USVString moduleURL, optional SharedStorageWorkletOptions options = {});
 
   readonly attribute SharedStorageWorklet worklet;
 };
@@ -61,6 +63,10 @@ dictionary SharedStorageRunOperationMethodOptions {
   object data;
   boolean resolveToConfig = false;
   boolean keepAlive = false;
+};
+
+dictionary SharedStorageWorkletOptions : WorkletOptions {
+  SharedStorageDataOrigin dataOrigin = "context-origin";
 };
 
 partial interface Window {

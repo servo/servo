@@ -1,0 +1,47 @@
+features:
+- name: webvtt
+  files:
+  - arrows.html
+  - comment-in-cue-text.html
+  - header-garbage.html
+  - header-space.html
+  - header-tab.html
+  - header-timings.html
+  - ids.html
+  - newlines.html
+  - nulls.html
+  - settings-align.html
+  - settings-multiple.html
+  - settings-size.html
+  - settings-vertical.html
+  - signature-bom.html
+  - signature-no-newline.html
+  - signature-space-no-newline.html
+  - signature-space.html
+  - signature-tab-no-newline.html
+  - signature-tab.html
+  - signature-timings.html
+  - stylesheets.html
+  - timings-60.html
+  - timings-eof.html
+  - timings-garbage.html
+  - timings-negative.html
+  - timings-omitted-hours.html
+  - timings-too-long.html
+  - timings-too-short.html
+  - whitespace-chars.html
+- name: webvtt-cue-alignment
+  files:
+  - settings-line.html
+  - settings-position.html
+- name: webvtt-regions
+  files:
+  - header-regions.html
+  - regions-edge-case.html
+  - regions-id.html
+  - regions-lines.html
+  - regions-old.html
+  - regions-regionanchor.html
+  - regions-scroll.html
+  - regions-viewportanchor.html
+  - settings-region.html

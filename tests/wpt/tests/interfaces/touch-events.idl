@@ -53,9 +53,9 @@ interface TouchList {
 };
 
 dictionary TouchEventInit : EventModifierInit {
-             sequence<Touch> touches = [];
-             sequence<Touch> targetTouches = [];
-             sequence<Touch> changedTouches = [];
+            sequence<Touch> touches = [];
+            sequence<Touch> targetTouches = [];
+            sequence<Touch> changedTouches = [];
 };
 
 [Exposed=Window]

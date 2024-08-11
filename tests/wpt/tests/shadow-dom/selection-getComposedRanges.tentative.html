@@ -18,10 +18,10 @@ test(() => {
   container.innerHTML = 'hello, world';
   getSelection().setBaseAndExtent(container.firstChild, 0, container.firstChild, 5);
   try {
-    getSelection().getComposedRanges(container);
+    getSelection().getComposedRanges({ shadowRoots: [container] });
     assert_unreached('executed without error; want error');
   } catch (e) {
-    assert_equals(e.message, "Failed to execute 'getComposedRanges' on 'Selection': parameter 1 is not of type 'ShadowRoot'.");
+    assert_equals(e.message, "Failed to execute 'getComposedRanges' on 'Selection': Failed to read the 'shadowRoots' property from 'GetComposedRangesOptions': Failed to convert value to 'ShadowRoot'.");
   }
 }, 'getComposedRanges should fail if argument is not a shadow root');
 
@@ -53,7 +53,7 @@ test(() => {
     const shadowRoot = host.attachShadow({mode: 'closed'});
     shadowRoot.innerHTML = 'hello, world';
     getSelection().setBaseAndExtent(shadowRoot.firstChild, 0, shadowRoot.firstChild, 5);
-    const ranges = getSelection().getComposedRanges(shadowRoot);
+    const ranges = getSelection().getComposedRanges({ shadowRoots: [shadowRoot] });
     assert_equals(ranges.length, 1);
     assert_equals(ranges[0].startContainer, shadowRoot.firstChild);
     assert_equals(ranges[0].startOffset, 0);
@@ -95,7 +95,7 @@ test(() => {
     const shadowRoot = host.attachShadow({mode: 'closed'});
     shadowRoot.innerHTML = 'hello, world';
     getSelection().setBaseAndExtent(shadowRoot.firstChild, 7, container, 2);
-    const ranges = getSelection().getComposedRanges(shadowRoot);
+    const ranges = getSelection().getComposedRanges({ shadowRoots: [shadowRoot] });
     assert_equals(ranges.length, 1);
     assert_equals(ranges[0].startContainer, shadowRoot.firstChild);
     assert_equals(ranges[0].startOffset, 7);
@@ -129,7 +129,7 @@ test(() => {
     const innerShadowRoot = innerHost.attachShadow({mode: 'closed'});
     innerShadowRoot.innerHTML = 'some text';
     getSelection().setBaseAndExtent(innerShadowRoot.firstChild, 5, innerShadowRoot.firstChild, 9);
-    const ranges = getSelection().getComposedRanges(innerShadowRoot);
+    const ranges = getSelection().getComposedRanges({ shadowRoots: [innerShadowRoot] });
     assert_equals(ranges.length, 1);
     assert_equals(ranges[0].startContainer, innerShadowRoot.firstChild);
     assert_equals(ranges[0].startOffset, 5);
@@ -146,7 +146,7 @@ test(() => {
     const innerShadowRoot = innerHost.attachShadow({mode: 'closed'});
     innerShadowRoot.innerHTML = 'some text';
     getSelection().setBaseAndExtent(innerShadowRoot.firstChild, 5, innerShadowRoot.firstChild, 9);
-    const ranges = getSelection().getComposedRanges(outerShadowRoot);
+    const ranges = getSelection().getComposedRanges({ shadowRoots: [outerShadowRoot] });
     assert_equals(ranges.length, 1);
     assert_equals(ranges[0].startContainer, outerShadowRoot);
     assert_equals(ranges[0].startOffset, 0);
@@ -163,7 +163,7 @@ test(() => {
     const innerShadowRoot = innerHost.attachShadow({mode: 'closed'});
     innerShadowRoot.innerHTML = 'some text';
     getSelection().setBaseAndExtent(container.firstChild, 0, outerShadowRoot, 0);
-    const ranges = getSelection().getComposedRanges(innerShadowRoot);
+    const ranges = getSelection().getComposedRanges({ shadowRoots: [innerShadowRoot] });
     assert_equals(ranges.length, 1);
     assert_equals(ranges[0].startContainer, container.firstChild, "A");
     assert_equals(ranges[0].startOffset, 0, "B");

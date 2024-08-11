@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -63,7 +64,7 @@
               // 0 = NONE, no longer dispatching.
               assert_equals(window.cached_event.eventPhase, 0);
               window.fence.notifyEvent(window.cached_event);
-              reject('notifyEvent should not fire from a mousedown event.');
+              reject('notifyEvent() should not fire.');
             } catch (err) {
               if (err.name != 'SecurityError') {
                 reject('Unexpected error: ' + err.message);
@@ -95,7 +96,67 @@
       ]);
       assert_equals(result, 'timeout');
 
-    }, "Test that fenced frame notifyEvent() cannot reuse a cached event after dispatch finishes.");
+    }, 'Test that fenced frame notifyEvent() cannot reuse a cached event' +
+       ' after dispatch finishes.');
 
+
+    promise_test(async (t) => {
+      const fencedframe = await attachFencedFrameContext(
+                  {generator_api: 'fledge'});
+
+      await fencedframe.execute(() => {
+        window.first_click_listener = (e) => {
+          window.cached_event = e;
+        };
+        document.addEventListener('click', window.first_click_listener);
+      });
+
+      await multiClick(10, 10, fencedframe.element);
+
+      let notified_promise = new Promise((resolve) => {
+        fencedframe.element.addEventListener('fencedtreeclick', () => resolve());
+      });
+
+      await fencedframe.execute(() => {
+        document.removeEventListener('click', window.first_click_listener);
+        window.activation_promise = new Promise((resolve, reject) => {
+          document.addEventListener('click', (e) => {
+            try {
+              assert_equals(window.cached_event.type, 'click');
+              assert_true(window.cached_event.isTrusted);
+              assert_true(navigator.userActivation.isActive);
+              // 0 = NONE, no longer dispatching.
+              assert_equals(window.cached_event.eventPhase, 0);
+              window.fence.notifyEvent(window.cached_event);
+              reject('notifyEvent() should not fire.');
+            } catch (err) {
+              if (err.name != 'SecurityError') {
+                reject('Unexpected error: ' + err.message);
+                return;
+              }
+              resolve('PASS');
+            }
+          });
+        });
+      });
+
+      await multiClick(10, 10, fencedframe.element);
+
+      await fencedframe.execute(async () => {
+        await window.activation_promise;
+      });
+
+      // Lastly, we need to make sure the notifyEvent call never reached the
+      // parent frame.
+      let result = await Promise.race([
+        notified_promise,
+        new Promise((resolve) => {
+          t.step_timeout(() => resolve('timeout'), 2000);
+        })
+      ]);
+      assert_equals(result, 'timeout');
+
+    }, 'Test that fenced frame notifyEvent() cannot reuse a cached event' +
+       ' after dispatch finishes, even if it has never been notified before.');
   </script>
 </body>

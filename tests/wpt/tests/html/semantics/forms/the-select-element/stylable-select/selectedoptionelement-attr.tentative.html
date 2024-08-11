@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/openui/open-ui/issues/1063">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<select style="appearance:base-select">
+  <option class=one value=one>one<span>span</span></option>
+  <option class=two value=two>two<span>span</span></option>
+</select>
+<selectedoption id=myselectedoption></selectedoption>
+
+<script>
+promise_test(async () => {
+  const select = document.querySelector('select');
+  const selectedoption = document.querySelector('selectedoption');
+  const optionOne = document.querySelector('option.one');
+  const optionTwo = document.querySelector('option.two');
+
+  select.setAttribute('selectedoptionelement', 'myselectedoption');
+  assert_equals(selectedoption.innerHTML, optionOne.innerHTML,
+    'Setting the selectedoptionelement attribute via setAttribute should synchronously assign the contents of <selectedoption>.');
+
+  select.removeAttribute('selectedoptionelement');
+  assert_equals(selectedoption.innerHTML, '',
+    'Removing the selectedoptionelement attribute via removeAttribute should synchronously clear the contents of the <selectedoption>.');
+
+  select.selectedOptionElement = selectedoption;
+  assert_equals(selectedoption.innerHTML, optionOne.innerHTML,
+    'Setting the selectedoptionelement attribute via IDL should synchronously assign the contents of <selectedoption>.');
+
+  select.selectedOptionElement = null;
+  assert_equals(selectedoption.innerHTML, '',
+    'Removing the selectedoptionelement attribute via IDL should synchronously clear the contents of the <selectedoption>.');
+
+  select.selectedOptionElement = selectedoption;
+
+  optionOne.querySelector('span').remove();
+  await new Promise(queueMicrotask);
+  assert_equals(selectedoption.innerHTML, optionOne.innerHTML,
+    'Mutating the selected <option> should update the <selectedoption> contents after a microtask.');
+
+  select.value = 'two';
+  assert_equals(selectedoption.innerHTML, optionTwo.innerHTML,
+    'Changing which <option> is selected should synchronously update the <selectedoption> contents.');
+}, 'The selectedoptionelement attribute should set up an association between a select and a selectedoption.');
+</script>

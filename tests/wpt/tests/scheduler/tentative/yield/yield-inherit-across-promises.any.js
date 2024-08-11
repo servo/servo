@@ -7,7 +7,7 @@ function postInheritPriorityTestTask(config) {
     await fetch('/common/blank.html');
     await new Promise(resolve => setTimeout(resolve));
     const subtask = scheduler.postTask(() => { ids.push('subtask'); }, {priority: config.subTaskPriority});
-    await scheduler.yield(config.yieldOptions);
+    await scheduler.yield();
     ids.push('yield');
     await subtask;
   }, config.taskOptions);
@@ -20,7 +20,6 @@ for (let priority of ['user-blocking', 'background']) {
     const config = {
       taskOptions: {priority},
       subTaskPriority: 'user-blocking',
-      yieldOptions: {priority: 'inherit'},
     };
     const {task, ids} = postInheritPriorityTestTask(config);
     await task;
@@ -32,23 +31,11 @@ for (let priority of ['user-blocking', 'background']) {
     const config = {
       taskOptions: {signal},
       subTaskPriority: 'user-blocking',
-      yieldOptions: {signal: 'inherit'},
     };
     const {task, ids} = postInheritPriorityTestTask(config);
     await task;
     assert_equals(ids.join(), expected);
   }, `yield() inherits priority (signal) across promises (${priority})`);
-
-  promise_test(async t => {
-    const config = {
-      taskOptions: {priority},
-      subTaskPriority: 'user-blocking',
-      yieldOptions: {signal: 'inherit'},
-    };
-    const {task, ids} = postInheritPriorityTestTask(config);
-    await task;
-    assert_equals(ids.join(), expected);
-  }, `yield() inherits priority (priority string with signal inherit) across promises (${priority})`);
 }
 
 promise_test(async t => {
@@ -59,7 +46,7 @@ promise_test(async t => {
     await fetch('/common/blank.html');
     await new Promise(resolve => setTimeout(resolve));
     controller.abort();
-    const p = scheduler.yield({signal: 'inherit'});
+    const p = scheduler.yield();
     await promise_rejects_dom(t, 'AbortError', p);
   }, {signal});
 }, `yield() inherits abort across promises`);

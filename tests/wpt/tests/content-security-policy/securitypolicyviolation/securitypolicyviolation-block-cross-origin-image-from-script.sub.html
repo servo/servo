@@ -19,8 +19,13 @@
         // Per https://html.spec.whatwg.org/#relevant-mutations:
         //     The img or source HTML element insertion steps or HTML element removing steps count the mutation as a relevant mutation.
         // So when the src load is async, line 3 (appendChild, and thus the insertion steps) is what triggers the relevant load, not the src setter.
-        assert_equals(e.lineNumber, 3);
-        assert_equals(e.columnNumber, 15);
+        // But there's some interesting discussions going on about what the right trigger is, see https://github.com/whatwg/html/issues/10531.
+        // So for now, we allow both.
+        assert_true(
+          (e.lineNumber == 3 && e.columnNumber == 15) ||
+            (e.lineNumber == 2 && e.columnNumber == 1),
+          `Location should be reasonable, got [${e.lineNumber}, ${e.columnNumber}]`
+        );
         assert_equals(e.statusCode, 200);
       }));
 

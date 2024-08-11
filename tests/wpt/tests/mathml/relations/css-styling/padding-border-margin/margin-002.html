@@ -5,16 +5,23 @@
 <title>margin</title>
 <link rel="help" href="https://w3c.github.io/mathml-core/#layout-algorithms">
 <meta name="assert" content="Verify that margin is taken into account.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  math {
+    font: 25px/1 Ahem;
+  }
+</style>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/mathml/support/feature-detection.js"></script>
 <script src="/mathml/support/mathml-fragments.js"></script>
 <script src="/mathml/support/box-comparison.js"></script>
+<script src="/mathml/support/fonts.js"></script>
 <script>
-  var epsilon = 1;
+  var epsilon = 2;
 
   setup({ explicit_done: true });
-  window.addEventListener("load", runTests);
+  window.addEventListener("load", () => { loadAllFonts().then(runTests); });
 
   function runTests() {
 

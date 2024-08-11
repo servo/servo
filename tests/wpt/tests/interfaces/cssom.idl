@@ -130,7 +130,8 @@ interface CSSPageDescriptors : CSSStyleDeclaration {
   attribute [LegacyNullToEmptyString] CSSOMString margin-bottom;
   attribute [LegacyNullToEmptyString] CSSOMString margin-left;
   attribute [LegacyNullToEmptyString] CSSOMString size;
-  attribute [LegacyNullToEmptyString] CSSOMString orientation;
+  attribute [LegacyNullToEmptyString] CSSOMString pageOrientation;
+  attribute [LegacyNullToEmptyString] CSSOMString page-orientation;
   attribute [LegacyNullToEmptyString] CSSOMString marks;
   attribute [LegacyNullToEmptyString] CSSOMString bleed;
 };

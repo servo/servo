@@ -3,10 +3,6 @@
 // (https://github.com/w3c/webref)
 // Source: CSS View Transitions Module Level 2 (https://drafts.csswg.org/css-view-transitions-2/)
 
-partial interface CSSRule {
-  const unsigned short VIEW_TRANSITION_RULE = 15;
-};
-
 enum ViewTransitionNavigation { "auto", "none" };
 
 [Exposed=Window]

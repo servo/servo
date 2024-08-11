@@ -6,14 +6,14 @@
 // Returns {tasks, ids} where `tasks` is an array of promises returned by
 // postTask and `ids` is an array of task ids appended to by the scheduled
 // tasks.
-function postTestTasks(yieldyTaskParams, yieldParams) {
+function postTestTasks(yieldyTaskParams) {
   const tasks = [];
   const ids = [];
 
   tasks.push(scheduler.postTask(async () => {
     ids.push('y0');
     for (let i = 1; i < 4; i++) {
-      await scheduler.yield(yieldParams);
+      await scheduler.yield();
       ids.push('y' + i);
     }
   }, yieldyTaskParams));
@@ -70,72 +70,19 @@ const signalConfigs = [
 
 promise_test(async t => {
   for (const config of priorityConfigs) {
-    const {tasks, ids} = postTestTasks(config.options, config.options);
+    const {tasks, ids} = postTestTasks(config.options);
     await Promise.all(tasks);
     assert_equals(ids.join(), config.expected);
   }
-}, 'yield() with postTask tasks (priority option)');
+}, 'yield() with postTask tasks (priority)');
 
 promise_test(async t => {
   for (const config of signalConfigs) {
-    const {tasks, ids} = postTestTasks(config.options, config.options);
+    const {tasks, ids} = postTestTasks(config.options);
     await Promise.all(tasks);
     assert_equals(ids.join(), config.expected);
   }
-}, 'yield() with postTask tasks (signal option)');
-
-promise_test(async t => {
-  for (const config of priorityConfigs) {
-    const {tasks, ids} =
-        postTestTasks(config.options, {priority: 'inherit'});
-    await Promise.all(tasks);
-    assert_equals(ids.join(), config.expected);
-  }
-}, 'yield() with postTask tasks (inherit priority)');
-
-promise_test(async t => {
-  for (const config of signalConfigs) {
-    const {tasks, ids} =
-        postTestTasks(config.options, {signal: 'inherit'});
-    await Promise.all(tasks);
-    assert_equals(ids.join(), config.expected);
-  }
-}, 'yield() with postTask tasks (inherit signal)');
-
-promise_test(async t => {
-  for (const config of signalConfigs) {
-    const {tasks, ids} =
-        postTestTasks(config.options, {});
-    await Promise.all(tasks);
-    assert_equals(ids.join(), config.expected);
-  }
-}, 'yield() with postTask tasks (inherit signal by default)');
-
-promise_test(async t => {
-  const expected = 'y0,ub1,ub2,uv1,uv2,y1,y2,y3,bg1,bg2';
-  const {tasks, ids} = postTestTasks(
-      {priority: 'user-blocking'}, {priority: 'background'});
-  await Promise.all(tasks);
-  assert_equals(ids.join(), expected);
-}, 'yield() with different priority from task (priority)');
-
-promise_test(async t => {
-  const expected = 'y0,ub1,ub2,uv1,uv2,y1,y2,y3,bg1,bg2';
-  const bgSignal = (new TaskController({priority: 'background'})).signal;
-  const {tasks, ids} =
-      postTestTasks({priority: 'user-blocking'}, {signal: bgSignal});
-  await Promise.all(tasks);
-  assert_equals(ids.join(), expected);
-}, 'yield() with different priority from task (signal)');
-
-promise_test(async t => {
-  const bgSignal = (new TaskController({priority: 'background'})).signal;
-  const {tasks, ids} = postTestTasks(
-      {priority: 'user-blocking'},
-      {signal: bgSignal, priority: 'user-blocking'});
-  await Promise.all(tasks);
-  assert_equals(ids.join(), taskOrders['user-blocking']);
-}, 'yield() priority overrides signal');
+}, 'yield() with postTask tasks (signal)');
 
 promise_test(async t => {
   const ids = [];
@@ -151,17 +98,17 @@ promise_test(async t => {
     subtasks.push(scheduler.postTask(() => { ids.push('uv2'); }));
 
     // 'user-visible' continuations.
-    await scheduler.yield({signal: 'inherit'});
+    await scheduler.yield();
     ids.push('y1');
-    await scheduler.yield({signal: 'inherit'});
+    await scheduler.yield();
     ids.push('y2');
 
     controller.setPriority('background');
 
     // 'background' continuations.
-    await scheduler.yield({signal: 'inherit'});
+    await scheduler.yield();
     ids.push('y3');
-    await scheduler.yield({signal: 'inherit'});
+    await scheduler.yield();
     ids.push('y4');
 
     await Promise.all(subtasks);
@@ -169,34 +116,3 @@ promise_test(async t => {
 
   assert_equals(ids.join(), 'y0,y1,y2,uv1,uv2,y3,y4');
 }, 'yield() with TaskSignal has dynamic priority')
-
-promise_test(async t => {
-  const ids = [];
-
-  await scheduler.postTask(async () => {
-    ids.push('y0');
-
-    const subtasks = [];
-    subtasks.push(scheduler.postTask(() => { ids.push('ub1'); }, {priority: 'user-blocking'}));
-    subtasks.push(scheduler.postTask(() => { ids.push('uv1'); }));
-
-    // Ignore inherited signal.
-    await scheduler.yield({priority: 'user-visible'});
-    ids.push('y1');
-    await scheduler.yield({priority: 'user-visible'});
-    ids.push('y2');
-
-    subtasks.push(scheduler.postTask(() => { ids.push('ub2'); }, {priority: 'user-blocking'}));
-    subtasks.push(scheduler.postTask(() => { ids.push('uv2'); }));
-
-    // Now use inherited signal (user-blocking continuations).
-    await scheduler.yield({signal: 'inherit'});
-    ids.push('y3');
-    await scheduler.yield({signal: 'inherit'});
-    ids.push('y4');
-
-    await Promise.all(subtasks);
-  }, {priority: 'user-blocking'});
-
-  assert_equals(ids.join(), 'y0,ub1,y1,y2,y3,y4,ub2,uv1,uv2');
-}, 'yield() mixed inheritance and default')

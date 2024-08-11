@@ -1,0 +1,7 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: CSS Functions and Mixins Module (https://drafts.csswg.org/css-mixins-1/)
+
+[Exposed=Window]
+interface CSSFunctionRule : CSSGroupingRule { };
