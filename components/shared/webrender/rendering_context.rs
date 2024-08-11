@@ -97,7 +97,7 @@ impl RenderingContext {
         let device = &mut self.0.device.borrow_mut();
         let context = &self.0.context.borrow();
         let surface_access = SurfaceAccess::GPUOnly;
-        device.create_surface(&context, surface_access, surface_type)
+        device.create_surface(context, surface_access, surface_type)
     }
 
     pub fn destroy_surface(&self, mut surface: Surface) -> Result<(), Error> {
