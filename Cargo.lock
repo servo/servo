@@ -5615,7 +5615,6 @@ dependencies = [
  "itertools 0.13.0",
  "jstraceable_derive",
  "keyboard-types",
- "lazy_static",
  "libc",
  "log",
  "malloc_size_of",
