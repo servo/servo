@@ -120,7 +120,7 @@ impl Actor for WalkerActor {
     /// - `getOffsetParent`: Placeholder
     ///
     /// - `querySelector`: Recursively looks for the specified selector in the tree, reutrning the
-    /// node and its ascendents
+    ///   node and its ascendents
     fn handle_message(
         &self,
         registry: &ActorRegistry,

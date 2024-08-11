@@ -160,17 +160,17 @@ impl Actor for WatcherActor {
     /// The watcher actor can handle the following messages:
     ///
     /// - `watchTargets`: Returns a list of objects to debug. Since we only support web views, it
-    /// returns the associated `BrowsingContextActor`. Every target sent creates a
-    /// `target-available-form` event.
+    ///   returns the associated `BrowsingContextActor`. Every target sent creates a
+    ///   `target-available-form` event.
     ///
     /// - `watchResources`: Start watching certain resource types. This sends
-    /// `resource-available-form` events.
+    ///   `resource-available-form` events.
     ///
     /// - `getNetworkParentActor`: Returns the network parent actor. It doesn't seem to do much at
-    /// the moment.
+    ///   the moment.
     ///
     /// - `getTargetConfigurationActor`: Returns the configuration actor for a specific target, so
-    /// that the server can update its settings.
+    ///   that the server can update its settings.
     ///
     /// - `getThreadConfigurationActor`: The same but with the configuration actor for the thread
     fn handle_message(
