@@ -58,6 +58,7 @@ impl AudioNode {
             count: options.count as u8,
             mode: options.mode.into(),
             interpretation: options.interpretation.into(),
+            context_channel_count: context.channel_count() as u8,
         };
         let node_id = context
             .audio_context_impl()

@@ -266,6 +266,10 @@ impl BaseAudioContext {
             },
         }
     }
+
+    pub fn channel_count(&self) -> u32 {
+        self.channel_count
+    }
 }
 
 impl BaseAudioContextMethods for BaseAudioContext {
