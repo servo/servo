@@ -81,10 +81,10 @@ struct MeasurableCachedResource {
 impl MallocSizeOf for CachedResource {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         // TODO: self.request_headers.unconditional_size_of(ops) +
-        self.body.unconditional_size_of(ops) +
-            self.aborted.unconditional_size_of(ops) +
-            self.awaiting_body.unconditional_size_of(ops) +
-            self.data.size_of(ops)
+        self.body.unconditional_size_of(ops)
+            + self.aborted.unconditional_size_of(ops)
+            + self.awaiting_body.unconditional_size_of(ops)
+            + self.data.size_of(ops)
     }
 }
 
@@ -148,9 +148,9 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
     // 2. check for absence of the Authorization header field.
     let mut is_cacheable = false;
     let headers = metadata.headers.as_ref().unwrap();
-    if headers.contains_key(header::EXPIRES) ||
-        headers.contains_key(header::LAST_MODIFIED) ||
-        headers.contains_key(header::ETAG)
+    if headers.contains_key(header::EXPIRES)
+        || headers.contains_key(header::LAST_MODIFIED)
+        || headers.contains_key(header::ETAG)
     {
         is_cacheable = true;
     }
@@ -158,10 +158,10 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
         if directive.no_store() {
             return false;
         }
-        if directive.public() ||
-            directive.s_max_age().is_some() ||
-            directive.max_age().is_some() ||
-            directive.no_cache()
+        if directive.public()
+            || directive.s_max_age().is_some()
+            || directive.max_age().is_some()
+            || directive.no_cache()
         {
             is_cacheable = true;
         }
@@ -416,7 +416,7 @@ fn handle_range_request(
         // whose body is in the ResponseBody::Receiving state.
         (&(Bound::Included(beginning), Bound::Included(end)), Some(complete_resource)) => {
             if let ResponseBody::Done(ref body) = *complete_resource.body.lock().unwrap() {
-                if end == u64::max_value() {
+                if end == u64::MAX {
                     // Prevent overflow on the addition below.
                     return None;
                 }
@@ -552,11 +552,7 @@ fn handle_range_request(
                 } else {
                     continue;
                 };
-                if total < res_beginning ||
-                    total < res_end ||
-                    offset == 0 ||
-                    offset == u64::max_value()
-                {
+                if total < res_beginning || total < res_end || offset == 0 || offset == u64::MAX {
                     // Prevent overflow in the below operations from occuring.
                     continue;
                 }
@@ -866,8 +862,8 @@ impl HttpCache {
             Ok(FetchMetadata::Filtered {
                 filtered: _,
                 unsafe_: metadata,
-            }) |
-            Ok(FetchMetadata::Unfiltered(metadata)) => metadata,
+            })
+            | Ok(FetchMetadata::Unfiltered(metadata)) => metadata,
             _ => return,
         };
         if !response_is_cacheable(&metadata) {
