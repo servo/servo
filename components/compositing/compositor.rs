@@ -1921,9 +1921,8 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             return;
         }
 
-        self.page_zoom = Scale::new(
-            (self.page_zoom.get() * magnification).clamp(MIN_ZOOM, MAX_ZOOM)
-        );
+        self.page_zoom =
+            Scale::new((self.page_zoom.get() * magnification).clamp(MIN_ZOOM, MAX_ZOOM));
         self.update_after_zoom_or_hidpi_change();
     }
 
