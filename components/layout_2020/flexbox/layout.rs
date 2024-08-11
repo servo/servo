@@ -220,7 +220,7 @@ impl FlexContainer {
         let mut item_infos = vec![];
 
         let container_is_horizontal = self.style.writing_mode.is_horizontal();
-        let flex_direction = used_flex_direction(&*self.style);
+        let flex_direction = used_flex_direction(&self.style);
         let flex_axis = FlexAxis::from(flex_direction);
         let flex_wrap = self.style.get_position().flex_wrap;
         let flex_wrap_reverse = match flex_wrap {
