@@ -101,6 +101,7 @@ impl IIRFilterNode {
 
 impl IIRFilterNodeMethods for IIRFilterNode {
     #[allow(unsafe_code)]
+    /// <https://webaudio.github.io/web-audio-api/#dom-iirfilternode-getfrequencyresponse>
     fn GetFrequencyResponse(
         &self,
         frequency_hz: CustomAutoRooterGuard<Float32Array>,
