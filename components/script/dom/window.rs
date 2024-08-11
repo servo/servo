@@ -702,41 +702,43 @@ impl WindowMethods for Window {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    fn Opener(&self, cx: JSContext, in_realm_proof: InRealm) -> JSVal {
+    fn GetOpener(&self, cx: JSContext) -> Fallible<JSVal> {
         // Step 1, Let current be this Window object's browsing context.
         let current = match self.window_proxy.get() {
             Some(proxy) => proxy,
             // Step 2, If current is null, then return null.
-            None => return NullValue(),
+            None => return Ok(NullValue()),
         };
         // Still step 2, since the window's BC is the associated doc's BC,
         // see https://html.spec.whatwg.org/multipage/#window-bc
         // and a doc's BC is null if it has been discarded.
         // see https://html.spec.whatwg.org/multipage/#concept-document-bc
         if current.is_browsing_context_discarded() {
-            return NullValue();
+            return Ok(NullValue());
         }
         // Step 3 to 5.
-        current.opener(*cx, in_realm_proof)
+        Ok(current.opener(*cx))
     }
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    fn SetOpener(&self, cx: JSContext, value: HandleValue) {
+    fn SetOpener(&self, cx: JSContext, value: HandleValue) -> ErrorResult {
         // Step 1.
         if value.is_null() {
-            return self.window_proxy().disown();
+            self.window_proxy().disown();
+            return Ok(());
         }
         // Step 2.
         let obj = self.reflector().get_jsobject();
         unsafe {
-            assert!(JS_DefineProperty(
-                *cx,
-                obj,
-                c"opener".as_ptr(),
-                value,
-                JSPROP_ENUMERATE as u32
-            ));
+            let result =
+                JS_DefineProperty(*cx, obj, c"opener".as_ptr(), value, JSPROP_ENUMERATE as u32);
+
+            if result {
+                Ok(())
+            } else {
+                Err(Error::InvalidState)
+            }
         }
     }
 

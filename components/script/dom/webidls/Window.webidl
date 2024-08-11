@@ -36,7 +36,7 @@
   // Note that this can return null in the case that the browsing context has been discarded.
   // https://github.com/whatwg/html/issues/2115
   [LegacyUnforgeable, CrossOriginReadable] readonly attribute WindowProxy? top;
-  [CrossOriginReadable] attribute any opener;
+  [Throws, CrossOriginReadable] attribute any opener;
   // Note that this can return null in the case that the browsing context has been discarded.
   // https://github.com/whatwg/html/issues/2115
   [Replaceable, CrossOriginReadable] readonly attribute WindowProxy? parent;
