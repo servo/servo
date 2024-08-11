@@ -1006,7 +1006,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             repeat_vertical: border_image_repeat.1.to_webrender(),
         });
         builder.wr().push_border(
-            &common,
+            common,
             border_image_area.to_box2d(),
             border_image_widths,
             details,
