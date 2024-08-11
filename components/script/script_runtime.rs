@@ -14,7 +14,7 @@ use std::io::{stdout, Write};
 use std::ops::Deref;
 use std::os::raw::c_void;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, LazyLock, Mutex};
 use std::time::{Duration, Instant};
 use std::{fmt, os, ptr, thread};
 
@@ -47,7 +47,6 @@ use js::rust::{
     describe_scripted_caller, Handle, HandleObject as RustHandleObject, IntoHandle, JSEngine,
     JSEngineHandle, ParentRuntime, Runtime as RustRuntime,
 };
-use lazy_static::lazy_static;
 use malloc_size_of::MallocSizeOfOps;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use profile_traits::path;
@@ -487,9 +486,7 @@ impl Drop for JSEngineSetup {
     }
 }
 
-lazy_static! {
-    static ref JS_ENGINE: Mutex<Option<JSEngineHandle>> = Mutex::new(None);
-}
+static JS_ENGINE: LazyLock<Mutex<Option<JSEngineHandle>>> = LazyLock::new(|| Mutex::new(None));
 
 #[allow(unsafe_code)]
 pub unsafe fn new_child_runtime(
