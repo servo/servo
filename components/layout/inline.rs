@@ -5,7 +5,7 @@
 use std::cmp::max;
 use std::collections::VecDeque;
 use std::sync::Arc;
-use std::{fmt, i32, isize, mem};
+use std::{fmt, mem};
 
 use app_units::{Au, MIN_AU};
 use base::print_tree::PrintTree;
