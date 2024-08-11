@@ -9,7 +9,7 @@
 [Exposed=Window]
 interface IIRFilterNode : AudioNode {
   [Throws] constructor (BaseAudioContext context, IIRFilterOptions options);
-  undefined getFrequencyResponse (Float32Array frequencyHz,
+  [Throws] undefined getFrequencyResponse (Float32Array frequencyHz,
                                   Float32Array magResponse,
                                   Float32Array phaseResponse);
 };

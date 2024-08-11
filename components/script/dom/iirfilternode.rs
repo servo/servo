@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
-use std::f32;
 use std::sync::Arc;
 
 use dom_struct::dom_struct;
@@ -12,7 +10,7 @@ use js::gc::CustomAutoRooterGuard;
 use js::rust::HandleObject;
 use js::typedarray::Float32Array;
 use servo_media::audio::iir_filter_node::{IIRFilterNode as IIRFilter, IIRFilterNodeOptions};
-use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage, AudioNodeType};
+use servo_media::audio::node::AudioNodeInit;
 
 use crate::dom::audionode::AudioNode;
 use crate::dom::baseaudiocontext::BaseAudioContext;
@@ -22,10 +20,10 @@ use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
 use crate::dom::bindings::codegen::Bindings::IIRFilterNodeBinding::{
     IIRFilterNodeMethods, IIRFilterOptions,
 };
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
 
 #[dom_struct]
@@ -42,6 +40,12 @@ impl IIRFilterNode {
         context: &BaseAudioContext,
         options: &IIRFilterOptions,
     ) -> Fallible<IIRFilterNode> {
+        if options.feedforward.len() == 0 || options.feedforward.len() > 20 || options.feedback.len() == 0 || options.feedback.len() > 20 {
+          return Err(Error::NotSupported)
+        }
+        if options.feedforward.iter().all(|v| **v == 0.0) || *options.feedback[0] == 0.0 {
+          return Err(Error::InvalidState)
+        }
         let node_options =
             options
                 .parent
@@ -98,7 +102,10 @@ impl IIRFilterNodeMethods for IIRFilterNode {
         frequency_hz: CustomAutoRooterGuard<Float32Array>,
         mut mag_response: CustomAutoRooterGuard<Float32Array>,
         mut phase_response: CustomAutoRooterGuard<Float32Array>,
-    ) {
+    ) -> Result<(), Error> {
+        if frequency_hz.len() != mag_response.len() || frequency_hz.len() != phase_response.len() || mag_response.len() != phase_response.len() {
+          return Err(Error::InvalidAccess)
+        }
         let feedforward: Vec<f64> = (self.feedforward.iter().map(|v| **v).collect_vec()).to_vec();
         let feedback: Vec<f64> = (self.feedback.iter().map(|v| **v).collect_vec()).to_vec();
         let frequency_hz_vec = frequency_hz.to_vec();
@@ -116,6 +123,8 @@ impl IIRFilterNodeMethods for IIRFilterNode {
             mag_response.update(&mag_response_vec);
             phase_response.update(&phase_response_vec);
         }
+
+        Ok(())
     }
 }
 
