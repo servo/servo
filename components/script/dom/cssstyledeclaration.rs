@@ -344,7 +344,7 @@ impl CSSStyleDeclaration {
     }
 }
 
-static ENABLED_LONGHAND_PROPERTIES: LazyLock<Vec<LonghandId>> = LazyLock::new(|| {
+pub static ENABLED_LONGHAND_PROPERTIES: LazyLock<Vec<LonghandId>> = LazyLock::new(|| {
     // The 'all' shorthand contains all the enabled longhands with 2 exceptions:
     // 'direction' and 'unicode-bidi', so these must be added afterward.
     let mut enabled_longhands: Vec<LonghandId> = ShorthandId::All.longhands().collect();

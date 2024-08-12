@@ -16,7 +16,7 @@ use serde::Serialize;
 use serde_json::{self, Map, Value};
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::actors::inspector::style_rule::{AppliedRule, StyleRuleActor};
+use crate::actors::inspector::style_rule::{AppliedRule, ComputedDeclaration, StyleRuleActor};
 use crate::protocol::JsonPacketStream;
 use crate::StreamId;
 
@@ -28,7 +28,7 @@ struct GetAppliedReply {
 
 #[derive(Serialize)]
 struct GetComputedReply {
-    computed: Vec<u32>, //XXX all css props
+    computed: HashMap<String, ComputedDeclaration>,
     from: String,
 }
 
@@ -124,7 +124,7 @@ impl Actor for PageStyleActor {
                 let entry = AppliedEntry {
                     // TODO: Separate rules based on selector and ancerstor and so on
                     //       Each style rule actor should correspond to each set of rules
-                    rule: style_rule.rule(registry),
+                    rule: style_rule.applied(registry),
                     pseudo_element: None,
                     is_system: false,
                 };
@@ -140,11 +140,13 @@ impl Actor for PageStyleActor {
             },
 
             "getComputed" => {
-                // TODO: Query script for relevant computed styles on node (msg.node)
-                //
-                // Where are these?
+                let target = msg.get("node").ok_or(())?.as_str().ok_or(())?;
+
+                let style_rule =
+                    StyleRuleActor::new(registry.new_name("style-rule"), target.into());
+
                 let msg = GetComputedReply {
-                    computed: vec![],
+                    computed: style_rule.computed(registry).unwrap_or_default(),
                     from: self.name(),
                 };
                 let _ = stream.write_json_packet(&msg);

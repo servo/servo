@@ -48,7 +48,6 @@ impl Actor for CssPropertiesActor {
             "getCSSDatabase" => {
                 let _ = stream.write_json_packet(&GetCssDatabaseReply {
                     from: self.name(),
-                    // TODO: Move this or reference or avoid clone
                     properties: &self.properties,
                 });
 

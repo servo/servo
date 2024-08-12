@@ -5,9 +5,12 @@
 //! Liberally derived from <https://searchfox.org/mozilla-central/source/devtools/server/actors/thread-configuration.js>
 //! This actor represents one css rule from a node, allowing the inspector to view it and change it.
 
+use std::collections::HashMap;
 use std::net::TcpStream;
 
-use devtools_traits::DevtoolScriptControlMsg::{GetAppliedStyle, GetDocumentElement, ModifyRule};
+use devtools_traits::DevtoolScriptControlMsg::{
+    GetAppliedStyle, GetComputedStyle, GetDocumentElement, ModifyRule,
+};
 use ipc_channel::ipc;
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -48,6 +51,12 @@ pub struct AppliedDeclaration {
     offsets: Vec<i32>,
     priority: String,
     terminator: String,
+    value: String,
+}
+
+#[derive(Serialize)]
+pub struct ComputedDeclaration {
+    matched: bool,
     value: String,
 }
 
@@ -124,7 +133,7 @@ impl StyleRuleActor {
         Self { name, node }
     }
 
-    pub fn rule(&self, registry: &ActorRegistry) -> Option<AppliedRule> {
+    pub fn applied(&self, registry: &ActorRegistry) -> Option<AppliedRule> {
         let node = registry.find::<NodeActor>(&self.node);
         let walker = registry.find::<WalkerActor>(&node.walker);
 
@@ -176,10 +185,44 @@ impl StyleRuleActor {
         })
     }
 
+    pub fn computed(
+        &self,
+        registry: &ActorRegistry,
+    ) -> Option<HashMap<String, ComputedDeclaration>> {
+        let node = registry.find::<NodeActor>(&self.node);
+        let walker = registry.find::<WalkerActor>(&node.walker);
+
+        let (tx, rx) = ipc::channel().ok()?;
+        walker
+            .script_chan
+            .send(GetComputedStyle(
+                walker.pipeline,
+                registry.actor_to_script(self.node.clone()),
+                tx,
+            ))
+            .unwrap();
+        let style = rx.recv().ok()??;
+
+        Some(
+            style
+                .into_iter()
+                .map(|s| {
+                    (
+                        s.name,
+                        ComputedDeclaration {
+                            matched: true,
+                            value: s.value,
+                        },
+                    )
+                })
+                .collect(),
+        )
+    }
+
     pub fn encodable(&self, registry: &ActorRegistry) -> StyleRuleActorMsg {
         StyleRuleActorMsg {
             from: self.name(),
-            rule: self.rule(registry),
+            rule: self.applied(registry),
         }
     }
 }

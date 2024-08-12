@@ -155,7 +155,7 @@ pub enum TimelineMarkerType {
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AppliedNodeStyle {
+pub struct NodeStyle {
     pub name: String,
     pub value: String,
     pub priority: String,
@@ -211,7 +211,9 @@ pub enum DevtoolScriptControlMsg {
     /// Retrieve the details of the child nodes of the given node in the given pipeline.
     GetChildren(PipelineId, String, IpcSender<Option<Vec<NodeInfo>>>),
     /// Retrieve the applied css style properties for the given node.
-    GetAppliedStyle(PipelineId, String, IpcSender<Option<Vec<AppliedNodeStyle>>>),
+    GetAppliedStyle(PipelineId, String, IpcSender<Option<Vec<NodeStyle>>>),
+    /// Retrieve the computed css style properties for the given node.
+    GetComputedStyle(PipelineId, String, IpcSender<Option<Vec<NodeStyle>>>),
     /// Retrieve the computed layout properties of the given node in the given pipeline.
     GetLayout(PipelineId, String, IpcSender<Option<ComputedNodeLayout>>),
     /// Update a given node's attributes with a list of modifications.

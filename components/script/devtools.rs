@@ -8,8 +8,8 @@ use std::str;
 
 use base::id::PipelineId;
 use devtools_traits::{
-    AppliedNodeStyle, AttrModification, AutoMargins, ComputedNodeLayout, CssDatabaseProperty,
-    EvaluateJSReply, NodeInfo, RuleModification, TimelineMarker, TimelineMarkerType,
+    AttrModification, AutoMargins, ComputedNodeLayout, CssDatabaseProperty, EvaluateJSReply,
+    NodeInfo, NodeStyle, RuleModification, TimelineMarker, TimelineMarkerType,
 };
 use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
@@ -28,6 +28,7 @@ use crate::dom::bindings::conversions::{jsstring_to_str, ConversionResult, FromJ
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::cssstyledeclaration::ENABLED_LONGHAND_PROPERTIES;
 use crate::dom::document::AnimationFrameCallback;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
@@ -177,7 +178,7 @@ pub fn handle_get_applied_style(
     documents: &Documents,
     pipeline: PipelineId,
     node_id: String,
-    reply: IpcSender<Option<Vec<AppliedNodeStyle>>>,
+    reply: IpcSender<Option<Vec<NodeStyle>>>,
 ) {
     let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
         None => return reply.send(None).unwrap(),
@@ -193,7 +194,7 @@ pub fn handle_get_applied_style(
     let msg = (0..style.Length())
         .map(|i| {
             let name = style.Item(i);
-            AppliedNodeStyle {
+            NodeStyle {
                 name: name.to_string(),
                 value: style.GetPropertyValue(name.clone()).to_string(),
                 priority: style.GetPropertyPriority(name).to_string(),
@@ -219,8 +220,36 @@ pub fn handle_get_applied_style(
     //    }
     //};
 
-    // Method 3: Downcast to Element and use .style_attribute()
-    // The same as before
+    reply.send(Some(msg)).unwrap();
+}
+
+pub fn handle_get_computed_style(
+    documents: &Documents,
+    pipeline: PipelineId,
+    node_id: String,
+    reply: IpcSender<Option<Vec<NodeStyle>>>,
+) {
+    let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
+        None => return reply.send(None).unwrap(),
+        Some(found_node) => found_node,
+    };
+
+    let window = window_from_node(&*node);
+    let elem = node
+        .downcast::<Element>()
+        .expect("This should be an element");
+    let computed_style = window.GetComputedStyle(elem, None);
+
+    let msg = (0..computed_style.Length())
+        .map(|i| {
+            let name = computed_style.Item(i);
+            NodeStyle {
+                name: name.to_string(),
+                value: computed_style.GetPropertyValue(name.clone()).to_string(),
+                priority: computed_style.GetPropertyPriority(name).to_string(),
+            }
+        })
+        .collect();
 
     reply.send(Some(msg)).unwrap();
 }
@@ -397,8 +426,8 @@ pub fn handle_reload(documents: &Documents, id: PipelineId) {
 }
 
 pub fn handle_get_css_database(reply: IpcSender<HashMap<String, CssDatabaseProperty>>) {
-    let database: HashMap<_, _> = ShorthandId::All
-        .longhands()
+    let database: HashMap<_, _> = ENABLED_LONGHAND_PROPERTIES
+        .iter()
         .map(|l| {
             (
                 l.name().into(),

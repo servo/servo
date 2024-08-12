@@ -2534,6 +2534,9 @@ impl ScriptThread {
             DevtoolScriptControlMsg::GetAppliedStyle(id, node_id, reply) => {
                 devtools::handle_get_applied_style(&documents, id, node_id, reply)
             },
+            DevtoolScriptControlMsg::GetComputedStyle(id, node_id, reply) => {
+                devtools::handle_get_computed_style(&documents, id, node_id, reply)
+            },
             DevtoolScriptControlMsg::GetLayout(id, node_id, reply) => {
                 devtools::handle_get_layout(&documents, id, node_id, reply)
             },
