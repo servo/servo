@@ -270,6 +270,9 @@ mod gen {
                 imagebitmap: {
                     enabled: bool,
                 },
+                indexeddb: {
+                      enabled: bool,
+                },
                 microdata: {
                     testing: {
                         enabled: bool,
