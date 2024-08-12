@@ -110,10 +110,10 @@ impl GPUAdapterMethods for GPUAdapter {
         // Step 2
         let promise = Promise::new_in_current_realm(comp);
         let sender = response_async(&promise, self);
-        let mut features = wgt::Features::empty();
+        let mut required_features = wgt::Features::empty();
         for &ext in descriptor.requiredFeatures.iter() {
             if let Some(feature) = gpu_to_wgt_feature(ext) {
-                features.insert(feature);
+                required_features.insert(feature);
             } else {
                 promise.reject_error(Error::Type(format!(
                     "{} is not supported feature",
@@ -123,21 +123,23 @@ impl GPUAdapterMethods for GPUAdapter {
             }
         }
 
-        let mut desc = wgt::DeviceDescriptor {
-            required_features: features,
-            required_limits: wgt::Limits::default(),
-            label: None,
-            memory_hints: MemoryHints::MemoryUsage,
-        };
+        let mut required_limits = wgt::Limits::default();
         if let Some(limits) = &descriptor.requiredLimits {
             for (limit, value) in (*limits).iter() {
-                if !set_limit(&mut desc.required_limits, limit.as_ref(), *value) {
+                if !set_limit(&mut required_limits, limit.as_ref(), *value) {
                     warn!("Unknown GPUDevice limit: {limit}");
                     promise.reject_error(Error::Operation);
                     return promise;
                 }
             }
         }
+
+        let desc = wgt::DeviceDescriptor {
+            required_features,
+            required_limits,
+            label: Some(descriptor.parent.label.to_string()),
+            memory_hints: MemoryHints::MemoryUsage,
+        };
         let device_id = self
             .global()
             .wgpu_id_hub()
