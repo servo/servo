@@ -39,6 +39,9 @@ pub struct GPUSupportedFeatures {
     // internal storage for features
     #[custom_trace]
     internal: DomRefCell<IndexSet<GPUFeatureName>>,
+    #[ignore_malloc_size_of = "defined in wgpu-types"]
+    #[no_trace]
+    features: Features,
 }
 
 impl GPUSupportedFeatures {
@@ -95,6 +98,7 @@ impl GPUSupportedFeatures {
             Box::new(GPUSupportedFeatures {
                 reflector: Reflector::new(),
                 internal: DomRefCell::new(set),
+                features,
             }),
             global,
             proto,
@@ -108,6 +112,12 @@ impl GPUSupportedFeatures {
         features: Features,
     ) -> Fallible<DomRoot<GPUSupportedFeatures>> {
         Ok(GPUSupportedFeatures::new(global, proto, features))
+    }
+}
+
+impl GPUSupportedFeatures {
+    pub fn wgpu_features(&self) -> Features {
+        self.features
     }
 }
 

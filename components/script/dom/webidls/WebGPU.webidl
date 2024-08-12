@@ -139,22 +139,24 @@ interface GPUDevice: EventTarget {
     [NewObject]
     GPUSampler createSampler(optional GPUSamplerDescriptor descriptor = {});
 
+    [Throws]
     GPUBindGroupLayout createBindGroupLayout(GPUBindGroupLayoutDescriptor descriptor);
     GPUPipelineLayout createPipelineLayout(GPUPipelineLayoutDescriptor descriptor);
     GPUBindGroup createBindGroup(GPUBindGroupDescriptor descriptor);
 
     GPUShaderModule createShaderModule(GPUShaderModuleDescriptor descriptor);
     GPUComputePipeline createComputePipeline(GPUComputePipelineDescriptor descriptor);
+    [Throws]
     GPURenderPipeline createRenderPipeline(GPURenderPipelineDescriptor descriptor);
 
     [NewObject]
     Promise<GPUComputePipeline> createComputePipelineAsync(GPUComputePipelineDescriptor descriptor);
-    [NewObject]
+    [Throws, NewObject]
     Promise<GPURenderPipeline> createRenderPipelineAsync(GPURenderPipelineDescriptor descriptor);
 
     [NewObject]
     GPUCommandEncoder createCommandEncoder(optional GPUCommandEncoderDescriptor descriptor = {});
-    [NewObject]
+    [Throws, NewObject]
     GPURenderBundleEncoder createRenderBundleEncoder(GPURenderBundleEncoderDescriptor descriptor);
     //[NewObject]
     //GPUQuerySet createQuerySet(GPUQuerySetDescriptor descriptor);
@@ -204,7 +206,7 @@ interface GPUMapMode {
 
 [Exposed=(Window, DedicatedWorker), Serializable , Pref="dom.webgpu.enabled"]
 interface GPUTexture {
-    [NewObject]
+    [Throws, NewObject]
     GPUTextureView createView(optional GPUTextureViewDescriptor descriptor = {});
 
     undefined destroy();

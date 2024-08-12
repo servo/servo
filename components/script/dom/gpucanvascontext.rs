@@ -208,7 +208,9 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
     fn Configure(&self, descriptor: &GPUCanvasConfiguration) -> Fallible<()> {
         // Step 1 is let
         // Step 2
-        // TODO: device features
+        descriptor
+            .device
+            .validate_texture_format_required_features(&descriptor.format)?;
         let format = match descriptor.format {
             GPUTextureFormat::Rgba8unorm | GPUTextureFormat::Rgba8unorm_srgb => ImageFormat::RGBA8,
             GPUTextureFormat::Bgra8unorm | GPUTextureFormat::Bgra8unorm_srgb => ImageFormat::BGRA8,
@@ -221,7 +223,11 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         };
 
         // Step 3
-        // TODO: device features
+        for view_format in &descriptor.viewFormats {
+            descriptor
+                .device
+                .validate_texture_format_required_features(view_format)?;
+        }
 
         // Step 4
         let size = self.size();

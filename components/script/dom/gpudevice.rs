@@ -18,12 +18,13 @@ use webgpu::wgc::pipeline::RenderPipelineDescriptor;
 use webgpu::wgc::{
     binding_model as wgpu_bind, command as wgpu_com, pipeline as wgpu_pipe, resource as wgpu_res,
 };
+use webgpu::wgt::TextureFormat;
 use webgpu::{
     self, wgt, PopError, WebGPU, WebGPUComputePipeline, WebGPURenderPipeline, WebGPURequest,
     WebGPUResponse,
 };
 
-use super::bindings::codegen::Bindings::WebGPUBinding::GPUPipelineErrorReason;
+use super::bindings::codegen::Bindings::WebGPUBinding::{GPUPipelineErrorReason, GPUTextureFormat};
 use super::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutMode;
 use super::bindings::error::Fallible;
 use super::gpu::AsyncWGPUListener;
@@ -190,6 +191,27 @@ impl GPUDevice {
         let _ = self.eventtarget.DispatchEvent(ev.event());
     }
 
+    /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-texture-format-required-features>
+    ///
+    /// Also returns wgpu's `TextureFormat` as it already does conversion inside
+    pub fn validate_texture_format_required_features(
+        &self,
+        format: &GPUTextureFormat,
+    ) -> Fallible<TextureFormat> {
+        let texture_format = convert_texture_format(*format);
+        if self
+            .features
+            .wgpu_features()
+            .contains(texture_format.required_features())
+        {
+            Ok(texture_format)
+        } else {
+            Err(Error::Type(format!(
+                "{texture_format:?} is not supported by this GPUDevice"
+            )))
+        }
+    }
+
     fn get_pipeline_layout_data(
         &self,
         layout: &GPUPipelineLayoutOrGPUAutoLayoutMode,
@@ -223,10 +245,10 @@ impl GPUDevice {
     fn parse_render_pipeline(
         &self,
         descriptor: &GPURenderPipelineDescriptor,
-    ) -> (
+    ) -> Fallible<(
         Option<(PipelineLayoutId, Vec<BindGroupLayoutId>)>,
         RenderPipelineDescriptor<'static>,
-    ) {
+    )> {
         let (layout, implicit_ids, _) = self.get_pipeline_layout_data(&descriptor.parent.layout);
 
         let desc = wgpu_pipe::RenderPipelineDescriptor {
@@ -269,59 +291,84 @@ impl GPUDevice {
             fragment: descriptor
                 .fragment
                 .as_ref()
-                .map(|stage| wgpu_pipe::FragmentState {
-                    stage: wgpu_pipe::ProgrammableStageDescriptor {
-                        module: stage.parent.module.id().0,
-                        entry_point: Some(Cow::Owned(stage.parent.entryPoint.to_string())),
-                        constants: Cow::Owned(HashMap::new()),
-                        zero_initialize_workgroup_memory: true,
-                    },
-                    targets: Cow::Owned(
-                        stage
-                            .targets
-                            .iter()
-                            .map(|state| {
-                                Some(wgt::ColorTargetState {
-                                    format: convert_texture_format(state.format),
-                                    write_mask: wgt::ColorWrites::from_bits_retain(state.writeMask),
-                                    blend: state.blend.as_ref().map(|blend| wgt::BlendState {
-                                        color: convert_blend_component(&blend.color),
-                                        alpha: convert_blend_component(&blend.alpha),
-                                    }),
+                .map(|stage| -> Fallible<wgpu_pipe::FragmentState> {
+                    Ok(wgpu_pipe::FragmentState {
+                        stage: wgpu_pipe::ProgrammableStageDescriptor {
+                            module: stage.parent.module.id().0,
+                            entry_point: Some(Cow::Owned(stage.parent.entryPoint.to_string())),
+                            constants: Cow::Owned(HashMap::new()),
+                            zero_initialize_workgroup_memory: true,
+                        },
+                        targets: Cow::Owned(
+                            stage
+                                .targets
+                                .iter()
+                                .map(|state| {
+                                    self.validate_texture_format_required_features(&state.format)
+                                        .map(|format| {
+                                            Some(wgt::ColorTargetState {
+                                                format,
+                                                write_mask: wgt::ColorWrites::from_bits_retain(
+                                                    state.writeMask,
+                                                ),
+                                                blend: state.blend.as_ref().map(|blend| {
+                                                    wgt::BlendState {
+                                                        color: convert_blend_component(
+                                                            &blend.color,
+                                                        ),
+                                                        alpha: convert_blend_component(
+                                                            &blend.alpha,
+                                                        ),
+                                                    }
+                                                }),
+                                            })
+                                        })
                                 })
-                            })
-                            .collect::<Vec<_>>(),
-                    ),
-                }),
+                                .collect::<Result<Vec<_>, _>>()?,
+                        ),
+                    })
+                })
+                .transpose()?,
             primitive: convert_primitive_state(&descriptor.primitive),
-            depth_stencil: descriptor.depthStencil.as_ref().map(|dss_desc| {
-                wgt::DepthStencilState {
-                    format: convert_texture_format(dss_desc.format),
-                    depth_write_enabled: dss_desc.depthWriteEnabled,
-                    depth_compare: convert_compare_function(dss_desc.depthCompare),
-                    stencil: wgt::StencilState {
-                        front: wgt::StencilFaceState {
-                            compare: convert_compare_function(dss_desc.stencilFront.compare),
-                            fail_op: convert_stencil_op(dss_desc.stencilFront.failOp),
-                            depth_fail_op: convert_stencil_op(dss_desc.stencilFront.depthFailOp),
-                            pass_op: convert_stencil_op(dss_desc.stencilFront.passOp),
-                        },
-                        back: wgt::StencilFaceState {
-                            compare: convert_compare_function(dss_desc.stencilBack.compare),
-                            fail_op: convert_stencil_op(dss_desc.stencilBack.failOp),
-                            depth_fail_op: convert_stencil_op(dss_desc.stencilBack.depthFailOp),
-                            pass_op: convert_stencil_op(dss_desc.stencilBack.passOp),
-                        },
-                        read_mask: dss_desc.stencilReadMask,
-                        write_mask: dss_desc.stencilWriteMask,
-                    },
-                    bias: wgt::DepthBiasState {
-                        constant: dss_desc.depthBias,
-                        slope_scale: *dss_desc.depthBiasSlopeScale,
-                        clamp: *dss_desc.depthBiasClamp,
-                    },
-                }
-            }),
+            depth_stencil: descriptor
+                .depthStencil
+                .as_ref()
+                .map(|dss_desc| {
+                    self.validate_texture_format_required_features(&dss_desc.format)
+                        .map(|format| wgt::DepthStencilState {
+                            format,
+                            depth_write_enabled: dss_desc.depthWriteEnabled,
+                            depth_compare: convert_compare_function(dss_desc.depthCompare),
+                            stencil: wgt::StencilState {
+                                front: wgt::StencilFaceState {
+                                    compare: convert_compare_function(
+                                        dss_desc.stencilFront.compare,
+                                    ),
+                                    fail_op: convert_stencil_op(dss_desc.stencilFront.failOp),
+                                    depth_fail_op: convert_stencil_op(
+                                        dss_desc.stencilFront.depthFailOp,
+                                    ),
+                                    pass_op: convert_stencil_op(dss_desc.stencilFront.passOp),
+                                },
+                                back: wgt::StencilFaceState {
+                                    compare: convert_compare_function(dss_desc.stencilBack.compare),
+                                    fail_op: convert_stencil_op(dss_desc.stencilBack.failOp),
+                                    depth_fail_op: convert_stencil_op(
+                                        dss_desc.stencilBack.depthFailOp,
+                                    ),
+                                    pass_op: convert_stencil_op(dss_desc.stencilBack.passOp),
+                                },
+                                read_mask: dss_desc.stencilReadMask,
+                                write_mask: dss_desc.stencilWriteMask,
+                            },
+                            bias: wgt::DepthBiasState {
+                                constant: dss_desc.depthBias,
+                                slope_scale: *dss_desc.depthBiasSlopeScale,
+                                clamp: *dss_desc.depthBiasClamp,
+                            },
+                        })
+                })
+                .transpose()?,
             multisample: wgt::MultisampleState {
                 count: descriptor.multisample.count,
                 mask: descriptor.multisample.mask as u64,
@@ -329,7 +376,7 @@ impl GPUDevice {
             },
             multiview: None,
         };
-        (implicit_ids, desc)
+        Ok((implicit_ids, desc))
     }
 
     /// <https://gpuweb.github.io/gpuweb/#lose-the-device>
@@ -429,7 +476,8 @@ impl GPUDeviceMethods for GPUDevice {
     fn CreateBindGroupLayout(
         &self,
         descriptor: &GPUBindGroupLayoutDescriptor,
-    ) -> DomRoot<GPUBindGroupLayout> {
+    ) -> Fallible<DomRoot<GPUBindGroupLayout>> {
+        // TODO(sagudev): pass invalid bits to wgpu
         let mut valid = true;
         let entries = descriptor
             .entries
@@ -471,7 +519,7 @@ impl GPUDeviceMethods for GPUDevice {
                                 wgt::StorageTextureAccess::WriteOnly
                             },
                         },
-                        format: convert_texture_format(storage.format),
+                        format: self.validate_texture_format_required_features(&storage.format)?,
                         view_dimension: convert_view_dimension(storage.viewDimension),
                     }
                 } else if let Some(texture) = &bind.texture {
@@ -495,14 +543,14 @@ impl GPUDeviceMethods for GPUDevice {
                     todo!("Handle error");
                 };
 
-                wgt::BindGroupLayoutEntry {
+                Ok(wgt::BindGroupLayoutEntry {
                     binding: bind.binding,
                     visibility,
                     ty,
                     count: None,
-                }
+                })
             })
-            .collect::<Vec<_>>();
+            .collect::<Fallible<Vec<_>>>()?;
 
         let desc = if valid {
             Some(wgpu_bind::BindGroupLayoutDescriptor {
@@ -531,12 +579,12 @@ impl GPUDeviceMethods for GPUDevice {
 
         let bgl = webgpu::WebGPUBindGroupLayout(bind_group_layout_id);
 
-        GPUBindGroupLayout::new(
+        Ok(GPUBindGroupLayout::new(
             &self.global(),
             self.channel.clone(),
             bgl,
             descriptor.parent.label.clone(),
-        )
+        ))
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createpipelinelayout>
@@ -787,27 +835,31 @@ impl GPUDeviceMethods for GPUDevice {
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture>
     fn CreateTexture(&self, descriptor: &GPUTextureDescriptor) -> Fallible<DomRoot<GPUTexture>> {
+        // TODO(sagudev): This should be https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-gpuextent3d-shape
         let size = convert_texture_size_to_dict(&descriptor.size);
-        let desc = wgt::TextureUsages::from_bits(descriptor.usage).map(|usg| {
-            wgpu_res::TextureDescriptor {
-                label: convert_label(&descriptor.parent),
-                size: convert_texture_size_to_wgt(&size),
-                mip_level_count: descriptor.mipLevelCount,
-                sample_count: descriptor.sampleCount,
-                dimension: match descriptor.dimension {
-                    GPUTextureDimension::_1d => wgt::TextureDimension::D1,
-                    GPUTextureDimension::_2d => wgt::TextureDimension::D2,
-                    GPUTextureDimension::_3d => wgt::TextureDimension::D3,
-                },
-                format: convert_texture_format(descriptor.format),
-                usage: usg,
-                view_formats: descriptor
-                    .viewFormats
-                    .iter()
-                    .map(|tf| convert_texture_format(*tf))
-                    .collect(),
-            }
-        });
+        // TODO(sagudev): We should pass invalid bits to wgpu
+        let desc = wgt::TextureUsages::from_bits(descriptor.usage)
+            .map(|usg| -> Fallible<_> {
+                Ok(wgpu_res::TextureDescriptor {
+                    label: convert_label(&descriptor.parent),
+                    size: convert_texture_size_to_wgt(&size),
+                    mip_level_count: descriptor.mipLevelCount,
+                    sample_count: descriptor.sampleCount,
+                    dimension: match descriptor.dimension {
+                        GPUTextureDimension::_1d => wgt::TextureDimension::D1,
+                        GPUTextureDimension::_2d => wgt::TextureDimension::D2,
+                        GPUTextureDimension::_3d => wgt::TextureDimension::D3,
+                    },
+                    format: self.validate_texture_format_required_features(&descriptor.format)?,
+                    usage: usg,
+                    view_formats: descriptor
+                        .viewFormats
+                        .iter()
+                        .map(|tf| self.validate_texture_format_required_features(tf))
+                        .collect::<Fallible<_>>()?,
+                })
+            })
+            .transpose()?;
 
         let texture_id = self
             .global()
@@ -892,8 +944,8 @@ impl GPUDeviceMethods for GPUDevice {
     fn CreateRenderPipeline(
         &self,
         descriptor: &GPURenderPipelineDescriptor,
-    ) -> DomRoot<GPURenderPipeline> {
-        let (implicit_ids, desc) = self.parse_render_pipeline(&descriptor);
+    ) -> Fallible<DomRoot<GPURenderPipeline>> {
+        let (implicit_ids, desc) = self.parse_render_pipeline(&descriptor)?;
 
         let render_pipeline_id = self
             .global()
@@ -913,12 +965,12 @@ impl GPUDeviceMethods for GPUDevice {
 
         let render_pipeline = webgpu::WebGPURenderPipeline(render_pipeline_id);
 
-        GPURenderPipeline::new(
+        Ok(GPURenderPipeline::new(
             &self.global(),
             render_pipeline,
             descriptor.parent.parent.label.clone(),
             self,
-        )
+        ))
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipelineasync>
@@ -926,10 +978,10 @@ impl GPUDeviceMethods for GPUDevice {
         &self,
         descriptor: &GPURenderPipelineDescriptor,
         comp: InRealm,
-    ) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp);
-        let (implicit_ids, desc) = self.parse_render_pipeline(&descriptor);
+    ) -> Fallible<Rc<Promise>> {
+        let (implicit_ids, desc) = self.parse_render_pipeline(&descriptor)?;
 
+        let promise = Promise::new_in_current_realm(comp);
         let sender = response_async(&promise, self);
 
         let render_pipeline_id = self
@@ -948,14 +1000,14 @@ impl GPUDeviceMethods for GPUDevice {
             })
             .expect("Failed to create WebGPU render pipeline");
 
-        promise
+        Ok(promise)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderbundleencoder>
     fn CreateRenderBundleEncoder(
         &self,
         descriptor: &GPURenderBundleEncoderDescriptor,
-    ) -> DomRoot<GPURenderBundleEncoder> {
+    ) -> Fallible<DomRoot<GPURenderBundleEncoder>> {
         let desc = wgpu_com::RenderBundleEncoderDescriptor {
             label: convert_label(&descriptor.parent.parent),
             color_formats: Cow::Owned(
@@ -963,16 +1015,24 @@ impl GPUDeviceMethods for GPUDevice {
                     .parent
                     .colorFormats
                     .iter()
-                    .map(|f| Some(convert_texture_format(*f)))
-                    .collect::<Vec<_>>(),
+                    .map(|format| {
+                        self.validate_texture_format_required_features(format)
+                            .map(|f| Some(f))
+                    })
+                    .collect::<Fallible<Vec<_>>>()?,
             ),
-            depth_stencil: descriptor.parent.depthStencilFormat.map(|dsf| {
-                wgt::RenderBundleDepthStencil {
-                    format: convert_texture_format(dsf),
-                    depth_read_only: descriptor.depthReadOnly,
-                    stencil_read_only: descriptor.stencilReadOnly,
-                }
-            }),
+            depth_stencil: descriptor
+                .parent
+                .depthStencilFormat
+                .map(|dsf| {
+                    self.validate_texture_format_required_features(&dsf)
+                        .map(|format| wgt::RenderBundleDepthStencil {
+                            format,
+                            depth_read_only: descriptor.depthReadOnly,
+                            stencil_read_only: descriptor.stencilReadOnly,
+                        })
+                })
+                .transpose()?,
             sample_count: descriptor.parent.sampleCount,
             multiview: None,
         };
@@ -981,13 +1041,13 @@ impl GPUDeviceMethods for GPUDevice {
         let render_bundle_encoder =
             wgpu_com::RenderBundleEncoder::new(&desc, self.device.0, None).unwrap();
 
-        GPURenderBundleEncoder::new(
+        Ok(GPURenderBundleEncoder::new(
             &self.global(),
             render_bundle_encoder,
             self,
             self.channel.clone(),
             descriptor.parent.parent.label.clone(),
-        )
+        ))
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-pusherrorscope>

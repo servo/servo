@@ -9,6 +9,7 @@ use dom_struct::dom_struct;
 use webgpu::wgc::resource;
 use webgpu::{wgt, WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
 
+use super::bindings::error::Fallible;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUExtent3DDict, GPUTextureAspect, GPUTextureDimension, GPUTextureFormat, GPUTextureMethods,
@@ -18,9 +19,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpuconvert::{
-    convert_label, convert_texture_format, convert_texture_view_dimension,
-};
+use crate::dom::gpuconvert::{convert_label, convert_texture_view_dimension};
 use crate::dom::gpudevice::GPUDevice;
 use crate::dom::gputextureview::GPUTextureView;
 
@@ -142,13 +141,19 @@ impl GPUTextureMethods for GPUTexture {
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gputexture-createview>
-    fn CreateView(&self, descriptor: &GPUTextureViewDescriptor) -> DomRoot<GPUTextureView> {
+    fn CreateView(
+        &self,
+        descriptor: &GPUTextureViewDescriptor,
+    ) -> Fallible<DomRoot<GPUTextureView>> {
         let desc = if !matches!(descriptor.mipLevelCount, Some(0)) &&
             !matches!(descriptor.arrayLayerCount, Some(0))
         {
             Some(resource::TextureViewDescriptor {
                 label: convert_label(&descriptor.parent),
-                format: descriptor.format.map(convert_texture_format),
+                format: descriptor
+                    .format
+                    .map(|f| self.device.validate_texture_format_required_features(&f))
+                    .transpose()?,
                 dimension: descriptor.dimension.map(convert_texture_view_dimension),
                 range: wgt::ImageSubresourceRange {
                     aspect: match descriptor.aspect {
@@ -187,13 +192,13 @@ impl GPUTextureMethods for GPUTexture {
 
         let texture_view = WebGPUTextureView(texture_view_id);
 
-        GPUTextureView::new(
+        Ok(GPUTextureView::new(
             &self.global(),
             self.channel.clone(),
             texture_view,
             self,
             descriptor.parent.label.clone(),
-        )
+        ))
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gputexture-destroy>
