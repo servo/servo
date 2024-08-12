@@ -14,7 +14,7 @@ use std::io::{stdout, Write};
 use std::ops::Deref;
 use std::os::raw::c_void;
 use std::rc::Rc;
-use std::sync::{Arc, LazyLock, Mutex};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use std::{fmt, os, ptr, thread};
 
@@ -486,7 +486,7 @@ impl Drop for JSEngineSetup {
     }
 }
 
-static JS_ENGINE: LazyLock<Mutex<Option<JSEngineHandle>>> = LazyLock::new(|| Mutex::new(None));
+static JS_ENGINE: Mutex<Option<JSEngineHandle>> = Mutex::new(None);
 
 #[allow(unsafe_code)]
 pub unsafe fn new_child_runtime(
