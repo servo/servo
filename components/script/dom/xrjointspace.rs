@@ -27,7 +27,12 @@ pub struct XRJointSpace {
 }
 
 impl XRJointSpace {
-    pub fn new_inherited(session: &XRSession, input: InputId, joint: Joint, hand_joint: XRHandJoint) -> XRJointSpace {
+    pub fn new_inherited(
+        session: &XRSession,
+        input: InputId,
+        joint: Joint,
+        hand_joint: XRHandJoint,
+    ) -> XRJointSpace {
         XRJointSpace {
             xrspace: XRSpace::new_inherited(session),
             input,
@@ -42,9 +47,12 @@ impl XRJointSpace {
         session: &XRSession,
         input: InputId,
         joint: Joint,
-        hand_joint: XRHandJoint
+        hand_joint: XRHandJoint,
     ) -> DomRoot<XRJointSpace> {
-        reflect_dom_object(Box::new(Self::new_inherited(session, input, joint, hand_joint)), global)
+        reflect_dom_object(
+            Box::new(Self::new_inherited(session, input, joint, hand_joint)),
+            global,
+        )
     }
 
     pub fn space(&self) -> Space {
@@ -64,10 +72,6 @@ impl XRJointSpace {
 
     pub fn get_pose(&self, frame: &Frame) -> Option<ApiPose> {
         self.frame(frame).map(|f| f.pose).map(|t| t.cast_unit())
-    }
-
-    pub fn get_joint(&self) -> Joint {
-        self.joint
     }
 }
 

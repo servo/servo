@@ -16,29 +16,88 @@ use crate::dom::xrjointspace::XRJointSpace;
 const JOINT_SPACE_MAP: [(XRHandJoint, Joint); 25] = [
     (XRHandJoint::Wrist, Joint::Wrist),
     (XRHandJoint::Thumb_metacarpal, Joint::ThumbMetacarpal),
-    (XRHandJoint::Thumb_phalanx_proximal, Joint::ThumbPhalanxProximal),
+    (
+        XRHandJoint::Thumb_phalanx_proximal,
+        Joint::ThumbPhalanxProximal,
+    ),
     (XRHandJoint::Thumb_phalanx_distal, Joint::ThumbPhalanxDistal),
     (XRHandJoint::Thumb_tip, Joint::ThumbPhalanxTip),
-    (XRHandJoint::Index_finger_metacarpal, Joint::Index(FingerJoint::Metacarpal)),
-    (XRHandJoint::Index_finger_phalanx_proximal, Joint::Index(FingerJoint::PhalanxProximal)),
-    (XRHandJoint::Index_finger_phalanx_intermediate, {Joint::Index(FingerJoint::PhalanxIntermediate)}),
-    (XRHandJoint::Index_finger_phalanx_distal, Joint::Index(FingerJoint::PhalanxDistal)),
-    (XRHandJoint::Index_finger_tip, Joint::Index(FingerJoint::PhalanxTip)),
-    (XRHandJoint::Middle_finger_metacarpal, Joint::Middle(FingerJoint::Metacarpal)),
-    (XRHandJoint::Middle_finger_phalanx_proximal, Joint::Middle(FingerJoint::PhalanxProximal)),
-    (XRHandJoint::Middle_finger_phalanx_intermediate, {Joint::Middle(FingerJoint::PhalanxIntermediate)}),
-    (XRHandJoint::Middle_finger_phalanx_distal, Joint::Middle(FingerJoint::PhalanxDistal)),
-    (XRHandJoint::Middle_finger_tip, Joint::Middle(FingerJoint::PhalanxTip)),
-    (XRHandJoint::Ring_finger_metacarpal, Joint::Ring(FingerJoint::Metacarpal)),
-    (XRHandJoint::Ring_finger_phalanx_proximal, Joint::Ring(FingerJoint::PhalanxProximal)),
-    (XRHandJoint::Ring_finger_phalanx_intermediate, {Joint::Ring(FingerJoint::PhalanxIntermediate)}),
-    (XRHandJoint::Ring_finger_phalanx_distal, Joint::Ring(FingerJoint::PhalanxDistal)),
-    (XRHandJoint::Ring_finger_tip, Joint::Ring(FingerJoint::PhalanxTip)),
-    (XRHandJoint::Pinky_finger_metacarpal, Joint::Little(FingerJoint::Metacarpal)),
-    (XRHandJoint::Pinky_finger_phalanx_proximal, Joint::Little(FingerJoint::PhalanxProximal)),
-    (XRHandJoint::Pinky_finger_phalanx_intermediate, {Joint::Little(FingerJoint::PhalanxIntermediate)}),
-    (XRHandJoint::Pinky_finger_phalanx_distal, Joint::Little(FingerJoint::PhalanxDistal)),
-    (XRHandJoint::Pinky_finger_tip, Joint::Little(FingerJoint::PhalanxTip)),
+    (
+        XRHandJoint::Index_finger_metacarpal,
+        Joint::Index(FingerJoint::Metacarpal),
+    ),
+    (
+        XRHandJoint::Index_finger_phalanx_proximal,
+        Joint::Index(FingerJoint::PhalanxProximal),
+    ),
+    (XRHandJoint::Index_finger_phalanx_intermediate, {
+        Joint::Index(FingerJoint::PhalanxIntermediate)
+    }),
+    (
+        XRHandJoint::Index_finger_phalanx_distal,
+        Joint::Index(FingerJoint::PhalanxDistal),
+    ),
+    (
+        XRHandJoint::Index_finger_tip,
+        Joint::Index(FingerJoint::PhalanxTip),
+    ),
+    (
+        XRHandJoint::Middle_finger_metacarpal,
+        Joint::Middle(FingerJoint::Metacarpal),
+    ),
+    (
+        XRHandJoint::Middle_finger_phalanx_proximal,
+        Joint::Middle(FingerJoint::PhalanxProximal),
+    ),
+    (XRHandJoint::Middle_finger_phalanx_intermediate, {
+        Joint::Middle(FingerJoint::PhalanxIntermediate)
+    }),
+    (
+        XRHandJoint::Middle_finger_phalanx_distal,
+        Joint::Middle(FingerJoint::PhalanxDistal),
+    ),
+    (
+        XRHandJoint::Middle_finger_tip,
+        Joint::Middle(FingerJoint::PhalanxTip),
+    ),
+    (
+        XRHandJoint::Ring_finger_metacarpal,
+        Joint::Ring(FingerJoint::Metacarpal),
+    ),
+    (
+        XRHandJoint::Ring_finger_phalanx_proximal,
+        Joint::Ring(FingerJoint::PhalanxProximal),
+    ),
+    (XRHandJoint::Ring_finger_phalanx_intermediate, {
+        Joint::Ring(FingerJoint::PhalanxIntermediate)
+    }),
+    (
+        XRHandJoint::Ring_finger_phalanx_distal,
+        Joint::Ring(FingerJoint::PhalanxDistal),
+    ),
+    (
+        XRHandJoint::Ring_finger_tip,
+        Joint::Ring(FingerJoint::PhalanxTip),
+    ),
+    (
+        XRHandJoint::Pinky_finger_metacarpal,
+        Joint::Little(FingerJoint::Metacarpal),
+    ),
+    (
+        XRHandJoint::Pinky_finger_phalanx_proximal,
+        Joint::Little(FingerJoint::PhalanxProximal),
+    ),
+    (XRHandJoint::Pinky_finger_phalanx_intermediate, {
+        Joint::Little(FingerJoint::PhalanxIntermediate)
+    }),
+    (
+        XRHandJoint::Pinky_finger_phalanx_distal,
+        Joint::Little(FingerJoint::PhalanxDistal),
+    ),
+    (
+        XRHandJoint::Pinky_finger_tip,
+        Joint::Little(FingerJoint::PhalanxTip),
+    ),
 ];
 
 #[dom_struct]
@@ -63,13 +122,14 @@ impl XRHand {
     pub fn new(global: &GlobalScope, source: &XRInputSource, support: Hand<()>) -> DomRoot<XRHand> {
         let id = source.id();
         let session = source.session();
-        let spaces = support
-            .map(|field, joint| {
-                let hand_joint = JOINT_SPACE_MAP.iter().find(|&&(_, value)| value == joint)
-                    .map(|&(hand_joint, _)| hand_joint)
-                    .expect("Invalid joint name");
-                field.map(|_| XRJointSpace::new(global, session, id, joint, hand_joint))
-            });
+        let spaces = support.map(|field, joint| {
+            let hand_joint = JOINT_SPACE_MAP
+                .iter()
+                .find(|&&(_, value)| value == joint)
+                .map(|&(hand_joint, _)| hand_joint)
+                .expect("Invalid joint name");
+            field.map(|_| XRJointSpace::new(global, session, id, joint, hand_joint))
+        });
         reflect_dom_object(Box::new(XRHand::new_inherited(source, &spaces)), global)
     }
 }
@@ -82,10 +142,15 @@ impl XRHandMethods for XRHand {
 
     /// <https://github.com/immersive-web/webxr-hands-input/blob/master/explainer.md>
     fn Get(&self, joint_name: XRHandJoint) -> DomRoot<XRJointSpace> {
-        let joint = JOINT_SPACE_MAP.iter().find(|&&(key, _)| key == joint_name)
+        let joint = JOINT_SPACE_MAP
+            .iter()
+            .find(|&&(key, _)| key == joint_name)
             .map(|&(_, joint)| joint)
             .expect("Invalid joint name");
-        self.spaces.get(joint).map(|j| DomRoot::from_ref(&**j)).expect("Failed to get joint pose")
+        self.spaces
+            .get(joint)
+            .map(|j| DomRoot::from_ref(&**j))
+            .expect("Failed to get joint pose")
     }
 }
 
@@ -99,7 +164,10 @@ impl Iterable for XRHand {
 
     fn get_value_at_index(&self, n: u32) -> DomRoot<XRJointSpace> {
         let joint = JOINT_SPACE_MAP[n as usize].1;
-        self.spaces.get(joint).map(|j| DomRoot::from_ref(&**j)).expect("Failed to get joint pose")
+        self.spaces
+            .get(joint)
+            .map(|j| DomRoot::from_ref(&**j))
+            .expect("Failed to get joint pose")
     }
 
     fn get_key_at_index(&self, n: u32) -> XRHandJoint {
