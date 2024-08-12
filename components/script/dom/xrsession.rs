@@ -33,7 +33,7 @@ use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::{
     XRRenderStateInit, XRRenderStateMethods,
 };
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::{
-    XREnvironmentBlendMode, XRFrameRequestCallback, XRSessionMethods, XRVisibilityState,
+    XREnvironmentBlendMode, XRFrameRequestCallback, XRInteractionMode, XRSessionMethods, XRVisibilityState,
 };
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::XRSessionMode;
 use crate::dom::bindings::error::{Error, ErrorResult};
@@ -872,6 +872,13 @@ impl XRSessionMethods for XRSession {
         self.session.borrow().request_hit_test(source);
 
         p
+    }
+
+    /// <https://www.w3.org/TR/webxr-ar-module-1/#dom-xrsession-interactionmode>
+    fn InteractionMode(&self) -> XRInteractionMode {
+        // Until Servo supports WebXR sessions on mobile phones or similar non-XR devices,
+        // this should always be world space
+        XRInteractionMode::World_space
     }
 }
 
