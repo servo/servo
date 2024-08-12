@@ -39,8 +39,8 @@ interface BaseAudioContext : EventTarget {
   [Throws]  GainNode createGain();
   // DelayNode createDelay(optional double maxDelayTime = 1);
   [Throws] BiquadFilterNode createBiquadFilter();
-  // IIRFilterNode createIIRFilter(sequence<double> feedforward,
-  //                               sequence<double> feedback);
+  [Throws] IIRFilterNode createIIRFilter(sequence<double> feedforward,
+                                sequence<double> feedback);
   // WaveShaperNode createWaveShaper();
   [Throws] PannerNode createPanner();
   [Throws] StereoPannerNode createStereoPanner();

@@ -42,6 +42,7 @@ use crate::dom::bindings::codegen::Bindings::ChannelMergerNodeBinding::ChannelMe
 use crate::dom::bindings::codegen::Bindings::ChannelSplitterNodeBinding::ChannelSplitterOptions;
 use crate::dom::bindings::codegen::Bindings::ConstantSourceNodeBinding::ConstantSourceOptions;
 use crate::dom::bindings::codegen::Bindings::GainNodeBinding::GainOptions;
+use crate::dom::bindings::codegen::Bindings::IIRFilterNodeBinding::IIRFilterOptions;
 use crate::dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorOptions;
 use crate::dom::bindings::codegen::Bindings::PannerNodeBinding::PannerOptions;
 use crate::dom::bindings::codegen::Bindings::StereoPannerNodeBinding::StereoPannerOptions;
@@ -58,6 +59,7 @@ use crate::dom::constantsourcenode::ConstantSourceNode;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::gainnode::GainNode;
+use crate::dom::iirfilternode::IIRFilterNode;
 use crate::dom::oscillatornode::OscillatorNode;
 use crate::dom::pannernode::PannerNode;
 use crate::dom::promise::Promise;
@@ -263,6 +265,10 @@ impl BaseAudioContext {
                 );
             },
         }
+    }
+
+    pub fn channel_count(&self) -> u32 {
+        self.channel_count
     }
 }
 
@@ -549,6 +555,20 @@ impl BaseAudioContextMethods for BaseAudioContext {
 
         // Step 4.
         promise
+    }
+
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createiirfilter>
+    fn CreateIIRFilter(
+        &self,
+        feedforward: Vec<Finite<f64>>,
+        feedback: Vec<Finite<f64>>,
+    ) -> Fallible<DomRoot<IIRFilterNode>> {
+        let opts = IIRFilterOptions {
+            parent: AudioNodeOptions::empty(),
+            feedback,
+            feedforward,
+        };
+        IIRFilterNode::new(self.global().as_window(), self, &opts)
     }
 }
 
