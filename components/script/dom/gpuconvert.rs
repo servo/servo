@@ -329,5 +329,9 @@ pub fn convert_ic_texture(ic_texture: &GPUImageCopyTexture) -> wgpu_com::ImageCo
 }
 
 pub fn convert_label(parent: &GPUObjectDescriptorBase) -> Option<Cow<'static, str>> {
-    parent.label.as_ref().map(|s| Cow::Owned(s.to_string()))
+    if parent.label.is_empty() {
+        None
+    } else {
+        Some(Cow::Owned(parent.label.to_string()))
+    }
 }

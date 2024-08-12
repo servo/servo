@@ -192,7 +192,7 @@ impl GPUTextureMethods for GPUTexture {
             self.channel.clone(),
             texture_view,
             self,
-            descriptor.parent.label.clone().unwrap_or_default(),
+            descriptor.parent.label.clone(),
         )
     }
 

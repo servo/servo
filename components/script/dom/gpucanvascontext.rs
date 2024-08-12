@@ -20,6 +20,7 @@ use super::bindings::codegen::Bindings::WebGPUBinding::GPUTextureUsageConstants;
 use super::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas;
 use super::bindings::error::{Error, Fallible};
 use super::bindings::root::MutNullableDom;
+use super::bindings::str::USVString;
 use super::gputexture::GPUTexture;
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElement_Binding::HTMLCanvasElementMethods;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
@@ -236,7 +237,9 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
             }),
             viewFormats: descriptor.viewFormats.clone(),
             // other members to default
-            parent: GPUObjectDescriptorBase { label: None },
+            parent: GPUObjectDescriptorBase {
+                label: USVString::default(),
+            },
             dimension: GPUTextureDimension::_2d,
         };
 
