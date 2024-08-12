@@ -10,6 +10,7 @@
 #![crate_type = "rlib"]
 #![deny(unsafe_code)]
 
+use std::collections::HashMap;
 use std::net::TcpStream;
 use std::time::{Duration, SystemTime};
 
@@ -232,6 +233,8 @@ pub enum DevtoolScriptControlMsg {
     RequestAnimationFrame(PipelineId, String),
     /// Direct the given pipeline to reload the current page.
     Reload(PipelineId),
+    /// Gets the list of all allowed CSS rules and possible values.
+    GetCssDatabase(IpcSender<HashMap<String, CssDatabaseProperty>>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -387,3 +390,12 @@ impl PreciseTime {
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct WorkerId(pub Uuid);
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CssDatabaseProperty {
+    pub is_inherited: bool,
+    pub values: Vec<String>,
+    pub supports: Vec<String>,
+    pub subproperties: Vec<String>,
+}

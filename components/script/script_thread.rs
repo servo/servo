@@ -2559,6 +2559,9 @@ impl ScriptThread {
                 devtools::handle_request_animation_frame(&documents, id, name)
             },
             DevtoolScriptControlMsg::Reload(id) => devtools::handle_reload(&documents, id),
+            DevtoolScriptControlMsg::GetCssDatabase(reply) => {
+                devtools::handle_get_css_database(reply)
+            },
         }
     }
 

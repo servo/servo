@@ -12,9 +12,9 @@ use std::net::TcpStream;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use base::id::{BrowsingContextId, PipelineId};
-use devtools_traits::DevtoolScriptControlMsg::{self, WantsLiveNotifications};
+use devtools_traits::DevtoolScriptControlMsg::{self, GetCssDatabase, WantsLiveNotifications};
 use devtools_traits::{ConsoleLog, DevtoolsPageInfo, NavigationState, PageError};
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcSender};
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -229,7 +229,10 @@ impl BrowsingContextActor {
 
         let accessibility = AccessibilityActor::new(actors.new_name("accessibility"));
 
-        let css_properties = CssPropertiesActor::new(actors.new_name("css-properties"));
+        let (tx, rx) = ipc::channel().unwrap();
+        script_sender.send(GetCssDatabase(tx)).unwrap();
+        let properties = rx.recv().unwrap();
+        let css_properties = CssPropertiesActor::new(actors.new_name("css-properties"), properties);
 
         let inspector = InspectorActor {
             name: actors.new_name("inspector"),

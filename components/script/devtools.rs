@@ -2,18 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
 use std::rc::Rc;
 use std::str;
 
 use base::id::PipelineId;
 use devtools_traits::{
-    AppliedNodeStyle, AttrModification, AutoMargins, ComputedNodeLayout, EvaluateJSReply, NodeInfo,
-    RuleModification, TimelineMarker, TimelineMarkerType,
+    AppliedNodeStyle, AttrModification, AutoMargins, ComputedNodeLayout, CssDatabaseProperty,
+    EvaluateJSReply, NodeInfo, RuleModification, TimelineMarker, TimelineMarkerType,
 };
 use ipc_channel::ipc::IpcSender;
 use js::jsval::UndefinedValue;
 use js::rust::ToString;
-use style::properties::{LonghandId, ShorthandId};
+use style::properties::ShorthandId;
 use uuid::Uuid;
 
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
@@ -395,7 +396,20 @@ pub fn handle_reload(documents: &Documents, id: PipelineId) {
     }
 }
 
-pub fn handle_get_css_database() {
-    // TODO: Build css database
-    ShorthandId::All.longhands().map(|l| {}).collect()
+pub fn handle_get_css_database(reply: IpcSender<HashMap<String, CssDatabaseProperty>>) {
+    let database: HashMap<_, _> = ShorthandId::All
+        .longhands()
+        .map(|l| {
+            (
+                l.name().into(),
+                CssDatabaseProperty {
+                    is_inherited: l.inherited(),
+                    values: vec![], // TODO: Get allowed values
+                    supports: vec![],
+                    subproperties: vec![l.name().into()],
+                },
+            )
+        })
+        .collect();
+    let _ = reply.send(database);
 }
