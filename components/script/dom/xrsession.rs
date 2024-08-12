@@ -33,7 +33,8 @@ use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::{
     XRRenderStateInit, XRRenderStateMethods,
 };
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::{
-    XREnvironmentBlendMode, XRFrameRequestCallback, XRInteractionMode, XRSessionMethods, XRVisibilityState,
+    XREnvironmentBlendMode, XRFrameRequestCallback, XRInteractionMode, XRSessionMethods,
+    XRVisibilityState,
 };
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::XRSessionMode;
 use crate::dom::bindings::error::{Error, ErrorResult};
