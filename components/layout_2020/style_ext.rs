@@ -244,7 +244,7 @@ pub(crate) trait ComputedValuesExt {
         containing_block_writing_mode: WritingMode,
     ) -> LogicalSides<LengthPercentageOrAuto<'_>>;
     fn has_transform_or_perspective(&self, fragment_flags: FragmentFlags) -> bool;
-    fn effective_z_index(&self) -> i32;
+    fn effective_z_index(&self, fragment_flags: FragmentFlags) -> i32;
     fn establishes_block_formatting_context(&self) -> bool;
     fn establishes_stacking_context(&self, fragment_flags: FragmentFlags) -> bool;
     fn establishes_scroll_container(&self) -> bool;
@@ -532,9 +532,14 @@ impl ComputedValuesExt for ComputedValues {
     /// Get the effective z-index of this fragment. Z-indices only apply to positioned elements
     /// per CSS 2 9.9.1 (<http://www.w3.org/TR/CSS2/visuren.html#z-index>), so this value may differ
     /// from the value specified in the style.
-    fn effective_z_index(&self) -> i32 {
+    fn effective_z_index(&self, fragment_flags: FragmentFlags) -> i32 {
+        // From <https://drafts.csswg.org/css-flexbox/#painting>:
+        // > Flex items paint exactly the same as inline blocks [CSS2], except that order-modified
+        // > document order is used in place of raw document order, and z-index values other than auto
+        // > create a stacking context even if position is static (behaving exactly as if position
+        // > were relative).
         match self.get_box().position {
-            ComputedPosition::Static => 0,
+            ComputedPosition::Static if !fragment_flags.contains(FragmentFlags::IS_FLEX_ITEM) => 0,
             _ => self.get_position().z_index.integer_or(0),
         }
     }
@@ -597,8 +602,16 @@ impl ComputedValuesExt for ComputedValues {
 
         // Statically positioned fragments don't establish stacking contexts if the previous
         // conditions are not fulfilled. Furthermore, z-index doesn't apply to statically
-        // positioned fragments.
-        if self.get_box().position == ComputedPosition::Static {
+        // positioned fragments (except for flex items, see below).
+        //
+        // From <https://drafts.csswg.org/css-flexbox/#painting>:
+        // > Flex items paint exactly the same as inline blocks [CSS2], except that order-modified
+        // > document order is used in place of raw document order, and z-index values other than auto
+        // > create a stacking context even if position is static (behaving exactly as if position
+        // > were relative).
+        if self.get_box().position == ComputedPosition::Static &&
+            !fragment_flags.contains(FragmentFlags::IS_FLEX_ITEM)
+        {
             return false;
         }
 
