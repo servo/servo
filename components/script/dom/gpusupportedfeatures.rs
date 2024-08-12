@@ -70,9 +70,13 @@ impl GPUSupportedFeatures {
         if features.contains(Features::INDIRECT_FIRST_INSTANCE) {
             set.insert(GPUFeatureName::Indirect_first_instance);
         }
+        // While this feature exists in wgpu, it's not supported by naga yet
+        // https://github.com/gfx-rs/wgpu/issues/4384
+        /*
         if features.contains(Features::SHADER_F16) {
             set.insert(GPUFeatureName::Shader_f16);
         }
+        */
         if features.contains(Features::RG11B10UFLOAT_RENDERABLE) {
             set.insert(GPUFeatureName::Rg11b10ufloat_renderable);
         }
@@ -122,7 +126,9 @@ pub fn gpu_to_wgt_feature(feature: GPUFeatureName) -> Option<Features> {
         GPUFeatureName::Texture_compression_astc => Some(Features::TEXTURE_COMPRESSION_ASTC),
         GPUFeatureName::Timestamp_query => Some(Features::TIMESTAMP_QUERY),
         GPUFeatureName::Indirect_first_instance => Some(Features::INDIRECT_FIRST_INSTANCE),
-        GPUFeatureName::Shader_f16 => Some(Features::SHADER_F16),
+        // While this feature exists in wgpu, it's not supported by naga yet
+        // https://github.com/gfx-rs/wgpu/issues/4384
+        GPUFeatureName::Shader_f16 => None,
         GPUFeatureName::Rg11b10ufloat_renderable => Some(Features::RG11B10UFLOAT_RENDERABLE),
         GPUFeatureName::Bgra8unorm_storage => Some(Features::BGRA8UNORM_STORAGE),
         GPUFeatureName::Float32_filterable => Some(Features::FLOAT32_FILTERABLE),
