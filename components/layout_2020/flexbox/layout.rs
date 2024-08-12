@@ -1262,7 +1262,7 @@ impl InitialFlexLineLayout<'_> {
         let mut max_ascent = Au::zero();
         let mut max_descent = Au::zero();
         let mut max_outer_hypothetical_cross_size = Au::zero();
-        for (item_result, item) in item_layout_results.iter().zip(&items) {
+        for (item_result, item) in item_layout_results.iter().zip(items) {
             // TODO: check inline-axis is parallel to main axis, check no auto cross margins
             if matches!(
                 item.align_self.0.value(),
