@@ -298,8 +298,10 @@ enum GPUTextureFormat {
     "bgra8unorm",
     "bgra8unorm-srgb",
     // Packed 32-bit formats
+    "rgb9e5ufloat",
+    "rgb10a2uint",
     "rgb10a2unorm",
-    "rg11b10float",
+    "rg11b10ufloat",
 
     // 64-bit formats
     "rg32uint",
@@ -314,12 +316,15 @@ enum GPUTextureFormat {
     "rgba32sint",
     "rgba32float",
 
-    // Depth and stencil formats
-    //"stencil8", //TODO
-    //"depth16unorm",
+    // Depth/stencil formats
+    "stencil8",
+    "depth16unorm",
     "depth24plus",
     "depth24plus-stencil8",
     "depth32float",
+
+    // "depth32float-stencil8" feature
+    "depth32float-stencil8",
 
     // BC compressed formats usable if "texture-compression-bc" is both
     // supported by the device/user agent and enabled in requestDevice.
@@ -338,11 +343,49 @@ enum GPUTextureFormat {
     "bc7-rgba-unorm",
     "bc7-rgba-unorm-srgb",
 
-    // "depth24unorm-stencil8" feature
-    //"depth24unorm-stencil8",
+    // ETC2 compressed formats usable if "texture-compression-etc2" is both
+    // supported by the device/user agent and enabled in requestDevice.
+    "etc2-rgb8unorm",
+    "etc2-rgb8unorm-srgb",
+    "etc2-rgb8a1unorm",
+    "etc2-rgb8a1unorm-srgb",
+    "etc2-rgba8unorm",
+    "etc2-rgba8unorm-srgb",
+    "eac-r11unorm",
+    "eac-r11snorm",
+    "eac-rg11unorm",
+    "eac-rg11snorm",
 
-    // "depth32float-stencil8" feature
-    //"depth32float-stencil8",
+    // ASTC compressed formats usable if "texture-compression-astc" is both
+    // supported by the device/user agent and enabled in requestDevice.
+    "astc-4x4-unorm",
+    "astc-4x4-unorm-srgb",
+    "astc-5x4-unorm",
+    "astc-5x4-unorm-srgb",
+    "astc-5x5-unorm",
+    "astc-5x5-unorm-srgb",
+    "astc-6x5-unorm",
+    "astc-6x5-unorm-srgb",
+    "astc-6x6-unorm",
+    "astc-6x6-unorm-srgb",
+    "astc-8x5-unorm",
+    "astc-8x5-unorm-srgb",
+    "astc-8x6-unorm",
+    "astc-8x6-unorm-srgb",
+    "astc-8x8-unorm",
+    "astc-8x8-unorm-srgb",
+    "astc-10x5-unorm",
+    "astc-10x5-unorm-srgb",
+    "astc-10x6-unorm",
+    "astc-10x6-unorm-srgb",
+    "astc-10x8-unorm",
+    "astc-10x8-unorm-srgb",
+    "astc-10x10-unorm",
+    "astc-10x10-unorm-srgb",
+    "astc-12x10-unorm",
+    "astc-12x10-unorm-srgb",
+    "astc-12x12-unorm",
+    "astc-12x12-unorm-srgb",
 };
 
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
