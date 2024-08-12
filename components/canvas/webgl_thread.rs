@@ -1085,7 +1085,8 @@ impl WebGLImpl {
                 state.restore_depth_invariant(gl);
             },
             WebGLCommand::DepthRange(near, far) => {
-gl.depth_range(near.max(0.).min(1.) as f64, far.max(0.).min(1.) as f64)            },
+                gl.depth_range(near.max(0.).min(1.) as f64, far.max(0.).min(1.) as f64)
+            },
             WebGLCommand::Disable(cap) => match cap {
                 gl::SCISSOR_TEST => {
                     state.scissor_test_enabled = false;
