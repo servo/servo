@@ -13,6 +13,7 @@
   "dom.fullscreen.test": false,
   "dom.gamepad.enabled": false,
   "dom.imagebitmap.enabled": false,
+  "dom.indexeddb.enabled": true,
   "dom.microdata.enabled": false,
   "dom.microdata.testing.enabled": false,
   "dom.mouseevent.which.enabled": false,
