@@ -1,6 +1,6 @@
 [toolchain]
 # Be sure to update etc/shell.nix when bumping this!
-channel = "1.80.0"
+channel = "1.80.1"
 
 components = [
     # For support/crown
