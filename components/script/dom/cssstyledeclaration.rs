@@ -3,10 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cmp::Ordering;
+use std::sync::LazyLock;
 
 use dom_struct::dom_struct;
 use html5ever::local_name;
-use lazy_static::lazy_static;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -344,35 +344,33 @@ impl CSSStyleDeclaration {
     }
 }
 
-lazy_static! {
-    static ref ENABLED_LONGHAND_PROPERTIES: Vec<LonghandId> = {
-        // The 'all' shorthand contains all the enabled longhands with 2 exceptions:
-        // 'direction' and 'unicode-bidi', so these must be added afterward.
-        let mut enabled_longhands: Vec<LonghandId> = ShorthandId::All.longhands().collect();
-        if PropertyId::NonCustom(LonghandId::Direction.into()).enabled_for_all_content() {
-            enabled_longhands.push(LonghandId::Direction);
-        }
-        if PropertyId::NonCustom(LonghandId::UnicodeBidi.into()).enabled_for_all_content() {
-            enabled_longhands.push(LonghandId::UnicodeBidi);
-        }
+static ENABLED_LONGHAND_PROPERTIES: LazyLock<Vec<LonghandId>> = LazyLock::new(|| {
+    // The 'all' shorthand contains all the enabled longhands with 2 exceptions:
+    // 'direction' and 'unicode-bidi', so these must be added afterward.
+    let mut enabled_longhands: Vec<LonghandId> = ShorthandId::All.longhands().collect();
+    if PropertyId::NonCustom(LonghandId::Direction.into()).enabled_for_all_content() {
+        enabled_longhands.push(LonghandId::Direction);
+    }
+    if PropertyId::NonCustom(LonghandId::UnicodeBidi.into()).enabled_for_all_content() {
+        enabled_longhands.push(LonghandId::UnicodeBidi);
+    }
 
-        // Sort lexicographically, but with vendor-prefixed properties after standard ones.
-        enabled_longhands.sort_unstable_by(|a, b| {
-            let a = a.name();
-            let b = b.name();
-            let is_a_vendor_prefixed = a.starts_with('-');
-            let is_b_vendor_prefixed = b.starts_with('-');
-            if is_a_vendor_prefixed == is_b_vendor_prefixed {
-                a.partial_cmp(b).unwrap()
-            } else if is_b_vendor_prefixed {
-                Ordering::Less
-            } else {
-                Ordering::Greater
-            }
-        });
-        enabled_longhands
-    };
-}
+    // Sort lexicographically, but with vendor-prefixed properties after standard ones.
+    enabled_longhands.sort_unstable_by(|a, b| {
+        let a = a.name();
+        let b = b.name();
+        let is_a_vendor_prefixed = a.starts_with('-');
+        let is_b_vendor_prefixed = b.starts_with('-');
+        if is_a_vendor_prefixed == is_b_vendor_prefixed {
+            a.partial_cmp(b).unwrap()
+        } else if is_b_vendor_prefixed {
+            Ordering::Less
+        } else {
+            Ordering::Greater
+        }
+    });
+    enabled_longhands
+});
 
 impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length

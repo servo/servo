@@ -11,6 +11,7 @@ use std::default::Default;
 use std::mem;
 use std::rc::Rc;
 use std::slice::from_ref;
+use std::sync::LazyLock;
 use std::time::{Duration, Instant};
 
 use base::id::BrowsingContextId;
@@ -28,7 +29,6 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use js::rust::{HandleObject, HandleValue};
 use keyboard_types::{Code, Key, KeyState};
-use lazy_static::lazy_static;
 use metrics::{
     InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory,
     ProgressiveWebMetric,
@@ -3219,17 +3219,15 @@ impl Document {
             anchors: Default::default(),
             applets: Default::default(),
             style_shared_lock: {
-                lazy_static! {
-                    /// Per-process shared lock for author-origin stylesheets
-                    ///
-                    /// FIXME: make it per-document or per-pipeline instead:
-                    /// <https://github.com/servo/servo/issues/16027>
-                    /// (Need to figure out what to do with the style attribute
-                    /// of elements adopted into another document.)
-                    static ref PER_PROCESS_AUTHOR_SHARED_LOCK: StyleSharedRwLock = {
-                        StyleSharedRwLock::new()
-                    };
-                }
+                /// Per-process shared lock for author-origin stylesheets
+                ///
+                /// FIXME: make it per-document or per-pipeline instead:
+                /// <https://github.com/servo/servo/issues/16027>
+                /// (Need to figure out what to do with the style attribute
+                /// of elements adopted into another document.)
+                static PER_PROCESS_AUTHOR_SHARED_LOCK: LazyLock<StyleSharedRwLock> =
+                    LazyLock::new(|| StyleSharedRwLock::new());
+
                 PER_PROCESS_AUTHOR_SHARED_LOCK.clone()
                 //StyleSharedRwLock::new()
             },

@@ -4,10 +4,10 @@
 
 use std::cell::Cell;
 use std::convert::TryInto;
+use std::sync::LazyLock;
 
 use dom_struct::dom_struct;
 use js::jsval::JSVal;
-use lazy_static::lazy_static;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
@@ -32,9 +32,8 @@ use crate::dom::xrsystem::XRSystem;
 use crate::script_runtime::JSContext;
 
 pub(super) fn hardware_concurrency() -> u64 {
-    lazy_static! {
-        static ref CPUS: u64 = num_cpus::get().try_into().unwrap_or(1);
-    }
+    static CPUS: LazyLock<u64> = LazyLock::new(|| num_cpus::get().try_into().unwrap_or(1));
+
     *CPUS
 }
 

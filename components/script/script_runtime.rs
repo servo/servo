@@ -47,7 +47,6 @@ use js::rust::{
     describe_scripted_caller, Handle, HandleObject as RustHandleObject, IntoHandle, JSEngine,
     JSEngineHandle, ParentRuntime, Runtime as RustRuntime,
 };
-use lazy_static::lazy_static;
 use malloc_size_of::MallocSizeOfOps;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use profile_traits::path;
@@ -487,9 +486,7 @@ impl Drop for JSEngineSetup {
     }
 }
 
-lazy_static! {
-    static ref JS_ENGINE: Mutex<Option<JSEngineHandle>> = Mutex::new(None);
-}
+static JS_ENGINE: Mutex<Option<JSEngineHandle>> = Mutex::new(None);
 
 #[allow(unsafe_code)]
 pub unsafe fn new_child_runtime(

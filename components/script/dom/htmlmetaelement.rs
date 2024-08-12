@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::str::FromStr;
+use std::sync::LazyLock;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
@@ -146,8 +147,8 @@ impl HTMLMetaElement {
         }
 
         // 2-11
-        lazy_static::lazy_static! {
-            static ref REFRESH_REGEX: Regex = Regex::new(
+        static REFRESH_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+            Regex::new(
                 r#"(?x)
                 ^
                 \s* # 3
@@ -169,8 +170,9 @@ impl HTMLMetaElement {
                 $
             "#,
             )
-            .unwrap();
-        }
+            .unwrap()
+        });
+
         let mut url_record = document.url();
         let captures = if let Some(captures) = REFRESH_REGEX.captures(content.as_bytes()) {
             captures
