@@ -210,6 +210,15 @@ interface GPUTexture {
     GPUTextureView createView(optional GPUTextureViewDescriptor descriptor = {});
 
     undefined destroy();
+
+    readonly attribute GPUIntegerCoordinateOut width;
+    readonly attribute GPUIntegerCoordinateOut height;
+    readonly attribute GPUIntegerCoordinateOut depthOrArrayLayers;
+    readonly attribute GPUIntegerCoordinateOut mipLevelCount;
+    readonly attribute GPUSize32Out sampleCount;
+    readonly attribute GPUTextureDimension dimension;
+    readonly attribute GPUTextureFormat format;
+    readonly attribute GPUFlagsConstant usage;
 };
 GPUTexture includes GPUObjectBase;
 
@@ -1209,6 +1218,12 @@ typedef [EnforceRange] unsigned long GPUIntegerCoordinate;
 typedef [EnforceRange] unsigned long GPUIndex32;
 typedef [EnforceRange] unsigned long GPUSize32;
 typedef [EnforceRange] long GPUSignedOffset32;
+
+typedef unsigned long long GPUSize64Out;
+typedef unsigned long GPUIntegerCoordinateOut;
+typedef unsigned long GPUSize32Out;
+
+typedef unsigned long GPUFlagsConstant;
 
 dictionary GPUColorDict {
     required double r;
