@@ -5925,7 +5925,7 @@ dependencies = [
 [[package]]
 name = "servo-media"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#adfb5467abadcc42a0c047fcfd043e5be10818e6"
+source = "git+https://github.com/servo/media#f6e6ee0528c8735e3ded8b9a9f68acfabefaf539"
 dependencies = [
  "once_cell",
  "servo-media-audio",
@@ -5938,7 +5938,7 @@ dependencies = [
 [[package]]
 name = "servo-media-audio"
 version = "0.2.0"
-source = "git+https://github.com/servo/media#adfb5467abadcc42a0c047fcfd043e5be10818e6"
+source = "git+https://github.com/servo/media#f6e6ee0528c8735e3ded8b9a9f68acfabefaf539"
 dependencies = [
  "byte-slice-cast",
  "euclid",
@@ -5959,17 +5959,17 @@ dependencies = [
 [[package]]
 name = "servo-media-derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#adfb5467abadcc42a0c047fcfd043e5be10818e6"
+source = "git+https://github.com/servo/media#f6e6ee0528c8735e3ded8b9a9f68acfabefaf539"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 1.0.109",
+ "syn 2.0.74",
 ]
 
 [[package]]
 name = "servo-media-dummy"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#adfb5467abadcc42a0c047fcfd043e5be10818e6"
+source = "git+https://github.com/servo/media#f6e6ee0528c8735e3ded8b9a9f68acfabefaf539"
 dependencies = [
  "ipc-channel",
  "servo-media",
@@ -5983,7 +5983,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#adfb5467abadcc42a0c047fcfd043e5be10818e6"
+source = "git+https://github.com/servo/media#f6e6ee0528c8735e3ded8b9a9f68acfabefaf539"
 dependencies = [
  "byte-slice-cast",
  "glib",
@@ -6017,7 +6017,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#adfb5467abadcc42a0c047fcfd043e5be10818e6"
+source = "git+https://github.com/servo/media#f6e6ee0528c8735e3ded8b9a9f68acfabefaf539"
 dependencies = [
  "gstreamer",
  "gstreamer-video",
@@ -6027,7 +6027,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-android"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#adfb5467abadcc42a0c047fcfd043e5be10818e6"
+source = "git+https://github.com/servo/media#f6e6ee0528c8735e3ded8b9a9f68acfabefaf539"
 dependencies = [
  "glib",
  "gstreamer",
@@ -6041,7 +6041,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-unix"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#adfb5467abadcc42a0c047fcfd043e5be10818e6"
+source = "git+https://github.com/servo/media#f6e6ee0528c8735e3ded8b9a9f68acfabefaf539"
 dependencies = [
  "glib",
  "gstreamer",
@@ -6056,7 +6056,7 @@ dependencies = [
 [[package]]
 name = "servo-media-player"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#adfb5467abadcc42a0c047fcfd043e5be10818e6"
+source = "git+https://github.com/servo/media#f6e6ee0528c8735e3ded8b9a9f68acfabefaf539"
 dependencies = [
  "ipc-channel",
  "serde",
@@ -6068,7 +6068,7 @@ dependencies = [
 [[package]]
 name = "servo-media-streams"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#adfb5467abadcc42a0c047fcfd043e5be10818e6"
+source = "git+https://github.com/servo/media#f6e6ee0528c8735e3ded8b9a9f68acfabefaf539"
 dependencies = [
  "lazy_static",
  "uuid",
@@ -6077,12 +6077,12 @@ dependencies = [
 [[package]]
 name = "servo-media-traits"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#adfb5467abadcc42a0c047fcfd043e5be10818e6"
+source = "git+https://github.com/servo/media#f6e6ee0528c8735e3ded8b9a9f68acfabefaf539"
 
 [[package]]
 name = "servo-media-webrtc"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#adfb5467abadcc42a0c047fcfd043e5be10818e6"
+source = "git+https://github.com/servo/media#f6e6ee0528c8735e3ded8b9a9f68acfabefaf539"
 dependencies = [
  "lazy_static",
  "log",
@@ -7940,7 +7940,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
