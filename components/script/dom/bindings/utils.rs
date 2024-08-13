@@ -625,10 +625,6 @@ impl AsCCharPtrPtr for [u8] {
     }
 }
 
-pub unsafe fn callargs_is_constructing(args: &CallArgs) -> bool {
-    (*args.argv_.offset(-1)).is_magic()
-}
-
 /// https://searchfox.org/mozilla-central/rev/7279a1df13a819be254fd4649e07c4ff93e4bd45/dom/bindings/BindingUtils.cpp#3300
 pub unsafe extern "C" fn generic_static_promise_method(
     cx: *mut JSContext,

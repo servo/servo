@@ -6283,7 +6283,7 @@ let global = DomRoot::downcast::<dom::types::%s>(global).unwrap();
         else:
             ctorName = GetConstructorNameForReporting(self.descriptor, self.constructor)
             preamble += """
-if !callargs_is_constructing(&args) {
+if !args.is_constructing() {
   throw_constructor_without_new(*cx, "%s");
   return false;
 }
